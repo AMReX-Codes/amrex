@@ -573,6 +573,18 @@ MLCellLinOp::prepareForSolve ()
     }
 }
 
+Real
+MLCellLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const
+{
+    const int ncomp = 1;
+    const int nghost = 0;
+    Real result = MultiFab::Dot(x,0,y,0,ncomp,nghost,true);
+    if (!local) {
+        ParallelAllReduce::Sum(result, Communicator(amrlev, mglev));
+    }
+    return result;
+}
+
 MLCellLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm)
     : bcond(ba, dm),
       bcloc(ba, dm)

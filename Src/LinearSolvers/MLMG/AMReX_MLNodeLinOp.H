@@ -57,6 +57,8 @@ protected:
 
     virtual void prepareForSolve () override {}
 
+    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final;
+
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
                           bool skip_fillboundary=false) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
@@ -64,10 +66,6 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
-
-    virtual iMultiFab const* getOwnerMask (int amrlev, int mglev) const final {
-        return m_owner_mask[amrlev][mglev].get();
-    }
 
     void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
 
@@ -80,6 +78,7 @@ protected:
     Vector<std::unique_ptr<iMultiFab> > m_cc_fine_mask; // cell-cenetered mask for cells covered by fine
     Vector<std::unique_ptr<iMultiFab> > m_nd_fine_mask; // nodal mask: 0: this level node, 1: c/f boudnary, 2: fine node
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contains c/f boundary?
+    MultiFab m_bottom_dot_mask;
 };
 
 }

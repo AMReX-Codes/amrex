@@ -188,10 +188,10 @@ protected:
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
+    virtual bool isBottomSingular () const = 0;
     virtual Real Anorm (int amrlev, int mglev) const = 0;
     virtual Real getBScalar () const = 0;
-
-    virtual iMultiFab const* getOwnerMask (int amrlev, int mglev) const { return nullptr; }
+    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
 

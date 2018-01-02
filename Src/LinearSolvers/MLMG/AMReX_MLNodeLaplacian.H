@@ -60,6 +60,7 @@ protected:
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return false; }
+    virtual bool isBottomSingular () const final { return m_is_bottom_singular; }
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
                           bool skip_fillboundary=false) const final;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
@@ -80,6 +81,7 @@ private:
     bool m_use_gauss_seidel = true;
     bool m_use_harmonic_average = false;
 
+    bool m_is_bottom_singular = false;
     bool m_masks_built = false;
     //
     // functions

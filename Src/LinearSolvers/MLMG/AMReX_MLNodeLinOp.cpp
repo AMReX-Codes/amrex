@@ -155,5 +155,22 @@ MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     Fsmooth(amrlev, mglev, sol, rhs);
 }
 
+Real
+MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const
+{
+    AMREX_ASSERT(amrlev==0);
+    AMREX_ASSERT(mglev+1==m_num_mg_levels[0]);
+    const int ncomp = 1;
+    const int nghost = 0;
+    MultiFab tmp(x.boxArray(), x.DistributionMap(), 1, 0);
+    MultiFab::Copy(tmp, x, 0, 0, ncomp, nghost);
+    MultiFab::Multiply(tmp, m_bottom_dot_mask, 0, 0, ncomp, nghost);
+    Real result = MultiFab::Dot(tmp,0,y,0,ncomp,nghost,true);
+    if (!local) {
+        ParallelAllReduce::Sum(result, Communicator(amrlev, mglev));
+    }
+    return result;
+}
+
 }
 
