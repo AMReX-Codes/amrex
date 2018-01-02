@@ -583,13 +583,6 @@ MLMG::bottomSolve ()
     MultiFab& x = *cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
 
-    if (linop.isSingular(amrlev)) {
-        const bool local = true;
-        Real offset = b.sum(0,local) / linop.Geom(amrlev,mglev).Domain().d_numPts();
-        ParallelAllReduce::Sum(offset, linop.BottomCommunicator());
-        b.plus(-offset, 0, 1);
-    }
-
     x.setVal(0.0);
 
     if (bottom_solver == BottomSolver::smoother)
@@ -602,6 +595,36 @@ MLMG::bottomSolve ()
     }
     else
     {
+        MultiFab* bottom_b = &b;
+        MultiFab raii_b;
+        if (linop.isBottomSingular())
+        {
+            raii_b.define(b.boxArray(), b.DistributionMap(), 1, b.nGrow());
+            MultiFab::Copy(raii_b,b,0,0,1,b.nGrow());
+            bottom_b = &raii_b;
+
+            Real offset;
+            if (linop.isCellCentered())
+            {
+                const bool local = true;
+                offset = bottom_b->sum(0,local)
+                    / linop.Geom(amrlev,mglev).Domain().d_numPts();
+                ParallelAllReduce::Sum(offset, linop.BottomCommunicator());
+            }
+            else
+            {
+                MultiFab one(b.boxArray(), b.DistributionMap(), 1, 0);
+                one.setVal(1.0);
+                const bool local = true;
+                Real s1 = linop.xdoty(amrlev, mglev, *bottom_b, one, local);
+                Real s2 = linop.xdoty(amrlev, mglev, one, one, local);
+                ParallelAllReduce::Sum<Real>({s1,s2}, linop.BottomCommunicator());
+                offset = s1/s2;
+            }
+
+            bottom_b->plus(-offset, 0, 1);
+        }
+
         MLCGSolver::Solver solver_type;
         if (bottom_solver == BottomSolver::bicgstab)
         {
@@ -619,7 +642,7 @@ MLMG::bottomSolve ()
 
         const Real cg_rtol = 1.e-4;
         const Real cg_atol = -1.0;
-        int ret = cg_solver.solve(x, b, cg_rtol, cg_atol);
+        int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
         if (ret != 0 && verbose >= 1) {
             amrex::Print() << "MLMG: Bottom solve failed.\n";
         }

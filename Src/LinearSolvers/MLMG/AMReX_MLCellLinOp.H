@@ -134,6 +134,8 @@ protected:
 
     virtual void prepareForSolve () override;
 
+    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final;
+
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,

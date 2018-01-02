@@ -515,6 +515,29 @@ MLNodeLaplacian::buildMasks ()
     {
         has_cf[mfi] = 0;
     }
+
+    {
+        int amrlev = 0;
+        int mglev = m_num_mg_levels[amrlev]-1;
+        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+
+        const Geometry& geom = m_geom[amrlev][mglev];
+        const Box& nddomain = amrex::surroundingNodes(geom.Domain());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(m_bottom_dot_mask,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(m_bottom_dot_mask[mfi]),
+                                       BL_TO_FORTRAN_ANYD(omask[mfi]),
+                                       BL_TO_FORTRAN_BOX(nddomain),
+                                       m_lobc.data(), m_hibc.data());
+        }
+    }
 }
 
 void
@@ -546,6 +569,14 @@ MLNodeLaplacian::prepareForSolve ()
     averageDownCoeffs();
 
     buildMasks();
+
+    m_is_bottom_singular = false;
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    {  // No Dirichlet
+        m_is_bottom_singular = m_domain_covered[0];
+    }
 }
 
 void
