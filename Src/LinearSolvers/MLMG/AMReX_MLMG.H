@@ -118,6 +118,8 @@ private:
     void buildFineMask ();
 
     void fillSolutionBC ();
+
+    void averageDownAndSync ();
 };
 
 }

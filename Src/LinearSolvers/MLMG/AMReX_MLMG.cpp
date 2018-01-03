@@ -217,11 +217,7 @@ MLMG::oneIter (int iter)
         }
     }
 
-    const auto& amrrr = linop.AMRRefRatio();
-    for (int falev = finest_amr_lev; falev > 0; --falev)
-    {
-        amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
-    }
+    averageDownAndSync();
 }
 
 // Compute multi-level Residual (res) up to amrlevmax.
@@ -897,6 +893,35 @@ MLMG::fillSolutionBC ()
     {
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         linop.fillSolutionBC(alev, *sol[alev], crse_bcdata);
+    }
+}
+
+void
+MLMG::averageDownAndSync ()
+{
+    const auto& amrrr = linop.AMRRefRatio();
+
+    if (linop.isCellCentered())
+    {
+        for (int falev = finest_amr_lev; falev > 0; --falev)
+        {
+            amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
+        }
+    }
+    else
+    {
+        linop.nodalSync(finest_amr_lev, 0, *sol[finest_amr_lev]);
+        for (int falev = finest_amr_lev; falev > 0; --falev)
+        {
+            const auto& fmf = *sol[falev];
+            auto&       cmf = *sol[falev-1];
+
+            MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), amrrr[falev-1]),
+                           fmf.DistributionMap(), 1, 0);
+            amrex::average_down(fmf, tmpmf, 0, 1, amrrr[falev-1]);
+            cmf.ParallelCopy(tmpmf, 0, 0, 1);
+            linop.nodalSync(falev-1, 0, cmf);
+        }
     }
 }
 
