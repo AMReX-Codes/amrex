@@ -42,17 +42,17 @@ protected:
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final;
     virtual void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const final {
-        amrex::Abort("TODO: compFlux");
+        amrex::Abort("How did we get here?");
     }
     virtual void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const final {
-        amrex::Abort("TODO: compGrad");
+        amrex::Abort("How did we get here?");
     }
     
     virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final {}
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final {}
 
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) final {
-        amrex::Abort("TODO: fillSolutionBC");
+        amrex::Abort("How did we get here?");
     }
 
     virtual void prepareForSolve () override {}
@@ -67,7 +67,7 @@ protected:
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
 
-    void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
+    virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const final;
 
     static std::unique_ptr<iMultiFab> makeOwnerMask (const BoxArray& ba,
                                                      const DistributionMapping& dm,

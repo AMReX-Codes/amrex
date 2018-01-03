@@ -195,6 +195,8 @@ protected:
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
 
+    virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
+
 private:
 
     void defineGrids (const Vector<Geometry>& a_geom,
