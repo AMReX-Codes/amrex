@@ -2022,7 +2022,7 @@ contains
              if (dmsk(i,j,k) .ne. dirichlet) then
                 if (ndmsk(i,j,k) .eq. crse_fine_node) then
                    Ax = 0.d0
-                   if (1.d0-ccmsk(i-1,j-1,k-1) .eq. crse_cell) then
+                   if (ccmsk(i-1,j-1,k-1) .eq. crse_cell) then
                       Ax = Ax + sig(i-1,j-1,k-1)*(facx*(4.d0*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  )) &
                            &                           +2.d0*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  )) &
                            &                           +2.d0*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1)) &
@@ -2036,7 +2036,7 @@ contains
                            &                           +2.d0*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  )) &
                            &                           +     (phi(i-1,j-1,k-1)-phi(i-1,j-1,k  ))))
                    end if
-                   if (1.d0-ccmsk(i,j-1,k-1) .eq. crse_cell) then
+                   if (ccmsk(i,j-1,k-1) .eq. crse_cell) then
                       Ax = Ax + sig(i,j-1,k-1)*(facx*(4.d0*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  )) &
                            &                         +2.d0*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  )) &
                            &                         +2.d0*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1)) &
@@ -2050,7 +2050,7 @@ contains
                            &                         +2.d0*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  )) &
                            &                         +     (phi(i+1,j-1,k-1)-phi(i+1,j-1,k  ))))
                    end if
-                   if (1.d0-ccmsk(i-1,j,k-1) .eq. crse_cell) then
+                   if (ccmsk(i-1,j,k-1) .eq. crse_cell) then
                       Ax = Ax + sig(i-1,j,k-1)*(facx*(4.d0*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  )) &
                            &                         +2.d0*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  )) &
                            &                         +2.d0*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1)) &
@@ -2064,7 +2064,7 @@ contains
                            &                         +2.d0*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  )) &
                            &                         +     (phi(i-1,j+1,k-1)-phi(i-1,j+1,k  ))))
                    end if
-                   if (1.d0-ccmsk(i,j,k-1) .eq. crse_cell) then
+                   if (ccmsk(i,j,k-1) .eq. crse_cell) then
                       Ax = Ax + sig(i,j,k-1)*(facx*(4.d0*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  )) &
                            &                       +2.d0*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  )) &
                            &                       +2.d0*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1)) &
@@ -2078,7 +2078,7 @@ contains
                            &                       +2.d0*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  )) &
                            &                       +     (phi(i+1,j+1,k-1)-phi(i+1,j+1,k  ))))
                    end if
-                   if (1.d0-ccmsk(i-1,j-1,k) .eq. crse_cell) then
+                   if (ccmsk(i-1,j-1,k) .eq. crse_cell) then
                       Ax = Ax + sig(i-1,j-1,k)*(facx*(4.d0*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  )) &
                            &                         +2.d0*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  )) &
                            &                         +2.d0*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1)) &
@@ -2092,7 +2092,7 @@ contains
                            &                         +2.d0*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  )) &
                            &                         +     (phi(i-1,j-1,k+1)-phi(i-1,j-1,k  ))))
                    end if
-                   if (1.d0-ccmsk(i,j-1,k) .eq. crse_cell) then
+                   if (ccmsk(i,j-1,k) .eq. crse_cell) then
                       Ax = Ax + sig(i,j-1,k)*(facx*(4.d0*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  )) &
                            &                       +2.d0*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  )) &
                            &                       +2.d0*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1)) &
@@ -2106,7 +2106,7 @@ contains
                            &                       +2.d0*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  )) &
                            &                       +     (phi(i+1,j-1,k+1)-phi(i+1,j-1,k  ))))
                    end if
-                   if (1.d0-ccmsk(i-1,j,k) .eq. crse_cell) then
+                   if (ccmsk(i-1,j,k) .eq. crse_cell) then
                       Ax = Ax + sig(i-1,j,k)*(facx*(4.d0*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  )) &
                            &                       +2.d0*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  )) &
                            &                       +2.d0*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1)) &
@@ -2120,7 +2120,7 @@ contains
                            &                       +2.d0*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  )) &
                            &                       +     (phi(i-1,j+1,k+1)-phi(i-1,j+1,k  ))))
                    end if
-                   if (1.d0-ccmsk(i,j,k) .eq. crse_cell) then
+                   if (ccmsk(i,j,k) .eq. crse_cell) then
                       Ax = Ax + sig(i,j,k)*(facx*(4.d0*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  )) &
                            &                     +2.d0*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  )) &
                            &                     +2.d0*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1)) &
