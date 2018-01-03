@@ -1050,6 +1050,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
             tmpmask.resize(bx);
             tmpmask.copy(dmsk[mfi], bx, 0, bx, 0, 1);
             tmpmask -= 1;
+            tmpmask *= -1;  //  0 in dmsk --> 1 in tmpmask, and 1 in dmsk --> 0 in tmpmask
 
             rhs.resize(bx);
             amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
