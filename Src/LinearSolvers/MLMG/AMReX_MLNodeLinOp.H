@@ -63,9 +63,6 @@ protected:
                           bool skip_fillboundary=false) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const = 0;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
-                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const = 0;
 
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const final;
 

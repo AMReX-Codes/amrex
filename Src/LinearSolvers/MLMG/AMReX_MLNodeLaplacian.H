@@ -65,10 +65,6 @@ protected:
                           bool skip_fillboundary=false) const final;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
-                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const final
-        { amrex::Abort("MLNodeLaplacian::FFlux should not be called"); } // xxxxx clean this up
     virtual Real Anorm (int amrlev, int mglev) const final
         { amrex::Abort("MLNodeLaplacian::Anorm should not be called");  return 0; }
     virtual Real getBScalar () const final { return 1.0; }
