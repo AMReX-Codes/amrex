@@ -194,7 +194,6 @@ protected:
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
-
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
 
 private:
