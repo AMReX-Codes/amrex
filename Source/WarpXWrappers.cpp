@@ -146,6 +146,30 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
+    double** warpx_getEfieldCP(int lev, int direction,
+                               int *return_size, int *ngrow, int **shapes) {
+        auto & mf = WarpX::GetInstance().getEfield_cp(lev, direction);
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
+    }
+
+    int* warpx_getEfieldCPLoVects(int lev, int direction,
+                                  int *return_size, int *ngrow) {
+        auto & mf = WarpX::GetInstance().getEfield_cp(lev, direction);
+        return getMultiFabLoVects(mf, return_size, ngrow);
+    }
+
+    double** warpx_getEfieldFP(int lev, int direction,
+                               int *return_size, int *ngrow, int **shapes) {
+        auto & mf = WarpX::GetInstance().getEfield_fp(lev, direction);
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
+    }
+
+    int* warpx_getEfieldFPLoVects(int lev, int direction,
+                                  int *return_size, int *ngrow) {
+        auto & mf = WarpX::GetInstance().getEfield_fp(lev, direction);
+        return getMultiFabLoVects(mf, return_size, ngrow);
+    }
+
     double** warpx_getBfield(int lev, int direction,
                              int *return_size, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getBfield(lev, direction);
@@ -158,6 +182,30 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
+    double** warpx_getBfieldCP(int lev, int direction,
+                               int *return_size, int *ngrow, int **shapes) {
+        auto & mf = WarpX::GetInstance().getBfield_cp(lev, direction);
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
+    }
+
+    int* warpx_getBfieldCPLoVects(int lev, int direction,
+                                  int *return_size, int *ngrow) {
+        auto & mf = WarpX::GetInstance().getBfield_cp(lev, direction);
+        return getMultiFabLoVects(mf, return_size, ngrow);
+    }
+
+    double** warpx_getBfieldFP(int lev, int direction,
+                               int *return_size, int *ngrow, int **shapes) {
+        auto & mf = WarpX::GetInstance().getBfield_fp(lev, direction);
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
+    }
+
+    int* warpx_getBfieldFPLoVects(int lev, int direction,
+                                  int *return_size, int *ngrow) {
+        auto & mf = WarpX::GetInstance().getBfield_fp(lev, direction);
+        return getMultiFabLoVects(mf, return_size, ngrow);
+    }
+
     double** warpx_getCurrentDensity(int lev, int direction,
                                      int *return_size, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getcurrent(lev, direction);
@@ -167,6 +215,30 @@ extern "C"
     int* warpx_getCurrentDensityLoVects(int lev, int direction,
                                         int *return_size, int *ngrow) {
         auto & mf = WarpX::GetInstance().getcurrent(lev, direction);
+        return getMultiFabLoVects(mf, return_size, ngrow);
+    }
+
+    double** warpx_getCurrentDensityCP(int lev, int direction,
+                                       int *return_size, int *ngrow, int **shapes) {
+        auto & mf = WarpX::GetInstance().getcurrent_cp(lev, direction);
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
+    }
+
+    int* warpx_getCurrentDensityCPLoVects(int lev, int direction,
+                                          int *return_size, int *ngrow) {
+        auto & mf = WarpX::GetInstance().getcurrent_cp(lev, direction);
+        return getMultiFabLoVects(mf, return_size, ngrow);
+    }
+
+    double** warpx_getCurrentDensityFP(int lev, int direction,
+                                       int *return_size, int *ngrow, int **shapes) {
+        auto & mf = WarpX::GetInstance().getcurrent_fp(lev, direction);
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
+    }
+
+    int* warpx_getCurrentDensityFPLoVects(int lev, int direction,
+                                          int *return_size, int *ngrow) {
+        auto & mf = WarpX::GetInstance().getcurrent_fp(lev, direction);
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 

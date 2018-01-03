@@ -83,16 +83,52 @@ f.restype = LP_LP_c_double
 f = libwarpx.warpx_getEfieldLoVects
 f.restype = LP_c_int
 
+f = libwarpx.warpx_getEfieldCP
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getEfieldCPLoVects
+f.restype = LP_c_int
+
+f = libwarpx.warpx_getEfieldFP
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getEfieldFPLoVects
+f.restype = LP_c_int
+
 f = libwarpx.warpx_getBfield
 f.restype = LP_LP_c_double
 
 f = libwarpx.warpx_getBfieldLoVects
 f.restype = LP_c_int
 
+f = libwarpx.warpx_getBfieldCP
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getBfieldCPLoVects
+f.restype = LP_c_int
+
+f = libwarpx.warpx_getBfieldFP
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getBfieldFPLoVects
+f.restype = LP_c_int
+
 f = libwarpx.warpx_getCurrentDensity
 f.restype = LP_LP_c_double
 
 f = libwarpx.warpx_getCurrentDensityLoVects
+f.restype = LP_c_int
+
+f = libwarpx.warpx_getCurrentDensityCP
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getCurrentDensityCPLoVects
+f.restype = LP_c_int
+
+f = libwarpx.warpx_getCurrentDensityFP
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getCurrentDensityFPLoVects
 f.restype = LP_c_int
 
 #f = libwarpx.warpx_getPMLSigma
@@ -550,6 +586,8 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
     This returns a list of numpy arrays containing the mesh electric field
     data on each grid for this process.
 
+    This version is for the full "auxillary" solution on the given level.
+
     The data for the numpy arrays are not copied, but share the underlying
     memory buffer with WarpX. The numpy arrays are fully writeable.
 
@@ -592,11 +630,111 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
     return grid_data
 
 
+def get_mesh_electric_field_cp(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh electric field
+    data on each grid for this process. This version returns the field on
+    the coarse patch for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    assert(level == 0)
+
+    shapes = LP_c_int()
+    size = ctypes.c_int(0)
+    ngrow = ctypes.c_int(0)
+    data = libwarpx.warpx_getEfieldCP(level, direction,
+                                      ctypes.byref(size), ctypes.byref(ngrow),
+                                      ctypes.byref(shapes))
+    ng = ngrow.value
+    grid_data = []
+    for i in range(size.value):
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
+        # --- The data is stored in Fortran order, hence shape is reversed and a transpose is taken.
+        arr = np.ctypeslib.as_array(data[i], shape[::-1]).T
+        arr.setflags(write=1)
+        if include_ghosts:
+            grid_data.append(arr)
+        else:
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
+
+    libc.free(shapes)
+    libc.free(data)
+    return grid_data
+
+
+def get_mesh_electric_field_fp(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh electric field
+    data on each grid for this process. This version returns the field on
+    the fine patch for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    assert(level == 0)
+
+    shapes = LP_c_int()
+    size = ctypes.c_int(0)
+    ngrow = ctypes.c_int(0)
+    data = libwarpx.warpx_getEfieldFP(level, direction,
+                                      ctypes.byref(size), ctypes.byref(ngrow),
+                                      ctypes.byref(shapes))
+    ng = ngrow.value
+    grid_data = []
+    for i in range(size.value):
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
+        # --- The data is stored in Fortran order, hence shape is reversed and a transpose is taken.
+        arr = np.ctypeslib.as_array(data[i], shape[::-1]).T
+        arr.setflags(write=1)
+        if include_ghosts:
+            grid_data.append(arr)
+        else:
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
+
+    libc.free(shapes)
+    libc.free(data)
+    return grid_data
+
+
 def get_mesh_magnetic_field(level, direction, include_ghosts=True):
     '''
 
     This returns a list of numpy arrays containing the mesh magnetic field
     data on each grid for this process.
+
+    This version is for the full "auxillary" solution on the given level.
 
     The data for the numpy arrays are not copied, but share the underlying
     memory buffer with WarpX. The numpy arrays are fully writeable.
@@ -623,6 +761,104 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
     data = libwarpx.warpx_getBfield(level, direction,
                                     ctypes.byref(size), ctypes.byref(ngrow),
                                     ctypes.byref(shapes))
+    ng = ngrow.value
+    grid_data = []
+    for i in range(size.value):
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
+        # --- The data is stored in Fortran order, hence shape is reversed and a transpose is taken.
+        arr = np.ctypeslib.as_array(data[i], shape[::-1]).T
+        arr.setflags(write=1)
+        if include_ghosts:
+            grid_data.append(arr)
+        else:
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
+
+    libc.free(shapes)
+    libc.free(data)
+    return grid_data
+
+
+def get_mesh_magnetic_field_cp(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh magnetic field
+    data on each grid for this process. This version returns the field on
+    the coarse patch for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    assert(level == 0)
+
+    shapes = LP_c_int()
+    size = ctypes.c_int(0)
+    ngrow = ctypes.c_int(0)
+    data = libwarpx.warpx_getBfieldCP(level, direction,
+                                      ctypes.byref(size), ctypes.byref(ngrow),
+                                      ctypes.byref(shapes))
+    ng = ngrow.value
+    grid_data = []
+    for i in range(size.value):
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
+        # --- The data is stored in Fortran order, hence shape is reversed and a transpose is taken.
+        arr = np.ctypeslib.as_array(data[i], shape[::-1]).T
+        arr.setflags(write=1)
+        if include_ghosts:
+            grid_data.append(arr)
+        else:
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
+
+    libc.free(shapes)
+    libc.free(data)
+    return grid_data
+
+
+def get_mesh_magnetic_field_fp(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh magnetic field
+    data on each grid for this process. This version returns the field on
+    the fine patch for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    assert(level == 0)
+
+    shapes = LP_c_int()
+    size = ctypes.c_int(0)
+    ngrow = ctypes.c_int(0)
+    data = libwarpx.warpx_getBfieldFP(level, direction,
+                                      ctypes.byref(size), ctypes.byref(ngrow),
+                                      ctypes.byref(shapes))
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
@@ -688,6 +924,104 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
     return grid_data
 
 
+def get_mesh_current_density_cp(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh current density
+    data on each grid for this process. This version returns the density for
+    the coarse patch on the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    assert(level == 0)
+
+    shapes = LP_c_int()
+    size = ctypes.c_int(0)
+    ngrow = ctypes.c_int(0)
+    data = libwarpx.warpx_getCurrentDensityCP(level, direction,
+                                              ctypes.byref(size), ctypes.byref(ngrow),
+                                              ctypes.byref(shapes))
+    ng = ngrow.value
+    grid_data = []
+    for i in range(size.value):
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
+        # --- The data is stored in Fortran order, hence shape is reversed and a transpose is taken.
+        arr = np.ctypeslib.as_array(data[i], shape[::-1]).T
+        arr.setflags(write=1)
+        if include_ghosts:
+            grid_data.append(arr)
+        else:
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
+
+    libc.free(shapes)
+    libc.free(data)
+    return grid_data
+
+
+def get_mesh_current_density_fp(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh current density
+    data on each grid for this process. This version returns the density on
+    the fine patch for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    assert(level == 0)
+
+    shapes = LP_c_int()
+    size = ctypes.c_int(0)
+    ngrow = ctypes.c_int(0)
+    data = libwarpx.warpx_getCurrentDensityFP(level, direction,
+                                              ctypes.byref(size), ctypes.byref(ngrow),
+                                              ctypes.byref(shapes))
+    ng = ngrow.value
+    grid_data = []
+    for i in range(size.value):
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
+        # --- The data is stored in Fortran order, hence shape is reversed and a transpose is taken.
+        arr = np.ctypeslib.as_array(data[i], shape[::-1]).T
+        arr.setflags(write=1)
+        if include_ghosts:
+            grid_data.append(arr)
+        else:
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
+
+    libc.free(shapes)
+    libc.free(data)
+    return grid_data
+
+
 def _get_mesh_array_lovects(level, direction, include_ghosts=True, getarrayfunc=None):
     assert(0 <= level and level <= libwarpx.warpx_finestLevel())
 
@@ -715,6 +1049,8 @@ def get_mesh_electric_field_lovects(level, direction, include_ghosts=True):
     This returns a list of the lo vectors of the arrays containing the mesh electric field
     data on each grid for this process.
 
+    This version is for the full "auxillary" solution on the given level.
+
     Parameters
     ----------
 
@@ -731,7 +1067,7 @@ def get_mesh_electric_field_lovects(level, direction, include_ghosts=True):
     return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getEfieldLoVects)
 
 
-def get_mesh_magnetic_field_lovects(level, direction, include_ghosts=True):
+def get_mesh_electric_field_cp_lovects(level, direction, include_ghosts=True):
     '''
 
     This returns a list of the lo vectors of the arrays containing the mesh electric field
@@ -750,7 +1086,97 @@ def get_mesh_magnetic_field_lovects(level, direction, include_ghosts=True):
         A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
 
     '''
+    return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getEfieldCPLoVects)
+
+
+def get_mesh_electric_field_fp_lovects(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getEfieldFPLoVects)
+
+
+def get_mesh_magnetic_field_lovects(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each grid for this process.
+
+    This version is for the full "auxillary" solution on the given level.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
     return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getBfieldLoVects)
+
+
+def get_mesh_magnetic_field_cp_lovects(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getBfieldCPLoVects)
+
+
+def get_mesh_magnetic_field_fp_lovects(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getBfieldFPLoVects)
 
 
 def get_mesh_current_density_lovects(level, direction, include_ghosts=True):
@@ -774,4 +1200,46 @@ def get_mesh_current_density_lovects(level, direction, include_ghosts=True):
     '''
     return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getCurrentDensityLoVects)
 
+
+def get_mesh_current_density_cp_lovects(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getCurrentDensityCPLoVects)
+
+def get_mesh_current_density_fp_lovects(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getCurrentDensityFPLoVects)
 
