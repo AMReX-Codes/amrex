@@ -197,37 +197,37 @@ contains
     end do
 
     if (lo(1) .eq. domlo(1)) then
-       if (bclo(1) .eq. amrex_lo_neumann) then
+       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
           dmsk(lo(1),:,:) = 0.5d0*dmsk(lo(1),:,:)
        end if
     end if
 
     if (hi(1) .eq. domhi(1)) then
-       if (bchi(1) .eq. amrex_lo_neumann) then
+       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
           dmsk(hi(1),:,:) = 0.5d0*dmsk(hi(1),:,:)
        end if
     end if
 
     if (lo(2) .eq. domlo(2)) then
-       if (bclo(2) .eq. amrex_lo_neumann) then
+       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
           dmsk(:,lo(2),:) = 0.5d0*dmsk(:,lo(2),:)
        end if
     end if
 
     if (hi(2) .eq. domhi(2)) then
-       if (bchi(2) .eq. amrex_lo_neumann) then
+       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
           dmsk(:,hi(2),:) = 0.5d0*dmsk(:,hi(2),:)
        end if
     end if
 
     if (lo(3) .eq. domlo(3)) then
-       if (bclo(3) .eq. amrex_lo_neumann) then
+       if (bclo(3) .eq. amrex_lo_neumann .or. bclo(3) .eq. amrex_lo_inflow) then
           dmsk(:,:,lo(3)) = 0.5d0*dmsk(:,:,lo(3))
        end if
     end if
 
     if (hi(3) .eq. domhi(3)) then
-       if (bchi(3) .eq. amrex_lo_neumann) then
+       if (bchi(3) .eq. amrex_lo_neumann .or. bchi(3) .eq. amrex_lo_inflow) then
           dmsk(:,:,hi(3)) = 0.5d0*dmsk(:,:,hi(3))
        end if
     end if
@@ -540,10 +540,6 @@ contains
 
     integer :: ilo, ihi, jlo, jhi, klo, khi
 
-    if (any(bclo.eq.amrex_lo_inflow) .or. any(bchi.eq.amrex_lo_inflow)) then
-       call amrex_error("amrex_mlndlap_applybc: inflow not supported yet")
-    end if
-
     ilo = max(dlo(1), hlo(1))
     ihi = min(dhi(1), hhi(1))
     jlo = max(dlo(2), hlo(2))
@@ -553,27 +549,33 @@ contains
 
     ! neumann
 
-    if (bclo(1) .eq. amrex_lo_neumann .and. hlo(1) .lt. dlo(1)) then
+    if ((bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) &
+         .and. hlo(1) .lt. dlo(1)) then
        phi(dlo(1)-1,jlo:jhi,klo:khi) = phi(dlo(1)+1,jlo:jhi,klo:khi)
     end if
 
-    if (bchi(1) .eq. amrex_lo_neumann .and. hhi(1) .gt. dhi(1)) then
+    if ((bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) &
+         .and. hhi(1) .gt. dhi(1)) then
        phi(dhi(1)+1,jlo:jhi,klo:khi) = phi(dhi(1)-1,jlo:jhi,klo:khi)
     end if
 
-    if (bclo(2) .eq. amrex_lo_neumann .and. hlo(2) .lt. dlo(2)) then
+    if ((bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) &
+         .and. hlo(2) .lt. dlo(2)) then
        phi(ilo:ihi,dlo(2)-1,klo:khi) = phi(ilo:ihi,dlo(2)+1,klo:khi)
     end if
 
-    if (bchi(2) .eq. amrex_lo_neumann .and. hhi(2) .gt. dhi(2)) then
+    if ((bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) &
+         .and. hhi(2) .gt. dhi(2)) then
        phi(ilo:ihi,dhi(2)+1,klo:khi) = phi(ilo:ihi,dhi(2)-1,klo:khi)
     end if
 
-    if (bclo(3) .eq. amrex_lo_neumann .and. hlo(3) .lt. dlo(3)) then
+    if ((bclo(3) .eq. amrex_lo_neumann .or. bclo(3) .eq. amrex_lo_inflow) &
+         .and. hlo(3) .lt. dlo(3)) then
        phi(ilo:ihi,jlo:jhi,dlo(3)-1) = phi(ilo:ihi,jlo:jhi,dlo(3)+1)
     end if
     
-    if (bchi(3) .eq. amrex_lo_neumann .and. hhi(3) .gt. dhi(3)) then
+    if ((bchi(3) .eq. amrex_lo_neumann .and. bchi(3) .eq. amrex_lo_inflow) &
+         .and. hhi(3) .gt. dhi(3)) then
        phi(ilo:ihi,jlo:jhi,dhi(3)+1) = phi(ilo:ihi,jlo:jhi,dhi(3)-1)
     end if
 
