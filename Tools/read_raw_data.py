@@ -54,7 +54,7 @@ def read_lab_snapshot(snapshot):
 
     '''
 
-    hdrs = glob(snapshot + "/Level_0/buffer?????_H")
+    hdrs = glob(snapshot + "/Level_0/buffer??????_H")
     hdrs.sort()
 
     boxes, file_names, offsets, header = _read_header(hdrs[0])

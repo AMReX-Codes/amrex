@@ -46,7 +46,10 @@ BoostedFrameDiagnostic::
 writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {
 
     BL_PROFILE("BoostedFrameDiagnostic::writeLabFrameData");
-    
+
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
+
     const RealBox& domain_z_boost = geom.ProbDomain();
     const Real zlo_boost = domain_z_boost.lo(boost_direction_);
     const Real zhi_boost = domain_z_boost.hi(boost_direction_);
@@ -119,6 +122,8 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
             buff_counter_[i] = 0;
         }
     }
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 void
@@ -167,20 +172,23 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
     current_z_boost = 0.0;
     file_name = Concatenate("lab_frame_data/snapshot", file_num, 5);
     
-    const int nlevels = 1;
-    const std::string level_prefix = "Level_";
+    if (ParallelDescriptor::IOProcessor()) {
 
-    if (!UtilCreateDirectory(file_name, 0755))
-        CreateDirectoryFailed(file_name);
-    for(int i(0); i < nlevels; ++i) {
-        const std::string &fullpath = LevelFullPath(i, file_name);
-        if (!UtilCreateDirectory(fullpath, 0755))
-            CreateDirectoryFailed(fullpath);
+        const int nlevels = 1;
+        const std::string level_prefix = "Level_";
+        
+        if (!UtilCreateDirectory(file_name, 0755))
+            CreateDirectoryFailed(file_name);
+        for(int i(0); i < nlevels; ++i) {
+            const std::string &fullpath = LevelFullPath(i, file_name);
+            if (!UtilCreateDirectory(fullpath, 0755))
+                CreateDirectoryFailed(fullpath);
+        }
     }
     
     ParallelDescriptor::Barrier();
 
-    writeSnapShotHeader();
+    if (ParallelDescriptor::IOProcessor()) writeSnapShotHeader();
 }
 
 void
