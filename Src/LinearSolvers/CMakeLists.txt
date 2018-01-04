@@ -23,6 +23,12 @@ list ( APPEND ALLHEADERS AMReX_MLLinOp_F.H )
 list ( APPEND F90SRC     AMReX_MLLinOp_nd.F90 )
 list ( APPEND F90SRC     AMReX_MLLinOp_${DIM}d.F90 )
 
+list ( APPEND ALLHEADERS AMReX_MLCellLinOp.H )
+list ( APPEND CXXSRC     AMReX_MLCellLinOp.cpp )
+
+list ( APPEND ALLHEADERS AMReX_MLNodeLinOp.H )
+list ( APPEND CXXSRC     AMReX_MLNodeLinOp.cpp )
+
 list ( APPEND ALLHEADERS AMReX_MLCGSolver.H )
 list ( APPEND CXXSRC     AMReX_MLCGSolver.cpp )
 
@@ -35,6 +41,11 @@ list ( APPEND ALLHEADERS AMReX_MLPoisson.H )
 list ( APPEND CXXSRC     AMReX_MLPoisson.cpp )
 list ( APPEND ALLHEADERS AMReX_MLPoisson_F.H )
 list ( APPEND F90SRC     AMReX_MLPoisson_${DIM}d.F90 )
+
+list ( APPEND ALLHEADERS AMReX_MLNodeLaplacian.H )
+list ( APPEND CXXSRC     AMReX_MLNodeLaplacian.cpp )
+list ( APPEND ALLHEADERS AMReX_MLNodeLap_F.H )
+list ( APPEND F90SRC     AMReX_MLNodeLap_${DIM}d.F90 )
 
 # 
 # Collect sources

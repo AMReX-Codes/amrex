@@ -1,7 +1,7 @@
 #ifndef AMREX_MLPOISSON_H_
 #define AMREX_MLPOISSON_H_
 
-#include <AMReX_MLLinOp.H>
+#include <AMReX_MLCellLinOp.H>
 #include <AMReX_Array.H>
 #include <limits>
 
@@ -10,7 +10,7 @@ namespace amrex {
 // del dot grad phi
 
 class MLPoisson
-    : public MLLinOp
+    : public MLCellLinOp
 {
 public:
 
@@ -35,6 +35,7 @@ protected:
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
+    virtual bool isBottomSingular () const final { return m_is_singular[0]; }
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
     virtual void FFlux (int amrlev, const MFIter& mfi,

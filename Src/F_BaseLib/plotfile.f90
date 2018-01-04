@@ -59,8 +59,8 @@ module plotfile_module
      integer :: flevel = 0
      real(kind=dp_t) :: tm
      integer, pointer :: refrat(:,:) => Null()
-     real(kind=dp_t), pointer :: phi(:)
-     real(kind=dp_t), pointer :: plo(:)
+     real(kind=dp_t), pointer :: phi(:) => Null()
+     real(kind=dp_t), pointer :: plo(:) => Null()
   end type plotfile
 
   interface nboxes

@@ -874,6 +874,8 @@ extern "C"
                               const int* cycle, const int* smoother);
 
   void mgt_set_maxorder(const int* maxorder);
+
+  int amrex_f90mg_get_niters ();
   
 #ifdef __cplusplus
 }
