@@ -93,6 +93,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
     MultiFab ph(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
     MultiFab sh(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
+    ph.setVal(0.0);
+    sh.setVal(0.0);
 
     MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
     MultiFab p    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
@@ -419,13 +421,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 Real
 MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
 {
-    const int ncomp = 1;
-    const int nghost = 0;
-    Real result = MultiFab::Dot(r,0,z,0,ncomp,nghost,true);
-    if (!local) {
-        ParallelAllReduce::Sum(result, Lp.BottomCommunicator());
-    }
-    return result;
+    return Lp.xdoty(amrlev, mglev, r, z, local);
 }
 
 Real

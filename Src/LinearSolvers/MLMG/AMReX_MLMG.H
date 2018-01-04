@@ -18,7 +18,7 @@ public:
     ~MLMG ();
 
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-                Real a_tol_rela, Real a_tol_abs);
+                Real a_tol_rel, Real a_tol_abs);
 
     void getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
     void getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
@@ -118,6 +118,8 @@ private:
     void buildFineMask ();
 
     void fillSolutionBC ();
+
+    void averageDownAndSync ();
 };
 
 }

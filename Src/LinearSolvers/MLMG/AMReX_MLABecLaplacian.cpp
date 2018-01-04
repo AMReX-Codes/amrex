@@ -23,7 +23,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLABecLaplacian::define()");
 
-    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info);
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
@@ -177,7 +177,7 @@ MLABecLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
 
-    MLLinOp::prepareForSolve();
+    MLCellLinOp::prepareForSolve();
 
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();

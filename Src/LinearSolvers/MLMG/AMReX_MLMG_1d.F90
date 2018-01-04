@@ -4,7 +4,7 @@ module amrex_mlmg_interp_module
   implicit none
 
   private
-  public :: amrex_mlmg_lin_cc_interp
+  public :: amrex_mlmg_lin_cc_interp, amrex_mlmg_lin_nd_interp
 
 contains
 
@@ -42,5 +42,21 @@ contains
     end if
 
   end subroutine amrex_mlmg_lin_cc_interp
+
+
+  subroutine amrex_mlmg_lin_nd_interp (clo, chi, flo, fhi, fine, fdlo, fdhi, crse, cdlo, cdhi) &
+       bind(c,name='amrex_mlmg_lin_nd_interp')
+    integer, dimension(1) :: clo, chi, flo, fhi, fdlo, fdhi, cdlo, cdhi
+    real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1))
+    real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1))
+    
+    integer :: i,ii
+
+    do i = clo(1), chi(1)-1
+       fine(2*i  ) = crse(i)
+       fine(2*i+1) = 0.5d0*(crse(i)+crse(i+1))
+    end do
+    fine(fhi(1)) = crse(chi(1))
+  end subroutine amrex_mlmg_lin_nd_interp
 
 end module amrex_mlmg_interp_module
