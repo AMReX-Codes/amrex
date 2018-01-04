@@ -12,7 +12,6 @@ Overall simulation parameters
 * ``max_step`` (`integer`)
     The number of PIC cycles to perform.
 
-
 * ``warpx.gamma_boost`` (`float`)
     The Lorentz factor of the boosted frame in which the simulation is run.
     (The corresponding Lorentz transformation is assumed to be along ``warpx.boost_direction``.)
@@ -211,6 +210,10 @@ Laser initialization
 
 Numerics and algorithms
 -----------------------
+
+* ``warpx.cfl`` (`float`)
+    The ratio between the time step to be used in the simulation and
+    the CFL limit of the Maxwell solver.
 
 * ``warpx.use_filter`` (`0 or 1`)
     Whether to smooth the charge and currents on the mesh, after depositing
