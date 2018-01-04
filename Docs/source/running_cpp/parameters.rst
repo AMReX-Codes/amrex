@@ -274,3 +274,20 @@ Diagnostics and output
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
+
+* ``warpx.plot_raw_fields`` (`0` or `1`)
+    By default, the fields written in the plot files are averaged on the nodes.
+    When ```warpx.plot_raw_fields`` is `1`, then the raw (i.e. unaveraged)
+    fields are also saved in the plot files.
+
+* ``warpx.plot_raw_fields_guards`` (`0` or `1`)
+    Only used when ``warpx.plot_raw_fields`` is ``1``.
+    Whether to include the guard cells in the output of the raw fields.
+
+* ``warpx.plot_finepatch`` (`0` or `1`)
+    Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
+    Whether to output the data of the fine patch, in the plot files.
+
+* ``warpx.plot_crsepatch`` (`0` or `1`)
+    Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
+    Whether to output the data of the coarse patch, in the plot files.
