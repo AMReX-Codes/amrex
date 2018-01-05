@@ -74,7 +74,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const Geometry& geom = m_geom[ilev][0];
         AMREX_ASSERT(vel[ilev]->nComp() >= AMREX_SPACEDIM);
         AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
-        vel[ilev]->FillBoundary(geom.periodicity());
+        vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 
         const Real* dxinv = geom.InvCellSize();
         const Box& nddom = amrex::surroundingNodes(geom.Domain());
