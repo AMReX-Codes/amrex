@@ -39,6 +39,10 @@ extern "C" {
                                   const int* dlo, const int* dhi,
                                   const void* bclo, const void* bchi);
 
+    void amrex_mlndlap_fillbc_cc_i (int* sigma, const int* slo, const int* shi,
+                                    const int* dlo, const int* dhi,
+                                    const void* bclo, const void* bchi);
+
     void amrex_mlndlap_applybc (amrex_real* phi, const int* hlo, const int* hhi,
                                 const int* dlo, const int* dhi,
                                 const void* bclo, const void* bchi);

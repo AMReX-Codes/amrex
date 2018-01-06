@@ -21,7 +21,7 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
-       amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, &
+       amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
@@ -84,42 +84,6 @@ contains
           end do
        end do
     end do
-
-    if (dlo(1) .eq. domlo(1)) then
-       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
-          dmsk(dlo(1),:,:) = 0
-       end if
-    end if
-
-    if (dhi(1) .eq. domhi(1)) then
-       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          dmsk(dhi(1),:,:) = 0
-       end if
-    end if
-
-    if (dlo(2) .eq. domlo(2)) then
-       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          dmsk(:,dlo(2),:) = 0
-       end if
-    end if
-
-    if (dhi(2) .eq. domhi(2)) then
-       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          dmsk(:,dhi(2),:) = 0
-       end if
-    end if
-
-    if (dlo(3) .eq. domlo(3)) then
-       if (bclo(3) .eq. amrex_lo_neumann .or. bclo(3) .eq. amrex_lo_inflow) then
-          dmsk(:,:,dlo(3)) = 0
-       end if
-    end if
-
-    if (dhi(3) .eq. domhi(3)) then
-       if (bchi(3) .eq. amrex_lo_neumann .or. bchi(3) .eq. amrex_lo_inflow) then
-          dmsk(:,:,dhi(3)) = 0
-       end if
-    end if
 
     if (dlo(1) .eq. domlo(1)) then
        if (bclo(1) .eq. amrex_lo_dirichlet) then
@@ -531,6 +495,229 @@ contains
     end if
 
   end subroutine amrex_mlndlap_fillbc_cc
+
+
+  subroutine amrex_mlndlap_fillbc_cc_i (sigma, slo, shi, dlo, dhi, bclo, bchi) &
+       bind(c, name='amrex_mlndlap_fillbc_cc_i')
+    integer, dimension(3), intent(in) :: slo, shi, dlo, dhi, bclo, bchi
+    integer, intent(inout) :: sigma(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
+    
+    integer :: ilo, ihi, jlo, jhi, klo, khi
+
+    ilo = max(dlo(1), slo(1))
+    ihi = min(dhi(1), shi(1))
+    jlo = max(dlo(2), slo(2))
+    jhi = min(dhi(2), shi(2))
+    klo = max(dlo(3), slo(3))
+    khi = min(dhi(3), shi(3))
+
+    ! faces
+
+    if (bclo(1) .ne. amrex_lo_periodic .and. slo(1) .lt. dlo(1)) then
+       sigma(dlo(1)-1,jlo:jhi,klo:khi) = sigma(dlo(1),jlo:jhi,klo:khi)
+    end if
+    
+    if (bchi(1) .ne. amrex_lo_periodic .and. shi(1) .gt. dhi(1)) then
+       sigma(dhi(1)+1,jlo:jhi,klo:khi) = sigma(dhi(1),jlo:jhi,klo:khi)
+    end if
+
+    if (bclo(2) .ne. amrex_lo_periodic .and. slo(2) .lt. dlo(2)) then
+       sigma(ilo:ihi,dlo(2)-1,klo:khi) = sigma(ilo:ihi,dlo(2),klo:khi)
+    end if
+
+    if (bchi(2) .ne. amrex_lo_periodic .and. shi(2) .gt. dhi(2)) then
+       sigma(ilo:ihi,dhi(2)+1,klo:khi) = sigma(ilo:ihi,dhi(2),klo:khi)
+    end if
+
+    if (bclo(3) .ne. amrex_lo_periodic .and. slo(3) .lt. dlo(3)) then
+       sigma(ilo:ihi,jlo:jhi,dlo(3)-1) = sigma(ilo:ihi,jlo:jhi,dlo(3))
+    end if
+
+    if (bchi(3) .ne. amrex_lo_periodic .and. shi(3) .gt. dhi(3)) then
+       sigma(ilo:ihi,jlo:jhi,dhi(3)+1) = sigma(ilo:ihi,jlo:jhi,dhi(3))
+    end if
+
+    ! edges
+
+    if (slo(1) .lt. dlo(1) .and. slo(2) .lt. dlo(2)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1,klo:khi) = sigma(dlo(1),dlo(2)-1,klo:khi)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1,klo:khi) = sigma(dlo(1)-1,dlo(2),klo:khi)
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. slo(2) .lt. dlo(2)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1,klo:khi) = sigma(dhi(1),dlo(2)-1,klo:khi)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1,klo:khi) = sigma(dhi(1)+1,dlo(2),klo:khi)
+       end if
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. shi(2) .gt. dhi(2)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1,klo:khi) = sigma(dlo(1),dhi(2)+1,klo:khi)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1,klo:khi) = sigma(dlo(1)-1,dhi(2),klo:khi)
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. shi(2) .gt. dhi(2)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1,klo:khi) = sigma(dhi(1),dhi(2)+1,klo:khi)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1,klo:khi) = sigma(dhi(1)+1,dhi(2),klo:khi)
+       end if
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. slo(3) .lt. dlo(3)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,jlo:jhi,dlo(3)-1) = sigma(dlo(1),jlo:jhi,dlo(3)-1)
+       else if (bclo(3) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,jlo:jhi,dlo(3)-1) = sigma(dlo(1)-1,jlo:jhi,dlo(3))
+       end if
+    end if
+    
+    if (shi(1) .gt. dhi(1) .and. slo(3) .lt. dlo(3)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,jlo:jhi,dlo(3)-1) = sigma(dhi(1),jlo:jhi,dlo(3)-1)
+       else if (bclo(3) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,jlo:jhi,dlo(3)-1) = sigma(dhi(1)+1,jlo:jhi,dlo(3))
+       end if
+    end if
+    
+    if (slo(1) .lt. dlo(1) .and. shi(3) .gt. dhi(3)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,jlo:jhi,dhi(3)+1) = sigma(dlo(1),jlo:jhi,dhi(3)+1)
+       else if (bchi(3) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,jlo:jhi,dhi(3)+1) = sigma(dlo(1)-1,jlo:jhi,dhi(3))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. shi(3) .gt. dhi(3)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,jlo:jhi,dhi(3)+1) = sigma(dhi(1),jlo:jhi,dhi(3)+1)
+       else if (bchi(3) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,jlo:jhi,dhi(3)+1) = sigma(dhi(1)+1,jlo:jhi,dhi(3))
+       end if
+    end if
+
+    if (slo(2) .lt. dlo(2) .and. slo(3) .lt. dlo(3)) then
+       if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(ilo:ihi,dlo(2)-1,dlo(3)-1) = sigma(ilo:ihi,dlo(2),dlo(3)-1)
+       else if (bclo(3) .ne. amrex_lo_periodic) then
+          sigma(ilo:ihi,dlo(2)-1,dlo(3)-1) = sigma(ilo:ihi,dlo(2)-1,dlo(3))
+       end if
+    end if
+
+    if (shi(2) .gt. dhi(2) .and. slo(3) .lt. dlo(3)) then
+       if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(ilo:ihi,dhi(2)+1,dlo(3)-1) = sigma(ilo:ihi,dhi(2),dlo(3)-1)
+       else if (bclo(3) .ne. amrex_lo_periodic) then
+          sigma(ilo:ihi,dhi(2)+1,dlo(3)-1) = sigma(ilo:ihi,dhi(2)+1,dlo(3))
+       end if
+    end if
+
+    if (slo(2) .lt. dlo(2) .and. shi(3) .gt. dhi(3)) then
+       if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(ilo:ihi,dlo(2)-1,dhi(3)+1) = sigma(ilo:ihi,dlo(2),dhi(3)+1)
+       else if (bchi(3) .ne. amrex_lo_periodic) then
+          sigma(ilo:ihi,dlo(2)-1,dhi(3)+1) = sigma(ilo:ihi,dlo(2)-1,dhi(3))
+       end if
+    end if
+
+    if (shi(2) .gt. dhi(2) .and. shi(3) .gt. dhi(3)) then
+       if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(ilo:ihi,dhi(2)+1,dhi(3)+1) = sigma(ilo:ihi,dhi(2),dhi(3)+1)
+       else if (bchi(3) .ne. amrex_lo_periodic) then
+          sigma(ilo:ihi,dhi(2)+1,dhi(3)+1) = sigma(ilo:ihi,dhi(2)+1,dhi(3))
+       end if
+    end if
+
+    ! corners
+
+    if (slo(1) .lt. dlo(1) .and. slo(2) .lt. dlo(2) .and. slo(3) .lt. dlo(3)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1,dlo(3)-1) = sigma(dlo(1),dlo(2)-1,dlo(3)-1)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1,dlo(3)-1) = sigma(dlo(1)-1,dlo(2),dlo(3)-1)
+       else if (bclo(3) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1,dlo(3)-1) = sigma(dlo(1)-1,dlo(2)-1,dlo(3))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. slo(2) .lt. dlo(2) .and. slo(3) .lt. dlo(3)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1,dlo(3)-1) = sigma(dhi(1),dlo(2)-1,dlo(3)-1)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1,dlo(3)-1) = sigma(dhi(1)+1,dlo(2),dlo(3)-1)
+       else if (bclo(3) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1,dlo(3)-1) = sigma(dhi(1)+1,dlo(2)-1,dlo(3))
+       end if
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. shi(2) .gt. dhi(2) .and. slo(3) .lt. dlo(3)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1,dlo(3)-1) = sigma(dlo(1),dhi(2)+1,dlo(3)-1)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1,dlo(3)-1) = sigma(dlo(1)-1,dhi(2),dlo(3)-1)
+       else if (bclo(3) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1,dlo(3)-1) = sigma(dlo(1)-1,dhi(2)+1,dlo(3))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. shi(2) .gt. dhi(2) .and. slo(3) .lt. dlo(3)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1,dlo(3)-1) = sigma(dhi(1),dhi(2)+1,dlo(3)-1)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1,dlo(3)-1) = sigma(dhi(1)+1,dhi(2),dlo(3)-1)
+       else if (bclo(3) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1,dlo(3)-1) = sigma(dhi(1)+1,dhi(2)+1,dlo(3))
+       end if
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. slo(2) .lt. dlo(2) .and. shi(3) .gt. dhi(3)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1,dhi(3)+1) = sigma(dlo(1),dlo(2)-1,dhi(3)+1)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1,dhi(3)+1) = sigma(dlo(1)-1,dlo(2),dhi(3)+1)
+       else if (bchi(3) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1,dhi(3)+1) = sigma(dlo(1)-1,dlo(2)-1,dhi(3))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. slo(2) .lt. dlo(2) .and. shi(3) .gt. dhi(3)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1,dhi(3)+1) = sigma(dhi(1),dlo(2)-1,dhi(3)+1)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1,dhi(3)+1) = sigma(dhi(1)+1,dlo(2),dhi(3)+1)
+       else if (bchi(3) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1,dhi(3)+1) = sigma(dhi(1)+1,dlo(2)-1,dhi(3))
+       end if
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. shi(2) .gt. dhi(2) .and. shi(3) .gt. dhi(3)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1,dhi(3)+1) = sigma(dlo(1),dhi(2)+1,dhi(3)+1)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1,dhi(3)+1) = sigma(dlo(1)-1,dhi(2),dhi(3)+1)
+       else if (bchi(3) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1,dhi(3)+1) = sigma(dlo(1)-1,dhi(2)+1,dhi(3))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. shi(2) .gt. dhi(2) .and. shi(3) .gt. dhi(3)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1,dhi(3)+1) = sigma(dhi(1),dhi(2)+1,dhi(3)+1)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1,dhi(3)+1) = sigma(dhi(1)+1,dhi(2),dhi(3)+1)
+       else if (bchi(3) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1,dhi(3)+1) = sigma(dhi(1)+1,dhi(2)+1,dhi(3))
+       end if
+    end if
+
+  end subroutine amrex_mlndlap_fillbc_cc_i
 
 
   subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &
@@ -1839,6 +2026,25 @@ contains
                            &                  + facy*vel(i  ,j  ,k  ,2) &
                            &                  + facz*vel(i  ,j  ,k  ,3)
                    end if
+
+                   if (i .eq. ndlo(1) .and. bclo(1) .eq. amrex_lo_neumann) then
+                      rhs(i,j,k) = 2.d0*rhs(i,j,k)
+                   else if (i.eq. ndhi(1) .and. bchi(1) .eq. amrex_lo_neumann) then
+                      rhs(i,j,k) = 2.d0*rhs(i,j,k)
+                   end if
+                   
+                   if (j .eq. ndlo(2) .and. bclo(2) .eq. amrex_lo_neumann) then
+                      rhs(i,j,k) = 2.d0*rhs(i,j,k)                   
+                   else if (j .eq. ndhi(2) .and. bchi(2) .eq. amrex_lo_neumann) then
+                      rhs(i,j,k) = 2.d0*rhs(i,j,k)
+                   end if
+
+                   if (k .eq. ndlo(3) .and. bclo(3) .eq. amrex_lo_neumann) then
+                      rhs(i,j,k) = 2.d0*rhs(i,j,k)                   
+                   else if (k .eq. ndhi(3) .and. bchi(3) .eq. amrex_lo_neumann) then
+                      rhs(i,j,k) = 2.d0*rhs(i,j,k)
+                   end if
+
                 end if
              end if
           end do
