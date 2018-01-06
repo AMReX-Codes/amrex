@@ -209,7 +209,8 @@ extern "C" {
                                        const int* ndmsk, const int* ndmlo, const int* ndmhi,
                                        const int* ccmsk, const int* ccmlo, const int* ccmhi,
                                        const amrex_real* cc, const int* clo, const int* chi,
-                                       const amrex_real* dxinv);
+                                       const amrex_real* dxinv, const int* ndlo, const int* ndhi,
+                                       const void* bclo, const void* bchi);
 
     void amrex_mlndlap_zero_fine (const int* lo, const int* hi,
                                   amrex_real* phi, const int* philo, const int* phihi,
