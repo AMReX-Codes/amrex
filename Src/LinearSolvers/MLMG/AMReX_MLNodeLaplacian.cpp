@@ -97,38 +97,6 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         }
     }
 
-    // no need to do this
-//     for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
-//     {
-//         const Geometry& fgeom = m_geom[ilev+1][0];
-//         const Geometry& cgeom = m_geom[ilev  ][0];
-
-//         MultiFab frhs(rhs[ilev+1]->boxArray(), rhs[ilev+1]->DistributionMap(), 1, 1);
-//         frhs.setVal(0.0);
-//         MultiFab::Copy(frhs, *rhs[ilev+1], 0, 0, 1, 0);
-//         frhs.FillBoundary(fgeom.periodicity());
-
-//         MultiFab crhs(amrex::coarsen(frhs.boxArray(),2), frhs.DistributionMap(), 1, 0);
-
-//         const iMultiFab& fdmsk = *m_dirichlet_mask[ilev+1][0];
-//         const Box& cnddom = amrex::surroundingNodes(cgeom.Domain());
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//         for (MFIter mfi(crhs, true); mfi.isValid(); ++mfi)
-//         {
-//             const Box& bx = mfi.tilebox();
-//             amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-//                                       BL_TO_FORTRAN_ANYD(crhs[mfi]),
-//                                       BL_TO_FORTRAN_ANYD(frhs[mfi]),
-//                                       BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-//                                       BL_TO_FORTRAN_BOX(cnddom),
-//                                       m_lobc.data(), m_hibc.data());
-//         }
-
-//         rhs[ilev]->ParallelCopy(crhs, cgeom.periodicity());
-//     }
-
     for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
     {
         const Geometry& cgeom = m_geom[ilev  ][0];
@@ -423,8 +391,16 @@ MLNodeLaplacian::buildMasks ()
             {
                 const Geometry& geom = m_geom[amrlev][mglev];
                 const auto& period = geom.periodicity();
-                const Box& nddomain = amrex::surroundingNodes(geom.Domain());
+                const Box& ccdomain = geom.Domain();
+                const Box& nddomain = amrex::surroundingNodes(ccdomain);
                 const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
+                Box ccdomain_p = ccdomain;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (Geometry::isPeriodic(idim)) {
+                        ccdomain_p.grow(idim, 1);
+                    }
+                }
 
                 {
                     auto& dmask = *m_dirichlet_mask[amrlev][mglev];
@@ -439,7 +415,8 @@ MLNodeLaplacian::buildMasks ()
                         
                         ccfab.resize(ccbxg1);
                         ccfab.setVal(1);
-                        
+                        ccfab.setComplement(2,ccdomain_p,0,1);
+
                         for (const auto& iv : pshifts)
                         {
                             ccba.intersections(ccbxg1+iv, isects);
@@ -467,6 +444,8 @@ MLNodeLaplacian::buildMasks ()
         const BoxArray& fba = m_grids[amrlev+1][0];
         const BoxArray& cfba = amrex::coarsen(fba, AMRRefRatio(amrlev));
 
+        const Box& ccdom = m_geom[amrlev][0].Domain();
+
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMRRefRatio(amrlev) == 2, "ref_ratio != 0 not supported");
 
         cc_mask.setVal(0);  // coarse by default
@@ -493,6 +472,10 @@ MLNodeLaplacian::buildMasks ()
                     }
                     if (!isects.empty()) has_cf[mfi] = 1;
                 }
+
+                amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
+                                            BL_TO_FORTRAN_BOX(ccdom),
+                                            m_lobc.data(), m_hibc.data());
             }
         }
 
@@ -1097,7 +1080,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
 
     MultiFab fine_res_for_coarse(amrex::coarsen(fba, 2), fdm, 1, 0);
-    fine_res.FillBoundary(fgeom.periodicity());
+
+    applyBC(crse_amrlev+1, 0, fine_res, BCMode::Inhomogeneous);
 
 #ifdef _OPENMP
 #pragma omp parallel
