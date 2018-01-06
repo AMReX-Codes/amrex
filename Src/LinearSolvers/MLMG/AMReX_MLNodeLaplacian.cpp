@@ -1171,7 +1171,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                          BL_TO_FORTRAN_ANYD((*nd_mask)[mfi]),
                                          BL_TO_FORTRAN_ANYD((*cc_mask)[mfi]),
                                          BL_TO_FORTRAN_ANYD(fine_contrib_on_crse[mfi]),
-                                         cdxinv);
+                                         cdxinv, BL_TO_FORTRAN_BOX(c_nd_domain),
+                                         m_lobc.data(), m_hibc.data());
         }
     }
 }

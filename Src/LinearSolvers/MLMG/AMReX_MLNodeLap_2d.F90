@@ -1133,10 +1133,10 @@ contains
 
   subroutine amrex_mlndlap_res_cf_contrib (lo, hi, res, rlo, rhi, phi, phlo, phhi, &
        rhs, rhlo, rhhi, sig, slo, shi, dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, &
-       fc, clo, chi, dxinv) &
+       fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_res_cf_contrib')
     integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, phlo, phhi, rhlo, rhhi, slo, shi, &
-         mlo, mhi, nmlo, nmhi, cmlo, cmhi, clo, chi
+         mlo, mhi, nmlo, nmhi, cmlo, cmhi, clo, chi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: res( rlo(1): rhi(1), rlo(2): rhi(2))
     real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2))
@@ -1148,7 +1148,7 @@ contains
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
-    real(amrex_real) :: Ax, facx, facy
+    real(amrex_real) :: Ax, Axf, facx, facy
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -1182,7 +1182,22 @@ contains
                         &            + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
                         &                  +      (phi(i+1,j+1)-phi(i+1,j  ))))
                 end if
-                res(i,j) = rhs(i,j) - Ax - fc(i,j)
+
+                Axf = fc(i,j)
+
+                if (i .eq. ndlo(1) .and. bclo(1) .eq. amrex_lo_neumann) then
+                   Axf = 2.d0*Axf
+                else if (i.eq. ndhi(1) .and. bchi(1) .eq. amrex_lo_neumann) then
+                   Axf = 2.d0*Axf
+                end if
+
+                if (j .eq. ndlo(2) .and. bclo(2) .eq. amrex_lo_neumann) then
+                   Axf = 2.d0*Axf
+                else if (j .eq. ndhi(2) .and. bchi(2) .eq. amrex_lo_neumann) then
+                   Axf = 2.d0*Axf
+                end if
+
+                res(i,j) = rhs(i,j) - (Ax + Axf)
              end if
           end if
        end do
