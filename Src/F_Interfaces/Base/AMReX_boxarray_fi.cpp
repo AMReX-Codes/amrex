@@ -73,4 +73,10 @@ extern "C" {
     {
         return ba->numPts();
     }
+
+    int amrex_fi_boxarray_intersects_box (const BoxArray* ba, const int* lo, const int* hi)
+    {
+        Box bx(IntVect(lo), IntVect(hi), ba->ixType());
+        return ba->intersects(bx);
+    }
 }
