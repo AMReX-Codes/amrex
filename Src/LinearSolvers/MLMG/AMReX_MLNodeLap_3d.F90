@@ -213,7 +213,7 @@ contains
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             if (any(msk(i-1:i,j-1:j,k-1:k) .eq. fine_flag)) then
+             if (msk(i,j,k) .eq. fine_flag) then
                 r = 1
                 goto 100
              end if

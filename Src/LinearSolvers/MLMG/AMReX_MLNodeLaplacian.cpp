@@ -959,7 +959,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
             const Box& bx = mfi.tilebox();
             const Box& bxg1 = amrex::grow(bx,1);
             const Box& ccbxg1 = amrex::enclosedCells(bxg1);
-            if (amrex_mlndlap_any_fine_sync_cells(BL_TO_FORTRAN_BOX(bx),
+            if (amrex_mlndlap_any_fine_sync_cells(BL_TO_FORTRAN_BOX(ccbxg1),
                                                   BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
                                                   &nonowner))
             {
