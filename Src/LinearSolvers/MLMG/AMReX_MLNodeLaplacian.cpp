@@ -991,7 +991,9 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 amrex_mlndlap_crse_resid(BL_TO_FORTRAN_BOX(bx),
                                          BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
                                          BL_TO_FORTRAN_ANYD(rhs),
-                                         BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]));
+                                         BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
+                                         BL_TO_FORTRAN_BOX(nddom),
+                                         m_lobc.data(), m_hibc.data());
             }
         }
     }

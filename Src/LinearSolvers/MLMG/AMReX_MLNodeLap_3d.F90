@@ -2027,6 +2027,7 @@ contains
                            &                  + facz*vel(i  ,j  ,k  ,3)
                    end if
 
+                   ! xxxxx how about inflow?
                    if (i .eq. ndlo(1) .and. bclo(1) .eq. amrex_lo_neumann) then
                       rhs(i,j,k) = 2.d0*rhs(i,j,k)
                    else if (i.eq. ndhi(1) .and. bchi(1) .eq. amrex_lo_neumann) then
@@ -2056,20 +2057,43 @@ contains
   end subroutine amrex_mlndlap_divu_cf_contrib
 
 
-  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi) &
-       bind(c, name='amrex_mlndlap_crse_resid')
-    integer, dimension(3), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi
+  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi, &
+       ndlo, ndhi, bclo, bchi) bind(c, name='amrex_mlndlap_crse_resid')
+    integer, dimension(3), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(inout) :: resid(rslo(1):rshi(1),rslo(2):rshi(2),rslo(3):rshi(3))
     real(amrex_real), intent(in   ) :: rhs  (rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3))
     integer         , intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3))
 
     integer :: i,j,k
+    real(amrex_real) :: fac
 
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
              if (any(msk(i-1:i,j-1:j,k-1:k).eq.0) .and. any(msk(i-1:i,j-1:j,k-1:k).eq.1)) then
-                resid(i,j,k) = rhs(i,j,k) - resid(i,j,k)
+
+                ! xxxxx how about inflow?
+                fac = 1.d0
+
+                if (i .eq. ndlo(1) .and. bclo(1) .eq. amrex_lo_neumann) then
+                   fac = 2.d0*fac
+                else if (i.eq. ndhi(1) .and. bchi(1) .eq. amrex_lo_neumann) then
+                   fac = 2.d0*fac
+                end if
+                
+                if (j .eq. ndlo(2) .and. bclo(2) .eq. amrex_lo_neumann) then
+                   fac = 2.d0*fac                   
+                else if (j .eq. ndhi(2) .and. bchi(2) .eq. amrex_lo_neumann) then
+                   fac = 2.d0*fac
+                end if
+                
+                if (k .eq. ndlo(3) .and. bclo(3) .eq. amrex_lo_neumann) then
+                   fac = 2.d0*fac                   
+                else if (k .eq. ndhi(3) .and. bchi(3) .eq. amrex_lo_neumann) then
+                   fac = 2.d0*fac
+                end if
+
+                resid(i,j,k) = rhs(i,j,k) - resid(i,j,k)*fac
              else
                 resid(i,j,k) = 0.d0
              end if
@@ -2345,6 +2369,7 @@ contains
 
                    Axf = fc(i,j,k)
 
+                   ! xxxxx how about inflow?
                    if (i .eq. ndlo(1) .and. bclo(1) .eq. amrex_lo_neumann) then
                       Axf = 2.d0*Axf
                    else if (i.eq. ndhi(1) .and. bchi(1) .eq. amrex_lo_neumann) then
