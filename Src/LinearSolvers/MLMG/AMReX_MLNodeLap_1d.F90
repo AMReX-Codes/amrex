@@ -285,9 +285,9 @@ contains
   end subroutine amrex_mlndlap_divu_cf_contrib
 
 
-  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi) &
-       bind(c, name='amrex_mlndlap_crse_resid')
-    integer, dimension(1), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi
+  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi, &
+       ndlo, ndhi, bclo, bchi) bind(c, name='amrex_mlndlap_crse_resid')
+    integer, dimension(1), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(inout) :: resid(rslo(1):rshi(1))
     real(amrex_real), intent(in   ) :: rhs  (rhlo(1):rhhi(1))
     integer         , intent(in   ) :: msk  ( mlo(1): mhi(1))

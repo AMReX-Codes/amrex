@@ -189,7 +189,9 @@ extern "C" {
     void amrex_mlndlap_crse_resid (const int* lo, const int* hi,
                                    amrex_real* resid, const int* rslo, const int* rshi,
                                    const amrex_real* rhs, const int* rhlo, const int* rhhi,
-                                   const int* msk, const int* mlo, const int* mhi);
+                                   const int* msk, const int* mlo, const int* mhi,
+                                   const int* ndlo, const int* ndhi,
+                                   const void* bclo, const void* bchi);
 
     void amrex_mlndlap_res_fine_contrib (const int* clo, const int* chi,
                                          const int* cgrid_lo, const int* cgrid_hi,
