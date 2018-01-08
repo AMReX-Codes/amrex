@@ -182,7 +182,7 @@ contains
        if (r.eq.1) exit
        do i = lo(1), hi(1)
           if (r.eq.1) exit
-          if (msk(i,j) .eq. fine_flag) r = 1
+          if (any(msk(i-1:i,j-1:j) .eq. fine_flag)) r = 1
        end do
     end do
   end function amrex_mlndlap_any_fine_sync_cells
