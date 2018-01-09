@@ -761,7 +761,7 @@ contains
        phi(ilo:ihi,jlo:jhi,dlo(3)-1) = phi(ilo:ihi,jlo:jhi,dlo(3)+1)
     end if
     
-    if ((bchi(3) .eq. amrex_lo_neumann .and. bchi(3) .eq. amrex_lo_inflow) &
+    if ((bchi(3) .eq. amrex_lo_neumann .or. bchi(3) .eq. amrex_lo_inflow) &
          .and. hhi(3) .gt. dhi(3)) then
        phi(ilo:ihi,jlo:jhi,dhi(3)+1) = phi(ilo:ihi,jlo:jhi,dhi(3)-1)
     end if
