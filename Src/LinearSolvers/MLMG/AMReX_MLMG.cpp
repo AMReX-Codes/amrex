@@ -495,23 +495,47 @@ MLMG::interpCorrection (int alev, int mglev)
         BoxArray cba = fine_cor.boxArray();
         cba.coarsen(refratio);
         const int nc = crse_cor.nComp();
-        const int ng = crse_cor.nGrow();
+        const int ng = linop.isCellCentered() ? crse_cor.nGrow() : 0;
         cfine.define(cba, fine_cor.DistributionMap(), nc, ng);
         cfine.setVal(0.0);
         cfine.ParallelCopy(crse_cor, 0, 0, nc, 0, ng, crse_geom.periodicity());
         cmf = & cfine;
     }
 
+    if (linop.isCellCentered())
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                     BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                     BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
+                                     &refratio);
+        }
+    }
+    else
     {
-        const Box& bx = mfi.tilebox();
-        amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                 BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                 BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
-                                 &refratio);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            FArrayBox tmpfab;
+            for (MFIter mfi(fine_cor, true); mfi.isValid(); ++mfi)
+            {
+                const Box& fbx = mfi.tilebox();
+                const Box& cbx = amrex::coarsen(fbx,2);
+                const Box& tmpbx = amrex::refine(cbx,2);
+                tmpfab.resize(tmpbx);
+                amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
+                                         BL_TO_FORTRAN_BOX(tmpbx),
+                                         BL_TO_FORTRAN_ANYD(tmpfab),
+                                         BL_TO_FORTRAN_ANYD((*cmf)[mfi]));
+                fine_cor[mfi].copy(tmpfab, fbx, 0, fbx, 0, 1);
+            }
+        }
     }
 }
 
