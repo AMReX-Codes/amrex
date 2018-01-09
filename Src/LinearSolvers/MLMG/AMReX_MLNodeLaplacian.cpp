@@ -106,6 +106,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                       rhs[ilev+1]->DistributionMap(), 1, 0);
         frhs.setVal(0.0);
 
+        const Box& cccdom = cgeom.Domain();
+
         const Box& fnddom = amrex::surroundingNodes(fgeom.Domain());
         const Real* fdxinv = fgeom.InvCellSize();
         const iMultiFab& fdmsk = *m_dirichlet_mask[ilev+1][0];
@@ -128,7 +130,22 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 const Box& cc_fvbx = amrex::enclosedCells(fvbx);
 
                 const Box& bx_vel = amrex::grow(cc_fbx,2) & amrex::grow(cc_fvbx,1);
-                const Box& b = bx_vel & cc_fvbx;
+                Box b = bx_vel & cc_fvbx;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                {
+                    if (m_lobc[idim] == LinOpBCType::inflow)
+                    {
+                        if (b.smallEnd(idim) == cccdom.smallEnd(idim)) {
+                            b.growLo(idim, 1);
+                        }
+                    }
+                    if (m_hibc[idim] == LinOpBCType::inflow)
+                    {
+                        if (b.bigEnd(idim) == cccdom.bigEnd(idim)) {
+                            b.growHi(idim, 1);
+                        }
+                    }
+                }
                 vfab.resize(bx_vel, AMREX_SPACEDIM);
                 vfab.setVal(0.0);
                 vfab.copy((*vel[ilev+1])[mfi], b, 0, b, 0, AMREX_SPACEDIM);
@@ -154,7 +171,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         crhs.setVal(0.0);
         crhs.ParallelAdd(frhs, cgeom.periodicity());
 
-        const Box& cnddom = amrex::surroundingNodes(cgeom.Domain());
+        const Box& cnddom = amrex::surroundingNodes(cccdom);
         const Real* cdxinv = cgeom.InvCellSize();
         const iMultiFab& cdmsk = *m_dirichlet_mask[ilev][0];
         const iMultiFab& c_nd_mask = *m_nd_fine_mask[ilev];
@@ -871,6 +888,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
     crse_cc_mask.setVal(owner);
 
+    const Box& ccdom = geom.Domain();
+
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
 
 #ifdef _OPENMP
@@ -891,6 +910,10 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     fab.setVal(nonowner, is.second-iv, 0, 1);
                 }
             }
+
+            amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
+                                      BL_TO_FORTRAN_BOX(ccdom),
+                                      m_lobc.data(), m_hibc.data());
         }
     }
 
@@ -935,10 +958,9 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     {
         FArrayBox& fab = u[mfi];
         const IArrayBox& ifab = crse_cc_mask[mfi];
-        const Box& bx = mfi.tilebox();
         const Box& gbx = mfi.growntilebox();
         fab.copy(vold[mfi], gbx, 0, gbx, 0, AMREX_SPACEDIM);
-        amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
+        amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(gbx),
                                 BL_TO_FORTRAN_FAB(fab),
                                 BL_TO_FORTRAN_ANYD(ifab),
                                 0.0);
@@ -1006,7 +1028,8 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
     const Geometry& geom = m_geom[0][0];
-    const auto& nddom = amrex::surroundingNodes(geom.Domain());
+    const Box& ccdom = geom.Domain();
+    const auto& nddom = amrex::surroundingNodes(ccdom);
     const auto& fake_nddom = amrex::grow(nddom, 1);
 
     const Real* dxinv = geom.InvCellSize();
@@ -1029,7 +1052,22 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
             u.resize(ccbxg1, AMREX_SPACEDIM);
             u.setVal(0.0, ccbxg1, 0, AMREX_SPACEDIM);
-            const Box& ovlp = ccvbx & ccbxg1;
+            Box ovlp = ccvbx & ccbxg1;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                if (m_lobc[idim] == LinOpBCType::inflow)
+                {
+                    if (ovlp.smallEnd(idim) == ccdom.smallEnd(idim)) {
+                        ovlp.growLo(idim, 1);
+                    }
+                }
+                if (m_hibc[idim] == LinOpBCType::inflow)
+                {
+                    if (ovlp.bigEnd(idim) == ccdom.bigEnd(idim)) {
+                        ovlp.growHi(idim, 1);
+                    }
+                }
+            }
             u.copy(vold[mfi], ovlp, 0, ovlp, 0, AMREX_SPACEDIM);
 
             tmpmask.resize(bx);
@@ -1042,16 +1080,16 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                                BL_TO_FORTRAN_ANYD(rhs),
                                BL_TO_FORTRAN_ANYD(u),
                                BL_TO_FORTRAN_ANYD(tmpmask),
-                               dxinv, BL_TO_FORTRAN_BOX(fake_nddom),
+                               dxinv, BL_TO_FORTRAN_BOX(fake_nddom), // so that divu won't be doubled
                                m_lobc.data(), m_hibc.data());
 
             sigma.resize(ccbxg1);
             sigma.setVal(0.0, ccbxg1, 0, 1);
-            sigma.copy(sigma_orig[mfi], ovlp, 0, ovlp, 0, 1);
+            const Box& ovlp2 = ccvbx & ccbxg1;
+            sigma.copy(sigma_orig[mfi], ovlp2, 0, ovlp2, 0, 1);
 
             sync_resid[mfi].setVal(0.0, gbx, 0, 1);
 
-            // What do we do at physical boundary?
             amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
                                    BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
                                    BL_TO_FORTRAN_ANYD(phi[mfi]),
@@ -1074,7 +1112,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const Geometry& fgeom = m_geom[crse_amrlev+1][0];
     const Real* cdxinv = cgeom.InvCellSize();
     const Real* fdxinv = fgeom.InvCellSize();
-    const Box& c_nd_domain = amrex::surroundingNodes(cgeom.Domain());
+    const Box& c_cc_domain = cgeom.Domain();
+    const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
 
     const BoxArray& fba = fine_sol.boxArray();
     const DistributionMapping& fdm = fine_sol.DistributionMap();
