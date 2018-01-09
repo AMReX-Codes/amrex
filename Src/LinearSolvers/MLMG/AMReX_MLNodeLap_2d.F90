@@ -21,7 +21,7 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
-       amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, &
+       amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
@@ -81,30 +81,6 @@ contains
        end do
     end do
 
-    if (dlo(1) .eq. domlo(1)) then
-       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
-          dmsk(dlo(1),:) = 0
-       end if
-    end if
-
-    if (dhi(1) .eq. domhi(1)) then
-       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          dmsk(dhi(1),:) = 0
-       end if
-    end if
-
-    if (dlo(2) .eq. domlo(2)) then
-       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          dmsk(:,dlo(2)) = 0
-       end if
-    end if
-
-    if (dhi(2) .eq. domhi(2)) then
-       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          dmsk(:,dhi(2)) = 0
-       end if
-    end if
-    
     if (dlo(1) .eq. domlo(1)) then
        if (bclo(1) .eq. amrex_lo_dirichlet) then
           dmsk(dlo(1),:) = dirichlet
@@ -301,6 +277,69 @@ contains
     end if
 
   end subroutine amrex_mlndlap_fillbc_cc
+
+
+  subroutine amrex_mlndlap_fillbc_cc_i (sigma, slo, shi, dlo, dhi, bclo, bchi) &
+       bind(c, name='amrex_mlndlap_fillbc_cc_i')
+    integer, dimension(2), intent(in) :: slo, shi, dlo, dhi, bclo, bchi
+    integer, intent(inout) :: sigma(slo(1):shi(1),slo(2):shi(2))
+
+    integer :: ilo, ihi, jlo, jhi
+
+    ilo = max(dlo(1), slo(1))
+    ihi = min(dhi(1), shi(1))
+    jlo = max(dlo(2), slo(2))
+    jhi = min(dhi(2), shi(2))
+
+    if (bclo(1) .ne. amrex_lo_periodic .and. slo(1) .lt. dlo(1)) then
+       sigma(dlo(1)-1,jlo:jhi) = sigma(dlo(1),jlo:jhi)
+    end if
+    
+    if (bchi(1) .ne. amrex_lo_periodic .and. shi(1) .gt. dhi(1)) then
+       sigma(dhi(1)+1,jlo:jhi) = sigma(dhi(1),jlo:jhi)
+    end if
+
+    if (bclo(2) .ne. amrex_lo_periodic .and. slo(2) .lt. dlo(2)) then
+       sigma(ilo:ihi,dlo(2)-1) = sigma(ilo:ihi,dlo(2))
+    end if
+
+    if (bchi(2) .ne. amrex_lo_periodic .and. shi(2) .gt. dhi(2)) then
+       sigma(ilo:ihi,dhi(2)+1) = sigma(ilo:ihi,dhi(2))
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. slo(2) .lt. dlo(2)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1) = sigma(dlo(1),dlo(2)-1)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1) = sigma(dlo(1)-1,dlo(2))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. slo(2) .lt. dlo(2)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1) = sigma(dhi(1),dlo(2)-1)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1) = sigma(dhi(1)+1,dlo(2))
+       end if
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. shi(2) .gt. dhi(2)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1) = sigma(dlo(1),dhi(2)+1)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1) = sigma(dlo(1)-1,dhi(2))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. shi(2) .gt. dhi(2)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1) = sigma(dhi(1),dhi(2)+1)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1) = sigma(dhi(1)+1,dhi(2))
+       end if
+    end if
+
+  end subroutine amrex_mlndlap_fillbc_cc_i
 
 
   subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &
@@ -941,8 +980,6 @@ contains
        end do
     end do
 
-    ! xxxxx what do we do at physical boundaries?
-
   end subroutine amrex_mlndlap_divu_fine_contrib
 
 
@@ -974,28 +1011,70 @@ contains
                      + (1.d0-ccmsk(i  ,j-1)) * ( facx*vel(i  ,j-1,1) - facy*vel(i  ,j-1,2)) &
                      + (1.d0-ccmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
                      + (1.d0-ccmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2))
+
+                if (i .eq. ndlo(1) .and. &
+                     (    bclo(1) .eq. amrex_lo_neumann &
+                     .or. bclo(1) .eq. amrex_lo_inflow)) then
+                   rhs(i,j) = 2.d0*rhs(i,j)
+                else if (i.eq. ndhi(1) .and. &
+                     (    bchi(1) .eq. amrex_lo_neumann &
+                     .or. bchi(1) .eq. amrex_lo_inflow)) then
+                   rhs(i,j) = 2.d0*rhs(i,j)
+                end if
+
+                if (j .eq. ndlo(2) .and. &
+                     (    bclo(2) .eq. amrex_lo_neumann &
+                     .or. bclo(2) .eq. amrex_lo_inflow)) then
+                   rhs(i,j) = 2.d0*rhs(i,j)                   
+                else if (j .eq. ndhi(2) .and. &
+                     (    bchi(2) .eq. amrex_lo_neumann &
+                     .or. bchi(2) .eq. amrex_lo_inflow)) then
+                   rhs(i,j) = 2.d0*rhs(i,j)
+                end if
              end if
           end if
        end do
     end do
 
-    ! xxxxx what do we do at physical boundaries?
   end subroutine amrex_mlndlap_divu_cf_contrib
 
 
-  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi) &
-       bind(c, name='amrex_mlndlap_crse_resid')
-    integer, dimension(2), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi
+  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi, &
+       ndlo, ndhi, bclo, bchi) bind(c, name='amrex_mlndlap_crse_resid')
+    integer, dimension(2), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(inout) :: resid(rslo(1):rshi(1),rslo(2):rshi(2))
     real(amrex_real), intent(in   ) :: rhs  (rhlo(1):rhhi(1),rhlo(2):rhhi(2))
     integer         , intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
 
     integer :: i,j
+    real(amrex_real) :: fac
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (any(msk(i-1:i,j-1:j).eq.0) .and. any(msk(i-1:i,j-1:j).eq.1)) then
-             resid(i,j) = rhs(i,j) - resid(i,j)
+
+             fac = 1.d0
+             if (i .eq. ndlo(1) .and. &
+                  (    bclo(1) .eq. amrex_lo_neumann &
+                  .or. bclo(1) .eq. amrex_lo_inflow)) then
+                fac = fac*2.d0
+             else if (i.eq. ndhi(1) .and. &
+                  (    bchi(1) .eq. amrex_lo_neumann &
+                  .or. bchi(1) .eq. amrex_lo_inflow)) then
+                fac = fac*2.d0
+             end if
+             
+             if (j .eq. ndlo(2) .and. &
+                  (    bclo(2) .eq. amrex_lo_neumann &
+                  .or. bclo(2) .eq. amrex_lo_inflow)) then
+                fac = fac*2.d0
+             else if (j .eq. ndhi(2) .and. &
+                  (    bchi(2) .eq. amrex_lo_neumann &
+                  .or. bchi(2) .eq. amrex_lo_inflow)) then
+                fac = fac*2.d0
+             end if
+
+             resid(i,j) = rhs(i,j) - resid(i,j)*fac
           else
              resid(i,j) = 0.d0
           end if
@@ -1075,17 +1154,15 @@ contains
        end do
     end do
 
-    ! xxxxx what do we do at physical boundaries?
-
   end subroutine amrex_mlndlap_res_fine_contrib
 
 
   subroutine amrex_mlndlap_res_cf_contrib (lo, hi, res, rlo, rhi, phi, phlo, phhi, &
        rhs, rhlo, rhhi, sig, slo, shi, dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, &
-       fc, clo, chi, dxinv) &
+       fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_res_cf_contrib')
     integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, phlo, phhi, rhlo, rhhi, slo, shi, &
-         mlo, mhi, nmlo, nmhi, cmlo, cmhi, clo, chi
+         mlo, mhi, nmlo, nmhi, cmlo, cmhi, clo, chi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: res( rlo(1): rhi(1), rlo(2): rhi(2))
     real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2))
@@ -1097,7 +1174,7 @@ contains
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
-    real(amrex_real) :: Ax, facx, facy
+    real(amrex_real) :: Ax, Axf, facx, facy
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -1131,7 +1208,30 @@ contains
                         &            + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
                         &                  +      (phi(i+1,j+1)-phi(i+1,j  ))))
                 end if
-                res(i,j) = rhs(i,j) - Ax - fc(i,j)
+
+                Axf = fc(i,j)
+
+                if (i .eq. ndlo(1) .and. &
+                     (    bclo(1) .eq. amrex_lo_neumann &
+                     .or. bclo(1) .eq. amrex_lo_inflow)) then
+                   Axf = 2.d0*Axf
+                else if (i.eq. ndhi(1) .and. &
+                     (    bchi(1) .eq. amrex_lo_neumann &
+                     .or. bchi(1) .eq. amrex_lo_inflow)) then
+                   Axf = 2.d0*Axf
+                end if
+
+                if (j .eq. ndlo(2) .and. &
+                     (    bclo(2) .eq. amrex_lo_neumann &
+                     .or. bclo(2) .eq. amrex_lo_inflow)) then
+                   Axf = 2.d0*Axf
+                else if (j .eq. ndhi(2) .and. &
+                     (    bchi(2) .eq. amrex_lo_neumann &
+                     .or. bchi(2) .eq. amrex_lo_inflow)) then
+                   Axf = 2.d0*Axf
+                end if
+
+                res(i,j) = rhs(i,j) - (Ax + Axf)
              end if
           end if
        end do
