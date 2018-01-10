@@ -23,11 +23,13 @@ module amrex_boxarray_module
      procedure :: get_box       => amrex_boxarray_get_box
      procedure :: nodal_type    => amrex_boxarray_nodal_type  ! get index type
      procedure :: num_pts       => amrex_boxarray_num_pts
+     procedure :: intersects    => amrex_boxarray_intersects_box
      procedure, private :: amrex_boxarray_assign
      procedure, private :: amrex_boxarray_install
      procedure, private :: amrex_boxarray_maxsize_int
      procedure, private :: amrex_boxarray_maxsize_int3
      procedure, private :: amrex_boxarray_maxsize_iv
+     procedure, private :: amrex_boxarray_intersects_box
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_boxarray_destroy
 #endif
@@ -107,6 +109,13 @@ module amrex_boxarray_module
        type(c_ptr), value, intent(in) :: ba
        integer(c_long) :: amrex_fi_boxarray_numpts
      end function amrex_fi_boxarray_numpts
+
+     pure integer function amrex_fi_boxarray_intersects_box (ba, lo, hi) bind(c)
+       import
+       implicit none
+       type(c_ptr), value, intent(in) :: ba
+       integer, intent(in) :: lo(*), hi(*)
+     end function amrex_fi_boxarray_intersects_box
   end interface
 
 contains
@@ -213,4 +222,14 @@ contains
     integer(c_long) :: n
     n = amrex_fi_boxarray_numpts(this%p)
   end function amrex_boxarray_num_pts
+
+  pure function amrex_boxarray_intersects_box (this, bx) result(r)
+    class(amrex_boxarray), intent(in) :: this
+    type(amrex_box), intent(in) :: bx
+    logical :: r
+    integer :: ir
+    ir = amrex_fi_boxarray_intersects_box(this%p, bx%lo, bx%hi)
+    r = ir .ne. 0
+  end function amrex_boxarray_intersects_box
+
 end module amrex_boxarray_module
