@@ -104,7 +104,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+             mfi.isValid(); ++mfi) {
             const Box& box = mfi.tilebox();
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
