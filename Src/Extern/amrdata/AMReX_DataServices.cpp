@@ -1045,10 +1045,23 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       int maxSmallImageLength, refRatioAll;
       bool *proxMapPtr;
 
-      plotfileNamePtr =  (std::string *) va_arg(ap, void *);
-      maxSmallImageLength = va_arg(ap, int);
-      proxMapPtr = (bool *) va_arg(ap, bool *);
-      refRatioAll = va_arg(ap, int);
+      if (ParallelDescriptor::IOProcessor()) 
+      {
+        plotfileNamePtr =  (std::string *) va_arg(ap, void *);
+        maxSmallImageLength = va_arg(ap, int);
+        proxMapPtr = (bool *) va_arg(ap, bool *);
+        refRatioAll = va_arg(ap, int);
+      }
+
+       // --- Broadcast Bools
+      amrex::BroadcastBool(*proxMapPtr, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+
+      // --- Broadcast Ints
+      ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      
+      // --- Broadcast String
+      amrex::BroadcastString(*plotfileNamePtr, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
 
       ds->RunSendsPF(*plotfileNamePtr, maxSmallImageLength, *proxMapPtr, refRatioAll);
     }
@@ -1062,7 +1075,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       std::string plotfileName;
       BLProfStats::TimeRange subTimeRange;
       Real start, stop;
-      int maxSmallImageLength, refRatioAll, nTimeSlots, bStats;
+      int maxSmallImageLength, refRatioAll, nTimeSlots;
       bool statsCollected;
 
       // Storage of broken down map.
@@ -1079,7 +1092,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
         maxSmallImageLength = va_arg(ap, int);
         refRatioAll = va_arg(ap, int);
         nTimeSlots = va_arg(ap, int);
-        bStats = *((bool *) va_arg(ap, bool *));
+        statsCollected = *((bool *) va_arg(ap, bool *));
 
         // Prep data for broadcast
         start = subTimeRange.startTime;
@@ -1095,11 +1108,13 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
         serialSecond = amrex::SerializeStringArray(fileNameAndmapSecond);
       }
 
+      // --- Broadcast Bools
+      amrex::BroadcastBool(statsCollected, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+
       // --- Broadcast Ints
       ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
       ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
       ParallelDescriptor::Bcast(&nTimeSlots, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
-      ParallelDescriptor::Bcast(&bStats, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
 
       // --- Broadcast Reals
       ParallelDescriptor::Bcast(&start, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
@@ -1112,7 +1127,6 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       if(!ParallelDescriptor::IOProcessor())
       {
         subTimeRange = BLProfStats::TimeRange(start, stop);
-        statsCollected = bStats;
 
         fileNameAndmapSecond = amrex::UnSerializeStringArray(serialSecond);
         plotfileName = fileNameAndmapSecond.front();
