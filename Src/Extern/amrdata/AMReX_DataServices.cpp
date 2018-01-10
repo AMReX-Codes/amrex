@@ -2594,6 +2594,13 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       string fnoutFileName(plotfileName + "/CallTrace.txt");
       WriteTextTrace(fnoutFileName);
     }
+    if(bIOP) {
+      string fnoutFileName(plotfileName + "/TimeRange.txt");
+      std::ofstream fnout(fnoutFileName.c_str());
+      fnout << std::setprecision(16)
+            << subTimeRange.startTime << ' ' << subTimeRange.stopTime << '\n';
+      fnout.close();
+    }
 
     BL_PROFILE_VAR_STOP(writeplotfile);
 
