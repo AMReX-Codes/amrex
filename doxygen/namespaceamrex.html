@@ -1559,6 +1559,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ab32cba3a0d91d29340ba231066f019ee"><td class="memTemplParams" colspan="2">template&lt;typename Key , typename T , class Compare &gt; </td></tr>
 <tr class="memitem:ab32cba3a0d91d29340ba231066f019ee"><td class="memTemplItemLeft" align="right" valign="top">long&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ab32cba3a0d91d29340ba231066f019ee">bytesOf</a> (const std::map&lt; Key, T, Compare &gt; &amp;m)</td></tr>
 <tr class="separator:ab32cba3a0d91d29340ba231066f019ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af0fd43716fb89a13154ed4c037ebe6e6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af0fd43716fb89a13154ed4c037ebe6e6">BroadcastBool</a> (bool &amp;bBool, int myLocalId, int rootId, const <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> &amp;localComm)</td></tr>
+<tr class="separator:af0fd43716fb89a13154ed4c037ebe6e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa60205e03d594df934b5b3afd723c764"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#aa60205e03d594df934b5b3afd723c764">BroadcastString</a> (std::string &amp;bStr, int myLocalId, int rootId, const <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> &amp;localComm)</td></tr>
+<tr class="separator:aa60205e03d594df934b5b3afd723c764"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1bfd620fc96f18d04313d70ccca85bfb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a1bfd620fc96f18d04313d70ccca85bfb">BroadcastStringArray</a> (<a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; std::string &gt; &amp;bSA, int myLocalId, int rootId, const <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> &amp;localComm)</td></tr>
+<tr class="separator:a1bfd620fc96f18d04313d70ccca85bfb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8cf9dce7670dcc62897405af53fafcff"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
 <tr class="memitem:a8cf9dce7670dcc62897405af53fafcff"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a8cf9dce7670dcc62897405af53fafcff">BroadcastArray</a> (<a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; T &gt; &amp;aT, int myLocalId, int rootId, const <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> &amp;localComm)</td></tr>
 <tr class="separator:a8cf9dce7670dcc62897405af53fafcff"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -4482,6 +4488,44 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="af0fd43716fb89a13154ed4c037ebe6e6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::BroadcastBool </td>
+          <td>(</td>
+          <td class="paramtype">bool &amp;&#160;</td>
+          <td class="paramname"><em>bBool</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>myLocalId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rootId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> &amp;&#160;</td>
+          <td class="paramname"><em>localComm</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="a94ffc24a99ae27c86fbb6c6ebaa8d655"></a>
 <div class="memitem">
 <div class="memproto">
@@ -4567,6 +4611,82 @@ template&lt;class T &gt; </div>
           <td>(</td>
           <td class="paramtype">DistributionMapping &amp;&#160;</td>
           <td class="paramname"><em>dM</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>myLocalId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rootId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> &amp;&#160;</td>
+          <td class="paramname"><em>localComm</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="aa60205e03d594df934b5b3afd723c764"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::BroadcastString </td>
+          <td>(</td>
+          <td class="paramtype">std::string &amp;&#160;</td>
+          <td class="paramname"><em>bStr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>myLocalId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>rootId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> &amp;&#160;</td>
+          <td class="paramname"><em>localComm</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a1bfd620fc96f18d04313d70ccca85bfb"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::BroadcastStringArray </td>
+          <td>(</td>
+          <td class="paramtype">Vector&lt; std::string &gt; &amp;&#160;</td>
+          <td class="paramname"><em>bSA</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -13088,6 +13208,45 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="a69bf266cc5fefb0b385d84f685dd0df6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::readIntData </td>
+          <td>(</td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read int data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and an <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' integers, and it is the user's reponsiblity to allocate this data. </p>
+
+</div>
+</div>
 <a class="anchor" id="af8ec915a2cffc7c342e1f15e52cbd697"></a>
 <div class="memitem">
 <div class="memproto">
@@ -13125,45 +13284,6 @@ template&lt;typename To , typename From &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
-
-</div>
-</div>
-<a class="anchor" id="a69bf266cc5fefb0b385d84f685dd0df6"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void amrex::readIntData </td>
-          <td>(</td>
-          <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>data</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::size_t&#160;</td>
-          <td class="paramname"><em>size</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::istream &amp;&#160;</td>
-          <td class="paramname"><em>is</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
-          <td class="paramname"><em>id</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Read int data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and an <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' integers, and it is the user's reponsiblity to allocate this data. </p>
 
 </div>
 </div>
