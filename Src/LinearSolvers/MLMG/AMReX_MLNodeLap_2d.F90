@@ -14,8 +14,11 @@ module amrex_mlnodelap_2d_module
   integer, parameter :: crse_fine_node = 1
   integer, parameter :: fine_node = 2
 
+  logical, private, save :: is_rz = .false.
+
   private
   public :: &
+       amrex_mlndlap_set_rz, &
        ! masks
        amrex_mlndlap_set_nodal_mask, amrex_mlndlap_set_dirichlet_mask, &
        amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
@@ -43,6 +46,12 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_zero_fine
 
 contains
+
+  subroutine amrex_mlndlap_set_rz (rz) bind(c,name='amrex_mlndlap_set_rz')
+    integer, intent(in) :: rz
+    is_rz = rz.ne.0
+  end subroutine amrex_mlndlap_set_rz
+
 
   subroutine amrex_mlndlap_set_nodal_mask (lo, hi, nmsk, nlo, nhi, cmsk, clo, chi) &
        bind(c,name='amrex_mlndlap_set_nodal_mask')
@@ -461,6 +470,8 @@ contains
     integer :: i,j
     real(amrex_real) :: facx, facy
 
+    ! xxxxx
+
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
 
@@ -502,7 +513,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fp, fm
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -522,6 +533,12 @@ contains
                   +   x(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
                   +   x(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
                   +   x(i,j)*(-2.d0)*fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
+             if (is_rz) then
+                fp = facy / (2*i+1)
+                fm = facy / abs(2*i-1)
+                y(i,j) = y(i,j) + (fm*sig(i-1,j  )-fp*sig(i,j  ))*(x(i,j+1)-x(i,j)) &
+                     &          + (fm*sig(i-1,j-1)-fp*sig(i,j-1))*(x(i,j-1)-x(i,j))
+             end if
           else
              y(i,j) = 0.d0
           end if
@@ -547,6 +564,8 @@ contains
     integer :: i,j
     real(amrex_real) :: facx, facy
     real(amrex_real), parameter :: omega = 2.d0/3.d0
+
+    ! xxxxx
 
     facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -582,6 +601,8 @@ contains
     real(amrex_real) :: facx, facy, fac
     real(amrex_real), parameter :: omega = 2.d0/3.d0
 
+    ! xxxxx
+
     facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
     fac = facx + facy
@@ -614,6 +635,8 @@ contains
 
     integer :: i,j
     real(amrex_real) :: facx, facy, Ax, s0
+
+    ! xxxxx
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -660,7 +683,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, Ax, fxy, f2xmy, fmx2y, s0
+    real(amrex_real) :: facx, facy, Ax, fxy, f2xmy, fmx2y, s0, fp, fm, frzlo, frzhi
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -681,7 +704,17 @@ contains
                   + sol(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
                   + sol(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
                   + sol(i,j)*s0
-             
+
+             if (is_rz) then
+                fp = facy / (2*i+1)
+                fm = facy / abs(2*i-1)
+                frzlo = fm*sig(i-1,j-1)-fp*sig(i,j-1)
+                frzhi = fm*sig(i-1,j  )-fp*sig(i,j  )
+                s0 = s0 - frzhi - frzlo
+                Ax = Ax + frzhi*(sol(i,j+1)-sol(i,j)) &
+                     &  + frzlo*(sol(i,j-1)-sol(i,j))
+             end if
+
              sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
           else
              sol(i,j) = 0.d0
@@ -866,7 +899,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, fm, fp
 
     facx = 0.5d0*dxinv(1)
     facy = 0.5d0*dxinv(2)
@@ -876,6 +909,13 @@ contains
           if (msk(i,j) .ne. dirichlet) then
              rhs(i,j) = facx*(-vel(i-1,j-1,1)+vel(i,j-1,1)-vel(i-1,j,1)+vel(i,j,1)) &
                   &   + facy*(-vel(i-1,j-1,2)-vel(i,j-1,2)+vel(i-1,j,2)+vel(i,j,2))
+
+             if (is_rz .and. i > 0) then
+                fm = facy / (6*i-3)
+                fp = facy / (6*i+3)
+                rhs(i,j) = rhs(i,j) + fm*(vel(i-1,j,2)-vel(i-1,j-1,2)) &
+                     &              - fp*(vel(i  ,j,2)-vel(i  ,j-1,2))
+             end if
           else
              rhs(i,j) = 0.d0
           end if
@@ -915,7 +955,7 @@ contains
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
 
     integer :: i, j
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, frz
 
     facx = 0.5d0*dxinv(1)
     facy = 0.5d0*dxinv(2)
@@ -924,6 +964,10 @@ contains
        do i = lo(1), hi(1)
           u(i,j,1) = u(i,j,1) - sig(i,j)*facx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
           u(i,j,2) = u(i,j,2) - sig(i,j)*facy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
+          if (is_rz) then
+             frz = sig(i,j)*facy / (6*i+3)
+             u(i,j,2) = u(i,j,2) + frz*(p(i,j)-p(i+1,j)-p(i,j+1)+p(i+1,j+1))
+          end if
        end do
     end do
   end subroutine amrex_mlndlap_mknewu
@@ -942,7 +986,7 @@ contains
 
     integer, dimension(2) :: lo, hi, glo, ghi, gtlo, gthi
     integer :: i, j, ii, jj, step
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, fm, fp
     real(amrex_real), parameter :: rfd = 0.25d0
     real(amrex_real), parameter :: chip = 0.5d0
     real(amrex_real), parameter :: chip2 = 0.25d0
@@ -969,6 +1013,13 @@ contains
           if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step .eq. 1) then
              frh(ii,jj) = facx*(-vel(ii-1,jj-1,1)+vel(ii,jj-1,1)-vel(ii-1,jj,1)+vel(ii,jj,1)) &
                     &   + facy*(-vel(ii-1,jj-1,2)-vel(ii,jj-1,2)+vel(ii-1,jj,2)+vel(ii,jj,2))
+
+             if (is_rz .and. ii > 0) then
+                fm = facy / (6*ii-3)
+                fp = facy / (6*ii+3)
+                frh(ii,jj) = frh(ii,jj) + fm*(vel(ii-1,jj,2)-vel(ii-1,jj-1,2)) &
+                     &                  - fp*(vel(ii  ,jj,2)-vel(ii  ,jj-1,2))
+             end if
           end if
        end do
     end do
@@ -1007,7 +1058,7 @@ contains
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, fm, fp
 
     facx = 0.5d0*dxinv(1)
     facy = 0.5d0*dxinv(2)
@@ -1021,6 +1072,15 @@ contains
                      + (1.d0-ccmsk(i  ,j-1)) * ( facx*vel(i  ,j-1,1) - facy*vel(i  ,j-1,2)) &
                      + (1.d0-ccmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
                      + (1.d0-ccmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2))
+
+                if (is_rz .and. i > 0) then
+                   fm = facy / (6*i-3)
+                   fp = facy / (6*i+3)
+                   rhs(i,j) = rhs(i,j) + fm*((1.d0-ccmsk(i-1,j  ))*vel(i-1,j  ,2) &
+                        &                   -(1.d0-ccmsk(i-1,j-1))*vel(i-1,j-1,2)) &
+                        &              - fp*((1.d0-ccmsk(i  ,j  ))*vel(i  ,j  ,2) &
+                        &                   -(1.d0-ccmsk(i  ,j-1))*vel(i  ,j-1,2))
+                end if
 
                 if (i .eq. ndlo(1) .and. &
                      (    bclo(1) .eq. amrex_lo_neumann &
@@ -1177,7 +1237,7 @@ contains
 
     integer, dimension(2) :: lo, hi, glo, ghi, gtlo, gthi
     integer :: i, j, ii, jj, step
-    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fm, fp
     real(amrex_real), parameter :: rfd = 0.25d0
     real(amrex_real), parameter :: chip = 0.5d0
     real(amrex_real), parameter :: chip2 = 0.25d0
@@ -1213,6 +1273,13 @@ contains
                   +      x(ii,jj-1)*fmx2y*(sig(ii-1,jj-1)+sig(ii  ,jj-1)) &
                   +      x(ii,jj+1)*fmx2y*(sig(ii-1,jj  )+sig(ii  ,jj  )) &
                   +      x(ii,jj)*(-2.d0)*fxy*(sig(ii-1,jj-1)+sig(ii,jj-1)+sig(ii-1,jj)+sig(ii,jj))
+
+             if (is_rz) then
+                fp = facy /    (2*ii+1)
+                fm = facy / abs(2*ii-1)
+                Ax(ii,jj) = Ax(ii,jj) + (fm*sig(ii-1,jj  )-fp*sig(ii,jj  ))*(x(ii,jj+1)-x(ii,jj)) &
+                     &                + (fm*sig(ii-1,jj-1)-fp*sig(ii,jj-1))*(x(ii,jj-1)-x(ii,jj))
+             end if
           end if
        end do
     end do
@@ -1254,7 +1321,7 @@ contains
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
-    real(amrex_real) :: Ax, Axf, facx, facy
+    real(amrex_real) :: Ax, Axf, facx, facy, fp, fm
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -1263,30 +1330,48 @@ contains
        do i = lo(1), hi(1)
           if (dmsk(i,j) .ne. dirichlet) then
              if (ndmsk(i,j) .eq. crse_fine_node) then
+
+                if (is_rz) then
+                   fp = facy / (2*i+1)
+                   fm = facy / abs(2*i-1)
+                end if
+
                 Ax = 0.d0
                 if (ccmsk(i-1,j-1) .eq. crse_cell) then
                    Ax = Ax + sig(i-1,j-1)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
                         &                       +     (phi(i-1,j-1)-phi(i  ,j-1))) &
                         &                + facy*(2.d0*(phi(i  ,j-1)-phi(i  ,j  )) &
                         &                       +     (phi(i-1,j-1)-phi(i-1,j  ))))
+                   if (is_rz) then
+                      Ax = Ax + fm*sig(i-1,j-1)*(phi(i,j-1)-phi(i,j))
+                   end if
                 end if
                 if (ccmsk(i,j-1) .eq. crse_cell) then
                    Ax = Ax + sig(i,j-1)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
                         &                     +     (phi(i+1,j-1)-phi(i  ,j-1))) &
                         &              + facy*(2.d0*(phi(i  ,j-1)-phi(i  ,j  )) &
                         &                     +     (phi(i+1,j-1)-phi(i+1,j  ))))
+                   if (is_rz) then
+                      Ax = Ax - fp*sig(i,j-1)*(phi(i,j-1)-phi(i,j))
+                   end if
                 end if
                 if (ccmsk(i-1,j) .eq. crse_cell) then
                    Ax = Ax + sig(i-1,j)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
                         &                     +     (phi(i-1,j+1)-phi(i  ,j+1))) &
                         &              + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
                         &                     +     (phi(i-1,j+1)-phi(i-1,j  ))))
+                   if (is_rz) then
+                      Ax = Ax + fm*sig(i-1,j)*(phi(i,j+1)-phi(i,j))
+                   end if
                 end if
                 if (ccmsk(i,j) .eq. crse_cell) then
                    Ax = Ax + sig(i,j)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
                         &                  +      (phi(i+1,j+1)-phi(i  ,j+1))) &
                         &            + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
                         &                  +      (phi(i+1,j+1)-phi(i+1,j  ))))
+                   if (is_rz) then
+                      Ax = Ax - fp*sig(i,j)*(phi(i,j+1)-phi(i,j))
+                   end if
                 end if
 
                 Axf = fc(i,j)

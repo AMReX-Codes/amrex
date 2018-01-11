@@ -7,6 +7,10 @@
 extern "C" {
 #endif
 
+#if (AMREX_SPACEDIM == 2)
+    void amrex_mlndlap_set_rz (const int* rz);
+#endif
+
     void amrex_mlndlap_set_nodal_mask (const int* lo, const int* hi,
                                        int* nmsk, const int* nlo, const int* nhi,
                                        const int* cmsk, const int* clo, const int* chi);
