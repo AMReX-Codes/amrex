@@ -362,7 +362,7 @@ void amrex::MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &fun
         funcPctTimes[fnum].first  = percent;
         funcPctTimes[fnum].second = fnum;
       } else {
-        cout << "**** Error:  runTime <= 0.0 || fNamePS != fname:  " << runTime << "  "
+        cout << "**** Error MakeFuncPctTimesMF:  runTime <= 0.0 || fNamePS != fname:  " << runTime << "  "
              << fNamePS << "  " << fName << endl;
       }
     }
@@ -461,7 +461,7 @@ void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats> &mPro
           xgout.close();
         }
       } else {
-        cout << "**** Error:  runTime <= 0.0 || fNamePS != fname:  " << runTime << "  "
+        cout << "**** Error GraphTopPct:  runTime <= 0.0 || fNamePS != fname:  " << runTime << "  "
              << fNamePS << "  " << fName << endl;
       }
     }

@@ -222,6 +222,8 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift (ParticleType& p) const
 {
+    //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::PeriodicShift()");
+
     // This routine should only be called when Where() returns false.
     BL_ASSERT(m_gdb != 0);
 
@@ -1713,11 +1715,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Make the particle directories if they don't already exist.
     //
     amrex::Print() << "Particle::Checkpoint: pdir levelDirectoriesCreated = "
-                   << pdir << "  " << levelDirectoriesCreated <<  std::endl;
+                   << pdir << "  " << levelDirectoriesCreated << '\n';
     if ( ! levelDirectoriesCreated) {
       if (ParallelDescriptor::IOProcessor()) {
         amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:0:  creating directory:  "
-	               << pdir << std::endl;;
+	               << pdir << '\n';
         if ( ! amrex::UtilCreateDirectory(pdir, 0755)) {
             amrex::CreateDirectoryFailed(pdir);
 	}
@@ -1891,7 +1893,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	    if ( ! levelDirectoriesCreated) {
               if (ParallelDescriptor::IOProcessor()) {
                 amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:1:  creating directory:  "
-		               << LevelDir << std::endl;;
+		               << LevelDir << '\n';
 	        if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
 		  amrex::CreateDirectoryFailed(LevelDir);
 	        }
@@ -1993,7 +1995,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     if (cnt[i] == 0)
                     {
                         std::string FullFileName = NFilesIter::FileName(i, filePrefix);
-			amrex::Print() << "::IOIOIOIO:  Unlinking file:  "<< FullFileName << std::endl;
+			amrex::Print() << "::IOIOIOIO:  Unlinking file:  "<< FullFileName << '\n';
 
                         amrex::UnlinkFile(FullFileName.c_str());
                     }
@@ -2122,7 +2124,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             if(cnt[i] == 0) {
               std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
 	      std::cout << ParallelDescriptor::MyProc() << "::IOIOIOIO:  Unlinking file:  "
-	                << FullFileName << std::endl;
+	                << FullFileName << '\n';
 
               amrex::UnlinkFile(FullFileName.c_str());
             }
