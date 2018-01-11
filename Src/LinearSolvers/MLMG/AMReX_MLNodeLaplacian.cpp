@@ -1185,10 +1185,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
             sync_resid[mfi].xpay(-1.0, rhs, bx, bx, 0, 0, 1);
 
-            amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
-                                            BL_TO_FORTRAN_BOX(nddom),
-                                            m_lobc.data(), m_hibc.data());
+            // Do not impose neumann bc here because how SyncRegister works.
         }
     }
 }
