@@ -23,7 +23,7 @@ module amrex_mlnodelap_2d_module
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
        ! bc
-       amrex_mlndlap_applybc, &
+       amrex_mlndlap_applybc, amrex_mlndlap_impose_neumann_bc, &
        ! operator
        amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
@@ -33,8 +33,9 @@ module amrex_mlnodelap_2d_module
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
-       amrex_mlndlap_divu, amrex_mlndlap_add_rhcc, amrex_mlndlap_mknewu, &
+       amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
+       amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -411,6 +412,38 @@ contains
     end if
 
   end subroutine amrex_mlndlap_applybc
+
+
+  subroutine amrex_mlndlap_impose_neumann_bc (lo, hi, rhs, rlo, rhi, ndlo, ndhi, bclo, bchi) &
+       bind(c, name='amrex_mlndlap_impose_neumann_bc')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, ndlo, ndhi, bclo, bchi
+    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
+
+    if (lo(1) .eq. ndlo(1)) then
+       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then 
+          rhs(lo(1),lo(2):hi(2)) = 2.d0*rhs(lo(1),lo(2):hi(2))
+       end if
+    end if
+
+    if (hi(1) .eq. ndhi(1)) then
+       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
+          rhs(hi(1),lo(2):hi(2)) = 2.d0*rhs(hi(1),lo(2):hi(2))
+       end if
+    end if
+
+    if (lo(2) .eq. ndlo(2)) then
+       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
+          rhs(lo(1):hi(1),lo(2)) = 2.d0*rhs(lo(1):hi(1),lo(2))
+       end if
+    end if
+
+    if (hi(2) .eq. ndhi(2)) then
+       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
+          rhs(lo(1):hi(1),hi(2)) = 2.d0*rhs(lo(1):hi(1),hi(2))
+       end if
+    end if
+
+  end subroutine amrex_mlndlap_impose_neumann_bc
 
 
   subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
@@ -824,10 +857,9 @@ contains
   end subroutine amrex_mlndlap_interpolation_aa
 
 
-  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, &
-       dxinv, ndlo, ndhi, bclo, bchi) &
+  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, dxinv) &
        bind(c,name='amrex_mlndlap_divu')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
@@ -850,35 +882,11 @@ contains
        end do
     end do
 
-    if (lo(1) .eq. ndlo(1)) then
-       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then 
-          rhs(lo(1),lo(2):hi(2)) = 2.d0*rhs(lo(1),lo(2):hi(2))
-       end if
-    end if
-
-    if (hi(1) .eq. ndhi(1)) then
-       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          rhs(hi(1),lo(2):hi(2)) = 2.d0*rhs(hi(1),lo(2):hi(2))
-       end if
-    end if
-
-    if (lo(2) .eq. ndlo(2)) then
-       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          rhs(lo(1):hi(1),lo(2)) = 2.d0*rhs(lo(1):hi(1),lo(2))
-       end if
-    end if
-
-    if (hi(2) .eq. ndhi(2)) then
-       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          rhs(lo(1):hi(1),hi(2)) = 2.d0*rhs(lo(1):hi(1),hi(2))
-       end if
-    end if
-
   end subroutine amrex_mlndlap_divu
 
 
-  subroutine amrex_mlndlap_add_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
-       bind(c,name='amrex_mlndlap_add_rhcc')
+  subroutine amrex_mlndlap_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_rhcc')
     integer, dimension(2) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi
     real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1),clo(2):chi(2))
@@ -889,11 +897,13 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             rhs(i,j) = rhs(i,j) + 0.25d0*(rhcc(i-1,j-1)+rhcc(i,j-1)+rhcc(i-1,j)+rhcc(i,j))
+             rhs(i,j) = 0.25d0*(rhcc(i-1,j-1)+rhcc(i,j-1)+rhcc(i-1,j)+rhcc(i,j))
+          else
+             rhs(i,j) = 0.d0
           end if
        end do
     end do
-  end subroutine amrex_mlndlap_add_rhcc
+  end subroutine amrex_mlndlap_rhcc
 
 
   subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &
@@ -920,10 +930,10 @@ contains
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv, ndlo, ndhi, bclo, bchi) &
+       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv) &
        bind(c,name='amrex_mlndlap_divu_fine_contrib')
     integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
-         flo, fhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+         flo, fhi, mlo, mhi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
@@ -1039,6 +1049,76 @@ contains
   end subroutine amrex_mlndlap_divu_cf_contrib
 
 
+  subroutine amrex_mlndlap_rhcc_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
+       cc, cclo, cchi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_rhcc_fine_contrib')
+    integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, cclo, cchi, mlo, mhi
+    real(amrex_real), intent(inout) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) :: cc (cclo(1):cchi(1),cclo(2):cchi(2))
+    integer         , intent(in   ) :: msk( mlo(1): mhi(1), mlo(2): mhi(2))
+
+    integer, dimension(2) :: lo, hi, glo, ghi
+    integer :: i, j, ii, jj, step
+    real(amrex_real), parameter :: w1 = 9.d0/64.d0
+    real(amrex_real), parameter :: w2 = 3.d0/64.d0
+    real(amrex_real), parameter :: w3 = 1.d0/64.d0
+
+    lo = 2*clo
+    hi = 2*chi
+    glo = 2*cglo
+    ghi = 2*cghi
+
+    do j = clo(2), chi(2)
+       jj = 2*j
+       if (j .eq. cglo(2) .or. j .eq. cghi(2)) then
+          step = 1
+       else
+          step = chi(1)-clo(1)
+       end if
+       do i = clo(1), chi(1), step
+          ii = 2*i
+          if (msk(ii,jj) .eq. dirichlet) then
+             rhs(i,j) = rhs(i,j) &
+                  + w1*(cc(ii-1,jj-1)+cc(ii  ,jj-1)+cc(ii-1,jj  )+cc(ii  ,jj  )) &
+                  + w2*(cc(ii-2,jj-1)+cc(ii+1,jj-1)+cc(ii-2,jj  )+cc(ii+1,jj  ) &
+                  &    +cc(ii-1,jj-2)+cc(ii  ,jj-2)+cc(ii-1,jj+1)+cc(ii  ,jj+1)) &
+                  + w3*(cc(ii-2,jj-2)+cc(ii+1,jj-2)+cc(ii-2,jj+1)+cc(ii+1,jj+1))
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_rhcc_fine_contrib
+
+
+  subroutine amrex_mlndlap_rhcc_crse_contrib (lo, hi, crhs, rlo, rhi, rhcc, clo, chi, &
+       dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi) &
+       bind(c,name='amrex_mlndlap_rhcc_crse_contrib')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi, &
+         nmlo, nmhi, cmlo, cmhi
+    real(amrex_real), intent(inout) ::  crhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) ::  rhcc( clo(1): chi(1), clo(2): chi(2))
+    integer         , intent(in   ) ::  dmsk( mlo(1): mhi(1), mlo(2): mhi(2))
+    integer         , intent(in   ) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
+    integer         , intent(in   ) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
+
+    integer :: i,j
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (dmsk(i,j) .ne. dirichlet) then
+             if (ndmsk(i,j) .eq. crse_fine_node) then
+                crhs(i,j) = crhs(i,j) + 0.25d0 * &
+                     ( (1.d0-ccmsk(i-1,j-1)) * rhcc(i-1,j-1) &
+                     + (1.d0-ccmsk(i  ,j-1)) * rhcc(i  ,j-1) &
+                     + (1.d0-ccmsk(i-1,j  )) * rhcc(i-1,j  ) &
+                     + (1.d0-ccmsk(i  ,j  )) * rhcc(i  ,j  ))
+             end if
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_rhcc_crse_contrib
+
+
   subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi, &
        ndlo, ndhi, bclo, bchi) bind(c, name='amrex_mlndlap_crse_resid')
     integer, dimension(2), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi, ndlo, ndhi, bclo, bchi
@@ -1074,7 +1154,7 @@ contains
                 fac = fac*2.d0
              end if
 
-             resid(i,j) = rhs(i,j) - resid(i,j)*fac
+             resid(i,j) = (rhs(i,j) - resid(i,j)) * fac
           else
              resid(i,j) = 0.d0
           end if
