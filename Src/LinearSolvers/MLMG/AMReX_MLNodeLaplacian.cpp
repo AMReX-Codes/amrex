@@ -615,6 +615,10 @@ MLNodeLaplacian::prepareForSolve ()
     {  // No Dirichlet
         m_is_bottom_singular = m_domain_covered[0];
     }
+
+#if (AMREX_SPACEDIM == 2)
+    amrex_mlndlap_set_rz(&m_is_rz);
+#endif
 }
 
 void

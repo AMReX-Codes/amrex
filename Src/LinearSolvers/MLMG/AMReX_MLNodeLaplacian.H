@@ -30,6 +30,8 @@ public :
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo());
 
+    void setRZCorrection (bool rz) { m_is_rz = rz; }
+
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
     void compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
@@ -73,6 +75,8 @@ protected:
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
 private:
+
+    int m_is_rz = 0;
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     bool m_use_gauss_seidel = true;
