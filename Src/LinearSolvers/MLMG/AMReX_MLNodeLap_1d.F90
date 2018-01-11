@@ -23,7 +23,7 @@ module amrex_mlnodelap_1d_module
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
        ! bc
-       amrex_mlndlap_applybc, &
+       amrex_mlndlap_applybc, amrex_mlndlap_impose_neumann_bc, &
        ! operator
        amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
@@ -33,8 +33,9 @@ module amrex_mlnodelap_1d_module
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
-       amrex_mlndlap_divu, amrex_mlndlap_add_rhcc, amrex_mlndlap_mknewu, &
+       amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
+       amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -112,6 +113,13 @@ contains
     integer, dimension(1) :: hlo, hhi, dlo, dhi, bclo, bchi
     real(amrex_real), intent(inout) :: phi(hlo(1):hhi(1))
   end subroutine amrex_mlndlap_applybc
+
+
+  subroutine amrex_mlndlap_impose_neumann_bc (lo, hi, rhs, rlo, rhi, ndlo, ndhi, bclo, bchi) &
+       bind(c, name='amrex_mlndlap_impose_neumann_bc')
+    integer, dimension(1), intent(in) :: lo, hi, rlo, rhi, ndlo, ndhi, bclo, bchi
+    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1))
+  end subroutine amrex_mlndlap_impose_neumann_bc
 
 
   subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
@@ -227,10 +235,9 @@ contains
   end subroutine amrex_mlndlap_interpolation_aa
 
 
-  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, &
-       dxinv, ndlo, ndhi, bclo, bchi) &
+  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, dxinv) &
        bind(c,name='amrex_mlndlap_divu')
-    integer, dimension(1), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+    integer, dimension(1), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi
     real(amrex_real), intent(in) :: dxinv(1)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1))
@@ -238,13 +245,13 @@ contains
   end subroutine amrex_mlndlap_divu
 
 
-  subroutine amrex_mlndlap_add_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
-       bind(c,name='amrex_mlndlap_add_rhcc')
+  subroutine amrex_mlndlap_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_rhcc')
     integer, dimension(1) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi
     real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1))
     real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1))
     integer,          intent(in   ) :: msk (mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_add_rhcc
+  end subroutine amrex_mlndlap_rhcc
 
 
   subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &
@@ -258,15 +265,15 @@ contains
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv, ndlo, ndhi, bclo, bchi) &
+       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv) &
        bind(c,name='amrex_mlndlap_divu_fine_contrib')
     integer, dimension(1), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
-         flo, fhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+         flo, fhi, mlo, mhi
     real(amrex_real), intent(in) :: dxinv(1)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1))
     real(amrex_real), intent(inout) :: frh(flo(1):fhi(1))
-    integer, intent(in) :: msk(mlo(1):mhi(1))
+    integer         , intent(in   ) :: msk(mlo(1):mhi(1))
   end subroutine amrex_mlndlap_divu_fine_contrib
 
 
@@ -283,6 +290,28 @@ contains
     integer, intent(in) :: ndmsk(nmlo(1):nmhi(1))
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1))
   end subroutine amrex_mlndlap_divu_cf_contrib
+
+
+  subroutine amrex_mlndlap_rhcc_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
+       cc, cclo, cchi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_rhcc_fine_contrib')
+    integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, cclo, cchi, mlo, mhi
+    real(amrex_real), intent(inout) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) :: cc (cclo(1):cchi(1),cclo(2):cchi(2))
+    integer         , intent(in   ) :: msk( mlo(1): mhi(1), mlo(2): mhi(2))
+  end subroutine amrex_mlndlap_rhcc_fine_contrib
+
+
+  subroutine amrex_mlndlap_rhcc_crse_contrib (lo, hi, crhs, rlo, rhi, rhcc, clo, chi, &
+       dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi) &
+       bind(c,name='amrex_mlndlap_rhcc_crse_contrib')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi, &
+         nmlo, nmhi, cmlo, cmhi
+    real(amrex_real), intent(inout) ::  crhs(rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(in   ) ::  rhcc(clo(1):chi(1),clo(2):chi(2))
+    integer         , intent(in   ) ::  dmsk( mlo(1): mhi(1), mlo(2): mhi(2))
+    integer         , intent(in   ) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
+    integer         , intent(in   ) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
+  end subroutine amrex_mlndlap_rhcc_crse_contrib
 
 
   subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi, &
