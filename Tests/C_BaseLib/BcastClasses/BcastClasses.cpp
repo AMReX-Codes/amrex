@@ -24,6 +24,27 @@ int main(int argc, char *argv[]) {
     amrex::Box bControl(amrex::IntVect(0,0,0), amrex::IntVect(63,63,63));
     amrex::Box bBcast;
 
+    // Broadcast Bool Test -------------------------------------------
+    // Set bools to wrong value on all but IOProc
+    bool testT = false;
+    bool testF = true;
+
+    if(bIOP) {
+      testT = true;
+      testF = false;
+    }
+
+    amrex::BroadcastBool(testT, myProc, ioProcNum, amrex::ParallelDescriptor::CommunicatorAll());
+    amrex::BroadcastBool(testF, myProc, ioProcNum, amrex::ParallelDescriptor::CommunicatorAll());
+ 
+    amrex::USleep(myProc/10.0);
+    cout << myProc << ":: testT = " << testT << endl;
+    cout << myProc << ":: testF = " << testF << endl << endl;
+    if ((testT != true) || (testF != false)) {
+      cout << myProc << "::  **** Error:  bad bool Bcast; testT testF = " 
+                     << testT << " " << testF << endl;
+    }
+
     // BroadcastBox Test ---------------------------------------------
 
     amrex::Vector<int> aSB;
@@ -117,7 +138,7 @@ int main(int argc, char *argv[]) {
     strArrayControl[0] = "This is a string array test.";
     strArrayControl[1] = "Do not adjust your Linux settings.";
     strArrayControl[2] = "AMReX is in control.";
-    strArrayControl[3] = "We are now in control of the Regridding,";
+    strArrayControl[3] = "We are in control of the Regridding,";
     strArrayControl[4] = "and the LoadBalancing.";
 
     if(bIOP) {

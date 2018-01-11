@@ -1228,6 +1228,21 @@ amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &cha
   return stringArray;
 }
 
+void amrex::BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  int numBool;
+  if (myLocalId == rootId) {
+    numBool = bBool;
+  }
+
+  amrex::ParallelDescriptor::Bcast(&numBool, 1, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    bBool = numBool;
+  }
+}
+
+
 void amrex::BroadcastString(std::string &bStr, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   Vector<std::string> vecString(1, bStr);
