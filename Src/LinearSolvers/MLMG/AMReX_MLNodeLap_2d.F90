@@ -468,9 +468,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
  
     integer :: i,j
-    real(amrex_real) :: facx, facy
-
-    ! xxxxx
+    real(amrex_real) :: facx, facy, fp, fm
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -492,6 +490,12 @@ contains
                   &            +2.d0*facy*(sy(i-1,j  )+sy(i,j  ))) &
                   +   x(i,j)*(-2.d0)*(facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
                   &                  +facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
+             if (is_rz) then
+                fp = facy / (2*i+1)
+                fm = facy / (2*i-1)
+                y(i,j) = y(i,j) + (fm*sy(i-1,j  )-fp*sy(i,j  ))*(x(i,j+1)-x(i,j)) &
+                     &          + (fm*sy(i-1,j-1)-fp*sy(i,j-1))*(x(i,j-1)-x(i,j))
+             end if
           else
              y(i,j) = 0.d0
           end if
@@ -565,8 +569,6 @@ contains
     real(amrex_real) :: facx, facy
     real(amrex_real), parameter :: omega = 2.d0/3.d0
 
-    ! xxxxx
-
     facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
 
@@ -601,8 +603,6 @@ contains
     real(amrex_real) :: facx, facy, fac
     real(amrex_real), parameter :: omega = 2.d0/3.d0
 
-    ! xxxxx
-
     facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
     fac = facx + facy
@@ -634,9 +634,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, Ax, s0
-
-    ! xxxxx
+    real(amrex_real) :: facx, facy, Ax, s0, fp, fm, frzlo, frzhi
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -660,7 +658,17 @@ contains
                   + sol(i,j+1)*(    -facx*(sx(i-1,j  )+sx(i,j  )) &
                   &            +2.d0*facy*(sy(i-1,j  )+sy(i,j  ))) &
                   + sol(i,j)*s0
-             
+
+             if (is_rz) then
+                fp = facy / (2*i+1)
+                fm = facy / (2*i-1)
+                frzlo = fm*sy(i-1,j-1)-fp*sy(i,j-1)
+                frzhi = fm*sy(i-1,j  )-fp*sy(i,j  )
+                s0 = s0 - frzhi - frzlo
+                Ax = Ax + frzhi*(sol(i,j+1)-sol(i,j)) &
+                     &  + frzlo*(sol(i,j-1)-sol(i,j))
+             end if
+
              sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
           else
              sol(i,j) = 0.d0
