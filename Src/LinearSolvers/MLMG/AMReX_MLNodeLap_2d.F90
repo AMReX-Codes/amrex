@@ -535,7 +535,7 @@ contains
                   +   x(i,j)*(-2.d0)*fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
              if (is_rz) then
                 fp = facy / (2*i+1)
-                fm = facy / abs(2*i-1)
+                fm = facy / (2*i-1)
                 y(i,j) = y(i,j) + (fm*sig(i-1,j  )-fp*sig(i,j  ))*(x(i,j+1)-x(i,j)) &
                      &          + (fm*sig(i-1,j-1)-fp*sig(i,j-1))*(x(i,j-1)-x(i,j))
              end if
@@ -707,7 +707,7 @@ contains
 
              if (is_rz) then
                 fp = facy / (2*i+1)
-                fm = facy / abs(2*i-1)
+                fm = facy / (2*i-1)
                 frzlo = fm*sig(i-1,j-1)-fp*sig(i,j-1)
                 frzhi = fm*sig(i-1,j  )-fp*sig(i,j  )
                 s0 = s0 - frzhi - frzlo
@@ -910,7 +910,7 @@ contains
              rhs(i,j) = facx*(-vel(i-1,j-1,1)+vel(i,j-1,1)-vel(i-1,j,1)+vel(i,j,1)) &
                   &   + facy*(-vel(i-1,j-1,2)-vel(i,j-1,2)+vel(i-1,j,2)+vel(i,j,2))
 
-             if (is_rz .and. i > 0) then
+             if (is_rz) then
                 fm = facy / (6*i-3)
                 fp = facy / (6*i+3)
                 rhs(i,j) = rhs(i,j) + fm*(vel(i-1,j,2)-vel(i-1,j-1,2)) &
@@ -1014,7 +1014,7 @@ contains
              frh(ii,jj) = facx*(-vel(ii-1,jj-1,1)+vel(ii,jj-1,1)-vel(ii-1,jj,1)+vel(ii,jj,1)) &
                     &   + facy*(-vel(ii-1,jj-1,2)-vel(ii,jj-1,2)+vel(ii-1,jj,2)+vel(ii,jj,2))
 
-             if (is_rz .and. ii > 0) then
+             if (is_rz) then
                 fm = facy / (6*ii-3)
                 fp = facy / (6*ii+3)
                 frh(ii,jj) = frh(ii,jj) + fm*(vel(ii-1,jj,2)-vel(ii-1,jj-1,2)) &
@@ -1073,7 +1073,7 @@ contains
                      + (1.d0-ccmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
                      + (1.d0-ccmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2))
 
-                if (is_rz .and. i > 0) then
+                if (is_rz) then
                    fm = facy / (6*i-3)
                    fp = facy / (6*i+3)
                    rhs(i,j) = rhs(i,j) + fm*((1.d0-ccmsk(i-1,j  ))*vel(i-1,j  ,2) &
@@ -1275,8 +1275,8 @@ contains
                   +      x(ii,jj)*(-2.d0)*fxy*(sig(ii-1,jj-1)+sig(ii,jj-1)+sig(ii-1,jj)+sig(ii,jj))
 
              if (is_rz) then
-                fp = facy /    (2*ii+1)
-                fm = facy / abs(2*ii-1)
+                fp = facy / (2*ii+1)
+                fm = facy / (2*ii-1)
                 Ax(ii,jj) = Ax(ii,jj) + (fm*sig(ii-1,jj  )-fp*sig(ii,jj  ))*(x(ii,jj+1)-x(ii,jj)) &
                      &                + (fm*sig(ii-1,jj-1)-fp*sig(ii,jj-1))*(x(ii,jj-1)-x(ii,jj))
              end if
@@ -1333,7 +1333,7 @@ contains
 
                 if (is_rz) then
                    fp = facy / (2*i+1)
-                   fm = facy / abs(2*i-1)
+                   fm = facy / (2*i-1)
                 end if
 
                 Ax = 0.d0
