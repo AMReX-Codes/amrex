@@ -71,6 +71,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                           const Vector<const MultiFab*>& rhnd,
                           const Vector<MultiFab*>& a_rhcc)
 {
+    BL_PROFILE("MLNodeLaplacian::compRHS()");
+
     if (!m_masks_built) buildMasks();
 
     Vector<std::unique_ptr<MultiFab> > rhcc(m_num_amr_levels);
@@ -411,6 +413,8 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 void
 MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 {
+    BL_PROFILE("MLNodeLaplacian::FillBoundaryCoeff()");
+
     sigma.FillBoundary(geom.periodicity());
 
     const Box& domain = geom.Domain();
@@ -433,6 +437,8 @@ void
 MLNodeLaplacian::buildMasks ()
 {
     if (m_masks_built) return;
+
+    BL_PROFILE("MLNodeLaplacian::buildMasks()");
 
     m_masks_built = true;
 
@@ -628,6 +634,8 @@ MLNodeLaplacian::prepareForSolve ()
 void
 MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
+    BL_PROFILE("MLNodeLaplacian::restriction()");
+
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous);
 
     const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][cmglev].Domain());
@@ -664,6 +672,8 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 void
 MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
 {
+    BL_PROFILE("MLNodeLaplacian::interpolation()");
+
     const auto& sigma = m_sigma[amrlev][fmglev];
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
@@ -734,6 +744,8 @@ void
 MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
                           bool skip_fillboundary) const
 {
+    BL_PROFILE("MLNodeLaplacian::applyBC()");
+
     const Geometry& geom = m_geom[amrlev][mglev];
     const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
 
@@ -760,6 +772,8 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode
 void
 MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
+    BL_PROFILE("MLNodeLaplacian::Fapply()");
+
     const auto& sigma = m_sigma[amrlev][mglev];
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
@@ -806,6 +820,8 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 void
 MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const
 {
+    BL_PROFILE("MLNodeLaplacian::Fsmooth()");
+
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
     if (m_use_gauss_seidel)
@@ -918,6 +934,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                          const MultiFab& vold, const MultiFab* rhcc,
                                          const BoxArray& fine_grids, const IntVect& ref_ratio)
 {
+    BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
+
     sync_resid.setVal(0.0);
 
     const Geometry& geom = m_geom[0][0];
@@ -1101,6 +1119,8 @@ void
 MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold,
                                        const MultiFab* rhcc)
 {
+    BL_PROFILE("MLNodeLaplacian::SyncResFine()");
+
     const MultiFab& sigma_orig = *m_sigma[0][0][0];
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
@@ -1203,6 +1223,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
 {
+    BL_PROFILE("MLNodeLaplacian::reflux()");
+
     const Geometry& cgeom = m_geom[crse_amrlev  ][0];
     const Geometry& fgeom = m_geom[crse_amrlev+1][0];
     const Real* cdxinv = cgeom.InvCellSize();
