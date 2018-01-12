@@ -108,6 +108,7 @@ program faverplot
      unit_a = unit_new()
 
   call get_command_argument(farg, value = plotfile_a)
+  write(6,*)"Opening ",fname
   call build(pf_a, plotfile_a, unit_a)
   nfiles = nfiles + 1
   farg = farg + 1
@@ -196,6 +197,7 @@ do f = farg, narg
   unit = unit_new()
 
   call get_command_argument(f, value = fname)
+  write(6,*)"Opening ",fname
   call build(pf, fname, unit)
   nfiles = nfiles + 1
 
@@ -214,7 +216,6 @@ do f = farg, narg
         hi_a(1:dm) = upb(bx_a)
 
         n_a = save_var_a
-
 
         call fab_bind_comp_vec(pf, i, j, (/ n_a /) )
 
