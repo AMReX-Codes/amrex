@@ -54,6 +54,10 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                 (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
         }
     }
+
+#if (AMREX_SPACEDIM == 2)
+    m_is_rz = Geometry::IsRZ();
+#endif
 }
 
 void
