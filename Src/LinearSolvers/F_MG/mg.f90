@@ -9,6 +9,8 @@ module mg_module
 
   implicit none
 
+  integer, save :: n_mg_iters = -1
+
   interface destroy
      module procedure mg_tower_destroy
   end interface
@@ -16,6 +18,10 @@ module mg_module
   private :: get_bottom_box_size, impose_physbc_cc_2d, impose_physbc_cc_3d
 
 contains
+
+  integer function amrex_f90mg_get_niters () bind(c,name='amrex_f90mg_get_niters')
+    amrex_f90mg_get_niters = n_mg_iters
+  end function amrex_f90mg_get_niters
 
   recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type, &
                                       nu1, nu2, nuf, nub, cycle_type, &

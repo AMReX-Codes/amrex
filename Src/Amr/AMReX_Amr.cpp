@@ -811,14 +811,22 @@ Amr::writePlotFile ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
-      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  precreating directories for " << pltfileTemp << "\n";
+      if(verbose > 0) {
+        amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  precreating directories for "
+	               << pltfileTemp << "\n";
       }
-      amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
+      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+      amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+        amrex::Print() << "IOIOIOIO:  Amr::writePlotFile:  precreating directories for "
+	               << pltfileTemp << "  for level " << i << "\n";
+	amr_level[i]->CreateLevelDirectory(pltfileTemp);
+      }
+      ParallelDescriptor::Barrier("Amr::writePlotFile:PCD");
+
     } else {
-      if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  creating directory:  " << pltfileTemp << "\n";
+      if(verbose > 0) {
+        amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  creating directory:  " << pltfileTemp << "\n";
       }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
@@ -2575,7 +2583,7 @@ Amr::makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) con
             dmtmp.define(ba);
         }
 
-        MultiFab workest(ba, dmtmp, 1, 0);
+        MultiFab workest(ba, dmtmp, 1, 0, MFInfo(), FArrayBoxFactory());
         AmrLevel::FillPatch(*amr_level[lev], workest, 0, time, work_est_type, 0, 1, 0);
 
         Real navg = static_cast<Real>(ba.size()) / static_cast<Real>(ParallelDescriptor::NProcs());

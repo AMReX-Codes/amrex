@@ -259,6 +259,8 @@ contains
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
+       n_mg_iters = 0
+
        !   else if (mgt%use_hypre .eq. 1) then
 
        !      if (nlevs .gt. 1) then
@@ -624,6 +626,8 @@ contains
              t1(3) = bottom_solve_time
 
              call parallel_reduce(t2, t1, MPI_MAX, proc = parallel_IOProcessorNode())
+
+             n_mg_iters = iter_solved
 
              if ( parallel_IOProcessor() ) then
 

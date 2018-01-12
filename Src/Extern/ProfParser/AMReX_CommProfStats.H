@@ -170,9 +170,9 @@ class CommProfStats : public BLProfStats {
                      Real &timeMin, Real &timeMax, Real &timerTime,
 		     amrex::Vector<int> &rankNodeNumbers);
     void WriteTopoFab();
-    void FindTimeRange(Real &timeMin, Real &timeMax);
+    void FindTimeRange(BLProfStats::TimeRange& tr);
     void TimelineFAB(amrex::FArrayBox &timelineFAB, const amrex::Box &probDomain,
-                     const double tlo, const double thi,
+                     const BLProfStats::TimeRange tr,
 		     const int rankMin, const int rankMax,
 		     const int rankStride,
 		     const Real ntnMultiplier, const amrex::Vector<Real> &ntnNumbers,
@@ -244,6 +244,7 @@ class CommProfStats : public BLProfStats {
   private:
     int currentDataBlock;
     static int cpVersion, csSize, finestLevel, maxLevel;
+    static bool persistentStreams;
     int tagMin, tagMax;
     std::stack<double> nestedTimeStack;
     amrex::Vector<DataBlock> dataBlocks;

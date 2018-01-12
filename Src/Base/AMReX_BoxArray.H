@@ -35,6 +35,9 @@ namespace amrex
     BoxArray convert (const BoxArray& ba, IndexType typ);
     BoxArray convert (const BoxArray& ba, const IntVect& typ);
 
+    BoxArray coarsen (const BoxArray& ba, int ratio);
+    BoxArray coarsen (const BoxArray& ba, const IntVect& ratio);
+
     //! Find the ghost cells of a given BoxArray.
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 

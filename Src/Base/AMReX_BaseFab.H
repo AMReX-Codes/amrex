@@ -879,6 +879,10 @@ public:
 	   const BaseFab<T>& y, const Box& ybx, int ycomp,
 	   int numcomp = 1) const;
 
+    T dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
+               const BaseFab<T>& y, const Box& ybx, int ycomp,
+               int numcomp) const;
+
     //! Change the Box type without change the length
     void SetBoxType(const IndexType& typ) { domain.setType(typ); }
     
@@ -1757,6 +1761,19 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
                                  int                  srccomp,
                                  int                  destcomp,
                                  int                  numcomp);
+
+template <>
+Real
+BaseFab<Real>::dot (const Box& xbx, int xcomp, 
+		    const BaseFab<Real>& y, const Box& ybx, int ycomp,
+		    int numcomp) const;
+
+
+template <>
+Real
+BaseFab<Real>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp, 
+                        const BaseFab<Real>& y, const Box& ybx, int ycomp,
+                        int numcomp) const;
 
 template <>
 BaseFab<Real>&

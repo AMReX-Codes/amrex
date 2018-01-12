@@ -104,7 +104,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+             mfi.isValid(); ++mfi) {
             const Box& box = mfi.tilebox();
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
@@ -116,8 +117,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 
         local_neighbors.clear();
         neighbor_procs.clear();
-        for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
-            const Box& box = mfi.growntilebox();
+        for (MFIter mfi(*mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+	     mfi.isValid(); ++mfi) {
+	    const Box& box = mfi.growntilebox();
             for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
                 const int grid = (*mask_ptr)[mfi](iv, 0);
                 if (grid >= 0) {
