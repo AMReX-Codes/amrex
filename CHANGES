@@ -1,5 +1,14 @@
 # changes since the last release
 
+  -- Fortran module AMReX_fillpatch_module takes a user provided
+     callback function for filling physical boundary conditions.  That
+     function used to use 0-based index for component (i.e., the last
+     index).  For consistence with 1-based index for component in
+     other Fortran modules, this has been changed to 1-based index for
+     component.
+
+# 18.01
+
   -- New linear solver MLMG at Src/LinearSolvers/MLMG/.  Currently it
      supports cell-centered single level and multi-level composite
      solve.  Fortran interface is also available at

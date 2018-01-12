@@ -13,7 +13,7 @@ namespace ParallelAllReduce {
     template<typename T>
     void Max (T& v, MPI_Comm comm)
     {
-        const T tmp = v;
+        T tmp = v;
         MPI_Allreduce(&tmp, &v, 1, ParallelDescriptor::Mpi_typemap<T>::type(),
                       MPI_MAX, comm);
     }
@@ -29,7 +29,7 @@ namespace ParallelAllReduce {
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm)
     {
-        const Vector<T> snd(std::begin(v), std::end(v));
+        Vector<T> snd(std::begin(v), std::end(v));
         const int cnt = v.size();
         Vector<T> rcv(cnt);
         MPI_Allreduce(snd.data(), rcv.data(), cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
@@ -42,7 +42,7 @@ namespace ParallelAllReduce {
     template<typename T>
     void Sum (T& v, MPI_Comm comm)
     {
-        const T tmp = v;
+        T tmp = v;
         MPI_Allreduce(&tmp, &v, 1, ParallelDescriptor::Mpi_typemap<T>::type(),
                       MPI_SUM, comm);
     }
@@ -58,7 +58,7 @@ namespace ParallelAllReduce {
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm)
     {
-        const Vector<T> snd(std::begin(v), std::end(v));
+        Vector<T> snd(std::begin(v), std::end(v));
         const int cnt = v.size();
         Vector<T> rcv(cnt);
         MPI_Allreduce(snd.data(), rcv.data(), cnt, ParallelDescriptor::Mpi_typemap<T>::type(),

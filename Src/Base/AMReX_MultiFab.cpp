@@ -54,6 +54,36 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     return sm;
 }
 
+Real
+MultiFab::Dot (const iMultiFab& mask,
+               const MultiFab& x, int xcomp,
+	       const MultiFab& y, int ycomp,
+	       int numcomp, int nghost, bool local)
+{
+    BL_ASSERT(x.boxArray() == y.boxArray());
+    BL_ASSERT(x.boxArray() == mask.boxArray());
+    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
+    BL_ASSERT(x.DistributionMap() == mask.DistributionMap());
+    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
+    BL_ASSERT(mask.nGrow() >= nghost);
+
+    Real sm = 0.0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sm)
+#endif
+    for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        sm += x[mfi].dotmask(mask[mfi],bx,xcomp,y[mfi],bx,ycomp,numcomp);
+    }
+
+    if (!local)
+        ParallelDescriptor::ReduceRealSum(sm, x.color());
+
+    return sm;
+}
+
 void
 MultiFab::Add (MultiFab&       dst,
 	       const MultiFab& src,
@@ -531,6 +561,11 @@ MultiFab::is_nodal () const
     return boxArray().ixType().nodeCentered();
 }
 
+bool 
+MultiFab::is_cell_centered () const
+{
+    return boxArray().ixType().cellCentered();
+}
 
 Real
 MultiFab::min (int comp,
@@ -1362,12 +1397,13 @@ MultiFab::OverlapMask (const Periodicity& period) const
     std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
     p->setVal(0.0);
 
+    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
-        const std::vector<IntVect>& pshifts = period.shiftIntVect();
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
@@ -1400,12 +1436,13 @@ MultiFab::OwnerMask (const Periodicity& period) const
                                                DefaultFabFactory<IArrayBox>())};
     p->setVal(owner);
 
+    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
-        const std::vector<IntVect>& pshifts = period.shiftIntVect();
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {

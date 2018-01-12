@@ -222,6 +222,8 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift (ParticleType& p) const
 {
+    //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::PeriodicShift()");
+
     // This routine should only be called when Where() returns false.
     BL_ASSERT(m_gdb != 0);
 
@@ -286,14 +288,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 ParticleLocData
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Reset (ParticleType& p,
-                                                                          bool          update,
-                                                                          bool          verbose) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+Reset (ParticleType& p,
+       bool          update,
+       bool          verbose,
+       ParticleLocData pld) const
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::Reset()");
+    //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::Reset()");
     BL_ASSERT(m_gdb != 0);
 
-    ParticleLocData pld;
     bool ok = Where(p, pld);
 
     if (!ok && Geom(0).isAnyPeriodic())
@@ -1162,7 +1165,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
 
   // we resize these buffers outside the parallel region
   for (int lev = lev_min; lev <= lev_max; lev++) {
-      for (MFIter mfi(*m_dummy_mf[lev], tile_size); mfi.isValid(); ++mfi) {
+      for (MFIter mfi(*m_dummy_mf[lev], this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+	   mfi.isValid(); ++mfi) {
           auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
           tmp_local[lev][index].resize(num_threads);
           soa_local[lev][index].resize(num_threads);
@@ -1712,11 +1716,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Make the particle directories if they don't already exist.
     //
     amrex::Print() << "Particle::Checkpoint: pdir levelDirectoriesCreated = "
-                   << pdir << "  " << levelDirectoriesCreated <<  std::endl;
+                   << pdir << "  " << levelDirectoriesCreated << '\n';
     if ( ! levelDirectoriesCreated) {
       if (ParallelDescriptor::IOProcessor()) {
         amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:0:  creating directory:  "
-	               << pdir << std::endl;;
+	               << pdir << '\n';
         if ( ! amrex::UtilCreateDirectory(pdir, 0755)) {
             amrex::CreateDirectoryFailed(pdir);
 	}
@@ -1890,7 +1894,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	    if ( ! levelDirectoriesCreated) {
               if (ParallelDescriptor::IOProcessor()) {
                 amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:1:  creating directory:  "
-		               << LevelDir << std::endl;;
+		               << LevelDir << '\n';
 	        if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
 		  amrex::CreateDirectoryFailed(LevelDir);
 	        }
@@ -1992,7 +1996,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     if (cnt[i] == 0)
                     {
                         std::string FullFileName = NFilesIter::FileName(i, filePrefix);
-			amrex::Print() << "::IOIOIOIO:  Unlinking file:  "<< FullFileName << std::endl;
+			amrex::Print() << "::IOIOIOIO:  Unlinking file:  "<< FullFileName << '\n';
 
                         amrex::UnlinkFile(FullFileName.c_str());
                     }
@@ -2121,7 +2125,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             if(cnt[i] == 0) {
               std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
 	      std::cout << ParallelDescriptor::MyProc() << "::IOIOIOIO:  Unlinking file:  "
-	                << FullFileName << std::endl;
+	                << FullFileName << '\n';
 
               amrex::UnlinkFile(FullFileName.c_str());
             }
@@ -2250,6 +2254,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                 ++pindex;
             }
 	}
+        
         writeIntData(istuff.dataPtr(), istuff.size(), ofs);
       }
       

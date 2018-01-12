@@ -18,12 +18,13 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
     {
         AMREX_ALWAYS_ASSERT(EBTower::get() != nullptr);
 
-        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0]);
+        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0],
+                                                  MFInfo(), DefaultFabFactory<EBCellFlagFab>());
         EBTower::fillEBCellFlag(*m_cellflags, m_geom);
 
         if (m_support >= EBSupport::volume)
         {
-            m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1]);
+            m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
             EBTower::fillVolFrac(*m_volfrac, m_geom);
         }
 
