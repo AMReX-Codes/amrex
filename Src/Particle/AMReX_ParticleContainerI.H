@@ -1165,7 +1165,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
 
   // we resize these buffers outside the parallel region
   for (int lev = lev_min; lev <= lev_max; lev++) {
-      for (MFIter mfi(*m_dummy_mf[lev], tile_size); mfi.isValid(); ++mfi) {
+      for (MFIter mfi(*m_dummy_mf[lev], this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+	   mfi.isValid(); ++mfi) {
           auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
           tmp_local[lev][index].resize(num_threads);
           soa_local[lev][index].resize(num_threads);
