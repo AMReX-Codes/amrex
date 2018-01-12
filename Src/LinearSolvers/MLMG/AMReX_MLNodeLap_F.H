@@ -7,6 +7,10 @@
 extern "C" {
 #endif
 
+#if (AMREX_SPACEDIM == 2)
+    void amrex_mlndlap_set_rz (const int* rz);
+#endif
+
     void amrex_mlndlap_set_nodal_mask (const int* lo, const int* hi,
                                        int* nmsk, const int* nlo, const int* nhi,
                                        const int* cmsk, const int* clo, const int* chi);
@@ -39,9 +43,18 @@ extern "C" {
                                   const int* dlo, const int* dhi,
                                   const void* bclo, const void* bchi);
 
+    void amrex_mlndlap_fillbc_cc_i (int* sigma, const int* slo, const int* shi,
+                                    const int* dlo, const int* dhi,
+                                    const void* bclo, const void* bchi);
+
     void amrex_mlndlap_applybc (amrex_real* phi, const int* hlo, const int* hhi,
                                 const int* dlo, const int* dhi,
                                 const void* bclo, const void* bchi);
+
+    void amrex_mlndlap_impose_neumann_bc (const int* lo, const int* hi,
+                                          amrex_real* rhs, const int* rlo, const int* rhi,
+                                          const int* dlo, const int* dhi,
+                                          const void* bclo, const void* bchi);
 
     void amrex_mlndlap_adotx_ha (const int* lo, const int* hi,
                               amrex_real* y, const int* ylo, const int* yhi,
@@ -149,13 +162,12 @@ extern "C" {
                              amrex_real* rhs, const int* rlo, const int* rhi,
                              const amrex_real* vel, const int* vlo, const int* vhi,
                              const int* dmsk, const int* dmlo, const int* dmhi,
-                             const amrex_real* dxinv, const int* ndlo, const int* ndhi,
-                             const void* bclo, const void* bchi);
+                             const amrex_real* dxinv);
 
-    void amrex_mlndlap_add_rhcc (const int* lo, const int* hi,
-                                 amrex_real* rhs, const int* rlo, const int* rhi,
-                                 const amrex_real* rhcc, const int* clo, const int* chi,
-                                 const int* dmsk, const int* mlo, const int* mhi);
+    void amrex_mlndlap_rhcc (const int* lo, const int* hi,
+                             amrex_real* rhs, const int* rlo, const int* rhi,
+                             const amrex_real* rhcc, const int* clo, const int* chi,
+                             const int* dmsk, const int* mlo, const int* mhi);
 
     void amrex_mlndlap_mknewu (const int* lo, const int* hi,
                                amrex_real* u, const int* ulo, const int* uhi,
@@ -169,8 +181,7 @@ extern "C" {
                                           const amrex_real* vel, const int* vlo, const int* vhi,
                                           amrex_real* frh, const int* flo, const int* fhi,
                                           const int* dmsk, const int* mlo, const int* mhi,
-                                          const amrex_real* dxinv, const int* domlo, const int* domhi,
-                                          const void* bclo, const void* bchi);
+                                          const amrex_real* dxinv);
 
     void amrex_mlndlap_divu_cf_contrib (const int* lo, const int* hi,
                                         amrex_real* rhs, const int* rlo, const int* rhi,
@@ -185,7 +196,9 @@ extern "C" {
     void amrex_mlndlap_crse_resid (const int* lo, const int* hi,
                                    amrex_real* resid, const int* rslo, const int* rshi,
                                    const amrex_real* rhs, const int* rhlo, const int* rhhi,
-                                   const int* msk, const int* mlo, const int* mhi);
+                                   const int* msk, const int* mlo, const int* mhi,
+                                   const int* ndlo, const int* ndhi,
+                                   const void* bclo, const void* bchi);
 
     void amrex_mlndlap_res_fine_contrib (const int* clo, const int* chi,
                                          const int* cgrid_lo, const int* cgrid_hi,
@@ -205,13 +218,27 @@ extern "C" {
                                        const int* ndmsk, const int* ndmlo, const int* ndmhi,
                                        const int* ccmsk, const int* ccmlo, const int* ccmhi,
                                        const amrex_real* cc, const int* clo, const int* chi,
-                                       const amrex_real* dxinv);
+                                       const amrex_real* dxinv, const int* ndlo, const int* ndhi,
+                                       const void* bclo, const void* bchi);
 
     void amrex_mlndlap_zero_fine (const int* lo, const int* hi,
                                   amrex_real* phi, const int* philo, const int* phihi,
                                   const int* msk, const int* mlo, const int* mhi,
                                   const int* fine_flag);
 
+
+    void amrex_mlndlap_rhcc_fine_contrib (const int* clo, const int* chi,
+                                          const int* cgrid_lo, const int* cgrid_hi,
+                                          amrex_real* rhs, const int* rlo, const int* rhi,
+                                          const amrex_real* cc, const int* cclo, const int* cchi,
+                                          const int* dmsk, const int* mlo, const int* mhi);
+
+    void amrex_mlndlap_rhcc_crse_contrib (const int* lo, const int* hi,
+                                          amrex_real* crhs, const int* rlo, const int* rhi,
+                                          const amrex_real* cc, const int* cclo, const int* cchi,
+                                          const int* dmsk, const int* dmlo, const int* dmhi,
+                                          const int* ndmsk, const int* ndmlo, const int* ndmhi,
+                                          const int* ccmsk, const int* ccmlo, const int* ccmhi);
 
 #ifdef __cplusplus
 }
