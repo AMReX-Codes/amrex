@@ -857,15 +857,15 @@ define a {\tt MultiFab}.  For example,
   // dm is DistributionMapping
   int ncomp = 4;
   int ngrow = 1;
-  MultiFab mf(ba, mf, ncomp, ngrow);
+  MultiFab mf(ba, dm, ncomp, ngrow);
 \end{lstlisting}
 Here we define a {\tt MultiFab} with 4 components and 1 ghost cell.  A
 {\tt MultiFab} contains a number of {\tt FArrayBox}es
 (Section~\ref{sec:basics:fab}) defined on {\tt Box}es grown by the
 number of ghost cells (1 in this example).  That is the {\tt Box} in
 the {\tt FArrayBox} is not exactly the same as in the {\tt BoxArray}.
-If the {\tt BoxArray} has a {\tt Box\{(8,8,8) (15,15,15)\}}, the one
-used for constructing {\tt FArrayBox} will be {\tt Box\{(7,7,7)
+If the {\tt BoxArray} has a {\tt Box\{(7,7,7) (15,15,15)\}}, the one
+used for constructing {\tt FArrayBox} will be {\tt Box\{(8,8,8)
   (16,16,16)\}} in this example.  For cells in {\tt FArrayBox}, we
 call those in the original {\tt Box} valid cells and the grown part
 ghost cells.  Note that {\tt FArrayBox} itself alone does not have the
@@ -882,7 +882,7 @@ follows.
   // dm is DistributionMapping
   int ncomp = 4;
   int ngrow = 1;
-  mf.define(ba, mf, ncomp, ngrow);
+  mf.define(ba, dm, ncomp, ngrow);
 \end{lstlisting}
 Given an existing {\tt MultiFab}, one can also make an alias {\tt
   MultiFab} as follows.
