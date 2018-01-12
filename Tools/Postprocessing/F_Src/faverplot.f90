@@ -7,15 +7,13 @@ program faverplot
   use bl_IO_module
   use plotfile_module
   use multifab_module
-  use util_module
 
   implicit none
 
   type(plotfile) :: pf_a, pf
   character (len=256) :: plotfile_a, fname, outfile
-  character (len=256) :: diffvar, zone_info_var_name
+  character (len=256) :: diffvar
   integer :: unit_a, unit
-  logical :: zone_info
 
   real(kind=dp_t), pointer :: p_a(:,:,:,:), p_b(:,:,:,:), p(:,:,:,:)
   real(kind=dp_t), pointer :: mp(:,:,:,:)
@@ -60,8 +58,6 @@ program faverplot
 
   !$omp declare reduction(err_reduce: real(kind=dp_t): fort_error_reduce(omp_in, omp_out))
 
-  !$omp declare reduction(err_zone_reduce: zone_t: fort_err_zone_reduce(omp_in, omp_out)) &
-  !$omp   initializer(fort_init_err_zone(omp_priv))
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
