@@ -30,6 +30,8 @@ public :
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo());
 
+    void setRZCorrection (bool rz) { m_is_rz = rz; }
+
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
     void compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
@@ -39,10 +41,11 @@ public :
     void updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const;
 
     void compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& phi,
-                                 const MultiFab& vold, const BoxArray& fine_grids,
-                                 const IntVect& ref_ratio);
+                                 const MultiFab& vold, const MultiFab* rhcc,
+                                 const BoxArray& fine_grids, const IntVect& ref_ratio);
 
-    void compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold);
+    void compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold,
+                               const MultiFab* rhcc);
 
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
@@ -72,6 +75,8 @@ protected:
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
 private:
+
+    int m_is_rz = 0;
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     bool m_use_gauss_seidel = true;

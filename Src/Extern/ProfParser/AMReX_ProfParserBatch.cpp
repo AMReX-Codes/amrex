@@ -84,7 +84,7 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
   int maxSmallImageLength(800), refRatioAll(4), nTimeSlots(NTIMESLOTS);
   std::map<int, string> mpiFuncNames;
 
-  amrex::BLProfiler::SetBlProfDirName("blpp_prof");
+  amrex::BLProfiler::SetBlProfDirName("bl_profprof");
 
   int verbose(-1), whichProc(0);
   bool runCheck(false), runSendRecv(false), runSendRecvList(false), runSyncPointData(false);
@@ -267,15 +267,17 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
 
   if(bWriteTraceSummary) {
     bool writeAverage(false), useTrace(true), graphTopPct(true);
-    if(bIOP) { cout << "Writing summary." << endl; }
+    if(bIOP) { cout << "Writing trace summary." << endl; }
     if(bUseDispatch) {
       if(bIOP) {
+        DataServices::Dispatch(DataServices::InitTimeRanges, &pdServices);
         DataServices::Dispatch(DataServices::WriteSummaryRequest, &pdServices,
                                    (void *) &(cout),
 				   &writeAverage, whichProc, &useTrace,
 				   &graphTopPct);
       }
     } else {
+      pdServices.InitRegionTimeRanges();
       pdServices.WriteSummary(cout, writeAverage, whichProc, useTrace,
                               graphTopPct);
     }
@@ -339,16 +341,18 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
     }
     if(bUseDispatch) {
       if(bIOP) {
-        DataServices::Dispatch(DataServices::RunTimelinePFRequest, &pdServices,
+        cout << "Dispatched batch timelinepf currently unavailable." << endl;
+/*        DataServices::Dispatch(DataServices::RunTimelinePFRequest, &pdServices,
                                    (void *) &(mpiFuncNames),
                                    (void *) &(plotfileName),
 				   maxSmallImageLength,
 				   refRatioAll,
 				   nTimeSlots,
-				   &statsCollected);
+				   &statsCollected);*/
       }
     } else {
-      pdServices.RunTimelinePF(mpiFuncNames, plotfileName,
+      BLProfStats::TimeRange subTimeRange = pdServices.FindCalcTimeRange();
+      pdServices.RunTimelinePF(mpiFuncNames, plotfileName, subTimeRange, 
 			       maxSmallImageLength, refRatioAll,
 			       nTimeSlots, statsCollected);
     }
@@ -378,6 +382,7 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
 
 
   if(runSendRecvList) {
+    pdServices.InitRegionTimeRanges();
     pdServices.RunSendRecvList();
   }
 

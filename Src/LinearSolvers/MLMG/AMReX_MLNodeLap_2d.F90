@@ -14,16 +14,19 @@ module amrex_mlnodelap_2d_module
   integer, parameter :: crse_fine_node = 1
   integer, parameter :: fine_node = 2
 
+  logical, private, save :: is_rz = .false.
+
   private
   public :: &
+       amrex_mlndlap_set_rz, &
        ! masks
        amrex_mlndlap_set_nodal_mask, amrex_mlndlap_set_dirichlet_mask, &
        amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
-       amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, &
+       amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
        ! bc
-       amrex_mlndlap_applybc, &
+       amrex_mlndlap_applybc, amrex_mlndlap_impose_neumann_bc, &
        ! operator
        amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
@@ -33,8 +36,9 @@ module amrex_mlnodelap_2d_module
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
-       amrex_mlndlap_divu, amrex_mlndlap_add_rhcc, amrex_mlndlap_mknewu, &
+       amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
+       amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -42,6 +46,12 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_zero_fine
 
 contains
+
+  subroutine amrex_mlndlap_set_rz (rz) bind(c,name='amrex_mlndlap_set_rz')
+    integer, intent(in) :: rz
+    is_rz = rz.ne.0
+  end subroutine amrex_mlndlap_set_rz
+
 
   subroutine amrex_mlndlap_set_nodal_mask (lo, hi, nmsk, nlo, nhi, cmsk, clo, chi) &
        bind(c,name='amrex_mlndlap_set_nodal_mask')
@@ -81,30 +91,6 @@ contains
        end do
     end do
 
-    if (dlo(1) .eq. domlo(1)) then
-       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
-          dmsk(dlo(1),:) = 0
-       end if
-    end if
-
-    if (dhi(1) .eq. domhi(1)) then
-       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          dmsk(dhi(1),:) = 0
-       end if
-    end if
-
-    if (dlo(2) .eq. domlo(2)) then
-       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          dmsk(:,dlo(2)) = 0
-       end if
-    end if
-
-    if (dhi(2) .eq. domhi(2)) then
-       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          dmsk(:,dhi(2)) = 0
-       end if
-    end if
-    
     if (dlo(1) .eq. domlo(1)) then
        if (bclo(1) .eq. amrex_lo_dirichlet) then
           dmsk(dlo(1),:) = dirichlet
@@ -303,6 +289,69 @@ contains
   end subroutine amrex_mlndlap_fillbc_cc
 
 
+  subroutine amrex_mlndlap_fillbc_cc_i (sigma, slo, shi, dlo, dhi, bclo, bchi) &
+       bind(c, name='amrex_mlndlap_fillbc_cc_i')
+    integer, dimension(2), intent(in) :: slo, shi, dlo, dhi, bclo, bchi
+    integer, intent(inout) :: sigma(slo(1):shi(1),slo(2):shi(2))
+
+    integer :: ilo, ihi, jlo, jhi
+
+    ilo = max(dlo(1), slo(1))
+    ihi = min(dhi(1), shi(1))
+    jlo = max(dlo(2), slo(2))
+    jhi = min(dhi(2), shi(2))
+
+    if (bclo(1) .ne. amrex_lo_periodic .and. slo(1) .lt. dlo(1)) then
+       sigma(dlo(1)-1,jlo:jhi) = sigma(dlo(1),jlo:jhi)
+    end if
+    
+    if (bchi(1) .ne. amrex_lo_periodic .and. shi(1) .gt. dhi(1)) then
+       sigma(dhi(1)+1,jlo:jhi) = sigma(dhi(1),jlo:jhi)
+    end if
+
+    if (bclo(2) .ne. amrex_lo_periodic .and. slo(2) .lt. dlo(2)) then
+       sigma(ilo:ihi,dlo(2)-1) = sigma(ilo:ihi,dlo(2))
+    end if
+
+    if (bchi(2) .ne. amrex_lo_periodic .and. shi(2) .gt. dhi(2)) then
+       sigma(ilo:ihi,dhi(2)+1) = sigma(ilo:ihi,dhi(2))
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. slo(2) .lt. dlo(2)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1) = sigma(dlo(1),dlo(2)-1)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dlo(2)-1) = sigma(dlo(1)-1,dlo(2))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. slo(2) .lt. dlo(2)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1) = sigma(dhi(1),dlo(2)-1)
+       else if (bclo(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dlo(2)-1) = sigma(dhi(1)+1,dlo(2))
+       end if
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. shi(2) .gt. dhi(2)) then
+       if (bclo(1) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1) = sigma(dlo(1),dhi(2)+1)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dlo(1)-1,dhi(2)+1) = sigma(dlo(1)-1,dhi(2))
+       end if
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. shi(2) .gt. dhi(2)) then
+       if (bchi(1) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1) = sigma(dhi(1),dhi(2)+1)
+       else if (bchi(2) .ne. amrex_lo_periodic) then
+          sigma(dhi(1)+1,dhi(2)+1) = sigma(dhi(1)+1,dhi(2))
+       end if
+    end if
+
+  end subroutine amrex_mlndlap_fillbc_cc_i
+
+
   subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_applybc')
     integer, dimension(2) :: hlo, hhi, dlo, dhi, bclo, bchi
@@ -374,6 +423,38 @@ contains
   end subroutine amrex_mlndlap_applybc
 
 
+  subroutine amrex_mlndlap_impose_neumann_bc (lo, hi, rhs, rlo, rhi, ndlo, ndhi, bclo, bchi) &
+       bind(c, name='amrex_mlndlap_impose_neumann_bc')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, ndlo, ndhi, bclo, bchi
+    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
+
+    if (lo(1) .eq. ndlo(1)) then
+       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then 
+          rhs(lo(1),lo(2):hi(2)) = 2.d0*rhs(lo(1),lo(2):hi(2))
+       end if
+    end if
+
+    if (hi(1) .eq. ndhi(1)) then
+       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
+          rhs(hi(1),lo(2):hi(2)) = 2.d0*rhs(hi(1),lo(2):hi(2))
+       end if
+    end if
+
+    if (lo(2) .eq. ndlo(2)) then
+       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
+          rhs(lo(1):hi(1),lo(2)) = 2.d0*rhs(lo(1):hi(1),lo(2))
+       end if
+    end if
+
+    if (hi(2) .eq. ndhi(2)) then
+       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
+          rhs(lo(1):hi(1),hi(2)) = 2.d0*rhs(lo(1):hi(1),hi(2))
+       end if
+    end if
+
+  end subroutine amrex_mlndlap_impose_neumann_bc
+
+
   subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
        sx, sxlo, sxhi, sy, sylo, syhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_adotx_ha')
@@ -387,7 +468,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
  
     integer :: i,j
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, fp, fm
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -409,6 +490,12 @@ contains
                   &            +2.d0*facy*(sy(i-1,j  )+sy(i,j  ))) &
                   +   x(i,j)*(-2.d0)*(facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
                   &                  +facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
+             if (is_rz) then
+                fp = facy / (2*i+1)
+                fm = facy / (2*i-1)
+                y(i,j) = y(i,j) + (fm*sy(i-1,j  )-fp*sy(i,j  ))*(x(i,j+1)-x(i,j)) &
+                     &          + (fm*sy(i-1,j-1)-fp*sy(i,j-1))*(x(i,j-1)-x(i,j))
+             end if
           else
              y(i,j) = 0.d0
           end if
@@ -430,7 +517,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fp, fm
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -450,6 +537,12 @@ contains
                   +   x(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
                   +   x(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
                   +   x(i,j)*(-2.d0)*fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
+             if (is_rz) then
+                fp = facy / (2*i+1)
+                fm = facy / (2*i-1)
+                y(i,j) = y(i,j) + (fm*sig(i-1,j  )-fp*sig(i,j  ))*(x(i,j+1)-x(i,j)) &
+                     &          + (fm*sig(i-1,j-1)-fp*sig(i,j-1))*(x(i,j-1)-x(i,j))
+             end if
           else
              y(i,j) = 0.d0
           end if
@@ -541,7 +634,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, Ax, s0
+    real(amrex_real) :: facx, facy, Ax, s0, fp, fm, frzlo, frzhi
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -565,7 +658,17 @@ contains
                   + sol(i,j+1)*(    -facx*(sx(i-1,j  )+sx(i,j  )) &
                   &            +2.d0*facy*(sy(i-1,j  )+sy(i,j  ))) &
                   + sol(i,j)*s0
-             
+
+             if (is_rz) then
+                fp = facy / (2*i+1)
+                fm = facy / (2*i-1)
+                frzlo = fm*sy(i-1,j-1)-fp*sy(i,j-1)
+                frzhi = fm*sy(i-1,j  )-fp*sy(i,j  )
+                s0 = s0 - frzhi - frzlo
+                Ax = Ax + frzhi*(sol(i,j+1)-sol(i,j)) &
+                     &  + frzlo*(sol(i,j-1)-sol(i,j))
+             end if
+
              sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
           else
              sol(i,j) = 0.d0
@@ -588,7 +691,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, Ax, fxy, f2xmy, fmx2y, s0
+    real(amrex_real) :: facx, facy, Ax, fxy, f2xmy, fmx2y, s0, fp, fm, frzlo, frzhi
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -609,7 +712,17 @@ contains
                   + sol(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
                   + sol(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
                   + sol(i,j)*s0
-             
+
+             if (is_rz) then
+                fp = facy / (2*i+1)
+                fm = facy / (2*i-1)
+                frzlo = fm*sig(i-1,j-1)-fp*sig(i,j-1)
+                frzhi = fm*sig(i-1,j  )-fp*sig(i,j  )
+                s0 = s0 - frzhi - frzlo
+                Ax = Ax + frzhi*(sol(i,j+1)-sol(i,j)) &
+                     &  + frzlo*(sol(i,j-1)-sol(i,j))
+             end if
+
              sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
           else
              sol(i,j) = 0.d0
@@ -785,17 +898,16 @@ contains
   end subroutine amrex_mlndlap_interpolation_aa
 
 
-  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, &
-       dxinv, ndlo, ndhi, bclo, bchi) &
+  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, dxinv) &
        bind(c,name='amrex_mlndlap_divu')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, fm, fp
 
     facx = 0.5d0*dxinv(1)
     facy = 0.5d0*dxinv(2)
@@ -805,41 +917,24 @@ contains
           if (msk(i,j) .ne. dirichlet) then
              rhs(i,j) = facx*(-vel(i-1,j-1,1)+vel(i,j-1,1)-vel(i-1,j,1)+vel(i,j,1)) &
                   &   + facy*(-vel(i-1,j-1,2)-vel(i,j-1,2)+vel(i-1,j,2)+vel(i,j,2))
+
+             if (is_rz) then
+                fm = facy / (6*i-3)
+                fp = facy / (6*i+3)
+                rhs(i,j) = rhs(i,j) + fm*(vel(i-1,j,2)-vel(i-1,j-1,2)) &
+                     &              - fp*(vel(i  ,j,2)-vel(i  ,j-1,2))
+             end if
           else
              rhs(i,j) = 0.d0
           end if
        end do
     end do
 
-    if (lo(1) .eq. ndlo(1)) then
-       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then 
-          rhs(lo(1),lo(2):hi(2)) = 2.d0*rhs(lo(1),lo(2):hi(2))
-       end if
-    end if
-
-    if (hi(1) .eq. ndhi(1)) then
-       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          rhs(hi(1),lo(2):hi(2)) = 2.d0*rhs(hi(1),lo(2):hi(2))
-       end if
-    end if
-
-    if (lo(2) .eq. ndlo(2)) then
-       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          rhs(lo(1):hi(1),lo(2)) = 2.d0*rhs(lo(1):hi(1),lo(2))
-       end if
-    end if
-
-    if (hi(2) .eq. ndhi(2)) then
-       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          rhs(lo(1):hi(1),hi(2)) = 2.d0*rhs(lo(1):hi(1),hi(2))
-       end if
-    end if
-
   end subroutine amrex_mlndlap_divu
 
 
-  subroutine amrex_mlndlap_add_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
-       bind(c,name='amrex_mlndlap_add_rhcc')
+  subroutine amrex_mlndlap_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_rhcc')
     integer, dimension(2) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi
     real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1),clo(2):chi(2))
@@ -850,11 +945,13 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             rhs(i,j) = rhs(i,j) + 0.25d0*(rhcc(i-1,j-1)+rhcc(i,j-1)+rhcc(i-1,j)+rhcc(i,j))
+             rhs(i,j) = 0.25d0*(rhcc(i-1,j-1)+rhcc(i,j-1)+rhcc(i-1,j)+rhcc(i,j))
+          else
+             rhs(i,j) = 0.d0
           end if
        end do
     end do
-  end subroutine amrex_mlndlap_add_rhcc
+  end subroutine amrex_mlndlap_rhcc
 
 
   subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &
@@ -866,7 +963,7 @@ contains
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
 
     integer :: i, j
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, frz
 
     facx = 0.5d0*dxinv(1)
     facy = 0.5d0*dxinv(2)
@@ -875,16 +972,20 @@ contains
        do i = lo(1), hi(1)
           u(i,j,1) = u(i,j,1) - sig(i,j)*facx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
           u(i,j,2) = u(i,j,2) - sig(i,j)*facy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
+          if (is_rz) then
+             frz = sig(i,j)*facy / (6*i+3)
+             u(i,j,2) = u(i,j,2) + frz*(p(i,j)-p(i+1,j)-p(i,j+1)+p(i+1,j+1))
+          end if
        end do
     end do
   end subroutine amrex_mlndlap_mknewu
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv, ndlo, ndhi, bclo, bchi) &
+       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv) &
        bind(c,name='amrex_mlndlap_divu_fine_contrib')
     integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
-         flo, fhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+         flo, fhi, mlo, mhi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
@@ -893,7 +994,7 @@ contains
 
     integer, dimension(2) :: lo, hi, glo, ghi, gtlo, gthi
     integer :: i, j, ii, jj, step
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, fm, fp
     real(amrex_real), parameter :: rfd = 0.25d0
     real(amrex_real), parameter :: chip = 0.5d0
     real(amrex_real), parameter :: chip2 = 0.25d0
@@ -920,6 +1021,13 @@ contains
           if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step .eq. 1) then
              frh(ii,jj) = facx*(-vel(ii-1,jj-1,1)+vel(ii,jj-1,1)-vel(ii-1,jj,1)+vel(ii,jj,1)) &
                     &   + facy*(-vel(ii-1,jj-1,2)-vel(ii,jj-1,2)+vel(ii-1,jj,2)+vel(ii,jj,2))
+
+             if (is_rz) then
+                fm = facy / (6*ii-3)
+                fp = facy / (6*ii+3)
+                frh(ii,jj) = frh(ii,jj) + fm*(vel(ii-1,jj,2)-vel(ii-1,jj-1,2)) &
+                     &                  - fp*(vel(ii  ,jj,2)-vel(ii  ,jj-1,2))
+             end if
           end if
        end do
     end do
@@ -941,8 +1049,6 @@ contains
        end do
     end do
 
-    ! xxxxx what do we do at physical boundaries?
-
   end subroutine amrex_mlndlap_divu_fine_contrib
 
 
@@ -960,7 +1066,7 @@ contains
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, fm, fp
 
     facx = 0.5d0*dxinv(1)
     facy = 0.5d0*dxinv(2)
@@ -974,28 +1080,149 @@ contains
                      + (1.d0-ccmsk(i  ,j-1)) * ( facx*vel(i  ,j-1,1) - facy*vel(i  ,j-1,2)) &
                      + (1.d0-ccmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
                      + (1.d0-ccmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2))
+
+                if (is_rz) then
+                   fm = facy / (6*i-3)
+                   fp = facy / (6*i+3)
+                   rhs(i,j) = rhs(i,j) + fm*((1.d0-ccmsk(i-1,j  ))*vel(i-1,j  ,2) &
+                        &                   -(1.d0-ccmsk(i-1,j-1))*vel(i-1,j-1,2)) &
+                        &              - fp*((1.d0-ccmsk(i  ,j  ))*vel(i  ,j  ,2) &
+                        &                   -(1.d0-ccmsk(i  ,j-1))*vel(i  ,j-1,2))
+                end if
+
+                if (i .eq. ndlo(1) .and. &
+                     (    bclo(1) .eq. amrex_lo_neumann &
+                     .or. bclo(1) .eq. amrex_lo_inflow)) then
+                   rhs(i,j) = 2.d0*rhs(i,j)
+                else if (i.eq. ndhi(1) .and. &
+                     (    bchi(1) .eq. amrex_lo_neumann &
+                     .or. bchi(1) .eq. amrex_lo_inflow)) then
+                   rhs(i,j) = 2.d0*rhs(i,j)
+                end if
+
+                if (j .eq. ndlo(2) .and. &
+                     (    bclo(2) .eq. amrex_lo_neumann &
+                     .or. bclo(2) .eq. amrex_lo_inflow)) then
+                   rhs(i,j) = 2.d0*rhs(i,j)                   
+                else if (j .eq. ndhi(2) .and. &
+                     (    bchi(2) .eq. amrex_lo_neumann &
+                     .or. bchi(2) .eq. amrex_lo_inflow)) then
+                   rhs(i,j) = 2.d0*rhs(i,j)
+                end if
              end if
           end if
        end do
     end do
 
-    ! xxxxx what do we do at physical boundaries?
   end subroutine amrex_mlndlap_divu_cf_contrib
 
 
-  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi) &
-       bind(c, name='amrex_mlndlap_crse_resid')
-    integer, dimension(2), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi
-    real(amrex_real), intent(inout) :: resid(rslo(1):rshi(1),rslo(2):rshi(2))
-    real(amrex_real), intent(in   ) :: rhs  (rhlo(1):rhhi(1),rhlo(2):rhhi(2))
-    integer         , intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
+  subroutine amrex_mlndlap_rhcc_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
+       cc, cclo, cchi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_rhcc_fine_contrib')
+    integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, cclo, cchi, mlo, mhi
+    real(amrex_real), intent(inout) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) :: cc (cclo(1):cchi(1),cclo(2):cchi(2))
+    integer         , intent(in   ) :: msk( mlo(1): mhi(1), mlo(2): mhi(2))
+
+    integer, dimension(2) :: lo, hi, glo, ghi
+    integer :: i, j, ii, jj, step
+    real(amrex_real), parameter :: w1 = 9.d0/64.d0
+    real(amrex_real), parameter :: w2 = 3.d0/64.d0
+    real(amrex_real), parameter :: w3 = 1.d0/64.d0
+
+    lo = 2*clo
+    hi = 2*chi
+    glo = 2*cglo
+    ghi = 2*cghi
+
+    do j = clo(2), chi(2)
+       jj = 2*j
+       if (j .eq. cglo(2) .or. j .eq. cghi(2)) then
+          step = 1
+       else
+          step = chi(1)-clo(1)
+       end if
+       do i = clo(1), chi(1), step
+          ii = 2*i
+          if (msk(ii,jj) .eq. dirichlet) then
+             rhs(i,j) = rhs(i,j) &
+                  + w1*(cc(ii-1,jj-1)+cc(ii  ,jj-1)+cc(ii-1,jj  )+cc(ii  ,jj  )) &
+                  + w2*(cc(ii-2,jj-1)+cc(ii+1,jj-1)+cc(ii-2,jj  )+cc(ii+1,jj  ) &
+                  &    +cc(ii-1,jj-2)+cc(ii  ,jj-2)+cc(ii-1,jj+1)+cc(ii  ,jj+1)) &
+                  + w3*(cc(ii-2,jj-2)+cc(ii+1,jj-2)+cc(ii-2,jj+1)+cc(ii+1,jj+1))
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_rhcc_fine_contrib
+
+
+  subroutine amrex_mlndlap_rhcc_crse_contrib (lo, hi, crhs, rlo, rhi, rhcc, clo, chi, &
+       dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi) &
+       bind(c,name='amrex_mlndlap_rhcc_crse_contrib')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi, &
+         nmlo, nmhi, cmlo, cmhi
+    real(amrex_real), intent(inout) ::  crhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) ::  rhcc( clo(1): chi(1), clo(2): chi(2))
+    integer         , intent(in   ) ::  dmsk( mlo(1): mhi(1), mlo(2): mhi(2))
+    integer         , intent(in   ) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
+    integer         , intent(in   ) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
+          if (dmsk(i,j) .ne. dirichlet) then
+             if (ndmsk(i,j) .eq. crse_fine_node) then
+                crhs(i,j) = crhs(i,j) + 0.25d0 * &
+                     ( (1.d0-ccmsk(i-1,j-1)) * rhcc(i-1,j-1) &
+                     + (1.d0-ccmsk(i  ,j-1)) * rhcc(i  ,j-1) &
+                     + (1.d0-ccmsk(i-1,j  )) * rhcc(i-1,j  ) &
+                     + (1.d0-ccmsk(i  ,j  )) * rhcc(i  ,j  ))
+             end if
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_rhcc_crse_contrib
+
+
+  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi, &
+       ndlo, ndhi, bclo, bchi) bind(c, name='amrex_mlndlap_crse_resid')
+    integer, dimension(2), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+    real(amrex_real), intent(inout) :: resid(rslo(1):rshi(1),rslo(2):rshi(2))
+    real(amrex_real), intent(in   ) :: rhs  (rhlo(1):rhhi(1),rhlo(2):rhhi(2))
+    integer         , intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
+
+    integer :: i,j
+    real(amrex_real) :: fac
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
           if (any(msk(i-1:i,j-1:j).eq.0) .and. any(msk(i-1:i,j-1:j).eq.1)) then
-             resid(i,j) = rhs(i,j) - resid(i,j)
+
+             fac = 1.d0
+             if (i .eq. ndlo(1) .and. &
+                  (    bclo(1) .eq. amrex_lo_neumann &
+                  .or. bclo(1) .eq. amrex_lo_inflow)) then
+                fac = fac*2.d0
+             else if (i.eq. ndhi(1) .and. &
+                  (    bchi(1) .eq. amrex_lo_neumann &
+                  .or. bchi(1) .eq. amrex_lo_inflow)) then
+                fac = fac*2.d0
+             end if
+             
+             if (j .eq. ndlo(2) .and. &
+                  (    bclo(2) .eq. amrex_lo_neumann &
+                  .or. bclo(2) .eq. amrex_lo_inflow)) then
+                fac = fac*2.d0
+             else if (j .eq. ndhi(2) .and. &
+                  (    bchi(2) .eq. amrex_lo_neumann &
+                  .or. bchi(2) .eq. amrex_lo_inflow)) then
+                fac = fac*2.d0
+             end if
+
+             resid(i,j) = (rhs(i,j) - resid(i,j)) * fac
           else
              resid(i,j) = 0.d0
           end if
@@ -1018,7 +1245,7 @@ contains
 
     integer, dimension(2) :: lo, hi, glo, ghi, gtlo, gthi
     integer :: i, j, ii, jj, step
-    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fm, fp
     real(amrex_real), parameter :: rfd = 0.25d0
     real(amrex_real), parameter :: chip = 0.5d0
     real(amrex_real), parameter :: chip2 = 0.25d0
@@ -1054,6 +1281,13 @@ contains
                   +      x(ii,jj-1)*fmx2y*(sig(ii-1,jj-1)+sig(ii  ,jj-1)) &
                   +      x(ii,jj+1)*fmx2y*(sig(ii-1,jj  )+sig(ii  ,jj  )) &
                   +      x(ii,jj)*(-2.d0)*fxy*(sig(ii-1,jj-1)+sig(ii,jj-1)+sig(ii-1,jj)+sig(ii,jj))
+
+             if (is_rz) then
+                fp = facy / (2*ii+1)
+                fm = facy / (2*ii-1)
+                Ax(ii,jj) = Ax(ii,jj) + (fm*sig(ii-1,jj  )-fp*sig(ii,jj  ))*(x(ii,jj+1)-x(ii,jj)) &
+                     &                + (fm*sig(ii-1,jj-1)-fp*sig(ii,jj-1))*(x(ii,jj-1)-x(ii,jj))
+             end if
           end if
        end do
     end do
@@ -1075,17 +1309,15 @@ contains
        end do
     end do
 
-    ! xxxxx what do we do at physical boundaries?
-
   end subroutine amrex_mlndlap_res_fine_contrib
 
 
   subroutine amrex_mlndlap_res_cf_contrib (lo, hi, res, rlo, rhi, phi, phlo, phhi, &
        rhs, rhlo, rhhi, sig, slo, shi, dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, &
-       fc, clo, chi, dxinv) &
+       fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_res_cf_contrib')
     integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, phlo, phhi, rhlo, rhhi, slo, shi, &
-         mlo, mhi, nmlo, nmhi, cmlo, cmhi, clo, chi
+         mlo, mhi, nmlo, nmhi, cmlo, cmhi, clo, chi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: res( rlo(1): rhi(1), rlo(2): rhi(2))
     real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2))
@@ -1097,7 +1329,7 @@ contains
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
-    real(amrex_real) :: Ax, facx, facy
+    real(amrex_real) :: Ax, Axf, facx, facy, fp, fm
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -1106,32 +1338,73 @@ contains
        do i = lo(1), hi(1)
           if (dmsk(i,j) .ne. dirichlet) then
              if (ndmsk(i,j) .eq. crse_fine_node) then
+
+                if (is_rz) then
+                   fp = facy / (2*i+1)
+                   fm = facy / (2*i-1)
+                end if
+
                 Ax = 0.d0
                 if (ccmsk(i-1,j-1) .eq. crse_cell) then
                    Ax = Ax + sig(i-1,j-1)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
                         &                       +     (phi(i-1,j-1)-phi(i  ,j-1))) &
                         &                + facy*(2.d0*(phi(i  ,j-1)-phi(i  ,j  )) &
                         &                       +     (phi(i-1,j-1)-phi(i-1,j  ))))
+                   if (is_rz) then
+                      Ax = Ax + fm*sig(i-1,j-1)*(phi(i,j-1)-phi(i,j))
+                   end if
                 end if
                 if (ccmsk(i,j-1) .eq. crse_cell) then
                    Ax = Ax + sig(i,j-1)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
                         &                     +     (phi(i+1,j-1)-phi(i  ,j-1))) &
                         &              + facy*(2.d0*(phi(i  ,j-1)-phi(i  ,j  )) &
                         &                     +     (phi(i+1,j-1)-phi(i+1,j  ))))
+                   if (is_rz) then
+                      Ax = Ax - fp*sig(i,j-1)*(phi(i,j-1)-phi(i,j))
+                   end if
                 end if
                 if (ccmsk(i-1,j) .eq. crse_cell) then
                    Ax = Ax + sig(i-1,j)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
                         &                     +     (phi(i-1,j+1)-phi(i  ,j+1))) &
                         &              + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
                         &                     +     (phi(i-1,j+1)-phi(i-1,j  ))))
+                   if (is_rz) then
+                      Ax = Ax + fm*sig(i-1,j)*(phi(i,j+1)-phi(i,j))
+                   end if
                 end if
                 if (ccmsk(i,j) .eq. crse_cell) then
                    Ax = Ax + sig(i,j)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
                         &                  +      (phi(i+1,j+1)-phi(i  ,j+1))) &
                         &            + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
                         &                  +      (phi(i+1,j+1)-phi(i+1,j  ))))
+                   if (is_rz) then
+                      Ax = Ax - fp*sig(i,j)*(phi(i,j+1)-phi(i,j))
+                   end if
                 end if
-                res(i,j) = rhs(i,j) - Ax - fc(i,j)
+
+                Axf = fc(i,j)
+
+                if (i .eq. ndlo(1) .and. &
+                     (    bclo(1) .eq. amrex_lo_neumann &
+                     .or. bclo(1) .eq. amrex_lo_inflow)) then
+                   Axf = 2.d0*Axf
+                else if (i.eq. ndhi(1) .and. &
+                     (    bchi(1) .eq. amrex_lo_neumann &
+                     .or. bchi(1) .eq. amrex_lo_inflow)) then
+                   Axf = 2.d0*Axf
+                end if
+
+                if (j .eq. ndlo(2) .and. &
+                     (    bclo(2) .eq. amrex_lo_neumann &
+                     .or. bclo(2) .eq. amrex_lo_inflow)) then
+                   Axf = 2.d0*Axf
+                else if (j .eq. ndhi(2) .and. &
+                     (    bchi(2) .eq. amrex_lo_neumann &
+                     .or. bchi(2) .eq. amrex_lo_inflow)) then
+                   Axf = 2.d0*Axf
+                end if
+
+                res(i,j) = rhs(i,j) - (Ax + Axf)
              end if
           end if
        end do

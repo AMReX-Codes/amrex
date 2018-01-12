@@ -64,6 +64,7 @@ bool CommProfStats::bInitDataBlocks(true);
 Vector<int> CommProfStats::rankFromProx;  // [prox]
 Vector<int> CommProfStats::proxFromRank;  // [rank]
 bool CommProfStats::bProxMapOK(false);
+bool CommProfStats::persistentStreams(true);
 
 int CommProfStats::cpVersion(-1);
 int CommProfStats::csSize(-1);
@@ -391,6 +392,15 @@ void CommProfStats::OpenAllStreams(const std::string &dirname) {
   {
     std::string fullFileName(dirname + '/' + it->first);
     commDataStreams[dsIndex] = new std::ifstream(fullFileName.c_str());
+
+    if (commDataStreams[dsIndex]->fail())
+    {
+      cout << "****commDataStreams failed. Continuing without persistent streams." << std::endl;
+      persistentStreams = false;
+      CloseAllStreams();
+      break;
+    }
+
     ++dsIndex;
   }
   BL_PROFILE_VAR_STOP(cpsopenallstreams);
@@ -401,8 +411,15 @@ void CommProfStats::OpenAllStreams(const std::string &dirname) {
 void CommProfStats::CloseAllStreams() {
   BL_PROFILE_VAR("CommProfStats::CloseAllStreams", cpsclosellstreams);
   for(int i(0); i < commDataStreams.size(); ++i) {
-    commDataStreams[i]->close();
-    delete commDataStreams[i];
+    if (commDataStreams[i] != nullptr)
+    {
+      if (commDataStreams[i]->is_open())
+      {
+        commDataStreams[i]->close();
+      }
+      delete commDataStreams[i];
+      commDataStreams[i] = nullptr;
+    }
   }
   BL_PROFILE_VAR_STOP(cpsclosellstreams);
 }
@@ -649,7 +666,13 @@ void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
       int index, offsetX(proxFrom - smallX);
 
       BL_PROFILE_VAR("FillSendFABIO", fillsendfabio);
-      ReadCommStatsNoOpen(dBlock);
+
+      if (persistentStreams){
+        ReadCommStatsNoOpen(dBlock);
+      } else {
+        ReadCommStats(dBlock);
+      }
+
       BL_PROFILE_VAR_STOP(fillsendfabio);
 
       for(int i(0); i < dBlock.vCommStats.size(); ++i) {    // ---- find sends and sum
@@ -699,7 +722,13 @@ void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
       int index, offsetX(proc - smallX);
 
       BL_PROFILE_VAR("FillSendFABIO", fillsendfabio);
-      ReadCommStatsNoOpen(dBlock);
+
+      if (persistentStreams){
+        ReadCommStatsNoOpen(dBlock);
+      } else {
+        ReadCommStats(dBlock);
+      }
+
       BL_PROFILE_VAR_STOP(fillsendfabio);
 
       for(int i(0); i < dBlock.vCommStats.size(); ++i) {    // ---- find sends and sum
@@ -771,7 +800,12 @@ void CommProfStats::ReportSyncPointData(Vector<Vector<Real> > &barrierExitTimes,
       //cout << endl;
     //}
     DataBlock &dBlock = dataBlocks[idb];
-    ReadCommStatsNoOpen(dBlock);
+
+    if (persistentStreams){
+      ReadCommStatsNoOpen(dBlock);
+    } else {
+      ReadCommStats(dBlock);
+    }
 
     // ------------------------------------------------ collect barrier timings
     for(int i(0); i < dBlock.barriers.size(); ++i) {
@@ -847,7 +881,11 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
       //}
     }
     DataBlock &dBlock = dataBlocks[idb];
-    ReadCommStatsNoOpen(dBlock);
+    if (persistentStreams){
+      ReadCommStatsNoOpen(dBlock);
+    } else {
+      ReadCommStats(dBlock);
+    }
 
     rankNodeNumbers[dBlock.proc] = dBlock.nodeNumber;
 
@@ -900,26 +938,26 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
 
 
 // ----------------------------------------------------------------------
-void CommProfStats::FindTimeRange(Real &timeMin, Real &timeMax) {
+void CommProfStats::FindTimeRange(BLProfStats::TimeRange& tr) {
   for(int idb(0); idb < dataBlocks.size(); ++idb) {  // ---- go through dataBlocks
     DataBlock &dBlock = dataBlocks[idb];
-    timeMin = std::min(timeMin, dBlock.timeMin);
-    timeMax = std::max(timeMax, dBlock.timeMax);
+    tr.startTime = std::min(tr.startTime, dBlock.timeMin);
+    tr.stopTime  = std::max(tr.stopTime,  dBlock.timeMax);
   }
 }
 
-
 // ----------------------------------------------------------------------
 void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
-                                const double tlo, const double thi,
+                                const BLProfStats::TimeRange tr,
                                 const int rankMin, const int rankMax,
 			        const int rankStride,
 				const Real ntnMultiplier, const Vector<Real> &ntnNumbers,
 				const Real bnMultiplier, const Vector<Real> &bnNumbers)
 {
-
   BL_PROFILE("CommProfStats::TimelineFAB()");
 
+  Real tlo = tr.startTime;
+  Real thi = tr.stopTime;
   Real timeRangeAll(thi - tlo);
   //Real ooTimeRangeAll(1.0 / timeRangeAll);
   Real dt(timeRangeAll / probDomain.length(XDIR));
@@ -946,7 +984,11 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
       continue;
     }
 
-    ReadCommStatsNoOpen(dBlock);
+    if (persistentStreams){
+      ReadCommStatsNoOpen(dBlock);
+    } else {
+      ReadCommStats(dBlock);
+    }
     Real *timeline(timelineFAB.dataPtr(0));
     Real *mpiCount(timelineFAB.dataPtr(1));
 
