@@ -281,7 +281,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
     int lev = m_instance->getIndex(domain);
 
     const auto& src_flag = m_instance->m_cellflags[lev];
-    a_flag.ParallelCopy(src_flag, 0, 0, 1, 0, a_flag.nGrow());
+    a_flag.ParallelCopy(src_flag, 0, 0, 1, 0, a_flag.nGrow(), a_geom.periodicity());
 
     const BoxArray& cov_ba = m_instance->m_covered_ba[lev];
     auto cov_val = EBCellFlag::TheCoveredCell();
@@ -322,7 +322,7 @@ EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
     const auto& src_volfrac = m_instance->m_volfrac[lev];
 
     a_volfrac.setVal(1.0);
-    a_volfrac.ParallelCopy(src_volfrac, 0, 0, 1, 0, a_volfrac.nGrow());
+    a_volfrac.ParallelCopy(src_volfrac, 0, 0, 1, 0, a_volfrac.nGrow(), a_geom.periodicity());
 
     const BoxArray& cov_ba = m_instance->m_covered_ba[lev];
     Real cov_val = 0.0;
@@ -358,7 +358,7 @@ EBTower::fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom)
 
     a_bndrycent.setVal(-1.0);
 
-    a_bndrycent.ParallelCopy(src_bndrycent, 0, 0, a_bndrycent.nComp(), 0, a_bndrycent.nGrow());
+    a_bndrycent.ParallelCopy(src_bndrycent, 0, 0, a_bndrycent.nComp(), 0, a_bndrycent.nGrow(), a_geom.periodicity());
 }
 
 void
@@ -379,9 +379,9 @@ EBTower::fillFaceGeometry (std::array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac,
         a_areafrac[idim]->setVal(1.0);
         a_facecent[idim]->setVal(0.0);
         a_areafrac[idim]->ParallelCopy(src_areafrac[idim], 0, 0, a_areafrac[idim]->nComp(),
-                                       0, a_areafrac[idim]->nGrow());
+                                       0, a_areafrac[idim]->nGrow(), a_geom.periodicity());
         a_facecent[idim]->ParallelCopy(src_facecent[idim], 0, 0, a_facecent[idim]->nComp(),
-                                       0, a_facecent[idim]->nGrow());
+                                       0, a_facecent[idim]->nGrow(), a_geom.periodicity());
     }
 
     // fix area fraction for covered cells.  As for face centroid, we don't care.
