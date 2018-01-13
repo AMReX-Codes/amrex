@@ -71,6 +71,7 @@ public:
 
     void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng);
     void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng, const Periodicity& period);
+    void FillBoundary (const Periodicity& period);
 
 private:
 
