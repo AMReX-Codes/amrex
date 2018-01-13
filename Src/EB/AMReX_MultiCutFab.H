@@ -70,6 +70,7 @@ public:
     int nGrow () const { return m_data.nGrow(); }
 
     void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng);
+    void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng, const Periodicity& period);
 
 private:
 
