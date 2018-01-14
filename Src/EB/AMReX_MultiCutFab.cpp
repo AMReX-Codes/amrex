@@ -107,11 +107,22 @@ MultiCutFab::setVal (Real val)
     }
 }
 
-
 void
 MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng)
 {
     m_data.ParallelCopy(src.m_data, scomp, dcomp, ncomp, sng, dng);
+}
+
+void
+MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng, const Periodicity& period)
+{
+    m_data.ParallelCopy(src.m_data, scomp, dcomp, ncomp, sng, dng, period);
+}
+
+void
+MultiCutFab::FillBoundary (const Periodicity& period)
+{
+    m_data.FillBoundary(period);
 }
 
 }
