@@ -1,41 +1,43 @@
-Introduction
-============================
-
-In this chapter, we present the basics of AMReX. The implementation
+In this chapter, we present the basics of . The implementation
 source codes are in amrex/Src/Base/. Note that  classes
 and functions are in namespace amrex. For clarity, we usually
 drop amrex:: in the example codes here. It is also assumed that
 headers have been properly included. We recommend you study
-the tutorial in amrex/Tutorials/Basic/HeatEquation\_EX1\_C while reading this chapter.
+the tutorial in amrex/Tutorials/Basic/HeatEquation_EX1_C while reading this chapter.
 After reading this chapter, one should be able to develop single-level
 parallel codes using . It should also be noted that this is not
 a comprehensive reference manual.
 
-HeatEquation\_EX1\_C Example
-============================
+HeatEquation_EX1_C Example
+==========================
 
 The source code tree for the heat equation example is simple, as shown
-in Figure 4.1. We recommend you study
+in Figure `[fig:Basics_Heat_flowchart] <#fig:Basics_Heat_flowchart>`__. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
 below in action.
 
-.. figure:: ../Basics/figs/flowchart.png
-   :width: 4.00000in
+.. figure:: ./Basics/figs/flowchart.pdf
+   :alt: [fig:Basics_Heat_flowchart] Source code tree for the
+   HeatEquation_EX1_C example.
+   :width: 4in
 
-   Figure 4.1:  Source code tree for the
-   HeatEquation\_EX1\_C example.
+   [fig:Basics_Heat_flowchart] Source code tree for the
+   HeatEquation_EX1_C example.
 
 -  | Base/
    | Contains source code for single-level simulations.
 
--  | HeatEquation\_EX1\_C
+-  | HeatEquation_EX1_C
    | Build the code here by editing the GNUmakefile and running make.
+
+.. _sec:basics:dim:
 
 Dimensionality
 ==============
 
-As we have mentioned in Chapter [Chap:BuildingAMReX], the
-dimensionality of  must be set at compile time. A macro, AMREX\_SPACEDIM, is defined to be the number of spatial
+As we have mentioned in Chapter \ `[Chap:BuildingAMReX] <#Chap:BuildingAMReX>`__, the
+dimensionality of  must be set at compile time. A macro,
+AMREX_SPACEDIM, is defined to be the number of spatial
 dimensions. C++ codes can also use the amrex::SpaceDim
 variable. Fortran codes can use either the macro and preprocessing or
 do
@@ -46,10 +48,12 @@ do
 
 The coordinate directions are zero based.
 
-Array
-=====
+Vector
+======
 
-Array class in AMReX\_Array.H is derived from std::vector. The only difference between Array and std::vector is that Array::operator[] provides bound checking
+Vector class in AMReX_Vector.H is derived from
+std::vector. The only difference between Vector and
+std::vector is that Vector::operator[] provides bound checking
 when compiled with DEBUG=TRUE.
 
 Real
@@ -57,18 +61,23 @@ Real
 
  can be compiled to use either double precision (which is the
 default) or single precision. amrex::Real is typedef’d to
-either double or float. C codes can use amrex\_real. They are defined in AMReX\_REAL.H. The data
+either double or float. C codes can use
+amrex_real. They are defined in AMReX_REAL.H. The data
 type is accessible in Fortran codes via
 
 ::
 
         use amrex_fort_module, only : amrex_real
 
+.. _sec:basics:paralleldescriptor:
+
 ParallelDescriptor
 ==================
 
  users do not need to use MPI directly. Parallel communication
-is often handled by the data abstraction classes (e.g., MultiFab; Section [sec:basics:multifab]). In addition, has provided namespace ParallelDescriptor in <AMReX\_ParallelDescriptor.H>. The frequently used functions are
+is often handled by the data abstraction classes (e.g.,
+MultiFab; Section \ `14 <#sec:basics:multifab>`__). In addition,  has provided namespace ParallelDescriptor in
+<AMReX_ParallelDescriptor.H>. The frequently used functions are
 
 ::
 
@@ -92,10 +101,12 @@ is often handled by the data abstraction classes (e.g., MultiFab; Section [sec:
      // See AMReX_ParallelDescriptor.H for many other Reduce functions 
      ParallelDescriptor::ReduceRealSum(x);
 
+.. _sec:basics:print:
+
 Print
 =====
 
- provides classes in AMReX\_Print.H for printing messages
+ provides classes in AMReX_Print.H for printing messages
 to standard output or any  ostream. The main reason one
 should use them instead of std::cout is that messages from
 multiple processes or threads do not get mixed up. Below are some
@@ -119,15 +130,18 @@ examples.
      Print(ofs) << "Print to a file" << std::endl;
      ofs.close();
 
+.. _sec:basics:parmparse:
+
 ParmParse
 =========
 
-ParmParse in AMReX\_ParmParse.H is a class providing a
+ParmParse in AMReX_ParmParse.H is a class providing a
 database for the storage and retrieval of command-line and input-file
 arguments. When amrex::Initialize() is called, the first
 command-line argument after the executable name (if there is one and
 it does not contain character =) is taken to be the inputs file,
-and the contents in the file are used to initialize the ParmParse database. The rest of the command-line arguments are
+and the contents in the file are used to initialize the
+ParmParse database. The rest of the command-line arguments are
 also parsed by ParmParse. The format of the inputs file is a
 series of definitions in the form of prefix.name = value value
 .... For each line, texts after # are comments. Here is an
@@ -174,7 +188,8 @@ The following code shows how to use ParmParse to get/query the values.
      Real cfl;
      pph.get("cfl", cfl);    // get parameter with prefix
 
-Note that when there are multiple definitions for a parameter ParmParse by default returns the last one. The difference between
+Note that when there are multiple definitions for a parameter
+ParmParse by default returns the last one. The difference between
 query and get should also be noted. It is a runtime error
 if get fails to get the value, whereas query returns an
 error code without generating a runtime error that will abort the run.
@@ -190,12 +205,14 @@ with
 
 to change the value of ncells and hydro.cfl.
 
+.. _sec:basics:amrgrids:
+
 Example of AMR Grids
 ====================
 
 In block-structured AMR, there is a hierarchy of logically rectangular
 grids. The computational domain on each AMR level is decomposed into
-a union of rectangular domains. Figure 4.2
+a union of rectangular domains. Figure \ `[fig:basics:amrgrids] <#fig:basics:amrgrids>`__
 shows an example of AMR grids. There are three total levels in the
 example. In  numbering convention, the coarsest level is level
 0. The coarsest grid (*black*) covers the domain with :math:`16^2`
@@ -207,19 +224,28 @@ finer than the level 1 cells. Note that there is no direct
 parent-child connection. In this chapter, we will focus on single
 levels.
 
-.. figure:: ../Basics/amrgrids.png
-   :width: 3.00000in
+.. raw:: latex
 
-   Figure 4.2: Example of AMR grids. There are
+   \centering
+
+.. figure:: ./Basics/amrgrids.pdf
+   :alt: [fig:basics:amrgrids] Example of AMR grids. There are
    three levels in total. There are 1, 2 and 2 Boxes on levels
    0, 1, and 2, respectively.
+   :width: 3in
+
+   [fig:basics:amrgrids] Example of AMR grids. There are
+   three levels in total. There are 1, 2 and 2 Boxes on levels
+   0, 1, and 2, respectively.
+
+.. _sec:basics:box:
 
 Box, IntVect and IndexType
 ==========================
 
-Box in AMReX\_Box.H is the data structure for representing
+Box in AMReX_Box.H is the data structure for representing
 a rectangular domain in indexing space. For example, in
-Figure 4.2, there are 1, 2 and 2 Boxes on
+Figure \ `[fig:basics:amrgrids] <#fig:basics:amrgrids>`__, there are 1, 2 and 2 Boxes on
 levels 0, 1 and 2, respectively. Box is a dimension dependent
 class. It has lower and upper corners (represented by IntVect
 and an index type (represented by IndexType). There are no
@@ -236,7 +262,9 @@ IntVect can be constructed as follows,
 
      IntVect iv(AMREX_D_DECL(19, 0, 5));
 
-Here AMREX\_D\_DECL is a macro that expands AMREX\_D\_DECL(19,0,5) to either 19 or 19,0 or 19,0,5 depending on the number of dimensions. The data can be
+Here AMREX_D_DECL is a macro that expands
+AMREX_D_DECL(19,0,5) to either 19 or 19,0 or
+19,0,5 depending on the number of dimensions. The data can be
 accessed via operator[], and the internal data pointer can be
 returned by function getVect. For example
 
@@ -248,12 +276,14 @@ returned by function getVect. For example
      const int * p = iv.getVect();  // This can be passed to Fortran/C as an array
 
 The class has a static function TheZeroVector() returning the
-zero vector, TheUnitVector() returning the unit vector, and TheDimensionVector (int dir) returning a reference to a constant
+zero vector, TheUnitVector() returning the unit vector, and
+TheDimensionVector (int dir) returning a reference to a constant
 IntVect that is zero except in the dir-direction. Note
 the direction is zero-based. IntVect has a number of relational
-operators, ==, !=, , and >= that can be used for lexicographical comparison (e.g., key of
-std::map), and a class IntVect::shift\_hasher that can be
-used as a hash function (e.g., for std::unordered\_map). It
+operators, ==, !=, , and
+>= that can be used for lexicographical comparison (e.g., key of
+std::map), and a class IntVect::shift_hasher that can be
+used as a hash function (e.g., for std::unordered_map). It
 also has various arithmetic operators. For example,
 
 ::
@@ -263,7 +293,8 @@ also has various arithmetic operators. For example,
      iv += iv2;  // iv is now (23,8,5)
      iv *= 2;    // iv is now (46,16,10);
 
-In AMR codes, one often needs to do refinement and coarsening on IntVect. The refinement operation can be done with the
+In AMR codes, one often needs to do refinement and coarsening on
+IntVect. The refinement operation can be done with the
 multiplication operation. However, the coarsening requires care
 because of the rounding towards zero behavior of integer division in
 Fortran, C and C++. For example int i = -1/2 gives i =
@@ -279,7 +310,8 @@ the coarsen functions:
       const auto& iv2 = amrex::coarsen(iv, 2); // Return an IntVect w/o modifying iv
       IntVect iv3 = amrex::coarsen(iv, coarsening_return); // iv not modified
 
-Finally, we note that operator<< is overloaded for IntVect and therefore one can call
+Finally, we note that operator<< is overloaded for
+IntVect and therefore one can call
 
 ::
 
@@ -323,7 +355,8 @@ representing the notion of indices :math:`i` and :math:`i+1/2`.
 Box
 ---
 
-A Box is an abstraction for defining discrete regions of AMREX\_SPACEDIM-dimensional indexing space. Boxes have an
+A Box is an abstraction for defining discrete regions of
+AMREX_SPACEDIM-dimensional indexing space. Boxes have an
 IndexType and two IntVects representing the lower and
 upper corners. Boxes can exist in positive and negative indexing
 space. Typical ways of defining a Box are
@@ -349,18 +382,27 @@ For simplicity, we will assume it is 3D for the rest of this section.
 In the output, three integer tuples for each box are the lower corner
 indices, upper corner indices, and the index types. Note that 0
 and 1 denote cell and node, respectively. For each tuple like
-(64,64,64), the 3 numbers are for 3 directions. The two Boxes in the code above represent different indexing views of the
+(64,64,64), the 3 numbers are for 3 directions. The two
+Boxes in the code above represent different indexing views of the
 same domain of :math:`64^3` cells. Note that in  convention, the
 lower side of a cell has the same integer value as the cell centered
 index. That is if we consider a cell based index represent :math:`i`, the
 nodal index with the same integer value represents :math:`i-1/2`.
-Figure 4.3 shows a 2D example of various index
+Figure \ `[fig:basics:indextypes] <#fig:basics:indextypes>`__ shows a 2D example of various index
 types.
 
-.. figure:: ../Basics/indextypes.png
-   :width: 5.00000in
+.. raw:: latex
 
-   Figure 4.3: Some of the different index
+   \centering
+
+.. figure:: ./Basics/indextypes.pdf
+   :alt: [fig:basics:indextypes] Some of the different index
+   types in two dimensions: (a) cell-centered, (b) :math:`x`-face-centered
+   (i.e., nodal in :math:`x`-direction only), and (c) corner/nodal,
+   i.e., nodal in all dimensions.
+   :width: 5in
+
+   [fig:basics:indextypes] Some of the different index
    types in two dimensions: (a) cell-centered, (b) :math:`x`-face-centered
    (i.e., nodal in :math:`x`-direction only), and (c) corner/nodal,
    i.e., nodal in all dimensions.
@@ -437,7 +479,8 @@ direction. There are a number of grow functions. Some are
 member functions of the Box class and others are non-member
 functions in the amrex namespace.
 
-Box class provides the following member functions testing if a Box or IntVect is contained within this Box. Note that
+Box class provides the following member functions testing if a
+Box or IntVect is contained within this Box. Note that
 it is a runtime error if the two Boxes have different types.
 
 ::
@@ -475,8 +518,9 @@ RealBox and Geometry
 A RealBox stores the physical location in floating-point numbers
 of the lower and upper corners of a rectangular domain.
 
-Geometry class in AMReX\_Geometry.H describes problem
-domain and coordinate system for rectangular problem domains. A Geometry object can be constructed with
+Geometry class in AMReX_Geometry.H describes problem
+domain and coordinate system for rectangular problem domains. A
+Geometry object can be constructed with
 
 ::
 
@@ -490,19 +534,20 @@ indexing space domain, an optional argument of RealBox pointer
 specifying the physical domain, an optional int specifying
 coordinate system type, and an optional int\* specifying
 periodicity. If a RealBox is not given,  will construct
-one based on ParmParse parameters, geometry.prob\_lo and
-geometry.prob\_hi, where each of the parameter is an array of
-AMREX\_SPACEDIM real numbers. It’s a runtime error if this
+one based on ParmParse parameters, geometry.prob_lo and
+geometry.prob_hi, where each of the parameter is an array of
+AMREX_SPACEDIM real numbers. It’s a runtime error if this
 fails. The optional argument for coordinate system is an integer type
 with valid values being 0 (Cartesian), or 1 (cylindrical), or 2
 (spherical). If it is invalid as in the case of the default argument
-value,  will query the ParmParse database for geometry.coord\_sys and use it if one is found. If it cannot find
+value,  will query the ParmParse database for
+geometry.coord_sys and use it if one is found. If it cannot find
 the parameter, the coordinate system is set to 0 (i.e., Cartesian
 coordinates). Geometry class has the concept of periodicity.
 An optional argument can be passed specifying periodicity in each
 dimension. If it is not given, the domain is assumed to be
 non-periodic unless there is the ParmParse integer array
-parameter geometry.is\_periodic with 0 denoting
+parameter geometry.is_periodic with 0 denoting
 non-periodic and 1 denoting periodic. Below is an example of
 defining a Geometry for a periodic rectangular domain of
 :math:`[-1.0,1.0]` in each direction discretized with :math:`64` numerical cells
@@ -542,11 +587,14 @@ domain and the indexing space domain. For example,
       if (Geometry::isAllPeriodic()) {}      // Periodic in all direction?
       if (Geometry::isAnyPeriodic()) {}      // Periodic in any direction?
 
+.. _sec:basics:ba:
+
 BoxArray
 ========
 
-BoxArray is a class in AMReX\_BoxArray.H for storing a
-collection of Boxes on a single AMR level. One can make a BoxArray out of a single Box and then chop it into multiple
+BoxArray is a class in AMReX_BoxArray.H for storing a
+collection of Boxes on a single AMR level. One can make a
+BoxArray out of a single Box and then chop it into multiple
 Boxes.
 
 ::
@@ -576,12 +624,14 @@ the Boxes in a collection, even though a single process in a
 parallel run only owns some of the Boxes via domain
 decomposition. In the example above, a 4-process run may divide the
 work and each process owns say 2 Boxes
-(Section [sec:basics:dm]). Each process can then allocate memory
+(Section `12 <#sec:basics:dm>`__). Each process can then allocate memory
 for the floating point data on the Boxes it owns
-(Sections [sec:basics:multifab] & [sec:basics:fab]).
+(Sections `14 <#sec:basics:multifab>`__ & `13 <#sec:basics:fab>`__).
 
-BoxArray has an indexing type, just like Box. Each Box in a BoxArray has the same type as the BoxArray
-itself. In the following example, we show how one can convert BoxArray to a different type.
+BoxArray has an indexing type, just like Box. Each
+Box in a BoxArray has the same type as the BoxArray
+itself. In the following example, we show how one can convert
+BoxArray to a different type.
 
 ::
 
@@ -607,7 +657,8 @@ value.
 
       ba[3].coarsen(2);  // DO NOT DO THIS!  Doesn't do what one might expect.
 
-BoxArray has a number of member functions that allow the Boxes to be modified. For example,
+BoxArray has a number of member functions that allow the
+Boxes to be modified. For example,
 
 ::
 
@@ -620,7 +671,7 @@ We have mentioned at the beginning of this section that BoxArray
 is a global data structure storing Boxes shared by all processes.
 The operation of a deep copy is thus undesirable because it
 is expensive and the extra copy wastes memory. The
-implementation of the BoxArray class uses std::shared\_ptr
+implementation of the BoxArray class uses std::shared_ptr
 to an internal container holding the actual Box data. Thus
 making a copy of BoxArray is a quite cheap operation. The
 conversion of types and coarsening are also cheap because they can
@@ -644,14 +695,20 @@ For advanced users,  provides functions performing the
 intersection of a BoxArray and a Box. These functions are
 much faster than a naive implementation of performing intersection of
 the Box with each Box in the BoxArray. If one needs
-to perform those intersections, functions amrex::intersect, BoxArray::intersects and BoxArray::intersections should be
+to perform those intersections, functions amrex::intersect,
+BoxArray::intersects and BoxArray::intersections should be
 used.
+
+.. _sec:basics:dm:
 
 DistributionMapping
 ===================
 
-DistributionMapping is a class in AMReX\_DistributionMapping.H describes which process owns the data
-living on the domains specified by the Boxes in a BoxArray. Like BoxArray, there is an element for each Box in DistributionMapping, including the ones owned by other
+DistributionMapping is a class in
+AMReX_DistributionMapping.H describes which process owns the data
+living on the domains specified by the Boxes in a
+BoxArray. Like BoxArray, there is an element for each
+Box in DistributionMapping, including the ones owned by other
 parallel processes. A way to construct a DistributionMapping
 object given a BoxArray is as follows.
 
@@ -665,14 +722,15 @@ Oftentimes what one needs is simply making a copy.
 
       DistributionMapping dm {another_dm};
 
-Note that this class is built using std::shared\_ptr. Thus
+Note that this class is built using std::shared_ptr. Thus
 making a copy is relatively cheap in terms of performance and memory
 resources. This class has a subscript operator that returns the
 process ID at a given index.
 
 By default, DistributionMapping uses an algorithm based on space
 filling curve to determine the distribution. One can change the default
-via ParmParse parameter DistributionMapping.strategy. KNAPSACK is a common choice that is optimized for load balance.
+via ParmParse parameter DistributionMapping.strategy.
+KNAPSACK is a common choice that is optimized for load balance.
 One can also explicitly construct a distribution.
 DistributionMapping class allows the user to have complete control by
 passing an array of integers.
@@ -684,6 +742,8 @@ passing an array of integers.
       // The user fills the pmap array with the values specifying owner processes
       dm.define(pmap);  // Build DistributionMapping given an array of process IDs.
 
+.. _sec:basics:fab:
+
 BaseFab, FArrayBox and IArrayBox
 ================================
 
@@ -694,15 +754,15 @@ at the Box level is conceptually simple. BaseFab is a
 class template for multi-dimensional array-like data structure on a
 Box. The template parameter is typically basic types such as
 Real, int or char. The dimensionality of the array
-is AMREX\_SPACEDIM plus one. The additional dimensional is for
+is AMREX_SPACEDIM plus one. The additional dimensional is for
 the number of components. The data are internally stored in a
 contiguous block of memory in Fortran array order (i.e., column-major
 order) for :math:`(x,y,z,\mathrm{component})`, and each component also
 occupies a contiguous block of memory because of the ordering. For
 example, a BaseFab<Real> with 4 components defined on a
 three-dimensional Box(IntVect{-4,8,32},IntVect{32,64,48}) is
-like a Fortran array of real(amrex\_real),
-dimension(-4:32,8:64,32:48,0:3). Note that the convention in part of  is the component index is zero based. The code for
+like a Fortran array of real(amrex_real),
+dimension(-4:32,8:64,32:48,0:3). Note that the convention in  part of  is the component index is zero based. The code for
 constructing such an object is as follows,
 
 ::
@@ -713,7 +773,8 @@ constructing such an object is as follows,
 
 Most applications do not use BaseFab directly, but utilize
 specialized classes derived from BaseFab. The most common types
-are FArrayBox in AMReX\_FArrayBox.H derived from BaseFab<Real> and IArrayBox in AMReX\_IArrayBox.H
+are FArrayBox in AMReX_FArrayBox.H derived from
+BaseFab<Real> and IArrayBox in AMReX_IArrayBox.H
 derived from BaseFab<int>.
 
 These derived classes also obtain many BaseFab member functions
@@ -741,7 +802,7 @@ To get a pointer to the array data, one can call
 
 The typical usage of the returned pointer is then to pass it to a
 Fortran or C function that works on the array data (see
-Section [sec:basics:fortran]).
+Section \ `16 <#sec:basics:fortran>`__).
 BaseFab has several functions that set the array data to a
 constant value (e.g., 0). Two examples are as follows.
 
@@ -759,12 +820,15 @@ One can copy data from one BaseFab to another.
       BaseFab<T>& copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
                         const Box& destbox, int destcomp, int numcomp);
 
-Here the function copies the data from the region specified by srcbox in the source BaseFab src into the region specified by
+Here the function copies the data from the region specified by
+srcbox in the source BaseFab src into the region specified by
 destbox in the destination BaseFab that invokes the
 function call. Note that although srcbox and destbox may
 be different, they must be the same size, shape and index type,
 otherwise a runtime error occurs. The user also specifies how many
-components (int numcomp) are copied starting at component srccomp in src and stored starting at component destcomp. BaseFab has functions returning the minimum or
+components (int numcomp) are copied starting at component
+srccomp in src and stored starting at component
+destcomp. BaseFab has functions returning the minimum or
 maximum value.
 
 ::
@@ -792,7 +856,7 @@ examples using FArrayBox.
       fab2.saxpy(a, fab1); // For both components, fab2 <- a * fab1 + fab2
 
 For more complicated expressions that not supported, one can write
-Fortran or C functions for those (Section [sec:basics:fortran]).
+Fortran or C functions for those (Section `16 <#sec:basics:fortran>`__).
 Note that BaseFab does provide operators for accessing the
 data directly in . For example, the saxpy example above can
 be done with
@@ -811,8 +875,9 @@ be done with
 But this approach is generally not recommended for performance reason.
 However, it can be handy for debugging.
 
-BaseFab and its derived classes are containers for data on Box. We recall that Box has types
-(Section [sec:basics:box]). The examples in this section so far
+BaseFab and its derived classes are containers for data on
+Box. We recall that Box has types
+(Section `9 <#sec:basics:box>`__). The examples in this section so far
 use the default cell based type. However, some functions will result
 in a runtime error if the types mismatch. For example.
 
@@ -842,40 +907,47 @@ In the example, the alias FArrayBox has only two components even
 though the original one has four components. The alias has a sliced
 component view of the original FArrayBox. This is possible
 because of the array ordering. It is however not possible to slice in
-the real space (i.e., the first AMREX\_SPACEDIM dimensions).
+the real space (i.e., the first AMREX_SPACEDIM dimensions).
 Note that no new memory is allocated in constructing the alias and the
 alias contains a non-owning pointer. It should be emphasized that the
-alias will contain a dangling pointer after the original FArrayBox reaches its end of life.
+alias will contain a dangling pointer after the original
+FArrayBox reaches its end of life.
+
+.. _sec:basics:multifab:
 
 FabArray, MultiFab and iMultiFab
 ================================
 
-FabArray<FAB> is a class template in AMReX\_FabArray.H for
+FabArray<FAB> is a class template in AMReX_FabArray.H for
 a collection of FABs on the same AMR level associated with a
-BoxArray (Section [sec:basics:ba]). The template parameter
+BoxArray (Section `11 <#sec:basics:ba>`__). The template parameter
 FAB is usually BaseFab<T> or its derived classes (e.g.,
 FArrayBox). However, it can also be used to hold other data
 structures. To construct a FabArray, a BoxArray must be
 provided because it is intended to hold *grid* data defined on
 a union of rectangular regions embedded in a uniform index space. For
 example, an FabArray object can be used to hold data for one
-level of the example grids of Figure 4.2.
+level of the example grids of Figure \ `[fig:basics:amrgrids] <#fig:basics:amrgrids>`__.
 
 FabArray is a parallel data structure that the data (i.e.,
 FAB) are distributed among parallel processes. On each process,
 the FabArray contains only the FAB objects owned by this
 process, and the process operates only on its local data. For
 operations that require data owned by other processes, remote
-communications are involved. Thus, the construction of a FabArray requires a DistributionMapping
-(Section [sec:basics:dm]) that specifies which process owns which
+communications are involved. Thus, the construction of a
+FabArray requires a DistributionMapping
+(Section `12 <#sec:basics:dm>`__) that specifies which process owns which
 Box. For level 2 (*red*) in
-Figure 4.2 there are two Boxes. Suppose
-there are two parallel processes, and we use a DistributionMapping that assigns one Box to each process.
+Figure \ `[fig:basics:amrgrids] <#fig:basics:amrgrids>`__, there are two Boxes. Suppose
+there are two parallel processes, and we use a
+DistributionMapping that assigns one Box to each process.
 For FabArray on each process, it is built on a BoxArray with
 2 Boxes, but contains only one FAB.
 
-In , there are some specialized classes derived from FabArray. The iMultiFab class in AMReX\_iMultiFab.H is
-derived from FabArray<IArrayBox>. The most commonly used FabArray kind class is MultiFab in AMReX\_MultiFab.H
+In , there are some specialized classes derived from
+FabArray. The iMultiFab class in AMReX_iMultiFab.H is
+derived from FabArray<IArrayBox>. The most commonly used
+FabArray kind class is MultiFab in AMReX_MultiFab.H
 derived from FabArray<FArrayBox>. In the rest of this section,
 we use MultiFab as example. However, these concepts are equally
 applicable to other types of FabArrays. There are many ways to
@@ -887,21 +959,23 @@ define a MultiFab. For example,
       // dm is DistributionMapping
       int ncomp = 4;
       int ngrow = 1;
-      MultiFab mf(ba, mf, ncomp, ngrow);
+      MultiFab mf(ba, dm, ncomp, ngrow);
 
 Here we define a MultiFab with 4 components and 1 ghost cell. A
 MultiFab contains a number of FArrayBoxes
-(Section [sec:basics:fab]) defined on Boxes grown by the
+(Section `13 <#sec:basics:fab>`__) defined on Boxes grown by the
 number of ghost cells (1 in this example). That is the Box in
 the FArrayBox is not exactly the same as in the BoxArray.
-If the BoxArray has a Box{(8,8,8) (15,15,15)}, the one
-used for constructing FArrayBox will be Box{(7,7,7)
+If the BoxArray has a Box{(7,7,7) (15,15,15)}, the one
+used for constructing FArrayBox will be Box{(8,8,8)
 (16,16,16)} in this example. For cells in FArrayBox, we
 call those in the original Box valid cells and the grown part
 ghost cells. Note that FArrayBox itself alone does not have the
-concept of ghost cell, whereas ghost cell is a key concept of MultiFab that allows for local operations on ghost cell data
+concept of ghost cell, whereas ghost cell is a key concept of
+MultiFab that allows for local operations on ghost cell data
 originated from remote processes. We will discuss how to fill ghost
-cells with data from valid cells later in this section. MultiFab also has a default constructor. One can define an empty
+cells with data from valid cells later in this section.
+MultiFab also has a default constructor. One can define an empty
 MultiFab first and then call the define function as
 follows.
 
@@ -912,9 +986,10 @@ follows.
       // dm is DistributionMapping
       int ncomp = 4;
       int ngrow = 1;
-      mf.define(ba, mf, ncomp, ngrow);
+      mf.define(ba, dm, ncomp, ngrow);
 
-Given an existing MultiFab, one can also make an alias MultiFab as follows.
+Given an existing MultiFab, one can also make an alias
+MultiFab as follows.
 
 ::
 
@@ -924,13 +999,15 @@ Given an existing MultiFab, one can also make an alias MultiFab as follows.
       MultiFab alias_mf(orig_mf, amrex::make_alias, start_comp, num_comps);
 
 Here the first integer parameter is the starting component in the
-original MultiFab that will become component 0 in the alias MultiFab and the second integer parameter is the number of
+original MultiFab that will become component 0 in the alias
+MultiFab and the second integer parameter is the number of
 components in the alias. It’s a runtime error if the sum of the two
 integer parameters is greater than the number of the components in the
 original MultiFab. Note that the alias MultiFab has
 exactly the same number of ghost cells as the original MultiFab.
 
-We often need to build new MultiFabs that have the same BoxArray and DistributionMapping as a given MultiFab.
+We often need to build new MultiFabs that have the same
+BoxArray and DistributionMapping as a given MultiFab.
 Below is an example of how to achieve this.
 
 ::
@@ -997,9 +1074,11 @@ For example,
       // int      ng   : number of ghost cells involved in this operation
       //                 mfdst and mfsrc may have more ghost cells
 
-We refer the reader to Src/Base/AMReX\_MultiFab.H and Src/Base/AMReX\_FabArray.H for more details. It should be noted
+We refer the reader to Src/Base/AMReX_MultiFab.H and
+Src/Base/AMReX_FabArray.H for more details. It should be noted
 again it is a runtime error if the two MultiFabs passed to functions
-like MultiFab::Copy are not built with the *same* BoxArray (including index type) and DistributionMapping.
+like MultiFab::Copy are not built with the *same*
+BoxArray (including index type) and DistributionMapping.
 
 It is usually the case that the Boxes in the BoxArray used
 for building a MultiFab are non-intersecting except that they
@@ -1032,23 +1111,30 @@ type. In that case, it is unspecified that which valid cell’s value
 is used to fill the ghost cell. It ought to be the case the values in
 those overlapping valid cells are the same up to roundoff errors.
 
-Another type of parallel communication is copying data from one MultiFab to another MultiFab with a different BoxArray
-or the same BoxArray with a different DistributionMapping. The data copy is performed on the regions of
+Another type of parallel communication is copying data from one
+MultiFab to another MultiFab with a different BoxArray
+or the same BoxArray with a different
+DistributionMapping. The data copy is performed on the regions of
 intersection. The most generic interface for this is
 
 ::
 
       mfdst.ParallelCopy(mfsrc, compsrc, compdst, ncomp, ngsrc, ngdst, period, op);
 
-Here mfdst and mfsrc are destination and source MultiFabs, respectively. Parameters compsrc, compdst, and ncomp are integers specifying the range of components. The copy is
+Here mfdst and mfsrc are destination and source
+MultiFabs, respectively. Parameters compsrc, compdst, and
+ncomp are integers specifying the range of components. The copy is
 performed on ncomp components starting from component compsrc of
-mfsrc and component compdst of mfdst. Parameters ngsrc and ngdst specify the number of ghost cells involved for
+mfsrc and component compdst of mfdst. Parameters
+ngsrc and ngdst specify the number of ghost cells involved for
 the source and destination, respectively. Parameter period is
-optional, and by default no periodic copy is performed. Like FillBoundary, one can use Geometry::periodicity() to provide
+optional, and by default no periodic copy is performed. Like
+FillBoundary, one can use Geometry::periodicity() to provide
 the periodicity information. The last parameter is also optional and
 is set to FabArrayBase::COPY by default. One could also use
 FabArrayBase::ADD. This determines whether the function copies
-or adds data from the source to the destination. Same as FillBoundary, if a destination cell has multiple cells as source,
+or adds data from the source to the destination. Same as
+FillBoundary, if a destination cell has multiple cells as source,
 it is unspecified that which source cell is used. This function has
 two variants, in which the periodicity and operation type are also
 optional.
@@ -1060,22 +1146,31 @@ optional.
       mfdst.ParallelCopy(mfsrc, compsrc, compdst, ncomp, period, op);
 
 Here the number of ghost cells involved is zero, and the copy is
-performed on all components if unspecified (assuming the two MultiFabs have the same number of components). Similar to FillBoundary, a destination cell may have multiple sources and
+performed on all components if unspecified (assuming the two
+MultiFabs have the same number of components). Similar to
+FillBoundary, a destination cell may have multiple sources and
 which source is used is unspecified.
+
+.. _sec:basics:mfiter:
 
 MFIter and Tiling
 =================
 
 In this section, we will first show how MFIter works without
 tiling. Then we will introduce the concept of logical tiling.
-Finally we will show how logical tiling can be launched via MFIter.
+Finally we will show how logical tiling can be launched via
+MFIter.
+
+.. _sec:basics:mfiter:notiling:
 
 MFIter without Tiling
 ---------------------
 
-In Section [sec:basics:multifab], we have shown some of the
-arithmetic functionalities of MultiFab, such as adding two MultiFabs together. In this section, we will show how you can
-operate on the MultiFab data with your own functions. provides an iterator, MFIter for looping over the FArrayBoxes in MultiFabs. For example,
+In Section \ `14 <#sec:basics:multifab>`__, we have shown some of the
+arithmetic functionalities of MultiFab, such as adding two
+MultiFabs together. In this section, we will show how you can
+operate on the MultiFab data with your own functions.  provides an iterator, MFIter for looping over the
+FArrayBoxes in MultiFabs. For example,
 
 ::
 
@@ -1124,15 +1219,19 @@ binding interface like below,
         end do
       end subroutine f1
 
-Here amrex\_fort\_module is a Fortran module in  and amrex\_real is a Fortran kind parameter that matches amrex::Real in . In this example, we assume the spatial
+Here amrex_fort_module is a Fortran module in  and
+amrex_real is a Fortran kind parameter that matches
+amrex::Real in . In this example, we assume the spatial
 dimension is 3. In 2D, the function interface is different. In
-Section [sec:basics:fortran], we will present a dimension agnostic
+Section \ `16 <#sec:basics:fortran>`__, we will present a dimension agnostic
 approach using macros provided by .
 
 MFIter only loops over grids owned by this process. For
 example, suppose there are 5 Boxes in total and processes 0 and
 1 own 2 and 3 Boxes, respectively. That is the MultiFab
-on process 0 has 2 FArrayBoxes, whereas there are 3 FArrayBoxes on process 1. Thus the numbers of iterations of MFIter are 2 and 3 on processes 0 and 1, respectively.
+on process 0 has 2 FArrayBoxes, whereas there are 3
+FArrayBoxes on process 1. Thus the numbers of iterations of
+MFIter are 2 and 3 on processes 0 and 1, respectively.
 
 In the example above, MultiFab is assumed to have a single
 component. If it has multiple component, we can call int nc =
@@ -1142,7 +1241,8 @@ kernel function.
 There is only one MultiFab in the example above. Below is an
 example of working with multiple MultiFabs. Note that these two
 MultiFabs are not necessarily built on the same BoxArray.
-But they must have the same DistributionMapping, and their BoxArrays are typically related (e.g., they are different due to
+But they must have the same DistributionMapping, and their
+BoxArrays are typically related (e.g., they are different due to
 index types).
 
 ::
@@ -1195,6 +1295,8 @@ C binding interface like below,
       end do
     end subroutine f2
 
+.. _sec:basics:mfiter:tiling:
+
 MFIter with Tiling
 ------------------
 
@@ -1239,9 +1341,10 @@ And the manually tiled loops might look like
 As we can see, to manually tile individual loops is very
 labor-intensive and error-prone for large applications.  has
 incorporated the tiling construct into MFIter so that the
-application codes can get the benefit of tiling easily. An MFIter loop with tiling is almost the same as the non-tiling
+application codes can get the benefit of tiling easily. An
+MFIter loop with tiling is almost the same as the non-tiling
 version. The first example in
-Section [sec:basics:mfiter:notiling] requires only two minor
+Section \ `15.1 <#sec:basics:mfiter:notiling>`__ requires only two minor
 changes: (1) passing true when defining MFIter to indicate
 tiling; (2) calling tilebox instead of validbox to obtain
 the work region for the loop iteration.
@@ -1261,7 +1364,7 @@ the work region for the loop iteration.
           f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
       }
 
-The second example in Section [sec:basics:mfiter:notiling] also
+The second example in Section \ `15.1 <#sec:basics:mfiter:notiling>`__ also
 requires only two minor changes.
 
 ::
@@ -1289,22 +1392,45 @@ requires only two minor changes.
 The kernels functions like f1 and f2 in the two examples
 here usually require very little changes.
 
-.. figure:: ../Basics/cc_validbox.png
-   :width: 30.0%
+.. raw:: latex
 
-   Figure 4.4: Example of cell-centered tile boxes.
+   \centering
+
+.. raw:: latex
+
+   \centering
+
+.. figure:: ./Basics/cc_validbox.pdf
+   :alt: [fig:basics:cc_tilebox] Example of cell-centered tile boxes.
+   Each grid is *logically* broken into 4 tiles, and each
+   tile has :math:`4^2` cells. There are 8 tiles in total.
+   :width: 90.0%
+
+   [fig:basics:cc_tilebox] Example of cell-centered tile boxes.
    Each grid is *logically* broken into 4 tiles, and each
    tile has :math:`4^2` cells. There are 8 tiles in total.
 
-.. figure:: ../Basics/cc_tilebox.png
-   :width: 30.0%
+.. raw:: latex
 
-   Figure 4.5: Example of cell-centered tile boxes.
+   \hfill
+
+.. raw:: latex
+
+   \centering
+
+.. figure:: ./Basics/cc_tilebox.pdf
+   :alt: [fig:basics:cc_tilebox] Example of cell-centered tile boxes.
+   Each grid is *logically* broken into 4 tiles, and each
+   tile has :math:`4^2` cells. There are 8 tiles in total.
+   :width: 90.0%
+
+   [fig:basics:cc_tilebox] Example of cell-centered tile boxes.
    Each grid is *logically* broken into 4 tiles, and each
    tile has :math:`4^2` cells. There are 8 tiles in total.
 
-Figures 4.4 & 4.5
-show an example of the difference between validbox and tilebox. In this example, there are two grids of cell-centered
+Figures \ `[fig:basics:cc_validbox] <#fig:basics:cc_validbox>`__ & `[fig:basics:cc_tilebox] <#fig:basics:cc_tilebox>`__
+show an example of the difference between validbox and
+tilebox. In this example, there are two grids of cell-centered
 index type. Function validbox always returns a Box for the
 valid region of an FArrayBox no matter whether or not tiling is
 enabled, whereas function tilebox returns a Box for a
@@ -1322,38 +1448,72 @@ The tile size can be explicitly set when defining MFIter.
 
 An IntVect is used to specify the tile size for every dimension.
 A tile size larger than the grid size simply means tiling is disable
-in that direction.  has a default tile size IntVect{1024000,8,8} in 3D and no tiling in 2D. This is used
+in that direction.  has a default tile size
+IntVect{1024000,8,8} in 3D and no tiling in 2D. This is used
 when tile size is not explicitly set but the tiling flag is on. One
-can change the default size using ParmParse parameter fabarray.mfiter\_tile\_size.
+can change the default size using ParmParse parameter
+fabarray.mfiter_tile_size.
 
-.. figure:: ../Basics/ec_validbox.png
-   :width: 30.0%
+.. raw:: latex
 
-   Figure 4.6: Example of face tile boxes.
+   \centering
+
+.. raw:: latex
+
+   \centering
+
+.. figure:: ./Basics/ec_validbox.pdf
+   :alt: [fig:basics:ec_tilebox] Example of face tile boxes.
    Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have 
-   5x4 points, whereas others have 4x4 points.
+   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
+         \times 4` points, whereas others have :math:`4 \times 4` points.
+   Points from different Boxes may overlap, but points from
+   different tiles of the same Box do not.
+   :width: 90.0%
+
+   [fig:basics:ec_tilebox] Example of face tile boxes.
+   Each grid is *logically* broken into 4 tiles as indicated
+   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
+         \times 4` points, whereas others have :math:`4 \times 4` points.
    Points from different Boxes may overlap, but points from
    different tiles of the same Box do not.
 
-.. figure:: ../Basics/ec_tilebox.png
-   :width: 30.0%
+.. raw:: latex
 
-   Figure 4.7: Example of face tile boxes.
+   \hfill
+
+.. raw:: latex
+
+   \centering
+
+.. figure:: ./Basics/ec_tilebox.pdf
+   :alt: [fig:basics:ec_tilebox] Example of face tile boxes.
    Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have 
-   5x4 points, whereas others have 4x4 points.
+   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
+         \times 4` points, whereas others have :math:`4 \times 4` points.
+   Points from different Boxes may overlap, but points from
+   different tiles of the same Box do not.
+   :width: 90.0%
+
+   [fig:basics:ec_tilebox] Example of face tile boxes.
+   Each grid is *logically* broken into 4 tiles as indicated
+   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
+         \times 4` points, whereas others have :math:`4 \times 4` points.
    Points from different Boxes may overlap, but points from
    different tiles of the same Box do not.
 
 Usually MFIter is used for accessing multiple MultiFabs
 like the second example, in which two MultiFabs, U and
-F, use MFIter via operator []. These different MultiFabs may have different BoxArrays. For example, U
+F, use MFIter via operator []. These different
+MultiFabs may have different BoxArrays. For example, U
 might be cell-centered, whereas F might be nodal in
-:math:`x`-direction and cell in other directions. The MFIter::validbox and tilebox functions return Boxes of
+:math:`x`-direction and cell in other directions. The
+MFIter::validbox and tilebox functions return Boxes of
 the same type as the MultiFab used in defining the MFIter
-(F in this example). Figures 4.6 & 4.7 show an example of non-cell-centered valid
-and tile boxes. Besides validbox and tilebox, MFIter has a number of functions returning various Boxes.
+(F in this example). Figures \ `[fig:basics:ec_validbox] <#fig:basics:ec_validbox>`__ &
+`[fig:basics:ec_tilebox] <#fig:basics:ec_tilebox>`__ show an example of non-cell-centered valid
+and tile boxes. Besides validbox and tilebox,
+MFIter has a number of functions returning various Boxes.
 Examples include,
 
 ::
@@ -1377,20 +1537,45 @@ the basic design principle of these various tiling functions. Tiling
 is a way of domain decomposition for work sharing. Overlapping tiles
 is undesirable because works would be wasted and for multi-threaded
 codes race conditions could occur.
-Figures 4.8 & 4.9 show examples of growntilebox.
+Figures \ `[fig:basics:cc_growbox] <#fig:basics:cc_growbox>`__ & `[fig:basics:ec_growbox] <#fig:basics:ec_growbox>`__
+show examples of growntilebox.
 
-.. figure:: ../Basics/cc_growbox.png
-   :width: 30.0%
+.. raw:: latex
 
-   Figure 4.8: Example of face type grown
+   \centering
+
+.. raw:: latex
+
+   \centering
+
+.. figure:: ./Basics/cc_growbox.pdf
+   :alt: [fig:basics:ec_growbox] Example of face type grown
+   tile boxes. As indicated by symbols, there are 8 tiles and
+   four in each grid in this example. Tiles from the same grid do
+   not overlap even though they have face index type.
+   :width: 90.0%
+
+   [fig:basics:ec_growbox] Example of face type grown
    tile boxes. As indicated by symbols, there are 8 tiles and
    four in each grid in this example. Tiles from the same grid do
    not overlap even though they have face index type. 
 
-.. figure:: ../Basics/ec_growbox.png
-   :width: 30.0%
+.. raw:: latex
 
-   Figure 4.9: Example of face type grown
+   \hfill
+
+.. raw:: latex
+
+   \centering
+
+.. figure:: ./Basics/ec_growbox.pdf
+   :alt: [fig:basics:ec_growbox] Example of face type grown
+   tile boxes. As indicated by symbols, there are 8 tiles and
+   four in each grid in this example. Tiles from the same grid do
+   not overlap even though they have face index type.
+   :width: 90.0%
+
+   [fig:basics:ec_growbox] Example of face type grown
    tile boxes. As indicated by symbols, there are 8 tiles and
    four in each grid in this example. Tiles from the same grid do
    not overlap even though they have face index type. 
@@ -1409,10 +1594,12 @@ two ways of using these functions.
 
 But Box& bx = mfi.validbox() is not legal and will not compile.
 
+.. _sec:basics:fortran:
+
 Calling Fortran or C
 ====================
 
-In Section [sec:basics:mfiter], we have shown that a typical
+In Section \ `15 <#sec:basics:mfiter>`__, we have shown that a typical
 pattern for working with MultiFabs is use MFIter to
 iterate over the data. In each iteration, a kernel function is called
 to work on the data and the work region is specified by a Box.
@@ -1421,7 +1608,8 @@ in the sense that there is no data layout transformation. The kernel
 function still gets the whole arrays in FArrayBoxes, even though
 it is supposed to work on a tile region of the arrays. To , these
 kernel functions are C functions, whose function signatures are
-typically declared in a header file named \_f.H or \*\_F.H. We recommend the users to follow this convention.
+typically declared in a header file named \_f.H or
+\*_F.H. We recommend the users to follow this convention.
 Examples of these function declarations are as follows.
 
 ::
@@ -1443,7 +1631,7 @@ One can write the functions in C and should include the header
 containing the function declarations in the C source code to ensure
 type safety. However, we typically write these kernel functions in
 Fortran because of the native multi-dimensional array support by
-Fortran. As we have seen in Section [sec:basics:mfiter], these
+Fortran. As we have seen in Section \ `15 <#sec:basics:mfiter>`__, these
 Fortran functions take C pointers and view them as multi-dimensional
 arrays of the shape specified by the additional integer arguments.
 Note that Fortran takes arguments by reference unless the value
@@ -1464,14 +1652,15 @@ into Fortran/C. For example
             BL_TO_FORTRAN_ANYD(mf[mfi]));
       }
 
-Here BL\_TO\_FORTRAN\_BOX takes a Box and provides two
+Here BL_TO_FORTRAN_BOX takes a Box and provides two
 int\*s specifying the lower and upper bounds of the Box.
-BL\_TO\_FORTRAN\_ANYD takes an FArrayBox returned by mf[mfi] and the preprocessor turns it into Real\*, int\*, int\*,
+BL_TO_FORTRAN_ANYD takes an FArrayBox returned by
+mf[mfi] and the preprocessor turns it into Real*, int*, int\*,
 where Real\* is the data pointer that matches real array argument
 in Fortran, the first int\* (which matches an integer argument in
 Fortran) specifies the lower bounds, and the second int\* the
 upper bounds of the spatial dimensions of the array. Similar to what
-we have seen in Section [sec:basics:mfiter], a matching Fortran
+we have seen in Section \ `15 <#sec:basics:mfiter>`__, a matching Fortran
 function is shown below,
 
 ::
@@ -1487,7 +1676,8 @@ spatial dimensions. If the actual spatial dimension is less than 3,
 the values in the degenerate dimensions are set to zero. So the
 Fortran function interface does not have to change according to the
 spatial dimensionality, and the bound of the third dimension of the
-data array simply becomes 0:0. With the data passed by BL\_TO\_FORTRAN\_BOX and BL\_FORTRAN\_ANYD, this version of
+data array simply becomes 0:0. With the data passed by
+BL_TO_FORTRAN_BOX and BL_FORTRAN_ANYD, this version of
 Fortran function interface works for any spatial dimensions. If one
 wants to write a special version just for 2D and would like to use 2D
 arrays, one can use
@@ -1504,7 +1694,7 @@ Note that this does not require any changes in  part, because
 when  passes an integer pointer pointing to an array of three
 integers Fortran can treat it as a 2-element integer array.
 
-Another commonly used macro is BL\_TO\_FORTRAN. This macro
+Another commonly used macro is BL_TO_FORTRAN. This macro
 takes an FArrayBox and provides a real pointer for the floating
 point data array and a number of integer scalars for the bounds.
 However, the number of the integers depends on the dimensionality.
@@ -1532,11 +1722,11 @@ Here for simplicity we have omitted passing the tile Box.
 Usually MultiFabs have multiple components. Thus we often also
 need to pass the number of component into Fortran functions. We can
 obtain the number by calling the MultiFab::nComp() function, and
-pass it to Fortran as we have seen in Section [sec:basics:mfiter].
-We can also use the BL\_TO\_FORTRAN\_FAB macro that is similar
-to BL\_TO\_FORTRAN\_ANYD except that it provides an additional
+pass it to Fortran as we have seen in Section \ `15 <#sec:basics:mfiter>`__.
+We can also use the BL_TO_FORTRAN_FAB macro that is similar
+to BL_TO_FORTRAN_ANYD except that it provides an additional
 int\* for the number of components. The Fortran function
-matching BL\_TO\_FORTRAN\_FAB(fab) is then like below,
+matching BL_TO_FORTRAN_FAB(fab) is then like below,
 
 ::
 
@@ -1561,24 +1751,25 @@ transformation it becomes either interior boundary or coarse/fine
 boundary.
 
 Interior boundary is the border among the grid Boxes themselves.
-For example, in Figure 4.2, the two blue grid
+For example, in Figure \ `[fig:basics:amrgrids] <#fig:basics:amrgrids>`__, the two blue grid
 Boxes on level 1 share an interior boundary that is 10 cells
 long. For a MultiFab with ghost cells on level 1, we can use
 the MultiFab::FillBoundary function introduced in
-Section [sec:basics:multifab] to fill ghost cells at the interior
+Section \ `14 <#sec:basics:multifab>`__ to fill ghost cells at the interior
 boundary with valid cell data from other Boxes.
 
-Coarse/fine boundary is the border between two AMR levels. FillBoundary does not fill these ghost cells. These ghost cells on
+Coarse/fine boundary is the border between two AMR levels.
+FillBoundary does not fill these ghost cells. These ghost cells on
 the fine level need to be interpolated from the coarse level data.
 This is a subject that will be discussed in
-Section [sec:amrcore:fillpatch].
+Section \ `[sec:amrcore:fillpatch] <#sec:amrcore:fillpatch>`__.
 
 The third type of boundary is the physical boundary at the physical
 domain. Note that both coarse and fine AMR levels could have grids
 touching the physical boundary. It is up to the application codes to
 properly fill the ghost cells at the physical boundary. However,
  does provide support for some common operations.
-See Chapter [Chap:Boundary] for a discussion on domain
+See Chapter `[Chap:Boundary] <#Chap:Boundary>`__ for a discussion on domain
 boundary conditions in general, including how to implement
 physical (non-periodic) boundary conditions.
 
@@ -1586,7 +1777,7 @@ I/O
 ===
 
 In this section, we will discuss parallel I/O capabilities for mesh
-data in . Section [sec:Particles:IO] will discuss I/O for
+data in . Section \ `[sec:Particles:IO] <#sec:Particles:IO>`__ will discuss I/O for
 particle data.
 
 Plotfile
@@ -1594,8 +1785,8 @@ Plotfile
 
  has its native plotfile format. Many visualization tools are
 available for  plotfiles
-(Chapter [Chap:Visualization]).  provides the following
-two functions for writing a generic  plotfile. Many application codes may have their own plotfile routines that store
+(Chapter `[Chap:Visualization] <#Chap:Visualization>`__).  provides the following
+two functions for writing a generic  plotfile. Many  application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
 source codes and ParmParse runtime parameters.
 
@@ -1617,10 +1808,12 @@ source codes and ParmParse runtime parameters.
                                     const Vector<int> &level_steps,
                                     const Vector<IntVect> &ref_ratio);
 
-WriteSingleLevelPlotfile is for single level runs and WriteMultiLevelPlotfile is for multiple levels. The name of the
+WriteSingleLevelPlotfile is for single level runs and
+WriteMultiLevelPlotfile is for multiple levels. The name of the
 plotfile is specified by the plotfilename argument. This is the
 top level directory name for the plotfile. In  convention, the
-plotfile name consist of letters followed by numbers (e.g., plt00258). amrex::Concatenate is a useful helper function for
+plotfile name consist of letters followed by numbers (e.g.,
+plt00258). amrex::Concatenate is a useful helper function for
 making such strings.
 
 ::
@@ -1634,7 +1827,8 @@ making such strings.
       istep =1234567;  // Having more than 5 digits is OK.
       const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
 
-Argument mf (MultiFab for single level and Vector<const MultiFab\*> for multi-level) is the data to be written
+Argument mf (MultiFab for single level and
+Vector<const MultiFab*> for multi-level) is the data to be written
 to the disk. Note that many visualization tools expect this to be
 cell-centered data. So for nodal data, we need to convert them to
 cell-centered data through some kind of averaging. Also note that if
@@ -1642,20 +1836,24 @@ you have data at each AMR level in several MultiFabs, you need
 to build a new MultiFab at each level to hold all the data on
 that level. This involves local data copy in memory and is not
 expected to significantly increase the total wall time for writing
-plotfiles. For the multi-level version, the function expects Vector<const MultiFab\*>, whereas the multi-level data are often
-stored as Vector<std::unique\_ptr<MultiFab>>.  has a
+plotfiles. For the multi-level version, the function expects
+Vector<const MultiFab*>, whereas the multi-level data are often
+stored as Vector<std::unique_ptr<MultiFab>>.  has a
 helper function for this and one can use it as follows,
 
 ::
 
        WriteMultiLevelPlotfile(......, amrex::GetVecOfConstPtrs(mf), ......);
 
-Argument varnames has the names for each component of the MultiFab data. The size of the Array should be equal to the
-number of components. Argument geom is for passing Geometry objects that contain the physical domain
+Argument varnames has the names for each component of the
+MultiFab data. The size of the Vector should be equal to the
+number of components. Argument geom is for passing
+Geometry objects that contain the physical domain
 information. Argument time is for the time associated with the
-data. Argument level\_step is for the current time step
-associated with the data. For multi-level plotfiles, argument nlevels is the total number of levels, and we also need to provide
-the refinement ratio via an Array of size nlevels-1.
+data. Argument level_step is for the current time step
+associated with the data. For multi-level plotfiles, argument
+nlevels is the total number of levels, and we also need to provide
+the refinement ratio via an Vector of size nlevels-1.
 
 We note that  does not overwrite old plotfiles if the new
 plotfile has the same name. The old plotfiles will be renamed to
@@ -1673,10 +1871,11 @@ checkpoint files. Since each application code has its own
 requirement, there is no standard  checkpoint format.
 
 Typically a checkpoint file is a directory containing some text files
-and sub-directories (e.g., Level\_0 and Level\_1)
+and sub-directories (e.g., Level_0 and Level_1)
 containing various data. It is a good idea that we fist make these
 directories ready for subsequently writing to the disk. For example,
-to build directories chk00016, chk00016/Level\_0, and chk00016/Level\_1, we do
+to build directories chk00016, chk00016/Level_0, and
+chk00016/Level_1, we do
 
 ::
 
@@ -1687,7 +1886,8 @@ to build directories chk00016, chk00016/Level\_0, and chk00016/Level\_1, we do
       PreBuildDirectorHierarchy(chkname, subDirPrefix, nSubDirs, callBarrier);
 
 A checkpoint file of  application codes often has a clear text
-Header file that only the I/O process writes to it using std::ofstream. The Header file contains information such as
+Header file that only the I/O process writes to it using
+std::ofstream. The Header file contains information such as
 the time, the physical domain size, grids, etc. that are necessary for
 restarting the simulation. To guarantee that precision is not lost
 for storing floating point number like time in clear text file, the
@@ -1715,7 +1915,9 @@ can also be used. For example,
       }
 
 For reading the Header file,  can have the I/O process
-read the file from the disk and broadcast it to others as Vector<char>. Then all processes can read the information with std::istringstream. For example,
+read the file from the disk and broadcast it to others as
+Vector<char>. Then all processes can read the information with
+std::istringstream. For example,
 
 ::
 
@@ -1728,7 +1930,8 @@ read the file from the disk and broadcast it to others as Vector<char>. Then all
       ba.readFrom(is);
       // is >> ....;
 
-amrex::VisMF is a class that can be used to perform MultiFab I/O in parallel. How many processes are allowed to
+amrex::VisMF is a class that can be used to perform
+MultiFab I/O in parallel. How many processes are allowed to
 perform I/O simultaneously can be set via
 
 ::
@@ -1757,16 +1960,18 @@ shows how to write and read a MultiFab.
 It should be emphasized that calling VisMF::Read with an empty
 MultiFab (i.e., no memory allocated for floating point data)
 will result in a MultiFab with a new DistributionMapping
-that could be different from any other existing DistributionMapping objects. It should also be noted that all the
-data including those in ghost cells are written/read by VisMF::Write/Read.
+that could be different from any other existing
+DistributionMapping objects. It should also be noted that all the
+data including those in ghost cells are written/read by
+VisMF::Write/Read.
 
 Memory Allocation
 =================
 
- has a Fortran module, mempool\_module that can be used to
+ has a Fortran module, mempool_module that can be used to
 allocate memory for Fortran pointers. The reason that such a module
 exists in  is memory allocation is often very slow in
-multi-threaded OpenMP parallel regions.  mempool\_module
+multi-threaded OpenMP parallel regions.  mempool_module
 provides a much faster alternative approach, in which each thread has
 its own memory pool. Here are examples of using the module.
 
@@ -1784,24 +1989,29 @@ its own memory pool. Here are examples of using the module.
       call bl_deallocate(a)
       call bl_deallocate(b)
 
-The downside of this is we have to use pointer instead of allocatable. This means we must explicitly free the memory via bl\_deallocate and we need to declare the pointers as contiguous for performance reason.
+The downside of this is we have to use pointer instead of
+allocatable. This means we must explicitly free the memory via
+bl_deallocate and we need to declare the pointers as
+contiguous for performance reason.
 
 Abort and Assertion
 ===================
 
 amrex::Abort(const char\* message) is used to terminate a run
 usually when something goes wrong. This function takes a message and
-write it to stderr. Files named like Backtrace.rg\_1\_rl\_1
-(where rg\_1\_rl\_1 means process 1) are produced containing
-backtrace information of the call stack. In Fortran, we can call amrex\_abort from the amrex\_error\_module, which takes a
+write it to stderr. Files named like Backtrace.rg_1_rl_1
+(where rg_1_rl_1 means process 1) are produced containing
+backtrace information of the call stack. In Fortran, we can call
+amrex_abort from the amrex_error_module, which takes a
 Fortran character variable with assumed size (i.e., len=\*)
 as a message.
 
-AMREX\_ASSERT is a macro that takes a Boolean expression. For
+AMREX_ASSERT is a macro that takes a Boolean expression. For
 debug build (e.g., DEBUG=TRUE using the GNU Make build system),
 if the expression at runtime is evaluated to false, amrex::Abort
 will be called and the run is thus terminated. For optimized build
-(e.g., DEBUG=FALSE using the GNU Make build system), the AMREX\_ASSERT statement is removed at compile time and thus has no
+(e.g., DEBUG=FALSE using the GNU Make build system), the
+AMREX_ASSERT statement is removed at compile time and thus has no
 effect at runtime. We often use this as a means of putting debug
 statement in the code without adding any extra cost for production
 runs. For example,
@@ -1811,4 +2021,6 @@ runs. For example,
       AMREX_ASSERT(mf.nGrow() > 0 && mf.nComp() == mf2.nComp());
 
 Here for debug build we like to assert that MultiFab mf
-has ghost cells and it also has the same number of components as MultiFab mf2. If we always want the assertion, we can use AMREX\_ALWAYS\_ASSERT.
+has ghost cells and it also has the same number of components as
+MultiFab mf2. If we always want the assertion, we can use
+AMREX_ALWAYS_ASSERT.

@@ -45,11 +45,11 @@ Building the Code
 -----------------
 
 You build the code in the amrex/Tutorials/Basic/HelloWorld_C/
-directory. Typing make will start the compilation process and
-result in an executable named main3d.gnu.DEBUG.ex. The name
-shows that the GNU compiler with debug options set by  is used.
+directory. Typing ``make`` will start the compilation process and
+result in an executable named ``main3d.gnu.DEBUG.ex``. The name
+shows that the GNU compiler with debug options set by AMReX is used.
 It also shows that the executable is built for 3D. Although this
-simple example code is dimension independent, the dimension matters
+simple example code is dimension independent, dimensionality does matter
 for all non-trivial examples. The build process can be adjusted by
 modifying the amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile file.
 More details on how to build AMReX can be found in :ref:`BuildingAMReX`.
@@ -71,7 +71,8 @@ The result may look like,
 
 The version string means the current commit 5775aed933c4 (note
 that the first letter g in g577.. is not part of the hash)
-is based on 17.05 with 30 additional commits and the  work tree is dirty (i.e. there are uncommitted changes).
+is based on 17.05 with 30 additional commits and the AMReX work tree 
+is dirty (i.e. there are uncommitted changes).
 
 In the GNUmakefile there are compilation options for DEBUG
 mode (less optimized code with more error checking), dimensionality,
@@ -82,9 +83,9 @@ takes precedence.
 Parallelization
 ---------------
 
-Now let's build with MPI by typing make USE_MPI=TRUE (alternatively
-you can set USE_MPI=TRUE in the GNUmakefile). This
-should make an executable named main3d.gnu.DEBUG.MPI.ex. Note
+Now let's build with MPI by typing ``make USE_MPI=TRUE`` (alternatively
+you can set ``USE_MPI=TRUE`` in the GNUmakefile). This
+should make an executable named ``main3d.gnu.DEBUG.MPI.ex``. Note
 MPI in the file name. You can then run,
 
 ::
@@ -98,13 +99,12 @@ The result may look like,
       MPI initialized with 4 MPI processes
       Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
 
-If the compilation fails, you are referred to
-Chapter \ `[Chap:BuildingAMReX] <#Chap:BuildingAMReX>`__ on how to configure the build
-system.
+If the compilation fails, you are referred to :ref:`BuildingAMReX` 
+for more details on how to configure the build system.
 
-If you want to build with OpenMP, type make USE_OMP=TRUE.
-This should make an executable named main3d.gnu.DEBUG.OMP.ex. Note
-OMP in the file name. Make sure the OMP_NUM_THREADS
+If you want to build with OpenMP, type make ``USE_OMP=TRUE``.
+This should make an executable named ``main3d.gnu.DEBUG.OMP.ex``. Note
+OMP in the file name. Make sure the ``OMP_NUM_THREADS``
 environment variable is set on your system. You can then run,
 
 ::
@@ -160,13 +160,13 @@ and then taking the divergence to update the cells,
 
 Don't worry about the implementation details of the code.
 You will be able to understand the code in this example after
-Chapter \ `[Chap:Basics] <#Chap:Basics>`__.
+reading the section on the :ref:`Basics`.
 
 Building and Running the Code
 -----------------------------
 
-To build a 2D executable, type make DIM=2. This will generate
-an executable named main2d.gnu.ex. To run it, type,
+To build a 2D executable, type ``make DIM=2``. This will generate
+an executable named ``main2d.gnu.ex``. To run it, type,
 
 ::
 
@@ -183,9 +183,9 @@ Visualization
 =============
 
 There are several visualization tools that can be used for  plotfiles. The standard tool used within the
--community is , a package developed and supported
+AMReX-community is AmrVis, a package developed and supported
 by CCSE that is designed specifically for highly efficient visualization
 of block-structured hierarchical AMR data.
-Plotfiles can also be viewed using the , , and  packages.
-Particle data can be viewed using .
+Plotfiles can also be viewed using the VisIt, ParaView, and yt packages.
+Particle data can be viewed using ParaView.
 Refer to Chapter `[Chap:Visualization] <#Chap:Visualization>`__ for how to use each of these tools.
