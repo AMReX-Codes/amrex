@@ -148,15 +148,15 @@ using forward Euler temporal integration on a periodic domain.
 We could use a 5-point (in 2D) or 7-point (in 3D) stencil, but for demonstration
 purposes we spatially discretize the PDE by first constructing fluxes on cell faces, e.g.,
 
-.. math:: F_{i+\myhalf,j} = \frac{\phi_{i+1,j}-\phi_{i,j}}{\Delta x},
+.. math:: F_{i+^1\!/_2,\,j} = \frac{\phi_{i+1,j}-\phi_{i,j}}{\Delta x},
 
 and then taking the divergence to update the cells,
 
 .. math::
 
-   \phi_{i,j}^{n+1} = \phi_{i,j}^n 
-   + \frac{\Delta t}{\Delta x}\left(F_{i+\myhalf,j}-F_{i-\myhalf,j}\right)
-   + \frac{\Delta t}{\Delta y}\left(F_{i,j+\myhalf}-F_{i,j-\myhalf}\right)
+   \phi_{i,\,j}^{n+1} = \phi_{i,\,j}^n 
+   + \frac{\Delta t}{\Delta x}\left(F_{i+^1\!/_2,\,j}-F_{i-^1\!/_2,\,j}\right)
+   + \frac{\Delta t}{\Delta y}\left(F_{i,\,j+^1\!/_2}-F_{i,\,j-^1\!/_2}\right)
 
 Don't worry about the implementation details of the code.
 You will be able to understand the code in this example after
