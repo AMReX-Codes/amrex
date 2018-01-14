@@ -309,7 +309,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             fab.setType(typ);
         }
     }
-    a_flag.FillBoundary(a_geom.periodicity());
+    a_flag.EnforcePeriodicity(a_geom.periodicity());
 }
 
 void
@@ -345,7 +345,7 @@ EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
             }
         }
     }
-    a_volfrac.FillBoundary(a_geom.periodicity());
+    a_volfrac.EnforcePeriodicity(a_geom.periodicity());
 }
 
 void
