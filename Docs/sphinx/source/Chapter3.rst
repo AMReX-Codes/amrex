@@ -1,3 +1,5 @@
+.. _BuildingAMReX:
+
 Building AMReX
 ===================
 
