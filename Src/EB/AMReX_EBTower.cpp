@@ -362,7 +362,6 @@ EBTower::fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom)
     a_bndrycent.setVal(-1.0);
 
     a_bndrycent.ParallelCopy(src_bndrycent, 0, 0, a_bndrycent.nComp(), 0, a_bndrycent.nGrow(), a_geom.periodicity());
-    a_bndrycent.FillBoundary(a_geom.periodicity());
 }
 
 void
@@ -414,8 +413,6 @@ EBTower::fillFaceGeometry (std::array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac,
             }
         }
     }    
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) 
-        a_areafrac[idim]->FillBoundary(a_geom.periodicity());
 }
 
 }

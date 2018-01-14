@@ -119,10 +119,4 @@ MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int nco
     m_data.ParallelCopy(src.m_data, scomp, dcomp, ncomp, sng, dng, period);
 }
 
-void
-MultiCutFab::FillBoundary (const Periodicity& period)
-{
-    m_data.FillBoundary(period);
-}
-
 }
