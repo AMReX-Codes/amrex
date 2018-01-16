@@ -1,6 +1,7 @@
 
 #include <AMReX_MLPoisson.H>
 #include <AMReX_MLPoisson_F.H>
+#include <AMReX_MLABecLaplacian.H>
 
 namespace amrex {
 
@@ -240,6 +241,50 @@ MLPoisson::Anorm (int amrlev, int mglev) const
     return 4.0*(AMREX_D_TERM(dxinv[0]*dxinv[0],
                             +dxinv[1]*dxinv[1],
                             +dxinv[2]*dxinv[2]));
+}
+
+void
+MLPoisson::setMSolveCoeffs (MLLinOp& a_mop) const
+{
+    MLABecLaplacian& mop = dynamic_cast<MLABecLaplacian&>(a_mop);
+
+    mop.setScalars(1.0, -1.0);
+
+    const BoxArray& ba = mop.m_grids[0][0];
+    const DistributionMapping& dm = mop.m_dmap[0][0];
+
+    const BoxArray& myba = m_grids[0].back();
+
+    MultiFab alpha(ba, dm, 1, 0);
+    alpha.setVal(1.e12);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        
+        for (MFIter mfi(alpha); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = alpha[mfi];
+            myba.intersections(fab.box(), isects);
+            for (const auto& is : isects)
+            {
+                fab.setVal(0.0, is.second, 0, 1);
+            }
+        }
+    }
+
+    std::array<MultiFab, AMREX_SPACEDIM> beta;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        beta[idim].define(amrex::convert(ba, IntVect::TheDimensionVector(idim)),
+                          dm, 1, 0);
+        beta[idim].setVal(1.0);
+    }
+
+    mop.setACoeffs(0, alpha);
+    mop.setBCoeffs(0, amrex::GetArrOfConstPtrs(beta));
 }
 
 }

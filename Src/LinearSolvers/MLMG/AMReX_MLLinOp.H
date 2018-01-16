@@ -13,17 +13,19 @@ namespace amrex {
 
 struct LPInfo
 {
-    bool do_agglomeration = 1;
-    bool do_consolidation = 1;
+    bool do_agglomeration = true;
+    bool do_consolidation = true;
     int agg_grid_size = AMREX_D_PICK(32, 16, 8);
     int con_grid_size = AMREX_D_PICK(32, 16, 8);
     bool has_metric_term = true;
+    bool do_m_coarsening = false;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
+    LPInfo& setMCoarsening (bool x) { do_m_coarsening = x; return *this; }
 };
 
 class MLLinOp
@@ -32,6 +34,8 @@ public:
 
     friend class MLMG;
     friend class MLCGSolver;
+    friend class MLPoisson;
+    friend class MLABecLaplacian;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
     using BCType = LinOpBCType;
@@ -101,6 +105,8 @@ protected:
 
     IntVect m_ixtype;
 
+    bool m_do_m_coarsening = false;
+
     // first Vector is for amr level and second is mg level
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;
@@ -157,6 +163,8 @@ protected:
         }
     }
 
+    bool doMCoarsening () const { return m_do_m_coarsening; }
+
     bool isCellCentered () const { return m_ixtype == 0; }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
@@ -195,6 +203,8 @@ protected:
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
+
+    virtual void setMSolveCoeffs (MLLinOp& mop) const = 0;
 
 private:
 
