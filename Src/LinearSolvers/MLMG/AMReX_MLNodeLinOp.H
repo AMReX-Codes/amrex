@@ -66,6 +66,10 @@ protected:
 
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const final;
 
+    virtual void setMSolveCoeffs (MLLinOp& mop) const final {
+        amrex::Abort("MLNodeLinOp::setMSolveCoeffs: How did we get here?");
+    }
+
     static std::unique_ptr<iMultiFab> makeOwnerMask (const BoxArray& ba,
                                                      const DistributionMapping& dm,
                                                      const Geometry& geom);

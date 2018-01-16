@@ -156,6 +156,24 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             rr *= mg_coarsen_ratio;
         }
     }
+    else if (AMREX_SPACEDIM == 3 && isCellCentered() && info.do_m_coarsening && !m_domain_covered[0])
+    {
+        int rr = mg_coarsen_ratio;
+        if (a_geom[0].Domain().coarsenable(rr)
+            and a_grids[0].coarsenable(rr, mg_box_min_width))
+        {
+            m_do_m_coarsening = true;
+
+            m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+
+            m_grids[0].push_back(a_grids[0]);
+            m_grids[0].back().coarsen(rr);
+
+            m_dmap[0].push_back(a_dmap[0]);
+
+            ++(m_num_mg_levels[0]);
+        }
+    }
     else
     {
         int rr = mg_coarsen_ratio;

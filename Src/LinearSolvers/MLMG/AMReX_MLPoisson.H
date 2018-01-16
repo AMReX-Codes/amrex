@@ -44,6 +44,8 @@ protected:
     virtual Real Anorm (int amrlev, int mglev) const final;
     virtual Real getBScalar () const final { return 1.0; }
 
+    virtual void setMSolveCoeffs (MLLinOp& mop) const final;
+
 private:
 
     Vector<int> m_is_singular;

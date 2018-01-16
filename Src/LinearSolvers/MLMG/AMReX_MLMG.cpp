@@ -5,6 +5,7 @@
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_MLMG_F.H>
+#include <AMReX_MLABecLaplacian.H>
 
 // sol: full solution
 // rhs: rhs of the original equation L(sol) = rhs
@@ -84,7 +85,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     {
         Real iter_start_time = amrex::second();
         bool converged = false;
-        for (int iter = 0; iter < max_iters; ++iter)
+        const int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
+        for (int iter = 0; iter < niters; ++iter)
         {
             oneIter(iter);
 
@@ -92,6 +94,13 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
             // Test convergence on the fine amr level
             computeResidual(finest_amr_lev);
+
+            // xxxxx
+            if (false && do_fixed_number_of_iters)
+            {
+                continue;
+            }
+
             Real fine_norminf = res[finest_amr_lev][0].norm0();
             composite_norminf = fine_norminf;
             if (verbose >= 2) {
@@ -133,7 +142,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                 break;
             }
         }
-        if (!converged) {
+        if (!converged && do_fixed_number_of_iters == 0) {
             amrex::Print() << "MLMG: Failed to converge after " << max_iters << " iterations."
                            << " resid, resid/" << norm_name << " = "
                            << composite_norminf << ", "
@@ -590,6 +599,31 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
 void
 MLMG::bottomSolve ()
 {
+    if (linop.doMCoarsening()) {
+        MSolve();
+    } else {
+        actualBottomSolve();
+    }
+}
+
+void
+MLMG::MSolve ()
+{
+    BL_PROFILE("MLMG::MSolve()");
+
+    m_m_sol->setVal(0.0);
+    m_m_rhs->setVal(0.0);
+    m_m_sol->ParallelCopy(*(cor[0].back()));
+    m_m_rhs->ParallelCopy(res[0].back());
+
+    m_m_mlmg->solve({m_m_sol.get()}, {m_m_rhs.get()}, 1.0e-2, -1.0);
+
+    cor[0].back()->ParallelCopy(*m_m_sol);
+}
+
+void
+MLMG::actualBottomSolve ()
+{
     BL_PROFILE("MLMG::bottomSolve()");
 
     if (!linop.isBottomActive()) return;
@@ -844,6 +878,86 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     }
 
     buildFineMask();
+
+    if (linop.doMCoarsening())
+    {
+        prepareForMSolve();
+    }
+
+    if (verbose >= 2) {
+        amrex::Print() << "MLMG: # of AMR levels: " << namrlevs << "\n"
+                       << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
+                       << "\n";
+    }
+}
+
+void
+MLMG::prepareForMSolve ()
+{
+    const Geometry& geom = linop.m_geom[0].back();
+    const BoxArray& old_ba = linop.m_grids[0].back();
+    
+    const int m_grid_size = 64;
+
+    const IntVect sz = geom.Domain().size();
+    IntVect N;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        const std::div_t dv = std::div(sz[idim], m_grid_size);
+        N[idim] = dv.rem ? dv.quot+1 : dv.quot;
+    }
+
+    BoxList bl;
+#if (AMREX_SPACEDIM == 3)
+    for (int k = 0; k < N[2]; ++k) {
+#endif
+#if (AMREX_SPACEDIM >= 2)
+        for (int j = 0; j < N[1]; ++j) {
+#endif
+            for (int i = 0; i < N[0]; ++i)
+            {
+                IntVect small(AMREX_D_DECL(i*m_grid_size,j*m_grid_size,k*m_grid_size));
+                IntVect big = small + (m_grid_size-1);
+                big.min(geom.Domain().bigEnd());
+                Box bx(small,big);
+                if (old_ba.intersects(bx)) {
+                    bl.push_back(Box(small,big));
+                }
+            }
+#if (AMREX_SPACEDIM >= 2)
+        }
+#endif
+#if (AMREX_SPACEDIM == 3)
+    }
+#endif
+
+    BoxArray ba{std::move(bl)};
+    DistributionMapping dm{ba};
+
+    m_m_sol.reset(new MultiFab(ba, dm, 1, 1));
+    m_m_rhs.reset(new MultiFab(ba, dm, 1, 0));
+    m_m_sol->setVal(0.0);
+    m_m_rhs->setVal(0.0);
+
+    LPInfo info{};
+    info.has_metric_term = linop.info.has_metric_term;
+
+    m_m_linop.reset(new MLABecLaplacian({geom}, {ba}, {dm}, info));
+
+    m_m_linop->setMaxOrder(linop.maxorder);
+    m_m_linop->setVerbose(linop.verbose);
+
+    m_m_linop->setDomainBC(linop.m_lobc, linop.m_hibc);
+    m_m_linop->setCoarseFineBC(m_m_sol.get(), 1);
+    m_m_linop->setLevelBC(0, m_m_sol.get());
+    
+    linop.setMSolveCoeffs(*m_m_linop);
+
+    m_m_mlmg.reset(new MLMG(*m_m_linop));
+//    m_m_mlmg->setFixedIter(3);
+//    m_m_mlmg->setVerbose(0);
+    m_m_mlmg->setMaxFmgIter(20);
+    m_m_mlmg->setVerbose(2);
+    m_m_mlmg->setCGVerbose(cg_verbose);
 }
 
 void
