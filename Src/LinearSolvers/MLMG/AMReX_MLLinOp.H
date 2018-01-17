@@ -102,6 +102,7 @@ protected:
     Vector<int> m_amr_ref_ratio;
 
     Vector<int> m_num_mg_levels;
+    MLLinOp* m_parent = nullptr;
 
     IntVect m_ixtype;
 

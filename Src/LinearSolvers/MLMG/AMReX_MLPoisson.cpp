@@ -264,7 +264,7 @@ MLPoisson::setMSolveCoeffs (MLLinOp& a_mop) const
     {
         std::vector< std::pair<int,Box> > isects;
         
-        for (MFIter mfi(alpha); mfi.isValid(); ++mfi)
+        for (MFIter mfi(alpha, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             FArrayBox& fab = alpha[mfi];
             myba.intersections(fab.box(), isects);
