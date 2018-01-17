@@ -268,8 +268,17 @@ MLPoisson::makeMLinOp () const
 
     const BoxArray& myba = m_grids[0].back();
 
+    const Real* dxinv = geom.InvCellSize();
+    Real dxscale = dxinv[0];
+#if (AMREX_SPACEDIM >= 2)
+    dxscale = std::max(dxscale,dxinv[1]);
+#endif
+#if (AMREX_SPACEDIM == 3)
+    dxscale = std::max(dxscale,dxinv[2]);
+#endif
+
     MultiFab alpha(ba, dm, 1, 0);
-    alpha.setVal(1.e50);
+    alpha.setVal(1.e30*dxscale*dxscale);
 
 #ifdef _OPENMP
 #pragma omp parallel

@@ -159,8 +159,9 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else if (AMREX_SPACEDIM == 3 && isCellCentered() && info.do_m_coarsening && !m_domain_covered[0])
     {
         int rr = mg_coarsen_ratio;
-        if (a_geom[0].Domain().coarsenable(rr)
-            and a_grids[0].coarsenable(rr, mg_box_min_width))
+        while (a_geom[0].Domain().coarsenable(rr)
+            and a_grids[0].coarsenable(rr, mg_box_min_width)
+            and rr <= info.mc_crse_ratio)
         {
             m_do_m_coarsening = true;
 
@@ -172,6 +173,10 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             m_dmap[0].push_back(a_dmap[0]);
 
             ++(m_num_mg_levels[0]);
+            rr *= mg_coarsen_ratio;
+        }
+        if (rr != info.mc_crse_ratio*mg_coarsen_ratio) {
+            m_do_m_coarsening = false;
         }
     }
     else
@@ -283,6 +288,7 @@ MLLinOp::setCoarseFineBC (const MultiFab* crse, int crse_ratio)
 {
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
+    AMREX_ALWAYS_ASSERT(!(m_do_m_coarsening && m_coarse_data_crse_ratio != info.mc_crse_ratio));
 }
 
 MPI_Comm
