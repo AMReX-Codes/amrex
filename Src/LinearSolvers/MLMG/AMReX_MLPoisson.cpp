@@ -243,20 +243,33 @@ MLPoisson::Anorm (int amrlev, int mglev) const
                             +dxinv[2]*dxinv[2]));
 }
 
-void
-MLPoisson::setMSolveCoeffs (MLLinOp& a_mop) const
+std::unique_ptr<MLLinOp>
+MLPoisson::makeMLinOp () const
 {
-    MLABecLaplacian& mop = dynamic_cast<MLABecLaplacian&>(a_mop);
+    const Geometry& geom = m_geom[0].back();
+    const BoxArray& ba = makeMGrids();
+    DistributionMapping dm{ba};
 
-    mop.setScalars(1.0, -1.0);
+    LPInfo minfo{};
+    minfo.has_metric_term = info.has_metric_term;
 
-    const BoxArray& ba = mop.m_grids[0][0];
-    const DistributionMapping& dm = mop.m_dmap[0][0];
+    std::unique_ptr<MLLinOp> r{new MLABecLaplacian({geom}, {ba}, {dm}, minfo)};
+
+    MLABecLaplacian* mop = dynamic_cast<MLABecLaplacian*>(r.get());
+
+    mop->m_parent = this;
+
+    mop->setMaxOrder(maxorder);
+    mop->setVerbose(verbose);
+
+    mop->setDomainBC(m_lobc, m_hibc);
+
+    mop->setScalars(1.0, -1.0);
 
     const BoxArray& myba = m_grids[0].back();
 
     MultiFab alpha(ba, dm, 1, 0);
-    alpha.setVal(1.e12);
+    alpha.setVal(1.e50);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -283,8 +296,10 @@ MLPoisson::setMSolveCoeffs (MLLinOp& a_mop) const
         beta[idim].setVal(1.0);
     }
 
-    mop.setACoeffs(0, alpha);
-    mop.setBCoeffs(0, amrex::GetArrOfConstPtrs(beta));
+    mop->setACoeffs(0, alpha);
+    mop->setBCoeffs(0, amrex::GetArrOfConstPtrs(beta));
+
+    return r;
 }
 
 }

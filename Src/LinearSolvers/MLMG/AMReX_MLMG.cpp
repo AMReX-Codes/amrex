@@ -793,31 +793,6 @@ MLMG::buildFineMask ()
             linop.fixUpResidualMask(alev, *fine_mask[alev]);
         }
     }
-
-    if (linop.m_parent)
-    {
-        AMREX_ALWAYS_ASSERT(finest_amr_lev == 0);
-        fine_mask[0].reset(new iMultiFab(rhs[0].boxArray(), rhs[0].DistributionMap(), 1, 0));
-        fine_mask[0]->setVal(0);
-
-        const BoxArray& origba = linop.m_parent->m_grids[0].back();
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        {
-            std::vector< std::pair<int,Box> > isects;
-
-            for (MFIter mfi(*fine_mask[0], MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-            {
-                IArrayBox& fab = (*fine_mask[0])[mfi];
-                origba.intersections(fab.box(), isects);
-                for (const auto& is : isects)
-                {
-                    fab.setVal(1, is.second, 0, 1);
-                }
-            }
-        }    
-    }
 }
 
 void
@@ -913,72 +888,28 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         amrex::Print() << "MLMG: # of AMR levels: " << namrlevs << "\n"
                        << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
                        << "\n";
+        if (m_m_linop) {
+            amrex::Print() << "      # of MG levels on the M level: " << m_m_linop->NMGLevels(0) << "\n";
+        }
     }
 }
 
 void
 MLMG::prepareForMSolve ()
 {
-    const Geometry& geom = linop.m_geom[0].back();
-    const BoxArray& old_ba = linop.m_grids[0].back();
-    
-    const int m_grid_size = 64;
+    m_m_linop = std::move(linop.makeMLinOp());
 
-    const IntVect sz = geom.Domain().size();
-    IntVect N;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        const std::div_t dv = std::div(sz[idim], m_grid_size);
-        N[idim] = dv.rem ? dv.quot+1 : dv.quot;
-    }
-
-    BoxList bl;
-#if (AMREX_SPACEDIM == 3)
-    for (int k = 0; k < N[2]; ++k) {
-#endif
-#if (AMREX_SPACEDIM >= 2)
-        for (int j = 0; j < N[1]; ++j) {
-#endif
-            for (int i = 0; i < N[0]; ++i)
-            {
-                IntVect small(AMREX_D_DECL(i*m_grid_size,j*m_grid_size,k*m_grid_size));
-                IntVect big = small + (m_grid_size-1);
-                big.min(geom.Domain().bigEnd());
-                Box bx(small,big);
-                if (old_ba.intersects(bx)) {
-                    bl.push_back(Box(small,big));
-                }
-            }
-#if (AMREX_SPACEDIM >= 2)
-        }
-#endif
-#if (AMREX_SPACEDIM == 3)
-    }
-#endif
-
-    BoxArray ba{std::move(bl)};
-    DistributionMapping dm{ba};
+    const BoxArray& ba = (*m_m_linop).m_grids[0][0];
+    const DistributionMapping& dm =(*m_m_linop).m_dmap[0][0]; 
 
     m_m_sol.reset(new MultiFab(ba, dm, 1, 1));
     m_m_rhs.reset(new MultiFab(ba, dm, 1, 0));
     m_m_sol->setVal(0.0);
     m_m_rhs->setVal(0.0);
 
-    LPInfo info{};
-    info.has_metric_term = linop.info.has_metric_term;
-
-    m_m_linop.reset(new MLABecLaplacian({geom}, {ba}, {dm}, info));
-
-    m_m_linop->setMaxOrder(linop.maxorder);
-    m_m_linop->setVerbose(linop.verbose);
-
-    m_m_linop->setDomainBC(linop.m_lobc, linop.m_hibc);
     m_m_linop->setCoarseFineBC(m_m_sol.get(), 1);
     m_m_linop->setLevelBC(0, m_m_sol.get());
     
-    linop.setMSolveCoeffs(*m_m_linop);
-
-    m_m_linop->m_parent = &linop;
-
     m_m_mlmg.reset(new MLMG(*m_m_linop));
     m_m_mlmg->setVerbose(0);
     m_m_mlmg->setCGVerbose(0);

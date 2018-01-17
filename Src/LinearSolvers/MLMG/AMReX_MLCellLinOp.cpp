@@ -226,6 +226,48 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     }
 }
 
+BoxArray
+MLCellLinOp::makeMGrids () const
+{
+    const Geometry& geom = m_geom[0].back();
+    const BoxArray& old_ba = m_grids[0].back();
+    
+    const int m_grid_size = 64;
+
+    const IntVect sz = geom.Domain().size();
+    IntVect N;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        const std::div_t dv = std::div(sz[idim], m_grid_size);
+        N[idim] = dv.rem ? dv.quot+1 : dv.quot;
+    }
+
+    BoxList bl;
+#if (AMREX_SPACEDIM == 3)
+    for (int k = 0; k < N[2]; ++k) {
+#endif
+#if (AMREX_SPACEDIM >= 2)
+        for (int j = 0; j < N[1]; ++j) {
+#endif
+            for (int i = 0; i < N[0]; ++i)
+            {
+                IntVect small(AMREX_D_DECL(i*m_grid_size,j*m_grid_size,k*m_grid_size));
+                IntVect big = small + (m_grid_size-1);
+                big.min(geom.Domain().bigEnd());
+                Box bx(small,big);
+                if (old_ba.intersects(bx)) {
+                    bl.push_back(Box(small,big));
+                }
+            }
+#if (AMREX_SPACEDIM >= 2)
+        }
+#endif
+#if (AMREX_SPACEDIM == 3)
+    }
+#endif
+
+    return BoxArray{std::move(bl)};
+}
+
 void
 MLCellLinOp::restriction (int, int, MultiFab& crse, MultiFab& fine) const
 {

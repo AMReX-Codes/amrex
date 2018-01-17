@@ -48,8 +48,9 @@ protected:
     virtual Real Anorm (int amrlev, int mglev) const final;
     virtual Real getBScalar () const final { return m_b_scalar; }
 
-    virtual void setMSolveCoeffs (MLLinOp& mop) const final {
-        amrex::Abort("MLABecLaplacian::setMSolveCoeffs: Not implmented");
+    virtual std::unique_ptr<MLLinOp> makeMLinOp () const final {
+        amrex::Abort("MLABecLaplacian::makeMLinOp: Not implmented");
+        return std::unique_ptr<MLLinOp>{};
     }
 
 private:
