@@ -86,7 +86,7 @@ private:
     Vector<Vector<std::unique_ptr<MultiFab> > > cor_hold;
     Vector<Vector<MultiFab> >                rescor; // = res - L(cor)  Residual of the correction form
 
-    Vector<iMultiFab> fine_mask;
+    Vector<std::unique_ptr<iMultiFab> > fine_mask;
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
