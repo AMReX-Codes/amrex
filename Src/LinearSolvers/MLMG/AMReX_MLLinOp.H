@@ -102,7 +102,7 @@ protected:
     Vector<int> m_amr_ref_ratio;
 
     Vector<int> m_num_mg_levels;
-    MLLinOp* m_parent = nullptr;
+    const MLLinOp* m_parent = nullptr;
 
     IntVect m_ixtype;
 
@@ -205,7 +205,7 @@ protected:
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
 
-    virtual void setMSolveCoeffs (MLLinOp& mop) const = 0;
+    virtual std::unique_ptr<MLLinOp> makeMLinOp () const = 0;
 
 private:
 

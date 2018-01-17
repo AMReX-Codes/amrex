@@ -44,7 +44,7 @@ protected:
     virtual Real Anorm (int amrlev, int mglev) const final;
     virtual Real getBScalar () const final { return 1.0; }
 
-    virtual void setMSolveCoeffs (MLLinOp& mop) const final;
+    virtual std::unique_ptr<MLLinOp> makeMLinOp () const final;
 
 private:
 
