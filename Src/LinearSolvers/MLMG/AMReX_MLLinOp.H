@@ -19,13 +19,18 @@ struct LPInfo
     int con_grid_size = AMREX_D_PICK(32, 16, 8);
     bool has_metric_term = true;
     bool do_m_coarsening = false;
+    int mc_crse_ratio = 2;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
-    LPInfo& setMCoarsening (bool x) { do_m_coarsening = x; return *this; }
+    LPInfo& setMCoarsening (std::pair<bool,int> x) {
+        do_m_coarsening = x.first;
+        mc_crse_ratio = x.second;
+        return *this;
+    }
 };
 
 class MLLinOp
