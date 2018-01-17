@@ -1,7 +1,7 @@
 
 #include <AMReX_MLPoisson.H>
 #include <AMReX_MLPoisson_F.H>
-#include <AMReX_MLABecLaplacian.H>
+#include <AMReX_MLALaplacian.H>
 
 namespace amrex {
 
@@ -253,9 +253,9 @@ MLPoisson::makeMLinOp () const
     LPInfo minfo{};
     minfo.has_metric_term = info.has_metric_term;
 
-    std::unique_ptr<MLLinOp> r{new MLABecLaplacian({geom}, {ba}, {dm}, minfo)};
+    std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
 
-    MLABecLaplacian* mop = dynamic_cast<MLABecLaplacian*>(r.get());
+    MLALaplacian* mop = dynamic_cast<MLALaplacian*>(r.get());
 
     mop->m_parent = this;
 
@@ -297,16 +297,7 @@ MLPoisson::makeMLinOp () const
         }
     }
 
-    std::array<MultiFab, AMREX_SPACEDIM> beta;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    {
-        beta[idim].define(amrex::convert(ba, IntVect::TheDimensionVector(idim)),
-                          dm, 1, 0);
-        beta[idim].setVal(1.0);
-    }
-
     mop->setACoeffs(0, alpha);
-    mop->setBCoeffs(0, amrex::GetArrOfConstPtrs(beta));
 
     return r;
 }
