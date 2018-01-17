@@ -679,20 +679,9 @@ MLMG::actualBottomSolve ()
             bottom_b->plus(-offset, 0, 1);
         }
 
-        MLCGSolver::Solver solver_type;
-        if (bottom_solver == BottomSolver::bicgstab)
-        {
-            solver_type = MLCGSolver::Solver::BiCGStab;
-        }
-        else if (bottom_solver == BottomSolver::cg)
-        {
-            solver_type = MLCGSolver::Solver::CG;         
-        }
-
-        MLCGSolver cg_solver(linop, solver_type);
+        MLCGSolver cg_solver(linop);
         cg_solver.setVerbose(cg_verbose);
         cg_solver.setMaxIter(cg_maxiter);
-        cg_solver.setUnstableCriterion(cg_unstable_criterion);
 
         const Real cg_rtol = 1.e-4;
         const Real cg_atol = -1.0;

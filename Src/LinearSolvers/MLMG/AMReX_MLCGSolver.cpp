@@ -47,11 +47,10 @@ sxay (MultiFab&       ss,
 
 }
 
-MLCGSolver::MLCGSolver (MLLinOp& _lp, Solver _solver)
+MLCGSolver::MLCGSolver (MLLinOp& _lp)
     : Lp(_lp),
       amrlev(0),
-      mglev(_lp.NMGLevels(0)-1),
-      cg_solver(_solver)
+      mglev(_lp.NMGLevels(0)-1)
 {
 }
 
@@ -66,23 +65,6 @@ MLCGSolver::solve (MultiFab&       sol,
                    Real            eps_abs)
 {
     BL_PROFILE_REGION("MLCGSolver::solve()");
-    switch (cg_solver)
-    {
-    case Solver::CG:
-        return solve_cg(sol, rhs, eps_rel, eps_abs);
-    case Solver::BiCGStab:
-        return solve_bicgstab(sol, rhs, eps_rel, eps_abs);
-    }
-    return -1;
-}
-
-int
-MLCGSolver::solve_bicgstab (MultiFab&       sol,
-                            const MultiFab& rhs,
-                            Real            eps_rel,
-                            Real            eps_abs)
-{
-    BL_PROFILE("MLCGSolver::solve_bicgstab()");
 
     const int nghost = sol.nGrow(), ncomp = 1;
 
@@ -111,13 +93,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
     sol.setVal(0);
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
     Real rnorm = norm_inf(r);
-#else
-    Real       rnorm    = norm_inf(r);
-    const Real Lp_norm  = Lp.Anorm(amrlev,mglev);
-    Real       sol_norm = 0;
-#endif
     const Real rnorm0   = rnorm;
 
     if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
@@ -179,12 +155,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
                       << rnorm/(rnorm0) << '\n';
         }
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
-#else
-        sol_norm = norm_inf(sol);
-        if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0 ) || rnorm < eps_abs ) break;
-#endif
+
         MultiFab::Copy(sh,s,0,0,1,0);
         Lp.apply(amrlev, mglev, t, sh, MLLinOp::BCMode::Homogeneous);
         //
@@ -217,12 +189,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
                       << rnorm/(rnorm0) << '\n';
         }
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
-#else
-        sol_norm = norm_inf(sol);
-        if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0 ) || rnorm < eps_abs ) break;
-#endif
+
         if ( omega == 0 )
 	{
             ret = 4; break;
@@ -238,170 +206,10 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
                   << rnorm/(rnorm0) << '\n';
     }
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
-#else
-    if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0 ) && rnorm > eps_abs )
-#endif
     {
         if ( ParallelDescriptor::IOProcessor(p.color()) )
             amrex::Warning("MLCGSolver_BiCGStab:: failed to converge!");
-        ret = 8;
-    }
-
-    if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
-    {
-        sol.plus(sorig, 0, 1, 0);
-    } 
-    else 
-    {
-        sol.setVal(0);
-        sol.plus(sorig, 0, 1, 0);
-    }
-
-    return ret;
-}
-
-int
-MLCGSolver::solve_cg (MultiFab&       sol,
-                      const MultiFab& rhs,
-                      Real            eps_rel,
-                      Real            eps_abs)
-{
-    BL_PROFILE("MLCGSolver::solve_cg()");
-
-    const int nghost = sol.nGrow(), ncomp = 1;
-
-    const BoxArray& ba = sol.boxArray();
-    const DistributionMapping& dm = sol.DistributionMap();
-
-    BL_ASSERT(sol.nComp() == ncomp);
-
-    MultiFab sorig(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab r(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab z(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab q(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab p(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-
-    MultiFab r1(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab z1(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab r2(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab z2(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-
-    MultiFab::Copy(sorig,sol,0,0,1,0);
-
-    Lp.correctionResidual(amrlev, mglev, r, sorig, rhs, MLLinOp::BCMode::Homogeneous);
-
-    sol.setVal(0);
-
-    Real       rnorm    = norm_inf(r);
-    const Real rnorm0   = rnorm;
-    Real       minrnorm = rnorm;
-
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
-    {
-        std::cout << "              CG: Initial error :        " << rnorm0 << '\n';
-    }
-
-    const Real Lp_norm = Lp.Anorm(amrlev, mglev);
-    Real sol_norm      = 0;
-    Real rho_1         = 0;
-    int  ret           = 0;
-    int  nit           = 1;
-
-    if ( rnorm == 0 || rnorm < eps_abs )
-    {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
-	{
-            std::cout << "       CG: niter = 0,"
-                      << ", rnorm = " << rnorm 
-                      << ", eps_rel*(Lp_norm*sol_norm + rnorm0 )" <<  eps_rel*(Lp_norm*sol_norm + rnorm0 ) 
-                      << ", eps_abs = " << eps_abs << std::endl;
-	}
-        return 0;
-    }
-
-    for (; nit <= maxiter; ++nit)
-    {
-        MultiFab::Copy(z,r,0,0,1,0);
-
-        Real rho = dotxy(z,r);
-
-        if (nit == 1)
-        {
-            MultiFab::Copy(p,z,0,0,1,0);
-        }
-        else
-        {
-            Real beta = rho/rho_1;
-            sxay(p, z, beta, p);
-        }
-        Lp.apply(amrlev, mglev, q, p, MLLinOp::BCMode::Homogeneous);
-
-        Real alpha;
-        if ( Real pw = dotxy(p,q) )
-	{
-            alpha = rho/pw;
-	}
-        else
-	{
-            ret = 1; break;
-	}
-        
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
-        {
-            std::cout << "MLCGSolver_cg:"
-                      << " nit " << nit
-                      << " rho " << rho
-                      << " alpha " << alpha << '\n';
-        }
-        sxay(sol, sol, alpha, p);
-        sxay(  r,   r,-alpha, q);
-        rnorm = norm_inf(r,true);
-        sol_norm = norm_inf(sol,true);
-        ParallelAllReduce::Max<Real>({rnorm, sol_norm}, Lp.BottomCommunicator());
-
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
-        {
-            std::cout << "       CG:       Iteration"
-                      << std::setw(4) << nit
-                      << " rel. err. "
-                      << rnorm/(rnorm0) << '\n';
-        }
-
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
-#else
-        if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0) || rnorm < eps_abs ) break;
-#endif
-        if ( rnorm > unstable_criterion*minrnorm )
-	{
-            ret = 2; break;
-	}
-        else if ( rnorm < minrnorm )
-	{
-            minrnorm = rnorm;
-	}
-
-        rho_1 = rho;
-    }
-    
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
-    {
-        std::cout << "       CG: Final Iteration"
-                  << std::setw(4) << nit
-                  << " rel. err. "
-                  << rnorm/(rnorm0) << '\n';
-    }
-
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
-    if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
-#else
-    if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0) && rnorm > eps_abs )
-#endif
-    {
-        if ( ParallelDescriptor::IOProcessor(p.color()) )
-            amrex::Warning("MLCGSolver_cg: failed to converge!");
         ret = 8;
     }
 

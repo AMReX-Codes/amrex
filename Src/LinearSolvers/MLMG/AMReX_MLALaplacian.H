@@ -44,8 +44,7 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
-    virtual Real Anorm (int amrlev, int mglev) const final;
-    virtual Real getBScalar () const final { return 1.0; }
+    virtual Real getBScalar () const final { return m_b_scalar; }
 
     virtual std::unique_ptr<MLLinOp> makeMLinOp () const final {
         amrex::Abort("MLALaplacian::makeMLinOp: Not implmented");
@@ -57,8 +56,6 @@ private:
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
-
-    mutable Vector<Vector<Real> > m_Anorm;
 
     Vector<int> m_is_singular;
 
