@@ -1,3 +1,7 @@
+.. role:: cpp(code)
+   :language: c++
+
+
 .. _sec:build:make:
 
 Building with GNU Make
@@ -21,6 +25,7 @@ below shows a list of important variables.
    \centering
 
 .. _tab:makevarimp:
+
 .. table:: Important make variables
 
    +------------+-------------------------------------+-------------+
@@ -41,16 +46,20 @@ below shows a list of important variables.
 
 At the beginning of amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile, 
 ``AMREX_HOME`` is set to the path to the top directory of AMReX. 
-Note that in the example ``?=`` is a conditional variable assignment 
+Note that in the example :cpp:`?=` is a conditional variable assignment 
 operator that only has an effect if ``AMREX_HOME`` has not been defined
 (including in the environment). One can also set ``AMREX_HOME`` as an 
 environment variable. For example in bash, one can set 
+
+.. highlight:: bash
 
 ::
 
     export AMREX_HOME=/path/to/amrex
 
 alternatively, in tcsh one can set
+
+.. highlight:: bash
 
 ::
 
@@ -180,6 +189,8 @@ the library files in a chosen installation directory (installdir).
 If no installation path is provided by the user, AMReX will be installed in 
 /path/to/amrex/installdir. The CMake build process is summarized as follow:
 
+.. highlight:: console
+
 ::
 
     mkdir /path/to/builddir
@@ -200,6 +211,8 @@ Customization options
 AMReX configuration settings may be specified on the command line with the -D option.
 For example, one can enable OpenMP support as follows:
 
+.. highlight:: console
+
 ::
 
     cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex 
@@ -212,6 +225,7 @@ The list of available option is reported in the table on :ref:`tab:cmakevar` be
    \centering
 
 .. _tab:cmakevar:
+
 .. table:: Important cmake build options
 
    +---------------------------+-------------------------------------------------+-------------+-----------------+
@@ -279,6 +293,8 @@ Importing AMReX configuration into a CMake project
 In order to import the AMReX configuration options into your CMake
 build system, include the following line in the appropriate
 CMakeLists.txt file:
+
+.. highlight:: cmake
 
 ::
 
