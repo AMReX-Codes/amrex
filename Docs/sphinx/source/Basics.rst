@@ -1263,21 +1263,24 @@ which source is used is unspecified.
 MFIter and Tiling
 =================
 
-In this section, we will first show how MFIter works without
+In this section, we will first show how :cpp:`MFIter` works without
 tiling. Then we will introduce the concept of logical tiling.
 Finally we will show how logical tiling can be launched via
-MFIter.
+:cpp:`MFIter`.
 
 .. _sec:basics:mfiter:notiling:
 
 MFIter without Tiling
 ---------------------
 
-In Section \ `14 <#sec:basics:multifab>`__, we have shown some of the
-arithmetic functionalities of MultiFab, such as adding two
+In the section on :ref:`sec:basics:multifab`, we have shown some of the
+arithmetic functionalities of :cpp:`MultiFab`, such as adding two
 MultiFabs together. In this section, we will show how you can
-operate on the MultiFab data with your own functions.  provides an iterator, MFIter for looping over the
+operate on the :cpp:`MultiFab` data with your own functions. AMReX 
+provides an iterator, :cpp:`MFIter` for looping over the
 FArrayBoxes in MultiFabs. For example,
+
+.. highlight:: c++
 
 ::
 
@@ -1307,8 +1310,10 @@ FArrayBoxes in MultiFabs. For example,
           f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
       }
 
-Here function f1 is usually a Fortran subroutine with ISO C
+Here function :cpp:`f1` is usually a Fortran subroutine with ISO C
 binding interface like below,
+
+.. highlight:: fortran
 
 ::
 
@@ -1326,31 +1331,33 @@ binding interface like below,
         end do
       end subroutine f1
 
-Here amrex_fort_module is a Fortran module in  and
-amrex_real is a Fortran kind parameter that matches
-amrex::Real in . In this example, we assume the spatial
-dimension is 3. In 2D, the function interface is different. In
-Section \ `16 <#sec:basics:fortran>`__, we will present a dimension agnostic
-approach using macros provided by .
+Here :fortran:`amrex_fort_module` is a Fortran module in AMReX and
+:fortran:`amrex_real` is a Fortran kind parameter that matches
+:cpp:`amrex::Real` in C++. In this example, we assumed the spatial
+dimension is 3. In 2D, the function interface is different. In the
+section on :ref:`sec:basics:fortran`, we will present a dimension-agnostic
+approach using macros provided by AMReX.
 
-MFIter only loops over grids owned by this process. For
+:cpp:`MFIter` only loops over grids owned by this process. For
 example, suppose there are 5 Boxes in total and processes 0 and
 1 own 2 and 3 Boxes, respectively. That is the MultiFab
 on process 0 has 2 FArrayBoxes, whereas there are 3
 FArrayBoxes on process 1. Thus the numbers of iterations of
 MFIter are 2 and 3 on processes 0 and 1, respectively.
 
-In the example above, MultiFab is assumed to have a single
-component. If it has multiple component, we can call int nc =
-mf.nComp() to get the number of components and pass it to the
+In the example above, :cpp:`MultiFab` is assumed to have a single
+component. If it has multiple component, we can call :cpp:`int nc =
+mf.nComp()` to get the number of components and pass :cpp:`it` to the
 kernel function.
 
-There is only one MultiFab in the example above. Below is an
+There is only one :cpp:`MultiFab` in the example above. Below is an
 example of working with multiple MultiFabs. Note that these two
-MultiFabs are not necessarily built on the same BoxArray.
-But they must have the same DistributionMapping, and their
+MultiFabs are not necessarily built on the same :cpp:`BoxArray`.
+But they must have the same :cpp:`DistributionMapping`, and their
 BoxArrays are typically related (e.g., they are different due to
 index types).
+
+.. highlight:: c++
 
 ::
 
@@ -1380,8 +1387,10 @@ index types).
              fp, fbox.loVect(), fbox.hiVect(), &ncF);
       }
 
-Here again function f2 is usually a Fortran subroutine with ISO
+Here again function :cpp:`f2` is usually a Fortran subroutine with ISO
 C binding interface like below,
+
+.. highlight:: fortran
 
 ::
 
@@ -1402,6 +1411,7 @@ C binding interface like below,
       end do
     end subroutine f2
 
+
 .. _sec:basics:mfiter:tiling:
 
 MFIter with Tiling
@@ -1412,6 +1422,8 @@ transformation technique for improving data locality. This is often
 done by transforming the loops into tiling loops that iterate over
 tiles and element loops that iterate over the data elements within a
 tile. For example, the original loops might look like
+
+.. highlight:: fortran
 
 ::
 
@@ -1446,15 +1458,19 @@ And the manually tiled loops might look like
       end do
 
 As we can see, to manually tile individual loops is very
-labor-intensive and error-prone for large applications.  has
-incorporated the tiling construct into MFIter so that the
+labor-intensive and error-prone for large applications. AMReX has
+incorporated the tiling construct into :cpp:`MFIter` so that the
 application codes can get the benefit of tiling easily. An
-MFIter loop with tiling is almost the same as the non-tiling
-version. The first example in
-Section \ `15.1 <#sec:basics:mfiter:notiling>`__ requires only two minor
-changes: (1) passing true when defining MFIter to indicate
-tiling; (2) calling tilebox instead of validbox to obtain
-the work region for the loop iteration.
+:cpp:`MFIter` loop with tiling is almost the same as the non-tiling
+version. The first example in (see the previous section on 
+:ref:`sec:basics:mfiter:notiling`) requires only two minor
+changes:
+
+    #. passing :cpp:`true` when defining :cpp:`MFIter` to indicate tiling;
+    #. calling :cpp:`tilebox` instead of :cpp:`validbox` to obtain the work region 
+       for the loop iteration.
+
+.. highlight:: c++
 
 ::
 
@@ -1471,8 +1487,10 @@ the work region for the loop iteration.
           f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
       }
 
-The second example in Section \ `15.1 <#sec:basics:mfiter:notiling>`__ also
-requires only two minor changes.
+The second example in the previous section on :ref:`sec:basics:mfiter:notiling`
+also requires only two minor changes.
+
+.. highlight:: c++
 
 ::
 
@@ -1496,132 +1514,98 @@ requires only two minor changes.
              fp, fbox.loVect(), fbox.hiVect(), &ncF);
       }
 
-The kernels functions like f1 and f2 in the two examples
+The kernels functions like :cpp:`f1` and :cpp:`f2` in the two examples
 here usually require very little changes.
 
-.. raw:: latex
+.. |a| image:: ./Basics/cc_validbox.png
+       :width: 90%
 
-   \centering
 
-.. raw:: latex
+.. |b| image:: ./Basics/cc_tilebox.png
+       :width: 90%
 
-   \centering
+.. _fig:basics:cc_comparison:
 
-.. figure:: ./Basics/cc_validbox.pdf
-   :alt: [fig:basics:cc_tilebox] Example of cell-centered tile boxes.
-   Each grid is *logically* broken into 4 tiles, and each
-   tile has :math:`4^2` cells. There are 8 tiles in total.
-   :width: 90.0%
+.. table:: Comparison of :cpp:`MFIter` with (right) and without (left) tiling.
+   :align: center
+   
+   +-----------------------------------------------------+------------------------------------------------------+
+   |                        |a|                          |                        |b|                           |
+   +-----------------------------------------------------+------------------------------------------------------+
+   | | Example of cell-centered valid boxes.             | | Example of cell-centered tile boxes. Each grid is  |
+   | | There are two valid boxes in this example.        | | *logically* broken into 4 tiles, and each tile as  |
+   | | Each has :math:`8^2` cells.                       | | :math:`4^2` cells. There are 8 tiles in total.     |
+   +-----------------------------------------------------+------------------------------------------------------+
 
-   [fig:basics:cc_tilebox] Example of cell-centered tile boxes.
-   Each grid is *logically* broken into 4 tiles, and each
-   tile has :math:`4^2` cells. There are 8 tiles in total.
-
-.. raw:: latex
-
-   \hfill
-
-.. raw:: latex
-
-   \centering
-
-.. figure:: ./Basics/cc_tilebox.pdf
-   :alt: [fig:basics:cc_tilebox] Example of cell-centered tile boxes.
-   Each grid is *logically* broken into 4 tiles, and each
-   tile has :math:`4^2` cells. There are 8 tiles in total.
-   :width: 90.0%
-
-   [fig:basics:cc_tilebox] Example of cell-centered tile boxes.
-   Each grid is *logically* broken into 4 tiles, and each
-   tile has :math:`4^2` cells. There are 8 tiles in total.
-
-Figures \ `[fig:basics:cc_validbox] <#fig:basics:cc_validbox>`__ & `[fig:basics:cc_tilebox] <#fig:basics:cc_tilebox>`__
-show an example of the difference between validbox and
-tilebox. In this example, there are two grids of cell-centered
-index type. Function validbox always returns a Box for the
-valid region of an FArrayBox no matter whether or not tiling is
-enabled, whereas function tilebox returns a Box for a
-tile. (Note that when tiling is disabled, tilebox returns the
-same Box as validbox.) The number of loop iteration is 2
+The table above (:ref:`comparing MFIter with and without tiling<fig:basics:cc_comparison>`)
+shows an example of the difference between :cpp:`validbox` and
+:cpp:`tilebox`. In this example, there are two grids of cell-centered
+index type. The function :cpp:`validbox` always returns a :cpp:`Box` for the
+valid region of an :cpp:`FArrayBox` no matter whether or not tiling is
+enabled, whereas the function :cpp:`tilebox` returns a :cpp:`Box` for a
+tile. (Note that when tiling is disabled, :cpp:`tilebox` returns the
+same :cpp:`Box` as :cpp:`validbox`.) The number of loop iteration is 2
 in the non-tiling version, whereas in the tiling version the kernel
 function is called 8 times.
 
-The tile size can be explicitly set when defining MFIter.
+The tile size can be explicitly set when defining :cpp:`MFIter`.
+
+.. highlight:: c++
 
 ::
 
       // No tiling in x-direction. Tile size is 16 for y and 32 for z.
       for (MFIter mfi(mf,IntVect(1024000,16,32)); mfi.isValid(); ++mfi) {...}
 
-An IntVect is used to specify the tile size for every dimension.
+An :cpp:`IntVect` is used to specify the tile size for every dimension.
 A tile size larger than the grid size simply means tiling is disable
-in that direction.  has a default tile size
-IntVect{1024000,8,8} in 3D and no tiling in 2D. This is used
-when tile size is not explicitly set but the tiling flag is on. One
-can change the default size using ParmParse parameter
-fabarray.mfiter_tile_size.
+in that direction. AMReX has a default tile size :cpp:`IntVect{1024000,8,8}`
+in 3D and no tiling in 2D. This is used when tile size is not explicitly set 
+but the tiling flag is on. One can change the default size using :cpp:`ParmParse`
+parameter ``fabarray.mfiter_tile_size.``
 
-.. raw:: latex
+.. |c| image:: ./Basics/ec_validbox.png
+       :width: 90%
 
-   \centering
 
-.. raw:: latex
+.. |d| image:: ./Basics/ec_tilebox.png
+       :width: 90%
 
-   \centering
+.. _fig:basics:ec_comparison:
 
-.. figure:: ./Basics/ec_validbox.pdf
-   :alt: [fig:basics:ec_tilebox] Example of face tile boxes.
-   Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
-         \times 4` points, whereas others have :math:`4 \times 4` points.
-   Points from different Boxes may overlap, but points from
-   different tiles of the same Box do not.
-   :width: 90.0%
+.. table:: Comparison of :cpp:`MFIter` with (right) and without (left) tiling, for face-centered nodal indexing.
+   :align: center
+   
+   +-----------------------------------------------------+------------------------------------------------------+
+   |                        |c|                          |                        |d|                           |
+   +-----------------------------------------------------+------------------------------------------------------+
+   | | Example of face valid boxes. There are two valid  | | Example of face tile boxes. Each grid is           |
+   | | boxes in this example. Each has :math:`9\times 8` | | *logically* broken into 4 tiles as indicated by    |
+   | | points. Note that points in one :cpp:`Box` may    | | the symbols. There are 8 tiles in total. Some      |
+   | | overlap with points in the other :cpp:`Box`.      | | tiles have :math:`5\times 4` points, whereas       | 
+   | | However, the memory locations for storing         | | others have :math:`4 \times 4` points. Points from |
+   | | floating point data of those points do not        | | different Boxes may overlap, but points from       |
+   | | overlap, because they belong to seperate          | | different tiles of the same Box do not.            |
+   | | FArrayBoxes.                                      |                                                      |
+   +-----------------------------------------------------+------------------------------------------------------+
 
-   [fig:basics:ec_tilebox] Example of face tile boxes.
-   Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
-         \times 4` points, whereas others have :math:`4 \times 4` points.
-   Points from different Boxes may overlap, but points from
-   different tiles of the same Box do not.
-
-.. raw:: latex
-
-   \hfill
-
-.. raw:: latex
-
-   \centering
-
-.. figure:: ./Basics/ec_tilebox.pdf
-   :alt: [fig:basics:ec_tilebox] Example of face tile boxes.
-   Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
-         \times 4` points, whereas others have :math:`4 \times 4` points.
-   Points from different Boxes may overlap, but points from
-   different tiles of the same Box do not.
-   :width: 90.0%
-
-   [fig:basics:ec_tilebox] Example of face tile boxes.
-   Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
-         \times 4` points, whereas others have :math:`4 \times 4` points.
-   Points from different Boxes may overlap, but points from
-   different tiles of the same Box do not.
-
-Usually MFIter is used for accessing multiple MultiFabs
-like the second example, in which two MultiFabs, U and
-F, use MFIter via operator []. These different
-MultiFabs may have different BoxArrays. For example, U
-might be cell-centered, whereas F might be nodal in
+Usually :cpp:`MFIter` is used for accessing multiple MultiFabs
+like the second example, in which two MultiFabs, :cpp:`U` and
+:cpp:`F`, use :cpp:`MFIter` via :cpp:`operator[]`. These different
+MultiFabs may have different BoxArrays. For example, :cpp:`U`
+might be cell-centered, whereas :cpp:`F` might be nodal in
 :math:`x`-direction and cell in other directions. The
-MFIter::validbox and tilebox functions return Boxes of
-the same type as the MultiFab used in defining the MFIter
-(F in this example). Figures \ `[fig:basics:ec_validbox] <#fig:basics:ec_validbox>`__ &
-`[fig:basics:ec_tilebox] <#fig:basics:ec_tilebox>`__ show an example of non-cell-centered valid
-and tile boxes. Besides validbox and tilebox,
-MFIter has a number of functions returning various Boxes.
+:cpp:`MFIter::validbox` and :cpp:`tilebox` functions return Boxes of
+the same type as the :cpp:`MultiFab` used in defining the :cpp:`MFIter`
+(:cpp:`F` in this example). 
+The table above (:ref:`comparing MFIter with and without tiling, 
+for face-centered nodal indexing<fig:basics:ec_comparison>`)
+illustrates an example of non-cell-centered valid
+and tile boxes. Besides :cpp:`validbox` and :cpp:`tilebox`,
+:cpp:`MFIter` has a number of functions returning various Boxes.
 Examples include,
+
+.. highlight:: c++
 
 ::
 
@@ -1635,60 +1619,46 @@ Examples include,
       // is constructed with MultiFab of such flag.
       Box tilebox(const IntVect& nodal_flag); 
 
-It should be noted that function growntilebox does not grow the
-tile Box like a normal Box. Growing a Box normally
+It should be noted that the function :cpp:`growntilebox` does not grow the
+tile Box like a normal :cpp:`Box`. Growing a :cpp:`Box` normally
 means the Box is extended in every face of every dimension.
-However, function growntilebox only extends the tile Box
+However, the function :cpp:`growntilebox` only extends the tile Box
 in such a way that tiles from the same grid do not overlap. This is
 the basic design principle of these various tiling functions. Tiling
 is a way of domain decomposition for work sharing. Overlapping tiles
 is undesirable because works would be wasted and for multi-threaded
 codes race conditions could occur.
-Figures \ `[fig:basics:cc_growbox] <#fig:basics:cc_growbox>`__ & `[fig:basics:ec_growbox] <#fig:basics:ec_growbox>`__
-show examples of growntilebox.
 
-.. raw:: latex
+.. |e| image:: ./Basics/cc_growbox.png
+       :width: 90%
 
-   \centering
 
-.. raw:: latex
+.. |f| image:: ./Basics/ec_growbox.png
+       :width: 90%
 
-   \centering
+.. _fig:basics:growbox_comparison:
 
-.. figure:: ./Basics/cc_growbox.pdf
-   :alt: [fig:basics:ec_growbox] Example of face type grown
-   tile boxes. As indicated by symbols, there are 8 tiles and
-   four in each grid in this example. Tiles from the same grid do
-   not overlap even though they have face index type.
-   :width: 90.0%
+.. table:: Comparing growing cell-type and face-type tile boxes.
+   :align: center
+   
+   +-----------------------------------------------------+------------------------------------------------------+
+   |                        |e|                          |                        |f|                           |
+   +-----------------------------------------------------+------------------------------------------------------+
+   | | Example of cell-centered grown tile boxes. As     | | Example of face type grown tile boxes. As          |
+   | | indicated by symbols, there are 8 tiles and four  | | indicated by symbols, there are 8 tiles and four   |
+   | | in each grid in this example. Tiles from the same | | in each grid in this example. Tiles from the same  |
+   | | grid do not overlap. But tiles from different     | | grid do not overlap even though they have face     | 
+   | | grids may overlap.                                | | index type.                                        |
+   |                                                     |                                                      |
+   +-----------------------------------------------------+------------------------------------------------------+
 
-   [fig:basics:ec_growbox] Example of face type grown
-   tile boxes. As indicated by symbols, there are 8 tiles and
-   four in each grid in this example. Tiles from the same grid do
-   not overlap even though they have face index type. 
+The table above (:ref:`comparing growing cell-type and face-type 
+tile boxes<fig:basics:growbox_comparison>`) illustrates an 
+example :cpp:`growntilebox`. These functions in :cpp:`MFIter` 
+return :cpp:`Box` by value. There are two ways of using these
+functions.
 
-.. raw:: latex
-
-   \hfill
-
-.. raw:: latex
-
-   \centering
-
-.. figure:: ./Basics/ec_growbox.pdf
-   :alt: [fig:basics:ec_growbox] Example of face type grown
-   tile boxes. As indicated by symbols, there are 8 tiles and
-   four in each grid in this example. Tiles from the same grid do
-   not overlap even though they have face index type.
-   :width: 90.0%
-
-   [fig:basics:ec_growbox] Example of face type grown
-   tile boxes. As indicated by symbols, there are 8 tiles and
-   four in each grid in this example. Tiles from the same grid do
-   not overlap even though they have face index type. 
-
-These functions in MFIter return Box by value. There are
-two ways of using these functions.
+.. highlight:: c++
 
 ::
 
@@ -1699,7 +1669,8 @@ two ways of using these functions.
       Box bx2 = mfi.validbox();
       bx2.surroundingNodes();
 
-But Box& bx = mfi.validbox() is not legal and will not compile.
+But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
+
 
 .. _sec:basics:fortran:
 
