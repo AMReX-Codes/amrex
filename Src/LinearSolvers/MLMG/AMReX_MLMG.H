@@ -12,7 +12,7 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class BottomSolver : int { smoother, bicgstab, cg };
+    enum class BottomSolver : int { smoother, bicgstab };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -38,7 +38,6 @@ public:
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
     void setCGVerbose (int v) { cg_verbose = v; }
     void setCGMaxIter (int n) { cg_maxiter = n; }
-    void setCGUnstableCriterion (Real x) { cg_unstable_criterion = x; }
 
     void setAlwaysUseBNorm (int flag) { always_use_bnorm = flag; }
 
@@ -62,7 +61,6 @@ private:
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  cg_verbose            = 0;
     int  cg_maxiter            = 100;
-    Real cg_unstable_criterion = 10.0;
 
     int always_use_bnorm = 0;
 

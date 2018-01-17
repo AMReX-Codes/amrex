@@ -114,12 +114,6 @@ MLALaplacian::prepareForSolve ()
 
     averageDownCoeffs();
 
-    m_Anorm.resize(m_num_amr_levels);
-    for (int alev = 0; alev < m_num_amr_levels; ++alev)
-    {
-        m_Anorm[alev].assign(m_num_mg_levels[alev], -1.0);
-    }
-
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
     auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
@@ -298,13 +292,6 @@ MLALaplacian::FFlux (int amrlev, const MFIter& mfi,
                                    BL_TO_FORTRAN_ANYD(*flux[2])),
                       BL_TO_FORTRAN_ANYD(sol),
                       dxinv, m_b_scalar, face_only);
-}
-
-Real
-MLALaplacian::Anorm (int amrlev, int mglev) const
-{
-    BL_PROFILE("MLALaplacian::Anorm()");
-    return m_Anorm[amrlev][mglev];
 }
 
 }
