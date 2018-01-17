@@ -1,3 +1,7 @@
+.. role:: cpp(code)
+   :language: c++
+
+
 Downloading the Code
 ====================
 
@@ -18,6 +22,8 @@ Example: Hello World
 The source code of this example is at
 amrex/Tutorials/Basic/HelloWorld_C/ and is also shown below.
 
+.. highlight:: c++
+
 ::
 
      #include <AMReX.H>
@@ -32,14 +38,14 @@ amrex/Tutorials/Basic/HelloWorld_C/ and is also shown below.
      }
 
 The main body of this short example contains three statements.
-Usually the first and last statements for the ``main`` function of
-every program should be calling ``amrex::Initialize`` and ``Finalize``, 
-respectively. The second statement calls ``amrex::Print`` to print out
-a string that includes the AMReX version returned by the ``amrex::Version``
+Usually the first and last statements for the :cpp:`int main(...)` function of
+every program should be calling :cpp:`amrex::Initialize` and :cpp:`Finalize`, 
+respectively. The second statement calls `amrex::Print`` to print out
+a string that includes the AMReX version returned by the :cpp:`amrex::Version`
 function. The example code includes two AMReX header files. Note
 that the name of all AMReX header files starts with ``AMReX_``
 (or just AMReX in the case of AMReX.H). All AMReX C++ functions are in the 
-``amrex`` namespace.
+:cpp:`amrex` namespace.
 
 Building the Code
 -----------------
@@ -59,11 +65,15 @@ Running the Code
 
 The example code can be run as follows,
 
+.. highlight:: console
+
 ::
 
       ./main3d.gnu.DEBUG.ex
 
 The result may look like,
+
+.. highlight:: console
 
 ::
 
@@ -88,11 +98,15 @@ you can set ``USE_MPI=TRUE`` in the GNUmakefile). This
 should make an executable named ``main3d.gnu.DEBUG.MPI.ex``. Note
 MPI in the file name. You can then run,
 
+.. highlight:: console
+
 ::
 
       mpiexec -n 4 ./main3d.gnu.DEBUG.MPI.ex
 
 The result may look like,
+
+.. highlight:: console
 
 ::
 
@@ -107,11 +121,15 @@ This should make an executable named ``main3d.gnu.DEBUG.OMP.ex``. Note
 OMP in the file name. Make sure the ``OMP_NUM_THREADS``
 environment variable is set on your system. You can then run,
 
+.. highlight:: console
+
 ::
 
       ./main3d.gnu.DEBUG.OMP.ex
 
 The result may look like,
+
+.. highlight:: console
 
 ::
 
@@ -121,11 +139,15 @@ The result may look like,
 Note that you can build with both USE_MPI=TRUE and USE_OMP=TRUE.
 You can then run,
 
+.. highlight:: console
+
 ::
 
       mpiexec -n 2 ./main3d.gnu.DEBUG.MPI.OMP.ex
 
 The result may look like,
+
+.. highlight:: console
 
 ::
 
@@ -167,6 +189,8 @@ Building and Running the Code
 
 To build a 2D executable, type ``make DIM=2``. This will generate
 an executable named ``main2d.gnu.ex``. To run it, type,
+
+.. highlight:: console
 
 ::
 

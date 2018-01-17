@@ -1,46 +1,48 @@
-In this chapter, we present the basics of . The implementation
-source codes are in amrex/Src/Base/. Note that  classes
-and functions are in namespace amrex. For clarity, we usually
-drop amrex:: in the example codes here. It is also assumed that
-headers have been properly included. We recommend you study
-the tutorial in amrex/Tutorials/Basic/HeatEquation_EX1_C while reading this chapter.
-After reading this chapter, one should be able to develop single-level
-parallel codes using . It should also be noted that this is not
-a comprehensive reference manual.
+.. role:: cpp(code)
+   :language: c++
+
+.. role:: fortran(code)
+   :language: fortran
 
 HeatEquation_EX1_C Example
 ==========================
 
-The source code tree for the heat equation example is simple, as shown
-in Figure `[fig:Basics_Heat_flowchart] <#fig:Basics_Heat_flowchart>`__. We recommend you study
+The source code tree for the heat equation example is simple, as demonstrated by the figure showing the :ref:`fig:Basics_Heat_flowchart`. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
-below in action.
+below in action. 
 
-.. figure:: ./Basics/figs/flowchart.pdf
-   :alt: [fig:Basics_Heat_flowchart] Source code tree for the
-   HeatEquation_EX1_C example.
+.. raw:: latex
+
+   \centering
+
+.. _fig:Basics_Heat_flowchart:
+
+.. figure:: ./Basics/figs/flowchart.png
    :width: 4in
 
-   [fig:Basics_Heat_flowchart] Source code tree for the
-   HeatEquation_EX1_C example.
+   Source code tree for the HeatEquation_EX1_C example
+   
 
--  | Base/
-   | Contains source code for single-level simulations.
+    Base/
+        Contains source code for single-level simulations.
 
--  | HeatEquation_EX1_C
-   | Build the code here by editing the GNUmakefile and running make.
+    HeatEquation_EX1_C
+        Build the code here by editing the GNUmakefile and running make.
+
 
 .. _sec:basics:dim:
 
 Dimensionality
 ==============
 
-As we have mentioned in Chapter \ `[Chap:BuildingAMReX] <#Chap:BuildingAMReX>`__, the
-dimensionality of  must be set at compile time. A macro,
-AMREX_SPACEDIM, is defined to be the number of spatial
-dimensions. C++ codes can also use the amrex::SpaceDim
+As we have mentioned in Chapter on :ref:`BuildingAMReX`, the
+dimensionality of AMReX must be set at compile time. A macro,
+``AMREX_SPACEDIM``, is defined to be the number of spatial
+dimensions. C++ codes can also use the :cpp:`amrex::SpaceDim`
 variable. Fortran codes can use either the macro and preprocessing or
 do
+
+.. highlight:: fortran
 
 ::
 
@@ -51,19 +53,21 @@ The coordinate directions are zero based.
 Vector
 ======
 
-Vector class in AMReX_Vector.H is derived from
-std::vector. The only difference between Vector and
-std::vector is that Vector::operator[] provides bound checking
-when compiled with DEBUG=TRUE.
+:cpp:`Vector` class in AMReX_Vector.H is derived from
+:cpp:`std::vector`. The only difference between :cpp:`Vector` and
+:cpp:`std::vector` is that :cpp:`Vector::operator[]` provides bound checking
+when compiled with :cpp:`DEBUG=TRUE`.
 
 Real
 ====
 
- can be compiled to use either double precision (which is the
-default) or single precision. amrex::Real is typedef’d to
-either double or float. C codes can use
-amrex_real. They are defined in AMReX_REAL.H. The data
+AMReX can be compiled to use either double precision (which is the
+default) or single precision. :cpp:`amrex::Real` is typedef’d to
+either :cpp:`double` or :cpp:`float`. C codes can use
+:cpp:`amrex_real`. They are defined in AMReX_REAL.H. The data
 type is accessible in Fortran codes via
+
+.. highlight:: fortran
 
 ::
 
@@ -74,12 +78,15 @@ type is accessible in Fortran codes via
 ParallelDescriptor
 ==================
 
- users do not need to use MPI directly. Parallel communication
-is often handled by the data abstraction classes (e.g.,
-MultiFab; Section \ `14 <#sec:basics:multifab>`__). In addition,  has provided namespace ParallelDescriptor in
-<AMReX_ParallelDescriptor.H>. The frequently used functions are
+AMReX users do not need to use MPI directly. Parallel communication
+is often handled by the data abstraction classes (e.g.,MultiFab; section
+on :ref:`sec:basics:multifab`). In addition, AMReX has provided namespace
+:cpp:`ParallelDescriptor` in AMReX_ParallelDescriptor.H. The frequently used
+functions are
 
-::
+.. highlight:: c++
+
+:: 
 
      int myproc = ParallelDescriptor::MyProc();  // Return the rank
      
@@ -106,11 +113,13 @@ MultiFab; Section \ `14 <#sec:basics:multifab>`__). In addition,  has provided
 Print
 =====
 
- provides classes in AMReX_Print.H for printing messages
-to standard output or any  ostream. The main reason one
-should use them instead of std::cout is that messages from
+AMReX provides classes in AMReX_Print.H for printing messages
+to standard output or any C++ :cpp:`ostream`. The main reason one
+should use them instead of :cpp:`std::cout` is that messages from
 multiple processes or threads do not get mixed up. Below are some
 examples.
+
+.. highlight:: c++
 
 ::
 
@@ -135,17 +144,19 @@ examples.
 ParmParse
 =========
 
-ParmParse in AMReX_ParmParse.H is a class providing a
+:cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a
 database for the storage and retrieval of command-line and input-file
-arguments. When amrex::Initialize() is called, the first
+arguments. When :cpp:`amrex::Initialize()` is called, the first
 command-line argument after the executable name (if there is one and
 it does not contain character =) is taken to be the inputs file,
 and the contents in the file are used to initialize the
-ParmParse database. The rest of the command-line arguments are
-also parsed by ParmParse. The format of the inputs file is a
-series of definitions in the form of prefix.name = value value
-.... For each line, texts after # are comments. Here is an
+:cpp:`ParmParse` database. The rest of the command-line arguments are
+also parsed by :cpp:`ParmParse`. The format of the inputs file is a
+series of definitions in the form of ``prefix.name = value value
+....`` For each line, text after # are comments. Here is an
 example inputs file.
+
+    .. highlight:: python
 
     ::
 
@@ -157,7 +168,9 @@ example inputs file.
         title     = "Three Kingdoms"  # a string
         hydro.cfl = 0.8               # with prefix, hydro 
 
-The following code shows how to use ParmParse to get/query the values.
+The following code shows how to use :cpp:`ParmParse` to get/query the values.
+
+.. highlight:: c++
 
 ::
 
@@ -189,9 +202,9 @@ The following code shows how to use ParmParse to get/query the values.
      pph.get("cfl", cfl);    // get parameter with prefix
 
 Note that when there are multiple definitions for a parameter
-ParmParse by default returns the last one. The difference between
-query and get should also be noted. It is a runtime error
-if get fails to get the value, whereas query returns an
+:cpp:`ParmParse` by default returns the last one. The difference between
+:cpp:`query` and :cpp:`get` should also be noted. It is a runtime error
+if :cpp:`get` fails to get the value, whereas :cpp:`query` returns an
 error code without generating a runtime error that will abort the run.
 If it is sometimes convenient to override parameters with command-line
 arguments without modifying the inputs file. The command-line
@@ -199,11 +212,14 @@ arguments after the inputs file are added later than the file to the
 database and are therefore used by default. For example, one can run
 with
 
+.. highlight:: console
+
 ::
 
         myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
 
 to change the value of ncells and hydro.cfl.
+
 
 .. _sec:basics:amrgrids:
 
@@ -212,15 +228,16 @@ Example of AMR Grids
 
 In block-structured AMR, there is a hierarchy of logically rectangular
 grids. The computational domain on each AMR level is decomposed into
-a union of rectangular domains. Figure \ `[fig:basics:amrgrids] <#fig:basics:amrgrids>`__
-shows an example of AMR grids. There are three total levels in the
-example. In  numbering convention, the coarsest level is level
-0. The coarsest grid (*black*) covers the domain with :math:`16^2`
-cells. Bold lines represent grid boundaries. There are two
-intermediate resolution grids (*blue*) at level 1 and the
+a union of rectangular domains. The :ref:`example of AMR grids<fig:basics:amrgrids>` 
+figure below shows an example of AMR. There are three total levels in
+the example. In AMReX numbering convention, the coarsest level is
+level 0. The coarsest grid (*black*) covers the domain with 
+:math:`16^2` cells. Bold lines represent grid boundaries. There are
+two intermediate resolution grids (*blue*) at level 1 and the
 cells are a factor of two finer than those at level 0. The two finest
 grids (*red*) are at level 2 and the cells are a factor of two
-finer than the level 1 cells. Note that there is no direct
+finer than the level 1 cells. There are 1, 2 and 2 Boxes on levels
+0, 1, and 2, respectively. Note that there is no direct
 parent-child connection. In this chapter, we will focus on single
 levels.
 
@@ -228,45 +245,48 @@ levels.
 
    \centering
 
-.. figure:: ./Basics/amrgrids.pdf
-   :alt: [fig:basics:amrgrids] Example of AMR grids. There are
-   three levels in total. There are 1, 2 and 2 Boxes on levels
-   0, 1, and 2, respectively.
+.. _fig:basics:amrgrids:
+
+.. figure:: ./Basics/amrgrids.png
    :width: 3in
 
-   [fig:basics:amrgrids] Example of AMR grids. There are
-   three levels in total. There are 1, 2 and 2 Boxes on levels
-   0, 1, and 2, respectively.
+   Example of AMR grids. There are three levels in total.
+   There are 1, 2 and 2 Boxes on levels 0, 1, and 2, respectively.
+   
 
 .. _sec:basics:box:
 
 Box, IntVect and IndexType
 ==========================
 
-Box in AMReX_Box.H is the data structure for representing
-a rectangular domain in indexing space. For example, in
-Figure \ `[fig:basics:amrgrids] <#fig:basics:amrgrids>`__, there are 1, 2 and 2 Boxes on
-levels 0, 1 and 2, respectively. Box is a dimension dependent
-class. It has lower and upper corners (represented by IntVect
-and an index type (represented by IndexType). There are no
-floating-point data in the object.
+:cpp:`Box` in AMReX_Box.H is the data structure for representing
+a rectangular domain in indexing space. For the :ref:`example of AMR grids<fig:basics:amrgrids>`,
+shown above, there are 1, 2 and 2 Boxes on levels 0, 1 and 2, respectively. 
+:cpp:`Box` is a dimension dependent class. It has lower and upper corners 
+(represented by :cpp:`IntVect`) and an index type (represented by 
+:cpp:`IndexType`). There are no floating-point data in the object.
+
 
 IntVect
 -------
 
-is a dimension dependent class representing an
-integer vector in -dimensional space. An
-IntVect can be constructed as follows,
+:cpp:`IntVec` is a dimension dependent class representing an
+integer vector in :cpp:`AMREX SPACEDIM`-dimensional space. An
+:cpp:`IntVect` can be constructed as follows,
+
+.. highlight:: c++
 
 ::
 
      IntVect iv(AMREX_D_DECL(19, 0, 5));
 
-Here AMREX_D_DECL is a macro that expands
-AMREX_D_DECL(19,0,5) to either 19 or 19,0 or
-19,0,5 depending on the number of dimensions. The data can be
-accessed via operator[], and the internal data pointer can be
-returned by function getVect. For example
+Here :cpp:`AMREX_D_DECL` is a macro that expands
+:cpp:`AMREX_D_DECL(19,0,5)` to either :cpp:`19` or :cpp:`19, 0` or
+:cpp:`19, 0, 5` depending on the number of dimensions. The data can be
+accessed via :cpp:`operator[]`, and the internal data pointer can be
+returned by function :cpp:`getVect`. For example
+
+.. highlight:: c++
 
 ::
 
@@ -275,16 +295,18 @@ returned by function getVect. For example
      }
      const int * p = iv.getVect();  // This can be passed to Fortran/C as an array
 
-The class has a static function TheZeroVector() returning the
-zero vector, TheUnitVector() returning the unit vector, and
-TheDimensionVector (int dir) returning a reference to a constant
-IntVect that is zero except in the dir-direction. Note
-the direction is zero-based. IntVect has a number of relational
-operators, ==, !=, , and
->= that can be used for lexicographical comparison (e.g., key of
-std::map), and a class IntVect::shift_hasher that can be
-used as a hash function (e.g., for std::unordered_map). It
+The class has a static function :cpp:`TheZeroVector()` returning the
+zero vector, :cpp:`TheUnitVector()` returning the unit vector, and
+:cpp:`TheDimensionVector (int dir)` returning a reference to a constant
+:cpp:`IntVect` that is zero except in the :cpp:`dir`-direction. Note
+the direction is zero-based. :cpp:`IntVect` has a number of relational
+operators, :cpp:`==`, :cpp:`!=`, :cpp:`<`, :cpp:`<=`, :cpp:`>` , and
+:cpp:`>=` that can be used for lexicographical comparison (e.g., key of
+:cpp:`std::map`), and a class :cpp:`IntVect::shift_hasher` that can be
+used as a hash function (e.g., for :cpp:`std::unordered_map`). It
 also has various arithmetic operators. For example,
+
+.. highlight:: c++
 
 ::
 
@@ -294,12 +316,14 @@ also has various arithmetic operators. For example,
      iv *= 2;    // iv is now (46,16,10);
 
 In AMR codes, one often needs to do refinement and coarsening on
-IntVect. The refinement operation can be done with the
+:cpp:`IntVect`. The refinement operation can be done with the
 multiplication operation. However, the coarsening requires care
 because of the rounding towards zero behavior of integer division in
-Fortran, C and C++. For example int i = -1/2 gives i =
-0, and what we want is usually i = -1. Thus, one should use
+Fortran, C and C++. For example :cpp:`int i = -1/2` gives :cpp:`i = 0`, 
+and what we want is usually :cpp:`i = -1`. Thus, one should use
 the coarsen functions:
+
+.. highlight:: c++
 
 ::
 
@@ -310,8 +334,10 @@ the coarsen functions:
       const auto& iv2 = amrex::coarsen(iv, 2); // Return an IntVect w/o modifying iv
       IntVect iv3 = amrex::coarsen(iv, coarsening_return); // iv not modified
 
-Finally, we note that operator<< is overloaded for
-IntVect and therefore one can call
+Finally, we note that :cpp:`operator<<` is overloaded for
+:cpp:`IntVect` and therefore one can call
+
+.. highlight:: c++
 
 ::
 
@@ -323,9 +349,11 @@ IndexType
 
 This class defines an index as being cell based or node based in
 each dimension. The default constructor defines a cell based type in
-all directions. One can also construct an IndexType with an
-IntVect with zero and one representing cell and node,
+all directions. One can also construct an :cpp:`IndexType` with an
+:cpp:`IntVect` with zero and one representing cell and node,
 respectively.
+
+.. highlight:: c++
 
 ::
 
@@ -334,6 +362,8 @@ respectively.
      IndexType xface(IntVect{AMREX_D_DECL(1,0,0)});
 
 The class provides various functions including
+
+.. highlight:: c++
 
 ::
 
@@ -349,17 +379,19 @@ The class provides various functions including
      // True if the IndexType is node based in dir-direction.
      bool nodeCentered (int dir) const;
 
-Index type is a very important concept in . It is a way of
+Index type is a very important concept in AMReX. It is a way of
 representing the notion of indices :math:`i` and :math:`i+1/2`.
 
 Box
 ---
 
 A Box is an abstraction for defining discrete regions of
-AMREX_SPACEDIM-dimensional indexing space. Boxes have an
-IndexType and two IntVects representing the lower and
+:cpp:`AMREX_SPACEDIM`-dimensional indexing space. Boxes have an
+:cpp:`IndexType` and two :cpp:`IntVects` representing the lower and
 upper corners. Boxes can exist in positive and negative indexing
-space. Typical ways of defining a Box are
+space. Typical ways of defining a :cpp:`Box` are
+
+.. highlight:: c++
 
 ::
 
@@ -382,33 +414,32 @@ For simplicity, we will assume it is 3D for the rest of this section.
 In the output, three integer tuples for each box are the lower corner
 indices, upper corner indices, and the index types. Note that 0
 and 1 denote cell and node, respectively. For each tuple like
-(64,64,64), the 3 numbers are for 3 directions. The two
+:cpp:`(64,64,64)`, the 3 numbers are for 3 directions. The two
 Boxes in the code above represent different indexing views of the
-same domain of :math:`64^3` cells. Note that in  convention, the
+same domain of :math:`64^3` cells. Note that in AMReX convention, the
 lower side of a cell has the same integer value as the cell centered
 index. That is if we consider a cell based index represent :math:`i`, the
 nodal index with the same integer value represents :math:`i-1/2`.
-Figure \ `[fig:basics:indextypes] <#fig:basics:indextypes>`__ shows a 2D example of various index
-types.
+The figure below shows :ref:`some of the different index types<fig:basics:indextypes>`
+for 2D.
 
 .. raw:: latex
 
    \centering
 
-.. figure:: ./Basics/indextypes.pdf
-   :alt: [fig:basics:indextypes] Some of the different index
-   types in two dimensions: (a) cell-centered, (b) :math:`x`-face-centered
-   (i.e., nodal in :math:`x`-direction only), and (c) corner/nodal,
-   i.e., nodal in all dimensions.
+.. _fig:basics:indextypes:
+
+.. figure:: ./Basics/indextypes.png
    :width: 5in
 
-   [fig:basics:indextypes] Some of the different index
-   types in two dimensions: (a) cell-centered, (b) :math:`x`-face-centered
+   Some of the different index types in two dimensions: (a) cell-centered, (b) :math:`x`-face-centered
    (i.e., nodal in :math:`x`-direction only), and (c) corner/nodal,
    i.e., nodal in all dimensions.
 
-There are a number of ways of converting a Box from one type to
+There are a number of ways of converting a :cpp:`Box` from one type to
 another.
+
+.. highlight:: c++
 
 ::
 
@@ -432,8 +463,10 @@ another.
       b3.surroundingNodes();          //  Exercise for you
       b3.enclosedCells();             //  Exercise for you
 
-The internal data of Box can be accessed via various member functions.
+The internal data of :cpp:`Box` can be accessed via various member functions.
 Examples are
+
+.. highlight:: c++
 
 ::
 
@@ -444,6 +477,8 @@ Examples are
 
 Boxes can be refined and coarsened. Refinement or coarsening
 does not change the index type. Some examples are shown below.
+
+.. highlight:: c++
 
 ::
 
@@ -469,19 +504,21 @@ does not change the index type. Some examples are shown below.
 
 Note that refinement and coarsening behaviors depend on the indexing
 type. One should think the refinement and coarsening in AMR context
-that refined or coarsened Box still covers the same physical
-domain. Box uncoarsenable in the example above is considered
+that refined or coarsened :cpp:`Box` still covers the same physical
+domain. :cpp:`Box uncoarsenable` in the example above is considered
 uncoarsenable because its coarsened version does not cover the same
 physical domain in the AMR context.
 
-Boxes can grow and they can grow in all directions or just one
+Boxes can grow, and they can grow in all directions or just one
 direction. There are a number of grow functions. Some are
-member functions of the Box class and others are non-member
-functions in the amrex namespace.
+member functions of the :cpp:`Box` class and others are non-member
+functions in the :cpp:`amrex` namespace.
 
-Box class provides the following member functions testing if a
-Box or IntVect is contained within this Box. Note that
+The :cpp:`Box` class provides the following member functions testing if a
+:cpp:`Box` or :cpp:`IntVect` is contained within this :cpp:`Box`. Note that
 it is a runtime error if the two Boxes have different types.
+
+.. highlight:: c++
 
 ::
 
@@ -492,6 +529,8 @@ it is a runtime error if the two Boxes have different types.
 
 Another very common operation is the intersection of two Boxes
 like in the following examples.
+
+.. highlight:: c++
 
 ::
 
@@ -512,46 +551,51 @@ like in the following examples.
 
       b0 &= b3;             // Runtime error because of type mismatch!
 
+
 RealBox and Geometry
 ====================
 
-A RealBox stores the physical location in floating-point numbers
+A :cpp:`RealBox` stores the physical location in floating-point numbers
 of the lower and upper corners of a rectangular domain.
 
-Geometry class in AMReX_Geometry.H describes problem
+The :cpp:`Geometry` class in AMReX_Geometry.H describes problem
 domain and coordinate system for rectangular problem domains. A
-Geometry object can be constructed with
+:cpp:`Geometry` object can be constructed with
+
+.. highlight:: c++
 
 ::
 
-      explicit Geometry (const Box&     dom,
-                         const RealBox* rb     = nullptr,
-                         int            coord  = -1,
-                         int*           is_per = nullptr);
+      explicit Geometry ( const Box&     dom,
+                            const RealBox* rb     = nullptr,
+                            int            coord  = -1,
+                            int*           is_per = nullptr);
 
-Here the constructor takes a cell-centered Box specifying the
-indexing space domain, an optional argument of RealBox pointer
-specifying the physical domain, an optional int specifying
-coordinate system type, and an optional int\* specifying
-periodicity. If a RealBox is not given,  will construct
-one based on ParmParse parameters, geometry.prob_lo and
-geometry.prob_hi, where each of the parameter is an array of
-AMREX_SPACEDIM real numbers. It’s a runtime error if this
+Here the constructor takes a cell-centered :cpp:`Box` specifying the
+indexing space domain, an optional argument of :cpp:`RealBox` pointer
+specifying the physical domain, an optional :cpp:`int` specifying
+coordinate system type, and an optional :cpp:`int *` specifying
+periodicity. If a :cpp:`RealBox` is not given, AMReX will construct
+one based on :cpp:`ParmParse` parameters, ``geometry.prob_lo`` and
+``geometry.prob_hi``, where each of the parameter is an array of
+``AMREX_SPACEDIM`` real numbers. It’s a runtime error if this
 fails. The optional argument for coordinate system is an integer type
 with valid values being 0 (Cartesian), or 1 (cylindrical), or 2
 (spherical). If it is invalid as in the case of the default argument
-value,  will query the ParmParse database for
-geometry.coord_sys and use it if one is found. If it cannot find
+value, AMReX will query the :cpp:`ParmParse` database for
+``geometry.coord_sys`` and use it if one is found. If it cannot find
 the parameter, the coordinate system is set to 0 (i.e., Cartesian
-coordinates). Geometry class has the concept of periodicity.
+coordinates). The :cpp:`Geometry` class has the concept of periodicity.
 An optional argument can be passed specifying periodicity in each
 dimension. If it is not given, the domain is assumed to be
-non-periodic unless there is the ParmParse integer array
-parameter geometry.is_periodic with 0 denoting
+non-periodic unless there is the :cpp:`ParmParse` integer array
+parameter ``geometry.is_periodic`` with 0 denoting
 non-periodic and 1 denoting periodic. Below is an example of
-defining a Geometry for a periodic rectangular domain of
+defining a :cpp:`Geometry` for a periodic rectangular domain of
 :math:`[-1.0,1.0]` in each direction discretized with :math:`64` numerical cells
 in each direction.
+
+.. highlight:: c++
 
 ::
 
@@ -574,7 +618,7 @@ in each direction.
       // This defines a Geometry object
       Geometry geom(domain, &real_box, coord, is_periodic.data());
 
-A Geometry object can return various information of the physical
+A :cpp:`Geometry` object can return various information of the physical
 domain and the indexing space domain. For example,
 
 ::
@@ -587,15 +631,18 @@ domain and the indexing space domain. For example,
       if (Geometry::isAllPeriodic()) {}      // Periodic in all direction?
       if (Geometry::isAnyPeriodic()) {}      // Periodic in any direction?
 
+
 .. _sec:basics:ba:
 
 BoxArray
 ========
 
-BoxArray is a class in AMReX_BoxArray.H for storing a
+:cpp:`BoxArray` is a class in AMReX_BoxArray.H for storing a
 collection of Boxes on a single AMR level. One can make a
-BoxArray out of a single Box and then chop it into multiple
+:cpp:`BoxArray` out of a single :cpp:`Box` and then chop it into multiple
 Boxes.
+
+.. highlight:: c++
 
 ::
 
@@ -607,6 +654,8 @@ Boxes.
 
 The output is like below,
 
+.. highlight:: c++
+
 ::
 
       (BoxArray maxbox(8)
@@ -616,22 +665,23 @@ The output is like below,
       ((0,0,64) (63,63,127) (0,0,0)) ((64,0,64) (127,63,127) (0,0,0))
       ((0,64,64) (63,127,127) (0,0,0)) ((64,64,64) (127,127,127) (0,0,0)) )
 
-It shows that ba now has 8 Boxes, and it also prints out
-each Box.
+It shows that ba now has 8 Boxes, and it also prints out each Box.
 
-In , BoxArray is a global data structure. It holds all
+In AMReX, :cpp:`BoxArray` is a global data structure. It holds all
 the Boxes in a collection, even though a single process in a
 parallel run only owns some of the Boxes via domain
 decomposition. In the example above, a 4-process run may divide the
 work and each process owns say 2 Boxes
-(Section `12 <#sec:basics:dm>`__). Each process can then allocate memory
+(cf section on :ref:`sec:basics:dm`). Each process can then allocate memory
 for the floating point data on the Boxes it owns
-(Sections `14 <#sec:basics:multifab>`__ & `13 <#sec:basics:fab>`__).
+(cf sections on :ref:`sec:basics:multifab` & :ref:`sec:basics:fab`).
 
-BoxArray has an indexing type, just like Box. Each
+:cpp:`BoxArray` has an indexing type, just like :cpp:`Box`. Each
 Box in a BoxArray has the same type as the BoxArray
 itself. In the following example, we show how one can convert
 BoxArray to a different type.
+
+.. highlight:: c++
 
 ::
 
@@ -645,20 +695,24 @@ BoxArray to a different type.
       Print() << faceba[0] << "\n";  // ((0,0,0) (63,63,64) (0,0,1))  
       Print() << nodeba[0] << "\n";  // ((0,0,0) (64,64,64) (1,1,1))
 
-As shown in the example above, BoxArray has an operator[]
-that returns a Box given an index. It should be emphasized that
+As shown in the example above, :cpp:`BoxArray` has an :cpp:`operator[]`
+that returns a :cpp:`Box` given an index. It should be emphasized that
 there is a difference between its behavior and the usual behavior of
 an subscript operator one might expect. The subscript operator in
-BoxArray returns by value instead of reference. This means code
+:cpp:`BoxArray` returns by **value instead of reference**. This means code
 like below is meaningless because it modifies a temporary return
 value.
+
+.. highlight:: c++
 
 ::
 
       ba[3].coarsen(2);  // DO NOT DO THIS!  Doesn't do what one might expect.
 
-BoxArray has a number of member functions that allow the
+:cpp:`BoxArray` has a number of member functions that allow the
 Boxes to be modified. For example,
+
+.. highlight:: c++
 
 ::
 
@@ -667,22 +721,23 @@ Boxes to be modified. For example,
       BoxArray& coarsen (int refinement_ratio);  // Coarsen each Box in BoxArray
       BoxArray& coarsen (const IntVect& refinement_ratio);
 
-We have mentioned at the beginning of this section that BoxArray
+We have mentioned at the beginning of this section that :cpp:`BoxArray`
 is a global data structure storing Boxes shared by all processes.
 The operation of a deep copy is thus undesirable because it
 is expensive and the extra copy wastes memory. The
-implementation of the BoxArray class uses std::shared_ptr
+implementation of the :cpp:`BoxArray` class uses :cpp:`std::shared_ptr`
 to an internal container holding the actual Box data. Thus
-making a copy of BoxArray is a quite cheap operation. The
+making a copy of :cpp:`BoxArray` is a quite cheap operation. The
 conversion of types and coarsening are also cheap because they can
-share the internal data with the original BoxArray. In our
-implementation, function
-refine does create a new deep copy of the original data. Also
-note that a BoxArray and its variant with a different type share
-the same internal data is an implementation detail. We discuss this
-so that the users are aware of the performance and resource cost.
-Conceptually we can think of them as completely independent of each
+share the internal data with the original :cpp:`BoxArray`. In our
+implementation, function :cpp:`refine` does create a new deep copy of the 
+original data. Also note that a :cpp:`BoxArray` and its variant with a 
+different type share the same internal data is an implementation detail. 
+We discuss this so that the users are aware of the performance and resource 
+cost. Conceptually we can think of them as completely independent of each
 other.
+
+.. highlight:: c++
 
 ::
 
@@ -691,12 +746,12 @@ other.
       ba2.coarsen(2);    // Modify the copy
       // The original copy is unmodified even though they share internal data.
 
-For advanced users,  provides functions performing the
-intersection of a BoxArray and a Box. These functions are
+For advanced users, AMReX provides functions performing the
+intersection of a :cpp:`BoxArray` and a :cpp:`Box`. These functions are
 much faster than a naive implementation of performing intersection of
 the Box with each Box in the BoxArray. If one needs
-to perform those intersections, functions amrex::intersect,
-BoxArray::intersects and BoxArray::intersections should be
+to perform those intersections, functions :cpp:`amrex::intersect`,
+:cpp:`BoxArray::intersects` and :cpp:`BoxArray::intersections` should be
 used.
 
 .. _sec:basics:dm:
