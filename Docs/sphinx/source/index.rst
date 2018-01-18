@@ -30,9 +30,9 @@ AMReX directory as license.txt.
    Chapter3
    Chapter4
    Boundary
-   AmrCore
-   Amr
-   Particles
+   Chapter6
+   Chapter7
+   Chapter8
    Fortran
    EB
    Visualization
