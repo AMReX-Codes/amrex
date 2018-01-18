@@ -2,8 +2,10 @@
 #define CNS_H_
 
 #include <AMReX_AmrLevel.H>
+#include <AMReX_EBCellFlag.H>
 #include <AMReX_EBFluxRegister.H>
 
+using namespace amrex;
 class CNS
     :
     public amrex::AmrLevel
@@ -120,6 +122,12 @@ protected:
 
     // Compute initial time step.
     amrex::Real initialTimeStep ();
+
+  void printPointStuff(const EBCellFlag& flag, 
+                       const IntVect&    a_iv,
+                       const MFIter &    a_mfi) const;
+
+  void testEBStuff() const;
 
     void computeTemp (amrex::MultiFab& State, int ng);
 

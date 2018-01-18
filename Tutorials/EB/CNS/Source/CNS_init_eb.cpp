@@ -205,6 +205,27 @@ initialize_EBIS(const int max_level)
 
             impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
           }
+          else if (geom_type == "ramp_normal_point")
+          {
+            amrex::Print() << "ramp geometry using normal and point directly \n";
+            RealVect normal;
+            RealVect point;
+            Vector<Real> pointvec; 
+            Vector<Real> normalvec;
+            int inside;
+            pp.getarr("ramp_normal", normalvec, 0, SpaceDim);
+            pp.getarr("ramp_point" ,  pointvec, 0, SpaceDim);
+            pp.get("ramp_inside", inside);
+            bool normalInside = (inside == 0);
+            for(int idir = 0; idir < SpaceDim; idir++)
+            {
+              point[idir]  =  pointvec[idir];
+              normal[idir] = normalvec[idir];
+            }
+
+
+            impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
+          }
           else if (geom_type == "anisotropic_ramp")
           {
             amrex::Print() << "anisotropic ramp geometry\n";
