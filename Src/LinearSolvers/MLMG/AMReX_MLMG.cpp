@@ -896,7 +896,6 @@ MLMG::prepareForMSolve ()
     m_m_sol->setVal(0.0);
     m_m_rhs->setVal(0.0);
 
-    m_m_linop->setCoarseFineBC(m_m_sol.get(), 1);
     m_m_linop->setLevelBC(0, m_m_sol.get());
     
     m_m_mlmg.reset(new MLMG(*m_m_linop));

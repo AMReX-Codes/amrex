@@ -254,6 +254,8 @@ MLPoisson::makeMLinOp () const
 
     mop->setDomainBC(m_lobc, m_hibc);
 
+    mop->setCoarseFineBC(nullptr, 1);
+
     mop->setScalars(1.0, -1.0);
 
     const BoxArray& myba = m_grids[0].back();
