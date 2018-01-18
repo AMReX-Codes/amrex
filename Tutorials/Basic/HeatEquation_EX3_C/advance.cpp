@@ -15,6 +15,16 @@ void advance (MultiFab& phi_old,
               const DistributionMapping& dmap, 
               const Vector<BCRec>& bc)
 {
+    /*
+      We use an MLABecLaplacian operator:
+
+      (ascalar*acoef - bscalar div bcoef grad) phi = RHS
+
+      for an implicit discretization of the heat equation
+
+      (I - div dt grad) phi^{n+1} = phi^n
+     */
+
 
     // Fill the ghost cells of each grid from the other grids
     // includes periodic domain boundaries
@@ -22,32 +32,19 @@ void advance (MultiFab& phi_old,
 
     // Fill non-periodic physical boundaries
     FillDomainBoundary(phi_old, geom, bc);
-
-    // For MLMG solver
-    int verbose = 2;
-    int cg_verbose = 0;
-    int max_iter = 100;
-    int max_fmg_iter = 0;
-    int linop_maxorder = 2;
-    bool agglomeration = true;
-    bool consolidation = true;
-
+    
+    // assorment of solver and parallization options and parameters
+    // see AMReX_MLLinOp.H for the defaults, accessors, and mutators
     LPInfo info;
-    info.setAgglomeration(agglomeration);
-    info.setConsolidation(consolidation);
 
-    const Real tol_rel  = 1.e-10;
-    const Real tol_abs = 0.0;
-
-    //
     // Implicit solve using MLABecLaplacian class
-    // Assume composite solve, composite_solve = 1
-    // 
     MLABecLaplacian mlabec({geom}, {grids}, {dmap}, info);
     
+    // order of stencil
+    int linop_maxorder = 2;
     mlabec.setMaxOrder(linop_maxorder);
 
-    // Implement BCs 
+    // build array of boundary conditions needed by MLABecLaplacian
     // see Src/Boundary/AMReX_LO_BCTYPES.H for supported types
     std::array<LinOpBCType,AMREX_SPACEDIM> bc_lo;
     std::array<LinOpBCType,AMREX_SPACEDIM> bc_hi;
@@ -86,40 +83,52 @@ void advance (MultiFab& phi_old,
 	}
     }
 
+    // tell the solver what the domain boundary conditions are
     mlabec.setDomainBC(bc_lo, bc_hi);
     
+    // set the boundary conditions
     mlabec.setLevelBC(0, &phi_old);
 
+    // scaling factors
     Real ascalar = 1.0;
     Real bscalar = 1.0;
     mlabec.setScalars(ascalar, bscalar);
 
     // Set up coefficient matrices
     MultiFab acoef(grids, dmap, 1, 0);
-    MultiFab bcoef(grids, dmap, 1, 1);
 
+    // fill in the acoef MultiFab and load this into the solver
     acoef.setVal(1.0);
-    bcoef.setVal(dt);
-
     mlabec.setACoeffs(0, acoef);
 	    
+    // bcoef lives on faces so we make an array of face-centered MultiFabs
+    // then we will in face_bcoef MultiFabs and load them into the solver.
     std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-	const BoxArray& ba = amrex::convert(bcoef.boxArray(),
+	const BoxArray& ba = amrex::convert(acoef.boxArray(),
 					    IntVect::TheDimensionVector(idim));
-	face_bcoef[idim].define(ba, bcoef.DistributionMap(), 1, 0);
-
+	face_bcoef[idim].define(ba, acoef.DistributionMap(), 1, 0);
 	face_bcoef[idim].setVal(dt);
-    };
-
+    }
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
 
+    // build an MLMG solver
     MLMG mlmg(mlabec);
+
+    // set solver parameters
+    int max_iter = 100;
     mlmg.setMaxIter(max_iter);
+    int max_fmg_iter = 0;
     mlmg.setMaxFmgIter(max_fmg_iter);
+    int verbose = 2;
     mlmg.setVerbose(verbose);
+    int cg_verbose = 0;
     mlmg.setCGVerbose(cg_verbose);
+
+    // relative and absolute tolerances for linear solve
+    const Real tol_rel = 1.e-10;
+    const Real tol_abs = 0.0;
 
     // Solve linear system
     mlmg.solve({&phi_new}, {&phi_old}, tol_rel, tol_abs);
