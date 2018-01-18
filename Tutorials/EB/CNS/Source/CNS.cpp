@@ -127,7 +127,7 @@ testEBStuff() const
   const MultiFab& S_new = get_new_data(State_Type);
   for(int idir = 0; idir < SpaceDim; idir++)
   {
-    if(idir != 2)
+    if(idir != 1)
     {
       for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
       {
@@ -147,7 +147,7 @@ testEBStuff() const
           {
             amrex::Print() << sideboxlo << " is regular" << endl;
           }
-          else
+//          else
           {
             for(BoxIterator bit(sideboxlo); bit.ok(); ++bit)
             {
@@ -166,7 +166,7 @@ testEBStuff() const
           {
             amrex::Print() << sideboxhi << " is regular" << endl;
           }
-          else
+//          else
           {
             for(BoxIterator bit(sideboxhi); bit.ok(); ++bit)
             {
