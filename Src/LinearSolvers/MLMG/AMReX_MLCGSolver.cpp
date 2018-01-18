@@ -8,6 +8,7 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_ParallelReduce.H>
 
 #ifdef _OPENMP
 #include <omp.h>

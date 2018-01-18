@@ -3,12 +3,20 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_Vector.H>
+#include <type_traits>
 
 namespace amrex {
 
 namespace ParallelAllReduce {
 
 #ifdef BL_USE_MPI
+
+    inline void GccPlacater ()
+    {
+        std::allocator<int> foo;
+        std::allocator<Real> bar;
+    }
 
     template<typename T>
     void Max (T& v, MPI_Comm comm)
