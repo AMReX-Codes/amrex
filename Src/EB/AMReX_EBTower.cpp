@@ -271,6 +271,91 @@ EBTower::getIndex (const Box& domain) const
     return std::distance(m_domains.begin(), bx_it);
 }
 
+Vector<Box> 
+EBTower::
+getPeriodicGhostBoxes(const Box        & a_valid, 
+                      const Box        & a_domain,
+                      const int        & a_ngrow, 
+                      const Periodicity& a_peri) 
+{
+  Vector<Box> ghostBoxes;
+  //first get the flaps only in one direction
+  for(int idir = 0; idir < SpaceDim; idir++)
+  {
+    if(a_peri.isPeriodic(idir))
+    {
+      Box flapBoxLo = adjCellLo(a_valid, idir, a_ngrow);
+      Box flapBoxHi = adjCellHi(a_valid, idir, a_ngrow);
+      if(!a_domain.contains(flapBoxLo))
+      {
+        ghostBoxes.push_back(flapBoxLo);
+      }
+      if(!a_domain.contains(flapBoxHi))
+      {
+        ghostBoxes.push_back(flapBoxHi);
+      }
+    }
+  }
+  //now for the edge boxes 
+  for(int idir = 0; idir < SpaceDim; idir++)
+  {
+    for(int jdir = 0; jdir < SpaceDim; jdir++)
+    {
+      if(idir < jdir) //do not want to do 01 and 10
+      {
+        if((a_peri.isPeriodic(idir)) && (a_peri.isPeriodic(jdir)))
+        {
+          Box flapBoxLoI = adjCellLo(a_valid, idir, a_ngrow);
+          Box flapBoxHiI = adjCellHi(a_valid, idir, a_ngrow);
+          Box flapBoxLoJ = adjCellLo(a_valid, jdir, a_ngrow);
+          Box flapBoxHiJ = adjCellHi(a_valid, jdir, a_ngrow);
+          vector<Box> edgeBoxes(4);
+          edgeBoxes[0] = flapBoxLoI & flapBoxLoJ;
+          edgeBoxes[1] = flapBoxHiI & flapBoxLoJ;
+          edgeBoxes[2] = flapBoxLoI & flapBoxHiJ;
+          edgeBoxes[3] = flapBoxHiI & flapBoxHiJ;
+          for(int iedge = 0; iedge < 4; iedge++)
+          {
+            if(!a_domain.contains(edgeBoxes[iedge]))
+            {
+              ghostBoxes.push_back(edgeBoxes[iedge]);
+            }
+          }
+        }
+      }
+    }
+  }
+  //in 3d, there are corner boxes as well
+  if(SpaceDim==3 && a_peri.isAllPeriodic())
+  {
+    Box flapBoxLoI = adjCellLo(a_valid, 0, a_ngrow);
+    Box flapBoxHiI = adjCellHi(a_valid, 0, a_ngrow);
+    Box flapBoxLoJ = adjCellLo(a_valid, 1, a_ngrow);
+    Box flapBoxHiJ = adjCellHi(a_valid, 1, a_ngrow);
+    Box flapBoxLoK = adjCellLo(a_valid, 2, a_ngrow);
+    Box flapBoxHiK = adjCellHi(a_valid, 2, a_ngrow);
+    vector<Box> cornerBoxes(8);
+    
+    
+    cornerBoxes[0] = flapBoxLoI & flapBoxLoJ & flapBoxLoK; //lololo
+    cornerBoxes[1] = flapBoxHiI & flapBoxLoJ & flapBoxLoK; //hilolo
+    cornerBoxes[2] = flapBoxHiI & flapBoxHiJ & flapBoxLoK; //hihilo
+    cornerBoxes[3] = flapBoxLoI & flapBoxHiJ & flapBoxLoK; //lohilo
+
+    cornerBoxes[4] = flapBoxLoI & flapBoxLoJ & flapBoxHiK; //lolohi
+    cornerBoxes[5] = flapBoxHiI & flapBoxLoJ & flapBoxHiK; //hilohi
+    cornerBoxes[6] = flapBoxHiI & flapBoxHiJ & flapBoxHiK; //hihihi
+    cornerBoxes[7] = flapBoxLoI & flapBoxHiJ & flapBoxHiK; //lohihi
+    for(int icorner = 0; icorner < 8; icorner++)
+    {
+      if(!a_domain.contains(cornerBoxes[icorner]))
+      {
+        ghostBoxes.push_back(cornerBoxes[icorner]);
+      }
+    }
+  }
+  return ghostBoxes;
+}
 void
 EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom)
 {
@@ -309,21 +394,26 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             {
               Periodicity peri = a_geom.periodicity();
               vector<IntVect> periodicShifts = peri.shiftIntVect();
-              for(int ivec = 0; ivec < periodicShifts.size(); ivec++)
+              int ngrow = a_flag.nGrow();
+              Vector<Box> ghostBoxes = getPeriodicGhostBoxes(bx, domain, ngrow, peri);
+              for(int ibox = 0; ibox < ghostBoxes.size(); ibox++)
               {
-                const IntVect ivshift = periodicShifts[ivec];
-                Box shiftbox = bx;
-                shiftbox.shift(ivshift);
-                std::vector<std::pair<int,Box> > psects;
-                cov_ba.intersections(shiftbox, psects);
-                for(int ibox = 0; ibox < psects.size(); ibox++)
+                for(int ivec = 0; ivec < periodicShifts.size(); ivec++)
                 {
-                  Box peribox = psects[ibox].second;
-                  //shift back to where the fab actually is
-                  peribox.shift(-ivshift);
-                  fab.setVal(cov_val, peribox, 0, 1);
-                }
+                  const IntVect ivshift = periodicShifts[ivec];
+                  Box shiftbox = ghostBoxes[ibox];
+                  shiftbox.shift(ivshift);
+                  std::vector<std::pair<int,Box> > psects;
+                  cov_ba.intersections(shiftbox, psects);
+                  for(int jbox = 0; jbox < psects.size(); jbox++)
+                  {
+                    Box peribox = psects[jbox].second;
+                    //shift back to where the fab actually is
+                    peribox.shift(-ivshift);
+                    fab.setVal(cov_val, peribox, 0, 1);
+                  }
               
+                }
               }
             }
             // fix type and region for each fab

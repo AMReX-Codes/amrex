@@ -425,12 +425,42 @@ initialize_EBIS(const int max_level)
         
 
             IntersectionIF* intersectif = new IntersectionIF(planes);
-            UnionIF* unionif = new UnionIF(planes);
+//            UnionIF* unionif = new UnionIF(planes);
 
             impfunc.reset(intersectif);
         
           }
       
+          else if (geom_type == "double_ramp")
+          {
+            amrex::Print() << "box within a box" << endl;
+            bool inside = true;  
+            
+            // A list of all the polygons as implicit functions
+            Vector<BaseIF*> planes;
+            // Process each polygon
+            int idir = 1;
+            {
+//              Real domlen = fine_dx*finest_domain.size()[idir];
+              RealVect pointLo = 10.0*BASISREALV(idir);
+              RealVect pointHi = 19.0*BASISREALV(idir);
+              RealVect normalLo = BASISREALV(idir);
+              RealVect normalHi = -BASISREALV(idir);
+              PlaneIF* planeLo = new PlaneIF(normalLo,pointLo,inside);
+              PlaneIF* planeHi = new PlaneIF(normalHi,pointHi,inside);
+
+              planes.push_back(planeLo);
+              planes.push_back(planeHi);
+            }
+            
+        
+
+            IntersectionIF* intersectif = new IntersectionIF(planes);
+//            UnionIF* unionif = new UnionIF(planes);
+
+            impfunc.reset(intersectif);
+        
+          }
           else if (geom_type == "polygon_revolution")
           {
             amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;
