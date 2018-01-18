@@ -14,14 +14,14 @@ namespace amrex {
 * DEBUG=TRUE.
 */
 
-template <class T>
+template <class T, class Allocator = std::allocator<T> >
 class Vector
     :
-    public std::vector<T>
+    public std::vector<T, Allocator>
 {
 public:
 
-    using std::vector<T>::vector;
+    using std::vector<T,Allocator>::vector;
 
     T& operator[] (std::size_t i)
     {
