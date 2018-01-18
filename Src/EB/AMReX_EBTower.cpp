@@ -305,15 +305,20 @@ getPeriodicGhostBoxes(const Box        & a_valid,
       {
         if((a_peri.isPeriodic(idir)) && (a_peri.isPeriodic(jdir)))
         {
-          Box flapBoxLoI = adjCellLo(a_valid, idir, a_ngrow);
-          Box flapBoxHiI = adjCellHi(a_valid, idir, a_ngrow);
-          Box flapBoxLoJ = adjCellLo(a_valid, jdir, a_ngrow);
-          Box flapBoxHiJ = adjCellHi(a_valid, jdir, a_ngrow);
+          Box flapBoxLoI    = adjCellLo(a_valid   , idir, a_ngrow);
+          Box flapBoxHiI    = adjCellHi(a_valid   , idir, a_ngrow);
+
+          Box edgeBoxLoILoJ = adjCellLo(flapBoxLoI, jdir, a_ngrow);
+          Box edgeBoxHiILoJ = adjCellLo(flapBoxHiI, jdir, a_ngrow);
+          Box edgeBoxLoIHiJ = adjCellHi(flapBoxLoI, jdir, a_ngrow);
+          Box edgeBoxHiIHiJ = adjCellHi(flapBoxHiI, jdir, a_ngrow);
+
+
           vector<Box> edgeBoxes(4);
-          edgeBoxes[0] = flapBoxLoI & flapBoxLoJ;
-          edgeBoxes[1] = flapBoxHiI & flapBoxLoJ;
-          edgeBoxes[2] = flapBoxLoI & flapBoxHiJ;
-          edgeBoxes[3] = flapBoxHiI & flapBoxHiJ;
+          edgeBoxes[0] = edgeBoxLoILoJ;
+          edgeBoxes[1] = edgeBoxHiILoJ;
+          edgeBoxes[2] = edgeBoxLoIHiJ;
+          edgeBoxes[3] = edgeBoxHiIHiJ;
           for(int iedge = 0; iedge < 4; iedge++)
           {
             if(!a_domain.contains(edgeBoxes[iedge]))
@@ -328,24 +333,35 @@ getPeriodicGhostBoxes(const Box        & a_valid,
   //in 3d, there are corner boxes as well
   if(SpaceDim==3 && a_peri.isAllPeriodic())
   {
-    Box flapBoxLoI = adjCellLo(a_valid, 0, a_ngrow);
-    Box flapBoxHiI = adjCellHi(a_valid, 0, a_ngrow);
-    Box flapBoxLoJ = adjCellLo(a_valid, 1, a_ngrow);
-    Box flapBoxHiJ = adjCellHi(a_valid, 1, a_ngrow);
-    Box flapBoxLoK = adjCellLo(a_valid, 2, a_ngrow);
-    Box flapBoxHiK = adjCellHi(a_valid, 2, a_ngrow);
+    Box flapBoxLoI    = adjCellLo(a_valid   , 0, a_ngrow);
+    Box flapBoxHiI    = adjCellHi(a_valid   , 0, a_ngrow);
+
+    Box edgeBoxLoILoJ = adjCellLo(flapBoxLoI, 1, a_ngrow);
+    Box edgeBoxHiILoJ = adjCellLo(flapBoxHiI, 1, a_ngrow);
+    Box edgeBoxLoIHiJ = adjCellHi(flapBoxLoI, 1, a_ngrow);
+    Box edgeBoxHiIHiJ = adjCellHi(flapBoxHiI, 1, a_ngrow);
+
+
+    Box cornerBoxLoILoJLoK = adjCellLo(edgeBoxLoILoJ, 2, a_ngrow);
+    Box cornerBoxHiILoJLoK = adjCellLo(edgeBoxHiILoJ, 2, a_ngrow);
+    Box cornerBoxLoIHiJLoK = adjCellLo(edgeBoxLoIHiJ, 2, a_ngrow);
+    Box cornerBoxHiIHiJLoK = adjCellLo(edgeBoxHiIHiJ, 2, a_ngrow);
+    Box cornerBoxLoILoJHiK = adjCellHi(edgeBoxLoILoJ, 2, a_ngrow);
+    Box cornerBoxHiILoJHiK = adjCellHi(edgeBoxHiILoJ, 2, a_ngrow);
+    Box cornerBoxLoIHiJHiK = adjCellHi(edgeBoxLoIHiJ, 2, a_ngrow);
+    Box cornerBoxHiIHiJHiK = adjCellHi(edgeBoxHiIHiJ, 2, a_ngrow);
+
     vector<Box> cornerBoxes(8);
     
-    
-    cornerBoxes[0] = flapBoxLoI & flapBoxLoJ & flapBoxLoK; //lololo
-    cornerBoxes[1] = flapBoxHiI & flapBoxLoJ & flapBoxLoK; //hilolo
-    cornerBoxes[2] = flapBoxHiI & flapBoxHiJ & flapBoxLoK; //hihilo
-    cornerBoxes[3] = flapBoxLoI & flapBoxHiJ & flapBoxLoK; //lohilo
+    cornerBoxes[0] = cornerBoxLoILoJLoK;
+    cornerBoxes[1] = cornerBoxHiILoJLoK;
+    cornerBoxes[2] = cornerBoxLoIHiJLoK;
+    cornerBoxes[3] = cornerBoxHiIHiJLoK;
+    cornerBoxes[4] = cornerBoxLoILoJHiK;
+    cornerBoxes[5] = cornerBoxHiILoJHiK;
+    cornerBoxes[6] = cornerBoxLoIHiJHiK;
+    cornerBoxes[7] = cornerBoxHiIHiJHiK;
 
-    cornerBoxes[4] = flapBoxLoI & flapBoxLoJ & flapBoxHiK; //lolohi
-    cornerBoxes[5] = flapBoxHiI & flapBoxLoJ & flapBoxHiK; //hilohi
-    cornerBoxes[6] = flapBoxHiI & flapBoxHiJ & flapBoxHiK; //hihihi
-    cornerBoxes[7] = flapBoxLoI & flapBoxHiJ & flapBoxHiK; //lohihi
     for(int icorner = 0; icorner < 8; icorner++)
     {
       if(!a_domain.contains(cornerBoxes[icorner]))
