@@ -234,6 +234,22 @@ MLCellLinOp::makeMGrids () const
     
     const int m_grid_size = info.mc_grid_size;
 
+    Box bbx = old_ba.minimalBox();
+    bbx.coarsen(m_grid_size);
+    bbx.refine(m_grid_size);
+    bbx &= geom.Domain();
+
+    BoxArray ba{bbx};
+    ba.maxSize(m_grid_size);
+
+    if (verbose > 0) {
+        amrex::Print() << "M-Solve: number of points: " << old_ba.numPts()
+                       << ", " << ba.numPts() << "\n";
+    }
+
+    return ba;
+
+#if 0
     const IntVect sz = geom.Domain().size();
     IntVect N;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -266,6 +282,7 @@ MLCellLinOp::makeMGrids () const
 #endif
 
     return BoxArray{std::move(bl)};
+#endif
 }
 
 void
