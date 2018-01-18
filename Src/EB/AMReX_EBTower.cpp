@@ -296,12 +296,36 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             auto& fab = a_flag[mfi];
             const Box& bx = fab.box() & domain;
 
-            // covered cells
+            // covered cells -- intersect box with
+            // box array of covered boxes
             cov_ba.intersections(bx, isects);
-            for (const auto& is : isects) {
-                fab.setVal(cov_val, is.second, 0, 1);
+            for (const auto& is : isects) 
+            {
+              fab.setVal(cov_val, is.second, 0, 1);
             }
 
+            //now shift box for periodicity and do the same thing
+            if(a_geom.isAnyPeriodic())
+            {
+              Periodicity peri = a_geom.periodicity();
+              vector<IntVect> periodicShifts = peri.shiftIntVect();
+              for(int ivec = 0; ivec < periodicShifts.size(); ivec++)
+              {
+                const IntVect ivshift = periodicShifts[ivec];
+                Box shiftbox = bx;
+                shiftbox.shift(ivshift);
+                std::vector<std::pair<int,Box> > psects;
+                cov_ba.intersections(shiftbox, psects);
+                for(int ibox = 0; ibox < psects.size(); ibox++)
+                {
+                  Box peribox = psects[ibox].second;
+                  //shift back to where the fab actually is
+                  peribox.shift(-ivshift);
+                  fab.setVal(cov_val, peribox, 0, 1);
+                }
+              
+              }
+            }
             // fix type and region for each fab
             fab.setRegion(bx);
             fab.setType(FabType::undefined);
@@ -309,7 +333,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             fab.setType(typ);
         }
     }
-    a_flag.EnforcePeriodicity(a_geom.periodicity());
+
 }
 
 void
