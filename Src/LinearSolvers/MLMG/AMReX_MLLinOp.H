@@ -20,6 +20,7 @@ struct LPInfo
     bool has_metric_term = true;
     bool do_m_coarsening = false;
     int mc_crse_ratio = 2;
+    int mc_grid_size = 64;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
@@ -31,6 +32,7 @@ struct LPInfo
         mc_crse_ratio = x.second;
         return *this;
     }
+    LPInfo& setMSolveGridSize (int x) { mc_grid_size = x; return *this; }
 };
 
 class MLLinOp

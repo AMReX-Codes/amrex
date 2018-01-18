@@ -232,7 +232,7 @@ MLCellLinOp::makeMGrids () const
     const Geometry& geom = m_geom[0].back();
     const BoxArray& old_ba = m_grids[0].back();
     
-    const int m_grid_size = 64;
+    const int m_grid_size = info.mc_grid_size;
 
     const IntVect sz = geom.Domain().size();
     IntVect N;
