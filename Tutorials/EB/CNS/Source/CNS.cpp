@@ -112,7 +112,7 @@ CNS::initData ()
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(1.0);
 
-#if 0
+#if 1
     testEBStuff();
 #endif
 
@@ -127,53 +127,19 @@ testEBStuff() const
   const MultiFab& S_new = get_new_data(State_Type);
   for(int idir = 0; idir < SpaceDim; idir++)
   {
-    if(idir != 1)
+    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
-      for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-      {
       
-        Box validbox = mfi.validbox();
-        Box sideboxlo = adjCellLo(validbox, idir);
-        Box sideboxhi = adjCellHi(validbox, idir);
-        const EBFArrayBox& sfab = dynamic_cast<EBFArrayBox const&>(S_new[mfi]);
-        const EBCellFlagFab& flagfab = sfab.getEBCellFlagFab();
-        if(!domain.contains(sideboxlo))
+      Box validbox = mfi.validbox();
+      Box grownbox = grow(validbox, 1);
+      const EBFArrayBox& sfab = dynamic_cast<EBFArrayBox const&>(S_new[mfi]);
+      const EBCellFlagFab& flagfab = sfab.getEBCellFlagFab();
+      for(BoxIterator bit(grownbox); bit.ok(); ++bit)
+      {
+        if(!domain.contains(bit()))
         {
-          if(flagfab.getType(sideboxlo) == FabType::covered)
-          {
-            amrex::Print() << sideboxlo << " is covered" << endl;
-          }
-          else if(flagfab.getType(sideboxlo) == FabType::regular)
-          {
-            amrex::Print() << sideboxlo << " is regular" << endl;
-          }
-//          else
-          {
-            for(BoxIterator bit(sideboxlo); bit.ok(); ++bit)
-            {
-              const EBCellFlag& flag = flagfab(bit(), 0); 
-              printPointStuff(flag, bit(), mfi);
-            }
-          }
-        }
-        if(!domain.contains(sideboxhi))
-        {
-          if(flagfab.getType(sideboxhi) == FabType::covered)
-          {
-            amrex::Print() << sideboxhi << " is covered" << endl;
-          }
-          else if(flagfab.getType(sideboxhi) == FabType::regular)
-          {
-            amrex::Print() << sideboxhi << " is regular" << endl;
-          }
-//          else
-          {
-            for(BoxIterator bit(sideboxhi); bit.ok(); ++bit)
-            {
-              const EBCellFlag& flag = flagfab(bit(), 0); 
-              printPointStuff(flag, bit(), mfi);
-            }
-          }
+          const EBCellFlag& flag = flagfab(bit(), 0); 
+          printPointStuff(flag, bit(), mfi);
         }
       }
     }
