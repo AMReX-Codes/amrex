@@ -1,5 +1,7 @@
+.. _Chap:Boundary:
+
 Boundary Conditions
-============================
+===================
 
 This chapter describes how to implement domain boundary conditions in .
 A ghost cell that is outside of the valid region can be thought of as either
@@ -10,13 +12,14 @@ but are ultimately linked to mathematical Dirichlet or Neumann conditions.
 The basic idea behind physical boundary conditions is as follows:
 
 -  Create a BCRec object, which is essentially a multidimensional integer array of
-   2\*DIM components. Each component defines a boundary condition type for
+   2*DIM components. Each component defines a boundary condition type for
    the lo/hi side of the domain, for each direction.
-   See Src/Base/AMReX\_BC\_TYPES.H for common physical and mathematical types.
+   See Src/Base/AMReX_BC_TYPES.H for common physical and mathematical types.
    If there is more than one variable, we can create an array of BCRec objects,
    and pass in a pointer to the 0-index component since the arrays for all the
    components are contiguous in memory.
-   Here we need to provide boundary types to each component of the MultiFab. Below is an example of setting up Vector<BCRec>
+   Here we need to provide boundary types to each component of the
+   MultiFab. Below is an example of setting up Vector<BCRec>
    before the call to ghost cell routines.
 
    ::
@@ -42,10 +45,10 @@ The basic idea behind physical boundary conditions is as follows:
 
    amrex::BCType has the following types,
 
-       int\_dir
+       int_dir
            Interior, including periodic boundary
 
-       ext\_dir
+       ext_dir
            “External Dirichlet”. It is the user’s responsibility to write a routine
            to fill ghost cells (more details below).
 
@@ -53,11 +56,11 @@ The basic idea behind physical boundary conditions is as follows:
            “First Order Extrapolation”
            First order extrapolation from last cell in interior.
 
-       reflect\_even
+       reflect_even
            Reflection from interior cells with sign
            unchanged, :math:`q(-i) = q(i)`.
 
-       reflect\_odd
+       reflect_odd
            Reflection from interior cells with sign
            unchanged, :math:`q(-i) = -q(i)`.
 
@@ -78,7 +81,7 @@ For single-level codes built from Src/Base (excluding the
 Src/AmrCore and Src/Amr source code directories), you will have
 single-level MultiFabs filled with data in the valid region where you need
 to fill the ghost cells on each grid. There are essentially three ways to fill the ghost
-cells. (refer to Tutorials/Basic/HeatEquation\_EX2\_C for an example).
+cells. (refer to Tutorials/Basic/HeatEquation_EX2_C for an example).
 
 ::
 
@@ -97,23 +100,31 @@ cells. (refer to Tutorials/Basic/HeatEquation\_EX2\_C for an example).
     // fills physical domain boundary ghost cells
     FillDomainBoundary(mf, geom, bc);
 
-FillDomainBoundary() is a function is in Src/Base/AMReX\_BCUtil.cpp,
-and is essentially an interface to fortran subroutine amrex\_fab\_filcc()
-in Src/Base/AMReX\_filcc\_mod.F90, which ultimately calls fortran
-subroutine filcc() in Src/Base/AMReX\_FILCC\_XD.F. To create more
+FillDomainBoundary() is a function is in Src/Base/AMReX_BCUtil.cpp,
+and is essentially an interface to fortran subroutine amrex_fab_filcc()
+in Src/Base/AMReX_filcc_mod.F90, which ultimately calls fortran
+subroutine filcc() in Src/Base/AMReX_FILCC_XD.F. To create more
 custom boundary conditions, create a local modified copy of
-Src/Base/AMReX\_FILCC\_XD.F and put it your local source code.
+Src/Base/AMReX_FILCC_XD.F and put it your local source code.
 
-For multi-level codes using the Src\_AmrCore source code, the
+For multi-level codes using the Src_AmrCore source code, the
 functions described above still work, however additional classes need to
 be set up since the FillPatch routines call them.
 In fact it is possible to avoid using the single-level calls directly if
 you fill all your grids and ghost cells using the FillPatch routines.
-Refer to Tutorials/Amr/Advection\_AmrCore/ for an example.
-The class PhysBCFunct in Src/Base/AMReX\_PhysBCFunct.cpp
+Refer to Tutorials/Amr/Advection_AmrCore/ for an example.
+The class PhysBCFunct in Src/Base/AMReX_PhysBCFunct.cpp
 is derived from PhysBCFunctBase and contains a BCRec, Geometry,
 and a pointer to a BndryFunctBase function.
 
-The function FillBoundary fills physical ghost cells (so it has a different
-functionality from the single-level case described above, where FillDomainBoundary
-fills the physical ghost cells).
+Note that PhyBCFunct is an example of how to derive from PhysBCFunctBase and is
+not meant to be a base class. PhysBCFunctBase is the base class.
+PhysBCFunctBase is designed for users to derive and extend.
+You could/should write your own class derived from PhysBCFuncBase.
+There you can make modifications such as storing a vector of BCRecs for, e.g.,
+multiple component MultiFabs.
+
+The function FillBoundary fills physical ghost cells and has a similar functionality
+to the single-level case described above, where FillDomainBoundary
+fills the physical ghost cells. In fact you can have your BndryFunctBase
+point to the same filcc routines called by the single-level routines.

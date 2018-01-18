@@ -212,4 +212,4 @@ by CCSE that is designed specifically for highly efficient visualization
 of block-structured hierarchical AMR data.
 Plotfiles can also be viewed using the VisIt, ParaView, and yt packages.
 Particle data can be viewed using ParaView.
-Refer to Chapter on :ref:`Visualization` for how to use each of these tools.
+Refer to Chapter on :ref:`Chap:Visualization` for how to use each of these tools.

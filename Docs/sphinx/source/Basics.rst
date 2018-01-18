@@ -1677,18 +1677,20 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 Calling Fortran or C
 ====================
 
-In Section \ `15 <#sec:basics:mfiter>`__, we have shown that a typical
-pattern for working with MultiFabs is use MFIter to
+In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
+pattern for working with MultiFabs is use :cpp:`MFIter` to
 iterate over the data. In each iteration, a kernel function is called
-to work on the data and the work region is specified by a Box.
+to work on the data and the work region is specified by a :cpp:`Box`.
 When tiling is used, the work region is a tile. The tiling is logical
 in the sense that there is no data layout transformation. The kernel
-function still gets the whole arrays in FArrayBoxes, even though
-it is supposed to work on a tile region of the arrays. To , these
+function still gets the whole arrays in :cpp:`FArrayBoxes`, even though
+it is supposed to work on a tile region of the arrays. To C++, these
 kernel functions are C functions, whose function signatures are
-typically declared in a header file named \_f.H or
-\*_F.H. We recommend the users to follow this convention.
+typically declared in a header file named ``*_f.H`` or
+``*_F.H``. We recommend the users to follow this convention.
 Examples of these function declarations are as follows.
+
+.. highlight:: c++
 
 ::
 
@@ -1709,17 +1711,19 @@ One can write the functions in C and should include the header
 containing the function declarations in the C source code to ensure
 type safety. However, we typically write these kernel functions in
 Fortran because of the native multi-dimensional array support by
-Fortran. As we have seen in Section \ `15 <#sec:basics:mfiter>`__, these
+Fortran. As we have seen in the section on :ref:`sec:basics:mfiter`, these
 Fortran functions take C pointers and view them as multi-dimensional
 arrays of the shape specified by the additional integer arguments.
-Note that Fortran takes arguments by reference unless the value
+Note that Fortran takes arguments by reference unless the :fortran:`value`
 keyword is used. So an integer argument on the Fortran side matches
-an integer pointer on the  side. Thanks to Fortran 2003,
+an integer pointer on the C++ side. Thanks to Fortran 2003,
 function name mangling is easily achieved by declaring the Fortran
-function as bind(c).
+function as :fortran:`bind(c)`.
 
- provides many macros for passing an FArrayBox’s data
+AMReX provides many macros for passing an FArrayBox’s data
 into Fortran/C. For example
+
+.. highlight:: c++
 
 ::
 
@@ -1730,16 +1734,18 @@ into Fortran/C. For example
             BL_TO_FORTRAN_ANYD(mf[mfi]));
       }
 
-Here BL_TO_FORTRAN_BOX takes a Box and provides two
-int\*s specifying the lower and upper bounds of the Box.
-BL_TO_FORTRAN_ANYD takes an FArrayBox returned by
-mf[mfi] and the preprocessor turns it into Real*, int*, int\*,
-where Real\* is the data pointer that matches real array argument
-in Fortran, the first int\* (which matches an integer argument in
-Fortran) specifies the lower bounds, and the second int\* the
+Here :cpp:`BL_TO_FORTRAN_BOX` takes a :cpp:`Box` and provides two
+:cpp:`int *` s specifying the lower and upper bounds of the Box.
+:cpp:`BL_TO_FORTRAN_ANYD` takes an :cpp:`FArrayBox` returned by
+:cpp:`mf[mfi]` and the preprocessor turns it into :cpp:`Real *, int *, int *`,
+where :cpp:`Real *` is the data pointer that matches real array argument
+in Fortran, the first :cpp:`int *` (which matches an integer argument in
+Fortran) specifies the lower bounds, and the second :cpp:`int *` the
 upper bounds of the spatial dimensions of the array. Similar to what
-we have seen in Section \ `15 <#sec:basics:mfiter>`__, a matching Fortran
+we have seen in the section on :ref:`sec:basics:mfiter`, a matching Fortran
 function is shown below,
+
+.. highlight:: fortran
 
 ::
 
@@ -1754,8 +1760,8 @@ spatial dimensions. If the actual spatial dimension is less than 3,
 the values in the degenerate dimensions are set to zero. So the
 Fortran function interface does not have to change according to the
 spatial dimensionality, and the bound of the third dimension of the
-data array simply becomes 0:0. With the data passed by
-BL_TO_FORTRAN_BOX and BL_FORTRAN_ANYD, this version of
+data array simply becomes :fortran:`0:0`. With the data passed by
+:cpp:`BL_TO_FORTRAN_BOX` and :cpp:`BL_FORTRAN_ANYD`, this version of
 Fortran function interface works for any spatial dimensions. If one
 wants to write a special version just for 2D and would like to use 2D
 arrays, one can use
@@ -1768,18 +1774,20 @@ arrays, one can use
       real(amrex_real),intent(inout)::u(ulo(1):uhi(1),ulo(2):uhi(2))
     end subroutine f2d
 
-Note that this does not require any changes in  part, because
-when  passes an integer pointer pointing to an array of three
+Note that this does not require any changes in the C++ part, because
+when C++ passes an integer pointer pointing to an array of three
 integers Fortran can treat it as a 2-element integer array.
 
-Another commonly used macro is BL_TO_FORTRAN. This macro
-takes an FArrayBox and provides a real pointer for the floating
+Another commonly used macro is :cpp:`BL_TO_FORTRAN`. This macro
+takes an :cpp:`FArrayBox` and provides a real pointer for the floating
 point data array and a number of integer scalars for the bounds.
 However, the number of the integers depends on the dimensionality.
 More specifically, there are 6 and 4 integers for 2D and 3D,
 respectively. The first half of the integers are the lower bounds for
 each spatial dimension and the second half the upper bounds. For
 example,
+
+.. highlight:: fortran
 
 ::
 
@@ -1797,14 +1805,14 @@ example,
 
 Here for simplicity we have omitted passing the tile Box.
 
-Usually MultiFabs have multiple components. Thus we often also
+Usually :cpp:`MultiFabs` have multiple components. Thus we often also
 need to pass the number of component into Fortran functions. We can
-obtain the number by calling the MultiFab::nComp() function, and
-pass it to Fortran as we have seen in Section \ `15 <#sec:basics:mfiter>`__.
-We can also use the BL_TO_FORTRAN_FAB macro that is similar
-to BL_TO_FORTRAN_ANYD except that it provides an additional
-int\* for the number of components. The Fortran function
-matching BL_TO_FORTRAN_FAB(fab) is then like below,
+obtain the number by calling the :cpp:`MultiFab::nComp()` function, and
+pass it to Fortran as we have seen in the section on :ref:`sec:basics:mfiter`.
+We can also use the :cpp:`BL_TO_FORTRAN_FAB` macro that is similar
+to :cpp:`BL_TO_FORTRAN_ANYD` except that it provides an additional
+:cpp:`int *` for the number of components. The Fortran function
+matching :cpp:`BL_TO_FORTRAN_FAB(fab)` is then like below,
 
 ::
 
@@ -1814,59 +1822,67 @@ matching BL_TO_FORTRAN_FAB(fab) is then like below,
       real(amrex_real),intent(inout)::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nu)
     end subroutine f
 
+
 Ghost Cells
 ===========
 
- uses MultiFab as the data container for floating point
+AMReX uses :cpp:`MultiFab` as the data container for floating point
 data on multiple Boxes on a single AMR level. Each rectangular
-Box has its own boundaries. A MultiFab can have ghost cells for
+Box has its own boundaries. A :cpp:`MultiFab` can have ghost cells for
 storing data outside its grid Box boundaries. This allows us to
 perform stencil type of operations on regular arrays. There are three
-basic types of boundaries: (1) interior boundary; (2) coarse/fine
-boundary; and (3) physical boundary. Periodic boundary is not
-considered a basic type in the discussion here because after periodic
-transformation it becomes either interior boundary or coarse/fine
-boundary.
+basic types of boundaries:
+
+    #. interior boundary
+    #. coarse/fine boundary
+    #. physical boundary. 
+           
+Periodic boundary is not considered a basic type in the discussion here 
+because after periodic transformation it becomes either interior
+boundary or coarse/fine boundary.
 
 Interior boundary is the border among the grid Boxes themselves.
-For example, in Figure \ `[fig:basics:amrgrids] <#fig:basics:amrgrids>`__, the two blue grid
-Boxes on level 1 share an interior boundary that is 10 cells
-long. For a MultiFab with ghost cells on level 1, we can use
-the MultiFab::FillBoundary function introduced in
-Section \ `14 <#sec:basics:multifab>`__ to fill ghost cells at the interior
-boundary with valid cell data from other Boxes.
+For example, in the figure showing :ref:`example of AMR grids<fig:basics:amrgrids>` at the
+beginning of this chapter, the two blue grid Boxes on level 1 share an 
+interior boundary that is 10 cells long. For a :cpp:`MultiFab` with ghost 
+cells on level 1, we can use the :cpp:`MultiFab::FillBoundary` function 
+introduced in the section on :ref:`sec:basics:multifab` to fill ghost 
+cells at the interior boundary with valid cell data from other Boxes.
 
-Coarse/fine boundary is the border between two AMR levels.
-FillBoundary does not fill these ghost cells. These ghost cells on
+A coarse/fine boundary is the border between two AMR levels.
+:cpp:`FillBoundary` does not fill these ghost cells. These ghost cells on
 the fine level need to be interpolated from the coarse level data.
-This is a subject that will be discussed in
-Section \ `[sec:amrcore:fillpatch] <#sec:amrcore:fillpatch>`__.
+This is a subject that will be discussed in the section on 
+:ref:`sec:amrcore:fillpatch`.
 
 The third type of boundary is the physical boundary at the physical
 domain. Note that both coarse and fine AMR levels could have grids
 touching the physical boundary. It is up to the application codes to
 properly fill the ghost cells at the physical boundary. However,
- does provide support for some common operations.
-See Chapter `[Chap:Boundary] <#Chap:Boundary>`__ for a discussion on domain
+AMReX does provide support for some common operations.
+See the chapter on :ref:`Chap:Boundary` for a discussion on domain
 boundary conditions in general, including how to implement
 physical (non-periodic) boundary conditions.
+
 
 I/O
 ===
 
 In this section, we will discuss parallel I/O capabilities for mesh
-data in . Section \ `[sec:Particles:IO] <#sec:Particles:IO>`__ will discuss I/O for
+data in AMReX. The section on :ref:`sec:Particles:IO` will discuss I/O for
 particle data.
 
 Plotfile
 --------
 
- has its native plotfile format. Many visualization tools are
-available for  plotfiles
-(Chapter `[Chap:Visualization] <#Chap:Visualization>`__).  provides the following
-two functions for writing a generic  plotfile. Many  application codes may have their own plotfile routines that store
+AMReX has its own native plotfile format. Many visualization tools are
+available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`). 
+AMReX provides the following two functions for writing a generic AMReX plotfile.
+Many AMReX application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
-source codes and ParmParse runtime parameters.
+source codes and :cpp:`ParmParse` runtime parameters.
+
+.. highlight:: c++
 
 ::
 
@@ -1886,13 +1902,15 @@ source codes and ParmParse runtime parameters.
                                     const Vector<int> &level_steps,
                                     const Vector<IntVect> &ref_ratio);
 
-WriteSingleLevelPlotfile is for single level runs and
-WriteMultiLevelPlotfile is for multiple levels. The name of the
+:cpp:`WriteSingleLevelPlotfile` is for single level runs and
+:cpp:`WriteMultiLevelPlotfile` is for multiple levels. The name of the
 plotfile is specified by the plotfilename argument. This is the
-top level directory name for the plotfile. In  convention, the
+top level directory name for the plotfile. In AMReX convention, the
 plotfile name consist of letters followed by numbers (e.g.,
-plt00258). amrex::Concatenate is a useful helper function for
+plt00258). :cpp:`amrex::Concatenate` is a useful helper function for
 making such strings.
+
+.. highlight:: c++
 
 ::
 
@@ -1905,8 +1923,8 @@ making such strings.
       istep =1234567;  // Having more than 5 digits is OK.
       const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
 
-Argument mf (MultiFab for single level and
-Vector<const MultiFab*> for multi-level) is the data to be written
+The argument :cpp:`mf` above (:cpp:`MultiFab` for single level and
+:cpp:`Vector<const MultiFab*>` for multi-level) is the data to be written
 to the disk. Note that many visualization tools expect this to be
 cell-centered data. So for nodal data, we need to convert them to
 cell-centered data through some kind of averaging. Also note that if
@@ -1915,25 +1933,27 @@ to build a new MultiFab at each level to hold all the data on
 that level. This involves local data copy in memory and is not
 expected to significantly increase the total wall time for writing
 plotfiles. For the multi-level version, the function expects
-Vector<const MultiFab*>, whereas the multi-level data are often
-stored as Vector<std::unique_ptr<MultiFab>>.  has a
+:cpp:`Vector<const MultiFab*>`, whereas the multi-level data are often
+stored as :cpp:`Vector<std::unique_ptr<MultiFab>>`. AMReX has a
 helper function for this and one can use it as follows,
+
+.. highlight:: c++
 
 ::
 
        WriteMultiLevelPlotfile(......, amrex::GetVecOfConstPtrs(mf), ......);
 
-Argument varnames has the names for each component of the
+The argument :cpp:`varnames` has the names for each component of the
 MultiFab data. The size of the Vector should be equal to the
-number of components. Argument geom is for passing
-Geometry objects that contain the physical domain
-information. Argument time is for the time associated with the
-data. Argument level_step is for the current time step
-associated with the data. For multi-level plotfiles, argument
-nlevels is the total number of levels, and we also need to provide
-the refinement ratio via an Vector of size nlevels-1.
+number of components. The argument :cpp:`geom` is for passing
+:cpp:`Geometry` objects that contain the physical domain
+information. The argument :cpp:`time` is for the time associated with the
+data. The argument :cpp:`level_step` is for the current time step
+associated with the data. For multi-level plotfiles, the argument
+:cpp:`nlevels` is the total number of levels, and we also need to provide
+the refinement ratio via an :cpp:`Vector` of size nlevels-1.
 
-We note that  does not overwrite old plotfiles if the new
+We note that AMReX does not overwrite old plotfiles if the new
 plotfile has the same name. The old plotfiles will be renamed to
 new directories named like plt00350.old.46576787980.
 
@@ -1942,11 +1962,11 @@ Checkpoint File
 
 Checkpoint files are used for restarting simulations from where the
 checkpoints are written. Each application code has its own set of
-data needed for restart.  provides I/O functions for basic
-data structures like MultiFab and BoxArray. These
+data needed for restart. AMReX provides I/O functions for basic
+data structures like :cpp:`MultiFab` and :cpp:`BoxArray`. These
 functions can be used to build codes for reading and writing
 checkpoint files. Since each application code has its own
-requirement, there is no standard  checkpoint format.
+requirement, there is no standard AMReX checkpoint format.
 
 Typically a checkpoint file is a directory containing some text files
 and sub-directories (e.g., Level_0 and Level_1)
@@ -1954,6 +1974,8 @@ containing various data. It is a good idea that we fist make these
 directories ready for subsequently writing to the disk. For example,
 to build directories chk00016, chk00016/Level_0, and
 chk00016/Level_1, we do
+
+.. highlight:: c++
 
 ::
 
@@ -1963,14 +1985,16 @@ chk00016/Level_1, we do
       const bool callBarrier = true; // Parallel barrier after directories are built.
       PreBuildDirectorHierarchy(chkname, subDirPrefix, nSubDirs, callBarrier);
 
-A checkpoint file of  application codes often has a clear text
+A checkpoint file of AMReX application codes often has a clear text
 Header file that only the I/O process writes to it using
-std::ofstream. The Header file contains information such as
+:cpp:`std::ofstream`. The Header file contains information such as
 the time, the physical domain size, grids, etc. that are necessary for
 restarting the simulation. To guarantee that precision is not lost
 for storing floating point number like time in clear text file, the
 file stream’s precision needs to be set properly. And a stream buffer
 can also be used. For example,
+
+.. highlight:: c++
 
 ::
 
@@ -1992,10 +2016,12 @@ can also be used. For example,
           // HeaderFile << ......;
       }
 
-For reading the Header file,  can have the I/O process
+For reading the Header file, AMReX can have the I/O process
 read the file from the disk and broadcast it to others as
-Vector<char>. Then all processes can read the information with
-std::istringstream. For example,
+:cpp:`Vector<char>`. Then all processes can read the information with
+:cpp:`std::istringstream`. For example,
+
+.. highlight:: c++
 
 ::
 
@@ -2008,7 +2034,7 @@ std::istringstream. For example,
       ba.readFrom(is);
       // is >> ....;
 
-amrex::VisMF is a class that can be used to perform
+:cpp:`amrex::VisMF` is a class that can be used to perform
 MultiFab I/O in parallel. How many processes are allowed to
 perform I/O simultaneously can be set via
 
@@ -2017,7 +2043,9 @@ perform I/O simultaneously can be set via
       VisMF::SetNOutFiles(64);  // up to 64 processes, which is also the default.
 
 The optimal number is of course system dependent. The following code
-shows how to write and read a MultiFab.
+shows how to write and read a :cpp:`MultiFab`.
+
+.. highlight:: c++
 
 ::
 
@@ -2035,23 +2063,25 @@ shows how to write and read a MultiFab.
       MultiFab mf3(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
       VisMF::Read(mf3, name);
 
-It should be emphasized that calling VisMF::Read with an empty
-MultiFab (i.e., no memory allocated for floating point data)
-will result in a MultiFab with a new DistributionMapping
+It should be emphasized that calling :cpp:`VisMF::Read` with an empty
+:cpp:`MultiFab` (i.e., no memory allocated for floating point data)
+will result in a :cpp:`MultiFab` with a new :cpp:`DistributionMapping`
 that could be different from any other existing
-DistributionMapping objects. It should also be noted that all the
+:cpp:`DistributionMapping` objects. It should also be noted that all the
 data including those in ghost cells are written/read by
 VisMF::Write/Read.
 
 Memory Allocation
 =================
 
- has a Fortran module, mempool_module that can be used to
+AMReX has a Fortran module, :fortran:`mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module
-exists in  is memory allocation is often very slow in
-multi-threaded OpenMP parallel regions.  mempool_module
+exists in AMReX, is that memory allocation is often very slow in
+multi-threaded OpenMP parallel regions. AMReX :cpp:`mempool_module`
 provides a much faster alternative approach, in which each thread has
 its own memory pool. Here are examples of using the module.
+
+.. highlight:: fortran
 
 ::
 
@@ -2067,38 +2097,40 @@ its own memory pool. Here are examples of using the module.
       call bl_deallocate(a)
       call bl_deallocate(b)
 
-The downside of this is we have to use pointer instead of
-allocatable. This means we must explicitly free the memory via
-bl_deallocate and we need to declare the pointers as
-contiguous for performance reason.
+The downside of this is we have to use :fortran:`pointer` instead of
+:foratran:`allocatable`. This means we must explicitly free the memory via
+:fortran:`bl_deallocate` and we need to declare the pointers as
+:fortran:`contiguous` for performance reason.
 
 Abort and Assertion
 ===================
 
-amrex::Abort(const char\* message) is used to terminate a run
+:cpp:`amrex::Abort(const char * message)` is used to terminate a run
 usually when something goes wrong. This function takes a message and
-write it to stderr. Files named like Backtrace.rg_1_rl_1
+writes it to stderr. Files named like Backtrace.rg_1_rl_1
 (where rg_1_rl_1 means process 1) are produced containing
 backtrace information of the call stack. In Fortran, we can call
-amrex_abort from the amrex_error_module, which takes a
-Fortran character variable with assumed size (i.e., len=\*)
+:fortran:`amrex_abort` from the :fortran:`amrex_error_module`, which takes a
+Fortran character variable with assumed size (i.e., :fortran:`len=*`)
 as a message.
 
-AMREX_ASSERT is a macro that takes a Boolean expression. For
-debug build (e.g., DEBUG=TRUE using the GNU Make build system),
-if the expression at runtime is evaluated to false, amrex::Abort
+:cpp:`AMREX_ASSERT` is a macro that takes a Boolean expression. For
+debug build (e.g., ``DEBUG=TRUE`` using the GNU Make build system),
+if the expression at runtime is evaluated to false, :cpp:`amrex::Abort`
 will be called and the run is thus terminated. For optimized build
-(e.g., DEBUG=FALSE using the GNU Make build system), the
-AMREX_ASSERT statement is removed at compile time and thus has no
+(e.g., ``DEBUG=FALSE`` using the GNU Make build system), the
+:cpp:`AMREX_ASSERT` statement is removed at compile time and thus has no
 effect at runtime. We often use this as a means of putting debug
 statement in the code without adding any extra cost for production
 runs. For example,
+
+.. highlight:: c++
 
 ::
 
       AMREX_ASSERT(mf.nGrow() > 0 && mf.nComp() == mf2.nComp());
 
-Here for debug build we like to assert that MultiFab mf
+Here for debug build we like to assert that :cpp:`MultiFab mf`
 has ghost cells and it also has the same number of components as
-MultiFab mf2. If we always want the assertion, we can use
-AMREX_ALWAYS_ASSERT.
+:cpp:`MultiFab mf2`. If we always want the assertion, we can use
+:cpp:`AMREX_ALWAYS_ASSERT`.
