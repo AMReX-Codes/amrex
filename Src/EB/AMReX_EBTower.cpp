@@ -279,6 +279,8 @@ getPeriodicGhostBoxes(const Box        & a_valid,
                       const Periodicity& a_peri) 
 {
   Vector<Box> ghostBoxes;
+
+  if(a_ngrow <= 0) return ghostBoxes;
   //first get the flaps only in one direction
   for(int idir = 0; idir < SpaceDim; idir++)
   {
@@ -384,6 +386,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
     const auto& src_flag = m_instance->m_cellflags[lev];
     a_flag.ParallelCopy(src_flag, 0, 0, 1, 0, a_flag.nGrow(), a_geom.periodicity());
 
+    BoxArray bagrids = a_flag.boxArray();
     const BoxArray& cov_ba = m_instance->m_covered_ba[lev];
     auto cov_val = EBCellFlag::TheCoveredCell();
 
@@ -408,10 +411,11 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             //now shift box for periodicity and do the same thing
             if(a_geom.isAnyPeriodic())
             {
+              Box valid = bagrids[mfi];
               Periodicity peri = a_geom.periodicity();
               vector<IntVect> periodicShifts = peri.shiftIntVect();
               int ngrow = a_flag.nGrow();
-              Vector<Box> ghostBoxes = getPeriodicGhostBoxes(bx, domain, ngrow, peri);
+              Vector<Box> ghostBoxes = getPeriodicGhostBoxes(valid, domain, ngrow, peri);
               for(int ibox = 0; ibox < ghostBoxes.size(); ibox++)
               {
                 for(int ivec = 0; ivec < periodicShifts.size(); ivec++)
