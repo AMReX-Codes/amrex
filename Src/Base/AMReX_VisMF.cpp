@@ -1078,6 +1078,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
     if(FArrayBox::getFormat() == FABio::FAB_ASCII ||
        FArrayBox::getFormat() == FABio::FAB_8BIT)
     {
+
 #ifdef BL_USE_MPI
     Vector<int> nmtags(nProcs,0);
     Vector<int> offset(nProcs,0);
@@ -1163,7 +1164,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	int nFiles(NFilesIter::ActualNFiles(nOutFiles));
 	int whichFileNumber(-1);
 	std::string whichFileName;
-	Vector<long> currentOffset(nFiles, 0L);
+	Vector<long> currentOffset(nProcs, 0L);
 
         if(hdr.m_vers == VisMF::Header::Version_v1) {
 	  // ---- find the length of the fab header instead of asking the file system
@@ -1183,9 +1184,16 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	Vector<int> fileNumbers;
         if(nfi.GetDynamic()) {
 	  fileNumbers = nfi.FileNumbersWritten();
-        } else {
+        }
+         else if(nfi.GetSparseFPP()) {        // if sparse, write to (file number = rank)
+ 	  fileNumbers.resize(nProcs);
+	  for(int i(0); i < nProcs; ++i) {
+	    fileNumbers[i] = i;
+          }
+        }
+        else {
 	  fileNumbers.resize(nProcs);
-	  for(int i(0); i < fileNumbers.size(); ++i) {
+	  for(int i(0); i < nProcs; ++i) {
 	    fileNumbers[i] = NFilesIter::FileNumber(nFiles, i, groupSets);
 	  }
 	}
@@ -1196,20 +1204,21 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	  for(int ri(0); ri < fileNumbersWriteOrder[fn].size(); ++ri) {
 	    int rank(fileNumbersWriteOrder[fn][ri]);
 	    std::map<int, Vector<int> >::iterator rboIter = rankBoxOrder.find(rank);
-	    if(rboIter != rankBoxOrder.end()) {
-	      Vector<int> &index = rboIter->second;
+
+            if(rboIter != rankBoxOrder.end()) {
+              Vector<int> &index = rboIter->second;
 	      whichFileNumber = fileNumbers[rank];
 	      whichFileName   = VisMF::BaseName(NFilesIter::FileName(whichFileNumber, filePrefix));
 
 	      for(int i(0); i < index.size(); ++i) {
-	        hdr.m_fod[index[i]].m_name = whichFileName;
-	        hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
-	        currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
-	                                          + fabHeaderBytes[index[i]];
-	      }
-	    }
-	  }
-	}
+                 hdr.m_fod[index[i]].m_name = whichFileName;
+                 hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
+                 currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
+	                                           + fabHeaderBytes[index[i]];
+              }
+            } 
+	  } 
+	}   
       }
       delete whichRD;
     }
