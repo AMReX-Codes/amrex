@@ -17,7 +17,7 @@ This directory contains source code for the following:
 
 -  Flux registers used to store and manipulate fluxes at coarse-fine interfaces.
 
--  Particle support for AMR (see Chapter\ `[Chap:Particles] <#Chap:Particles>`__).
+-  Particle support for AMR (see :ref:`Chap:Particles`).
 
 There is another source directory, amrex/Src/Amr/, which contains
 additional classes used to manage the time-stepping for AMR simulations.
@@ -32,8 +32,8 @@ with build/run directory Exec/SingleVortex. In this example, the velocity
 field is a specified function of space and time, such that an initial
 Gaussian profile is displaced but returns to its original configuration at the final time.
 The boundary conditions are periodic and we use a refinement ratio of :math:`r=2` between each
-AMR level. The results of the simulation in two-dimensions are depicted in
-Figure `[fig:Adv] <#fig:Adv>`__.
+AMR level. The results of the simulation in two-dimensions are depicted in the Table
+showing the :ref:`SingleVortex Tutorial<fig:Adv>`.
 
 
 
