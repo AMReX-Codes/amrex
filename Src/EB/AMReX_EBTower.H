@@ -34,6 +34,12 @@ private:
     void initBndryCent (int lev, const EBLevelGrid& eblg);
     void initFaceGeometry (int lev, const EBLevelGrid& eblg);
 
+    static Vector<Box> 
+    getPeriodicGhostBoxes(const Box        & a_valid, 
+                          const Box        & a_domain,
+                          const int        & a_ngrow, 
+                          const Periodicity& a_peri) ;
+
     int getIndex (const Box& domain) const;
 
     static EBTower* m_instance;

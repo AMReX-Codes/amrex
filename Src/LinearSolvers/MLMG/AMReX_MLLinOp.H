@@ -13,17 +13,26 @@ namespace amrex {
 
 struct LPInfo
 {
-    bool do_agglomeration = 1;
-    bool do_consolidation = 1;
+    bool do_agglomeration = true;
+    bool do_consolidation = true;
     int agg_grid_size = AMREX_D_PICK(32, 16, 8);
     int con_grid_size = AMREX_D_PICK(32, 16, 8);
     bool has_metric_term = true;
+    bool do_m_coarsening = false;
+    int mc_crse_ratio = 2;
+    int mc_grid_size = 64;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
+    LPInfo& setMCoarsening (std::pair<bool,int> x) {
+        do_m_coarsening = x.first;
+        mc_crse_ratio = x.second;
+        return *this;
+    }
+    LPInfo& setMSolveGridSize (int x) { mc_grid_size = x; return *this; }
 };
 
 class MLLinOp
@@ -32,6 +41,8 @@ public:
 
     friend class MLMG;
     friend class MLCGSolver;
+    friend class MLPoisson;
+    friend class MLABecLaplacian;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
     using BCType = LinOpBCType;
@@ -98,8 +109,11 @@ protected:
     Vector<int> m_amr_ref_ratio;
 
     Vector<int> m_num_mg_levels;
+    const MLLinOp* m_parent = nullptr;
 
     IntVect m_ixtype;
+
+    bool m_do_m_coarsening = false;
 
     // first Vector is for amr level and second is mg level
     Vector<Vector<Geometry> >            m_geom;
@@ -157,6 +171,8 @@ protected:
         }
     }
 
+    bool doMCoarsening () const { return m_do_m_coarsening; }
+
     bool isCellCentered () const { return m_ixtype == 0; }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
@@ -189,12 +205,13 @@ protected:
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
-    virtual Real Anorm (int amrlev, int mglev) const = 0;
     virtual Real getBScalar () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
+
+    virtual std::unique_ptr<MLLinOp> makeMLinOp () const = 0;
 
 private:
 

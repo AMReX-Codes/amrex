@@ -12,7 +12,7 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class BottomSolver : int { smoother, bicgstab, cg };
+    enum class BottomSolver : int { smoother, bicgstab };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -38,7 +38,6 @@ public:
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
     void setCGVerbose (int v) { cg_verbose = v; }
     void setCGMaxIter (int n) { cg_maxiter = n; }
-    void setCGUnstableCriterion (Real x) { cg_unstable_criterion = x; }
 
     void setAlwaysUseBNorm (int flag) { always_use_bnorm = flag; }
 
@@ -62,7 +61,6 @@ private:
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  cg_verbose            = 0;
     int  cg_maxiter            = 100;
-    Real cg_unstable_criterion = 10.0;
 
     int always_use_bnorm = 0;
 
@@ -86,7 +84,7 @@ private:
     Vector<Vector<std::unique_ptr<MultiFab> > > cor_hold;
     Vector<Vector<MultiFab> >                rescor; // = res - L(cor)  Residual of the correction form
 
-    Vector<iMultiFab> fine_mask;
+    Vector<std::unique_ptr<iMultiFab> > fine_mask;
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
@@ -101,6 +99,8 @@ private:
     void mgFcycle ();
 
     void bottomSolve ();
+    void MSolve ();
+    void actualBottomSolve ();
 
     void computeMLResidual (int amrlevmax);
     void computeResidual (int alev);
@@ -120,6 +120,16 @@ private:
     void fillSolutionBC ();
 
     void averageDownAndSync ();
+
+    //
+    // M Solve
+    //
+    void prepareForMSolve ();
+    
+    std::unique_ptr<MLLinOp> m_m_linop;
+    std::unique_ptr<MLMG> m_m_mlmg;
+    std::unique_ptr<MultiFab> m_m_sol;
+    std::unique_ptr<MultiFab> m_m_rhs;
 };
 
 }
