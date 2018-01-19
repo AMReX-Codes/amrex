@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.6"/>
-<title>AMReX: amrex::Vector&lt; T &gt; Class Template Reference</title>
+<title>AMReX: amrex::Vector&lt; T, Allocator &gt; Class Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -90,55 +90,55 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="classamrex_1_1_vector-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">amrex::Vector&lt; T &gt; Class Template Reference</div>  </div>
+<div class="title">amrex::Vector&lt; T, Allocator &gt; Class Template Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>This class is a thin wrapper around std::vector. Unlike vector, <a class="el" href="classamrex_1_1_vector.html#a6a42df7ea8ac250bb3211eaaa111281f">Vector::operator[]</a> provides bound checking when compiled with DEBUG=TRUE.  
+<p>This class is a thin wrapper around std::vector. Unlike vector, <a class="el" href="classamrex_1_1_vector.html#a35ecf9c060d9d2b8f23cf60d088f1fca">Vector::operator[]</a> provides bound checking when compiled with DEBUG=TRUE.  
  <a href="classamrex_1_1_vector.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="_a_m_re_x___vector_8_h_source.html">AMReX_Vector.H</a>&gt;</code></p>
 <div class="dynheader">
-Inheritance diagram for amrex::Vector&lt; T &gt;:</div>
+Inheritance diagram for amrex::Vector&lt; T, Allocator &gt;:</div>
 <div class="dyncontent">
  <div class="center">
-  <img src="classamrex_1_1_vector.png" usemap="#amrex::Vector&lt; T &gt;_map" alt=""/>
-  <map id="amrex::Vector&lt; T &gt;_map" name="amrex::Vector&lt; T &gt;_map">
+  <img src="classamrex_1_1_vector.png" usemap="#amrex::Vector&lt; T, Allocator &gt;_map" alt=""/>
+  <map id="amrex::Vector&lt; T, Allocator &gt;_map" name="amrex::Vector&lt; T, Allocator &gt;_map">
 </map>
  </div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a6a42df7ea8ac250bb3211eaaa111281f"><td class="memItemLeft" align="right" valign="top">T &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#a6a42df7ea8ac250bb3211eaaa111281f">operator[]</a> (std::size_t i)</td></tr>
-<tr class="separator:a6a42df7ea8ac250bb3211eaaa111281f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a52b19aef24e685217ad52ea348b22cdd"><td class="memItemLeft" align="right" valign="top">const T &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#a52b19aef24e685217ad52ea348b22cdd">operator[]</a> (std::size_t i) const </td></tr>
-<tr class="separator:a52b19aef24e685217ad52ea348b22cdd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6a70bd3c70b04dd1008736d9545c18ce"><td class="memItemLeft" align="right" valign="top">T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a> ()</td></tr>
-<tr class="memdesc:a6a70bd3c70b04dd1008736d9545c18ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">get access to the underlying data pointer  <a href="#a6a70bd3c70b04dd1008736d9545c18ce">More...</a><br/></td></tr>
-<tr class="separator:a6a70bd3c70b04dd1008736d9545c18ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9b58a8d43d0a3d8621d5b93b881fe7ce"><td class="memItemLeft" align="right" valign="top">const T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#a9b58a8d43d0a3d8621d5b93b881fe7ce">dataPtr</a> () const </td></tr>
-<tr class="memdesc:a9b58a8d43d0a3d8621d5b93b881fe7ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">get access to the underlying data pointer  <a href="#a9b58a8d43d0a3d8621d5b93b881fe7ce">More...</a><br/></td></tr>
-<tr class="separator:a9b58a8d43d0a3d8621d5b93b881fe7ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac1b29a43c8db162da73dba28c7ad737d"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#ac1b29a43c8db162da73dba28c7ad737d">size</a> () const </td></tr>
-<tr class="separator:ac1b29a43c8db162da73dba28c7ad737d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a35ecf9c060d9d2b8f23cf60d088f1fca"><td class="memItemLeft" align="right" valign="top">T &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#a35ecf9c060d9d2b8f23cf60d088f1fca">operator[]</a> (std::size_t i)</td></tr>
+<tr class="separator:a35ecf9c060d9d2b8f23cf60d088f1fca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aac30959865d72ba3dc544400dae61abe"><td class="memItemLeft" align="right" valign="top">const T &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#aac30959865d72ba3dc544400dae61abe">operator[]</a> (std::size_t i) const </td></tr>
+<tr class="separator:aac30959865d72ba3dc544400dae61abe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a314a950b356fb444c94b9f615ba0cd72"><td class="memItemLeft" align="right" valign="top">T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#a314a950b356fb444c94b9f615ba0cd72">dataPtr</a> ()</td></tr>
+<tr class="memdesc:a314a950b356fb444c94b9f615ba0cd72"><td class="mdescLeft">&#160;</td><td class="mdescRight">get access to the underlying data pointer  <a href="#a314a950b356fb444c94b9f615ba0cd72">More...</a><br/></td></tr>
+<tr class="separator:a314a950b356fb444c94b9f615ba0cd72"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0faf6219a05311b84e05c4d19a1c3e7b"><td class="memItemLeft" align="right" valign="top">const T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#a0faf6219a05311b84e05c4d19a1c3e7b">dataPtr</a> () const </td></tr>
+<tr class="memdesc:a0faf6219a05311b84e05c4d19a1c3e7b"><td class="mdescLeft">&#160;</td><td class="mdescRight">get access to the underlying data pointer  <a href="#a0faf6219a05311b84e05c4d19a1c3e7b">More...</a><br/></td></tr>
+<tr class="separator:a0faf6219a05311b84e05c4d19a1c3e7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a509fc6837193e6fd97249b0c072c7830"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_vector.html#a509fc6837193e6fd97249b0c072c7830">size</a> () const </td></tr>
+<tr class="separator:a509fc6837193e6fd97249b0c072c7830"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><h3>template&lt;class T&gt;<br/>
-class amrex::Vector&lt; T &gt;</h3>
+<div class="textblock"><h3>template&lt;class T, class Allocator = std::allocator&lt;T&gt;&gt;<br/>
+class amrex::Vector&lt; T, Allocator &gt;</h3>
 
-<p>This class is a thin wrapper around std::vector. Unlike vector, <a class="el" href="classamrex_1_1_vector.html#a6a42df7ea8ac250bb3211eaaa111281f">Vector::operator[]</a> provides bound checking when compiled with DEBUG=TRUE. </p>
+<p>This class is a thin wrapper around std::vector. Unlike vector, <a class="el" href="classamrex_1_1_vector.html#a35ecf9c060d9d2b8f23cf60d088f1fca">Vector::operator[]</a> provides bound checking when compiled with DEBUG=TRUE. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="a6a70bd3c70b04dd1008736d9545c18ce"></a>
+<a class="anchor" id="a314a950b356fb444c94b9f615ba0cd72"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T&gt; </div>
+template&lt;class T, class Allocator = std::allocator&lt;T&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">T* <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T &gt;::dataPtr </td>
+          <td class="memname">T* <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T, Allocator &gt;::dataPtr </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -155,17 +155,17 @@ template&lt;class T&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a9b58a8d43d0a3d8621d5b93b881fe7ce"></a>
+<a class="anchor" id="a0faf6219a05311b84e05c4d19a1c3e7b"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T&gt; </div>
+template&lt;class T, class Allocator = std::allocator&lt;T&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const T* <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T &gt;::dataPtr </td>
+          <td class="memname">const T* <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T, Allocator &gt;::dataPtr </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -182,17 +182,17 @@ template&lt;class T&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a6a42df7ea8ac250bb3211eaaa111281f"></a>
+<a class="anchor" id="a35ecf9c060d9d2b8f23cf60d088f1fca"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T&gt; </div>
+template&lt;class T, class Allocator = std::allocator&lt;T&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">T&amp; <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T &gt;::operator[] </td>
+          <td class="memname">T&amp; <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T, Allocator &gt;::operator[] </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>i</em></td><td>)</td>
@@ -208,17 +208,17 @@ template&lt;class T&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a52b19aef24e685217ad52ea348b22cdd"></a>
+<a class="anchor" id="aac30959865d72ba3dc544400dae61abe"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T&gt; </div>
+template&lt;class T, class Allocator = std::allocator&lt;T&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const T&amp; <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T &gt;::operator[] </td>
+          <td class="memname">const T&amp; <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T, Allocator &gt;::operator[] </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>i</em></td><td>)</td>
@@ -234,17 +234,17 @@ template&lt;class T&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="ac1b29a43c8db162da73dba28c7ad737d"></a>
+<a class="anchor" id="a509fc6837193e6fd97249b0c072c7830"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T&gt; </div>
+template&lt;class T, class Allocator = std::allocator&lt;T&gt;&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">long <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T &gt;::size </td>
+          <td class="memname">long <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; T, Allocator &gt;::size </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>

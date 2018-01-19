@@ -175,12 +175,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;        <span class="keywordtype">int</span> varSrc = a_src + icomp;</div>
 <div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> ivec = 0; ivec &lt; numtypelph; ivec++)</div>
 <div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;          {</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;            dataPtrsLph[ivec] = a_lph.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(ivec, varDst);</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;            dataPtrsLph[ivec] = a_lph.<a class="code" href="classamrex_1_1_vector.html#a314a950b356fb444c94b9f615ba0cd72">dataPtr</a>(ivec, varDst);</div>
 <div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;          }</div>
 <div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;</div>
 <div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> ivec = 0; ivec &lt; numtypephi; ivec++)</div>
 <div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;          {</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;            dataPtrsPhi[ivec] = a_phi.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(ivec, varSrc);</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;            dataPtrsPhi[ivec] = a_phi.<a class="code" href="classamrex_1_1_vector.html#a314a950b356fb444c94b9f615ba0cd72">dataPtr</a>(ivec, varSrc);</div>
 <div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;          }</div>
 <div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;</div>
 <div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> idst = 0; idst &lt; m_ebstencil.size(); idst++)</div>
@@ -192,7 +192,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;                lphi =  0.;</div>
 <div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;              }</div>
 <div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;            <span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">stencil_t</a>&amp; ebstencil = m_ebstencil[idst];</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;            <span class="keywordflow">for</span> (<span class="keywordtype">int</span> isten = 0; isten &lt; ebstencil.<a class="code" href="classamrex_1_1_vector.html#ac1b29a43c8db162da73dba28c7ad737d">size</a>(); isten++)</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;            <span class="keywordflow">for</span> (<span class="keywordtype">int</span> isten = 0; isten &lt; ebstencil.<a class="code" href="classamrex_1_1_vector.html#a509fc6837193e6fd97249b0c072c7830">size</a>(); isten++)</div>
 <div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;              {</div>
 <div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;                <span class="keyword">const</span> Real&amp; weight = ebstencil[isten].second;</div>
 <div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;                <span class="keyword">const</span> <span class="keywordtype">long</span>&amp; offset = ebstencil[isten].first.offset;</div>
@@ -216,7 +216,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;      {</div>
 <div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> ivec = 0; ivec &lt; dataPtrsLph.size(); ivec++)</div>
 <div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;          {</div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;            dataPtrsLph[ivec] = a_lph.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(ivec, ivar);</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;            dataPtrsLph[ivec] = a_lph.<a class="code" href="classamrex_1_1_vector.html#a314a950b356fb444c94b9f615ba0cd72">dataPtr</a>(ivec, ivar);</div>
 <div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;          }</div>
 <div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;</div>
 <div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> idst = 0; idst &lt; m_ebstencil.size(); idst++)</div>
@@ -238,7 +238,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;      {</div>
 <div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> ivec = 0; ivec &lt; dataPtrsLph.size(); ivec++)</div>
 <div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;          {</div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;            dataPtrsLph[ivec] = a_lph.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(ivec, ivar);</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;            dataPtrsLph[ivec] = a_lph.<a class="code" href="classamrex_1_1_vector.html#a314a950b356fb444c94b9f615ba0cd72">dataPtr</a>(ivec, ivar);</div>
 <div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;          }</div>
 <div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;</div>
 <div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> idst = 0; idst &lt; m_ebstencil.size(); idst++)</div>
@@ -257,13 +257,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="ttc" id="_a_m_re_x___b_lassert_8_h_html_a53ebc8b227de416f458800faa44c619e"><div class="ttname"><a href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a></div><div class="ttdeci">#define BL_ASSERT(EX)</div><div class="ttdef"><b>Definition:</b> AMReX_BLassert.H:49</div></div>
 <div class="ttc" id="classamrex_1_1_base_index_html"><div class="ttname"><a href="classamrex_1_1_base_index.html">amrex::BaseIndex</a></div><div class="ttdoc">index for other indicies to inherit </div><div class="ttdef"><b>Definition:</b> AMReX_BaseIndex.H:27</div></div>
 <div class="ttc" id="classamrex_1_1_base_stencil_html_a616a7f72d9016271c5b4bed4c92445a4"><div class="ttname"><a href="classamrex_1_1_base_stencil.html#a616a7f72d9016271c5b4bed4c92445a4">amrex::BaseStencil::variable</a></div><div class="ttdeci">virtual const int &amp; variable(int isten) const =0</div></div>
+<div class="ttc" id="classamrex_1_1_vector_html_a509fc6837193e6fd97249b0c072c7830"><div class="ttname"><a href="classamrex_1_1_vector.html#a509fc6837193e6fd97249b0c072c7830">amrex::Vector::size</a></div><div class="ttdeci">long size() const </div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:43</div></div>
 <div class="ttc" id="classamrex_1_1_agg_stencil_html_a66da795ef07efdcdeff3720abb537862"><div class="ttname"><a href="classamrex_1_1_agg_stencil.html#a66da795ef07efdcdeff3720abb537862">amrex::AggStencil::uncache</a></div><div class="ttdeci">void uncache(dstData_t &amp;a_phi) const </div><div class="ttdef"><b>Definition:</b> AMReX_AggStencilI.H:143</div></div>
 <div class="ttc" id="classamrex_1_1_agg_stencil_html_a4f48312cc775c9d90cd8c9753b5c2d0c"><div class="ttname"><a href="classamrex_1_1_agg_stencil.html#a4f48312cc775c9d90cd8c9753b5c2d0c">amrex::AggStencil::cache</a></div><div class="ttdeci">void cache(const dstData_t &amp;a_lph) const </div><div class="ttdef"><b>Definition:</b> AMReX_AggStencilI.H:120</div></div>
-<div class="ttc" id="classamrex_1_1_vector_html_ac1b29a43c8db162da73dba28c7ad737d"><div class="ttname"><a href="classamrex_1_1_vector.html#ac1b29a43c8db162da73dba28c7ad737d">amrex::Vector::size</a></div><div class="ttdeci">long size() const </div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:43</div></div>
 <div class="ttc" id="classamrex_1_1_base_stencil_html_a558b548b284a6e846dc9d3a1fe70e1f4"><div class="ttname"><a href="classamrex_1_1_base_stencil.html#a558b548b284a6e846dc9d3a1fe70e1f4">amrex::BaseStencil::size</a></div><div class="ttdeci">virtual int size() const =0</div></div>
+<div class="ttc" id="classamrex_1_1_vector_html_a314a950b356fb444c94b9f615ba0cd72"><div class="ttname"><a href="classamrex_1_1_vector.html#a314a950b356fb444c94b9f615ba0cd72">amrex::Vector::dataPtr</a></div><div class="ttdeci">T * dataPtr()</div><div class="ttdoc">get access to the underlying data pointer </div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:39</div></div>
 <div class="ttc" id="classamrex_1_1_vector_html"><div class="ttname"><a href="classamrex_1_1_vector.html">amrex::Vector</a></div><div class="ttdoc">This class is a thin wrapper around std::vector. Unlike vector, Vector::operator[] provides bound che...</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:18</div></div>
 <div class="ttc" id="classamrex_1_1_agg_stencil_html_ade69a05abd66f5e27b34b18b161ad5a2"><div class="ttname"><a href="classamrex_1_1_agg_stencil.html#ade69a05abd66f5e27b34b18b161ad5a2">amrex::AggStencil::apply</a></div><div class="ttdeci">void apply(dstData_t &amp;a_lph, const srcData_t &amp;a_phi, const int &amp;a_varDest, const bool &amp;a_incrementOnly) const </div><div class="ttdef"><b>Definition:</b> AMReX_AggStencilI.H:51</div></div>
-<div class="ttc" id="classamrex_1_1_vector_html_a6a70bd3c70b04dd1008736d9545c18ce"><div class="ttname"><a href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">amrex::Vector::dataPtr</a></div><div class="ttdeci">T * dataPtr()</div><div class="ttdoc">get access to the underlying data pointer </div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:39</div></div>
 <div class="ttc" id="classamrex_1_1_base_stencil_html_a5c622a84f9012bea1c7da4099b3a868a"><div class="ttname"><a href="classamrex_1_1_base_stencil.html#a5c622a84f9012bea1c7da4099b3a868a">amrex::BaseStencil::weight</a></div><div class="ttdeci">virtual const Real &amp; weight(int isten) const =0</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
