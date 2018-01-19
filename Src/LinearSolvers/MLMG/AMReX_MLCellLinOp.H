@@ -103,6 +103,8 @@ protected:
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                   const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
 
+    BoxArray makeMGrids () const;
+
     virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const final;
 
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;

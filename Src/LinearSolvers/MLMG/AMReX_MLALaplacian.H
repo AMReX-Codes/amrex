@@ -1,5 +1,5 @@
-#ifndef AMREX_ML_ABECLAPLACIAN_H_
-#define AMREX_ML_ABECLAPLACIAN_H_
+#ifndef AMREX_MLALAPLACIAN_H_
+#define AMREX_MLALAPLACIAN_H_
 
 #include <AMReX_MLCellLinOp.H>
 #include <AMReX_Array.H>
@@ -7,24 +7,24 @@
 
 namespace amrex {
 
-// (alpha * a - beta * (del dot b grad)) phi
+// del dot grad phi
 
-class MLABecLaplacian
+class MLALaplacian
     : public MLCellLinOp
 {
 public:
 
-    MLABecLaplacian () {}
-    MLABecLaplacian (const Vector<Geometry>& a_geom,
-                     const Vector<BoxArray>& a_grids,
-                     const Vector<DistributionMapping>& a_dmap,
-                     const LPInfo& a_info = LPInfo());
-    virtual ~MLABecLaplacian ();
+    MLALaplacian () {}
+    MLALaplacian (const Vector<Geometry>& a_geom,
+                  const Vector<BoxArray>& a_grids,
+                  const Vector<DistributionMapping>& a_dmap,
+                  const LPInfo& a_info = LPInfo());
+    virtual ~MLALaplacian ();
 
-    MLABecLaplacian (const MLABecLaplacian&) = delete;
-    MLABecLaplacian (MLABecLaplacian&&) = delete;
-    MLABecLaplacian& operator= (const MLABecLaplacian&) = delete;
-    MLABecLaplacian& operator= (MLABecLaplacian&&) = delete;
+    MLALaplacian (const MLALaplacian&) = delete;
+    MLALaplacian (MLALaplacian&&) = delete;
+    MLALaplacian& operator= (const MLALaplacian&) = delete;
+    MLALaplacian& operator= (MLALaplacian&&) = delete;
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
@@ -33,7 +33,6 @@ public:
 
     void setScalars (Real a, Real b);
     void setACoeffs (int amrlev, const MultiFab& alpha);
-    void setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
 protected:
 
@@ -48,7 +47,7 @@ protected:
     virtual Real getBScalar () const final { return m_b_scalar; }
 
     virtual std::unique_ptr<MLLinOp> makeMLinOp () const final {
-        amrex::Abort("MLABecLaplacian::makeMLinOp: Not implmented");
+        amrex::Abort("MLALaplacian::makeMLinOp: Not implmented");
         return std::unique_ptr<MLLinOp>{};
     }
 
@@ -57,7 +56,6 @@ private:
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
-    Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
     Vector<int> m_is_singular;
 
@@ -65,12 +63,9 @@ private:
     // functions
     //
 
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                        Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b);
+    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
-
-    void applyMetricTermsCoeffs ();
 };
 
 }

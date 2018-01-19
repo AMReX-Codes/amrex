@@ -1,6 +1,7 @@
 
 #include <AMReX_MLPoisson.H>
 #include <AMReX_MLPoisson_F.H>
+#include <AMReX_MLALaplacian.H>
 
 namespace amrex {
 
@@ -232,14 +233,65 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
                          dxinv, face_only);
 }
 
-Real
-MLPoisson::Anorm (int amrlev, int mglev) const
+std::unique_ptr<MLLinOp>
+MLPoisson::makeMLinOp () const
 {
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const Geometry& geom = m_geom[0].back();
+    const BoxArray& ba = makeMGrids();
+    DistributionMapping dm{ba};
 
-    return 4.0*(AMREX_D_TERM(dxinv[0]*dxinv[0],
-                            +dxinv[1]*dxinv[1],
-                            +dxinv[2]*dxinv[2]));
+    LPInfo minfo{};
+    minfo.has_metric_term = info.has_metric_term;
+
+    std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
+
+    MLALaplacian* mop = dynamic_cast<MLALaplacian*>(r.get());
+
+    mop->m_parent = this;
+
+    mop->setMaxOrder(maxorder);
+    mop->setVerbose(verbose);
+
+    mop->setDomainBC(m_lobc, m_hibc);
+
+    mop->setCoarseFineBC(nullptr, 1);
+
+    mop->setScalars(1.0, -1.0);
+
+    const BoxArray& myba = m_grids[0].back();
+
+    const Real* dxinv = geom.InvCellSize();
+    Real dxscale = dxinv[0];
+#if (AMREX_SPACEDIM >= 2)
+    dxscale = std::max(dxscale,dxinv[1]);
+#endif
+#if (AMREX_SPACEDIM == 3)
+    dxscale = std::max(dxscale,dxinv[2]);
+#endif
+
+    MultiFab alpha(ba, dm, 1, 0);
+    alpha.setVal(1.e30*dxscale*dxscale);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        
+        for (MFIter mfi(alpha, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = alpha[mfi];
+            myba.intersections(fab.box(), isects);
+            for (const auto& is : isects)
+            {
+                fab.setVal(0.0, is.second, 0, 1);
+            }
+        }
+    }
+
+    mop->setACoeffs(0, alpha);
+
+    return r;
 }
 
 }

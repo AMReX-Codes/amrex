@@ -37,6 +37,11 @@ list ( APPEND CXXSRC     AMReX_MLABecLaplacian.cpp )
 list ( APPEND ALLHEADERS AMReX_MLABecLap_F.H )
 list ( APPEND F90SRC     AMReX_MLABecLap_${DIM}d.F90 )
 
+list ( APPEND ALLHEADERS AMReX_MLALaplacian.H )
+list ( APPEND CXXSRC     AMReX_MLALaplacian.cpp )
+list ( APPEND ALLHEADERS AMReX_MLALap_F.H )
+list ( APPEND F90SRC     AMReX_MLALap_${DIM}d.F90 )
+
 list ( APPEND ALLHEADERS AMReX_MLPoisson.H )
 list ( APPEND CXXSRC     AMReX_MLPoisson.cpp )
 list ( APPEND ALLHEADERS AMReX_MLPoisson_F.H )
