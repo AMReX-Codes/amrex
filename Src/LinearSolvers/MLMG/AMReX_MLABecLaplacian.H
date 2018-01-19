@@ -52,6 +52,11 @@ protected:
         return std::unique_ptr<MLLinOp>{};
     }
 
+    virtual std::unique_ptr<MLLinOp> makeNLinOp () const final {
+        amrex::Abort("MLABecLaplacian::makeNLinOp: Not implmented");
+        return std::unique_ptr<MLLinOp>{};
+    }
+
 private:
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();

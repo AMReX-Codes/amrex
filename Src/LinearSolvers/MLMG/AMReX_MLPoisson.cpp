@@ -294,4 +294,71 @@ MLPoisson::makeMLinOp () const
     return r;
 }
 
+std::unique_ptr<MLLinOp>
+MLPoisson::makeNLinOp () const
+{
+    const Geometry& geom = m_geom[0].back();
+    const BoxArray& ba = makeNGrids();
+    DistributionMapping dm{ba}; // xxxxx TODO
+
+    LPInfo minfo{};
+    minfo.has_metric_term = info.has_metric_term;
+
+    std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
+
+    MLALaplacian* nop = dynamic_cast<MLALaplacian*>(r.get());
+
+    nop->m_parent = this;
+
+    nop->setMaxOrder(maxorder);
+    nop->setVerbose(verbose);
+
+    nop->setDomainBC(m_lobc, m_hibc);
+
+    if (needsCoarseDataForBC())
+    {
+        const Real* dx0 = m_geom[0][0].CellSize();
+        const Real fac = 0.5*m_coarse_data_crse_ratio;
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        nop->setCoarseFineBCLocation(cbloc);
+    }
+
+    nop->setScalars(1.0, -1.0);
+
+    const BoxArray& myba = m_grids[0].back();
+
+    const Real* dxinv = geom.InvCellSize();
+    Real dxscale = dxinv[0];
+#if (AMREX_SPACEDIM >= 2)
+    dxscale = std::max(dxscale,dxinv[1]);
+#endif
+#if (AMREX_SPACEDIM == 3)
+    dxscale = std::max(dxscale,dxinv[2]);
+#endif
+
+    MultiFab alpha(ba, dm, 1, 0);
+    alpha.setVal(1.e30*dxscale*dxscale);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        
+        for (MFIter mfi(alpha, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = alpha[mfi];
+            myba.intersections(fab.box(), isects);
+            for (const auto& is : isects)
+            {
+                fab.setVal(0.0, is.second, 0, 1);
+            }
+        }
+    }
+
+    nop->setACoeffs(0, alpha);
+
+    return r;    
+}
+
 }

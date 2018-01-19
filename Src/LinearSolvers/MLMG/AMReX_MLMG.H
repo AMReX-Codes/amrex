@@ -45,6 +45,8 @@ public:
 
     int numAMRLevels () const { return namrlevs; }
 
+    void setNSolve (int flag) { do_nsolve = flag; }
+
 private:
 
     int verbose = 1;
@@ -99,7 +101,7 @@ private:
     void mgFcycle ();
 
     void bottomSolve ();
-    void MSolve ();
+    void MNSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs);
     void actualBottomSolve ();
 
     void computeMLResidual (int amrlevmax);
@@ -125,11 +127,22 @@ private:
     // M Solve
     //
     void prepareForMSolve ();
-    
+
     std::unique_ptr<MLLinOp> m_m_linop;
     std::unique_ptr<MLMG> m_m_mlmg;
     std::unique_ptr<MultiFab> m_m_sol;
     std::unique_ptr<MultiFab> m_m_rhs;
+
+    //
+    // N Solve
+    //
+    void prepareForNSolve ();
+
+    int do_nsolve = false;
+    std::unique_ptr<MLLinOp> ns_linop;
+    std::unique_ptr<MLMG> ns_mlmg;
+    std::unique_ptr<MultiFab> ns_sol;
+    std::unique_ptr<MultiFab> ns_rhs;    
 };
 
 }

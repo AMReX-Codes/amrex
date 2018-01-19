@@ -114,6 +114,8 @@ protected:
     IntVect m_ixtype;
 
     bool m_do_m_coarsening = false;
+    bool m_do_agglomeration = false;
+    bool m_do_consolidation = false;
 
     // first Vector is for amr level and second is mg level
     Vector<Vector<Geometry> >            m_geom;
@@ -143,7 +145,8 @@ protected:
     std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
 
     bool m_needs_coarse_data_for_bc;
-    int m_coarse_data_crse_ratio;
+    int m_coarse_data_crse_ratio = -1;
+    RealVect m_coarse_bc_loc;
     const MultiFab* m_coarse_data_for_bc = nullptr;
 
     //
@@ -171,7 +174,12 @@ protected:
         }
     }
 
+    void setCoarseFineBCLocation (const RealVect& cloc) { m_coarse_bc_loc = cloc; }
+
     bool doMCoarsening () const { return m_do_m_coarsening; }
+
+    bool doAgglomeration () const { return m_do_agglomeration; }
+    bool doConsolidation () const { return m_do_consolidation; }
 
     bool isCellCentered () const { return m_ixtype == 0; }
 
@@ -212,6 +220,7 @@ protected:
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
 
     virtual std::unique_ptr<MLLinOp> makeMLinOp () const = 0;
+    virtual std::unique_ptr<MLLinOp> makeNLinOp () const = 0;
 
 private:
 

@@ -142,7 +142,7 @@ MLCellLinOp::defineBC ()
                                              {AMREX_D_DECL(BCType::Dirichlet,
                                                            BCType::Dirichlet,
                                                            BCType::Dirichlet)},
-                                              m_amr_ref_ratio[amrlev-1]);
+                                             m_amr_ref_ratio[amrlev-1], RealVect{});
     }
 
     m_bcondloc.resize(m_num_amr_levels);
@@ -173,19 +173,20 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     }
     const MultiFab& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
 
-    int br_ref_ratio;
+    int br_ref_ratio = -1;
 
     if (amrlev == 0)
     {
         if (needsCoarseDataForBC())
         {
-            if (m_crse_sol_br[amrlev] == nullptr)
+            br_ref_ratio = m_coarse_data_crse_ratio > 0 ? m_coarse_data_crse_ratio : 2;
+            if (m_crse_sol_br[amrlev] == nullptr && br_ref_ratio > 0)
             {
                 const int ncomp = 1;
                 const int in_rad = 0;
                 const int out_rad = 1;
                 const int extent_rad = 2;
-                const int crse_ratio = m_coarse_data_crse_ratio;
+                const int crse_ratio = br_ref_ratio;
                 BoxArray cba = m_grids[amrlev][0];
                 cba.coarsen(crse_ratio);
                 m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
@@ -193,6 +194,7 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                                                               extent_rad, ncomp));
             }
             if (m_coarse_data_for_bc != nullptr) {
+                AMREX_ALWAYS_ASSERT(m_coarse_data_crse_ratio > 0);
                 const Box& cbx = amrex::coarsen(m_geom[0][0].Domain(), m_coarse_data_crse_ratio);
                 m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1,
                                                 Geometry::periodicity(cbx));
@@ -201,7 +203,7 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
             }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
                                                 bcdata, 0, 0, 1,
-                                                m_coarse_data_crse_ratio, BCRec());
+                                                br_ref_ratio, BCRec());
             br_ref_ratio = m_coarse_data_crse_ratio;
         }
         else
@@ -216,13 +218,14 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
 
-    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc, m_hibc, br_ref_ratio);
+    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc, m_hibc, br_ref_ratio, m_coarse_bc_loc);
 
     const Real* dx = m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
         m_bcondloc[amrlev][mglev]->setLOBndryConds(m_geom[amrlev][mglev], dx,
-                                                   m_lobc, m_hibc, br_ref_ratio);
+                                                   m_lobc, m_hibc,
+                                                   br_ref_ratio, m_coarse_bc_loc);
     }
 }
 
@@ -248,12 +251,20 @@ MLCellLinOp::makeMGrids () const
     }
 
     return ba;
+}
 
-#if 0
+BoxArray
+MLCellLinOp::makeNGrids () const
+{
+    const Geometry& geom = m_geom[0].back();
+    const BoxArray& old_ba = m_grids[0].back();
+
+    const int grid_size = 16;
+
     const IntVect sz = geom.Domain().size();
     IntVect N;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        const std::div_t dv = std::div(sz[idim], m_grid_size);
+        const std::div_t dv = std::div(sz[idim], grid_size);
         N[idim] = dv.rem ? dv.quot+1 : dv.quot;
     }
 
@@ -266,8 +277,8 @@ MLCellLinOp::makeMGrids () const
 #endif
             for (int i = 0; i < N[0]; ++i)
             {
-                IntVect small(AMREX_D_DECL(i*m_grid_size,j*m_grid_size,k*m_grid_size));
-                IntVect big = small + (m_grid_size-1);
+                IntVect small(AMREX_D_DECL(i*grid_size,j*grid_size,k*grid_size));
+                IntVect big = small + (grid_size-1);
                 big.min(geom.Domain().bigEnd());
                 Box bx(small,big);
                 if (old_ba.intersects(bx)) {
@@ -282,7 +293,6 @@ MLCellLinOp::makeMGrids () const
 #endif
 
     return BoxArray{std::move(bl)};
-#endif
 }
 
 void
@@ -654,7 +664,7 @@ void
 MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
                                             const std::array<BCType,AMREX_SPACEDIM>& lobc,
                                             const std::array<BCType,AMREX_SPACEDIM>& hibc,
-                                            int ratio)
+                                            int ratio, const RealVect& a_loc)
 {
     const Box&  domain = geom.Domain();
 
@@ -667,7 +677,7 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
         RealTuple & bloc  = bcloc[mfi];
         BCTuple   & bctag = bcond[mfi];
 
-        MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc, hibc, dx, ratio);
+        MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc, hibc, dx, ratio, a_loc);
     }
 }
 

@@ -599,26 +599,33 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
 void
 MLMG::bottomSolve ()
 {
-    if (linop.doMCoarsening()) {
-        MSolve();
-    } else {
+    if (do_nsolve)
+    {
+        MNSolve(*ns_mlmg, *ns_sol, *ns_rhs);
+    }
+    else if (linop.doMCoarsening())
+    {
+        MNSolve(*m_m_mlmg, *m_m_sol, *m_m_rhs);
+    }
+    else
+    {
         actualBottomSolve();
     }
 }
 
 void
-MLMG::MSolve ()
+MLMG::MNSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs)
 {
-    BL_PROFILE("MLMG::MSolve()");
+    BL_PROFILE("MLMG::MNSolve()");
 
-    m_m_sol->setVal(0.0);
+    a_sol.setVal(0.0);
 
-    m_m_rhs->setVal(0.0);
-    m_m_rhs->ParallelCopy(res[0].back());
+    a_rhs.setVal(0.0);
+    a_rhs.ParallelCopy(res[0].back());
 
-    m_m_mlmg->solve({m_m_sol.get()}, {m_m_rhs.get()}, -1.0, -1.0);
+    a_solver.solve({&a_sol}, {&a_rhs}, -1.0, -1.0);
 
-    cor[0].back()->ParallelCopy(*m_m_sol);
+    cor[0].back()->ParallelCopy(a_sol);
 }
 
 void
@@ -868,7 +875,15 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 
     buildFineMask();
 
-    if (linop.doMCoarsening())
+    if (linop.m_domain_covered[0]) do_nsolve = false;
+    if (linop.doAgglomeration()) do_nsolve = false;
+    if (AMREX_SPACEDIM != 3) do_nsolve = false;
+
+    if (do_nsolve && ns_linop == nullptr)
+    {
+        prepareForNSolve();
+    }
+    else if (linop.doMCoarsening() && m_m_linop == nullptr)
     {
         prepareForMSolve();
     }
@@ -878,7 +893,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
                        << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
                        << "\n";
         if (m_m_linop) {
-            amrex::Print() << "      # of MG levels on the M level: " << m_m_linop->NMGLevels(0) << "\n";
+            amrex::Print() << "      # of MG levels in M-Solve: " << m_m_linop->NMGLevels(0) << "\n";
+        }
+        if (ns_linop) {
+            amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n";
         }
     }
 }
@@ -903,6 +921,28 @@ MLMG::prepareForMSolve ()
     m_m_mlmg->setCGVerbose(0);
     m_m_mlmg->setFixedIter(1);
     m_m_mlmg->setMaxFmgIter(20);
+}
+
+void
+MLMG::prepareForNSolve ()
+{
+    ns_linop = std::move(linop.makeNLinOp());
+
+    const BoxArray& ba = (*ns_linop).m_grids[0][0];
+    const DistributionMapping& dm =(*ns_linop).m_dmap[0][0]; 
+
+    ns_sol.reset(new MultiFab(ba, dm, 1, 1));
+    ns_rhs.reset(new MultiFab(ba, dm, 1, 0));
+    ns_sol->setVal(0.0);
+    ns_rhs->setVal(0.0);
+
+    ns_linop->setLevelBC(0, ns_sol.get());
+    
+    ns_mlmg.reset(new MLMG(*ns_linop));
+    ns_mlmg->setVerbose(0);
+    ns_mlmg->setFixedIter(1);
+    ns_mlmg->setMaxFmgIter(20);
+    ns_mlmg->setBottomSolver(BottomSolver::smoother);
 }
 
 void

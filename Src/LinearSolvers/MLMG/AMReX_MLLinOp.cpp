@@ -260,6 +260,9 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     {
         m_bottom_comm = m_default_comm;
     }
+
+    m_do_agglomeration = agged;
+    m_do_consolidation = coned;
 }
 
 void

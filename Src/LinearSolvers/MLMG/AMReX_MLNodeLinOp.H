@@ -71,6 +71,11 @@ protected:
         return std::unique_ptr<MLLinOp>{};
     }
 
+    virtual std::unique_ptr<MLLinOp> makeNLinOp () const final {
+        amrex::Abort("MLNodeLinOp::makeNLinOp: N-Solve not supported");
+        return std::unique_ptr<MLLinOp>{};
+    }
+
     static std::unique_ptr<iMultiFab> makeOwnerMask (const BoxArray& ba,
                                                      const DistributionMapping& dm,
                                                      const Geometry& geom);
