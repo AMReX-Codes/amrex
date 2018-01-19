@@ -36,8 +36,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="next" title="Visualization" href="Visualization.html"/>
-        <link rel="prev" title="Fortran Interface" href="Fortran.html"/> 
+        <link rel="next" title="The Advection Equation" href="AmrCore.html"/>
+        <link rel="prev" title="Boundary Conditions" href="Boundary.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -97,11 +97,16 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AmrCore Source Code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="AmrCore.html">The Advection Equation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AmrCore.html#amrcore-source-code">AmrCore Source Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AmrCore.html#advection-amrcore-example">Advection_AmrCore Example</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
@@ -155,7 +160,7 @@
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/EB.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/Chapter6.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -169,10 +174,39 @@
            <div itemprop="articleBody">
             
   <div class="section" id="amrcore-source-code">
-<h1>AmrCore Source Code<a class="headerlink" href="#amrcore-source-code" title="Permalink to this headline">¶</a></h1>
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">This section is currently in development.</p>
+<span id="chap-amrcore"></span><h1>AmrCore Source Code<a class="headerlink" href="#amrcore-source-code" title="Permalink to this headline">¶</a></h1>
+<p>In this Chapter we give an overview of functionality contained in the amrex/Src/AmrCore source code.
+This directory contains source code for the following:</p>
+<ul class="simple">
+<li>Storing information about the grid layout and processor distribution mapping
+at each level of refinement.</li>
+<li>Functions to create grids at different levels of refinement, including tagging
+operations.</li>
+<li>Operations on data at different levels of refinement, such as interpolation and
+restriction operators.</li>
+<li>Flux registers used to store and manipulate fluxes at coarse-fine interfaces.</li>
+<li>Particle support for AMR (see <a class="reference internal" href="Chapter8.html#chap-particles"><span class="std std-ref">Particles</span></a>).</li>
+</ul>
+<p>There is another source directory, amrex/Src/Amr/, which contains
+additional classes used to manage the time-stepping for AMR simulations.
+However, it is possible to build a fully adaptive, subcycling-in-time simulation code
+without these additional classes.</p>
+<p>In this Chapter, we restrict our use to the amrex/Src/AmrCore source code
+and present a tutorial that performs an adaptive, subcycling-in-time simulation
+of the advection equation for a passively advected scalar.
+The accompanying tutorial code is available in amrex/Tutorials/Amr/Advection_AmrCore
+with build/run directory Exec/SingleVortex. In this example, the velocity
+field is a specified function of space and time, such that an initial
+Gaussian profile is displaced but returns to its original configuration at the final time.
+The boundary conditions are periodic and we use a refinement ratio of <span class="math">\(r=2\)</span> between each
+AMR level. The results of the simulation in two-dimensions are depicted in the Table
+showing the <a class="reference internal" href="AmrCore.html#fig-adv"><span class="std std-ref">SingleVortex Tutorial</span></a>.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="AmrCore.html">The Advection Equation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrCore.html#amrcore-source-code">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrCore.html#advection-amrcore-example">Advection_AmrCore Example</a></li>
+</ul>
 </div>
 </div>
 
@@ -186,10 +220,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Visualization.html" class="btn btn-neutral float-right" title="Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="AmrCore.html" class="btn btn-neutral float-right" title="The Advection Equation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Fortran.html" class="btn btn-neutral" title="Fortran Interface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="Boundary.html" class="btn btn-neutral" title="Boundary Conditions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

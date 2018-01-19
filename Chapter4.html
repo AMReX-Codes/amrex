@@ -36,8 +36,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="next" title="Introduction" href="Basics.html"/>
-        <link rel="prev" title="Introduction" href="BuildingAMReX.html"/> 
+        <link rel="next" title="HeatEquation_EX1_C Example" href="Basics.html"/>
+        <link rel="prev" title="Building with GNU Make" href="BuildingAMReX.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -92,14 +92,13 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="intro.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Basics.html">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Basics.html#heatequation-ex1-c-example">HeatEquation_EX1_C Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Basics.html">HeatEquation_EX1_C Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Basics.html#dimensionality">Dimensionality</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Basics.html#array">Array</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Basics.html#vector">Vector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Basics.html#real">Real</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Basics.html#paralleldescriptor">ParallelDescriptor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Basics.html#print">Print</a></li>
@@ -120,9 +119,9 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrCore.html">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Amr.html">Amr Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particles.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
@@ -192,13 +191,21 @@
            <div itemprop="articleBody">
             
   <div class="section" id="basics">
-<h1>Basics<a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Basics<a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h1>
+<p>In this chapter, we present the basics of AMReX. The implementation
+source codes are in amrex/Src/Base/. Note that AMReX&nbsp;classes
+and functions are in namespace <code class="docutils literal"><span class="pre">amrex</span></code>. For clarity, we usually
+drop <code class="docutils literal"><span class="pre">amrex::</span></code> in the example codes here. It is also assumed that
+headers have been properly included. We recommend you study
+the tutorial in amrex/Tutorials/Basic/HeatEquation_EX1_C while reading this chapter.
+After reading this chapter, one should be able to develop single-level
+parallel codes using AMReX. It should also be noted that this is not
+a comprehensive reference manual.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Basics.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Basics.html#heatequation-ex1-c-example">HeatEquation_EX1_C Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Basics.html">HeatEquation_EX1_C Example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Basics.html#dimensionality">Dimensionality</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Basics.html#array">Array</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Basics.html#vector">Vector</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Basics.html#real">Real</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Basics.html#paralleldescriptor">ParallelDescriptor</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Basics.html#print">Print</a></li>
@@ -230,10 +237,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Basics.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Basics.html" class="btn btn-neutral float-right" title="HeatEquation_EX1_C Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="BuildingAMReX.html" class="btn btn-neutral" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="BuildingAMReX.html" class="btn btn-neutral" title="Building with GNU Make" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

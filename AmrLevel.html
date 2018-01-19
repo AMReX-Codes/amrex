@@ -1,0 +1,405 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Amr Class &mdash; amrex 10.17 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
+        <link rel="up" title="Amr Source Code" href="Chapter7.html"/>
+        <link rel="next" title="Particles" href="Chapter8.html"/>
+        <link rel="prev" title="Amr Source Code" href="Chapter7.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> amrex
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                10.17
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Chapter7.html">Amr Source Code</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Amr Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#amrlevel-class">AmrLevel Class</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#statedata">StateData</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#levelbld-class">LevelBld Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#advection-amrlevel-example">Advection_AmrLevel Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#particles">Particles</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">amrex</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="Chapter7.html">Amr Source Code</a> &raquo;</li>
+        
+      <li>Amr Class</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/AmrLevel.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="amr-class">
+<h1>Amr Class<a class="headerlink" href="#amr-class" title="Permalink to this headline">¶</a></h1>
+<p>The Amr class is designed to manage parts of the computation which do
+not belong on a single level, like establishing and updating the hierarchy
+of levels, global timestepping, and managing the different AmrLevels.
+Most likely you will not need to derive any classes from Amr. Our mature
+application codes use this base class without any derived classes.</p>
+<p>One of the most important data members is an array of AmrLevels -
+the Amr class calls many functions from the AmrLevel class to do
+things like advance the solution on a level, compute a time step to be used
+for a level, etc.</p>
+</div>
+<div class="section" id="amrlevel-class">
+<h1>AmrLevel Class<a class="headerlink" href="#amrlevel-class" title="Permalink to this headline">¶</a></h1>
+<p>Pure virtual functions include:</p>
+<ul class="simple">
+<li>computeInitialDt Compute an array of time steps for each level of refinement.
+Called at the beginning of the simulation.</li>
+<li>computeNewDt Compute an array of time steps for each level of refinement.
+Called at the end of a coarse level advance.</li>
+<li>advance Advance the grids at a level.</li>
+<li>post_timestep Work after at time step at a given level. In this tutorial we do the
+AMR synchronization here.</li>
+<li>post_regrid Work after regridding. In this tutorial we redistribute particles.</li>
+<li>post_init Work after initialization. In this tutorial we perform AMR synchronization.</li>
+<li>initData Initialize the data on a given level at the beginning of the simulation.</li>
+<li>init There are two versions of this function used to initialize data on a level during regridding.
+One version is specifically for the case where the level did not previously exist (a newly created refined level)</li>
+<li>errorEst Perform the tagging at a level for refinement.</li>
+</ul>
+<div class="section" id="statedata">
+<h2>StateData<a class="headerlink" href="#statedata" title="Permalink to this headline">¶</a></h2>
+<p>The most important data managed by the AmrLevel is an array of StateData,
+which holds the scalar fields, etc., in the boxes that together make up the level.</p>
+<p>StateData is a class that essentially holds a pair of MultiFabs: one at the old time and one
+at the new time. AMReX knows how to interpolate in time between these states to get data at
+any intermediate point in time. The main data that we care about in our applications codes
+(such as the fluid state) will be stored as StateData. Essentially, data is made StateData
+if we need it to be stored in checkpoints / plotfiles, and/or we want it to be automatically
+interpolated when we refine.
+An AmrLevel stores an array of StateData (in a C ++ array called state). We index this array
+using integer keys (defined via an enum in, e.g., AmrLevelAdv.H):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">enum</span> <span class="n">StateType</span> <span class="p">{</span> <span class="n">Phi_Type</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                 <span class="n">NUM_STATE_TYPE</span> <span class="p">};</span>
+</pre></div>
+</div>
+<p>In our tutorial code, we use the function AmrLevelAdv::variableSetup to tell our simulation about
+the StateData (e.g., how many variables, ghost cells, nodality, etc.)
+Note that if you have more than one StateType, each of the different StateData
+carried in the state array can have different numbers
+of components, ghost cells, boundary conditions, etc. This is the main reason we separate all this
+data into separate StateData objects collected together in an indexable array.</p>
+</div>
+</div>
+<div class="section" id="levelbld-class">
+<h1>LevelBld Class<a class="headerlink" href="#levelbld-class" title="Permalink to this headline">¶</a></h1>
+<p>The LevelBld class is a pure virtual class for defining variable types
+and attributes. To more easily understand its usage, refer to the derived class,
+LevelBldAdv in the tutorial. The variableSetUp and variableCleanUp are implemented,
+and in this tutorial call routines in the AmrLevelAdv class, e.g.,</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">void</span>
+<span class="n">AmrLevelAdv</span><span class="p">::</span><span class="n">variableSetUp</span> <span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">BL_ASSERT</span><span class="p">(</span><span class="n">desc_lst</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
+
+    <span class="o">//</span> <span class="n">Get</span> <span class="n">options</span><span class="p">,</span> <span class="nb">set</span> <span class="n">phys_bc</span>
+    <span class="n">read_params</span><span class="p">();</span>
+
+    <span class="n">desc_lst</span><span class="o">.</span><span class="n">addDescriptor</span><span class="p">(</span><span class="n">Phi_Type</span><span class="p">,</span><span class="n">IndexType</span><span class="p">::</span><span class="n">TheCellType</span><span class="p">(),</span>
+                           <span class="n">StateDescriptor</span><span class="p">::</span><span class="n">Point</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">NUM_STATE</span><span class="p">,</span>
+               <span class="o">&amp;</span><span class="n">cell_cons_interp</span><span class="p">);</span>
+
+    <span class="nb">int</span> <span class="n">lo_bc</span><span class="p">[</span><span class="n">BL_SPACEDIM</span><span class="p">];</span>
+    <span class="nb">int</span> <span class="n">hi_bc</span><span class="p">[</span><span class="n">BL_SPACEDIM</span><span class="p">];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nb">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">BL_SPACEDIM</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">lo_bc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">hi_bc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">INT_DIR</span><span class="p">;</span>   <span class="o">//</span> <span class="n">periodic</span> <span class="n">boundaries</span>
+    <span class="p">}</span>
+
+    <span class="n">BCRec</span> <span class="n">bc</span><span class="p">(</span><span class="n">lo_bc</span><span class="p">,</span> <span class="n">hi_bc</span><span class="p">);</span>
+
+    <span class="n">desc_lst</span><span class="o">.</span><span class="n">setComponent</span><span class="p">(</span><span class="n">Phi_Type</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;phi&quot;</span><span class="p">,</span> <span class="n">bc</span><span class="p">,</span>
+              <span class="n">StateDescriptor</span><span class="p">::</span><span class="n">BndryFunc</span><span class="p">(</span><span class="n">nullfill</span><span class="p">));</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>We see how to define the StateType, including nodality, whether or not we want
+the variable to represent a point in time or an interval over time (useful for returning
+the time associated with data), the number of ghost cells, number of components,
+and the interlevel interpolation (See AMReX_Interpolator for various interpolation
+types. We also see how to specify physical boundary functions by providing a function (in this case,
+nullfill since we are not using physical boundary conditions), where nullfill is
+defined in a fortran routine in the tutorial source code.</p>
+</div>
+<div class="section" id="advection-amrlevel-example">
+<h1>Advection_AmrLevel Example<a class="headerlink" href="#advection-amrlevel-example" title="Permalink to this headline">¶</a></h1>
+<p>Figure <a class="reference external" href="#fig:AmrAdvection_AmrLevel_flowchart">[fig:AmrAdvection_AmrLevel_flowchart]</a> shows a source
+code tree for the AmrAdvection_AmrLevel example.</p>
+<ul class="simple">
+<li>amrex/Src/<ul>
+<li>Base/ Base amrex library.</li>
+<li>Boundary/ An assortment of classes for handling boundary data.</li>
+<li>AmrCore/ AMR data management classes, described in more detail above.</li>
+<li>Amr/</li>
+</ul>
+</li>
+<li>Advection_AmrLevel/Src Source code specific to this example. Most notably
+is the AmrLevelAdv class, which is derived from AmrLevel. The subdirectories Src_2d
+and Src_3d contain dimension specific routines. Src_nd contains dimension-independent routines.</li>
+<li>Exec Contains a makefile so a user can write other examples besides SingleVortex and UniformVelocity.</li>
+<li>SingleVortex and UniformVelocity
+Build the code here by editing the GNUmakefile and running make. There
+is also problem-specific source code here used for initialization or specifying the velocity field used in this
+simulation.</li>
+</ul>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">/*</span> <span class="n">Advection_AmrLevel</span> <span class="n">Pseudocode</span> <span class="o">*/</span>
+<span class="n">main</span><span class="p">()</span>
+  <span class="n">Amr</span> <span class="n">amr</span><span class="p">;</span>
+  <span class="n">amr</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+  <span class="n">loop</span> <span class="p">{</span>
+    <span class="n">amr</span><span class="o">.</span><span class="n">coarseTimeStep</span><span class="p">()</span>
+      <span class="o">/*</span> <span class="n">compute</span> <span class="n">dt</span> <span class="o">*/</span>
+      <span class="n">timeStep</span><span class="p">()</span>
+        <span class="n">amr_level</span><span class="p">[</span><span class="n">level</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">advance</span><span class="p">()</span>
+        <span class="o">/*</span> <span class="n">call</span> <span class="n">timeStep</span> <span class="n">r</span> <span class="n">times</span> <span class="k">for</span> <span class="nb">next</span><span class="o">-</span><span class="n">finer</span> <span class="n">level</span> <span class="o">*/</span>
+        <span class="n">amr_level</span><span class="p">[</span><span class="n">level</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">post_timestep</span><span class="p">()</span> <span class="o">//</span> <span class="n">AMR</span> <span class="n">synchronization</span>
+      <span class="n">postCoarseTimeStep</span><span class="p">()</span>
+      <span class="o">/*</span> <span class="n">write</span> <span class="n">plotfile</span> <span class="ow">and</span> <span class="n">checkpoint</span> <span class="o">*/</span>
+  <span class="p">}</span>
+  <span class="o">/*</span> <span class="n">write</span> <span class="n">final</span> <span class="n">plotfile</span> <span class="ow">and</span> <span class="n">checkpoint</span> <span class="o">*/</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="particles">
+<h1>Particles<a class="headerlink" href="#particles" title="Permalink to this headline">¶</a></h1>
+<p>There is an option to turn on passively advected particles. In the GNUmakefile,
+add the line “USE_PARTICLES = TRUE” and build the code
+(do a make realclean first).
+In the inputs file, add the line “adv.do_tracers = 1”.
+When you run the code, within each plotfile directory there will be a subdirectory
+called “Tracer”.</p>
+<div class="line-block">
+<div class="line">Copy the files from amrex/Tools/Py_util/amrex_particles_to_vtp into
+the run directory and type, e.g.,</div>
+<div class="line">python amrex_binary_particles_to_vtp.py plt00000 Tracer</div>
+<div class="line">To generate a vtp file you can open with &nbsp;(Refer to Chapter <a class="reference external" href="#Chap:Visualization">[Chap:Visualization]</a>).</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Chapter8.html" class="btn btn-neutral float-right" title="Particles" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Chapter7.html" class="btn btn-neutral" title="Amr Source Code" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, AMReX Team.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'10.17',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Introduction &mdash; amrex 10.17 documentation</title>
+  <title>Building with GNU Make &mdash; amrex 10.17 documentation</title>
   
 
   
@@ -93,11 +93,10 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="intro.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Chapter3.html">Building AMReX</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#building-with-gnu-make">Building with GNU Make</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Building with GNU Make</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#dissecting-a-simple-make-file">Dissecting a Simple Make File</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#tweaking-make-system">Tweaking Make System</a></li>
 </ul>
@@ -112,9 +111,9 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrCore.html">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Amr.html">Amr Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particles.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
@@ -166,7 +165,7 @@
         
           <li><a href="Chapter3.html">Building AMReX</a> &raquo;</li>
         
-      <li>Introduction</li>
+      <li>Building with GNU Make</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -185,20 +184,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="introduction">
-<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
-<p>In this chapter, we discuss AMReX’s build systems. There are three
-ways to use AMReX. The approach used by AMReX developers uses GNU
-Make. There is no installation step in this approach. Application
-codes adopt AMReX’s build system and compile AMReX while compiling
-their own codes. This will be discussed in more detail in
-Section 3.1. The second approach is to build into a library and
-install it (Section 3.2). Then an application code uses its own build system
-and links AMReX as an external library. AMReX can also be built with Cmake
-(Section 3.3).</p>
-</div>
-<div class="section" id="building-with-gnu-make">
-<h1>Building with GNU Make<a class="headerlink" href="#building-with-gnu-make" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="building-with-gnu-make">
+<span id="sec-build-make"></span><h1>Building with GNU Make<a class="headerlink" href="#building-with-gnu-make" title="Permalink to this headline">¶</a></h1>
 <p>In this build approach, you write your own make files defining a
 number of variables and rules. Then you invoke make to start
 the building process. This will result in an executable upon
@@ -206,13 +193,15 @@ successful completion. The temporary files generated in the building
 process are stored in a temporary directory named tmp_build_dir.</p>
 <div class="section" id="dissecting-a-simple-make-file">
 <h2>Dissecting a Simple Make File<a class="headerlink" href="#dissecting-a-simple-make-file" title="Permalink to this headline">¶</a></h2>
-<p>An example of building with GNU Make can be found in amrex/Tutorials/Basic/HelloWorld_C.
-The table below shows a list of important variables.</p>
-<table border="1" class="docutils">
+<p>An example of building with GNU Make can be found in
+amrex/Tutorials/Basic/HelloWorld_C.&nbsp;The table on <a class="reference internal" href="#tab-makevarimp"><span class="std std-ref">Important make variables</span></a>
+below shows a list of important variables.</p>
+<span id="tab-makevarimp"></span><table border="1" class="docutils" id="id1">
+<caption><span class="caption-text">Important make variables</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
 <colgroup>
-<col width="22%" />
-<col width="57%" />
-<col width="22%" />
+<col width="19%" />
+<col width="60%" />
+<col width="21%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Variable</th>
@@ -247,42 +236,48 @@ The table below shows a list of important variables.</p>
 </tr>
 </tbody>
 </table>
-<p>Table: Important make variables</p>
-<p>At the beginning of amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile, AMREX_HOME
-is set to the path to the top directory of AMReX. Note that in the
-example ?= is a conditional variable assignment operator that
-only has an effect if AMREX_HOME has not been defined
-(including in the environment). One can also set AMREX_HOME
-as an environment variable. For example in bash,
-one can set export AMREX_HOME=/path/to/amrex; in tcsh one can set
-setenv AMREX_HOME /path/to/amrex.</p>
-<p>One must set the COMP variable to choose a compiler. Currently
-the list of supported compilers includes gnu, cray, ibm, intel, llvm, and pgi.
-One must also set the DIM variable to either 1, 2, or 3, depending on the
+<p>At the beginning of amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile,
+<code class="docutils literal"><span class="pre">AMREX_HOME</span></code> is set to the path to the top directory of AMReX.
+Note that in the example <code class="code cpp c++ docutils literal"><span class="operator"><span class="pre">?=</span></span></code> is a conditional variable assignment
+operator that only has an effect if <code class="docutils literal"><span class="pre">AMREX_HOME</span></code> has not been defined
+(including in the environment). One can also set <code class="docutils literal"><span class="pre">AMREX_HOME</span></code> as an
+environment variable. For example in bash, one can set</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">AMREX_HOME</span><span class="o">=</span>/path/to/amrex
+</pre></div>
+</div>
+<p>alternatively, in tcsh one can set</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>setenv AMREX_HOME /path/to/amrex
+</pre></div>
+</div>
+<p>One must set the <code class="docutils literal"><span class="pre">COMP</span></code> variable to choose a compiler. Currently
+the list of supported compilers includes gnu, cray,
+ibm, intel, llvm, and pgi. One must also set the
+DIM variable to either 1, 2, or 3, depending on the
 dimensionality of the problem.</p>
-<p>Variables DEBUG, USE_MPI and USE_OMP are optional
-with default set to TRUE, FALSE and FALSE,
-respectively. The meaning of these variables should be obvious.
-When DEBUG = TRUE, aggressive compiler optimization flags are turned
-off and assertions in AMReX source code are turned on. For
-production runs, DEBUG should be set to FALSE.</p>
+<p>Variables <code class="docutils literal"><span class="pre">DEBUG</span></code>, <code class="docutils literal"><span class="pre">USE_MPI</span></code> and <code class="docutils literal"><span class="pre">USE_OMP</span></code> are optional
+with default set to TRUE, FALSE and FALSE, respectively.
+The meaning of these variables should be obvious.
+When <code class="docutils literal"><span class="pre">DEBUG</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, aggressive compiler optimization flags are turned
+off and assertions in &nbsp;source code are turned on. For
+production runs, <code class="docutils literal"><span class="pre">DEBUG</span></code> should be set to FALSE.</p>
 <p>After defining these make variables, a number of files,
 Make.defs, Make.package and Make.rules, are included in
-GNUmakefile. based applications do not need to include
+GNUmakefile. AMReX-based applications do not need to include
 all directories in AMReX; an application which does not use particles,
 for example, does not need to include files from the Particle
 directory in its build.
-In this simple example, we only need to include $(AMREX_HOME)/Src/Base/Make.package.
-An application code also has its own Make.package file (e.g., ./Make.package in
+In this simple example, we only need to include
+<code class="docutils literal"><span class="pre">$(AMREX_HOME)/Src/Base/Make.package</span></code>. An application code also
+has its own Make.package file (e.g., ./Make.package in
 this example) to append source files to the build system using
-operator +=. Variables for various source files are shown
+operator <code class="docutils literal"><span class="pre">+=</span></code>. Variables for various source files are shown
 below.</p>
 <blockquote>
 <div><dl class="docutils">
 <dt>CEXE_sources</dt>
-<dd>source files. Note that source files are assumed to have a .cpp extension.</dd>
+<dd>C++&nbsp;source files. Note that C++&nbsp;source files are assumed to have a .cpp extension.</dd>
 <dt>CEXE_headers</dt>
-<dd>headers with .h or .H extension.</dd>
+<dd>C++&nbsp;headers with .h or .H extension.</dd>
 <dt>cEXE_sources</dt>
 <dd>C source files with .c extension.</dd>
 <dt>cEXE_headers</dt>
@@ -290,19 +285,20 @@ below.</p>
 <dt>f90EXE_sources</dt>
 <dd>Free format Fortran source with .f90 extension.</dd>
 <dt>F90EXE_sources</dt>
-<dd>Free format Fortran source with .F90 extension. Note that these Fortran files will go through
-preprocessing.</dd>
+<dd>Free format Fortran source with .F90 extension.
+Note that these Fortran files will go through preprocessing.</dd>
 </dl>
 </div></blockquote>
 <p>In this simple example, the extra source file, main.cpp is in
 the current directory that is already in the build system’s search
-path. If this example has files in a subdirectory (e.g., mysrcdir),
-you will then need to add the following to Make.package.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">VPATH_LOCATIONS</span> <span class="o">+=</span> <span class="n">mysrcdir</span>
-<span class="n">INCLUDE_LOCATIONS</span> <span class="o">+=</span> <span class="n">mysrcdir</span>
+path. If this example has files in a subdirectory (e.g.,
+mysrcdir), you will then need to add the following to
+Make.package.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nv">VPATH_LOCATIONS</span> <span class="o">+=</span> mysrcdir
+<span class="nv">INCLUDE_LOCATIONS</span> <span class="o">+=</span> mysrcdir
 </pre></div>
 </div>
-<p>Here VPATH_LOCATIONS and INCLUDE_LOCATIONS are the search
+<p>Here <code class="docutils literal"><span class="pre">VPATH_LOCATIONS</span></code> and <code class="docutils literal"><span class="pre">INCLUDE_LOCATIONS</span></code> are the search
 path for source and header files, respectively.</p>
 </div>
 <div class="section" id="tweaking-make-system">
@@ -313,180 +309,182 @@ information. Here we will give a brief overview.</p>
 <p>Besides building executable, other common make commands include:</p>
 <blockquote>
 <div><dl class="docutils">
-<dt>make clean</dt>
+<dt><code class="docutils literal"><span class="pre">make</span> <span class="pre">clean</span></code></dt>
 <dd>This removes the executable, .o files, and
 the temporarily generated files. Note that one can add additional
 targets to this rule by using the double colon (::)</dd>
-<dt>make realclean</dt>
+<dt><code class="docutils literal"><span class="pre">make</span> <span class="pre">realclean</span></code></dt>
 <dd>This removes all files generated by make.</dd>
-<dt>make help</dt>
+<dt><code class="docutils literal"><span class="pre">make</span> <span class="pre">help</span></code></dt>
 <dd>This shows the rules for compilation.</dd>
-<dt>make print-xxx</dt>
+<dt><code class="docutils literal"><span class="pre">make</span> <span class="pre">print-xxx</span></code></dt>
 <dd>This shows the value of variable xxx. This is
 very useful for debugging and tweaking the make system.</dd>
 </dl>
 </div></blockquote>
 <p>Compiler flags are set in amrex/Tools/GNUMake/comps/. Note that
-variables like CC and CFLAGS are reset in that directory
+variables like <code class="docutils literal"><span class="pre">CC</span></code> and <code class="docutils literal"><span class="pre">CFLAGS</span></code> are reset in that directory
 and their values in environment variables are disregarded. Site
-specific setups (e.g., MPI installation) are in amrex/Tools/GNUMake/sites/,
-which includes a generic setup in Make.unknown.
-You can override the setup by having your own sites/Make.$(host_name) file,
-where variable host_name is your host name in the make system and can be found via make
-print-host_name. You can also have a amrex/Tools/GNUMake/Make.local file to override various variables.
-See amrex/Tools/GNUMake/Make.local.template for an example.</p>
+specific setups (e.g., MPI installation) are in
+amrex/Tools/GNUMake/sites/, which includes a generic setup in
+Make.unknown. You can override the setup by having your own
+<code class="docutils literal"><span class="pre">sites/Make.$(host_name)</span></code> file, where variable <code class="docutils literal"><span class="pre">host_name</span></code> is your
+host name in the make system and can be found via <code class="docutils literal"><span class="pre">make</span> <span class="pre">print-host_name</span></code>.
+You can also have an amrex/Tools/GNUMake/Make.local file to override
+various variables. See amrex/Tools/GNUMake/Make.local.template for an example.</p>
 </div>
 </div>
 <div class="section" id="building-libamrex">
-<h1>Building libamrex<a class="headerlink" href="#building-libamrex" title="Permalink to this headline">¶</a></h1>
+<span id="sec-build-lib"></span><h1>Building libamrex<a class="headerlink" href="#building-libamrex" title="Permalink to this headline">¶</a></h1>
 <p>If an application code already has its own elaborated build system and
-wants to use AMReX as an external library, this might be your
-choice. In this approach, one runs ./configure, followed by
-make and make install. In the top AMReX directory, one
-can run ./configure -h to show the various options for the configure script.
-This approach is built on the AMReX GNU Make
-system. Thus Section 3.1 is recommended if any fine tuning is needed.</p>
+wants to use &nbsp;as an external library, this might be your
+choice. In this approach, one runs <code class="docutils literal"><span class="pre">./configure</span></code>, followed by
+<code class="docutils literal"><span class="pre">make</span></code> and <code class="docutils literal"><span class="pre">make</span> <span class="pre">install</span></code>. In the top AMReX&nbsp;directory, one
+can run <code class="docutils literal"><span class="pre">./configure</span> <span class="pre">-h</span></code> to show the various options for the
+configure script. This approach is built on the AMReX&nbsp;GNU Make
+system. Thus the section on&nbsp;<a class="reference internal" href="#sec-build-make"><span class="std std-ref">Building with GNU Make</span></a> is recommended if any fine
+tuning is needed.</p>
 </div>
 <div class="section" id="building-with-cmake">
-<h1>Building with CMake<a class="headerlink" href="#building-with-cmake" title="Permalink to this headline">¶</a></h1>
-<p>An alternative to the approach described in Section 3.2
-is to install AMReX as an external library by using the CMake build system.
-A CMake build is a two-steps process. First cmake is invoked to create
+<span id="sec-build-cmake"></span><h1>Building with CMake<a class="headerlink" href="#building-with-cmake" title="Permalink to this headline">¶</a></h1>
+<p>An alternative to the approach described in the section&nbsp;on <a class="reference internal" href="#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>
+is to install AMReX&nbsp;as an external library by using the CMake build system.
+A CMake build is a two-steps process. First <code class="docutils literal"><span class="pre">cmake</span></code> is invoked to create
 configuration files and makefiles in a chosen directory (builddir).
-This is roughly equivalent to running ./configure (see Section 3.2).
-Next, the actual build and installation are performed
-by issuing make install from within builddir. This will install
-the library files in a chosen installation directory ( installdir).
-If no installation path is provided by the user,
-AMReX will be installed in /path/to/amrex/installdir.
-The CMake build process is summarized as follow:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">builddir</span>
-<span class="n">cd</span>    <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">builddir</span>
-<span class="n">cmake</span> <span class="p">[</span><span class="n">options</span><span class="p">]</span> <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="p">:</span><span class="n">PATH</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">installdir</span>  <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">amrex</span>
-<span class="n">make</span> <span class="n">install</span>
+This is roughly equivalent to running <code class="docutils literal"><span class="pre">./configure</span></code> (see the section on
+<a class="reference internal" href="#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>). Next, the actual build and installation are performed
+by issuing <code class="docutils literal"><span class="pre">make</span> <span class="pre">install</span></code> from within builddir. This will install
+the library files in a chosen installation directory (installdir).
+If no installation path is provided by the user, AMReX will be installed in
+/path/to/amrex/installdir. The CMake build process is summarized as follow:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">mkdir /path/to/builddir</span>
+<span class="go">cd    /path/to/builddir</span>
+<span class="go">cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex</span>
+<span class="go">make  install</span>
 </pre></div>
 </div>
-<p>In the above snippet, indicates one or more options for the customization
-of the build, as described in Subsection 3.3.1.
-Although the AMReX source could be used as build directory, we advise against doing so.
+<p>In the above snippet, <code class="docutils literal"><span class="pre">[options]</span></code> indicates one or more options for the customization
+of the build, as described in the subsection&nbsp;on <a class="reference internal" href="#sec-build-cmake-options"><span class="std std-ref">Customization options</span></a>.
+Although the AMReX&nbsp;source could be used as build directory, we advise against doing so.
 After the installation is complete, builddir can be removed.</p>
 <div class="section" id="customization-options">
-<h2>Customization options<a class="headerlink" href="#customization-options" title="Permalink to this headline">¶</a></h2>
-<p>&nbsp;configuration settings may be specified on the command line with the -D option.
+<span id="sec-build-cmake-options"></span><h2>Customization options<a class="headerlink" href="#customization-options" title="Permalink to this headline">¶</a></h2>
+<p>AMReX&nbsp;configuration settings may be specified on the command line with the -D option.
 For example, one can enable OpenMP support as follows:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DENABLE_OMP</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="p">:</span><span class="n">PATH</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">installdir</span>  <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">amrex</span>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex</span>
 </pre></div>
 </div>
-<p>The list of available option is reported in the table below.</p>
-<table border="1" class="docutils">
+<p>The list of available option is reported in the table on&nbsp;<a class="reference internal" href="#tab-cmakevar"><span class="std std-ref">Important cmake build options</span></a> below.</p>
+<span id="tab-cmakevar"></span><table border="1" class="docutils" id="id2">
+<caption><span class="caption-text">Important cmake build options</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
 <colgroup>
-<col width="28%" />
-<col width="48%" />
-<col width="8%" />
-<col width="15%" />
+<col width="25%" />
+<col width="46%" />
+<col width="12%" />
+<col width="16%" />
 </colgroup>
 <thead valign="bottom">
-<tr class="row-odd"><th class="head">Option name</th>
+<tr class="row-odd"><th class="head">Option Name</th>
 <th class="head">Description</th>
-<th class="head">Defaults</th>
+<th class="head">Default</th>
 <th class="head">Possible values</th>
 </tr>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td>DEBUG</td>
-<td>Build amrexin debug mode</td>
+<td>Build AMReX in debug mode</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ONE, OFF</td>
 </tr>
 <tr class="row-odd"><td>DIM</td>
-<td>Dimension of amrexbuild</td>
+<td>Dimension of AMReX build</td>
 <td>3</td>
-<td>2,3</td>
+<td>2, 3</td>
 </tr>
 <tr class="row-even"><td>ENABLE_DP</td>
 <td>Build with double-precision reals</td>
 <td>ON</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_PIC</td>
 <td>Build Position Independent Code</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-even"><td>ENABLE_MPI</td>
 <td>Build with MPI support</td>
 <td>ON</td>
-<td>ON,OFF</td>
+<td>ON OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_OMP</td>
 <td>Build with OpenMP support</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-even"><td>ENABLE_FORTRAN_INTERFACES</td>
 <td>Build Fortran API</td>
 <td>ON</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_LINEAR_SOLVERS</td>
-<td>Build amrexlinear solvers</td>
+<td>Build AMReX linear solvers</td>
 <td>ON</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-even"><td>ENABLE_FBASELIB</td>
 <td>Build (deprecated) Fortran kernel</td>
 <td>ON</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_AMRDATA</td>
 <td>Build data services</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-even"><td>ENABLE_PARTICLES</td>
 <td>Build particle classes</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_DP_PARTICLES</td>
 <td>Use double-precision reals in particle classes</td>
 <td>ON</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-even"><td>ENABLE_BASE_PROFILE</td>
 <td>Build with basic profiling support</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_TINY_PROFILE</td>
 <td>Build with tiny profiling support</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-even"><td>ENABLE_TRACE_PROFILE</td>
 <td>Build with trace-profiling support</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_COMM_PROFILE</td>
 <td>Build with comm-profiling support</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-even"><td>ENABLE_MEM_PROFILE</td>
 <td>Build with memory-profiling support</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_PROFPARSER</td>
 <td>Build with profile parser support</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-even"><td>ENABLE_BACKTRACE</td>
 <td>Build with backtrace support</td>
 <td>OFF</td>
-<td>ON,OFF</td>
+<td>ON, OFF</td>
 </tr>
 <tr class="row-odd"><td>ENABLE_FPE</td>
 <td>Build with Floating Point Exceptions checks</td>
@@ -498,35 +496,34 @@ For example, one can enable OpenMP support as follows:</p>
 <td>OFF</td>
 <td>ON,OFF</td>
 </tr>
-<tr class="row-odd"><td>AMREX_FFLAGS_OVERRIDES</td>
+<tr class="row-odd"><td>AMREX_FFLAGS_OVERRIDES}</td>
 <td>User-defined Fortran flags</td>
 <td>None</td>
 <td>user-defined</td>
 </tr>
-<tr class="row-even"><td>AMREX_CXXFLAGS_OVERRIDES</td>
+<tr class="row-even"><td>AMREX_CXXFLAGS_OVERRIDES}</td>
 <td>User-defined C++ flags</td>
 <td>None</td>
 <td>user-defined</td>
 </tr>
 </tbody>
 </table>
-<p>The option ENABLE_LINEAR_SOLVERS=ON triggers the inclusion of C++-based linear
-solvers in the build. Fortran-based linear solvers can be included
-as well by providing the option ENABLE_FBASELIB=ON in addition
-to ENABLE_LINEAR_SOLVERS=ON.</p>
-<p>The options DEBUG=ON implies ENABLE_ASSERTION=ON. In order to turn off assertions in debug mode,
-ENABLE_ASSERTION=OFF must be set explicitly while invoking CMake.</p>
+<p>The option <code class="docutils literal"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code> triggers the inclusion of C++-based linear
+solvers in the build. Fortran-based linear solvers can be included as well by providing
+the option <code class="docutils literal"><span class="pre">ENABLE_FBASELIB=ON</span></code> in addition to <code class="docutils literal"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code>. The
+options <code class="docutils literal"><span class="pre">DEBUG=ON</span></code> implies <code class="docutils literal"><span class="pre">ENABLE_ASSERTION=ON</span></code>. In order to turn off assertions
+in debug mode, <code class="docutils literal"><span class="pre">ENABLE_ASSERTION=OFF</span></code> must be set explicitly while invoking CMake.</p>
 </div>
 <div class="section" id="importing-amrex-configuration-into-a-cmake-project">
-<h2>Importing AMReX configuration into a CMake project<a class="headerlink" href="#importing-amrex-configuration-into-a-cmake-project" title="Permalink to this headline">¶</a></h2>
-<p>In order to import the AMReX configuration options into your CMake
+<span id="sec-build-cmake-config"></span><h2>Importing AMReX configuration into a CMake project<a class="headerlink" href="#importing-amrex-configuration-into-a-cmake-project" title="Permalink to this headline">¶</a></h2>
+<p>In order to import the AMReX&nbsp;configuration options into your CMake
 build system, include the following line in the appropriate
 CMakeLists.txt file:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">find_package</span> <span class="p">(</span><span class="n">AMReX</span> <span class="n">CONFIG</span> <span class="n">REQUIRED</span> <span class="n">HINTS</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">installdir</span><span class="o">/</span><span class="n">cmake</span> <span class="p">)</span>
+<div class="highlight-cmake"><div class="highlight"><pre><span></span><span class="nb">find_package</span> <span class="p">(</span><span class="s">AMReX</span> <span class="s">CONFIG</span> <span class="s">REQUIRED</span> <span class="s">HINTS</span> <span class="s">/path/to/installdir/cmake</span> <span class="p">)</span>
 </pre></div>
 </div>
-<p>This will load -specific CMake variables containing the necessary
-info to compile and link your code to . For a list of all the available
+<p>This will load AMReX-specific CMake variables containing the necessary
+info to compile and link your code to AMReX. For a list of all the available
 configuration variables, refer to the file AMReXConfig.cmake.in in
 /path/to/installdir/cmake/.</p>
 </div>
