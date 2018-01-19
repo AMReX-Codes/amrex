@@ -36,7 +36,7 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="next" title="Introduction" href="BuildingAMReX.html"/>
+        <link rel="next" title="Building with GNU Make" href="BuildingAMReX.html"/>
         <link rel="prev" title="Downloading the Code" href="GettingStarted.html"/> 
 
   
@@ -92,25 +92,20 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="intro.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Building AMReX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#building-with-gnu-make">Building with GNU Make</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html">Building with GNU Make</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#building-libamrex">Building libamrex</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#building-with-cmake">Building with CMake</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrCore.html">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Amr.html">Amr Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particles.html">Particles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
 </ul>
 
             
@@ -175,11 +170,20 @@
            <div itemprop="articleBody">
             
   <div class="section" id="building-amrex">
-<h1>Building AMReX<a class="headerlink" href="#building-amrex" title="Permalink to this headline">¶</a></h1>
+<span id="buildingamrex"></span><h1>Building AMReX<a class="headerlink" href="#building-amrex" title="Permalink to this headline">¶</a></h1>
+<p>In this chapter, we discuss AMReX’s build systems. There are three
+ways to use AMReX. The approach used by AMReX&nbsp;developers uses GNU
+Make. There is no installation step in this approach. Application
+codes adopt AMReX’s build system and compile AMReX&nbsp;while compiling
+their own codes. This will be discussed in more detail in the section
+on <a class="reference internal" href="BuildingAMReX.html#sec-build-make"><span class="std std-ref">Building with GNU Make</span></a>. The second approach is to build AMReX&nbsp;into
+a library and installing it (cf.&nbsp;<a class="reference internal" href="BuildingAMReX.html#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>). Then an
+application code uses its own build system and links AMReX&nbsp;as an
+external library. AMReX&nbsp;can also be built with Cmake, as detailed in
+the section&nbsp;on <a class="reference internal" href="BuildingAMReX.html#sec-build-cmake"><span class="std std-ref">Building with CMake</span></a>.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html#building-with-gnu-make">Building with GNU Make</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html">Building with GNU Make</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#dissecting-a-simple-make-file">Dissecting a Simple Make File</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#tweaking-make-system">Tweaking Make System</a></li>
 </ul>
@@ -204,7 +208,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="BuildingAMReX.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="BuildingAMReX.html" class="btn btn-neutral float-right" title="Building with GNU Make" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="GettingStarted.html" class="btn btn-neutral" title="Downloading the Code" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

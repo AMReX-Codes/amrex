@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Getting Started &mdash; amrex 10.17 documentation</title>
+  <title>Amr Source Code &mdash; amrex 10.17 documentation</title>
   
 
   
@@ -36,8 +36,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="next" title="Downloading the Code" href="GettingStarted.html"/>
-        <link rel="prev" title="AMReX Introduction" href="Introduction.html"/> 
+        <link rel="next" title="Amr Class" href="AmrLevel.html"/>
+        <link rel="prev" title="The Advection Equation" href="AmrCore.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -93,18 +93,19 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html">Downloading the Code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#example-hello-world">Example: Hello World</a></li>
-<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#example-heat-equation-solver">Example: Heat Equation Solver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#visualization">Visualization</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Amr Source Code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html">Amr Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html#amrlevel-class">AmrLevel Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html#levelbld-class">LevelBld Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html#advection-amrlevel-example">Advection_AmrLevel Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html#particles">Particles</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
 </ul>
@@ -151,13 +152,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Getting Started</li>
+      <li>Amr Source Code</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/Chapter2.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/Chapter7.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -170,19 +171,48 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="getting-started">
-<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
-<p>In this chapter, we will walk you through two simple examples. It is
-assumed here that your machine has GNU Make, Python, GCC (including
-gfortran), and MPI, although AMReX&nbsp;can be built with CMake and other
-compilers.</p>
+  <div class="section" id="amr-source-code">
+<span id="chap-amrlevel"></span><h1>Amr Source Code<a class="headerlink" href="#amr-source-code" title="Permalink to this headline">¶</a></h1>
+<p>The source code in amrex/Src/Amr contains a number of classes, most notably
+Amr, AmrLevel, and LevelBld.
+These classes provide a more well developed set of tools for writing AMR codes
+than the classes created for the Advection_AmrCore tutorial.</p>
+<ul class="simple">
+<li>The Amr class is derived from AmrCore, and manages data across the
+entire AMR hierarchy of grids.</li>
+<li>The AmrLevel class is a pure virtual class for managing data at a
+single level of refinement.</li>
+<li>The LevelBld class is a pure virtual class for defining variable types
+and attributes.</li>
+</ul>
+<p>Many of our mature, publicly application codes contain derived classes that inherit directly
+from AmrLevel. These include our compressible astrophysics code,
+CASTRO,
+(available in the AMReX-Astro/Castro github repository)
+and our computational cosmology code, Nyx
+(available in the AMReX-Astro/Nyx github repository) .
+Our incompressible Navier-Stokes code, IAMR
+(available in the AMReX-codes/IAMR github repository)
+has a pure virtual class called NavierStokesBase that inherits from AmrLevel,
+and an additional derived class NavierStokes.
+Our low Mach number combustion code PeleLM (not yet public) also inherits
+from NavierStokesBase.</p>
+<p>The tutorial code in amrex/Tutorials/Amr/Advection_AmrLevel gives a simple
+example of a class derived from AmrLevel that can be used to solve
+the advection equation on a subcycling-in-time AMR hierarchy. Note that example
+is essentially the same as the amrex/Tutorials/Amr/Advection_AmrCore tutorial
+and documentation in Chapter <a class="reference external" href="#Chap:AmrCore">[Chap:AmrCore]</a>, except now we use the provided
+libraries in Src/Amr.</p>
+<p>The tutorial code also contains a LevelBldAdv class (derived from LevelBld in the
+Source/Amr directory). This class is used to define variable types (how many, nodality,
+interlevel interpolation stencils, etc.).</p>
 <div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html">Downloading the Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html#example-hello-world">Example: Hello World</a></li>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html#example-heat-equation-solver">Example: Heat Equation Solver</a></li>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html">Amr Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html#amrlevel-class">AmrLevel Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html#levelbld-class">LevelBld Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html#advection-amrlevel-example">Advection_AmrLevel Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html#particles">Particles</a></li>
 </ul>
 </div>
 </div>
@@ -197,10 +227,10 @@ compilers.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="GettingStarted.html" class="btn btn-neutral float-right" title="Downloading the Code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="AmrLevel.html" class="btn btn-neutral float-right" title="Amr Class" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Introduction.html" class="btn btn-neutral" title="AMReX Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="AmrCore.html" class="btn btn-neutral" title="The Advection Equation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

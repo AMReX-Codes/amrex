@@ -1,0 +1,561 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>The &mdash; amrex 10.17 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
+        <link rel="up" title="Particles" href="Chapter8.html"/>
+        <link rel="next" title="Visualization" href="Visualization.html"/>
+        <link rel="prev" title="Particles" href="Chapter8.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> amrex
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                10.17
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Chapter8.html">Particles</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">The</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#setting-particle-data">Setting Particle data</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#sec-particles-particlecontainer">The</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#arrays-of-structs-and-structs-of-arrays">Arrays-of-Structs and Structs-of-Arrays</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#constructing-particlecontainers">Constructing ParticleContainers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#initializing-particle-data">Initializing Particle Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#iterating-over-particles">Iterating over Particles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#passing-particle-data-into-fortran-routines">Passing particle data into Fortran routines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interacting-with-mesh-data">Interacting with Mesh Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#short-range-forces">Short Range Forces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#particle-io">Particle IO</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">amrex</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="Chapter8.html">Particles</a> &raquo;</li>
+        
+      <li>The</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/Particle.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <p>In addition to the tools for working with mesh data described in previous chapters, <span class="math">\(\tt{AMReX}\)</span> also provides data structures and iterators for performing data-parallel particle simulations. Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example applications include Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert drag forces onto a fluid, such as in multi-phase flow calculations. The overall goals of <span class="math">\(\tt{AMReX}\)</span>’s particle tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data automatically. In the following sections, we give an overview of <span class="math">\(\tt{AMReX}\)</span>’s particle classes and how to use them.</p>
+<div class="section" id="the">
+<span id="sec-particles-particle"></span><h1>The<a class="headerlink" href="#the" title="Permalink to this headline">¶</a></h1>
+<p>The particle classes can be used by including the header <span class="math">\(\tt{AMReX\_Particles.H}\)</span>. The most basic particle data structure is the particle itself:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This is a templated data type, designed to allow flexibility in the number and type of variables that the particles carry. The first template parameter is
+the number of extra <span class="math">\(\tt{Real}\)</span> variables this particle will have (either single or double precision <a class="footnote-reference" href="#id5" id="id1">[1]</a>), while the second is the number of extra integer variables.
+It is important to note that this is the number of <span class="math">\(\emph{extra}\)</span> real and integer variables; a particle will always have at least <span class="math">\(\tt{BL\_SPACEDIM}\)</span> real components that store the particle’s position and <span class="math">\(\tt{2}\)</span> integer components that store the particle’s <span class="math">\(\tt{id}\)</span> and <span class="math">\(\tt{cpu}\)</span> numbers. <a class="footnote-reference" href="#id6" id="id2">[2]</a></p>
+<p>The particle struct is designed to store these variables in a way that minimizes padding, which in practice means that the <span class="math">\(\tt{Real}\)</span> components always come first, and the integer components second. Additionally, the required particle variables are stored before the optional ones, for both the real and the integer components. For example, say we want to define a particle type that stores a mass, three velocity components, and two extra integer flags. Our particle struct would be set up like:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>and the order of the particle components in would be: x y z m vx vy vz id cpu flag1 flag2.  <a class="footnote-reference" href="#id7" id="id3">[3]</a></p>
+<div class="section" id="setting-particle-data">
+<h2>Setting Particle data<a class="headerlink" href="#setting-particle-data" title="Permalink to this headline">¶</a></h2>
+<p>The <span class="math">\(\tt{Particle}\)</span> struct provides a number of methods for getting and setting a particle’s data. For the required particle components, there are special, named methods. For the
+“extra” real and integer data, you can use the <span class="math">\(\tt{rdata}\)</span> and <span class="math">\(\tt{idata}\)</span> methods, respectively.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">pos</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+<span class="n">p</span><span class="o">.</span><span class="n">pos</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">;</span>
+<span class="n">p</span><span class="o">.</span><span class="n">pos</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">;</span>
+<span class="n">p</span><span class="o">.</span><span class="n">id</span><span class="p">()</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="n">p</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">rdata</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="ow">is</span> <span class="n">the</span> <span class="n">first</span> <span class="n">extra</span> <span class="n">real</span> <span class="n">component</span><span class="p">,</span> <span class="ow">not</span> <span class="n">the</span>
+<span class="o">//</span> <span class="n">first</span> <span class="n">real</span> <span class="n">component</span> <span class="n">overall</span>
+<span class="n">p</span><span class="o">.</span><span class="n">rdata</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">;</span>
+<span class="n">p</span><span class="o">.</span><span class="n">rdata</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">;</span>
+
+<span class="o">//</span> <span class="ow">and</span> <span class="n">likewise</span> <span class="k">for</span> <span class="n">p</span><span class="o">.</span><span class="n">idata</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="n">p</span><span class="o">.</span><span class="n">rdata</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mi">17</span><span class="p">;</span>
+<span class="n">p</span><span class="o">.</span><span class="n">idata</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span><span class="mi">64</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="sec-particles-particlecontainer">
+<span id="id4"></span><h1>The<a class="headerlink" href="#sec-particles-particlecontainer" title="Permalink to this headline">¶</a></h1>
+<p>One particle by itself is not very useful. To do real calculations, a collection of particles needs to be defined, and the location of the particles within the AMR hierarchy
+(and the corresponding MPI process) needs to be tracked as the particle positions change. To do this, we provide the <span class="math">\(\tt{ParticleContainer}\)</span> class:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="o">&gt;</span> <span class="n">mypc</span><span class="p">;</span>
+</pre></div>
+</div>
+<div class="section" id="arrays-of-structs-and-structs-of-arrays">
+<h2>Arrays-of-Structs and Structs-of-Arrays<a class="headerlink" href="#arrays-of-structs-and-structs-of-arrays" title="Permalink to this headline">¶</a></h2>
+<p>Like the <span class="math">\(\tt{Particle}\)</span> class itself, the <span class="math">\(\tt{ParticleContainer}\)</span> class is templated. The first two template parameters have the same meaning as before: they define the number of each type of variables that the particles in this container will store. Particles added to the container are stored in the Array-of-Structs (AoS) style. In addition, there are two more optional template parameters that allow the user to specify additional particle variables that will be stored in Struct-of-Array (SoA) form. The difference between Array-of-Struct and Struct-of-Array data is in how the data is laid out in memory. For the AoS data, all the variables associated with particle 1 are next to each other in memory, followed by all the variables associated with particle 2, and so on. For variables stored in SoA style, all the particle data for a given component is next to each other in memory, and each component is stored in a separate
+array. For convenience, we (arbitrarily) refer to the components in the particle struct as particle <span class="math">\(\emph{data}\)</span>, and components stored in the Struct-of-Arrays as particle
+<span class="math">\(\emph{attributes}\)</span>. See Figure&nbsp;<a class="reference external" href="#fig:particles:particle_arrays">[fig:particles:particle_arrays]</a> for an illustration.</p>
+<div class="figure" id="id8">
+<img alt="[fig:particles:particle_arrays] An illustration of how the particle data for a single tile is arranged in memory. This particle container has been defined with :math:`\tt{NStructReal} = 1`, :math:`\tt{NStructInt} = 2`, :math:`\tt{NArrayReal} = 2`, and :math:`\tt{NArrayInt} = 2`. In this case, each tile in the particle container has five arrays: one with the particle struct data, two additional real arrays, and two additional integer arrays. In the tile shown, there are only 2 particles. We have labelled the extra real data member of the particle struct to be “mass”, while the extra integer members of the particle struct are labeled :math:`p`, and :math:`s`, for “phase” and “state”. The variables in the real and integer arrays are labelled “foo”, “bar”, “l”, and “n”, respectively. We have assumed that the particles are double precision." src="./Particle/particle_arrays.pdf" />
+<p class="caption"><span class="caption-text">[fig:particles:particle_arrays] An illustration of how the particle data for a single tile is arranged in memory. This particle container has been defined with <span class="math">\(\tt{NStructReal} = 1\)</span>, <span class="math">\(\tt{NStructInt} = 2\)</span>, <span class="math">\(\tt{NArrayReal} = 2\)</span>, and <span class="math">\(\tt{NArrayInt} = 2\)</span>. In this case, each tile in the particle container has five arrays: one with the particle struct data, two additional real arrays, and two additional integer arrays. In the tile shown, there are only 2 particles. We have labelled the extra real data member of the particle struct to be “mass”, while the extra integer members of the particle struct are labeled <span class="math">\(p\)</span>, and <span class="math">\(s\)</span>, for “phase” and “state”. The variables in the real and integer arrays are labelled “foo”, “bar”, “l”, and “n”, respectively. We have assumed that the particles are double precision.</span></p>
+</div>
+<p>To see why the distinction between AoS and SoA data is important, consider the following extreme case. Say you have particles that carry 100 different components,
+but that most of the time, you only need to do calculations involving 3 of them (say, the particle positions) at once. In this case, storing all 100 particle variables in the particle
+struct is clearly inefficient, since most of the time you are reading 97 extra variables into cache that you will never use. By splitting up the particle variables into stuff that gets
+used all the time (stored in the AoS) and stuff that only gets used infrequently (stored in the SoA), you can in principle achieve much better cache reuse. Of course, the usage pattern of your application likely won’t be so clear-cut. Flexibility in how the particle data is stored also makes it easier to interface between <span class="math">\(\tt{AMReX}\)</span> and already-existing Fortran subroutines.</p>
+<p>Note that while “extra” particle data can be stored in either the SoA or AoS style, the particle positions and id numbers are <span class="math">\(\emph{always}\)</span> stored in the particle
+structs. This is because these particle variables are special and used internally by <span class="math">\(\tt{AMReX}\)</span> to assign the particles to grids and to mark particles as valid or invalid, respectively.</p>
+</div>
+<div class="section" id="constructing-particlecontainers">
+<h2>Constructing ParticleContainers<a class="headerlink" href="#constructing-particlecontainers" title="Permalink to this headline">¶</a></h2>
+<p>A particle container is always associated with a particular set of AMR grids and a particular set of <span class="math">\(\tt{DistributionMap}\)</span>s that describes which MPI processes those grids live on.
+For example, if you only have one level, you can define a <span class="math">\(\tt{ParticleContainer}\)</span> to store particles on that level using the following constructor:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span> <span class="p">(</span><span class="n">const</span> <span class="n">Geometry</span>            <span class="o">&amp;</span> <span class="n">geom</span><span class="p">,</span>
+                   <span class="n">const</span> <span class="n">DistributionMapping</span> <span class="o">&amp;</span> <span class="n">dmap</span><span class="p">,</span>
+                   <span class="n">const</span> <span class="n">BoxArray</span>            <span class="o">&amp;</span> <span class="n">ba</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Or, if you have multiple levels, you can use following constructor instead:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span> <span class="p">(</span><span class="n">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">Geometry</span><span class="o">&gt;</span>            <span class="o">&amp;</span> <span class="n">geom</span><span class="p">,</span>
+                   <span class="n">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">DistributionMapping</span><span class="o">&gt;</span> <span class="o">&amp;</span> <span class="n">dmap</span><span class="p">,</span>
+                   <span class="n">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">BoxArray</span><span class="o">&gt;</span>            <span class="o">&amp;</span> <span class="n">ba</span><span class="p">,</span>
+                   <span class="n">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="nb">int</span><span class="o">&gt;</span>                 <span class="o">&amp;</span> <span class="n">rr</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Note the set of grids used to define the <span class="math">\(\tt{ParticleContainer}\)</span> doesn’t have to be the same set used to define the simulation’s mesh data. However, it is often desirable to have
+the two hierarchies track each other. If you are using an <span class="math">\(\tt{AmrCore}\)</span> class in your simulation (see Chapter&nbsp;<a class="reference external" href="#Chap:AmrCore">[Chap:AmrCore]</a>), you can achieve this by using
+the <span class="math">\(\tt{AmrParticleContainer}\)</span> class. The constructor for this class takes a pointer to your <span class="math">\(\tt{AmrCore}\)</span> derived class, instead:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">AmrTracerParticleContainer</span> <span class="p">(</span><span class="n">AmrCore</span><span class="o">*</span> <span class="n">amr_core</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>In this case, the <span class="math">\(\tt{Vector&lt;BoxArray&gt;}\)</span> and <span class="math">\(\tt{Vector&lt;DistributionMap&gt;}\)</span> used by your <span class="math">\(\tt{ParticleContainer}\)</span> will be updated automatically to match those in
+your <span class="math">\(\tt{AmrCore}\)</span>.</p>
+<p>The <span class="math">\(\tt{ParticleContainer}\)</span> stores the particle data in a manner prescribed by the set of AMR grids used to define it. If tiling is turned off, then every grid has its own
+Array-of-Structs and Struct-of-Arrays. Which AMR grid a particle is assigned to is determined by examining its position and binning it, using the domain left edge as an offset.
+By default, a particle is assigned to the finest level that contains its position, although this behavior can be tweaked if desired.
+When tiling is enabled, then each <span class="math">\(\emph{tile}\)</span> gets its own Struct-of-Arrays and Array-of-Structs instead. Note that this is different than what happens with mesh data. With mesh data, the tiling is strictly logical; the data is laid out in memory the same whether tiling is turned on or off. With particle data, however, the particles are actually stored in different arrays when tiling is enabled. As with mesh data, the particle tile size can be tuned so that an entire tile’s worth of particles will fit into a cache line at once.</p>
+<p>Once the particles move, their data may no longer be in the right place in the container. They can be reassigned by calling the <span class="math">\(\tt{Redistribute()}\)</span> method of <span class="math">\(\tt{ParticleContainer}\)</span>.
+After calling this method, all the particles will be moved to their proper places in the container, and all invalid particles (particles with id set to <span class="math">\(-1\)</span>) will be removed. All the
+MPI communication needed to do this happens automatically.</p>
+<p>Application codes will likely want to create their own derived <span class="math">\(\tt{ParticleContainer}\)</span> class that specializes the template parameters and adds additional
+functionality, like setting the initial conditions, moving the particles, etc. See the amrex/Tutorials/Particles for examples of this.</p>
+</div>
+</div>
+<div class="section" id="initializing-particle-data">
+<span id="sec-particles-initializing"></span><h1>Initializing Particle Data<a class="headerlink" href="#initializing-particle-data" title="Permalink to this headline">¶</a></h1>
+<p>In the following code snippet, we demonstrate how to set particle initial conditions for both SoA and AoS data. We loop over all the tiles using <span class="math">\(\tt{MFIter}\)</span>, and add
+as many particles as we want to each one.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+
+    // ``particles&#39;&#39; starts off empty
+    auto&amp; particles = GetParticles(lev)[std::make_pair(mfi.index(),
+                                        mfi.LocalTileIndex())];
+
+    ParticleType p;
+    p.id()   = ParticleType::NextID();
+    p.cpu()  = ParallelDescriptor::MyProc();
+    p.pos(0) = ...
+    etc...
+
+    // AoS real data
+    p.rdata(0) = ...
+    p.rdata(1)  = ...
+
+    // AoS int data
+    p.idata(0) = ...
+    p.idata(1) = ...
+
+    // Particle real attributes (SoA)
+    std::array&lt;double, 2&gt; real_attribs;
+    real_attribs[0] = ...
+    real_attribs[1] = ...
+
+    // Particle int attributes (SoA)
+    std::array&lt;int, 2&gt; int_attribs;
+    int_attribs[0] = ...
+    int_attribs[1]  = ...
+
+    particles.push_back(p);
+    particles.push_back_real(real_attribs);
+    particles.push_back_int(int_attribs);
+
+    // ... add more particles if desired ...
+  }
+</pre></div>
+</div>
+<p>Often, it makes sense to have each process only generate particles that it owns, so that the particles are already in the right place in the container.
+In general, however, users may need to call <span class="math">\(\tt{Redistribute()}\)</span> after adding particles, if the processes generate particles they don’t own (for example,
+if the particle positions are perturbed from the cell centers and thus end up outside their parent grid).</p>
+</div>
+<div class="section" id="iterating-over-particles">
+<span id="sec-particles-iterating"></span><h1>Iterating over Particles<a class="headerlink" href="#iterating-over-particles" title="Permalink to this headline">¶</a></h1>
+<p>To iterate over the particles on a given level in your container, you can use the <span class="math">\(\tt{ParIter}\)</span> class, which comes in
+both const and non-const flavors. For example, to iterate over all the AoS data:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">using</span> <span class="n">MyParIter</span> <span class="o">=</span> <span class="n">ConstParIter</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">*</span><span class="n">BL_SPACEDIM</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="n">pc</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">const</span> <span class="n">auto</span><span class="o">&amp;</span> <span class="n">particles</span> <span class="o">=</span> <span class="n">pti</span><span class="o">.</span><span class="n">GetArrayOfStructs</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">const</span> <span class="n">auto</span><span class="o">&amp;</span> <span class="n">p</span> <span class="p">:</span> <span class="n">particles</span><span class="p">)</span> <span class="p">{</span>
+        <span class="o">//</span> <span class="n">do</span> <span class="n">stuff</span> <span class="k">with</span> <span class="n">p</span><span class="o">...</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The outer loop will execute once every grid (or tile, if tiling is enabled) <em>that contains particles</em>; grids or tiles
+that don’t have any particles will be skipped. You can also access the SoA data using the <span class="math">\(\tt{ParIter}\)</span> as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">using</span> <span class="n">MyParIter</span> <span class="o">=</span> <span class="n">ParIter</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="n">pc</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">auto</span><span class="o">&amp;</span> <span class="n">particle_attributes</span> <span class="o">=</span> <span class="n">pti</span><span class="o">.</span><span class="n">GetStructOfArrays</span><span class="p">();</span>
+    <span class="n">Vector</span><span class="o">&lt;</span><span class="n">Real</span><span class="o">&gt;&amp;</span> <span class="n">real_comp0</span> <span class="o">=</span> <span class="n">particle_attributes</span><span class="o">.</span><span class="n">GetRealData</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">Vector</span><span class="o">&lt;</span><span class="nb">int</span><span class="o">&gt;&amp;</span>  <span class="n">int_comp1</span>  <span class="o">=</span> <span class="n">particle_attributes</span><span class="o">.</span><span class="n">GetIntData</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nb">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">pti</span><span class="o">.</span><span class="n">numParticles</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="o">//</span> <span class="n">do</span> <span class="n">stuff</span> <span class="k">with</span> <span class="n">your</span> <span class="n">SoA</span> <span class="n">data</span><span class="o">...</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="passing-particle-data-into-fortran-routines">
+<span id="sec-particles-fortran"></span><h1>Passing particle data into Fortran routines<a class="headerlink" href="#passing-particle-data-into-fortran-routines" title="Permalink to this headline">¶</a></h1>
+<p>Because the <span class="math">\(\tt{AMReX}\)</span> particle struct is a Plain-Old-Data type, it is interoperable with <span class="math">\(\tt{Fortran}\)</span> when the <span class="math">\(\tt{bind(C)}\)</span>
+attribute is used. It is therefore possible to pass a grid or tile worth of particles into fortran routines for processing,
+instead of iterating over them in C++. You can also define a Fortran derived type that is equivalent to C struct used for the
+particles. For example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">use</span> <span class="n">amrex_fort_module</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">amrex_particle_real</span>
+<span class="n">use</span> <span class="n">iso_c_binding</span> <span class="p">,</span>    <span class="n">only</span><span class="p">:</span> <span class="n">c_int</span>
+
+<span class="nb">type</span><span class="p">,</span> <span class="n">bind</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>  <span class="p">::</span> <span class="n">particle_t</span>
+   <span class="n">real</span><span class="p">(</span><span class="n">amrex_particle_real</span><span class="p">)</span> <span class="p">::</span> <span class="n">pos</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+   <span class="n">real</span><span class="p">(</span><span class="n">amrex_particle_real</span><span class="p">)</span> <span class="p">::</span> <span class="n">vel</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+   <span class="n">real</span><span class="p">(</span><span class="n">amrex_particle_real</span><span class="p">)</span> <span class="p">::</span> <span class="n">acc</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+   <span class="n">integer</span><span class="p">(</span><span class="n">c_int</span><span class="p">)</span>   <span class="p">::</span> <span class="nb">id</span>
+   <span class="n">integer</span><span class="p">(</span><span class="n">c_int</span><span class="p">)</span>   <span class="p">::</span> <span class="n">cpu</span>
+<span class="n">end</span> <span class="nb">type</span> <span class="n">particle_t</span>
+</pre></div>
+</div>
+<p>is equivalent to particle struct you get with <span class="math">\(\tt{Particle&lt;6, 0&gt;}\)</span>. Here, <span class="math">\(\tt{amrex\_particle\_real}\)</span> is either single or doubled precision, depending
+on whether <span class="math">\(\tt{USE\_SINGLE\_PRECISION\_PARTICLES}\)</span> is <span class="math">\(\tt{TRUE}\)</span> or not. We recommend always using this type in Fortran routines that work on particle
+data to avoid hard-to-debug incompatibilities between floating point types.
+See §<a class="reference external" href="#sec:Particles:Interacting">6</a>.</p>
+</div>
+<div class="section" id="interacting-with-mesh-data">
+<span id="sec-particles-interacting"></span><h1>Interacting with Mesh Data<a class="headerlink" href="#interacting-with-mesh-data" title="Permalink to this headline">¶</a></h1>
+<p>It is common to want to have the mesh communicate information to the particles and vice versa. For example, in Particle-in-Cell calculations, the particles deposit their charges onto the mesh, and later, the electric fields computed on the mesh are interpolated back to the particles. Below, we show examples of both these sorts of operations.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Ex</span><span class="o">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">gm</span><span class="o">.</span><span class="n">periodicity</span><span class="p">());</span>
+<span class="n">Ey</span><span class="o">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">gm</span><span class="o">.</span><span class="n">periodicity</span><span class="p">());</span>
+<span class="n">Ez</span><span class="o">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">gm</span><span class="o">.</span><span class="n">periodicity</span><span class="p">());</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="n">MyPC</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">box</span> <span class="o">=</span> <span class="n">Ex</span><span class="p">[</span><span class="n">pti</span><span class="p">]</span><span class="o">.</span><span class="n">validBox</span><span class="p">();</span>
+
+    <span class="n">const</span> <span class="n">auto</span><span class="o">&amp;</span> <span class="n">particles</span> <span class="o">=</span> <span class="n">pti</span><span class="o">.</span><span class="n">GetArrayOfStructs</span><span class="p">();</span>
+    <span class="nb">int</span> <span class="n">nstride</span> <span class="o">=</span> <span class="n">particles</span><span class="o">.</span><span class="n">dataShape</span><span class="p">()</span><span class="o">.</span><span class="n">first</span><span class="p">;</span>
+    <span class="n">const</span> <span class="n">long</span> <span class="n">np</span>  <span class="o">=</span> <span class="n">pti</span><span class="o">.</span><span class="n">numParticles</span><span class="p">();</span>
+
+    <span class="n">const</span> <span class="n">FArrayBox</span><span class="o">&amp;</span> <span class="n">exfab</span> <span class="o">=</span> <span class="n">Ex</span><span class="p">[</span><span class="n">pti</span><span class="p">];</span>
+    <span class="n">const</span> <span class="n">FArrayBox</span><span class="o">&amp;</span> <span class="n">eyfab</span> <span class="o">=</span> <span class="n">Ey</span><span class="p">[</span><span class="n">pti</span><span class="p">];</span>
+    <span class="n">const</span> <span class="n">FArrayBox</span><span class="o">&amp;</span> <span class="n">ezfab</span> <span class="o">=</span> <span class="n">Ex</span><span class="p">[</span><span class="n">pti</span><span class="p">];</span>
+
+    <span class="n">interpolate_cic</span><span class="p">(</span><span class="n">particles</span><span class="o">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">nstride</span><span class="p">,</span> <span class="n">np</span><span class="p">,</span>
+                    <span class="n">exfab</span><span class="o">.</span><span class="n">dataPtr</span><span class="p">(),</span> <span class="n">eyfab</span><span class="o">.</span><span class="n">dataPtr</span><span class="p">(),</span> <span class="n">ezfab</span><span class="o">.</span><span class="n">dataPtr</span><span class="p">(),</span>
+                    <span class="n">box</span><span class="o">.</span><span class="n">loVect</span><span class="p">(),</span> <span class="n">box</span><span class="o">.</span><span class="n">hiVect</span><span class="p">(),</span> <span class="n">plo</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ng</span><span class="p">);</span>
+    <span class="p">}</span>
+</pre></div>
+</div>
+<p>Here, <span class="math">\(\tt{interpolate\_cic}\)</span> is a <span class="math">\(\tt{Fortran}\)</span> subroutine that actually performs the interpolation on a single box. <span class="math">\(\tt{Ex}\)</span>, <span class="math">\(\tt{Ey}\)</span>, and <span class="math">\(\tt{Ez}\)</span> are <span class="math">\(\tt{MultiFab}\)</span>s
+that contain the electric field data. These <span class="math">\(\tt{MultiFab}\)</span>s must be defined with the correct number of ghost cells to perform the desired type of interpolation,
+and we call <span class="math">\(\tt{FillBoundary}\)</span> prior to the Fortran call so that those ghost cells will be up-to-date.</p>
+<p>In this example, we have assumed that the <span class="math">\(\tt{ParticleContainer}\)</span> has been defined on the same grids as the electric field <span class="math">\(\tt{MultiFabs}\)</span>, so that we use the <span class="math">\(\tt{ParIter}\)</span> to index into the <span class="math">\(\tt{MultiFab}\)</span>s to get the data associated with current tile. If this is not the case, then an additional copy will need to be performed. However, if the particles are distributed in an extremely uneven fashion, it is possible that the load balancing improvements associated with the two-grid approach are worth the cost of the extra copy.</p>
+<p>The inverse operation, in which the particles communicate data <span class="math">\(\emph{to}\)</span> the mesh, is quite similar:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">rho</span><span class="o">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">ng</span><span class="p">);</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="o">*</span><span class="n">this</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">box</span> <span class="o">=</span> <span class="n">rho</span><span class="p">[</span><span class="n">pti</span><span class="p">]</span><span class="o">.</span><span class="n">validbox</span><span class="p">();</span>
+
+    <span class="n">const</span> <span class="n">auto</span><span class="o">&amp;</span> <span class="n">particles</span> <span class="o">=</span> <span class="n">pti</span><span class="o">.</span><span class="n">GetArrayOfStructs</span><span class="p">();</span>
+    <span class="nb">int</span> <span class="n">nstride</span> <span class="o">=</span> <span class="n">particles</span><span class="o">.</span><span class="n">dataShape</span><span class="p">()</span><span class="o">.</span><span class="n">first</span><span class="p">;</span>
+    <span class="n">const</span> <span class="n">long</span> <span class="n">np</span>  <span class="o">=</span> <span class="n">pti</span><span class="o">.</span><span class="n">numParticles</span><span class="p">();</span>
+
+    <span class="n">FArrayBox</span><span class="o">&amp;</span> <span class="n">rhofab</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">rho</span><span class="p">[</span><span class="n">lev</span><span class="p">])[</span><span class="n">pti</span><span class="p">];</span>
+
+    <span class="n">deposit_cic</span><span class="p">(</span><span class="n">particles</span><span class="o">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">nstride</span><span class="p">,</span> <span class="n">np</span><span class="p">,</span> <span class="n">rhofab</span><span class="o">.</span><span class="n">dataPtr</span><span class="p">(),</span>
+                <span class="n">box</span><span class="o">.</span><span class="n">loVect</span><span class="p">(),</span> <span class="n">box</span><span class="o">.</span><span class="n">hiVect</span><span class="p">(),</span> <span class="n">plo</span><span class="p">,</span> <span class="n">dx</span><span class="p">);</span>
+    <span class="p">}</span>
+
+<span class="n">rho</span><span class="o">.</span><span class="n">SumBoundary</span><span class="p">(</span><span class="n">gm</span><span class="o">.</span><span class="n">periodicity</span><span class="p">());</span>
+</pre></div>
+</div>
+<p>As before, we loop over all our particles, calling a <span class="math">\(\tt{Fortran}\)</span> routine that deposits them on to the appropriate <span class="math">\(\tt{FArrayBox}\)</span>. The FArrayBox’s must have enough ghost cells to
+cover the support of all the particles associated with them. Note that we call <span class="math">\(\tt{SumBoundary}\)</span> instead of <span class="math">\(\tt{FillBoundary}\)</span> after performing the deposition, to add up the charge
+in the ghost cells surrounding each Fab into the corresponding valid cells.</p>
+<p>For a complete example of an electrostatic PIC calculation that includes static mesh refinement, please see amrex/Tutorials/Particles/ElectrostaticPIC.</p>
+</div>
+<div class="section" id="short-range-forces">
+<span id="sec-particles-shortrange"></span><h1>Short Range Forces<a class="headerlink" href="#short-range-forces" title="Permalink to this headline">¶</a></h1>
+<p>In a PIC calculation, the particles don’t interact with each other directly; they only see each other through the mesh. An alternative use case is particles that exert short-range forces on each other. In this case, beyond some cut-off distance, the particles don’t interact with each other and therefore don’t need to be included in the force calculation. Our approach to these kind of particles is to fill “neighbor buffers” on each tile that contain copies of the particles on neighboring tiles that are within some number of cells <span class="math">\(N_g\)</span> of the tile boundaries. See Figure&nbsp;<a class="reference external" href="#fig:particles:neighbor_particles">[fig:particles:neighbor_particles]</a> for an illustration. By choosing the number of ghost cells to match the interaction radius of the particles, you can capture all of the neighbors that can possibly influence the particles in the valid region of the tile. The forces on the particles on different tiles can then be computed independently of each other using a variety of methods.</p>
+<div class="figure" id="id9">
+<a class="reference internal image-reference" href="./Particle/neighbor_particles.pdf"><img alt="[fig:particles:neighbor_particles] An illustration of filling neighbor particles for short-range force calculations. Here, we have a domain consisting of one 32-by-32 grid, broken up into 8-by-8 tiles. The number of ghost cells is taken to be :math:`1`. For the tile in green, particles on other tiles in the entire shaded region will copied and packed into the green tile’s neighbor buffer. These particles can then be included in the force calculation. If the domain is periodic, particles in the grown region for the blue tile that lie on the other side of the domain will also be copied, and their positions will modified so that a naive distance calculation between valid particles and neighbors will be correct." src="./Particle/neighbor_particles.pdf" style="width: 75.0%;" /></a>
+<p class="caption"><span class="caption-text">[fig:particles:neighbor_particles] An illustration of filling neighbor particles for short-range force calculations. Here, we have a domain consisting of one 32-by-32 grid, broken up into 8-by-8 tiles. The number of ghost cells is taken to be <span class="math">\(1\)</span>. For the tile in green, particles on other tiles in the entire shaded region will copied and packed into the green tile’s neighbor buffer. These particles can then be included in the force calculation. If the domain is periodic, particles in the grown region for the blue tile that lie on the other side of the domain will also be copied, and their positions will modified so that a naive distance calculation between valid particles and neighbors will be correct.</span></p>
+</div>
+<p>For a <span class="math">\(\tt{ParticleContainer}\)</span> that does this neighbor finding, please see <span class="math">\(\tt{NeighborParticleContainer}\)</span> in amrex/Src/Particles/AMReX_NeighborParticleContainer.H. This <span class="math">\(\tt{ParticleContainer}\)</span> has additional methods called <span class="math">\(\tt{fillNeighbors()}\)</span> and <span class="math">\(\tt{clearNeighbors()}\)</span> that fill the <span class="math">\(\tt{neighbors}\)</span> data structure with copies of the proper particles. A tutorial that uses these features is available at amrex/Tutorials/Particles/ShortRangeParticles. This tutorial computes the forces on a given tile via direct summation by passing the real and neighbor particles into a Fortran subroutine, as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">ShortRangeParticleContainer</span><span class="p">::</span><span class="n">computeForces</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="o">*</span><span class="n">this</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">AoS</span><span class="o">&amp;</span> <span class="n">particles</span> <span class="o">=</span> <span class="n">pti</span><span class="o">.</span><span class="n">GetArrayOfStructs</span><span class="p">();</span>
+        <span class="nb">int</span> <span class="n">Np</span> <span class="o">=</span> <span class="n">particles</span><span class="o">.</span><span class="n">size</span><span class="p">();</span>
+        <span class="n">PairIndex</span> <span class="n">index</span><span class="p">(</span><span class="n">pti</span><span class="o">.</span><span class="n">index</span><span class="p">(),</span> <span class="n">pti</span><span class="o">.</span><span class="n">LocalTileIndex</span><span class="p">());</span>
+        <span class="nb">int</span> <span class="n">Nn</span> <span class="o">=</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">/</span> <span class="n">pdata_size</span><span class="p">;</span>
+        <span class="n">amrex_compute_forces</span><span class="p">(</span><span class="n">particles</span><span class="o">.</span><span class="n">data</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">Np</span><span class="p">,</span>
+                             <span class="n">neighbors</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">dataPtr</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">Nn</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Alternatively, one can avoid doing a direct <span class="math">\(N^2\)</span> summation over the particles on a tile by binning the particles by cell and building a neighbor list. A tutorial that demonstrates this process is available at amrex/Tutorials/Particles/NeighborList. The data structure used to represent the neighbor lists is illustrated in Figure&nbsp;<a class="reference external" href="#fig:particles:neighbor_list">[fig:particles:neighbor_list]</a>.</p>
+<div class="figure" id="id10">
+<img alt="[fig:particles:neighbor_list] An illustration of the neighbor list data structure used by AMReX. The list for each tile is represented by an array of integers. The first number in the array is the number of real (i.e., not in the neighbor buffers) collision partners for the first particle on this tile, while the second is the number of collision partners from nearby tiles in the neighbor buffer. Based on the number of collision partners, the next several entries are the indices of the collision partners in the real and neighbor particle arrays, respectively. This pattern continues for all the particles on this tile." src="./Particle/neighbor_list.pdf" />
+<p class="caption"><span class="caption-text">[fig:particles:neighbor_list] An illustration of the neighbor list data structure used by AMReX. The list for each tile is represented by an array of integers. The first number in the array is the number of real (i.e., not in the neighbor buffers) collision partners for the first particle on this tile, while the second is the number of collision partners from nearby tiles in the neighbor buffer. Based on the number of collision partners, the next several entries are the indices of the collision partners in the real and neighbor particle arrays, respectively. This pattern continues for all the particles on this tile.</span></p>
+</div>
+<p>This array can then be used to compute the forces on all the particles in one scan. Users can define their own <span class="math">\(\tt{NeighborParticleContainer}\)</span> subclasses that have their own collision criteria by overloading the virtual <span class="math">\(\tt{check\_pair}\)</span> function. For an example of this in action, please see the <span class="math">\(\tt{NeighborList}\)</span> Tutorial.</p>
+</div>
+<div class="section" id="particle-io">
+<span id="sec-particles-io"></span><h1>Particle IO<a class="headerlink" href="#particle-io" title="Permalink to this headline">¶</a></h1>
+<p>AMReX provides routines for writing particle data to disk for analysis, visualization, and for checkpoint / restart. The most important methods are the <span class="math">\(\tt{WritePlotFile}\)</span>, <span class="math">\(\tt{Checkpoint}\)</span>, and <span class="math">\(\tt{Restart}\)</span> methods of <span class="math">\(\tt{ParticleContainer}\)</span>, which all use a parallel-aware binary file format for reading and writing particle data on a grid-by-grid basis. These methods are designed to complement the functions in <span class="math">\(\tt{AMReX\_PlotFileUtil.H}\)</span> for performing mesh data IO. For example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>WriteMultiLevelPlotfile(``plt00000&#39;&#39;, output_levs, GetVecOfConstPtrs(output),
+                        varnames, geom, 0.0, level_steps, outputRR);
+pc.Checkpoint(``plt00000&#39;&#39;, ``particle0&#39;&#39;);
+</pre></div>
+</div>
+<p>will create a plot file called “plt00000” and write the mesh data in <span class="math">\(\tt{output}\)</span> to it, and then write the particle data in a subdirectory called “particle0”. There is also the <span class="math">\(\tt{WriteAsciiFile}\)</span> method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.</p>
+<p>The binary file format is currently readable by <span class="math">\(\tt{yt}\)</span>. In additional, there is a Python conversion script in amrex/Tools/Py_util/amrex_particles_to_vtp that can convert both the ASCII and the binary particle files to a format readable by Paraview. See Chapter&nbsp;<a class="reference external" href="#Chap:Visualization">[Chap:Visualization]</a> for more information on visualizing <span class="math">\(\tt{AMReX}\)</span> datasets, including those with particles.</p>
+<table class="docutils footnote" frame="void" id="id5" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>Particles default to double-precision for their real data. To use single precision, compile your code with <span class="math">\(\tt{USE\_SINGLE\_PRECISION\_PARTICLES=TRUE}\)</span>.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id6" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td>Note that <span class="math">\(\tt{cpu}\)</span> stores the number of the process the particle was <span class="math">\(\emph{generated}\)</span> on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle <span class="math">\(\tt{id}\)</span>. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id7" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td>Note that for the extra particle components, which component refers to which
+variable is an application-specific convention - the particles have 4 extra real comps, but which one is “mass” is up to the user. We suggest using an <span class="math">\(\tt{enum}\)</span> to keep these indices straight; please see amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H for an example of this.</td></tr>
+</tbody>
+</table>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Visualization.html" class="btn btn-neutral float-right" title="Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Chapter8.html" class="btn btn-neutral" title="Particles" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, AMReX Team.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'10.17',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

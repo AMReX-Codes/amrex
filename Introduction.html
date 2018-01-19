@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Getting Started &mdash; amrex 10.17 documentation</title>
+  <title>AMReX Introduction &mdash; amrex 10.17 documentation</title>
   
 
   
@@ -36,8 +36,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="next" title="Downloading the Code" href="GettingStarted.html"/>
-        <link rel="prev" title="AMReX Introduction" href="Introduction.html"/> 
+        <link rel="next" title="Getting Started" href="Chapter2.html"/>
+        <link rel="prev" title="Welcome to AMReX’s documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -92,14 +92,8 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html">Downloading the Code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#example-hello-world">Example: Hello World</a></li>
-<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#example-heat-equation-solver">Example: Heat Equation Solver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html#visualization">Visualization</a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
@@ -151,13 +145,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Getting Started</li>
+      <li>AMReX Introduction</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/Chapter2.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/Introduction.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -170,21 +164,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="getting-started">
-<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
-<p>In this chapter, we will walk you through two simple examples. It is
-assumed here that your machine has GNU Make, Python, GCC (including
-gfortran), and MPI, although AMReX&nbsp;can be built with CMake and other
-compilers.</p>
-<div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html">Downloading the Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html#example-hello-world">Example: Hello World</a></li>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html#example-heat-equation-solver">Example: Heat Equation Solver</a></li>
-<li class="toctree-l1"><a class="reference internal" href="GettingStarted.html#visualization">Visualization</a></li>
+  <div class="section" id="amrex-introduction">
+<h1>AMReX Introduction<a class="headerlink" href="#amrex-introduction" title="Permalink to this headline">¶</a></h1>
+<p>AMReX&nbsp;is a publicly available software framework designed for
+building massively parallel block-structured adaptive mesh refinement
+(AMR) applications.</p>
+<p>Key features of AMReX &nbsp;include:</p>
+<ul class="simple">
+<li>C++&nbsp;and Fortran interfaces</li>
+<li>1-, 2- and 3-D support</li>
+<li>Support for cell-centered, face-centered, edge-centered, and
+nodal data</li>
+<li>Support for hyperbolic, parabolic, and elliptic solves on
+hierarchical adaptive grid structure</li>
+<li>Optional subcycling in time for time-dependent PDEs</li>
+<li>Support for particles</li>
+<li>Parallelization via flat MPI, OpenMP, hybrid MPI/OpenMP, or MPI/MPI</li>
+<li>Parallel I/O</li>
+<li>Plotfile format supported by AmrVis, VisIt, ParaView, and yt.</li>
 </ul>
-</div>
+<p>Because AMReX’s core is mainly written in C++, the basics of AMReX&nbsp;are first introduced in C++, with a description of their Fortran wrappers following later, if available.</p>
+<p>Besides the User’s Guide, there is documentation generated by Doxygen at <a class="reference external" href="https://amrex-codes.github.io/amrex/doxygen">https://amrex-codes.github.io/amrex/doxygen</a>. Documentation on migration from BoxLib&nbsp;is available at Docs/Migration.</p>
 </div>
 
 
@@ -197,10 +197,10 @@ compilers.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="GettingStarted.html" class="btn btn-neutral float-right" title="Downloading the Code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Chapter2.html" class="btn btn-neutral float-right" title="Getting Started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Introduction.html" class="btn btn-neutral" title="AMReX Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral" title="Welcome to AMReX’s documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
