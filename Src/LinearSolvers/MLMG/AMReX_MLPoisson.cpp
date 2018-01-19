@@ -299,7 +299,21 @@ MLPoisson::makeNLinOp () const
 {
     const Geometry& geom = m_geom[0].back();
     const BoxArray& ba = makeNGrids();
-    DistributionMapping dm{ba}; // xxxxx TODO
+
+    const DistributionMapping& mydm = m_dmap[0].back();
+
+    DistributionMapping dm;
+    {
+        const std::vector<std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
+        Vector<int> pmap(ba.size());
+        const int nprocs = ParallelDescriptor::NProcs();
+        for (int iproc = 0; iproc < nprocs; ++iproc) {
+            for (int ibox : sfc[iproc]) {
+                pmap[ibox] = iproc;
+            }
+        }
+        dm.define(pmap);
+    }
 
     LPInfo minfo{};
     minfo.has_metric_term = info.has_metric_term;
