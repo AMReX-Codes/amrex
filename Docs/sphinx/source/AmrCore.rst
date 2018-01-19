@@ -1,17 +1,36 @@
+.. role:: cpp(code)
+   :language: c++
+
+.. role:: fortran(code)
+   :language: fortran
+
 .. raw:: latex
 
    \centering
 
-|[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.|
-|[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.|
-|[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.|
-|[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.|
-|[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.|
+
+
+.. |a| image:: ./AmrCore/figs/Adv1.png
+       :width: 100%
+
+.. |b| image:: ./AmrCore/figs/Adv2.png
+       :width: 100%
+
+.. |c| image:: ./AmrCore/figs/Adv3.png
+       :width: 100%
+
+.. |d| image:: ./AmrCore/figs/Adv4.png
+       :width: 100%
+
+.. _fig:Adv:
+
+.. table:: Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.
+   :align: center
+   
+   +-----+-----+-----+-----+
+   | |a| | |b| | |c| | |d| |
+   +-----+-----+-----+-----+
+
 
 The Advection Equation
 ======================
@@ -24,7 +43,7 @@ The velocity field is a specified divergence-free (so the flow field is incompre
 function of space and time. The initial scalar field is a
 Gaussian profile. To integrate these equations on a given level, we use a simple conservative update,
 
-.. math:: \frac{\phi_{i,j}^{n+1}-\phi_{i,j}^n}{\Delta t} = \frac{(\phi u)_{i+\myhalf,j}^{n+\myhalf}-(\phi u)_{i-\myhalf,j}^{n+\myhalf}}{\Delta x} + \frac{(\phi v)_{i,j+\myhalf}^{n+\myhalf} - (\phi v)_{i,j-\myhalf}^{n+\myhalf}}{\Delta y},
+.. math:: \frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = \frac{(\phi u)_{i+^1\!/_2,\,j}^{n+^1\!/_2}-(\phi u)_{i-^1\!/_2,\,j}^{n+^1\!/_2}}{\Delta x} + \frac{(\phi v)_{i,\,j+^1\!/_2}^{n+^1\!/_2} - (\phi v)_{i,\,j-^1\!/_2}^{n+^1\!/_2}}{\Delta y},
 
 where the velocities on faces are prescribed functions of space and time, and the scalars on faces
 are computed using a Godunov advection integration scheme. The fluxes in this case are the face-centered,
@@ -46,7 +65,15 @@ easily be thought of as a recursive algorithm in which, to advance level :math:`
 
    -  Synchronize the data between levels :math:`\ell` and :math:`\ell+1`.
 
-Specifically, for a 3-level simulation, depicted graphically in Figure `[fig:subcycling] <#fig:subcycling>`__:
+.. _fig:subcycling:
+
+.. figure:: ./AmrCore/figs/subcycling.png
+   :width: 4in
+
+   Schematic of subcycling-in-time algorithm.
+
+Specifically, for a 3-level simulation, depicted graphically in the figure showing the :ref:`fig:subcycling`
+algorithm above:
 
 #. Integrate :math:`\ell=0` over :math:`\Delta t`.
 
@@ -68,14 +95,10 @@ Specifically, for a 3-level simulation, depicted graphically in Figure `[fig:sub
 
 #. Synchronize levels :math:`\ell=0,1`.
 
-.. figure:: ./AmrCore/figs/subcycling.pdf
-   :alt: [fig:subcycling] Schematic of subcycling-in-time algorithm.
-   :width: 4in
 
-   [fig:subcycling] Schematic of subcycling-in-time algorithm.
 
 For the scalar field, we keep track volume and time-weighted fluxes at coarse-fine interfaces.
-We accumulate area and time-weighted fluxes in FluxRegister objects, which can be
+We accumulate area and time-weighted fluxes in :cpp:`FluxRegister` objects, which can be
 thought of as special boundary FABsets associated with coarse-fine interfaces.
 Since the fluxes are area and time-weighted (and sign-weighted, depending on whether they
 come from the coarse or fine level), the flux registers essentially store the extent by
@@ -95,8 +118,11 @@ mismatch in the composite solution:
    to account for the mismatch stored in the flux register (computed by taking the coarse-level divergence of the
    flux register data).
 
-AmrCore Source Code [ss:amrcore]
-================================
+
+.. _ss:amrcore:
+
+AmrCore Source Code
+===================
 
 Here we provide a high-level overview of the source code in amrex/Src/AmrCore.
 
@@ -105,14 +131,16 @@ AmrMesh and AmrCore
 
 For single-level simulations
 (see e.g., amrex/Tutorials/Basic/HeatEquation_EX1_C/main.cpp)
-the user needs to build Geometry, DistributionMapping,
-and BoxArray objects associated with the simulation. For simulations
-with multiple levels of refinement, the AmrMesh class can be thought
+the user needs to build :cpp:`Geometry`, :cpp:`DistributionMapping`,
+and :cpp:`BoxArray` objects associated with the simulation. For simulations
+with multiple levels of refinement, the :cpp:`AmrMesh` class can be thought
 of as a container to store arrays of these objects (one for each level), and
 information about the current grid structure.
 
-amrex/Src/AmrCore/AMReX_AmrMesh.cpp/H contains the AmrMesh class.
+amrex/Src/AmrCore/AMReX_AmrMesh.cpp/H contains the :cpp:`AmrMesh` class.
 The protected data members are:
+
+.. highlight:: c++
 
 ::
 
@@ -140,13 +168,15 @@ The protected data members are:
         Vector<BoxArray>            grids;    
 
 The following parameters are frequently set via the inputs file or the command line.
-Their usage is described in Section \ `[ss:grid_creation] <#ss:grid_creation>`__
+Their usage is described in the section on :ref:`ss:grid_creation`
 
 .. raw:: latex
 
    \centering
 
-.. table:: [tab:makevarimp] AmrCore parameters
+.. _tab:makevarimp:
+
+.. table:: AmrCore parameters
 
    +------------------------+-------+---------------------+
    | Variable               | Value | Default             |
@@ -168,16 +198,18 @@ Their usage is described in Section \ `[ss:grid_creation] <#ss:grid_creation>`_
    | amr.refine_grid_layout | int   | true                |
    +------------------------+-------+---------------------+
 
-AMReX_AmrCore.cpp/H contains the pure virtual class AmrCore,
-which is derived from the AmrMesh class. AmrCore does not actually
+AMReX_AmrCore.cpp/H contains the pure virtual class :cpp:`AmrCore`,
+which is derived from the :cpp:`AmrMesh` class. AmrCore does not actually
 have any data members, just additional member functions, some of which override
 the base class AmrMesh.
 
-There are no pure virtual functions in AmrMesh, but
-there are 5 pure virtual functions in the AmrCore class. Any applications
+There are no pure virtual functions in :cpp:`AmrMesh`, but
+there are 5 pure virtual functions in the :cpp:`AmrCore` class. Any applications
 you create must implement these functions. The tutorial code
 Amr/Advection_AmrCore provides sample implementation in the derived
-class AmrCoreAdv.
+class :cpp:`AmrCoreAdv`.
+
+.. highlight:: c++
 
 ::
 
@@ -203,7 +235,7 @@ class AmrCoreAdv.
     //! Delete level data
     virtual void ClearLevel (int lev) = 0;
 
-Refer to the AmrCoreAdv class in the
+Refer to the :cpp:`AmrCoreAdv` class in the
 amrex/Tutorials/Amr/AmrCore_Advection/Source
 code for a sample implementation.
 
@@ -211,13 +243,14 @@ TagBox, and Cluster
 -------------------
 
 These classes are used in the grid generation process.
-The TagBox class is essentially a data structure that marks which
+The :cpp:`TagBox` class is essentially a data structure that marks which
 cells are “tagged” for refinement.
-Cluster (and ClusterList contained within the same file) are classes
+:cpp:`Cluster` (and :cpp:`ClusterList` contained within the same file) are classes
 that help sort tagged cells and generate a grid structure that contains all
 the tagged cells. These classes and their member functions are largely
 hidden from any application codes through simple interfaces
-such as regrid and ErrorEst (a routine for tagging cells for refinement).
+such as :cpp:`regrid` and :cpp:`ErrorEst` (a routine for tagging cells for refinement).
+
 
 .. _sec:amrcore:fillpatch:
 
@@ -229,42 +262,42 @@ Many codes, including the Advection_AmrCore example, contain an array of MultiFa
 MultiFabs that may include a different number of ghost cells. Fillpatch operations fill
 all cells, valid and ghost, from actual valid data at that level, space-time interpolated data
 from the next-coarser level, neighboring grids at the same level, and domain
-boundary conditions (for examples that have non-periodic boundary conditions)
+boundary conditions (for examples that have non-periodic boundary conditions).
 Note that at the coarsest level,
 the interior and domain boundary (which can be periodic or prescribed based on physical considerations)
 need to be filled. At the non-coarsest level, the ghost cells can also be interior or domain,
 but can also be at coarse-fine interfaces away from the domain boundary.
 AMReX_FillPatchUtil.cpp/H contains two primary functions of interest.
 
-#. FillPatchSingleLevel() fills a MultiFab and its ghost region at a single level of
+#. :cpp:`FillPatchSingleLevel()` fills a :cpp:`MultiFab` and its ghost region at a single level of
    refinement. The routine is flexible enough to interpolate in time between two MultiFabs
    associated with different times.
 
-#. FillPatchTwoLevels() fills a MultiFab and its ghost region at a single level of
+#. :cpp:`FillPatchTwoLevels()` fills a MultiFab and its ghost region at a single level of
    refinement, assuming there is an underlying coarse level. This routine is flexible enough to interpolate
-   the coarser level in time first using FillPatchSingleLevel().
+   the coarser level in time first using :cpp:`FillPatchSingleLevel()`.
 
-A FillPatchUtil uses an Interpolator. This is largely hidden from application codes.
-AMReX_Interpolater.cpp/H contains the virtual base class Interpolater, which provides
-an interface for coarse-to-fine spatial interpolation operators. The fillpatch routines describe
+A :cpp:`FillPatchUtil` uses an :cpp:`Interpolator`. This is largely hidden from application codes.
+AMReX_Interpolater.cpp/H contains the virtual base class :cpp:`Interpolater`, which provides
+an interface for coarse-to-fine spatial interpolation operators. The fillpatch routines described
 above require an Interpolater for FillPatchTwoLevels()
 Within AMReX_Interpolater.cpp/H are the derived classes:
 
--  NodeBilinear
+-  :cpp:`NodeBilinear`
 
--  CellBilinear
+-  :cpp:`CellBilinear`
 
--  CellConservativeLinear
+-  :cpp:`CellConservativeLinear`
 
--  CellConservativeProtected
+-  :cpp:`CellConservativeProtected`
 
--  CellQuadratic
+-  :cpp:`CellQuadratic`
 
--  PCInterp
+-  :cpp:`PCInterp`
 
--  CellConservativeQuartic
+-  :cpp:`CellConservativeQuartic`
 
-The Fortran routines that perform the actual work associated with Interpolater are
+The Fortran routines that perform the actual work associated with :cpp:`Interpolater` are
 contained in the files AMReX_INTERP_F.H and AMReX_INTERP_xD.F.
 
 .. _sec:amrcore:fluxreg:
@@ -272,50 +305,55 @@ contained in the files AMReX_INTERP_F.H and AMReX_INTERP_xD.F.
 Using FluxRegisters
 -------------------
 
-AMReX_FluxRegister.cpp/H contains the class FluxRegister, which is derived from
-the class BndryRegister (in Src/Boundary/AMReX_BndryRegister).
-In the most general terms, a FluxRegister is a special type of BndryRegister that
-stores and manipulates data (most often fluxes) at coarse-fine interfaces.
-A simple usage scenario comes from a conservative discretization of a hyperbolic system:
+AMReX_FluxRegister.cpp/H contains the class :cpp:`FluxRegister`, which is
+derived from the class :cpp:`BndryRegister` (in Src/Boundary/AMReX_BndryRegister). 
+In the most general terms, a FluxRegister is a special type of BndryRegister
+that stores and manipulates data (most often fluxes) at coarse-fine interfaces.
+A simple usage scenario comes from a conservative discretization of a hyperbolic
+system:
 
 .. math::
 
    \frac{\partial\phi}{\partial t} = \nabla\cdot{\bf F}
    \rightarrow
-   \frac{\phi_{i,j}^{n+1}-\phi_{i,j}^n}{\Delta t} = \frac{F_{i+\myhalf,j}-F_{i-\myhalf,j}}{\Delta x} + \frac{F_{i,j+\myhalf} - F_{i,j-\myhalf}}{\Delta y}.
+   \frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = \frac{F_{i+^1\!/_2,\,j}-F_{i-^1\!/_2,\,j}}{\Delta x} + \frac{F_{i,\,j+^1\!/_2} - F_{i,\,j-^1\!/_2}}{\Delta y}.
 
-Consider a two-level, two-dimensional simulation. A standard methodology for advancing the solution in
-time is to first advance the coarse grid solution ignoring the fine level, and then advance the fine
-grid solution using the coarse level only to supply boundary conditions. At the coarse-fine interface,
-the area-weighted fluxes from the fine grid advance do not in general match the underlying flux from
-the coarse grid face, resulting in a lack of global conservation. Note that for subcycling-in-time algorithms
-(where for each coarse grid advance, the fine grid is advanced :math:`r` times using a coarse grid time step
-reduced by a factor of :math:`r`, where :math:`r` is the refinement ratio), the coarse grid flux must
-be compared to the area *and* time-weighted fine grid fluxes. A FluxRegister accumulates
-and ultimately stores the net difference in fluxes between the coarse grid and fine grid advance over
-each face over a given coarse time step. The simplest possible synchronization step is to modify
-the coarse grid solution in coarse cells immediately adjacent to the coarse-fine interface are updated
-to account for the mismatch stored in the FluxRegister. This can be done “simply” by taking
-the coarse-level divergence of the data in the FluxRegister using the reflux function.
+Consider a two-level, two-dimensional simulation. A standard methodology for
+advancing the solution in time is to first advance the coarse grid solution
+ignoring the fine level, and then advance the fine grid solution using the
+coarse level only to supply boundary conditions. At the coarse-fine interface,
+the area-weighted fluxes from the fine grid advance do not in general match the
+underlying flux from the coarse grid face, resulting in a lack of global
+conservation. Note that for subcycling-in-time algorithms (where for each coarse
+grid advance, the fine grid is advanced :math:`r` times using a coarse grid time
+step reduced by a factor of :math:`r`, where :math:`r` is the refinement ratio),
+the coarse grid flux must be compared to the area *and* time-weighted fine grid
+fluxes. A :cpp:`FluxRegister` accumulates and ultimately stores the net
+difference in fluxes between the coarse grid and fine grid advance over each
+face over a given coarse time step. The simplest possible synchronization step
+is to modify the coarse grid solution in coarse cells immediately adjacent to
+the coarse-fine interface are updated to account for the mismatch stored in the
+FluxRegister. This can be done “simply” by taking the coarse-level divergence of
+the data in the FluxRegister using the :cpp:`reflux` function.
 
 The Fortran routines that perform the actual floating point work associated with
-incrementing data in a FluxRegister are
-contained in the files AMReX_FLUXREG_F.H and AMReX_FLUXREG_xD.F.
+incrementing data in a :cpp:`FluxRegister` are contained in the files
+AMReX_FLUXREG_F.H and AMReX_FLUXREG_xD.F.
 
 AmrParticles and AmrParGDB
 --------------------------
 
-The AmrCore/ directory contains derived class for dealing with particles
+The AmrCore/ directory contains derived classes for dealing with particles
 in a multi-level framework. The description of the base classes
-are given in Chapter `[Chap:Particles] <#Chap:Particles>`__.
+are given in the chapter on :ref:`Chap:Particles`.
 
-AMReX_AmrParticles.cpp/H contains the classes AmrParticleContainer
-and AmrTracerParticleContainer, which are derived from the classes
-ParticleContainer (in Src/Particle/AMReX_Particles)
-and TracerParticleContainer (in Src/Particle/AMReX_TracerParticles).
+AMReX_AmrParticles.cpp/H contains the classes :cpp:`AmrParticleContainer`
+and :cpp:`AmrTracerParticleContainer`, which are derived from the classes
+:cpp:`ParticleContainer` (in Src/Particle/AMReX_Particles)
+and :cpp:`TracerParticleContainer` (in Src/Particle/AMReX_TracerParticles).
 
-AMReX_AmrParGDB.cpp/H contains the class AmrParGDB, which is derived from
-the class ParGDBBase (in Src/Particle/AMReX_ParGDB).
+AMReX_AmrParGDB.cpp/H contains the class :cpp:`AmrParGDB`, which is derived from
+the class :cpp:`ParGDBBase` (in Src/Particle/AMReX_ParGDB).
 
 Advection_AmrCore Example
 =========================
@@ -323,16 +361,16 @@ Advection_AmrCore Example
 Code Structure
 --------------
 
-Figure `[fig:AmrAdvection_AmrCore_flowchart] <#fig:AmrAdvection_AmrCore_flowchart>`__ shows a source
-code tree for the AmrAdvection_AmrCore example.
+.. _fig:AmrAdvection_AmrCore_flowchart:
 
-.. figure:: ./AmrCore/figs/flowchart.pdf
-   :alt: [fig:AmrAdvection_AmrCore_flowchart] Source code tree for the
-   AmrAdvection_AmrCore example.
+.. figure:: ./AmrCore/figs/flowchart.png
    :width: 4in
 
-   [fig:AmrAdvection_AmrCore_flowchart] Source code tree for the
-   AmrAdvection_AmrCore example.
+   Source code tree for the AmrAdvection_AmrCore example.
+
+
+The figure shows a :ref:`fig:AmrAdvection_AmrCore_flowchart` 
+
 
 -  amrex/Src/
 
@@ -342,17 +380,22 @@ code tree for the AmrAdvection_AmrCore example.
 
    -  AmrCore/ AMR data management classes, described in more detail above.
 
+
 -  Advection_AmrCore/Src Source code specific to this example. Most notably
-   is the AmrCoreAdv class, which is derived from AmrCore. The subdirectories Src_2d
+   is the :cpp:`AmrCoreAdv` class, which is derived from :cpp:`AmrCore`. The subdirectories Src_2d
    and Src_3d contain dimension specific routines. Src_nd contains dimension-independent routines.
 
+
 -  Exec Contains a makefile so a user can write other examples besides SingleVortex.
+
 
 -  SingleVortex Build the code here by editing the GNUmakefile and running make. There
    is also problem-specific source code here used for initialization or specifying the velocity field used in this
    simulation.
 
 Here is a high-level pseudo-code of the flow of the program:
+
+.. highlight:: c++
 
 ::
 
@@ -361,11 +404,11 @@ Here is a high-level pseudo-code of the flow of the program:
       AmrCoreAdv amr_core_adv; // build an AmrCoreAdv object
       amr_core_adv.InitData()  // initialize data all all levels
         AmrCore::InitFromScratch()
-          AmrMesh::MakeNewGrids()
+        AmrMesh::MakeNewGrids()
         AmrMesh::MakeBaseGrids() // define level 0 grids
         AmrCoreAdv::MakeNewLevelFromScratch()
-              /* allocate phi_old, phi_new, t_new, and flux registers */
-              initdata()  // fill phi
+        /* allocate phi_old, phi_new, t_new, and flux registers */
+        initdata()  // fill phi
         if (max_level > 0) {
               do {
             AmrMesh::MakeNewGrids()
@@ -374,7 +417,7 @@ Here is a high-level pseudo-code of the flow of the program:
                   /* allocate phi_old, phi_new, t_new, and flux registers */
                   initdata()  // fill phi
           } (while (finest_level < max_level);
-            }
+        }
       amr_core_adv.Evolve()
         loop over time steps {
           ComputeDt()
@@ -399,17 +442,19 @@ Here is a high-level pseudo-code of the flow of the program:
 The AmrCoreAdv Class
 --------------------
 
-This example uses the class AmrCoreAdv, which is derived from the class AmrCore
-(which is derived from AmrMesh). The function definitions/implementations
+This example uses the class :cpp:`AmrCoreAdv`, which is derived from the class :cpp:`AmrCore`
+(which is derived from :cpp:`AmrMesh`). The function definitions/implementations
 are given in AmrCoreAdv.H/cpp.
 
 FluxRegisters
 -------------
 
-The function AmrCoreAdv::Advance() calls the Fortran
-subroutine, advect (in ./Src_xd/Adv_xd.f90). advect computes
+The function :cpp:`AmrCoreAdv::Advance()` calls the Fortran
+subroutine, :fortran:`advect` (in ./Src_xd/Adv_xd.f90). :fortran:`advect` computes
 and returns the time-advanced state as well as the fluxes used to update the state.
 These fluxes are used to set or increment the flux registers.
+
+.. highlight:: c++
 
 ::
 
@@ -434,7 +479,9 @@ These fluxes are used to set or increment the flux registers.
        }
     }
 
-The synchronization is performed at the end of AmrCoreAdv::timeStep:
+The synchronization is performed at the end of :cpp:`AmrCoreAdv::timeStep`:
+
+.. highlight:: c++
 
 ::
 
@@ -447,16 +494,21 @@ The synchronization is performed at the end of AmrCoreAdv::timeStep:
 
     AverageDownTo(lev); // average lev+1 down to lev
 
-Regridding [ss:regridding]
---------------------------
 
-The regrid function belongs to the AmrCore class (it is virtual – in this
-tutorial we use the instance in AmrCore).
+.. _ss:regridding:
+
+Regridding
+----------
+
+The regrid function belongs to the :cpp:`AmrCore` class (it is virtual – in this
+tutorial we use the instance in :cpp:`AmrCore`).
 
 At the beginning of each time step, we check whether we need to regrid.
-In this example, we use a regrid_int and keep track of how many times each level
+In this example, we use a :cpp:`regrid_int` and keep track of how many times each level
 has been advanced. When any given particular level :math:`\ell<\ell_{\rm max}` has been
-advanced a multiple of regrid_int, we call the regrid function.
+advanced a multiple of :cpp:`regrid_int`, we call the :cpp:`regrid` function.
+
+.. highlight:: c++
 
 ::
 
@@ -485,10 +537,12 @@ advanced a multiple of regrid_int, we call the regrid function.
         }
 
 Central to the regridding process is the concept of “tagging” which cells need refinement.
-ErrorEst is a pure virtual function of AmrCore, so each application code must
+:cpp:`ErrorEst` is a pure virtual function of :cpp:`AmrCore`, so each application code must
 contain an implementation. In AmrCoreAdv.cpp the ErrorEst function is essentially an
-interface to a Fortran routine that tags cells (in this case, state_error in
+interface to a Fortran routine that tags cells (in this case, :fortran:`state_error` in
 Src_nd/Tagging_nd.f90). Note that this code uses tiling.
+
+.. highlight:: c++
 
 ::
 
@@ -564,8 +618,10 @@ Src_nd/Tagging_nd.f90). Note that this code uses tiling.
         }
     }
 
-The state_error subroutine in Src_nd/Tagging_nd.f90 in this example
+The :fortran:`state_error` subroutine in Src_nd/Tagging_nd.f90 in this example
 is simple:
+
+.. highlight:: fortran
 
 ::
 
@@ -604,49 +660,55 @@ is simple:
 
     end subroutine state_error
 
-Grid Creation [ss:grid_creation]
---------------------------------
+
+.. _ss:grid_creation:
+
+
+Grid Creation
+-------------
 
 The gridding algorithm proceeds in this order, using the parameters described
-in Section\ `[ss:amrcore] <#ss:amrcore>`__.
+in the section on the :ref:`ss:amrcore`.
 
-#. If at level 0, the domain is initially defined by n_cell
+#. If at level 0, the domain is initially defined by :cpp:`n_cell`
    as specified in the inputs file. If at level greater than 0,
    grids are created using the Berger-Rigoutsis clustering algorithm applied to the
-   taggd cells from Section \ `[ss:regridding] <#ss:regridding>`__, modified to ensure that
-   all new fine grids are divisible by blocking_factor.
+   tagged cells from the section on :ref:`ss:regridding`, modified to ensure that
+   all new fine grids are divisible by :cpp:`blocking_factor`.
 
-#. Next, the grid list is chopped up if any grids are larger than max_grid_size.
-   Note that because max_grid_size is a multiple of blocking_factor
-   (as long as max_grid_size is greater than blocking_factor),
+#. Next, the grid list is chopped up if any grids are larger than :cpp:`max_grid_size`.
+   Note that because :cpp:`max_grid_size` is a multiple of :cpp:`blocking_factor`
+   (as long as :cpp:`max_grid_size` is greater than :cpp:`blocking_factor`),
    the blocking_factor criterion is still satisfied.
 
-#. Next, if refine_grid_layout = 1 and there are more processors than grids
+#. Next, if ``refine_grid_layout = 1`` and there are more processors than grids
    at this level, then the grids at this level are further divided in order to ensure that
    no processors has less than one grid (at each level).
-   In AmrMesh::ChopGrids,
+   In :cpp:`AmrMesh::ChopGrids`,
 
-   -  if max_grid_size / 2 in the BL_SPACEDIM direction is a multiple of
-      blocking_factor, then chop the grids in the BL_SPACEDIM direction
-      so that none of the grids are longer in that direction than max_grid_size / 2
+   -  if :cpp:`max_grid_size / 2` in the :cpp:`BL_SPACEDIM` direction is a multiple of
+      :cpp:`blocking_factor`, then chop the grids in the :cpp:`BL_SPACEDIM` direction
+      so that none of the grids are longer in that direction than :cpp:`max_grid_size / 2`
 
    -  If there are still fewer grids than processes, repeat the procedure in the
-      BL_SPACEDIM-1 direction, and again in the BL_SPACEDIM-2 direction if necessary
+      :cpp:`BL_SPACEDIM-1` direction, and again in the :cpp:`BL_SPACEDIM-2` direction if necessary
 
-   -  If after completing a sweep in all coordinate directions with max_grid_size / 2,
-      there are still fewer grids than processes, repeat the steps above with max_grid_size / 4.
+   -  If after completing a sweep in all coordinate directions with :cpp:`max_grid_size / 2`,
+      there are still fewer grids than processes, repeat the steps above with :cpp:`max_grid_size / 4`.
 
 FillPatch
 ---------
 
-This example has two functions, AmrCoreAdv::FillPatch and AmrCoreAdv::CoarseFillPatch,
+This example has two functions, :cpp:`AmrCoreAdv::FillPatch` and :cpp:`AmrCoreAdv::CoarseFillPatch`,
 that make use of functions in AmrCore/AMReX_FillPatchUtil.
 
-In AmrCoreAdv::Advance, we create a temporary MultiFab called Sborder, which
+In :cpp:`AmrCoreAdv::Advance`, we create a temporary :cpp:`MultiFab` called :cpp:`Sborder`, which
 is essentially :math:`\phi` but with ghost cells filled in. The valid and ghost cells are filled in from
 actual valid data at that level, space-time interpolated data from the next-coarser level,
 neighboring grids at the same level, or domain boundary conditions
 (for examples that have non-periodic boundary conditions).
+
+.. highlight:: c++
 
 ::
 
@@ -654,19 +716,3 @@ neighboring grids at the same level, or domain boundary conditions
     FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 
 Several other calls to fillpatch routines are hidden from the user in the regridding process.
-
-.. |[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.| image:: ./AmrCore/figs/Adv1.pdf
-   :width: 1in
-.. |[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.| image:: ./AmrCore/figs/Adv2.pdf
-   :width: 1in
-.. |[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.| image:: ./AmrCore/figs/Adv3.pdf
-   :width: 1in
-.. |[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.| image:: ./AmrCore/figs/Adv4.pdf
-   :width: 1in
-.. |[fig:Adv] Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the
-SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.| image:: ./AmrCore/figs/Adv5.pdf
-   :width: 1in
