@@ -43,7 +43,6 @@ protected:
                         const FArrayBox& sol, const int face_only=0) const final;
     virtual Real getBScalar () const final { return 1.0; }
 
-    virtual std::unique_ptr<MLLinOp> makeMLinOp () const final;
     virtual std::unique_ptr<MLLinOp> makeNLinOp () const final;
 
 private:

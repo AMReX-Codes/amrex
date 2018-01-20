@@ -234,67 +234,6 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 }
 
 std::unique_ptr<MLLinOp>
-MLPoisson::makeMLinOp () const
-{
-    const Geometry& geom = m_geom[0].back();
-    const BoxArray& ba = makeMGrids();
-    DistributionMapping dm{ba};
-
-    LPInfo minfo{};
-    minfo.has_metric_term = info.has_metric_term;
-
-    std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
-
-    MLALaplacian* mop = dynamic_cast<MLALaplacian*>(r.get());
-
-    mop->m_parent = this;
-
-    mop->setMaxOrder(maxorder);
-    mop->setVerbose(verbose);
-
-    mop->setDomainBC(m_lobc, m_hibc);
-
-    mop->setCoarseFineBC(nullptr, 1);
-
-    mop->setScalars(1.0, -1.0);
-
-    const BoxArray& myba = m_grids[0].back();
-
-    const Real* dxinv = geom.InvCellSize();
-    Real dxscale = dxinv[0];
-#if (AMREX_SPACEDIM >= 2)
-    dxscale = std::max(dxscale,dxinv[1]);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    dxscale = std::max(dxscale,dxinv[2]);
-#endif
-
-    MultiFab alpha(ba, dm, 1, 0);
-    alpha.setVal(1.e30*dxscale*dxscale);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        std::vector< std::pair<int,Box> > isects;
-        
-        for (MFIter mfi(alpha, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-        {
-            FArrayBox& fab = alpha[mfi];
-            myba.intersections(fab.box(), isects);
-            for (const auto& is : isects)
-            {
-                fab.setVal(0.0, is.second, 0, 1);
-            }
-        }
-    }
-
-    mop->setACoeffs(0, alpha);
-
-    return r;
-}
-
-std::unique_ptr<MLLinOp>
 MLPoisson::makeNLinOp () const
 {
     const Geometry& geom = m_geom[0].back();

@@ -101,7 +101,7 @@ private:
     void mgFcycle ();
 
     void bottomSolve ();
-    void MNSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs);
+    void NSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs);
     void actualBottomSolve ();
 
     void computeMLResidual (int amrlevmax);
@@ -122,16 +122,6 @@ private:
     void fillSolutionBC ();
 
     void averageDownAndSync ();
-
-    //
-    // M Solve
-    //
-    void prepareForMSolve ();
-
-    std::unique_ptr<MLLinOp> m_m_linop;
-    std::unique_ptr<MLMG> m_m_mlmg;
-    std::unique_ptr<MultiFab> m_m_sol;
-    std::unique_ptr<MultiFab> m_m_rhs;
 
     //
     // N Solve

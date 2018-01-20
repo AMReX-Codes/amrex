@@ -18,21 +18,12 @@ struct LPInfo
     int agg_grid_size = AMREX_D_PICK(32, 16, 8);
     int con_grid_size = AMREX_D_PICK(32, 16, 8);
     bool has_metric_term = true;
-    bool do_m_coarsening = false;
-    int mc_crse_ratio = 2;
-    int mc_grid_size = 64;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
-    LPInfo& setMCoarsening (std::pair<bool,int> x) {
-        do_m_coarsening = x.first;
-        mc_crse_ratio = x.second;
-        return *this;
-    }
-    LPInfo& setMSolveGridSize (int x) { mc_grid_size = x; return *this; }
 };
 
 class MLLinOp
@@ -113,7 +104,6 @@ protected:
 
     IntVect m_ixtype;
 
-    bool m_do_m_coarsening = false;
     bool m_do_agglomeration = false;
     bool m_do_consolidation = false;
 
@@ -176,8 +166,6 @@ protected:
 
     void setCoarseFineBCLocation (const RealVect& cloc) { m_coarse_bc_loc = cloc; }
 
-    bool doMCoarsening () const { return m_do_m_coarsening; }
-
     bool doAgglomeration () const { return m_do_agglomeration; }
     bool doConsolidation () const { return m_do_consolidation; }
 
@@ -219,7 +207,6 @@ protected:
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
 
-    virtual std::unique_ptr<MLLinOp> makeMLinOp () const = 0;
     virtual std::unique_ptr<MLLinOp> makeNLinOp () const = 0;
 
 private:

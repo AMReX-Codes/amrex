@@ -230,30 +230,6 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 }
 
 BoxArray
-MLCellLinOp::makeMGrids () const
-{
-    const Geometry& geom = m_geom[0].back();
-    const BoxArray& old_ba = m_grids[0].back();
-    
-    const int m_grid_size = info.mc_grid_size;
-
-    Box bbx = old_ba.minimalBox();
-    bbx.coarsen(m_grid_size);
-    bbx.refine(m_grid_size);
-    bbx &= geom.Domain();
-
-    BoxArray ba{bbx};
-    ba.maxSize(m_grid_size);
-
-    if (verbose > 0) {
-        amrex::Print() << "M-Solve: number of points: " << old_ba.numPts()
-                       << ", " << ba.numPts() << "\n";
-    }
-
-    return ba;
-}
-
-BoxArray
 MLCellLinOp::makeNGrids () const
 {
     const Geometry& geom = m_geom[0].back();
