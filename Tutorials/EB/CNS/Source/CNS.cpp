@@ -112,7 +112,7 @@ CNS::initData ()
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(1.0);
 
-#if 1
+#if 0
     testEBStuff();
 #endif
 

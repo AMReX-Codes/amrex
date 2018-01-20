@@ -234,29 +234,49 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 }
 
 std::unique_ptr<MLLinOp>
-MLPoisson::makeMLinOp () const
+MLPoisson::makeNLinOp () const
 {
     const Geometry& geom = m_geom[0].back();
-    const BoxArray& ba = makeMGrids();
-    DistributionMapping dm{ba};
+    const BoxArray& ba = makeNGrids();
+
+    const DistributionMapping& mydm = m_dmap[0].back();
+
+    DistributionMapping dm;
+    {
+        const std::vector<std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
+        Vector<int> pmap(ba.size());
+        const int nprocs = ParallelDescriptor::NProcs();
+        for (int iproc = 0; iproc < nprocs; ++iproc) {
+            for (int ibox : sfc[iproc]) {
+                pmap[ibox] = iproc;
+            }
+        }
+        dm.define(pmap);
+    }
 
     LPInfo minfo{};
     minfo.has_metric_term = info.has_metric_term;
 
     std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
 
-    MLALaplacian* mop = dynamic_cast<MLALaplacian*>(r.get());
+    MLALaplacian* nop = dynamic_cast<MLALaplacian*>(r.get());
 
-    mop->m_parent = this;
+    nop->m_parent = this;
 
-    mop->setMaxOrder(maxorder);
-    mop->setVerbose(verbose);
+    nop->setMaxOrder(maxorder);
+    nop->setVerbose(verbose);
 
-    mop->setDomainBC(m_lobc, m_hibc);
+    nop->setDomainBC(m_lobc, m_hibc);
 
-    mop->setCoarseFineBC(nullptr, 1);
+    if (needsCoarseDataForBC())
+    {
+        const Real* dx0 = m_geom[0][0].CellSize();
+        const Real fac = 0.5*m_coarse_data_crse_ratio;
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        nop->setCoarseFineBCLocation(cbloc);
+    }
 
-    mop->setScalars(1.0, -1.0);
+    nop->setScalars(1.0, -1.0);
 
     const BoxArray& myba = m_grids[0].back();
 
@@ -289,9 +309,9 @@ MLPoisson::makeMLinOp () const
         }
     }
 
-    mop->setACoeffs(0, alpha);
+    nop->setACoeffs(0, alpha);
 
-    return r;
+    return r;    
 }
 
 }

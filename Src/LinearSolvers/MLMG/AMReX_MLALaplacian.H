@@ -46,8 +46,8 @@ protected:
                         const FArrayBox& sol, const int face_only=0) const final;
     virtual Real getBScalar () const final { return m_b_scalar; }
 
-    virtual std::unique_ptr<MLLinOp> makeMLinOp () const final {
-        amrex::Abort("MLALaplacian::makeMLinOp: Not implmented");
+    virtual std::unique_ptr<MLLinOp> makeNLinOp () const final {
+        amrex::Abort("MLALaplacian::makeNLinOp: Not implmented");
         return std::unique_ptr<MLLinOp>{};
     }
 
