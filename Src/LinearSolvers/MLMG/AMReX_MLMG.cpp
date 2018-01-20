@@ -44,7 +44,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 {
     BL_PROFILE_REGION("MLMG::solve()");
 
-    bool msolve = linop.m_parent;
+    bool is_nsolve = linop.m_parent;
 
     Real solve_start_time = amrex::second();
 
@@ -57,7 +57,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     bool local = true;
     Real resnorm0 = MLResNormInf(finest_amr_lev, local); 
     Real rhsnorm0 = MLRhsNormInf(local); 
-    if (!msolve) {
+    if (!is_nsolve) {
         ParallelDescriptor::ReduceRealMax({resnorm0, rhsnorm0}, rhs[0].color());
 
         if (verbose >= 1)
@@ -78,7 +78,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
     const Real res_target = std::max(a_tol_abs, std::max(a_tol_rel,1.e-13)*max_norm);
 
-    if (!msolve && resnorm0 <= res_target)
+    if (!is_nsolve && resnorm0 <= res_target)
     {
         composite_norminf = resnorm0;
         if (verbose >= 1) {
@@ -99,7 +99,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             // Test convergence on the fine amr level
             computeResidual(finest_amr_lev);
 
-            if (msolve) continue;
+            if (is_nsolve) continue;
 
             Real fine_norminf = ResNormInf(finest_amr_lev);
             composite_norminf = fine_norminf;
@@ -599,32 +599,35 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
 void
 MLMG::bottomSolve ()
 {
-    if (linop.doMCoarsening()) {
-        MSolve();
-    } else {
+    if (do_nsolve)
+    {
+        NSolve(*ns_mlmg, *ns_sol, *ns_rhs);
+    }
+    else
+    {
         actualBottomSolve();
     }
 }
 
 void
-MLMG::MSolve ()
+MLMG::NSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs)
 {
-    BL_PROFILE("MLMG::MSolve()");
+    BL_PROFILE("MLMG::NSolve()");
 
-    m_m_sol->setVal(0.0);
+    a_sol.setVal(0.0);
 
-    m_m_rhs->setVal(0.0);
-    m_m_rhs->ParallelCopy(res[0].back());
+    a_rhs.setVal(0.0);
+    a_rhs.ParallelCopy(res[0].back());
 
-    m_m_mlmg->solve({m_m_sol.get()}, {m_m_rhs.get()}, -1.0, -1.0);
+    a_solver.solve({&a_sol}, {&a_rhs}, -1.0, -1.0);
 
-    cor[0].back()->ParallelCopy(*m_m_sol);
+    cor[0].back()->ParallelCopy(a_sol);
 }
 
 void
 MLMG::actualBottomSolve ()
 {
-    BL_PROFILE("MLMG::bottomSolve()");
+    BL_PROFILE("MLMG::actualBottomSolve()");
 
     if (!linop.isBottomActive()) return;
 
@@ -868,41 +871,46 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 
     buildFineMask();
 
-    if (linop.doMCoarsening())
+    if (linop.m_parent) do_nsolve = false;  // no embeded N-Solve
+    if (linop.m_domain_covered[0]) do_nsolve = false;
+    if (linop.doAgglomeration()) do_nsolve = false;
+    if (AMREX_SPACEDIM != 3) do_nsolve = false;
+
+    if (do_nsolve && ns_linop == nullptr)
     {
-        prepareForMSolve();
+        prepareForNSolve();
     }
 
     if (verbose >= 2) {
         amrex::Print() << "MLMG: # of AMR levels: " << namrlevs << "\n"
                        << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
                        << "\n";
-        if (m_m_linop) {
-            amrex::Print() << "      # of MG levels on the M level: " << m_m_linop->NMGLevels(0) << "\n";
+        if (ns_linop) {
+            amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n";
         }
     }
 }
 
 void
-MLMG::prepareForMSolve ()
+MLMG::prepareForNSolve ()
 {
-    m_m_linop = std::move(linop.makeMLinOp());
+    ns_linop = std::move(linop.makeNLinOp());
 
-    const BoxArray& ba = (*m_m_linop).m_grids[0][0];
-    const DistributionMapping& dm =(*m_m_linop).m_dmap[0][0]; 
+    const BoxArray& ba = (*ns_linop).m_grids[0][0];
+    const DistributionMapping& dm =(*ns_linop).m_dmap[0][0]; 
 
-    m_m_sol.reset(new MultiFab(ba, dm, 1, 1));
-    m_m_rhs.reset(new MultiFab(ba, dm, 1, 0));
-    m_m_sol->setVal(0.0);
-    m_m_rhs->setVal(0.0);
+    ns_sol.reset(new MultiFab(ba, dm, 1, 1));
+    ns_rhs.reset(new MultiFab(ba, dm, 1, 0));
+    ns_sol->setVal(0.0);
+    ns_rhs->setVal(0.0);
 
-    m_m_linop->setLevelBC(0, m_m_sol.get());
+    ns_linop->setLevelBC(0, ns_sol.get());
     
-    m_m_mlmg.reset(new MLMG(*m_m_linop));
-    m_m_mlmg->setVerbose(0);
-    m_m_mlmg->setCGVerbose(0);
-    m_m_mlmg->setFixedIter(1);
-    m_m_mlmg->setMaxFmgIter(20);
+    ns_mlmg.reset(new MLMG(*ns_linop));
+    ns_mlmg->setVerbose(0);
+    ns_mlmg->setFixedIter(1);
+    ns_mlmg->setMaxFmgIter(20);
+    ns_mlmg->setBottomSolver(BottomSolver::smoother);
 }
 
 void
