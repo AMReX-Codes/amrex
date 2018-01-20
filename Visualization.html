@@ -36,7 +36,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="prev" title="The" href="Particle.html"/> 
+        <link rel="next" title="Profiling" href="Profiling.html"/>
+        <link rel="prev" title="AmrCore Source Code" href="EB.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -99,6 +100,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Visualization</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#using-on-a-local-workstation">Using &nbsp;on a local workstation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-at-nersc-under-development">Using &nbsp;at NERSC (<em>under development</em>)</a><ul>
@@ -108,6 +111,8 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
 </ul>
 
             
@@ -319,7 +324,7 @@ in Figure <a class="reference external" href="#fig:ParaView">[fig:ParaView]</a>.
 </ol>
 <div class="figure" id="id3">
 <a class="reference internal image-reference" href="./Visualization/ParaView"><img alt="Plotfile image generated with" src="./Visualization/ParaView" style="width: 3.1in;" /></a>
-<p class="caption"><span class="caption-text">Plotfile image generated with</span></p>
+<p class="caption"><span class="caption-number">Fig. 10 </span><span class="caption-text">Plotfile image generated with</span></p>
 </div>
 <p>To visualize particles (for example, you could run the ShortRangeParticles example:</p>
 <ol class="arabic simple">
@@ -339,7 +344,7 @@ VCR-like controls at the top, as shown in Figure <a class="reference external" h
 </ol>
 <div class="figure" id="id4">
 <a class="reference internal image-reference" href="./Visualization/ParaView_particles"><img alt="Particle image generated with" src="./Visualization/ParaView_particles" style="width: 3.1in;" /></a>
-<p class="caption"><span class="caption-text">Particle image generated with</span></p>
+<p class="caption"><span class="caption-number">Fig. 11 </span><span class="caption-text">Particle image generated with</span></p>
 </div>
 <p>[fig:ParaView_particles]</p>
 <p id="section-2">, an open source Python package available at <a class="reference external" href="http://yt-project.org/">http://yt-project.org/</a>,
@@ -406,7 +411,7 @@ the slice plot feature is shown below:</p>
 volume renderings with ; an example is show below:</p>
 <div class="figure" id="id5">
 <img alt="Slice plot of :math:`128^3` Nyx simulation using ." src="./Visualization/yt_Nyx_density_slice.png" />
-<p class="caption"><span class="caption-text">Slice plot of <span class="math">\(128^3\)</span> Nyx simulation using .</span></p>
+<p class="caption"><span class="caption-number">Fig. 12 </span><span class="caption-text">Slice plot of <span class="math">\(128^3\)</span> Nyx simulation using .</span></p>
 </div>
 <p>[fig:yt_Nyx_slice_plot]</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">12</span><span class="p">]:</span> <span class="n">sc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">create_scene</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s2">&quot;density&quot;</span><span class="p">,</span> <span class="n">lens_type</span><span class="o">=</span><span class="s2">&quot;perspective&quot;</span><span class="p">)</span>
@@ -637,8 +642,10 @@ as a new window.</td></tr>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
+        <a href="Profiling.html" class="btn btn-neutral float-right" title="Profiling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-        <a href="Particle.html" class="btn btn-neutral" title="The" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+        <a href="EB.html" class="btn btn-neutral" title="AmrCore Source Code" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

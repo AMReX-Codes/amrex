@@ -218,7 +218,7 @@ with
 
         myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
 
-to change the value of ncells and hydro.cfl.
+to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
 
 
 .. _sec:basics:amrgrids:
