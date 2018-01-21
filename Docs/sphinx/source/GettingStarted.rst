@@ -182,7 +182,7 @@ and then taking the divergence to update the cells,
 
 Don't worry about the implementation details of the code.
 You will be able to understand the code in this example after
-reading the section on the :ref:`Basics`.
+reading the section on the :ref:`Chap:Basics`.
 
 Building and Running the Code
 -----------------------------
