@@ -40,7 +40,7 @@ amrex/Tutorials/Basic/HelloWorld_C/ and is also shown below.
 The main body of this short example contains three statements.
 Usually the first and last statements for the :cpp:`int main(...)` function of
 every program should be calling :cpp:`amrex::Initialize` and :cpp:`Finalize`, 
-respectively. The second statement calls `amrex::Print`` to print out
+respectively. The second statement calls :cpp:`amrex::Print` to print out
 a string that includes the AMReX version returned by the :cpp:`amrex::Version`
 function. The example code includes two AMReX header files. Note
 that the name of all AMReX header files starts with ``AMReX_``
