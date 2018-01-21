@@ -28,12 +28,12 @@ public:
 
     void setLOBndryConds (const std::array<LinOpBCType,AMREX_SPACEDIM>& lo,
                           const std::array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                          int ratio);
+                          int ratio, const RealVect& a_loc);
 
     static void setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& domain,
                           const std::array<LinOpBCType,AMREX_SPACEDIM>& lo,
                           const std::array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                          const Real* dx, int ratio);
+                          const Real* dx, int ratio, const RealVect& a_loc);
 };
 
 }

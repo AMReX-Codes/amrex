@@ -15,7 +15,7 @@ MLMGBndry::~MLMGBndry () {}
 void
 MLMGBndry::setLOBndryConds (const std::array<LinOpBCType,AMREX_SPACEDIM>& lo,
                             const std::array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                            int ratio)
+                            int ratio, const RealVect& a_loc)
 {
     const BoxArray& ba     = boxes();
     const Real*     dx     = geom.CellSize();
@@ -32,7 +32,7 @@ MLMGBndry::setLOBndryConds (const std::array<LinOpBCType,AMREX_SPACEDIM>& lo,
         Vector< Vector<BoundCond> >& bctag = bcond[fsi];
 
         BCTuple bct;
-        setBoxBC(bloc, bct, grd, domain, lo, hi, dx, ratio);
+        setBoxBC(bloc, bct, grd, domain, lo, hi, dx, ratio, a_loc);
 
         const int comp = 0;
         for (int idim = 0; idim < 2*AMREX_SPACEDIM; ++idim) {
@@ -45,7 +45,7 @@ void
 MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& domain,
                      const std::array<LinOpBCType,AMREX_SPACEDIM>& lo,
                      const std::array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                     const Real* dx, int ratio)
+                     const Real* dx, int ratio, const RealVect& a_loc)
 {
     for (OrientationIter fi; fi; ++fi)
     {
@@ -71,7 +71,7 @@ MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& 
         {
             // Internal bndry.
             bctag[face] = LO_DIRICHLET;
-            bloc[face]  = 0.5*ratio*dx[dir];
+            bloc[face]  = ratio > 0 ? 0.5*ratio*dx[dir] : a_loc[dir];
             // If this is next to another same level box, bloc is
             // wrong.  But it doesn't matter, because we also have
             // mask.  It is used only if mask says it is next to
