@@ -72,7 +72,7 @@ protected:
         void setLOBndryConds (const Geometry& geom, const Real* dx,
                               const std::array<BCType,AMREX_SPACEDIM>& lobc,
                               const std::array<BCType,AMREX_SPACEDIM>& hibc,
-                              int ratio);
+                              int ratio, const RealVect& a_loc);
         const BCTuple& bndryConds (const MFIter& mfi) const {
             return bcond[mfi];
         }
@@ -103,7 +103,7 @@ protected:
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                   const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
 
-    BoxArray makeMGrids () const;
+    BoxArray makeNGrids () const;
 
     virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const final;
 
