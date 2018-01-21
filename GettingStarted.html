@@ -323,21 +323,25 @@ an executable named <code class="docutils literal"><span class="pre">main2d.gnu.
 <div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">./main2d.gnu.ex inputs_2d</span>
 </pre></div>
 </div>
-<p>Note that the command takes a file inputs_2d. When the run
-finishes, you will have a number of plotfiles, plt00000,
-plt01000, etc. The calculation solves the heat equation in 2D on a
-<span class="math">\(256 \times 256\)</span> cells domain. It runs <span class="math">\(10,000\)</span> steps and makes a
-plotfile every <span class="math">\(1,000\)</span> steps. These are runtime parameters that can
-be adjusted in inputs_2d.</p>
+<p>Note that the command takes a file <code class="docutils literal"><span class="pre">inputs_2d.</span></code>
+The calculation solves the heat equation in 2D on a domain with
+<span class="math">\(256 \times 256\)</span> cells.  It runs <span class="math">\(10,000\)</span> steps and makes a
+plotfile every <span class="math">\(1,000\)</span> steps.  When the run finishes,
+you will have a number of plotfiles, <code class="docutils literal"><span class="pre">plt00000,</span> <span class="pre">plt01000,</span></code> etc, in the
+directory where you are running.  You can control runtime parameters such as
+how many time steps to run and how often to write plotfiles by setting them in
+<code class="docutils literal"><span class="pre">inputs_2d.</span></code></p>
 </div>
 </div>
 <div class="section" id="visualization">
 <h1>Visualization<a class="headerlink" href="#visualization" title="Permalink to this headline">¶</a></h1>
-<p>There are several visualization tools that can be used for &nbsp;plotfiles. The standard tool used within the
-AMReX-community is AmrVis, a package developed and supported
-by CCSE that is designed specifically for highly efficient visualization
-of block-structured hierarchical AMR data.
-Plotfiles can also be viewed using the VisIt, ParaView, and yt&nbsp;packages.
+<p>There are several visualization tools that can be used for AMReX plotfiles.
+One standard tool used within the AMReX-community is Amrvis,
+a package developed and supported by CCSE that is designed specifically
+for highly efficient visualization of block-structured hierarchical AMR data.
+(Amrvis can also be used to visualize performance data; see the ref:<cite>Profiling</cite>
+chapter for further details.)
+Plotfiles can also be viewed using the VisIt, ParaView, and yt packages.
 Particle data can be viewed using ParaView.
 Refer to Chapter on <a class="reference internal" href="Visualization.html#chap-visualization"><span class="std std-ref">Visualization</span></a> for how to use each of these tools.</p>
 </div>
