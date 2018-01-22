@@ -554,9 +554,9 @@ mesh data IO. For example:
 
 ::
 
-    WriteMultiLevelPlotfile(``plt00000'', output_levs, GetVecOfConstPtrs(output),
+    WriteMultiLevelPlotfile("plt00000", output_levs, GetVecOfConstPtrs(output),
                             varnames, geom, 0.0, level_steps, outputRR);
-    pc.Checkpoint(``plt00000'', ``particle0'');
+    pc.Checkpoint("plt00000", "particle0");
 
 
 will create a plot file called “plt00000” and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called “particle0”. There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
