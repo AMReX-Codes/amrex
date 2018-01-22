@@ -149,9 +149,9 @@ The figure above shows the :ref:`fig:AmrAdvection_AmrLevel_flowchart`
 
    -  Amr/
 
--  Advection_AmrLevel/Src Source code specific to this example. Most notably
-   is the AmrLevelAdv class, which is derived from AmrLevel. The subdirectories Src_2d
-   and Src_3d contain dimension specific routines. Src_nd contains dimension-independent routines.
+-  ``Advection_AmrLevel/Src`` Source code specific to this example. Most notably
+   is the AmrLevelAdv class, which is derived from AmrLevel. The subdirectories ``Src_2d``
+   and ``Src_3d`` contain dimension specific routines. ``Src_nd`` contains dimension-independent routines.
 
 -  Exec Contains a makefile so a user can write other examples besides SingleVortex and UniformVelocity.
 

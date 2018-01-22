@@ -11,7 +11,7 @@ Getting Started
 We have discussed AMReX’s build systems in the chapter on
 :ref:`Chap:BuildingAMReX`.  To build with GNU Make, we need to include the
 Fortran interface source tree into the make system. The source codes for the
-Fortran interface are in amrex/Src/F_Interfaces and there are several
+Fortran interface are in ``amrex/Src/F_Interfaces`` and there are several
 sub-directories. The "Base" directory includes sources for the basic
 functionality, the "AmrCore" directory wraps around the :cpp:`AmrCore` class
 (see the chapter on :ref:`Chap:AmrCore`), and the "Octree" directory adds
@@ -66,12 +66,12 @@ for :fortran:`real`. Fortran :fortran:`real(amrex_real)` corresponds to
 the setting of precision.
 
 The module :fortran:`amrex_parallel_module` (
-Src/F_Interfaces/Base/AMReX_parallel_mod.F90) includes wrappers to the
+``amrex/Src/F_Interfaces/Base/AMReX_parallel_mod.F90``) includes wrappers to the
 :cpp:`ParallelDescriptor` namespace, which is in turn a wrapper to the parallel
 communication library used by AMReX (e.g. MPI).
 
 The module :cpp:`amrex_parmparse_module` (
-Src/Base/AMReX_parmparse_mod.F90) provides interface to
+``amrex/Src/Base/AMReX_parmparse_mod.F90``) provides interface to
 :cpp:`ParmParse` (see the section on :ref:`sec:basics:parmparse`). Here are some
 examples.
 
@@ -92,7 +92,7 @@ those compilers, we must explicitly destroy the objects, otherwise there will
 be memory leaks. This applies to many other derived types.
 
 :fortran:`amrex_box` is a derived type in :fortran:`amrex_box_module`
-Src/F_Interfaces/Base/AMReX_box_mod.F90. It has three members, :fortran:`lo`
+``amrex/Src/F_Interfaces/Base/AMReX_box_mod.F90``. It has three members, :fortran:`lo`
 (lower corner), :fortran:`hi` (upper corner) and :fortran:`nodal` (logical flag
 for index type).
 
@@ -117,9 +117,9 @@ of building it.
       !
       call amrex_geometry_destroy(geom)
 
-:fortran:`amrex_boxarray` ( Src/F_Interfaces/Base/AMReX_boxarray_mod.F90) is a
+:fortran:`amrex_boxarray` ( ``amrex/Src/F_Interfaces/Base/AMReX_boxarray_mod.F90``) is a
 wrapper for the :cpp:`BoxArray` class, and :fortran:`amrex_distromap` (
-Src/F_Interfaces/Base/AMReX_distromap_mod.F90) is a wrapper for the
+``amrex/Src/F_Interfaces/Base/AMReX_distromap_mod.F90``) is a wrapper for the
 :cpp:`DistributionMapping` class. Here is an example of building a
 :cpp:`BoxArray` and a :cpp:`DistributionMapping`.
 
@@ -414,8 +414,8 @@ of coarse level grids. There are no required direct parent-child connections
 between levels. Therefore, grids in AMReX in general cannot be represented by
 trees. Nevertheless, octree type grids are supported via Fortran interface,
 because  grids are more general than octree grids. A tutorial example using
-amrex_octree_module ( Src/F_Interfaces/Octree/AMReX_octree_mod.f90) is
-available at Tutorials/Amr/Advection_octree_F/. Procedures
+amrex_octree_module ( ``amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90``) is
+available at ``amrex/Tutorials/Amr/Advection_octree_F/``. Procedures
 :fortran:`amrex_octree_init` and :fortran:`amrex_octree_finalize` must be
 called as follows,
 

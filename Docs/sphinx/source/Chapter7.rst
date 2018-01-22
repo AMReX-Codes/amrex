@@ -3,7 +3,7 @@
 Amr Source Code
 ===============
 
-The source code in amrex/Src/Amr contains a number of classes, most notably
+The source code in ``amrex/Src/Amr`` contains a number of classes, most notably
 :cpp:`Amr`, :cpp:`AmrLevel`, and :cpp:`LevelBld`.
 These classes provide a more well developed set of tools for writing AMR codes
 than the classes created for the Advection_AmrCore tutorial.
