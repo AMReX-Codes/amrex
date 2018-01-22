@@ -130,7 +130,7 @@ AmrMesh and AmrCore
 -------------------
 
 For single-level simulations
-(see e.g., amrex/Tutorials/Basic/HeatEquation_EX1_C/main.cpp)
+(see e.g., ``amrex/Tutorials/Basic/HeatEquation_EX1_C/main.cpp``)
 the user needs to build :cpp:`Geometry`, :cpp:`DistributionMapping`,
 and :cpp:`BoxArray` objects associated with the simulation. For simulations
 with multiple levels of refinement, the :cpp:`AmrMesh` class can be thought
@@ -236,7 +236,7 @@ class :cpp:`AmrCoreAdv`.
     virtual void ClearLevel (int lev) = 0;
 
 Refer to the :cpp:`AmrCoreAdv` class in the
-amrex/Tutorials/Amr/AmrCore_Advection/Source
+``amrex/Tutorials/Amr/AmrCore_Advection/Source``
 code for a sample implementation.
 
 TagBox, and Cluster
