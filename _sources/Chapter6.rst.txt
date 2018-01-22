@@ -3,7 +3,7 @@
 AmrCore Source Code
 ===================
 
-In this Chapter we give an overview of functionality contained in the amrex/Src/AmrCore source code.
+In this Chapter we give an overview of functionality contained in the ``amrex/Src/AmrCore`` source code.
 This directory contains source code for the following:
 
 -  Storing information about the grid layout and processor distribution mapping
