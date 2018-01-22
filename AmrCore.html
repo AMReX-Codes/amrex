@@ -449,7 +449,7 @@ contained in the files AMReX_INTERP_F.H and AMReX_INTERP_xD.F.</p>
 <div class="section" id="using-fluxregisters">
 <span id="sec-amrcore-fluxreg"></span><h2>Using FluxRegisters<a class="headerlink" href="#using-fluxregisters" title="Permalink to this headline">¶</a></h2>
 <p>AMReX_FluxRegister.cpp/H contains the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FluxRegister</span></span></code>, which is
-derived from the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BndryRegister</span></span></code> (in Src/Boundary/AMReX_BndryRegister).
+derived from the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BndryRegister</span></span></code> (in <code class="docutils literal"><span class="pre">amrex/Src/Boundary/AMReX_BndryRegister</span></code>).
 In the most general terms, a FluxRegister is a special type of BndryRegister
 that stores and manipulates data (most often fluxes) at coarse-fine interfaces.
 A simple usage scenario comes from a conservative discretization of a hyperbolic
@@ -486,10 +486,10 @@ in a multi-level framework. The description of the base classes
 are given in the chapter on <a class="reference internal" href="Chapter8.html#chap-particles"><span class="std std-ref">Particles</span></a>.</p>
 <p>AMReX_AmrParticles.cpp/H contains the classes <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrParticleContainer</span></span></code>
 and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrTracerParticleContainer</span></span></code>, which are derived from the classes
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> (in Src/Particle/AMReX_Particles)
-and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">TracerParticleContainer</span></span></code> (in Src/Particle/AMReX_TracerParticles).</p>
+<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> (in <code class="docutils literal"><span class="pre">amrex/Src/Particle/AMReX_Particles</span></code>)
+and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">TracerParticleContainer</span></span></code> (in <code class="docutils literal"><span class="pre">amrex/Src/Particle/AMReX_TracerParticles</span></code>).</p>
 <p>AMReX_AmrParGDB.cpp/H contains the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrParGDB</span></span></code>, which is derived from
-the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParGDBBase</span></span></code> (in Src/Particle/AMReX_ParGDB).</p>
+the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParGDBBase</span></span></code> (in <code class="docutils literal"><span class="pre">amrex/Src/Particle/AMReX_ParGDB</span></code>).</p>
 </div>
 </div>
 <div class="section" id="advection-amrcore-example">
@@ -508,9 +508,9 @@ the class <code class="code cpp c++ docutils literal"><span class="name"><span c
 <li>AmrCore/ AMR data management classes, described in more detail above.</li>
 </ul>
 </li>
-<li>Advection_AmrCore/Src Source code specific to this example. Most notably
-is the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span></code> class, which is derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>. The subdirectories Src_2d
-and Src_3d contain dimension specific routines. Src_nd contains dimension-independent routines.</li>
+<li><code class="docutils literal"><span class="pre">Advection_AmrCore/Src</span></code> Source code specific to this example. Most notably
+is the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span></code> class, which is derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>. The subdirectories <code class="docutils literal"><span class="pre">Src_2d</span></code>
+and <code class="docutils literal"><span class="pre">Src_3d</span></code> contain dimension specific routines. <code class="docutils literal"><span class="pre">Src_nd</span></code> contains dimension-independent routines.</li>
 <li>Exec Contains a makefile so a user can write other examples besides SingleVortex.</li>
 <li>SingleVortex Build the code here by editing the GNUmakefile and running make. There
 is also problem-specific source code here used for initialization or specifying the velocity field used in this
@@ -568,7 +568,7 @@ are given in AmrCoreAdv.H/cpp.</p>
 <div class="section" id="fluxregisters">
 <h2>FluxRegisters<a class="headerlink" href="#fluxregisters" title="Permalink to this headline">¶</a></h2>
 <p>The function <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Advance</span></span><span class="punctuation"><span class="pre">()</span></span></code> calls the Fortran
-subroutine, <code class="code fortran docutils literal"><span class="name"><span class="pre">advect</span></span></code> (in ./Src_xd/Adv_xd.f90). <code class="code fortran docutils literal"><span class="name"><span class="pre">advect</span></span></code> computes
+subroutine, <code class="code fortran docutils literal"><span class="name"><span class="pre">advect</span></span></code> (in <code class="docutils literal"><span class="pre">./Src_xd/Adv_xd.f90</span></code>). <code class="code fortran docutils literal"><span class="name"><span class="pre">advect</span></span></code> computes
 and returns the time-advanced state as well as the fluxes used to update the state.
 These fluxes are used to set or increment the flux registers.</p>
 <div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// increment or decrement the flux registers by area and time-weighted fluxes</span>
@@ -642,7 +642,7 @@ advanced a multiple of <code class="code cpp c++ docutils literal"><span class="
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ErrorEst</span></span></code> is a pure virtual function of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>, so each application code must
 contain an implementation. In AmrCoreAdv.cpp the ErrorEst function is essentially an
 interface to a Fortran routine that tags cells (in this case, <code class="code fortran docutils literal"><span class="name"><span class="pre">state_error</span></span></code> in
-Src_nd/Tagging_nd.f90). Note that this code uses tiling.</p>
+<code class="docutils literal"><span class="pre">Src_nd/Tagging_nd.f90</span></code>). Note that this code uses tiling.</p>
 <div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// tag all cells for refinement</span>
 <span class="c1">// overrides the pure virtual function in AmrCore</span>
 <span class="kt">void</span>
@@ -716,7 +716,7 @@ Src_nd/Tagging_nd.f90). Note that this code uses tiling.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The <code class="code fortran docutils literal"><span class="name"><span class="pre">state_error</span></span></code> subroutine in Src_nd/Tagging_nd.f90 in this example
+<p>The <code class="code fortran docutils literal"><span class="name"><span class="pre">state_error</span></span></code> subroutine in <code class="docutils literal"><span class="pre">Src_nd/Tagging_nd.f90</span></code> in this example
 is simple:</p>
 <div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">state_error</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span><span class="n">tag_lo</span><span class="p">,</span><span class="n">tag_hi</span><span class="p">,</span> <span class="p">&amp;</span>
                        <span class="n">state</span><span class="p">,</span><span class="n">state_lo</span><span class="p">,</span><span class="n">state_hi</span><span class="p">,</span> <span class="p">&amp;</span>

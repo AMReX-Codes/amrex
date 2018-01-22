@@ -1173,8 +1173,8 @@ For example,
       // int      ng   : number of ghost cells involved in this operation
       //                 mfdst and mfsrc may have more ghost cells
 
-We refer the reader to Src/Base/AMReX_MultiFab.H and
-Src/Base/AMReX_FabArray.H for more details. It should be noted
+We refer the reader to ``amrex/Src/Base/AMReX_MultiFab.H`` and
+``amrex/Src/Base/AMReX_FabArray.H`` for more details. It should be noted
 again it is a runtime error if the two :cpp:`MultiFabs` passed to functions
 like :cpp:`MultiFab::Copy` are not built with the *same*
 :cpp:`BoxArray` (including index type) and :cpp:`DistributionMapping`.

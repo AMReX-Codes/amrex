@@ -4,7 +4,7 @@ Basics
 ===================
 
 In this chapter, we present the basics of AMReX. The implementation
-source codes are in amrex/Src/Base/. Note that AMReX classes
+source codes are in ``amrex/Src/Base/``. Note that AMReX classes
 and functions are in namespace ``amrex``. For clarity, we usually
 drop ``amrex::`` in the example codes here. It is also assumed that
 headers have been properly included. We recommend you study

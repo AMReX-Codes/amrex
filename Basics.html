@@ -1111,8 +1111,8 @@ For example,</p>
 <span class="c1">//                 mfdst and mfsrc may have more ghost cells</span>
 </pre></div>
 </div>
-<p>We refer the reader to Src/Base/AMReX_MultiFab.H and
-Src/Base/AMReX_FabArray.H for more details. It should be noted
+<p>We refer the reader to <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_MultiFab.H</span></code> and
+<code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_FabArray.H</span></code> for more details. It should be noted
 again it is a runtime error if the two <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFabs</span></span></code> passed to functions
 like <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Copy</span></span></code> are not built with the <em>same</em>
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> (including index type) and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code>.</p>

@@ -306,7 +306,7 @@ Using FluxRegisters
 -------------------
 
 AMReX_FluxRegister.cpp/H contains the class :cpp:`FluxRegister`, which is
-derived from the class :cpp:`BndryRegister` (in Src/Boundary/AMReX_BndryRegister). 
+derived from the class :cpp:`BndryRegister` (in ``amrex/Src/Boundary/AMReX_BndryRegister``). 
 In the most general terms, a FluxRegister is a special type of BndryRegister
 that stores and manipulates data (most often fluxes) at coarse-fine interfaces.
 A simple usage scenario comes from a conservative discretization of a hyperbolic
@@ -349,11 +349,11 @@ are given in the chapter on :ref:`Chap:Particles`.
 
 AMReX_AmrParticles.cpp/H contains the classes :cpp:`AmrParticleContainer`
 and :cpp:`AmrTracerParticleContainer`, which are derived from the classes
-:cpp:`ParticleContainer` (in Src/Particle/AMReX_Particles)
-and :cpp:`TracerParticleContainer` (in Src/Particle/AMReX_TracerParticles).
+:cpp:`ParticleContainer` (in ``amrex/Src/Particle/AMReX_Particles``)
+and :cpp:`TracerParticleContainer` (in ``amrex/Src/Particle/AMReX_TracerParticles``).
 
 AMReX_AmrParGDB.cpp/H contains the class :cpp:`AmrParGDB`, which is derived from
-the class :cpp:`ParGDBBase` (in Src/Particle/AMReX_ParGDB).
+the class :cpp:`ParGDBBase` (in ``amrex/Src/Particle/AMReX_ParGDB``).
 
 Advection_AmrCore Example
 =========================
@@ -381,9 +381,9 @@ The figure shows the :ref:`fig:AmrAdvection_AmrCore_flowchart`
    -  AmrCore/ AMR data management classes, described in more detail above.
 
 
--  Advection_AmrCore/Src Source code specific to this example. Most notably
-   is the :cpp:`AmrCoreAdv` class, which is derived from :cpp:`AmrCore`. The subdirectories Src_2d
-   and Src_3d contain dimension specific routines. Src_nd contains dimension-independent routines.
+-  ``Advection_AmrCore/Src`` Source code specific to this example. Most notably
+   is the :cpp:`AmrCoreAdv` class, which is derived from :cpp:`AmrCore`. The subdirectories ``Src_2d``
+   and ``Src_3d`` contain dimension specific routines. ``Src_nd`` contains dimension-independent routines.
 
 
 -  Exec Contains a makefile so a user can write other examples besides SingleVortex.
@@ -450,7 +450,7 @@ FluxRegisters
 -------------
 
 The function :cpp:`AmrCoreAdv::Advance()` calls the Fortran
-subroutine, :fortran:`advect` (in ./Src_xd/Adv_xd.f90). :fortran:`advect` computes
+subroutine, :fortran:`advect` (in ``./Src_xd/Adv_xd.f90``). :fortran:`advect` computes
 and returns the time-advanced state as well as the fluxes used to update the state.
 These fluxes are used to set or increment the flux registers.
 
@@ -540,7 +540,7 @@ Central to the regridding process is the concept of “tagging” which cells ne
 :cpp:`ErrorEst` is a pure virtual function of :cpp:`AmrCore`, so each application code must
 contain an implementation. In AmrCoreAdv.cpp the ErrorEst function is essentially an
 interface to a Fortran routine that tags cells (in this case, :fortran:`state_error` in
-Src_nd/Tagging_nd.f90). Note that this code uses tiling.
+``Src_nd/Tagging_nd.f90``). Note that this code uses tiling.
 
 .. highlight:: c++
 
@@ -618,7 +618,7 @@ Src_nd/Tagging_nd.f90). Note that this code uses tiling.
         }
     }
 
-The :fortran:`state_error` subroutine in Src_nd/Tagging_nd.f90 in this example
+The :fortran:`state_error` subroutine in ``Src_nd/Tagging_nd.f90`` in this example
 is simple:
 
 .. highlight:: fortran

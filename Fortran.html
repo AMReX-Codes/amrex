@@ -182,7 +182,7 @@
 <p>We have discussed AMReX’s build systems in the chapter&nbsp;on
 <a class="reference internal" href="Chapter3.html#chap-buildingamrex"><span class="std std-ref">Building AMReX</span></a>.  To build with GNU Make, we need to include the
 Fortran interface source tree into the make system. The source codes for the
-Fortran interface are in amrex/Src/F_Interfaces and there are several
+Fortran interface are in <code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces</span></code> and there are several
 sub-directories. The “Base” directory includes sources for the basic
 functionality, the “AmrCore” directory wraps around the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code> class
 (see the chapter&nbsp;on <a class="reference internal" href="Chapter6.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>), and the “Octree” directory adds
@@ -226,11 +226,11 @@ for <code class="code fortran docutils literal"><span class="keyword type"><span
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Real</span></span></code> in C++, which is either double or single precision depending
 the setting of precision.</p>
 <p>The module <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_parallel_module</span></span></code> (
-Src/F_Interfaces/Base/AMReX_parallel_mod.F90) includes wrappers to the
+<code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_parallel_mod.F90</span></code>) includes wrappers to the
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParallelDescriptor</span></span></code> namespace, which is in turn a wrapper to the parallel
 communication library used by AMReX&nbsp;(e.g. MPI).</p>
 <p>The module <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex_parmparse_module</span></span></code> (
-Src/Base/AMReX_parmparse_mod.F90) provides interface to
+<code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_parmparse_mod.F90</span></code>) provides interface to
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParmParse</span></span></code> (see the section&nbsp;on <a class="reference internal" href="Basics.html#sec-basics-parmparse"><span class="std std-ref">ParmParse</span></a>). Here are some
 examples.</p>
 <div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_parmparse</span><span class="p">)</span> <span class="kd">::</span> <span class="n">pp</span>
@@ -246,7 +246,7 @@ examples.</p>
 those compilers, we must explicitly destroy the objects, otherwise there will
 be memory leaks. This applies to many other derived types.</p>
 <p><code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_box</span></span></code> is a derived type in <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_box_module</span></span></code>
-Src/F_Interfaces/Base/AMReX_box_mod.F90. It has three members, <code class="code fortran docutils literal"><span class="name"><span class="pre">lo</span></span></code>
+<code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_box_mod.F90</span></code>. It has three members, <code class="code fortran docutils literal"><span class="name"><span class="pre">lo</span></span></code>
 (lower corner), <code class="code fortran docutils literal"><span class="name"><span class="pre">hi</span></span></code> (upper corner) and <code class="code fortran docutils literal"><span class="name"><span class="pre">nodal</span></span></code> (logical flag
 for index type).</p>
 <p><code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_geometry</span></span></code> is a wrapper for the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Geometry</span></span></code> class
@@ -266,9 +266,9 @@ of building it.</p>
 <span class="k">call </span><span class="n">amrex_geometry_destroy</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_boxarray</span></span></code> ( Src/F_Interfaces/Base/AMReX_boxarray_mod.F90) is a
+<p><code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_boxarray</span></span></code> ( <code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_boxarray_mod.F90</span></code>) is a
 wrapper for the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> class, and <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_distromap</span></span></code> (
-Src/F_Interfaces/Base/AMReX_distromap_mod.F90) is a wrapper for the
+<code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_distromap_mod.F90</span></code>) is a wrapper for the
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code> class. Here is an example of building a
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> and a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code>.</p>
 <div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">n_cell</span>
@@ -509,8 +509,8 @@ of coarse level grids. There are no required direct parent-child connections
 between levels. Therefore, grids in AMReX&nbsp;in general cannot be represented by
 trees. Nevertheless, octree type grids are supported via Fortran interface,
 because &nbsp;grids are more general than octree grids. A tutorial example using
-amrex_octree_module ( Src/F_Interfaces/Octree/AMReX_octree_mod.f90) is
-available at Tutorials/Amr/Advection_octree_F/. Procedures
+amrex_octree_module ( <code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90</span></code>) is
+available at <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_octree_F/</span></code>. Procedures
 <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_octree_init</span></span></code> and <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_octree_finalize</span></span></code> must be
 called as follows,</p>
 <div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">program </span><span class="n">main</span>

@@ -180,14 +180,14 @@ but are ultimately linked to mathematical Dirichlet or Neumann conditions.</p>
 <li><p class="first">Create a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BCRec</span></span></code> object, which is essentially a multidimensional integer array of
 <code class="code cpp c++ docutils literal"><span class="literal number integer"><span class="pre">2</span></span><span class="operator"><span class="pre">*</span></span><span class="name"><span class="pre">DIM</span></span></code> components. Each component defines a boundary condition type for
 the lo/hi side of the domain, for each direction.
-See Src/Base/AMReX_BC_TYPES.H for common physical and mathematical types.
+See <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_BC_TYPES.H</span></code> for common physical and mathematical types.
 If there is more than one variable, we can create an array of BCRec objects,
 and pass in a pointer to the 0-index component since the arrays for all the
 components are contiguous in memory.
 Here we need to provide boundary types to each component of the
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code>. Below is an example of setting up <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">BCRec</span></span><span class="operator"><span class="pre">&gt;</span></span></code>
 before the call to ghost cell routines.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types</span>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// Set up BC; see ``amrex/Src/Base/AMReX_BC_TYPES.H`` for supported types</span>
 <span class="n">Vector</span><span class="o">&lt;</span><span class="n">BCRec</span><span class="o">&gt;</span> <span class="n">bc</span><span class="p">(</span><span class="n">phi</span><span class="p">.</span><span class="n">nComp</span><span class="p">());</span>
 <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">phi</span><span class="p">.</span><span class="n">nComp</span><span class="p">();</span> <span class="o">++</span><span class="n">n</span><span class="p">)</span>
 <span class="p">{</span>
@@ -245,8 +245,8 @@ in the first ghost cell represents the value on the boundary.</p>
 </ul>
 <p>Depending on the level of complexity of your code, there are various options
 for filling domain boundary ghost cells.</p>
-<p>For single-level codes built from Src/Base (excluding the
-Src/AmrCore and Src/Amr source code directories), you will have
+<p>For single-level codes built from <code class="docutils literal"><span class="pre">amrex/Src/Base</span></code> (excluding the
+<code class="docutils literal"><span class="pre">amrex/Src/AmrCore</span></code> and <code class="docutils literal"><span class="pre">amrex/Src/Amr</span></code> source code directories), you will have
 single-level MultiFabs filled with data in the valid region where you need
 to fill the ghost cells on each grid. There are essentially three ways to fill the ghost
 cells. (refer to <code class="docutils literal"><span class="pre">amrex/Tutorials/Basic/HeatEquation_EX2_C</span></code> for an example).</p>
@@ -266,19 +266,19 @@ cells. (refer to <code class="docutils literal"><span class="pre">amrex/Tutorial
 <span class="n">FillDomainBoundary</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="n">bc</span><span class="p">);</span>
 </pre></div>
 </div>
-<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillDomainBoundary</span></span><span class="punctuation"><span class="pre">()</span></span></code> is a function is in Src/Base/AMReX_BCUtil.cpp,
+<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillDomainBoundary</span></span><span class="punctuation"><span class="pre">()</span></span></code> is a function is in <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_BCUtil.cpp</span></code>,
 and is essentially an interface to fortran subroutine <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_fab_filcc</span></span><span class="punctuation"><span class="pre">()</span></span></code>
-in Src/Base/AMReX_filcc_mod.F90, which ultimately calls fortran
-subroutine <code class="code fortran docutils literal"><span class="name"><span class="pre">filcc</span></span><span class="punctuation"><span class="pre">()</span></span></code> in Src/Base/AMReX_FILCC_XD.F. To create more
+in <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_filcc_mod.F90</span></code>, which ultimately calls fortran
+subroutine <code class="code fortran docutils literal"><span class="name"><span class="pre">filcc</span></span><span class="punctuation"><span class="pre">()</span></span></code> in <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_FILCC_XD.F</span></code>. To create more
 custom boundary conditions, create a local modified copy of
-Src/Base/AMReX_FILCC_XD.F and put it your local source code.</p>
-<p>For multi-level codes using the Src_AmrCore source code, the
+<code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_FILCC_XD.F</span></code> and put it your local source code.</p>
+<p>For multi-level codes using the <code class="docutils literal"><span class="pre">amrex/Src/AmrCore</span></code> source code, the
 functions described above still work, however additional classes need to
 be set up since the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatch</span></span></code> routines call them.
 In fact it is possible to avoid using the single-level calls directly if
 you fill all your grids and ghost cells using the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatch</span></span></code> routines.
 Refer to <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore/</span></code> for an example.
-The class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhysBCFunct</span></span></code> in Src/Base/AMReX_PhysBCFunct.cpp
+The class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhysBCFunct</span></span></code> in <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_PhysBCFunct.cpp</span></code>
 is derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhysBCFunctBase</span></span></code> and contains a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BCRec</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Geometry</span></span></code>,
 and a pointer to a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BndryFunctBase</span></span></code> function.</p>
 <p>Note that <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhyBCFunct</span></span></code> is an example of how to derive from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhysBCFunctBase</span></span></code> and is
