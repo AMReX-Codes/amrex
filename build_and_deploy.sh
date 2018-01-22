@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e # Exit with nonzero exit code if anything fails
 
+echo "Building libamrex... "
+./configure
+make -j4
+
 SOURCE_BRANCH="development"
 TARGET_BRANCH="gh-pages"
 
@@ -64,7 +68,3 @@ ssh-add ../id_rsa_travis
 git push $SSH_REPO $TARGET_BRANCH || true
 ssh-agent -k
 cd ..
-
-echo "Building libamrex... "
-./configure
-make -j4
