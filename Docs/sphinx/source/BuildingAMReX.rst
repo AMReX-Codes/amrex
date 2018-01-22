@@ -282,8 +282,9 @@ The list of available option is reported in the table on :ref:`tab:cmakevar` be
 
 The option ``ENABLE_LINEAR_SOLVERS=ON`` triggers the inclusion of C++-based linear
 solvers in the build. Fortran-based linear solvers can be included as well by providing 
-the option ``ENABLE_FBASELIB=ON`` in addition to ``ENABLE_LINEAR_SOLVERS=ON``. The 
-options ``DEBUG=ON`` implies ``ENABLE_ASSERTION=ON``. In order to turn off assertions 
+the option ``ENABLE_FBASELIB=ON`` in addition to ``ENABLE_LINEAR_SOLVERS=ON``. 
+
+The option ``DEBUG=ON`` implies ``ENABLE_ASSERTION=ON``. In order to turn off assertions 
 in debug mode, ``ENABLE_ASSERTION=OFF`` must be set explicitly while invoking CMake.
 
 .. _sec:build:cmake:config:
@@ -302,6 +303,6 @@ CMakeLists.txt file:
     find_package (AMReX CONFIG REQUIRED HINTS /path/to/installdir/cmake )
 
 This will load AMReX-specific CMake variables containing the necessary
-info to compile and link your code to AMReX. For a list of all the available
-configuration variables, refer to the file AMReXConfig.cmake.in in
-/path/to/installdir/cmake/.
+information to compile and link your code to AMReX. For a list of all the available
+configuration variables, refer to the file ``AMReXConfig.cmake.in`` in
+``/path/to/installdir/cmake/``.
