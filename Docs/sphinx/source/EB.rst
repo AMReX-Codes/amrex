@@ -617,7 +617,7 @@ EBFarrayBox Usage Example
 -------------------------
 
 In order to make these EB concepts more concrete, we discuss here sample code
-that appears in the AMReX tutorial, Tutorial/EB/CNS. This code implements a
+that appears in the AMReX tutorial, ``amrex/Tutorials/EB/CNS``. This code implements a
 time-explicit second-order method of lines integrator for hyperbolic and
 parabolic transport based on a gamma-law gas EOS and constant transport
 properties. This example also demonstrates how to avoid the more

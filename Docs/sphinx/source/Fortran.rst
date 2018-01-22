@@ -16,12 +16,12 @@ sub-directories. The "Base" directory includes sources for the basic
 functionality, the "AmrCore" directory wraps around the :cpp:`AmrCore` class
 (see the chapter on :ref:`Chap:AmrCore`), and the "Octree" directory adds
 support for octree type of AMR grids. Each directory has a "Make.package" file
-that can be included in make files (see Tutorials/Basic/HelloWorld_F and
-Tutorials/Amr/Advection_F for examples). The libamrex approach includes the
+that can be included in make files (see ``amrex/Tutorials/Basic/HelloWorld_F`` and
+``amrex/Tutorials/Amr/Advection_F`` for examples). The libamrex approach includes the
 Fortran interface by default. The CMake approach does not support the Fortran
 interface yet.
 
-A simple example can be found at Tutorials/Basic/HelloWorld_F/. The source code
+A simple example can be found at ``amrex/Tutorials/Basic/HelloWorld_F/``. The source code
 is shown below in its entirety.
 
 .. highlight:: fortran
