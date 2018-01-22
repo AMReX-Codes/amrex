@@ -176,20 +176,21 @@
   <div class="section" id="building-amrex">
 <span id="chap-buildingamrex"></span><h1>Building AMReX<a class="headerlink" href="#building-amrex" title="Permalink to this headline">¶</a></h1>
 <p>In this chapter, we discuss AMReX’s build systems. There are three
-ways to use AMReX. The approach used by AMReX&nbsp;developers uses GNU
-Make. There is no installation step in this approach. Application
-codes adopt AMReX’s build system and compile AMReX&nbsp;while compiling
+ways to use AMReX. Most AMReX developers use GNU Make. With this
+approach, there is no installation step;  application codes
+adopt AMReX’s build system and compile AMReX while compiling
 their own codes. This will be discussed in more detail in the section
-on <a class="reference internal" href="BuildingAMReX.html#sec-build-make"><span class="std std-ref">Building with GNU Make</span></a>. The second approach is to build AMReX&nbsp;into
-a library and installing it (cf.&nbsp;<a class="reference internal" href="BuildingAMReX.html#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>). Then an
-application code uses its own build system and links AMReX&nbsp;as an
-external library. AMReX&nbsp;can also be built with Cmake, as detailed in
-the section&nbsp;on <a class="reference internal" href="BuildingAMReX.html#sec-build-cmake"><span class="std std-ref">Building with CMake</span></a>.</p>
+on <a class="reference internal" href="BuildingAMReX.html#sec-build-make"><span class="std std-ref">Building with GNU Make</span></a>.
+The second approach is to build install AMReX as a library (cf.&nbsp;<a class="reference internal" href="BuildingAMReX.html#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>).;
+an application code then uses its own build system and links to AMReX as an
+external library.
+Finally, AMReX can also be built with Cmake, as detailed in
+the section on <a class="reference internal" href="BuildingAMReX.html#sec-build-cmake"><span class="std std-ref">Building with CMake</span></a>.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html">Building with GNU Make</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#dissecting-a-simple-make-file">Dissecting a Simple Make File</a></li>
-<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#tweaking-make-system">Tweaking Make System</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#tweaking-the-make-system">Tweaking the Make System</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html#building-libamrex">Building libamrex</a></li>
