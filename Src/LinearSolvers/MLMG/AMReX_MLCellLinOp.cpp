@@ -232,39 +232,49 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 BoxArray
 MLCellLinOp::makeNGrids (int grid_size) const
 {
-    const Geometry& geom = m_geom[0].back();
+    const Box& dombx = m_geom[0].back().Domain();
+    const IntVect& domsz = dombx.size();
+
     const BoxArray& old_ba = m_grids[0].back();
+    const int N = old_ba.size();
+    Vector<Box> bv;
+    bv.reserve(N);
+    for (int i = 0; i < N; ++i)
+    {
+        Box b = old_ba[i];
+        b.coarsen(grid_size);
+        b.refine(grid_size);
+        IntVect sz = b.size();
+        const IntVect nblks {AMREX_D_DECL(sz[0]/grid_size, sz[1]/grid_size, sz[2]/grid_size)};
+        
+        IntVect big = b.smallEnd() + grid_size - 1;
+        b.setBig(big);
 
-    const IntVect sz = geom.Domain().size();
-    IntVect N;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        const std::div_t dv = std::div(sz[idim], grid_size);
-        N[idim] = dv.rem ? dv.quot+1 : dv.quot;
-    }
-
-    BoxList bl;
 #if (AMREX_SPACEDIM == 3)
-    for (int k = 0; k < N[2]; ++k) {
+        for (int kk = 0; kk < nblks[2]; ++kk) {
 #endif
 #if (AMREX_SPACEDIM >= 2)
-        for (int j = 0; j < N[1]; ++j) {
+            for (int jj = 0; jj < nblks[1]; ++jj) {
 #endif
-            for (int i = 0; i < N[0]; ++i)
-            {
-                IntVect small(AMREX_D_DECL(i*grid_size,j*grid_size,k*grid_size));
-                IntVect big = small + (grid_size-1);
-                big.min(geom.Domain().bigEnd());
-                Box bx(small,big);
-                if (old_ba.intersects(bx)) {
-                    bl.push_back(Box(small,big));
+                for (int ii = 0; ii < nblks[0]; ++ii)
+                {
+                    IntVect shft{AMREX_D_DECL(ii*grid_size,jj*grid_size,kk*grid_size)};
+                    Box bb = amrex::shift(b,shft);
+                    bb &= dombx;
+                    bv.push_back(bb);
                 }
-            }
 #if (AMREX_SPACEDIM >= 2)
+            }
+#endif
+#if (AMREX_SPACEDIM == 3)
         }
 #endif
-#if (AMREX_SPACEDIM == 3)
     }
-#endif
+
+    std::sort(bv.begin(), bv.end());
+    bv.erase(std::unique(bv.begin(), bv.end()), bv.end());
+
+    BoxList bl(std::move(bv));
 
     return BoxArray{std::move(bl)};
 }
