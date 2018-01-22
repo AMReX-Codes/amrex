@@ -96,10 +96,10 @@ other.
 
    \centering
 
-.. |a| image:: ./EB/areas_and_volumes.pdf
+.. |a| image:: ./EB/areas_and_volumes.png
        :width: 100%
 
-.. |b| image:: ./EB/eb_fluxes.pdf
+.. |b| image:: ./EB/eb_fluxes.png
        :width: 100%
 
 .. _fig::volume:
