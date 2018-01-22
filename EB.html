@@ -359,9 +359,9 @@ distributed to neighbor cells.</span></p>
 The procedure for this goes as follows:</p>
 <ul class="simple">
 <li>Define function of position which describes the surface and use it define a
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object (see § <span class="xref std std-ref">sec:EB:geometryshop</span>) – specifically,
-the scalar value returned by this function takes on a negative value inside
-the fluid, a positive value in the body, and identically zero at the EB.</li>
+<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object – specifically, the scalar value returned by this
+function takes on a negative value inside the fluid, a positive value in the
+body, and identically zero at the EB.</li>
 <li>Construct an <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBIndexSpace</span></span></code>&nbsp;with the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object. This
 will fill the underlying database of geometric information, specifically
 tailored to the actual meshes that will be used. Thus, the construction
