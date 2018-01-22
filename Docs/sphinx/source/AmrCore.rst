@@ -124,7 +124,7 @@ mismatch in the composite solution:
 AmrCore Source Code
 ===================
 
-Here we provide a high-level overview of the source code in amrex/Src/AmrCore.
+Here we provide a high-level overview of the source code in ``amrex/Src/AmrCore.``
 
 AmrMesh and AmrCore
 -------------------
@@ -137,7 +137,7 @@ with multiple levels of refinement, the :cpp:`AmrMesh` class can be thought
 of as a container to store arrays of these objects (one for each level), and
 information about the current grid structure.
 
-amrex/Src/AmrCore/AMReX_AmrMesh.cpp/H contains the :cpp:`AmrMesh` class.
+``amrex/Src/AmrCore/AMReX_AmrMesh.cpp/H`` contains the :cpp:`AmrMesh` class.
 The protected data members are:
 
 .. highlight:: c++
