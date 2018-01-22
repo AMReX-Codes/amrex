@@ -74,7 +74,7 @@ On systems which are not Cray:
    libraries are installed.
 
 The CVODE Tutorials
-==============
+===================
 
  provides two CVODE tutorials in the ``Tutorials/CVODE`` directory, called
 ``EX1`` and ``EX2``.  ``EX1`` consists of a single ODE that is integrated with

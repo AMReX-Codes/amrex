@@ -492,8 +492,9 @@ available at amrex/Tutorials/Particles/ShortRangeParticles. This tutorial
 computes the forces on a given tile via direct summation by passing the real
 and neighbor particles into a Fortran subroutine, as follows:
 
-::
+.. highlight:: c++
 
+::
 
     void ShortRangeParticleContainer::computeForces() {
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
@@ -553,10 +554,10 @@ mesh data IO. For example:
 
 ::
 
+    WriteMultiLevelPlotfile(``plt00000'', output_levs, GetVecOfConstPtrs(output),
+                            varnames, geom, 0.0, level_steps, outputRR);
+    pc.Checkpoint(``plt00000'', ``particle0'');
 
-        WriteMultiLevelPlotfile(``plt00000'', output_levs, GetVecOfConstPtrs(output),
-                                varnames, geom, 0.0, level_steps, outputRR);
-        pc.Checkpoint(``plt00000'', ``particle0'');
 
 will create a plot file called “plt00000” and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called “particle0”. There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
