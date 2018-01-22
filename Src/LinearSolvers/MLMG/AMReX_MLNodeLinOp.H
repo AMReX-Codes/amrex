@@ -66,7 +66,7 @@ protected:
 
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const final;
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp () const final {
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final {
         amrex::Abort("MLNodeLinOp::makeNLinOp: N-Solve not supported");
         return std::unique_ptr<MLLinOp>{};
     }

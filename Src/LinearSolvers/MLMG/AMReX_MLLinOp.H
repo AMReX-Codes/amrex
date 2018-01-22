@@ -207,7 +207,7 @@ protected:
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp () const = 0;
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
 
 private:
 

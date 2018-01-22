@@ -234,10 +234,10 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 }
 
 std::unique_ptr<MLLinOp>
-MLPoisson::makeNLinOp () const
+MLPoisson::makeNLinOp (int grid_size) const
 {
     const Geometry& geom = m_geom[0].back();
-    const BoxArray& ba = makeNGrids();
+    const BoxArray& ba = makeNGrids(grid_size);
 
     const DistributionMapping& mydm = m_dmap[0].back();
 

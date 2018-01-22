@@ -886,7 +886,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
                        << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
                        << "\n";
         if (ns_linop) {
-            amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n";
+            amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n"
+                           << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
         }
     }
 }
@@ -894,7 +895,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 void
 MLMG::prepareForNSolve ()
 {
-    ns_linop = std::move(linop.makeNLinOp());
+    ns_linop = std::move(linop.makeNLinOp(nsolve_grid_size));
 
     const BoxArray& ba = (*ns_linop).m_grids[0][0];
     const DistributionMapping& dm =(*ns_linop).m_dmap[0][0]; 
