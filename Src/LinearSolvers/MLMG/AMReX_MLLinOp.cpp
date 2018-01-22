@@ -305,7 +305,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
 
     MPI_Comm_group(m_default_comm, &defgrp);
 
-    Array<int> newgrp_ranks = dm.ProcessorMap();
+    Vector<int> newgrp_ranks = dm.ProcessorMap();
     std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
