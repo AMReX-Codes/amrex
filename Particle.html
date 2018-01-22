@@ -357,7 +357,7 @@ needed to do this happens automatically.</p>
 <p>Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
-particles, etc. See the amrex/Tutorials/Particles for examples of this.</p>
+particles, etc. See the <code class="docutils literal"><span class="pre">amrex/Tutorials/Particles</span></code> for examples of this.</p>
 </div>
 </div>
 <div class="section" id="initializing-particle-data">
@@ -531,7 +531,7 @@ associated with them. Note that we call <code class="code cpp c++ docutils liter
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillBoundary</span></span></code> after performing the deposition, to add up the charge in
 the ghost cells surrounding each Fab into the corresponding valid cells.</p>
 <p>For a complete example of an electrostatic PIC calculation that includes static
-mesh refinement, please see amrex/Tutorials/Particles/ElectrostaticPIC.</p>
+mesh refinement, please see <code class="docutils literal"><span class="pre">amrex/Tutorials/Particles/ElectrostaticPIC</span></code>.</p>
 </div>
 <div class="section" id="short-range-forces">
 <span id="sec-particles-shortrange"></span><h1>Short Range Forces<a class="headerlink" href="#short-range-forces" title="Permalink to this headline">¶</a></h1>
@@ -567,7 +567,7 @@ amrex/Src/Particles/AMReX_NeighborParticleContainer.H. This
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> has additional methods called <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">fillNeighbors</span></span><span class="punctuation"><span class="pre">()</span></span></code>
 and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">clearNeighbors</span></span><span class="punctuation"><span class="pre">()</span></span></code> that fill the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">neighbors</span></span></code> data structure with
 copies of the proper particles. A tutorial that uses these features is
-available at amrex/Tutorials/Particles/ShortRangeParticles. This tutorial
+available at <code class="docutils literal"><span class="pre">amrex/Tutorials/Particles/ShortRangeParticles</span></code>. This tutorial
 computes the forces on a given tile via direct summation by passing the real
 and neighbor particles into a Fortran subroutine, as follows:</p>
 <div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">ShortRangeParticleContainer</span><span class="o">::</span><span class="n">computeForces</span><span class="p">()</span> <span class="p">{</span>
@@ -585,7 +585,7 @@ and neighbor particles into a Fortran subroutine, as follows:</p>
 <p>Alternatively, one can avoid doing a direct <span class="math">\(N^2\)</span> summation over the
 particles on a tile by binning the particles by cell and building a neighbor
 list. A tutorial that demonstrates this process is available at
-amrex/Tutorials/Particles/NeighborList. The data structure used to represent
+<code class="docutils literal"><span class="pre">amrex/Tutorials/Particles/NeighborList</span></code>. The data structure used to represent
 the neighbor lists is illustrated in <a class="reference internal" href="#fig-particles-neighbor-list"><span class="std std-numref">Fig. 9</span></a>.</p>
 <div class="figure" id="id9">
 <span id="fig-particles-neighbor-list"></span><img alt="_images/neighbor_list.png" src="_images/neighbor_list.png" />
@@ -636,7 +636,7 @@ mesh data IO. For example:</p>
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td>Note that for the extra particle components, which component refers to which
-variable is an application-specific convention - the particles have 4 extra real comps, but which one is “mass” is up to the user. We suggest using an <code class="code cpp c++ docutils literal"><span class="keyword"><span class="pre">enum</span></span></code> to keep these indices straight; please see amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H for an example of this.</td></tr>
+variable is an application-specific convention - the particles have 4 extra real comps, but which one is “mass” is up to the user. We suggest using an <code class="code cpp c++ docutils literal"><span class="keyword"><span class="pre">enum</span></span></code> to keep these indices straight; please see <code class="docutils literal"><span class="pre">amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H</span></code> for an example of this.</td></tr>
 </tbody>
 </table>
 </div>

@@ -219,7 +219,7 @@ needed to do this happens automatically.
 Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
-particles, etc. See the amrex/Tutorials/Particles for examples of this.
+particles, etc. See the ``amrex/Tutorials/Particles`` for examples of this.
 
 
 .. _sec:Particles:Initializing:
@@ -440,7 +440,7 @@ associated with them. Note that we call :cpp:`SumBoundary` instead of
 the ghost cells surrounding each Fab into the corresponding valid cells.
 
 For a complete example of an electrostatic PIC calculation that includes static
-mesh refinement, please see amrex/Tutorials/Particles/ElectrostaticPIC.
+mesh refinement, please see ``amrex/Tutorials/Particles/ElectrostaticPIC``.
 
 
 .. _sec:Particles:ShortRange:
@@ -488,7 +488,7 @@ amrex/Src/Particles/AMReX_NeighborParticleContainer.H. This
 :cpp:`ParticleContainer` has additional methods called :cpp:`fillNeighbors()`
 and :cpp:`clearNeighbors()` that fill the :cpp:`neighbors` data structure with
 copies of the proper particles. A tutorial that uses these features is
-available at amrex/Tutorials/Particles/ShortRangeParticles. This tutorial
+available at ``amrex/Tutorials/Particles/ShortRangeParticles``. This tutorial
 computes the forces on a given tile via direct summation by passing the real
 and neighbor particles into a Fortran subroutine, as follows:
 
@@ -510,7 +510,7 @@ and neighbor particles into a Fortran subroutine, as follows:
 Alternatively, one can avoid doing a direct :math:`N^2` summation over the
 particles on a tile by binning the particles by cell and building a neighbor
 list. A tutorial that demonstrates this process is available at
-amrex/Tutorials/Particles/NeighborList. The data structure used to represent
+``amrex/Tutorials/Particles/NeighborList``. The data structure used to represent
 the neighbor lists is illustrated in :numref:`fig:particles:neighbor_list`.
 
 .. raw:: latex
@@ -571,4 +571,4 @@ The binary file format is currently readable by :cpp:`yt`. In additional, there 
 
 .. [3]
    Note that for the extra particle components, which component refers to which
-   variable is an application-specific convention - the particles have 4 extra real comps, but which one is “mass” is up to the user. We suggest using an :cpp:`enum` to keep these indices straight; please see amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H for an example of this.
+   variable is an application-specific convention - the particles have 4 extra real comps, but which one is “mass” is up to the user. We suggest using an :cpp:`enum` to keep these indices straight; please see ``amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.

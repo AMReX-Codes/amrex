@@ -234,7 +234,7 @@ example):
    (particles00000, particles00001, :math:`\cdots`, particles01000).
 
 #. Run the script,
-   amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py as
+   ``amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py`` as
    follows, e.g., ``python amrex_particles_to_vtp.py 0 1000 particles``. You
    will generate a sequence of .vtp files.
 

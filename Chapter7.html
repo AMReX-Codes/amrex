@@ -198,12 +198,12 @@ IAMR (available in the AMReX-codes/IAMR github repository) has a pure virtual
 class called <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokesBase</span></span></code> that inherits from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code>, and an
 additional derived class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokes</span></span></code>.  Our low Mach number combustion
 code PeleLM (not yet public) also inherits from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokesBase</span></span></code>.</p>
-<p>The tutorial code in amrex/Tutorials/Amr/Advection_AmrLevel gives a simple
+<p>The tutorial code in <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrLevel</span></code> gives a simple
 example of a class derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code> that can be used to solve the
 advection equation on a subcycling-in-time AMR hierarchy. Note that example is
-essentially the same as the amrex/Tutorials/Amr/Advection_AmrCore tutorial and
+essentially the same as the <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore</span></code> tutorial and
 documentation in the chapter on <a class="reference internal" href="Chapter6.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>, except now we use the
-provided libraries in Src/Amr.</p>
+provided libraries in <code class="docutils literal"><span class="pre">amrex/Src/Amr</span></code>.</p>
 <p>The tutorial code also contains a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBldAdv</span></span></code> class (derived from
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBld</span></span></code> in the Source/Amr directory). This class is used to define
 variable types (how many, nodality, interlevel interpolation stencils, etc.).</p>
