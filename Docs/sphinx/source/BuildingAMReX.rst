@@ -274,9 +274,9 @@ The list of available option is reported in the table on :ref:`tab:cmakevar` be
    +---------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_ASSERTIONS         |  Build with assertions turned on                | OFF         | ON,OFF          |
    +---------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_FFLAGS_OVERRIDES}   |  User-defined Fortran flags                     | None        | user-defined    |
+   | AMREX_FFLAGS_OVERRIDES    |  User-defined Fortran flags                     | None        | user-defined    |
    +---------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_CXXFLAGS_OVERRIDES} |  User-defined C++ flags                         | None        | user-defined    |
+   | AMREX_CXXFLAGS_OVERRIDES  |  User-defined C++ flags                         | None        | user-defined    |
    +---------------------------+-------------------------------------------------+-------------+-----------------+
 
 
