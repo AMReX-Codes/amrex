@@ -91,7 +91,7 @@ For single-level codes built from Src/Base (excluding the
 Src/AmrCore and Src/Amr source code directories), you will have
 single-level MultiFabs filled with data in the valid region where you need
 to fill the ghost cells on each grid. There are essentially three ways to fill the ghost
-cells. (refer to Tutorials/Basic/HeatEquation_EX2_C for an example).
+cells. (refer to ``amrex/Tutorials/Basic/HeatEquation_EX2_C`` for an example).
 
 .. highlight:: c++
 
@@ -124,7 +124,7 @@ functions described above still work, however additional classes need to
 be set up since the :cpp:`FillPatch` routines call them.
 In fact it is possible to avoid using the single-level calls directly if
 you fill all your grids and ghost cells using the :cpp:`FillPatch` routines.
-Refer to Tutorials/Amr/Advection_AmrCore/ for an example.
+Refer to ``amrex/Tutorials/Amr/Advection_AmrCore/`` for an example.
 The class :cpp:`PhysBCFunct` in Src/Base/AMReX_PhysBCFunct.cpp
 is derived from :cpp:`PhysBCFunctBase` and contains a :cpp:`BCRec`, :cpp:`Geometry`,
 and a pointer to a :cpp:`BndryFunctBase` function.
