@@ -223,6 +223,9 @@ to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
 
 .. _sec:basics:amrgrids:
 
+
+.. _sec:basics:amrgrids:
+
 Example of AMR Grids
 ====================
 

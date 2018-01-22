@@ -136,7 +136,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
@@ -212,8 +212,8 @@
 main.cpp and advance.cpp to see some of the classes described
 below in action.</p>
 <div class="figure" id="id3">
-<span id="fig-basics-heat-flowchart"></span><a class="reference internal image-reference" href="_images/flowchart2.png"><img alt="_images/flowchart2.png" src="_images/flowchart2.png" style="width: 4in;" /></a>
-<p class="caption"><span class="caption-number">Fig. 1 </span><span class="caption-text">Source code tree for the HeatEquation_EX1_C example</span></p>
+<span id="fig-basics-heat-flowchart"></span><a class="reference internal image-reference" href="_images/flowchart.png"><img alt="_images/flowchart.png" src="_images/flowchart.png" style="width: 4in;" /></a>
+<p class="caption"><span class="caption-text">Source code tree for the HeatEquation_EX1_C example</span></p>
 <div class="legend">
 <blockquote>
 <div><dl class="docutils">
@@ -397,7 +397,7 @@ parent-child connection. In this chapter, we will focus on single
 levels.</p>
 <div class="figure" id="id4">
 <span id="fig-basics-amrgrids"></span><a class="reference internal image-reference" href="_images/amrgrids.png"><img alt="_images/amrgrids.png" src="_images/amrgrids.png" style="width: 3in;" /></a>
-<p class="caption"><span class="caption-number">Fig. 2 </span><span class="caption-text">Example of AMR grids. There are three levels in total.
+<p class="caption"><span class="caption-text">Example of AMR grids. There are three levels in total.
 There are 1, 2 and 2 Boxes on levels 0, 1, and 2, respectively.</span></p>
 </div>
 </div>
@@ -530,7 +530,7 @@ The figure below shows <a class="reference internal" href="#fig-basics-indextype
 for 2D.</p>
 <div class="figure" id="id5">
 <span id="fig-basics-indextypes"></span><a class="reference internal image-reference" href="_images/indextypes.png"><img alt="_images/indextypes.png" src="_images/indextypes.png" style="width: 5in;" /></a>
-<p class="caption"><span class="caption-number">Fig. 3 </span><span class="caption-text">Some of the different index types in two dimensions: (a) cell-centered, (b) <span class="math">\(x\)</span>-face-centered
+<p class="caption"><span class="caption-text">Some of the different index types in two dimensions: (a) cell-centered, (b) <span class="math">\(x\)</span>-face-centered
 (i.e., nodal in <span class="math">\(x\)</span>-direction only), and (c) corner/nodal,
 i.e., nodal in all dimensions.</span></p>
 </div>
@@ -1399,7 +1399,7 @@ also requires only two minor changes.</p>
 <p>The kernels functions like <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">f1</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">f2</span></span></code> in the two examples
 here usually require very little changes.</p>
 <span id="fig-basics-cc-comparison"></span><table border="1" class="docutils align-center" id="id6">
-<caption><span class="caption-number">Table 3 </span><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling.</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
+<caption><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling.</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />
@@ -1445,7 +1445,7 @@ in 3D and no tiling in 2D. This is used when tile size is not explicitly set
 but the tiling flag is on. One can change the default size using <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParmParse</span></span></code>
 parameter <code class="docutils literal"><span class="pre">fabarray.mfiter_tile_size.</span></code></p>
 <span id="fig-basics-ec-comparison"></span><table border="1" class="docutils align-center" id="id7">
-<caption><span class="caption-number">Table 4 </span><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling, for face-centered nodal indexing.</span><a class="headerlink" href="#id7" title="Permalink to this table">¶</a></caption>
+<caption><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling, for face-centered nodal indexing.</span><a class="headerlink" href="#id7" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />
@@ -1514,7 +1514,7 @@ is a way of domain decomposition for work sharing. Overlapping tiles
 is undesirable because works would be wasted and for multi-threaded
 codes race conditions could occur.</p>
 <span id="fig-basics-growbox-comparison"></span><table border="1" class="docutils align-center" id="id8">
-<caption><span class="caption-number">Table 5 </span><span class="caption-text">Comparing growing cell-type and face-type tile boxes.</span><a class="headerlink" href="#id8" title="Permalink to this table">¶</a></caption>
+<caption><span class="caption-text">Comparing growing cell-type and face-type tile boxes.</span><a class="headerlink" href="#id8" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />

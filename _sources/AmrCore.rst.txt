@@ -72,8 +72,8 @@ easily be thought of as a recursive algorithm in which, to advance level :math:`
 
    Schematic of subcycling-in-time algorithm.
 
-Specifically, for a 3-level simulation, depicted graphically in the figure
-showing the :ref:`fig:subcycling` above:
+Specifically, for a 3-level simulation, depicted graphically in the figure showing the :ref:`fig:subcycling`
+algorithm above:
 
 #. Integrate :math:`\ell=0` over :math:`\Delta t`.
 
@@ -369,7 +369,7 @@ Code Structure
    Source code tree for the AmrAdvection_AmrCore example.
 
 
-The figure shows the :ref:`fig:AmrAdvection_AmrCore_flowchart` 
+The figure shows a :ref:`fig:AmrAdvection_AmrCore_flowchart` 
 
 
 -  amrex/Src/
