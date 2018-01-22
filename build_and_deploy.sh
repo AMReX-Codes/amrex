@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e # Exit with nonzero exit code if anything fails
 
+# First we test whether we can build libamrex or not
 echo "Building libamrex... "
 ./configure
 make -j4
 
+# Then we build and deploy the sphinx / doxygen documentation
 SOURCE_BRANCH="development"
 TARGET_BRANCH="gh-pages"
 
