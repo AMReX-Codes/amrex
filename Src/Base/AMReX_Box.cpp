@@ -358,6 +358,14 @@ shift (const Box& b, int dir, int nzones)
     return result;
 }
 
+Box
+shift (const Box& b, const IntVect& nzones)
+{
+    Box result = b;
+    result.shift(nzones);
+    return result;
+}
+
 //
 // Define a macro which will compute an object's length vector from
 // the smallend and bigend.  Do several versions according to dimension

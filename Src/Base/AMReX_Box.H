@@ -67,6 +67,8 @@ namespace amrex
     //! Return a Box with indices shifted by nzones in dir direction.
     Box shift (const Box& b, int dir, int nzones);
 
+    Box shift (const Box& b, const IntVect& nzones);
+
     /**
     * \brief Refine Box by given (positive) refinement ratio.
     * NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
