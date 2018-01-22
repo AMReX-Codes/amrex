@@ -17,14 +17,14 @@ Dissecting a Simple Make File
 -----------------------------
 
 An example of building with GNU Make can be found in
-amrex/Tutorials/Basic/HelloWorld_C. The table on :ref:`tab:makevarimp`
+amrex/Tutorials/Basic/HelloWorld_C. :numref:`tab:makevars`
 below shows a list of important variables.
 
 .. raw:: latex
 
    \centering
 
-.. _tab:makevarimp:
+.. _tab:makevars:
 
 .. table:: Important make variables
 

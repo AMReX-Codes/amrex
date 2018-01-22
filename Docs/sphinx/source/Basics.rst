@@ -768,7 +768,7 @@ living on the domains specified by the Boxes in a
 parallel processes. A way to construct a :cpp:`DistributionMapping`
 object given a :cpp:`BoxArray` is as follows.
 
-.. highligh:: c++
+.. highlight:: c++
 
 ::
 
@@ -874,7 +874,7 @@ To get a pointer to the array data, one can call
 The typical usage of the returned pointer is then to pass it to a
 Fortran or C function that works on the array data (see the
 section on :ref:`sec:basics:fortran`).
-:ref:`BaseFab` has several functions that set the array data to a
+:cpp:`BaseFab` has several functions that set the array data to a
 constant value (e.g., 0). Two examples are as follows.
 
 .. highlight:: c++
@@ -2098,7 +2098,7 @@ its own memory pool. Here are examples of using the module.
       call bl_deallocate(b)
 
 The downside of this is we have to use :fortran:`pointer` instead of
-:foratran:`allocatable`. This means we must explicitly free the memory via
+:fortran:`allocatable`. This means we must explicitly free the memory via
 :fortran:`bl_deallocate` and we need to declare the pointers as
 :fortran:`contiguous` for performance reason.
 

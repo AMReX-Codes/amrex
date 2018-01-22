@@ -58,7 +58,7 @@ It also shows that the executable is built for 3D. Although this
 simple example code is dimension independent, dimensionality does matter
 for all non-trivial examples. The build process can be adjusted by
 modifying the amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile file.
-More details on how to build AMReX can be found in :ref:`BuildingAMReX`.
+More details on how to build AMReX can be found in :ref:`Chap:BuildingAMReX`.
 
 Running the Code
 ----------------
@@ -113,7 +113,7 @@ The result may look like,
       MPI initialized with 4 MPI processes
       Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
 
-If the compilation fails, you are referred to :ref:`BuildingAMReX` 
+If the compilation fails, you are referred to :ref:`Chap:BuildingAMReX` 
 for more details on how to configure the build system.
 
 If you want to build with OpenMP, type make ``USE_OMP=TRUE``.
