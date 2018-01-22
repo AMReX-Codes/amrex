@@ -308,6 +308,23 @@ public:
     //! Returns true if Boxes differ (including type).
     bool operator!= (const Box& b) const { return !operator==(b); }
 
+    bool operator< (const Box& rhs) const
+    {
+        return btype < rhs.btype ||
+             ((btype == rhs.btype) &&
+	         (  (smallend < rhs.smallend) ||
+                   ((smallend == rhs.smallend) && (bigend < rhs.bigend)) ));
+    }
+    bool operator <= (const Box& rhs) const {
+        return !(rhs < *this);
+    }
+    bool operator> (const Box& rhs) const {
+        return rhs < *this;
+    }
+    bool operator>= (const Box& rhs) const {
+        return !(*this < rhs);
+    }
+
     //! Returns true if Box is cell-centered in all indexing directions.
     bool cellCentered () const { return !btype.any(); }
 
