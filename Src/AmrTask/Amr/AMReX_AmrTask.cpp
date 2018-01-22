@@ -19,7 +19,6 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_TagBox.H>
-#include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParmParse.H>

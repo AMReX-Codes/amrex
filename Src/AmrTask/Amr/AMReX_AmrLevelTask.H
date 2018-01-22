@@ -37,8 +37,8 @@ namespace amrex {
 		    int scomp,
 		    int ncomp,
 		    int iter);
-	    static void  initialSend(amrex::Array<amrex::AsyncFillPatchIterator*> afpi,
-		    amrex::Array<amrex::AsyncFillPatchIterator*> upper_afpi,
+	    static void  initialSend(amrex::Vector<amrex::AsyncFillPatchIterator*> afpi,
+		    amrex::Vector<amrex::AsyncFillPatchIterator*> upper_afpi,
 		    int  boxGrow,
 		    Real time,
 		    int  state_indx,
@@ -201,19 +201,19 @@ namespace amrex {
 	public:
 	    bool                              isProperlyNested;
 
-	    Array<MultiFab*>                  smf;
-	    Array<Real>                       stime;
+	    Vector<MultiFab*>                  smf;
+	    Vector<Real>                       stime;
 	    StateDataPhysBCFunct*             physbcf;
 	    Geometry*                         geom;
 
 
-	    Array<MultiFab*>                  smf_crse;
-	    Array<Real>                       stime_crse;
+	    Vector<MultiFab*>                  smf_crse;
+	    Vector<Real>                       stime_crse;
 	    StateDataPhysBCFunct*             physbcf_crse;
 	    Geometry*                         geom_crse;
 
-	    Array<MultiFab*>                  smf_fine;
-	    Array<Real>                       stime_fine;
+	    Vector<MultiFab*>                  smf_fine;
+	    Vector<Real>                       stime_fine;
 	    StateDataPhysBCFunct*             physbcf_fine;
 	    Geometry*                         geom_fine;
 

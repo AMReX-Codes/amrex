@@ -372,8 +372,8 @@ namespace amrex {
 		    const int n_loc_mf = TheFB.m_LocTags->size();
 		    const int n_snds_mf = TheFB.m_SndTags->size();
 		    const int n_rcvs_mf = TheFB.m_RcvTags->size();
-		    Array<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-		    Array<int> send_pr;
+		    Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
+		    Vector<int> send_pr;
 		    send_cctc.reserve(n_snds_mf);
 
 		    for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_SndTags->begin(),
@@ -387,8 +387,8 @@ namespace amrex {
 			    send_cctc.push_back(&(m_it->second));
 			}
 		    }
-		    Array<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
-		    Array<int> recv_pr;
+		    Vector<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
+		    Vector<int> recv_pr;
 		    recv_cctc.reserve(n_rcvs_mf);
 
 		    for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_RcvTags->begin(),
