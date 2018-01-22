@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Profiling &mdash; amrex 10.17 documentation</title>
+  <title>Instrumenting the Code &mdash; amrex 10.17 documentation</title>
   
 
   
@@ -36,8 +36,9 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="next" title="CVODE" href="CVODE.html"/>
-        <link rel="prev" title="Visualization" href="Visualization.html"/> 
+        <link rel="up" title="Profiling" href="Chapter12.html"/>
+        <link rel="next" title="CVODE" href="Chapter13.html"/>
+        <link rel="prev" title="Profiling" href="Chapter12.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -100,11 +101,33 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Profiling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter10.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter11.html">Visualization</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Chapter12.html">Profiling</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Instrumenting the Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#c">C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fortran90">Fortran90</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#types-of-profiling">Types of Profiling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sample-output">Sample Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#amrprofparser">AMRProfParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#craypat">CrayPat</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#high-level-application-profiling">High-level application profiling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#ipm-cross-platform-integrated-performance-monitoring">IPM - Cross-Platform Integrated Performance Monitoring</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#building-with-ipm-on-cori">Building with IPM on cori</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-with-ipm-on-cori">Running with IPM on cori</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#summary-mpi-profile">Summary MPI Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#papi-performance-counters">PAPI Performance Counters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-html-performance-summary">Example HTML Performance Summary</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter13.html">CVODE</a></li>
 </ul>
 
             
@@ -149,7 +172,9 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Profiling</li>
+          <li><a href="Chapter12.html">Profiling</a> &raquo;</li>
+        
+      <li>Instrumenting the Code</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -168,11 +193,397 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="profiling">
-<h1>Profiling<a class="headerlink" href="#profiling" title="Permalink to this headline">¶</a></h1>
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">This section is currently in development.</p>
+  <div class="section" id="instrumenting-the-code">
+<h1>Instrumenting the Code<a class="headerlink" href="#instrumenting-the-code" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="c">
+<h2>C++<a class="headerlink" href="#c" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">YourClass</span><span class="o">::</span><span class="n">YourFunction</span><span class="p">()</span>
+<span class="p">{</span>
+  <span class="n">BL_PROFILE</span><span class="p">(</span><span class="s">&quot;YourClass::YourFunction()&quot;</span><span class="p">);</span>  <span class="c1">// this name can be any string</span>
+
+  <span class="c1">// your function code</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For other timers within an already instrumented function, add:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;Flaten::FORT_FLATENX()&quot;</span><span class="p">,</span> <span class="n">anyname</span><span class="p">);</span>  <span class="c1">// add this before</span>
+  <span class="n">FORT_FLATENX</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">anyname</span><span class="p">);</span>   <span class="c1">// add this after, using the same name</span>
+</pre></div>
+</div>
+<p>if you want to use the same name within the same scope, you can use:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;MyFuncs()&quot;</span><span class="p">,</span> <span class="n">myfuncs</span><span class="p">);</span>  <span class="c1">// the first one</span>
+  <span class="n">MyFunc_0</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+<span class="p">...</span>
+<span class="n">BL_PROFILE_VAR_START</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+  <span class="n">MyFunc_1</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>or create a profiling variable without starting, then start/stop:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR_NS</span><span class="p">(</span><span class="s">&quot;MyFuncs()&quot;</span><span class="p">,</span> <span class="n">myfuncs</span><span class="p">);</span>  <span class="c1">// dont start the timer</span>
+<span class="p">...</span>
+<span class="n">BL_PROFILE_VAR_START</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+  <span class="n">MyFunc_0</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+<span class="p">...</span>
+<span class="n">BL_PROFILE_VAR_START</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+  <span class="n">MyFunc_1</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="fortran90">
+<h2>Fortran90<a class="headerlink" href="#fortran90" title="Permalink to this headline">¶</a></h2>
+<p>Fortran90 functions can also be instrumented with the following calls:</p>
+<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">bl_proffortfuncstart</span><span class="p">(</span><span class="s2">&quot;my_function&quot;</span><span class="p">)</span>
+<span class="p">...</span>
+<span class="k">call </span><span class="n">bl_proffortfuncstop</span><span class="p">(</span><span class="s2">&quot;my_function&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the start and stop calls must be matched and the profiling output
+will warn of any <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstart</span></span></code> calls that were not stopped
+with <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstop</span></span></code> calls (in debug mode only). You will need
+to add <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstop</span></span></code> before any returns and at the end of the
+function or at the point in the function you want to stop profiling.</p>
+</div>
+</div>
+<div class="section" id="types-of-profiling">
+<h1>Types of Profiling<a class="headerlink" href="#types-of-profiling" title="Permalink to this headline">¶</a></h1>
+<p>Currently you have two options for AMReX-specific profiling. If you set
+<code class="docutils literal"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> in your GNUMakefile then at the end of the run, a
+summary of exclusive and inclusive function times will be written to stdout.</p>
+<p>If you set <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> then a <code class="docutils literal"><span class="pre">bl_prof</span></code> directory will be written that
+contains detailed per-task timings of the code. An exclusive-only set of
+function timings will be written to stdout</p>
+<p>If, in addition to <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, you set <code class="docutils literal"><span class="pre">TRACE_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, then
+the profiler keeps track of when each profiled function is called and the
+bl_prof directory will include the function call stack. This is especially
+useful when core functions, such as <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillBoundary</span></span></code> can be called from many
+different regions of the code. Part of the trace profiling is the ability to
+set regions in the code which can be analyzed for profiling information
+independently from other regions.</p>
+<p>If, in addition to <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, you set <code class="docutils literal"><span class="pre">COMM_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, then
+the <code class="docutils literal"><span class="pre">bl_prof</span></code> directory will contain additional information about MPI
+communication (point-to-point timings, data volume, barrier/reduction times,
+etc.). <code class="docutils literal"><span class="pre">TRACE_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> and <code class="docutils literal"><span class="pre">COMM_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can be set
+together.</p>
+<p>The AMReX-specific profiling tools are currently under development and this
+documentation will reflect the latest status in the development branch.</p>
+</div>
+<div class="section" id="sample-output">
+<h1>Sample Output<a class="headerlink" href="#sample-output" title="Permalink to this headline">¶</a></h1>
+<p>Sample output from <code class="docutils literal"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can look like the following:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">TinyProfiler total time across processes [min...avg...max]: 1.765...1.765...1.765</span>
+<span class="go">---------------------------------------------------------------------------------</span>
+<span class="go">Name                          NCalls   Excl. Min   Excl. Avg   Excl. Max   Max  %</span>
+<span class="go">---------------------------------------------------------------------------------</span>
+<span class="go">mfix_level::EvolveFluid       1        1.602       1.668       1.691       95.83%</span>
+<span class="go">FabArray::FillBoundary()      11081    0.02195     0.03336     0.06617      3.75%</span>
+<span class="go">FabArrayBase::getFB()         22162    0.02031     0.02147     0.02275      1.29%</span>
+<span class="go">PC&lt;...&gt;::WriteAsciiFile()     1        0.00292     0.004072    0.004551     0.26%</span>
+
+
+<span class="go">---------------------------------------------------------------------------------</span>
+<span class="go">Name                          NCalls   Incl. Min   Incl. Avg  Incl. Max    Max  %</span>
+<span class="go">---------------------------------------------------------------------------------</span>
+<span class="go">mfix_level::Evolve()          1        1.69        1.723      1.734        98.23%</span>
+<span class="go">mfix_level::EvolveFluid       1        1.69        1.723      1.734        98.23%</span>
+<span class="go">FabArray::FillBoundary()      11081    0.04236     0.05485    0.08826       5.00%</span>
+<span class="go">FabArrayBase::getFB()         22162    0.02031     0.02149    0.02275       1.29%</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="amrprofparser">
+<h1>AMRProfParser<a class="headerlink" href="#amrprofparser" title="Permalink to this headline">¶</a></h1>
+<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AMRProfParser</span></span></code> is a tool for processing and analyzing the <code class="docutils literal"><span class="pre">bl_prof</span></code>
+database. It is a command line application that can create performance
+summaries, plotfiles showing point to point communication and timelines, HTML
+call trees, communication call statistics, function timing graphs, and other
+data products. The parser’s data services functionality can be called from an
+interactive environment such as Amrvis, from a sidecar for dynamic performance
+optimization, and from other utilities such as the command line version of the
+parser itself. It has been integrated into Amrvis for visual interpretation of
+the data allowing Amrvis to open the bl_prof database like a plotfile but with
+interfaces appropriate to profiling data. AMRProfParser and Amrvis can be run
+in parallel both interactively and in batch mode.</p>
+</div>
+<div class="section" id="craypat">
+<h1>CrayPat<a class="headerlink" href="#craypat" title="Permalink to this headline">¶</a></h1>
+<p>The profiling suite available on Cray XC systems is Cray Performance
+Measurement and Analysis Tools (“CrayPat”) <a class="footnote-reference" href="#id6" id="id1">[1]</a>.  Most CrayPat functionality is
+supported for all compilers available in the Cray “programming environments“
+(modules which begin “<code class="docutils literal"><span class="pre">PrgEnv-</span></code>”); however, a few features, chiefly the
+“Reveal” tool, are supported only on applications compiled with Cray’s compiler
+CCE <a class="footnote-reference" href="#id7" id="id2">[2]</a> <a class="footnote-reference" href="#id8" id="id3">[3]</a>.</p>
+<p>CrayPat supports both high-level profiling tools, as well as fine-grained
+performance analysis, such as reading hardware counters. The default behavior
+uses sampling to identify the most time-consuming functions in an application.</p>
+<div class="section" id="high-level-application-profiling">
+<h2>High-level application profiling<a class="headerlink" href="#high-level-application-profiling" title="Permalink to this headline">¶</a></h2>
+<p>The simplest way to obtain a high-level overview of an application’s
+performance consists of the following steps:</p>
+<ol class="arabic">
+<li><p class="first">Load the <code class="docutils literal"><span class="pre">perftools-base</span></code> module, then the <code class="docutils literal"><span class="pre">perftools-lite</span></code> module. (The
+modules will not work if loaded in the opposite order.)</p>
+</li>
+<li><p class="first">Compile the application with the Cray compiler wrappers <code class="docutils literal"><span class="pre">cc</span></code>, <code class="docutils literal"><span class="pre">CC</span></code>,
+and/or <code class="docutils literal"><span class="pre">ftn</span></code>. This works with any of the compilers available in the
+<code class="docutils literal"><span class="pre">PrgEnv-</span></code> modules. E.g., on the Cori system at NERSC, one can use the
+Intel, GCC, or CCE compilers. No extra compiler flags are necessary in order
+for CrayPat to work. CrayPat instruments the application, so the
+<code class="docutils literal"><span class="pre">perftools-</span></code> modules must be loaded before one compiles the application.</p>
+</li>
+<li><p class="first">Run the application as normal. No special flags are required. Upon
+application completion, CrayPat will write a few files to the directory from
+which the application was launched. The profiling database is a single file
+with the <code class="docutils literal"><span class="pre">.ap2</span></code> suffix.</p>
+</li>
+<li><p class="first">One can query the database in many different ways using the <code class="docutils literal"><span class="pre">pat_report</span></code>
+command on the <code class="docutils literal"><span class="pre">.ap2</span></code> file. <code class="docutils literal"><span class="pre">pat_report</span></code> is available on login nodes, so
+the analysis need not be done on a compute node.  Querying the database with
+no arguments to <code class="docutils literal"><span class="pre">pat_report</span></code> prints several different profiling reports to
+STDOUT, including a list of the most time-consuming regions in the
+application. The output of this command can be long, so it can be convenient
+to pipe the output to a pager or a file. A portion of the output from
+<code class="docutils literal"><span class="pre">pat_report</span> <span class="pre">&lt;file&gt;.ap2</span></code> is shown below:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">Table 1:  Profile by Function</span>
+
+<span class="go">  Samp% |    Samp |  Imb. |  Imb. | Group</span>
+<span class="go">        |         |  Samp | Samp% |  Function</span>
+<span class="go">        |         |       |       |   PE=HIDE</span>
+
+<span class="go"> 100.0% | 5,235.5 |    -- |    -- | Total</span>
+<span class="go">|-----------------------------------------------------------------------------</span>
+<span class="go">|  50.2% | 2,628.5 |    -- |    -- | USER</span>
+<span class="go">||----------------------------------------------------------------------------</span>
+<span class="go">||   7.3% |   383.0 |  15.0 |  5.0% | eos_module_mp_iterate_ne_</span>
+<span class="go">||   5.7% |   300.8 | 138.2 | 42.0% | amrex_deposit_cic</span>
+<span class="go">||   5.1% |   265.2 |  79.8 | 30.8% | update_dm_particles</span>
+<span class="go">||   2.8% |   147.2 |   5.8 |  5.0% | fort_fab_setval</span>
+<span class="go">||   2.6% |   137.2 |  48.8 | 34.9% | amrex::ParticleContainer&lt;&gt;::Where</span>
+<span class="go">||   2.6% |   137.0 |  11.0 |  9.9% | ppm_module_mp_ppm_type1_</span>
+<span class="go">||   2.5% |   133.0 |  24.0 | 20.4% | eos_module_mp_nyx_eos_t_given_re_</span>
+<span class="go">||   2.1% |   107.8 |  33.2 | 31.4% | amrex::ParticleContainer&lt;&gt;::IncrementWithTotal</span>
+<span class="go">||   1.7% |    89.2 |  19.8 | 24.2% | f_rhs_</span>
+<span class="go">||   1.4% |    74.0 |   7.0 | 11.5% | riemannus_</span>
+<span class="go">||   1.1% |    56.0 |   2.0 |  4.6% | amrex::VisMF::Write</span>
+<span class="go">||   1.0% |    50.5 |   1.5 |  3.8% | amrex::VisMF::Header::CalculateMinMax</span>
+<span class="go">||============================================================================</span>
+<span class="go">|  28.1% | 1,471.0 |    -- |    -- | ETC</span>
+<span class="go">||----------------------------------------------------------------------------</span>
+<span class="go">||   7.4% |   388.8 |  10.2 |  3.4% | __intel_mic_avx512f_memcpy</span>
+<span class="go">||   6.9% |   362.5 |  45.5 | 14.9% | CVode</span>
+<span class="go">||   3.1% |   164.5 |   8.5 |  6.6% | __libm_log10_l9</span>
+<span class="go">||   2.9% |   149.8 |  29.2 | 21.8% | _INTERNAL_25_______src_kmp_barrier_cpp_5de9139b::__kmp_hyper_barrier_gather</span>
+<span class="go">||============================================================================</span>
+<span class="go">|  16.8% |   879.8 |    -- |    -- | MPI</span>
+<span class="go">||----------------------------------------------------------------------------</span>
+<span class="go">||   5.1% |   266.0 | 123.0 | 42.2% | MPI_Allreduce</span>
+<span class="go">||   4.2% |   218.2 | 104.8 | 43.2% | MPI_Waitall</span>
+<span class="go">||   2.9% |   151.8 |  78.2 | 45.4% | MPI_Bcast</span>
+<span class="go">||   2.6% |   135.0 |  98.0 | 56.1% | MPI_Barrier</span>
+<span class="go">||   2.0% |   105.8 |   5.2 |  6.3% | MPI_Recv</span>
+<span class="go">||============================================================================</span>
+<span class="go">|   1.9% |    98.2 |    -- |    -- | IO</span>
+<span class="go">||----------------------------------------------------------------------------</span>
+<span class="go">||   1.8% |    93.8 |   6.2 |  8.3% | read</span>
+<span class="go">||============================================================================</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="section" id="ipm-cross-platform-integrated-performance-monitoring">
+<h1>IPM - Cross-Platform Integrated Performance Monitoring<a class="headerlink" href="#ipm-cross-platform-integrated-performance-monitoring" title="Permalink to this headline">¶</a></h1>
+<p>IPM provides portable profiling capabilities across HPC platforms, including
+support on selected Cray and IBM machines (cori and (TODO: verify it works on)
+summit). Running an IPM instrumented binary generates a summary of number of
+calls and time spent on MPI communication library functions. In addition,
+hardware performance counters can also be collected through PAPI.</p>
+<p>Detailed instructions can be found at  <a class="footnote-reference" href="#id9" id="id4">[4]</a> and <a class="footnote-reference" href="#id10" id="id5">[5]</a>.</p>
+<div class="section" id="building-with-ipm-on-cori">
+<h2>Building with IPM on cori<a class="headerlink" href="#building-with-ipm-on-cori" title="Permalink to this headline">¶</a></h2>
+<p>Steps:</p>
+<ol class="arabic simple">
+<li>Run module load ipm.</li>
+<li>Build code as normal with make.</li>
+<li>Re-run the link command (e.g. cut-and-paste) with <code class="docutils literal"><span class="pre">$IPM</span></code> added to the end of the line.</li>
+</ol>
+</div>
+<div class="section" id="running-with-ipm-on-cori">
+<h2>Running with IPM on cori<a class="headerlink" href="#running-with-ipm-on-cori" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>Set environment variables: <code class="docutils literal"><span class="pre">export</span> <span class="pre">IPM_REPORT=full</span> <span class="pre">IPM_LOG=full</span> <span class="pre">IPM_LOGDIR=</span> <span class="pre">&lt;dir&gt;</span></code></li>
+<li>Results will be printed to stdout and an xml file generated in the directory specified by <code class="docutils literal"><span class="pre">IPM_LOGDIR</span></code>.</li>
+<li>Post-process the xml with <code class="docutils literal"><span class="pre">ipm_parse</span> <span class="pre">-html</span> <span class="pre">&lt;xmlfile&gt;</span></code>, which produces an directory with html.</li>
+</ol>
+</div>
+<div class="section" id="summary-mpi-profile">
+<h2>Summary MPI Profile<a class="headerlink" href="#summary-mpi-profile" title="Permalink to this headline">¶</a></h2>
+<p>Example MPI profile output:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="gp">#</span><span class="c1">#IPMv2.0.5########################################################</span>
+<span class="gp">#</span>
+<span class="gp">#</span> <span class="nb">command</span>   : /global/cscratch1/sd/cchan2/projects/lbl/BoxLib/Tests/LinearSolvers/C_CellMG/./main3d.intel.MPI.OMP.ex.ipm inputs.3d.25600
+<span class="gp">#</span> start     : Tue Aug <span class="m">15</span> <span class="m">17</span>:34:23 <span class="m">2017</span>   host      : nid11311
+<span class="gp">#</span> stop      : Tue Aug <span class="m">15</span> <span class="m">17</span>:34:35 <span class="m">2017</span>   wallclock : <span class="m">11</span>.54
+<span class="gp">#</span> mpi_tasks : <span class="m">128</span> on <span class="m">32</span> nodes            %comm     : <span class="m">32</span>.51
+<span class="gp">#</span> mem <span class="o">[</span>GB<span class="o">]</span>  : <span class="m">126</span>.47                     gflop/sec : <span class="m">0</span>.00
+<span class="gp">#</span>
+<span class="gp">#</span>           :       <span class="o">[</span>total<span class="o">]</span>        &lt;avg&gt;          min          max
+<span class="gp">#</span> wallclock :       <span class="m">1188</span>.42         <span class="m">9</span>.28         <span class="m">8</span>.73        <span class="m">11</span>.54
+<span class="gp">#</span> MPI       :        <span class="m">386</span>.31         <span class="m">3</span>.02         <span class="m">2</span>.51         <span class="m">4</span>.78
+<span class="gp">#</span> %wall     :
+<span class="gp">#</span>   MPI     :                      <span class="m">32</span>.52        <span class="m">24</span>.36        <span class="m">41</span>.44
+<span class="gp">#</span> <span class="c1">#calls    :</span>
+<span class="gp">#</span>   MPI     :       <span class="m">5031172</span>        <span class="m">39306</span>        <span class="m">23067</span>        <span class="m">57189</span>
+<span class="gp">#</span> mem <span class="o">[</span>GB<span class="o">]</span>  :        <span class="m">126</span>.47         <span class="m">0</span>.99         <span class="m">0</span>.98         <span class="m">1</span>.00
+<span class="gp">#</span>
+<span class="gp">#</span>                             <span class="o">[</span>time<span class="o">]</span>        <span class="o">[</span>count<span class="o">]</span>        &lt;%wall&gt;
+<span class="gp">#</span> MPI_Allreduce               <span class="m">225</span>.72         <span class="m">567552</span>          <span class="m">18</span>.99
+<span class="gp">#</span> MPI_Waitall                  <span class="m">92</span>.84         <span class="m">397056</span>           <span class="m">7</span>.81
+<span class="gp">#</span> MPI_Recv                     <span class="m">29</span>.36            <span class="m">193</span>           <span class="m">2</span>.47
+<span class="gp">#</span> MPI_Isend                    <span class="m">25</span>.04        <span class="m">2031810</span>           <span class="m">2</span>.11
+<span class="gp">#</span> MPI_Irecv                     <span class="m">4</span>.35        <span class="m">2031810</span>           <span class="m">0</span>.37
+<span class="gp">#</span> MPI_Allgather                 <span class="m">2</span>.60            <span class="m">128</span>           <span class="m">0</span>.22
+<span class="gp">#</span> MPI_Barrier                   <span class="m">2</span>.24            <span class="m">512</span>           <span class="m">0</span>.19
+<span class="gp">#</span> MPI_Gatherv                   <span class="m">1</span>.70            <span class="m">128</span>           <span class="m">0</span>.14
+<span class="gp">#</span> MPI_Comm_dup                  <span class="m">1</span>.23            <span class="m">256</span>           <span class="m">0</span>.10
+<span class="gp">#</span> MPI_Bcast                     <span class="m">1</span>.14            <span class="m">256</span>           <span class="m">0</span>.10
+<span class="gp">#</span> MPI_Send                      <span class="m">0</span>.06            <span class="m">319</span>           <span class="m">0</span>.01
+<span class="gp">#</span> MPI_Reduce                    <span class="m">0</span>.02            <span class="m">128</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Comm_free                 <span class="m">0</span>.01            <span class="m">128</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Comm_group                <span class="m">0</span>.00            <span class="m">128</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Comm_size                 <span class="m">0</span>.00            <span class="m">256</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Comm_rank                 <span class="m">0</span>.00            <span class="m">256</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Init                      <span class="m">0</span>.00            <span class="m">128</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Finalize                  <span class="m">0</span>.00            <span class="m">128</span>           <span class="m">0</span>.00
+</pre></div>
+</div>
+<p>The total, average, minimum, and maximum wallclock and MPI times across ranks
+is shown.  The memory footprint is also collected.  Finally, results include
+number of calls and total time spent in each type of MPI call.</p>
+</div>
+<div class="section" id="papi-performance-counters">
+<h2>PAPI Performance Counters<a class="headerlink" href="#papi-performance-counters" title="Permalink to this headline">¶</a></h2>
+<p>To collect performance counters, set <code class="docutils literal"><span class="pre">IPM_HPM=&lt;list&gt;</span></code>, where the list is a
+comma-separated list of PAPI counters. For example: <code class="docutils literal"><span class="pre">export</span>
+<span class="pre">IPM_HPM=PAPI_L2_TCA,PAPI_L2_TCM</span></code>.</p>
+<p>For reference, here is the list of available counters on cori, which can be
+found by running <code class="docutils literal"><span class="pre">papi_avail</span></code>:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">    Name        Code    Avail Deriv Description (Note)</span>
+<span class="go">PAPI_L1_DCM  0x80000000  Yes   No   Level 1 data cache misses</span>
+<span class="go">PAPI_L1_ICM  0x80000001  Yes   No   Level 1 instruction cache misses</span>
+<span class="go">PAPI_L1_TCM  0x80000006  Yes   Yes  Level 1 cache misses</span>
+<span class="go">PAPI_L2_TCM  0x80000007  Yes   No   Level 2 cache misses</span>
+<span class="go">PAPI_TLB_DM  0x80000014  Yes   No   Data translation lookaside buffer misses</span>
+<span class="go">PAPI_L1_LDM  0x80000017  Yes   No   Level 1 load misses</span>
+<span class="go">PAPI_L2_LDM  0x80000019  Yes   No   Level 2 load misses</span>
+<span class="go">PAPI_STL_ICY 0x80000025  Yes   No   Cycles with no instruction issue</span>
+<span class="go">PAPI_BR_UCN  0x8000002a  Yes   Yes  Unconditional branch instructions</span>
+<span class="go">PAPI_BR_CN   0x8000002b  Yes   No   Conditional branch instructions</span>
+<span class="go">PAPI_BR_TKN  0x8000002c  Yes   No   Conditional branch instructions taken</span>
+<span class="go">PAPI_BR_NTK  0x8000002d  Yes   Yes  Conditional branch instructions not taken</span>
+<span class="go">PAPI_BR_MSP  0x8000002e  Yes   No   Conditional branch instructions mispredicted</span>
+<span class="go">PAPI_TOT_INS 0x80000032  Yes   No   Instructions completed</span>
+<span class="go">PAPI_LD_INS  0x80000035  Yes   No   Load instructions</span>
+<span class="go">PAPI_SR_INS  0x80000036  Yes   No   Store instructions</span>
+<span class="go">PAPI_BR_INS  0x80000037  Yes   No   Branch instructions</span>
+<span class="go">PAPI_RES_STL 0x80000039  Yes   No   Cycles stalled on any resource</span>
+<span class="go">PAPI_TOT_CYC 0x8000003b  Yes   No   Total cycles</span>
+<span class="go">PAPI_LST_INS 0x8000003c  Yes   Yes  Load/store instructions completed</span>
+<span class="go">PAPI_L1_DCA  0x80000040  Yes   Yes  Level 1 data cache accesses</span>
+<span class="go">PAPI_L1_ICH  0x80000049  Yes   No   Level 1 instruction cache hits</span>
+<span class="go">PAPI_L1_ICA  0x8000004c  Yes   No   Level 1 instruction cache accesses</span>
+<span class="go">PAPI_L2_TCH  0x80000056  Yes   Yes  Level 2 total cache hits</span>
+<span class="go">PAPI_L2_TCA  0x80000059  Yes   No   Level 2 total cache accesses</span>
+<span class="go">PAPI_REF_CYC 0x8000006b  Yes   No   Reference clock cycles</span>
+</pre></div>
+</div>
+<p>Due to hardware limitations, there is a limit to which counters can be
+collected simultaneously in a single run. Some counters may map to the same
+registers and thus cannot be collected at the same time.</p>
+</div>
+<div class="section" id="example-html-performance-summary">
+<h2>Example HTML Performance Summary<a class="headerlink" href="#example-html-performance-summary" title="Permalink to this headline">¶</a></h2>
+<p>Running <code class="docutils literal"><span class="pre">ipm_parse</span> <span class="pre">-html</span> <span class="pre">&lt;xmlfile&gt;</span></code> on the generated xml file will produce an
+HTML document that includes summary performance numbers and automatically
+generated figures. Some examples are shown here.</p>
+<div class="figure" id="id11">
+<img alt="_images/summary.png" src="_images/summary.png" />
+<p class="caption"><span class="caption-number">Fig. 18 </span><span class="caption-text">Sample performance summary generated by IPM</span></p>
+</div>
+<table border="1" class="docutils align-center" id="id12">
+<caption><span class="caption-number">Table 11 </span><span class="caption-text">Example of performance graphs generated by IPM</span><a class="headerlink" href="#id12" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="_images/timings.png"><img alt="a" src="_images/timings.png" style="width: 100%;" /></a></td>
+<td><a class="reference internal" href="_images/papi.png"><img alt="b" src="_images/papi.png" style="width: 100%;" /></a></td>
+</tr>
+<tr class="row-even"><td><div class="first last line-block">
+<div class="line">Timings</div>
+</div>
+</td>
+<td><div class="first last line-block">
+<div class="line">PAPI Counters</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_images/mpi.png"><img alt="c" src="_images/mpi.png" style="width: 100%;" /></a></td>
+<td><a class="reference internal" href="_images/msgsizes.png"><img alt="d" src="_images/msgsizes.png" style="width: 100%;" /></a></td>
+</tr>
+<tr class="row-even"><td><div class="first last line-block">
+<div class="line">MPI Time by Function</div>
+</div>
+</td>
+<td><div class="first last line-block">
+<div class="line">MPI Time by Message Size</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_images/commtopo.png"><img alt="e" src="_images/commtopo.png" style="width: 100%;" /></a></td>
+<td><div class="first last line-block">
+<div class="line">(left) Point-to-Point Communication Volume</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id6" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><a class="reference external" href="https://pubs.cray.com/content/S-2376/6.4.6/cray-performance-measurement-and-analysis-tools-user-guide-646-s-2376">https://pubs.cray.com/content/S-2376/6.4.6/cray-performance-measurement-and-analysis-tools-user-guide-646-s-2376</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id7" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td><a class="reference external" href="https://pubs.cray.com/content/S-2179/8.5/cray-c-and-c++-reference-manual-85">https://pubs.cray.com/content/S-2179/8.5/cray-c-and-c++-reference-manual-85</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id8" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td><a class="reference external" href="https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85">https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id9" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[4]</a></td><td><a class="reference external" href="http://ipm-hpc.sourceforge.net/userguide.html">http://ipm-hpc.sourceforge.net/userguide.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id10" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[5]</a></td><td><a class="reference external" href="https://www.nersc.gov/users/software/performance-and-debugging-tools/ipm/">https://www.nersc.gov/users/software/performance-and-debugging-tools/ipm/</a></td></tr>
+</tbody>
+</table>
 </div>
 </div>
 
@@ -186,10 +597,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="CVODE.html" class="btn btn-neutral float-right" title="CVODE" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Chapter13.html" class="btn btn-neutral float-right" title="CVODE" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Visualization.html" class="btn btn-neutral" title="Visualization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="Chapter12.html" class="btn btn-neutral" title="Profiling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

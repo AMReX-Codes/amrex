@@ -1,4 +1,4 @@
-.. _BuildingAMReX:
+.. _Chap:BuildingAMReX:
 
 Building AMReX
 ===================
