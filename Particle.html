@@ -613,9 +613,9 @@ visualization, and for checkpoint / restart. The most important methods are the
 reading and writing particle data on a grid-by-grid basis. These methods are
 designed to complement the functions in AMReX_PlotFileUtil.H for performing
 mesh data IO. For example:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span>WriteMultiLevelPlotfile(``plt00000&#39;&#39;, output_levs, GetVecOfConstPtrs(output),
-                        varnames, geom, 0.0, level_steps, outputRR);
-pc.Checkpoint(``plt00000&#39;&#39;, ``particle0&#39;&#39;);
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">WriteMultiLevelPlotfile</span><span class="p">(</span><span class="s">&quot;plt00000&quot;</span><span class="p">,</span> <span class="n">output_levs</span><span class="p">,</span> <span class="n">GetVecOfConstPtrs</span><span class="p">(</span><span class="n">output</span><span class="p">),</span>
+                        <span class="n">varnames</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">level_steps</span><span class="p">,</span> <span class="n">outputRR</span><span class="p">);</span>
+<span class="n">pc</span><span class="p">.</span><span class="n">Checkpoint</span><span class="p">(</span><span class="s">&quot;plt00000&quot;</span><span class="p">,</span> <span class="s">&quot;particle0&quot;</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>will create a plot file called “plt00000” and write the mesh data in <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">output</span></span></code> to it, and then write the particle data in a subdirectory called “particle0”. There is also the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">WriteAsciiFile</span></span></code> method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.</p>

@@ -98,7 +98,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="Chapter3.html">Building AMReX</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Building with GNU Make</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#dissecting-a-simple-make-file">Dissecting a Simple Make File</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#tweaking-the-make-system">Tweaking the Make System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tweaking-make-system">Tweaking Make System</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#building-libamrex">Building libamrex</a></li>
@@ -187,15 +187,14 @@
   <div class="section" id="building-with-gnu-make">
 <span id="sec-build-make"></span><h1>Building with GNU Make<a class="headerlink" href="#building-with-gnu-make" title="Permalink to this headline">¶</a></h1>
 <p>In this build approach, you write your own make files defining a
-number of variables and rules. Then you invoke  <code class="docutils literal"><span class="pre">make</span></code> to start
+number of variables and rules. Then you invoke make to start
 the building process. This will result in an executable upon
 successful completion. The temporary files generated in the building
-process are stored in a temporary directory named  <code class="docutils literal"><span class="pre">tmp_build_dir</span></code></p>
+process are stored in a temporary directory named tmp_build_dir.</p>
 <div class="section" id="dissecting-a-simple-make-file">
 <h2>Dissecting a Simple Make File<a class="headerlink" href="#dissecting-a-simple-make-file" title="Permalink to this headline">¶</a></h2>
 <p>An example of building with GNU Make can be found in
-amrex/Tutorials/Basic/HelloWorld_C.
-<a class="reference internal" href="#tab-makevars"><span class="std std-numref">Table 1</span></a>
+amrex/Tutorials/Basic/HelloWorld_C.&nbsp;<a class="reference internal" href="#tab-makevars"><span class="std std-numref">Table 1</span></a>
 below shows a list of important variables.</p>
 <span id="tab-makevars"></span><table border="1" class="docutils" id="id1">
 <caption><span class="caption-number">Table 1 </span><span class="caption-text">Important make variables</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
@@ -262,23 +261,23 @@ When <code class="docutils literal"><span class="pre">DEBUG</span> <span class="
 off and assertions in &nbsp;source code are turned on. For
 production runs, <code class="docutils literal"><span class="pre">DEBUG</span></code> should be set to FALSE.</p>
 <p>After defining these make variables, a number of files,
-<code class="docutils literal"><span class="pre">Make.defs,</span> <span class="pre">Make.package</span></code> and <code class="docutils literal"><span class="pre">Make.rules</span></code>, are included in the
+Make.defs, Make.package and Make.rules, are included in
 GNUmakefile. AMReX-based applications do not need to include
 all directories in AMReX; an application which does not use particles,
 for example, does not need to include files from the Particle
 directory in its build.
 In this simple example, we only need to include
 <code class="docutils literal"><span class="pre">$(AMREX_HOME)/Src/Base/Make.package</span></code>. An application code also
-has its own Make.package file (e.g., <code class="docutils literal"><span class="pre">./Make.package</span></code> in
+has its own Make.package file (e.g., ./Make.package in
 this example) to append source files to the build system using
 operator <code class="docutils literal"><span class="pre">+=</span></code>. Variables for various source files are shown
 below.</p>
 <blockquote>
 <div><dl class="docutils">
 <dt>CEXE_sources</dt>
-<dd>C++ source files. Note that C++ source files are assumed to have a .cpp extension.</dd>
+<dd>C++&nbsp;source files. Note that C++&nbsp;source files are assumed to have a .cpp extension.</dd>
 <dt>CEXE_headers</dt>
-<dd>C++ headers with .h or .H extension.</dd>
+<dd>C++&nbsp;headers with .h or .H extension.</dd>
 <dt>cEXE_sources</dt>
 <dd>C source files with .c extension.</dd>
 <dt>cEXE_headers</dt>
@@ -290,11 +289,11 @@ below.</p>
 Note that these Fortran files will go through preprocessing.</dd>
 </dl>
 </div></blockquote>
-<p>In this simple example, the extra source file, <code class="docutils literal"><span class="pre">main.cpp</span></code> is in
+<p>In this simple example, the extra source file, main.cpp is in
 the current directory that is already in the build system’s search
 path. If this example has files in a subdirectory (e.g.,
-<code class="docutils literal"><span class="pre">mysrcdir</span></code>), you will then need to add the following to
-<code class="docutils literal"><span class="pre">Make.package</span></code>.</p>
+mysrcdir), you will then need to add the following to
+Make.package.</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nv">VPATH_LOCATIONS</span> <span class="o">+=</span> mysrcdir
 <span class="nv">INCLUDE_LOCATIONS</span> <span class="o">+=</span> mysrcdir
 </pre></div>
@@ -302,10 +301,10 @@ path. If this example has files in a subdirectory (e.g.,
 <p>Here <code class="docutils literal"><span class="pre">VPATH_LOCATIONS</span></code> and <code class="docutils literal"><span class="pre">INCLUDE_LOCATIONS</span></code> are the search
 path for source and header files, respectively.</p>
 </div>
-<div class="section" id="tweaking-the-make-system">
-<h2>Tweaking the Make System<a class="headerlink" href="#tweaking-the-make-system" title="Permalink to this headline">¶</a></h2>
-<p>The GNU Make build system is located at <code class="docutils literal"><span class="pre">amrex/Tools/GNUMake</span></code>.
-You can read <code class="docutils literal"><span class="pre">README.md</span></code> and the make files there for more
+<div class="section" id="tweaking-make-system">
+<h2>Tweaking Make System<a class="headerlink" href="#tweaking-make-system" title="Permalink to this headline">¶</a></h2>
+<p>The GNU Make build system is located at amrex/Tools/GNUMake.
+You can read README.md and the make files there for more
 information. Here we will give a brief overview.</p>
 <p>Besides building executable, other common make commands include:</p>
 <blockquote>
@@ -313,7 +312,7 @@ information. Here we will give a brief overview.</p>
 <dt><code class="docutils literal"><span class="pre">make</span> <span class="pre">clean</span></code></dt>
 <dd>This removes the executable, .o files, and
 the temporarily generated files. Note that one can add additional
-targets to this rule using the double colon (::)</dd>
+targets to this rule by using the double colon (::)</dd>
 <dt><code class="docutils literal"><span class="pre">make</span> <span class="pre">realclean</span></code></dt>
 <dd>This removes all files generated by make.</dd>
 <dt><code class="docutils literal"><span class="pre">make</span> <span class="pre">help</span></code></dt>
@@ -323,41 +322,41 @@ targets to this rule using the double colon (::)</dd>
 very useful for debugging and tweaking the make system.</dd>
 </dl>
 </div></blockquote>
-<p>Compiler flags are set in <code class="docutils literal"><span class="pre">amrex/Tools/GNUMake/comps/</span></code>. Note that
+<p>Compiler flags are set in amrex/Tools/GNUMake/comps/. Note that
 variables like <code class="docutils literal"><span class="pre">CC</span></code> and <code class="docutils literal"><span class="pre">CFLAGS</span></code> are reset in that directory
-and their values in environment variables are disregarded.
-Site-specific setups (e.g., the MPI installation) are in
-<code class="docutils literal"><span class="pre">amrex/Tools/GNUMake/sites/</span></code>, which includes a generic setup in
-<code class="docutils literal"><span class="pre">Make.unknown</span></code>. You can override the setup by having your own
+and their values in environment variables are disregarded. Site
+specific setups (e.g., MPI installation) are in
+amrex/Tools/GNUMake/sites/, which includes a generic setup in
+Make.unknown. You can override the setup by having your own
 <code class="docutils literal"><span class="pre">sites/Make.$(host_name)</span></code> file, where variable <code class="docutils literal"><span class="pre">host_name</span></code> is your
 host name in the make system and can be found via <code class="docutils literal"><span class="pre">make</span> <span class="pre">print-host_name</span></code>.
-You can also have an <code class="docutils literal"><span class="pre">amrex/Tools/GNUMake/Make.local</span></code> file to override
-various variables. See <code class="docutils literal"><span class="pre">amrex/Tools/GNUMake/Make.local.template</span></code> for an example.</p>
+You can also have an amrex/Tools/GNUMake/Make.local file to override
+various variables. See amrex/Tools/GNUMake/Make.local.template for an example.</p>
 </div>
 </div>
 <div class="section" id="building-libamrex">
 <span id="sec-build-lib"></span><h1>Building libamrex<a class="headerlink" href="#building-libamrex" title="Permalink to this headline">¶</a></h1>
 <p>If an application code already has its own elaborated build system and
-wants to use AMReX an external library, this might be your
+wants to use &nbsp;as an external library, this might be your
 choice. In this approach, one runs <code class="docutils literal"><span class="pre">./configure</span></code>, followed by
-<code class="docutils literal"><span class="pre">make</span></code> and <code class="docutils literal"><span class="pre">make</span> <span class="pre">install</span></code>. In the top AMReX directory, one
+<code class="docutils literal"><span class="pre">make</span></code> and <code class="docutils literal"><span class="pre">make</span> <span class="pre">install</span></code>. In the top AMReX&nbsp;directory, one
 can run <code class="docutils literal"><span class="pre">./configure</span> <span class="pre">-h</span></code> to show the various options for the
-configure script. This approach is built on the AMReX GNU Make
+configure script. This approach is built on the AMReX&nbsp;GNU Make
 system. Thus the section on&nbsp;<a class="reference internal" href="#sec-build-make"><span class="std std-ref">Building with GNU Make</span></a> is recommended if any fine
 tuning is needed.</p>
 </div>
 <div class="section" id="building-with-cmake">
 <span id="sec-build-cmake"></span><h1>Building with CMake<a class="headerlink" href="#building-with-cmake" title="Permalink to this headline">¶</a></h1>
 <p>An alternative to the approach described in the section&nbsp;on <a class="reference internal" href="#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>
-is to install AMReX&nbsp;as an external library busing the CMake build system.
-A CMake build is a two-step process. First <code class="docutils literal"><span class="pre">cmake</span></code> is invoked to create
-configuration files and makefiles in a chosen directory (<code class="docutils literal"><span class="pre">builddir</span></code>).
+is to install AMReX&nbsp;as an external library by using the CMake build system.
+A CMake build is a two-steps process. First <code class="docutils literal"><span class="pre">cmake</span></code> is invoked to create
+configuration files and makefiles in a chosen directory (builddir).
 This is roughly equivalent to running <code class="docutils literal"><span class="pre">./configure</span></code> (see the section on
 <a class="reference internal" href="#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>). Next, the actual build and installation are performed
-by invoking <code class="docutils literal"><span class="pre">make</span> <span class="pre">install</span></code> from within builddir. This installs
-the library files in a chosen installation directory (<code class="docutils literal"><span class="pre">installdir</span></code>).
+by issuing <code class="docutils literal"><span class="pre">make</span> <span class="pre">install</span></code> from within builddir. This will install
+the library files in a chosen installation directory (installdir).
 If no installation path is provided by the user, AMReX will be installed in
-/path/to/amrex/installdir. The CMake build process is summarized as follows:</p>
+/path/to/amrex/installdir. The CMake build process is summarized as follow:</p>
 <div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">mkdir /path/to/builddir</span>
 <span class="go">cd    /path/to/builddir</span>
 <span class="go">cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex</span>
