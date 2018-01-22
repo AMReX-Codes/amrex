@@ -126,7 +126,7 @@ Here ``VPATH_LOCATIONS`` and ``INCLUDE_LOCATIONS`` are the search
 path for source and header files, respectively.
 
 Tweaking the Make System
---------------------
+------------------------
 
 The GNU Make build system is located at ``amrex/Tools/GNUMake``.
 You can read ``README.md`` and the make files there for more
