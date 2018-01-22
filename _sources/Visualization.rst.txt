@@ -1,142 +1,167 @@
-.. _Chap:Visualization:
+Amrvis
+======
 
-Visualization
-=============
-
-
-There are several visualization tools that can be used for  plotfiles. The standard tool used within the
--community is , a package developed and supported
-by CCSE that is designed specifically for highly efficient visualization
-of block-structured hierarchical AMR data.
-Plotfiles can also be viewed using the , , and  packages.
-Particle data can be viewed using .
-
-Our favorite visualization tool is . We heartily encourage you
-to build the amrvis1d, amrvis2d, and amrvis3d executables,
-and to try using them
-to visualize your data. A very useful feature is View/Dataset, which
-allows you to actually view the numbers in a spreadsheet that is nested
-to reflect the AMR hierarchy – this can be handy for
-debugging. You can modify how many levels of data you want to see,
-whether you want to see the grid boxes or not, what palette you use,
-etc. Here are some instructions and tips for using :
+Our favorite visualization tool is Amrvis. We heartily encourage you to build
+the ``amrvis1d``, ``amrvis2d``, and ``amrvis3d`` executables, and to try using
+them to visualize your data. A very useful feature is View/Dataset, which
+allows you to actually view the numbers in a spreadsheet that is nested to
+reflect the AMR hierarchy – this can be handy for debugging. You can modify how
+many levels of data you want to see, whether you want to see the grid boxes or
+not, what palette you use, etc. Here are some instructions and tips for using
+Amrvis:
 
 #. Download and build :
+
+   .. highlight:: console
 
    ::
 
        git clone https://ccse.lbl.gov/pub/Downloads/Amrvis.git
 
-   Then cd into Amrvis/, edit the GNUmakefile by
-   setting COMP to the compiler suite you have.
+   Then cd into Amrvis/, edit the GNUmakefile by setting ``COMP`` to the
+   compiler suite you have.
 
-   Type make DIM=1, make DIM=2, or make DIM=3 to build,
-   resulting in an executable that looks like amrvis2d...ex.
+   Type ``make DIM=1``, ``make DIM=2``, or ``make DIM=3`` to build, resulting
+   in an executable that looks like amrvis2d...ex.
 
-   If you want to build amrvis with DIM=3, you must first
-   download and build volpack:
+   If you want to build amrvis with ``DIM=3``, you must first download and build
+   ``volpack``:
+
+   .. highlight:: console
 
    ::
 
        git clone https://ccse.lbl.gov/pub/Downloads/volpack.git
 
-   Then cd into volpack/ and type make.
+   Then cd into volpack/ and type ``make``.
 
-   Note:  requires the OSF/Motif libraries and headers. If you don’t have these
-   you will need to install the development version of motif through your package manager.
-   lesstif gives some functionality and will allow you to build the amrvis executable,
-   but  may exhibit subtle anomalies.
+   Note: Amrvis requires the OSF/Motif libraries and headers. If you don’t have
+   these you will need to install the development version of motif through your
+   package manager.  ``lesstif`` gives some functionality and will allow you to
+   build the amrvis executable, but Amrvis may exhibit subtle anomalies.
 
    On most Linux distributions, the motif library is provided by the
-   openmotif package, and its header files (like Xm.h) are provided
-   by openmotif-devel. If those packages are not installed, then use the
+   ``openmotif`` package, and its header files (like Xm.h) are provided by
+   ``openmotif-devel``. If those packages are not installed, then use the
    OS-specific package management tool to install them.
 
    You may then want to create an alias to amrvis2d, for example
+
+   .. highlight:: console
 
    ::
 
        alias amrvis2d /tmp/Amrvis/amrvis2d...ex
 
-#. Run the command cp Amrvis/amrvis.defaults ~/.amrvis.defaults.
-   Then, in your copy, edit the line containing “palette” line to point to, e.g.,
-   “palette /home/username/Amrvis/Palette”. The other lines control
-   options such as the initial field to display, the number format, widow size, etc.
-   If there are multiple instances of the same option, the last option takes precedence.
+#. Run the command ``cp Amrvis/amrvis.defaults ~/.amrvis.defaults``.  Then, in
+   your copy, edit the line containing “palette” line to point to, e.g.,
+   “palette /home/username/Amrvis/Palette”. The other lines control options
+   such as the initial field to display, the number format, widow size, etc.
+   If there are multiple instances of the same option, the last option takes
+   precedence.
 
-#. Generally the plotfiles have the form pltXXXXX
-   (the plt prefix can be changed), where XXXXX is a number
-   corresponding to the timestep the file
-   was output. amrvis2d <filename> or amrvis3d <filename>
-   to see a single plotfile,
-   or for 2D data sets, amrvis2d -a plt\*, which will animate the
-   sequence of plotfiles. FArrayBoxes and MultiFabs can also be viewed with
-   the -fab and -mf options. When opening MultiFabs, use the
-   name of the MultiFab’s header file amrvis2d -mf MyMultiFab_H.
+#. Generally the plotfiles have the form pltXXXXX (the plt prefix can be
+   changed), where XXXXX is a number corresponding to the timestep the file was
+   output. ``amrvis2d <filename>`` or ``amrvis3d <filename>`` to see a single
+   plotfile, or for 2D data sets, ``amrvis2d -a plt\*``, which will animate the
+   sequence of plotfiles. FArrayBoxes and MultiFabs can also be viewed with the
+   ``-fab`` and ``-mf`` options. When opening MultiFabs, use the name of the
+   MultiFab’s header file ``amrvis2d -mf MyMultiFab_H``.
 
    You can use the “Variable” menu to change the variable.
-   You can left-click drag a box around a region
-   and click "View” :math:`\rightarrow` “Dataset”
-   in order to look at the actual numerical values
-   (see Figure `[Fig:Amrvis] <#Fig:Amrvis>`__).
-   Or you can simply left click on a point to obtain the numerical value.
-   You can also export the
-   pictures in several different formats under "File/Export".
-   In 2D you can right and center click to get line-out plots.
-   In 3D you can right and center click to change the planes, and the hold
-   shift+(right or center) click to get line-out plots.
+   You can left-click drag a box around a region and click "View”
+   :math:`\rightarrow` “Dataset” in order to look at the actual numerical
+   values (see :numref:`Fig:Amrvis`).  Or you can simply left
+   click on a point to obtain the numerical value.  You can also export the
+   pictures in several different formats under "File/Export".  In 2D you can
+   right and center click to get line-out plots.  In 3D you can right and
+   center click to change the planes, and the hold shift+(right or center)
+   click to get line-out plots.
 
-   .. raw:: latex
+   We have created a number of routines to convert AMReX plotfile data other
+   formats (such as matlab), but in order to properly interpret the
+   hierarchical AMR data, each tends to have its own idiosyncrasies. If you
+   would like to display the data in another format, please contact Marc Day
+   (MSDay@lbl.gov) and we will point you to whatever we have that can help.
 
-      \centering
+.. |a| image:: ./Visualization/Amrvis_2d.png
+       :width: 100%
 
-   |2D and 3D images generated with Amrvis|
-      
-   |2D and 3D images generated with Amrvis|
+.. |b| image:: ./Visualization/Amrvis_3d.png
+       :width: 100%
 
-   We have created a number of routines to convert  plotfile data
-   other formats (such as matlab), but in order to properly interpret
-   the hierarchical AMR data, each tends to have its own idiosyncrasies.
-   If you would like to display the data in another format, please contact
-   Marc Day (MSDay@lbl.gov) and we will point you to whatever we have
-   that can help.
+.. _Fig:Amrvis:
+
+.. table:: 2D and 3D images generated using Amrvis
+   :align: center
+
+   +-----+-----+
+   | |a| | |b| |
+   +-----+-----+
+
 
 .. _sec:visit:
 
- data can also be visualized by VisIt, an open
-source visualization and analysis software. To follow along with this example,
-first build and run the first heat equation tutorial code
-(see Section `[sec:heat equation] <#sec:heat equation>`__).
+VisIt
+=====
 
-Next, download and install VisIt from https://wci.llnl.gov/simulation/computer-codes/visit.
-To open a single plotfile, run VisIt, then select “File” :math:`\rightarrow` “Open file ...”,
-then select the Header file associated the the plotfile of interest (e.g., plt00000/Header).
-Assuming you ran the simulation in 2D, here are instructions for making a simple plot:
+AMReX data can also be visualized by VisIt, an open source visualization and
+analysis software. To follow along with this example, first build and run the
+first heat equation tutorial code (see the section on :ref:`sec:heat
+equation`).
 
--  To view the data, select “Add” :math:`\rightarrow` “Pseudocolor” :math:`\rightarrow` “phi”, and then select
-   “Draw”.
+Next, download and install VisIt from
+https://wci.llnl.gov/simulation/computer-codes/visit.  To open a single
+plotfile, run VisIt, then select “File” :math:`\rightarrow` “Open file ...”,
+then select the Header file associated the the plotfile of interest (e.g.,
+plt00000/Header).  Assuming you ran the simulation in 2D, here are instructions
+for making a simple plot:
 
--  To view the grid structure (not particularly interesting yet, but when we add AMR it will be), select
-   “ :math:`\rightarrow` “subset” :math:`\rightarrow` “levels”. Then double-click the text “Subset - levels”,
-   enable the “Wireframe” option, select “Apply”, select “Dismiss”, and then select “Draw”.
+-  To view the data, select “Add” :math:`\rightarrow` “Pseudocolor”
+   :math:`\rightarrow` “phi”, and then select “Draw”.
 
--  To save the image, select “File” :math:`\rightarrow` “Set save options”, then customize the image format
-   to your liking, then click “Save”.
+-  To view the grid structure (not particularly interesting yet, but when we
+   add AMR it will be), select “ :math:`\rightarrow` “subset”
+   :math:`\rightarrow` “levels”. Then double-click the text “Subset - levels”,
+   enable the “Wireframe” option, select “Apply”, select “Dismiss”, and then
+   select “Draw”.
 
-| Your image should look similar to the left side of Figure `[Fig:VisIt] <#Fig:VisIt>`__.
+-  To save the image, select “File” :math:`\rightarrow` “Set save options”,
+   then customize the image format to your liking, then click “Save”.
+
+Your image should look similar to the left side of :numref:`Fig:VisIt`.
 
 .. raw:: latex
 
    \centering
 
-|(Left) 2D image generated with VisIt. (Right) 3D image generated with VisIt.|
-|(Left) 2D image generated with VisIt. (Right) 3D image generated with VisIt.|
+.. |c| image:: ./Visualization/VisIt_2D.png
+       :width: 100%
 
-| In 3D, you must apply the “Operators” :math:`\rightarrow` “Slicing” :math:`\rightarrow` “ThreeSlice”, with the
-  “ThreeSlice operator attribute” set to x=0.25, y=0.25, and z=0.25. You can left-click and drag
-  over the image to rotate the image to generate something similar to right side of Figure `[Fig:VisIt] <#Fig:VisIt>`__.
-| To make a movie, you must first create a text file named movie.visit with a list of the Header
-  files for the individual frames. This can most easily be done using the command:
+.. |d| image:: ./Visualization/VisIt_3D.png
+       :width: 100%
+
+.. _Fig:VisIt:
+
+.. table:: : 2D (left) and 3D (right) images generated using VisIt.
+   :align: center
+
+   +-----+-----+
+   | |c| | |d| |
+   +-----+-----+
+
+
+In 3D, you must apply the “Operators” :math:`\rightarrow` “Slicing”
+:math:`\rightarrow` “ThreeSlice”, with the “ThreeSlice operator attribute” set
+to ``x=0.25``, ``y=0.25``, and ``z=0.25``. You can left-click and drag over the
+image to rotate the image to generate something similar to right side of
+:numref:`Fig:VisIt`.
+
+To make a movie, you must first create a text file named ``movie.visit`` with a
+list of the Header files for the individual frames. This can most easily be
+done using the command:
+
+.. highlight:: console
 
 ::
 
@@ -153,20 +178,25 @@ Assuming you ran the simulation in 2D, here are instructions for making a simple
     plt09000/Header
     plt10000/Header
 
-The next step is to run VisIt, select “File” :math:`\rightarrow` “Open file ...”,
-then select movie.visit. Create an image to your liking and press the “play” button
-on the VCR-like control panel to preview all the frames. To save the movie, choose
-“File” :math:`\rightarrow` “Save movie ...”, and follow the on-screen instructions.
+The next step is to run VisIt, select “File” :math:`\rightarrow` “Open file
+...”, then select movie.visit. Create an image to your liking and press the
+“play” button on the VCR-like control panel to preview all the frames. To save
+the movie, choose “File” :math:`\rightarrow` “Save movie ...”, and follow the
+on-screen instructions.
 
 .. _section-1:
 
-The open source visualization package  v5.3.0 can be used to view
-3D plotfiles, and v5.4.0 can be used to view particle data. Download
-the package at https://www.paraview.org/.
+ParaView
+========
 
-To open a single plotfile (for example, you could run the HeatEquation_EX1_C in 3D:
+The open source visualization package ParaView v5.3.0 can be used to view 3D
+plotfiles, and v5.4.0 can be used to view particle data. Download the package
+at https://www.paraview.org/.
 
-#. Run  v5.3.0, then select “File” :math:`\rightarrow` “Open”.
+To open a single plotfile (for example, you could run the
+``HeatEquation_EX1_C`` in 3D):
+
+#. Run ParaView v5.3.0, then select “File” :math:`\rightarrow` “Open”.
 
 #. Navigate to the plotfile directory, and manually type in “Header”.
     will ask you about the file type – choose “Boxlib 3D Files”
@@ -182,68 +212,77 @@ To open a single plotfile (for example, you could run the HeatEquation_EX1_C in 
    slicing through it. If you hover your mouse over it, it will say “Slice”.
    Click that button.
 
-#. You can play with the Plane Parameters to define a plane of data to view, as shown
-   in Figure `[fig:ParaView] <#fig:ParaView>`__.
+#. You can play with the Plane Parameters to define a plane of data to view, as
+   shown in :numref:`fig:ParaView`.
 
 .. raw:: latex
 
    \centering
 
-.. figure:: ./Visualization/ParaView
-   :alt: Plotfile image generated with
+.. _fig:ParaView:
+
+.. figure:: ./Visualization/ParaView.png
    :width: 3.1in
 
-   Plotfile image generated with 
+   : Plotfile image generated with ParaView
 
-To visualize particles (for example, you could run the ShortRangeParticles example:
+To visualize particles (for example, you could run the ``ShortRangeParticles``
+example):
 
-#. First, we have to convert the  particle data to a format  can read.
-   In the run directory, there will be a sequence of particle files (particles00000,
-   particles00001, :math:`\cdots`, particles01000).
+#. First, we have to convert the AMReX particle data to a format ParaView can
+   read. In the run directory, there will be a sequence of particle files
+   (particles00000, particles00001, :math:`\cdots`, particles01000).
 
 #. Run the script,
-   amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py
-   as follows, e.g.,
-   python amrex_particles_to_vtp.py 0 1000 particles. You will generate
-   a sequence of .vtp files.
+   amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py as
+   follows, e.g., ``python amrex_particles_to_vtp.py 0 1000 particles``. You
+   will generate a sequence of .vtp files.
 
-#. Run v5.4.0, and select “File” :math:`\rightarrow` “Open”. You will see
-   a combined “particles..vtp” file grouping the files. Select that and click OK.
+#. Run ParaView v5.4.0, and select “File” :math:`\rightarrow` “Open”. You will
+   see a combined “particles..vtp” file grouping the files. Select that and
+   click OK.
 
 #. Click “Apply” and under “Representation” select “Point Gaussian”.
 
-#. Change the Gaussian Radius if you like. You can scroll through the frames with the
-   VCR-like controls at the top, as shown in Figure `[fig:ParaView_particles] <#fig:ParaView_particles>`__.
+#. Change the Gaussian Radius if you like. You can scroll through the frames
+   with the VCR-like controls at the top, as shown in
+   :numref:`fig:ParaView_particles`.
 
 .. raw:: latex
 
    \centering
 
-.. figure:: ./Visualization/ParaView_particles
-   :alt: Particle image generated with
+.. _fig:ParaView_particles:
+
+.. figure:: ./Visualization/ParaView_particles.png
    :width: 3.1in
 
-   Particle image generated with 
+   : Particle image generated with ParaView
 
-[fig:ParaView_particles]
 
 .. _section-2:
 
-, an open source Python package available at http://yt-project.org/,
+yt
+==
+
+yt, an open source Python package available at http://yt-project.org/,
 can be used for analyzing and visualizing mesh and particle data generated by
- codes. Some of the  developers are also  project members.
+AMReX codes. Some of the AMReX developers are also yt project members.
 Below we describe how to use  on both a local workstation, as well as at
 the NERSC HPC facility for high-throughput visualization of large data sets.
 
 Using  on a local workstation
 -----------------------------
 
-Running  on a local system generally provides good interactivity, but
-limited performance. Consequently, this configuration is best when doing
-exploratory visualization (e.g., experimenting with camera angles, lighting,
-and color schemes) of small data sets.
+Running yt on a local system generally provides good interactivity, but limited
+performance. Consequently, this configuration is best when doing exploratory
+visualization (e.g., experimenting with camera angles, lighting, and color
+schemes) of small data sets.
 
-To use  on an  plot file, first start a Jupyter notebook or an IPython kernel, and import the ``yt`` module:
+To use yt on an AMReX plot file, first start a Jupyter notebook or an IPython
+kernel, and import the ``yt`` module:
+
+.. highlight:: python
 
 ::
 
@@ -252,7 +291,10 @@ To use  on an  plot file, first start a Jupyter notebook or an IPython kernel,
     In [2]: print(yt.__version__)
     3.4-dev
 
-Next, load a plot file; in this example we use a plot file from the Nyx cosmology application:
+Next, load a plot file; in this example we use a plot file from the Nyx
+cosmology application:
+
+.. highlight:: python
 
 ::
 
@@ -284,6 +326,8 @@ Next, load a plot file; in this example we use a plot file from the Nyx cosmolog
 From here one can make slice plots, 3-D volume renderings, etc. An example of
 the slice plot feature is shown below:
 
+.. highlight:: python
+
 ::
 
     In [9]: slc = yt.SlicePlot(ds, "z", "density")
@@ -298,15 +342,17 @@ the slice plot feature is shown below:
     yt : [INFO     ] 2017-05-23 10:08:34,021 Saving plot plt00401_Slice_z_density.png
     Out[11]: ['plt00401_Slice_z_density.png']
 
-The resulting image is Figure \ `[fig:yt_Nyx_slice_plot] <#fig:yt_Nyx_slice_plot>`__. One can also make
+The resulting image is :numref:`fig:yt_Nyx_slice_plot`. One can also make
 volume renderings with ; an example is show below:
 
+.. _fig:yt_Nyx_slice_plot:
+
 .. figure:: ./Visualization/yt_Nyx_density_slice.png
-   :alt: Slice plot of :math:`128^3` Nyx simulation using .
 
-   Slice plot of :math:`128^3` Nyx simulation using .
+   : Slice plot of :math:`128^3` Nyx simulation using yt.
 
-[fig:yt_Nyx_slice_plot]
+
+.. highlight:: python
 
 ::
 
@@ -340,44 +386,42 @@ volume renderings with ; an example is show below:
     yt : [INFO     ] 2017-05-23 10:15:07,825 Rendering scene (Can take a while).
     yt : [INFO     ] 2017-05-23 10:15:07,825 Creating volume
     yt : [INFO     ] 2017-05-23 10:15:07,996 Creating transfer function
-    yt : [INFO     ] 2017-05-23 10:15:07,997 Calculating data bounds. This may take a while.  
+    yt : [INFO     ] 2017-05-23 10:15:07,997 Calculating data bounds. This may take a while.
     Set the TransferFunctionHelper.bounds to avoid this.
     yt : [INFO     ] 2017-05-23 10:15:16,471 Saving render plt00401_Render_density.png
 
-The output of this is Figure \ `[fig:yt_Nyx_vol_rend] <#fig:yt_Nyx_vol_rend>`__.
+The output of this is :numref:`fig:yt_Nyx_vol_rend`.
+
+.. _fig:yt_Nyx_vol_rend:
 
 .. figure:: ./Visualization/yt_Nyx_density_vol_rend.png
-   :alt: Volume rendering of :math:`128^3` Nyx simulation using . This
-   corresponds to the same plot file used to generate the slice plot in
-   Figure \ `[fig:yt_Nyx_slice_plot] <#fig:yt_Nyx_slice_plot>`__.
 
-   Volume rendering of :math:`128^3` Nyx simulation using . This
-   corresponds to the same plot file used to generate the slice plot in
-   Figure \ `[fig:yt_Nyx_slice_plot] <#fig:yt_Nyx_slice_plot>`__.
+   Volume rendering of :math:`128^3` Nyx simulation using yt. This corresponds
+   to the same plot file used to generate the slice plot in
+   :numref:`fig:yt_Nyx_slice_plot`.
 
-[fig:yt_Nyx_vol_rend]
 
-Using  at NERSC (*under development*)
--------------------------------------
+Using yt at NERSC (*under development*)
+---------------------------------------
 
-Because  is Python-based, it is portable and can be used in many software
-environments. Here we focus on ’s capabilities at NERSC, which provides
+Because yt is Python-based, it is portable and can be used in many software
+environments. Here we focus on yt’s capabilities at NERSC, which provides
 resources for performing both interactive and batch queue-based visualization
-and analysis of  data. Coupled with ’s MPI and OpenMP parallelization
+and analysis of AMReX data. Coupled with yt’s MPI and OpenMP parallelization
 capabilities, this can enable high-throughput visualization and analysis
 workflows.
 
-Interactive  with Jupyter notebooks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Interactive yt with Jupyter notebooks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Unlike  (§`2 <#sec:visit>`__),  has no client-server interface. Such
-an interface is often crucial when one has large data sets generated on a
-remote system, but wishes to visualize the data on a local workstation. Both
-copying the data between the two systems, as well as visualizing the data
-itself on a workstation, can be prohibitively slow.
+Unlike VisIt (see the section on :ref:`sec:visit`), yt has no client-server
+interface. Such an interface is often crucial when one has large data sets
+generated on a remote system, but wishes to visualize the data on a local
+workstation. Both copying the data between the two systems, as well as
+visualizing the data itself on a workstation, can be prohibitively slow.
 
 Fortunately, NERSC has implemented several resources which allow one to
-interact with  remotely, emulating a client-server model. In particular,
+interact with yt remotely, emulating a client-server model. In particular,
 NERSC now hosts Jupyter notebooks which run IPython kernels on the Cori system;
 this provides users access to the ``$HOME``, ``/project``, and
 ``$SCRATCH`` file systems from a web browser-based Jupyter notebook.
@@ -385,8 +429,10 @@ this provides users access to the ``$HOME``, ``/project``, and
 development, and the environment may change without notice.***
 
 NERSC also provides Anaconda Python, which allows users to create their own
-customizable Python environments. It is recommended to install  in such an
+customizable Python environments. It is recommended to install yt in such an
 environment. One can do so with the following example:
+
+.. highlight:: console
 
 ::
 
@@ -408,40 +454,41 @@ follow the instructions at this URL under the “Custom Kernels” heading:
 http://www.nersc.gov/users/data-analytics/data-analytics/web-applications-for-data-analytics.
 After writing the appropriate ``kernel.json`` file, the custom kernel will
 appear as an available Jupyter notebook. Then one can interactively visualize
- plot files in the web browser. [1]_
+AMReX plot files in the web browser. [1]_
 
-Parallel 
-~~~~~~~~~
+Parallel
+~~~~~~~~
 
 Besides the benefit of no longer needing to move data back and forth between
 NERSC and one’s local workstation to do visualization and analysis, an
-additional feature of  which takes advantage of the computational resources
-at NERSC is its parallelization capabilities.  supports both MPI- and
+additional feature of yt which takes advantage of the computational resources
+at NERSC is its parallelization capabilities. yt supports both MPI- and
 OpenMP-based parallelization of various tasks, which are discussed here:
 http://yt-project.org/doc/analyzing/parallel_computation.html.
 
-Configuring  for MPI parallelization at NERSC is a more complex task than
-discussed on the official  documentation; the command ``pip install mpi4py`` is not sufficient. Rather, one must compile ``mpi4py`` from source
-using the Cray compiler wrappers ``cc``, ``CC``, and ``ftn`` on
-Cori. Instructions for compiling ``mpi4py`` at NERSC are provided here:
+Configuring yt for MPI parallelization at NERSC is a more complex task than
+discussed in the official yt documentation; the command ``pip install mpi4py`` is
+not sufficient. Rather, one must compile ``mpi4py`` from source using the Cray
+compiler wrappers ``cc``, ``CC``, and ``ftn`` on Cori. Instructions for
+compiling ``mpi4py`` at NERSC are provided here:
 http://www.nersc.gov/users/data-analytics/data-analytics/python/anaconda-python/#toc-anchor-3.
-After ``mpi4py`` has been compiled, one can use the regular Python
-interpreter in the Anaconda environment as normal; when executing  operations which support MPI parallelization, the multiple MPI processes will
-spawn automatically.
+After ``mpi4py`` has been compiled, one can use the regular Python interpreter
+in the Anaconda environment as normal; when executing yt operations which support
+MPI parallelization, the multiple MPI processes will spawn automatically.
 
 Although several components of  support MPI parallelization, a few are particularly useful:
 
 -  **Time series analysis.** Often one runs a simulation for many
    time steps and periodically writes plot files to disk for visualization and
-   post-processing.  supports parallelization over time series data via the
-   ``DatasetSeries`` object.  can iterate over a ``DatasetSeries``
+   post-processing. yt supports parallelization over time series data via the
+   ``DatasetSeries`` object. yt can iterate over a ``DatasetSeries``
    in parallel, with different MPI processes operating on different elements of
    the series. This page provides more documentation:
    http://yt-project.org/doc/analyzing/time_series_analysis.html#time-series-analysis.
 
--  **Volume rendering**.  implements spatial decomposition among
+-  **Volume rendering**. yt implements spatial decomposition among
    MPI processes for volume rendering procedures, which can be computationally
-   expensive. Note that  also implements OpenMP parallelization in volume
+   expensive. Note that yt also implements OpenMP parallelization in volume
    rendering, and so one can execute volume rendering with a hybrid MPI+OpenMP
    approach. See this URL for more detail:
    http://yt-project.org/doc/visualizing/volume_rendering.html?highlight=openmp#openmp-parallelization.
@@ -451,13 +498,15 @@ Although several components of  support MPI parallelization, a few are particul
    performing translational or rotational operations on a camera to make a volume
    rendering in which the field of view moves through the simulation. In this
    case, one is applying a set of operations on a single object (a single plot
-   file), rather than over a time series of data. For this workflow,  provides
+   file), rather than over a time series of data. For this workflow, yt provides
    the ``parallel_objects()`` function. See this URL for more details:
    http://yt-project.org/doc/analyzing/parallel_computation.html#parallelizing-over-multiple-objects.
 
-   An example of MPI parallelization in  is shown below, where one animates a
+   An example of MPI parallelization in yt is shown below, where one animates a
    time series of plot files from an IAMR simulation while revolving the camera
    such that it completes two full revolutions over the span of the animation:
+
+   .. highlight:: python
 
    ::
 
@@ -544,12 +593,3 @@ Although several components of  support MPI parallelization, a few are particul
    magic command ``%matplotlib inline`` in order to render matplotlib
    figures in the same browser window as the notebook, as opposed to displaying it
    as a new window.
-
-.. |2D and 3D images generated with Amrvis| image:: ./Visualization/Amrvis_2d
-   :width: 2.5in
-.. |2D and 3D images generated with Amrvis| image:: ./Visualization/Amrvis_3d
-   :width: 2.5in
-.. |(Left) 2D image generated with VisIt. (Right) 3D image generated with VisIt.| image:: ./Visualization/VisIt_2D
-   :width: 3.1in
-.. |(Left) 2D image generated with VisIt. (Right) 3D image generated with VisIt.| image:: ./Visualization/VisIt_3D
-   :width: 3.1in

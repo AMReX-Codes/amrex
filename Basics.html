@@ -136,11 +136,11 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter10.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter11.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter12.html">Profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter13.html">CVODE</a></li>
 </ul>
 
             
@@ -211,9 +211,9 @@
 <p>The source code tree for the heat equation example is simple, as demonstrated by the figure showing the <a class="reference internal" href="#fig-basics-heat-flowchart"><span class="std std-ref">Source code tree for the HeatEquation_EX1_C example</span></a>. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
 below in action.</p>
-<div class="figure" id="id3">
-<span id="fig-basics-heat-flowchart"></span><a class="reference internal image-reference" href="_images/flowchart.png"><img alt="_images/flowchart.png" src="_images/flowchart.png" style="width: 4in;" /></a>
-<p class="caption"><span class="caption-text">Source code tree for the HeatEquation_EX1_C example</span></p>
+<div class="figure" id="id1">
+<span id="fig-basics-heat-flowchart"></span><a class="reference internal image-reference" href="_images/flowchart2.png"><img alt="_images/flowchart2.png" src="_images/flowchart2.png" style="width: 4in;" /></a>
+<p class="caption"><span class="caption-number">Fig. 1 </span><span class="caption-text">Source code tree for the HeatEquation_EX1_C example</span></p>
 <div class="legend">
 <blockquote>
 <div><dl class="docutils">
@@ -228,7 +228,7 @@ below in action.</p>
 </div>
 <div class="section" id="dimensionality">
 <span id="sec-basics-dim"></span><h1>Dimensionality<a class="headerlink" href="#dimensionality" title="Permalink to this headline">¶</a></h1>
-<p>As we have mentioned in Chapter&nbsp;on <a class="reference internal" href="Chapter3.html#buildingamrex"><span class="std std-ref">Building AMReX</span></a>, the
+<p>As we have mentioned in Chapter&nbsp;on <a class="reference internal" href="Chapter3.html#chap-buildingamrex"><span class="std std-ref">Building AMReX</span></a>, the
 dimensionality of AMReX&nbsp;must be set at compile time. A macro,
 <code class="docutils literal"><span class="pre">AMREX_SPACEDIM</span></code>, is defined to be the number of spatial
 dimensions. C++ codes can also use the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">SpaceDim</span></span></code>
@@ -395,9 +395,9 @@ finer than the level 1 cells. There are 1, 2 and 2 Boxes on levels
 0, 1, and 2, respectively. Note that there is no direct
 parent-child connection. In this chapter, we will focus on single
 levels.</p>
-<div class="figure" id="id4">
+<div class="figure" id="id2">
 <span id="fig-basics-amrgrids"></span><a class="reference internal image-reference" href="_images/amrgrids.png"><img alt="_images/amrgrids.png" src="_images/amrgrids.png" style="width: 3in;" /></a>
-<p class="caption"><span class="caption-text">Example of AMR grids. There are three levels in total.
+<p class="caption"><span class="caption-number">Fig. 2 </span><span class="caption-text">Example of AMR grids. There are three levels in total.
 There are 1, 2 and 2 Boxes on levels 0, 1, and 2, respectively.</span></p>
 </div>
 </div>
@@ -528,9 +528,9 @@ index. That is if we consider a cell based index represent <span class="math">\(
 nodal index with the same integer value represents <span class="math">\(i-1/2\)</span>.
 The figure below shows <a class="reference internal" href="#fig-basics-indextypes"><span class="std std-ref">some of the different index types</span></a>
 for 2D.</p>
-<div class="figure" id="id5">
+<div class="figure" id="id3">
 <span id="fig-basics-indextypes"></span><a class="reference internal image-reference" href="_images/indextypes.png"><img alt="_images/indextypes.png" src="_images/indextypes.png" style="width: 5in;" /></a>
-<p class="caption"><span class="caption-text">Some of the different index types in two dimensions: (a) cell-centered, (b) <span class="math">\(x\)</span>-face-centered
+<p class="caption"><span class="caption-number">Fig. 3 </span><span class="caption-text">Some of the different index types in two dimensions: (a) cell-centered, (b) <span class="math">\(x\)</span>-face-centered
 (i.e., nodal in <span class="math">\(x\)</span>-direction only), and (c) corner/nodal,
 i.e., nodal in all dimensions.</span></p>
 </div>
@@ -873,7 +873,7 @@ defined, one can call</p>
 <p>The typical usage of the returned pointer is then to pass it to a
 Fortran or C function that works on the array data (see the
 section&nbsp;on <a class="reference internal" href="#sec-basics-fortran"><span class="std std-ref">Calling Fortran or C</span></a>).
-<span class="xref std std-ref">BaseFab</span> has several functions that set the array data to a
+<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BaseFab</span></span></code> has several functions that set the array data to a
 constant value (e.g., 0). Two examples are as follows.</p>
 <div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">setVal</span><span class="p">(</span><span class="n">T</span> <span class="n">x</span><span class="p">);</span>        <span class="c1">// Set all data to x</span>
 <span class="c1">// Set the sub-region specified by bx to value x starting from component</span>
@@ -1398,8 +1398,8 @@ also requires only two minor changes.</p>
 </div>
 <p>The kernels functions like <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">f1</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">f2</span></span></code> in the two examples
 here usually require very little changes.</p>
-<span id="fig-basics-cc-comparison"></span><table border="1" class="docutils align-center" id="id6">
-<caption><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling.</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
+<span id="fig-basics-cc-comparison"></span><table border="1" class="docutils align-center" id="id4">
+<caption><span class="caption-number">Table 3 </span><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling.</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />
@@ -1444,8 +1444,8 @@ in that direction. AMReX&nbsp;has a default tile size <code class="code cpp c++ 
 in 3D and no tiling in 2D. This is used when tile size is not explicitly set
 but the tiling flag is on. One can change the default size using <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParmParse</span></span></code>
 parameter <code class="docutils literal"><span class="pre">fabarray.mfiter_tile_size.</span></code></p>
-<span id="fig-basics-ec-comparison"></span><table border="1" class="docutils align-center" id="id7">
-<caption><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling, for face-centered nodal indexing.</span><a class="headerlink" href="#id7" title="Permalink to this table">¶</a></caption>
+<span id="fig-basics-ec-comparison"></span><table border="1" class="docutils align-center" id="id5">
+<caption><span class="caption-number">Table 4 </span><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling, for face-centered nodal indexing.</span><a class="headerlink" href="#id5" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />
@@ -1513,8 +1513,8 @@ the basic design principle of these various tiling functions. Tiling
 is a way of domain decomposition for work sharing. Overlapping tiles
 is undesirable because works would be wasted and for multi-threaded
 codes race conditions could occur.</p>
-<span id="fig-basics-growbox-comparison"></span><table border="1" class="docutils align-center" id="id8">
-<caption><span class="caption-text">Comparing growing cell-type and face-type tile boxes.</span><a class="headerlink" href="#id8" title="Permalink to this table">¶</a></caption>
+<span id="fig-basics-growbox-comparison"></span><table border="1" class="docutils align-center" id="id6">
+<caption><span class="caption-number">Table 5 </span><span class="caption-text">Comparing growing cell-type and face-type tile boxes.</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />
@@ -1730,7 +1730,7 @@ particle data.</p>
 <div class="section" id="plotfile">
 <h2>Plotfile<a class="headerlink" href="#plotfile" title="Permalink to this headline">¶</a></h2>
 <p>AMReX&nbsp;has its own native plotfile format. Many visualization tools are
-available for AMReX&nbsp;plotfiles (see the chapter on&nbsp;<a class="reference internal" href="Visualization.html#chap-visualization"><span class="std std-ref">Visualization</span></a>).
+available for AMReX&nbsp;plotfiles (see the chapter on&nbsp;<a class="reference internal" href="Chapter11.html#chap-visualization"><span class="std std-ref">Visualization</span></a>).
 AMReX&nbsp;provides the following two functions for writing a generic AMReX&nbsp;plotfile.
 Many AMReX&nbsp;application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
@@ -1915,7 +1915,7 @@ its own memory pool. Here are examples of using the module.</p>
 </pre></div>
 </div>
 <p>The downside of this is we have to use <code class="code fortran docutils literal"><span class="keyword"><span class="pre">pointer</span></span></code> instead of
-<a href="#id1"><span class="problematic" id="id2">:foratran:`allocatable`</span></a>. This means we must explicitly free the memory via
+<code class="code fortran docutils literal"><span class="keyword"><span class="pre">allocatable</span></span></code>. This means we must explicitly free the memory via
 <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_deallocate</span></span></code> and we need to declare the pointers as
 <code class="code fortran docutils literal"><span class="keyword"><span class="pre">contiguous</span></span></code> for performance reason.</p>
 </div>

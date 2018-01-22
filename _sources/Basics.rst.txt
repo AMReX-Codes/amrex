@@ -9,7 +9,7 @@ HeatEquation_EX1_C Example
 
 The source code tree for the heat equation example is simple, as demonstrated by the figure showing the :ref:`fig:Basics_Heat_flowchart`. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
-below in action. 
+below in action.
 
 .. raw:: latex
 
@@ -21,7 +21,7 @@ below in action.
    :width: 4in
 
    Source code tree for the HeatEquation_EX1_C example
-   
+
 
     Base/
         Contains source code for single-level simulations.
@@ -35,7 +35,7 @@ below in action.
 Dimensionality
 ==============
 
-As we have mentioned in Chapter on :ref:`BuildingAMReX`, the
+As we have mentioned in Chapter on :ref:`Chap:BuildingAMReX`, the
 dimensionality of AMReX must be set at compile time. A macro,
 ``AMREX_SPACEDIM``, is defined to be the number of spatial
 dimensions. C++ codes can also use the :cpp:`amrex::SpaceDim`
@@ -86,26 +86,26 @@ functions are
 
 .. highlight:: c++
 
-:: 
+::
 
      int myproc = ParallelDescriptor::MyProc();  // Return the rank
-     
+
      int nprocs = ParallelDescriptor::NProcs();  // Return the number of processes
-     
-     if (ParallelDescriptor::IOProcessor()) { 
+
+     if (ParallelDescriptor::IOProcessor()) {
          // Only the I/O process executes this
      }
-     
+
      int ioproc = ParallelDescriptor::IOProcessorNumber();  // I/O rank
-     
+
      ParallelDescriptor::Barrier();
-     
+
      // Broadcast 100 ints from the I/O Processor
      Vector<int> a(100);
      ParallelDescriptor::Bcast(a.data(), a.size(),
                          ParallelDescriptor::IOProcessorNumber())
-     
-     // See AMReX_ParallelDescriptor.H for many other Reduce functions 
+
+     // See AMReX_ParallelDescriptor.H for many other Reduce functions
      ParallelDescriptor::ReduceRealSum(x);
 
 .. _sec:basics:print:
@@ -124,7 +124,7 @@ examples.
 ::
 
      Print() <<  "x = " << x << "\n"; // Print on I/O processor
-     
+
      Real pi = std::atan(1.0)*4.0;
      // Print on rank 3 with precision of 17 digits
      // SetPrecision does not modify cout's floating-point decimal precision setting.
@@ -132,9 +132,9 @@ examples.
 
      int oldprec = std::cout.precision(10);
      Print() << pi << "\n";  // Print with 10 digits
-     
+
      AllPrint() << "Every process prints\n";  // Print on every process
-     
+
      std::ofstream ofs("my.txt", std::ofstream::out);
      Print(ofs) << "Print to a file" << std::endl;
      ofs.close();
@@ -166,7 +166,7 @@ example inputs file.
         ncells    = 128 64 32         # a list of 3 ints
         xrange    = -0.5 0.5          # a list of 2 reals
         title     = "Three Kingdoms"  # a string
-        hydro.cfl = 0.8               # with prefix, hydro 
+        hydro.cfl = 0.8               # with prefix, hydro
 
 The following code shows how to use :cpp:`ParmParse` to get/query the values.
 
@@ -175,28 +175,28 @@ The following code shows how to use :cpp:`ParmParse` to get/query the values.
 ::
 
      ParmParse pp;
-     
+
      int nsteps = 0;
      pp.query("nsteps", nsteps);
      amrex::Print() << nsteps << "\n";  // 1000
-     
+
      Real dt;
      pp.get("dt", dt);  // runtime error if dt is not in inputs
-     
+
      Vector<int> numcells;
      // The variable name 'numcells' can be different from parameter name 'ncells'.
      pp.getarr("ncells", numcells);
      amrex::Print() << numcells.size() << "\n";  // 3
-     
+
      Vector<Real> xr {-1.0, 1.0};
      if (!queryarr("xrange", xr)) {
          amrex::Print() << "Cannot find xrange in inputs, "
                         << "so the default {-1.0,1.0} will be used\n";
      }
-     
+
      std::string title;
      pp.query("title", title);  // query string
-     
+
      ParmParse pph("hydro");  // with prefix 'hydro'
      Real cfl;
      pph.get("cfl", cfl);    // get parameter with prefix
@@ -223,15 +223,12 @@ to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
 
 .. _sec:basics:amrgrids:
 
-
-.. _sec:basics:amrgrids:
-
 Example of AMR Grids
 ====================
 
 In block-structured AMR, there is a hierarchy of logically rectangular
 grids. The computational domain on each AMR level is decomposed into
-a union of rectangular domains. The :ref:`example of AMR grids<fig:basics:amrgrids>` 
+a union of rectangular domains. The :ref:`example of AMR grids<fig:basics:amrgrids>`
 figure below shows an example of AMR. There are three total levels in
 the example. In AMReX numbering convention, the coarsest level is
 level 0. The coarsest grid (*black*) covers the domain with 
@@ -771,7 +768,7 @@ living on the domains specified by the Boxes in a
 parallel processes. A way to construct a :cpp:`DistributionMapping`
 object given a :cpp:`BoxArray` is as follows.
 
-.. highligh:: c++
+.. highlight:: c++
 
 ::
 
@@ -877,7 +874,7 @@ To get a pointer to the array data, one can call
 The typical usage of the returned pointer is then to pass it to a
 Fortran or C function that works on the array data (see the
 section on :ref:`sec:basics:fortran`).
-:ref:`BaseFab` has several functions that set the array data to a
+:cpp:`BaseFab` has several functions that set the array data to a
 constant value (e.g., 0). Two examples are as follows.
 
 .. highlight:: c++
@@ -2101,7 +2098,7 @@ its own memory pool. Here are examples of using the module.
       call bl_deallocate(b)
 
 The downside of this is we have to use :fortran:`pointer` instead of
-:foratran:`allocatable`. This means we must explicitly free the memory via
+:fortran:`allocatable`. This means we must explicitly free the memory via
 :fortran:`bl_deallocate` and we need to declare the pointers as
 :fortran:`contiguous` for performance reason.
 

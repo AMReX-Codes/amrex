@@ -36,7 +36,7 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="next" title="The" href="Particle.html"/>
+        <link rel="next" title="The Particle" href="Particle.html"/>
         <link rel="prev" title="Amr Class" href="AmrLevel.html"/> 
 
   
@@ -100,8 +100,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Particles</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Particle.html">The</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Particle.html#sec-particles-particlecontainer">The</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Particle.html">The Particle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Particle.html#the-particlecontainer">The ParticleContainer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Particle.html#initializing-particle-data">Initializing Particle Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Particle.html#iterating-over-particles">Iterating over Particles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Particle.html#passing-particle-data-into-fortran-routines">Passing particle data into Fortran routines</a></li>
@@ -110,11 +110,11 @@
 <li class="toctree-l2"><a class="reference internal" href="Particle.html#particle-io">Particle IO</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter10.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter11.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter12.html">Profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter13.html">CVODE</a></li>
 </ul>
 
             
@@ -180,11 +180,21 @@
             
   <div class="section" id="particles">
 <span id="chap-particles"></span><h1>Particles<a class="headerlink" href="#particles" title="Permalink to this headline">¶</a></h1>
-<p>In addition to the tools for working with mesh data described in previous chapters, <span class="math">\(\tt{AMReX}\)</span> also provides data structures and iterators for performing data-parallel particle simulations. Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example applications include Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert drag forces onto a fluid, such as in multi-phase flow calculations. The overall goals of <span class="math">\(\tt{AMReX}\)</span>’s particle tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data automatically. In the following sections, we give an overview of <span class="math">\(\tt{AMReX}\)</span>’s particle classes and how to use them.</p>
+<p>In addition to the tools for working with mesh data described in previous
+chapters, AMReX also provides data structures and iterators for performing
+data-parallel particle simulations. Our approach is particularly suited to
+particles that interact with data defined on a (possibly adaptive)
+block-structured hierarchy of meshes. Example applications include
+Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert
+drag forces onto a fluid, such as in multi-phase flow calculations. The overall
+goals of AMReX’s particle tools are to allow users flexibility in specifying
+how the particle data is laid out in memory and to handle the parallel
+communication of particle data automatically. In the following sections, we
+give an overview of AMReX’s particle classes and how to use them.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Particle.html">The</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particle.html#sec-particles-particlecontainer">The</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particle.html">The Particle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particle.html#the-particlecontainer">The ParticleContainer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Particle.html#initializing-particle-data">Initializing Particle Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Particle.html#iterating-over-particles">Iterating over Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Particle.html#passing-particle-data-into-fortran-routines">Passing particle data into Fortran routines</a></li>
@@ -205,7 +215,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Particle.html" class="btn btn-neutral float-right" title="The" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Particle.html" class="btn btn-neutral float-right" title="The Particle" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="AmrLevel.html" class="btn btn-neutral" title="Amr Class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

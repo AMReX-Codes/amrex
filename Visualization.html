@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Visualization &mdash; amrex 10.17 documentation</title>
+  <title>Amrvis &mdash; amrex 10.17 documentation</title>
   
 
   
@@ -36,8 +36,9 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
-        <link rel="next" title="Profiling" href="Profiling.html"/>
-        <link rel="prev" title="AmrCore Source Code" href="EB.html"/> 
+        <link rel="up" title="Visualization" href="Chapter11.html"/>
+        <link rel="next" title="Profiling" href="Chapter12.html"/>
+        <link rel="prev" title="Visualization" href="Chapter11.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -100,19 +101,25 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Visualization</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#using-on-a-local-workstation">Using &nbsp;on a local workstation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#using-at-nersc-under-development">Using &nbsp;at NERSC (<em>under development</em>)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#interactive-with-jupyter-notebooks">Interactive &nbsp;with Jupyter notebooks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#parallel">Parallel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter10.html">Embedded Boundaries</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Chapter11.html">Visualization</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Amrvis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#visit">VisIt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paraview">ParaView</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#yt">yt</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#using-on-a-local-workstation">Using &nbsp;on a local workstation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-yt-at-nersc-under-development">Using yt&nbsp;at NERSC (<em>under development</em>)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#interactive-yt-with-jupyter-notebooks">Interactive yt&nbsp;with Jupyter notebooks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parallel">Parallel</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter12.html">Profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter13.html">CVODE</a></li>
 </ul>
 
             
@@ -157,7 +164,9 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Visualization</li>
+          <li><a href="Chapter11.html">Visualization</a> &raquo;</li>
+        
+      <li>Amrvis</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -176,140 +185,159 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="visualization">
-<span id="chap-visualization"></span><h1>Visualization<a class="headerlink" href="#visualization" title="Permalink to this headline">¶</a></h1>
-<p>There are several visualization tools that can be used for &nbsp;plotfiles. The standard tool used within the
--community is , a package developed and supported
-by CCSE that is designed specifically for highly efficient visualization
-of block-structured hierarchical AMR data.
-Plotfiles can also be viewed using the , , and &nbsp;packages.
-Particle data can be viewed using .</p>
-<p>Our favorite visualization tool is . We heartily encourage you
-to build the amrvis1d, amrvis2d, and amrvis3d executables,
-and to try using them
-to visualize your data. A very useful feature is View/Dataset, which
-allows you to actually view the numbers in a spreadsheet that is nested
-to reflect the AMR hierarchy – this can be handy for
-debugging. You can modify how many levels of data you want to see,
-whether you want to see the grid boxes or not, what palette you use,
-etc. Here are some instructions and tips for using :</p>
+  <div class="section" id="amrvis">
+<h1>Amrvis<a class="headerlink" href="#amrvis" title="Permalink to this headline">¶</a></h1>
+<p>Our favorite visualization tool is Amrvis. We heartily encourage you to build
+the <code class="docutils literal"><span class="pre">amrvis1d</span></code>, <code class="docutils literal"><span class="pre">amrvis2d</span></code>, and <code class="docutils literal"><span class="pre">amrvis3d</span></code> executables, and to try using
+them to visualize your data. A very useful feature is View/Dataset, which
+allows you to actually view the numbers in a spreadsheet that is nested to
+reflect the AMR hierarchy – this can be handy for debugging. You can modify how
+many levels of data you want to see, whether you want to see the grid boxes or
+not, what palette you use, etc. Here are some instructions and tips for using
+Amrvis:</p>
 <ol class="arabic">
 <li><p class="first">Download and build :</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ccse</span><span class="o">.</span><span class="n">lbl</span><span class="o">.</span><span class="n">gov</span><span class="o">/</span><span class="n">pub</span><span class="o">/</span><span class="n">Downloads</span><span class="o">/</span><span class="n">Amrvis</span><span class="o">.</span><span class="n">git</span>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">git clone https://ccse.lbl.gov/pub/Downloads/Amrvis.git</span>
 </pre></div>
 </div>
-<p>Then cd into Amrvis/, edit the GNUmakefile by
-setting COMP to the compiler suite you have.</p>
-<p>Type make DIM=1, make DIM=2, or make DIM=3 to build,
-resulting in an executable that looks like amrvis2d…ex.</p>
-<p>If you want to build amrvis with DIM=3, you must first
-download and build volpack:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ccse</span><span class="o">.</span><span class="n">lbl</span><span class="o">.</span><span class="n">gov</span><span class="o">/</span><span class="n">pub</span><span class="o">/</span><span class="n">Downloads</span><span class="o">/</span><span class="n">volpack</span><span class="o">.</span><span class="n">git</span>
+<p>Then cd into Amrvis/, edit the GNUmakefile by setting <code class="docutils literal"><span class="pre">COMP</span></code> to the
+compiler suite you have.</p>
+<p>Type <code class="docutils literal"><span class="pre">make</span> <span class="pre">DIM=1</span></code>, <code class="docutils literal"><span class="pre">make</span> <span class="pre">DIM=2</span></code>, or <code class="docutils literal"><span class="pre">make</span> <span class="pre">DIM=3</span></code> to build, resulting
+in an executable that looks like amrvis2d…ex.</p>
+<p>If you want to build amrvis with <code class="docutils literal"><span class="pre">DIM=3</span></code>, you must first download and build
+<code class="docutils literal"><span class="pre">volpack</span></code>:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">git clone https://ccse.lbl.gov/pub/Downloads/volpack.git</span>
 </pre></div>
 </div>
-<p>Then cd into volpack/ and type make.</p>
-<p>Note: &nbsp;requires the OSF/Motif libraries and headers. If you don’t have these
-you will need to install the development version of motif through your package manager.
-lesstif gives some functionality and will allow you to build the amrvis executable,
-but &nbsp;may exhibit subtle anomalies.</p>
+<p>Then cd into volpack/ and type <code class="docutils literal"><span class="pre">make</span></code>.</p>
+<p>Note: Amrvis&nbsp;requires the OSF/Motif libraries and headers. If you don’t have
+these you will need to install the development version of motif through your
+package manager.  <code class="docutils literal"><span class="pre">lesstif</span></code> gives some functionality and will allow you to
+build the amrvis executable, but Amrvis&nbsp;may exhibit subtle anomalies.</p>
 <p>On most Linux distributions, the motif library is provided by the
-openmotif package, and its header files (like Xm.h) are provided
-by openmotif-devel. If those packages are not installed, then use the
+<code class="docutils literal"><span class="pre">openmotif</span></code> package, and its header files (like Xm.h) are provided by
+<code class="docutils literal"><span class="pre">openmotif-devel</span></code>. If those packages are not installed, then use the
 OS-specific package management tool to install them.</p>
 <p>You may then want to create an alias to amrvis2d, for example</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">alias</span> <span class="n">amrvis2d</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">Amrvis</span><span class="o">/</span><span class="n">amrvis2d</span><span class="o">...</span><span class="n">ex</span>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">alias amrvis2d /tmp/Amrvis/amrvis2d...ex</span>
 </pre></div>
 </div>
 </li>
-<li><p class="first">Run the command cp Amrvis/amrvis.defaults ~/.amrvis.defaults.
-Then, in your copy, edit the line containing “palette” line to point to, e.g.,
-“palette /home/username/Amrvis/Palette”. The other lines control
-options such as the initial field to display, the number format, widow size, etc.
-If there are multiple instances of the same option, the last option takes precedence.</p>
+<li><p class="first">Run the command <code class="docutils literal"><span class="pre">cp</span> <span class="pre">Amrvis/amrvis.defaults</span> <span class="pre">~/.amrvis.defaults</span></code>.  Then, in
+your copy, edit the line containing “palette” line to point to, e.g.,
+“palette /home/username/Amrvis/Palette”. The other lines control options
+such as the initial field to display, the number format, widow size, etc.
+If there are multiple instances of the same option, the last option takes
+precedence.</p>
 </li>
-<li><p class="first">Generally the plotfiles have the form pltXXXXX
-(the plt prefix can be changed), where XXXXX is a number
-corresponding to the timestep the file
-was output. amrvis2d &lt;filename&gt; or amrvis3d &lt;filename&gt;
-to see a single plotfile,
-or for 2D data sets, amrvis2d -a plt*, which will animate the
-sequence of plotfiles. FArrayBoxes and MultiFabs can also be viewed with
-the -fab and -mf options. When opening MultiFabs, use the
-name of the MultiFab’s header file amrvis2d -mf MyMultiFab_H.</p>
+<li><p class="first">Generally the plotfiles have the form pltXXXXX (the plt prefix can be
+changed), where XXXXX is a number corresponding to the timestep the file was
+output. <code class="docutils literal"><span class="pre">amrvis2d</span> <span class="pre">&lt;filename&gt;</span></code> or <code class="docutils literal"><span class="pre">amrvis3d</span> <span class="pre">&lt;filename&gt;</span></code> to see a single
+plotfile, or for 2D data sets, <code class="docutils literal"><span class="pre">amrvis2d</span> <span class="pre">-a</span> <span class="pre">plt\*</span></code>, which will animate the
+sequence of plotfiles. FArrayBoxes and MultiFabs can also be viewed with the
+<code class="docutils literal"><span class="pre">-fab</span></code> and <code class="docutils literal"><span class="pre">-mf</span></code> options. When opening MultiFabs, use the name of the
+MultiFab’s header file <code class="docutils literal"><span class="pre">amrvis2d</span> <span class="pre">-mf</span> <span class="pre">MyMultiFab_H</span></code>.</p>
 <p>You can use the “Variable” menu to change the variable.
-You can left-click drag a box around a region
-and click “View” <span class="math">\(\rightarrow\)</span> “Dataset”
-in order to look at the actual numerical values
-(see Figure <a class="reference external" href="#Fig:Amrvis">[Fig:Amrvis]</a>).
-Or you can simply left click on a point to obtain the numerical value.
-You can also export the
-pictures in several different formats under “File/Export”.
-In 2D you can right and center click to get line-out plots.
-In 3D you can right and center click to change the planes, and the hold
-shift+(right or center) click to get line-out plots.</p>
-<p><a class="reference internal" href="./Visualization/Amrvis_3d"><img alt="2D and 3D images generated with Amrvis" src="./Visualization/Amrvis_3d" style="width: 2.5in;" /></a></p>
-<p><a class="reference internal" href="./Visualization/Amrvis_3d"><img alt="2D and 3D images generated with Amrvis" src="./Visualization/Amrvis_3d" style="width: 2.5in;" /></a></p>
-<p>We have created a number of routines to convert &nbsp;plotfile data
-other formats (such as matlab), but in order to properly interpret
-the hierarchical AMR data, each tends to have its own idiosyncrasies.
-If you would like to display the data in another format, please contact
-Marc Day (<a class="reference external" href="mailto:MSDay&#37;&#52;&#48;lbl&#46;gov">MSDay<span>&#64;</span>lbl<span>&#46;</span>gov</a>) and we will point you to whatever we have
-that can help.</p>
+You can left-click drag a box around a region and click “View”
+<span class="math">\(\rightarrow\)</span> “Dataset” in order to look at the actual numerical
+values (see <a class="reference internal" href="#fig-amrvis"><span class="std std-numref">Table 9</span></a>).  Or you can simply left
+click on a point to obtain the numerical value.  You can also export the
+pictures in several different formats under “File/Export”.  In 2D you can
+right and center click to get line-out plots.  In 3D you can right and
+center click to change the planes, and the hold shift+(right or center)
+click to get line-out plots.</p>
+<p>We have created a number of routines to convert AMReX&nbsp;plotfile data other
+formats (such as matlab), but in order to properly interpret the
+hierarchical AMR data, each tends to have its own idiosyncrasies. If you
+would like to display the data in another format, please contact Marc Day
+(<a class="reference external" href="mailto:MSDay&#37;&#52;&#48;lbl&#46;gov">MSDay<span>&#64;</span>lbl<span>&#46;</span>gov</a>) and we will point you to whatever we have that can help.</p>
 </li>
 </ol>
-<p id="sec-visit">&nbsp;data can also be visualized by VisIt, an open
-source visualization and analysis software. To follow along with this example,
-first build and run the first heat equation tutorial code
-(see Section <a class="reference external" href="#sec:heatequation">[sec:heat equation]</a>).</p>
-<p>Next, download and install VisIt from <a class="reference external" href="https://wci.llnl.gov/simulation/computer-codes/visit">https://wci.llnl.gov/simulation/computer-codes/visit</a>.
-To open a single plotfile, run VisIt, then select “File” <span class="math">\(\rightarrow\)</span> “Open file …”,
-then select the Header file associated the the plotfile of interest (e.g., plt00000/Header).
-Assuming you ran the simulation in 2D, here are instructions for making a simple plot:</p>
+<span id="fig-amrvis"></span><table border="1" class="docutils align-center" id="id3">
+<caption><span class="caption-number">Table 9 </span><span class="caption-text">2D and 3D images generated using Amrvis</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="_images/Amrvis_2d.png"><img alt="a" src="_images/Amrvis_2d.png" style="width: 100%;" /></a></td>
+<td><a class="reference internal" href="_images/Amrvis_3d.png"><img alt="b" src="_images/Amrvis_3d.png" style="width: 100%;" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="visit">
+<span id="sec-visit"></span><h1>VisIt<a class="headerlink" href="#visit" title="Permalink to this headline">¶</a></h1>
+<p>AMReX&nbsp;data can also be visualized by VisIt, an open source visualization and
+analysis software. To follow along with this example, first build and run the
+first heat equation tutorial code (see the section on <a class="reference internal" href="GettingStarted.html#sec-heat-equation"><span class="std std-ref">Example: Heat Equation Solver</span></a>).</p>
+<p>Next, download and install VisIt from
+<a class="reference external" href="https://wci.llnl.gov/simulation/computer-codes/visit">https://wci.llnl.gov/simulation/computer-codes/visit</a>.  To open a single
+plotfile, run VisIt, then select “File” <span class="math">\(\rightarrow\)</span> “Open file …”,
+then select the Header file associated the the plotfile of interest (e.g.,
+plt00000/Header).  Assuming you ran the simulation in 2D, here are instructions
+for making a simple plot:</p>
 <ul class="simple">
-<li>To view the data, select “Add” <span class="math">\(\rightarrow\)</span> “Pseudocolor” <span class="math">\(\rightarrow\)</span> “phi”, and then select
-“Draw”.</li>
-<li>To view the grid structure (not particularly interesting yet, but when we add AMR it will be), select
-“ <span class="math">\(\rightarrow\)</span> “subset” <span class="math">\(\rightarrow\)</span> “levels”. Then double-click the text “Subset - levels”,
-enable the “Wireframe” option, select “Apply”, select “Dismiss”, and then select “Draw”.</li>
-<li>To save the image, select “File” <span class="math">\(\rightarrow\)</span> “Set save options”, then customize the image format
-to your liking, then click “Save”.</li>
+<li>To view the data, select “Add” <span class="math">\(\rightarrow\)</span> “Pseudocolor”
+<span class="math">\(\rightarrow\)</span> “phi”, and then select “Draw”.</li>
+<li>To view the grid structure (not particularly interesting yet, but when we
+add AMR it will be), select “ <span class="math">\(\rightarrow\)</span> “subset”
+<span class="math">\(\rightarrow\)</span> “levels”. Then double-click the text “Subset - levels”,
+enable the “Wireframe” option, select “Apply”, select “Dismiss”, and then
+select “Draw”.</li>
+<li>To save the image, select “File” <span class="math">\(\rightarrow\)</span> “Set save options”,
+then customize the image format to your liking, then click “Save”.</li>
 </ul>
-<div class="line-block">
-<div class="line">Your image should look similar to the left side of Figure <a class="reference external" href="#Fig:VisIt">[Fig:VisIt]</a>.</div>
-</div>
-<p><a class="reference internal" href="./Visualization/VisIt_3D"><img alt="(Left) 2D image generated with VisIt. (Right) 3D image generated with VisIt." src="./Visualization/VisIt_3D" style="width: 3.1in;" /></a>
-<a class="reference internal" href="./Visualization/VisIt_3D"><img alt="(Left) 2D image generated with VisIt. (Right) 3D image generated with VisIt." src="./Visualization/VisIt_3D" style="width: 3.1in;" /></a></p>
-<div class="line-block">
-<div class="line">In 3D, you must apply the “Operators” <span class="math">\(\rightarrow\)</span> “Slicing” <span class="math">\(\rightarrow\)</span> “ThreeSlice”, with the
-“ThreeSlice operator attribute” set to x=0.25, y=0.25, and z=0.25. You can left-click and drag
-over the image to rotate the image to generate something similar to right side of Figure <a class="reference external" href="#Fig:VisIt">[Fig:VisIt]</a>.</div>
-<div class="line">To make a movie, you must first create a text file named movie.visit with a list of the Header
-files for the individual frames. This can most easily be done using the command:</div>
-</div>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">~/</span><span class="n">amrex</span><span class="o">/</span><span class="n">Tutorials</span><span class="o">/</span><span class="n">Basic</span><span class="o">/</span><span class="n">HeatEquation_EX1_C</span><span class="o">&gt;</span> <span class="n">ls</span> <span class="o">-</span><span class="mi">1</span> <span class="n">plt</span><span class="o">*/</span><span class="n">Header</span> <span class="o">|</span> <span class="n">tee</span> <span class="n">movie</span><span class="o">.</span><span class="n">visit</span>
-<span class="n">plt00000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt01000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt02000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt03000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt04000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt05000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt06000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt07000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt08000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt09000</span><span class="o">/</span><span class="n">Header</span>
-<span class="n">plt10000</span><span class="o">/</span><span class="n">Header</span>
+<p>Your image should look similar to the left side of <a class="reference internal" href="#fig-visit"><span class="std std-numref">Table 10</span></a>.</p>
+<span id="fig-visit"></span><table border="1" class="docutils align-center" id="id4">
+<caption><span class="caption-number">Table 10 </span><span class="caption-text">: 2D (left) and 3D (right) images generated using VisIt.</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="_images/VisIt_2D.png"><img alt="c" src="_images/VisIt_2D.png" style="width: 100%;" /></a></td>
+<td><a class="reference internal" href="_images/VisIt_3D.png"><img alt="d" src="_images/VisIt_3D.png" style="width: 100%;" /></a></td>
+</tr>
+</tbody>
+</table>
+<p>In 3D, you must apply the “Operators” <span class="math">\(\rightarrow\)</span> “Slicing”
+<span class="math">\(\rightarrow\)</span> “ThreeSlice”, with the “ThreeSlice operator attribute” set
+to <code class="docutils literal"><span class="pre">x=0.25</span></code>, <code class="docutils literal"><span class="pre">y=0.25</span></code>, and <code class="docutils literal"><span class="pre">z=0.25</span></code>. You can left-click and drag over the
+image to rotate the image to generate something similar to right side of
+<a class="reference internal" href="#fig-visit"><span class="std std-numref">Table 10</span></a>.</p>
+<p>To make a movie, you must first create a text file named <code class="docutils literal"><span class="pre">movie.visit</span></code> with a
+list of the Header files for the individual frames. This can most easily be
+done using the command:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">~/amrex/Tutorials/Basic/HeatEquation_EX1_C&gt; ls -1 plt*/Header | tee movie.visit</span>
+<span class="go">plt00000/Header</span>
+<span class="go">plt01000/Header</span>
+<span class="go">plt02000/Header</span>
+<span class="go">plt03000/Header</span>
+<span class="go">plt04000/Header</span>
+<span class="go">plt05000/Header</span>
+<span class="go">plt06000/Header</span>
+<span class="go">plt07000/Header</span>
+<span class="go">plt08000/Header</span>
+<span class="go">plt09000/Header</span>
+<span class="go">plt10000/Header</span>
 </pre></div>
 </div>
-<p>The next step is to run VisIt, select “File” <span class="math">\(\rightarrow\)</span> “Open file …”,
-then select movie.visit. Create an image to your liking and press the “play” button
-on the VCR-like control panel to preview all the frames. To save the movie, choose
-“File” <span class="math">\(\rightarrow\)</span> “Save movie …”, and follow the on-screen instructions.</p>
-<p id="section-1">The open source visualization package &nbsp;v5.3.0 can be used to view
-3D plotfiles, and v5.4.0 can be used to view particle data. Download
-the package at <a class="reference external" href="https://www.paraview.org/">https://www.paraview.org/</a>.</p>
-<p>To open a single plotfile (for example, you could run the HeatEquation_EX1_C in 3D:</p>
+<p>The next step is to run VisIt, select “File” <span class="math">\(\rightarrow\)</span> “Open file
+…”, then select movie.visit. Create an image to your liking and press the
+“play” button on the VCR-like control panel to preview all the frames. To save
+the movie, choose “File” <span class="math">\(\rightarrow\)</span> “Save movie …”, and follow the
+on-screen instructions.</p>
+</div>
+<div class="section" id="paraview">
+<span id="section-1"></span><h1>ParaView<a class="headerlink" href="#paraview" title="Permalink to this headline">¶</a></h1>
+<p>The open source visualization package ParaView&nbsp;v5.3.0 can be used to view 3D
+plotfiles, and v5.4.0 can be used to view particle data. Download the package
+at <a class="reference external" href="https://www.paraview.org/">https://www.paraview.org/</a>.</p>
+<p>To open a single plotfile (for example, you could run the
+<code class="docutils literal"><span class="pre">HeatEquation_EX1_C</span></code> in 3D):</p>
 <ol class="arabic simple">
-<li>Run &nbsp;v5.3.0, then select “File” <span class="math">\(\rightarrow\)</span> “Open”.</li>
+<li>Run ParaView&nbsp;v5.3.0, then select “File” <span class="math">\(\rightarrow\)</span> “Open”.</li>
 <li>Navigate to the plotfile directory, and manually type in “Header”.
 &nbsp;will ask you about the file type – choose “Boxlib 3D Files”</li>
 <li>Under the “Cell Arrays” field, select a variable (e.g., “phi”)
@@ -319,58 +347,64 @@ and click “Apply”.</li>
 <li>To add planes, near the top left you will see a cube icon with a green plane
 slicing through it. If you hover your mouse over it, it will say “Slice”.
 Click that button.</li>
-<li>You can play with the Plane Parameters to define a plane of data to view, as shown
-in Figure <a class="reference external" href="#fig:ParaView">[fig:ParaView]</a>.</li>
+<li>You can play with the Plane Parameters to define a plane of data to view, as
+shown in <a class="reference internal" href="#fig-paraview"><span class="std std-numref">Fig. 14</span></a>.</li>
 </ol>
-<div class="figure" id="id3">
-<a class="reference internal image-reference" href="./Visualization/ParaView"><img alt="Plotfile image generated with" src="./Visualization/ParaView" style="width: 3.1in;" /></a>
-<p class="caption"><span class="caption-text">Plotfile image generated with</span></p>
+<div class="figure" id="id5">
+<span id="fig-paraview"></span><a class="reference internal image-reference" href="_images/ParaView.png"><img alt="_images/ParaView.png" src="_images/ParaView.png" style="width: 3.1in;" /></a>
+<p class="caption"><span class="caption-number">Fig. 14 </span><span class="caption-text">: Plotfile image generated with ParaView</span></p>
 </div>
-<p>To visualize particles (for example, you could run the ShortRangeParticles example:</p>
+<p>To visualize particles (for example, you could run the <code class="docutils literal"><span class="pre">ShortRangeParticles</span></code>
+example):</p>
 <ol class="arabic simple">
-<li>First, we have to convert the &nbsp;particle data to a format &nbsp;can read.
-In the run directory, there will be a sequence of particle files (particles00000,
-particles00001, <span class="math">\(\cdots\)</span>, particles01000).</li>
+<li>First, we have to convert the AMReX&nbsp;particle data to a format ParaView&nbsp;can
+read. In the run directory, there will be a sequence of particle files
+(particles00000, particles00001, <span class="math">\(\cdots\)</span>, particles01000).</li>
 <li>Run the script,
-amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py
-as follows, e.g.,
-python amrex_particles_to_vtp.py 0 1000 particles. You will generate
-a sequence of .vtp files.</li>
-<li>Run v5.4.0, and select “File” <span class="math">\(\rightarrow\)</span> “Open”. You will see
-a combined “particles..vtp” file grouping the files. Select that and click OK.</li>
+amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py as
+follows, e.g., <code class="docutils literal"><span class="pre">python</span> <span class="pre">amrex_particles_to_vtp.py</span> <span class="pre">0</span> <span class="pre">1000</span> <span class="pre">particles</span></code>. You
+will generate a sequence of .vtp files.</li>
+<li>Run ParaView v5.4.0, and select “File” <span class="math">\(\rightarrow\)</span> “Open”. You will
+see a combined “particles..vtp” file grouping the files. Select that and
+click OK.</li>
 <li>Click “Apply” and under “Representation” select “Point Gaussian”.</li>
-<li>Change the Gaussian Radius if you like. You can scroll through the frames with the
-VCR-like controls at the top, as shown in Figure <a class="reference external" href="#fig:ParaView_particles">[fig:ParaView_particles]</a>.</li>
+<li>Change the Gaussian Radius if you like. You can scroll through the frames
+with the VCR-like controls at the top, as shown in
+<a class="reference internal" href="#fig-paraview-particles"><span class="std std-numref">Fig. 15</span></a>.</li>
 </ol>
-<div class="figure" id="id4">
-<a class="reference internal image-reference" href="./Visualization/ParaView_particles"><img alt="Particle image generated with" src="./Visualization/ParaView_particles" style="width: 3.1in;" /></a>
-<p class="caption"><span class="caption-text">Particle image generated with</span></p>
+<div class="figure" id="id6">
+<span id="fig-paraview-particles"></span><a class="reference internal image-reference" href="_images/ParaView_particles.png"><img alt="_images/ParaView_particles.png" src="_images/ParaView_particles.png" style="width: 3.1in;" /></a>
+<p class="caption"><span class="caption-number">Fig. 15 </span><span class="caption-text">: Particle image generated with ParaView</span></p>
 </div>
-<p>[fig:ParaView_particles]</p>
-<p id="section-2">, an open source Python package available at <a class="reference external" href="http://yt-project.org/">http://yt-project.org/</a>,
+</div>
+<div class="section" id="yt">
+<span id="section-2"></span><h1>yt<a class="headerlink" href="#yt" title="Permalink to this headline">¶</a></h1>
+<p>yt, an open source Python package available at <a class="reference external" href="http://yt-project.org/">http://yt-project.org/</a>,
 can be used for analyzing and visualizing mesh and particle data generated by
-&nbsp;codes. Some of the &nbsp;developers are also &nbsp;project members.
+AMReX&nbsp;codes. Some of the AMReX&nbsp;developers are also yt&nbsp;project members.
 Below we describe how to use &nbsp;on both a local workstation, as well as at
 the NERSC HPC facility for high-throughput visualization of large data sets.</p>
 <div class="section" id="using-on-a-local-workstation">
 <h2>Using &nbsp;on a local workstation<a class="headerlink" href="#using-on-a-local-workstation" title="Permalink to this headline">¶</a></h2>
-<p>Running &nbsp;on a local system generally provides good interactivity, but
-limited performance. Consequently, this configuration is best when doing
-exploratory visualization (e.g., experimenting with camera angles, lighting,
-and color schemes) of small data sets.</p>
-<p>To use &nbsp;on an &nbsp;plot file, first start a Jupyter notebook or an IPython kernel, and import the <code class="docutils literal"><span class="pre">yt</span></code> module:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">import</span> <span class="nn">yt</span>
+<p>Running yt&nbsp;on a local system generally provides good interactivity, but limited
+performance. Consequently, this configuration is best when doing exploratory
+visualization (e.g., experimenting with camera angles, lighting, and color
+schemes) of small data sets.</p>
+<p>To use yt&nbsp;on an AMReX&nbsp;plot file, first start a Jupyter notebook or an IPython
+kernel, and import the <code class="docutils literal"><span class="pre">yt</span></code> module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">import</span> <span class="nn">yt</span>
 
-<span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="nb">print</span><span class="p">(</span><span class="n">yt</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="k">print</span><span class="p">(</span><span class="n">yt</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 <span class="mf">3.4</span><span class="o">-</span><span class="n">dev</span>
 </pre></div>
 </div>
-<p>Next, load a plot file; in this example we use a plot file from the Nyx cosmology application:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;plt00401&quot;</span><span class="p">)</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.00605694344696544</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">183</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">14.24501</span>  <span class="mf">14.24501</span>  <span class="mf">14.24501</span><span class="p">]</span>
+<p>Next, load a plot file; in this example we use a plot file from the Nyx
+cosmology application:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;plt00401&quot;</span><span class="p">)</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mo">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.00605694344696544</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mo">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mo">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mo">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">183</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">14.24501</span>  <span class="mf">14.24501</span>  <span class="mf">14.24501</span><span class="p">]</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="n">ds</span><span class="o">.</span><span class="n">field_list</span>
 <span class="n">Out</span><span class="p">[</span><span class="mi">4</span><span class="p">]:</span>
@@ -394,93 +428,97 @@ and color schemes) of small data sets.</p>
 </div>
 <p>From here one can make slice plots, 3-D volume renderings, etc. An example of
 the slice plot feature is shown below:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">9</span><span class="p">]:</span> <span class="n">slc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">SlicePlot</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;density&quot;</span><span class="p">)</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">358</span> <span class="n">xlim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">358</span> <span class="n">ylim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">359</span> <span class="n">xlim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">359</span> <span class="n">ylim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">9</span><span class="p">]:</span> <span class="n">slc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">SlicePlot</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;density&quot;</span><span class="p">)</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">358</span> <span class="n">xlim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">358</span> <span class="n">ylim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">359</span> <span class="n">xlim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">359</span> <span class="n">ylim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">10</span><span class="p">]:</span> <span class="n">slc</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">11</span><span class="p">]:</span> <span class="n">slc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">021</span> <span class="n">Saving</span> <span class="n">plot</span> <span class="n">plt00401_Slice_z_density</span><span class="o">.</span><span class="n">png</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mo">021</span> <span class="n">Saving</span> <span class="n">plot</span> <span class="n">plt00401_Slice_z_density</span><span class="o">.</span><span class="n">png</span>
 <span class="n">Out</span><span class="p">[</span><span class="mi">11</span><span class="p">]:</span> <span class="p">[</span><span class="s1">&#39;plt00401_Slice_z_density.png&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
-<p>The resulting image is Figure&nbsp;<a class="reference external" href="#fig:yt_Nyx_slice_plot">[fig:yt_Nyx_slice_plot]</a>. One can also make
+<p>The resulting image is <a class="reference internal" href="#fig-yt-nyx-slice-plot"><span class="std std-numref">Fig. 16</span></a>. One can also make
 volume renderings with ; an example is show below:</p>
-<div class="figure" id="id5">
-<img alt="Slice plot of :math:`128^3` Nyx simulation using ." src="./Visualization/yt_Nyx_density_slice.png" />
-<p class="caption"><span class="caption-text">Slice plot of <span class="math">\(128^3\)</span> Nyx simulation using .</span></p>
+<div class="figure" id="id7">
+<span id="fig-yt-nyx-slice-plot"></span><img alt="_images/yt_Nyx_density_slice.png" src="_images/yt_Nyx_density_slice.png" />
+<p class="caption"><span class="caption-number">Fig. 16 </span><span class="caption-text">: Slice plot of <span class="math">\(128^3\)</span> Nyx simulation using yt.</span></p>
 </div>
-<p>[fig:yt_Nyx_slice_plot]</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">12</span><span class="p">]:</span> <span class="n">sc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">create_scene</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s2">&quot;density&quot;</span><span class="p">,</span> <span class="n">lens_type</span><span class="o">=</span><span class="s2">&quot;perspective&quot;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">12</span><span class="p">]:</span> <span class="n">sc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">create_scene</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s2">&quot;density&quot;</span><span class="p">,</span> <span class="n">lens_type</span><span class="o">=</span><span class="s2">&quot;perspective&quot;</span><span class="p">)</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">13</span><span class="p">]:</span> <span class="n">source</span> <span class="o">=</span> <span class="n">sc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">14</span><span class="p">]:</span> <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">set_bounds</span><span class="p">((</span><span class="mf">1e8</span><span class="p">,</span> <span class="mf">1e15</span><span class="p">))</span>
 
-<span class="n">In</span> <span class="p">[</span><span class="mi">15</span><span class="p">]:</span> <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">set_log</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">15</span><span class="p">]:</span> <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">set_log</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
 
-<span class="n">In</span> <span class="p">[</span><span class="mi">16</span><span class="p">]:</span> <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">grey_opacity</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">16</span><span class="p">]:</span> <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">grey_opacity</span> <span class="o">=</span> <span class="bp">True</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">17</span><span class="p">]:</span> <span class="n">sc</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 <span class="o">&lt;</span><span class="n">Scene</span> <span class="n">Object</span><span class="o">&gt;</span><span class="p">:</span>
 <span class="n">Sources</span><span class="p">:</span>
-    <span class="n">source_00</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">Volume</span> <span class="n">Source</span><span class="o">&gt;</span><span class="p">:</span><span class="n">YTRegion</span> <span class="p">(</span><span class="n">plt00401</span><span class="p">):</span> <span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="p">[</span>  <span class="mf">1.09888770e+25</span>   <span class="mf">1.09888770e+25</span>   <span class="mf">1.09888770e+25</span><span class="p">]</span> <span class="n">cm</span><span class="p">,</span> <span class="n">left_edge</span><span class="o">=</span><span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span> <span class="n">cm</span><span class="p">,</span> <span class="n">right_edge</span><span class="o">=</span><span class="p">[</span>  <span class="mf">2.19777540e+25</span>   <span class="mf">2.19777540e+25</span>   <span class="mf">2.19777540e+25</span><span class="p">]</span> <span class="n">cm</span> <span class="n">transfer_function</span><span class="p">:</span><span class="kc">None</span>
+    <span class="n">source_00</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">Volume</span> <span class="n">Source</span><span class="o">&gt;</span><span class="p">:</span><span class="n">YTRegion</span> <span class="p">(</span><span class="n">plt00401</span><span class="p">):</span> <span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="p">[</span>  <span class="mf">1.09888770e+25</span>   <span class="mf">1.09888770e+25</span>   <span class="mf">1.09888770e+25</span><span class="p">]</span> <span class="n">cm</span><span class="p">,</span> <span class="n">left_edge</span><span class="o">=</span><span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span> <span class="n">cm</span><span class="p">,</span> <span class="n">right_edge</span><span class="o">=</span><span class="p">[</span>  <span class="mf">2.19777540e+25</span>   <span class="mf">2.19777540e+25</span>   <span class="mf">2.19777540e+25</span><span class="p">]</span> <span class="n">cm</span> <span class="n">transfer_function</span><span class="p">:</span><span class="bp">None</span>
 <span class="n">Camera</span><span class="p">:</span>
     <span class="o">&lt;</span><span class="n">Camera</span> <span class="n">Object</span><span class="o">&gt;</span><span class="p">:</span>
     <span class="n">position</span><span class="p">:[</span> <span class="mf">14.24501</span>  <span class="mf">14.24501</span>  <span class="mf">14.24501</span><span class="p">]</span> <span class="n">code_length</span>
     <span class="n">focus</span><span class="p">:[</span> <span class="mf">7.122505</span>  <span class="mf">7.122505</span>  <span class="mf">7.122505</span><span class="p">]</span> <span class="n">code_length</span>
     <span class="n">north_vector</span><span class="p">:[</span> <span class="mf">0.81649658</span> <span class="o">-</span><span class="mf">0.40824829</span> <span class="o">-</span><span class="mf">0.40824829</span><span class="p">]</span>
     <span class="n">width</span><span class="p">:[</span> <span class="mf">21.367515</span>  <span class="mf">21.367515</span>  <span class="mf">21.367515</span><span class="p">]</span> <span class="n">code_length</span>
-    <span class="n">light</span><span class="p">:</span><span class="kc">None</span>
+    <span class="n">light</span><span class="p">:</span><span class="bp">None</span>
     <span class="n">resolution</span><span class="p">:(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">512</span><span class="p">)</span>
 <span class="n">Lens</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">Lens</span> <span class="n">Object</span><span class="o">&gt;</span><span class="p">:</span>
     <span class="n">lens_type</span><span class="p">:</span><span class="n">perspective</span>
     <span class="n">viewpoint</span><span class="p">:[</span> <span class="mf">0.95423473</span>  <span class="mf">0.95423473</span>  <span class="mf">0.95423473</span><span class="p">]</span> <span class="n">code_length</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">19</span><span class="p">]:</span> <span class="n">sc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">07</span><span class="p">,</span><span class="mi">825</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">07</span><span class="p">,</span><span class="mi">825</span> <span class="n">Creating</span> <span class="n">volume</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">07</span><span class="p">,</span><span class="mi">996</span> <span class="n">Creating</span> <span class="n">transfer</span> <span class="n">function</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">07</span><span class="p">,</span><span class="mi">997</span> <span class="n">Calculating</span> <span class="n">data</span> <span class="n">bounds</span><span class="o">.</span> <span class="n">This</span> <span class="n">may</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="o">.</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mo">07</span><span class="p">,</span><span class="mi">825</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mo">07</span><span class="p">,</span><span class="mi">825</span> <span class="n">Creating</span> <span class="n">volume</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mo">07</span><span class="p">,</span><span class="mi">996</span> <span class="n">Creating</span> <span class="n">transfer</span> <span class="n">function</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mo">07</span><span class="p">,</span><span class="mi">997</span> <span class="n">Calculating</span> <span class="n">data</span> <span class="n">bounds</span><span class="o">.</span> <span class="n">This</span> <span class="n">may</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="o">.</span>
 <span class="n">Set</span> <span class="n">the</span> <span class="n">TransferFunctionHelper</span><span class="o">.</span><span class="n">bounds</span> <span class="n">to</span> <span class="n">avoid</span> <span class="n">this</span><span class="o">.</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="mi">471</span> <span class="n">Saving</span> <span class="n">render</span> <span class="n">plt00401_Render_density</span><span class="o">.</span><span class="n">png</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="mi">471</span> <span class="n">Saving</span> <span class="n">render</span> <span class="n">plt00401_Render_density</span><span class="o">.</span><span class="n">png</span>
 </pre></div>
 </div>
-<p>The output of this is Figure&nbsp;<a class="reference external" href="#fig:yt_Nyx_vol_rend">[fig:yt_Nyx_vol_rend]</a>.</p>
-<p>[fig:yt_Nyx_vol_rend]</p>
+<p>The output of this is <a class="reference internal" href="#fig-yt-nyx-vol-rend"><span class="std std-numref">Fig. 17</span></a>.</p>
+<div class="figure" id="id8">
+<span id="fig-yt-nyx-vol-rend"></span><img alt="_images/yt_Nyx_density_vol_rend.png" src="_images/yt_Nyx_density_vol_rend.png" />
+<p class="caption"><span class="caption-number">Fig. 17 </span><span class="caption-text">Volume rendering of <span class="math">\(128^3\)</span> Nyx simulation using yt. This corresponds
+to the same plot file used to generate the slice plot in
+<a class="reference internal" href="#fig-yt-nyx-slice-plot"><span class="std std-numref">Fig. 16</span></a>.</span></p>
 </div>
-<div class="section" id="using-at-nersc-under-development">
-<h2>Using &nbsp;at NERSC (<em>under development</em>)<a class="headerlink" href="#using-at-nersc-under-development" title="Permalink to this headline">¶</a></h2>
-<p>Because &nbsp;is Python-based, it is portable and can be used in many software
-environments. Here we focus on ’s capabilities at NERSC, which provides
+</div>
+<div class="section" id="using-yt-at-nersc-under-development">
+<h2>Using yt&nbsp;at NERSC (<em>under development</em>)<a class="headerlink" href="#using-yt-at-nersc-under-development" title="Permalink to this headline">¶</a></h2>
+<p>Because yt&nbsp;is Python-based, it is portable and can be used in many software
+environments. Here we focus on yt’s capabilities at NERSC, which provides
 resources for performing both interactive and batch queue-based visualization
-and analysis of &nbsp;data. Coupled with ’s MPI and OpenMP parallelization
+and analysis of AMReX&nbsp;data. Coupled with yt’s MPI and OpenMP parallelization
 capabilities, this can enable high-throughput visualization and analysis
 workflows.</p>
-<div class="section" id="interactive-with-jupyter-notebooks">
-<h3>Interactive &nbsp;with Jupyter notebooks<a class="headerlink" href="#interactive-with-jupyter-notebooks" title="Permalink to this headline">¶</a></h3>
-<p>Unlike &nbsp;(§`2 &lt;#sec:visit&gt;`__), &nbsp;has no client-server interface. Such
-an interface is often crucial when one has large data sets generated on a
-remote system, but wishes to visualize the data on a local workstation. Both
-copying the data between the two systems, as well as visualizing the data
-itself on a workstation, can be prohibitively slow.</p>
+<div class="section" id="interactive-yt-with-jupyter-notebooks">
+<h3>Interactive yt&nbsp;with Jupyter notebooks<a class="headerlink" href="#interactive-yt-with-jupyter-notebooks" title="Permalink to this headline">¶</a></h3>
+<p>Unlike VisIt&nbsp;(see the section on <a class="reference internal" href="#sec-visit"><span class="std std-ref">VisIt</span></a>), yt&nbsp;has no client-server
+interface. Such an interface is often crucial when one has large data sets
+generated on a remote system, but wishes to visualize the data on a local
+workstation. Both copying the data between the two systems, as well as
+visualizing the data itself on a workstation, can be prohibitively slow.</p>
 <p>Fortunately, NERSC has implemented several resources which allow one to
-interact with &nbsp;remotely, emulating a client-server model. In particular,
+interact with yt&nbsp;remotely, emulating a client-server model. In particular,
 NERSC now hosts Jupyter notebooks which run IPython kernels on the Cori system;
 this provides users access to the <code class="docutils literal"><span class="pre">$HOME</span></code>, <code class="docutils literal"><span class="pre">/project</span></code>, and
 <code class="docutils literal"><span class="pre">$SCRATCH</span></code> file systems from a web browser-based Jupyter notebook.
 <strong>*Please note that Jupyter hosting at NERSC is still under
 development, and the environment may change without notice.*</strong></p>
 <p>NERSC also provides Anaconda Python, which allows users to create their own
-customizable Python environments. It is recommended to install &nbsp;in such an
+customizable Python environments. It is recommended to install yt&nbsp;in such an
 environment. One can do so with the following example:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>user@cori10:~&gt; module load python/3.5-anaconda
-user@cori10:~&gt; conda create -p $HOME/yt-conda numpy
-user@cori10:~&gt; source activate $HOME/yt-conda
-(/global/homes/u/user/yt-conda/) user@cori10:~&gt; pip install yt
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">user@cori10:~&gt; module load python/3.5-anaconda</span>
+<span class="go">user@cori10:~&gt; conda create -p $HOME/yt-conda numpy</span>
+<span class="go">user@cori10:~&gt; source activate $HOME/yt-conda</span>
+<span class="go">(/global/homes/u/user/yt-conda/) user@cori10:~&gt; pip install yt</span>
 </pre></div>
 </div>
 <p>More information about Anaconda Python at NERSC is here:
@@ -495,37 +533,38 @@ follow the instructions at this URL under the “Custom Kernels” heading:
 <a class="reference external" href="http://www.nersc.gov/users/data-analytics/data-analytics/web-applications-for-data-analytics">http://www.nersc.gov/users/data-analytics/data-analytics/web-applications-for-data-analytics</a>.
 After writing the appropriate <code class="docutils literal"><span class="pre">kernel.json</span></code> file, the custom kernel will
 appear as an available Jupyter notebook. Then one can interactively visualize
-&nbsp;plot files in the web browser. <a class="footnote-reference" href="#id2" id="id1">[1]</a></p>
+AMReX&nbsp;plot files in the web browser. <a class="footnote-reference" href="#id2" id="id1">[1]</a></p>
 </div>
 <div class="section" id="parallel">
 <h3>Parallel<a class="headerlink" href="#parallel" title="Permalink to this headline">¶</a></h3>
 <p>Besides the benefit of no longer needing to move data back and forth between
 NERSC and one’s local workstation to do visualization and analysis, an
-additional feature of &nbsp;which takes advantage of the computational resources
-at NERSC is its parallelization capabilities. &nbsp;supports both MPI- and
+additional feature of yt&nbsp;which takes advantage of the computational resources
+at NERSC is its parallelization capabilities. yt&nbsp;supports both MPI- and
 OpenMP-based parallelization of various tasks, which are discussed here:
 <a class="reference external" href="http://yt-project.org/doc/analyzing/parallel_computation.html">http://yt-project.org/doc/analyzing/parallel_computation.html</a>.</p>
-<p>Configuring &nbsp;for MPI parallelization at NERSC is a more complex task than
-discussed on the official &nbsp;documentation; the command <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">mpi4py</span></code> is not sufficient. Rather, one must compile <code class="docutils literal"><span class="pre">mpi4py</span></code> from source
-using the Cray compiler wrappers <code class="docutils literal"><span class="pre">cc</span></code>, <code class="docutils literal"><span class="pre">CC</span></code>, and <code class="docutils literal"><span class="pre">ftn</span></code> on
-Cori. Instructions for compiling <code class="docutils literal"><span class="pre">mpi4py</span></code> at NERSC are provided here:
+<p>Configuring yt&nbsp;for MPI parallelization at NERSC is a more complex task than
+discussed in the official yt&nbsp;documentation; the command <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">mpi4py</span></code> is
+not sufficient. Rather, one must compile <code class="docutils literal"><span class="pre">mpi4py</span></code> from source using the Cray
+compiler wrappers <code class="docutils literal"><span class="pre">cc</span></code>, <code class="docutils literal"><span class="pre">CC</span></code>, and <code class="docutils literal"><span class="pre">ftn</span></code> on Cori. Instructions for
+compiling <code class="docutils literal"><span class="pre">mpi4py</span></code> at NERSC are provided here:
 <a class="reference external" href="http://www.nersc.gov/users/data-analytics/data-analytics/python/anaconda-python/#toc-anchor-3">http://www.nersc.gov/users/data-analytics/data-analytics/python/anaconda-python/#toc-anchor-3</a>.
-After <code class="docutils literal"><span class="pre">mpi4py</span></code> has been compiled, one can use the regular Python
-interpreter in the Anaconda environment as normal; when executing &nbsp;operations which support MPI parallelization, the multiple MPI processes will
-spawn automatically.</p>
+After <code class="docutils literal"><span class="pre">mpi4py</span></code> has been compiled, one can use the regular Python interpreter
+in the Anaconda environment as normal; when executing yt&nbsp;operations which support
+MPI parallelization, the multiple MPI processes will spawn automatically.</p>
 <p>Although several components of &nbsp;support MPI parallelization, a few are particularly useful:</p>
 <ul>
 <li><p class="first"><strong>Time series analysis.</strong> Often one runs a simulation for many
 time steps and periodically writes plot files to disk for visualization and
-post-processing. &nbsp;supports parallelization over time series data via the
-<code class="docutils literal"><span class="pre">DatasetSeries</span></code> object. &nbsp;can iterate over a <code class="docutils literal"><span class="pre">DatasetSeries</span></code>
+post-processing. yt&nbsp;supports parallelization over time series data via the
+<code class="docutils literal"><span class="pre">DatasetSeries</span></code> object. yt&nbsp;can iterate over a <code class="docutils literal"><span class="pre">DatasetSeries</span></code>
 in parallel, with different MPI processes operating on different elements of
 the series. This page provides more documentation:
 <a class="reference external" href="http://yt-project.org/doc/analyzing/time_series_analysis.html#time-series-analysis">http://yt-project.org/doc/analyzing/time_series_analysis.html#time-series-analysis</a>.</p>
 </li>
-<li><p class="first"><strong>Volume rendering</strong>. &nbsp;implements spatial decomposition among
+<li><p class="first"><strong>Volume rendering</strong>. yt&nbsp;implements spatial decomposition among
 MPI processes for volume rendering procedures, which can be computationally
-expensive. Note that &nbsp;also implements OpenMP parallelization in volume
+expensive. Note that yt&nbsp;also implements OpenMP parallelization in volume
 rendering, and so one can execute volume rendering with a hybrid MPI+OpenMP
 approach. See this URL for more detail:
 <a class="reference external" href="http://yt-project.org/doc/visualizing/volume_rendering.html?highlight=openmp#openmp-parallelization">http://yt-project.org/doc/visualizing/volume_rendering.html?highlight=openmp#openmp-parallelization</a>.</p>
@@ -535,15 +574,15 @@ wishes to loop over a series which is not a <code class="docutils literal"><span
 performing translational or rotational operations on a camera to make a volume
 rendering in which the field of view moves through the simulation. In this
 case, one is applying a set of operations on a single object (a single plot
-file), rather than over a time series of data. For this workflow, &nbsp;provides
+file), rather than over a time series of data. For this workflow, yt&nbsp;provides
 the <code class="docutils literal"><span class="pre">parallel_objects()</span></code> function. See this URL for more details:
 <a class="reference external" href="http://yt-project.org/doc/analyzing/parallel_computation.html#parallelizing-over-multiple-objects">http://yt-project.org/doc/analyzing/parallel_computation.html#parallelizing-over-multiple-objects</a>.</p>
-<p>An example of MPI parallelization in &nbsp;is shown below, where one animates a
+<p>An example of MPI parallelization in yt&nbsp;is shown below, where one animates a
 time series of plot files from an IAMR simulation while revolving the camera
 such that it completes two full revolutions over the span of the animation:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">yt</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">yt</span>
 <span class="kn">import</span> <span class="nn">glob</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <span class="n">yt</span><span class="o">.</span><span class="n">enable_parallelism</span><span class="p">()</span>
 
@@ -557,7 +596,7 @@ such that it completes two full revolutions over the span of the animation:</p>
 
 <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob1</span> <span class="o">+</span> <span class="n">glob2</span> <span class="o">+</span> <span class="n">glob3</span><span class="p">)</span>
 
-<span class="n">ts</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">DatasetSeries</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ts</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">DatasetSeries</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
 <span class="n">frame</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">num_frames</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
@@ -570,8 +609,8 @@ such that it completes two full revolutions over the span of the animation:</p>
 
     <span class="n">source</span> <span class="o">=</span> <span class="n">sc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">set_bounds</span><span class="p">((</span><span class="mf">1e-2</span><span class="p">,</span> <span class="mf">9e+0</span><span class="p">))</span>
-    <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">set_log</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">grey_opacity</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">set_log</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">source</span><span class="o">.</span><span class="n">tfh</span><span class="o">.</span><span class="n">grey_opacity</span> <span class="o">=</span> <span class="bp">False</span>
 
     <span class="n">cam</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">camera</span>
 
@@ -582,35 +621,35 @@ such that it completes two full revolutions over the span of the animation:</p>
 </pre></div>
 </div>
 <p>When executed on 4 CPUs on a Haswell node of Cori, the output looks like the following:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">user</span><span class="nd">@nid00009</span><span class="p">:</span><span class="o">~/</span><span class="n">yt_vis</span><span class="o">/&gt;</span> <span class="n">srun</span> <span class="o">-</span><span class="n">n</span> <span class="mi">4</span> <span class="o">-</span><span class="n">c</span> <span class="mi">2</span> <span class="o">--</span><span class="n">cpu_bind</span><span class="o">=</span><span class="n">cores</span> <span class="n">python</span> <span class="n">make_yt_movie</span><span class="o">.</span><span class="n">py</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">565</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">0</span> <span class="o">/</span> <span class="mi">4</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">565</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">4</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">566</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">4</span>
-<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">566</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">3</span> <span class="o">/</span> <span class="mi">4</span>
-<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">957</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.103169376949795</span>
-<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">957</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
-<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">957</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
-<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">958</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span><span class="p">]</span>
-<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.0</span>
-<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
-<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.0687808060674485</span>
-<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
-<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
-<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">970</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span><span class="p">]</span>
-<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">970</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
-<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">970</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span><span class="p">]</span>
-<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">973</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.0343922351851018</span>
-<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">973</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
-<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">974</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
-<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">974</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span><span class="p">]</span>
-<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">589</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
-<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">590</span> <span class="n">Creating</span> <span class="n">volume</span>
-<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">592</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
-<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">592</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
-<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">593</span> <span class="n">Creating</span> <span class="n">volume</span>
-<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">593</span> <span class="n">Creating</span> <span class="n">volume</span>
-<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">606</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
-<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">607</span> <span class="n">Creating</span> <span class="n">volume</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">user</span><span class="nd">@nid00009</span><span class="p">:</span><span class="o">~/</span><span class="n">yt_vis</span><span class="o">/&gt;</span> <span class="n">srun</span> <span class="o">-</span><span class="n">n</span> <span class="mi">4</span> <span class="o">-</span><span class="n">c</span> <span class="mi">2</span> <span class="o">--</span><span class="n">cpu_bind</span><span class="o">=</span><span class="n">cores</span> <span class="n">python</span> <span class="n">make_yt_movie</span><span class="o">.</span><span class="n">py</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">565</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">0</span> <span class="o">/</span> <span class="mi">4</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">565</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">4</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">566</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">4</span>
+<span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">566</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">3</span> <span class="o">/</span> <span class="mi">4</span>
+<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">957</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.103169376949795</span>
+<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">957</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
+<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">957</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
+<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">958</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span><span class="p">]</span>
+<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
+<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.0687808060674485</span>
+<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
+<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">969</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
+<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">970</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span><span class="p">]</span>
+<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">970</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
+<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">970</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span><span class="p">]</span>
+<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">973</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.0343922351851018</span>
+<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">973</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
+<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">974</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
+<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">974</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_right_edge</span>         <span class="o">=</span> <span class="p">[</span> <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span>  <span class="mf">6.28318531</span><span class="p">]</span>
+<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">589</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
+<span class="n">P000</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">590</span> <span class="n">Creating</span> <span class="n">volume</span>
+<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">592</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
+<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">592</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
+<span class="n">P003</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">593</span> <span class="n">Creating</span> <span class="n">volume</span>
+<span class="n">P002</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">593</span> <span class="n">Creating</span> <span class="n">volume</span>
+<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">606</span> <span class="n">Rendering</span> <span class="n">scene</span> <span class="p">(</span><span class="n">Can</span> <span class="n">take</span> <span class="n">a</span> <span class="k">while</span><span class="p">)</span><span class="o">.</span>
+<span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">607</span> <span class="n">Creating</span> <span class="n">volume</span>
 </pre></div>
 </div>
 <p>Because the <code class="docutils literal"><span class="pre">parallel_objects()</span></code> function transforms the loop into a
@@ -642,10 +681,10 @@ as a new window.</td></tr>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Profiling.html" class="btn btn-neutral float-right" title="Profiling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Chapter12.html" class="btn btn-neutral float-right" title="Profiling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="EB.html" class="btn btn-neutral" title="AmrCore Source Code" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="Chapter11.html" class="btn btn-neutral" title="Visualization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

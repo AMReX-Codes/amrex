@@ -33,11 +33,11 @@ AMReX directory as license.txt.
    Chapter6
    Chapter7
    Chapter8
-   Fortran
-   EB
-   Visualization
-   Profiling
-   CVODE
+   Chapter9
+   Chapter10
+   Chapter11
+   Chapter12
+   Chapter13
 
 Indices and tables
 ==================
