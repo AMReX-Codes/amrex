@@ -66,6 +66,7 @@ public:
     bool operator== (const IndexType& t) const { return t.itype == itype; }
     //! True if IndexTypes are not identical.
     bool operator!= (const IndexType& t) const { return t.itype != itype; }
+    bool operator< (const IndexType& t) const { return itype < t.itype; }
     //! True if the IndexType is CELL based in all directions.
     bool cellCentered () const { return itype == 0; }
     //! True if the IndexType is CELL based in dir-direction.
