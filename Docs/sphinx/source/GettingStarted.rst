@@ -20,7 +20,7 @@ Example: Hello World
 ====================
 
 The source code of this example is at
-amrex/Tutorials/Basic/HelloWorld_C/ and is also shown below.
+``amrex/Tutorials/Basic/HelloWorld_C/`` and is also shown below.
 
 .. highlight:: c++
 
@@ -50,14 +50,14 @@ that the name of all AMReX header files starts with ``AMReX_``
 Building the Code
 -----------------
 
-You build the code in the amrex/Tutorials/Basic/HelloWorld_C/
+You build the code in the ``amrex/Tutorials/Basic/HelloWorld_C/``
 directory. Typing ``make`` will start the compilation process and
 result in an executable named ``main3d.gnu.DEBUG.ex``. The name
 shows that the GNU compiler with debug options set by AMReX is used.
 It also shows that the executable is built for 3D. Although this
 simple example code is dimension independent, dimensionality does matter
 for all non-trivial examples. The build process can be adjusted by
-modifying the amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile file.
+modifying the ``amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile`` file.
 More details on how to build AMReX can be found in :ref:`Chap:BuildingAMReX`.
 
 Running the Code
@@ -161,7 +161,7 @@ Example: Heat Equation Solver
 =============================
 
 We now look at a more complicated example at
-amrex/Tutorials/Basic/HeatEquation_EX1_C and show how simulation
+``amrex/Tutorials/Basic/HeatEquation_EX1_C`` and show how simulation
 results can be visualized. This example solves the heat equation,
 
 .. math:: \frac{\partial\phi}{\partial t} = \nabla^2\phi

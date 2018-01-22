@@ -27,12 +27,12 @@ class called :cpp:`NavierStokesBase` that inherits from :cpp:`AmrLevel`, and an
 additional derived class :cpp:`NavierStokes`.  Our low Mach number combustion
 code PeleLM (not yet public) also inherits from :cpp:`NavierStokesBase`.
 
-The tutorial code in amrex/Tutorials/Amr/Advection_AmrLevel gives a simple
+The tutorial code in ``amrex/Tutorials/Amr/Advection_AmrLevel`` gives a simple
 example of a class derived from :cpp:`AmrLevel` that can be used to solve the
 advection equation on a subcycling-in-time AMR hierarchy. Note that example is
-essentially the same as the amrex/Tutorials/Amr/Advection_AmrCore tutorial and
+essentially the same as the ``amrex/Tutorials/Amr/Advection_AmrCore`` tutorial and
 documentation in the chapter on :ref:`Chap:AmrCore`, except now we use the
-provided libraries in Src/Amr.
+provided libraries in ``amrex/Src/Amr``.
 
 The tutorial code also contains a :cpp:`LevelBldAdv` class (derived from
 :cpp:`LevelBld` in the Source/Amr directory). This class is used to define
