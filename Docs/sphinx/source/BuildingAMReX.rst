@@ -23,7 +23,7 @@ below shows a list of important variables.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _tab:makevars:
 
@@ -44,6 +44,10 @@ below shows a list of important variables.
    +------------+-------------------------------------+-------------+
    | USE_OMP    | TRUE or FALSE                       | FALSE       |
    +------------+-------------------------------------+-------------+
+
+.. raw:: latex
+
+   \end{center}
 
 At the beginning of ``amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile``, 
 ``AMREX_HOME`` is set to the path to the top directory of AMReX. 
@@ -223,7 +227,7 @@ The list of available option is reported in the table on :ref:`tab:cmakevar` be
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _tab:cmakevar:
 
@@ -279,6 +283,9 @@ The list of available option is reported in the table on :ref:`tab:cmakevar` be
    | AMREX_CXXFLAGS_OVERRIDES  |  User-defined C++ flags                         | None        | user-defined    |
    +---------------------------+-------------------------------------------------+-------------+-----------------+
 
+.. raw:: latex
+
+   \end{center}
 
 The option ``ENABLE_LINEAR_SOLVERS=ON`` triggers the inclusion of C++-based linear
 solvers in the build. Fortran-based linear solvers can be included as well by providing 
