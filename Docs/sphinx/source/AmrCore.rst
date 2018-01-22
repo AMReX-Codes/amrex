@@ -124,20 +124,20 @@ mismatch in the composite solution:
 AmrCore Source Code
 ===================
 
-Here we provide a high-level overview of the source code in amrex/Src/AmrCore.
+Here we provide a high-level overview of the source code in ``amrex/Src/AmrCore.``
 
 AmrMesh and AmrCore
 -------------------
 
 For single-level simulations
-(see e.g., amrex/Tutorials/Basic/HeatEquation_EX1_C/main.cpp)
+(see e.g., ``amrex/Tutorials/Basic/HeatEquation_EX1_C/main.cpp``)
 the user needs to build :cpp:`Geometry`, :cpp:`DistributionMapping`,
 and :cpp:`BoxArray` objects associated with the simulation. For simulations
 with multiple levels of refinement, the :cpp:`AmrMesh` class can be thought
 of as a container to store arrays of these objects (one for each level), and
 information about the current grid structure.
 
-amrex/Src/AmrCore/AMReX_AmrMesh.cpp/H contains the :cpp:`AmrMesh` class.
+``amrex/Src/AmrCore/AMReX_AmrMesh.cpp/H`` contains the :cpp:`AmrMesh` class.
 The protected data members are:
 
 .. highlight:: c++
@@ -236,7 +236,7 @@ class :cpp:`AmrCoreAdv`.
     virtual void ClearLevel (int lev) = 0;
 
 Refer to the :cpp:`AmrCoreAdv` class in the
-amrex/Tutorials/Amr/AmrCore_Advection/Source
+``amrex/Tutorials/Amr/AmrCore_Advection/Source``
 code for a sample implementation.
 
 TagBox, and Cluster
