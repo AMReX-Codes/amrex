@@ -19,12 +19,12 @@ This directory contains source code for the following:
 
 -  Particle support for AMR (see :ref:`Chap:Particles`).
 
-There is another source directory, amrex/Src/Amr/, which contains
+There is another source directory, ``amrex/Src/Amr/``, which contains
 additional classes used to manage the time-stepping for AMR simulations.
 However, it is possible to build a fully adaptive, subcycling-in-time simulation code
 without these additional classes.
 
-In this Chapter, we restrict our use to the amrex/Src/AmrCore source code
+In this Chapter, we restrict our use to the ``amrex/Src/AmrCore`` source code
 and present a tutorial that performs an adaptive, subcycling-in-time simulation
 of the advection equation for a passively advected scalar.
 The accompanying tutorial code is available in ``amrex/Tutorials/Amr/Advection_AmrCore``
