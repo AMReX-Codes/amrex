@@ -63,7 +63,7 @@ Amrvis:
 #. Generally the plotfiles have the form pltXXXXX (the plt prefix can be
    changed), where XXXXX is a number corresponding to the timestep the file was
    output. ``amrvis2d <filename>`` or ``amrvis3d <filename>`` to see a single
-   plotfile, or for 2D data sets, ``amrvis2d -a plt\*``, which will animate the
+   plotfile, or for 2D data sets, ``amrvis2d -a plt*``, which will animate the
    sequence of plotfiles. FArrayBoxes and MultiFabs can also be viewed with the
    ``-fab`` and ``-mf`` options. When opening MultiFabs, use the name of the
    MultiFab’s header file ``amrvis2d -mf MyMultiFab_H``.

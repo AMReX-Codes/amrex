@@ -7,7 +7,8 @@
 HeatEquation_EX1_C Example
 ==========================
 
-The source code tree for the heat equation example is simple, as demonstrated by the figure showing the :ref:`fig:Basics_Heat_flowchart`. We recommend you study
+The source code tree for the heat equation example is simple, as shown in
+:numref:`fig:Basics_Heat_flowchart`. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
 below in action.
 
@@ -23,10 +24,10 @@ below in action.
    Source code tree for the HeatEquation_EX1_C example
 
 
-    Base/
+    amrex/Src/Base/
         Contains source code for single-level simulations.
 
-    HeatEquation_EX1_C
+    amrex/Tutorials/HeatEquation_EX1_C
         Build the code here by editing the GNUmakefile and running make.
 
 
@@ -35,7 +36,7 @@ below in action.
 Dimensionality
 ==============
 
-As we have mentioned in Chapter on :ref:`Chap:BuildingAMReX`, the
+As we have mentioned in :ref:`Chap:BuildingAMReX`, the
 dimensionality of AMReX must be set at compile time. A macro,
 ``AMREX_SPACEDIM``, is defined to be the number of spatial
 dimensions. C++ codes can also use the :cpp:`amrex::SpaceDim`
@@ -81,7 +82,7 @@ ParallelDescriptor
 AMReX users do not need to use MPI directly. Parallel communication
 is often handled by the data abstraction classes (e.g.,MultiFab; section
 on :ref:`sec:basics:multifab`). In addition, AMReX has provided namespace
-:cpp:`ParallelDescriptor` in AMReX_ParallelDescriptor.H. The frequently used
+:cpp:`ParallelDescriptor` in ``AMReX_ParallelDescriptor.H.`` The frequently used
 functions are
 
 .. highlight:: c++
@@ -113,7 +114,7 @@ functions are
 Print
 =====
 
-AMReX provides classes in AMReX_Print.H for printing messages
+AMReX provides classes in ``AMReX_Print.H`` for printing messages
 to standard output or any C++ :cpp:`ostream`. The main reason one
 should use them instead of :cpp:`std::cout` is that messages from
 multiple processes or threads do not get mixed up. Below are some
@@ -228,9 +229,9 @@ Example of AMR Grids
 
 In block-structured AMR, there is a hierarchy of logically rectangular
 grids. The computational domain on each AMR level is decomposed into
-a union of rectangular domains. The :ref:`example of AMR grids<fig:basics:amrgrids>`
-figure below shows an example of AMR. There are three total levels in
-the example. In AMReX numbering convention, the coarsest level is
+a union of rectangular domains. :numref:`fig:basics:amrgrids`
+below shows an example of AMR with three total levels.
+In the AMReX numbering convention, the coarsest level is
 level 0. The coarsest grid (*black*) covers the domain with 
 :math:`16^2` cells. Bold lines represent grid boundaries. There are
 two intermediate resolution grids (*blue*) at level 1 and the
@@ -260,17 +261,17 @@ Box, IntVect and IndexType
 ==========================
 
 :cpp:`Box` in AMReX_Box.H is the data structure for representing
-a rectangular domain in indexing space. For the :ref:`example of AMR grids<fig:basics:amrgrids>`,
-shown above, there are 1, 2 and 2 Boxes on levels 0, 1 and 2, respectively. 
-:cpp:`Box` is a dimension dependent class. It has lower and upper corners 
+a rectangular domain in indexing space. 
+In :numref:`fig:basics:amrgrids`,
+there are 1, 2 and 2 Boxes on levels 0, 1 and 2, respectively. 
+:cpp:`Box` is a dimension-dependent class. It has lower and upper corners 
 (represented by :cpp:`IntVect`) and an index type (represented by 
-:cpp:`IndexType`). There are no floating-point data in the object.
-
+:cpp:`IndexType`). A :cpp`Box` contains no floating-point data.
 
 IntVect
 -------
 
-:cpp:`IntVec` is a dimension dependent class representing an
+:cpp:`IntVec` is a dimension-dependent class representing an
 integer vector in :cpp:`AMREX SPACEDIM`-dimensional space. An
 :cpp:`IntVect` can be constructed as follows,
 
@@ -385,7 +386,7 @@ representing the notion of indices :math:`i` and :math:`i+1/2`.
 Box
 ---
 
-A Box is an abstraction for defining discrete regions of
+A ``Box`` is an abstraction for defining discrete regions of
 :cpp:`AMREX_SPACEDIM`-dimensional indexing space. Boxes have an
 :cpp:`IndexType` and two :cpp:`IntVects` representing the lower and
 upper corners. Boxes can exist in positive and negative indexing
@@ -420,8 +421,7 @@ same domain of :math:`64^3` cells. Note that in AMReX convention, the
 lower side of a cell has the same integer value as the cell centered
 index. That is if we consider a cell based index represent :math:`i`, the
 nodal index with the same integer value represents :math:`i-1/2`.
-The figure below shows :ref:`some of the different index types<fig:basics:indextypes>`
-for 2D.
+:numref:`fig:basics:indextypes` shows some of the different index types for 2D.
 
 .. raw:: latex
 
@@ -502,16 +502,14 @@ does not change the index type. Some examples are shown below.
       print() << uncoarsenable.refine(2);  // ({16,16,16}, {31,31,31});
                                            // Different from the original!
 
-Note that refinement and coarsening behaviors depend on the indexing
-type. One should think the refinement and coarsening in AMR context
-that refined or coarsened :cpp:`Box` still covers the same physical
-domain. :cpp:`Box uncoarsenable` in the example above is considered
-uncoarsenable because its coarsened version does not cover the same
+Note that the behavior of refinement and coarsening depends on the index
+type. Note that in this context, the refined or coarsened :cpp:`Box` still 
+covers the same physical domain. :cpp:`Box uncoarsenable` in the example above 
+is considered uncoarsenable because its coarsened version does not cover the same
 physical domain in the AMR context.
 
-Boxes can grow, and they can grow in all directions or just one
-direction. There are a number of grow functions. Some are
-member functions of the :cpp:`Box` class and others are non-member
+Boxes can grow in one or all directions.  There are a number of grow functions. 
+Some are member functions of the :cpp:`Box` class and others are non-member
 functions in the :cpp:`amrex` namespace.
 
 The :cpp:`Box` class provides the following member functions testing if a
@@ -637,7 +635,7 @@ domain and the indexing space domain. For example,
 BoxArray
 ========
 
-:cpp:`BoxArray` is a class in AMReX_BoxArray.H for storing a
+:cpp:`BoxArray` is a class in ``AMReX_BoxArray.H`` for storing a
 collection of Boxes on a single AMR level. One can make a
 :cpp:`BoxArray` out of a single :cpp:`Box` and then chop it into multiple
 Boxes.
@@ -761,12 +759,12 @@ DistributionMapping
 ===================
 
 :cpp:`DistributionMapping` is a class in
-AMReX_DistributionMapping.H describes which process owns the data
+``AMReX_DistributionMapping.H`` that describes which process owns the data
 living on the domains specified by the Boxes in a
 :cpp:`BoxArray`. Like :cpp:`BoxArray`, there is an element for each
 :cpp:`Box` in :cpp:`DistributionMapping`, including the ones owned by other
-parallel processes. A way to construct a :cpp:`DistributionMapping`
-object given a :cpp:`BoxArray` is as follows.
+parallel processes. One can construct a :cpp:`DistributionMapping`
+object given a :cpp:`BoxArray`,
 
 .. highlight:: c++
 
@@ -774,7 +772,7 @@ object given a :cpp:`BoxArray` is as follows.
 
       DistributionMapping dm {ba};
 
-Oftentimes what one needs is simply making a copy.
+or by simply making a copy, 
 
 .. highlight:: c++
 
@@ -789,11 +787,11 @@ process ID at a given index.
 
 By default, :cpp:`DistributionMapping` uses an algorithm based on space
 filling curve to determine the distribution. One can change the default
-via :cpp:`ParmParse` parameter ``DistributionMapping.strategy``.
+via the :cpp:`ParmParse` parameter ``DistributionMapping.strategy``.
 ``KNAPSACK`` is a common choice that is optimized for load balance.
 One can also explicitly construct a distribution.
-:cpp:`DistributionMapping` class allows the user to have complete control by
-passing an array of integers.
+The :cpp:`DistributionMapping` class allows the user to have complete control by
+passing an array of integers that represent the mapping of grids to processes.
 
 .. highlight:: c++
 
@@ -812,7 +810,8 @@ BaseFab, FArrayBox and IArrayBox
 
 AMReX is a block-structured AMR framework. Although AMR introduces
 irregularity to the data and algorithms, there is regularity at the
-block/Box level due to rectangular domain, and the data structure
+block/Box level because each is still logically rectangular, 
+and the data structure
 at the Box level is conceptually simple. :cpp:`BaseFab` is a
 class template for multi-dimensional array-like data structure on a
 :cpp:`Box`. The template parameter is typically basic types such as
@@ -1013,8 +1012,7 @@ structures. To construct a FabArray, a :cpp:`BoxArray` must be
 provided because it is intended to hold *grid* data defined on
 a union of rectangular regions embedded in a uniform index space. For
 example, an FabArray object can be used to hold data for one
-level of the :ref:`examples of AMR grids<fig:basics:amrgrids>` illustrated in the
-figure at the beginning this secion.
+level as in :numref:`fig:basics:amrgrids`.
 
 :cpp:`FabArray` is a parallel data structure that the data (i.e.,
 FAB) are distributed among parallel processes. On each process,
@@ -1024,8 +1022,8 @@ operations that require data owned by other processes, remote
 communications are involved. Thus, the construction of a
 :cpp:`FabArray` requires a :cpp:`DistributionMapping`
 (see the section on :ref:`sec:basics:dm`) that specifies which process owns which
-Box. For level 2 (*red*) in the :ref:`examples of AMR grids<fig:basics:amrgrids>`
-illustrated in the figure earlier, there are two Boxes. Suppose
+Box. For level 2 (*red*) in in :numref:`fig:basics:amrgrids`,
+there are two Boxes. Suppose
 there are two parallel processes, and we use a
 DistributionMapping that assigns one Box to each process.
 For :cpp:`FabArray` on each process, it is built on a :cpp:`BoxArray` with
@@ -1059,9 +1057,10 @@ If the :cpp:`BoxArray` has a :cpp:`Box{(7,7,7) (15,15,15)}`, the one
 used for constructing :cpp:`FArrayBox` will be :cpp:`Box{(8,8,8)
 (16,16,16)}` in this example. For cells in :cpp:`FArrayBox`, we
 call those in the original :cpp:`Box` **valid cells** and the grown part
-**ghost cells**. Note that cpp:`FArrayBox` itself alone does not have the
-concept of ghost cell, whereas ghost cell is a key concept of
-:cpp:`MultiFab` that allows for local operations on ghost cell data
+**ghost cells**. Note that :cpp:`FArrayBox` itself does not have the
+concept of ghost cells. 
+Ghost cells are a key concept of :cpp:`MultiFab`,however,
+that allows for local operations on ghost cell data
 originated from remote processes. We will discuss how to fill ghost
 cells with data from valid cells later in this section.
 :cpp:`MultiFab` also has a default constructor. One can define an empty
@@ -1080,7 +1079,7 @@ follows.
       mf.define(ba, dm, ncomp, ngrow);
 
 Given an existing :cpp:`MultiFab`, one can also make an alias
-MultiFab as follows.
+:cpp:`MultiFab` as follows.
 
 .. highlight:: c++
 
@@ -1139,17 +1138,17 @@ variables and the fluxes are defined as face averaged variables.
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
 Here all :cpp:`MultiFab` use the same :cpp:`DistributionMapping`, but
-their :cpp:`BoxArrays` have different index types. The state is cell
-based, whereas the fluxes are on the faces. Suppose the cell based
-cpp:`BoxArray` contains a cpp:`Box{(8,8,16), (15,15,31)}`. The
-state on that Box is conceptually a Fortran Array with the
+their :cpp:`BoxArrays` have different index types. The state is cell-based,
+whereas the fluxes are on the faces. Suppose the cell based
+:cpp:`BoxArray` contains a :cpp:`Box{(8,8,16), (15,15,31)}`. The
+state on that :cpp:`Box` is conceptually a Fortran Array with the
 dimension of :fortran:`(8:15,8:15,16:31,0:2)`. The fluxes are arrays with
 slightly different indices. For example, the :math:`x`-direction flux for
 that :cpp:`Box` has the dimension of :fortran:`(8:16,8:15,16:31,0:2)`. Note
 there is an extra element in :math:`x`-direction.
 
 The :cpp:`MultiFab` class provides many functions performing common
-arithmetic operations on a MultiFab or between MultiFabs
+arithmetic operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs`
 built with the *same* :cpp:`BoxArray` and :cpp:`DistributionMap`.
 For example,
 
@@ -1224,7 +1223,7 @@ intersection. The most generic interface for this is
 
       mfdst.ParallelCopy(mfsrc, compsrc, compdst, ncomp, ngsrc, ngdst, period, op);
 
-Here cpp:`mfdst` and :cpp:`mfsrc` are destination and source
+Here :cpp:`mfdst` and :cpp:`mfsrc` are destination and source
 MultiFabs, respectively. Parameters :cpp:`compsrc`, :cpp:`compdst`, and
 :cpp:`ncomp` are integers specifying the range of components. The copy is
 performed on :cpp:`ncomp` components starting from component :cpp:`compsrc` of
@@ -1346,8 +1345,8 @@ FArrayBoxes on process 1. Thus the numbers of iterations of
 MFIter are 2 and 3 on processes 0 and 1, respectively.
 
 In the example above, :cpp:`MultiFab` is assumed to have a single
-component. If it has multiple component, we can call :cpp:`int nc =
-mf.nComp()` to get the number of components and pass :cpp:`it` to the
+component. If it has multiple components, we can call :cpp:`int nc =
+mf.nComp()` to get the number of components and pass :cpp:`nc` to the
 kernel function.
 
 There is only one :cpp:`MultiFab` in the example above. Below is an
@@ -1537,7 +1536,7 @@ here usually require very little changes.
    | | Each has :math:`8^2` cells.                       | | :math:`4^2` cells. There are 8 tiles in total.     |
    +-----------------------------------------------------+------------------------------------------------------+
 
-The table above (:ref:`comparing MFIter with and without tiling<fig:basics:cc_comparison>`)
+:numref:`fig:basics:cc_comparison`
 shows an example of the difference between :cpp:`validbox` and
 :cpp:`tilebox`. In this example, there are two grids of cell-centered
 index type. The function :cpp:`validbox` always returns a :cpp:`Box` for the
@@ -1598,8 +1597,7 @@ might be cell-centered, whereas :cpp:`F` might be nodal in
 :cpp:`MFIter::validbox` and :cpp:`tilebox` functions return Boxes of
 the same type as the :cpp:`MultiFab` used in defining the :cpp:`MFIter`
 (:cpp:`F` in this example). 
-The table above (:ref:`comparing MFIter with and without tiling, 
-for face-centered nodal indexing<fig:basics:ec_comparison>`)
+:numref:`fig:basics:ec_comparison`
 illustrates an example of non-cell-centered valid
 and tile boxes. Besides :cpp:`validbox` and :cpp:`tilebox`,
 :cpp:`MFIter` has a number of functions returning various Boxes.
@@ -1626,7 +1624,7 @@ However, the function :cpp:`growntilebox` only extends the tile Box
 in such a way that tiles from the same grid do not overlap. This is
 the basic design principle of these various tiling functions. Tiling
 is a way of domain decomposition for work sharing. Overlapping tiles
-is undesirable because works would be wasted and for multi-threaded
+is undesirable because work would be wasted and for multi-threaded
 codes race conditions could occur.
 
 .. |e| image:: ./Basics/cc_growbox.png
@@ -1652,9 +1650,8 @@ codes race conditions could occur.
    |                                                     |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
 
-The table above (:ref:`comparing growing cell-type and face-type 
-tile boxes<fig:basics:growbox_comparison>`) illustrates an 
-example :cpp:`growntilebox`. These functions in :cpp:`MFIter` 
+:numref:`fig:basics:growbox_comparison`
+illustrates an example of :cpp:`growntilebox`. These functions in :cpp:`MFIter` 
 return :cpp:`Box` by value. There are two ways of using these
 functions.
 
@@ -1678,7 +1675,7 @@ Calling Fortran or C
 ====================
 
 In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
-pattern for working with MultiFabs is use :cpp:`MFIter` to
+pattern for working with MultiFabs is to use :cpp:`MFIter` to
 iterate over the data. In each iteration, a kernel function is called
 to work on the data and the work region is specified by a :cpp:`Box`.
 When tiling is used, the work region is a tile. The tiling is logical
@@ -1842,8 +1839,9 @@ because after periodic transformation it becomes either interior
 boundary or coarse/fine boundary.
 
 Interior boundary is the border among the grid Boxes themselves.
-For example, in the figure showing :ref:`example of AMR grids<fig:basics:amrgrids>` at the
-beginning of this chapter, the two blue grid Boxes on level 1 share an 
+For example, in 
+:numref:`fig:basics:amrgrids`,
+the two blue grid Boxes on level 1 share an 
 interior boundary that is 10 cells long. For a :cpp:`MultiFab` with ghost 
 cells on level 1, we can use the :cpp:`MultiFab::FillBoundary` function 
 introduced in the section on :ref:`sec:basics:multifab` to fill ghost 

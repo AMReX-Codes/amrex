@@ -561,7 +561,9 @@ mesh data IO. For example:
 
 will create a plot file called “plt00000” and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called “particle0”. There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
-The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in amrex/Tools/Py_util/amrex_particles_to_vtp that can convert both the ASCII and the binary particle files to a format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
+The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in 
+``amrex/Tools/Py_util/amrex_particles_to_vtp`` that can convert both the ASCII and the binary particle files to a 
+format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
 .. [1]
    Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
