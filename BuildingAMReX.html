@@ -513,8 +513,8 @@ For example, one can enable OpenMP support as follows:</p>
 </table>
 <p>The option <code class="docutils literal"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code> triggers the inclusion of C++-based linear
 solvers in the build. Fortran-based linear solvers can be included as well by providing
-the option <code class="docutils literal"><span class="pre">ENABLE_FBASELIB=ON</span></code> in addition to <code class="docutils literal"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code>. The
-options <code class="docutils literal"><span class="pre">DEBUG=ON</span></code> implies <code class="docutils literal"><span class="pre">ENABLE_ASSERTION=ON</span></code>. In order to turn off assertions
+the option <code class="docutils literal"><span class="pre">ENABLE_FBASELIB=ON</span></code> in addition to <code class="docutils literal"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code>.</p>
+<p>The option <code class="docutils literal"><span class="pre">DEBUG=ON</span></code> implies <code class="docutils literal"><span class="pre">ENABLE_ASSERTION=ON</span></code>. In order to turn off assertions
 in debug mode, <code class="docutils literal"><span class="pre">ENABLE_ASSERTION=OFF</span></code> must be set explicitly while invoking CMake.</p>
 </div>
 <div class="section" id="importing-amrex-configuration-into-a-cmake-project">
@@ -526,9 +526,9 @@ CMakeLists.txt file:</p>
 </pre></div>
 </div>
 <p>This will load AMReX-specific CMake variables containing the necessary
-info to compile and link your code to AMReX. For a list of all the available
-configuration variables, refer to the file AMReXConfig.cmake.in in
-/path/to/installdir/cmake/.</p>
+information to compile and link your code to AMReX. For a list of all the available
+configuration variables, refer to the file <code class="docutils literal"><span class="pre">AMReXConfig.cmake.in</span></code> in
+<code class="docutils literal"><span class="pre">/path/to/installdir/cmake/</span></code>.</p>
 </div>
 </div>
 
