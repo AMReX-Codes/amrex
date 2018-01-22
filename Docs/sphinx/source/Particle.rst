@@ -564,7 +564,7 @@ will create a plot file called “plt00000” and write the mesh data in :cpp:`o
 The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in amrex/Tools/Py_util/amrex_particles_to_vtp that can convert both the ASCII and the binary particle files to a format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
 .. [1]
-   Particles default to double-precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
+   Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
 
 .. [2]
    Note that :cpp:`cpu` stores the number of the process the particle was *generated* on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle :cpp:`id`. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.
