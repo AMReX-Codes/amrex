@@ -196,20 +196,24 @@ an executable named ``main2d.gnu.ex``. To run it, type,
 
       ./main2d.gnu.DEBUG.ex inputs_2d
 
-Note that the command takes a file inputs_2d. When the run
-finishes, you will have a number of plotfiles, plt00000,
-plt01000, etc. The calculation solves the heat equation in 2D on a
-:math:`256 \times 256` cells domain. It runs :math:`10,000` steps and makes a
-plotfile every :math:`1,000` steps. These are runtime parameters that can
-be adjusted in inputs_2d.
+Note that the command takes a file ``inputs_2d.``
+The calculation solves the heat equation in 2D on a domain with
+:math:`256 \times 256` cells.  It runs :math:`10,000` steps and makes a
+plotfile every :math:`1,000` steps.  When the run finishes,
+you will have a number of plotfiles, ``plt00000, plt01000,`` etc, in the
+directory where you are running.  You can control runtime parameters such as
+how many time steps to run and how often to write plotfiles by setting them in
+``inputs_2d.``
 
 Visualization
 =============
 
-There are several visualization tools that can be used for  plotfiles. The standard tool used within the
-AMReX-community is AmrVis, a package developed and supported
-by CCSE that is designed specifically for highly efficient visualization
-of block-structured hierarchical AMR data.
-Plotfiles can also be viewed using the VisIt, ParaView, and yt packages.
+There are several visualization tools that can be used for AMReX plotfiles.
+One standard tool used within the AMReX-community is Amrvis,
+a package developed and supported by CCSE that is designed specifically
+for highly efficient visualization of block-structured hierarchical AMR data.
+(Amrvis can also be used to visualize performance data; see the ref:`Chap:Profiling`
+chapter for further details.)
+Plotfiles can also be viewed using the VisIt, ParaView, and yt packages.
 Particle data can be viewed using ParaView.
 Refer to Chapter on :ref:`Chap:Visualization` for how to use each of these tools.
