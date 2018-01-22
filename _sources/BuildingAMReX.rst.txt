@@ -17,7 +17,7 @@ Dissecting a Simple Make File
 -----------------------------
 
 An example of building with GNU Make can be found in
-amrex/Tutorials/Basic/HelloWorld_C. 
+``amrex/Tutorials/Basic/HelloWorld_C``. 
 :numref:`tab:makevars`
 below shows a list of important variables.
 
