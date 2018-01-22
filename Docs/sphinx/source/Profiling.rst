@@ -1,8 +1,17 @@
+.. role:: cpp(code)
+   :language: c++
+
+.. role:: fortran(code)
+   :language: fortran
+
+
 Instrumenting the Code
 ======================
 
 C++
 ---
+
+.. highlight:: c++
 
 ::
 
@@ -52,43 +61,54 @@ Fortran90
 
 Fortran90 functions can also be instrumented with the following calls:
 
+.. highlight:: fortran
+
 ::
 
     call bl_proffortfuncstart("my_function")
     ...
     call bl_proffortfuncstop("my_function")
 
-Note that the start and stop calls must be matched and the profiling output will warn of any
-bl_proffortfuncstart calls that were not stopped with bl_proffortfuncstop calls
-(in debug mode only). You will need to add bl_proffortfuncstop
-before any returns and at the end of the function or at the point in the
-function you want to stop profiling.
+Note that the start and stop calls must be matched and the profiling output
+will warn of any :fortran:`bl_proffortfuncstart` calls that were not stopped
+with :fortran:`bl_proffortfuncstop` calls (in debug mode only). You will need
+to add :fortran:`bl_proffortfuncstop` before any returns and at the end of the
+function or at the point in the function you want to stop profiling.
 
 Types of Profiling
 ==================
 
-Currently you have two options for AMReX-specific profiling. If you set TINY_PROFILE = TRUE
-in your GNUMakefile then at the end of the run, a summary of exclusive and inclusive function times
-will be written to stdout.
+Currently you have two options for AMReX-specific profiling. If you set
+``TINY_PROFILE = TRUE`` in your GNUMakefile then at the end of the run, a
+summary of exclusive and inclusive function times will be written to stdout.
 
-If you set PROFILE = TRUE then a bl_prof directory will be written that contains
-detailed per-task timings of the code. An exclusive-only set of function timings will be written to stdout
+If you set ``PROFILE = TRUE`` then a ``bl_prof`` directory will be written that
+contains detailed per-task timings of the code. An exclusive-only set of
+function timings will be written to stdout
 
-If, in addition to PROFILE = TRUE, you set TRACE_PROFILE = TRUE, then the profiler keeps track
-of when each profiled function is called and the bl_prof directory will include the function call stack.
-This is especially useful when core functions, such as FillBoundary can be called from many different regions of the code.
-Part of the trace profiling is the ability to set regions in the code which can be analyzed for profiling information independently from other regions.
+If, in addition to ``PROFILE = TRUE``, you set ``TRACE_PROFILE = TRUE``, then
+the profiler keeps track of when each profiled function is called and the
+bl_prof directory will include the function call stack. This is especially
+useful when core functions, such as :cpp:`FillBoundary` can be called from many
+different regions of the code. Part of the trace profiling is the ability to
+set regions in the code which can be analyzed for profiling information
+independently from other regions.
 
-If, in addition to PROFILE = TRUE, you set COMM_PROFILE = TRUE, then the bl_prof directory
-will contain additional information about MPI communication (point-to-point timings, data volume, barrier/reduction times, etc.). TRACE_PROFILE = TRUE and COMM_PROFILE = TRUE can be set together.
+If, in addition to ``PROFILE = TRUE``, you set ``COMM_PROFILE = TRUE``, then
+the ``bl_prof`` directory will contain additional information about MPI
+communication (point-to-point timings, data volume, barrier/reduction times,
+etc.). ``TRACE_PROFILE = TRUE`` and ``COMM_PROFILE = TRUE`` can be set
+together.
 
-The AMReX-specific profiling tools are currently under development and this documentation will reflect the latest
-status in the development branch.
+The AMReX-specific profiling tools are currently under development and this
+documentation will reflect the latest status in the development branch.
 
 Sample Output
 =============
 
-Sample output from TINY_PROFILE = TRUE can look like the following:
+Sample output from ``TINY_PROFILE = TRUE`` can look like the following:
+
+.. highlight:: console
 
 ::
 
@@ -114,27 +134,26 @@ Sample output from TINY_PROFILE = TRUE can look like the following:
 AMRProfParser
 =============
 
-AMRProfParser is a tool for processing and analyzing the bl_prof database. It is a
-command line application that can create performance summaries, plotfiles showing
-point to point communication and timelines, HTML call trees, communication call
-statistics, function timing graphs, and other data products. The parser’s data
-services functionality can be called from an interactive environment such as Amrvis,
-from a sidecar for dynamic performance optimization, and from other utilities such as
-the command line version of the parser itself. It has been integrated into Amrvis
-for visual interpretation of the data allowing Amrvis to open the bl_prof database
-like a plotfile but with interfaces appropriate to profiling data. AMRProfParser
-and Amrvis can be run in parallel both interactively and in batch mode.
+:cpp:`AMRProfParser` is a tool for processing and analyzing the ``bl_prof``
+database. It is a command line application that can create performance
+summaries, plotfiles showing point to point communication and timelines, HTML
+call trees, communication call statistics, function timing graphs, and other
+data products. The parser’s data services functionality can be called from an
+interactive environment such as Amrvis, from a sidecar for dynamic performance
+optimization, and from other utilities such as the command line version of the
+parser itself. It has been integrated into Amrvis for visual interpretation of
+the data allowing Amrvis to open the bl_prof database like a plotfile but with
+interfaces appropriate to profiling data. AMRProfParser and Amrvis can be run
+in parallel both interactively and in batch mode.
 
 CrayPat
 =======
 
 The profiling suite available on Cray XC systems is Cray Performance
-Measurement and Analysis Tools
-(“CrayPat”) [1]_.
-Most CrayPat functionality is supported for all compilers available in the Cray
-“programming environments“ (modules which begin “``PrgEnv-``”);
-however, a few features, chiefly the “Reveal” tool, are supported only on
-applications compiled with Cray’s compiler
+Measurement and Analysis Tools (“CrayPat”) [1]_.  Most CrayPat functionality is
+supported for all compilers available in the Cray “programming environments“
+(modules which begin “``PrgEnv-``”); however, a few features, chiefly the
+“Reveal” tool, are supported only on applications compiled with Cray’s compiler
 CCE [2]_ [3]_.
 
 CrayPat supports both high-level profiling tools, as well as fine-grained
@@ -144,33 +163,32 @@ uses sampling to identify the most time-consuming functions in an application.
 High-level application profiling
 --------------------------------
 
-The simplest way to obtain a high-level overview of an application’s performance consists of the following steps:
+The simplest way to obtain a high-level overview of an application’s
+performance consists of the following steps:
 
-#. Load the ``perftools-base`` module, then the
-   ``perftools-lite`` module. (The modules will not work if loaded in
-   the opposite order.)
+#. Load the ``perftools-base`` module, then the ``perftools-lite`` module. (The
+   modules will not work if loaded in the opposite order.)
 
-#. Compile the application with the Cray compiler wrappers ``cc``,
-   ``CC``, and/or ``ftn``. This works with any of the compilers
-   available in the ``PrgEnv-`` modules. E.g., on the Cori system at
-   NERSC, one can use the Intel, GCC, or CCE compilers. No extra compiler
-   flags are necessary in order for CrayPat to work. CrayPat instruments
-   the application, so the ``perftools-`` modules must be loaded
-   before one compiles the application.
+#. Compile the application with the Cray compiler wrappers ``cc``, ``CC``,
+   and/or ``ftn``. This works with any of the compilers available in the
+   ``PrgEnv-`` modules. E.g., on the Cori system at NERSC, one can use the
+   Intel, GCC, or CCE compilers. No extra compiler flags are necessary in order
+   for CrayPat to work. CrayPat instruments the application, so the
+   ``perftools-`` modules must be loaded before one compiles the application.
 
 #. Run the application as normal. No special flags are required. Upon
-   application completion, CrayPat will write a few files to the directory
-   from which the application was launched. The profiling database is a
-   single file with the ``.ap2`` suffix.
+   application completion, CrayPat will write a few files to the directory from
+   which the application was launched. The profiling database is a single file
+   with the ``.ap2`` suffix.
 
-#. One can query the database in many different ways using the
-   ``pat_report`` command on the ``.ap2`` file. ``pat_report`` is
-   available on login nodes, so the analysis need not be done on a compute node.
-   Querying the database with no arguments to ``pat_report`` prints several
-   different profiling reports to STDOUT, including a list of the most
-   time-consuming regions in the application. The output of this command can be
-   long, so it can be convenient to pipe the output to a pager or a file. A
-   portion of the output from ``pat_report <file>.ap2`` is shown below:
+#. One can query the database in many different ways using the ``pat_report``
+   command on the ``.ap2`` file. ``pat_report`` is available on login nodes, so
+   the analysis need not be done on a compute node.  Querying the database with
+   no arguments to ``pat_report`` prints several different profiling reports to
+   STDOUT, including a list of the most time-consuming regions in the
+   application. The output of this command can be long, so it can be convenient
+   to pipe the output to a pager or a file. A portion of the output from
+   ``pat_report <file>.ap2`` is shown below:
 
    ::
 
@@ -220,15 +238,13 @@ The simplest way to obtain a high-level overview of an application’s performan
 IPM - Cross-Platform Integrated Performance Monitoring
 ======================================================
 
-IPM provides portable profiling capabilities across HPC platforms,
-including support on selected Cray and IBM machines (cori and (TODO:
-verify it works on) summit). Running an IPM instrumented binary generates
-a summary of number of calls and time spent on MPI communication library
-functions. In addition, hardware performance counters can also be
-collected through PAPI.
+IPM provides portable profiling capabilities across HPC platforms, including
+support on selected Cray and IBM machines (cori and (TODO: verify it works on)
+summit). Running an IPM instrumented binary generates a summary of number of
+calls and time spent on MPI communication library functions. In addition,
+hardware performance counters can also be collected through PAPI.
 
-Detailed instructions can be found at  [4]_ and
- [5]_.
+Detailed instructions can be found at  [4]_ and [5]_.
 
 Building with IPM on cori
 -------------------------
@@ -239,21 +255,23 @@ Steps:
 
 #. Build code as normal with make.
 
-#. Re-run the link command (e.g. cut-and-paste) with $IPM added to the end of the line.
+#. Re-run the link command (e.g. cut-and-paste) with ``$IPM`` added to the end of the line.
 
 Running with IPM on cori
 ------------------------
 
-#. Set environment variables: export IPM_REPORT=full IPM_LOG=full IPM_LOGDIR=\ :math:`<`\ dir\ :math:`>`
+#. Set environment variables: ``export IPM_REPORT=full IPM_LOG=full IPM_LOGDIR= <dir>``
 
-#. Results will be printed to stdout and an xml file generated in the directory specified by IPM_LOGDIR.
+#. Results will be printed to stdout and an xml file generated in the directory specified by ``IPM_LOGDIR``.
 
-#. Post-process the xml with ipm_parse -html :math:`<`\ xmlfile\ :math:`>`, which produces an directory with html.
+#. Post-process the xml with ``ipm_parse -html <xmlfile>``, which produces an directory with html.
 
 Summary MPI Profile
 -------------------
 
 Example MPI profile output:
+
+.. highlight:: console
 
 ::
 
@@ -294,17 +312,21 @@ Example MPI profile output:
     # MPI_Init                      0.00            128           0.00
     # MPI_Finalize                  0.00            128           0.00
 
-The total, average, minimum, and maximum wallclock and MPI times across ranks is shown.
-The memory footprint is also collected.
-Finally, results include number of calls and total time spent in each type of MPI call.
+The total, average, minimum, and maximum wallclock and MPI times across ranks
+is shown.  The memory footprint is also collected.  Finally, results include
+number of calls and total time spent in each type of MPI call.
 
 PAPI Performance Counters
 -------------------------
 
-To collect performance counters, set IPM_HPM=\ :math:`<`\ list\ :math:`>`, where the list is a comma-separated
-list of PAPI counters. For example: export IPM_HPM=PAPI_L2_TCA,PAPI_L2_TCM.
+To collect performance counters, set ``IPM_HPM=<list>``, where the list is a
+comma-separated list of PAPI counters. For example: ``export
+IPM_HPM=PAPI_L2_TCA,PAPI_L2_TCM``.
 
-For reference, here is the list of available counters on cori, which can be found by running papi_avail:
+For reference, here is the list of available counters on cori, which can be
+found by running ``papi_avail``:
+
+.. highlight:: console
 
 ::
 
@@ -337,19 +359,17 @@ For reference, here is the list of available counters on cori, which can be foun
     PAPI_REF_CYC 0x8000006b  Yes   No   Reference clock cycles
 
 Due to hardware limitations, there is a limit to which counters can be
-collected simultaneously in a single run. Some counters may map to the
-same registers and thus cannot be collected at the same time.
+collected simultaneously in a single run. Some counters may map to the same
+registers and thus cannot be collected at the same time.
 
 Example HTML Performance Summary
 --------------------------------
 
-Running ipm_parse -html :math:`<`\ xmlfile\ :math:`>` on the generated xml file
-will produce an HTML document that includes summary performance numbers
-and automatically generated figures. Some examples are shown here.
+Running ``ipm_parse -html <xmlfile>`` on the generated xml file will produce an
+HTML document that includes summary performance numbers and automatically
+generated figures. Some examples are shown here.
 
 .. figure:: Profiling/figs/summary.png
-   :alt: 
-   Sample performance summary generated by IPM
 
    Sample performance summary generated by IPM
 
@@ -359,7 +379,36 @@ and automatically generated figures. Some examples are shown here.
          \includegraphics[width=0.49\columnwidth]{Profiling/figs/timings.png}
        }
 
-| 
+
+.. |a| image:: ./Profiling/figs/timings.png
+       :width: 100%
+
+.. |b| image:: ./Profiling/figs/papi.png
+       :width: 100%
+
+.. |c| image:: ./Profiling/figs/mpi.png
+       :width: 100%
+
+.. |d| image:: ./Profiling/figs/msgsizes.png
+       :width: 100%
+
+.. |e| image:: ./Profiling/figs/commtopo.png
+       :width: 100%
+
+.. table:: Example of performance graphs generated by IPM
+   :align: center
+   
+   +-----------------------------------------------------+------------------------------------------------------+
+   |                        |a|                          |                        |b|                           |
+   +-----------------------------------------------------+------------------------------------------------------+
+   | | Timings                                           | | PAPI Counters                                      |
+   +-----------------------------------------------------+------------------------------------------------------+
+   |                        |c|                          |                        |d|                           |
+   +-----------------------------------------------------+------------------------------------------------------+
+   | | MPI Time by Function                              | | MPI Time by Message Size                           |
+   +-----------------------------------------------------+------------------------------------------------------+
+   |                        |e|                          | | (left) Point-to-Point Communication Volume         |
+   +-----------------------------------------------------+------------------------------------------------------+
 
 .. [1]
    https://pubs.cray.com/content/S-2376/6.4.6/cray-performance-measurement-and-analysis-tools-user-guide-646-s-2376
