@@ -230,12 +230,10 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 }
 
 BoxArray
-MLCellLinOp::makeNGrids () const
+MLCellLinOp::makeNGrids (int grid_size) const
 {
     const Geometry& geom = m_geom[0].back();
     const BoxArray& old_ba = m_grids[0].back();
-
-    const int grid_size = 16;
 
     const IntVect sz = geom.Domain().size();
     IntVect N;

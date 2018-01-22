@@ -46,6 +46,7 @@ public:
     int numAMRLevels () const { return namrlevs; }
 
     void setNSolve (int flag) { do_nsolve = flag; }
+    void setNSolveGridSize (int s) { nsolve_grid_size = s; }
 
 private:
 
@@ -72,6 +73,14 @@ private:
     int namrlevs;
     int finest_amr_lev;
 
+    // N Solve
+    int do_nsolve = false;
+    int nsolve_grid_size = 16;
+    std::unique_ptr<MLLinOp> ns_linop;
+    std::unique_ptr<MLMG> ns_mlmg;
+    std::unique_ptr<MultiFab> ns_sol;
+    std::unique_ptr<MultiFab> ns_rhs;
+
     // To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     // in the frame of the original equation, not the correction form
 
@@ -92,6 +101,8 @@ private:
     Vector<Real> timer;
 
     void prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs);
+
+    void prepareForNSolve ();
 
     void oneIter (int iter);
 
@@ -123,16 +134,6 @@ private:
 
     void averageDownAndSync ();
 
-    //
-    // N Solve
-    //
-    void prepareForNSolve ();
-
-    int do_nsolve = false;
-    std::unique_ptr<MLLinOp> ns_linop;
-    std::unique_ptr<MLMG> ns_mlmg;
-    std::unique_ptr<MultiFab> ns_sol;
-    std::unique_ptr<MultiFab> ns_rhs;    
 };
 
 }
