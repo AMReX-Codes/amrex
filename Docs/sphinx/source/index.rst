@@ -37,7 +37,7 @@ AMReX directory as license.txt.
    Chapter10
    Chapter11
    Chapter12
-   CVODE
+   Chapter13
 
 Indices and tables
 ==================
