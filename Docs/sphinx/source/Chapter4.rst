@@ -1,4 +1,4 @@
-.. _Basics:
+.. _Chap:Basics:
 
 Basics
 ===================
