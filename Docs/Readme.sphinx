@@ -1,6 +1,6 @@
-To make the online AMReX documentation using sphinx:
-
 (***) We no longer edit the latex at all -- we edit the .rst files in amrex/Docs/sphinx/source in the *development* branch
+
+To update the online AMReX documentation using sphinx:
 
       1. Checkout the development branch of AMReX
 
@@ -17,15 +17,19 @@ preview the html locally, you can:
 
 **********************************************************************************
 
-If you don't already have the necessary sphinx software, do the following:
+If you would like to build the web pages locally, you will need the Sphinx software to be installed, along with the "Read the Docs" theme. 
 
-Before you begin, do the following to install the python 3.6.3 and the sphinx packages required to build the document:
+To install the necessary software using miniconda, you can use the following instructions:
 
        1.  Go to https://conda.io/miniconda.html and download the Python 3.6 64-bit (bash installer), "Miniconda3-latest-Linux-x86_64.sh".  Save this script to your hard drive.
 
        2.  Type "bash Miniconda3-latest-Linux-x86_64.sh" and follow the installation prompts.
 
-       3.  Add "<installation path>/bin" to your path in your shell script, and either re-source your shell script or open a new terminal.
+       3.  The install script will prompt you to add some commands to your .bashrc that add the miniconda install location to your PATH environment variable.
+           If Bash is your default shell, choose "yes". Otherwise, you will need to manually do the same for your shell of choice. 
+
+       4.  Either open a new terminal, or re-source the configuration file you just added to. E.g., for bash:
+                  source ~/.bashrc
 
        4.  Type "conda install sphinx"
 
