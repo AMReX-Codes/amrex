@@ -34,7 +34,7 @@ AMReX directory as license.txt.
    Chapter7
    Chapter8
    Chapter9
-   EB
+   Chapter10
    Visualization
    Profiling
    CVODE
