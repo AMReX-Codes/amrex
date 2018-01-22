@@ -96,10 +96,10 @@ other.
 
    \centering
 
-.. |a| image:: ./EB/areas_and_volumes.pdf
+.. |a| image:: ./EB/areas_and_volumes.png
        :width: 100%
 
-.. |b| image:: ./EB/eb_fluxes.pdf
+.. |b| image:: ./EB/eb_fluxes.png
        :width: 100%
 
 .. _fig::volume:
@@ -205,9 +205,9 @@ In AMReX the geometric information is stored in a distributed database class,
 The procedure for this goes as follows:
 
 -  Define function of position which describes the surface and use it define a
-   :cpp:`GeometryShop` object (see § :ref:`sec:EB:geometryshop`) – specifically,
-   the scalar value returned by this function takes on a negative value inside
-   the fluid, a positive value in the body, and identically zero at the EB.
+   :cpp:`GeometryShop` object – specifically, the scalar value returned by this
+   function takes on a negative value inside the fluid, a positive value in the 
+   body, and identically zero at the EB.
 
 -  Construct an :cpp:`EBIndexSpace` with the :cpp:`GeometryShop` object. This
    will fill the underlying database of geometric information, specifically
