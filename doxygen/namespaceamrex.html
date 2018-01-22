@@ -807,6 +807,8 @@ Functions</h2></td></tr>
 <tr class="memitem:a4e8290af3a280e0132d66d78f3e48e84"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_box.html">Box</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a4e8290af3a280e0132d66d78f3e48e84">shift</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;b, int dir, int nzones)</td></tr>
 <tr class="memdesc:a4e8290af3a280e0132d66d78f3e48e84"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a <a class="el" href="classamrex_1_1_box.html" title="A Rectangular Domain on an Integer Lattice. ">Box</a> with indices shifted by nzones in dir direction.  <a href="#a4e8290af3a280e0132d66d78f3e48e84">More...</a><br/></td></tr>
 <tr class="separator:a4e8290af3a280e0132d66d78f3e48e84"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85b73b3b7b0c1aa398fad1e8f22695a0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_box.html">Box</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a85b73b3b7b0c1aa398fad1e8f22695a0">shift</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;b, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;nzones)</td></tr>
+<tr class="separator:a85b73b3b7b0c1aa398fad1e8f22695a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a72511ce8b34f9dc363e8737e5ef5bc80"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_box.html">Box</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a72511ce8b34f9dc363e8737e5ef5bc80">coarsen</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;b, int refinement_ratio)</td></tr>
 <tr class="memdesc:a72511ce8b34f9dc363e8737e5ef5bc80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Coarsen <a class="el" href="classamrex_1_1_box.html" title="A Rectangular Domain on an Integer Lattice. ">Box</a> by given (positive) refinement ratio. NOTE: if type(dir) = CELL centered: lo &lt;- lo/ratio and hi &lt;- hi/ratio. NOTE: if type(dir) = NODE centered: lo &lt;- lo/ratio and hi &lt;- hi/ratio + ((hiratio)==0 ? 0 : 1). That is, refinement of coarsened <a class="el" href="classamrex_1_1_box.html" title="A Rectangular Domain on an Integer Lattice. ">Box</a> must contain the original <a class="el" href="classamrex_1_1_box.html" title="A Rectangular Domain on an Integer Lattice. ">Box</a>.  <a href="#a72511ce8b34f9dc363e8737e5ef5bc80">More...</a><br/></td></tr>
 <tr class="separator:a72511ce8b34f9dc363e8737e5ef5bc80"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -13208,45 +13210,6 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a69bf266cc5fefb0b385d84f685dd0df6"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void amrex::readIntData </td>
-          <td>(</td>
-          <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>data</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::size_t&#160;</td>
-          <td class="paramname"><em>size</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::istream &amp;&#160;</td>
-          <td class="paramname"><em>is</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
-          <td class="paramname"><em>id</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Read int data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and an <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' integers, and it is the user's reponsiblity to allocate this data. </p>
-
-</div>
-</div>
 <a class="anchor" id="af8ec915a2cffc7c342e1f15e52cbd697"></a>
 <div class="memitem">
 <div class="memproto">
@@ -13284,6 +13247,45 @@ template&lt;typename To , typename From &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a69bf266cc5fefb0b385d84f685dd0df6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::readIntData </td>
+          <td>(</td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read int data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and an <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' integers, and it is the user's reponsiblity to allocate this data. </p>
 
 </div>
 </div>
@@ -14141,6 +14143,32 @@ template&lt;class T &gt; </div>
 </div><div class="memdoc">
 
 <p>Return a <a class="el" href="classamrex_1_1_box.html" title="A Rectangular Domain on an Integer Lattice. ">Box</a> with indices shifted by nzones in dir direction. </p>
+
+</div>
+</div>
+<a class="anchor" id="a85b73b3b7b0c1aa398fad1e8f22695a0"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classamrex_1_1_box.html">Box</a> amrex::shift </td>
+          <td>(</td>
+          <td class="paramtype">const Box &amp;&#160;</td>
+          <td class="paramname"><em>b</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const IntVect &amp;&#160;</td>
+          <td class="paramname"><em>nzones</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
