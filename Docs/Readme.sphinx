@@ -1,0 +1,35 @@
+How to make the online AMReX documentation using sphinx:
+
+(***) We no longer edit the latex at all -- we edit the .rst files in amrex/Docs/sphinx/source in the *development* branch
+
+1) Edit the relevant .rst file in amrex/Docs/sphinx/source in the *development* branch
+
+2) Once you have made a change in the .rst file, go back into amrex/Docs/sphinx.
+
+3) Type "make html".  This will build new html files in amrex/Docs/sphinx/build/html
+
+4) Have a "gh-pages" branch of amrex open in a separate place.   cp -r amrex/Docs/sphinx/build/html/* (development branch) to amrex (gh-pages branch).  
+(Note that you must copy the entire build/html directory, not just the new .html file you may have created.  
+ Different versions of sphinx may name certain things differently so be sure to copy your entire build/html)
+
+5) In the development branch, commit the new rst files in amrex/Docs/sphinx/source.
+
+6) In the gh-pages branch, commit all changes
+
+**********************************************************************************
+
+If you don't already have the necessary sphinx software, do the following:
+
+Before you begin, do the following to install the python 3.6.3 and the sphinx packages required to build the document:
+
+1.  Go to https://conda.io/miniconda.html and download the Python 3.6 64-bit (bash installer), "Miniconda3-latest-Linux-x86_64.sh".  Save this script to your hard drive.
+
+2.  Type "bash Miniconda3-latest-Linux-x86_64.sh" and follow the installation prompts.
+
+3.  Add "<installation path>/bin" to your path in your shell script, and either re-source your shell script or open a new terminal.
+
+4.  Type "conda install sphinx"
+
+5.  Type "conda install sphinx_rtd_theme"
+
+Now you can successfully "make html" in amrex/Docs/sphinx
