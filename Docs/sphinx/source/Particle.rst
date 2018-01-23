@@ -110,7 +110,7 @@ Struct-of-Arrays as particle *attributes*. See the figure
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig:particles:particle_arrays:
 
@@ -128,6 +128,10 @@ Struct-of-Arrays as particle *attributes*. See the figure
    the real and integer arrays are labelled :cpp:`foo`, :cpp:`bar`, :cpp:`l`,
    and :cpp:`n`, respectively. We have assumed that the particles are double
    precision.
+
+.. raw:: latex
+
+   \end{center}
 
 To see why the distinction between AoS and SoA data is important, consider the
 following extreme case. Say you have particles that carry 100 different
@@ -464,7 +468,7 @@ of each other using a variety of methods.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig:particles:neighbor_particles:
 
@@ -481,6 +485,10 @@ of each other using a variety of methods.
    the blue tile that lie on the other side of the domain will also be copied,
    and their positions will modified so that a naive distance calculation
    between valid particles and neighbors will be correct.
+
+.. raw:: latex
+
+   \end{center}
 
 For a :cpp:`ParticleContainer` that does this neighbor finding, please see
 :cpp:`NeighborParticleContainer` in
@@ -515,7 +523,7 @@ the neighbor lists is illustrated in :numref:`fig:particles:neighbor_list`.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig:particles:neighbor_list:
 
@@ -529,6 +537,10 @@ the neighbor lists is illustrated in :numref:`fig:particles:neighbor_list`.
    Based on the number of collision partners, the next several entries are the
    indices of the collision partners in the real and neighbor particle arrays,
    respectively. This pattern continues for all the particles on this tile.
+
+.. raw:: latex
+
+   \end{center}
 
 This array can then be used to compute the forces on all the particles in one
 scan. Users can define their own :cpp:`NeighborParticleContainer` subclasses
