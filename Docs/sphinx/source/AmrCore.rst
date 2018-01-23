@@ -6,9 +6,7 @@
 
 .. raw:: latex
 
-   \centering
-
-
+   \begin{center}
 
 .. |a| image:: ./AmrCore/figs/Adv1.png
        :width: 100%
@@ -31,6 +29,9 @@
    | |a| | |b| | |c| | |d| |
    +-----+-----+-----+-----+
 
+.. raw:: latex
+
+   \end{center}
 
 The Advection Equation
 ======================
@@ -65,12 +66,20 @@ easily be thought of as a recursive algorithm in which, to advance level :math:`
 
    -  Synchronize the data between levels :math:`\ell` and :math:`\ell+1`.
 
+.. raw:: latex
+
+   \begin{center}
+
 .. _fig:subcycling:
 
 .. figure:: ./AmrCore/figs/subcycling.png
    :width: 4in
 
    Schematic of subcycling-in-time algorithm.
+
+.. raw:: latex
+
+   \end{center}
 
 Specifically, for a 3-level simulation, depicted graphically in the figure
 showing the :ref:`fig:subcycling` above:
@@ -172,7 +181,7 @@ Their usage is described in the section on :ref:`ss:grid_creation`
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _tab:makevarimp:
 
@@ -197,6 +206,10 @@ Their usage is described in the section on :ref:`ss:grid_creation`
    +------------------------+-------+---------------------+
    | amr.refine_grid_layout | int   | true                |
    +------------------------+-------+---------------------+
+
+.. raw:: latex
+
+   \end{center}
 
 AMReX_AmrCore.cpp/H contains the pure virtual class :cpp:`AmrCore`,
 which is derived from the :cpp:`AmrMesh` class. AmrCore does not actually
