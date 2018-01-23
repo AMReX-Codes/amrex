@@ -37,7 +37,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Print.H>
 
-#ifdef MG_USE_FBOXLIB
+#ifdef AMREX_USE_FBOXLIB_MG
 #include <mg_cpp_f.h>
 #endif
 
@@ -1125,13 +1125,6 @@ Amr::init (Real strt_time,
 	if (small_plot_int > 0 || small_plot_per > 0)
 	    writeSmallPlotFile();
     }
-#ifdef HAS_XGRAPH
-    if (first_plotfile)
-    {
-        first_plotfile = false;
-        amr_level[0]->setPlotVariables();
-    }
-#endif
 
 #ifdef BL_COMM_PROFILING
     Vector<Box> probDomain(maxLevel()+1);
@@ -2261,16 +2254,10 @@ Amr::writePlotNow()
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-#ifdef BL_USE_NEWPLOTPER
-      Real rN(0.0);
-      Real rR = modf(cumtime/plot_per, &rN);
-      if (rR < (dt_level[0]*0.001))
-#else
       const int num_per_old = (cumtime-dt_level[0]) / plot_per;
       const int num_per_new = (cumtime            ) / plot_per;
 
       if (num_per_old != num_per_new)
-#endif
 	{
 	  plot_test = 1;
 	}
@@ -2287,16 +2274,10 @@ Amr::writeSmallPlotNow()
     int plot_test = 0;
     if (small_plot_per > 0.0)
     {
-#ifdef BL_USE_NEWPLOTPER
-      Real rN(0.0);
-      Real rR = modf(cumtime/small_plot_per, &rN);
-      if (rR < (dt_level[0]*0.001))
-#else
       const int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
       const int num_per_new = (cumtime            ) / small_plot_per;
 
       if (num_per_old != num_per_new)
-#endif
 	{
 	  plot_test = 1;
 	}
@@ -2429,7 +2410,7 @@ Amr::regrid (int  lbase,
     //
     // Flush the caches.
     //
-#ifdef MG_USE_FBOXLIB
+#ifdef AMREX_USE_FBOXLIB_MG
     mgt_flush_copyassoc_cache();
 #endif
 
