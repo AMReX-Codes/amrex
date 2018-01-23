@@ -38,3 +38,13 @@ If you don't have a conda Python installation, you get one by doing the followin
                   source ~/.bashrc
 
 You should now be able to successfully "make html" in amrex/Docs/sphinx.
+
+If you would like to make a pdf document from the *rst files, first 
+
+sudo apt-get install latexmk
+
+Then in the amrex/Docs/sphinx directory, type 
+
+make latexpdf
+
+This will create amrex/Docs/sphinx/build/latex/amrex.pdf

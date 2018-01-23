@@ -14,14 +14,18 @@ below in action.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig:Basics_Heat_flowchart:
 
 .. figure:: ./Basics/figs/flowchart.png
    :width: 4in
 
-   Source code tree for the HeatEquation_EX1_C example
+.. raw:: latex
+
+   \end{center}
+
+Source code tree for the HeatEquation_EX1_C example
 
 
     amrex/Src/Base/
@@ -244,7 +248,7 @@ levels.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig:basics:amrgrids:
 
@@ -253,6 +257,10 @@ levels.
 
    Example of AMR grids. There are three levels in total.
    There are 1, 2 and 2 Boxes on levels 0, 1, and 2, respectively.
+
+.. raw:: latex
+
+   \end{center}
    
 
 .. _sec:basics:box:
@@ -425,7 +433,7 @@ nodal index with the same integer value represents :math:`i-1/2`.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig:basics:indextypes:
 
@@ -435,6 +443,10 @@ nodal index with the same integer value represents :math:`i-1/2`.
    Some of the different index types in two dimensions: (a) cell-centered, (b) :math:`x`-face-centered
    (i.e., nodal in :math:`x`-direction only), and (c) corner/nodal,
    i.e., nodal in all dimensions.
+
+.. raw:: latex
+
+   \end{center}
 
 There are a number of ways of converting a :cpp:`Box` from one type to
 another.
