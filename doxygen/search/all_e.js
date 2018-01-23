@@ -96,7 +96,7 @@ var searchData=
   ['npts',['nPts',['../classamrex_1_1_base_fab.html#a810a7815865683ba74706389ed681ce0',1,'amrex::BaseFab::nPts()'],['../classamrex_1_1_base_umap.html#a3e331a985fb882857b9915add6eb9d04',1,'amrex::BaseUmap::nPts()']]],
   ['nsidecars',['nSidecars',['../namespaceamrex_1_1_parallel_descriptor.html#a989af8a7ee795fa719957eadbc265b59',1,'amrex::ParallelDescriptor']]],
   ['nstep',['nStep',['../classamrex_1_1_amr_level.html#ad6a79cb5a4a9a68096183e650138e030',1,'amrex::AmrLevel']]],
-  ['nstr',['nstr',['../namespaceamrex.html#a9b8a7805a4a32fed1684aafdf95984ed',1,'amrex::nstr()'],['../_a_m_re_x_8cpp.html#ae078190369c20a6e00eec508f558852f',1,'NSTR():&#160;AMReX.cpp']]],
+  ['nstr',['NSTR',['../_a_m_re_x_8cpp.html#ae078190369c20a6e00eec508f558852f',1,'NSTR():&#160;AMReX.cpp'],['../namespaceamrex.html#a9b8a7805a4a32fed1684aafdf95984ed',1,'amrex::nstr()']]],
   ['nstreamerrors',['NStreamErrors',['../classamrex_1_1_stream_retry.html#ae894808026adb5099b7b36f193f39f7c',1,'amrex::StreamRetry']]],
   ['nteams',['NTeams',['../namespaceamrex_1_1_parallel_descriptor.html#a36abe6be2660465d0661ee1426c11a46',1,'amrex::ParallelDescriptor']]],
   ['null_5fdeleter_5fdivs_5find',['null_deleter_divs_ind',['../namespaceamrex.html#a6347e642f3a7167b8fb4677d6c54296a',1,'amrex']]],
