@@ -36,3 +36,17 @@ To install the necessary software using miniconda, you can use the following ins
        5.  Type "conda install sphinx_rtd_theme"
 
 Now you can successfully "make html" in amrex/Docs/sphinx
+
+**********************************************************************************
+
+If you would like to make a pdf document from the *rst files, first 
+
+sudo apt-get install latexmk
+
+Then in the amrex/Docs/sphinx directory, type 
+
+make latexpdf
+
+This will create amrex/Docs/sphinx/build/latex/amrex.pdf
+
+
