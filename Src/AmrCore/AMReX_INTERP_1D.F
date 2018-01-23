@@ -25,17 +25,15 @@ c :::
 c ::: lratio       =>  (const)  refinement ratio between levels
 c ::: nvar         =>  (const)  number of components in array
 c ::: num_slp      =>  (const)  number of types of slopes
-c ::: strip_lo,strip_hi  =>  (const)  index limits of strip array
 c ::: 
 c :::  ::: TEMPORARY ARRAYS
 c ::: sl           =>  num_slp 1-D slope arrays
-c ::: strip        =>  1-D temp array
 c ::: --------------------------------------------------------------
 c ::: 
       subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb),
      $                          fine, DIMS(fine), DIMS(fb),
      $		                lratio, nvar,
-     $                          sl, num_slp, strip, strip_lo, strip_hi,
+     $                          sl, num_slp,
      $                          actual_comp,actual_state)
 
       implicit none
@@ -47,11 +45,10 @@ c :::
       integer lratio, nvar
       integer num_slp
       integer actual_comp,actual_state
-      integer strip_lo, strip_hi
       REAL_T  fine(DIMV(fine), nvar)
       REAL_T  crse(DIMV(crse), nvar)
       REAL_T    sl(DIM1(cb),num_slp)
-      REAL_T strip(strip_lo:strip_hi,0:lratio)
+      REAL_T strip(ARG_L1(cb)*lratio:ARG_H1(cb)*lratio)
 
 #define  SLX 1
 #define  SLY 2
@@ -78,16 +75,16 @@ c         ::: first fill a strip that will fit
             do lx = 0, lratio-1
               do i = ARG_L1(cb), ARG_H1(cb)-1 
                 ii = i*lratio + lx
-                strip(ii,0) = crse(i,n)
+                strip(ii) = crse(i,n)
      $		             + dble(lx)*sl(i,SLX) 
 	      enddo
 	    enddo
             i = ARG_H1(cb)
             ii = i*lratio
-            strip(ii,0) = crse(i,n) 
+            strip(ii) = crse(i,n) 
 c ::: copy on intersection
             do i = ibeg,iend 
-              fine(i,n) = strip(i,0)
+              fine(i,n) = strip(i)
             enddo
 100   continue
 
