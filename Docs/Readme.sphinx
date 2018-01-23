@@ -17,9 +17,15 @@ preview the html locally, you can:
 
 **********************************************************************************
 
-If you would like to build the web pages locally, you will need the Sphinx software to be installed, along with the "Read the Docs" theme. 
+If you would like to build the web pages locally, you will need Python, the Sphinx software, and the "Read the Docs" theme. 
 
-To install the necessary software using miniconda, you can use the following instructions:
+If you have conda, you can install the necessary packages as follows:
+
+       1. Type "conda install sphinx"
+
+       2. Type "conda install sphinx_rtd_theme"
+
+If you don't have a conda Python installation, you get one by doing the following:
 
        1.  Go to https://conda.io/miniconda.html and download the Python 3.6 64-bit (bash installer), "Miniconda3-latest-Linux-x86_64.sh".  Save this script to your hard drive.
 
@@ -31,8 +37,4 @@ To install the necessary software using miniconda, you can use the following ins
        4.  Either open a new terminal, or re-source the configuration file you just added to. E.g., for bash:
                   source ~/.bashrc
 
-       4.  Type "conda install sphinx"
-
-       5.  Type "conda install sphinx_rtd_theme"
-
-Now you can successfully "make html" in amrex/Docs/sphinx
+You should now be able to successfully "make html" in amrex/Docs/sphinx.
