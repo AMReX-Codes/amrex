@@ -214,10 +214,10 @@
 <a class="reference internal" href="#fig-basics-heat-flowchart"><span class="std std-numref">Fig. 1</span></a>. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
 below in action.</p>
-<div class="figure" id="id1">
-<span id="fig-basics-heat-flowchart"></span><a class="reference internal image-reference" href="_images/flowchart2.png"><img alt="_images/flowchart2.png" src="_images/flowchart2.png" style="width: 4in;" /></a>
-<p class="caption"><span class="caption-number">Fig. 1 </span><span class="caption-text">Source code tree for the HeatEquation_EX1_C example</span></p>
-<div class="legend">
+<div class="figure" id="fig-basics-heat-flowchart">
+<a class="reference internal image-reference" href="_images/flowchart2.png"><img alt="_images/flowchart2.png" src="_images/flowchart2.png" style="width: 4in;" /></a>
+</div>
+<p>Source code tree for the HeatEquation_EX1_C example</p>
 <blockquote>
 <div><dl class="docutils">
 <dt>amrex/Src/Base/</dt>
@@ -226,8 +226,6 @@ below in action.</p>
 <dd>Build the code here by editing the GNUmakefile and running make.</dd>
 </dl>
 </div></blockquote>
-</div>
-</div>
 </div>
 <div class="section" id="dimensionality">
 <span id="sec-basics-dim"></span><h1>Dimensionality<a class="headerlink" href="#dimensionality" title="Permalink to this headline">¶</a></h1>
@@ -398,7 +396,7 @@ finer than the level 1 cells. There are 1, 2 and 2 Boxes on levels
 0, 1, and 2, respectively. Note that there is no direct
 parent-child connection. In this chapter, we will focus on single
 levels.</p>
-<div class="figure" id="id2">
+<div class="figure" id="id1">
 <span id="fig-basics-amrgrids"></span><a class="reference internal image-reference" href="_images/amrgrids.png"><img alt="_images/amrgrids.png" src="_images/amrgrids.png" style="width: 3in;" /></a>
 <p class="caption"><span class="caption-number">Fig. 2 </span><span class="caption-text">Example of AMR grids. There are three levels in total.
 There are 1, 2 and 2 Boxes on levels 0, 1, and 2, respectively.</span></p>
@@ -531,7 +529,7 @@ lower side of a cell has the same integer value as the cell centered
 index. That is if we consider a cell based index represent <span class="math">\(i\)</span>, the
 nodal index with the same integer value represents <span class="math">\(i-1/2\)</span>.
 <a class="reference internal" href="#fig-basics-indextypes"><span class="std std-numref">Fig. 3</span></a> shows some of the different index types for 2D.</p>
-<div class="figure" id="id3">
+<div class="figure" id="id2">
 <span id="fig-basics-indextypes"></span><a class="reference internal image-reference" href="_images/indextypes.png"><img alt="_images/indextypes.png" src="_images/indextypes.png" style="width: 5in;" /></a>
 <p class="caption"><span class="caption-number">Fig. 3 </span><span class="caption-text">Some of the different index types in two dimensions: (a) cell-centered, (b) <span class="math">\(x\)</span>-face-centered
 (i.e., nodal in <span class="math">\(x\)</span>-direction only), and (c) corner/nodal,
@@ -1400,8 +1398,8 @@ also requires only two minor changes.</p>
 </div>
 <p>The kernels functions like <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">f1</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">f2</span></span></code> in the two examples
 here usually require very little changes.</p>
-<span id="fig-basics-cc-comparison"></span><table border="1" class="docutils align-center" id="id4">
-<caption><span class="caption-number">Table 3 </span><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling.</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
+<span id="fig-basics-cc-comparison"></span><table border="1" class="docutils align-center" id="id3">
+<caption><span class="caption-number">Table 3 </span><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling.</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />
@@ -1446,8 +1444,8 @@ in that direction. AMReX&nbsp;has a default tile size <code class="code cpp c++ 
 in 3D and no tiling in 2D. This is used when tile size is not explicitly set
 but the tiling flag is on. One can change the default size using <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParmParse</span></span></code>
 parameter <code class="docutils literal"><span class="pre">fabarray.mfiter_tile_size.</span></code></p>
-<span id="fig-basics-ec-comparison"></span><table border="1" class="docutils align-center" id="id5">
-<caption><span class="caption-number">Table 4 </span><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling, for face-centered nodal indexing.</span><a class="headerlink" href="#id5" title="Permalink to this table">¶</a></caption>
+<span id="fig-basics-ec-comparison"></span><table border="1" class="docutils align-center" id="id4">
+<caption><span class="caption-number">Table 4 </span><span class="caption-text">Comparison of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> with (right) and without (left) tiling, for face-centered nodal indexing.</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />
@@ -1514,8 +1512,8 @@ the basic design principle of these various tiling functions. Tiling
 is a way of domain decomposition for work sharing. Overlapping tiles
 is undesirable because work would be wasted and for multi-threaded
 codes race conditions could occur.</p>
-<span id="fig-basics-growbox-comparison"></span><table border="1" class="docutils align-center" id="id6">
-<caption><span class="caption-number">Table 5 </span><span class="caption-text">Comparing growing cell-type and face-type tile boxes.</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
+<span id="fig-basics-growbox-comparison"></span><table border="1" class="docutils align-center" id="id5">
+<caption><span class="caption-number">Table 5 </span><span class="caption-text">Comparing growing cell-type and face-type tile boxes.</span><a class="headerlink" href="#id5" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="50%" />
 <col width="50%" />
