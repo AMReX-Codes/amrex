@@ -3,13 +3,13 @@
 #define BL_BOX_H
 
 #include <iosfwd>
+#include <array>
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
-#include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 
 namespace amrex
@@ -248,6 +248,16 @@ public:
 
     //! Return the length of the Box in given direction.
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
+
+    std::array<int,3> length3d () const {
+#if (AMREX_SPACEDIM == 1)
+        return {AMREX_D_DECL(bigend[0]-smallend[0]+1, 1, 1)};
+#elif (AMREX_SPACEDIM == 2)
+        return {AMREX_D_DECL(bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, 1)};
+#elif (AMREX_SPACEDIM == 3)
+        return {AMREX_D_DECL(bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, bigend[2]-smallend[2]+1)};
+#endif
+    }
 
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
     const int* loVect () const& { return smallend.getVect(); }
