@@ -404,7 +404,7 @@ WarpX::GetCellCenteredData() {
                                                       DistributionMap(lev),
                                                       nc, ng) );
 
-    Array<const MultiFab*> srcmf(BL_SPACEDIM);
+    Vector<const MultiFab*> srcmf(BL_SPACEDIM);
     int dcomp = 0;
 
     // first the electric field
