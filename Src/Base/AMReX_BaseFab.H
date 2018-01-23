@@ -1878,8 +1878,6 @@ BaseFab<T>::norm (const Box& subbox,
     BL_ASSERT(comp >= 0 && comp+numcomp <= nComp());
     BL_ASSERT(p >= 0);
     BL_ASSERT(contains(subbox));
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(p==0 || p==1,
-                                     "BaseFab::norm(): only p == 0 or p == 1 are supported");
 
     Real nrm = 0.;
 
@@ -1891,18 +1889,32 @@ BaseFab<T>::norm (const Box& subbox,
                 const IntVect line_begin{AMREX_D_DECL(sublo[0],
                                                       sublo[1]+j,
                                                       sublo[2]+k)};
-                const T* pline = dataPtr(line_begin, n);
+                const T* d = dataPtr(line_begin, n);
                 if (p == 0) {
                     for (int i = 0; i < len3[0]; ++i) {
-                        nrm = std::max(nrm, static_cast<Real>(std::abs(pline[i])));
+                        nrm = std::max(nrm, static_cast<Real>(std::abs(d[i])));
                     }
                 } else if (p == 1) {
                     for (int i = 0; i < len3[0]; ++i) {
-                        nrm += static_cast<Real>(std::abs(pline[i]));
+                        nrm += static_cast<Real>(std::abs(d[i]));
+                    }
+                } else if (p == 2) {
+                    for (int i = 0; i < len3[0]; ++i) {
+                        nrm += std::pow(static_cast<Real>(d[i]),p);
+                    }
+                } else {
+                    for (int i = 0; i < len3[0]; ++i) {
+                        nrm += static_cast<Real>(std::abs(d[i]));
                     }
                 }
             }
         }
+    }
+
+    if (p == 2) {
+        nrm = std::sqrt(nrm);
+    } else if (p > 2) {
+        nrm = std::pow(nrm, 1.0/p);
     }
 
     return nrm;
@@ -1920,32 +1932,26 @@ T
 BaseFab<T>::min (const Box& subbox,
                  int        comp) const
 {
-    T *_min_row = 0;
-    int _x_len = 0;
-    ForAllThisCPencil(T,subbox,comp,1)
-    {
-        const T* _row = &thisR;
-        if (_min_row == 0)
-        {
-            _min_row = new T[thisLen];
-            _x_len = thisLen;
-            for (int i = 0; i < thisLen; i++)
-                _min_row[i] = _row[i];
+    BL_ASSERT(contains(subbox));
+
+    T r = std::numeric_limits<T>::max();
+
+    const auto& len3 = subbox.length3d();
+    const int* sublo = subbox.loVect();
+
+    for     (int k = 0; k < len3[2]; ++k) {
+        for (int j = 0; j < len3[1]; ++j) {
+            const IntVect line_begin{AMREX_D_DECL(sublo[0],
+                                                  sublo[1]+j,
+                                                  sublo[2]+k)};
+            const T* d = dataPtr(line_begin, comp);
+            for (int i = 0; i < len3[0]; ++i) {
+                r = std::min(r, d[i]);
+            }
         }
-        else
-        {
-            for (int i = 0; i < thisLen; i++)
-                _min_row[i] = std::min(_row[i],_min_row[i]);
-        }
-    } EndForPencil;
+    }
 
-    T _min = _min_row[0];
-    for (int i = 1; i < _x_len; i++)
-        _min = std::min(_min,_min_row[i]);
-
-    delete [] _min_row;
-
-    return _min;
+    return r;
 }
 
 template <class T>
@@ -1960,32 +1966,26 @@ T
 BaseFab<T>::max (const Box& subbox,
                  int        comp) const
 {
-    T*  _max_row = 0;
-    int _x_len   = 0;
-    ForAllThisCPencil(T,subbox,comp,1)
-    {
-        const T* _row = &thisR;
-        if (_max_row == 0)
-        {
-            _max_row = new T[thisLen];
-            _x_len = thisLen;
-            for (int i = 0; i < thisLen; i++)
-                _max_row[i] = _row[i];
+    BL_ASSERT(contains(subbox));
+
+    T r = std::numeric_limits<T>::lowest();
+
+    const auto& len3 = subbox.length3d();
+    const int* sublo = subbox.loVect();
+
+    for     (int k = 0; k < len3[2]; ++k) {
+        for (int j = 0; j < len3[1]; ++j) {
+            const IntVect line_begin{AMREX_D_DECL(sublo[0],
+                                                  sublo[1]+j,
+                                                  sublo[2]+k)};
+            const T* d = dataPtr(line_begin, comp);
+            for (int i = 0; i < len3[0]; ++i) {
+                r = std::max(r, d[i]);
+            }
         }
-        else
-        {
-            for (int i = 0; i < thisLen; i++)
-                _max_row[i] = std::max(_row[i],_max_row[i]);
-        }
-    } EndForPencil;
+    }
 
-    T _max = _max_row[0];
-    for (int i = 1; i < _x_len; i++)
-        _max = std::max(_max,_max_row[i]);
-
-    delete [] _max_row;
-
-    return _max;
+    return r;
 }
 
 template <class T>
@@ -2274,34 +2274,27 @@ BaseFab<T>::sum (const Box& subbox,
                  int        comp,
                  int        numcomp) const
 {
-    T*  _sum_row = 0;
-    int _sum_len = 0;
-    ForAllThisCPencil(T,subbox,comp,numcomp)
-    {
-        const T* _row = &thisR;
-        if (_sum_row == 0)
-        {
-            _sum_row = new T[thisLen];
-            _sum_len = thisLen;
-            for (int i = 0; i < thisLen; i++)
-                _sum_row[i] = _row[i];
-        }
-        else
-        {
-            for (int i = 0; i < thisLen; i++)
-            {
-                _sum_row[i] += _row[i];
+    BL_ASSERT(contains(subbox));
+
+    T r = 0;
+
+    const auto& len3 = subbox.length3d();
+    const int* sublo = subbox.loVect();
+    for (int n = comp; n < comp+numcomp; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect line_begin{AMREX_D_DECL(sublo[0],
+                                                      sublo[1]+j,
+                                                      sublo[2]+k)};
+                const T* d = dataPtr(line_begin, n);
+                for (int i = 0; i < len3[0]; ++i) {
+                    r += d[i];
+                }
             }
         }
-    } EndForPencil;
+    }
 
-    T _sum = _sum_row[0];
-    for (int i = 1; i < _sum_len; i++)
-        _sum += _sum_row[i];
-
-    delete [] _sum_row;
-
-    return _sum;
+    return r;
 }
 
 template <class T>
