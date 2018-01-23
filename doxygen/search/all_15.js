@@ -30,7 +30,6 @@ var searchData=
   ['use_5fefficient_5fregrid',['use_efficient_regrid',['../namespaceamrex.html#af1ff4a567f8d0cdc485062507aac9742',1,'amrex']]],
   ['use_5ffixed_5fcoarse_5fgrids',['use_fixed_coarse_grids',['../classamrex_1_1_amr_mesh.html#a3162b5c3697f4ce32d585ca434ac40a5',1,'amrex::AmrMesh']]],
   ['use_5ffixed_5fupto_5flevel',['use_fixed_upto_level',['../classamrex_1_1_amr_mesh.html#a15a5406d39363635d73cc1d986546fe7',1,'amrex::AmrMesh']]],
-  ['use_5freorg_5fversion',['USE_REORG_VERSION',['../_a_m_re_x___i_n_t_e_r_p_b_n_d_r_y_d_a_t_a__2_d_8_f.html#a75b29ef8ed9d3d579fb522d665cff97c',1,'AMReX_INTERPBNDRYDATA_2D.F']]],
   ['useaverage',['UseAverage',['../classamrex_1_1_error_rec.html#adeca3cab9dffebf73c48525e5f94872da7907e45520d436a47eb139e8c055c203',1,'amrex::ErrorRec']]],
   ['usefixedcoarsegrids',['useFixedCoarseGrids',['../classamrex_1_1_amr_mesh.html#ae2cad7cb8252ec6d3512afc904a9e7e9',1,'amrex::AmrMesh']]],
   ['usefixeduptolevel',['useFixedUpToLevel',['../classamrex_1_1_amr_mesh.html#a6da8eed8962368ecd9b7b62fb38c283a',1,'amrex::AmrMesh']]],
