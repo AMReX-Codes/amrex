@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <limits>
+#include <array>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -255,6 +256,8 @@ public:
     //! Same as above except works on const FABs.
     const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
+    T* dataPtr (const IntVect& iv, int n = 0);
+    const T* dataPtr (const IntVect& iv, int n = 0) const;
     
     void setPtr (T* p, long sz) { BL_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
@@ -885,7 +888,7 @@ public:
 
     //! Change the Box type without change the length
     void SetBoxType(const IndexType& typ) { domain.setType(typ); }
-    
+
 protected:
     //! Allocates memory for the BaseFab<T>.
     void define ();
@@ -914,6 +917,32 @@ protected:
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
 };
+
+template <class T>
+inline
+T*
+BaseFab<T>::dataPtr (const IntVect& p, int n)
+{
+    BL_ASSERT(n >= 0);
+    BL_ASSERT(n < nvar);
+    BL_ASSERT(!(dptr == 0));
+    BL_ASSERT(domain.contains(p));
+
+    return dptr + (domain.index(p)+n*numpts);
+}
+
+template <class T>
+inline
+const T*
+BaseFab<T>::dataPtr (const IntVect& p, int n) const
+{
+    BL_ASSERT(n >= 0);
+    BL_ASSERT(n < nvar);
+    BL_ASSERT(!(dptr == 0));
+    BL_ASSERT(domain.contains(p));
+
+    return dptr + (domain.index(p)+n*numpts);
+}
 
 template <class T>
 inline
@@ -1848,64 +1877,33 @@ BaseFab<T>::norm (const Box& subbox,
 {
     BL_ASSERT(comp >= 0 && comp+numcomp <= nComp());
     BL_ASSERT(p >= 0);
+    BL_ASSERT(contains(subbox));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(p==0 || p==1,
+                                     "BaseFab::norm(): only p == 0 or p == 1 are supported");
 
-    Real  nrm    = 0;
-    Real* tmp    = 0;
-    int   tmplen = 0;
+    Real nrm = 0.;
 
-    if (p == 0)
-    {
-        ForAllThisCPencil(T,subbox,comp,numcomp)
-        {
-            const T* row = &thisR;
-            if (tmp == 0)
-            {
-                tmp    = new Real[thisLen];
-                tmplen = thisLen;
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::abs(row[i]);
+    const auto& len3 = subbox.length3d();
+    const int* sublo = subbox.loVect();
+    for (int n = comp; n < comp+numcomp; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect line_begin{AMREX_D_DECL(sublo[0],
+                                                      sublo[1]+j,
+                                                      sublo[2]+k)};
+                const T* pline = dataPtr(line_begin, n);
+                if (p == 0) {
+                    for (int i = 0; i < len3[0]; ++i) {
+                        nrm = std::max(nrm, static_cast<Real>(std::abs(pline[i])));
+                    }
+                } else if (p == 1) {
+                    for (int i = 0; i < len3[0]; ++i) {
+                        nrm += static_cast<Real>(std::abs(pline[i]));
+                    }
+                }
             }
-            else
-            {
-                for (int i = 0; i < thisLen; i++) {
-		    // MLW: explicit cast to Real for SX6
-		    Real rw = std::abs(row[i]);
-                    tmp[i] = std::max(tmp[i],rw);
-		}
-            }
-        } EndForPencil
-        nrm = tmp[0];
-        for (int i = 1; i < tmplen; i++)
-            nrm = std::max(nrm, tmp[i]);
+        }
     }
-    else if (p == 1)
-    {
-        ForAllThisCPencil(T,subbox,comp,numcomp)
-        {
-            const T* row = &thisR;
-            if (tmp == 0)
-            {
-                tmp    = new Real[thisLen];
-                tmplen = thisLen;
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::abs(row[i]);
-            }
-            else
-            {
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] += std::abs(row[i]);
-            }
-        } EndForPencil
-        nrm = tmp[0];
-        for (int i = 1; i < tmplen; i++)
-            nrm += tmp[i];
-    }
-    else
-    {
-      amrex::Error("BaseFab::norm(): only p == 0 or p == 1 are supported");
-    }
-
-    delete [] tmp;
 
     return nrm;
 }
