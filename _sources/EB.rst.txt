@@ -21,7 +21,7 @@ cell shapes. See :numref:`fig::ebexample` for an illustration.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig::ebexample:
 
@@ -31,6 +31,10 @@ cell shapes. See :numref:`fig::ebexample` for an illustration.
    : In the embedded boundary approach to discretizing PDEs, the (uniform)
    rectangular mesh is cut by the irregular shape of the computational domain.
    The cells in the mesh are label as regular, cut or covered.
+
+.. raw:: latex
+
+   \end{center}
 
 Because this is a relatively simple grid generation technique, computational
 meshes for rather complex geometries can be generated quickly and robustly.
@@ -94,7 +98,7 @@ other.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. |a| image:: ./EB/areas_and_volumes.png
        :width: 100%
@@ -120,6 +124,9 @@ other.
    | | region of the interior.                           | |                                                    |
    +-----------------------------------------------------+------------------------------------------------------+
 
+.. raw:: latex
+
+   \end{center}
 
 
 Small Cells And Stability
@@ -183,7 +190,7 @@ e.g., :numref:`fig::redistribution`)
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig::redistribution:
 
@@ -194,6 +201,9 @@ e.g., :numref:`fig::redistribution`)
    :math:`D^H` instead of the conservative divergence :math:`D^C` is
    distributed to neighbor cells.
 
+.. raw:: latex
+
+   \end{center}
 
 .. _sec:EB:ebinit:
 
@@ -500,7 +510,7 @@ three dimensions. With the right polygons, it creates the surface shown in
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig::revolution:
 
@@ -508,6 +518,10 @@ three dimensions. With the right polygons, it creates the surface shown in
    :width: 50.0%
 
    : Zero surface of an implicit function made using a surface of revolution.
+
+.. raw:: latex
+
+   \end{center}
 
 Geometric example 3 – A Sphere Inside a Parabola
 ------------------------------------------------
@@ -581,7 +595,7 @@ parabola. This code creates the surface shown in :numref:`fig::parabolasphere`.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig::parabolasphere:
 
@@ -589,6 +603,10 @@ parabola. This code creates the surface shown in :numref:`fig::parabolasphere`.
    :width: 50.0%
 
    : Zero surface of an implicit function made the above code.
+
+.. raw:: latex
+
+   \end{center}
 
 EBFarrayBox
 ===========

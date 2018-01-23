@@ -133,7 +133,7 @@ Your image should look similar to the left side of :numref:`Fig:VisIt`.
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. |c| image:: ./Visualization/VisIt_2D.png
        :width: 100%
@@ -150,6 +150,9 @@ Your image should look similar to the left side of :numref:`Fig:VisIt`.
    | |c| | |d| |
    +-----+-----+
 
+.. raw:: latex
+
+   \end{center}
 
 In 3D, you must apply the “Operators” :math:`\rightarrow` “Slicing”
 :math:`\rightarrow` “ThreeSlice”, with the “ThreeSlice operator attribute” set
@@ -217,7 +220,7 @@ To open a single plotfile (for example, you could run the
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig:ParaView:
 
@@ -225,6 +228,10 @@ To open a single plotfile (for example, you could run the
    :width: 3.1in
 
    : Plotfile image generated with ParaView
+
+.. raw:: latex
+
+   \end{center}
 
 To visualize particles (for example, you could run the ``ShortRangeParticles``
 example):
@@ -250,7 +257,7 @@ example):
 
 .. raw:: latex
 
-   \centering
+   \begin{center}
 
 .. _fig:ParaView_particles:
 
@@ -259,6 +266,9 @@ example):
 
    : Particle image generated with ParaView
 
+.. raw:: latex
+
+   \end{center}
 
 .. _section-2:
 
