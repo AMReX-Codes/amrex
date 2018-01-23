@@ -18,9 +18,30 @@
 
 namespace amrex {
 
+#if !defined(NDEBUG)
+bool IArrayBox::do_initval = true;
+#else
+bool IArrayBox::do_initval = false;
+#endif
+
 namespace
 {
     bool initialized = false;
+}
+
+void
+IArrayBox::Initialize ()
+{
+    if (initialized) return;
+//    ParmParse pp("iab");
+    amrex::ExecOnFinalize(IArrayBox::Finalize);
+    initialized = true;
+}
+
+void
+IArrayBox::Finalize ()
+{
+    initialized = false;
 }
 
 IArrayBox::IArrayBox () {}
@@ -72,27 +93,6 @@ IArrayBox::norm (int p,
     return norm(domain,p,comp,numcomp);
 }
 
-#if !defined(NDEBUG)
-bool IArrayBox::do_initval = true;
-#else
-bool IArrayBox::do_initval = false;
-#endif
-
-void
-IArrayBox::Initialize ()
-{
-    if (initialized) return;
-//    ParmParse pp("iab");
-    amrex::ExecOnFinalize(IArrayBox::Finalize);
-    initialized = true;
-}
-
-void
-IArrayBox::Finalize ()
-{
-    initialized = false;
-}
-
 int
 IArrayBox::norm (const Box& subbox,
                  int        p,
@@ -100,68 +100,7 @@ IArrayBox::norm (const Box& subbox,
                  int        ncomp) const
 {
     BL_ASSERT(p >= 0);
-    BL_ASSERT(comp >= 0 && comp+ncomp <= nComp());
-
-    int  nrm    = 0;
-    int* tmp    = 0;
-    int   tmplen = 0;
-
-    if (p == 0 || p == 1)
-    {
-        nrm = BaseFab<int>::norm(subbox,p,comp,ncomp);
-    }
-    else if (p == 2)
-    {
-        ForAllThisCPencil(int,subbox,comp,ncomp)
-        {
-            const int* row = &thisR;
-            if (tmp == 0)
-            {
-                tmp    = new int[thisLen];
-                tmplen = thisLen;
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = row[i]*row[i];
-            }
-            else
-            {
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] += row[i]*row[i];
-            }
-        } EndForPencil
-        nrm = tmp[0];
-        for (int i = 1; i < tmplen; i++)
-            nrm += tmp[i];
-        nrm = std::sqrt(double(nrm));
-    }
-    else
-    {
-        int pwr = int(p);
-        ForAllThisCPencil(int,subbox,comp,ncomp)
-        {
-            const int* row = &thisR;
-            if (tmp == 0)
-            {
-                tmp = new int[thisLen];
-                tmplen = thisLen;
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::pow((double)row[i],pwr);
-            }
-            else
-            {
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] += std::pow((double)row[i],pwr);
-            }
-        } EndForPencil
-        nrm = tmp[0];
-        for (int i = 1; i < tmplen; i++)
-            nrm += tmp[i];
-        int invpwr = 1.0/pwr;
-        nrm = std::pow((double)nrm,invpwr);
-    }
-
-    delete [] tmp;
-
-    return nrm;
+    return BaseFab<int>::norm(subbox,p,comp,ncomp);
 }
 
 }
