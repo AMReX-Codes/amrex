@@ -887,7 +887,15 @@ public:
                int numcomp) const;
 
     //! Change the Box type without change the length
-    void SetBoxType(const IndexType& typ) { domain.setType(typ); }
+    void SetBoxType (const IndexType& typ) { domain.setType(typ); }
+
+    template <class F> void ForEach (const Box& b, int c, int nc, F f) {
+        ForEachImpl(*this, b, c, nc, f);
+    }
+    template <class F> void ForEach (const Box& b, int c, int nc, F f) const {
+        ForEachImpl(*this, b, c, nc, f);
+    }
+    template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
 
 protected:
     //! Allocates memory for the BaseFab<T>.
@@ -917,6 +925,51 @@ protected:
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
 };
+
+template <class B, class F>
+inline
+void
+ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
+{
+    const auto& len3 = b.length3d();
+    const int* blo = b.loVect();
+    for (int n = c; n < c+nc; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect line_begin{AMREX_D_DECL(blo[0],
+                                                      blo[1]+j,
+                                                      blo[2]+k)};
+                auto d = fab.dataPtr(line_begin, n);
+                for (int i = 0; i < len3[0]; ++i) {
+                    f(*(d+i));
+                }
+            }
+        }
+    }
+}
+
+template <class T>
+template <typename P, class F>
+P
+BaseFab<T>::Accumulate (const Box& b, int c, int nc, P init, F f) const
+{
+    const auto& len3 = b.length3d();
+    const int* blo = b.loVect();
+    for (int n = c; n < c+nc; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect line_begin{AMREX_D_DECL(blo[0],
+                                                      blo[1]+j,
+                                                      blo[2]+k)};
+                const T* d = dataPtr(line_begin, n);
+                for (int i = 0; i < len3[0]; ++i) {
+                    init = f(init, *(d+i));
+                }
+            }
+        }
+    }
+    return init;
+}
 
 template <class T>
 inline
