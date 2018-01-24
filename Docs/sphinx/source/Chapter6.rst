@@ -1,44 +1,33 @@
-.. _Chap:AmrCore:
+.. role:: cpp(code)
+   :language: c++
 
-AmrCore Source Code
-===================
+.. _Chap:LinearSolvers:
 
-In this Chapter we give an overview of functionality contained in the ``amrex/Src/AmrCore`` source code.
-This directory contains source code for the following:
+Linear Solvers
+==============
 
--  Storing information about the grid layout and processor distribution mapping
-   at each level of refinement.
+In this Chapter we give an overview of the linear solvers in AMReX.
+AMReX supports two solvers where the solution, :math:`\phi`
+is either cell-centered or nodal. 
+For each case you can solve on a single level (using essentially Dirichlet conditions 
+supplied from coarser levels or physical boundary conditions), or you can do a 
+multilevel composite solve on a subset of AMR levels (or even all the AMR levels).
 
--  Functions to create grids at different levels of refinement, including tagging
-   operations.
+The tutorial :cpp:`amrex/Tutorials/LinearSolvers/ABecLaplacian_C` shows how to call the 
+cell-centered solver. The tutorial :cpp:`amrex/Tutorials/Basic/HeatEquation_EX3_C` shows 
+how to solve the implicit heat equation using the cell-centered solver. Here an 
+"ABecLaplacian" has the form 
 
--  Operations on data at different levels of refinement, such as interpolation and
-   restriction operators.
+.. math:: (a_{coeff} A - b_{coeff} \nabla \cdot B \nabla ) \phi = RHS
 
--  Flux registers used to store and manipulate fluxes at coarse-fine interfaces.
-
--  Particle support for AMR (see :ref:`Chap:Particles`).
-
-There is another source directory, ``amrex/Src/Amr/``, which contains
-additional classes used to manage the time-stepping for AMR simulations.
-However, it is possible to build a fully adaptive, subcycling-in-time simulation code
-without these additional classes.
-
-In this Chapter, we restrict our use to the ``amrex/Src/AmrCore`` source code
-and present a tutorial that performs an adaptive, subcycling-in-time simulation
-of the advection equation for a passively advected scalar.
-The accompanying tutorial code is available in ``amrex/Tutorials/Amr/Advection_AmrCore``
-with build/run directory ``Exec/SingleVortex``. In this example, the velocity
-field is a specified function of space and time, such that an initial
-Gaussian profile is displaced but returns to its original configuration at the final time.
-The boundary conditions are periodic and we use a refinement ratio of :math:`r=2` between each
-AMR level. The results of the simulation in two-dimensions are depicted in the Table
-showing the :ref:`SingleVortex Tutorial<fig:Adv>`.
-
-
-
+where :math:`a_{coeff}`, :math:`b_{coeff}` are scalars, :math:`A`, :math:`B`, 
+and :math:`RHS` are MultiFabs.
+For the cell-centered 
+solver, :math:`A` and :math:`RHS` are cell centered, and :math:`B` is an array of 
+face-centered MultiFabs since :math:`B \nabla \phi` lives on faces, and the 
+divergence lives on cell-centers.
 
 .. toctree::
    :maxdepth: 1
 
-   AmrCore
+   LinearSolvers
