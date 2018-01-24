@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Amr Source Code &mdash; amrex 18.02-dev documentation</title>
+  <title>Linear Solvers &mdash; amrex 18.02-dev documentation</title>
   
 
   
@@ -38,8 +38,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 18.02-dev documentation" href="index.html"/>
-        <link rel="next" title="Amr Class" href="AmrLevel.html"/>
-        <link rel="prev" title="Example: HeatEquation_EX3_C" href="LinearSolvers.html"/> 
+        <link rel="next" title="Example: HeatEquation_EX3_C" href="LinearSolvers.html"/>
+        <link rel="prev" title="Amr Class" href="AmrLevel.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -99,13 +99,9 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter5.html">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">Linear Solvers</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Amr Source Code</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html">Amr Class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html#amrlevel-class">AmrLevel Class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html#levelbld-class">LevelBld Class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html#example-advection-amrlevel">Example: Advection_AmrLevel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="AmrLevel.html#particles">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">Amr Source Code</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Linear Solvers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LinearSolvers.html">Example: HeatEquation_EX3_C</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
@@ -158,7 +154,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Amr Source Code</li>
+      <li>Linear Solvers</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -177,45 +173,29 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="amr-source-code">
-<span id="chap-amrlevel"></span><h1>Amr Source Code<a class="headerlink" href="#amr-source-code" title="Permalink to this headline">¶</a></h1>
-<p>The source code in <code class="docutils literal"><span class="pre">amrex/Src/Amr</span></code> contains a number of classes, most notably
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Amr</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code>, and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBld</span></span></code>.
-These classes provide a more well developed set of tools for writing AMR codes
-than the classes created for the Advection_AmrCore tutorial.</p>
-<ul class="simple">
-<li>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Amr</span></span></code> class is derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>, and manages data across the
-entire AMR hierarchy of grids.</li>
-<li>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code> class is a pure virtual class for managing data at a
-single level of refinement.</li>
-<li>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBld</span></span></code> class is a pure virtual class for defining variable types
-and attributes.</li>
-</ul>
-<p>Many of our mature, public application codes contain derived classes that
-inherit directly from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code>. These include our compressible
-astrophysics code, CASTRO, (available in the AMReX-Astro/Castro github
-repository) and our computational cosmology code, Nyx (available in the
-AMReX-Astro/Nyx github repository) .  Our incompressible Navier-Stokes code,
-IAMR (available in the AMReX-codes/IAMR github repository) has a pure virtual
-class called <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokesBase</span></span></code> that inherits from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code>, and an
-additional derived class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokes</span></span></code>.  Our low Mach number combustion
-code PeleLM (not yet public) also inherits from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokesBase</span></span></code>.</p>
-<p>The tutorial code in <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrLevel</span></code> gives a simple
-example of a class derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code> that can be used to solve the
-advection equation on a subcycling-in-time AMR hierarchy. Note that example is
-essentially the same as the <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore</span></code> tutorial and
-documentation in the chapter on <a class="reference internal" href="Chapter5.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>, except now we use the
-provided libraries in <code class="docutils literal"><span class="pre">amrex/Src/Amr</span></code>.</p>
-<p>The tutorial code also contains a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBldAdv</span></span></code> class (derived from
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBld</span></span></code> in the Source/Amr directory). This class is used to define
-variable types (how many, nodality, interlevel interpolation stencils, etc.).</p>
+  <div class="section" id="linear-solvers">
+<span id="chap-linearsolvers"></span><h1>Linear Solvers<a class="headerlink" href="#linear-solvers" title="Permalink to this headline">¶</a></h1>
+<p>In this Chapter we give an overview of the linear solvers in AMReX.
+AMReX supports two solvers where the solution, <span class="math">\(\phi\)</span>
+is either cell-centered or nodal.
+For each case you can solve on a single level (using essentially Dirichlet conditions
+supplied from coarser levels or physical boundary conditions), or you can do a
+multilevel composite solve on a subset of AMR levels (or even all the AMR levels).</p>
+<p>The tutorial <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">Tutorials</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">LinearSolvers</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">ABecLaplacian_C</span></span></code> shows how to call the
+cell-centered solver. The tutorial <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">Tutorials</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">Basic</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">HeatEquation_EX3_C</span></span></code> shows
+how to solve the implicit heat equation using the cell-centered solver. Here an
+“ABecLaplacian” has the form</p>
+<div class="math">
+\[(a_{coeff} A - b_{coeff} \nabla \cdot B \nabla ) \phi = RHS\]</div>
+<p>where <span class="math">\(a_{coeff}\)</span>, <span class="math">\(b_{coeff}\)</span> are scalars, <span class="math">\(A\)</span>, <span class="math">\(B\)</span>,
+and <span class="math">\(RHS\)</span> are MultiFabs.
+For the cell-centered
+solver, <span class="math">\(A\)</span> and <span class="math">\(RHS\)</span> are cell centered, and <span class="math">\(B\)</span> is an array of
+face-centered MultiFabs since <span class="math">\(B \nabla \phi\)</span> lives on faces, and the
+divergence lives on cell-centers.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html">Amr Class</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html#amrlevel-class">AmrLevel Class</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html#levelbld-class">LevelBld Class</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html#example-advection-amrlevel">Example: Advection_AmrLevel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrLevel.html#particles">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LinearSolvers.html">Example: HeatEquation_EX3_C</a></li>
 </ul>
 </div>
 </div>
@@ -230,10 +210,10 @@ variable types (how many, nodality, interlevel interpolation stencils, etc.).</p
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="AmrLevel.html" class="btn btn-neutral float-right" title="Amr Class" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="LinearSolvers.html" class="btn btn-neutral float-right" title="Example: HeatEquation_EX3_C" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="LinearSolvers.html" class="btn btn-neutral" title="Example: HeatEquation_EX3_C" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="AmrLevel.html" class="btn btn-neutral" title="Amr Class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
