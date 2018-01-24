@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>HeatEquation_EX1_C Example &mdash; amrex 18.02-dev documentation</title>
+  <title>Example: HeatEquation_EX1_C &mdash; amrex 18.02-dev documentation</title>
   
 
   
@@ -39,7 +39,7 @@
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 18.02-dev documentation" href="index.html"/>
         <link rel="up" title="Basics" href="Chapter4.html"/>
-        <link rel="next" title="Boundary Conditions" href="Boundary.html"/>
+        <link rel="next" title="AmrCore Source Code" href="Chapter6.html"/>
         <link rel="prev" title="Basics" href="Chapter4.html"/> 
 
   
@@ -99,7 +99,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Chapter4.html">Basics</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">HeatEquation_EX1_C Example</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Example: HeatEquation_EX1_C</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#dimensionality">Dimensionality</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#vector">Vector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#real">Real</a></li>
@@ -132,9 +132,9 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#memory-allocation">Memory Allocation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#abort-and-assertion">Abort and Assertion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#boundary-conditions">Boundary Conditions</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
@@ -189,7 +189,7 @@
         
           <li><a href="Chapter4.html">Basics</a> &raquo;</li>
         
-      <li>HeatEquation_EX1_C Example</li>
+      <li>Example: HeatEquation_EX1_C</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -208,8 +208,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="heatequation-ex1-c-example">
-<h1>HeatEquation_EX1_C Example<a class="headerlink" href="#heatequation-ex1-c-example" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="example-heatequation-ex1-c">
+<span id="sec-basics-heat1"></span><h1>Example: HeatEquation_EX1_C<a class="headerlink" href="#example-heatequation-ex1-c" title="Permalink to this headline">¶</a></h1>
 <p>The source code tree for the heat equation example is simple, as shown in
 <a class="reference internal" href="#fig-basics-heat-flowchart"><span class="std std-numref">Fig. 1</span></a>. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
@@ -1717,7 +1717,7 @@ domain. Note that both coarse and fine AMR levels could have grids
 touching the physical boundary. It is up to the application codes to
 properly fill the ghost cells at the physical boundary. However,
 AMReX&nbsp;does provide support for some common operations.
-See the chapter on <a class="reference internal" href="Boundary.html#chap-boundary"><span class="std std-ref">Boundary Conditions</span></a> for a discussion on domain
+See the section on <a class="reference internal" href="#sec-basics-boundary"><span class="std std-ref">Boundary Conditions</span></a> for a discussion on domain
 boundary conditions in general, including how to implement
 physical (non-periodic) boundary conditions.</p>
 </div>
@@ -1945,6 +1945,130 @@ has ghost cells and it also has the same number of components as
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span> <span class="name"><span class="pre">mf2</span></span></code>. If we always want the assertion, we can use
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AMREX_ALWAYS_ASSERT</span></span></code>.</p>
 </div>
+<div class="section" id="boundary-conditions">
+<span id="sec-basics-boundary"></span><h1>Boundary Conditions<a class="headerlink" href="#boundary-conditions" title="Permalink to this headline">¶</a></h1>
+<p>This section describes how to implement domain boundary conditions in AMReX.
+A ghost cell that is outside of the valid region can be thought of as either
+“interior” (for periodic and coarse-fine ghost cells), or “physical”.
+Physical boundary conditions can include inflow, outflow, slip/no-slip walls,
+but are ultimately linked to mathematical Dirichlet or Neumann conditions.</p>
+<p>The basic idea behind physical boundary conditions is as follows:</p>
+<ul>
+<li><p class="first">Create a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BCRec</span></span></code> object, which is essentially a multidimensional integer array of
+<code class="code cpp c++ docutils literal"><span class="literal number integer"><span class="pre">2</span></span><span class="operator"><span class="pre">*</span></span><span class="name"><span class="pre">DIM</span></span></code> components. Each component defines a boundary condition type for
+the lo/hi side of the domain, for each direction.
+See <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_BC_TYPES.H</span></code> for common physical and mathematical types.
+If there is more than one variable, we can create an array of BCRec objects,
+and pass in a pointer to the 0-index component since the arrays for all the
+components are contiguous in memory.
+Here we need to provide boundary types to each component of the
+<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code>. Below is an example of setting up <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">BCRec</span></span><span class="operator"><span class="pre">&gt;</span></span></code>
+before the call to ghost cell routines.</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// Set up BC; see ``amrex/Src/Base/AMReX_BC_TYPES.H`` for supported types</span>
+<span class="n">Vector</span><span class="o">&lt;</span><span class="n">BCRec</span><span class="o">&gt;</span> <span class="n">bc</span><span class="p">(</span><span class="n">phi</span><span class="p">.</span><span class="n">nComp</span><span class="p">());</span>
+<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">phi</span><span class="p">.</span><span class="n">nComp</span><span class="p">();</span> <span class="o">++</span><span class="n">n</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">idim</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">idim</span> <span class="o">&lt;</span> <span class="n">AMREX_SPACEDIM</span><span class="p">;</span> <span class="o">++</span><span class="n">idim</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">Geometry</span><span class="o">::</span><span class="n">isPeriodic</span><span class="p">(</span><span class="n">idim</span><span class="p">))</span>
+        <span class="p">{</span>
+            <span class="n">bc</span><span class="p">[</span><span class="n">n</span><span class="p">].</span><span class="n">setLo</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">BCType</span><span class="o">::</span><span class="n">int_dir</span><span class="p">);</span> <span class="c1">// interior</span>
+            <span class="n">bc</span><span class="p">[</span><span class="n">n</span><span class="p">].</span><span class="n">setHi</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">BCType</span><span class="o">::</span><span class="n">int_dir</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="n">bc</span><span class="p">[</span><span class="n">n</span><span class="p">].</span><span class="n">setLo</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">BCType</span><span class="o">::</span><span class="n">foextrap</span><span class="p">);</span> <span class="c1">// first-order extrapolation</span>
+            <span class="n">bc</span><span class="p">[</span><span class="n">n</span><span class="p">].</span><span class="n">setHi</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">BCType</span><span class="o">::</span><span class="n">foextrap</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">BCType</span></span></code> has the following types,</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>int_dir</dt>
+<dd><p class="first last">Interior, including periodic boundary</p>
+</dd>
+<dt>ext_dir</dt>
+<dd><p class="first last">“External Dirichlet”. It is the user’s responsibility to write a routine
+to fill ghost cells (more details below).</p>
+</dd>
+<dt>foextrap</dt>
+<dd><p class="first last">“First Order Extrapolation”
+First order extrapolation from last cell in interior.</p>
+</dd>
+<dt>reflect_even</dt>
+<dd><p class="first last">Reflection from interior cells with sign
+unchanged, <span class="math">\(q(-i) = q(i)\)</span>.</p>
+</dd>
+<dt>reflect_odd</dt>
+<dd><p class="first last">Reflection from interior cells with sign
+unchanged, <span class="math">\(q(-i) = -q(i)\)</span>.</p>
+</dd>
+</dl>
+</div></blockquote>
+</li>
+<li><p class="first">We have interfaces to a fortran routine that fills ghost cells at domain
+boundaries based on the boundary condition type defined in the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BCRec</span></span></code> object.
+It is the user’s responsibility to have a consisent definition of what the ghost cells
+represent. A common option used in AMReX&nbsp;codes is to fill the domain ghost cells
+with the value that lies on the boundary (as opposed to another common option where
+the value in the ghost cell represents an extrapolated value based on the boundary
+condition type). Then in our stencil based “work” codes, we also pass in the
+<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BCRec</span></span></code> object and use modified stencils near the domain boundary that know the value
+in the first ghost cell represents the value on the boundary.</p>
+</li>
+</ul>
+<p>Depending on the level of complexity of your code, there are various options
+for filling domain boundary ghost cells.</p>
+<p>For single-level codes built from <code class="docutils literal"><span class="pre">amrex/Src/Base</span></code> (excluding the
+<code class="docutils literal"><span class="pre">amrex/Src/AmrCore</span></code> and <code class="docutils literal"><span class="pre">amrex/Src/Amr</span></code> source code directories), you will have
+single-level MultiFabs filled with data in the valid region where you need
+to fill the ghost cells on each grid. There are essentially three ways to fill the ghost
+cells. (refer to <code class="docutils literal"><span class="pre">amrex/Tutorials/Basic/HeatEquation_EX2_C</span></code> for an example).</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">MultiFab</span> <span class="n">mf</span><span class="p">;</span>
+<span class="n">Geometry</span> <span class="n">geom</span><span class="p">;</span>
+<span class="n">Vector</span><span class="o">&lt;</span><span class="n">BCRec</span><span class="o">&gt;</span> <span class="n">bc</span><span class="p">;</span>
+
+<span class="c1">// ...</span>
+
+<span class="c1">// fills interior and periodic domain boundary ghost cells</span>
+<span class="n">mf</span><span class="p">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">geom</span><span class="p">.</span><span class="n">periodicity</span><span class="p">());</span>
+
+<span class="c1">// fills interior (but not periodic domain boundary) ghost cells</span>
+<span class="n">mf</span><span class="p">.</span><span class="n">FillBoundary</span><span class="p">();</span>
+
+<span class="c1">// fills physical domain boundary ghost cells</span>
+<span class="n">FillDomainBoundary</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="n">bc</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillDomainBoundary</span></span><span class="punctuation"><span class="pre">()</span></span></code> is a function is in <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_BCUtil.cpp</span></code>,
+and is essentially an interface to fortran subroutine <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_fab_filcc</span></span><span class="punctuation"><span class="pre">()</span></span></code>
+in <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_filcc_mod.F90</span></code>, which ultimately calls fortran
+subroutine <code class="code fortran docutils literal"><span class="name"><span class="pre">filcc</span></span><span class="punctuation"><span class="pre">()</span></span></code> in <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_FILCC_XD.F</span></code>. To create more
+custom boundary conditions, create a local modified copy of
+<code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_FILCC_XD.F</span></code> and put it your local source code.</p>
+<p>For multi-level codes using the <code class="docutils literal"><span class="pre">amrex/Src/AmrCore</span></code> source code, the
+functions described above still work, however additional classes need to
+be set up since the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatch</span></span></code> routines call them.
+In fact it is possible to avoid using the single-level calls directly if
+you fill all your grids and ghost cells using the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatch</span></span></code> routines.
+Refer to <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore/</span></code> for an example.
+The class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhysBCFunct</span></span></code> in <code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_PhysBCFunct.cpp</span></code>
+is derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhysBCFunctBase</span></span></code> and contains a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BCRec</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Geometry</span></span></code>,
+and a pointer to a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BndryFunctBase</span></span></code> function.</p>
+<p>Note that <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhyBCFunct</span></span></code> is an example of how to derive from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhysBCFunctBase</span></span></code> and is
+not meant to be a base class. <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PhysBCFunctBase</span></span></code> is the base class.
+PhysBCFunctBase is designed for users to derive and extend.
+You could/should write your own class derived from PhysBCFuncBase.
+There you can make modifications such as storing a vector of BCRecs for, e.g.,
+multiple component MultiFabs.</p>
+<p>The function <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillBoundary</span></span></code> fills physical ghost cells and has a similar functionality
+to the single-level case described above, where <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillDomainBoundary</span></span></code>
+fills the physical ghost cells. In fact you can have your BndryFunctBase
+point to the same <code class="code fortran docutils literal"><span class="name"><span class="pre">filcc</span></span></code> routines called by the single-level routines.</p>
+</div>
 
 
            </div>
@@ -1956,7 +2080,7 @@ has ghost cells and it also has the same number of components as
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Boundary.html" class="btn btn-neutral float-right" title="Boundary Conditions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Chapter6.html" class="btn btn-neutral float-right" title="AmrCore Source Code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="Chapter4.html" class="btn btn-neutral" title="Basics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

@@ -29,7 +29,6 @@ AMReX directory as license.txt.
    Chapter2
    Chapter3
    Chapter4
-   Boundary
    Chapter6
    Chapter7
    Chapter8
