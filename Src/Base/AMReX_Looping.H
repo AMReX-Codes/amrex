@@ -213,36 +213,6 @@
                 const T & x##R = _x_pp[_i];                             \
                 const T & y##R = _y_pp[_i];
 
-#define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ri)                   \
-{                                                                       \
-    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());               \
-    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());               \
-    BL_ASSERT((x).contains(bx));                                        \
-    BL_ASSERT((y).contains(by));                                        \
-    BL_ASSERT((bx).sameSize(by));                                       \
-    const int *_x_plo = (x).loVect();                                   \
-    const int *_x_plen = (x).length();                                  \
-    const int *_y_plo = (y).loVect();                                   \
-    const int *_y_plen = (y).length();                                  \
-    IntVect bx_length = (bx).size();                                    \
-    const int *_len = bx_length.getVect();                              \
-    const int *_bx_lo = (bx).loVect();                                  \
-    const int *_by_lo = (by).loVect();                                  \
-    T* _x_p  = (x).dataPtr(nsx);                                        \
-    const T* _y_p  = (y).dataPtr(nsy);                                  \
-    for(int _n = 0; _n < (nc); ++_n) {                                  \
-        int n##x##R = _n + nsx; n##x##R += 0;                           \
-        int n##y##R = _n + nsy; n##y##R += 0;                           \
-        int _ix = 0;                                                    \
-        T *_x_pp = _x_p                                                 \
-            + ((_bx_lo[0] - _x_plo[0]) + _len[0] - 1                    \
-                + _n * _x_plen[0]);                                     \
-        const T *_y_pp = _y_p                                           \
-            + ((_by_lo[0] - _y_plo[0])                                  \
-                + _n * _y_plen[0]);                                     \
-        for(int _i = 0; _i < _len[0]; ++_i, --_ix) {                    \
-            T & x##R = _x_pp[_ix];                                      \
-            const T & y##R = _y_pp[_i];
 
 /*
   The macro EndForTX must be used to end all ForAllThisBNNXC,
@@ -416,58 +386,6 @@
                     const T & x##R = _x_pp[_i];                         \
                     const T & y##R = _y_pp[_i];
 
-#define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ir)                   \
-{                                                                       \
-    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());               \
-    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());               \
-    BL_ASSERT((ir) >= 0 && (ir) < BL_SPACEDIM);                         \
-    BL_ASSERT((x).contains(bx));                                        \
-    BL_ASSERT((y).contains(by));                                        \
-    BL_ASSERT((bx).sameSize(by));                                       \
-    const int *_x_plo = (x).loVect();                                   \
-    const int *_x_plen = (x).length();                                  \
-    const int *_y_plo = (y).loVect();                                   \
-    const int *_y_plen = (y).length();                                  \
-    const int *_bx_lo = (bx).loVect();                                  \
-    const int *_by_lo = (by).loVect();                                  \
-    IntVect bx_length = (bx).size();                                    \
-    const int *_len = bx_length.getVect();                              \
-    T* _x_p  = (x).dataPtr(nsx);                                        \
-    const T* _y_p  = (y).dataPtr(nsy);                                  \
-    for(int _n = 0; _n < (nc); ++_n) {                                  \
-        int n##x##R = _n + nsx; n##x##R += 0;                           \
-        int n##y##R = _n + nsy; n##y##R += 0;                           \
-        for(int _j = 0; _j < _len[1]; ++_j) {                           \
-            const int j##x##R = _j + _bx_lo[1];                 \
-            const int jrev##x##R = _len[1]-1-_j + _bx_lo[1];            \
-            const int j##y##R = _j + _by_lo[1];                 \
-            T *_x_pp;                                                   \
-            int _ix = 0;                                                \
-            int _istrd;                                                 \
-            if (ir == 0) {                                              \
-                _x_pp = _x_p                                            \
-                    + ((_bx_lo[0] - _x_plo[0]) + _len[0] - 1            \
-                       + _x_plen[0]*(                                   \
-                           (j##x##R - _x_plo[1])                        \
-                           + _n * _x_plen[1]));                         \
-                _istrd = -1;                                            \
-            } else {                                                    \
-                _x_pp = _x_p                                            \
-                    + ((_bx_lo[0] - _x_plo[0])                          \
-                       + _x_plen[0]*(                                   \
-                           (jrev##x##R - _x_plo[1])                     \
-                           + _n * _x_plen[1]));                         \
-                _istrd = 1;                                             \
-            }                                                           \
-            const T *_y_pp = _y_p                                       \
-                    + ((_by_lo[0] - _y_plo[0])                          \
-                       + _y_plen[0]*(                                   \
-                           (j##y##R - _y_plo[1])                        \
-                           + _n * _y_plen[1]));                         \
-            int _x_rev = _len[0]-1; _x_rev += 0;                        \
-            for(int _i = 0; _i < _len[0]; ++_i, _ix+=_istrd) {          \
-                T & x##R = _x_pp[_ix];                                  \
-                const T & y##R = _y_pp[_i];
 
 
 #define EndFor }}}}
@@ -656,74 +574,6 @@
                         const T & x##R = _x_pp[_i];                     \
                         const T & y##R = _y_pp[_i];
 
-#define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ir)                   \
-{                                                                       \
-    BL_ASSERT((ir) >= 0 && (ir) < BL_SPACEDIM);                         \
-    BL_ASSERT((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());               \
-    BL_ASSERT((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());               \
-    BL_ASSERT((x).contains(bx));                                        \
-    BL_ASSERT((y).contains(by));                                        \
-    BL_ASSERT((bx).sameSize(by));                                       \
-    const int *_x_plo = (x).loVect();                                   \
-    const int *_x_plen = (x).length();                                  \
-    const int *_y_plo = (y).loVect();                                   \
-    const int *_y_plen = (y).length();                                  \
-    const int *_bx_lo = (bx).loVect();                                  \
-    const int *_by_lo = (by).loVect();                                  \
-    IntVect bx_length = (bx).size();                                    \
-    const int *_len = bx_length.getVect();                              \
-    T* _x_p  = (x).dataPtr(nsx);                                        \
-    const T* _y_p  = (y).dataPtr(nsy);                                  \
-    for(int _n = 0; _n < (nc); ++_n) {                                  \
-        int n##x##R = _n + nsx; n##x##R += 0;                           \
-        int n##y##R = _n + nsy; n##y##R += 0;                           \
-        for(int _k = 0; _k < _len[2]; ++_k) {                           \
-            const int k##x##R = _k + _bx_lo[2];                         \
-            const int krev##x##R = _len[2]-1-_k + _bx_lo[2];            \
-            const int k##y##R = _k + _by_lo[2];                         \
-            for(int _j = 0; _j < _len[1]; ++_j) {                       \
-                const int j##x##R = _j + _bx_lo[1];                     \
-                const int jrev##x##R = _len[1]-1-_j + _bx_lo[1];        \
-                const int j##y##R = _j + _by_lo[1];                     \
-                T *_x_pp;                                               \
-                int _ix = 0;                                            \
-                int _istrd = 1;                                         \
-                if (ir == 0) {                                          \
-                    _x_pp = _x_p                                        \
-                        + ((_bx_lo[0] - _x_plo[0]) + _len[0]-1          \
-                           + _x_plen[0]*(                               \
-                               (j##x##R - _x_plo[1])                    \
-                               + _x_plen[1]*(                           \
-                                   (k##x##R - _x_plo[2])                \
-                                   + _n * _x_plen[2])));                \
-                    _istrd = -1;                                        \
-                } else if (ir == 1) {                                   \
-                    _x_pp = _x_p                                        \
-                        + ((_bx_lo[0] - _x_plo[0])                      \
-                           + _x_plen[0]*(                               \
-                               (jrev##x##R - _x_plo[1])                 \
-                               + _x_plen[1]*(                           \
-                                   (k##x##R - _x_plo[2])                \
-                                   + _n * _x_plen[2])));                \
-                } else {                                                \
-                    _x_pp = _x_p                                        \
-                        + ((_bx_lo[0] - _x_plo[0])                      \
-                           + _x_plen[0]*(                               \
-                               (j##x##R - _x_plo[1])                    \
-                               + _x_plen[1]*(                           \
-                                   (krev##x##R - _x_plo[2])             \
-                                   + _n * _x_plen[2])));                \
-                }                                                       \
-                const T *_y_pp = _y_p                                   \
-                    + ((_by_lo[0] - _y_plo[0])                          \
-                       + _y_plen[0]*(                                   \
-                           (j##y##R - _y_plo[1])                        \
-                           + _y_plen[1]*(                               \
-                               (k##y##R - _y_plo[2])                    \
-                               + _n * _y_plen[2])));                    \
-                for(int _i = 0; _i < _len[0]; ++_i, _ix += _istrd) {    \
-                    T & x##R = _x_pp[_ix];                              \
-                    const T & y##R = _y_pp[_i];
 
 #define EndFor }}}}}
 #define EndForTX }}}}}}
