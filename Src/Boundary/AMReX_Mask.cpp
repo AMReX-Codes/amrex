@@ -1,6 +1,5 @@
 
 #include <cstdlib>
-#include <AMReX_Looping.H>
 #include <AMReX_Mask.H>
 #include <AMReX_Utility.H>
 

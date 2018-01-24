@@ -13,7 +13,6 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
-#include <AMReX_Looping.H>
 #include <AMReX_Utility.H>
 
 namespace amrex {

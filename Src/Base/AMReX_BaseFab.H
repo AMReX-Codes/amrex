@@ -16,7 +16,6 @@
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_CArena.H>
-#include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
@@ -887,6 +886,7 @@ public:
                                      const BaseFab<T>& src, int srccomp, F f);
     template <class F> void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                                      const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
+    template <class F> void ForEachIV (const Box& b, int c, int nc, F f) const;
     template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
 
 protected:
@@ -1004,6 +1004,33 @@ BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
             }
         }
     }   
+}
+
+template <class T>
+template <class F>
+void
+BaseFab<T>::ForEachIV (const Box& b, int c, int nc, F f) const
+{
+    AMREX_ASSERT(contains(b));
+    AMREX_ASSERT(c >= 0 && c + nc <= nComp());
+
+    const auto& len3 = b.length3d();
+    const int* blo = b.loVect();
+    for (int n = c; n < c+nc; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect line_begin{AMREX_D_DECL(blo[0],
+                                                      blo[1]+j,
+                                                      blo[2]+k)};
+                auto d = dataPtr(line_begin, n);
+                for (int i = 0; i < len3[0]; ++i) {
+                    f(*(d+i), IntVect{AMREX_D_DECL(blo[0]+i,
+                                                   blo[1]+j,
+                                                   blo[2]+k)});
+                }
+            }
+        }
+    }
 }
 
 template <class T>
@@ -2053,20 +2080,17 @@ IntVect
 BaseFab<T>::minIndex (const Box& subbox,
                       int        comp) const
 {
-    IntVect _min_loc(subbox.smallEnd());
-    T _min_val = (*this).operator()(_min_loc,comp);
-    ForAllThisCBNN(T,subbox,comp,1)
-    {
-        if (thisR < _min_val)
-        {
-            _min_val = thisR;
-            AMREX_D_EXPR(_min_loc[0] = iR,
-                   _min_loc[1] = jR,
-                   _min_loc[2] = kR);
-        }
-    } EndFor;
+    IntVect min_loc;
+    T min_val = std::numeric_limits<T>::max();
+    ForEachIV(subbox, comp, 1, [&min_loc,&min_val] (T const& x, IntVect const& iv)
+              {
+                  if (x < min_val) {
+                      min_val = x;
+                      min_loc = iv;
+                  }
+              });
 
-    return _min_loc;
+    return min_loc;
 }
 
 template <class T>
@@ -2081,20 +2105,18 @@ IntVect
 BaseFab<T>::maxIndex (const Box& subbox,
                       int        comp) const
 {
-    IntVect _max_loc(subbox.smallEnd());
-    T _max_val = (*this).operator()(_max_loc,comp);
-    ForAllThisCBNN(T,subbox,comp,1)
-    {
-        if (thisR > _max_val)
-        {
-            _max_val = thisR;
-            AMREX_D_EXPR(_max_loc[0] = iR,
-                   _max_loc[1] = jR,
-                   _max_loc[2] = kR);
-        }
-    } EndFor;
+    IntVect max_loc;
+    T max_val = std::numeric_limits<T>::lowest();
 
-    return _max_loc;
+    ForEachIV(subbox, comp, 1, [&max_loc,&max_val] (T const& x, IntVect const& iv)
+              {
+                  if (x > max_val) {
+                      max_val = x;
+                      max_loc = iv;
+                  }
+              });
+
+    return max_loc;
 }
 
 template <class T>
@@ -2106,19 +2128,14 @@ BaseFab<T>::maskLT (BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int* mptr = mask.dataPtr();
-    int  cnt  = 0;
-
-    ForAllThisCBNN(T,domain,comp,1)
-    {
-        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
-        if (thisR < val)
-        {
-            mptr[ix] = 1;
-            cnt++;
-        }
-    } EndFor;
-
+    int cnt = 0;
+    mask.ForEach(domain, 0, 1, *this, comp, [&cnt, &val] (T& d, T const& s)
+                 {
+                     if (s < val) {
+                         d = 1;
+                         ++cnt;
+                     }
+                 });
     return cnt;
 }
 
@@ -2131,19 +2148,14 @@ BaseFab<T>::maskLE (BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int* mptr = mask.dataPtr();
-    int  cnt  = 0;
-
-    ForAllThisCBNN(T,domain,comp,1)
-    {
-        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
-        if (thisR <= val)
-        {
-            mptr[ix] = 1;
-            cnt++;
-        }
-    } EndFor;
-
+    int cnt = 0;
+    mask.ForEach(domain, 0, 1, *this, comp, [&cnt, &val] (T& d, T const& s)
+                 {
+                     if (s <= val) {
+                         d = 1;
+                         ++cnt;
+                     }
+                 });
     return cnt;
 }
 
@@ -2156,19 +2168,14 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int* mptr = mask.dataPtr();
-    int  cnt  = 0;
-
-    ForAllThisCBNN(T,domain,comp,1)
-    {
-        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
-        if (thisR == val)
-        {
-            mptr[ix] = 1;
-            cnt++;
-        }
-    } EndFor;
-
+    int cnt = 0;
+    mask.ForEach(domain, 0, 1, *this, comp, [&cnt, &val] (T& d, T const& s)
+                 {
+                     if (s == val) {
+                         d = 1;
+                         ++cnt;
+                     }
+                 });
     return cnt;
 }
 
@@ -2181,19 +2188,14 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int* mptr = mask.dataPtr();
-    int  cnt  = 0;
-
-    ForAllThisCBNN(T,domain,comp,1)
-    {
-        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
-        if (thisR > val)
-        {
-            mptr[ix] = 1;
-            cnt++;
-        }
-    } EndFor;
-
+    int cnt = 0;
+    mask.ForEach(domain, 0, 1, *this, comp, [&cnt, &val] (T& d, T const& s)
+                 {
+                     if (s > val) {
+                         d = 1;
+                         ++cnt;
+                     }
+                 });
     return cnt;
 }
 
@@ -2206,19 +2208,14 @@ BaseFab<T>::maskGE(BaseFab<int>& mask,
     mask.resize(domain,1);
     mask.setVal(0);
 
-    int* mptr = mask.dataPtr();
-    int  cnt  = 0;
-
-    ForAllThisCBNN(T,domain,comp,1)
-    {
-        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
-        if (thisR >= val)
-        {
-            mptr[ix] = 1;
-            cnt++;
-        }
-    } EndFor;
-
+    int cnt = 0;
+    mask.ForEach(domain, 0, 1, *this, comp, [&cnt, &val] (T& d, T const& s)
+                 {
+                     if (s >= val) {
+                         d = 1;
+                         ++cnt;
+                     }
+                 });
     return cnt;
 }
 
