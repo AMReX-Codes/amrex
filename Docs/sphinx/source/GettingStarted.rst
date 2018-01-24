@@ -180,9 +180,9 @@ and then taking the divergence to update the cells,
    + \frac{\Delta t}{\Delta x}\left(F_{i+^1\!/_2,\,j}-F_{i-^1\!/_2,\,j}\right)
    + \frac{\Delta t}{\Delta y}\left(F_{i,\,j+^1\!/_2}-F_{i,\,j-^1\!/_2}\right)
 
-Don't worry about the implementation details of the code.
-You will be able to understand the code in this example after
-reading the section on the :ref:`Chap:Basics`.
+The implementation details of the code are discussed in section
+:ref:`sec:basics:heat1`.  For now let's just build and run the code,
+and visualizae the results.
 
 Building and Running the Code
 -----------------------------

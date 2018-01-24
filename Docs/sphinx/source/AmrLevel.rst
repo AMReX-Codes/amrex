@@ -127,8 +127,8 @@ physical boundary functions by providing a function (in this case,
 :cpp:`nullfill` since we are not using physical boundary conditions), where
 :cpp:`nullfill` is defined in a fortran routine in the tutorial source code.
 
-Advection_AmrLevel Example
-==========================
+Example: Advection_AmrLevel
+===========================
 
 .. _fig:AmrAdvection_AmrLevel_flowchart:
 

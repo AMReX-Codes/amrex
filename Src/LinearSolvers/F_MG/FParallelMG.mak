@@ -22,7 +22,7 @@
 #
 # ------------------------------------------------
 
-DEFINES += -DMG_USE_FBOXLIB
+DEFINES += -DAMREX_USE_FBOXLIB_MG
 
 f90EXE_sources += compute_defect.f90
 f90EXE_sources += coarsen_coeffs.f90

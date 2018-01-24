@@ -76,7 +76,7 @@ On systems which are not Cray:
 The CVODE Tutorials
 ===================
 
- provides two CVODE tutorials in the ``amrex/Tutorials/CVODE`` directory, called
+AMReX provides two CVODE tutorials in the ``amrex/Tutorials/CVODE`` directory, called
 ``EX1`` and ``EX2``.  ``EX1`` consists of a single ODE that is integrated with
 CVODE within each cell of a 3-D grid.  It demonstrates how to initialize the
 CVODE solver, how to call the ODE right-hand-side (RHS), and, more importantly,
