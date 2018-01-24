@@ -513,16 +513,6 @@ public:
     int maskGE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
-    /**
-    * \brief Copies with index reversal from srcbox region of src
-    * into destbox region of this FAB.  All components are
-    * copied and multiplied by corresponding multiplier.
-    */
-    void copyRev (const Box&        destbox,
-                  const BaseFab<T>& src,
-                  const Box&        srcbox,
-                  int               reversal_index,
-                  T*                multiplier);
     //! Returns sum of given component of FAB state vector.
     T sum (int comp,
            int numcomp = 1) const;
@@ -1923,46 +1913,30 @@ BaseFab<T>::norm (const Box& subbox,
                   int        comp,
                   int        numcomp) const
 {
-    BL_ASSERT(comp >= 0 && comp+numcomp <= nComp());
-    BL_ASSERT(p >= 0);
-    BL_ASSERT(contains(subbox));
-
     Real nrm = 0.;
 
-    const auto& len3 = subbox.length3d();
-    const int* sublo = subbox.loVect();
-    for (int n = comp; n < comp+numcomp; ++n) {
-        for     (int k = 0; k < len3[2]; ++k) {
-            for (int j = 0; j < len3[1]; ++j) {
-                const IntVect line_begin{AMREX_D_DECL(sublo[0],
-                                                      sublo[1]+j,
-                                                      sublo[2]+k)};
-                const T* d = dataPtr(line_begin, n);
-                if (p == 0) {
-                    for (int i = 0; i < len3[0]; ++i) {
-                        nrm = std::max(nrm, static_cast<Real>(std::abs(d[i])));
-                    }
-                } else if (p == 1) {
-                    for (int i = 0; i < len3[0]; ++i) {
-                        nrm += static_cast<Real>(std::abs(d[i]));
-                    }
-                } else if (p == 2) {
-                    for (int i = 0; i < len3[0]; ++i) {
-                        nrm += std::pow(static_cast<Real>(d[i]),p);
-                    }
-                } else {
-                    for (int i = 0; i < len3[0]; ++i) {
-                        nrm += static_cast<Real>(std::abs(d[i]));
-                    }
-                }
-            }
-        }
+    if (p == 0)
+    {
+        Accumulate(subbox, comp, numcomp, nrm,
+                   [](Real r, const T& x) -> Real
+                   { return std::max(r, static_cast<Real>(std::abs(x))); });
     }
-
-    if (p == 2) {
+    else if (p == 1)
+    {
+        Accumulate(subbox, comp, numcomp, nrm,
+                   [](Real r, const T& x) -> Real
+                   { return r + static_cast<Real>(std::abs(x)); });
+    }
+    else if (p == 2)
+    {
+        Accumulate(subbox, comp, numcomp, nrm,
+                   [](Real r, const T& x) -> Real
+                   { return r + static_cast<Real>(x*x); });
         nrm = std::sqrt(nrm);
-    } else if (p > 2) {
-        nrm = std::pow(nrm, 1.0/p);
+    }
+    else
+    {
+        amrex::Error("BaseFab<T>::norm: wrong p");
     }
 
     return nrm;
@@ -1980,26 +1954,8 @@ T
 BaseFab<T>::min (const Box& subbox,
                  int        comp) const
 {
-    BL_ASSERT(contains(subbox));
-
-    T r = std::numeric_limits<T>::max();
-
-    const auto& len3 = subbox.length3d();
-    const int* sublo = subbox.loVect();
-
-    for     (int k = 0; k < len3[2]; ++k) {
-        for (int j = 0; j < len3[1]; ++j) {
-            const IntVect line_begin{AMREX_D_DECL(sublo[0],
-                                                  sublo[1]+j,
-                                                  sublo[2]+k)};
-            const T* d = dataPtr(line_begin, comp);
-            for (int i = 0; i < len3[0]; ++i) {
-                r = std::min(r, d[i]);
-            }
-        }
-    }
-
-    return r;
+    return Accumulate(subbox, comp, 1, std::numeric_limits<T>::max(),
+                      [](T r, const T& x) -> T { return std::min(r,x); });
 }
 
 template <class T>
@@ -2014,7 +1970,6 @@ T
 BaseFab<T>::max (const Box& subbox,
                  int        comp) const
 {
-    BL_ASSERT(contains(subbox));
     return Accumulate(subbox, comp, 1, std::numeric_limits<T>::lowest(),
                       [](T r, const T& x) -> T { return std::max(r,x); });
 }
@@ -2266,22 +2221,6 @@ BaseFab<T>::divide (const BaseFab<T>& x)
 }
 
 template <class T>
-void
-BaseFab<T>::copyRev (const Box&        destbox,
-                     const BaseFab<T>& src,
-                     const Box&        srcbox,
-                     int               reversal_index,
-                     T*                multiplier)
-{
-    BaseFab<T>& dest = *this;
-
-    ForAllRevXBNYCBNNN(T,dest,destbox,0,src,srcbox,0,nComp(),reversal_index)
-    {
-        destR = multiplier[_n]*srcR;
-    } EndFor
-}
-
-template <class T>
 T
 BaseFab<T>::sum (int comp,
                  int numcomp) const
@@ -2295,27 +2234,8 @@ BaseFab<T>::sum (const Box& subbox,
                  int        comp,
                  int        numcomp) const
 {
-    BL_ASSERT(contains(subbox));
-
-    T r = 0;
-
-    const auto& len3 = subbox.length3d();
-    const int* sublo = subbox.loVect();
-    for (int n = comp; n < comp+numcomp; ++n) {
-        for     (int k = 0; k < len3[2]; ++k) {
-            for (int j = 0; j < len3[1]; ++j) {
-                const IntVect line_begin{AMREX_D_DECL(sublo[0],
-                                                      sublo[1]+j,
-                                                      sublo[2]+k)};
-                const T* d = dataPtr(line_begin, n);
-                for (int i = 0; i < len3[0]; ++i) {
-                    r += d[i];
-                }
-            }
-        }
-    }
-
-    return r;
+    return Accumulate(subbox, comp, 1, std::numeric_limits<T>::lowest(),
+                      [](T r, const T& x) -> T { return r+x; });
 }
 
 template <class T>
@@ -2366,7 +2286,7 @@ BaseFab<T>::invert (T          r,
                     int        comp,
                     int        numcomp)
 {
-    ForEach(subbox, comp, numcomp, [&r](T& x) { x = r/x; });
+    ForEach(b, comp, numcomp, [&r](T& x) { x = r/x; });
     return *this;
 }
 
