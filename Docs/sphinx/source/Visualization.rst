@@ -271,6 +271,8 @@ AMReX codes. Some of the AMReX developers are also yt project members.
 Below we describe how to use  on both a local workstation, as well as at
 the NERSC HPC facility for high-throughput visualization of large data sets.
 
+Note - AMReX datasets require yt version 3.4 or greater.
+
 Using  on a local workstation
 -----------------------------
 
