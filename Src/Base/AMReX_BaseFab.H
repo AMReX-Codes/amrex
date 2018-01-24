@@ -2686,47 +2686,16 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   return *this;
 }
 
-//
-// Linear combination, Result is alpha*f1 + beta*f2
-// Data is taken from b1 region of f1, b2 region of f2
-// and stored in b region of this FAB.
-// Boxes b, b1 and b2 must be the same size.
-// Data is taken from component comp1 of f1, comp2 of f2,
-// and stored in component comp of this FAB.
-// This fab is returned as a reference for chaining.
-//
 
-template <class T>
-BaseFab<T>&
-BaseFab<T>::linComb (const BaseFab<T>&  f1,
-                     const Box&         b1,
-                     int                comp1,
-                     const BaseFab<T>&  f2,
-                     const Box&         b2,
-                     int                comp2,
-                     Real               alpha,
-                     Real               beta,
-                     const Box&         b,
-                     int                comp,
-                     int                numcomp)
+class BF_init
 {
-    ForAllThisBNNXCBNYCBN(T,b,comp,numcomp,f1,b1,comp1,f2,b2,comp2)
-    {
-        thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
-    } EndForTX
-    return *this;
-}
+public:
+    BF_init ();
+    ~BF_init ();
+private:
+    static int m_cnt;
+};
 
-    // \cond CODEGEN
-    class BF_init
-    {
-    public:
-        BF_init ();
-        ~BF_init ();
-    private:
-        static int m_cnt;
-    };
-    // \endcond
 }
 
 static amrex::BF_init file_scope_BF_init_object;
