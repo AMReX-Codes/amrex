@@ -883,22 +883,9 @@ FabArray<FAB>::clear ()
 
 	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
 	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-	if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-#ifdef DEBUG_AFAP
-	    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
-		std::cout << "**** In FabArray::clear():: map not found:  size = "
-			  << distributionMap.size() << std::endl;
-	    }
-#endif
-	} else {
+	if(afapIter != FabArray<FAB>::allocatedFAPointers.end()) {
 	    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
 	    faPtrCachedMap.erase(aFAPId);
-#ifdef DEBUG_AFAP
-	    if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
-		std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
-			  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
-	    }
-#endif
 	    if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
 		FabArray<FAB>::allocatedFAPointers.erase(afapIter);
 	    }

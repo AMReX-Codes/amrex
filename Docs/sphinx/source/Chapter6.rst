@@ -1,44 +1,46 @@
-.. _Chap:AmrCore:
+.. _Chap:AmrLevel:
 
-AmrCore Source Code
-===================
+Amr Source Code
+===============
 
-In this Chapter we give an overview of functionality contained in the ``amrex/Src/AmrCore`` source code.
-This directory contains source code for the following:
+The source code in ``amrex/Src/Amr`` contains a number of classes, most notably
+:cpp:`Amr`, :cpp:`AmrLevel`, and :cpp:`LevelBld`.
+These classes provide a more well developed set of tools for writing AMR codes
+than the classes created for the Advection_AmrCore tutorial.
 
--  Storing information about the grid layout and processor distribution mapping
-   at each level of refinement.
+-  The :cpp:`Amr` class is derived from :cpp:`AmrCore`, and manages data across the
+   entire AMR hierarchy of grids.
 
--  Functions to create grids at different levels of refinement, including tagging
-   operations.
+-  The :cpp:`AmrLevel` class is a pure virtual class for managing data at a
+   single level of refinement.
 
--  Operations on data at different levels of refinement, such as interpolation and
-   restriction operators.
+-  The :cpp:`LevelBld` class is a pure virtual class for defining variable types
+   and attributes.
 
--  Flux registers used to store and manipulate fluxes at coarse-fine interfaces.
+Many of our mature, public application codes contain derived classes that
+inherit directly from :cpp:`AmrLevel`. These include our compressible
+astrophysics code, CASTRO, (available in the AMReX-Astro/Castro github
+repository) and our computational cosmology code, Nyx (available in the
+AMReX-Astro/Nyx github repository) .  Our incompressible Navier-Stokes code,
+IAMR (available in the AMReX-codes/IAMR github repository) has a pure virtual
+class called :cpp:`NavierStokesBase` that inherits from :cpp:`AmrLevel`, and an
+additional derived class :cpp:`NavierStokes`.  Our low Mach number combustion
+code PeleLM (not yet public) also inherits from :cpp:`NavierStokesBase`.
 
--  Particle support for AMR (see :ref:`Chap:Particles`).
+The tutorial code in ``amrex/Tutorials/Amr/Advection_AmrLevel`` gives a simple
+example of a class derived from :cpp:`AmrLevel` that can be used to solve the
+advection equation on a subcycling-in-time AMR hierarchy. Note that example is
+essentially the same as the ``amrex/Tutorials/Amr/Advection_AmrCore`` tutorial and
+documentation in the chapter on :ref:`Chap:AmrCore`, except now we use the
+provided libraries in ``amrex/Src/Amr``.
 
-There is another source directory, ``amrex/Src/Amr/``, which contains
-additional classes used to manage the time-stepping for AMR simulations.
-However, it is possible to build a fully adaptive, subcycling-in-time simulation code
-without these additional classes.
-
-In this Chapter, we restrict our use to the ``amrex/Src/AmrCore`` source code
-and present a tutorial that performs an adaptive, subcycling-in-time simulation
-of the advection equation for a passively advected scalar.
-The accompanying tutorial code is available in ``amrex/Tutorials/Amr/Advection_AmrCore``
-with build/run directory ``Exec/SingleVortex``. In this example, the velocity
-field is a specified function of space and time, such that an initial
-Gaussian profile is displaced but returns to its original configuration at the final time.
-The boundary conditions are periodic and we use a refinement ratio of :math:`r=2` between each
-AMR level. The results of the simulation in two-dimensions are depicted in the Table
-showing the :ref:`SingleVortex Tutorial<fig:Adv>`.
-
-
+The tutorial code also contains a :cpp:`LevelBldAdv` class (derived from
+:cpp:`LevelBld` in the Source/Amr directory). This class is used to define
+variable types (how many, nodality, interlevel interpolation stencils, etc.).
 
 
 .. toctree::
    :maxdepth: 1
 
-   AmrCore
+
+   AmrLevel

@@ -35,11 +35,7 @@ BF_init::BF_init ()
     {
         BL_ASSERT(the_arena == 0);
 
-#if defined(BL_COALESCE_FABS)
-        the_arena = new CArena;
-#else
         the_arena = new BArena;
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel

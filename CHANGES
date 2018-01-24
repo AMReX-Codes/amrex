@@ -1,5 +1,10 @@
 # changes since the last release
 
+  -- Documentation in reST/Sphinx.  See Docs/Readme.sphinx for more
+     details.
+
+  -- Src/LinearSolvers/MLMG now supports nodal based data.
+
   -- Fortran module AMReX_fillpatch_module takes a user provided
      callback function for filling physical boundary conditions.  That
      function used to use 0-based index for component (i.e., the last

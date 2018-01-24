@@ -368,8 +368,8 @@ and :cpp:`TracerParticleContainer` (in ``amrex/Src/Particle/AMReX_TracerParticle
 AMReX_AmrParGDB.cpp/H contains the class :cpp:`AmrParGDB`, which is derived from
 the class :cpp:`ParGDBBase` (in ``amrex/Src/Particle/AMReX_ParGDB``).
 
-Advection_AmrCore Example
-=========================
+Example: Advection_AmrCore
+==========================
 
 Code Structure
 --------------

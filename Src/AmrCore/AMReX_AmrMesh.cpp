@@ -665,23 +665,6 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             //
             new_bx.maxSize(largest_grid_size);
 
-#ifdef BL_FIX_GATHERV_ERROR
-	      int wcount = 0, iLGS = largest_grid_size[0];
-
-              while (new_bx.size() < 64 && wcount++ < 4)
-              {
-                  iLGS /= 2;
-		  amrex::Print() << "BL_FIX_GATHERV_ERROR:  using iLGS = " << iLGS
-				 << "   largest_grid_size was:  " << largest_grid_size[0] << '\n'
-				 << "BL_FIX_GATHERV_ERROR:  new_bx.size() was:   "
-				 << new_bx.size() << '\n';
-
-                  new_bx.maxSize(iLGS);
-
-		  amrex::Print() << "BL_FIX_GATHERV_ERROR:  new_bx.size() now:   "
-				 << new_bx.size() << '\n';
-	      }
-#endif
             //
             // Refine up to levf.
             //
