@@ -239,8 +239,6 @@ MLPoisson::makeNLinOp (int grid_size) const
     const Geometry& geom = m_geom[0].back();
     const BoxArray& ba = makeNGrids(grid_size);
 
-    const DistributionMapping& mydm = m_dmap[0].back();
-
     DistributionMapping dm;
     {
         const std::vector<std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);

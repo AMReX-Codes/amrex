@@ -142,9 +142,8 @@ Mask::And (const Mask& src,
            int         destcomp,
            int         numcomp)
 {
-    ForAllThisBNNXCBN(int,destbox,destcomp,numcomp,src,srcbox,srccomp) {
-        thisR = (thisR ? srcR : 0);
-    } EndForTX;
+    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
+            [] (int& d, int const& s) { d = d ? s : 0; });
     return *this;
 }
 
@@ -191,9 +190,8 @@ Mask::Or (const Mask& src,
           int         destcomp,
           int         numcomp)
 {
-    ForAllThisBNNXCBN(int,destbox,destcomp,numcomp,src,srcbox,srccomp) {
-        thisR = (thisR ? 1 : srcR);
-    } EndForTX;
+    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
+            [] (int&d, int const& s) { d = d ? 1 : s; });
     return *this;
 }
 
