@@ -6,57 +6,6 @@
 
 
 /*
-  The ForAllThisBNN(T,b,ns,nc) macro is intended to facilitate efficient
-  looping over the contents of BaseFabs and objects derived from BaseFab.
-  Special attention has been paid to make it work efficiently on vector
-  supercomputers.
-
-  This macro performs the loop over the current object (*this) where the loop
-  runs over the points in the Box b and over components starting at ns and
-  ending at ns+nc-1.  The first argument of the macro is a type: the type
-  contained in the BaseFab that is being iterated over.  The reference
-  variable is thisR.
-
-  For example:
-
-    template<class T>
-    void
-    BaseFab<T>::performSetVal (const T val, const Box bx, int ns, int num)
-    {
-      ForAllThisBNN(T,bx,ns,num)
-      {
-        thisR = val;
-      } EndFor
-    }
-
-  Looping macro mnemonics:
-
-    This stands for the current object
-    C for a const
-    X stands for a BaseFab
-    B for a Box
-    N for an int  
-*/
-#define ForAllThisBNN(T,b,ns,nc)                                        \
-{                                                                       \
-    BL_ASSERT(contains(b));                                             \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
-    const int *_th_plo = loVect();                                      \
-    const int *_th_plen = length();                                     \
-    const int *_b_lo = (b).loVect();                                    \
-    IntVect b_length = (b).size();                                      \
-    const int *_b_len = b_length.getVect();                             \
-    T* _th_p = dptr;                                                    \
-    for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
-        int nR = _n; nR += 0;                                           \
-        T *_th_pp = _th_p                                               \
-            + ((_b_lo[0] - _th_plo[0])                                  \
-               + _n * _th_plen[0]);                                     \
-        for(int _i = 0; _i < _b_len[0]; ++_i, ++_th_pp) {               \
-            int iR = _i + _b_lo[0]; iR += 0;                            \
-            T &thisR = * _th_pp;
-
-/*
   The macro ForAllThisCBNN(T,b,ns,nc) is intended to facilitate efficient
   looping over the contents of BaseFabs and objects derived from BaseFab.
   Special attention has been paid to make it work efficiently on vector
@@ -315,28 +264,6 @@
 #elif (BL_SPACEDIM == 2)
 
 
-#define ForAllThisBNN(T,b,ns,nc)                                        \
-{                                                                       \
-    BL_ASSERT(contains(b));                                             \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
-    const int *_th_plo = loVect();                                      \
-    const int *_th_plen = length();                                     \
-    const int *_b_lo = (b).loVect();                                    \
-    IntVect b_length = (b).size();                                      \
-    const int *_b_len = b_length.getVect();                             \
-    T* _th_p = dptr;                                                    \
-    for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
-        int nR = _n; nR += 0;                                           \
-        for(int _j = 0; _j < _b_len[1]; ++_j) {                         \
-            const int jR = _j + _b_lo[1];                               \
-            T *_th_pp = _th_p                                           \
-                + ((_b_lo[0] - _th_plo[0])                              \
-                   + _th_plen[0]*(                                      \
-                       (jR - _th_plo[1])                                \
-                       + _n * _th_plen[1]));                            \
-            for(int _i = 0; _i < _b_len[0]; ++_i, ++_th_pp) {           \
-                int iR = _i + _b_lo[0]; iR += 0;                        \
-                T &thisR = * _th_pp;
 
 #define ForAllThisCBNN(T,b,ns,nc)                                       \
 {                                                                       \
@@ -550,32 +477,6 @@
 #elif (BL_SPACEDIM == 3)
 
 
-#define ForAllThisBNN(T,b,ns,nc)                                        \
-{                                                                       \
-    BL_ASSERT(contains(b));                                             \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
-    const int *_th_plo = loVect();                                      \
-    const int *_th_plen = length();                                     \
-    const int *_b_lo = (b).loVect();                                    \
-    IntVect b_length = (b).size();                                      \
-    const int *_b_len = b_length.getVect();                             \
-    T* _th_p = dptr;                                                    \
-    for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
-        int nR = _n; nR += 0;                                           \
-        for(int _k = 0; _k < _b_len[2]; ++_k) {                         \
-            const int kR = _k + _b_lo[2];                               \
-            for(int _j = 0; _j < _b_len[1]; ++_j) {                     \
-                const int jR = _j + _b_lo[1];                           \
-                T *_th_pp = _th_p                                       \
-                    + ((_b_lo[0] - _th_plo[0])                          \
-                       + _th_plen[0]*(                                  \
-                           (jR - _th_plo[1])                            \
-                           + _th_plen[1]*(                              \
-                               (kR - _th_plo[2])                        \
-                               + _n * _th_plen[2])));                   \
-                for(int _i = 0; _i < _b_len[0]; ++_i, ++_th_pp) {       \
-                    int iR = _i + _b_lo[0]; iR += 0;                    \
-                    T &thisR = * _th_pp;
 
 #define ForAllThisCBNN(T,b,ns,nc)                                       \
 {                                                                       \
@@ -829,13 +730,6 @@
 #define EndForPencil }}}}
 
 #endif
-
-/*
-  The macro ForAllThis(T) is a shortened form of ForAllThisBNN where the Box
-  defaults to the domain of x and the components run over all the components
-  of x.
-*/
-#define ForAllThis(T)           ForAllThisBNN(T,domain,0,nComp())
 
 /*
   The macro ForAllThisXC(T,x) is a shortened form of ForAllThisBNNXC
