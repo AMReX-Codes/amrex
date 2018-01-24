@@ -71,7 +71,7 @@ Real
 AMReX can be compiled to use either double precision (which is the
 default) or single precision. :cpp:`amrex::Real` is typedef’d to
 either :cpp:`double` or :cpp:`float`. C codes can use
-:cpp:`amrex_real`. They are defined in AMReX_REAL.H. The data
+:cpp:`amrex_real`. They are defined in :cpp:`AMReX_REAL.H`. The data
 type is accessible in Fortran codes via
 
 .. highlight:: fortran

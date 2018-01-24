@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>AmrCore Source Code &mdash; amrex 18.02-dev documentation</title>
+  <title>Linear Solvers &mdash; amrex 18.02-dev documentation</title>
   
 
   
@@ -38,8 +38,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 18.02-dev documentation" href="index.html"/>
-        <link rel="next" title="The Advection Equation" href="AmrCore.html"/>
-        <link rel="prev" title="Example: HeatEquation_EX1_C" href="Basics.html"/> 
+        <link rel="next" title="Example: HeatEquation_EX3_C" href="LinearSolvers.html"/>
+        <link rel="prev" title="The Advection Equation" href="AmrCore.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -98,10 +98,9 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">AmrCore Source Code</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="AmrCore.html">The Advection Equation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="AmrCore.html#amrcore-source-code">AmrCore Source Code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="AmrCore.html#example-advection-amrcore">Example: Advection_AmrCore</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter5.html">AmrCore Source Code</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Linear Solvers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LinearSolvers.html">Example: HeatEquation_EX3_C</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
@@ -155,7 +154,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>AmrCore Source Code</li>
+      <li>Linear Solvers</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -174,39 +173,29 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="amrcore-source-code">
-<span id="chap-amrcore"></span><h1>AmrCore Source Code<a class="headerlink" href="#amrcore-source-code" title="Permalink to this headline">¶</a></h1>
-<p>In this Chapter we give an overview of functionality contained in the <code class="docutils literal"><span class="pre">amrex/Src/AmrCore</span></code> source code.
-This directory contains source code for the following:</p>
-<ul class="simple">
-<li>Storing information about the grid layout and processor distribution mapping
-at each level of refinement.</li>
-<li>Functions to create grids at different levels of refinement, including tagging
-operations.</li>
-<li>Operations on data at different levels of refinement, such as interpolation and
-restriction operators.</li>
-<li>Flux registers used to store and manipulate fluxes at coarse-fine interfaces.</li>
-<li>Particle support for AMR (see <a class="reference internal" href="Chapter8.html#chap-particles"><span class="std std-ref">Particles</span></a>).</li>
-</ul>
-<p>There is another source directory, <code class="docutils literal"><span class="pre">amrex/Src/Amr/</span></code>, which contains
-additional classes used to manage the time-stepping for AMR simulations.
-However, it is possible to build a fully adaptive, subcycling-in-time simulation code
-without these additional classes.</p>
-<p>In this Chapter, we restrict our use to the <code class="docutils literal"><span class="pre">amrex/Src/AmrCore</span></code> source code
-and present a tutorial that performs an adaptive, subcycling-in-time simulation
-of the advection equation for a passively advected scalar.
-The accompanying tutorial code is available in <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore</span></code>
-with build/run directory <code class="docutils literal"><span class="pre">Exec/SingleVortex</span></code>. In this example, the velocity
-field is a specified function of space and time, such that an initial
-Gaussian profile is displaced but returns to its original configuration at the final time.
-The boundary conditions are periodic and we use a refinement ratio of <span class="math">\(r=2\)</span> between each
-AMR level. The results of the simulation in two-dimensions are depicted in the Table
-showing the <a class="reference internal" href="AmrCore.html#fig-adv"><span class="std std-ref">SingleVortex Tutorial</span></a>.</p>
+  <div class="section" id="linear-solvers">
+<span id="chap-linearsolvers"></span><h1>Linear Solvers<a class="headerlink" href="#linear-solvers" title="Permalink to this headline">¶</a></h1>
+<p>In this Chapter we give an overview of the linear solvers in AMReX.
+AMReX supports two solvers where the solution, <span class="math">\(\phi\)</span>
+is either cell-centered or nodal.
+For each case you can solve on a single level (using essentially Dirichlet conditions
+supplied from coarser levels or physical boundary conditions), or you can do a
+multilevel composite solve on a subset of AMR levels (or even all the AMR levels).</p>
+<p>The tutorial <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">Tutorials</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">LinearSolvers</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">ABecLaplacian_C</span></span></code> shows how to call the
+cell-centered solver. The tutorial <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">Tutorials</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">Basic</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">HeatEquation_EX3_C</span></span></code> shows
+how to solve the implicit heat equation using the cell-centered solver. Here an
+“ABecLaplacian” has the form</p>
+<div class="math">
+\[(a_{coeff} A - b_{coeff} \nabla \cdot B \nabla ) \phi = RHS\]</div>
+<p>where <span class="math">\(a_{coeff}\)</span>, <span class="math">\(b_{coeff}\)</span> are scalars, <span class="math">\(A\)</span>, <span class="math">\(B\)</span>,
+and <span class="math">\(RHS\)</span> are MultiFabs.
+For the cell-centered
+solver, <span class="math">\(A\)</span> and <span class="math">\(RHS\)</span> are cell centered, and <span class="math">\(B\)</span> is an array of
+face-centered MultiFabs since <span class="math">\(B \nabla \phi\)</span> lives on faces, and the
+divergence lives on cell-centers.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="AmrCore.html">The Advection Equation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrCore.html#amrcore-source-code">AmrCore Source Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AmrCore.html#example-advection-amrcore">Example: Advection_AmrCore</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LinearSolvers.html">Example: HeatEquation_EX3_C</a></li>
 </ul>
 </div>
 </div>
@@ -221,10 +210,10 @@ showing the <a class="reference internal" href="AmrCore.html#fig-adv"><span clas
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="AmrCore.html" class="btn btn-neutral float-right" title="The Advection Equation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="LinearSolvers.html" class="btn btn-neutral float-right" title="Example: HeatEquation_EX3_C" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Basics.html" class="btn btn-neutral" title="Example: HeatEquation_EX1_C" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="AmrCore.html" class="btn btn-neutral" title="The Advection Equation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -99,7 +99,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter5.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">Linear Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Chapter9.html">Fortran Interface</a><ul class="current">
@@ -186,7 +187,7 @@ Fortran interface source tree into the make system. The source codes for the
 Fortran interface are in <code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces</span></code> and there are several
 sub-directories. The “Base” directory includes sources for the basic
 functionality, the “AmrCore” directory wraps around the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code> class
-(see the chapter&nbsp;on <a class="reference internal" href="Chapter6.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>), and the “Octree” directory adds
+(see the chapter&nbsp;on <a class="reference internal" href="Chapter5.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>), and the “Octree” directory adds
 support for octree type of AMR grids. Each directory has a “Make.package” file
 that can be included in make files (see <code class="docutils literal"><span class="pre">amrex/Tutorials/Basic/HelloWorld_F</span></code> and
 <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_F</span></code> for examples). The libamrex approach includes the

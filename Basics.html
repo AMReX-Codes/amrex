@@ -39,7 +39,7 @@
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 18.02-dev documentation" href="index.html"/>
         <link rel="up" title="Basics" href="Chapter4.html"/>
-        <link rel="next" title="AmrCore Source Code" href="Chapter6.html"/>
+        <link rel="next" title="AmrCore Source Code" href="Chapter5.html"/>
         <link rel="prev" title="Basics" href="Chapter4.html"/> 
 
   
@@ -135,7 +135,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#boundary-conditions">Boundary Conditions</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter5.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">Linear Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
@@ -252,7 +253,7 @@ when compiled with <code class="code cpp c++ docutils literal"><span class="name
 <p>AMReX&nbsp;can be compiled to use either double precision (which is the
 default) or single precision. <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Real</span></span></code> is typedef’d to
 either <code class="code cpp c++ docutils literal"><span class="keyword type"><span class="pre">double</span></span></code> or <code class="code cpp c++ docutils literal"><span class="keyword type"><span class="pre">float</span></span></code>. C codes can use
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex_real</span></span></code>. They are defined in AMReX_REAL.H. The data
+<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex_real</span></span></code>. They are defined in <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AMReX_REAL</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">H</span></span></code>. The data
 type is accessible in Fortran codes via</p>
 <div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">use </span><span class="n">amrex_fort_module</span><span class="p">,</span> <span class="n">only</span> <span class="p">:</span> <span class="n">amrex_real</span>
 </pre></div>
@@ -2080,7 +2081,7 @@ point to the same <code class="code fortran docutils literal"><span class="name"
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Chapter6.html" class="btn btn-neutral float-right" title="AmrCore Source Code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Chapter5.html" class="btn btn-neutral float-right" title="AmrCore Source Code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="Chapter4.html" class="btn btn-neutral" title="Basics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

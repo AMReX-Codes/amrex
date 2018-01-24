@@ -99,7 +99,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter5.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">Linear Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Amr Source Code</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Chapter8.html">Particles</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">The Particle</a><ul>
@@ -326,7 +327,7 @@ constructor:</p>
 to be the same set used to define the simulation’s mesh data. However, it is
 often desirable to have the two hierarchies track each other. If you are using
 an <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code> class in your simulation (see the Chapter&nbsp;on
-<a class="reference internal" href="Chapter6.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>), you can achieve this by using the
+<a class="reference internal" href="Chapter5.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>), you can achieve this by using the
 <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrParticleContainer</span></span></code> class. The constructor for this class takes a
 pointer to your AmrCore derived class, instead:</p>
 <div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">AmrTracerParticleContainer</span> <span class="p">(</span><span class="n">AmrCore</span><span class="o">*</span> <span class="n">amr_core</span><span class="p">);</span>
