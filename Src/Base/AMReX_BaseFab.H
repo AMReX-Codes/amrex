@@ -513,8 +513,6 @@ public:
     int maskGE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
-    //! Fill with a pattern of numbers.
-    void patternFill (int mark = 0);
     /**
     * \brief Copies with index reversal from srcbox region of src
     * into destbox region of this FAB.  All components are
@@ -931,6 +929,9 @@ inline
 void
 ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
 {
+    BL_ASSERT(fab.contains(b));
+    BL_ASSERT(c >= 0 && c + nc <= fab.nComp());
+
     const auto& len3 = b.length3d();
     const int* blo = b.loVect();
     for (int n = c; n < c+nc; ++n) {
@@ -1578,10 +1579,7 @@ BaseFab<T>::performSetVal (T          val,
     }
     else
     {
-        ForAllThisBNN(T,bx,ns,num)
-        {
-            thisR = val;
-        } EndFor
+        ForEach(bx, ns, num, [&val](T& x) { x = val; });
     }
 }
 
@@ -1889,7 +1887,7 @@ template <class T>
 void
 BaseFab<T>::abs ()
 {
-    return this->abs(domain,0,nvar);
+    this->abs(domain,0,nvar);
 }
 
 template <class T>
@@ -1897,7 +1895,7 @@ void
 BaseFab<T>::abs (int comp,
                  int numcomp)
 {
-    return this->abs(domain,comp,numcomp);
+    this->abs(domain,comp,numcomp);
 }
 
 template <class T>
@@ -1906,10 +1904,7 @@ BaseFab<T>::abs (const Box& subbox,
                  int        comp,
                  int        numcomp)
 {
-    ForAllThisBNN(Real,subbox,comp,numcomp)
-    {
-        thisR = std::abs(thisR);
-    } EndFor
+    ForEach(subbox, comp, numcomp, [](T& x) { x = std::abs(x); });
 }
 
 template <class T>
@@ -2020,25 +2015,8 @@ BaseFab<T>::max (const Box& subbox,
                  int        comp) const
 {
     BL_ASSERT(contains(subbox));
-
-    T r = std::numeric_limits<T>::lowest();
-
-    const auto& len3 = subbox.length3d();
-    const int* sublo = subbox.loVect();
-
-    for     (int k = 0; k < len3[2]; ++k) {
-        for (int j = 0; j < len3[1]; ++j) {
-            const IntVect line_begin{AMREX_D_DECL(sublo[0],
-                                                  sublo[1]+j,
-                                                  sublo[2]+k)};
-            const T* d = dataPtr(line_begin, comp);
-            for (int i = 0; i < len3[0]; ++i) {
-                r = std::max(r, d[i]);
-            }
-        }
-    }
-
-    return r;
+    return Accumulate(subbox, comp, 1, std::numeric_limits<T>::lowest(),
+                      [](T r, const T& x) -> T { return std::max(r,x); });
 }
 
 template <class T>
@@ -2289,16 +2267,6 @@ BaseFab<T>::divide (const BaseFab<T>& x)
 
 template <class T>
 void
-BaseFab<T>::patternFill (int mark)
-{
-    ForAllThis(T)
-    {
-        thisR = AMREX_D_TERM(iR*100, +jR*10, + kR) + 1000*nR + 10000*mark;
-    } EndFor
-}
-
-template <class T>
-void
 BaseFab<T>::copyRev (const Box&        destbox,
                      const BaseFab<T>& src,
                      const Box&        srcbox,
@@ -2371,10 +2339,7 @@ BaseFab<T>::negate (const Box& b,
                     int        comp,
                     int        numcomp)
 {
-    ForAllThisBNN(T,b,comp,numcomp)
-    {
-        thisR = - thisR;
-    } EndFor
+    ForEach(b, comp, numcomp, [](T& x) { x = -x; });
     return *this;
 }
 
@@ -2401,10 +2366,7 @@ BaseFab<T>::invert (T          r,
                     int        comp,
                     int        numcomp)
 {
-    ForAllThisBNN(T,b,comp,numcomp)
-    {
-        thisR = r/thisR;
-    } EndFor
+    ForEach(subbox, comp, numcomp, [&r](T& x) { x = r/x; });
     return *this;
 }
 
@@ -2431,10 +2393,7 @@ BaseFab<T>::plus (T          r,
                   int        comp,
                   int        numcomp)
 {
-    ForAllThisBNN(T,b,comp,numcomp)
-    {
-        thisR += r;
-    } EndFor
+    ForEach(b, comp, numcomp, [&r](T& x) { x += r; });
     return *this;
 }
 
@@ -2563,10 +2522,7 @@ BaseFab<T>::mult (T          r,
                   int        comp,
                   int        numcomp)
 {
-    ForAllThisBNN(T,b,comp,numcomp)
-    {
-        thisR *= r;
-    } EndFor
+    ForEach(b, comp, numcomp, [&r](T& x) { x *= r; });
     return *this;
 }
 
@@ -2644,10 +2600,7 @@ BaseFab<T>::divide (T          r,
                     int        comp,
                     int        numcomp)
 {
-    ForAllThisBNN(T,b,comp,numcomp)
-    {
-        thisR /= r;
-    } EndFor
+    ForEach(b, comp, numcomp, [&r](T& x) { x /= r; });
     return *this;
 }
 
