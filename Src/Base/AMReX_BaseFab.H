@@ -139,9 +139,9 @@ public:
   ///for AggStencil and its minions
   virtual long offset(const IntVect& a_iv, const int& a_ivar) const
     {
-      BL_ASSERT(a_ivar >= 0);
-      BL_ASSERT(a_ivar < nvar);
-      BL_ASSERT(domain.contains(a_iv));
+      AMREX_ASSERT(a_ivar >= 0);
+      AMREX_ASSERT(a_ivar < nvar);
+      AMREX_ASSERT(domain.contains(a_iv));
 
       IntVect ivDiff = a_iv - domain.smallEnd();
 #if BL_SPACEDIM > 1
@@ -251,15 +251,15 @@ public:
     * order, with the component index coming last.   In other words,
     * dataPtr returns a pointer to all the Nth components.
     */
-    T* dataPtr (int n = 0) { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    T* dataPtr (int n = 0) { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
     //! Same as above except works on const FABs.
-    const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    const T* dataPtr (int n = 0) const { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
     T* dataPtr (const IntVect& iv, int n = 0);
     const T* dataPtr (const IntVect& iv, int n = 0) const;
     
-    void setPtr (T* p, long sz) { BL_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
+    void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
     //! Returns true if the data for the FAB has been allocated.
     bool isAllocated () const { return dptr != 0; }
@@ -883,6 +883,8 @@ public:
     template <class F> void ForEach (const Box& b, int c, int nc, F f) const {
         ForEachImpl(*this, b, c, nc, f);
     }
+    template <class F> void ForEach (const Box& dstbox, int dstcomp, int numcomp,
+                                     const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
     template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
 
 protected:
@@ -919,8 +921,8 @@ inline
 void
 ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
 {
-    BL_ASSERT(fab.contains(b));
-    BL_ASSERT(c >= 0 && c + nc <= fab.nComp());
+    AMREX_ASSERT(fab.contains(b));
+    AMREX_ASSERT(c >= 0 && c + nc <= fab.nComp());
 
     const auto& len3 = b.length3d();
     const int* blo = b.loVect();
@@ -937,6 +939,40 @@ ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
             }
         }
     }
+}
+
+template <class T>
+template <class F>
+void
+BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
+                     const BaseFab<T>& src, const Box& srcbox, int srccomp, F f)
+{
+    AMREX_ASSERT(contains(dstbox));
+    AMREX_ASSERT(src.contains(srcbox));
+    AMREX_ASSERT(dstbox.size() == srcbox.size());
+    AMREX_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
+    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+
+    const auto& len3 = dstbox.length3d();
+    const int* dlo = dstbox.loVect();
+    const int* slo = srcbox.loVect();
+    for (int n = 0; n < numcomp; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect dline_begin{AMREX_D_DECL(dlo[0],
+                                                       dlo[1]+j,
+                                                       dlo[2]+k)};
+                auto d = dataPtr(dline_begin, n+dstcomp);
+                const IntVect sline_begin{AMREX_D_DECL(slo[0],
+                                                       slo[1]+j,
+                                                       slo[2]+k)};
+                auto s = src.dataPtr(sline_begin, n+srccomp);
+                for (int i = 0; i < len3[0]; ++i) {
+                    f(*(d+i), *(s+i));
+                }
+            }
+        }
+    }   
 }
 
 template <class T>
@@ -967,10 +1003,10 @@ inline
 T*
 BaseFab<T>::dataPtr (const IntVect& p, int n)
 {
-    BL_ASSERT(n >= 0);
-    BL_ASSERT(n < nvar);
-    BL_ASSERT(!(dptr == 0));
-    BL_ASSERT(domain.contains(p));
+    AMREX_ASSERT(n >= 0);
+    AMREX_ASSERT(n < nvar);
+    AMREX_ASSERT(!(dptr == 0));
+    AMREX_ASSERT(domain.contains(p));
 
     return dptr + (domain.index(p)+n*numpts);
 }
@@ -980,10 +1016,10 @@ inline
 const T*
 BaseFab<T>::dataPtr (const IntVect& p, int n) const
 {
-    BL_ASSERT(n >= 0);
-    BL_ASSERT(n < nvar);
-    BL_ASSERT(!(dptr == 0));
-    BL_ASSERT(domain.contains(p));
+    AMREX_ASSERT(n >= 0);
+    AMREX_ASSERT(n < nvar);
+    AMREX_ASSERT(!(dptr == 0));
+    AMREX_ASSERT(domain.contains(p));
 
     return dptr + (domain.index(p)+n*numpts);
 }
@@ -994,10 +1030,10 @@ T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
 {
-    BL_ASSERT(n >= 0);
-    BL_ASSERT(n < nvar);
-    BL_ASSERT(!(dptr == 0));
-    BL_ASSERT(domain.contains(p));
+    AMREX_ASSERT(n >= 0);
+    AMREX_ASSERT(n < nvar);
+    AMREX_ASSERT(!(dptr == 0));
+    AMREX_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)+n*numpts];
 }
@@ -1007,8 +1043,8 @@ inline
 T&
 BaseFab<T>::operator() (const IntVect& p)
 {
-    BL_ASSERT(!(dptr == 0));
-    BL_ASSERT(domain.contains(p));
+    AMREX_ASSERT(!(dptr == 0));
+    AMREX_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)];
 }
@@ -1019,10 +1055,10 @@ const T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n) const
 {
-    BL_ASSERT(n >= 0);
-    BL_ASSERT(n < nvar);
-    BL_ASSERT(!(dptr == 0));
-    BL_ASSERT(domain.contains(p));
+    AMREX_ASSERT(n >= 0);
+    AMREX_ASSERT(n < nvar);
+    AMREX_ASSERT(!(dptr == 0));
+    AMREX_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)+n*numpts];
 }
@@ -1032,8 +1068,8 @@ inline
 const T&
 BaseFab<T>::operator() (const IntVect& p) const
 {
-    BL_ASSERT(!(dptr == 0));
-    BL_ASSERT(domain.contains(p));
+    AMREX_ASSERT(!(dptr == 0));
+    AMREX_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)];
 }
@@ -1048,8 +1084,8 @@ BaseFab<T>::getVal  (T*             data,
     const int loc      = domain.index(pos);
     const long sz    = domain.numPts();
 
-    BL_ASSERT(!(dptr == 0));
-    BL_ASSERT(n >= 0 && n + numcomp <= nvar);
+    AMREX_ASSERT(!(dptr == 0));
+    AMREX_ASSERT(n >= 0 && n + numcomp <= nvar);
 
     for (int k = 0; k < numcomp; k++)
         data[k] = dptr[loc+(n+k)*sz];
@@ -1140,12 +1176,12 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    BL_ASSERT(destbox.ok());
-    BL_ASSERT(srcbox.sameSize(destbox));
-    BL_ASSERT(src.box().contains(srcbox));
-    BL_ASSERT(domain.contains(destbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
+    AMREX_ASSERT(destbox.ok());
+    AMREX_ASSERT(srcbox.sameSize(destbox));
+    AMREX_ASSERT(src.box().contains(srcbox));
+    AMREX_ASSERT(domain.contains(destbox));
+    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
     performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
     return *this;
 }
@@ -1159,12 +1195,12 @@ BaseFab<T>::slowCopy(const BaseFab<T>& src,
                      int               destcomp,
                      int               numcomp)
 {
-    BL_ASSERT(destbox.ok());
-    BL_ASSERT(srcbox.sameSize(destbox));
-    BL_ASSERT(src.box().contains(srcbox));
-    BL_ASSERT(domain.contains(destbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
+    AMREX_ASSERT(destbox.ok());
+    AMREX_ASSERT(srcbox.sameSize(destbox));
+    AMREX_ASSERT(src.box().contains(srcbox));
+    AMREX_ASSERT(domain.contains(destbox));
+    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
     for(BoxIterator bit(destbox); bit.ok(); ++bit)
     {
       for(int icomp = 0; icomp < numcomp; icomp++)
@@ -1181,8 +1217,8 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src)
 {
-    BL_ASSERT(nvar <= src.nvar);
-    BL_ASSERT(domain.sameType(src.domain));
+    AMREX_ASSERT(nvar <= src.nvar);
+    AMREX_ASSERT(domain.sameType(src.domain));
     Box overlap(domain);
     overlap &= src.domain;
     if (overlap.ok())
@@ -1195,8 +1231,8 @@ BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        destbox)
 {
-    BL_ASSERT(nvar <= src.nvar);
-    BL_ASSERT(domain.contains(destbox));
+    AMREX_ASSERT(nvar <= src.nvar);
+    AMREX_ASSERT(domain.contains(destbox));
     Box overlap(destbox);
     overlap &= src.domain;
     if (overlap.ok())
@@ -1211,8 +1247,8 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    BL_ASSERT(srccomp >= 0 && srccomp + numcomp <= src.nvar);
-    BL_ASSERT(destcomp >= 0 && destcomp + numcomp <= nvar);
+    AMREX_ASSERT(srccomp >= 0 && srccomp + numcomp <= src.nvar);
+    AMREX_ASSERT(destcomp >= 0 && destcomp + numcomp <= nvar);
     Box overlap(domain);
     overlap &= src.domain;
     if (overlap.ok())
@@ -1224,10 +1260,10 @@ template <class T>
 void
 BaseFab<T>::define ()
 {
-    BL_ASSERT(nvar > 0);
-    BL_ASSERT(dptr == 0);
-    BL_ASSERT(numpts > 0);
-    BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
+    AMREX_ASSERT(nvar > 0);
+    AMREX_ASSERT(dptr == 0);
+    AMREX_ASSERT(numpts > 0);
+    AMREX_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
     truesize  = nvar*numpts;
     dptr      = static_cast<T*>(amrex::The_Arena()->alloc(truesize*sizeof(T)));
@@ -1289,7 +1325,7 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     ptr_owner(false),
     shared_memory(false)
 {
-    BL_ASSERT(scomp+ncomp <= rhs.nComp());
+    AMREX_ASSERT(scomp+ncomp <= rhs.nComp());
     if (make_type == amrex::make_deep_copy)
     {
         dptr = nullptr;
@@ -1425,19 +1461,19 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                          int               destcomp,
                          int               numcomp)
 {
-    BL_ASSERT(src.box().contains(srcbox));
-    BL_ASSERT(box().contains(destbox));
-    BL_ASSERT(destbox.sameSize(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+    AMREX_ASSERT(src.box().contains(srcbox));
+    AMREX_ASSERT(box().contains(destbox));
+    AMREX_ASSERT(destbox.sameSize(srcbox));
+    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #if (BL_SPACEDIM == 1)
 {                                                                       
-    BL_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());
-    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
+    AMREX_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());
+    AMREX_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
     Box _subbox_ = box(); 
     _subbox_ &= destbox; 
-    BL_ASSERT(srcbox.sameSize(_subbox_)); 
+    AMREX_ASSERT(srcbox.sameSize(_subbox_)); 
     if (_subbox_.ok()) 
     { 
         const int *_th_plo = loVect(); 
@@ -1461,11 +1497,11 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                 T &thisR = * _th_pp; const T & srcR = _x_pp[_i];
 #elif (BL_SPACEDIM == 2)
 {                                                                       
-    BL_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
-    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
+    AMREX_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
+    AMREX_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
     Box _subbox_ = box(); 
     _subbox_ &= destbox; 
-    BL_ASSERT(srcbox.sameSize(_subbox_)); 
+    AMREX_ASSERT(srcbox.sameSize(_subbox_)); 
     if (_subbox_.ok())
     { 
         const int *_th_plo = loVect(); 
@@ -1495,11 +1531,11 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                     T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
 #elif (BL_SPACEDIM == 3)
 { 
-    BL_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
-    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
+    AMREX_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
+    AMREX_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
     Box _subbox_(box()); 
     _subbox_ &= destbox; 
-    BL_ASSERT((srcbox).sameSize(_subbox_)); 
+    AMREX_ASSERT((srcbox).sameSize(_subbox_)); 
     if (_subbox_.ok())
     { 
         const int *_th_plo = loVect(); 
@@ -1555,8 +1591,8 @@ BaseFab<T>::performSetVal (T          val,
                            int        ns,
                            int        num)
 {
-    BL_ASSERT(domain.contains(bx));
-    BL_ASSERT(ns >= 0 && ns + num <= nvar);
+    AMREX_ASSERT(domain.contains(bx));
+    AMREX_ASSERT(ns >= 0 && ns + num <= nvar);
 
     if (bx == domain)
     {
@@ -1580,8 +1616,8 @@ BaseFab<T>::copyToMem (const Box& srcbox,
                        int        numcomp,
                        void*      dst) const
 {
-    BL_ASSERT(box().contains(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
+    AMREX_ASSERT(box().contains(srcbox));
+    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
 
     if (srcbox.ok()) 
     { 
@@ -1660,8 +1696,8 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
                          int         numcomp,
                          const void* src)
 {
-    BL_ASSERT(box().contains(dstbox));
-    BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
+    AMREX_ASSERT(box().contains(dstbox));
+    AMREX_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
 
     if (dstbox.ok()) 
     { 
@@ -2361,10 +2397,8 @@ BaseFab<T>::plus (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
-    {
-        thisR += srcR;
-    } EndForTX
+    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
+            [] (T& d, T const& s) { d += s; });
     return *this;
 }
 
@@ -2412,10 +2446,8 @@ BaseFab<T>::minus (const BaseFab<T>& src,
                    int               destcomp,
                    int               numcomp)
 {
-    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
-    {
-        thisR -= srcR;
-    } EndForTX
+    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
+            [] (T& d, T const& s) { d -= s; });
     return *this;
 }
 
@@ -2490,10 +2522,8 @@ BaseFab<T>::mult (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
-    {
-        thisR *= srcR;
-    } EndForTX
+    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
+            [] (T& d, T const& s) { d *= s; });
     return *this;
 }
 
@@ -2568,10 +2598,8 @@ BaseFab<T>::divide (const BaseFab<T>& src,
                     int               destcomp,
                     int               numcomp)
 {
-    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
-    {
-        thisR /= srcR;
-    } EndForTX
+    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
+            [] (T& d, T const& s) { d /= s; });
     return *this;
 }
 
@@ -2619,11 +2647,8 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
                               int               destcomp,
                               int               numcomp)
 {
-    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
-    {
-        if (srcR)
-            thisR /= srcR;
-    } EndForTX
+    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
+            [] (T& d, T const& s) { if (s) d /= s; });
     return *this;
 }
 

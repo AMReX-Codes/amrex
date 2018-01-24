@@ -89,60 +89,6 @@
             for(int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp) {      \
                 int iR = _i + _subbox_lo[0]; iR += 0;                   \
                 T &thisR = * _th_pp; const T & x##R = _x_pp[_i];
-/*
-  The macro ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss) is intended to facilitate
-  efficient looping over the contents of BaseFabs and objects derived from
-  BaseFab.  Special attention has been paid to make it work efficiently on
-  vector supercomputers.
-
-  This macro acts upon the BaseFab *this and in addition is able to utiliize
-  values in the const BaseFab x.  The loop runs over the points in the
-  Box b with components starting at ns and ending at ns+nc-1.  The reference
-  variables are thisR and xR, respectively.  As usual the x in xR is replaced
-  by the macro's fifth argument.  The sixth argument nss is the number of the
-  argument in x that corresponds to the ns argument in *this.  Box bx must
-  be the same size as this->box() intersected with b.
-
-  Looping macro mnemonics:
-
-    This stands for the current object
-    C for a const
-    X stands for a BaseFab
-    B for a Box
-    N for an int
-*/
-#define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
-{                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
-    Box _subbox_ = box();                                               \
-    _subbox_ &= b;                                                      \
-    BL_ASSERT(bx.sameSize(_subbox_));                                   \
-    if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                  \
-        const int *_th_plen = length();                                 \
-        const int *_x_plo = (x).loVect();                               \
-        const int *_x_plen = (x).length();                              \
-        const int *_subbox_lo = _subbox_.loVect();                      \
-        IntVect _subbox_length = _subbox_.size();                       \
-        const int *_subbox_len = _subbox_length.getVect();              \
-        const int *_bx_lo = (bx).loVect();                              \
-        T* _th_p = dataPtr(ns);                                         \
-        const T* _x_p  = (x).dataPtr(nss);                              \
-        for(int _n = 0; _n < (nc); ++_n) {                              \
-            int nR = _n + ns; nR += 0;                                  \
-            int n##x##R = _n + nss; n##x##R += 0;                       \
-            T *_th_pp = _th_p                                           \
-                + ((_subbox_lo[0] - _th_plo[0])                         \
-                   + _n * _th_plen[0]);                                 \
-            const T *_x_pp = _x_p                                       \
-                + ((_bx_lo[0] - _x_plo[0])                              \
-                   + _n * _x_plen[0]);                                  \
-            for(int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp) {      \
-                int iR = _i + _subbox_lo[0]; iR += 0;                   \
-                int i##x##R = _i + _bx_lo[0]; i##x##R += 0;             \
-                T &thisR = * _th_pp; const T & x##R = _x_pp[_i];
-
 
 
 /*
@@ -223,44 +169,6 @@
                     int iR = _i + _subbox_lo[0]; iR += 0;               \
                     T &thisR = * _th_pp; const T & x##R = _x_pp[_i];
 
-#define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
-{                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
-    Box _subbox_ = box();                                               \
-    _subbox_ &= b;                                                      \
-    BL_ASSERT(bx.sameSize(_subbox_));                                   \
-    if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                  \
-        const int *_th_plen = length();                                 \
-        const int *_x_plo = (x).loVect();                               \
-        const int *_x_plen = (x).length();                              \
-        const int *_subbox_lo = _subbox_.loVect();                      \
-        IntVect _subbox_length = _subbox_.size();                       \
-        const int *_subbox_len = _subbox_length.getVect();              \
-        const int *_bx_lo = (bx).loVect();                              \
-        T* _th_p = dataPtr(ns);                                         \
-        const T* _x_p  = (x).dataPtr(nss);                              \
-        for(int _n = 0; _n < (nc); ++_n) {                              \
-            int nR = _n + ns; nR += 0;                                  \
-            int n##x##R = _n + nss; n##x##R += 0;                       \
-            for(int _j = 0; _j < _subbox_len[1]; ++_j) {                \
-                const int jR = _j + _subbox_lo[1];                      \
-                const int j##x##R = _j + _bx_lo[1];                     \
-                T *_th_pp = _th_p                                       \
-                    + ((_subbox_lo[0] - _th_plo[0])                     \
-                       + _th_plen[0]*(                                  \
-                           (jR - _th_plo[1])                            \
-                           + _n * _th_plen[1]));                        \
-                const T *_x_pp = _x_p                                   \
-                    + ((_bx_lo[0] - _x_plo[0])                          \
-                       + _x_plen[0]*(                                   \
-                           (j##x##R - _x_plo[1])                        \
-                           + _n * _x_plen[1]));                         \
-                for(int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp) {  \
-                    int iR = _i + _subbox_lo[0]; iR += 0;               \
-                    int i##x##R = _i + _bx_lo[0]; i##x##R += 0; \
-                    T &thisR = * _th_pp; const T & x##R = _x_pp[_i];
 
 
 #define EndFor }}}}
@@ -338,51 +246,6 @@
                         int iR = _i + _subbox_lo[0]; iR += 0;           \
                         T &thisR = * _th_pp; const T & x##R = _x_pp[_i];
 
-#define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
-{                                                                       \
-    BL_ASSERT((ns) >= 0 && (ns) + (nc) <= nComp());                     \
-    BL_ASSERT((nss) >= 0 && (nss) + (nc) <= (x).nComp());               \
-    Box _subbox_(box());                                                \
-    _subbox_ &= b;                                                      \
-    BL_ASSERT((bx).sameSize(_subbox_));                                 \
-    if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                  \
-        const int *_th_plen = length();                                 \
-        const int *_x_plo = (x).loVect();                               \
-        const int *_x_plen = (x).length();                              \
-        const int *_subbox_lo = _subbox_.loVect();                      \
-        IntVect _subbox_length = _subbox_.size();                       \
-        const int *_subbox_len = _subbox_length.getVect();              \
-        const int *_bx_lo = (bx).loVect();                              \
-        T* _th_p = dataPtr(ns);                                         \
-        const T* _x_p  = (x).dataPtr(nss);                              \
-        for(int _n = 0; _n < (nc); ++_n) {                              \
-            int nR = _n + ns; nR += 0;                                  \
-            int n##x##R = _n + nss; n##x##R += 0;                       \
-            for(int _k = 0; _k < _subbox_len[2]; ++_k) {                \
-                const int kR = _k + _subbox_lo[2];                      \
-                const int k##x##R = _k + _bx_lo[2];                     \
-                for(int _j = 0; _j < _subbox_len[1]; ++_j) {            \
-                    const int jR = _j + _subbox_lo[1];                  \
-                    const int j##x##R = _j + _bx_lo[1];         \
-                    T *_th_pp = _th_p                                   \
-                        + ((_subbox_lo[0] - _th_plo[0])                 \
-                           + _th_plen[0]*(                              \
-                               (jR - _th_plo[1])                        \
-                               + _th_plen[1]*(                          \
-                                   (kR - _th_plo[2])                    \
-                                   + _n * _th_plen[2])));               \
-                    const T *_x_pp = _x_p                               \
-                        + ((_bx_lo[0] - _x_plo[0])                      \
-                           + _x_plen[0]*(                               \
-                               (j##x##R - _x_plo[1])                    \
-                               + _x_plen[1]*(                           \
-                                   (k##x##R - _x_plo[2])                \
-                                   + _n * _x_plen[2])));                \
-                    for(int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp) { \
-                        int iR = _i + _subbox_lo[0]; iR += 0;           \
-                        int i##x##R = _i + _bx_lo[0]; i##x##R += 0;     \
-                        T &thisR = * _th_pp; const T & x##R = _x_pp[_i];
 
 
 #define EndFor }}}}}
@@ -391,11 +254,6 @@
 
 #endif
 
-/*
-  The macro ForAllThisXC(T,x) is a shortened form of ForAllThisBNNXC
-  where the Box defaults to the domain of *this and the components run over
-  all the components of *this.
-*/
 #define ForAllThisXC(T,x)       ForAllThisBNNXC(T,domain,0,nComp(),x,0)
 
 #endif /*BL_LOOPING_H*/
