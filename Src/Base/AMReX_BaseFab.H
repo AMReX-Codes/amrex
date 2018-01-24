@@ -884,6 +884,8 @@ public:
         ForEachImpl(*this, b, c, nc, f);
     }
     template <class F> void ForEach (const Box& dstbox, int dstcomp, int numcomp,
+                                     const BaseFab<T>& src, int srccomp, F f);
+    template <class F> void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                                      const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
     template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
 
@@ -967,6 +969,35 @@ BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
                                                        slo[1]+j,
                                                        slo[2]+k)};
                 auto s = src.dataPtr(sline_begin, n+srccomp);
+                for (int i = 0; i < len3[0]; ++i) {
+                    f(*(d+i), *(s+i));
+                }
+            }
+        }
+    }   
+}
+
+template <class T>
+template <class F>
+void
+BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
+                     const BaseFab<T>& src, int srccomp, F f)
+{
+    AMREX_ASSERT(contains(dstbox));
+    AMREX_ASSERT(src.contains(dstbox));
+    AMREX_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
+    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+
+    const auto& len3 = dstbox.length3d();
+    const int* dlo = dstbox.loVect();
+    for (int n = 0; n < numcomp; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect dline_begin{AMREX_D_DECL(dlo[0],
+                                                       dlo[1]+j,
+                                                       dlo[2]+k)};
+                auto d = dataPtr(dline_begin, n+dstcomp);
+                auto s = src.dataPtr(dline_begin, n+srccomp);
                 for (int i = 0; i < len3[0]; ++i) {
                     f(*(d+i), *(s+i));
                 }
