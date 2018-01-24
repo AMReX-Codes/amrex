@@ -16,8 +16,8 @@ kernel functions called inside :cpp:`MFIter` loops in codes (see the section
 on :ref:`sec:basics:fortran`). For the latter, Fortran is used in some sense as
 a domain-specific language with native multi-dimensional arrays, whereas here
 Fortran is used to drive the whole application code. In order to better
-understand AMReX, Fortran interface users should read the rest of the User’s
-Guide except for the Chapters on :ref:`Chap:AmrLevel` & :ref:`Chap:Particles`.
+understand AMReX, Fortran interface users should read the rest of the documentation
+except for the Chapters on :ref:`Chap:AmrLevel` & :ref:`Chap:Particles`.
 
 
 .. toctree::
