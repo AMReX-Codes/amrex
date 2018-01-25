@@ -201,8 +201,12 @@ protected:
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
-    virtual Real getBScalar () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
+
+    virtual Real getAScalar () const = 0;
+    virtual Real getBScalar () const = 0;
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const = 0;
+    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
