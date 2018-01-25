@@ -888,6 +888,8 @@ public:
                                      const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
     template <class F> void ForEachIV (const Box& b, int c, int nc, F f) const;
     template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
+    template <class F> void Transform (T* dst, const Box& b, int c, int nc, F f) const;
+    template <class F> void Transform (const Box& b, int c, int nc, T const* src, F f);
 
 protected:
     //! Allocates memory for the BaseFab<T>.
@@ -1054,6 +1056,58 @@ BaseFab<T>::Accumulate (const Box& b, int c, int nc, P init, F f) const
         }
     }
     return init;
+}
+
+template <class T>
+template <class F>
+void
+BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
+{
+    AMREX_ASSERT(contains(b));
+    AMREX_ASSERT(c >= 0 && c + nc <= nComp());
+
+    const auto& len3 = b.length3d();
+    const int* blo = b.loVect();
+    for (int n = c; n < c+nc; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect line_begin{AMREX_D_DECL(blo[0],
+                                                      blo[1]+j,
+                                                      blo[2]+k)};
+                auto s = dataPtr(line_begin, n);
+                T* d = dst + k*(len3[0]*len3[1]) + j*len3[0];
+                for (int i = 0; i < len3[0]; ++i) {
+                    f(*(d+i), *(s+i));
+                }
+            }
+        }
+    }
+}
+
+template <class T>
+template <class F>
+void
+BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f)
+{
+    AMREX_ASSERT(contains(b));
+    AMREX_ASSERT(c >= 0 && c + nc <= nComp());
+
+    const auto& len3 = b.length3d();
+    const int* blo = b.loVect();
+    for (int n = c; n < c+nc; ++n) {
+        for     (int k = 0; k < len3[2]; ++k) {
+            for (int j = 0; j < len3[1]; ++j) {
+                const IntVect line_begin{AMREX_D_DECL(blo[0],
+                                                      blo[1]+j,
+                                                      blo[2]+k)};
+                auto d = dataPtr(line_begin, n);
+                T const* s = src + k*(len3[0]*len3[1]) + j*len3[0];
+                for (int i = 0; i < len3[0]; ++i) {
+                    f(*(d+i), *(s+i));
+                }
+            }
+        }
+    }
 }
 
 template <class T>
@@ -1513,127 +1567,8 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                          int               destcomp,
                          int               numcomp)
 {
-    AMREX_ASSERT(src.box().contains(srcbox));
-    AMREX_ASSERT(box().contains(destbox));
-    AMREX_ASSERT(destbox.sameSize(srcbox));
-    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-#if (BL_SPACEDIM == 1)
-{                                                                       
-    AMREX_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());
-    AMREX_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
-    Box _subbox_ = box(); 
-    _subbox_ &= destbox; 
-    AMREX_ASSERT(srcbox.sameSize(_subbox_)); 
-    if (_subbox_.ok()) 
-    { 
-        const int *_th_plo = loVect(); 
-        const int *_th_plen = length(); 
-        const int *_x_plo = (src).loVect(); 
-        const int *_x_plen = (src).length(); 
-        const int *_subbox_lo = _subbox_.loVect();
-        IntVect _subbox_length = _subbox_.size();
-        const int *_subbox_len = _subbox_length.getVect(); 
-        const int *_bx_lo = (srcbox).loVect(); 
-        T* _th_p = dataPtr(destcomp); 
-        const T* _x_p  = (src).dataPtr(srccomp); 
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            T *_th_pp = _th_p + ((_subbox_lo[0]-_th_plo[0])+_n*_th_plen[0]); 
-            const T *_x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
-            for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
-            { 
-                int iR = _i + _subbox_lo[0]; iR += 0; 
-                int ixR = _i + _bx_lo[0]; ixR += 0; 
-                T &thisR = * _th_pp; const T & srcR = _x_pp[_i];
-#elif (BL_SPACEDIM == 2)
-{                                                                       
-    AMREX_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
-    AMREX_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
-    Box _subbox_ = box(); 
-    _subbox_ &= destbox; 
-    AMREX_ASSERT(srcbox.sameSize(_subbox_)); 
-    if (_subbox_.ok())
-    { 
-        const int *_th_plo = loVect(); 
-        const int *_th_plen = length(); 
-        const int *_x_plo = (src).loVect(); 
-        const int *_x_plen = (src).length(); 
-        const int *_subbox_lo = _subbox_.loVect();
-        IntVect _subbox_length = _subbox_.size();
-        const int *_subbox_len = _subbox_length.getVect(); 
-        const int *_bx_lo = (srcbox).loVect(); 
-        T* _th_p = dataPtr(destcomp); 
-        const T* _x_p  = (src).dataPtr(srccomp); 
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            for(int _j = 0; _j < _subbox_len[1]; ++_j)
-            { 
-                const int jR = _j + _subbox_lo[1]; 
-                const int jxR = _j + _bx_lo[1]; 
-                T *_th_pp = _th_p + ((_subbox_lo[0] - _th_plo[0]) 
-                                     + _th_plen[0]*((jR - _th_plo[1]) 
-                                                    + _n * _th_plen[1])); 
-                const T *_x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
-                                         + _x_plen[0]*((jxR - _x_plo[1]) 
-                                                       + _n * _x_plen[1])); 
-                for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
-                {  
-                    T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
-#elif (BL_SPACEDIM == 3)
-{ 
-    AMREX_ASSERT((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
-    AMREX_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
-    Box _subbox_(box()); 
-    _subbox_ &= destbox; 
-    AMREX_ASSERT((srcbox).sameSize(_subbox_)); 
-    if (_subbox_.ok())
-    { 
-        const int *_th_plo = loVect(); 
-        const int *_th_plen = length(); 
-        const int *_x_plo = (src).loVect(); 
-        const int *_x_plen = (src).length(); 
-        const int *_subbox_lo = _subbox_.loVect();
-        IntVect _subbox_length = _subbox_.size();
-        const int *_subbox_len = _subbox_length.getVect(); 
-        const int *_bx_lo = (srcbox).loVect(); 
-        T* _th_p = dataPtr(destcomp); 
-        const T* _x_p  = (src).dataPtr(srccomp); 
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            for (int _k = 0; _k < _subbox_len[2]; ++_k)
-            { 
-                const int kR = _k + _subbox_lo[2]; 
-                const int kxR = _k + _bx_lo[2]; 
-                for(int _j = 0; _j < _subbox_len[1]; ++_j)
-                { 
-                    const int jR = _j + _subbox_lo[1]; 
-                    const int jxR = _j + _bx_lo[1]; 
-                    T *_th_pp = _th_p + ((_subbox_lo[0] - _th_plo[0]) 
-                                         + _th_plen[0]*((jR - _th_plo[1]) 
-                                                        + _th_plen[1]*(
-                                                            (kR - _th_plo[2]) 
-                                                        + _n * _th_plen[2]))); 
-                    const T *_x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
-                                             + _x_plen[0]*((jxR - _x_plo[1]) 
-                                                           + _x_plen[1]*( 
-                                                            (kxR - _x_plo[2])
-                                                         + _n * _x_plen[2])));
-                    for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
-                    {
-                        T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
-#endif
-    {
-        thisR = srcR;
-    }
-#if (BL_SPACEDIM == 1)
-     }}}}
-#elif (BL_SPACEDIM == 2)
-     }}}}}
-#elif (BL_SPACEDIM == 3)
-     }}}}}}
-#endif
+    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
+            [] (T& d, T const& s) { d = s; });
 }
 
 template <class T>
@@ -1668,71 +1603,10 @@ BaseFab<T>::copyToMem (const Box& srcbox,
                        int        numcomp,
                        void*      dst) const
 {
-    AMREX_ASSERT(box().contains(srcbox));
-    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
-
-    if (srcbox.ok()) 
-    { 
-        const int* _x_plo         = loVect(); 
-        const int* _x_plen        = length(); 
-        IntVect    _subbox_length = srcbox.size();
-        const int* _subbox_len    = _subbox_length.getVect(); 
-        const int* _bx_lo         = (srcbox).loVect(); 
-        T*         _th_p          = static_cast<T*>(dst);
-        const T*   _x_p           = dataPtr(srccomp); 
-
-#if (BL_SPACEDIM == 1)
-
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            const T* _x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
-
-            for (int _i = 0; _i < _subbox_len[0]; ++_i)
-            { 
-                *_th_p++ = *_x_pp++;
-            }
-        }
-
-#elif (BL_SPACEDIM == 2)
-
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            for (int _j = 0; _j < _subbox_len[1]; ++_j)
-            { 
-                const int jxR   = _j + _bx_lo[1]; 
-                const T*  _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
-                                          + _x_plen[0]*((jxR - _x_plo[1]) 
-                                                        + _n * _x_plen[1])); 
-                for (int _i = 0; _i < _subbox_len[0]; ++_i)
-                {  
-                    *_th_p++ = *_x_pp++;
-                }
-            }
-        }
-
-#elif (BL_SPACEDIM == 3)
-
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            for (int _k = 0; _k < _subbox_len[2]; ++_k)
-            { 
-                const int kxR = _k + _bx_lo[2];
-                for(int _j = 0; _j < _subbox_len[1]; ++_j)
-                { 
-                    const int jxR   = _j + _bx_lo[1]; 
-                    const T*  _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
-                                              + _x_plen[0]*((jxR - _x_plo[1]) 
-                                                           + _x_plen[1]*( 
-                                                               (kxR - _x_plo[2])
-                                                            + _n * _x_plen[2])));
-                    for (int _i = 0; _i < _subbox_len[0]; ++_i)
-                    {
-                        *_th_p++ = *_x_pp++;
-                    }
-                }
-            }
-        }
-#endif
+    if (srcbox.ok())
+    {
+        Transform(static_cast<T*>(dst), srcbox, srccomp, numcomp,
+                  [] (T& d, T const& s) { d = s; });
         return sizeof(T)*numcomp*srcbox.numPts();
     }
     else
@@ -1748,67 +1622,10 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
                          int         numcomp,
                          const void* src)
 {
-    AMREX_ASSERT(box().contains(dstbox));
-    AMREX_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
-
-    if (dstbox.ok()) 
-    { 
-        const int* _x_plo         = loVect(); 
-        const int* _x_plen        = length(); 
-        IntVect    _subbox_length = dstbox.size();
-        const int* _subbox_len    = _subbox_length.getVect(); 
-        const int* _bx_lo         = (dstbox).loVect(); 
-        const T*   _th_p          = static_cast<const T*>(src);
-        T*         _x_p           = dataPtr(dstcomp); 
-
-#if (BL_SPACEDIM == 1)
-
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            T* _x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
-
-            for (int _i = 0; _i < _subbox_len[0]; ++_i)
-            { 
-                *_x_pp++ = *_th_p++;
-            }
-        }
-
-#elif (BL_SPACEDIM == 2)
-
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            for (int _j = 0; _j < _subbox_len[1]; ++_j)
-            { 
-                const int jxR   = _j + _bx_lo[1]; 
-                T*        _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) + _x_plen[0]*((jxR - _x_plo[1]) + _n * _x_plen[1])); 
-                for (int _i = 0; _i < _subbox_len[0]; ++_i)
-                {  
-                    *_x_pp++ = *_th_p++;
-                }
-            }
-        }
-
-#elif (BL_SPACEDIM == 3)
-
-        for (int _n = 0; _n < (numcomp); ++_n)
-        { 
-            for (int _k = 0; _k < _subbox_len[2]; ++_k)
-            { 
-                const int kxR = _k + _bx_lo[2];
-                for(int _j = 0; _j < _subbox_len[1]; ++_j)
-                { 
-                    const int jxR   = _j + _bx_lo[1]; 
-                    T*        _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
-                                              + _x_plen[0]*((jxR - _x_plo[1]) 
-                                                            + _x_plen[1]*( (kxR - _x_plo[2]) + _n * _x_plen[2])));
-                    for (int _i = 0; _i < _subbox_len[0]; ++_i)
-                    {
-                        *_x_pp++ = *_th_p++;
-                    }
-                }
-            }
-        }
-#endif
+    if (dstbox.ok())
+    {
+        Transform(dstbox, dstcomp, numcomp, static_cast<T const*>(src),
+                  [] (T& d, T const& s) { d = s; });
         return sizeof(T)*numcomp*dstbox.numPts();
     }
     else
