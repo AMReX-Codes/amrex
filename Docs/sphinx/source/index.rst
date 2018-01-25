@@ -6,20 +6,26 @@
 Welcome to AMReX's documentation
 ================================
 
-AMReX is a software framework library containing all the
+AMReX is a software framework library containing all the
 functionality to write massively parallel, block-structured adaptive
-mesh refinement (AMR) applications. AMReX is freely available at
-https://github.com/AMReX-Codes/amrex. The most current version
-of this User's Guide can be found in the  git repository at
-AMReX/Docs/AMReXUsersGuide.
+mesh refinement (AMR) applications. AMReX is freely available at
+https://github.com/AMReX-Codes/amrex.
 
-The copyright notice of AMReX is included in the amrex directory
-as README.txt.
+AMReX is developed at LBNL, NREL, and ANL as part of the Block-Structured AMR Co-Design 
+Center in DOE's Exascale Computing Project. 
 
-Your use of this software is under a 3-clause BSD license with
-additional modification -- the license agreement is included in the
-AMReX directory as license.txt.
+All of AMReX's development is done in the github repository under the development 
+branch; anyone can see the latest updates. Changes are merged into the master branch 
+at the beginning of each month.
 
+We are always happy to have users contribute to the AMReX source code. To 
+contribute, issue a pull request against the development branch
+(details at https://help.github.com/articles/creating-a-pull-request/). 
+Any level of changes are welcomed: documentation, bug fixes, new test problems, 
+new solvers, ...
+
+To obtain help, simply post an issue in the AMReX GitHub webpage
+at https://github.com/AMReX-Codes/amrex
 
 .. toctree::
    :maxdepth: 1
@@ -45,3 +51,9 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+The copyright notice of AMReX is included in the AMReX home directory
+as README.txt.
+Your use of this software is under a 3-clause BSD license with
+additional modification -- the license agreement is included in the
+AMReX home directory as license.txt.
