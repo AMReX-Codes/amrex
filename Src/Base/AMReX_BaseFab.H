@@ -1504,12 +1504,6 @@ BaseFab<T>::clear ()
     }
 }
 
-//
-// performCopy() has been rewritten here so we can insert pragmas which
-// will enhance vectorization on the Crays.  The downside is that the
-// code is greatly expanded and rather incomprehensible.
-//
-
 template <class T>
 void
 BaseFab<T>::performCopy (const BaseFab<T>& src,
