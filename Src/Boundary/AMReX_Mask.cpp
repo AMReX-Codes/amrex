@@ -102,7 +102,7 @@ Mask&
 Mask::And (const Mask& src)
 {
     ForEach(domain, 0, nComp(), src, 0,
-            [] (int& d, int const& s) { d = d ? s : 0; });
+            [] (int& d, int const& s) { d = (d ? s : 0); });
     return *this;
 }
 
@@ -113,7 +113,7 @@ Mask::And (const Mask& src,
            int         numcomp)
 {
     ForEach(box(), destcomp, numcomp, src, srccomp,
-            [] (int&d, int const& s) { d = d ? s : 0; });
+            [] (int&d, int const& s) { d = (d ? s : 0); });
     return *this;
 }
 
@@ -125,7 +125,7 @@ Mask::And (const Mask& src,
            int         numcomp)
 {
     ForEach(subbox, destcomp, numcomp, src, srccomp,
-            [] (int& d, int const& s) { d = d ? s : 0; });
+            [] (int& d, int const& s) { d = (d ? s : 0); });
     return *this;
 }
 
@@ -138,7 +138,7 @@ Mask::And (const Mask& src,
            int         numcomp)
 {
     ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
-            [] (int& d, int const& s) { d = d ? s : 0; });
+            [] (int& d, int const& s) { d = (d ? s : 0); });
     return *this;
 }
 
@@ -146,7 +146,7 @@ Mask&
 Mask::Or (const Mask& src)
 {
     ForEach(domain, 0, nComp(), src, 0,
-            [] (int& d, int const& s) { d = d ? 1 : s; });
+            [] (int& d, int const& s) { d = (d ? 1 : s); });
     return *this;
 }
 
@@ -157,7 +157,7 @@ Mask::Or (const Mask& src,
           int         numcomp)
 {
     ForEach(box(), destcomp, numcomp, src, srccomp,
-            [] (int& d, int const& s) { d = d ? 1 : s; });
+            [] (int& d, int const& s) { d = (d ? 1 : s); });
     return *this;
 }
 
@@ -169,7 +169,7 @@ Mask::Or (const Mask& src,
           int         numcomp)
 {
     ForEach(subbox, destcomp, numcomp, src, srccomp,
-            [] (int& d, int const& s) { d = d ? 1 : s; });
+            [] (int& d, int const& s) { d = (d ? 1 : s); });
     return *this;
 }
 
@@ -182,7 +182,7 @@ Mask::Or (const Mask& src,
           int         numcomp)
 {
     ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
-            [] (int&d, int const& s) { d = d ? 1 : s; });
+            [] (int&d, int const& s) { d = (d ? 1 : s); });
     return *this;
 }
 

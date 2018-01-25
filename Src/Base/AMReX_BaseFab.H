@@ -2011,21 +2011,21 @@ BaseFab<T>::norm (const Box& subbox,
 
     if (p == 0)
     {
-        Accumulate(subbox, comp, numcomp, nrm,
-                   [](Real r, const T& x) -> Real
-                   { return std::max(r, static_cast<Real>(std::abs(x))); });
+        nrm = Accumulate(subbox, comp, numcomp, nrm,
+                         [](Real r, const T& x) -> Real
+                         { return std::max(r, static_cast<Real>(std::abs(x))); });
     }
     else if (p == 1)
     {
-        Accumulate(subbox, comp, numcomp, nrm,
-                   [](Real r, const T& x) -> Real
-                   { return r + static_cast<Real>(std::abs(x)); });
+        nrm = Accumulate(subbox, comp, numcomp, nrm,
+                         [](Real r, const T& x) -> Real
+                         { return r + static_cast<Real>(std::abs(x)); });
     }
     else if (p == 2)
     {
-        Accumulate(subbox, comp, numcomp, nrm,
-                   [](Real r, const T& x) -> Real
-                   { return r + static_cast<Real>(x*x); });
+        nrm = Accumulate(subbox, comp, numcomp, nrm,
+                         [](Real r, const T& x) -> Real
+                         { return r + static_cast<Real>(x*x); });
         nrm = std::sqrt(nrm);
     }
     else
