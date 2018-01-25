@@ -114,7 +114,7 @@ Amr::Initialize ()
     Amr::first_smallplotfile = true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
-    probinit_natonce         = 32;
+    probinit_natonce         = 512;
     plot_files_output        = true;
     checkpoint_nfiles        = 64;
     regrid_on_restart        = 0;
