@@ -682,19 +682,26 @@ MLMG::actualBottomSolve ()
             bottom_b->plus(-offset, 0, 1);
         }
 
-        MLCGSolver cg_solver(linop);
-        cg_solver.setVerbose(cg_verbose);
-        cg_solver.setMaxIter(cg_maxiter);
-
-        const Real cg_rtol = 1.e-4;
-        const Real cg_atol = -1.0;
-        int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
-        if (ret != 0 && verbose >= 1) {
-            amrex::Print() << "MLMG: Bottom solve failed.\n";
+        if (bottom_solver == BottomSolver::hypre)
+        {
+            bottomSolveWithHypre(x, *bottom_b);
         }
-        const int n = ret==0 ? nub : nuf;
-        for (int i = 0; i < n; ++i) {
-            linop.smooth(amrlev, mglev, x, b);
+        else
+        {
+            MLCGSolver cg_solver(linop);
+            cg_solver.setVerbose(bottom_verbose);
+            cg_solver.setMaxIter(bottom_maxiter);
+            
+            const Real cg_rtol = 1.e-4;
+            const Real cg_atol = -1.0;
+            int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
+            if (ret != 0 && verbose >= 1) {
+                amrex::Print() << "MLMG: Bottom solve failed.\n";
+            }
+            const int n = ret==0 ? nub : nuf;
+            for (int i = 0; i < n; ++i) {
+                linop.smooth(amrlev, mglev, x, b);
+            }
         }
     }
 
@@ -1015,6 +1022,68 @@ MLMG::averageDownAndSync ()
             linop.nodalSync(falev-1, 0, cmf);
         }
     }
+}
+
+void
+MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
+{
+#if !defined(AMREX_USE_HYPRE)
+    amrex::Abort("bottomSolveWithHypre is called without building with Hypre");
+#else
+
+    if (hypre_solver == nullptr)  // We should reuse the setup
+    {
+        const BoxArray& ba = linop.m_grids[0].back();
+        const DistributionMapping& dm = linop.m_dmap[0].back();
+        const Geometry& geom = linop.m_geom[0].back();
+        MPI_Comm comm = linop.BottomCommunicator();
+
+        hypre_solver.reset(new HypreABecLap2(ba, dm, geom, comm));
+
+        hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());
+
+        auto ac = linop.getACoeffs(0, linop.NMGLevels(0)-1);
+        if (ac)
+        {
+            hypre_solver->setACoeffs(*ac);
+        }
+        else
+        {
+            MultiFab alpha(ba,dm,1,0);
+            alpha.setVal(0.0);
+            hypre_solver->setACoeffs(alpha);
+        }
+
+        auto bc = linop.getBCoeffs(0, linop.NMGLevels(0)-1);
+        if (bc[0])
+        {
+            hypre_solver->setBCoeffs(bc);
+        }
+        else
+        {
+            std::array<MultiFab,AMREX_SPACEDIM> beta;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
+                                  dm, 1, 0);
+                beta[idim].setVal(1.0);
+            }
+            hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
+        }
+
+        hypre_bndry.reset(new MLMGBndry(ba, dm, 1, geom));
+        hypre_bndry->setHomogValues();
+        const Real* dx = linop.m_geom[0][0].CellSize();
+        int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
+        RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
+                                         0.5*dx[1]*crse_ratio,
+                                         0.5*dx[2]*crse_ratio));
+        hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+    }
+
+    hypre_solver->solve(x, b, 1.e-4, -1., bottom_maxiter, *hypre_bndry);
+
+#endif
 }
 
 }
