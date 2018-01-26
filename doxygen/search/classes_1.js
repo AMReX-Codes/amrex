@@ -25,6 +25,7 @@ var searchData=
   ['baseumap_5fnd_5fmodule',['baseumap_nd_module',['../classbaseumap__nd__module.html',1,'']]],
   ['bcrec',['BCRec',['../classamrex_1_1_b_c_rec.html',1,'amrex']]],
   ['bdkey',['BDKey',['../structamrex_1_1_fab_array_base_1_1_b_d_key.html',1,'amrex::FabArrayBase']]],
+  ['bf_5finit',['BF_init',['../classamrex_1_1_b_f__init.html',1,'amrex']]],
   ['bl_5fallocate',['bl_allocate',['../interfacemempool__module_1_1bl__allocate.html',1,'mempool_module']]],
   ['bl_5fdeallocate',['bl_deallocate',['../interfacemempool__module_1_1bl__deallocate.html',1,'mempool_module']]],
   ['bl_5fextrapolater',['bl_extrapolater',['../classbl__extrapolater.html',1,'']]],

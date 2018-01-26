@@ -263,7 +263,6 @@ var searchData=
   ['amrex_5floadbalancekd_2eh',['AMReX_LoadBalanceKD.H',['../_a_m_re_x___load_balance_k_d_8_h.html',1,'']]],
   ['amrex_5flohiside_2ecpp',['AMReX_LoHiSide.cpp',['../_a_m_re_x___lo_hi_side_8cpp.html',1,'']]],
   ['amrex_5flohiside_2eh',['AMReX_LoHiSide.H',['../_a_m_re_x___lo_hi_side_8_h.html',1,'']]],
-  ['amrex_5flooping_2eh',['AMReX_Looping.H',['../_a_m_re_x___looping_8_h.html',1,'']]],
   ['amrex_5flsquares_2ecpp',['AMReX_LSquares.cpp',['../_a_m_re_x___l_squares_8cpp.html',1,'']]],
   ['amrex_5flsquares_2eh',['AMReX_LSquares.H',['../_a_m_re_x___l_squares_8_h.html',1,'']]],
   ['amrex_5fmacbndry_2ecpp',['AMReX_MacBndry.cpp',['../_a_m_re_x___mac_bndry_8cpp.html',1,'']]],

@@ -123,6 +123,8 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A Fortran Array-like Object <a class="el" href="classamrex_1_1_base_fab.html" title="A Fortran Array-like Object BaseFab emulates the Fortran array concept. Useful operations can be perf...">BaseFab</a> emulates the Fortran array concept. Useful operations can be performed upon BaseFabs in C++, and they provide a convenient interface to Fortran when it is necessary to retreat into that language.  <a href="classamrex_1_1_base_fab.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_b_f__init.html">BF_init</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_base_index.html">BaseIndex</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">index for other indicies to inherit  <a href="classamrex_1_1_base_index.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -759,6 +761,9 @@ Functions</h2></td></tr>
 <tr class="separator:a2d23320cbd486726af914b5bdb5b6d69"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f4b74c08c29c8a404ca762145408f1c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a2f4b74c08c29c8a404ca762145408f1c">update_fab_stats</a> (long <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a54f6ce0fb55c5e079b66b7ac9b865843">n</a>, long s, std::size_t szt)</td></tr>
 <tr class="separator:a2f4b74c08c29c8a404ca762145408f1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af46badc0ebf96b142a032fb4ec9e677b"><td class="memTemplParams" colspan="2">template&lt;class B , class F &gt; </td></tr>
+<tr class="memitem:af46badc0ebf96b142a032fb4ec9e677b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af46badc0ebf96b142a032fb4ec9e677b">ForEachImpl</a> (B &amp;fab, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;b, int c, int nc, F f)</td></tr>
+<tr class="separator:af46badc0ebf96b142a032fb4ec9e677b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a29c802e46ab63fd307f16df2ce478081"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a29c802e46ab63fd307f16df2ce478081">setBC</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;bx, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;domain, int src_comp, int dest_comp, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>, const <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_b_c_rec.html">BCRec</a> &gt; &amp;bc_dom, <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_b_c_rec.html">BCRec</a> &gt; &amp;bcr)</td></tr>
 <tr class="memdesc:a29c802e46ab63fd307f16df2ce478081"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function for setting array of BCs.  <a href="#a29c802e46ab63fd307f16df2ce478081">More...</a><br/></td></tr>
 <tr class="separator:a29c802e46ab63fd307f16df2ce478081"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -6646,6 +6651,60 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="af46badc0ebf96b142a032fb4ec9e677b"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class B , class F &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::ForEachImpl </td>
+          <td>(</td>
+          <td class="paramtype">B &amp;&#160;</td>
+          <td class="paramname"><em>fab</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const Box &amp;&#160;</td>
+          <td class="paramname"><em>b</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>nc</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">F&#160;</td>
+          <td class="paramname"><em>f</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="a151943952967abd77ab9275a7daf6277"></a>
 <div class="memitem">
 <div class="memproto">
@@ -11557,32 +11616,6 @@ template&lt;&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a99b5e66ea694e5ca5a50ee2c335e8678"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::ostream &amp; amrex::operator&lt;&lt; </td>
-          <td>(</td>
-          <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const ParmParse::PP_entry &amp;&#160;</td>
-          <td class="paramname"><em>pp</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a class="anchor" id="a02c8cd4ab79d54be6c0e34f436679048"></a>
 <div class="memitem">
 <div class="memproto">
@@ -11598,6 +11631,32 @@ template&lt;&gt; </div>
           <td></td>
           <td class="paramtype">const VolIndex &amp;&#160;</td>
           <td class="paramname"><em>iv</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a99b5e66ea694e5ca5a50ee2c335e8678"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::ostream &amp; amrex::operator&lt;&lt; </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const ParmParse::PP_entry &amp;&#160;</td>
+          <td class="paramname"><em>pp</em>&#160;</td>
         </tr>
         <tr>
           <td></td>

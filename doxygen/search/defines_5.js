@@ -1,8 +1,6 @@
 var searchData=
 [
   ['foextrap',['FOEXTRAP',['../_a_m_re_x___b_c___t_y_p_e_s_8_h.html#aa7be6070c4e0ff8a1efa011bb352ed5b',1,'AMReX_BC_TYPES.H']]],
-  ['forallthis',['ForAllThis',['../_a_m_re_x___looping_8_h.html#a56c9710f690be7435b70a3c353406399',1,'AMReX_Looping.H']]],
-  ['forallthisxc',['ForAllThisXC',['../_a_m_re_x___looping_8_h.html#a57f631e68b42692683b39c0f0fb74e6d',1,'AMReX_Looping.H']]],
   ['fort_5fcbinterp',['FORT_CBINTERP',['../_a_m_re_x___i_n_t_e_r_p___f_8_h.html#a182bd2ae890e9703d182837c8cb01f62',1,'AMReX_INTERP_F.H']]],
   ['fort_5fccinterp',['FORT_CCINTERP',['../_a_m_re_x___i_n_t_e_r_p___f_8_h.html#a2eedbd53cd00bd7c61626159b6c31b81',1,'AMReX_INTERP_F.H']]],
   ['fort_5fccinterp2',['FORT_CCINTERP2',['../_a_m_re_x___i_n_t_e_r_p___f_8_h.html#ad31f9893e33787dfbc3b8a306bf69efd',1,'AMReX_INTERP_F.H']]],

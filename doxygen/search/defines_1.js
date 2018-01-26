@@ -4,6 +4,7 @@ var searchData=
   ['amrex_5falways_5fassert_5fwith_5fmessage',['AMREX_ALWAYS_ASSERT_WITH_MESSAGE',['../_a_m_re_x___b_lassert_8_h.html#a1defc2bb8023a3e2599bfb2fc637cb43',1,'AMReX_BLassert.H']]],
   ['amrex_5fassert',['AMREX_ASSERT',['../_a_m_re_x___b_lassert_8_h.html#aad6450907585a147153aef621fdc6007',1,'AMReX_BLassert.H']]],
   ['amrex_5fassert_5fwith_5fmessage',['AMREX_ASSERT_WITH_MESSAGE',['../_a_m_re_x___b_lassert_8_h.html#a8013eb3b1fc596632383f1bb7c40e92c',1,'AMReX_BLassert.H']]],
+  ['amrex_5fbaseumap_5fkidx',['AMREX_BASEUMAP_KIDX',['../_a_m_re_x___base_umap_8_h.html#a2d01493888e9ce6d1c5311c76cc01dc5',1,'AMReX_BaseUmap.H']]],
   ['amrex_5flo_5fbogus',['AMREX_LO_BOGUS',['../_a_m_re_x___l_o___b_c_t_y_p_e_s_8_h.html#a969fe17351200623de86808d7d02de1a',1,'AMReX_LO_BCTYPES.H']]],
   ['amrex_5flo_5fdirichlet',['AMREX_LO_DIRICHLET',['../_a_m_re_x___l_o___b_c_t_y_p_e_s_8_h.html#a874725e18b8a17a13d2200cea4c11c47',1,'AMReX_LO_BCTYPES.H']]],
   ['amrex_5flo_5finflow',['AMREX_LO_INFLOW',['../_a_m_re_x___l_o___b_c_t_y_p_e_s_8_h.html#abb28e2063a5f29dd10f42d856e8c6af6',1,'AMReX_LO_BCTYPES.H']]],

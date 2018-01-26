@@ -25,6 +25,7 @@ var searchData=
   ['_7ebaseivfactory',['~BaseIVFactory',['../classamrex_1_1_base_i_v_factory.html#af4d266f834b0c3d782804d6e96cfb381',1,'amrex::BaseIVFactory']]],
   ['_7ebasestencil',['~BaseStencil',['../classamrex_1_1_base_stencil.html#a570f30ca91ad657929bef8b13df307ed',1,'amrex::BaseStencil']]],
   ['_7ebaseumap',['~BaseUmap',['../classamrex_1_1_base_umap.html#a66dce96b470d563ad6f46b9054733106',1,'amrex::BaseUmap']]],
+  ['_7ebf_5finit',['~BF_init',['../classamrex_1_1_b_f__init.html#aa3a0c6d023d5a71b96332652277ae57a',1,'amrex::BF_init']]],
   ['_7ebndrydata',['~BndryData',['../classamrex_1_1_bndry_data.html#ad6ebc5a788a82c41a8b1bffc8e589440',1,'amrex::BndryData']]],
   ['_7ebndryfunc',['~BndryFunc',['../classamrex_1_1_state_descriptor_1_1_bndry_func.html#aa4546ed8ff444e9e37db57d9de427b00',1,'amrex::StateDescriptor::BndryFunc']]],
   ['_7ebndryfunctbase',['~BndryFunctBase',['../classamrex_1_1_bndry_funct_base.html#ac7ae3c9479649027cd5b38906b954d32',1,'amrex::BndryFunctBase']]],
