@@ -343,4 +343,18 @@ InterpBndryData::updateBndryValues (BndryRegister& crse, int c_start, int bnd_st
     updateBndryValues(crse, c_start, bnd_start, num_comp, IntVect{ratio}, max_order);
 }
 
+void
+InterpBndryData::setHomogValues ()
+{
+    for (OrientationIter fi; fi; ++fi)
+    {
+        const Orientation face  = fi();
+        
+        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
+        {
+            bndry[face][fsi].setVal(0.);
+        }
+    }
+}
+
 }
