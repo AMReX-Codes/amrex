@@ -118,9 +118,6 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
 
     HYPRE_SStructVectorInitialize(b);
     HYPRE_SStructVectorInitialize(x);
-
-    HYPRE_SStructVectorAssemble(b);
-    HYPRE_SStructVectorAssemble(x);
 }
 
 HypreABecLap2::~HypreABecLap2 ()
