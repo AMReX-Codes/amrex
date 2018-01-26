@@ -390,7 +390,10 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 ::fillNeighbors(int lev) {
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
-    cacheNeighborInfo(lev);    
+    if (mask_ptr == nullptr) BuildLevelMask(lev, this->Geom(lev), 
+                                            this->ParticleDistributionMap(lev),
+                                            this->ParticleBoxArray(lev));
+    cacheNeighborInfo(lev);
     updateNeighbors(lev, false);
 }
 
@@ -446,10 +449,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                     char* src = (char *) &p;
                     for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
                         if (rc[ii]) {
-                            std::memcpy(dst, src, sizeof(Real)); 
-                            dst += sizeof(Real);
+                            std::memcpy(dst, src, sizeof(typename ParticleType::RealType)); 
+                            dst += sizeof(typename ParticleType::RealType);
                         }
-                        src += sizeof(Real);
+                        src += sizeof(typename ParticleType::RealType);
                     }
                     for (int ii = 0; ii < 2 + NStructInt; ++ii) {
                         if (ic[ii]) {
@@ -633,10 +636,10 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 for (int n = 0; n < np; ++n) {
                     for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
                         if (rc[ii]) {
-                            std::memcpy(dst, src, sizeof(Real)); 
-                            src += sizeof(Real);
+                            std::memcpy(dst, src, sizeof(typename ParticleType::RealType)); 
+                            src += sizeof(typename ParticleType::RealType);
                         }
-                        dst += sizeof(Real);
+                        dst += sizeof(typename ParticleType::RealType);
                     }
                     for (int ii = 0; ii < 2 + NStructInt; ++ii) {
                         if (ic[ii]) {
