@@ -41,7 +41,12 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
-    virtual Real getBScalar () const final { return 1.0; }
+
+    virtual Real getAScalar () const final { return  0.0; }
+    virtual Real getBScalar () const final { return -1.0; }
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final { return nullptr; }
+    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
+        { return { AMREX_D_DECL(nullptr,nullptr,nullptr)}; }
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final;
 

@@ -118,9 +118,6 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
 
     HYPRE_SStructVectorInitialize(b);
     HYPRE_SStructVectorInitialize(x);
-
-    HYPRE_SStructVectorAssemble(b);
-    HYPRE_SStructVectorAssemble(x);
 }
 
 HypreABecLap2::~HypreABecLap2 ()
@@ -168,6 +165,24 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real a
                       int max_iter_, LinOpBCType bc_type, Real bc_value)
 {
     loadBndryData(bc_type, bc_value);
+
+    loadMatrix();
+    finalizeMatrix();
+
+    loadVectors(soln, rhs);
+    finalizeVectors();
+
+    setupSolver(rel_tol_, abs_tol_, max_iter_);
+    solveDoIt();
+    getSolution(soln);
+    clearSolver();
+}
+
+void
+HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real abs_tol_, 
+                      int max_iter_, const BndryData& _bndry)
+{
+    bd = _bndry;
 
     loadMatrix();
     finalizeMatrix();
@@ -372,6 +387,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
             int idim = oitr().coordDir();
             const int bctype = bcs_i[cdir][0];
             const Real &bcl  = bcl_i[cdir];
+
             const Mask &msk  = bd.bndryMasks(oitr())[mfi];
             const FArrayBox &fs = bd.bndryValues(oitr())[mfi];
 
