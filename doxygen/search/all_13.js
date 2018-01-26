@@ -92,7 +92,7 @@ var searchData=
   ['setgroupsets',['SetGroupSets',['../classamrex_1_1_vis_m_f.html#a0e5c0555decdea8a4d09c7eabff1a07d',1,'amrex::VisMF']]],
   ['setheaderversion',['SetHeaderVersion',['../classamrex_1_1_vis_m_f.html#a2ce0e613077c3ec9c4c687628154c5ce',1,'amrex::VisMF']]],
   ['sethi',['setHi',['../classamrex_1_1_b_c_rec.html#a4376523d8b1943b2ae6064c6d9ad817d',1,'amrex::BCRec::setHi()'],['../classamrex_1_1_real_box.html#ab9fcd9071a83335b66d4dce5b610f68f',1,'amrex::RealBox::setHi(const Real *a_hi)'],['../classamrex_1_1_real_box.html#ac93ea11e4bdfca3d01fde34f20fe1552',1,'amrex::RealBox::setHi(const Vector&lt; Real &gt; &amp;a_hi)'],['../classamrex_1_1_real_box.html#a9475c45126e80c166a425b2e935e3477',1,'amrex::RealBox::setHi(int dir, Real a_hi)']]],
-  ['sethomogvalues',['setHomogValues',['../classamrex_1_1_mac_bndry.html#a9abf850c1e8108fedff300e61cc961f6',1,'amrex::MacBndry']]],
+  ['sethomogvalues',['setHomogValues',['../classamrex_1_1_interp_bndry_data.html#a93b74ec9e39f3c4ad998f20e4ed1e8ee',1,'amrex::InterpBndryData::setHomogValues()'],['../classamrex_1_1_mac_bndry.html#a9abf850c1e8108fedff300e61cc961f6',1,'amrex::MacBndry::setHomogValues()']]],
   ['setinitialized',['SetInitialized',['../classamrex_1_1_fab_array_base.html#ae6099f6be6dc55877b885800bff15f7b',1,'amrex::FabArrayBase']]],
   ['setintcommcomp',['setIntCommComp',['../classamrex_1_1_neighbor_particle_container.html#a63cbb0b5b6c81df9e4321148bc960f32',1,'amrex::NeighborParticleContainer']]],
   ['setiobuffersize',['SetIOBufferSize',['../classamrex_1_1_vis_m_f.html#a79ba9865e0159caecf6e81917e4cda85',1,'amrex::VisMF']]],
