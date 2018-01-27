@@ -60,6 +60,7 @@ MyTest::solvePoisson ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setCGVerbose(cg_verbose);
+        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -90,6 +91,7 @@ MyTest::solvePoisson ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setCGVerbose(cg_verbose);
+            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
             
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
@@ -154,6 +156,7 @@ MyTest::solveABecLaplacian ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setCGVerbose(cg_verbose);
+        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -202,7 +205,8 @@ MyTest::solveABecLaplacian ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setCGVerbose(cg_verbose);
-            
+            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
     }
@@ -239,6 +243,9 @@ MyTest::readParameters ()
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
+#ifdef AMREX_USE_HYPRE
+    pp.query("use_hypre", use_hypre);
+#endif
 }
 
 void

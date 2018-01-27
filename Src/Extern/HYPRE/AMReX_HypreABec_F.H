@@ -78,31 +78,31 @@ extern "C" {
 		    const int* msk, ARLIM_P(mlo), ARLIM_P(mhi),
 		    const amrex_real* bcv, ARLIM_P(bvlo), ARLIM_P(bvhi));
 
-  void hmac(amrex::Real* mat, 
+  void amrex_hmac(amrex::Real* mat, 
 	    BL_FORT_FAB_ARG(acoefs),
 	    ARLIM_P(reglo), ARLIM_P(reghi),
 	    const amrex::Real& alpha);
 
-  void hmbc(amrex::Real* mat,
+  void amrex_hmbc(amrex::Real* mat,
 	    BL_FORT_FAB_ARG(bcoefs),
 	    ARLIM_P(reglo), ARLIM_P(reghi),
 	    const amrex::Real& beta, const amrex::Real* dx, const int& n);
 
-  void hmmat(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
+  void amrex_hmmat(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
 	     const int& cdir, const int& bct,
 	     const int& bho, const amrex::Real& bcl,
 	     const BL_FORT_IFAB_ARG(mask),
 	     BL_FORT_FAB_ARG(bcoefs),
 	     const amrex::Real& beta, const amrex::Real* dx);
 
-  void hmmat3(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
+  void amrex_hmmat3(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
 	      const int& cdir, const int& bctype,
 	      const int& bho, const amrex::Real& bcl,
 	      const BL_FORT_IFAB_ARG(mask),
 	      BL_FORT_FAB_ARG(bcoefs),
 	      const amrex::Real& beta, const amrex::Real* dx);
 
-    void hbvec (amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
+    void amrex_hbvec (amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
                 const int& cdir, const int& bctype,
                 const int& bho, const amrex::Real& bcl,
                 const amrex::Real* fs, ARLIM_P(fslo), ARLIM_P(fshi),
@@ -110,7 +110,7 @@ extern "C" {
                 const BL_FORT_FAB_ARG(bcoefs),
                 const amrex::Real& beta, const amrex::Real* dx);
 
-    void hbvec3(amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
+    void amrex_hbvec3(amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
                 const int& cdir, const int& bctype,
                 const int& bho, const amrex::Real& bcl,
                 const amrex::Real* fs, ARLIM_P(fslo), ARLIM_P(fshi),

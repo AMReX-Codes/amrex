@@ -71,8 +71,6 @@ C$(AMREX_BASE)_headers += AMReX_FArrayBox.H
 C$(AMREX_BASE)_sources += AMReX_IArrayBox.cpp
 C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
 
-C$(AMREX_BASE)_headers += AMReX_Looping.H
-
 C$(AMREX_BASE)_headers += AMReX_MakeType.H
 C$(AMREX_BASE)_headers += AMReX_TypeTraits.H
 
