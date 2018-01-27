@@ -194,8 +194,20 @@
 <p>Currently you have two options for AMReX-specific profiling.</p>
 <div class="section" id="tiny-profiling">
 <h2>Tiny Profiling<a class="headerlink" href="#tiny-profiling" title="Permalink to this headline">¶</a></h2>
-<p>If you set <code class="docutils literal"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> in your GNUMakefile then at the end of the run, a
-summary of exclusive and inclusive function times will be written to stdout.</p>
+<p>To enable “Tiny Profiling”, if using GNU Make then set</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">TINY_PROFILE</span> <span class="o">=</span> <span class="n">TRUE</span>
+<span class="n">PROFILE</span>      <span class="o">=</span> <span class="n">FALSE</span>
+</pre></div>
+</div>
+<p>in your GNUMakefile.   If using cmake then set the following cmake flags</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">AMREX_ENABLE_TINY_PROFILE</span> <span class="o">=</span> <span class="n">ON</span>
+<span class="n">AMREX_ENABLE_BASE_PROFILE</span> <span class="o">=</span> <span class="n">OFF</span>
+</pre></div>
+</div>
+<p>Then at the end of the run, a summary of exclusive
+and inclusive function times will be written to stdout.
+Note that if you set <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>  (or <code class="docutils literal"><span class="pre">AMREX_ENABLE_BASE_PROFILE</span> <span class="pre">=</span> <span class="pre">ON</span></code>)
+then this will override the <code class="docutils literal"><span class="pre">TINY_PROFILE</span></code> flag and tiny profiling will be disabled.</p>
 </div>
 <div class="section" id="full-profiling">
 <h2>Full Profiling<a class="headerlink" href="#full-profiling" title="Permalink to this headline">¶</a></h2>

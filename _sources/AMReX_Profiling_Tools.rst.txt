@@ -12,8 +12,24 @@ Currently you have two options for AMReX-specific profiling.
 Tiny Profiling
 ----------------------
 
-If you set ``TINY_PROFILE = TRUE`` in your GNUMakefile then at the end of the run, a
-summary of exclusive and inclusive function times will be written to stdout.
+To enable "Tiny Profiling", if using GNU Make then set
+
+::
+
+  TINY_PROFILE = TRUE
+  PROFILE      = FALSE
+
+in your GNUMakefile.   If using cmake then set the following cmake flags
+
+::
+
+  AMREX_ENABLE_TINY_PROFILE = ON
+  AMREX_ENABLE_BASE_PROFILE = OFF
+
+Then at the end of the run, a summary of exclusive 
+and inclusive function times will be written to stdout.
+Note that if you set ``PROFILE = TRUE``  (or ``AMREX_ENABLE_BASE_PROFILE = ON``)
+then this will override the ``TINY_PROFILE`` flag and tiny profiling will be disabled.
 
 Full Profiling
 --------------
