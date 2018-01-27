@@ -1981,7 +1981,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             if (gotsome && doUnlink)
             {
-		BL_PROFILE("PC<NNNN>::Checkpoint:unlink");
+		BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink);
                 //
                 // Unlink any zero-length data files.
                 //
@@ -2113,7 +2113,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         const bool gotsome = (nParticlesAtLevelPrePost[lev] > 0);
         if(gotsome && doUnlink) {
-          BL_PROFILE("PC<NNNN>::Checkpoint:unlink");
+            BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink_post);
           // Unlink any zero-length data files.
           Vector<long> cnt(nOutFilesPrePost,0);
 
