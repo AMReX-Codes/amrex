@@ -4,8 +4,8 @@
 
 using namespace amrex;
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+template <int NStructReal, int NStructInt>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::NeighborParticleContainer(ParGDBBase* gdb, int ncells)
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (gdb),
       num_neighbor_cells(ncells)
@@ -13,8 +13,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     initializeCommComps();
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+template <int NStructReal, int NStructInt>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::NeighborParticleContainer(const Geometry            & geom,
                             const DistributionMapping & dmap,
                             const BoxArray            & ba,
@@ -25,9 +25,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     initializeCommComps();
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::initializeCommComps() {
     for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii)
         rc[ii] = true;
@@ -36,25 +36,25 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     calcCommSize();
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::setRealCommComp(int i, bool value) {
     rc[i] = value;
     calcCommSize();
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::setIntCommComp(int i, bool value) {
     ic[i] = value;
     calcCommSize();
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::calcCommSize() {
     size_t comm_size = 0;
     for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
@@ -70,9 +70,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     cdata_size = comm_size;
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::Regrid(const DistributionMapping &dmap, const BoxArray &ba ) {
     const int lev = 0;
     this->SetParticleBoxArray(lev, ba);
@@ -80,9 +80,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     this->Redistribute();
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::BuildLevelMask(int lev) {
     
     BL_PROFILE("NeighborParticleContainer::BuildLevelMask");
@@ -136,9 +136,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         }
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void 
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::cacheNeighborInfo(int lev) {
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
@@ -383,9 +383,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     }
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void 
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::fillNeighbors(int lev) {
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
     BuildLevelMask(lev);
@@ -393,9 +393,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     updateNeighbors(lev, false);
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::updateNeighbors(int lev, bool reuse_rcv_counts) {
     
     BL_PROFILE("NeighborParticleContainer::updateNeighbors");
@@ -472,9 +472,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     fillNeighborsMPI(reuse_rcv_counts);
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt>
 ::clearNeighbors(int lev) 
 {
 
@@ -486,9 +486,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     send_data.clear();
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+NeighborParticleContainer<NStructReal, NStructInt>::
 getRcvCountsMPI() {
 
 #ifdef BL_USE_MPI
@@ -544,9 +544,9 @@ getRcvCountsMPI() {
 #endif // BL_USE_MPI
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+NeighborParticleContainer<NStructReal, NStructInt>::
 fillNeighborsMPI(bool reuse_rcv_counts) {
     
     BL_PROFILE("NeighborParticleContainer::fillNeighborsMPI");
@@ -652,9 +652,9 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+NeighborParticleContainer<NStructReal, NStructInt>::
 buildNeighborList(int lev, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
@@ -751,9 +751,9 @@ buildNeighborList(int lev, bool sort) {
     }
 }
 
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+NeighborParticleContainer<NStructReal, NStructInt>::
 buildNeighborListFort(int lev, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborListFort");
