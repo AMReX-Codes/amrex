@@ -1075,9 +1075,8 @@ BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
                                                       blo[1]+j,
                                                       blo[2]+k)};
                 auto s = dataPtr(line_begin, n);
-                T* d = dst + k*(len3[0]*len3[1]) + j*len3[0];
                 for (int i = 0; i < len3[0]; ++i) {
-                    f(*(d+i), *(s+i));
+                    f(*(dst++), *(s+i));
                 }
             }
         }
@@ -1101,9 +1100,8 @@ BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f)
                                                       blo[1]+j,
                                                       blo[2]+k)};
                 auto d = dataPtr(line_begin, n);
-                T const* s = src + k*(len3[0]*len3[1]) + j*len3[0];
                 for (int i = 0; i < len3[0]; ++i) {
-                    f(*(d+i), *(s+i));
+                    f(*(d+i), *(src++));
                 }
             }
         }
