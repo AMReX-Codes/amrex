@@ -22,7 +22,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
       num_neighbor_cells(ncells)
 {
-    BuildLevelMask(0, geom, dmap, ba);
     initializeCommComps();
 }
 
@@ -78,64 +77,63 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     const int lev = 0;
     this->SetParticleBoxArray(lev, ba);
     this->SetParticleDistributionMap(lev, dmap);
-    BuildLevelMask(lev, this->Geom(lev), dmap, ba);
     this->Redistribute();
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-::BuildLevelMask(int lev,
-                 const Geometry &geom, 
-                 const DistributionMapping &dmap, 
-                 const BoxArray &ba ) {
+::BuildLevelMask(int lev) {
     
     BL_PROFILE("NeighborParticleContainer::BuildLevelMask");
     BL_ASSERT(lev == 0);
-    BL_ASSERT(dmap == this->ParticleDistributionMap(lev));
-    BL_ASSERT(ba == this->ParticleBoxArray(lev));
 
     if (mask_ptr == nullptr ||
         ! BoxArray::SameRefs(mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
-        ! DistributionMapping::SameRefs(mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev))) {        
-        mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, num_neighbor_cells));
-        mask_ptr->setVal(-1, num_neighbor_cells);
-
+        ! DistributionMapping::SameRefs(mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev)))
+        {
+            const Geometry& geom = this->Geom(lev);
+            const BoxArray& ba = this->ParticleBoxArray(lev);
+            const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+            
+            mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, num_neighbor_cells));
+            mask_ptr->setVal(-1, num_neighbor_cells);
+            
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(*mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
-             mfi.isValid(); ++mfi) {
-            const Box& box = mfi.tilebox();
-            const int grid_id = mfi.index();
-            const int tile_id = mfi.LocalTileIndex();
-            mask_ptr->setVal(grid_id, box, 0, 1);
-            mask_ptr->setVal(tile_id, box, 1, 1);
-        }
-        
-        mask_ptr->FillBoundary(geom.periodicity());
-
-        local_neighbors.clear();
-        neighbor_procs.clear();
-        for (MFIter mfi(*mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
-	     mfi.isValid(); ++mfi) {
-	    const Box& box = mfi.growntilebox();
-            for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
-                const int grid = (*mask_ptr)[mfi](iv, 0);
-                if (grid >= 0) {
-                   const int tile = (*mask_ptr)[mfi](iv, 1);
-                   const int proc = this->ParticleDistributionMap(lev)[grid];
-                   NeighborCommTag comm_tag(proc, grid, tile);
-                   local_neighbors.push_back(comm_tag);
-                   if (proc != ParallelDescriptor::MyProc())  
-                       neighbor_procs.push_back(proc);
+            for (MFIter mfi(*mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+                 mfi.isValid(); ++mfi) {
+                const Box& box = mfi.tilebox();
+                const int grid_id = mfi.index();
+                const int tile_id = mfi.LocalTileIndex();
+                mask_ptr->setVal(grid_id, box, 0, 1);
+                mask_ptr->setVal(tile_id, box, 1, 1);
+            }
+            
+            mask_ptr->FillBoundary(geom.periodicity());
+            
+            local_neighbors.clear();
+            neighbor_procs.clear();
+            for (MFIter mfi(*mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+                 mfi.isValid(); ++mfi) {
+                const Box& box = mfi.growntilebox();
+                for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
+                    const int grid = (*mask_ptr)[mfi](iv, 0);
+                    if (grid >= 0) {
+                        const int tile = (*mask_ptr)[mfi](iv, 1);
+                        const int proc = this->ParticleDistributionMap(lev)[grid];
+                        NeighborCommTag comm_tag(proc, grid, tile);
+                        local_neighbors.push_back(comm_tag);
+                        if (proc != ParallelDescriptor::MyProc())  
+                            neighbor_procs.push_back(proc);
+                    }
                 }
             }
+            
+            RemoveDuplicates(local_neighbors);
+            RemoveDuplicates(neighbor_procs);
         }
-
-        RemoveDuplicates(local_neighbors);
-        RemoveDuplicates(neighbor_procs);
-    }
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -390,9 +388,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 ::fillNeighbors(int lev) {
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
-    if (mask_ptr == nullptr) BuildLevelMask(lev, this->Geom(lev), 
-                                            this->ParticleDistributionMap(lev),
-                                            this->ParticleBoxArray(lev));
+    BuildLevelMask(lev);
     cacheNeighborInfo(lev);
     updateNeighbors(lev, false);
 }
