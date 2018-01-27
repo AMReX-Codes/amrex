@@ -120,10 +120,7 @@ public:
     ///
     /// This builds the internal data structure used for looking up neighbors
     ///
-    void BuildLevelMask(int lev, 
-                        const Geometry &geom, 
-                        const DistributionMapping &dmap, 
-                        const BoxArray &ba );
+    void BuildLevelMask(int lev);
 
     ///
     /// This fills the neighbor buffers for each tile with the proper data
