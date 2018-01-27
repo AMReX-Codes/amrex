@@ -204,10 +204,12 @@
 <span class="n">AMREX_ENABLE_BASE_PROFILE</span> <span class="o">=</span> <span class="n">OFF</span>
 </pre></div>
 </div>
-<p>Then at the end of the run, a summary of exclusive
-and inclusive function times will be written to stdout.
-Note that if you set <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>  (or <code class="docutils literal"><span class="pre">AMREX_ENABLE_BASE_PROFILE</span> <span class="pre">=</span> <span class="pre">ON</span></code>)
+<p>Note that if you set <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>  (or <code class="docutils literal"><span class="pre">AMREX_ENABLE_BASE_PROFILE</span> <span class="pre">=</span> <span class="pre">ON</span></code>)
 then this will override the <code class="docutils literal"><span class="pre">TINY_PROFILE</span></code> flag and tiny profiling will be disabled.</p>
+<p>At the end of the run, a summary of exclusive and inclusive function times will be written to stdout.
+This output includes the minimum and maximum (over processes) time spent in each routine
+as well as the average and the maximum percentage of total run time.   See <a class="reference internal" href="#sec-sample-tiny"><span class="std std-ref">Sample Output From Tiny Profile</span></a>
+for sample output.</p>
 </div>
 <div class="section" id="full-profiling">
 <h2>Full Profiling<a class="headerlink" href="#full-profiling" title="Permalink to this headline">¶</a></h2>
@@ -322,8 +324,8 @@ in the <code class="docutils literal"><span class="pre">bl_proffortfuncstart_int
 <code class="docutils literal"><span class="pre">BL_PROFILE_CHANGE_FORT_INT_NAME</span></code> should be called in <code class="docutils literal"><span class="pre">main()</span></code>.</p>
 </div>
 <div class="section" id="sample-output-from-tiny-profile">
-<h1>Sample Output From Tiny Profile<a class="headerlink" href="#sample-output-from-tiny-profile" title="Permalink to this headline">¶</a></h1>
-<p>Sample output from <code class="docutils literal"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can look like the following:</p>
+<span id="sec-sample-tiny"></span><h1>Sample Output From Tiny Profile<a class="headerlink" href="#sample-output-from-tiny-profile" title="Permalink to this headline">¶</a></h1>
+<p>Sample output using <code class="docutils literal"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can look like the following:</p>
 <div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">TinyProfiler total time across processes [min...avg...max]: 1.765...1.765...1.765</span>
 <span class="go">---------------------------------------------------------------------------------</span>
 <span class="go">Name                          NCalls   Excl. Min   Excl. Avg   Excl. Max   Max  %</span>
