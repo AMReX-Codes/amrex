@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Profiling &mdash; amrex 18.02-dev documentation</title>
+  <title>AMReX-based Profiling Tools &mdash; amrex 18.02-dev documentation</title>
   
 
   
@@ -38,7 +38,7 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 18.02-dev documentation" href="index.html"/>
-        <link rel="next" title="Instrumenting the Code" href="Profiling.html"/>
+        <link rel="next" title="Types of Profiling" href="AMReX_Profiling_Tools.html"/>
         <link rel="prev" title="Amrvis" href="Visualization.html"/> 
 
   
@@ -105,16 +105,16 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter10.html">Embedded Boundaries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter11.html">Visualization</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Profiling</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Profiling.html">Instrumenting the Code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Profiling.html#types-of-profiling">Types of Profiling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Profiling.html#sample-output">Sample Output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Profiling.html#amrprofparser">AMRProfParser</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Profiling.html#craypat">CrayPat</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Profiling.html#ipm-cross-platform-integrated-performance-monitoring">IPM - Cross-Platform Integrated Performance Monitoring</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AMReX-based Profiling Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="AMReX_Profiling_Tools.html">Types of Profiling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AMReX_Profiling_Tools.html#instrumenting-c-code">Instrumenting C++ Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AMReX_Profiling_Tools.html#instrumenting-fortran90-code">Instrumenting Fortran90 Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AMReX_Profiling_Tools.html#sample-output">Sample Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AMReX_Profiling_Tools.html#amrprofparser">AMRProfParser</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter13.html">CVODE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter13.html">External Profiling Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter14.html">CVODE</a></li>
 </ul>
 
             
@@ -159,7 +159,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Profiling</li>
+      <li>AMReX-based Profiling Tools</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -178,8 +178,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="profiling">
-<span id="chap-profiling"></span><h1>Profiling<a class="headerlink" href="#profiling" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="amrex-based-profiling-tools">
+<span id="chap-amrex-based-profiling-tools"></span><h1>AMReX-based Profiling Tools<a class="headerlink" href="#amrex-based-profiling-tools" title="Permalink to this headline">¶</a></h1>
 <p>AMReX-based application codes can be instrumented using AMReX-specific
 performance profiling tools that take into account the hierarchical nature of
 the mesh in most AMReX-based applications. These codes can be instrumented for
@@ -187,12 +187,11 @@ varying levels of profiling detail. The broad-brush C++ instrumentation is as
 follows:</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Instrumenting the Code</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html#types-of-profiling">Types of Profiling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html#sample-output">Sample Output</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html#amrprofparser">AMRProfParser</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html#craypat">CrayPat</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Profiling.html#ipm-cross-platform-integrated-performance-monitoring">IPM - Cross-Platform Integrated Performance Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMReX_Profiling_Tools.html">Types of Profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMReX_Profiling_Tools.html#instrumenting-c-code">Instrumenting C++ Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMReX_Profiling_Tools.html#instrumenting-fortran90-code">Instrumenting Fortran90 Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMReX_Profiling_Tools.html#sample-output">Sample Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMReX_Profiling_Tools.html#amrprofparser">AMRProfParser</a></li>
 </ul>
 </div>
 </div>
@@ -207,7 +206,7 @@ follows:</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Profiling.html" class="btn btn-neutral float-right" title="Instrumenting the Code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="AMReX_Profiling_Tools.html" class="btn btn-neutral float-right" title="Types of Profiling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="Visualization.html" class="btn btn-neutral" title="Amrvis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

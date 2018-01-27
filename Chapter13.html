@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>CVODE &mdash; amrex 18.02-dev documentation</title>
+  <title>External Profiling Tools &mdash; amrex 18.02-dev documentation</title>
   
 
   
@@ -38,8 +38,8 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="amrex 18.02-dev documentation" href="index.html"/>
-        <link rel="next" title="Compiling AMReX with CVODE" href="CVODE.html"/>
-        <link rel="prev" title="Instrumenting the Code" href="Profiling.html"/> 
+        <link rel="next" title="CrayPat" href="External_Profiling_Tools.html"/>
+        <link rel="prev" title="Types of Profiling" href="AMReX_Profiling_Tools.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -105,12 +105,13 @@
 <li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter10.html">Embedded Boundaries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter11.html">Visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter12.html">Profiling</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">CVODE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="CVODE.html">Compiling AMReX&nbsp;with CVODE</a></li>
-<li class="toctree-l2"><a class="reference internal" href="CVODE.html#the-cvode-tutorials">The CVODE&nbsp;Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter12.html">AMReX-based Profiling Tools</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">External Profiling Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="External_Profiling_Tools.html">CrayPat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="External_Profiling_Tools.html#ipm-cross-platform-integrated-performance-monitoring">IPM - Cross-Platform Integrated Performance Monitoring</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter14.html">CVODE</a></li>
 </ul>
 
             
@@ -155,7 +156,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>CVODE</li>
+      <li>External Profiling Tools</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -174,49 +175,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="cvode">
-<span id="chap-cvode"></span><h1>CVODE<a class="headerlink" href="#cvode" title="Permalink to this headline">¶</a></h1>
-<p>AMReX&nbsp;supports local ODE integration using the CVODE&nbsp;solver, <a class="footnote-reference" href="#id4" id="id1">[1]</a> which is part
-of the SUNDIALS&nbsp;framework. <a class="footnote-reference" href="#id5" id="id2">[2]</a> CVODE&nbsp;contains solvers for stiff and non-stiff
-ODEs, and as such is well suited for solving e.g., the complex chemistry
-networks in combustion simulations, or the nuclear reaction networks in
-astrophysical simulations.</p>
-<p>Most of CVODE&nbsp;is written in C, but many functions also come with two distinct
-Fortran interfaces.  One interface is FCVODE, which is bundled with the stable
-release of CVODE.  Its usage is described in the CVODE&nbsp;documentation. <a class="footnote-reference" href="#id6" id="id3">[3]</a>
-However, the use of FCVODE&nbsp;is discouraged in AMReX&nbsp;due to its incompatibility
-with being used inside OpenMP parallel regions (which is the primary use case
-in AMReX&nbsp;applications).</p>
-<p>The alternative, and recommended, Fortran interface to &nbsp;uses the
-<code class="docutils literal"><span class="pre">iso_c_binding</span></code> feature of the Fortran 2003 standard to implement a direct
-interface to the C functions in CVODE.  When compiling CVODE, one need not
-build the CVODE&nbsp;library with the FCVODE&nbsp;interface enabled at all.  Rather, the
-Fortran 2003 interface to CVODE&nbsp;is provided within AMReX&nbsp;itself.  The
-CVODE&nbsp;tutorials provided in AMReX&nbsp;use this new interface.</p>
+  <div class="section" id="external-profiling-tools">
+<span id="chap-external-profiling-tools"></span><h1>External Profiling Tools<a class="headerlink" href="#external-profiling-tools" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="CVODE.html">Compiling AMReX&nbsp;with CVODE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="CVODE.html#the-cvode-tutorials">The CVODE&nbsp;Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="External_Profiling_Tools.html">CrayPat</a></li>
+<li class="toctree-l1"><a class="reference internal" href="External_Profiling_Tools.html#ipm-cross-platform-integrated-performance-monitoring">IPM - Cross-Platform Integrated Performance Monitoring</a></li>
 </ul>
 </div>
-<table class="docutils footnote" frame="void" id="id4" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><a class="reference external" href="https://computation.llnl.gov/projects/sundials/cvode">https://computation.llnl.gov/projects/sundials/cvode</a></td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id5" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td><a class="reference external" href="https://computation.llnl.gov/projects/sundials">https://computation.llnl.gov/projects/sundials</a></td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id6" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td><a class="reference external" href="https://computation.llnl.gov/sites/default/files/public/cv_guide.pdf">https://computation.llnl.gov/sites/default/files/public/cv_guide.pdf</a></td></tr>
-</tbody>
-</table>
 </div>
 
 
@@ -229,10 +195,10 @@ CVODE&nbsp;tutorials provided in AMReX&nbsp;use this new interface.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="CVODE.html" class="btn btn-neutral float-right" title="Compiling AMReX with CVODE" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="External_Profiling_Tools.html" class="btn btn-neutral float-right" title="CrayPat" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Profiling.html" class="btn btn-neutral" title="Instrumenting the Code" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="AMReX_Profiling_Tools.html" class="btn btn-neutral" title="Types of Profiling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

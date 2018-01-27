@@ -1,0 +1,423 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Types of Profiling &mdash; amrex 18.02-dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="amrex 18.02-dev documentation" href="index.html"/>
+        <link rel="up" title="AMReX-based Profiling Tools" href="Chapter12.html"/>
+        <link rel="next" title="External Profiling Tools" href="Chapter13.html"/>
+        <link rel="prev" title="AMReX-based Profiling Tools" href="Chapter12.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> amrex
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                18.02-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter5.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">Amr Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Linear Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter10.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter11.html">Visualization</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Chapter12.html">AMReX-based Profiling Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Types of Profiling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tiny-profiling">Tiny Profiling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#full-profiling">Full Profiling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#trace-profiling">Trace Profiling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#communication-profiling">Communication Profiling</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#instrumenting-c-code">Instrumenting C++ Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#instrumenting-fortran90-code">Instrumenting Fortran90 Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sample-output">Sample Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#amrprofparser">AMRProfParser</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter13.html">External Profiling Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter14.html">CVODE</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">amrex</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="Chapter12.html">AMReX-based Profiling Tools</a> &raquo;</li>
+        
+      <li>Types of Profiling</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/AMReX_Profiling_Tools.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="types-of-profiling">
+<h1>Types of Profiling<a class="headerlink" href="#types-of-profiling" title="Permalink to this headline">¶</a></h1>
+<p>Currently you have two options for AMReX-specific profiling.</p>
+<div class="section" id="tiny-profiling">
+<h2>Tiny Profiling<a class="headerlink" href="#tiny-profiling" title="Permalink to this headline">¶</a></h2>
+<p>If you set <code class="docutils literal"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> in your GNUMakefile then at the end of the run, a
+summary of exclusive and inclusive function times will be written to stdout.</p>
+</div>
+<div class="section" id="full-profiling">
+<h2>Full Profiling<a class="headerlink" href="#full-profiling" title="Permalink to this headline">¶</a></h2>
+<p>If you set <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> then a <code class="docutils literal"><span class="pre">bl_prof</span></code> directory will be written that
+contains detailed per-task timings for each processor.  This will be written in
+<code class="docutils literal"><span class="pre">nfiles</span></code> files (where <code class="docutils literal"><span class="pre">nfiles</span></code> is specified by the user).
+In addition, an exclusive-only set of function timings will be written to stdout.</p>
+<div class="section" id="trace-profiling">
+<h3>Trace Profiling<a class="headerlink" href="#trace-profiling" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div>If, in addition to <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, you set <code class="docutils literal"><span class="pre">TRACE_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, then
+the profiler keeps track of when each profiled function is called and the
+<code class="docutils literal"><span class="pre">bl_prof</span></code> directory will include the function call stack. This is especially
+useful when core functions, such as <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillBoundary</span></span></code> can be called from many
+different regions of the code. Part of the trace profiling is the ability to
+set regions in the code which can be analyzed for profiling information
+independently from other regions.</div></blockquote>
+</div>
+<div class="section" id="communication-profiling">
+<h3>Communication Profiling<a class="headerlink" href="#communication-profiling" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div>If, in addition to <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, you set <code class="docutils literal"><span class="pre">COMM_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, then
+the <code class="docutils literal"><span class="pre">bl_prof</span></code> directory will contain additional information about MPI
+communication (point-to-point timings, data volume, barrier/reduction times,
+etc.). <code class="docutils literal"><span class="pre">TRACE_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> and <code class="docutils literal"><span class="pre">COMM_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can be set
+together.</div></blockquote>
+<p>The AMReX-specific profiling tools are currently under development and this
+documentation will reflect the latest status in the development branch.</p>
+</div>
+</div>
+</div>
+<div class="section" id="instrumenting-c-code">
+<h1>Instrumenting C++ Code<a class="headerlink" href="#instrumenting-c-code" title="Permalink to this headline">¶</a></h1>
+<p>You must at least instrument main(), i.e</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">main</span><span class="p">(...)</span>
+<span class="p">{</span>
+  <span class="n">amrex</span><span class="o">::</span><span class="n">Initialize</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="n">argv</span><span class="p">);</span>
+  <span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;main()&quot;</span><span class="p">,</span><span class="n">pmain</span><span class="p">);</span>
+
+  <span class="p">...</span>
+
+  <span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">pmain</span><span class="p">);</span>
+  <span class="n">amrex</span><span class="o">::</span><span class="n">Finalize</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>You can then instrument any of your functions</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">YourClass</span><span class="o">::</span><span class="n">YourFunction</span><span class="p">()</span>
+<span class="p">{</span>
+  <span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;YourClass::YourFunction()&quot;</span><span class="p">,</span><span class="n">object_name</span><span class="p">);</span>  <span class="c1">// this name can be any string</span>
+
+  <span class="c1">// your function code</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note that you do not need to put BL_PROFILE_VAR_STOP because the profiler will go out of scope
+at the end of the function.</p>
+<p>For other timers within an already instrumented function, add:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;Flaten::FORT_FLATENX()&quot;</span><span class="p">,</span> <span class="n">anyname</span><span class="p">);</span>  <span class="c1">// add this before</span>
+  <span class="n">FORT_FLATENX</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">anyname</span><span class="p">);</span>   <span class="c1">// add this after, using the same name</span>
+</pre></div>
+</div>
+<p>if you want to use the same name within the same scope, you can use:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;MyFuncs()&quot;</span><span class="p">,</span> <span class="n">myfuncs</span><span class="p">);</span>  <span class="c1">// the first one</span>
+  <span class="n">MyFunc_0</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+<span class="p">...</span>
+<span class="n">BL_PROFILE_VAR_START</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+  <span class="n">MyFunc_1</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>or create a profiling variable without starting, then start/stop:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR_NS</span><span class="p">(</span><span class="s">&quot;MyFuncs()&quot;</span><span class="p">,</span> <span class="n">myfuncs</span><span class="p">);</span>  <span class="c1">// dont start the timer</span>
+<span class="p">...</span>
+<span class="n">BL_PROFILE_VAR_START</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+  <span class="n">MyFunc_0</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+<span class="p">...</span>
+<span class="n">BL_PROFILE_VAR_START</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+  <span class="n">MyFunc_1</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+<span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="instrumenting-fortran90-code">
+<h1>Instrumenting Fortran90 Code<a class="headerlink" href="#instrumenting-fortran90-code" title="Permalink to this headline">¶</a></h1>
+<p>Fortran90 functions can also be instrumented with the following calls:</p>
+<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">bl_proffortfuncstart</span><span class="p">(</span><span class="s2">&quot;my_function&quot;</span><span class="p">)</span>
+<span class="p">...</span>
+<span class="k">call </span><span class="n">bl_proffortfuncstop</span><span class="p">(</span><span class="s2">&quot;my_function&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the start and stop calls must be matched and the profiling output
+will warn of any <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstart</span></span></code> calls that were not stopped
+with <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstop</span></span></code> calls (in debug mode only). You will need
+to add <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstop</span></span></code> before any returns and at the end of the
+function or at the point in the function you want to stop profiling.</p>
+<p>For functions with a high number of calls, there is a lighter-weight interface:</p>
+<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">bl_proffortfuncstart_int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="p">...</span>
+<span class="k">call </span><span class="n">bl_proffortfuncstop_int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal"><span class="pre">n</span></code> is an integer in the range <code class="docutils literal"><span class="pre">[1,mFortProfsIntMaxFuncs]</span></code>.
+<code class="docutils literal"><span class="pre">mFortProfsIntMaxFuncs</span></code> is currently set to 32.  The profiled
+function will be named <code class="docutils literal"><span class="pre">FORTFUNC_n</span></code> in the profiler output,
+unless you rename it with <code class="docutils literal"><span class="pre">BL_PROFILE_CHANGE_FORT_INT_NAME(fname,</span> <span class="pre">int)</span></code>
+where <code class="docutils literal"><span class="pre">fname</span></code> is a std::string and <code class="docutils literal"><span class="pre">int</span></code> is the integer <code class="docutils literal"><span class="pre">n</span></code>
+in the <code class="docutils literal"><span class="pre">bl_proffortfuncstart_int/bl_proffortfuncstop_int</span></code> calls.
+<code class="docutils literal"><span class="pre">BL_PROFILE_CHANGE_FORT_INT_NAME</span></code> should be called in <code class="docutils literal"><span class="pre">main()</span></code>.</p>
+</div>
+<div class="section" id="sample-output">
+<h1>Sample Output<a class="headerlink" href="#sample-output" title="Permalink to this headline">¶</a></h1>
+<p>Sample output from <code class="docutils literal"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can look like the following:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">TinyProfiler total time across processes [min...avg...max]: 1.765...1.765...1.765</span>
+<span class="go">---------------------------------------------------------------------------------</span>
+<span class="go">Name                          NCalls   Excl. Min   Excl. Avg   Excl. Max   Max  %</span>
+<span class="go">---------------------------------------------------------------------------------</span>
+<span class="go">mfix_level::EvolveFluid       1        1.602       1.668       1.691       95.83%</span>
+<span class="go">FabArray::FillBoundary()      11081    0.02195     0.03336     0.06617      3.75%</span>
+<span class="go">FabArrayBase::getFB()         22162    0.02031     0.02147     0.02275      1.29%</span>
+<span class="go">PC&lt;...&gt;::WriteAsciiFile()     1        0.00292     0.004072    0.004551     0.26%</span>
+
+
+<span class="go">---------------------------------------------------------------------------------</span>
+<span class="go">Name                          NCalls   Incl. Min   Incl. Avg  Incl. Max    Max  %</span>
+<span class="go">---------------------------------------------------------------------------------</span>
+<span class="go">mfix_level::Evolve()          1        1.69        1.723      1.734        98.23%</span>
+<span class="go">mfix_level::EvolveFluid       1        1.69        1.723      1.734        98.23%</span>
+<span class="go">FabArray::FillBoundary()      11081    0.04236     0.05485    0.08826       5.00%</span>
+<span class="go">FabArrayBase::getFB()         22162    0.02031     0.02149    0.02275       1.29%</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="amrprofparser">
+<h1>AMRProfParser<a class="headerlink" href="#amrprofparser" title="Permalink to this headline">¶</a></h1>
+<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AMRProfParser</span></span></code> is a tool for processing and analyzing the <code class="docutils literal"><span class="pre">bl_prof</span></code>
+database. It is a command line application that can create performance
+summaries, plotfiles showing point to point communication and timelines, HTML
+call trees, communication call statistics, function timing graphs, and other
+data products. The parser’s data services functionality can be called from an
+interactive environment such as Amrvis, from a sidecar for dynamic performance
+optimization, and from other utilities such as the command line version of the
+parser itself. It has been integrated into Amrvis for visual interpretation of
+the data allowing Amrvis to open the bl_prof database like a plotfile but with
+interfaces appropriate to profiling data. AMRProfParser and Amrvis can be run
+in parallel both interactively and in batch mode.</p>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Chapter13.html" class="btn btn-neutral float-right" title="External Profiling Tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Chapter12.html" class="btn btn-neutral" title="AMReX-based Profiling Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2018, AMReX Team.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'18.02-dev',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

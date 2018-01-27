@@ -1,0 +1,545 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>CrayPat &mdash; amrex 18.02-dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="amrex 18.02-dev documentation" href="index.html"/>
+        <link rel="up" title="External Profiling Tools" href="Chapter13.html"/>
+        <link rel="next" title="CVODE" href="Chapter14.html"/>
+        <link rel="prev" title="External Profiling Tools" href="Chapter13.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> amrex
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                18.02-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter5.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter6.html">Amr Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter7.html">Linear Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter8.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter9.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter10.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter11.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter12.html">AMReX-based Profiling Tools</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Chapter13.html">External Profiling Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">CrayPat</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#high-level-application-profiling">High-level application profiling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#ipm-cross-platform-integrated-performance-monitoring">IPM - Cross-Platform Integrated Performance Monitoring</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#building-with-ipm-on-cori">Building with IPM on cori</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-with-ipm-on-cori">Running with IPM on cori</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#summary-mpi-profile">Summary MPI Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#papi-performance-counters">PAPI Performance Counters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-html-performance-summary">Example HTML Performance Summary</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter14.html">CVODE</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">amrex</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="Chapter13.html">External Profiling Tools</a> &raquo;</li>
+        
+      <li>CrayPat</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/External_Profiling_Tools.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="craypat">
+<h1>CrayPat<a class="headerlink" href="#craypat" title="Permalink to this headline">¶</a></h1>
+<p>The profiling suite available on Cray XC systems is Cray Performance
+Measurement and Analysis Tools (“CrayPat”) <a class="footnote-reference" href="#id6" id="id1">[1]</a>.  Most CrayPat functionality is
+supported for all compilers available in the Cray “programming environments“
+(modules which begin “<code class="docutils literal"><span class="pre">PrgEnv-</span></code>”); however, a few features, chiefly the
+“Reveal” tool, are supported only on applications compiled with Cray’s compiler
+CCE <a class="footnote-reference" href="#id7" id="id2">[2]</a> <a class="footnote-reference" href="#id8" id="id3">[3]</a>.</p>
+<p>CrayPat supports both high-level profiling tools, as well as fine-grained
+performance analysis, such as reading hardware counters. The default behavior
+uses sampling to identify the most time-consuming functions in an application.</p>
+<div class="section" id="high-level-application-profiling">
+<h2>High-level application profiling<a class="headerlink" href="#high-level-application-profiling" title="Permalink to this headline">¶</a></h2>
+<p>The simplest way to obtain a high-level overview of an application’s
+performance consists of the following steps:</p>
+<ol class="arabic">
+<li><p class="first">Load the <code class="docutils literal"><span class="pre">perftools-base</span></code> module, then the <code class="docutils literal"><span class="pre">perftools-lite</span></code> module. (The
+modules will not work if loaded in the opposite order.)</p>
+</li>
+<li><p class="first">Compile the application with the Cray compiler wrappers <code class="docutils literal"><span class="pre">cc</span></code>, <code class="docutils literal"><span class="pre">CC</span></code>,
+and/or <code class="docutils literal"><span class="pre">ftn</span></code>. This works with any of the compilers available in the
+<code class="docutils literal"><span class="pre">PrgEnv-</span></code> modules. E.g., on the Cori system at NERSC, one can use the
+Intel, GCC, or CCE compilers. No extra compiler flags are necessary in order
+for CrayPat to work. CrayPat instruments the application, so the
+<code class="docutils literal"><span class="pre">perftools-</span></code> modules must be loaded before one compiles the application.</p>
+</li>
+<li><p class="first">Run the application as normal. No special flags are required. Upon
+application completion, CrayPat will write a few files to the directory from
+which the application was launched. The profiling database is a single file
+with the <code class="docutils literal"><span class="pre">.ap2</span></code> suffix.</p>
+</li>
+<li><p class="first">One can query the database in many different ways using the <code class="docutils literal"><span class="pre">pat_report</span></code>
+command on the <code class="docutils literal"><span class="pre">.ap2</span></code> file. <code class="docutils literal"><span class="pre">pat_report</span></code> is available on login nodes, so
+the analysis need not be done on a compute node.  Querying the database with
+no arguments to <code class="docutils literal"><span class="pre">pat_report</span></code> prints several different profiling reports to
+STDOUT, including a list of the most time-consuming regions in the
+application. The output of this command can be long, so it can be convenient
+to pipe the output to a pager or a file. A portion of the output from
+<code class="docutils literal"><span class="pre">pat_report</span> <span class="pre">&lt;file&gt;.ap2</span></code> is shown below:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Table</span> <span class="mi">1</span><span class="p">:</span>  <span class="n">Profile</span> <span class="n">by</span> <span class="n">Function</span>
+
+  <span class="n">Samp</span><span class="o">%</span> <span class="o">|</span>    <span class="n">Samp</span> <span class="o">|</span>  <span class="n">Imb</span><span class="o">.</span> <span class="o">|</span>  <span class="n">Imb</span><span class="o">.</span> <span class="o">|</span> <span class="n">Group</span>
+        <span class="o">|</span>         <span class="o">|</span>  <span class="n">Samp</span> <span class="o">|</span> <span class="n">Samp</span><span class="o">%</span> <span class="o">|</span>  <span class="n">Function</span>
+        <span class="o">|</span>         <span class="o">|</span>       <span class="o">|</span>       <span class="o">|</span>   <span class="n">PE</span><span class="o">=</span><span class="n">HIDE</span>
+
+ <span class="mf">100.0</span><span class="o">%</span> <span class="o">|</span> <span class="mi">5</span><span class="p">,</span><span class="mf">235.5</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span> <span class="n">Total</span>
+<span class="o">|-----------------------------------------------------------------------------</span>
+<span class="o">|</span>  <span class="mf">50.2</span><span class="o">%</span> <span class="o">|</span> <span class="mi">2</span><span class="p">,</span><span class="mf">628.5</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span> <span class="n">USER</span>
+<span class="o">||----------------------------------------------------------------------------</span>
+<span class="o">||</span>   <span class="mf">7.3</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">383.0</span> <span class="o">|</span>  <span class="mf">15.0</span> <span class="o">|</span>  <span class="mf">5.0</span><span class="o">%</span> <span class="o">|</span> <span class="n">eos_module_mp_iterate_ne_</span>
+<span class="o">||</span>   <span class="mf">5.7</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">300.8</span> <span class="o">|</span> <span class="mf">138.2</span> <span class="o">|</span> <span class="mf">42.0</span><span class="o">%</span> <span class="o">|</span> <span class="n">amrex_deposit_cic</span>
+<span class="o">||</span>   <span class="mf">5.1</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">265.2</span> <span class="o">|</span>  <span class="mf">79.8</span> <span class="o">|</span> <span class="mf">30.8</span><span class="o">%</span> <span class="o">|</span> <span class="n">update_dm_particles</span>
+<span class="o">||</span>   <span class="mf">2.8</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">147.2</span> <span class="o">|</span>   <span class="mf">5.8</span> <span class="o">|</span>  <span class="mf">5.0</span><span class="o">%</span> <span class="o">|</span> <span class="n">fort_fab_setval</span>
+<span class="o">||</span>   <span class="mf">2.6</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">137.2</span> <span class="o">|</span>  <span class="mf">48.8</span> <span class="o">|</span> <span class="mf">34.9</span><span class="o">%</span> <span class="o">|</span> <span class="n">amrex</span><span class="p">::</span><span class="n">ParticleContainer</span><span class="o">&lt;&gt;</span><span class="p">::</span><span class="n">Where</span>
+<span class="o">||</span>   <span class="mf">2.6</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">137.0</span> <span class="o">|</span>  <span class="mf">11.0</span> <span class="o">|</span>  <span class="mf">9.9</span><span class="o">%</span> <span class="o">|</span> <span class="n">ppm_module_mp_ppm_type1_</span>
+<span class="o">||</span>   <span class="mf">2.5</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">133.0</span> <span class="o">|</span>  <span class="mf">24.0</span> <span class="o">|</span> <span class="mf">20.4</span><span class="o">%</span> <span class="o">|</span> <span class="n">eos_module_mp_nyx_eos_t_given_re_</span>
+<span class="o">||</span>   <span class="mf">2.1</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">107.8</span> <span class="o">|</span>  <span class="mf">33.2</span> <span class="o">|</span> <span class="mf">31.4</span><span class="o">%</span> <span class="o">|</span> <span class="n">amrex</span><span class="p">::</span><span class="n">ParticleContainer</span><span class="o">&lt;&gt;</span><span class="p">::</span><span class="n">IncrementWithTotal</span>
+<span class="o">||</span>   <span class="mf">1.7</span><span class="o">%</span> <span class="o">|</span>    <span class="mf">89.2</span> <span class="o">|</span>  <span class="mf">19.8</span> <span class="o">|</span> <span class="mf">24.2</span><span class="o">%</span> <span class="o">|</span> <span class="n">f_rhs_</span>
+<span class="o">||</span>   <span class="mf">1.4</span><span class="o">%</span> <span class="o">|</span>    <span class="mf">74.0</span> <span class="o">|</span>   <span class="mf">7.0</span> <span class="o">|</span> <span class="mf">11.5</span><span class="o">%</span> <span class="o">|</span> <span class="n">riemannus_</span>
+<span class="o">||</span>   <span class="mf">1.1</span><span class="o">%</span> <span class="o">|</span>    <span class="mf">56.0</span> <span class="o">|</span>   <span class="mf">2.0</span> <span class="o">|</span>  <span class="mf">4.6</span><span class="o">%</span> <span class="o">|</span> <span class="n">amrex</span><span class="p">::</span><span class="n">VisMF</span><span class="p">::</span><span class="n">Write</span>
+<span class="o">||</span>   <span class="mf">1.0</span><span class="o">%</span> <span class="o">|</span>    <span class="mf">50.5</span> <span class="o">|</span>   <span class="mf">1.5</span> <span class="o">|</span>  <span class="mf">3.8</span><span class="o">%</span> <span class="o">|</span> <span class="n">amrex</span><span class="p">::</span><span class="n">VisMF</span><span class="p">::</span><span class="n">Header</span><span class="p">::</span><span class="n">CalculateMinMax</span>
+<span class="o">||============================================================================</span>
+<span class="o">|</span>  <span class="mf">28.1</span><span class="o">%</span> <span class="o">|</span> <span class="mi">1</span><span class="p">,</span><span class="mf">471.0</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span> <span class="n">ETC</span>
+<span class="o">||----------------------------------------------------------------------------</span>
+<span class="o">||</span>   <span class="mf">7.4</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">388.8</span> <span class="o">|</span>  <span class="mf">10.2</span> <span class="o">|</span>  <span class="mf">3.4</span><span class="o">%</span> <span class="o">|</span> <span class="n">__intel_mic_avx512f_memcpy</span>
+<span class="o">||</span>   <span class="mf">6.9</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">362.5</span> <span class="o">|</span>  <span class="mf">45.5</span> <span class="o">|</span> <span class="mf">14.9</span><span class="o">%</span> <span class="o">|</span> <span class="n">CVode</span>
+<span class="o">||</span>   <span class="mf">3.1</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">164.5</span> <span class="o">|</span>   <span class="mf">8.5</span> <span class="o">|</span>  <span class="mf">6.6</span><span class="o">%</span> <span class="o">|</span> <span class="n">__libm_log10_l9</span>
+<span class="o">||</span>   <span class="mf">2.9</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">149.8</span> <span class="o">|</span>  <span class="mf">29.2</span> <span class="o">|</span> <span class="mf">21.8</span><span class="o">%</span> <span class="o">|</span> <span class="n">_INTERNAL_25_______src_kmp_barrier_cpp_5de9139b</span><span class="p">::</span><span class="n">__kmp_hyper_barrier_gather</span>
+<span class="o">||============================================================================</span>
+<span class="o">|</span>  <span class="mf">16.8</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">879.8</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span> <span class="n">MPI</span>
+<span class="o">||----------------------------------------------------------------------------</span>
+<span class="o">||</span>   <span class="mf">5.1</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">266.0</span> <span class="o">|</span> <span class="mf">123.0</span> <span class="o">|</span> <span class="mf">42.2</span><span class="o">%</span> <span class="o">|</span> <span class="n">MPI_Allreduce</span>
+<span class="o">||</span>   <span class="mf">4.2</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">218.2</span> <span class="o">|</span> <span class="mf">104.8</span> <span class="o">|</span> <span class="mf">43.2</span><span class="o">%</span> <span class="o">|</span> <span class="n">MPI_Waitall</span>
+<span class="o">||</span>   <span class="mf">2.9</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">151.8</span> <span class="o">|</span>  <span class="mf">78.2</span> <span class="o">|</span> <span class="mf">45.4</span><span class="o">%</span> <span class="o">|</span> <span class="n">MPI_Bcast</span>
+<span class="o">||</span>   <span class="mf">2.6</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">135.0</span> <span class="o">|</span>  <span class="mf">98.0</span> <span class="o">|</span> <span class="mf">56.1</span><span class="o">%</span> <span class="o">|</span> <span class="n">MPI_Barrier</span>
+<span class="o">||</span>   <span class="mf">2.0</span><span class="o">%</span> <span class="o">|</span>   <span class="mf">105.8</span> <span class="o">|</span>   <span class="mf">5.2</span> <span class="o">|</span>  <span class="mf">6.3</span><span class="o">%</span> <span class="o">|</span> <span class="n">MPI_Recv</span>
+<span class="o">||============================================================================</span>
+<span class="o">|</span>   <span class="mf">1.9</span><span class="o">%</span> <span class="o">|</span>    <span class="mf">98.2</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span>    <span class="o">--</span> <span class="o">|</span> <span class="n">IO</span>
+<span class="o">||----------------------------------------------------------------------------</span>
+<span class="o">||</span>   <span class="mf">1.8</span><span class="o">%</span> <span class="o">|</span>    <span class="mf">93.8</span> <span class="o">|</span>   <span class="mf">6.2</span> <span class="o">|</span>  <span class="mf">8.3</span><span class="o">%</span> <span class="o">|</span> <span class="n">read</span>
+<span class="o">||============================================================================</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="section" id="ipm-cross-platform-integrated-performance-monitoring">
+<h1>IPM - Cross-Platform Integrated Performance Monitoring<a class="headerlink" href="#ipm-cross-platform-integrated-performance-monitoring" title="Permalink to this headline">¶</a></h1>
+<p>IPM provides portable profiling capabilities across HPC platforms, including
+support on selected Cray and IBM machines (cori and (TODO: verify it works on)
+summit). Running an IPM instrumented binary generates a summary of number of
+calls and time spent on MPI communication library functions. In addition,
+hardware performance counters can also be collected through PAPI.</p>
+<p>Detailed instructions can be found at  <a class="footnote-reference" href="#id9" id="id4">[4]</a> and <a class="footnote-reference" href="#id10" id="id5">[5]</a>.</p>
+<div class="section" id="building-with-ipm-on-cori">
+<h2>Building with IPM on cori<a class="headerlink" href="#building-with-ipm-on-cori" title="Permalink to this headline">¶</a></h2>
+<p>Steps:</p>
+<ol class="arabic simple">
+<li>Run module load ipm.</li>
+<li>Build code as normal with make.</li>
+<li>Re-run the link command (e.g. cut-and-paste) with <code class="docutils literal"><span class="pre">$IPM</span></code> added to the end of the line.</li>
+</ol>
+</div>
+<div class="section" id="running-with-ipm-on-cori">
+<h2>Running with IPM on cori<a class="headerlink" href="#running-with-ipm-on-cori" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>Set environment variables: <code class="docutils literal"><span class="pre">export</span> <span class="pre">IPM_REPORT=full</span> <span class="pre">IPM_LOG=full</span> <span class="pre">IPM_LOGDIR=</span> <span class="pre">&lt;dir&gt;</span></code></li>
+<li>Results will be printed to stdout and an xml file generated in the directory specified by <code class="docutils literal"><span class="pre">IPM_LOGDIR</span></code>.</li>
+<li>Post-process the xml with <code class="docutils literal"><span class="pre">ipm_parse</span> <span class="pre">-html</span> <span class="pre">&lt;xmlfile&gt;</span></code>, which produces an directory with html.</li>
+</ol>
+</div>
+<div class="section" id="summary-mpi-profile">
+<h2>Summary MPI Profile<a class="headerlink" href="#summary-mpi-profile" title="Permalink to this headline">¶</a></h2>
+<p>Example MPI profile output:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="gp">#</span><span class="c1">#IPMv2.0.5########################################################</span>
+<span class="gp">#</span>
+<span class="gp">#</span> <span class="nb">command</span>   : /global/cscratch1/sd/cchan2/projects/lbl/BoxLib/Tests/LinearSolvers/C_CellMG/./main3d.intel.MPI.OMP.ex.ipm inputs.3d.25600
+<span class="gp">#</span> start     : Tue Aug <span class="m">15</span> <span class="m">17</span>:34:23 <span class="m">2017</span>   host      : nid11311
+<span class="gp">#</span> stop      : Tue Aug <span class="m">15</span> <span class="m">17</span>:34:35 <span class="m">2017</span>   wallclock : <span class="m">11</span>.54
+<span class="gp">#</span> mpi_tasks : <span class="m">128</span> on <span class="m">32</span> nodes            %comm     : <span class="m">32</span>.51
+<span class="gp">#</span> mem <span class="o">[</span>GB<span class="o">]</span>  : <span class="m">126</span>.47                     gflop/sec : <span class="m">0</span>.00
+<span class="gp">#</span>
+<span class="gp">#</span>           :       <span class="o">[</span>total<span class="o">]</span>        &lt;avg&gt;          min          max
+<span class="gp">#</span> wallclock :       <span class="m">1188</span>.42         <span class="m">9</span>.28         <span class="m">8</span>.73        <span class="m">11</span>.54
+<span class="gp">#</span> MPI       :        <span class="m">386</span>.31         <span class="m">3</span>.02         <span class="m">2</span>.51         <span class="m">4</span>.78
+<span class="gp">#</span> %wall     :
+<span class="gp">#</span>   MPI     :                      <span class="m">32</span>.52        <span class="m">24</span>.36        <span class="m">41</span>.44
+<span class="gp">#</span> <span class="c1">#calls    :</span>
+<span class="gp">#</span>   MPI     :       <span class="m">5031172</span>        <span class="m">39306</span>        <span class="m">23067</span>        <span class="m">57189</span>
+<span class="gp">#</span> mem <span class="o">[</span>GB<span class="o">]</span>  :        <span class="m">126</span>.47         <span class="m">0</span>.99         <span class="m">0</span>.98         <span class="m">1</span>.00
+<span class="gp">#</span>
+<span class="gp">#</span>                             <span class="o">[</span>time<span class="o">]</span>        <span class="o">[</span>count<span class="o">]</span>        &lt;%wall&gt;
+<span class="gp">#</span> MPI_Allreduce               <span class="m">225</span>.72         <span class="m">567552</span>          <span class="m">18</span>.99
+<span class="gp">#</span> MPI_Waitall                  <span class="m">92</span>.84         <span class="m">397056</span>           <span class="m">7</span>.81
+<span class="gp">#</span> MPI_Recv                     <span class="m">29</span>.36            <span class="m">193</span>           <span class="m">2</span>.47
+<span class="gp">#</span> MPI_Isend                    <span class="m">25</span>.04        <span class="m">2031810</span>           <span class="m">2</span>.11
+<span class="gp">#</span> MPI_Irecv                     <span class="m">4</span>.35        <span class="m">2031810</span>           <span class="m">0</span>.37
+<span class="gp">#</span> MPI_Allgather                 <span class="m">2</span>.60            <span class="m">128</span>           <span class="m">0</span>.22
+<span class="gp">#</span> MPI_Barrier                   <span class="m">2</span>.24            <span class="m">512</span>           <span class="m">0</span>.19
+<span class="gp">#</span> MPI_Gatherv                   <span class="m">1</span>.70            <span class="m">128</span>           <span class="m">0</span>.14
+<span class="gp">#</span> MPI_Comm_dup                  <span class="m">1</span>.23            <span class="m">256</span>           <span class="m">0</span>.10
+<span class="gp">#</span> MPI_Bcast                     <span class="m">1</span>.14            <span class="m">256</span>           <span class="m">0</span>.10
+<span class="gp">#</span> MPI_Send                      <span class="m">0</span>.06            <span class="m">319</span>           <span class="m">0</span>.01
+<span class="gp">#</span> MPI_Reduce                    <span class="m">0</span>.02            <span class="m">128</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Comm_free                 <span class="m">0</span>.01            <span class="m">128</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Comm_group                <span class="m">0</span>.00            <span class="m">128</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Comm_size                 <span class="m">0</span>.00            <span class="m">256</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Comm_rank                 <span class="m">0</span>.00            <span class="m">256</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Init                      <span class="m">0</span>.00            <span class="m">128</span>           <span class="m">0</span>.00
+<span class="gp">#</span> MPI_Finalize                  <span class="m">0</span>.00            <span class="m">128</span>           <span class="m">0</span>.00
+</pre></div>
+</div>
+<p>The total, average, minimum, and maximum wallclock and MPI times across ranks
+is shown.  The memory footprint is also collected.  Finally, results include
+number of calls and total time spent in each type of MPI call.</p>
+</div>
+<div class="section" id="papi-performance-counters">
+<h2>PAPI Performance Counters<a class="headerlink" href="#papi-performance-counters" title="Permalink to this headline">¶</a></h2>
+<p>To collect performance counters, set <code class="docutils literal"><span class="pre">IPM_HPM=&lt;list&gt;</span></code>, where the list is a
+comma-separated list of PAPI counters. For example: <code class="docutils literal"><span class="pre">export</span>
+<span class="pre">IPM_HPM=PAPI_L2_TCA,PAPI_L2_TCM</span></code>.</p>
+<p>For reference, here is the list of available counters on cori, which can be
+found by running <code class="docutils literal"><span class="pre">papi_avail</span></code>:</p>
+<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">    Name        Code    Avail Deriv Description (Note)</span>
+<span class="go">PAPI_L1_DCM  0x80000000  Yes   No   Level 1 data cache misses</span>
+<span class="go">PAPI_L1_ICM  0x80000001  Yes   No   Level 1 instruction cache misses</span>
+<span class="go">PAPI_L1_TCM  0x80000006  Yes   Yes  Level 1 cache misses</span>
+<span class="go">PAPI_L2_TCM  0x80000007  Yes   No   Level 2 cache misses</span>
+<span class="go">PAPI_TLB_DM  0x80000014  Yes   No   Data translation lookaside buffer misses</span>
+<span class="go">PAPI_L1_LDM  0x80000017  Yes   No   Level 1 load misses</span>
+<span class="go">PAPI_L2_LDM  0x80000019  Yes   No   Level 2 load misses</span>
+<span class="go">PAPI_STL_ICY 0x80000025  Yes   No   Cycles with no instruction issue</span>
+<span class="go">PAPI_BR_UCN  0x8000002a  Yes   Yes  Unconditional branch instructions</span>
+<span class="go">PAPI_BR_CN   0x8000002b  Yes   No   Conditional branch instructions</span>
+<span class="go">PAPI_BR_TKN  0x8000002c  Yes   No   Conditional branch instructions taken</span>
+<span class="go">PAPI_BR_NTK  0x8000002d  Yes   Yes  Conditional branch instructions not taken</span>
+<span class="go">PAPI_BR_MSP  0x8000002e  Yes   No   Conditional branch instructions mispredicted</span>
+<span class="go">PAPI_TOT_INS 0x80000032  Yes   No   Instructions completed</span>
+<span class="go">PAPI_LD_INS  0x80000035  Yes   No   Load instructions</span>
+<span class="go">PAPI_SR_INS  0x80000036  Yes   No   Store instructions</span>
+<span class="go">PAPI_BR_INS  0x80000037  Yes   No   Branch instructions</span>
+<span class="go">PAPI_RES_STL 0x80000039  Yes   No   Cycles stalled on any resource</span>
+<span class="go">PAPI_TOT_CYC 0x8000003b  Yes   No   Total cycles</span>
+<span class="go">PAPI_LST_INS 0x8000003c  Yes   Yes  Load/store instructions completed</span>
+<span class="go">PAPI_L1_DCA  0x80000040  Yes   Yes  Level 1 data cache accesses</span>
+<span class="go">PAPI_L1_ICH  0x80000049  Yes   No   Level 1 instruction cache hits</span>
+<span class="go">PAPI_L1_ICA  0x8000004c  Yes   No   Level 1 instruction cache accesses</span>
+<span class="go">PAPI_L2_TCH  0x80000056  Yes   Yes  Level 2 total cache hits</span>
+<span class="go">PAPI_L2_TCA  0x80000059  Yes   No   Level 2 total cache accesses</span>
+<span class="go">PAPI_REF_CYC 0x8000006b  Yes   No   Reference clock cycles</span>
+</pre></div>
+</div>
+<p>Due to hardware limitations, there is a limit to which counters can be
+collected simultaneously in a single run. Some counters may map to the same
+registers and thus cannot be collected at the same time.</p>
+</div>
+<div class="section" id="example-html-performance-summary">
+<h2>Example HTML Performance Summary<a class="headerlink" href="#example-html-performance-summary" title="Permalink to this headline">¶</a></h2>
+<p>Running <code class="docutils literal"><span class="pre">ipm_parse</span> <span class="pre">-html</span> <span class="pre">&lt;xmlfile&gt;</span></code> on the generated xml file will produce an
+HTML document that includes summary performance numbers and automatically
+generated figures. Some examples are shown here.</p>
+<div class="figure" id="id11">
+<img alt="_images/summary.png" src="_images/summary.png" />
+<p class="caption"><span class="caption-number">Fig. 18 </span><span class="caption-text">Sample performance summary generated by IPM</span></p>
+</div>
+<div class="figure" id="fig-timings">
+<img alt="_images/timings.png" src="_images/timings.png" />
+</div>
+<table border="1" class="docutils align-center" id="id12">
+<caption><span class="caption-number">Table 11 </span><span class="caption-text">Example of performance graphs generated by IPM</span><a class="headerlink" href="#id12" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="_images/timings.png"><img alt="a" src="_images/timings.png" style="width: 100%;" /></a></td>
+<td><a class="reference internal" href="_images/papi.png"><img alt="b" src="_images/papi.png" style="width: 100%;" /></a></td>
+</tr>
+<tr class="row-even"><td><div class="first last line-block">
+<div class="line">Timings</div>
+</div>
+</td>
+<td><div class="first last line-block">
+<div class="line">PAPI Counters</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_images/mpi.png"><img alt="c" src="_images/mpi.png" style="width: 100%;" /></a></td>
+<td><a class="reference internal" href="_images/msgsizes.png"><img alt="d" src="_images/msgsizes.png" style="width: 100%;" /></a></td>
+</tr>
+<tr class="row-even"><td><div class="first last line-block">
+<div class="line">MPI Time by Function</div>
+</div>
+</td>
+<td><div class="first last line-block">
+<div class="line">MPI Time by Message Size</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_images/commtopo.png"><img alt="e" src="_images/commtopo.png" style="width: 100%;" /></a></td>
+<td><div class="first last line-block">
+<div class="line">(left) Point-to-Point Communication Volume</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id6" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><a class="reference external" href="https://pubs.cray.com/content/S-2376/6.4.6/cray-performance-measurement-and-analysis-tools-user-guide-646-s-2376">https://pubs.cray.com/content/S-2376/6.4.6/cray-performance-measurement-and-analysis-tools-user-guide-646-s-2376</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id7" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td><a class="reference external" href="https://pubs.cray.com/content/S-2179/8.5/cray-c-and-c++-reference-manual-85">https://pubs.cray.com/content/S-2179/8.5/cray-c-and-c++-reference-manual-85</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id8" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td><a class="reference external" href="https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85">https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id9" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[4]</a></td><td><a class="reference external" href="http://ipm-hpc.sourceforge.net/userguide.html">http://ipm-hpc.sourceforge.net/userguide.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id10" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[5]</a></td><td><a class="reference external" href="https://www.nersc.gov/users/software/performance-and-debugging-tools/ipm/">https://www.nersc.gov/users/software/performance-and-debugging-tools/ipm/</a></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Chapter14.html" class="btn btn-neutral float-right" title="CVODE" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Chapter13.html" class="btn btn-neutral" title="External Profiling Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2018, AMReX Team.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'18.02-dev',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
