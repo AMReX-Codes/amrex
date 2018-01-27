@@ -150,8 +150,8 @@ in the ``bl_proffortfuncstart_int/bl_proffortfuncstop_int`` calls.
 ``BL_PROFILE_CHANGE_FORT_INT_NAME`` should be called in ``main()``.
 
 
-Sample Output
-=============
+Sample Output From Tiny Profile
+===============================
 
 Sample output from ``TINY_PROFILE = TRUE`` can look like the following:
 
