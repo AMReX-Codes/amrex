@@ -417,6 +417,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)  bl_profiler__##rvname.stop();   \
     amrex::BLProfiler::RegionStop(fname);
 
+#define BL_PROFILE_TINY_FLUSH()
 #define BL_PROFILE_FLUSH() { amrex::BLProfiler::Finalize(true); }
 
 #define BL_TRACE_PROFILE_FLUSH() { amrex::BLProfiler::WriteCallTrace(true); }
@@ -479,6 +480,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
+#define BL_PROFILE_TINY_FLUSH() amrex::TinyProfiler::Finalize(true);
 #define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
@@ -534,6 +536,7 @@ class BLProfiler
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
+#define BL_PROFILE_TINY_FLUSH()
 #define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
