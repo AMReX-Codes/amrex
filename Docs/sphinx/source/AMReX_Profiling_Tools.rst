@@ -26,10 +26,13 @@ in your GNUMakefile.   If using cmake then set the following cmake flags
   AMREX_ENABLE_TINY_PROFILE = ON
   AMREX_ENABLE_BASE_PROFILE = OFF
 
-Then at the end of the run, a summary of exclusive 
-and inclusive function times will be written to stdout.
 Note that if you set ``PROFILE = TRUE``  (or ``AMREX_ENABLE_BASE_PROFILE = ON``)
 then this will override the ``TINY_PROFILE`` flag and tiny profiling will be disabled.
+
+At the end of the run, a summary of exclusive and inclusive function times will be written to stdout.
+This output includes the minimum and maximum (over processes) time spent in each routine
+as well as the average and the maximum percentage of total run time.   See :ref:`sec:sample:tiny` 
+for sample output.
 
 Full Profiling
 --------------
@@ -165,11 +168,12 @@ where ``fname`` is a std::string and ``int`` is the integer ``n``
 in the ``bl_proffortfuncstart_int/bl_proffortfuncstop_int`` calls.
 ``BL_PROFILE_CHANGE_FORT_INT_NAME`` should be called in ``main()``.
 
+.. _sec:sample:tiny:
 
 Sample Output From Tiny Profile
 ===============================
 
-Sample output from ``TINY_PROFILE = TRUE`` can look like the following:
+Sample output using ``TINY_PROFILE = TRUE`` can look like the following:
 
 .. highlight:: console
 
