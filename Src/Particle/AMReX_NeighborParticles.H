@@ -21,7 +21,7 @@ namespace amrex {
 /// Note: For the neighbor particles, we don't communicate the integer components, only the
 /// real data.
 ///
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
 {

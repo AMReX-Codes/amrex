@@ -13,7 +13,7 @@ namespace amrex {
 /// In 3D: x y z vx vy vz ax ay az id cpu
 ///
 class ShortRangeParticleContainer
-    : public NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM>
+    : public NeighborParticleContainer<2*BL_SPACEDIM, 0>
 {
 public:
 
