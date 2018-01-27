@@ -241,7 +241,7 @@ var searchData=
   ['broadcaststringarray',['BroadcastStringArray',['../namespaceamrex.html#a1bfd620fc96f18d04313d70ccca85bfb',1,'amrex']]],
   ['buf',['BUF',['../classamrex_1_1_tag_box.html#ac8c350e6c62e1f2fd736b52d1b7caffaa5c2d81c416e8ee0e1bd9d475e73d31cf',1,'amrex::TagBox']]],
   ['buffer',['buffer',['../classamrex_1_1_tag_box.html#a8d71127c0db513db10048aa16cac0c85',1,'amrex::TagBox::buffer()'],['../classamrex_1_1_tag_box_array.html#a86171fa502b627476702d33a0e7adb3c',1,'amrex::TagBoxArray::buffer()']]],
-  ['buffer_5ftag_5fcache',['buffer_tag_cache',['../classamrex_1_1_neighbor_particle_container.html#a8eabb8d2b92a469fbe299f30ea948c31',1,'amrex::NeighborParticleContainer']]],
+  ['buffer_5ftag_5fcache',['buffer_tag_cache',['../classamrex_1_1_neighbor_particle_container.html#af6c277daa7d78b4a46afdcd2de0002fe',1,'amrex::NeighborParticleContainer']]],
   ['buffersize',['bufferSize',['../classamrex_1_1_grid_parameters.html#aae909cf267ed1f1a931300f7633c4e5a',1,'amrex::GridParameters']]],
   ['buildbc',['buildBC',['../classamrex_1_1_derive_rec.html#a3b07b7cec32b864ae58f09942234421e',1,'amrex::DeriveRec']]],
   ['buildebsurface',['buildEBSurface',['../classamrex_1_1_e_b_i_s_level.html#a1764a6ad7c7b018243dd4ef11311e077',1,'amrex::EBISLevel']]],
