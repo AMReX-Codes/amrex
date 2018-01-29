@@ -248,7 +248,12 @@ WarpX::EvolveEM (int numsteps)
         // We might need to move j because we are going to make a plotfile.
 	MoveWindow(move_j);
 
-        mypc->RedistributeLocal();  // Redistribute particles
+        if (max_level == 0) {
+            mypc->RedistributeLocal();
+        }
+        else {
+            mypc->Redistribute();
+        }
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
