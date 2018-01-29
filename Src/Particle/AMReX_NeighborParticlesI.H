@@ -96,7 +96,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const BoxArray& ba = this->ParticleBoxArray(lev);
             const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
             
-            mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, num_neighbor_cells));
+            mask_ptr.reset(new iMultiFab(ba, dmap, 2, num_neighbor_cells));
             mask_ptr->setVal(-1, num_neighbor_cells);
             
 #ifdef _OPENMP

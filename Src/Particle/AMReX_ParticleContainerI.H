@@ -1504,7 +1504,7 @@ BuildRedistributeMask(int lev, int nghost) {
             const BoxArray& ba = this->ParticleBoxArray(lev);
             const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
             
-            redistribute_mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, nghost));
+            redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
             redistribute_mask_ptr->setVal(-1, nghost);
             
 #ifdef _OPENMP
