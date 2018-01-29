@@ -191,9 +191,9 @@
             
   <div class="section" id="types-of-profiling">
 <h1>Types of Profiling<a class="headerlink" href="#types-of-profiling" title="Permalink to this headline">¶</a></h1>
-<p>Currently you have two options for AMReX-specific profiling.</p>
+<p>Currently you have two options for AMReX-specific profiling: <a class="reference internal" href="#sec-tiny-profiling"><span class="std std-ref">Tiny Profiling</span></a> and <a class="reference internal" href="#sec-full-profiling"><span class="std std-ref">Full Profiling</span></a>.</p>
 <div class="section" id="tiny-profiling">
-<h2>Tiny Profiling<a class="headerlink" href="#tiny-profiling" title="Permalink to this headline">¶</a></h2>
+<span id="sec-tiny-profiling"></span><h2>Tiny Profiling<a class="headerlink" href="#tiny-profiling" title="Permalink to this headline">¶</a></h2>
 <p>To enable “Tiny Profiling”, if using GNU Make then set</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">TINY_PROFILE</span> <span class="o">=</span> <span class="n">TRUE</span>
 <span class="n">PROFILE</span>      <span class="o">=</span> <span class="n">FALSE</span>
@@ -210,9 +210,24 @@ then this will override the <code class="docutils literal"><span class="pre">TIN
 This output includes the minimum and maximum (over processes) time spent in each routine
 as well as the average and the maximum percentage of total run time.   See <a class="reference internal" href="#sec-sample-tiny"><span class="std std-ref">Sample Output From Tiny Profile</span></a>
 for sample output.</p>
+<p>The tiny profiler automatically writes the results to stdout at the end of your code, when
+<code class="docutils literal"><span class="pre">amrex::Finalize();</span></code> is reached. However, you may want to write partial profiling results to
+ensure your information is saved when you may fail to converge or if you expect to run out of
+allocated time. Partial results can be written at user-defined times by inserting the line:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_TINY_FLUSH</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>Any timers that have not reached their <code class="docutils literal"><span class="pre">BL_PROFILE_VAR_STOP</span></code> call or exited their scope and
+deconstructed will not be included in these partial outputs. (e.g., a properly instrumented
+<code class="docutils literal"><span class="pre">main()</span></code> should show a time of zero in all partial outputs.) Therefore, it is recommended to
+place these flush calls in easily identifiable regions of your code and outside of as many
+profiling timers as possible, such as immediately before or after writing a checkpoint.</p>
+<p>Also, since flush calls will print multiple, similar looking outputs to stdout, it is also
+recommended to wrap any <code class="docutils literal"><span class="pre">BL_PROFILE_TINY_FLUSH();</span></code> calls in informative <code class="docutils literal"><span class="pre">amrex::Print()</span></code>
+lines to ensure accurate identification of each set of timers.</p>
 </div>
 <div class="section" id="full-profiling">
-<h2>Full Profiling<a class="headerlink" href="#full-profiling" title="Permalink to this headline">¶</a></h2>
+<span id="sec-full-profiling"></span><h2>Full Profiling<a class="headerlink" href="#full-profiling" title="Permalink to this headline">¶</a></h2>
 <p>If you set <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> then a <code class="docutils literal"><span class="pre">bl_prof</span></code> directory will be written that
 contains detailed per-task timings for each processor.  This will be written in
 <code class="docutils literal"><span class="pre">nfiles</span></code> files (where <code class="docutils literal"><span class="pre">nfiles</span></code> is specified by the user).
