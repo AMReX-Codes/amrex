@@ -1408,6 +1408,41 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
   }
 }
 
+namespace {
+
+    long doHandShake(const std::map<int, Vector<char> >& not_ours,
+                     Vector<long>& Snds, Vector<long>& Rcvs)
+    {
+        long NumSnds = 0;        
+        for (const auto& kv : not_ours)
+        {
+            NumSnds       += kv.second.size();
+            Snds[kv.first] = kv.second.size();
+        }
+        
+        ParallelDescriptor::ReduceLongMax(NumSnds);
+        
+        if (NumSnds == 0) return NumSnds;
+        
+        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                        ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+        
+        BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                     1,
+                                     ParallelDescriptor::Mpi_typemap<long>::type(),
+                                     Rcvs.dataPtr(),
+                                     1,
+                                     ParallelDescriptor::Mpi_typemap<long>::type(),
+                                     ParallelDescriptor::Communicator()) );
+        BL_ASSERT(Rcvs[MyProc] == 0);
+        
+        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                        ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+        return NumSnds;
+    }
+}
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedistributeMPI (std::map<int, Vector<char> >& not_ours,
@@ -1421,34 +1456,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedistributeM
     // We may now have particles that are rightfully owned by another CPU.
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
-    long NumSnds = 0;
-    
-    for (const auto& kv : not_ours)
-    {
-        NumSnds       += kv.second.size();
-        Snds[kv.first] = kv.second.size();
-    }
-    
-    ParallelDescriptor::ReduceLongMax(NumSnds);
-
+    long NumSnds = doHandShake(not_ours, Snds, Rcvs);
     if (NumSnds == 0)
-      // There's no parallel work to do.
-      return;
-
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
-
-    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 Rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    BL_ASSERT(Rcvs[MyProc] == 0);
-
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+        return;  // There's no parallel work to do.
 
     Vector<int> RcvProc;
     Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
