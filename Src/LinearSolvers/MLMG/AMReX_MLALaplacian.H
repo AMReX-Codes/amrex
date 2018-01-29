@@ -7,8 +7,6 @@
 
 namespace amrex {
 
-// del dot grad phi
-
 class MLALaplacian
     : public MLCellLinOp
 {
@@ -44,7 +42,13 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
+
+    virtual Real getAScalar () const final { return m_a_scalar; }
     virtual Real getBScalar () const final { return m_b_scalar; }
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final
+        { return &(m_a_coeffs[amrlev][mglev]); }
+    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
+        { return { AMREX_D_DECL(nullptr,nullptr,nullptr)}; }
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final {
         amrex::Abort("MLALaplacian::makeNLinOp: Not implmented");

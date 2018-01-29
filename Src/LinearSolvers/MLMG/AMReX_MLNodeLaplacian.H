@@ -68,7 +68,14 @@ protected:
                           bool skip_fillboundary=false) const final;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
-    virtual Real getBScalar () const final { return 1.0; }
+
+    virtual Real getAScalar () const final { return  0.0; }
+    virtual Real getBScalar () const final { return -1.0; }
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final { return nullptr; }
+    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
+        { return {AMREX_D_DECL(m_sigma[amrlev][mglev][0].get(),
+                               m_sigma[amrlev][mglev][2].get(),
+                               m_sigma[amrlev][mglev][3].get())}; }
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 

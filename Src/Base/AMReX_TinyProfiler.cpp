@@ -133,13 +133,15 @@ TinyProfiler::Initialize ()
 }
 
 void
-TinyProfiler::Finalize ()
+TinyProfiler::Finalize (bool bFlushing)
 {
     static bool finalized = false;
-    if (finalized) {
-	return;
-    } else {
-	finalized = true;
+    if (!bFlushing) {		// If flushing, don't make this the last time!
+      if (finalized) {
+        return;
+      } else {
+        finalized = true;
+      }
     }
 
     Real t_final = amrex::second();

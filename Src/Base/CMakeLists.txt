@@ -67,7 +67,7 @@ list ( APPEND ALLHEADERS AMReX_BoxList.H AMReX_BoxArray.H AMReX_BoxDomain.H )
 # Fortran array data
 # 
 list ( APPEND CXXSRC     AMReX_FArrayBox.cpp AMReX_IArrayBox.cpp AMReX_BaseFab.cpp )
-list ( APPEND ALLHEADERS AMReX_FArrayBox.H AMReX_IArrayBox.H AMReX_Looping.H AMReX_MakeType.H
+list ( APPEND ALLHEADERS AMReX_FArrayBox.H AMReX_IArrayBox.H AMReX_MakeType.H
    AMReX_TypeTraits.H AMReX_BaseFab.H AMReX_FabFactory.H )
 
 #
