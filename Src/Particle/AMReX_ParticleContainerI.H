@@ -1429,7 +1429,7 @@ namespace {
     {
         long NumSnds = CountSnds(not_ours, Snds);
         if (NumSnds == 0) return NumSnds;
-        
+
         BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                         ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
         
@@ -1440,7 +1440,8 @@ namespace {
                                      1,
                                      ParallelDescriptor::Mpi_typemap<long>::type(),
                                      ParallelDescriptor::Communicator()) );
-        BL_ASSERT(Rcvs[MyProc] == 0);
+
+        BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
         
         BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                         ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
@@ -1465,7 +1466,7 @@ namespace {
             const int Who = neighbor_procs[i];
             const long Cnt = 1;
             
-            BL_ASSERT(Who >= 0 && Who < NProcs);
+            BL_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
             
             rreqs[i] = ParallelDescriptor::Arecv(&Rcvs[Who], Cnt, Who, SeqNum).req();
         }
@@ -1475,7 +1476,7 @@ namespace {
             const int Who = neighbor_procs[i];
             const long Cnt = 1;
             
-            BL_ASSERT(Who >= 0 && Who < NProcs);
+            BL_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
             
             ParallelDescriptor::Send(&Snds[Who], Cnt, Who, SeqNum);        
         }
