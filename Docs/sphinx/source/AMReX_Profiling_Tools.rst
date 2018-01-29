@@ -7,7 +7,9 @@
 Types of Profiling
 ==================
 
-Currently you have two options for AMReX-specific profiling. 
+Currently you have two options for AMReX-specific profiling: :ref:`sec:tiny:profiling` and :ref:`sec:full:profiling`.
+
+.. _sec:tiny:profiling:
 
 Tiny Profiling
 ----------------------
@@ -33,6 +35,27 @@ At the end of the run, a summary of exclusive and inclusive function times will 
 This output includes the minimum and maximum (over processes) time spent in each routine
 as well as the average and the maximum percentage of total run time.   See :ref:`sec:sample:tiny` 
 for sample output.
+
+The tiny profiler automatically writes the results to stdout at the end of your code, when
+``amrex::Finalize();`` is reached. However, you may want to write partial profiling results to
+ensure your information is saved when you may fail to converge or if you expect to run out of
+allocated time. Partial results can be written at user-defined times by inserting the line:
+
+::
+
+  BL_PROFILE_TINY_FLUSH();
+
+Any timers that have not reached their ``BL_PROFILE_VAR_STOP`` call or exited their scope and 
+deconstructed will not be included in these partial outputs. (e.g., a properly instrumented
+``main()`` should show a time of zero in all partial outputs.) Therefore, it is recommended to
+place these flush calls in easily identifiable regions of your code and outside of as many
+profiling timers as possible, such as immediately before or after writing a checkpoint.
+
+Also, since flush calls will print multiple, similar looking outputs to stdout, it is also
+recommended to wrap any ``BL_PROFILE_TINY_FLUSH();`` calls in informative ``amrex::Print()``
+lines to ensure accurate identification of each set of timers.
+
+.. _sec:full:profiling:
 
 Full Profiling
 --------------
