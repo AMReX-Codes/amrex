@@ -15,6 +15,7 @@ var searchData=
   ['record_5frun_5finfo',['record_run_info',['../classamrex_1_1_amr.html#ad8d22fb152c5f5620ab9b1ab994f68aa',1,'amrex::Amr']]],
   ['record_5frun_5finfo_5fterse',['record_run_info_terse',['../classamrex_1_1_amr.html#ab443c219d9056c789db6475acb78ea7b',1,'amrex::Amr']]],
   ['redistrad',['redistRad',['../classamrex_1_1_e_b_level_redist.html#ac1cfc860af59153041d550013c120e34',1,'amrex::EBLevelRedist']]],
+  ['redistribute_5fmask_5fptr',['redistribute_mask_ptr',['../classamrex_1_1_particle_container.html#ad155f9c3e0ced8900ebda12d45bab1dd',1,'amrex::ParticleContainer']]],
   ['reduction_5fqueue',['reduction_queue',['../namespaceamrex_1_1_lazy.html#aaf84a070bebdd187b4edacd264604b5f',1,'amrex::Lazy']]],
   ['ref_5fratio',['ref_ratio',['../classamrex_1_1_amr_mesh.html#a7e3c7fc2f5598fdd4132536724933f2a',1,'amrex::AmrMesh']]],
   ['refine_5fgrid_5flayout',['refine_grid_layout',['../classamrex_1_1_amr_mesh.html#a95059679c4b3343198edadf7d9d860e5',1,'amrex::AmrMesh']]],

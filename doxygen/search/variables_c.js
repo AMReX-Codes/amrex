@@ -16,7 +16,7 @@ var searchData=
   ['ncomp',['nComp',['../structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#ad679841ea96302c513ad625560efb23d',1,'amrex::FabArrayBase::FabComTag::nComp()'],['../structamrex_1_1_fab_copy_descriptor.html#aaa865db7c42ae26183110932425ab7a6',1,'amrex::FabCopyDescriptor::nComp()'],['../structamrex_1_1_base_umap_1_1_tuple.html#a0b6cc0fe2d08a330b1222fdbf7d9ad3b',1,'amrex::BaseUmap::Tuple::ncomp()'],['../_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7',1,'ncomp():&#160;AMReX_MultiFabUtil_F.H']]],
   ['ndebug',['NDebug',['../namespaceamrex_1_1system.html#ae1d6711c50c87572893a9c863cbaa2e2',1,'amrex::system']]],
   ['neighbor_5flist',['neighbor_list',['../classamrex_1_1_neighbor_particle_container.html#a4a87ca73b7e598be107dade5050158a9',1,'amrex::NeighborParticleContainer']]],
-  ['neighbor_5fprocs',['neighbor_procs',['../classamrex_1_1_neighbor_particle_container.html#a943e80f051e262315555a7508fc0f945',1,'amrex::NeighborParticleContainer']]],
+  ['neighbor_5fprocs',['neighbor_procs',['../classamrex_1_1_neighbor_particle_container.html#a943e80f051e262315555a7508fc0f945',1,'amrex::NeighborParticleContainer::neighbor_procs()'],['../classamrex_1_1_particle_container.html#a1c7e6f19b1640c0b4980d2d7fa3ad15e',1,'amrex::ParticleContainer::neighbor_procs()']]],
   ['neighbors',['neighbors',['../classamrex_1_1_neighbor_particle_container.html#a4c06031b0c740fad92a9ad11059d55d2',1,'amrex::NeighborParticleContainer']]],
   ['nerase',['nerase',['../structamrex_1_1_fab_array_base_1_1_cache_stats.html#ae2f7326a77cd60966a550dd90ecf7a12',1,'amrex::FabArrayBase::CacheStats']]],
   ['next',['next',['../structamrex_1_1_derive_rec_1_1_state_range.html#a8eedabaa4dab327141f794937ff41ca4',1,'amrex::DeriveRec::StateRange']]],
