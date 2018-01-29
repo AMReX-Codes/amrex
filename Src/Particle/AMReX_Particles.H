@@ -888,7 +888,7 @@ protected:
 
     
     void BuildRedistributeMask(int lev, int nghost=1);
-    std::unique_ptr<FabArray<BaseFab<int> > > redistribute_mask_ptr;
+    std::unique_ptr<iMultiFab> redistribute_mask_ptr;
     amrex::Vector<int> neighbor_procs;
 
     //
