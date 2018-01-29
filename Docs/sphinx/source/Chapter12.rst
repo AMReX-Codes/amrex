@@ -1,7 +1,7 @@
-.. _Chap:Profiling:
+.. _Chap:AMRex-based Profiling Tools:
 
-Profiling
-=========
+AMReX-based Profiling Tools
+===========================
 
 AMReX-based application codes can be instrumented using AMReX-specific
 performance profiling tools that take into account the hierarchical nature of
@@ -16,4 +16,4 @@ Lecture 1: `Introduction and TINYPROFILER <http://ccse.lbl.gov/AMReX/AMReX_Profi
 .. toctree::
    :maxdepth: 1
 
-   Profiling
+   AMReX_Profiling_Tools

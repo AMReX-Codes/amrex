@@ -14,7 +14,6 @@
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_CArena.H>
-#include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_MakeType.H>
@@ -24,7 +23,7 @@
 // iv - IntVect in absolute coordiantes
 // m - variable / component
 // l - multivalued index
-#define KIDX(iv,m,l) (l*domain.numPts()*nvar + m*domain.numPts() + domain.index(iv)) 
+#define AMREX_BASEUMAP_KIDX(iv,m,l) (l*domain.numPts()*nvar + m*domain.numPts() + domain.index(iv)) 
 
 namespace amrex
 {
@@ -260,7 +259,7 @@ namespace amrex
         // entry stored in position l*NumComponents + ncomp
 //        std::cout << "Looking up key for pos:" << pos << " variable: " << n << " multi-value: " << l << std::endl;
 //      int idx = l*
-        return key_table[KIDX(pos,n,l)];
+        return key_table[AMREX_BASEUMAP_KIDX(pos,n,l)];
 
     }
 
@@ -278,7 +277,7 @@ namespace amrex
         //int size = domain.numPts();
         // entry stored in position l*NumComponents + ncomp
 //        key_table[loc+(l*nvar + n)*size] = k;
-        key_table[KIDX(pos,n,l)] = k;
+        key_table[AMREX_BASEUMAP_KIDX(pos,n,l)] = k;
         data_key_tuple_map[k] = Tuple(pos,n,l);
 
     }

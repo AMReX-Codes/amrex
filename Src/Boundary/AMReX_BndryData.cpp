@@ -119,9 +119,6 @@ BndryData::operator= (const BndryData& src)
     if (this != &src)
     {
         BndryRegister::operator=(src);
-	for (int i = 0; i < 2*BL_SPACEDIM; i++) {
-	    bndry[i].clear();
-	}
         init(src);
     }
     return *this;
