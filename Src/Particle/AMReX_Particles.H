@@ -646,7 +646,7 @@ public:
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
  
-    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0);
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, bool local=false);
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -886,6 +886,11 @@ protected:
 			bool           is_checkpoint,
 			std::ifstream& ifs);
 
+    
+    void BuildRedistributeMask(int lev, int nghost=1);
+    std::unique_ptr<FabArray<BaseFab<int> > > redistribute_mask_ptr;
+    amrex::Vector<int> neighbor_procs;
+
     //
     // The member data.
     //
@@ -918,7 +923,7 @@ private:
     std::pair<long,long> StartIndexInGlobalArray () const;
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-			  int lev_min = 0, int lev_max = 0, int nGrow = 0);
+			  int lev_min = 0, int lev_max = 0, int nGrow = 0, bool local=false);
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
                         int lev_min, int lev_max, int nGrow) const;
