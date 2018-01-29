@@ -186,6 +186,14 @@ MultiParticleContainer::Redistribute ()
     }
 }
 
+void
+MultiParticleContainer::RedistributeLocal ()
+{
+    for (auto& pc : allcontainers) {
+	pc->Redistribute(0, 0, 0, true);
+    }
+}
+
 Vector<long>
 MultiParticleContainer::NumberOfParticlesInGrid(int lev) const
 {
