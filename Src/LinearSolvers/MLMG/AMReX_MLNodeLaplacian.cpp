@@ -85,7 +85,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
         vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 
-        if (a_rhcc[ilev])
+        if (ilev < a_rhcc.size() && a_rhcc[ilev])
         {
             rhcc[ilev].reset(new MultiFab(a_rhcc[ilev]->boxArray(),
                                           a_rhcc[ilev]->DistributionMap(), 1, 1));
@@ -278,7 +278,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
     {
-        if (rhnd[ilev]) {
+        if (ilev < rhnd.size() && rhnd[ilev]) {
             MultiFab::Add(*rhs[ilev], *rhnd[ilev], 0, 0, 1, 0);
         }
     }
