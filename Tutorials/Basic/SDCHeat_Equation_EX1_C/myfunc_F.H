@@ -20,6 +20,7 @@ extern "C"
 #if (BL_SPACEDIM == 3)   
                       amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
+                      amrex_real* f, const int* flo, const int* fhi,
                       const amrex_real* dx);
 
     void update_phi(const int* lo, const int* hi,
@@ -31,7 +32,9 @@ extern "C"
                     amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
                     const amrex_real* dx, amrex_real dt); // note dt is passed by value
-
+  void pf_quadrature(int* qtype_in, int* nnodes, int* nnodes0,
+    amrex_real* nodes, amrex_real* smat,amrex_real* qmat,
+    amrex_real* qmatFE,amrex_real* qmatBE,amrex_real* qmatLU);
 #ifdef __cplusplus
 }
 #endif

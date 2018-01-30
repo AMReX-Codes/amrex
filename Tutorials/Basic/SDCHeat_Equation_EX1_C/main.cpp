@@ -18,6 +18,7 @@ int main (int argc, char* argv[])
 
 void main_main ()
 {
+
     // What time is it now?  We'll use this to compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -120,28 +121,50 @@ void main_main ()
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
-    // we allocate and array of multifabs at SDC nodes
-    int Nnodes = 4;
-    std::array<MultiFab, 4> phi_sdc;
-    std::array<MultiFab, 4> f_sdc;
-    for (int sdc_m = 0; sdc_m < Nnodes; sdc_m++)
+    //  allocate an array of multifabs at SDC nodes
+    std::array<MultiFab, SDC_NNODES> phi_sdc;
+    std::array<MultiFab, SDC_NNODES> f_sdc;
+    for (int sdc_m = 0; sdc_m < SDC_NNODES; sdc_m++)
     {
         phi_sdc[sdc_m].define(ba, dm, Ncomp, Nghost);
         f_sdc[sdc_m].define(ba, dm, Ncomp, Nghost);
     }
 
-
+    // make the quadrature tables
+    Real qnodes [SDC_NNODES];
+    Real qmat [SDC_NNODES-1][SDC_NNODES];
+    Real smat [SDC_NNODES-1][SDC_NNODES];
+    Real qmatFE [SDC_NNODES-1][SDC_NNODES];
+    Real qmatBE [SDC_NNODES-1][SDC_NNODES];
+    Real qmatLU [SDC_NNODES-1][SDC_NNODES];
+    int qtype_in=1;
+    int nnodes=SDC_NNODES;
+    pf_quadrature(&qtype_in, &nnodes, &nnodes,qnodes, &smat[0][0],&qmat[0][0],&qmatFE[0][0],&qmatBE[0][0],&qmatLU[0][0]);
+    for (int i = 0; i <SDC_NNODES-1; ++i)
+      for (int j = 0; j <SDC_NNODES; ++j)
+	{
+	  std::cout << qmat[i][j] << std::endl;
+	}
+    for (int i = 0; i <SDC_NNODES-1; ++i)
+      for (int j = 0; j <SDC_NNODES; ++j){
+	std::cout << qmatFE[i][j] << std::endl;
+      }
+    for (int i = 0; i <SDC_NNODES-1; ++i)
+      for (int j = 0; j <SDC_NNODES; ++j)
+	{
+	  std::cout << qmatBE[i][j] << std::endl;
+	}
+    
     for (int n = 1; n <= nsteps; ++n)
     {
 
-      //        MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
-        MultiFab::Copy(phi_sdc[1],phi_new, 0, 0, 1, 0);
+        MultiFab::Copy(phi_sdc[0],phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
-        advance(phi_sdc[1], phi_sdc[4], flux, dt, geom); 
+	sweep(phi_old, phi_new, flux,phi_sdc,f_sdc, dt, geom,SDC_NNODES,qnodes,qmat,qmatFE,qmatBE); 
         time = time + dt;
         
-        MultiFab::Copy(phi_new, phi_sdc[4], 0, 0, 1, 0);
+        MultiFab::Copy(phi_new, phi_sdc[SDC_NNODES-1], 0, 0, 1, 0);
 
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << n << "\n";
