@@ -246,7 +246,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         const int* lo  = box.loVect();
         const int* hi  = box.hiVect();
 
-	initdata(lev, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
+	initdata(&lev, &cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
 		 BL_TO_FORTRAN_3D(state[mfi]), ZFILL(dx),
 		 ZFILL(prob_lo));
     }
@@ -605,14 +605,14 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 	    }
 
             // compute velocities on faces (prescribed function of space and time)
-	    get_face_velocity(lev, ctr_time,
+	    get_face_velocity(&lev, &ctr_time,
 			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
 			      dx, prob_lo);
 
             // compute new state (stateout) and fluxes.
-            advect(time, bx.loVect(), bx.hiVect(),
+            advect(&time, bx.loVect(), bx.hiVect(),
 		   BL_TO_FORTRAN_3D(statein), 
 		   BL_TO_FORTRAN_3D(stateout),
 		   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -621,7 +621,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
 			  BL_TO_FORTRAN_3D(flux[1]), 
 			  BL_TO_FORTRAN_3D(flux[2])), 
-		   dx, dt);
+		   dx, &dt);
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++) {
@@ -714,7 +714,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 		uface[i].resize(bx,1);
 	    }
 
-	    get_face_velocity(lev, cur_time,
+	    get_face_velocity(&lev, &cur_time,
 			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),

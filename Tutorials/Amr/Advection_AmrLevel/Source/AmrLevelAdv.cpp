@@ -162,7 +162,7 @@ AmrLevelAdv::initData ()
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-          initdata(level, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
+          initdata(&level, &cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
 		   BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
 		   ZFILL(prob_lo));
     }
@@ -304,7 +304,7 @@ AmrLevelAdv::advance (Real time,
 		uface[i].resize(amrex::grow(bxtmp, iteration), 1);
 	    }
 
-	    get_face_velocity(level, ctr_time,
+	    get_face_velocity(&level, &ctr_time,
 			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
@@ -314,7 +314,7 @@ AmrLevelAdv::advance (Real time,
                 const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
                 Umac[i][mfi].copy(uface[i], bxtmp);
 	    }
-            advect(time, bx.loVect(), bx.hiVect(),
+            advect(&time, bx.loVect(), bx.hiVect(),
 		   BL_TO_FORTRAN_3D(statein), 
 		   BL_TO_FORTRAN_3D(stateout),
 		   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -323,7 +323,7 @@ AmrLevelAdv::advance (Real time,
 		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
 			  BL_TO_FORTRAN_3D(flux[1]), 
 			  BL_TO_FORTRAN_3D(flux[2])), 
-		   dx, dt);
+		   dx, &dt);
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++)
@@ -379,7 +379,7 @@ AmrLevelAdv::estTimeStep (Real)
 		uface[i].resize(bx,1);
 	    }
 
-	    get_face_velocity(level, cur_time,
+	    get_face_velocity(&level, &cur_time,
 			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
