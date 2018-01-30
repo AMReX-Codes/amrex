@@ -55,6 +55,6 @@ void advance (MultiFab& phi_old,
 #if (AMREX_SPACEDIM == 3)   
                    BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                   dx, dt);
+                   dx, &dt);
     }
 }

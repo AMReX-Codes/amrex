@@ -84,7 +84,7 @@ subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
   real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
   real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
   real(amrex_real), intent(in)    :: dx(2)
-  real(amrex_real), value         :: dt
+  real(amrex_real), intent(in)    :: dt
 
   ! local variables
   integer i,j

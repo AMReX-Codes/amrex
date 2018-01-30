@@ -30,7 +30,7 @@ extern "C"
 #if (BL_SPACEDIM == 3)   
                     amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
-                    const amrex_real* dx, amrex_real dt); // note dt is passed by value
+                    const amrex_real* dx, const amrex_real* dt);
 
 #ifdef __cplusplus
 }
