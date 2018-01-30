@@ -1409,7 +1409,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
 }
 
 namespace {
-    
+
+#ifdef BL_USE_MPI    
     long CountSnds(const std::map<int, Vector<char> >& not_ours, Vector<long>& Snds)
     {
         long NumSnds = 0;        
@@ -1487,6 +1488,7 @@ namespace {
         
         return NumSnds;
     }
+#endif  // BL_USE_MPI
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
