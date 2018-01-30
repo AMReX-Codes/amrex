@@ -35,6 +35,7 @@ private:
     amrex::Vector<amrex::MultiFab> phi;
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> vel;
+    amrex::Vector<amrex::MultiFab> sig;
 };
 
 #endif

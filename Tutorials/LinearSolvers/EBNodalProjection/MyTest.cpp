@@ -1,7 +1,6 @@
 #include "MyTest.H"
 
-#include <AMReX_MLABecLaplacian.H>
-#include <AMReX_MLPoisson.H>
+#include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -13,10 +12,30 @@ MyTest::MyTest ()
     initData();
 }
 
+//
+// Given vel, rhs & sig, this solves Div (sig * Grad phi) = Div vel + rhs.
+// On return, vel becomes vel  - sig * Grad phi.
+//
 void
 MyTest::solve ()
 {
-    VisMF::Write(vel[0], "vel");
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+    mlmg_lobc[0] = LinOpBCType::Periodic;
+    mlmg_hibc[0] = LinOpBCType::Periodic;
+    mlmg_lobc[1] = LinOpBCType::Neumann;
+    mlmg_hibc[1] = LinOpBCType::Dirichlet;
+    static_assert(AMREX_SPACEDIM==2, "2d only");
+
+    MLNodeLaplacian mlndlap(geom, grids, dmap);
+
+    mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
+
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        mlndlap.setSigma(ilev, sig[ilev]);
+    }
+
+    mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
 }
 
 void
@@ -73,10 +92,13 @@ MyTest::initData ()
         dmap[ilev].define(grids[ilev]);
         phi[ilev].define(amrex::convert(grids[ilev],IntVect::TheNodeVector()),
                          dmap[ilev], 1, 1);
-        rhs[ilev].define(grids[ilev], dmap[ilev], 1, 0);
+        rhs[ilev].define(amrex::convert(grids[ilev],IntVect::TheNodeVector()),
+                         dmap[ilev], 1, 0);
+        sig[ilev].define(grids[ilev], dmap[ilev], 1, 1);
         vel[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1);
 
         phi[ilev].setVal(0.0);
+        sig[ilev].setVal(1.0);
         vel[ilev].setVal(0.0);
         const int icomp = 1; // vy
         const int ncomp = 1;
