@@ -53,6 +53,10 @@ namespace amrex
     //! Output state data for a single zone
     void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
 
+    //! Write each fab individually
+    void writeFabs (const MultiFab& mf, const std::string& name);
+    void writeFabs (const MultiFab& mf, int comp, int ncomp, const std::string& name);
+
     //! Convert iMultiFab to MultiFab
     MultiFab ToMultiFab (const iMultiFab& imf);
 
