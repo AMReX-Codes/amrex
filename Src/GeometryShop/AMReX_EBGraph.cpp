@@ -1945,7 +1945,7 @@ namespace amrex
     m_isDefined   = true;
     m_isDomainSet = true;
     m_isMaskBuilt = false;
-
+    m_fullRegion = m_region;
     m_cellFlags.resize(m_fullRegion,1);
     setCellFlags();
 

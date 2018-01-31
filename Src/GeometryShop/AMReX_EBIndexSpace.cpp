@@ -35,12 +35,12 @@ namespace amrex
   write(const string& a_dirname) const
   {
     //this creates the directory of all the stuff
-    UtilCreateDirectoryDestructive(a_dirname, true);
+    UtilCreateCleanDirectory(a_dirname, true);
     writeHeader(a_dirname);
     for(int ilev = 0; ilev < m_nlevels; ilev++)
     {
       string levdirname = a_dirname + "/_lev_" + EBArith::convertInt(ilev);
-      UtilCreateDirectoryDestructive(levdirname, true);
+//      UtilCreateCleanDirectory(levdirname, true); done inside the function
       m_ebisLevel[ilev]->write(levdirname);
     }
   }

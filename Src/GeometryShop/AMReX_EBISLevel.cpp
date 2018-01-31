@@ -97,7 +97,7 @@ namespace amrex
   write(const string& a_dirname) const
   {
     //this creates the directory of all the stuff
-    UtilCreateDirectoryDestructive(a_dirname, true);
+    UtilCreateCleanDirectory(a_dirname, true);
     writeHeader(a_dirname);
     string graphdirname = a_dirname + "/_graph";
     string  datadirname = a_dirname + "/_data";
