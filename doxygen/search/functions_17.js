@@ -20,6 +20,7 @@ var searchData=
   ['writecommstats',['WriteCommStats',['../classamrex_1_1_b_l_profiler.html#a586676adde2a557d8eab1e64948b3bb2',1,'amrex::BLProfiler']]],
   ['writedoubledata',['writeDoubleData',['../namespaceamrex.html#a583a444879c864fcc03845f637a122c9',1,'amrex']]],
   ['writeebamrplotfile',['writeEBAMRPlotFile',['../classamrex_1_1_e_b_level_data_ops.html#aa4db6ade1d3ab5574a267f8450d0d411',1,'amrex::EBLevelDataOps']]],
+  ['writefabs',['writeFabs',['../namespaceamrex.html#a78ee47545ca66e809f4f680e7513cbd5',1,'amrex::writeFabs(const MultiFab &amp;mf, const std::string &amp;name)'],['../namespaceamrex.html#aa9f903b417da5fb1d02ea65d0bbf8934',1,'amrex::writeFabs(const MultiFab &amp;mf, int comp, int ncomp, const std::string &amp;name)']]],
   ['writefloatdata',['writeFloatData',['../namespaceamrex.html#a4f9c3dd444d301063e6190234413bda4',1,'amrex']]],
   ['writegenericplotfileheader',['WriteGenericPlotfileHeader',['../namespaceamrex.html#aeaa559cd77a4c889c84b144f59a6e35c',1,'amrex']]],
   ['writeheader',['writeHeader',['../classamrex_1_1_e_b_index_space.html#a382961e97ccb2dbf696edaee15604a8b',1,'amrex::EBIndexSpace::writeHeader()'],['../classamrex_1_1_e_b_i_s_level.html#ade7ebca00173f3db99cca1fe801750c8',1,'amrex::EBISLevel::writeHeader()']]],
