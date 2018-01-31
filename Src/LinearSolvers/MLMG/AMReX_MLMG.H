@@ -95,7 +95,7 @@ private:
 
     // To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     // in the frame of the original equation, not the correction form
-
+    Vector<std::unique_ptr<MultiFab> > sol_raii;
     Vector<MultiFab*>         sol;  // alias to argument a_sol
     Vector<MultiFab>          rhs;  // Copy of original rhs
                                     // L(sol) = rhs
