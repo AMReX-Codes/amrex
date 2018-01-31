@@ -152,7 +152,19 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         timer[iter_time] = amrex::second() - iter_start_time;
     }
 
-    if (final_fill_bc) fillSolutionBC();
+    int ng_back = 0;
+    if (final_fill_bc) {
+        fillSolutionBC();
+        ng_back = 1;
+    }
+
+    for (int alev = 0; alev < namrlevs; ++alev)
+    {
+        if (a_sol[alev] != sol[alev])
+        {
+            MultiFab::Copy(*a_sol[alev], *sol[alev], 0, 0, 1, ng_back);
+        }
+    }
 
     timer[solve_time] = amrex::second() - solve_start_time;
     if (verbose >= 1) {
@@ -799,15 +811,29 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 {
     BL_PROFILE("MLMG::prepareForSolve()");
 
-    AMREX_ASSERT(a_sol[0]->nGrow() > 0);
     AMREX_ASSERT(namrlevs <= a_sol.size());
     AMREX_ASSERT(namrlevs <= a_rhs.size());
 
     timer.assign(ntimers, 0.0);
 
     linop.prepareForSolve();
-    
-    sol = a_sol;
+
+    sol.resize(namrlevs);
+    sol_raii.resize(namrlevs);
+    for (int alev = 0; alev < namrlevs; ++alev)
+    {
+        if (a_sol[alev]->nGrow() == 1)
+        {
+            sol[alev] = a_sol[alev];
+        }
+        else
+        {
+            sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
+                                              a_sol[alev]->DistributionMap(), 1, 1));
+            MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, 1, 0);
+            sol[alev] = sol_raii[alev].get();
+        }
+    }
     
     rhs.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
@@ -952,12 +978,32 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
 {
     BL_PROFILE("MLMG::compResidual()");
 
+    sol.resize(namrlevs);
+    sol_raii.resize(namrlevs);
+    for (int alev = 0; alev < namrlevs; ++alev)
+    {
+        if (a_sol[alev]->nGrow() == 1)
+        {
+            sol[alev] = a_sol[alev];
+        }
+        else
+        {
+            if (sol_raii[alev] == nullptr)
+            {
+                sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
+                                                  a_sol[alev]->DistributionMap(), 1, 1));
+            }
+            MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, 1, 0);
+            sol[alev] = sol_raii[alev].get();
+        }
+    }
+
     linop.prepareForSolve();
     
     const auto& amrrr = linop.AMRRefRatio();
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
-        const MultiFab* crse_bcdata = (alev > 0) ? a_sol[alev-1] : nullptr;
+        const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         const MultiFab* prhs = a_rhs[alev];
 #if (AMREX_SPACEDIM != 3)
         MultiFab rhstmp(prhs->boxArray(), prhs->DistributionMap(), 1, 0);
@@ -965,10 +1011,10 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.applyMetricTerm(alev, 0, rhstmp);
         prhs = &rhstmp;
 #endif
-        linop.solutionResidual(alev, *a_res[alev], *a_sol[alev], *prhs, crse_bcdata);
+        linop.solutionResidual(alev, *a_res[alev], *sol[alev], *prhs, crse_bcdata);
         if (alev < finest_amr_lev) {
-            linop.reflux(alev, *a_res[alev], *a_sol[alev], *prhs,
-                         *a_res[alev+1], *a_sol[alev+1], *a_rhs[alev+1]);
+            linop.reflux(alev, *a_res[alev], *sol[alev], *prhs,
+                         *a_res[alev+1], *sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
                 amrex::average_down(*a_res[alev+1], *a_res[alev], 0, 1, amrrr[alev]);
             }
