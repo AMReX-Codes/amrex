@@ -127,6 +127,13 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ac89a95153592ae716ebc6f3a060dbdee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a786f2fefc2ec06264d527f006d140fd6"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_shop.html#a786f2fefc2ec06264d527f006d140fd6">isCovered</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_region, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const override</td></tr>
 <tr class="separator:a786f2fefc2ec06264d527f006d140fd6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af823b9fb506fd7bd3da2c8318c0aa053"><td class="memItemLeft" align="right" valign="top">virtual std::shared_ptr&lt; const <br class="typebreak"/>
+<a class="el" href="classamrex_1_1_base_i_f.html">BaseIF</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_shop.html#af823b9fb506fd7bd3da2c8318c0aa053">getImplicitFunction</a> () const </td></tr>
+<tr class="memdesc:af823b9fb506fd7bd3da2c8318c0aa053"><td class="mdescLeft">&#160;</td><td class="mdescRight">get the implicit function.  <a href="#af823b9fb506fd7bd3da2c8318c0aa053">More...</a><br/></td></tr>
+<tr class="separator:af823b9fb506fd7bd3da2c8318c0aa053"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a067c32d0743699f48af933773f79678e"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_shop.html#a067c32d0743699f48af933773f79678e">hasImplicitFunction</a> () const </td></tr>
+<tr class="memdesc:a067c32d0743699f48af933773f79678e"><td class="mdescLeft">&#160;</td><td class="mdescRight">True if there is an underlying implicit function.  <a href="#a067c32d0743699f48af933773f79678e">More...</a><br/></td></tr>
+<tr class="separator:a067c32d0743699f48af933773f79678e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classamrex_1_1_geometry_service"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classamrex_1_1_geometry_service')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classamrex_1_1_geometry_service.html">amrex::GeometryService</a></td></tr>
 <tr class="memitem:a77a7a8a9571a37d6aebc0a3a2fbfa09c inherit pub_methods_classamrex_1_1_geometry_service"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#a77a7a8a9571a37d6aebc0a3a2fbfa09c">GeometryService</a> ()</td></tr>
 <tr class="separator:a77a7a8a9571a37d6aebc0a3a2fbfa09c inherit pub_methods_classamrex_1_1_geometry_service"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -486,6 +493,61 @@ Additional Inherited Members</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="af823b9fb506fd7bd3da2c8318c0aa053"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::shared_ptr&lt;const <a class="el" href="classamrex_1_1_base_i_f.html">BaseIF</a>&gt; amrex::GeometryShop::getImplicitFunction </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>get the implicit function. </p>
+<p>If you have a geometry sevice that does not have an implicit function, it is a runtime error. </p>
+
+<p>Reimplemented from <a class="el" href="classamrex_1_1_geometry_service.html#a99fd90a3fee5ff5c743b5df2d7aee2c8">amrex::GeometryService</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a067c32d0743699f48af933773f79678e"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool amrex::GeometryShop::hasImplicitFunction </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>True if there is an underlying implicit function. </p>
+
+<p>Reimplemented from <a class="el" href="classamrex_1_1_geometry_service.html#a496856339198da32a0f779d2534bf363">amrex::GeometryService</a>.</p>
 
 </div>
 </div>
