@@ -214,7 +214,7 @@
 <span id="sec-basics-heat1"></span><h1>Example: HeatEquation_EX1_C<a class="headerlink" href="#example-heatequation-ex1-c" title="Permalink to this headline">¶</a></h1>
 <p>The source code tree for the heat equation example is simple, as shown in
 <a class="reference internal" href="#fig-basics-heat-flowchart"><span class="std std-numref">Fig. 1</span></a>. We recommend you study
-main.cpp and advance.cpp to see some of the classes described
+<code class="docutils literal"><span class="pre">main.cpp</span></code> and <code class="docutils literal"><span class="pre">advance.cpp</span></code> to see some of the classes described
 below in action.</p>
 <div class="figure" id="fig-basics-heat-flowchart">
 <a class="reference internal image-reference" href="_images/flowchart2.png"><img alt="_images/flowchart2.png" src="_images/flowchart2.png" style="width: 4in;" /></a>
@@ -222,12 +222,168 @@ below in action.</p>
 <p>Source code tree for the HeatEquation_EX1_C example</p>
 <blockquote>
 <div><dl class="docutils">
-<dt>amrex/Src/Base/</dt>
-<dd>Contains source code for single-level simulations.</dd>
-<dt>amrex/Tutorials/HeatEquation_EX1_C</dt>
-<dd>Build the code here by editing the GNUmakefile and running make.</dd>
+<dt>amrex/Src/Base</dt>
+<dd>Contains source code for single-level simulations.  Note that in
+<code class="docutils literal"><span class="pre">amrex/Src</span></code> there are many sub-directories, e.g., <code class="docutils literal"><span class="pre">Base</span></code>,
+<code class="docutils literal"><span class="pre">Amr</span></code>, <code class="docutils literal"><span class="pre">AmrCore</span></code>, <code class="docutils literal"><span class="pre">LinearSolvers</span></code>, etc.  In this tutorial
+the only source code directory we need is <code class="docutils literal"><span class="pre">Base</span></code>.</dd>
+<dt>amrex/Tutorials/HeatEquation_EX1_C/Source</dt>
+<dd><p class="first">Contains the following source code specific to this tutorial:</p>
+<ol class="last arabic simple">
+<li><code class="docutils literal"><span class="pre">Make.package</span></code>: lists the source code files</li>
+<li><code class="docutils literal"><span class="pre">main.cpp</span></code>: contains the C++ <code class="docutils literal"><span class="pre">main</span></code> function</li>
+<li><code class="docutils literal"><span class="pre">advance.cpp</span></code>: advance the solution by a time step</li>
+<li><code class="docutils literal"><span class="pre">init_phi_Xd.f90,</span> <span class="pre">advance_Xd.f90</span></code>: fortran work functions used to initialize
+and advance the solution</li>
+<li><code class="docutils literal"><span class="pre">myfunc.H</span></code>: header file for C++ functions</li>
+<li><code class="docutils literal"><span class="pre">myfunc_F.H</span></code>: header file for fortran90 functions that are called in .cpp files</li>
+</ol>
+</dd>
+<dt>amrex/Tutorials/HeatEquation_EX1_C/Exec</dt>
+<dd>This is where you build the code with make.  There is a a GNUmakefile
+and inputs files, inputs_2d and inputs_3d.</dd>
 </dl>
 </div></blockquote>
+<p>Now we highlight a few key sections of the code.  In <code class="docutils literal"><span class="pre">main.cpp</span></code> we demonstrate
+how to read in parameters from the inputs file:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// inputs parameters</span>
+<span class="p">{</span>
+    <span class="c1">// ParmParse is way of reading inputs from the inputs file</span>
+    <span class="n">ParmParse</span> <span class="n">pp</span><span class="p">;</span>
+
+    <span class="c1">// We need to get n_cell from the inputs file - this is the number of cells on each side of</span>
+    <span class="c1">//   a square (or cubic) domain.</span>
+    <span class="n">pp</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;n_cell&quot;</span><span class="p">,</span><span class="n">n_cell</span><span class="p">);</span>
+
+    <span class="c1">// The domain is broken into boxes of size max_grid_size</span>
+    <span class="n">pp</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;max_grid_size&quot;</span><span class="p">,</span><span class="n">max_grid_size</span><span class="p">);</span>
+
+    <span class="c1">// Default plot_int to -1, allow us to set it to something else in the inputs file</span>
+    <span class="c1">//  If plot_int &lt; 0 then no plot files will be writtenq</span>
+    <span class="n">plot_int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;plot_int&quot;</span><span class="p">,</span><span class="n">plot_int</span><span class="p">);</span>
+
+    <span class="c1">// Default nsteps to 0, allow us to set it to something else in the inputs file</span>
+    <span class="n">nsteps</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;nsteps&quot;</span><span class="p">,</span><span class="n">nsteps</span><span class="p">);</span>
+
+    <span class="n">pp</span><span class="p">.</span><span class="n">queryarr</span><span class="p">(</span><span class="s">&quot;is_periodic&quot;</span><span class="p">,</span> <span class="n">is_periodic</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In <code class="docutils literal"><span class="pre">main.cpp</span></code> we demonstrate how to define a <code class="docutils literal"><span class="pre">Box</span></code> for the problem domain,
+and then how to chop that <code class="docutils literal"><span class="pre">Box</span></code> up into multiple boxes that define
+a <code class="docutils literal"><span class="pre">BoxArray</span></code>  We also define a <code class="docutils literal"><span class="pre">Geometry</span></code> object that knows about
+the problem domain, the physical coordinates of the box, and the periodicity:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// make BoxArray and Geometry</span>
+<span class="n">BoxArray</span> <span class="n">ba</span><span class="p">;</span>
+<span class="n">Geometry</span> <span class="n">geom</span><span class="p">;</span>
+<span class="p">{</span>
+    <span class="n">IntVect</span> <span class="n">dom_lo</span><span class="p">(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span>       <span class="mi">0</span><span class="p">,</span>        <span class="mi">0</span><span class="p">,</span>        <span class="mi">0</span><span class="p">));</span>
+    <span class="n">IntVect</span> <span class="nf">dom_hi</span><span class="p">(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">n_cell</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_cell</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_cell</span><span class="o">-</span><span class="mi">1</span><span class="p">));</span>
+    <span class="n">Box</span> <span class="nf">domain</span><span class="p">(</span><span class="n">dom_lo</span><span class="p">,</span> <span class="n">dom_hi</span><span class="p">);</span>
+
+    <span class="c1">// Initialize the boxarray &quot;ba&quot; from the single box &quot;bx&quot;</span>
+    <span class="n">ba</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">);</span>
+    <span class="c1">// Break up boxarray &quot;ba&quot; into chunks no larger than &quot;max_grid_size&quot; along a direction</span>
+    <span class="n">ba</span><span class="p">.</span><span class="n">maxSize</span><span class="p">(</span><span class="n">max_grid_size</span><span class="p">);</span>
+
+   <span class="c1">// This defines the physical box, [-1,1] in each direction.</span>
+    <span class="n">RealBox</span> <span class="nf">real_box</span><span class="p">({</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)},</span>
+                     <span class="p">{</span><span class="n">AMREX_D_DECL</span><span class="p">(</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)});</span>
+
+    <span class="c1">// This defines a Geometry object</span>
+    <span class="n">geom</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span><span class="o">&amp;</span><span class="n">real_box</span><span class="p">,</span><span class="n">CoordSys</span><span class="o">::</span><span class="n">cartesian</span><span class="p">,</span><span class="n">is_periodic</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In <code class="docutils literal"><span class="pre">main.cpp</span></code> we demonstrate how to build a <code class="docutils literal"><span class="pre">DistributionMapping</span></code> from
+the <code class="docutils literal"><span class="pre">BoxArray</span></code>, and then build <code class="docutils literal"><span class="pre">MultiFabs</span></code> with a desired number of components
+and ghost cells associated with each grid:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// Nghost = number of ghost cells for each array</span>
+<span class="kt">int</span> <span class="n">Nghost</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+<span class="c1">// Ncomp = number of components for each array</span>
+<span class="kt">int</span> <span class="n">Ncomp</span>  <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+<span class="c1">// How Boxes are distrubuted among MPI processes</span>
+<span class="n">DistributionMapping</span> <span class="nf">dm</span><span class="p">(</span><span class="n">ba</span><span class="p">);</span>
+
+<span class="c1">// we allocate two phi multifabs; one will store the old state, the other the new.</span>
+<span class="n">MultiFab</span> <span class="nf">phi_old</span><span class="p">(</span><span class="n">ba</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">Ncomp</span><span class="p">,</span> <span class="n">Nghost</span><span class="p">);</span>
+<span class="n">MultiFab</span> <span class="nf">phi_new</span><span class="p">(</span><span class="n">ba</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">Ncomp</span><span class="p">,</span> <span class="n">Nghost</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>We demonstrate how to build an array of face-based <code class="docutils literal"><span class="pre">MultiFabs</span></code> :</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// build the flux multifabs</span>
+<span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">MultiFab</span><span class="p">,</span> <span class="n">AMREX_SPACEDIM</span><span class="o">&gt;</span> <span class="n">flux</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">dir</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">dir</span> <span class="o">&lt;</span> <span class="n">AMREX_SPACEDIM</span><span class="p">;</span> <span class="n">dir</span><span class="o">++</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="c1">// flux(dir) has one component, zero ghost cells, and is nodal in direction dir</span>
+    <span class="n">BoxArray</span> <span class="n">edge_ba</span> <span class="o">=</span> <span class="n">ba</span><span class="p">;</span>
+    <span class="n">edge_ba</span><span class="p">.</span><span class="n">surroundingNodes</span><span class="p">(</span><span class="n">dir</span><span class="p">);</span>
+    <span class="n">flux</span><span class="p">[</span><span class="n">dir</span><span class="p">].</span><span class="n">define</span><span class="p">(</span><span class="n">edge_ba</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To access and/or modify data n a <code class="docutils literal"><span class="pre">MultiFab</span></code> we use the <code class="docutils literal"><span class="pre">MFIter</span></code>, where each processor
+loops over grids it owns to access and/or modify data on that grid:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// Initialize phi_new by calling a Fortran routine.</span>
+<span class="c1">// MFIter = MultiFab Iterator</span>
+<span class="k">for</span> <span class="p">(</span> <span class="n">MFIter</span> <span class="n">mfi</span><span class="p">(</span><span class="n">phi_new</span><span class="p">);</span> <span class="n">mfi</span><span class="p">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">mfi</span> <span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">bx</span> <span class="o">=</span> <span class="n">mfi</span><span class="p">.</span><span class="n">validbox</span><span class="p">();</span>
+
+    <span class="n">init_phi</span><span class="p">(</span><span class="n">BL_TO_FORTRAN_BOX</span><span class="p">(</span><span class="n">bx</span><span class="p">),</span>
+             <span class="n">BL_TO_FORTRAN_ANYD</span><span class="p">(</span><span class="n">phi_new</span><span class="p">[</span><span class="n">mfi</span><span class="p">]),</span>
+             <span class="n">geom</span><span class="p">.</span><span class="n">CellSize</span><span class="p">(),</span> <span class="n">geom</span><span class="p">.</span><span class="n">ProbLo</span><span class="p">(),</span> <span class="n">geom</span><span class="p">.</span><span class="n">ProbHi</span><span class="p">());</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note that these calls to fortran subroutines require a header
+in <code class="docutils literal"><span class="pre">myfunc_F.H</span></code>:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">init_phi</span><span class="p">(</span><span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">lo</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">hi</span><span class="p">,</span>
+              <span class="n">amrex_real</span><span class="o">*</span> <span class="n">data</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">dlo</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">dhi</span><span class="p">,</span>
+              <span class="k">const</span> <span class="n">amrex_real</span><span class="o">*</span> <span class="n">dx</span><span class="p">,</span> <span class="k">const</span> <span class="n">amrex_real</span><span class="o">*</span> <span class="n">prob_lo</span><span class="p">,</span> <span class="k">const</span> <span class="n">amrex_real</span><span class="o">*</span> <span class="n">prob_hi</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>The associated fortran routines must shape the data accordinly:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">subroutine</span> <span class="n">init_phi</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">philo</span><span class="p">,</span> <span class="n">phihi</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">prob_lo</span><span class="p">,</span> <span class="n">prob_hi</span><span class="p">)</span> <span class="n">bind</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;init_phi&quot;</span><span class="p">)</span>
+
+  <span class="n">use</span> <span class="n">amrex_fort_module</span><span class="p">,</span> <span class="nl">only</span> <span class="p">:</span> <span class="n">amrex_real</span>
+
+  <span class="n">implicit</span> <span class="n">none</span>
+
+  <span class="n">integer</span><span class="p">,</span> <span class="n">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="o">::</span> <span class="n">lo</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">hi</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">philo</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">phihi</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+  <span class="n">real</span><span class="p">(</span><span class="n">amrex_real</span><span class="p">),</span> <span class="n">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="o">::</span> <span class="n">phi</span><span class="p">(</span><span class="n">philo</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">:</span><span class="n">phihi</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">philo</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">:</span><span class="n">phihi</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+  <span class="n">real</span><span class="p">(</span><span class="n">amrex_real</span><span class="p">),</span> <span class="n">intent</span><span class="p">(</span><span class="n">in</span>   <span class="p">)</span> <span class="o">::</span> <span class="n">dx</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+  <span class="n">real</span><span class="p">(</span><span class="n">amrex_real</span><span class="p">),</span> <span class="n">intent</span><span class="p">(</span><span class="n">in</span>   <span class="p">)</span> <span class="o">::</span> <span class="n">prob_lo</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+  <span class="n">real</span><span class="p">(</span><span class="n">amrex_real</span><span class="p">),</span> <span class="n">intent</span><span class="p">(</span><span class="n">in</span>   <span class="p">)</span> <span class="o">::</span> <span class="n">prob_hi</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+  <span class="n">integer</span>          <span class="o">::</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span>
+  <span class="kt">double</span> <span class="n">precision</span> <span class="o">::</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">r2</span>
+
+  <span class="k">do</span> <span class="n">j</span> <span class="o">=</span> <span class="n">lo</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">hi</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+     <span class="n">y</span> <span class="o">=</span> <span class="n">prob_lo</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">dble</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="o">+</span><span class="mf">0.5</span><span class="n">d0</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+     <span class="k">do</span> <span class="n">i</span> <span class="o">=</span> <span class="n">lo</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">hi</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">prob_lo</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">dble</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="mf">0.5</span><span class="n">d0</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">r2</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="o">-</span><span class="mf">0.25</span><span class="n">d0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="mf">0.25</span><span class="n">d0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.01</span><span class="n">d0</span>
+
+        <span class="n">phi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.</span><span class="n">d0</span> <span class="o">+</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">r2</span><span class="p">)</span>
+
+     <span class="n">end</span> <span class="k">do</span>
+  <span class="n">end</span> <span class="k">do</span>
+
+<span class="n">end</span> <span class="n">subroutine</span> <span class="n">init_phi</span>
+</pre></div>
+</div>
+<p>Ghost cells are filled using the <code class="docutils literal"><span class="pre">FillBoundary</span></code> function:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// Fill the ghost cells of each grid from the other grids</span>
+<span class="c1">// includes periodic domain boundaries</span>
+<span class="n">phi_old</span><span class="p">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">geom</span><span class="p">.</span><span class="n">periodicity</span><span class="p">());</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="dimensionality">
 <span id="sec-basics-dim"></span><h1>Dimensionality<a class="headerlink" href="#dimensionality" title="Permalink to this headline">¶</a></h1>
