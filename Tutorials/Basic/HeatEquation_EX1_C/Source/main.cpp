@@ -75,9 +75,6 @@ void main_main ()
     
     // Ncomp = number of components for each array
     int Ncomp  = 1;
-
-    // time = starting time in the simulation
-    Real time = 0.0;
   
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
@@ -100,6 +97,9 @@ void main_main ()
     // compute the time step
     const Real* dx = geom.CellSize();
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+
+    // time = starting time in the simulation
+    Real time = 0.0;
 
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
