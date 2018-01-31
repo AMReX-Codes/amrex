@@ -1,5 +1,8 @@
 # changes since the last release
 
+  -- Fortran interface: added new functions amrex_multifab_build_alias
+     and amrex_imultifab_build_alias.
+
   -- Documentation in reST/Sphinx.  See Docs/Readme.sphinx for more
      details.
 
