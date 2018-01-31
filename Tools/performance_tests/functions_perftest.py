@@ -46,6 +46,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
                        ' ' + input_file + \
                        ' > ' + output_filename + '\n'
         batch_string += srun_string
+        batch_string += 'rm -r plt* chk* lab_frame_data'
     batch_file = 'slurm'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)
@@ -128,9 +129,9 @@ def read_run_perf(filename, n_steps):
                     '\nPICSAR::ParticlePush.*',\
                     '\nPPC::Evolve::Copy.*',\
                     '\nWarpX::EvolveEM().*',\
-                    'NArrayInt>::Checkpoint().*',\
-                    'NArrayInt>::WriteParticles().*',\
-                    '\nVisMF::Write_FabArray.*',\
+                    'Checkpoint().*',\
+                    'WriteParticles().*',\
+                    '\nVisMF::Write(FabArray).*',\
                     '\nWriteMultiLevelPlotfile().*',\
                     '\nParticleContainer::RedistributeMPI().*']
     for pattern in pattern_list:
