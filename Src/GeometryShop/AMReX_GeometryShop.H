@@ -129,13 +129,27 @@ namespace amrex
         return isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx);
       }
 
+    ///get the implicit function.
+    /**
+       If you have a geometry sevice that does not have an implicit function, it is a runtime error.
+     */
+    virtual std::shared_ptr<const BaseIF> getImplicitFunction() const
+      {
+        return m_implicitFunction;
+      }
+      
+    ///True if there is an underlying implicit function
+    virtual bool hasImplicitFunction() const
+      {
+        return true;
+      }
   private:
     int  m_verbosity;
     Real m_threshold;
     Real m_thrshdVoF; //CP, threshold to remove very small VoFs.
 
 
-    std::unique_ptr<const BaseIF> m_implicitFunction;
+    std::shared_ptr<const BaseIF> m_implicitFunction;
 
 
     void edgeData3D(edgeMo               a_edges[4],
