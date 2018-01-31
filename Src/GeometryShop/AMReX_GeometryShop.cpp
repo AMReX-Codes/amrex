@@ -228,6 +228,8 @@ namespace amrex
                           const RealVect      & a_origin,
                           const Real          & a_dx) const
   {
+      BL_PROFILE("GeometryShop::fillGraph");
+
     AMREX_ASSERT(a_domain.contains(a_ghostRegion));
     a_nodes.resize(0);
     a_regIrregCovered.resize(a_ghostRegion, 1);
