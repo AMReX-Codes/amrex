@@ -104,6 +104,28 @@ namespace amrex
     headerfile.close();
     
   }
+  void 
+  EBIndexSpace::
+  fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, const RealVect& a_dx, RealVect a_origin ) const
+  {
+    if(!m_implicitFunction)
+    {
+      amrex::Error("this EBIS was not defined with an implicit function");
+    }
+    BL_ASSERT(a_fab.nComp() >= 1);
+    for(BoxIterator bit(a_fab.box()); bit.ok(); ++bit)
+    {
+      RealVect loc;
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        loc[idir] = a_origin[idir] + a_dx[idir]*bit()[idir];
+      }
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        a_fab(bit(), 0) = m_implicitFunction->value(loc);
+      }
+    }
+  }
   ///
   void 
   EBIndexSpace::
@@ -120,6 +142,10 @@ namespace amrex
 
     amrex::Print() << "  Building finest level..." << endl;
 
+    if(a_geoserver.hasImplicitFunction())
+    {
+      m_implicitFunction = a_geoserver.getImplicitFunction();
+    }
     //this computes how many levels
     buildFirstLevel(a_domain, a_origin, a_dx, a_geoserver, a_nCellMax, a_maxCoarsenings);
 

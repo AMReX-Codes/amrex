@@ -132,7 +132,10 @@ namespace amrex
       }
 
     const EBISLevel& getEBISLevel (int lev) const { return *m_ebisLevel[lev]; }
-    
+
+    ///fills 0th component with value from implit function
+    void fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, const RealVect& a_dx, RealVect a_origin= RealVect::Zero) const;
+
   private:
 
     //only AMReX_EBIS can make one
@@ -142,6 +145,8 @@ namespace amrex
     bool m_isDefined;
 
     Vector<std::unique_ptr<EBISLevel> > m_ebisLevel;
+    //only defined if the incoming geometryservice has one.
+    std::shared_ptr<const BaseIF> m_implicitFunction;
     Vector<Box> m_domainLevel;
 
     int m_nlevels;
