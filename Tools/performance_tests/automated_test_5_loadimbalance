@@ -1,0 +1,76 @@
+# Maximum number of time steps
+max_step = 100
+
+# number of grid points
+amr.n_cell =  256 256 256
+
+amr.plot_int = -1   # How often to write plotfiles.
+
+# Maximum allowable size of each subdomain in the problem domain;
+#    this is used to decompose the domain for parallel calculations.
+amr.max_grid_size = 32
+
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+amr.max_level = 0
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1     1     1      # Is periodic?
+geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
+geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
+
+# Verbosity
+warpx.verbose = 1
+
+# Algorithms
+algo.current_deposition = 2
+algo.charge_deposition = 0
+algo.field_gathering = 0
+algo.particle_pusher = 0
+interpolation.nox = 1
+interpolation.noy = 1
+interpolation.noz = 1
+
+# CFL
+warpx.cfl = 1.0
+
+particles.nspecies = 2
+particles.species_names = electrons ions
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = "gaussian_beam"
+electrons.x_rms = 2.e-6
+electrons.y_rms = 2.e-6
+electrons.z_rms = 5.e-6
+electrons.x_m = 0.
+electrons.y_m = 0.
+electrons.z_m = 0.
+electrons.npart = 500000
+electrons.q_tot = -1.602e-9
+electrons.profile = "constant"
+electrons.density = 1.e25
+electrons.momentum_distribution_type = "gaussian"
+electrons.ux_m = 0.0
+electrons.uy_m = 0.0
+electrons.uz_m = 0.0
+electrons.u_th = 0.01
+
+ions.charge = q_e
+ions.mass = m_p
+ions.injection_style = "gaussian_beam"
+ions.x_rms = 2.e-6
+ions.y_rms = 2.e-6
+ions.z_rms = 5.e-6
+ions.x_m = 0.
+ions.y_m = 0.
+ions.z_m = 0.
+ions.npart = 500000
+ions.q_tot = -1.602e-9
+ions.profile = "constant"
+ions.density = 1.e25
+ions.momentum_distribution_type = "gaussian"
+ions.ux_m = 0.0
+ions.uy_m = 0.0
+ions.uz_m = 0.0
+ions.u_th = 0.01

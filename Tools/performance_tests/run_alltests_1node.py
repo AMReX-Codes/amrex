@@ -10,7 +10,7 @@ from functions_perftest import *
 # Before running performance tests, make sure you have the latest version 
 # of performance_log.txt
 # A typical execution reads:
-# > python run_alltests.py --no-recompile --compiler=gnu --architecture=cpu --mode=run --log_file='my_performance_log.txt'
+# python run_alltests_1node.py --no-recompile --compiler=intel --architecture=knl --mode=run --input_file=uniform_plasma --n_node=1 --log_file='my_performance_log.txt'
 # These are default values, and will give the same result as 
 # > python run_alltests.py
 # To add a new test item, extent the test_list with a line like
@@ -34,51 +34,6 @@ from functions_perftest import *
 #         write data into the performance log file
 #         push file performance_log.txt on the repo
 
-# Define the list of tests to run
-# -------------------------------
-# each element of test_list contains
-# [str runname, int n_node, int n_mpi PER NODE, int n_omp]
-test_list = []
-n_repeat = 3
-basename1 = 'uniform_t0.01_'
-
-test_list.extend([[basename1 +  '128',    1, 16, 8]]*n_repeat)
-test_list.extend([[basename1 +  '128',    1, 32, 16]]*n_repeat)
-
-# test_list.extend([[basename1 +  '128',    1, 16, 8]]*n_repeat)
-# test_list.extend([[basename1 +  '256',    8, 16, 8]]*n_repeat)
-# test_list.extend([[basename1 +  '512',   64, 16, 8]]*n_repeat)
-# test_list.extend([[basename1 + '1024',  512, 16, 8]]*n_repeat)
-# test_list.extend([[basename1 + '2048', 4096, 16, 8]]*n_repeat)
-
-
-# test_list.extend([['uniform_t0.01_direct1_1ppc_128', 1, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_128', 1, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_128', 1, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_128', 1, 16, 8]]*n_repeat)
-
-# test_list.extend([['uniform_t0.01_direct1_1ppc_256', 8, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_256', 8, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_256', 8, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_256', 8, 16, 8]]*n_repeat)
-
-# test_list.extend([['uniform_t0.01_direct1_1ppc_512', 64, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_512', 64, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_512', 64, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_512', 64, 16, 8]]*n_repeat)
-
-# test_list.extend([['uniform_t0.01_direct1_1ppc_1024', 512, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_1024', 512, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_1024', 512, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_1024', 512, 16, 8]]*n_repeat)
-
-# test_list.extend([['uniform_t0.01_direct1_1ppc_2048', 4096, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_2048', 4096, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_2048', 4096, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_2048', 4096, 16, 8]]*n_repeat)
-
-n_tests   = len(test_list)
-
 # Read command-line arguments
 # ---------------------------
 # Create parser and read arguments
@@ -87,19 +42,60 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--recompile', dest='recompile', action='store_true', default=False)
 parser.add_argument('--no-recompile', dest='recompile', action='store_false', default=False)
 parser.add_argument('--commit', dest='commit', action='store_true', default=False)
-parser.add_argument( '--compiler', choices=['gnu', 'intel'], default='gnu',
+parser.add_argument( '--compiler', choices=['gnu', 'intel'], default='intel',
     help='which compiler to use')
-parser.add_argument( '--architecture', choices=['cpu', 'knl'], default='cpu',
+parser.add_argument( '--architecture', choices=['cpu', 'knl'], default='knl',
     help='which architecture to cross-compile for NERSC machines')
 parser.add_argument( '--mode', choices=['run', 'read'], default='run',
     help='whether to run perftests or read their perf output. run calls read')
 parser.add_argument( '--log_file', dest = 'log_file', default='my_performance_log.txt',
     help='name of log file where data will be written. ignored if option --commit is used')
+parser.add_argument('--n_node', dest='n_node', default=1, help='nomber of nodes for the runs')
+parser.add_argument('--input_file', dest='input_file', default='input_file.pixr', 
+    type=str, help='input file to run')
+parser.add_argument('--automated', dest='automated', action='store_true', default=False, 
+                    help='Use to run the automated test list')
 
 args = parser.parse_args()
-
 log_file = args.log_file
-if args.commit == True:
+do_commit = args.commit
+run_name = args.input_file
+
+# list of tests to run and analyse. 
+# Note: This is overwritten if is_automated
+# each element of test_list contains
+# [str input_file, int n_node, int n_mpi PER NODE, int n_omp]
+test_list = []
+n_repeat = 2
+filename1 = args.input_file
+test_list.extend([[filename1, 1, 128, 1]]*n_repeat)
+test_list.extend([[filename1, 1, 64, 2]]*n_repeat)
+# test_list.extend([[filename1, 1, 32, 4]]*n_repeat)
+# test_list.extend([[filename1, 1, 16, 8]]*n_repeat)
+# test_list.extend([[filename1, 1, 8, 16]]*n_repeat)
+# test_list.extend([[filename1, 1, 4, 32]]*n_repeat)
+# test_list.extend([[filename1, 1, 2, 64]]*n_repeat)
+# test_list.extend([[filename1, 1, 1, 128]]*n_repeat)
+
+# Nothing should be changed after this line
+# if flag --automated is used, test_list and do_commit are 
+# overwritten
+
+if args.automated == True:
+    test_list = []
+    n_repeat = 4
+    test_list.extend([['automated_test_1_uniform_rest_32ppc', 1, 16, 8]]*n_repeat)
+    test_list.extend([['automated_test_2_uniform_rest_1ppc',  1, 16, 8]]*n_repeat)
+    test_list.extend([['automated_test_2_uniform_rest_1ppc', 1, 16, 8]]*n_repeat)
+    test_list.extend([['automated_test_3_uniform_drift_4ppc', 1, 16, 8]]*n_repeat)
+    test_list.extend([['automated_test_4_labdiags_2ppc', 1, 16, 8]]*n_repeat)
+    test_list.extend([['automated_test_5_loadimbalance', 1, 16, 8]]*n_repeat)
+    test_list.extend([['automated_test_6_output_2ppc', 1, 16, 8]]*n_repeat)     
+    do_commit = True
+    run_name = 'automated_tests'
+
+n_tests   = len(test_list)
+if do_commit == True:
     log_file = 'performance_log.txt'
 
 # Dictionaries
@@ -119,6 +115,7 @@ log_dir  = cwd
 day = time.strftime('%d')
 month = time.strftime('%m')
 year = time.strftime('%Y')
+n_node   = int(args.n_node)
 
 # Initialize tests
 # ----------------
@@ -158,20 +155,19 @@ if args.recompile == True:
         makefile_handler.write( makefile_text )
     os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
 
-# Define functions to run a test and analyse results
-# --------------------------------------------------
+# This function runs a batch script with dependencies to perform the analysis 
+# when performance runs are done.
 def process_analysis():
     dependencies = ''
     f_log = open(cwd + 'log_jobids_tmp.txt','r')
-    for count, current_run in enumerate(test_list):
-        line = f_log.readline()
-        print(line)
-        dependencies += line.split()[3] + ':'
+    line = f_log.readline()
+    print(line)
+    dependencies += line.split()[3] + ':'
     batch_string = ''
     batch_string += '#!/bin/bash\n'
-    batch_string += '#SBATCH --job-name=warpx_read\n'
+    batch_string += '#SBATCH --job-name=warpx_1node_read\n'
     batch_string += '#SBATCH --time=00:05:00\n'
-    batch_string += '#SBATCH -C ' + module_Cname[args.architecture] + '\n'
+    batch_string += '#SBATCH -C haswell\n'
     batch_string += '#SBATCH -N 1\n'
     batch_string += '#SBATCH -S 4\n'
     batch_string += '#SBATCH -q regular\n'
@@ -181,9 +177,12 @@ def process_analysis():
     batch_string += '#SBATCH --account=m2852\n'
     batch_string += 'python ' + __file__ + ' --no-recompile --compiler=' + \
                     args.compiler + ' --architecture=' + args.architecture + \
-                    ' --mode=read' + ' --log_file=' + log_file
-    if args.commit == True:
+                    ' --mode=read' + ' --log_file=' + log_file + \
+                ' --input_file=' + args.input_file
+    if do_commit == True:
         batch_string += ' --commit'
+    if args.automated == True:
+        batch_string += ' --automated'
     batch_string += '\n'
     batch_file = 'slurm_perfread'
     f_exe = open(batch_file,'w')
@@ -201,60 +200,46 @@ if args.mode == 'run':
     # It is used to manage the analysis script dependencies
     if os.path.isfile(cwd + 'log_jobids_tmp.txt'):
         os.remove(cwd + 'log_jobids_tmp.txt')
-    for count, current_run in enumerate(test_list):
-        # Results folder
-        print('run ' + str(current_run))
-        run_name = current_run[0]
-        n_node   = current_run[1]
-        n_mpi    = current_run[2]
-        n_omp    = current_run[3]
-        n_steps  = get_nsteps(cwd + run_name)
-        res_dir = res_dir_base
-        res_dir += '_'.join([run_name, args.compiler,\
-                         args.architecture, str(n_node), str(n_mpi),\
-                             str(n_omp), str(count)]) + '/'
-        # Run the simulation.
-        # If you are currently in an interactive session and want to run interactive,
-        # just replace run_batch with run_interactive
-        run_batch(run_name, res_dir, bin_name, config_command, architecture=args.architecture, \
-                  Cname=module_Cname[args.architecture], n_node=n_node, n_mpi=n_mpi, n_omp=n_omp)
+    res_dir = res_dir_base
+    res_dir += '_'.join([run_name, args.compiler,\
+                         args.architecture, str(n_node)]) + '/'
+    # Run the simulation.
+    run_batch_nnode(test_list, res_dir, bin_name, config_command,\
+                    architecture=args.architecture, Cname=module_Cname[args.architecture], \
+                    n_node=n_node)
     os.chdir(cwd)
     process_analysis()
 
 if args.mode == 'read':
     # Create log_file for performance tests if does not exist
     if not os.path.isfile(log_dir + log_file):
-        log_line = '## year month day run_name compiler architecture n_node n_mpi ' +\
+        log_line = '## year month day input_file compiler architecture n_node n_mpi ' +\
                    'n_omp time_initialization time_one_iteration Redistribute '+\
                    'FillBoundary ParallelCopy CurrentDeposition FieldGather '+\
                    'ParthiclePush Copy EvolveEM Checkpoint '+\
                    'WriteParticles Write_FabArray '+\
-                   'WriteMultiLevelPlotfile '+\
-                   'RedistributeMPI(unit: second)\n'
+                   'WriteMultiLevelPlotfile(unit: second) '+\
+                   'RedistributeMPI\n'
         f_log = open(log_dir + log_file, 'a')
         f_log.write(log_line)
         f_log.close()
     for count, current_run in enumerate(test_list):
         # Results folder
         print('read ' + str(current_run))
-        run_name = current_run[0]
-        n_node   = current_run[1]
+        input_file = current_run[0]
+        # Do not read n_node = current_run[1], it is an external parameter
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
-        n_steps  = get_nsteps(cwd  + run_name)
+        n_steps  = get_nsteps(cwd  + input_file)
         print('n_steps = ' + str(n_steps))
         res_dir = res_dir_base
         res_dir += '_'.join([run_name, args.compiler,\
-                             args.architecture, str(n_node), str(n_mpi),\
-                             str(n_omp), str(count)]) + '/'
-#        res_dir += '_'.join([year, month, '25', run_name, args.compiler,\
-#                             args.architecture, str(n_node), str(n_mpi), \
-#                             str(n_omp)]) + '/'
-      # Read performance data from the output file
-        output_filename = 'perf_output.txt'
+                             args.architecture, str(n_node)]) + '/'
+        # Read performance data from the output file
+        output_filename = 'out_' + '_'.join([input_file, str(n_node), str(n_mpi), str(n_omp), str(count)]) + '.txt'
         timing_list = read_run_perf(res_dir + output_filename, n_steps)
         # Write performance data to the performance log file
-        log_line = ' '.join([year, month, day, run_name, args.compiler,\
+        log_line = ' '.join([year, month, day, input_file, args.compiler,\
                              args.architecture, str(n_node), str(n_mpi),\
                              str(n_omp)] +  timing_list + ['\n'])
         write_perf_logfile(log_dir + log_file, log_line)
@@ -274,23 +259,14 @@ if args.mode == 'read':
     for count, current_run in enumerate(test_list):
         shutil.copy(current_run[0], dir_record)
 
-    for count, current_run in enumerate(test_list):
-        run_name = current_run[0]
-        n_node   = current_run[1]
-        n_mpi    = current_run[2]
-        n_omp    = current_run[3]
-        res_dir = res_dir_base
-        res_dir += '_'.join([run_name, args.compiler,\
-                             args.architecture, str(n_node), str(n_mpi),\
-                             str(n_omp), str(count)]) + '/'
-        res_dir_arch = res_dir_base
-        res_dir_arch += '_'.join([year, month, day, run_name, args.compiler,\
-                                  args.architecture, str(n_node), str(n_mpi), \
-                                  str(n_omp), str(count)]) + '/'
-        os.rename(res_dir, res_dir_arch)
+    # Rename directory with precise date for archive purpose
+    res_dir_arch = res_dir_base
+    res_dir_arch += '_'.join([year, month, day, run_name, args.compiler,\
+                              args.architecture, str(n_node)]) + '/'
+    os.rename(res_dir, res_dir_arch)
 
     # Commit results to the Repo
-    if args.commit == True:
+    if do_commit == True:
         os.system('git add ' + log_dir + log_file + ';'\
                   'git commit -m "performance tests";'\
                   'git push -u origin master')
