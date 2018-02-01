@@ -9,15 +9,21 @@ from functions_perftest import *
 # ---- User's manual ----
 # Before running performance tests, make sure you have the latest version 
 # of performance_log.txt
-# A typical execution reads:
-# python run_alltests_1node.py --no-recompile --compiler=intel --architecture=knl --mode=run --input_file=uniform_plasma --n_node=1 --log_file='my_performance_log.txt'
-# These are default values, and will give the same result as 
-# > python run_alltests.py
+
+# ---- Running a custom set of performance tests ----
+# > python run_alltests_1node.py --no-recompile --compiler=intel 
+# > --architecture=knl --mode=run --input_file=uniform_plasma 
+# > --n_node=1 --log_file='my_performance_log.txt'
+
+# ---- Running the pre-drefined automated tests ----
+# Compile and run:
+# > python run_alltests_1node.py --automated --recompile
+# Just run:
+# > python run_alltests_1node.py --automated 
+
 # To add a new test item, extent the test_list with a line like
-# test_list.extend([['my_input_file', n_node, n_mpi, n_omp]]*3)
+# test_list.extend([['my_input_file', n_node, n_mpi, n_omp]]*n_repeat)
 # - my_input_file must be in warpx/performance_tests
-# - the test will run 3 times, to have some statistics
-# - the test must take <1h or it will timeout
 
 # ---- Developer's manual ----
 # This script can run in two modes:
@@ -86,12 +92,11 @@ if args.automated == True:
     n_repeat = 4
     test_list.extend([['automated_test_1_uniform_rest_32ppc', 1, 16, 8]]*n_repeat)
     test_list.extend([['automated_test_2_uniform_rest_1ppc',  1, 16, 8]]*n_repeat)
-    test_list.extend([['automated_test_2_uniform_rest_1ppc', 1, 16, 8]]*n_repeat)
     test_list.extend([['automated_test_3_uniform_drift_4ppc', 1, 16, 8]]*n_repeat)
-    test_list.extend([['automated_test_4_labdiags_2ppc', 1, 16, 8]]*n_repeat)
-    test_list.extend([['automated_test_5_loadimbalance', 1, 16, 8]]*n_repeat)
-    test_list.extend([['automated_test_6_output_2ppc', 1, 16, 8]]*n_repeat)     
-    do_commit = True
+    test_list.extend([['automated_test_4_labdiags_2ppc',      1, 16, 8]]*n_repeat)
+    test_list.extend([['automated_test_5_loadimbalance',      1, 16, 8]]*n_repeat)
+    test_list.extend([['automated_test_6_output_2ppc',        1, 16, 8]]*n_repeat)     
+    do_commit = False
     run_name = 'automated_tests'
 
 n_tests   = len(test_list)
@@ -271,3 +276,58 @@ if args.mode == 'read':
                   'git commit -m "performance tests";'\
                   'git push -u origin master')
         
+    # Plot file
+    import numpy as np
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    filename0 = 'performance_log'
+    filename = filename0 + '.txt'
+    fontsize = 14
+    matplotlib.rcParams.update({'font.size': fontsize})
+    nsteps = 100.
+    nrepeat = 4
+    legends = [ 'n_node', 'n_mpi', 'n_omp', 'time_initialization', 'time_one_iteration', \
+                'Redistribute', 'FillBoundary', 'ParallelCopy', 'CurrentDeposition', \
+                'FieldGather', 'ParthiclePush', 'Copy', 'EvolveEM', 'Checkpoint', \
+                'WriteParticles', 'Write_FabArray', 'WriteMultiLevelPlotfile', \
+                'RedistributeMPI']
+    date = np.loadtxt( filename, usecols = np.arange(0, 3 ))
+    data = np.loadtxt( filename, usecols = np.arange(6, 6+len(legends)) )
+    # Read run name
+    with open(filename) as f:
+        namelist_tmp = zip(*[line.split() for line in f])[3]
+        # Remove first line = comments
+        namelist = list(namelist_tmp[1:])
+    selector_list = ['automated_test_1_uniform_rest_32ppc',\
+                     'automated_test_2_uniform_rest_1ppc',\
+                     'automated_test_3_uniform_drift_4ppc',\
+                     'automated_test_4_labdiags_2ppc',\
+                     'automated_test_5_loadimbalance',\
+                     'automated_test_6_output_2ppc']
+    selector_string = selector_list[0]
+    selector = [idx for idx in range(len(namelist)) if selector_string in namelist[idx]]
+    lin_date = date[:,0]+date[:,1]/12.+date[:,2]/366.
+    unique_lin_date = np.unique(lin_date)
+    my_xticks = unique_lin_date
+#     cmap = plt.get_cmap("tab20")
+    cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    for selector_string in selector_list:
+        selector = [idx for idx in range(len(namelist)) if selector_string in namelist[idx]]
+        plt.figure(num=0, figsize=(8,4))
+        plt.clf()
+        plt.title('warpx ' + selector_string)
+        for i in np.arange(data.shape[1]):
+            icolors = i-3
+            if i>3 and (data[selector,i] > 5./100*data[selector,4]).any():
+                plt.plot(lin_date[selector], data[selector,i],'+', ms=6, \
+                         mew=2, label=legends[i] )
+                # plt.plot(lin_date[selector], data[selector,i],'+', ms=6, \
+                #          mew=2, label=legends[i], color=cmap(i) )
+            plt.xlabel('date')
+            plt.ylabel('time/step (s)')
+            plt.grid()
+            plt.legend(loc='best')
+            plt.legend(bbox_to_anchor=(1.1, 1.05))
+            plt.savefig( selector_string + '.pdf', bbox_inches='tight')
+            plt.savefig( selector_string + '.png', bbox_inches='tight')   

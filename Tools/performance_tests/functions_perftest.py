@@ -20,6 +20,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
     batch_string += '#SBATCH -C ' + Cname + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH -q regular\n'
+    batch_string += '#SBATCH --mail-type=end\n'
     batch_string += '#SBATCH -e error.txt\n'
     batch_string += '#SBATCH --account=m2852\n'
 
@@ -46,7 +47,9 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
                        ' ' + input_file + \
                        ' > ' + output_filename + '\n'
         batch_string += srun_string
-        batch_string += 'rm -r plt* chk* lab_frame_data'
+        batch_string += 'rm -rf plt*\n'
+        batch_string += 'rm -rf chk*\n'
+        batch_string += 'rm -rf lab_frame_data\n'
     batch_file = 'slurm'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)
