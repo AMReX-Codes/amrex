@@ -3,12 +3,22 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_EBIndexSpace.H>
+#include <AMReX_EBTower.H>
 
 using namespace amrex;
 
 MyTest::MyTest ()
 {
     readParameters();
+
+    initGrids();
+
+    initializeEBIS();
+
+    EBTower::Build();
+    AMReX_EBIS::reset();
+
     initData();
 }
 
@@ -52,6 +62,7 @@ MyTest::solve ()
         amrex::VisMF::Write(phi[ilev], "phi-"+std::to_string(ilev));
         amrex::VisMF::Write(rhs[ilev], "rhs-"+std::to_string(ilev));
         amrex::VisMF::Write(vel[ilev], "vel-"+std::to_string(ilev));
+        amrex::VisMF::Write(factory[ilev]->getVolFrac(), "vfrc-"+std::to_string(ilev));
     }
 }
 
@@ -70,15 +81,16 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
+
+    pp.query("geom_type", geom_type);
 }
 
 void
-MyTest::initData ()
+MyTest::initGrids ()
 {
     int nlevels = max_level + 1;
     geom.resize(nlevels);
     grids.resize(nlevels);
-    dmap.resize(nlevels);
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
     std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
@@ -99,7 +111,14 @@ MyTest::initData ()
         domain.grow(-n_cell/4);   // fine level cover the middle of the coarse domain
         domain.refine(ref_ratio); 
     }
+}
 
+void
+MyTest::initData ()
+{
+    int nlevels = max_level + 1;
+    dmap.resize(nlevels);
+    factory.resize(nlevels);
     phi.resize(nlevels);
     rhs.resize(nlevels);
     vel.resize(nlevels);
@@ -108,12 +127,15 @@ MyTest::initData ()
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         dmap[ilev].define(grids[ilev]);
+        factory[ilev].reset(new EBFArrayBoxFactory(geom[ilev], grids[ilev], dmap[ilev],
+                                                   {2,2,2}, EBSupport::volume));
+
         phi[ilev].define(amrex::convert(grids[ilev],IntVect::TheNodeVector()),
-                         dmap[ilev], 1, 1);
+                         dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
         rhs[ilev].define(amrex::convert(grids[ilev],IntVect::TheNodeVector()),
-                         dmap[ilev], 1, 0);
-        sig[ilev].define(grids[ilev], dmap[ilev], 1, 1);
-        vel[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1);
+                         dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+        sig[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
+        vel[ilev].define(grids[ilev], dmap[ilev], AMREX_SPACEDIM, 1, MFInfo(), *factory[ilev]);
 
         phi[ilev].setVal(0.0);
         sig[ilev].setVal(1.0);

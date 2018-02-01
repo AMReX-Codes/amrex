@@ -1,6 +1,7 @@
 #ifndef MY_TEST_H_
 #define MY_TEST_H_
 
+#include <AMReX_EBFabFactory.H>
 #include <AMReX_MLMG.H>
 
 class MyTest
@@ -13,7 +14,9 @@ public:
 
 private:
 
+    void initializeEBIS ();
     void readParameters ();
+    void initGrids ();
     void initData ();
 
     int max_level = 0;
@@ -28,9 +31,13 @@ private:
     int max_fmg_iter = 0;
     bool use_hypre = false;
 
+//    std::string geom_type = "all_regular";
+    std::string geom_type = "ramp_normal_point";
+
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
     amrex::Vector<amrex::DistributionMapping> dmap;
+    amrex::Vector<std::unique_ptr<amrex::EBFArrayBoxFactory> > factory;
 
     amrex::Vector<amrex::MultiFab> phi;
     amrex::Vector<amrex::MultiFab> rhs;
