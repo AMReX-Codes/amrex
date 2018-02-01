@@ -20,7 +20,6 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
     batch_string += '#SBATCH -C ' + Cname + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH -q regular\n'
-    batch_string += '#SBATCH --mail-type=end\n'
     batch_string += '#SBATCH -e error.txt\n'
     batch_string += '#SBATCH --account=m2852\n'
 
