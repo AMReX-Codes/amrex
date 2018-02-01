@@ -19,6 +19,7 @@
 #include "AMReX_LoHiSide.H"
 #include "AMReX_RealVect.H"
 #include "AMReX_Box.H"
+#include "AMReX_BaseIF.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_GeomIntersectUtils.H"
 
@@ -99,7 +100,23 @@ namespace amrex
 
     virtual bool pointOutside(const RealVect& a_pt) const;
 
+    ///get the implicit function.
+    /**
+       If you have a geometry sevice that does not have an implicit function, it is a runtime error.
+     */
+    virtual std::shared_ptr<const BaseIF> getImplicitFunction() const
+      {
+        BL_ASSERT(hasImplicitFunction());
+        std::shared_ptr<const BaseIF> retval;
+        return retval;
+      }
       
+    ///True if there is an underlying implicit function
+    virtual bool hasImplicitFunction() const
+      {
+        return false;
+      }
+
     ///handy functions to do rectangle intersections in real space
     static bool intersection(const RealVect& a_lo1, const RealVect& a_hi1,
                              const RealVect& a_lo2, const RealVect& a_hi2);
