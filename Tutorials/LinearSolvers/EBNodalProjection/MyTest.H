@@ -23,7 +23,7 @@ private:
     
     // For MLMG solver
     int verbose = 2;
-    int cg_verbose = 2;
+    int bottom_verbose = 2;
     int max_iter = 100;
     int max_fmg_iter = 0;
     bool use_hypre = false;
