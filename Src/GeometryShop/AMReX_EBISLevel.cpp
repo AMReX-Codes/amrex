@@ -101,8 +101,8 @@ namespace amrex
     writeHeader(a_dirname);
     string graphdirname = a_dirname + "/_graph";
     string  datadirname = a_dirname + "/_data";
-    UtilCreateDirectoryDestructive(graphdirname, true);
-    UtilCreateDirectoryDestructive( datadirname, true);
+//    UtilCreateDirectoryDestructive(graphdirname, true); done in functions below
+//    UtilCreateDirectoryDestructive( datadirname, true);done in functions below
     FabArrayIO<EBGraph>::write(m_graph, graphdirname);
     FabArrayIO<EBData >::write(m_data ,  datadirname);
   }

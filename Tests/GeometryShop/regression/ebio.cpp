@@ -235,9 +235,9 @@ namespace amrex
         }
       }
       //check the face data
-      //for(int idir = 0; idir < SpaceDim; idir++)
-      int idir = 0;
-      if(0)
+//int idir = 0;
+//if(0)
+      for(int idir = 0; idir < SpaceDim; idir++)
       {
         BaseIFFAB<Real>& fdata1 = ebd1.getFaceData(idir);
         BaseIFFAB<Real>& fdata2 = ebd2.getFaceData(idir);
