@@ -21,8 +21,8 @@ MyTest::solve ()
 {
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
-    mlmg_lobc[0] = LinOpBCType::Periodic;
-    mlmg_hibc[0] = LinOpBCType::Periodic;
+    mlmg_lobc[0] = LinOpBCType::Neumann;
+    mlmg_hibc[0] = LinOpBCType::Neumann;
     mlmg_lobc[1] = LinOpBCType::Neumann;
     mlmg_hibc[1] = LinOpBCType::Dirichlet;
     static_assert(AMREX_SPACEDIM==2, "2d only");
@@ -36,6 +36,23 @@ MyTest::solve ()
     }
 
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
+
+    MLMG mlmg(mlndlap);
+    mlmg.setVerbose(verbose);
+    mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMaxIter(max_iter);
+    mlmg.setMaxFmgIter(max_fmg_iter);
+
+    Real mlmg_err = mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs),
+                               1.e-11, 0.0);
+
+    mlndlap.updateVelocity(amrex::GetVecOfPtrs(vel), amrex::GetVecOfConstPtrs(phi));
+
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        amrex::VisMF::Write(phi[ilev], "phi-"+std::to_string(ilev));
+        amrex::VisMF::Write(rhs[ilev], "rhs-"+std::to_string(ilev));
+        amrex::VisMF::Write(vel[ilev], "vel-"+std::to_string(ilev));
+    }
 }
 
 void
@@ -47,7 +64,7 @@ MyTest::readParameters ()
     pp.query("max_grid_size", max_grid_size);
 
     pp.query("verbose", verbose);
-    pp.query("cg_verbose", cg_verbose);
+    pp.query("bottom_verbose", bottom_verbose);
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
 #ifdef AMREX_USE_HYPRE
@@ -86,6 +103,7 @@ MyTest::initData ()
     phi.resize(nlevels);
     rhs.resize(nlevels);
     vel.resize(nlevels);
+    sig.resize(nlevels);
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
