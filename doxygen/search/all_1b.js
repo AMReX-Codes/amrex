@@ -74,6 +74,7 @@ var searchData=
   ['_7eerrorfunc',['~ErrorFunc',['../classamrex_1_1_error_rec_1_1_error_func.html#a1a7a3ff62c2702366d99b2492fe905af',1,'amrex::ErrorRec::ErrorFunc']]],
   ['_7eerrorfunc2',['~ErrorFunc2',['../classamrex_1_1_error_rec_1_1_error_func2.html#a2fb62c07ce0a856089ee327b3fa22536',1,'amrex::ErrorRec::ErrorFunc2']]],
   ['_7eerrorrec',['~ErrorRec',['../classamrex_1_1_error_rec.html#ab855c1bad2c1c0ceb3dc3eddcbaba9c1',1,'amrex::ErrorRec']]],
+  ['_7eextrudeif',['~ExtrudeIF',['../classamrex_1_1_extrude_i_f.html#a94747c9d125d1e8fe471ae969376b27d',1,'amrex::ExtrudeIF']]],
   ['_7efabarray',['~FabArray',['../classamrex_1_1_fab_array.html#af9762647ad8ae52d39f2c51f51c06813',1,'amrex::FabArray']]],
   ['_7efabarraybase',['~FabArrayBase',['../classamrex_1_1_fab_array_base.html#a9d0b50241fbebae6e3d53e301cf2b23a',1,'amrex::FabArrayBase']]],
   ['_7efabarraycopydescriptor',['~FabArrayCopyDescriptor',['../classamrex_1_1_fab_array_copy_descriptor.html#aaa1a22a34f3f8034c6b4f85534e9331c',1,'amrex::FabArrayCopyDescriptor']]],

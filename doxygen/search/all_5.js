@@ -20,8 +20,8 @@ var searchData=
   ['ebfacefab',['EBFaceFAB',['../classamrex_1_1_e_b_face_f_a_b.html#a4a0bd3274b563ceab629ade37c247770',1,'amrex::EBFaceFAB::EBFaceFAB()'],['../classamrex_1_1_e_b_face_f_a_b.html#ab646cd9bbb6ce86835f071ebf55a2acb',1,'amrex::EBFaceFAB::EBFaceFAB(const EBISBox &amp;a_ebisBox, const Box &amp;a_region, int a_iDir, int a_nVar)'],['../classamrex_1_1_e_b_face_f_a_b.html#ad2c2af24225cda071bca226bef6cdfc4',1,'amrex::EBFaceFAB::EBFaceFAB(const Box &amp;a_region, int a_nComp)']]],
   ['ebfastfr',['EBFastFR',['../classamrex_1_1_e_b_fast_f_r.html',1,'amrex']]],
   ['ebfastfr',['EBFastFR',['../classamrex_1_1_e_b_fast_f_r.html#ad8391fe43f52ac9552af73003322e37c',1,'amrex::EBFastFR::EBFastFR()'],['../classamrex_1_1_e_b_fast_f_r.html#a1925cae699887928ed43ff6cdfca2586',1,'amrex::EBFastFR::EBFastFR(const EBLevelGrid &amp;a_eblgFine, const EBLevelGrid &amp;a_eblgCoar, const int &amp;a_nref, const int &amp;a_nvar, bool a_forceNoEBCF=true)']]],
-  ['ebfineinterp',['EBFineInterp',['../classamrex_1_1_e_b_fine_interp.html#a5ea5145a1001c84e56f7ed2b11649979',1,'amrex::EBFineInterp::EBFineInterp()'],['../classamrex_1_1_e_b_fine_interp.html#a87247087abe5eb08dd9819bea2022924',1,'amrex::EBFineInterp::EBFineInterp(const EBLevelGrid &amp;a_eblgFine, const EBLevelGrid &amp;a_eblgCoar, const int &amp;a_nref, const int &amp;a_ghostCellsInData, int a_orderOfPolynomial=2, bool a_slowMode=false)']]],
   ['ebfineinterp',['EBFineInterp',['../classamrex_1_1_e_b_fine_interp.html',1,'amrex']]],
+  ['ebfineinterp',['EBFineInterp',['../classamrex_1_1_e_b_fine_interp.html#a5ea5145a1001c84e56f7ed2b11649979',1,'amrex::EBFineInterp::EBFineInterp()'],['../classamrex_1_1_e_b_fine_interp.html#a87247087abe5eb08dd9819bea2022924',1,'amrex::EBFineInterp::EBFineInterp(const EBLevelGrid &amp;a_eblgFine, const EBLevelGrid &amp;a_eblgCoar, const int &amp;a_nref, const int &amp;a_ghostCellsInData, int a_orderOfPolynomial=2, bool a_slowMode=false)']]],
   ['ebfluxfab',['EBFluxFAB',['../classamrex_1_1_e_b_flux_f_a_b.html#a726ec8c655f1b72469412996747b7162',1,'amrex::EBFluxFAB::EBFluxFAB()'],['../classamrex_1_1_e_b_flux_f_a_b.html#abc5eeeef66abfa12c437fac6f46cc30c',1,'amrex::EBFluxFAB::EBFluxFAB(const Box &amp;a_region, int n=1, bool alloc=true, bool shared=false)'],['../classamrex_1_1_e_b_flux_f_a_b.html#a403b07195e60f7ea65c1ea2f7314b79a',1,'amrex::EBFluxFAB::EBFluxFAB(const EBISBox &amp;a_ebisBox, const Box &amp;bx, int n)'],['../classamrex_1_1_e_b_flux_f_a_b.html#a76af20f6138a11a38f25f6ecda8c8134',1,'amrex::EBFluxFAB::EBFluxFAB(const Box &amp;bx, int n)']]],
   ['ebfluxfab',['EBFluxFAB',['../classamrex_1_1_e_b_flux_f_a_b.html',1,'amrex']]],
   ['ebfluxfactory',['EBFluxFactory',['../classamrex_1_1_e_b_flux_factory.html#adda21d776c16889e9f0adb99fb80a70d',1,'amrex::EBFluxFactory']]],
@@ -57,8 +57,8 @@ var searchData=
   ['ebleveldataops',['EBLevelDataOps',['../classamrex_1_1_e_b_level_data_ops.html#a7c6ca2a7bb597afe27a506434e722bc8',1,'amrex::EBLevelDataOps']]],
   ['eblevelgrid',['EBLevelGrid',['../classamrex_1_1_e_b_level_grid.html',1,'amrex']]],
   ['eblevelgrid',['EBLevelGrid',['../classamrex_1_1_e_b_level_grid.html#a4c8d2abebe92ec1c5a39c519d425b831',1,'amrex::EBLevelGrid::EBLevelGrid()'],['../classamrex_1_1_e_b_level_grid.html#ac0eb2d87162dc4deaa1cb65510fa4d51',1,'amrex::EBLevelGrid::EBLevelGrid(const BoxArray &amp;a_dbl, const DistributionMapping &amp;a_dm, const Box &amp;a_domain, const int &amp;a_numGhostEBISL)'],['../classamrex_1_1_e_b_level_grid.html#a9f5892be730dd73252dcc268eb6e9769',1,'amrex::EBLevelGrid::EBLevelGrid(const BoxArray &amp;a_dbl, const DistributionMapping &amp;a_dm, const EBISLayout &amp;a_ebisl, const Box &amp;a_domain)'],['../classamrex_1_1_e_b_level_grid.html#afe7cdcb72219c476a657eb62d622e2be',1,'amrex::EBLevelGrid::EBLevelGrid(const EBLevelGrid &amp;ebcin)']]],
-  ['eblevelredist',['EBLevelRedist',['../classamrex_1_1_e_b_level_redist.html',1,'amrex']]],
   ['eblevelredist',['EBLevelRedist',['../classamrex_1_1_e_b_level_redist.html#ab2a21f1acc326fee3c18c0fd557a9ff7',1,'amrex::EBLevelRedist::EBLevelRedist()'],['../classamrex_1_1_e_b_level_redist.html#a9b7b1ebaf1c4dd0a8abcfbddf748b08a',1,'amrex::EBLevelRedist::EBLevelRedist(const EBLevelGrid &amp;a_eblg, const int &amp;a_ncomp, int a_redistRad=1)']]],
+  ['eblevelredist',['EBLevelRedist',['../classamrex_1_1_e_b_level_redist.html',1,'amrex']]],
   ['eblohicenalldirs',['EBLoHiCenAllDirs',['../namespaceamrex.html#a05f4a7330fe49f9b37a15bb9b59f96e5',1,'amrex']]],
   ['eblohicenter',['eblohicenter',['../namespaceamrex.html#ad073ebdb53b51505290c2c5bac3e0b24',1,'amrex']]],
   ['eblohicenterface',['eblohicenterFace',['../namespaceamrex.html#a80ed3f2ed92a90f25ab51978c0e863eb',1,'amrex']]],
@@ -97,8 +97,8 @@ var searchData=
   ['errorfuncdefault',['ErrorFuncDefault',['../_a_m_re_x___error_list_8_h.html#ad0b0c105581cf8b9e28de2ed2b4c101d',1,'AMReX_ErrorList.H']]],
   ['errorlist',['ErrorList',['../classamrex_1_1_error_list.html#a7f27a1e373adbd6f9dc3fd2c2affa93b',1,'amrex::ErrorList']]],
   ['errorlist',['ErrorList',['../classamrex_1_1_error_list.html',1,'amrex']]],
-  ['errorrec',['ErrorRec',['../classamrex_1_1_error_rec.html',1,'amrex']]],
   ['errorrec',['ErrorRec',['../classamrex_1_1_error_rec.html#a23c1a082f625f261a869fca2fbcbd16b',1,'amrex::ErrorRec::ErrorRec(const std::string &amp;nm, int ng, ErrorType etyp, const ErrorRec::ErrorFunc2 &amp;f2)'],['../classamrex_1_1_error_rec.html#a103642c3a3fe6d0f549a70ca1379bc10',1,'amrex::ErrorRec::ErrorRec(const std::string &amp;nm, int ng, ErrorType etyp, const ErrorRec::ErrorFunc &amp;f)']]],
+  ['errorrec',['ErrorRec',['../classamrex_1_1_error_rec.html',1,'amrex']]],
   ['errorstring',['ErrorString',['../namespaceamrex_1_1_parallel_descriptor.html#a568bbd4bb8f719b9c0ba1950c10678ef',1,'amrex::ParallelDescriptor']]],
   ['errortype',['ErrorType',['../classamrex_1_1_error_rec.html#adeca3cab9dffebf73c48525e5f94872d',1,'amrex::ErrorRec']]],
   ['errtype',['errType',['../classamrex_1_1_error_rec.html#a898ec3d06f5951b29bce3a2f7c01fa27',1,'amrex::ErrorRec']]],
@@ -112,5 +112,7 @@ var searchData=
   ['expect',['expect',['../classamrex_1_1expect.html#a2136ece586212ef73074aaab29247505',1,'amrex::expect::expect(const std::string &amp;str_)'],['../classamrex_1_1expect.html#a29077faf3a3650e3eeb67285023d7e5e',1,'amrex::expect::expect(const char *istr_)'],['../classamrex_1_1expect.html#a76c80085267c42ef73ed0e63c65af898',1,'amrex::expect::expect(char c)']]],
   ['ext_5fdir',['EXT_DIR',['../_a_m_re_x___b_c___t_y_p_e_s_8_h.html#aab37e552c88a7ebe4df8c39cbd04b8f7',1,'AMReX_BC_TYPES.H']]],
   ['extrap',['extrap',['../classamrex_1_1_state_descriptor.html#a368a6869c80cad37b4949b47cff5013f',1,'amrex::StateDescriptor']]],
-  ['extrapolatebc',['ExtrapolateBC',['../classamrex_1_1_e_b_arith.html#a09472388dff04fd70581d16c9242f466',1,'amrex::EBArith']]]
+  ['extrapolatebc',['ExtrapolateBC',['../classamrex_1_1_e_b_arith.html#a09472388dff04fd70581d16c9242f466',1,'amrex::EBArith']]],
+  ['extrudeif',['ExtrudeIF',['../classamrex_1_1_extrude_i_f.html',1,'amrex']]],
+  ['extrudeif',['ExtrudeIF',['../classamrex_1_1_extrude_i_f.html#a87e982d1283438e6a38ec5b49aec1e71',1,'amrex::ExtrudeIF']]]
 ];
