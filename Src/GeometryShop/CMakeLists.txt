@@ -54,8 +54,8 @@ list ( APPEND ALLHEADERS AMReX_EBNormalizeByVolumeFraction.H   AMReX_EBLoHiCente
 list ( APPEND CXXSRC     AMReX_EBNormalizeByVolumeFraction.cpp AMReX_EBLoHiCenter.cpp AMReX_FabArrayIO.cpp )
 
 
-list ( APPEND ALLHEADERS AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H )
-list ( APPEND CXXSRC     AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp )
+list ( APPEND ALLHEADERS AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H AMReX_ExtrudeIF.H )
+list ( APPEND CXXSRC     AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp AMReX_ExtrudeIF.cpp )
 
 list ( APPEND ALLHEADERS AMReX_PolynomialIF.H   )
 list ( APPEND CXXSRC     AMReX_PolynomialIF.cpp )
