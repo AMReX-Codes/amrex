@@ -46,6 +46,7 @@ _progs  += dataArith
 _progs  += fabio
 _progs  += ebio
 _progs  += serialization
+_progs  += fabfromif
 
 
 include $(AMREX_HOME)/Src/Base/Make.package
