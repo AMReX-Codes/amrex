@@ -152,12 +152,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         timer[iter_time] = amrex::second() - iter_start_time;
     }
 
-    int ng_back = 0;
-    if (final_fill_bc) {
-        fillSolutionBC();
-        ng_back = 1;
-    }
-
+    int ng_back = final_fill_bc ? 1 : 0;
     for (int alev = 0; alev < namrlevs; ++alev)
     {
         if (a_sol[alev] != sol[alev])
@@ -830,6 +825,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         {
             sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
                                               a_sol[alev]->DistributionMap(), 1, 1));
+            sol_raii[alev]->setVal(0.0);
             MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, 1, 0);
             sol[alev] = sol_raii[alev].get();
         }
@@ -1027,18 +1023,6 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.unapplyMetricTerm(alev, 0, *a_res[alev]);
     }
 #endif
-}
-
-void
-MLMG::fillSolutionBC ()
-{
-    BL_PROFILE("MLMG::fillSolutionBC()");
-
-    for (int alev = 0; alev <= finest_amr_lev; ++alev)
-    {
-        const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
-        linop.fillSolutionBC(alev, *sol[alev], crse_bcdata);
-    }
 }
 
 void

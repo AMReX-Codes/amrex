@@ -142,8 +142,6 @@ private:
     Real MLRhsNormInf (bool local = false);
     void buildFineMask ();
 
-    void fillSolutionBC ();
-
     void averageDownAndSync ();
 
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
