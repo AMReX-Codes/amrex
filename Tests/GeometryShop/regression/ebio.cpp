@@ -36,8 +36,105 @@
 #include "AMReX_FabArrayIO.H"
 #include "AMReX_parstream.H"
 
+
 namespace amrex
 {
+void
+dumpIFFAB(const BaseIFFAB<Real>* a_iffab)
+{
+  int ncomp = a_iffab->nComp();
+  const Vector<FaceIndex>& faces = a_iffab->getFaces();
+  for(int iface = 0; iface < faces.size(); iface++)
+  {
+    amrex::Print() << iface << " " << faces[iface] << ":";
+
+    for(int icomp = 0; icomp < ncomp; icomp++)
+    {
+      amrex::Print() << (*a_iffab)(faces[iface], icomp) << " ";
+    }
+
+    amrex::Print() << endl;
+  }
+}
+
+void
+dumpFaces(Vector<FaceIndex>* a_iffab)
+{
+  const Vector<FaceIndex>& faces = *a_iffab;
+  for(int iface = 0; iface < faces.size(); iface++)
+  {
+    amrex::Print() << faces[iface];
+    amrex::Print() << endl;
+  }
+}
+//[((14,5)):0; ((15,5)):0]
+void 
+pointFAData( FabArray<EBData>*  a_data)
+{
+  IntVect ivlo(D_DECL(14, 5, 0));
+  IntVect ivhi(D_DECL(15, 5, 0));
+
+  FaceIndex debface(VolIndex(ivlo, 0),  VolIndex(ivhi,0));
+
+  FabArray<EBData>& datamf = *a_data;
+  int ibox =0;
+  for(MFIter mfi(datamf); mfi.isValid(); ++mfi)
+  {
+    EBData& ebdata = datamf[mfi];
+    const BaseIFFAB<Real>& facefab = ebdata.getFaceData(0);
+    const Vector<FaceIndex>& faces = facefab.getFaces();
+    for(int iface = 0; iface < faces.size(); iface++)
+    {
+      if(faces[iface] == debface)
+      {
+        amrex::Print() << "ibox = " << ibox << ", iface = " << iface << " " << faces[iface] << ":";
+
+        int ncomp = facefab.nComp();
+        for(int icomp = 0; icomp < ncomp; icomp++)
+        {
+          amrex::Print() << facefab(faces[iface], icomp) << " ";
+        }
+
+        amrex::Print() << endl;
+      }
+    }
+    ibox++;
+  }
+}
+void 
+pointData( EBData*  a_data)
+{
+  IntVect ivlo(D_DECL(14, 5, 0));
+  IntVect ivhi(D_DECL(15, 5, 0));
+
+  FaceIndex debface(VolIndex(ivlo, 0),  VolIndex(ivhi,0));
+
+  EBData& ebdata = *a_data;
+  const BaseIFFAB<Real>& facefab = ebdata.getFaceData(0);
+  const Vector<FaceIndex>& faces = facefab.getFaces();
+  for(int iface = 0; iface < faces.size(); iface++)
+  {
+    if(faces[iface] == debface)
+    {
+      amrex::Print()  << " iface = " << iface << " " << faces[iface] << ":";
+
+      int ncomp = facefab.nComp();
+      for(int icomp = 0; icomp < ncomp; icomp++)
+      {
+        amrex::Print() << facefab(faces[iface], icomp) << " ";
+      }
+      amrex::Print() << endl;
+    }
+  }
+}
+void
+donotcallpls()
+{
+  dumpIFFAB(NULL);
+  dumpFaces(NULL);
+  pointData(NULL);
+  pointFAData(NULL);
+}
 /***************/
   int makeGeometry(Box& a_domain,
                    Real& a_dx)
@@ -188,7 +285,7 @@ namespace amrex
                   const FabArray<EBData> & a_ebd2,
                   const EBLevelGrid      & a_eblg)
   {
-    
+    int ibox = 0;
     for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       EBData ebd1 = a_ebd1[mfi];
@@ -272,7 +369,9 @@ namespace amrex
               if(std::abs(val1-val2) > tol)
               {
                 amrex::Print() << "bad face = "  << vfac1[ivec] << endl;
-                amrex::Print() << "eblg domain = " << a_eblg.getDomain() << endl;
+                amrex::Print() << "eblg domain   = " << a_eblg.getDomain() << endl;
+                amrex::Print() << "ebd1  region = " << ebd1.getRegion() << endl;
+                amrex::Print() << "ebd2  region = " << ebd2.getRegion() << endl;
                 amrex::Print() << "val1 = "  << val1 << ", val2 =" << val2 << endl;
                 amrex::Print() << "checkvof: face value mismatch at ivec, ivar = "<< ivec  << ","<< icomp<< endl;
                 return -10;
@@ -281,6 +380,7 @@ namespace amrex
           }
         }
       }
+      ibox++;
     }        
 
     return 0;
