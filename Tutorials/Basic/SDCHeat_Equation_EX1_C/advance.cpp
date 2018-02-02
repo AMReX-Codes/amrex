@@ -6,13 +6,16 @@ void sweep (MultiFab& phi_old,
 	    MultiFab& phi_new,
 	    std::array<MultiFab, AMREX_SPACEDIM>& flux,
    	    Vector<MultiFab>& phi_sdc,
+   	    Vector<MultiFab>& res_sdc,
 	    Vector<Vector<MultiFab> >& f_sdc,
+	    Vector<Vector<MultiFab> >& f_sdc_old,
 	    Real dt,
 	    const Geometry& geom,
 	    Real qnodes [],
 	    Real qmat [][SDC_NNODES],
   	    Real qmatE [][SDC_NNODES],
 	    Real qmatI [][SDC_NNODES])
+
 
 {
 
@@ -30,10 +33,17 @@ void sweep (MultiFab& phi_old,
   //  pf_quadrature(qtype_in, SDC_NNODES,SDC_NNODES, );
   const Box& domain_bx = geom.Domain();
 
-  // Compute the residual
+  // Compute the quadrature term
   for (int sdc_m = 0; sdc_m < SDC_NNODES-2; sdc_m++)
     {
-      //      compute_resid()
+      for ( MFIter mfi(phi_sdc[sdc_m]); mfi.isValid(); ++mfi )
+	{
+	  res_sdc[sdc_m].setVal(0.0);
+	  for (int sdc_n = 0; sdc_m < SDC_NNODES-1; sdc_m++)
+	    {
+	      res_sdc[SDC_NNODES-1][mfi].saxpy(dt*(qmat[sdc_n][sdc_m]-qmatE[sdc_n][sdc_m]),f_sdc[1][sdc_n][mfi]);
+	    }
+	}
     }
 
   //  Substep
@@ -78,8 +88,10 @@ void sweep (MultiFab& phi_old,
 #endif
               dx, dt_m); */
 	  
-	  
 	}
+
+
+
     }  // end SDC substep loop
   
   //  Compute the final function value

@@ -123,14 +123,21 @@ void main_main ()
 
     //  allocate an array of multifabs at SDC nodes
     Vector<MultiFab> phi_sdc(SDC_NNODES);
+    Vector<MultiFab> res_sdc(SDC_NNODES);
     Vector<Vector<MultiFab> > f_sdc(SDC_NPIECES); // access by [npieces][node]
+    Vector<Vector<MultiFab> > f_sdc_old(SDC_NPIECES); // access by [npieces][node]
     for (auto& v : f_sdc) v.resize(SDC_NNODES);
+    for (auto& v : f_sdc_old) v.resize(SDC_NNODES);
 
     for (int sdc_m = 0; sdc_m < SDC_NNODES; sdc_m++)
     {
         phi_sdc[sdc_m].define(ba, dm, Ncomp, Nghost);
+        res_sdc[sdc_m].define(ba, dm, Ncomp, Nghost);
 	for (int i = 0; i < SDC_NPIECES; i++)
-	  f_sdc[i][sdc_m].define(ba, dm, Ncomp, Nghost);
+	  {
+	    f_sdc[i][sdc_m].define(ba, dm, Ncomp, Nghost);
+	    f_sdc_old[i][sdc_m].define(ba, dm, Ncomp, Nghost);
+	  }
     }
     
 
@@ -165,7 +172,7 @@ void main_main ()
         MultiFab::Copy(phi_sdc[0],phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
-	sweep(phi_old, phi_new, flux,phi_sdc,f_sdc, dt, geom,qnodes,qmat,qmatFE,qmatBE); 
+	sweep(phi_old, phi_new, flux,phi_sdc,res_sdc,f_sdc,f_sdc_old, dt, geom,qnodes,qmat,qmatFE,qmatBE); 
         time = time + dt;
         
         MultiFab::Copy(phi_new, phi_sdc[SDC_NNODES-1], 0, 0, 1, 0);
