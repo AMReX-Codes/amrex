@@ -16,7 +16,7 @@ Amrvis:
 
    ::
 
-       git clone https://ccse.lbl.gov/pub/Downloads/Amrvis.git
+       git clone https://github.com/AMReX-Codes/Amrvis
 
    Then cd into Amrvis/, edit the GNUmakefile by setting ``COMP`` to the
    compiler suite you have.
