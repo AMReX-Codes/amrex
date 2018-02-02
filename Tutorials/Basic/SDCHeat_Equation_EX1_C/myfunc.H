@@ -6,7 +6,7 @@
 
 using namespace amrex;
 
-const int SDC_NNODES=3;
+const int SDC_NNODES=5;
 const int SDC_NPIECES=2;
 
 void main_main ();
@@ -16,7 +16,9 @@ void sweep (MultiFab& phi_old,
 	    MultiFab& phi_new,
 	    std::array<MultiFab, AMREX_SPACEDIM>& flux,
 	    Vector<MultiFab>& phi_sdc,
+	    Vector<MultiFab>& res_sdc,
 	    Vector<Vector<MultiFab> >& f_sdc,
+	    Vector<Vector<MultiFab> >& f_sdc_old,
 	    Real dt,
 	    const Geometry& geom,
 	    Real qnodes [],
