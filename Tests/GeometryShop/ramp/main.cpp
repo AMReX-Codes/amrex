@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
           AMReX_EBIS::instance()->define(finest_domain, origin, fine_dx, gshop, max_grid_size, max_level);
         }
 
-        Box geom_domain{Box{IntVect{0,0,0}, IntVect{n_cell[0]-1,n_cell[1]-1,n_cell[2]-1}}};
+        Box geom_domain{Box{IntVect{D_DECL(0,0,0)}, IntVect{D_DECL(n_cell[0]-1,n_cell[1]-1,n_cell[2]-1)}}};
         BoxArray ba{geom_domain};
         ba.maxSize(max_grid_size/2);
         DistributionMapping dm{ba};
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 
         //        IntVect debugcell(945,137,7);
         //  IntVect debugcell(994,213,7);
-        IntVect debugcell(190,15,0);
+        IntVect debugcell(D_DECL(190,15,0));
 
         for (MFIter mfi(ba,dm); mfi.isValid(); ++mfi)
         {

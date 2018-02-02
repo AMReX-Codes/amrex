@@ -97,12 +97,12 @@ namespace amrex
   write(const string& a_dirname) const
   {
     //this creates the directory of all the stuff
-    UtilCreateDirectoryDestructive(a_dirname, true);
+    UtilCreateCleanDirectory(a_dirname, true);
     writeHeader(a_dirname);
     string graphdirname = a_dirname + "/_graph";
     string  datadirname = a_dirname + "/_data";
-    UtilCreateDirectoryDestructive(graphdirname, true);
-    UtilCreateDirectoryDestructive( datadirname, true);
+//    UtilCreateDirectoryDestructive(graphdirname, true); done in functions below
+//    UtilCreateDirectoryDestructive( datadirname, true);done in functions below
     FabArrayIO<EBGraph>::write(m_graph, graphdirname);
     FabArrayIO<EBData >::write(m_data ,  datadirname);
   }
@@ -537,8 +537,8 @@ namespace amrex
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     m_dm.define(m_grids);
-    int ngrowGraph =2;
-    int ngrowData =0;
+    int ngrowGraph =3;
+    int ngrowData =1;
     m_graph.define(m_grids, m_dm, 1, ngrowGraph, MFInfo(), DefaultFabFactory<EBGraph>());
 
     m_intersections.define(m_grids, m_dm);
@@ -607,6 +607,7 @@ namespace amrex
 
     m_data.define(m_grids, m_dm, 1, ngrowData, MFInfo(), ebdf);
 
+    int ibox = 0;
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       const Box& valid  = mfi.validbox();
@@ -626,8 +627,11 @@ namespace amrex
         const Vector<IrregNode>&   nodes = allNodes[mfi];
         ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
+      ibox++;
     }
 
+
+    m_data.FillBoundary();
 //begin debug
 //    EBISLevel_checkData(m_grids, dm, m_data, string("after initial build"));
 // end debug
