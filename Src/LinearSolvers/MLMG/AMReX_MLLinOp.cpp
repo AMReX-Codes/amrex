@@ -22,7 +22,8 @@ void
 MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info)
+                 const LPInfo& a_info,
+                 const Vector<FabFactory<FArrayBox> >& a_factory)
 {
     BL_PROFILE("MLLinOp::define()");
 
@@ -34,7 +35,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
     info = a_info;
-    defineGrids(a_geom, a_grids, a_dmap);
+    defineGrids(a_geom, a_grids, a_dmap, a_factory);
     defineAuxData();
     defineBC();
 }
@@ -42,7 +43,8 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 void
 MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
-                      const Vector<DistributionMapping>& a_dmap)
+                      const Vector<DistributionMapping>& a_dmap,
+                      const Vector<FabFactory<FArrayBox> >& a_factory)
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
