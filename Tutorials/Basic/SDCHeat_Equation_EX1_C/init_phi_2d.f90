@@ -21,6 +21,7 @@ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, nam
         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
 
         phi(i,j) = 1.d0 + exp(-r2)
+        phi(i,j) = sin(x*3.14159265358979323846d0*2d0)
 
      end do
   end do
