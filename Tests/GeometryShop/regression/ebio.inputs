@@ -4,7 +4,7 @@ n_cell = 32 32 32
 #n_cell = 8 8 8
 
 #if true, outputs the stencil
-maxboxsize    = 1024
+maxboxsize    = 16
 
 ## domain params
 ## prob_hi is the high point of the box in the 0 direction

@@ -537,8 +537,8 @@ namespace amrex
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     m_dm.define(m_grids);
-    int ngrowGraph =2;
-    int ngrowData =0;
+    int ngrowGraph =3;
+    int ngrowData =1;
     m_graph.define(m_grids, m_dm, 1, ngrowGraph, MFInfo(), DefaultFabFactory<EBGraph>());
 
     m_intersections.define(m_grids, m_dm);
@@ -607,6 +607,7 @@ namespace amrex
 
     m_data.define(m_grids, m_dm, 1, ngrowData, MFInfo(), ebdf);
 
+    int ibox = 0;
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       const Box& valid  = mfi.validbox();
@@ -626,8 +627,11 @@ namespace amrex
         const Vector<IrregNode>&   nodes = allNodes[mfi];
         ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
+      ibox++;
     }
 
+
+    m_data.FillBoundary();
 //begin debug
 //    EBISLevel_checkData(m_grids, dm, m_data, string("after initial build"));
 // end debug
