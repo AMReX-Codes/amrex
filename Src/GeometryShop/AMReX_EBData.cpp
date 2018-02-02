@@ -409,6 +409,11 @@ namespace amrex
               const Vector<RealVect>& faceCentroids = node.m_faceCentroid[nodeind];
               for (int iface = 0; iface < faces.size(); iface++)
               {
+ //               int ideb = 0;
+ //               if(faces[iface] == debface)
+ //               {
+ //                 ideb = 1;
+ //               }
                 const Real&     areaFracNode     = areaFracs[iface];
                 const RealVect& faceCentroidNode = faceCentroids[iface];
                 const FaceIndex& face = faces[iface];

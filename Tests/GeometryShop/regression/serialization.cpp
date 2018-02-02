@@ -438,11 +438,11 @@ namespace amrex
     {
       BaseIFFAB<Real>& facedata1 = a_ebd1.getFaceData(idir);
       BaseIFFAB<Real>& facedata2 = a_ebd2.getFaceData(idir);
-      int retval = BIFF_checkEquality<Real>(facedata1, facedata2, a_checkRegion);
+      retval = BIFF_checkEquality<Real>(facedata1, facedata2, a_checkRegion);
       if(retval != 0)
       {
         pout() << "ebd_checkequality: face data mismatch" << endl;
-        return -7;
+        return -7 - 10*idir;
       }
     }
     return 0;

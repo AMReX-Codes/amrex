@@ -322,6 +322,7 @@ namespace amrex
     else
     {
       Box bx = m_region & m_domain;
+      bx &= m_cellFlags.box();
       int ipt = 0;
       for (BoxIterator bi(bx); bi.ok(); ++bi)
       {
@@ -1801,8 +1802,8 @@ namespace amrex
     //the tag
     retval += sizeof(TAG);
 
-    //region, domain, graphnode box
-    retval +=  3*Box::linearSize();
+    //region, domain, fullregion, graphnode box
+    retval +=  4*Box::linearSize();
     if(m_tag == HasIrregular)
     {
       for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
@@ -1841,6 +1842,11 @@ namespace amrex
 
     m_domain.linearOut(buf);
     incrval = m_domain.linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    m_fullRegion.linearOut(buf);
+    incrval = m_fullRegion.linearSize();
     buf    += incrval;
     retval += incrval;
 
@@ -1904,6 +1910,11 @@ namespace amrex
 
     m_domain.linearIn(buf);
     incrval = m_domain.linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    m_fullRegion.linearIn(buf);
+    incrval = m_fullRegion.linearSize();
     buf    += incrval;
     retval += incrval;
 
