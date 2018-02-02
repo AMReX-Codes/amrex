@@ -9,21 +9,23 @@ namespace amrex {
 MLALaplacian::MLALaplacian (const Vector<Geometry>& a_geom,
                             const Vector<BoxArray>& a_grids,
                             const Vector<DistributionMapping>& a_dmap,
-                            const LPInfo& a_info)
+                            const LPInfo& a_info,
+                            const Vector<FabFactory<FArrayBox> >& a_factory)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3, "MLALaplacian: only 3d is supported");
-    define(a_geom, a_grids, a_dmap, a_info);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 void
 MLALaplacian::define (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const LPInfo& a_info)
+                      const LPInfo& a_info,
+                      const Vector<FabFactory<FArrayBox> >& a_factory)
 {
     BL_PROFILE("MLALaplacian::define()");
 
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
     m_a_coeffs.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)

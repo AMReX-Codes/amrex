@@ -10,20 +10,22 @@ namespace amrex {
 MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
-                                  const LPInfo& a_info)
+                                  const LPInfo& a_info,
+                                  const Vector<FabFactory<FArrayBox> >& a_factory)
 {
-    define(a_geom, a_grids, a_dmap, a_info);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 void
 MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
-                         const LPInfo& a_info)
+                         const LPInfo& a_info,
+                         const Vector<FabFactory<FArrayBox> >& a_factory)
 {
     BL_PROFILE("MLABecLaplacian::define()");
 
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
