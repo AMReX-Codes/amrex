@@ -1,0 +1,4 @@
+CEXE_sources += main.cpp
+
+FEXE_headers += em_pic_F.H
+f90EXE_sources += em_pic_$(DIM)d.f90

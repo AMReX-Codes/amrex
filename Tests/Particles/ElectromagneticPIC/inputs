@@ -1,0 +1,7 @@
+
+ncell = (64, 64, 64)
+nppc  = (4, 4, 4)
+
+max_grid_size = 128
+
+verbose = true
