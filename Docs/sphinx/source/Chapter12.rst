@@ -12,6 +12,7 @@ Here are links to short courses (slides) on how to use the profiling tools.
 More details can be found in the documentation below.
 
 Lecture 1: `Introduction and TINYPROFILER <http://ccse.lbl.gov/AMReX/AMReX_Profiling_Lecture1.pdf>`_ 
+Lecture 2: `Introduction to  Full Profiling <http://ccse.lbl.gov/AMReX/AMReX_Profiling_Lecture2.pdf>`_ 
 
 .. toctree::
    :maxdepth: 1
