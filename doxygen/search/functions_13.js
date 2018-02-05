@@ -111,7 +111,7 @@ var searchData=
   ['setposition',['SetPosition',['../classamrex_1_1_par_iter.html#a80af7e2a1d6b1a773a296a7c94e81d67',1,'amrex::ParIter']]],
   ['setpoststepregrid',['setPostStepRegrid',['../classamrex_1_1_amr_level.html#a6f026bc206ee8ba0b85cd3bf3ede7474',1,'amrex::AmrLevel']]],
   ['setpoutbasename',['setPoutBaseName',['../namespaceamrex.html#a76884405b2dc4cd3167652aa79be5606',1,'amrex']]],
-  ['setprecision',['SetPrecision',['../classamrex_1_1_print.html#a7c4b1f95c46cd9f3e0435d36b25af7ca',1,'amrex::Print::SetPrecision()'],['../classamrex_1_1_print_to_file.html#a3e38d76f3f46409cbf9fa81259641906',1,'amrex::PrintToFile::SetPrecision()'],['../classamrex_1_1_f_array_box.html#a767556bba83027cac8eeecd67726aab8',1,'amrex::FArrayBox::setPrecision()']]],
+  ['setprecision',['setPrecision',['../classamrex_1_1_f_array_box.html#a767556bba83027cac8eeecd67726aab8',1,'amrex::FArrayBox::setPrecision()'],['../classamrex_1_1_print.html#a7c4b1f95c46cd9f3e0435d36b25af7ca',1,'amrex::Print::SetPrecision()'],['../classamrex_1_1_print_to_file.html#a3e38d76f3f46409cbf9fa81259641906',1,'amrex::PrintToFile::SetPrecision()']]],
   ['setptr',['setPtr',['../classamrex_1_1_base_fab.html#af1269949b1c246220e7f36d19e97bcee',1,'amrex::BaseFab']]],
   ['setrange',['setRange',['../classamrex_1_1_box.html#a8be3be6c6dfb8ee0b7ed94da9215c5d5',1,'amrex::Box']]],
   ['setreadbuffersize',['SetReadBufferSize',['../classamrex_1_1_real_descriptor.html#a0e8add3f679863e8b4e09d5a681f3bd4',1,'amrex::RealDescriptor']]],

@@ -71,6 +71,7 @@ var searchData=
   ['_7eeblevelgrid',['~EBLevelGrid',['../classamrex_1_1_e_b_level_grid.html#a628aa016fe4fadfeb2fe15671435e402',1,'amrex::EBLevelGrid']]],
   ['_7eeblevelredist',['~EBLevelRedist',['../classamrex_1_1_e_b_level_redist.html#ae25c2c6e76c1a4270bace778497aa8f9',1,'amrex::EBLevelRedist']]],
   ['_7eebnormalizebyvolumefraction',['~EBNormalizeByVolumeFraction',['../classamrex_1_1_e_b_normalize_by_volume_fraction.html#ae714ca0e516c6c570bfc0c49cfb8e74e',1,'amrex::EBNormalizeByVolumeFraction']]],
+  ['_7eellipsoidif',['~EllipsoidIF',['../classamrex_1_1_ellipsoid_i_f.html#ae086c59d613a07081871075a2b7b255c',1,'amrex::EllipsoidIF']]],
   ['_7eerrorfunc',['~ErrorFunc',['../classamrex_1_1_error_rec_1_1_error_func.html#a1a7a3ff62c2702366d99b2492fe905af',1,'amrex::ErrorRec::ErrorFunc']]],
   ['_7eerrorfunc2',['~ErrorFunc2',['../classamrex_1_1_error_rec_1_1_error_func2.html#a2fb62c07ce0a856089ee327b3fa22536',1,'amrex::ErrorRec::ErrorFunc2']]],
   ['_7eerrorrec',['~ErrorRec',['../classamrex_1_1_error_rec.html#ab855c1bad2c1c0ceb3dc3eddcbaba9c1',1,'amrex::ErrorRec']]],

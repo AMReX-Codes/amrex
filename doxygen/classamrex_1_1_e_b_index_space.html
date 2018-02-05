@@ -109,6 +109,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a94da15d0b31b918ac028d2a56a637988"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5f88ae410352e07d29197a6204d3923c"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_index_space.html#a5f88ae410352e07d29197a6204d3923c">getLevel</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain) const </td></tr>
 <tr class="separator:a5f88ae410352e07d29197a6204d3923c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa8e11d49e1f81b78d81f1c93c63ee612"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_index_space.html#aa8e11d49e1f81b78d81f1c93c63ee612">getFinestLevelWithMultivaluedCells</a> (<a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, int &amp;a_levelNumber) const </td></tr>
+<tr class="separator:aa8e11d49e1f81b78d81f1c93c63ee612"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4427d666e48fbb173289b5842e12f608"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_index_space.html#a4427d666e48fbb173289b5842e12f608">getNCellMax</a> () const </td></tr>
 <tr class="separator:a4427d666e48fbb173289b5842e12f608"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a358de23081dc71d4689227142dfcf3b1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_index_space.html#a358de23081dc71d4689227142dfcf3b1">fillEBISLayout</a> (<a class="el" href="classamrex_1_1_e_b_i_s_layout.html">EBISLayout</a> &amp;a_ebis, const <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> &amp;a_grids, const <a class="el" href="classamrex_1_1_distribution_mapping.html">DistributionMapping</a> &amp;a_dm, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const int &amp;a_nghost) const </td></tr>
@@ -435,6 +437,33 @@ Friends</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="aa8e11d49e1f81b78d81f1c93c63ee612"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::EBIndexSpace::getFinestLevelWithMultivaluedCells </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classamrex_1_1_box.html">Box</a> &amp;&#160;</td>
+          <td class="paramname"><em>a_domain</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int &amp;&#160;</td>
+          <td class="paramname"><em>a_levelNumber</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Return the finest level number and domain that contains a non-zero number of multivalued cells. Returns an invalid box and -1 if no level has multivalued cells </p>
 
 </div>
 </div>

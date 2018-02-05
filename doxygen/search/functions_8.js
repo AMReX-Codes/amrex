@@ -7,6 +7,7 @@ var searchData=
   ['hashdistributionmap',['HashDistributionMap',['../namespaceamrex.html#a4025063cb67ccaf858eee2f9874998e4',1,'amrex']]],
   ['hasimplicitfunction',['hasImplicitFunction',['../classamrex_1_1_geometry_service.html#a496856339198da32a0f779d2534bf363',1,'amrex::GeometryService::hasImplicitFunction()'],['../classamrex_1_1_geometry_shop.html#a067c32d0743699f48af933773f79678e',1,'amrex::GeometryShop::hasImplicitFunction()']]],
   ['hasirregular',['hasIrregular',['../classamrex_1_1_e_b_graph_implem.html#a06c5cc9abc5534556e99fb5b4c24a8a5',1,'amrex::EBGraphImplem::hasIrregular()'],['../classamrex_1_1_e_b_graph.html#a561e23991ab57e3d44ab5bc3a1caa7f9',1,'amrex::EBGraph::hasIrregular() const '],['../classamrex_1_1_e_b_graph.html#a99942509533f9410b7158235c9bbb8ff',1,'amrex::EBGraph::hasIrregular(const Box &amp;a_box) const ']]],
+  ['hasmultivaluedcells',['hasMultiValuedCells',['../classamrex_1_1_e_b_i_s_level.html#afeca0c6db9be83dfff6412dae0b3f401',1,'amrex::EBISLevel']]],
   ['hasnewdata',['hasNewData',['../classamrex_1_1_state_data.html#ac9447fcc2d879d6e1f3ce42265853e68',1,'amrex::StateData']]],
   ['hasolddata',['hasOldData',['../classamrex_1_1_state_data.html#add7a042e971d49fce742b59aadf43218',1,'amrex::StateData']]],
   ['hasvalidcelllist',['hasValidCellList',['../classamrex_1_1_graph_node.html#ae7dfbfaa8c6fdf01013c7fd7df33338f',1,'amrex::GraphNode']]],

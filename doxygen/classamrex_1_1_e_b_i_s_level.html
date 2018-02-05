@@ -111,6 +111,11 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a85c205ba567d16f8c870d00e75d6225d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a657e545ead17daa1704ebcd1ea505461"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_i_s_level.html#a657e545ead17daa1704ebcd1ea505461">getDomain</a> () const </td></tr>
 <tr class="separator:a657e545ead17daa1704ebcd1ea505461"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afeca0c6db9be83dfff6412dae0b3f401"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_i_s_level.html#afeca0c6db9be83dfff6412dae0b3f401">hasMultiValuedCells</a> () const </td></tr>
+<tr class="memdesc:afeca0c6db9be83dfff6412dae0b3f401"><td class="mdescLeft">&#160;</td><td class="mdescRight">return true if this refinement contains multivalued cells.  <a href="#afeca0c6db9be83dfff6412dae0b3f401">More...</a><br/></td></tr>
+<tr class="separator:afeca0c6db9be83dfff6412dae0b3f401"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abe5c60d502435714c68d7bdbddfe1361"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_i_s_level.html#abe5c60d502435714c68d7bdbddfe1361">checkForMultiValuedCells</a> () const </td></tr>
+<tr class="separator:abe5c60d502435714c68d7bdbddfe1361"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af01024207111bc35ed9279720ee5c963"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_i_s_level.html#af01024207111bc35ed9279720ee5c963">fixRegularNextToMultiValued</a> ()</td></tr>
 <tr class="separator:af01024207111bc35ed9279720ee5c963"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a695205486967e98868d7f16850eb521a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_e_b_i_s_level.html#a695205486967e98868d7f16850eb521a">write</a> (const string &amp;a_dirname) const </td></tr>
@@ -279,6 +284,21 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="abe5c60d502435714c68d7bdbddfe1361"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::EBISLevel::checkForMultiValuedCells </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="a3ec77d48e2ce18276c7cbbadc4347ec2"></a>
 <div class="memitem">
 <div class="memproto">
@@ -375,6 +395,32 @@ Protected Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="afeca0c6db9be83dfff6412dae0b3f401"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool amrex::EBISLevel::hasMultiValuedCells </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>return true if this refinement contains multivalued cells. </p>
+<p>if this has not been called before, this generates a blocking communication </p>
 
 </div>
 </div>

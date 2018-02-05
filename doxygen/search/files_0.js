@@ -154,6 +154,8 @@ var searchData=
   ['amrex_5feblohicenter_2eh',['AMReX_EBLoHiCenter.H',['../_a_m_re_x___e_b_lo_hi_center_8_h.html',1,'']]],
   ['amrex_5febnormalizebyvolumefraction_2ecpp',['AMReX_EBNormalizeByVolumeFraction.cpp',['../_a_m_re_x___e_b_normalize_by_volume_fraction_8cpp.html',1,'']]],
   ['amrex_5febnormalizebyvolumefraction_2eh',['AMReX_EBNormalizeByVolumeFraction.H',['../_a_m_re_x___e_b_normalize_by_volume_fraction_8_h.html',1,'']]],
+  ['amrex_5fellipsoidif_2ecpp',['AMReX_EllipsoidIF.cpp',['../_a_m_re_x___ellipsoid_i_f_8cpp.html',1,'']]],
+  ['amrex_5fellipsoidif_2eh',['AMReX_EllipsoidIF.H',['../_a_m_re_x___ellipsoid_i_f_8_h.html',1,'']]],
   ['amrex_5ferror_5ffi_2ecpp',['AMReX_error_fi.cpp',['../_a_m_re_x__error__fi_8cpp.html',1,'']]],
   ['amrex_5ferror_5fmod_2ef90',['AMReX_error_mod.F90',['../_a_m_re_x__error__mod_8_f90.html',1,'']]],
   ['amrex_5ferrorlist_2ecpp',['AMReX_ErrorList.cpp',['../_a_m_re_x___error_list_8cpp.html',1,'']]],

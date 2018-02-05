@@ -27,6 +27,7 @@ var searchData=
   ['ebnormalizebyvolumefraction',['EBNormalizeByVolumeFraction',['../classamrex_1_1_e_b_normalize_by_volume_fraction.html',1,'amrex']]],
   ['edge',['Edge',['../structamrex_1_1_edge.html',1,'amrex']]],
   ['edgemo',['edgeMo',['../classamrex_1_1edge_mo.html',1,'amrex']]],
+  ['ellipsoidif',['EllipsoidIF',['../classamrex_1_1_ellipsoid_i_f.html',1,'amrex']]],
   ['errorfunc',['ErrorFunc',['../classamrex_1_1_error_rec_1_1_error_func.html',1,'amrex::ErrorRec']]],
   ['errorfunc2',['ErrorFunc2',['../classamrex_1_1_error_rec_1_1_error_func2.html',1,'amrex::ErrorRec']]],
   ['errorlist',['ErrorList',['../classamrex_1_1_error_list.html',1,'amrex']]],
