@@ -50,7 +50,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<FabFactory<FArrayBox> >& a_factory);
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory);
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.
@@ -112,7 +112,7 @@ protected:
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
-    Vector<Vector<std::unique_ptr<FabFactory<FArrayBox> > > > m_factory;
+    Vector<std::unique_ptr<FabFactory<FArrayBox> > > m_factory;
     Vector<int>                          m_domain_covered;
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
@@ -220,7 +220,7 @@ private:
     void defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const Vector<FabFactory<FArrayBox> >& a_factory);
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory);
     void defineAuxData ();
     void defineBC ();
     static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);

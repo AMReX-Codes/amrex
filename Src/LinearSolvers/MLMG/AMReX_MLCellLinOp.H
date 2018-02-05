@@ -25,7 +25,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> >& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final;
 
