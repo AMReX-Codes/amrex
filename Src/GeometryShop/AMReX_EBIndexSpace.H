@@ -82,6 +82,13 @@ namespace amrex
     int getLevel(const Box& a_domain) const;
 
 
+    ///
+    /**
+       Return the finest level number and domain that contains a non-zero number of multivalued cells.
+       Returns an invalid box and -1 if no level has multivalued cells
+    */
+    void getFinestLevelWithMultivaluedCells(Box& a_domain, int& a_levelNumber) const;
+
     int getNCellMax() const
       {
         return m_nCellMax;
