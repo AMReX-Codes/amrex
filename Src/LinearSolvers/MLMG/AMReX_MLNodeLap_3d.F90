@@ -243,7 +243,7 @@ contains
                      &      +fine(2*i  ,2*j,2*k+1)+fine(2*i  ,2*j+1,2*k+1))
                 cr = 0.25d0*(fine(2*i+1,2*j,2*k  )+fine(2*i+1,2*j+1,2*k  ) &
                      &      +fine(2*i+1,2*j,2*k+1)+fine(2*i+1,2*j+1,2*k+1))
-                crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
+                crse(i,j,k) = 2.d0*cl*cr/(cl+cr+1.d-80)
              end do
           end do
        end do
@@ -255,7 +255,7 @@ contains
                      &      +fine(2*i,2*j  ,2*k+1)+fine(2*i+1,2*j  ,2*k+1))
                 cr = 0.25d0*(fine(2*i,2*j+1,2*k  )+fine(2*i+1,2*j+1,2*k  ) &
                      &      +fine(2*i,2*j+1,2*k+1)+fine(2*i+1,2*j+1,2*k+1))
-                crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
+                crse(i,j,k) = 2.d0*cl*cr/(cl+cr+1.d-80)
              end do
           end do
        end do
@@ -267,7 +267,7 @@ contains
                      &      +fine(2*i,2*j+1,2*k  )+fine(2*i+1,2*j+1,2*k  ))
                 cr = 0.25d0*(fine(2*i,2*j  ,2*k+1)+fine(2*i+1,2*j  ,2*k+1) &
                      &      +fine(2*i,2*j+1,2*k+1)+fine(2*i+1,2*j+1,2*k+1))
-                crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
+                crse(i,j,k) = 2.d0*cl*cr/(cl+cr+1.d-80)
              end do
           end do
        end do
