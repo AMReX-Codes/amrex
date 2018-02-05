@@ -47,8 +47,8 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBNormalizeByVolumeFraction.cpp AMReX_E
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H AMReX_ExtrudeIF.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp AMReX_ExtrudeIF.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_PolynomialIF.H   
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_PolynomialIF.cpp 
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_PolynomialIF.H    AMReX_EllipsoidIF.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_PolynomialIF.cpp  AMReX_EllipsoidIF.cpp
 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop

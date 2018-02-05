@@ -1372,20 +1372,12 @@ namespace amrex
           IntVectSet ivsInterIrreg = (a_source.m_irregIVS);
           ivsInterIrreg &= regionTo;
           ivsInterIrreg &= m_region;
+          (m_irregIVS) |= ivsInterIrreg;
         
-          if (!ivsInterIrreg.isEmpty())
-          {
-            for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
-            {
-              IntVect iv = it();
-              (m_irregIVS) |= iv;
-              if (numVoFs(iv) > 1) // this will be correct since we already
-                // did a m_graph copy operation
-              {
-                (m_multiIVS) |= iv;
-              }
-            }
-          }
+          IntVectSet ivsInterMulti = (a_source.m_multiIVS);
+          ivsInterMulti &= regionTo;
+          ivsInterMulti &= m_region;
+          m_multiIVS |= ivsInterMulti;
         }
       }
     }
