@@ -37,12 +37,13 @@
 #include "AMReX_IrregFAB.H"
 #include "AMReX_EBDataVarMacros.H"
 #include "AMReX_FabArrayIO.H"
+#include "AMReX_FlatPlateGeom.H"
 #include "AMReX_EllipsoidIF.H"
 #include "AMReX_parstream.H"
 
 namespace amrex
 {
-/***************/
+  /***************/
   int makeGeometry(Box& a_domain,
                    Real& a_dx)
   {
@@ -142,6 +143,7 @@ namespace amrex
       RealVect ellipseCenter;
 
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+      
       vector<Real> ellipseCenterVect;
       vector<Real> ellipseRadiusVect;
       pp.getarr("ellipse_center",ellipseCenterVect, 0, SpaceDim);
@@ -159,10 +161,15 @@ namespace amrex
       GeometryShop workshop(lalaBall);
       
       ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
-//begin debug
-//      Box dom; int lev;
-//      ebisPtr->getFinestLevelWithMultivaluedCells(dom, lev);
-//end debug
+    }
+    else if(whichgeom == 77)
+    {
+      amrex::Print() << "flat plate geom" << "\n";
+
+      FlatPlateGeom workshop(1, 0.6, 0.1*RealVect::Unit, 0.8*RealVect::Unit);
+      
+      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+      ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
     }
     else
     {
@@ -189,16 +196,20 @@ namespace amrex
     DistributionMapping dm(ba);
 
 
-    amrex::Print() << "filling multifab with implicit function values" << endl;
-    MultiFab impfuncMF(ba, dm, 1, 0);
     const EBIndexSpace* const ebisPtr = AMReX_EBIS::instance();
-    
-    for(MFIter mfi(impfuncMF); mfi.isValid(); ++mfi)
+    int minlev;
+    Box domainmin;
+    amrex::Print() << "determining which level is the first (finest) to have multivalued cells" << endl;
+    ebisPtr->getFinestLevelWithMultivaluedCells(domainmin, minlev);
+    if(minlev < 0)
     {
-      ebisPtr->fillNodeFarrayBoxFromImplicitFunction(impfuncMF[mfi], dx*RealVect::Unit);
+      amrex::Print() << "no level has multivalued cells" << endl;
     }
-    
-    VisMF::Write(impfuncMF, string("plt.mf.impfunc"));
+    else
+    {
+      amrex::Print() << "The finest level that has multivalued cells is " << minlev << " which has a domain = " << domainmin << endl;
+    }
+
     return 0;
   }
 }
