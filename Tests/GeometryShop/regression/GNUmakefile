@@ -47,6 +47,7 @@ _progs  += fabio
 _progs  += ebio
 _progs  += serialization
 _progs  += fabfromif
+_progs  += multicelllev
 
 
 include $(AMREX_HOME)/Src/Base/Make.package

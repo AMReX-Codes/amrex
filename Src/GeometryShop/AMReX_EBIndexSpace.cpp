@@ -29,6 +29,40 @@
 
 namespace amrex
 {
+  void 
+  EBIndexSpace::
+  getFinestLevelWithMultivaluedCells(Box& a_domain, int& a_levelNumber) const
+  {
+    bool found = false;
+    a_levelNumber = -1;
+    a_domain = Box();
+//begin debug
+//    for(int ilev = 0; ((ilev < m_nlevels)); ilev++)
+//    {
+//      bool fnerg = m_ebisLevel[ilev]->hasMultiValuedCells();      
+//      if(fnerg)
+//      {
+//        amrex::Print() << "level " << ilev << "has multi cells" << endl;
+//      }
+//      else
+//      {
+//        amrex::Print() << "level " << ilev << "has no multi cells" << endl;
+//      }
+//    }
+//end debug
+
+    for(int ilev = 0; ((ilev < m_nlevels) && !found); ilev++)
+    {
+
+      if((m_ebisLevel[ilev]->hasMultiValuedCells()) && !found)
+      {
+        a_levelNumber = ilev;
+        a_domain = m_domainLevel[ilev];
+        found = true;
+      }
+    }
+  }
+
   ///
   void 
   EBIndexSpace::
