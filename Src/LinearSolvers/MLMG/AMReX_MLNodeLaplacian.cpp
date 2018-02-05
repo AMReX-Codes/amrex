@@ -54,6 +54,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
             int idim = 0;
             m_sigma[amrlev][mglev][idim].reset
                 (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
+            m_sigma[amrlev][mglev][idim]->setVal(0.0);
         }
     }
 
@@ -66,6 +67,10 @@ void
 MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 {
     MultiFab::Copy(*m_sigma[amrlev][0][0], a_sigma, 0, 0, 1, 0);
+#ifdef AMREX_USE_EB
+    const MultiFab& vfrac = static_cast<EBFArrayBoxFactory const&>(*m_factory[amrlev]).getVolFrac();
+    MultiFab::Multiply(*m_sigma[amrlev][0][0], vfrac, 0, 0, 1, 0);
+#endif
 }
 
 void
@@ -328,6 +333,7 @@ MLNodeLaplacian::averageDownCoeffs ()
                         } else {
                             m_sigma[amrlev][mglev][idim].reset
                                 (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
+                            m_sigma[amrlev][mglev][idim]->setVal(0.0);
                         }
                     }
                 }

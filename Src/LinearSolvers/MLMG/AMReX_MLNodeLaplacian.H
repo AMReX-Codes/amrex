@@ -50,7 +50,11 @@ public :
                                const MultiFab* rhcc);
 
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
-    void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
+    void setHarmonicAverage (bool flag) {
+#ifndef AMREX_USE_EB
+        m_use_harmonic_average = flag;
+#endif
+    }
 
 protected:
 
@@ -87,7 +91,11 @@ private:
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     bool m_use_gauss_seidel = true;
+#if AMREX_USE_EB
+    bool m_use_harmonic_average = true;
+#else
     bool m_use_harmonic_average = false;
+#endif
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
