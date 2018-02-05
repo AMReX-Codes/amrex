@@ -23,7 +23,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<FabFactory<FArrayBox> >& a_factory)
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLLinOp::define()");
 
@@ -44,7 +44,7 @@ void
 MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const Vector<FabFactory<FArrayBox> >& a_factory)
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
@@ -56,6 +56,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
+    m_factory.resize(m_num_amr_levels);
+
+#ifdef AMREX_USE_EB
+    AMREX_ALWAYS_ASSERT(a_factory.size() >= m_num_amr_levels);
+#endif
 
     m_default_comm = ParallelDescriptor::Communicator();
 
@@ -66,6 +71,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         m_geom[amrlev].push_back(a_geom[amrlev]);
         m_grids[amrlev].push_back(a_grids[amrlev]);
         m_dmap[amrlev].push_back(a_dmap[amrlev]);
+        if (amrlev < a_factory.size()) {
+            m_factory[amrlev].reset(a_factory[amrlev]->clone());
+        } else {
+            m_factory[amrlev].reset(new FArrayBoxFactory());
+        }
 
         int rr = mg_coarsen_ratio;
         const Box& dom = a_geom[amrlev].Domain();
@@ -97,6 +107,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_geom[0].push_back(a_geom[0]);
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
+    if (a_factory.size() > 0) {
+        m_factory[0].reset(a_factory[0]->clone());
+    } else {
+        m_factory[0].reset(new FArrayBoxFactory());
+    }
 
     m_domain_covered.resize(m_num_amr_levels, false);
     auto npts0 = m_grids[0][0].numPts();

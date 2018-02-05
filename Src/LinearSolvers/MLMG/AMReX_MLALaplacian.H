@@ -17,7 +17,7 @@ public:
                   const Vector<BoxArray>& a_grids,
                   const Vector<DistributionMapping>& a_dmap,
                   const LPInfo& a_info = LPInfo(),
-                  const Vector<FabFactory<FArrayBox> >& a_factory = {});
+                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLALaplacian ();
 
     MLALaplacian (const MLALaplacian&) = delete;
@@ -29,7 +29,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> >& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
     void setScalars (Real a, Real b);
     void setACoeffs (int amrlev, const MultiFab& alpha);
