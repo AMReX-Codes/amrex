@@ -92,6 +92,13 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
         vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 
+#ifdef AMREX_USE_EB
+        const MultiFab& vfrac = static_cast<EBFArrayBoxFactory const&>(*m_factory[ilev]).getVolFrac();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            MultiFab::Multiply(*vel[ilev], vfrac, 0, idim, 1, 1);
+        }
+#endif
+
         if (ilev < a_rhcc.size() && a_rhcc[ilev])
         {
             rhcc[ilev].reset(new MultiFab(a_rhcc[ilev]->boxArray(),
