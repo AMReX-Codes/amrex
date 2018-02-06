@@ -882,7 +882,8 @@ AmrCoreAdv::WriteCheckpointFile () const
 
 
 void
-AmrCoreAdv::ReadCheckpointFile () {
+AmrCoreAdv::ReadCheckpointFile ()
+{
 
     amrex::Print() << "Restart from checkpoint " << restart_chkfile << "\n";
 
@@ -958,8 +959,6 @@ AmrCoreAdv::ReadCheckpointFile () {
             flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
         }
     }
-    
-    const std::string level_prefix = "Level_";
 
     // read in the MultiFab data
     for (int lev = 0; lev <= finest_level; ++lev) {

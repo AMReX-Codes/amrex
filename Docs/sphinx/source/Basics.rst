@@ -2145,32 +2145,75 @@ Checkpoint File
 
 Checkpoint files are used for restarting simulations from where the
 checkpoints are written. Each application code has its own set of
-data needed for restart. AMReX provides I/O functions for basic
+data needed for restart. AMReX provides I/O functions for basic
 data structures like :cpp:`MultiFab` and :cpp:`BoxArray`. These
 functions can be used to build codes for reading and writing
 checkpoint files. Since each application code has its own
-requirement, there is no standard AMReX checkpoint format.
+requirement, there is no standard AMReX checkpoint format.
+However we have provided an example restart capability in the tutorial
+``/amrex/Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex``.
+Refer to the functions :cpp:`ReadCheckpointFile()` and
+:cpp:`WriteCheckpointFile()` in this tutorial.
+
+A checkpoint file is actually a directory with name, e.g., 
+``chk00010`` containing a ``Header`` (text) file, along with
+subdirectories ``Level_0``, ``Level_1``, etc. containing the
+:cpp:`MultiFab` data at each level of refinement.
+The ``Header`` file contains problem-specific data (such as the
+finest level, simulation time, time step, etc.), along with a printout
+of the :cpp:`BoxArray` at each level of refinement.
+
+When starting a simulation from a checkpoint file, a typical sequence in the code
+could be:
+
+- Read in the ``Header`` file data (except for the :cpp:`BoxArray` data).
+
+- For each level of refinement, do the following in order:
+
+  -- Read in the :cpp:`BoxArray`
+
+  -- Build a :cpp:`DistributionMapping`
+
+  -- Define any :cpp:`MultiFab`, :cpp:`FluxRegister`, etc. objects that are built upon the
+  :cpp:`BoxArray` and the :cpp:`DistributionMapping`
+
+  -- Read in the :cpp:`MultiFab` data
+
+We do this one level at a time because when you create a distribution map,
+it checks how much allocated :cpp:`MultiFab` data already exists before assigning
+grids to processors.
 
 Typically a checkpoint file is a directory containing some text files
-and sub-directories (e.g., Level_0 and Level_1)
+and sub-directories (e.g., ``Level_0`` and ``Level_1``)
 containing various data. It is a good idea that we fist make these
 directories ready for subsequently writing to the disk. For example,
-to build directories chk00016, chk00016/Level_0, and
-chk00016/Level_1, we do
+to build directories ``chk00010``, ``chk00010/Level_0``, and
+``chk00010/Level_1``, you could write:
 
 .. highlight:: c++
 
 ::
 
-      const std::string& chkname {"chk00016"};
-      const std::string& subDirPrefix {"Level_"};
-      const int nSubDirs = 2;
-      const bool callBarrier = true; // Parallel barrier after directories are built.
-      PreBuildDirectorHierarchy(chkname, subDirPrefix, nSubDirs, callBarrier);
+   const std::string& checkpointname = amrex::Concatenate("chk",10);
 
-A checkpoint file of AMReX application codes often has a clear text
+   amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
+
+   const int nlevels = 2;
+
+   bool callBarrier = true;
+
+   // ---- prebuild a hierarchy of directories
+   // ---- dirName is built first.  if dirName exists, it is renamed.  then build
+   // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nlevels-1
+   // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
+   // ---- after all directories are built
+   // ---- ParallelDescriptor::IOProcessor() creates the directories
+   amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, callBarrier);
+
+A checkpoint file of AMReX application codes often has a clear text
 Header file that only the I/O process writes to it using
-:cpp:`std::ofstream`. The Header file contains information such as
+:cpp:`std::ofstream`. The Header file contains problem-dependent
+information such as
 the time, the physical domain size, grids, etc. that are necessary for
 restarting the simulation. To guarantee that precision is not lost
 for storing floating point number like time in clear text file, the
@@ -2181,25 +2224,80 @@ can also be used. For example,
 
 ::
 
-      if (ParallelDescriptor::IOProcessor())
-      {
-          const std::string& chkname = "chk00016";
-          std::string HeaderFileName(chkname+"/Header");
-          std::ofstream HeaderFile(HeaderFileName.c_str(),
-               std::ofstream::out | std::ofstream::trunc | std::ofstream::binary);
-          HeaderFile.precision(std::numeric_limits<Real>::max_digits10);
-          VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-          HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+   // write Header file
+   if (ParallelDescriptor::IOProcessor()) {
 
-          HeaderFile << "Checkpoint version 1.0\n";
-          HeaderFile << time << "\n";
-          HeaderFile << domain_box << "\n";
-          // HeaderFile << ......;
-          box_array.writeOn(HeaderFile); // write BoxArray
-          // HeaderFile << ......;
-      }
+       std::string HeaderFileName(checkpointname + "/Header");
+       std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
+				                        std::ofstream::trunc |
+				                        std::ofstream::binary);
+       if( ! HeaderFile.good()) {
+           amrex::FileOpenFailed(HeaderFileName);
+       }
 
-For reading the Header file, AMReX can have the I/O process
+       HeaderFile.precision(17);
+
+       VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+       HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+       // write out title line
+       HeaderFile << "Checkpoint file for AmrCoreAdv\n";
+
+       // write out finest_level
+       HeaderFile << finest_level << "\n";
+
+       // write out array of istep
+       for (int i = 0; i < istep.size(); ++i) {
+           HeaderFile << istep[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write out array of dt
+       for (int i = 0; i < dt.size(); ++i) {
+           HeaderFile << dt[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write out array of t_new
+       for (int i = 0; i < t_new.size(); ++i) {
+           HeaderFile << t_new[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write the BoxArray at each level
+       for (int lev = 0; lev <= finest_level; ++lev) {
+           boxArray(lev).writeOn(HeaderFile);
+           HeaderFile << '\n';
+       }
+   }
+
+
+:cpp:`amrex::VisMF` is a class that can be used to perform
+:cpp:`MultiFab` I/O in parallel. How many processes are allowed to
+perform I/O simultaneously can be set via
+
+::
+
+      VisMF::SetNOutFiles(64);  // up to 64 processes, which is also the default.
+
+The optimal number is of course system dependent. The following code
+shows how to write a :cpp:`MultiFab`.
+
+.. highlight:: c++
+
+::
+
+   // write the MultiFab data to, e.g., chk00010/Level_0/
+   for (int lev = 0; lev <= finest_level; ++lev) {
+       VisMF::Write(phi_new[lev],
+                    amrex::MultiFabFileFullPrefix(lev, checkpointname, "Level_", "phi"));
+   }
+
+It should also be noted that all the
+data including those in ghost cells are written/read by
+:cpp:`VisMF::Write/Read`.
+
+For reading the Header file, AMReX can have the I/O process
 read the file from the disk and broadcast it to others as
 :cpp:`Vector<char>`. Then all processes can read the information with
 :cpp:`std::istringstream`. For example,
@@ -2208,51 +2306,97 @@ read the file from the disk and broadcast it to others as
 
 ::
 
-      std::string HeaderFileName {"chk00016/Header"};
-      Vector<char> fileChar;
-      ParallelDescriptor::ReadAndBcastFile(HeaderFileName, fileChar);
-      std::istringstream is(std::string{fileChar.data()}, std::istringstream::in);
-      // is >> ....;
-      BoxArray ba;
-      ba.readFrom(is);
-      // is >> ....;
+    std::string File(restart_chkfile + "/Header");
 
-:cpp:`amrex::VisMF` is a class that can be used to perform
-MultiFab I/O in parallel. How many processes are allowed to
-perform I/O simultaneously can be set via
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
-::
+    Vector<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream is(fileCharPtrString, std::istringstream::in);
 
-      VisMF::SetNOutFiles(64);  // up to 64 processes, which is also the default.
+    std::string line, word;
 
-The optimal number is of course system dependent. The following code
-shows how to write and read a :cpp:`MultiFab`.
+    // read in title line
+    std::getline(is, line);
+
+    // read in finest_level
+    is >> finest_level;
+    GotoNextLine(is);
+
+    // read in array of istep
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            istep[i++] = std::stoi(word);
+        }
+    }
+
+    // read in array of dt
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            dt[i++] = std::stod(word);
+        }
+    }
+
+    // read in array of t_new
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            t_new[i++] = std::stod(word);
+        }
+    }
+
+The following code how to read in a :cpp:`BoxArray`, create a 
+:cpp:`DistributionMapping`, build :cpp:`MultiFab` and :cpp:`FluxRegister` data,
+and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
 
 .. highlight:: c++
 
 ::
 
-      const std::string name {"state"};
+    for (int lev = 0; lev <= finest_level; ++lev) {
 
-      VisMF::Write(mf, name);  // Write MultiFab to disk
+        // read in level 'lev' BoxArray from Header
+        BoxArray ba;
+        ba.readFrom(is);
+        GotoNextLine(is);
 
-      // Read the data to a new MultiFab
-      // WARNING: mf2 may have a completely different DistributionMapping!
-      MultiFab mf2;
-      VisMF::Read(mf2, name);
+        // create a distribution mapping
+        DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
 
-      // Read the data to a MultiFab with identical
-      // BoxArray, DistributionMapping, and number of components and ghost cells.
-      MultiFab mf3(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
-      VisMF::Read(mf3, name);
+        // set BoxArray grids and DistributionMapping dmap in AMReX_AmrMesh.H class
+        SetBoxArray(lev, ba);
+        SetDistributionMap(lev, dm);
+
+        // build MultiFab and FluxRegister data
+        int ncomp = 1;
+        int nghost = 0;
+        phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
+        phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
+        if (lev > 0 && do_reflux) {
+            flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+        }
+    }
+
+    // read in the MultiFab data
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        VisMF::Read(phi_new[lev],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, "Level_", "phi"));
+    }
 
 It should be emphasized that calling :cpp:`VisMF::Read` with an empty
 :cpp:`MultiFab` (i.e., no memory allocated for floating point data)
 will result in a :cpp:`MultiFab` with a new :cpp:`DistributionMapping`
 that could be different from any other existing
-:cpp:`DistributionMapping` objects. It should also be noted that all the
-data including those in ghost cells are written/read by
-VisMF::Write/Read.
+:cpp:`DistributionMapping` objects and is not recommended.
 
 Memory Allocation
 =================
