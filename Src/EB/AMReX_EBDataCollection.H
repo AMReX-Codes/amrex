@@ -27,6 +27,7 @@ public:
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
     const MultiFab& getVolFrac () const;
+    const MultiCutFab& getCentroid () const;
     const MultiCutFab& getBndryCent () const;
     std::array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
     std::array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
@@ -42,8 +43,11 @@ private:
     // EBSupport::basic
     FabArray<EBCellFlagFab>* m_cellflags = nullptr;
 
-    // EBSupport::geometry
+    // EBSupport::volume
     MultiFab* m_volfrac = nullptr;
+    MultiCutFab* m_centroid = nullptr;
+
+    // EBSupport::full
     MultiCutFab* m_bndrycent = nullptr;
     std::array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
     std::array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
