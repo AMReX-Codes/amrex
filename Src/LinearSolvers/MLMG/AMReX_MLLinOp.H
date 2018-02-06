@@ -9,6 +9,10 @@
 #include <AMReX_MLMGBndry.H>
 #include <AMReX_VisMF.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_MultiCutFab.H>
+#endif
+
 namespace amrex {
 
 struct LPInfo
