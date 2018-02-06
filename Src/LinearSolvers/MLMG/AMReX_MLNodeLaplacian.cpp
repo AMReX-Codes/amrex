@@ -74,7 +74,7 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 }
 
 void
-MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
+MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& a_vel,
                           const Vector<const MultiFab*>& rhnd,
                           const Vector<MultiFab*>& a_rhcc)
 {
@@ -85,19 +85,28 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     Vector<std::unique_ptr<MultiFab> > rhcc(m_num_amr_levels);
     Vector<std::unique_ptr<MultiFab> > rhs_cc(m_num_amr_levels);
 
+    Vector<MultiFab*> vel{a_vel.begin(), a_vel.begin()+m_num_amr_levels};
+    Vector<std::unique_ptr<MultiFab> > vel_raii(m_num_amr_levels);
+
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
     {
         const Geometry& geom = m_geom[ilev][0];
         AMREX_ASSERT(vel[ilev]->nComp() >= AMREX_SPACEDIM);
         AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
-        vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 
 #ifdef AMREX_USE_EB
+        vel_raii[ilev].reset(new MultiFab(a_vel[ilev]->boxArray(),
+                                          a_vel[ilev]->DistributionMap(),
+                                          AMREX_SPACEDIM, 1));
+        vel[ilev] = vel_raii[ilev].get();
+        MultiFab::Copy(*vel[ilev], *a_vel[ilev], 0, 0, AMREX_SPACEDIM, 1);
         const MultiFab& vfrac = m_factory[ilev]->getVolFrac();
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             MultiFab::Multiply(*vel[ilev], vfrac, 0, idim, 1, 1);
         }
 #endif
+
+        vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 
         if (ilev < a_rhcc.size() && a_rhcc[ilev])
         {
@@ -314,16 +323,19 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
         for (MFIter mfi(*vel[amrlev], true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
+#ifdef AMREX_USE_EB
+            amrex_mlndlap_mknewu_eb(BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_ANYD((*vel[amrlev])[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
+                                    BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                    BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                    dxinv);
+#else
             amrex_mlndlap_mknewu(BL_TO_FORTRAN_BOX(bx),
                                  BL_TO_FORTRAN_ANYD((*vel[amrlev])[mfi]),
                                  BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
                                  BL_TO_FORTRAN_ANYD(sigma[mfi]),
                                  dxinv);
-#ifdef AMREX_USE_EB
-            const FArrayBox& vfracfab = vfrac[mfi];
-            for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
-                (*vel[amrlev])[mfi].protected_divide(vfracfab, bx, 0, idim, 1);
-            }
 #endif
         }
     }
