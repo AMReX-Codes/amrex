@@ -1017,6 +1017,43 @@ contains
              else
                 call get_neighbor_cells(flag(i,j), nbr)
 
+#if 1
+                if (cent(i,j,1) .gt. 0.d0) then
+                   if (nbr(1,0) .eq. 1) then
+                      dvxdx = ovel(i+1,j,1)-ovel(i,j,1)
+                      dvydx = ovel(i+1,j,2)-ovel(i,j,2)                   
+                   else
+                      dvxdx = 0.d0
+                      dvydx = 0.d0
+                   end if
+                else
+                   if (nbr(-1,0) .eq. 1) then
+                      dvxdx = ovel(i,j,1)-ovel(i-1,j,1)
+                      dvydx = ovel(i,j,2)-ovel(i-1,j,2)
+                   else
+                      dvxdx = 0.d0
+                      dvydx = 0.d0
+                   end if
+                end if
+
+                if (cent(i,j,2) .gt. 0.d0) then
+                   if (nbr(0,1) .eq. 1) then
+                      dvxdy = ovel(i,j+1,1)-ovel(i,j,1)
+                      dvydy = ovel(i,j+1,2)-ovel(i,j,2)
+                   else
+                      dvxdy = 0.d0
+                      dvydy = 0.d0
+                   end if
+                else
+                   if (nbr(0,-1) .eq. 1) then
+                      dvxdy = ovel(i,j,1)-ovel(i,j-1,1)
+                      dvydy = ovel(i,j,2)-ovel(i,j-1,2)
+                   else
+                      dvxdy = 0.d0
+                      dvydy = 0.d0
+                   end if
+                end if
+#else
                 if (nbr(-1,0) .eq. 1 .and. nbr(1,0) .eq. 1) then
                    dvxdx = 0.5d0*(ovel(i+1,j,1)-ovel(i-1,j,1))
                    dvydx = 0.5d0*(ovel(i+1,j,2)-ovel(i-1,j,2))
@@ -1044,6 +1081,7 @@ contains
                    dvxdy = 0.d0
                    dvydy = 0.d0
                 end if
+#endif
 
                 vel(i,j,1) = vfrac(i,j)*(ovel(i,j,1) + cent(i,j,1)*dvxdx + cent(i,j,2)*dvxdy)
                 vel(i,j,2) = vfrac(i,j)*(ovel(i,j,2) + cent(i,j,1)*dvydx + cent(i,j,2)*dvydy)
