@@ -67,8 +67,8 @@ class BoostedFrameDiagnostic {
     int boost_direction_;
 
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > data_buffer_;
-    int num_buffer_ = 32;
-    int max_box_size_ = 64;
+    int num_buffer_ = 256;
+    int max_box_size_ = 256;
     amrex::Vector<int> buff_counter_;
 
     amrex::Vector<LabSnapShot> snapshots_;

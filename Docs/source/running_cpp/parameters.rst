@@ -12,7 +12,6 @@ Overall simulation parameters
 * ``max_step`` (`integer`)
     The number of PIC cycles to perform.
 
-
 * ``warpx.gamma_boost`` (`float`)
     The Lorentz factor of the boosted frame in which the simulation is run.
     (The corresponding Lorentz transformation is assumed to be along ``warpx.boost_direction``.)
@@ -90,6 +89,42 @@ Distribution across MPI ranks and parallelization
 
 Particle initialization
 -----------------------
+
+* ``particles.nspecies`` (`int`)
+    The number of species that will be used in the simulation.
+
+* ``particles.species_names`` (`strings`, separated by spaces)
+    The name of each species. This is then used in the rest of the input deck ;
+    in this documentation we use `<species_name>` as a placeholder.
+
+* ``<species_name>.charge`` (`float`)
+    The charge of one `physical` particle of this species.
+
+* ``<species_name>.mass`` (`float`)
+    The mass of one `physical` particle of this species.
+
+* ``<species_name>.injection_style`` (`string`)
+    Determines how the particles will be injected in the simulation.
+    The options are:
+
+    * ``NUniformPerCell``: injection with a fixed number of particles
+    per cell, with particles being evenly-spaced in each direction within a cell.
+    This requires the additional parameter ``<species_name>.num_particles_per_cell_each_dim``.
+
+    * ``NRandomPerCell``: injection with a fixed number of particles
+    per cell, with particles being randomly distributed within each cell.
+    This requires the additional parameter ``<species_name>.num_particles_per_cell``.
+
+    * ``Gaussian_Beam``:
+
+Additional parameters for plasma injection (``NUniformPerCell`` and ``NRandomPerCell``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Additional parameters for gaussian beams (``Gaussian_Beam``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 
 Laser initialization
 --------------------
@@ -212,6 +247,11 @@ Laser initialization
 Numerics and algorithms
 -----------------------
 
+* ``warpx.cfl`` (`float`)
+    The ratio between the actual timestep that is used in the simulation
+    and the CFL limit. (e.g. for `warpx.cfl=1`, the timestep will be
+    exactly equal to the CFL limit.)
+
 * ``warpx.use_filter`` (`0 or 1`)
     Whether to smooth the charge and currents on the mesh, after depositing
     them from the macroparticles. This uses a bilinear filter
@@ -274,3 +314,20 @@ Diagnostics and output
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
+
+* ``warpx.plot_raw_fields`` (`0` or `1`)
+    By default, the fields written in the plot files are averaged on the nodes.
+    When ```warpx.plot_raw_fields`` is `1`, then the raw (i.e. unaveraged)
+    fields are also saved in the plot files.
+
+* ``warpx.plot_raw_fields_guards`` (`0` or `1`)
+    Only used when ``warpx.plot_raw_fields`` is ``1``.
+    Whether to include the guard cells in the output of the raw fields.
+
+* ``warpx.plot_finepatch`` (`0` or `1`)
+    Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
+    Whether to output the data of the fine patch, in the plot files.
+
+* ``warpx.plot_crsepatch`` (`0` or `1`)
+    Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
+    Whether to output the data of the coarse patch, in the plot files.

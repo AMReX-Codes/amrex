@@ -120,6 +120,8 @@ public:
 
     void Redistribute ();
 
+    void RedistributeLocal ();
+
     amrex::Vector<long> NumberOfParticlesInGrid(int lev) const;
 
     void Increment (amrex::MultiFab& mf, int lev);

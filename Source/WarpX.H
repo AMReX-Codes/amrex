@@ -90,8 +90,16 @@ public:
     static amrex::Vector<amrex::Real> boost_direction;
 
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
-    const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}
-    const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield_fp[lev][direction];}
+    const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
+    const amrex::MultiFab& getBfield  (int lev, int direction) {return *Bfield_aux[lev][direction];}
+
+    const amrex::MultiFab& getcurrent_cp (int lev, int direction) {return *current_cp[lev][direction];}
+    const amrex::MultiFab& getEfield_cp  (int lev, int direction) {return  *Efield_cp[lev][direction];}
+    const amrex::MultiFab& getBfield_cp  (int lev, int direction) {return  *Bfield_cp[lev][direction];}
+
+    const amrex::MultiFab& getcurrent_fp (int lev, int direction) {return *current_fp[lev][direction];}
+    const amrex::MultiFab& getEfield_fp  (int lev, int direction) {return *Efield_fp[lev][direction];}
+    const amrex::MultiFab& getBfield_fp  (int lev, int direction) {return *Bfield_fp[lev][direction];}
 
     static amrex::MultiFab* getCosts (int lev) {
         if (m_instance) {
