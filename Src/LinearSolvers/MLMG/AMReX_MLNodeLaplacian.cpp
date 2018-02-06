@@ -20,7 +20,7 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
-                                  const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                                  const Vector<FactoryType const*>& a_factory)
 {
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
@@ -33,7 +33,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                         const Vector<FactoryType const*>& a_factory)
 {
     BL_PROFILE("MLNodeLaplacian::define()");
 
@@ -68,7 +68,7 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 {
     MultiFab::Copy(*m_sigma[amrlev][0][0], a_sigma, 0, 0, 1, 0);
 #ifdef AMREX_USE_EB
-    const MultiFab& vfrac = static_cast<EBFArrayBoxFactory const&>(*m_factory[amrlev]).getVolFrac();
+    const MultiFab& vfrac = m_factory[amrlev]->getVolFrac();
     MultiFab::Multiply(*m_sigma[amrlev][0][0], vfrac, 0, 0, 1, 0);
 #endif
 }
@@ -93,7 +93,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 
 #ifdef AMREX_USE_EB
-        const MultiFab& vfrac = static_cast<EBFArrayBoxFactory const&>(*m_factory[ilev]).getVolFrac();
+        const MultiFab& vfrac = m_factory[ilev]->getVolFrac();
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             MultiFab::Multiply(*vel[ilev], vfrac, 0, idim, 1, 1);
         }
@@ -308,6 +308,9 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
     {
         const auto& sigma = *m_sigma[amrlev][0][0];
         const Real* dxinv = m_geom[amrlev][0].InvCellSize();
+#ifdef AMREX_USE_EB
+        const MultiFab& vfrac = m_factory[amrlev]->getVolFrac();
+#endif
         for (MFIter mfi(*vel[amrlev], true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
@@ -316,6 +319,12 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
                                  BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
                                  BL_TO_FORTRAN_ANYD(sigma[mfi]),
                                  dxinv);
+#ifdef AMREX_USE_EB
+            const FArrayBox& vfracfab = vfrac[mfi];
+            for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
+                (*vel[amrlev])[mfi].protected_divide(vfracfab, bx, 0, idim, 1);
+            }
+#endif
         }
     }
 }

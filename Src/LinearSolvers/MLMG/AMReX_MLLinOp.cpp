@@ -23,7 +23,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                 const Vector<FactoryType const*>& a_factory)
 {
     BL_PROFILE("MLLinOp::define()");
 
@@ -44,7 +44,7 @@ void
 MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                      const Vector<FactoryType const*>& a_factory)
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
@@ -74,7 +74,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         if (amrlev < a_factory.size()) {
             m_factory[amrlev].reset(a_factory[amrlev]->clone());
         } else {
+#ifdef AMREX_USE_EB
+            amrex::Abort("MLLinop must be provided with EBFArrayBoxFactory when using EB");
+#else
             m_factory[amrlev].reset(new FArrayBoxFactory());
+#endif
         }
 
         int rr = mg_coarsen_ratio;
@@ -110,7 +114,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     if (a_factory.size() > 0) {
         m_factory[0].reset(a_factory[0]->clone());
     } else {
+#ifdef AMREX_USE_EB
+        amrex::Abort("MLLinop must be provided with EBFArrayBoxFactory when using EB");
+#else
         m_factory[0].reset(new FArrayBoxFactory());
+#endif
     }
 
     m_domain_covered.resize(m_num_amr_levels, false);

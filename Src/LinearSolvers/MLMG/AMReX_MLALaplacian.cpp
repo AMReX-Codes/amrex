@@ -10,7 +10,7 @@ MLALaplacian::MLALaplacian (const Vector<Geometry>& a_geom,
                             const Vector<BoxArray>& a_grids,
                             const Vector<DistributionMapping>& a_dmap,
                             const LPInfo& a_info,
-                            const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                            const Vector<FactoryType const*>& a_factory)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3, "MLALaplacian: only 3d is supported");
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
@@ -21,7 +21,7 @@ MLALaplacian::define (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
                       const LPInfo& a_info,
-                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                      const Vector<FactoryType  const*>& a_factory)
 {
     BL_PROFILE("MLALaplacian::define()");
 

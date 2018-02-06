@@ -19,7 +19,7 @@ public:
                const Vector<BoxArray>& a_grids,
                const Vector<DistributionMapping>& a_dmap,
                const LPInfo& a_info = LPInfo(),
-               const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+               const Vector<FactoryType const*>& a_factory = {});
     virtual ~MLPoisson ();
 
     MLPoisson (const MLPoisson&) = delete;
@@ -31,7 +31,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FactoryType const*>& a_factory = {});
 
 protected:
 
