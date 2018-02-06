@@ -36,6 +36,7 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
+       amrex_mlndlap_mknewu_eb, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -262,6 +263,17 @@ contains
     real(amrex_real), intent(in   ) ::   p(plo(1):phi(1))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1))
   end subroutine amrex_mlndlap_mknewu
+
+
+  subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
+       vfrac, vlo, vhi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
+    integer, dimension(1), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi
+    real(amrex_real), intent(in) :: dxinv(1)
+    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1))
+    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1))
+    real(amrex_real), intent(in   ) :: vfrac(vlo(1):vhi(1))
+  end subroutine amrex_mlndlap_mknewu_eb
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &

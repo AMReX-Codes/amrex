@@ -39,6 +39,7 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
+       amrex_mlndlap_mknewu_eb, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -987,6 +988,39 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_mknewu
+
+
+  subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
+       vfrac, vlo, vhi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
+    integer, dimension(2), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),2)
+    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
+    real(amrex_real), intent(in   )::vfrac(vlo(1):vhi(1),vlo(2):vhi(2))
+
+    integer :: i, j
+    real(amrex_real) :: facx, facy, frz
+
+    facx = 0.5d0*dxinv(1)
+    facy = 0.5d0*dxinv(2)
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (vfrac(i,j) .eq. 0.d0) then
+             u(i,j,1) = 0.d0
+             u(i,j,2) = 0.d0
+          else
+             u(i,j,1) = u(i,j,1) - (sig(i,j)/vfrac(i,j))*facx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
+             u(i,j,2) = u(i,j,2) - (sig(i,j)/vfrac(i,j))*facy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
+             if (is_rz) then
+                frz = (sig(i,j)/vfrac(i,j))*facy / (6*i+3)
+                u(i,j,2) = u(i,j,2) + frz*(p(i,j)-p(i+1,j)-p(i,j+1)+p(i+1,j+1))
+             end if
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_mknewu_eb
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &

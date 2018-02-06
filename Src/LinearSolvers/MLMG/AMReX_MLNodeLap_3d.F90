@@ -36,6 +36,7 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
+       amrex_mlndlap_mknewu_eb, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -1205,7 +1206,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
     integer :: i,j,k
-    real(amrex_real) :: facx, facy, facz
+    real(amrex_real) :: facx, facy, facz, facsig
     real(amrex_real), parameter :: omega = 2.d0/3.d0
 
     facx = -4.d0 * (1.d0/36.d0)*dxinv(1)*dxinv(1)
@@ -1216,13 +1217,15 @@ contains
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
              if (msk(i,j,k) .ne. dirichlet) then
-                sol(i,j,k) = sol(i,j,k) + omega * (rhs(i,j,k) - Ax(i,j,k)) &
-                     / (facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1) &
-                     &       +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  )) &
-                     & +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1) &
-                     &       +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  )) &
-                     & +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1) &
-                     &       +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )))
+                facsig = facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1) &
+                     &        +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  )) &
+                     &  +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1) &
+                     &        +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  )) &
+                     &  +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1) &
+                     &        +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  ))
+                if (facsig .ne. 0.d0) then
+                   sol(i,j,k) = sol(i,j,k) + omega * (rhs(i,j,k) - Ax(i,j,k)) / facsig
+                end if
              else
                 sol(i,j,k) = 0.d0
              end if
@@ -1246,7 +1249,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
     integer :: i,j,k
-    real(amrex_real) :: fxyz
+    real(amrex_real) :: fxyz, facsig
     real(amrex_real), parameter :: omega = 2.d0/3.d0
 
     fxyz = -4.d0 * (1.d0/36.d0)*(dxinv(1)*dxinv(1) + dxinv(2)*dxinv(2) + dxinv(3)*dxinv(3))
@@ -1255,10 +1258,11 @@ contains
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
              if (msk(i,j,k) .ne. dirichlet) then
-                sol(i,j,k) = sol(i,j,k) + omega * (rhs(i,j,k) - Ax(i,j,k)) &
-                     / (fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1) &
-                     &       +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )))
-
+                facsig = fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1) &
+                     &        +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ))
+                if (facsig .ne. 0.d0) then
+                   sol(i,j,k) = sol(i,j,k) + omega * (rhs(i,j,k) - Ax(i,j,k)) / facsig
+                end if
              else
                 sol(i,j,k) = 0.d0
              end if
@@ -1384,7 +1388,9 @@ contains
                      &                        -facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  )) &
                      &                   +2.d0*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )))
                 
-                sol(i,j,k) = sol(i,j,k) + (rhs(i,j,k) - Ax) / s0
+                if (s0 .ne. 0.d0) then
+                   sol(i,j,k) = sol(i,j,k) + (rhs(i,j,k) - Ax) / s0
+                end if
              else
                 sol(i,j,k) = 0.d0
              end if
@@ -1459,7 +1465,9 @@ contains
                      + fm2xm2y4z*(sol(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)) &
                      &          + sol(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )))
 
-                sol(i,j,k) = sol(i,j,k) + (rhs(i,j,k) - Ax) / s0
+                if (s0 .ne. 0.d0) then
+                   sol(i,j,k) = sol(i,j,k) + (rhs(i,j,k) - Ax) / s0
+                end if
              else
                 sol(i,j,k) = 0.d0
              end if
@@ -1550,7 +1558,7 @@ contains
                 if (msk(ii+1,jj,kk) .ne. dirichlet) then
                    w1 = sum(sigx(ii  ,jj-1:jj,kk-1:kk))
                    w2 = sum(sigx(ii+1,jj-1:jj,kk-1:kk))
-                   fine(ii+1,jj,kk) = (w1*crse(i,j,k)+w2*crse(i+1,j,k))/(w1+w2)
+                   fine(ii+1,jj,kk) = (w1*crse(i,j,k)+w2*crse(i+1,j,k))/(w1+w2+1.d-80)
                 else
                    fine(ii+1,jj,kk) = 0.d0
                 end if
@@ -1560,7 +1568,7 @@ contains
                 if (msk(ii,jj+1,kk) .ne. dirichlet) then
                    w1 = sum(sigy(ii-1:ii,jj  ,kk-1:kk))
                    w2 = sum(sigy(ii-1:ii,jj+1,kk-1:kk))
-                   fine(ii,jj+1,kk) = (w1*crse(i,j,k)+w2*crse(i,j+1,k))/(w1+w2)
+                   fine(ii,jj+1,kk) = (w1*crse(i,j,k)+w2*crse(i,j+1,k))/(w1+w2+1.d-80)
                 else
                    fine(ii,jj+1,kk) = 0.d0
                 end if
@@ -1570,7 +1578,7 @@ contains
                 if (msk(ii,jj,kk+1) .ne. dirichlet) then
                    w1 = sum(sigz(ii-1:ii,jj-1:jj,kk  ))
                    w2 = sum(sigz(ii-1:ii,jj-1:jj,kk+1))
-                   fine(ii,jj,kk+1) = (w1*crse(i,j,k)+w2*crse(i,j,k+1))/(w1+w2)
+                   fine(ii,jj,kk+1) = (w1*crse(i,j,k)+w2*crse(i,j,k+1))/(w1+w2+1.d-80)
                 else
                    fine(ii,jj,kk+1) = 0.d0
                 end if
@@ -1593,7 +1601,7 @@ contains
                    w3 = sum(sigy(ii:ii+1,jj     ,kk-1:kk))
                    w4 = sum(sigy(ii:ii+1,jj+1   ,kk-1:kk))
                    fine(ii+1,jj+1,kk) = (w1*fine(ii,jj+1,kk) + w2*fine(ii+2,jj+1,kk) &
-                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj+2,kk)) / (w1+w2+w3+w4)
+                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj+2,kk)) / (w1+w2+w3+w4+1.d-80)
                 else
                    fine(ii+1,jj+1,kk) = 0.d0
                 end if
@@ -1606,7 +1614,7 @@ contains
                    w3 = sum(sigz(ii:ii+1,jj-1:jj,kk     ))
                    w4 = sum(sigz(ii:ii+1,jj-1:jj,kk+1   ))
                    fine(ii+1,jj,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii+2,jj,kk+1) &
-                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj,kk+2)) / (w1+w2+w3+w4)
+                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj,kk+2)) / (w1+w2+w3+w4+1.d-80)
                 else
                    fine(ii+1,jj,kk+1) = 0.d0
                 end if
@@ -1619,7 +1627,7 @@ contains
                    w3 = sum(sigz(ii-1:ii,jj:jj+1,kk     ))
                    w4 = sum(sigz(ii-1:ii,jj:jj+1,kk+1   ))
                    fine(ii,jj+1,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii,jj+2,kk+1) &
-                        + w3*fine(ii,jj+1,kk) + w4*fine(ii,jj+1,kk+2)) / (w1+w2+w3+w4)
+                        + w3*fine(ii,jj+1,kk) + w4*fine(ii,jj+1,kk+2)) / (w1+w2+w3+w4+1.d-80)
                 else
                    fine(ii,jj+1,kk+1) = 0.d0
                 end if
@@ -1640,7 +1648,7 @@ contains
              fine(ii,jj,kk) = (w1*fine(ii-1,jj,kk) + w2*fine(ii+1,jj,kk) &
                   + w3*fine(ii,jj-1,kk) + w4*fine(ii,jj+1,kk) &
                   + w5*fine(ii,jj,kk-1) + w6*fine(ii,jj,kk+1)) &
-                  / (w1+w2+w3+w4+w5+w6)
+                  / (w1+w2+w3+w4+w5+w6+1.d-80)
           end do
        end do
     end do
@@ -1681,7 +1689,7 @@ contains
                 if (msk(ii+1,jj,kk) .ne. dirichlet) then
                    w1 = sum(sig(ii  ,jj-1:jj,kk-1:kk))
                    w2 = sum(sig(ii+1,jj-1:jj,kk-1:kk))
-                   fine(ii+1,jj,kk) = (w1*crse(i,j,k)+w2*crse(i+1,j,k))/(w1+w2)
+                   fine(ii+1,jj,kk) = (w1*crse(i,j,k)+w2*crse(i+1,j,k))/(w1+w2+1.d-80)
                 else
                    fine(ii+1,jj,kk) = 0.d0
                 end if
@@ -1691,7 +1699,7 @@ contains
                 if (msk(ii,jj+1,kk) .ne. dirichlet) then
                    w1 = sum(sig(ii-1:ii,jj  ,kk-1:kk))
                    w2 = sum(sig(ii-1:ii,jj+1,kk-1:kk))
-                   fine(ii,jj+1,kk) = (w1*crse(i,j,k)+w2*crse(i,j+1,k))/(w1+w2)
+                   fine(ii,jj+1,kk) = (w1*crse(i,j,k)+w2*crse(i,j+1,k))/(w1+w2+1.d-80)
                 else
                    fine(ii,jj+1,kk) = 0.d0
                 end if
@@ -1701,7 +1709,7 @@ contains
                 if (msk(ii,jj,kk+1) .ne. dirichlet) then
                    w1 = sum(sig(ii-1:ii,jj-1:jj,kk  ))
                    w2 = sum(sig(ii-1:ii,jj-1:jj,kk+1))
-                   fine(ii,jj,kk+1) = (w1*crse(i,j,k)+w2*crse(i,j,k+1))/(w1+w2)
+                   fine(ii,jj,kk+1) = (w1*crse(i,j,k)+w2*crse(i,j,k+1))/(w1+w2+1.d-80)
                 else
                    fine(ii,jj,kk+1) = 0.d0
                 end if
@@ -1724,7 +1732,7 @@ contains
                    w3 = sum(sig(ii:ii+1,jj     ,kk-1:kk))
                    w4 = sum(sig(ii:ii+1,jj+1   ,kk-1:kk))
                    fine(ii+1,jj+1,kk) = (w1*fine(ii,jj+1,kk) + w2*fine(ii+2,jj+1,kk) &
-                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj+2,kk)) / (w1+w2+w3+w4)
+                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj+2,kk)) / (w1+w2+w3+w4+1.d-80)
                 else
                    fine(ii+1,jj+1,kk) = 0.d0
                 end if
@@ -1737,7 +1745,7 @@ contains
                    w3 = sum(sig(ii:ii+1,jj-1:jj,kk     ))
                    w4 = sum(sig(ii:ii+1,jj-1:jj,kk+1   ))
                    fine(ii+1,jj,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii+2,jj,kk+1) &
-                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj,kk+2)) / (w1+w2+w3+w4)
+                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj,kk+2)) / (w1+w2+w3+w4+1.d-80)
                 else
                    fine(ii+1,jj,kk+1) = 0.d0
                 end if
@@ -1750,7 +1758,7 @@ contains
                    w3 = sum(sig(ii-1:ii,jj:jj+1,kk     ))
                    w4 = sum(sig(ii-1:ii,jj:jj+1,kk+1   ))
                    fine(ii,jj+1,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii,jj+2,kk+1) &
-                        + w3*fine(ii,jj+1,kk) + w4*fine(ii,jj+1,kk+2)) / (w1+w2+w3+w4)
+                        + w3*fine(ii,jj+1,kk) + w4*fine(ii,jj+1,kk+2)) / (w1+w2+w3+w4+1.d-80)
                 else
                    fine(ii,jj+1,kk+1) = 0.d0
                 end if
@@ -1771,7 +1779,7 @@ contains
              fine(ii,jj,kk) = (w1*fine(ii-1,jj,kk) + w2*fine(ii+1,jj,kk) &
                   + w3*fine(ii,jj-1,kk) + w4*fine(ii,jj+1,kk) &
                   + w5*fine(ii,jj,kk-1) + w6*fine(ii,jj,kk+1)) &
-                  / (w1+w2+w3+w4+w5+w6)
+                  / (w1+w2+w3+w4+w5+w6+1.d-80)
           end do
        end do
     end do
@@ -1877,6 +1885,41 @@ contains
     end do
 
   end subroutine amrex_mlndlap_mknewu
+
+
+  subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
+       vfrac, vlo, vhi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
+    integer, dimension(3), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi
+    real(amrex_real), intent(in) :: dxinv(3)
+    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),3)
+    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
+    real(amrex_real), intent(in   )::vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
+
+    integer :: i, j, k
+    real(amrex_real) :: facx, facy, facz
+
+    facx = 0.25d0*dxinv(1)
+    facy = 0.25d0*dxinv(2)
+    facz = 0.25d0*dxinv(3)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             u(i,j,k,1) = u(i,j,k,1) - (sig(i,j,k)/vfrac(i,j,k))*facx &
+                  * (-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  ) &
+                  &  -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1))
+             u(i,j,k,2) = u(i,j,k,2) - (sig(i,j,k)/vfrac(i,j,k))*facy &
+                  * (-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  ) &
+                  &  -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
+             u(i,j,k,3) = u(i,j,k,3) - (sig(i,j,k)/vfrac(i,j,k))*facz &
+                  * (-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  ) &
+                  &  +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
+          end do
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_mknewu_eb
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
