@@ -4,6 +4,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
 
 #ifdef BL_MEM_PROFILING
@@ -17,6 +18,7 @@ using namespace amrex;
 
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
+//             - initializes BCRec boundary condition object
 AmrCoreAdv::AmrCoreAdv ()
 {
     ReadParameters();
@@ -26,11 +28,11 @@ AmrCoreAdv::AmrCoreAdv ()
     // No valid BoxArray and DistributionMapping have been defined.
     // But the arrays for them have been resized.
 
-    int nlevs_max = maxLevel() + 1;
+    int nlevs_max = max_level + 1;
 
     istep.resize(nlevs_max, 0);
     nsubsteps.resize(nlevs_max, 1);
-    for (int lev = 1; lev <= maxLevel(); ++lev) {
+    for (int lev = 1; lev <= max_level; ++lev) {
 	nsubsteps[lev] = MaxRefRatio(lev-1);
     }
 
@@ -118,7 +120,7 @@ AmrCoreAdv::Evolve ()
                        << " DT = " << dt[0]  << std::endl;
 
 	// sync up time
-	for (int lev = 0; lev <= finest_level; ++lev) {
+	for (lev = 0; lev <= finest_level; ++lev) {
 	    t_new[lev] = cur_time;
 	}
 
@@ -126,6 +128,10 @@ AmrCoreAdv::Evolve ()
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
+
+        if (chk_int > 0 && (step+1) % chk_int == 0) {
+            WriteCheckpointFile();
+        }
 
 #ifdef BL_MEM_PROFILING
         {
@@ -147,9 +153,21 @@ AmrCoreAdv::Evolve ()
 void
 AmrCoreAdv::InitData ()
 {
-    const Real time = 0.0;
-    InitFromScratch(time);
-    AverageDown();
+    if (restart_chkfile == "") {
+        // start simulation from the beginning
+        const Real time = 0.0;
+        InitFromScratch(time);
+        AverageDown();
+
+        if (chk_int > 0) {
+            WriteCheckpointFile();
+        }
+
+    }
+    else {
+        // restart from a checkpoint
+        ReadCheckpointFile();
+    }
 
     if (plot_int > 0) {
         WritePlotFile();
@@ -340,6 +358,9 @@ AmrCoreAdv::ReadParameters ()
 	pp.query("regrid_int", regrid_int);
 	pp.query("plot_file", plot_file);
 	pp.query("plot_int", plot_int);
+	pp.query("chk_file", chk_file);
+	pp.query("chk_int", chk_int);
+        pp.query("restart",restart_chkfile);
     }
 
     {
@@ -517,7 +538,8 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
     if (Verbose()) {
 	amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
-	amrex::Print() << "ADVANCE with dt = " << dt[lev] << std::endl;
+	amrex::Print() << "ADVANCE with time = " << t_new[lev] 
+                       << " dt = " << dt[lev] << std::endl;
     }
 
     // advance a single level for a single time step, updates flux registers
@@ -552,13 +574,13 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
 // advance a single level for a single time step, updates flux registers
 void
-AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
+AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 {
     constexpr int num_grow = 3;
 
     std::swap(phi_old[lev], phi_new[lev]);
     t_old[lev] = t_new[lev];
-    t_new[lev] += dt;
+    t_new[lev] += dt_lev;
 
     MultiFab& S_new = phi_new[lev];
 
@@ -621,7 +643,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
 			  BL_TO_FORTRAN_3D(flux[1]), 
 			  BL_TO_FORTRAN_3D(flux[2])), 
-		   dx, &dt);
+		   dx, &dt_lev);
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++) {
@@ -771,6 +793,186 @@ AmrCoreAdv::WritePlotFile () const
     const auto& mf = PlotFileMF();
     const auto& varnames = PlotFileVarNames();
     
+    amrex::Print() << "Writing plotfile " << plotfilename << "\n";
+
     amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
 				   Geom(), t_new[0], istep, refRatio());
+}
+
+void
+AmrCoreAdv::WriteCheckpointFile () const
+{
+
+    // chk00010            write a checkpoint file with this root directory
+    // chk00010/Header     this contains information you need to save (e.g., finest_level, t_new, etc.) and also
+    //                     the BoxArrays at each level
+    // chk00010/Level_0/
+    // chk00010/Level_1/
+    // etc.                these subdirectories will hold the MultiFab data at each level of refinement
+
+    // checkpoint file name, e.g., chk00010
+    const std::string& checkpointname = amrex::Concatenate(chk_file,istep[0]);
+
+    amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
+
+    const int nlevels = finest_level+1;
+
+    // ---- prebuild a hierarchy of directories
+    // ---- dirName is built first.  if dirName exists, it is renamed.  then build
+    // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nlevels-1
+    // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
+    // ---- after all directories are built
+    // ---- ParallelDescriptor::IOProcessor() creates the directories
+    amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
+
+    // write Header file
+   if (ParallelDescriptor::IOProcessor()) {
+
+       std::string HeaderFileName(checkpointname + "/Header");
+       std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
+				                        std::ofstream::trunc |
+				                        std::ofstream::binary);
+       if( ! HeaderFile.good()) {
+           amrex::FileOpenFailed(HeaderFileName);
+       }
+
+       HeaderFile.precision(17);
+
+       VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+       HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+       // write out title line
+       HeaderFile << "Checkpoint file for AmrCoreAdv\n";
+
+       // write out finest_level
+       HeaderFile << finest_level << "\n";
+
+       // write out array of istep
+       for (int i = 0; i < istep.size(); ++i) {
+           HeaderFile << istep[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write out array of dt
+       for (int i = 0; i < dt.size(); ++i) {
+           HeaderFile << dt[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write out array of t_new
+       for (int i = 0; i < t_new.size(); ++i) {
+           HeaderFile << t_new[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write the BoxArray at each level
+       for (int lev = 0; lev <= finest_level; ++lev) {
+           boxArray(lev).writeOn(HeaderFile);
+           HeaderFile << '\n';
+       }
+   }
+
+   // write the MultiFab data to, e.g., chk00010/Level_0/
+   for (int lev = 0; lev <= finest_level; ++lev) {
+       VisMF::Write(phi_new[lev],
+                    amrex::MultiFabFileFullPrefix(lev, checkpointname, "Level_", "phi"));
+   }
+
+}
+
+
+void
+AmrCoreAdv::ReadCheckpointFile () {
+
+    amrex::Print() << "Restart from checkpoint " << restart_chkfile << "\n";
+
+    // Header
+    std::string File(restart_chkfile + "/Header");
+
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
+
+    Vector<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream is(fileCharPtrString, std::istringstream::in);
+
+    std::string line, word;
+
+    // read in title line
+    std::getline(is, line);
+
+    // read in finest_level
+    is >> finest_level;
+    GotoNextLine(is);
+
+    // read in array of istep
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            istep[i++] = std::stoi(word);
+        }
+    }
+
+    // read in array of dt
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            dt[i++] = std::stod(word);
+        }
+    }
+
+    // read in array of t_new
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            t_new[i++] = std::stod(word);
+        }
+    }
+
+    for (int lev = 0; lev <= finest_level; ++lev) {
+
+        // read in level 'lev' BoxArray from Header
+        BoxArray ba;
+        ba.readFrom(is);
+        GotoNextLine(is);
+
+        // create a distribution mapping
+        DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
+
+        // set BoxArray grids and DistributionMapping dmap in AMReX_AmrMesh.H class
+        SetBoxArray(lev, ba);
+        SetDistributionMap(lev, dm);
+
+        // build MultiFab and FluxRegister data
+        int ncomp = 1;
+        int nghost = 0;
+        phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
+        phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
+        if (lev > 0 && do_reflux) {
+            flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+        }
+    }
+    
+    const std::string level_prefix = "Level_";
+
+    // read in the MultiFab data
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        VisMF::Read(phi_new[lev],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, "Level_", "phi"));
+    }
+
+}
+
+// utility to skip to next line in Header
+void
+AmrCoreAdv::GotoNextLine (std::istream& is)
+{
+    constexpr std::streamsize bl_ignore_max { 100000 };
+    is.ignore(bl_ignore_max, '\n');
 }
