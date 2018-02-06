@@ -36,7 +36,7 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
-       amrex_mlndlap_mknewu_eb, &
+       amrex_mlndlap_vel_cc_to_ct, amrex_mlndlap_mknewu_eb, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -234,6 +234,17 @@ contains
     real(amrex_real), intent(in   ) :: sig (sglo(1):sghi(1))
     integer, intent(in) :: msk(mlo(1):mhi(1))
   end subroutine amrex_mlndlap_interpolation_aa
+
+
+  subroutine amrex_mlndlap_vel_cc_to_ct (lo, hi, vel, vlo, vhi, ovel, olo, ohi, vfrac, flo, fhi, &
+       cent, clo, chi, flag, glo, ghi) bind(c,name='amrex_mlndlap_vel_cc_to_ct')
+    integer, dimension(1), intent(in) :: lo, hi, vlo, vhi, olo, ohi, flo, fhi, clo, chi, glo, ghi
+    real(amrex_real), intent(inout) ::   vel(vlo(1):vhi(1))
+    real(amrex_real), intent(in   ) ::  ovel(olo(1):ohi(1))
+    real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1))
+    real(amrex_real), intent(in   ) ::  cent(clo(1):chi(1))
+    integer         , intent(in   ) ::  flag(glo(1):ghi(1))
+  end subroutine amrex_mlndlap_vel_cc_to_ct
 
 
   subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, dxinv) &

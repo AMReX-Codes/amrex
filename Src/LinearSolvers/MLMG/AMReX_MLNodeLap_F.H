@@ -175,12 +175,21 @@ extern "C" {
                                const amrex_real* sigma, const int* slo, const int* shi,
                                const amrex_real* dxinv);
 
+#ifdef AMREX_USE_EB
+    void amrex_mlndlap_vel_cc_to_ct (const int* lo, const int* hi,
+                                     amrex_real* vel, const int* vlo, const int* vhi,
+                                     const amrex_real* ovel, const int* olo, const int* ohi,
+                                     const amrex_real* vfrac, const int* flo, const int* fhi,
+                                     const amrex_real* cent, const int* clo, const int* chi,
+                                     const void* flag, const int* glo, const int* ghi);
+
     void amrex_mlndlap_mknewu_eb (const int* lo, const int* hi,
                                   amrex_real* u, const int* ulo, const int* uhi,
                                   const amrex_real* p, const int* plo, const int* phi,
                                   const amrex_real* sigma, const int* slo, const int* shi,
                                   const amrex_real* vfrac, const int* vlo, const int* vhi,
                                   const amrex_real* dxinv);
+#endif
 
     void amrex_mlndlap_divu_fine_contrib (const int* clo, const int* chi,
                                           const int* cgrid_lo, const int* cgrid_hi,

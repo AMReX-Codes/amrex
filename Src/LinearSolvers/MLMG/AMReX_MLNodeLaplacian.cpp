@@ -99,10 +99,38 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                           a_vel[ilev]->DistributionMap(),
                                           AMREX_SPACEDIM, 1));
         vel[ilev] = vel_raii[ilev].get();
+        a_vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
         MultiFab::Copy(*vel[ilev], *a_vel[ilev], 0, 0, AMREX_SPACEDIM, 1);
+
+        const FabArray<EBCellFlagFab>& flags = m_factory[ilev]->getMultiEBCellFlagFab();
         const MultiFab& vfrac = m_factory[ilev]->getVolFrac();
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            MultiFab::Multiply(*vel[ilev], vfrac, 0, idim, 1, 1);
+        const MultiCutFab& cent = m_factory[ilev]->getCentroid();
+
+//        const Box& ccdom = geom.Domain();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(*vel[ilev],MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            auto& vfab = (*vel[ilev])[mfi];
+            const auto& flag = flags[mfi];
+
+            const auto& typ = flag.getType(bx);
+            if (typ == FabType::covered)
+            {
+                vfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+            }
+            else if (typ == FabType::singlevalued)
+            {
+                amrex_mlndlap_vel_cc_to_ct(BL_TO_FORTRAN_BOX(bx),
+                                           BL_TO_FORTRAN_ANYD(vfab),
+                                           BL_TO_FORTRAN_ANYD((*a_vel[ilev])[mfi]),
+                                           BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                           BL_TO_FORTRAN_ANYD(cent[mfi]),
+                                           BL_TO_FORTRAN_ANYD(flag));
+            }
         }
 #endif
 
