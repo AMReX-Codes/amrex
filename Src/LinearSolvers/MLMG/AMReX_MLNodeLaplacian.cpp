@@ -58,6 +58,20 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         }
     }
 
+#ifdef AMREX_USE_EB
+    const int ncomp = (AMREX_SPACEDIM == 2) ? 6 : 24;
+    m_connection.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_connection[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_connection[amrlev][mglev].reset
+                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], ncomp, 1));
+        }
+    }
+#endif
+
 #if (AMREX_SPACEDIM == 2)
     m_is_rz = Geometry::IsRZ();
 #endif
@@ -67,10 +81,6 @@ void
 MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 {
     MultiFab::Copy(*m_sigma[amrlev][0][0], a_sigma, 0, 0, 1, 0);
-#ifdef AMREX_USE_EB
-    const MultiFab& vfrac = m_factory[amrlev]->getVolFrac();
-    MultiFab::Multiply(*m_sigma[amrlev][0][0], vfrac, 0, 0, 1, 0);
-#endif
 }
 
 void
@@ -692,6 +702,10 @@ MLNodeLaplacian::prepareForSolve ()
 
 #if (AMREX_SPACEDIM == 2)
     amrex_mlndlap_set_rz(&m_is_rz);
+#endif
+
+#ifdef AMREX_USE_EB
+    buildConnection();
 #endif
 }
 
@@ -1398,5 +1412,44 @@ MLNodeLaplacian::reflux (int crse_amrlev,
         }
     }
 }
+
+#ifdef AMREX_USE_EB
+
+void
+MLNodeLaplacian::buildConnection ()
+{
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        auto& conn = *m_connection[amrlev][0];
+        const int ncomp = conn.nComp();
+        const auto& flags = m_factory[amrlev]->getMultiEBCellFlagFab();
+        const auto& area = m_factory[amrlev]->getAreaFrac();
+        const auto& bcent = m_factory[amrlev]->getBndryCent();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(conn, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox();
+            auto& cfab = conn[mfi];
+            const auto& flag = flags[mfi];
+            auto typ = flag.getType(bx);
+
+            if (typ == FabType::covered) {
+                cfab.setVal(0.0, bx, 0, ncomp);
+            } else {
+                amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
+                                             BL_TO_FORTRAN_ANYD(cfab),
+                                             BL_TO_FORTRAN_ANYD(flag),
+                                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                          BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                          BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                             BL_TO_FORTRAN_ANYD(bcent[mfi]));
+            }
+        }
+    }
+}
+
+#endif
 
 }
