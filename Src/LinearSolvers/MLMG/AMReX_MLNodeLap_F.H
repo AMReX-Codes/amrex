@@ -176,6 +176,19 @@ extern "C" {
                                const amrex_real* dxinv);
 
 #ifdef AMREX_USE_EB
+
+    void amrex_mlndlap_set_connection (const int* lo, const int* hi,
+                                       amrex_real* conn, const int* clo, const int* chi,
+                                       const void* flag, const int* flo, const int* fhi,
+                                       const amrex_real* ax, const int* axlo, const int* axhi,
+#if (AMREX_SPACEDIM >= 2)
+                                       const amrex_real* ay, const int* aylo, const int* ayhi,
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                       const amrex_real* az, const int* azlo, const int* azhi,
+#endif
+                                       const amrex_real* bcent, const int* blo, const int* bhi);
+
     void amrex_mlndlap_vel_cc_to_ct (const int* lo, const int* hi,
                                      amrex_real* vel, const int* vlo, const int* vhi,
                                      const amrex_real* ovel, const int* olo, const int* ohi,

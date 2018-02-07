@@ -90,6 +90,11 @@ private:
     int m_is_rz = 0;
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
+
+#ifdef AMREX_USE_EB
+    Vector<Vector<std::unique_ptr<MultiFab> > > m_connection;
+#endif
+
     bool m_use_gauss_seidel = true;
 #if AMREX_USE_EB
     bool m_use_harmonic_average = false;
@@ -109,6 +114,10 @@ private:
     void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
 
     void buildMasks ();
+
+#ifdef AMREX_USE_EB
+    void buildConnection ();
+#endif
 };
 
 }
