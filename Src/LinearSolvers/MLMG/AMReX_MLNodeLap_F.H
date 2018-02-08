@@ -279,6 +279,15 @@ extern "C" {
                                     const amrex_real* dxinv, const int* domlo, const int* domhi,
                                     const void* bclo, const void* bchi);
 
+    void amrex_mlndlap_jacobi_aa_eb (const int* lo, const int* hi,
+                                     amrex_real* sol, const int* slo, const int* shi,
+                                     const amrex_real* Ax, const int* alo, const int* ahi,
+                                     const amrex_real* rhs, const int* rlo, const int* rhi,
+                                     const amrex_real* sig, const int* sglo, const int* sghi,
+                                     const amrex_real* conn, const int* clo, const int* chi,
+                                     const int* dmsk, const int* dmlo, const int* dmhi,
+                                     const amrex_real* dxinv, const int* domlo, const int* domhi,
+                                     const void* bclo, const void* bchi);
 
 #endif
 
