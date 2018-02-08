@@ -90,9 +90,6 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         Real iter_start_time = amrex::second();
         bool converged = false;
 
-        // xxxxx
-        do_fixed_number_of_iters = 20;
-
         const int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
         for (int iter = 0; iter < niters; ++iter)
         {
@@ -709,11 +706,10 @@ MLMG::actualBottomSolve ()
             if (ret != 0 && verbose >= 1) {
                 amrex::Print() << "MLMG: Bottom solve failed.\n";
             }
-// xxxxx
-//            const int n = ret==0 ? nub : nuf;
-//            for (int i = 0; i < n; ++i) {
-//                linop.smooth(amrlev, mglev, x, b);
-//            }
+            const int n = ret==0 ? nub : nuf;
+            for (int i = 0; i < n; ++i) {
+                linop.smooth(amrlev, mglev, x, b);
+            }
         }
     }
 
