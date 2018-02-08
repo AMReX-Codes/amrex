@@ -269,6 +269,17 @@ extern "C" {
                                   const amrex_real* sigma, const int* slo, const int* shi,
                                   const amrex_real* vfrac, const int* vlo, const int* vhi,
                                   const amrex_real* dxinv);
+
+    void amrex_mlndlap_adotx_aa_eb (const int* lo, const int* hi,
+                                    amrex_real* y, const int* ylo, const int* yhi,
+                                    const amrex_real* x, const int* xlo, const int* xhi,
+                                    const amrex_real* sig, const int* slo, const int* shi,
+                                    const amrex_real* conn, const int* clo, const int* chi,
+                                    const int* dmsk, const int* dmlo, const int* dmhi,
+                                    const amrex_real* dxinv, const int* domlo, const int* domhi,
+                                    const void* bclo, const void* bchi);
+
+
 #endif
 
 #ifdef __cplusplus

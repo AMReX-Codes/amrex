@@ -68,6 +68,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         {
             m_connection[amrlev][mglev].reset
                 (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], ncomp, 1));
+            m_connection[amrlev][mglev]->setVal(1.0);
         }
     }
 #endif
@@ -858,6 +859,10 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
     const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
+#ifdef AMREX_USE_EB
+    const auto& conn = *m_connection[amrlev][mglev];
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -884,6 +889,16 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         else
         {
             const FArrayBox& sfab = (*sigma[0])[mfi];
+#ifdef AMREX_USE_EB
+            amrex_mlndlap_adotx_aa_eb(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD(yfab),
+                                      BL_TO_FORTRAN_ANYD(xfab),
+                                      BL_TO_FORTRAN_ANYD(sfab),
+                                      BL_TO_FORTRAN_ANYD(conn[mfi]),
+                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                      dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                      m_lobc.data(), m_hibc.data());
+#else
             amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
                                    BL_TO_FORTRAN_ANYD(yfab),
                                    BL_TO_FORTRAN_ANYD(xfab),
@@ -891,6 +906,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                    dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                    m_lobc.data(), m_hibc.data());
+#endif
         }
     }
 }
@@ -1438,7 +1454,7 @@ MLNodeLaplacian::buildConnection ()
 
             if (typ == FabType::covered) {
                 cfab.setVal(0.0, bx, 0, ncomp);
-            } else {
+            } else if (typ == FabType::singlevalued) {
                 amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
                                              BL_TO_FORTRAN_ANYD(cfab),
                                              BL_TO_FORTRAN_ANYD(flag),

@@ -48,7 +48,8 @@ module amrex_mlnodelap_2d_module
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_connection, &
-       amrex_mlndlap_vel_cc_to_ct, amrex_mlndlap_mknewu_eb
+       amrex_mlndlap_vel_cc_to_ct, amrex_mlndlap_mknewu_eb, &
+       amrex_mlndlap_adotx_aa_eb
 #endif
 
 contains
@@ -1495,8 +1496,8 @@ contains
                 Sx = 0.d0
                 Sx2 = twentyfourth*(axm+axp)
              else if (anrmy .eq. 0.d0) then
-                Sx = 0.125d0     *(axp-axm) + anrmx*0.5d0*bcx**2
-                Sx = twentyfourth*(axp-axm) + anrmx*third*bcx**3
+                Sx  = 0.125d0     *(axp-axm) + anrmx*0.5d0*bcx**2
+                Sx2 = twentyfourth*(axp+axm) + anrmx*third*bcx**3
              else
                 if (anrmx .gt. 0.d0) then
                    xmin = -0.5d0 + min(aym,ayp)
@@ -1506,7 +1507,7 @@ contains
                    xmax = 0.5d0 - min(aym,ayp)
                 end if
                 Sx  = 0.125d0     *(axp-axm) + (anrmx/abs(anrmy))*sixth  *(xmax**3-xmin**3)
-                Sx2 = twentyfourth*(axp-axm) + (anrmx/abs(anrmy))*twelfth*(xmax**4-xmin**4)
+                Sx2 = twentyfourth*(axp+axm) + (anrmx/abs(anrmy))*twelfth*(xmax**4-xmin**4)
              end if
 
              if (anrmy .eq. 0.d0) then
@@ -1514,17 +1515,17 @@ contains
                 Sy2 = twentyfourth*(aym+ayp)
              else if (anrmx .eq. 0.d0) then
                 Sy  = 0.125d0     *(ayp-aym) + anrmy*0.5d0*bcy**2
-                Sy2 = twentyfourth*(ayp-aym) + anrmy*third*bcy**3
+                Sy2 = twentyfourth*(ayp+aym) + anrmy*third*bcy**3
              else
                 if (anrmy .gt. 0.d0) then
                    ymin = -0.5d0 + min(axm,axp)
                    ymax = -0.5d0 + max(axm,axp)
                 else if (anrmy .lt. 0.d0) then
-                   xmin = 0.5d0 - max(axm,axp)
-                   xmax = 0.5d0 - min(axm,axp)
+                   ymin = 0.5d0 - max(axm,axp)
+                   ymax = 0.5d0 - min(axm,axp)
                 end if
                 Sy  = 0.125d0     *(ayp-aym) + (anrmy/abs(anrmx))*sixth  *(ymax**3-ymin**3)
-                Sy2 = twentyfourth*(ayp-aym) + (anrmy/abs(anrmx))*twelfth*(ymax**4-ymin**4)
+                Sy2 = twentyfourth*(ayp+aym) + (anrmy/abs(anrmx))*twelfth*(ymax**4-ymin**4)
              end if
 
              ! For d/dx of (i,j) and (i+1,j)
@@ -1547,7 +1548,7 @@ contains
              !             
              !             (i  ,j) & (i+1,j+1)
              !             (i+1,j) & (i  ,j+1)
-             conn(i,j,5) = 1.5d0*vol(i,j) - 6.d0*Sy2
+             conn(i,j,5) = 1.5d0*vol(i,j) - 6.d0*Sx2
 
              ! For d/dy of (i+1,j) and (i+1,j+1)
              conn(i,j,6) = 3.d0*Sx2 + 3.d0*Sx + 0.75d0*vol(i,j)
@@ -1687,6 +1688,67 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_mknewu_eb
+
+
+  subroutine amrex_mlndlap_adotx_aa_eb (lo, hi, y, ylo, yhi, x, xlo, xhi, &
+       sig, slo, shi, conn, clo, chi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_adotx_aa_eb')
+    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, &
+         clo, chi, mlo, mhi, domlo, domhi, bclo, bchi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2))
+    real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
+    real(amrex_real), intent(in   ) ::conn(clo(1):chi(1),clo(2):chi(2),6)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: i,j
+    real(amrex_real) :: facx, facy
+    real(amrex_real) :: fmm, f0m, fpm, fm0, f00, fp0, fmp, f0p, fpp
+
+    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (msk(i,j) .ne. dirichlet) then
+             fmm = sig(i-1,j-1)*(facx*conn(i-1,j-1,2)+facy*conn(i-1,j-1,5))
+             fpm = sig(i  ,j-1)*(facx*conn(i  ,j-1,2)+facy*conn(i  ,j-1,5))
+             fmp = sig(i-1,j  )*(facx*conn(i-1,j  ,2)+facy*conn(i-1,j  ,5))
+             fpp = sig(i  ,j  )*(facx*conn(i  ,j  ,2)+facy*conn(i  ,j  ,5))
+             fm0 =  sig(i-1,j-1)*(2.d0*facx*conn(i-1,j-1,3) &
+                  &                  -facy*conn(i-1,j-1,5)) &
+                  + sig(i-1,j  )*(2.d0*facx*conn(i-1,j  ,1) &
+                  &                  -facy*conn(i-1,j  ,5))
+             fp0 =  sig(i  ,j-1)*(2.d0*facx*conn(i  ,j-1,3) &
+                  &                   -facy*conn(i  ,j-1,5)) &
+                  + sig(i  ,j  )*(2.d0*facx*conn(i  ,j  ,1) &
+                  &                   -facy*conn(i  ,j  ,5))
+             f0m =  sig(i-1,j-1)*(2.d0*facy*conn(i-1,j-1,6) &
+                  &                   -facx*conn(i-1,j-1,2)) &
+                  + sig(i  ,j-1)*(2.d0*facy*conn(i  ,j-1,4) &
+                  &                   -facx*conn(i  ,j-1,2))
+             f0p =  sig(i-1,j  )*(2.d0*facy*conn(i-1,j  ,6) &
+                  &                   -facx*conn(i-1,j  ,2)) &
+                  + sig(i  ,j  )*(2.d0*facy*conn(i  ,j  ,4) &
+                  &                   -facx*conn(i  ,j  ,2))
+             f00 = fmm+fpm+fmp+fpp+fm0+fp0+f0m+f0p
+             y(i,j) = x(i-1,j-1) * fmm &
+                  +   x(i+1,j-1) * fpm &
+                  +   x(i-1,j+1) * fmp &
+                  +   x(i+1,j+1) * fpp &
+                  +   x(i-1,j  ) * fm0 &
+                  +   x(i+1,j  ) * fp0 &
+                  +   x(i  ,j-1) * f0m &
+                  +   x(i  ,j+1) * f0p &
+                  -   x(i  ,j  ) * f00
+          else
+             y(i,j) = 0.d0
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_adotx_aa_eb
 
 #endif
 
