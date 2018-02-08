@@ -358,24 +358,38 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
         const Real* dxinv = m_geom[amrlev][0].InvCellSize();
 #ifdef AMREX_USE_EB
         const MultiFab& vfrac = m_factory[amrlev]->getVolFrac();
+        const MultiCutFab& cent = m_factory[amrlev]->getCentroid();
+        const FabArray<EBCellFlagFab>& flags = m_factory[amrlev]->getMultiEBCellFlagFab();
 #endif
         for (MFIter mfi(*vel[amrlev], true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
+            auto& vfab = (*vel[amrlev])[mfi];
 #ifdef AMREX_USE_EB
-            amrex_mlndlap_mknewu_eb(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD((*vel[amrlev])[mfi]),
-                                    BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
-                                    BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                    BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                    dxinv);
-#else
-            amrex_mlndlap_mknewu(BL_TO_FORTRAN_BOX(bx),
-                                 BL_TO_FORTRAN_ANYD((*vel[amrlev])[mfi]),
-                                 BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
-                                 BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                 dxinv);
+            auto type = flags[mfi].getType(bx);
+            if (type == FabType::covered)
+            {
+                vfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+            }
+            else if (type == FabType::singlevalued)
+            {
+                amrex_mlndlap_mknewu_eb(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(vfab),
+                                        BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
+                                        BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                        BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                        BL_TO_FORTRAN_ANYD(cent[mfi]),
+                                        dxinv);
+            }
+            else
 #endif
+            {
+                amrex_mlndlap_mknewu(BL_TO_FORTRAN_BOX(bx),
+                                     BL_TO_FORTRAN_ANYD(vfab),
+                                     BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
+                                     BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                     dxinv);
+            }
         }
     }
 }

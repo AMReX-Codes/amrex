@@ -268,6 +268,7 @@ extern "C" {
                                   const amrex_real* p, const int* plo, const int* phi,
                                   const amrex_real* sigma, const int* slo, const int* shi,
                                   const amrex_real* vfrac, const int* vlo, const int* vhi,
+                                  const amrex_real* cent, const int* clo, const int* chi,
                                   const amrex_real* dxinv);
 
     void amrex_mlndlap_adotx_aa_eb (const int* lo, const int* hi,
