@@ -99,7 +99,7 @@ public:
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
-    static constexpr int mg_box_min_width = 2;
+    static constexpr int mg_box_min_width = 256;
 
     LPInfo info;
 

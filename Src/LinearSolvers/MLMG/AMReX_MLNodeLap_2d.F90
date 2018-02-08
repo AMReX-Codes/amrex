@@ -1450,10 +1450,12 @@ contains
 #ifdef AMREX_USE_EB
 
   subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, flag, flo, fhi, &
-       ax, axlo, axhi, ay, aylo, ayhi, bcen, blo, bhi) bind(c,name='amrex_mlndlap_set_connection')
+       vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, bcen, blo, bhi) &
+       bind(c,name='amrex_mlndlap_set_connection')
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_covered_cell
-    integer, dimension(2) :: lo, hi, clo, chi, flo, fhi, axlo, axhi, aylo, ayhi, blo, bhi
+    integer, dimension(2) :: lo, hi, clo, chi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
     real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
+    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
     real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2))
     real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1), blo(2): bhi(2),2)
@@ -1493,7 +1495,7 @@ contains
                 Sx = 0.d0
                 Sx2 = twentyfourth*(axm+axp)
              else if (anrmy .eq. 0.d0) then
-                Sx = 0.125d0*(axp-axm) + anrmx*0.5d0*bcx**2
+                Sx = 0.125d0     *(axp-axm) + anrmx*0.5d0*bcx**2
                 Sx = twentyfourth*(axp-axm) + anrmx*third*bcx**3
              else
                 if (anrmx .gt. 0.d0) then
@@ -1511,8 +1513,8 @@ contains
                 Sy = 0.d0
                 Sy2 = twentyfourth*(aym+ayp)
              else if (anrmx .eq. 0.d0) then
-                Sy = 0.125d0*(ayp-aym) + anrmy*0.5d0*bcy**2
-                Sx2 = twentyfourth*(ayp-aym) + anrmx*third*bcy**3
+                Sy  = 0.125d0     *(ayp-aym) + anrmy*0.5d0*bcy**2
+                Sy2 = twentyfourth*(ayp-aym) + anrmy*third*bcy**3
              else
                 if (anrmy .gt. 0.d0) then
                    ymin = -0.5d0 + min(axm,axp)
@@ -1525,6 +1527,30 @@ contains
                 Sy2 = twentyfourth*(ayp-aym) + (anrmy/abs(anrmx))*twelfth*(ymax**4-ymin**4)
              end if
 
+             ! For d/dx of (i,j) and (i+1,j)
+             conn(i,j,1) = 3.d0*Sy2 - 3.d0*Sy + 0.75d0*vol(i,j)
+
+             ! For d/dx of (i  ,j) & (i  ,j+1)
+             !             (i+1,j) & (i+1,j+1)
+             !             (i  ,j) & (i+1,j+1)
+             !             (i+1,j) & (i  ,j+1)
+             conn(i,j,2) = 1.5d0*vol(i,j) - 6.d0*Sy2
+
+             ! For d/dx of (i,j+1) and (i+1,j+1)
+             conn(i,j,3) = 3.d0*Sy2 + 3.d0*Sy + 0.75d0*vol(i,j)
+
+             ! For d/dy of (i,j) and (i,j+1)
+             conn(i,j,4) = 3.d0*Sx2 - 3.d0*Sx + 0.75d0*vol(i,j)
+
+             ! For d/dy of (i,j  ) & (i+1,j  )
+             !             (i,j+1) & (i+1,j+1)
+             !             
+             !             (i  ,j) & (i+1,j+1)
+             !             (i+1,j) & (i  ,j+1)
+             conn(i,j,5) = 1.5d0*vol(i,j) - 6.d0*Sy2
+
+             ! For d/dy of (i+1,j) and (i+1,j+1)
+             conn(i,j,6) = 3.d0*Sx2 + 3.d0*Sx + 0.75d0*vol(i,j)
           end if
        end do
     end do
