@@ -1423,6 +1423,7 @@ MLNodeLaplacian::buildConnection ()
         auto& conn = *m_connection[amrlev][0];
         const int ncomp = conn.nComp();
         const auto& flags = m_factory[amrlev]->getMultiEBCellFlagFab();
+        const auto& vfrac = m_factory[amrlev]->getVolFrac();
         const auto& area = m_factory[amrlev]->getAreaFrac();
         const auto& bcent = m_factory[amrlev]->getBndryCent();
 #ifdef _OPENMP
@@ -1441,6 +1442,7 @@ MLNodeLaplacian::buildConnection ()
                 amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
                                              BL_TO_FORTRAN_ANYD(cfab),
                                              BL_TO_FORTRAN_ANYD(flag),
+                                             BL_TO_FORTRAN_ANYD(vfrac[mfi]),
                                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
                                                           BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
                                                           BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
