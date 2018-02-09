@@ -110,9 +110,10 @@ Real compute_dt(const Geometry& geom)
 {
     const static Real cfl = 1.0;
     const Real* dx = geom.CellSize();
-    const Real deltat  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
+    const Real dt  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
                                                        + 1./(dx[1]*dx[1]),
                                                        + 1./(dx[2]*dx[2]))) * PhysConst::c );
+    return dt;
 }
 
 void evolve_electric_field(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
@@ -122,7 +123,6 @@ void evolve_electric_field(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
 {
     BL_PROFILE("evolve_electric_field");
 
-    static constexpr Real c2 = PhysConst::c*PhysConst::c;
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
     const Real foo = (PhysConst::c*PhysConst::c) * dt;
 
@@ -278,8 +278,8 @@ void test_em_pic(const TestParams& parms)
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
-        real_box.setLo(n, 0.0);
-        real_box.setHi(n, 1.0);
+        real_box.setLo(n, -20e-6);
+        real_box.setHi(n,  20e-6);
     }
     
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0)); 
@@ -306,13 +306,13 @@ void test_em_pic(const TestParams& parms)
     MultiFab By(amrex::convert(ba, By_nodal_flag), dm, 1, ng);
     MultiFab Bz(amrex::convert(ba, Bz_nodal_flag), dm, 1, ng);
     
-    MultiFab Ex(amrex::convert(ba, Bx_nodal_flag), dm, 1, ng);
-    MultiFab Ey(amrex::convert(ba, By_nodal_flag), dm, 1, ng);
-    MultiFab Ez(amrex::convert(ba, Bz_nodal_flag), dm, 1, ng);
+    MultiFab Ex(amrex::convert(ba, Ex_nodal_flag), dm, 1, ng);
+    MultiFab Ey(amrex::convert(ba, Ey_nodal_flag), dm, 1, ng);
+    MultiFab Ez(amrex::convert(ba, Ez_nodal_flag), dm, 1, ng);
     
-    MultiFab jx(amrex::convert(ba, Bx_nodal_flag), dm, 1, ng);
-    MultiFab jy(amrex::convert(ba, By_nodal_flag), dm, 1, ng);
-    MultiFab jz(amrex::convert(ba, Bz_nodal_flag), dm, 1, ng);
+    MultiFab jx(amrex::convert(ba, jx_nodal_flag), dm, 1, ng);
+    MultiFab jy(amrex::convert(ba, jy_nodal_flag), dm, 1, ng);
+    MultiFab jz(amrex::convert(ba, jz_nodal_flag), dm, 1, ng);
     
     Bx.setVal(0.0); By.setVal(0.0); Bz.setVal(0.0);
     Ex.setVal(0.0); Ey.setVal(0.0); Ez.setVal(0.0);
