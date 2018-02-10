@@ -1,5 +1,5 @@
 from ._libwarpx import libwarpx
-import .callbacks
+from . import callbacks
 
 class TimeStepper(object):
 

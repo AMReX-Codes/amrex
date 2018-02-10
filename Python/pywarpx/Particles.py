@@ -1,6 +1,6 @@
 from .Bucket import Bucket
 
-particles = Bucket('particles', nspecies=0, species_names='')
+particles = Bucket('particles', nspecies=0, species_names=None)
 particles_list = []
 
 electrons = Bucket('electrons')

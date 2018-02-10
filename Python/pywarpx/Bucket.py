@@ -28,7 +28,12 @@ class Bucket(object):
         for attr, value in iteritems(self.argvattrs):
             # --- repr is applied to value so that for floats, all of the digits are included.
             # --- The strip is then needed when value is a string.
-            attrstring = '{0}.{1}={2} '.format(self.instancename, attr, repr(value).strip("'\""))
+            if hasattr(value, '__iter__'):
+                # --- For lists, tuples, and arrays make a space delimited string of the values
+                rhs = ' '.join(map(repr, value))
+            else:
+                rhs = value
+            attrstring = '{0}.{1}={2}'.format(self.instancename, attr, repr(rhs).strip("'\""))
             result += [attrstring]
         return result
 
