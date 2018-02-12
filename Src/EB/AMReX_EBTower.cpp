@@ -25,6 +25,7 @@ void
 EBTower::Destroy ()
 {
     delete m_instance;
+    m_instance = nullptr;
 }
 
 EBTower::EBTower ()
