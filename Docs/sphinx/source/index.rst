@@ -37,6 +37,7 @@ at https://github.com/AMReX-Codes/amrex
    Chapter4
    Chapter5
    Chapter6
+   Chapter6a
    Chapter7
    Chapter8
    Chapter9
@@ -44,6 +45,7 @@ at https://github.com/AMReX-Codes/amrex
    Chapter11
    Chapter12
    Chapter13
+   Chapter14
 
 Indices and tables
 ==================

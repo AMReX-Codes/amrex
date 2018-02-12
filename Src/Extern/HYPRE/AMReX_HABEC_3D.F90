@@ -2,7 +2,7 @@
 #include "AMReX_ArrayLim.H"
 
 
-module habec_module
+module amrex_habec_module
 
   ! habec is Hypre abec, where abec is the form of the linear equation
   ! we are solving:
@@ -20,7 +20,7 @@ subroutine hbvec(vec, &
                  bcval, DIMS(bcv), &
                  mask, DIMS(msk), &
                  b, DIMS(bbox), &
-                 beta, dx) bind(C, name="hbvec")
+                 beta, dx) bind(C, name="amrex_hbvec")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(reg)
@@ -128,7 +128,7 @@ subroutine hbvec3(vec, &
                   bcval, DIMS(bcv), &
                   mask, DIMS(msk), &
                   b, DIMS(bbox), &
-                  beta, dx) bind(C, name="hbvec3")
+                  beta, dx) bind(C, name="amrex_hbvec3")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(reg)
@@ -305,7 +305,7 @@ end subroutine hbvec3
 subroutine hmac(mat, a, &
                 DIMS(abox), &
                 DIMS(reg), &
-                alpha) bind(C, name="hmac")
+                alpha) bind(C, name="amrex_hmac")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(abox)
@@ -336,7 +336,7 @@ end subroutine hmac
 subroutine hmbc(mat, b, &
                 DIMS(bbox), &
                 DIMS(reg), &
-                beta, dx, n) bind(C, name="hmbc")
+                beta, dx, n) bind(C, name="amrex_hmbc")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(bbox)
@@ -389,7 +389,7 @@ subroutine hmmat(mat, &
                  cdir, bct, bho, bcl, &
                  mask, DIMS(msk), &
                  b, DIMS(bbox), &
-                 beta, dx) bind(C, name="hmmat")
+                 beta, dx) bind(C, name="amrex_hmmat")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(reg)
@@ -516,7 +516,7 @@ subroutine hmmat3(mat, &
                   cdir, bctype, bho, bcl, &
                   mask, DIMS(msk), &
                   b, DIMS(bbox), &
-                  beta, dx) bind(C, name="hmmat3")
+                  beta, dx) bind(C, name="amrex_hmmat3")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(reg)
@@ -726,4 +726,4 @@ subroutine hmmat3(mat, &
   endif
 end subroutine hmmat3
 
-end module habec_module
+end module amrex_habec_module

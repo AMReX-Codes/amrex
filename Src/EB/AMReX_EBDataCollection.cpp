@@ -7,7 +7,7 @@
 namespace amrex {
 
 EBDataCollection::EBDataCollection (const Geometry& a_geom,
-                                    const BoxArray& a_ba,
+                                    const BoxArray& a_ba_in,
                                     const DistributionMapping& a_dm,
                                     const Vector<int>& a_ngrow, EBSupport a_support)
     : m_ngrow(a_ngrow),
@@ -17,6 +17,9 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
     if (m_support >= EBSupport::basic)
     {
         AMREX_ALWAYS_ASSERT(EBTower::get() != nullptr);
+
+        // The BoxArray argument may not be cell-centered BoxArray.
+        const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());
 
         m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0],
                                                   MFInfo(), DefaultFabFactory<EBCellFlagFab>());

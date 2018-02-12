@@ -16,7 +16,6 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
-#include <AMReX_Looping.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MemPool.H>
 

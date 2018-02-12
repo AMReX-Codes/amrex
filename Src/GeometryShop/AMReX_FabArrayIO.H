@@ -231,7 +231,7 @@ namespace amrex
         BL_PROFILE("FabArrayIO::write");
         BL_ASSERT(a_directory_name[a_directory_name.length() - 1] != '/');
 
-        UtilCreateDirectoryDestructive(a_directory_name, true);
+        UtilCreateCleanDirectory(a_directory_name, true);
 
         //first make and write the header.  This is the only blocking bit of this
         FAIOHeader<T> header(a_data);

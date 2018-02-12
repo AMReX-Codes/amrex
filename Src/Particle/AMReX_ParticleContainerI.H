@@ -1108,7 +1108,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostPa
 //
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute (int lev_min, int lev_max, int nGrow)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute (int lev_min, int lev_max, int nGrow, bool local)
 {
 
   BL_PROFILE("ParticleContainer::Redistribute()");
@@ -1387,7 +1387,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
       BL_ASSERT(not_ours.empty());
   }
   else {
-      RedistributeMPI(not_ours, lev_min, lev_max, nGrow);
+      RedistributeMPI(not_ours, lev_min, lev_max, nGrow, local);
   }
   
   BL_ASSERT(OK(lev_min, lev_max, nGrow));
@@ -1401,142 +1401,262 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
       Lazy::QueueReduction( [=] () mutable {
 #endif
               ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-              amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() time: " << stoptime << "\n\n";
+              amrex::Print() << "ParticleContainer::Redistribute() time: " << stoptime << "\n\n";
 #ifdef BL_LAZY
           });
 #endif
   }
 }
 
+namespace {
+
+#ifdef BL_USE_MPI    
+    long CountSnds(const std::map<int, Vector<char> >& not_ours, Vector<long>& Snds)
+    {
+        long NumSnds = 0;        
+        for (const auto& kv : not_ours)
+        {
+            NumSnds       += kv.second.size();
+            Snds[kv.first] = kv.second.size();
+        }
+        
+        ParallelDescriptor::ReduceLongMax(NumSnds);
+
+        return NumSnds;
+    }
+
+    long doHandShake(const std::map<int, Vector<char> >& not_ours,
+                     Vector<long>& Snds, Vector<long>& Rcvs)
+    {
+        long NumSnds = CountSnds(not_ours, Snds);
+        if (NumSnds == 0) return NumSnds;
+
+        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                        ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+        
+        BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                     1,
+                                     ParallelDescriptor::Mpi_typemap<long>::type(),
+                                     Rcvs.dataPtr(),
+                                     1,
+                                     ParallelDescriptor::Mpi_typemap<long>::type(),
+                                     ParallelDescriptor::Communicator()) );
+
+        BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
+        
+        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                        ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+        return NumSnds;
+    }
+
+    long doHandShakeLocal(const std::map<int, Vector<char> >& not_ours,
+                          const Vector<int>& neighbor_procs, Vector<long>& Snds, Vector<long>& Rcvs)
+    {
+        long NumSnds = CountSnds(not_ours, Snds);
+        if (NumSnds == 0) return NumSnds;
+        
+        const int num_rcvs = neighbor_procs.size();
+        Vector<MPI_Status>  stats(num_rcvs);
+        Vector<MPI_Request> rreqs(num_rcvs);
+        
+        const int SeqNum = ParallelDescriptor::SeqNum();
+        
+        // Post receives
+        for (int i = 0; i < num_rcvs; ++i) {
+            const int Who = neighbor_procs[i];
+            const long Cnt = 1;
+            
+            BL_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
+            
+            rreqs[i] = ParallelDescriptor::Arecv(&Rcvs[Who], Cnt, Who, SeqNum).req();
+        }
+        
+        // Send.
+        for (int i = 0; i < num_rcvs; ++i) {
+            const int Who = neighbor_procs[i];
+            const long Cnt = 1;
+            
+            BL_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
+            
+            ParallelDescriptor::Send(&Snds[Who], Cnt, Who, SeqNum);        
+        }
+        
+        if (num_rcvs > 0) {
+            BL_MPI_REQUIRE( MPI_Waitall(num_rcvs, rreqs.data(), stats.data()) );
+        }
+        
+        return NumSnds;
+    }
+#endif  // BL_USE_MPI
+}
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-                                                                                    int lev_min, int lev_max, int nGrow)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+BuildRedistributeMask(int lev, int nghost) {
+    
+    BL_PROFILE("NeighborParticleContainer::BuildRedistributeMask");
+    BL_ASSERT(lev == 0);
+
+    if (redistribute_mask_ptr == nullptr ||
+        ! BoxArray::SameRefs(redistribute_mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
+        ! DistributionMapping::SameRefs(redistribute_mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev)))
+        {
+            const Geometry& geom = this->Geom(lev);
+            const BoxArray& ba = this->ParticleBoxArray(lev);
+            const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+            
+            redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
+            redistribute_mask_ptr->setVal(-1, nghost);
+            
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(*redistribute_mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+                 mfi.isValid(); ++mfi) {
+                const Box& box = mfi.tilebox();
+                const int grid_id = mfi.index();
+                const int tile_id = mfi.LocalTileIndex();
+                redistribute_mask_ptr->setVal(grid_id, box, 0, 1);
+                redistribute_mask_ptr->setVal(tile_id, box, 1, 1);
+            }
+            
+            redistribute_mask_ptr->FillBoundary(geom.periodicity());
+            
+            neighbor_procs.clear();
+            for (MFIter mfi(*redistribute_mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+                 mfi.isValid(); ++mfi) {
+                const Box& box = mfi.growntilebox();
+                for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
+                    const int grid = (*redistribute_mask_ptr)[mfi](iv, 0);
+                    if (grid >= 0) {
+                        const int tile = (*redistribute_mask_ptr)[mfi](iv, 1);
+                        const int proc = this->ParticleDistributionMap(lev)[grid];
+                        if (proc != ParallelDescriptor::MyProc())  
+                            neighbor_procs.push_back(proc);
+                    }
+                }
+            }
+            
+            RemoveDuplicates(neighbor_procs);
+        }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+RedistributeMPI (std::map<int, Vector<char> >& not_ours,
+                 int lev_min, int lev_max, int nGrow, bool local)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
-
+    
     // We may now have particles that are rightfully owned by another CPU.
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
     long NumSnds = 0;
-    
-    for (const auto& kv : not_ours)
-    {
-        NumSnds       += kv.second.size();
-        Snds[kv.first] = kv.second.size();
+    if (local) {
+        AMREX_ALWAYS_ASSERT(lev_min == 0);
+        AMREX_ALWAYS_ASSERT(lev_max == 0);        
+        BuildRedistributeMask(0);
+        NumSnds = doHandShakeLocal(not_ours, neighbor_procs, Snds, Rcvs);
     }
-    
-    ParallelDescriptor::ReduceLongMax(NumSnds);
-
+    else {
+        NumSnds = doHandShake(not_ours, Snds, Rcvs);
+    }
     if (NumSnds == 0)
-      // There's no parallel work to do.
-      return;
-
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
-
-    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 Rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    BL_ASSERT(Rcvs[MyProc] == 0);
-
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+        return;  // There's no parallel work to do.
 
     Vector<int> RcvProc;
     Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
     
     std::size_t TotRcvBytes = 0;
     for (int i = 0; i < NProcs; ++i) {
-      if (Rcvs[i] > 0) {
-	RcvProc.push_back(i);
-	rOffset.push_back(TotRcvBytes);
-	TotRcvBytes += Rcvs[i];
-      }
+        if (Rcvs[i] > 0) {
+            RcvProc.push_back(i);
+            rOffset.push_back(TotRcvBytes);
+            TotRcvBytes += Rcvs[i];
+        }
     }
     
     const int nrcvs = RcvProc.size();
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
-
+    
     const int SeqNum = ParallelDescriptor::SeqNum();
-
+    
     // Allocate data for rcvs as one big chunk.
     Vector<char> recvdata(TotRcvBytes);
-
+    
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
-      const auto Who    = RcvProc[i];
-      const auto offset = rOffset[i];
-      const auto Cnt    = Rcvs[Who];
-      BL_ASSERT(Cnt > 0);
-      BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-      BL_ASSERT(Who >= 0 && Who < NProcs);
-      
-      rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+        const auto Who    = RcvProc[i];
+        const auto offset = rOffset[i];
+        const auto Cnt    = Rcvs[Who];
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        
+        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
     }
     
     // Send.
     for (const auto& kv : not_ours) {
-      const auto Who = kv.first;
-      const auto Cnt = kv.second.size();
-      
-      BL_ASSERT(Cnt > 0);
-      BL_ASSERT(Who >= 0 && Who < NProcs);
-      BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-      
-      ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+        const auto Who = kv.first;
+        const auto Cnt = kv.second.size();
+        
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        
+        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
     }
     
     if (nrcvs > 0) {
-      BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
-      
-      ParticleLocData pld;
-      
-      if (recvdata.size() % superparticle_size != 0) {
-	amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
-			  << recvdata.size() << ", " << superparticle_size << "\n";
-	amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
-      }
-      
-      char* pbuf = recvdata.data();
-      int npart = recvdata.size() / superparticle_size;
-      for (int i = 0; i < npart; ++i) {
-	ParticleType p;
-	std::memcpy(&p, pbuf, particle_size);
-	
-	locateParticle(p, pld, lev_min, lev_max, nGrow);
-	
-	auto& ptile = m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
-        ptile.push_back(p);
-
-	Real* rdata = (Real*)(pbuf + particle_size);
-	for (int comp = 0; comp < NArrayReal; ++comp) {
-            if (communicate_real_comp[comp]) {
-                ptile.push_back_real(comp, *rdata++);
-            } else {
-                ptile.push_back_real(comp, 0.0);
+        BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
+        
+        ParticleLocData pld;
+        
+        if (recvdata.size() % superparticle_size != 0) {
+            amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
+                              << recvdata.size() << ", " << superparticle_size << "\n";
+            amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
+        }
+        
+        char* pbuf = recvdata.data();
+        int npart = recvdata.size() / superparticle_size;
+        for (int i = 0; i < npart; ++i) {
+            ParticleType p;
+            std::memcpy(&p, pbuf, particle_size);
+            
+            locateParticle(p, pld, lev_min, lev_max, nGrow);
+            
+            auto& ptile = m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
+            ptile.push_back(p);
+            
+            Real* rdata = (Real*)(pbuf + particle_size);
+            for (int comp = 0; comp < NArrayReal; ++comp) {
+                if (communicate_real_comp[comp]) {
+                    ptile.push_back_real(comp, *rdata++);
+                } else {
+                    ptile.push_back_real(comp, 0.0);
+                }
             }
-	}
-
-	int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
-	for (int comp = 0; comp < NArrayInt; ++comp) {
-            if (communicate_int_comp[comp]) {
-                ptile.push_back_int(comp, *idata++);
-            } else {
-                ptile.push_back_int(comp, 0);
+            
+            int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
+            for (int comp = 0; comp < NArrayInt; ++comp) {
+                if (communicate_int_comp[comp]) {
+                    ptile.push_back_int(comp, *idata++);
+                } else {
+                    ptile.push_back_int(comp, 0);
+                }
             }
-	}
-	
-	pbuf += superparticle_size;
-      }
+            
+            pbuf += superparticle_size;
+        }
     }
 #endif /*BL_USE_MPI*/
 }
@@ -1981,7 +2101,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             if (gotsome && doUnlink)
             {
-		BL_PROFILE("PC<NNNN>::Checkpoint:unlink");
+		BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink);
                 //
                 // Unlink any zero-length data files.
                 //
@@ -2113,7 +2233,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         const bool gotsome = (nParticlesAtLevelPrePost[lev] > 0);
         if(gotsome && doUnlink) {
-          BL_PROFILE("PC<NNNN>::Checkpoint:unlink");
+            BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink_post);
           // Unlink any zero-length data files.
           Vector<long> cnt(nOutFilesPrePost,0);
 
@@ -4323,7 +4443,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 
         if (lev < finest_level) {
             amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf[lev],
-                                         rho_index, rho_index, ncomp, 
+                                         rho_index, rho_index, ncomp,
                                          m_gdb->Geom(lev), m_gdb->Geom(lev+1),
                                          cphysbc, fphysbc,
                                          m_gdb->refRatio(lev), &mapper, bcs);

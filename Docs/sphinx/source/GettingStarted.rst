@@ -39,7 +39,7 @@ The source code of this example is at
 
 The main body of this short example contains three statements.
 Usually the first and last statements for the :cpp:`int main(...)` function of
-every program should be calling :cpp:`amrex::Initialize` and :cpp:`Finalize`, 
+every program should be calling :cpp:`amrex::Initialize` and :cpp:`amrex::Finalize`, 
 respectively. The second statement calls :cpp:`amrex::Print` to print out
 a string that includes the AMReX version returned by the :cpp:`amrex::Version`
 function. The example code includes two AMReX header files. Note
@@ -187,14 +187,15 @@ and visualizae the results.
 Building and Running the Code
 -----------------------------
 
-To build a 2D executable, type ``make DIM=2``. This will generate
+To build a 2D executable, go to
+``amrex/Tutorials/Basic/HeatEquation_EX1_C/Exec`` and type ``make DIM=2``. This will generate
 an executable named ``main2d.gnu.ex``. To run it, type,
 
 .. highlight:: console
 
 ::
 
-      ./main2d.gnu.DEBUG.ex inputs_2d
+      ./main2d.gnu.ex inputs_2d
 
 Note that the command takes a file ``inputs_2d.``
 The calculation solves the heat equation in 2D on a domain with
