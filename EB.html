@@ -127,7 +127,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#fortran-code-snippets">Fortran code Snippets</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#the-data-is-cell-centered-even-cut-cells">The data is cell-centered, even cut cells</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#many-eb-operations-can-be-organized-as-post-processing">Many EB operations can be organized as post-processing</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#the-flag-data">The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">flag</span></span></code> data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-flag-data">The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">flag</span></span></code> data</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#there-are-many-approaches">There are many approaches</a></li>
 </ul>
 </li>
@@ -231,7 +231,7 @@ implement them.</p>
 <p>Note that in a completely general implementation of the EB approach, there
 would be no restrictions on the shape or complexity of the EB surface.  With
 this generality comes the possibility that the process of “cutting” the cells
-results in a single <span class="math">\((i,j,k)\)</span> cell being broken into multiple cell
+results in a single <span class="math notranslate">\((i,j,k)\)</span> cell being broken into multiple cell
 fragments.  The current release of AMReX does not support multi-valued cells,
 thus there is a practical restriction on the complexity of domains (and
 numerical algorithms) supported.  AMReX support for EB with AMR will be
@@ -244,29 +244,29 @@ systems. We also give examples of how to initialize the geometry data
 structures and access them to build the numerical difference operators.</p>
 <div class="section" id="finite-volume-discretizations">
 <h2>Finite Volume Discretizations<a class="headerlink" href="#finite-volume-discretizations" title="Permalink to this headline">¶</a></h2>
-<p>Consider a system of PDEs to advance a conserved quantity <span class="math">\(U\)</span> with fluxes
-<span class="math">\(F\)</span>:</p>
-<div class="math" id="equation-eqn-hypsys">
+<p>Consider a system of PDEs to advance a conserved quantity <span class="math notranslate">\(U\)</span> with fluxes
+<span class="math notranslate">\(F\)</span>:</p>
+<div class="math notranslate" id="equation-eqn-hypsys">
 <span class="eqno">(1)<a class="headerlink" href="#equation-eqn-hypsys" title="Permalink to this equation">¶</a></span>\[\frac{\partial U}{\partial t} + \nabla \cdot F = 0.\]</div>
 <p>A conservative, finite volume discretization starts with the divergence theorm</p>
-<div class="math">
+<div class="math notranslate">
 \[\int_V \nabla \cdot F dV = \int_{\partial V} F \cdot n dA.\]</div>
 <p>In an embedded boundary cell, the “conservative divergence” is discretized (as
-<span class="math">\(D^c(F)\)</span>) as follows</p>
-<div class="math" id="equation-eqn-ebdiv">
+<span class="math notranslate">\(D^c(F)\)</span>) as follows</p>
+<div class="math notranslate" id="equation-eqn-ebdiv">
 <span class="eqno">(2)<a class="headerlink" href="#equation-eqn-ebdiv" title="Permalink to this equation">¶</a></span>\[ D^c(F) = \frac{1}{\kappa h} \left( \sum^D_{d = 1}
    (F_{d, \mathrm{hi}} \, A_{d, \mathrm{hi}} - F_{d, \mathrm{lo}}\, A_{d, \mathrm{lo}})
    + F^{EB} A^{EB} \right).\]</div>
-<p>Geometry is discretely represented by volumes (<span class="math">\(V = \kappa h^d\)</span>) and
-apertures (<span class="math">\(A= \alpha h^{d-1}\)</span>), where <span class="math">\(h\)</span> is the (uniform) mesh
-spacing at that AMR level, <span class="math">\(\kappa\)</span> is the volume fraction and
-<span class="math">\(\alpha\)</span> are the area fractions.  Without multivalued cells the volume
+<p>Geometry is discretely represented by volumes (<span class="math notranslate">\(V = \kappa h^d\)</span>) and
+apertures (<span class="math notranslate">\(A= \alpha h^{d-1}\)</span>), where <span class="math notranslate">\(h\)</span> is the (uniform) mesh
+spacing at that AMR level, <span class="math notranslate">\(\kappa\)</span> is the volume fraction and
+<span class="math notranslate">\(\alpha\)</span> are the area fractions.  Without multivalued cells the volume
 fractions, area fractions and cell and face centroids (see
 <a class="reference internal" href="#fig-volume"><span class="std std-numref">Table 8</span></a>) are the only geometric information needed to compute
 second-order fluxes centered at the face centroids, and to infer the
 connectivity of the cells.  Cells are connected if adjacent on the Cartesian
 mesh, and only via coordinate-aligned faces on the mesh. If an aperture,
-<span class="math">\(\alpha = 0\)</span>, between two cells, they are not directly connected to each
+<span class="math notranslate">\(\alpha = 0\)</span>, between two cells, they are not directly connected to each
 other.</p>
 <span id="fig-volume"></span><table border="1" class="docutils align-center" id="id2">
 <caption><span class="caption-number">Table 8 </span><span class="caption-text">Illustration of embedded boundary cutting a two-dimensional cell.</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
@@ -309,39 +309,39 @@ other.</p>
 <p>In the context of time-explicit advance methods for, say hyperbolic
 conservation laws, a naive discretization in time of <a class="reference internal" href="#equation-eqn-hypsys">(1)</a> using
 <a class="reference internal" href="#equation-eqn-ebdiv">(2)</a>,</p>
-<div class="math">
+<div class="math notranslate">
 \[U^{n+1} = U^{n} - \delta t D^c(F)\]</div>
-<p>would have a time step constraint <span class="math">\(\delta t \sim h \kappa^{1/D}/V_m\)</span>,
-which goes to zero as the size of the smallest volume fraction <span class="math">\(\kappa\)</span>
+<p>would have a time step constraint <span class="math notranslate">\(\delta t \sim h \kappa^{1/D}/V_m\)</span>,
+which goes to zero as the size of the smallest volume fraction <span class="math notranslate">\(\kappa\)</span>
 in the calculation. Since EB volume fractions can be arbitrarily small, this is
 an unacceptable constraint. One way to remedy this is to create
-“non-conservative” approximation to the divergence <span class="math">\(D^{nc}\)</span>, which at a
-cell <span class="math">\({\bf i}\)</span>, can be formed as an average of the conservative
-divergences in the neighborhood, <span class="math">\(N_{\bf i}\)</span>, of <span class="math">\({\bf i}\)</span>.</p>
-<div class="math">
+“non-conservative” approximation to the divergence <span class="math notranslate">\(D^{nc}\)</span>, which at a
+cell <span class="math notranslate">\({\bf i}\)</span>, can be formed as an average of the conservative
+divergences in the neighborhood, <span class="math notranslate">\(N_{\bf i}\)</span>, of <span class="math notranslate">\({\bf i}\)</span>.</p>
+<div class="math notranslate">
 \[D^{nc}(F)_{\bf i}= \frac{\sum_{{\bf j}\in N_{\bf i}}\kappa_{\bf j}D(F)_{\bf j}}{\sum_{{\bf j}\in N_{\bf i}}\kappa_{\bf j}}\]</div>
 <p>Incorporating this form, the solution can be updated using a <em>hybrid
-divergence</em>, <span class="math">\(D^H(F) = \kappa D^c(F) + (1-\kappa)D^{nc}\)</span>:</p>
-<div class="math">
+divergence</em>, <span class="math notranslate">\(D^H(F) = \kappa D^c(F) + (1-\kappa)D^{nc}\)</span>:</p>
+<div class="math notranslate">
 \[U^{n+1,*} = U^n - \delta t D^H(F)\]</div>
 <p>However, we would like our finite-volume scheme to strictly conserve the field
-quantities over the domain. To enforce this, we calculate <span class="math">\(\delta M\)</span>, the
-mass gained or lost by not using <span class="math">\(D^c\)</span> directly,</p>
-<div class="math">
+quantities over the domain. To enforce this, we calculate <span class="math notranslate">\(\delta M\)</span>, the
+mass gained or lost by not using <span class="math notranslate">\(D^c\)</span> directly,</p>
+<div class="math notranslate">
 \[\delta M_{\bf i}= \kappa (1-\kappa)(D^c(F)_{\bf i}- D^{nc}(F)_{\bf i})\]</div>
-<p>This “excess material” (mass, if <span class="math">\(U=\rho\)</span>) can be <em>redistributed</em>&nbsp;in a
-time-explicit fashion to neighboring cells, <span class="math">\({\bf j}\in N_{\bf i}\)</span>:</p>
-<div class="math">
+<p>This “excess material” (mass, if <span class="math notranslate">\(U=\rho\)</span>) can be <em>redistributed</em>&nbsp;in a
+time-explicit fashion to neighboring cells, <span class="math notranslate">\({\bf j}\in N_{\bf i}\)</span>:</p>
+<div class="math notranslate">
 \[\delta M_{\bf i}= \sum_{{\bf j}\in N_{\bf i}} \delta M_{{\bf j}, {\bf i}}.\]</div>
-<p>in order to preserve strict conservation over <span class="math">\(N_{\bf i}\)</span>.</p>
+<p>in order to preserve strict conservation over <span class="math notranslate">\(N_{\bf i}\)</span>.</p>
 <p>Note that the physics at hand may impact the optimal choice of precisely how
 the excess mass is distributed in this fashion. We introduce a weighting for
-redistribution, <span class="math">\(W\)</span>,</p>
-<div class="math" id="equation-eqn-massweight">
+redistribution, <span class="math notranslate">\(W\)</span>,</p>
+<div class="math notranslate" id="equation-eqn-massweight">
 <span class="eqno">(3)<a class="headerlink" href="#equation-eqn-massweight" title="Permalink to this equation">¶</a></span>\[ \delta M_{{\bf j}, {\bf i}} =  \frac{\delta M_{\bf i}\kappa_{\bf j}
    W_{\bf j}}{\sum_{{\bf k}\in N_{\bf i}} \kappa_{\bf k}W_{\bf k}}\]</div>
-<p>For all <span class="math">\({\bf j}\in N_{\bf i}\)</span>,</p>
-<div class="math">
+<p>For all <span class="math notranslate">\({\bf j}\in N_{\bf i}\)</span>,</p>
+<div class="math notranslate">
 \[U^{n+1}_{\bf j}= U^{n+1,*}_{\bf j}+
  \frac{\delta M_{\bf i}
   W_{\bf j}}{\sum_{{\bf k}\in N_{\bf i}} \kappa_{\bf k}W_{\bf k}}.\]</div>
@@ -351,7 +351,7 @@ e.g., <a class="reference internal" href="#fig-redistribution"><span class="std 
 <div class="figure" id="id3">
 <span id="fig-redistribution"></span><a class="reference internal image-reference" href="_images/redist.png"><img alt="_images/redist.png" src="_images/redist.png" style="width: 50.0%;" /></a>
 <p class="caption"><span class="caption-number">Fig. 11 </span><span class="caption-text">: Redistribution illustration. Excess mass due to using a hybrid divergence
-<span class="math">\(D^H\)</span> instead of the conservative divergence <span class="math">\(D^C\)</span> is
+<span class="math notranslate">\(D^H\)</span> instead of the conservative divergence <span class="math notranslate">\(D^C\)</span> is
 distributed to neighbor cells.</span></p>
 </div>
 </div>
@@ -359,24 +359,24 @@ distributed to neighbor cells.</span></p>
 <div class="section" id="initializing-ebindexspace-the-geometric-database">
 <span id="sec-eb-ebinit"></span><h1>Initializing EBIndexSpace, the Geometric Database<a class="headerlink" href="#initializing-ebindexspace-the-geometric-database" title="Permalink to this headline">¶</a></h1>
 <p>In AMReX the geometric information is stored in a distributed database class,
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBIndexSpace</span></span></code>, which must be initialized at the start of the calculation.
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBIndexSpace</span></span></code>, which must be initialized at the start of the calculation.
 The procedure for this goes as follows:</p>
 <ul class="simple">
 <li>Define function of position which describes the surface and use it define a
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object – specifically, the scalar value returned by this
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object – specifically, the scalar value returned by this
 function takes on a negative value inside the fluid, a positive value in the
 body, and identically zero at the EB.</li>
-<li>Construct an <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBIndexSpace</span></span></code>&nbsp;with the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object. This
+<li>Construct an <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBIndexSpace</span></span></code>&nbsp;with the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object. This
 will fill the underlying database of geometric information, specifically
 tailored to the actual meshes that will be used. Thus, the construction
 requires one to specify the actual mesh resolution that will be used in a
 calculation.</li>
 </ul>
 <p>To facilitate the first step, AMReX defines a virtual class, an “implicit
-function”, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BaseIF</span></span></code>, which encapsulates this functionality.  An instance
-of a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BaseIF</span></span></code>&nbsp;object is required for the construction of a
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">GeometryShop</span><span class="p">(</span><span class="k">const</span> <span class="n">BaseIF</span><span class="o">&amp;</span> <span class="n">a_localGeom</span><span class="p">)</span>
+function”, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BaseIF</span></span></code>, which encapsulates this functionality.  An instance
+of a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BaseIF</span></span></code>&nbsp;object is required for the construction of a
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">GeometryShop</span><span class="p">(</span><span class="k">const</span> <span class="n">BaseIF</span><span class="o">&amp;</span> <span class="n">a_localGeom</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Although the user is free to define their own instance of this class, AMReX
@@ -384,15 +384,15 @@ provides a number of preconfigured useful ones. This are listed in the next
 section.</p>
 <div class="section" id="example-spherical-eb">
 <h2>Example: Spherical EB<a class="headerlink" href="#example-spherical-eb" title="Permalink to this headline">¶</a></h2>
-<p>The spherical implicit function, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">SphereIF</span></span></code>, derives from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BaseIF</span></span></code>,
+<p>The spherical implicit function, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">SphereIF</span></span></code>, derives from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BaseIF</span></span></code>,
 and defines the function</p>
-<div class="math">
+<div class="math notranslate">
 \[S({\bf x}) = x^2 + y^2 + z^2 - R^2,\]</div>
 <p>In this case, the solution domain is defined as the interior of a sphere of
-radius <span class="math">\(R\)</span>. If the sign of <span class="math">\(S\)</span> is reversed, the solution domain is
+radius <span class="math notranslate">\(R\)</span>. If the sign of <span class="math notranslate">\(S\)</span> is reversed, the solution domain is
 the exterior of the sphere. The following example illustrates how to use the
 SphereIF&nbsp;class to define a GeometryShop&nbsp;object:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="n">nx</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="n">nx</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">;</span>
 <span class="n">Box</span> <span class="nf">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">,</span> <span class="p">(</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">IntVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">);</span>
 <span class="n">Real</span> <span class="n">dx</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">nx</span><span class="p">;</span>
 <span class="n">Real</span> <span class="n">radius</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">;</span>
@@ -409,18 +409,18 @@ SphereIF&nbsp;class to define a GeometryShop&nbsp;object:</p>
 <span class="n">ebis</span><span class="o">-&gt;</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">workshop</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>In this case, we construct an <span class="math">\(r=0.1\)</span> sphere, centered within a unit
-cube. The mesh resolution is <span class="math">\(1024^3\)</span>.  The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object
-based on this sphere is then used to construct the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBIndexSpace</span></span></code>, as
+<p>In this case, we construct an <span class="math notranslate">\(r=0.1\)</span> sphere, centered within a unit
+cube. The mesh resolution is <span class="math notranslate">\(1024^3\)</span>.  The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">GeometryShop</span></span></code>&nbsp;object
+based on this sphere is then used to construct the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBIndexSpace</span></span></code>, as
 shown.</p>
 <div class="section" id="other-basic-shapes">
 <h3>Other basic shapes:<a class="headerlink" href="#other-basic-shapes" title="Permalink to this headline">¶</a></h3>
 <ul>
-<li><p class="first">Planes are made using the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PlaneIF</span></span></code> which given a normal
-<span class="math">\({\bf n}\)</span> and a center <span class="math">\({\bf c}\)</span> gives the implicit function</p>
-<div class="math">
+<li><p class="first">Planes are made using the class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">PlaneIF</span></span></code> which given a normal
+<span class="math notranslate">\({\bf n}\)</span> and a center <span class="math notranslate">\({\bf c}\)</span> gives the implicit function</p>
+<div class="math notranslate">
 \[I({\bf x}) = \sum_{1&lt;=d&lt;=D} n_d (x_d - c_d).\]</div>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">RealVect</span> <span class="n">normal</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">RealVect</span> <span class="n">normal</span><span class="p">;</span>
 <span class="n">RealVect</span> <span class="n">center</span><span class="p">;</span>
 <span class="c1">// ...fill in values for normal and centre...</span>
 
@@ -433,9 +433,9 @@ shown.</p>
 </div>
 </li>
 <li><p class="first">Polynomials of any form can be made using the class
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PolynomialIF</span></span></code>. Here is an example that makes a parabola of
-the form <span class="math">\(I({\bf x}) = x - y^2 - z^2\)</span>.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">PolyTerm</span><span class="o">&gt;</span> <span class="n">poly</span><span class="p">;</span>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">PolynomialIF</span></span></code>. Here is an example that makes a parabola of
+the form <span class="math notranslate">\(I({\bf x}) = x - y^2 - z^2\)</span>.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">PolyTerm</span><span class="o">&gt;</span> <span class="n">poly</span><span class="p">;</span>
 <span class="n">PolyTerm</span> <span class="n">mono</span><span class="p">;</span>
 <span class="n">Real</span> <span class="n">coef</span><span class="p">;</span>
 <span class="n">IntVect</span> <span class="n">powers</span><span class="p">;</span>
@@ -495,17 +495,17 @@ the form <span class="math">\(I({\bf x}) = x - y^2 - z^2\)</span>.</p>
 <p>More complex domains can be constructed by composing these fundamental shapes.
 AMReX contains the following classes to compose implicit functions:</p>
 <ul class="simple">
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">TransformIF</span></span></code> allows for translations and rotations of an implicit function.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">UnionIF</span></span></code> produces the union of two implicit functions.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">IntersectionIF</span></span></code> produces the intersection of two implicit functions.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LatheIF</span></span></code> creates a 3D implicit function as the surface of
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">TransformIF</span></span></code> allows for translations and rotations of an implicit function.</li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">UnionIF</span></span></code> produces the union of two implicit functions.</li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">IntersectionIF</span></span></code> produces the intersection of two implicit functions.</li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">LatheIF</span></span></code> creates a 3D implicit function as the surface of
 revolution of a 2D implicit function.</li>
 </ul>
 </div>
 <div class="section" id="multi-sphere-example">
 <h2>Multi-sphere example<a class="headerlink" href="#multi-sphere-example" title="Permalink to this headline">¶</a></h2>
 <p>The following example creates a geometry using multiple spheres:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Real</span><span class="o">&gt;</span>     <span class="n">radius</span><span class="p">(</span><span class="n">numSpheres</span><span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Real</span><span class="o">&gt;</span>     <span class="n">radius</span><span class="p">(</span><span class="n">numSpheres</span><span class="p">);</span>
 <span class="n">vector</span><span class="o">&lt;</span><span class="n">RealVect</span><span class="o">&gt;</span> <span class="n">center</span><span class="p">(</span><span class="n">numSpheres</span><span class="p">);</span>
 <span class="c1">//...</span>
 
@@ -537,7 +537,7 @@ revolution of a 2D implicit function.</li>
 revolution of a set of polygons. This particular example only makes sense in
 three dimensions. With the right polygons, it creates the surface shown in
 <a class="reference internal" href="#fig-revolution"><span class="std std-numref">Fig. 12</span></a>.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">/// define EBIndexSpace from the surface of revolution of a set of polygons</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">/// define EBIndexSpace from the surface of revolution of a set of polygons</span>
 <span class="kt">void</span>
 <span class="nf">defineGeometry</span><span class="p">(</span><span class="k">const</span> <span class="n">Real</span><span class="o">&amp;</span> <span class="n">fine_dx</span><span class="p">,</span> <span class="k">const</span>  <span class="n">Box</span><span class="o">&amp;</span> <span class="n">finest_domain</span><span class="p">,</span> <span class="kt">int</span> <span class="n">max_grid_size</span><span class="p">)</span>
 <span class="p">{</span>
@@ -633,7 +633,7 @@ three dimensions. With the right polygons, it creates the surface shown in
 <h2>Geometric example 3 – A Sphere Inside a Parabola<a class="headerlink" href="#geometric-example-3-a-sphere-inside-a-parabola" title="Permalink to this headline">¶</a></h2>
 <p>Here is an example that creates a geometry of a sphere contained within a
 parabola. This code creates the surface shown in <a class="reference internal" href="#fig-parabolasphere"><span class="std std-numref">Fig. 13</span></a>.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">PolyTerm</span><span class="o">&gt;</span> <span class="n">poly</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">PolyTerm</span><span class="o">&gt;</span> <span class="n">poly</span><span class="p">;</span>
 
 <span class="n">PolyTerm</span> <span class="n">mono</span><span class="p">;</span>
 <span class="n">Real</span> <span class="n">coef</span><span class="p">;</span>
@@ -703,33 +703,33 @@ parabola. This code creates the surface shown in <a class="reference internal" h
 <div class="section" id="ebfarraybox">
 <h1>EBFarrayBox<a class="headerlink" href="#ebfarraybox" title="Permalink to this headline">¶</a></h1>
 <p>The fundamental data structure for embedded boundary calculations is
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBFArrayBox</span></span></code>. <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBFArrayBox</span></span></code> is an a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FArrayBox</span></span></code> with two extra
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBFArrayBox</span></span></code>. <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBFArrayBox</span></span></code> is an a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FArrayBox</span></span></code> with two extra
 data members.</p>
 <ul class="simple">
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBFArrayBox</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">getEBISBox</span></span></code> returns an <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBISBox</span></span></code>, a data structure
-that contains the geometric information of an <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBIndexSpace</span></span></code>&nbsp;but
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBFArrayBox</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">getEBISBox</span></span></code> returns an <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBISBox</span></span></code>, a data structure
+that contains the geometric information of an <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBIndexSpace</span></span></code>&nbsp;but
 restricted to a given box.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBFArrayBox</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">getEBCellFlagFab</span></span></code> is a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BaseFab</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">EBCellFlag</span></span><span class="operator"><span class="pre">&gt;</span></span></code>, where
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBCellFlag</span></span></code> is a class which is a class with tools that compactly
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBFArrayBox</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">getEBCellFlagFab</span></span></code> is a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BaseFab</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">EBCellFlag</span></span><span class="operator"><span class="pre">&gt;</span></span></code>, where
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBCellFlag</span></span></code> is a class which is a class with tools that compactly
 specifies local cell connectivities on a box.</li>
 </ul>
-<p>If one compiles with <code class="docutils literal"><span class="pre">AMREX_USE_EB</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, the state data managed by the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Amr</span></span></code> class is automatically of type <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBFArrayBox</span></span></code> (typically the
-data is exposed explicitly as a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code>, but the additional
-functionality may be accessed through a C++ type cast. The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBCellFlagFab</span></span></code>
+<p>If one compiles with <code class="docutils literal notranslate"><span class="pre">AMREX_USE_EB</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, the state data managed by the
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Amr</span></span></code> class is automatically of type <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBFArrayBox</span></span></code> (typically the
+data is exposed explicitly as a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code>, but the additional
+functionality may be accessed through a C++ type cast. The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBCellFlagFab</span></span></code>
 can be used down in Fortran, e.g., to choose locally whether EB-specific
 operations and data are required for constructing discretizations. In the next
 section, we show examples of this workflow.</p>
 <div class="section" id="ebfarraybox-usage-example">
 <h2>EBFarrayBox Usage Example<a class="headerlink" href="#ebfarraybox-usage-example" title="Permalink to this headline">¶</a></h2>
 <p>In order to make these EB concepts more concrete, we discuss here sample code
-that appears in the AMReX tutorial, <code class="docutils literal"><span class="pre">amrex/Tutorials/EB/CNS</span></code>. This code implements a
+that appears in the AMReX tutorial, <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/EB/CNS</span></code>. This code implements a
 time-explicit second-order method of lines integrator for hyperbolic and
 parabolic transport based on a gamma-law gas EOS and constant transport
 properties. This example also demonstrates how to avoid the more
 complex/expensive EB-related logic if the tile under consideration has no cut
 cells.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span>
 <span class="n">CNS</span><span class="o">::</span><span class="n">compute_dSdt</span> <span class="p">(</span><span class="k">const</span> <span class="n">MultiFab</span><span class="o">&amp;</span> <span class="n">S</span><span class="p">,</span> <span class="n">MultiFab</span><span class="o">&amp;</span> <span class="n">dSdt</span><span class="p">,</span> <span class="n">Real</span> <span class="n">dt</span><span class="p">,</span>
                    <span class="n">EBFluxRegister</span><span class="o">*</span> <span class="n">fr_as_crse</span><span class="p">,</span> <span class="n">EBFluxRegister</span><span class="o">*</span> <span class="n">fr_as_fine</span><span class="p">)</span>
 <span class="p">{</span>
@@ -817,15 +817,15 @@ cells.</p>
 </pre></div>
 </div>
 <p>This is the main loop in the routine to advance the state. The state,
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span> <span class="name"><span class="pre">S</span></span></code>, comes into this routine with grow cells properly filled, and
-this routine features a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> iterator loop to step through this
-data, tile-by-tile and compute <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">dSdt</span></span></code>. Here, we see that the definition of
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBFarrayBox</span></span> <span class="name"><span class="pre">sfab</span></span></code> incorporates the aforementioned type cast, enabling
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span> <span class="name"><span class="pre">S</span></span></code>, comes into this routine with grow cells properly filled, and
+this routine features a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> iterator loop to step through this
+data, tile-by-tile and compute <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">dSdt</span></span></code>. Here, we see that the definition of
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBFarrayBox</span></span> <span class="name"><span class="pre">sfab</span></span></code> incorporates the aforementioned type cast, enabling
 queries about the EB nature of the data. Of the two possiblities handled, the
 “regular” type without cut cells has a much simpler interface. The EB version
 takes all the same data, but additionally requires (dense) data to specify the
 volume and face area fractions, centroid information, and the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">EBCellFlagFab</span></span> <span class="name"><span class="pre">flag</span></span></code> structure that will be queried pointwise for the
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">EBCellFlagFab</span></span> <span class="name"><span class="pre">flag</span></span></code> structure that will be queried pointwise for the
 local cell connectivity.</p>
 </div>
 <div class="section" id="fortran-code-snippets">
@@ -838,9 +838,9 @@ salient features worth pointing out.</p>
 <p>In order to simplify the construction second-order discretizations, we can base
 all the numerical operations on the assumption that all cell-based data lives
 at the center of the <em>full</em> &nbsp;cell containing the cut cells. This means that when
-we take a standard centered difference between cell data at <span class="math">\((i,j,k)\)</span> and
-<span class="math">\((i+1,j,k)\)</span>, e.g., we get a gradient value that is second-order and
-centered on the full face at <span class="math">\(i+1/2\)</span>, regardless of the aperature.</p>
+we take a standard centered difference between cell data at <span class="math notranslate">\((i,j,k)\)</span> and
+<span class="math notranslate">\((i+1,j,k)\)</span>, e.g., we get a gradient value that is second-order and
+centered on the full face at <span class="math notranslate">\(i+1/2\)</span>, regardless of the aperature.</p>
 </div>
 <div class="section" id="many-eb-operations-can-be-organized-as-post-processing">
 <h3>Many EB operations can be organized as post-processing<a class="headerlink" href="#many-eb-operations-can-be-organized-as-post-processing" title="Permalink to this headline">¶</a></h3>
@@ -854,28 +854,28 @@ flux operators, as does the necessity to form the <em>hybrid divergence</em> ope
 discussed above.</p>
 </div>
 <div class="section" id="the-flag-data">
-<h3>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">flag</span></span></code> data<a class="headerlink" href="#the-flag-data" title="Permalink to this headline">¶</a></h3>
-<p>AMReX provides functions that query the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">flag</span></span></code> data in order to infer the
+<h3>The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">flag</span></span></code> data<a class="headerlink" href="#the-flag-data" title="Permalink to this headline">¶</a></h3>
+<p>AMReX provides functions that query the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">flag</span></span></code> data in order to infer the
 local connectivity of cells. For example, the cell itself or its neighbors may
 be covered or cut. If cut, the data is centered at the center of the full cell.
 If covered, the data is invalid and should not be involved in the fluid
 advance. An example of such a call is:</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">get_neighbor_cells</span><span class="p">(</span><span class="n">cellflag</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">nbr</span><span class="p">)</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">get_neighbor_cells</span><span class="p">(</span><span class="n">cellflag</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">nbr</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Here, for the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">flag</span></span></code> at <span class="math">\((i,j,k)\)</span> is used to fill a local
-<span class="math">\(3^3\)</span> array of integers with the value <span class="math">\(1\)</span> if connected to
-<span class="math">\((i,j,k)\)</span>, and <span class="math">\(0\)</span> if not. Similar queries:</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="n">is_covered_cell</span><span class="p">(</span><span class="n">cellflag</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<p>Here, for the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">flag</span></span></code> at <span class="math notranslate">\((i,j,k)\)</span> is used to fill a local
+<span class="math notranslate">\(3^3\)</span> array of integers with the value <span class="math notranslate">\(1\)</span> if connected to
+<span class="math notranslate">\((i,j,k)\)</span>, and <span class="math notranslate">\(0\)</span> if not. Similar queries:</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="n">is_covered_cell</span><span class="p">(</span><span class="n">cellflag</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
 <span class="n">is_single_valued_cell</span><span class="p">(</span><span class="n">cellflag</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>can be used to gather additional detail.</p>
-<p>Below, we show a partial listing of the <code class="code fortran docutils literal"><span class="name"><span class="pre">cns_eb_compute_dudt</span></span></code> code,
+<p>Below, we show a partial listing of the <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">cns_eb_compute_dudt</span></span></code> code,
 specifically after the face-centered fluxes have been computed, and showing
 part of the work necessary to interpolate them to face centroids (while
 appropriately handling covered data).</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ncomp</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">do </span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ncomp</span>
 
    <span class="c">!</span>
    <span class="c">! First, we compute conservative divergence on (lo-2,hi+2)</span>

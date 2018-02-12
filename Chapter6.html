@@ -181,35 +181,35 @@
             
   <div class="section" id="amr-source-code">
 <span id="chap-amrlevel"></span><h1>Amr Source Code<a class="headerlink" href="#amr-source-code" title="Permalink to this headline">¶</a></h1>
-<p>The source code in <code class="docutils literal"><span class="pre">amrex/Src/Amr</span></code> contains a number of classes, most notably
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Amr</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code>, and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBld</span></span></code>.
+<p>The source code in <code class="docutils literal notranslate"><span class="pre">amrex/Src/Amr</span></code> contains a number of classes, most notably
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Amr</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevel</span></span></code>, and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">LevelBld</span></span></code>.
 These classes provide a more well developed set of tools for writing AMR codes
 than the classes created for the Advection_AmrCore tutorial.</p>
 <ul class="simple">
-<li>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Amr</span></span></code> class is derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>, and manages data across the
+<li>The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Amr</span></span></code> class is derived from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code>, and manages data across the
 entire AMR hierarchy of grids.</li>
-<li>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code> class is a pure virtual class for managing data at a
+<li>The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevel</span></span></code> class is a pure virtual class for managing data at a
 single level of refinement.</li>
-<li>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBld</span></span></code> class is a pure virtual class for defining variable types
+<li>The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">LevelBld</span></span></code> class is a pure virtual class for defining variable types
 and attributes.</li>
 </ul>
 <p>Many of our mature, public application codes contain derived classes that
-inherit directly from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code>. These include our compressible
+inherit directly from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevel</span></span></code>. These include our compressible
 astrophysics code, CASTRO, (available in the AMReX-Astro/Castro github
 repository) and our computational cosmology code, Nyx (available in the
 AMReX-Astro/Nyx github repository) .  Our incompressible Navier-Stokes code,
 IAMR (available in the AMReX-codes/IAMR github repository) has a pure virtual
-class called <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokesBase</span></span></code> that inherits from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code>, and an
-additional derived class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokes</span></span></code>.  Our low Mach number combustion
-code PeleLM (not yet public) also inherits from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NavierStokesBase</span></span></code>.</p>
-<p>The tutorial code in <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrLevel</span></code> gives a simple
-example of a class derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code> that can be used to solve the
+class called <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NavierStokesBase</span></span></code> that inherits from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevel</span></span></code>, and an
+additional derived class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NavierStokes</span></span></code>.  Our low Mach number combustion
+code PeleLM (not yet public) also inherits from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NavierStokesBase</span></span></code>.</p>
+<p>The tutorial code in <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Amr/Advection_AmrLevel</span></code> gives a simple
+example of a class derived from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevel</span></span></code> that can be used to solve the
 advection equation on a subcycling-in-time AMR hierarchy. Note that example is
-essentially the same as the <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore</span></code> tutorial and
+essentially the same as the <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore</span></code> tutorial and
 documentation in the chapter on <a class="reference internal" href="Chapter5.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>, except now we use the
-provided libraries in <code class="docutils literal"><span class="pre">amrex/Src/Amr</span></code>.</p>
-<p>The tutorial code also contains a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBldAdv</span></span></code> class (derived from
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBld</span></span></code> in the Source/Amr directory). This class is used to define
+provided libraries in <code class="docutils literal notranslate"><span class="pre">amrex/Src/Amr</span></code>.</p>
+<p>The tutorial code also contains a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">LevelBldAdv</span></span></code> class (derived from
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">LevelBld</span></span></code> in the Source/Amr directory). This class is used to define
 variable types (how many, nodality, interlevel interpolation stencils, etc.).</p>
 <div class="toctree-wrapper compound">
 <ul>

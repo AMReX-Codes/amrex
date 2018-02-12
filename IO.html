@@ -186,8 +186,8 @@ available for AMReX&nbsp;plotfiles (see the chapter on&nbsp;<a class="reference 
 AMReX&nbsp;provides the following two functions for writing a generic AMReX&nbsp;plotfile.
 Many AMReX&nbsp;application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
-source codes and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParmParse</span></span></code> runtime parameters.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">WriteSingleLevelPlotfile</span> <span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">plotfilename</span><span class="p">,</span>
+source codes and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParmParse</span></span></code> runtime parameters.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">WriteSingleLevelPlotfile</span> <span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">plotfilename</span><span class="p">,</span>
                                <span class="k">const</span> <span class="n">MultiFab</span> <span class="o">&amp;</span><span class="n">mf</span><span class="p">,</span>
                                <span class="k">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">varnames</span><span class="p">,</span>
                                <span class="k">const</span> <span class="n">Geometry</span> <span class="o">&amp;</span><span class="n">geom</span><span class="p">,</span>
@@ -204,14 +204,14 @@ source codes and <code class="code cpp c++ docutils literal"><span class="name">
                               <span class="k">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">IntVect</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">ref_ratio</span><span class="p">);</span>
 </pre></div>
 </div>
-<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">WriteSingleLevelPlotfile</span></span></code> is for single level runs and
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">WriteMultiLevelPlotfile</span></span></code> is for multiple levels. The name of the
+<p><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">WriteSingleLevelPlotfile</span></span></code> is for single level runs and
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">WriteMultiLevelPlotfile</span></span></code> is for multiple levels. The name of the
 plotfile is specified by the plotfilename argument. This is the
 top level directory name for the plotfile. In AMReX&nbsp;convention, the
 plotfile name consist of letters followed by numbers (e.g.,
-plt00258). <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Concatenate</span></span></code> is a useful helper function for
+plt00258). <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Concatenate</span></span></code> is a useful helper function for
 making such strings.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="n">istep</span> <span class="o">=</span> <span class="mi">258</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="n">istep</span> <span class="o">=</span> <span class="mi">258</span><span class="p">;</span>
 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">pfname</span> <span class="o">=</span> <span class="n">amrex</span><span class="o">::</span><span class="n">Concatenate</span><span class="p">(</span><span class="s">&quot;plt&quot;</span><span class="p">,</span><span class="n">istep</span><span class="p">);</span> <span class="c1">// plt00258</span>
 
 <span class="c1">// By default there are 5 digits, but we can change it to say 4.</span>
@@ -221,8 +221,8 @@ making such strings.</p>
 <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">pfname3</span> <span class="o">=</span> <span class="n">amrex</span><span class="o">::</span><span class="n">Concatenate</span><span class="p">(</span><span class="s">&quot;plt&quot;</span><span class="p">,</span><span class="n">istep</span><span class="p">);</span> <span class="c1">// plt12344567</span>
 </pre></div>
 </div>
-<p>The argument <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">mf</span></span></code> above (<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> for single level and
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="keyword"><span class="pre">const</span></span> <span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">*&gt;</span></span></code> for multi-level) is the data to be written
+<p>The argument <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mf</span></span></code> above (<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> for single level and
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="keyword"><span class="pre">const</span></span> <span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">*&gt;</span></span></code> for multi-level) is the data to be written
 to the disk. Note that many visualization tools expect this to be
 cell-centered data. So for nodal data, we need to convert them to
 cell-centered data through some kind of averaging. Also note that if
@@ -231,21 +231,21 @@ to build a new MultiFab at each level to hold all the data on
 that level. This involves local data copy in memory and is not
 expected to significantly increase the total wall time for writing
 plotfiles. For the multi-level version, the function expects
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="keyword"><span class="pre">const</span></span> <span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">*&gt;</span></span></code>, whereas the multi-level data are often
-stored as <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">std</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">unique_ptr</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">&gt;&gt;</span></span></code>. AMReX&nbsp;has a
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="keyword"><span class="pre">const</span></span> <span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">*&gt;</span></span></code>, whereas the multi-level data are often
+stored as <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">std</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">unique_ptr</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">&gt;&gt;</span></span></code>. AMReX&nbsp;has a
 helper function for this and one can use it as follows,</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">WriteMultiLevelPlotfile</span><span class="p">(......,</span> <span class="n">amrex</span><span class="o">::</span><span class="n">GetVecOfConstPtrs</span><span class="p">(</span><span class="n">mf</span><span class="p">),</span> <span class="p">......);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">WriteMultiLevelPlotfile</span><span class="p">(......,</span> <span class="n">amrex</span><span class="o">::</span><span class="n">GetVecOfConstPtrs</span><span class="p">(</span><span class="n">mf</span><span class="p">),</span> <span class="p">......);</span>
 </pre></div>
 </div>
-<p>The argument <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">varnames</span></span></code> has the names for each component of the
+<p>The argument <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">varnames</span></span></code> has the names for each component of the
 MultiFab data. The size of the Vector should be equal to the
-number of components. The argument <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">geom</span></span></code> is for passing
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Geometry</span></span></code> objects that contain the physical domain
-information. The argument <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">time</span></span></code> is for the time associated with the
-data. The argument <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">level_step</span></span></code> is for the current time step
+number of components. The argument <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">geom</span></span></code> is for passing
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Geometry</span></span></code> objects that contain the physical domain
+information. The argument <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">time</span></span></code> is for the time associated with the
+data. The argument <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">level_step</span></span></code> is for the current time step
 associated with the data. For multi-level plotfiles, the argument
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">nlevels</span></span></code> is the total number of levels, and we also need to provide
-the refinement ratio via an <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span></code> of size nlevels-1.</p>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">nlevels</span></span></code> is the total number of levels, and we also need to provide
+the refinement ratio via an <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Vector</span></span></code> of size nlevels-1.</p>
 <p>We note that AMReX&nbsp;does not overwrite old plotfiles if the new
 plotfile has the same name. The old plotfiles will be renamed to
 new directories named like plt00350.old.46576787980.</p>
@@ -255,44 +255,44 @@ new directories named like plt00350.old.46576787980.</p>
 <p>Checkpoint files are used for restarting simulations from where the
 checkpoints are written. Each application code has its own set of
 data needed for restart. AMReX provides I/O functions for basic
-data structures like <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code>. These
+data structures like <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code>. These
 functions can be used to build codes for reading and writing
 checkpoint files. Since each application code has its own
 requirement, there is no standard AMReX checkpoint format.
 However we have provided an example restart capability in the tutorial
-<code class="docutils literal"><span class="pre">/amrex/Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex</span></code>.
-Refer to the functions <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ReadCheckpointFile</span></span><span class="punctuation"><span class="pre">()</span></span></code> and
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">WriteCheckpointFile</span></span><span class="punctuation"><span class="pre">()</span></span></code> in this tutorial.</p>
+<code class="docutils literal notranslate"><span class="pre">/amrex/Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex</span></code>.
+Refer to the functions <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ReadCheckpointFile</span></span><span class="punctuation"><span class="pre">()</span></span></code> and
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">WriteCheckpointFile</span></span><span class="punctuation"><span class="pre">()</span></span></code> in this tutorial.</p>
 <p>A checkpoint file is actually a directory with name, e.g.,
-<code class="docutils literal"><span class="pre">chk00010</span></code> containing a <code class="docutils literal"><span class="pre">Header</span></code> (text) file, along with
-subdirectories <code class="docutils literal"><span class="pre">Level_0</span></code>, <code class="docutils literal"><span class="pre">Level_1</span></code>, etc. containing the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> data at each level of refinement.
-The <code class="docutils literal"><span class="pre">Header</span></code> file contains problem-specific data (such as the
+<code class="docutils literal notranslate"><span class="pre">chk00010</span></code> containing a <code class="docutils literal notranslate"><span class="pre">Header</span></code> (text) file, along with
+subdirectories <code class="docutils literal notranslate"><span class="pre">Level_0</span></code>, <code class="docutils literal notranslate"><span class="pre">Level_1</span></code>, etc. containing the
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> data at each level of refinement.
+The <code class="docutils literal notranslate"><span class="pre">Header</span></code> file contains problem-specific data (such as the
 finest level, simulation time, time step, etc.), along with a printout
-of the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> at each level of refinement.</p>
+of the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> at each level of refinement.</p>
 <p>When starting a simulation from a checkpoint file, a typical sequence in the code
 could be:</p>
 <ul>
-<li><p class="first">Read in the <code class="docutils literal"><span class="pre">Header</span></code> file data (except for the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> data).</p>
+<li><p class="first">Read in the <code class="docutils literal notranslate"><span class="pre">Header</span></code> file data (except for the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> data).</p>
 </li>
 <li><p class="first">For each level of refinement, do the following in order:</p>
-<p>– Read in the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code></p>
-<p>– Build a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code></p>
-<p>– Define any <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FluxRegister</span></span></code>, etc. objects that are built upon the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> and the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code></p>
-<p>– Read in the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> data</p>
+<p>– Read in the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code></p>
+<p>– Build a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code></p>
+<p>– Define any <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FluxRegister</span></span></code>, etc. objects that are built upon the
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> and the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code></p>
+<p>– Read in the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> data</p>
 </li>
 </ul>
 <p>We do this one level at a time because when you create a distribution map,
-it checks how much allocated <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> data already exists before assigning
+it checks how much allocated <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> data already exists before assigning
 grids to processors.</p>
 <p>Typically a checkpoint file is a directory containing some text files
-and sub-directories (e.g., <code class="docutils literal"><span class="pre">Level_0</span></code> and <code class="docutils literal"><span class="pre">Level_1</span></code>)
+and sub-directories (e.g., <code class="docutils literal notranslate"><span class="pre">Level_0</span></code> and <code class="docutils literal notranslate"><span class="pre">Level_1</span></code>)
 containing various data. It is a good idea that we fist make these
 directories ready for subsequently writing to the disk. For example,
-to build directories <code class="docutils literal"><span class="pre">chk00010</span></code>, <code class="docutils literal"><span class="pre">chk00010/Level_0</span></code>, and
-<code class="docutils literal"><span class="pre">chk00010/Level_1</span></code>, you could write:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">checkpointname</span> <span class="o">=</span> <span class="n">amrex</span><span class="o">::</span><span class="n">Concatenate</span><span class="p">(</span><span class="s">&quot;chk&quot;</span><span class="p">,</span><span class="mi">10</span><span class="p">);</span>
+to build directories <code class="docutils literal notranslate"><span class="pre">chk00010</span></code>, <code class="docutils literal notranslate"><span class="pre">chk00010/Level_0</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">chk00010/Level_1</span></code>, you could write:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">checkpointname</span> <span class="o">=</span> <span class="n">amrex</span><span class="o">::</span><span class="n">Concatenate</span><span class="p">(</span><span class="s">&quot;chk&quot;</span><span class="p">,</span><span class="mi">10</span><span class="p">);</span>
 
 <span class="n">amrex</span><span class="o">::</span><span class="n">Print</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Writing checkpoint &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">checkpointname</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
 
@@ -311,14 +311,14 @@ to build directories <code class="docutils literal"><span class="pre">chk00010</
 </div>
 <p>A checkpoint file of AMReX application codes often has a clear text
 Header file that only the I/O process writes to it using
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">std</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">ofstream</span></span></code>. The Header file contains problem-dependent
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">std</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">ofstream</span></span></code>. The Header file contains problem-dependent
 information such as
 the time, the physical domain size, grids, etc. that are necessary for
 restarting the simulation. To guarantee that precision is not lost
 for storing floating point number like time in clear text file, the
 file stream’s precision needs to be set properly. And a stream buffer
 can also be used. For example,</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// write Header file</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// write Header file</span>
 <span class="k">if</span> <span class="p">(</span><span class="n">ParallelDescriptor</span><span class="o">::</span><span class="n">IOProcessor</span><span class="p">())</span> <span class="p">{</span>
 
     <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">HeaderFileName</span><span class="p">(</span><span class="n">checkpointname</span> <span class="o">+</span> <span class="s">&quot;/Header&quot;</span><span class="p">);</span>
@@ -366,15 +366,15 @@ can also be used. For example,</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">VisMF</span></span></code> is a class that can be used to perform
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> I/O in parallel. How many processes are allowed to
+<p><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">VisMF</span></span></code> is a class that can be used to perform
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> I/O in parallel. How many processes are allowed to
 perform I/O simultaneously can be set via</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">VisMF</span><span class="o">::</span><span class="n">SetNOutFiles</span><span class="p">(</span><span class="mi">64</span><span class="p">);</span>  <span class="c1">// up to 64 processes, which is also the default.</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">VisMF</span><span class="o">::</span><span class="n">SetNOutFiles</span><span class="p">(</span><span class="mi">64</span><span class="p">);</span>  <span class="c1">// up to 64 processes, which is also the default.</span>
 </pre></div>
 </div>
 <p>The optimal number is of course system dependent. The following code
-shows how to write a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code>.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// write the MultiFab data to, e.g., chk00010/Level_0/</span>
+shows how to write a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code>.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// write the MultiFab data to, e.g., chk00010/Level_0/</span>
 <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">lev</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">lev</span> <span class="o">&lt;=</span> <span class="n">finest_level</span><span class="p">;</span> <span class="o">++</span><span class="n">lev</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">VisMF</span><span class="o">::</span><span class="n">Write</span><span class="p">(</span><span class="n">phi_new</span><span class="p">[</span><span class="n">lev</span><span class="p">],</span>
                  <span class="n">amrex</span><span class="o">::</span><span class="n">MultiFabFileFullPrefix</span><span class="p">(</span><span class="n">lev</span><span class="p">,</span> <span class="n">checkpointname</span><span class="p">,</span> <span class="s">&quot;Level_&quot;</span><span class="p">,</span> <span class="s">&quot;phi&quot;</span><span class="p">));</span>
@@ -383,12 +383,12 @@ shows how to write a <code class="code cpp c++ docutils literal"><span class="na
 </div>
 <p>It should also be noted that all the
 data including those in ghost cells are written/read by
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">VisMF</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Write</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">Read</span></span></code>.</p>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">VisMF</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Write</span></span><span class="operator"><span class="pre">/</span></span><span class="name"><span class="pre">Read</span></span></code>.</p>
 <p>For reading the Header file, AMReX can have the I/O process
 read the file from the disk and broadcast it to others as
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="keyword type"><span class="pre">char</span></span><span class="operator"><span class="pre">&gt;</span></span></code>. Then all processes can read the information with
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">std</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">istringstream</span></span></code>. For example,</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">File</span><span class="p">(</span><span class="n">restart_chkfile</span> <span class="o">+</span> <span class="s">&quot;/Header&quot;</span><span class="p">);</span>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="keyword type"><span class="pre">char</span></span><span class="operator"><span class="pre">&gt;</span></span></code>. Then all processes can read the information with
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">std</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">istringstream</span></span></code>. For example,</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">File</span><span class="p">(</span><span class="n">restart_chkfile</span> <span class="o">+</span> <span class="s">&quot;/Header&quot;</span><span class="p">);</span>
 
 <span class="n">VisMF</span><span class="o">::</span><span class="n">IO_Buffer</span> <span class="n">io_buffer</span><span class="p">(</span><span class="n">VisMF</span><span class="o">::</span><span class="n">GetIOBufferSize</span><span class="p">());</span>
 
@@ -437,10 +437,10 @@ read the file from the disk and broadcast it to others as
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The following code how to read in a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code>, create a
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code>, build <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FluxRegister</span></span></code> data,
-and read in a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> from a checkpoint file, on a level-by-level basis:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">lev</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">lev</span> <span class="o">&lt;=</span> <span class="n">finest_level</span><span class="p">;</span> <span class="o">++</span><span class="n">lev</span><span class="p">)</span> <span class="p">{</span>
+<p>The following code how to read in a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code>, create a
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code>, build <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FluxRegister</span></span></code> data,
+and read in a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> from a checkpoint file, on a level-by-level basis:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">lev</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">lev</span> <span class="o">&lt;=</span> <span class="n">finest_level</span><span class="p">;</span> <span class="o">++</span><span class="n">lev</span><span class="p">)</span> <span class="p">{</span>
 
     <span class="c1">// read in level &#39;lev&#39; BoxArray from Header</span>
     <span class="n">BoxArray</span> <span class="n">ba</span><span class="p">;</span>
@@ -471,11 +471,11 @@ and read in a <code class="code cpp c++ docutils literal"><span class="name"><sp
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>It should be emphasized that calling <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">VisMF</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Read</span></span></code> with an empty
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> (i.e., no memory allocated for floating point data)
-will result in a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> with a new <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code>
+<p>It should be emphasized that calling <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">VisMF</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Read</span></span></code> with an empty
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> (i.e., no memory allocated for floating point data)
+will result in a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> with a new <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code>
 that could be different from any other existing
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code> objects and is not recommended.</p>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code> objects and is not recommended.</p>
 </div>
 
 

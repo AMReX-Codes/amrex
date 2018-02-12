@@ -186,18 +186,18 @@
 <p>We have discussed AMReX’s build systems in the chapter&nbsp;on
 <a class="reference internal" href="Chapter3.html#chap-buildingamrex"><span class="std std-ref">Building AMReX</span></a>.  To build with GNU Make, we need to include the
 Fortran interface source tree into the make system. The source codes for the
-Fortran interface are in <code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces</span></code> and there are several
+Fortran interface are in <code class="docutils literal notranslate"><span class="pre">amrex/Src/F_Interfaces</span></code> and there are several
 sub-directories. The “Base” directory includes sources for the basic
-functionality, the “AmrCore” directory wraps around the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code> class
+functionality, the “AmrCore” directory wraps around the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code> class
 (see the chapter&nbsp;on <a class="reference internal" href="Chapter5.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>), and the “Octree” directory adds
 support for octree type of AMR grids. Each directory has a “Make.package” file
-that can be included in make files (see <code class="docutils literal"><span class="pre">amrex/Tutorials/Basic/HelloWorld_F</span></code> and
-<code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_F</span></code> for examples). The libamrex approach includes the
+that can be included in make files (see <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_F</span></code> and
+<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Amr/Advection_F</span></code> for examples). The libamrex approach includes the
 Fortran interface by default. The CMake approach does not support the Fortran
 interface yet.</p>
-<p>A simple example can be found at <code class="docutils literal"><span class="pre">amrex/Tutorials/Basic/HelloWorld_F/</span></code>. The source code
+<p>A simple example can be found at <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_F/</span></code>. The source code
 is shown below in its entirety.</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">program </span><span class="n">main</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">program </span><span class="n">main</span>
   <span class="k">use </span><span class="n">amrex_base_module</span>
   <span class="k">implicit none</span>
 <span class="k">  call </span><span class="n">amrex_init</span><span class="p">()</span>
@@ -216,28 +216,28 @@ for octree style AMR (Section&nbsp;<a class="reference external" href="#sec:fi:o
 </div>
 <div class="section" id="the-basics">
 <span id="sec-fi-basics"></span><h1>The Basics<a class="headerlink" href="#the-basics" title="Permalink to this headline">¶</a></h1>
-<p>Module <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_base_module</span></span></code> is a collection of various Fortran modules
+<p>Module <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_base_module</span></span></code> is a collection of various Fortran modules
 providing interfaces to most of the basics of AMReX&nbsp;C++&nbsp;library (see the
 chapter on&nbsp;<a class="reference internal" href="Chapter4.html#chap-basics"><span class="std std-ref">Basics</span></a>). These modules shown in this section can be used
 without being explicitly included because they are included by
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_base_module</span></span></code>.</p>
-<p>The spatial dimension is an integer parameter <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_spacedim</span></span></code>.  We
-can also use the <code class="code fortran docutils literal"><span class="name"><span class="pre">AMREX_SPACEDIM</span></span></code> macro in preprocessed Fortran codes
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_base_module</span></span></code>.</p>
+<p>The spatial dimension is an integer parameter <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_spacedim</span></span></code>.  We
+can also use the <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">AMREX_SPACEDIM</span></span></code> macro in preprocessed Fortran codes
 (e.g., .F90 files) just like in the C++&nbsp;codes. Unlike in C++, the convention
 for AMReX&nbsp;Fortran interface is that coordinate direction index starts at 1.</p>
-<p>There is an integer parameter <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_real</span></span></code>, a Fortran kind parameter
-for <code class="code fortran docutils literal"><span class="keyword type"><span class="pre">real</span></span></code>. Fortran <code class="code fortran docutils literal"><span class="keyword type"><span class="pre">real</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">amrex_real</span></span><span class="punctuation"><span class="pre">)</span></span></code> corresponds to
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Real</span></span></code> in C++, which is either double or single precision depending
+<p>There is an integer parameter <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_real</span></span></code>, a Fortran kind parameter
+for <code class="code fortran docutils literal notranslate"><span class="keyword type"><span class="pre">real</span></span></code>. Fortran <code class="code fortran docutils literal notranslate"><span class="keyword type"><span class="pre">real</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">amrex_real</span></span><span class="punctuation"><span class="pre">)</span></span></code> corresponds to
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Real</span></span></code> in C++, which is either double or single precision depending
 the setting of precision.</p>
-<p>The module <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_parallel_module</span></span></code> (
-<code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_parallel_mod.F90</span></code>) includes wrappers to the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParallelDescriptor</span></span></code> namespace, which is in turn a wrapper to the parallel
+<p>The module <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_parallel_module</span></span></code> (
+<code class="docutils literal notranslate"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_parallel_mod.F90</span></code>) includes wrappers to the
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParallelDescriptor</span></span></code> namespace, which is in turn a wrapper to the parallel
 communication library used by AMReX&nbsp;(e.g. MPI).</p>
-<p>The module <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex_parmparse_module</span></span></code> (
-<code class="docutils literal"><span class="pre">amrex/Src/Base/AMReX_parmparse_mod.F90</span></code>) provides interface to
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParmParse</span></span></code> (see the section&nbsp;on <a class="reference internal" href="Basics.html#sec-basics-parmparse"><span class="std std-ref">ParmParse</span></a>). Here are some
+<p>The module <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex_parmparse_module</span></span></code> (
+<code class="docutils literal notranslate"><span class="pre">amrex/Src/Base/AMReX_parmparse_mod.F90</span></code>) provides interface to
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParmParse</span></span></code> (see the section&nbsp;on <a class="reference internal" href="Basics.html#sec-basics-parmparse"><span class="std std-ref">ParmParse</span></a>). Here are some
 examples.</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_parmparse</span><span class="p">)</span> <span class="kd">::</span> <span class="n">pp</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_parmparse</span><span class="p">)</span> <span class="kd">::</span> <span class="n">pp</span>
 <span class="kt">integer</span> <span class="kd">::</span> <span class="n">n_cell</span><span class="p">,</span> <span class="n">max_grid_size</span>
 <span class="k">call </span><span class="n">amrex_parmparse_build</span><span class="p">(</span><span class="n">pp</span><span class="p">)</span>
 <span class="k">call </span><span class="n">pp</span><span class="p">%</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;n_cell&quot;</span><span class="p">,</span> <span class="n">n_cell</span><span class="p">)</span>
@@ -249,14 +249,14 @@ examples.</p>
 <p>Finalization is a Fortran 2003 feature that some compilers may not support. For
 those compilers, we must explicitly destroy the objects, otherwise there will
 be memory leaks. This applies to many other derived types.</p>
-<p><code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_box</span></span></code> is a derived type in <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_box_module</span></span></code>
-<code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_box_mod.F90</span></code>. It has three members, <code class="code fortran docutils literal"><span class="name"><span class="pre">lo</span></span></code>
-(lower corner), <code class="code fortran docutils literal"><span class="name"><span class="pre">hi</span></span></code> (upper corner) and <code class="code fortran docutils literal"><span class="name"><span class="pre">nodal</span></span></code> (logical flag
+<p><code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_box</span></span></code> is a derived type in <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_box_module</span></span></code>
+<code class="docutils literal notranslate"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_box_mod.F90</span></code>. It has three members, <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">lo</span></span></code>
+(lower corner), <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">hi</span></span></code> (upper corner) and <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">nodal</span></span></code> (logical flag
 for index type).</p>
-<p><code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_geometry</span></span></code> is a wrapper for the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Geometry</span></span></code> class
+<p><code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_geometry</span></span></code> is a wrapper for the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Geometry</span></span></code> class
 containing information for the physical domain. Below is an example
 of building it.</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">n_cell</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">n_cell</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_box</span><span class="p">)</span> <span class="kd">::</span> <span class="n">domain</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_geometry</span><span class="p">)</span> <span class="p">:</span> <span class="n">geom</span>
 <span class="c">! n_cell = ...</span>
@@ -270,12 +270,12 @@ of building it.</p>
 <span class="k">call </span><span class="n">amrex_geometry_destroy</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_boxarray</span></span></code> ( <code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_boxarray_mod.F90</span></code>) is a
-wrapper for the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> class, and <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_distromap</span></span></code> (
-<code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_distromap_mod.F90</span></code>) is a wrapper for the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code> class. Here is an example of building a
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> and a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code>.</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">n_cell</span>
+<p><code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_boxarray</span></span></code> ( <code class="docutils literal notranslate"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_boxarray_mod.F90</span></code>) is a
+wrapper for the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> class, and <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_distromap</span></span></code> (
+<code class="docutils literal notranslate"><span class="pre">amrex/Src/F_Interfaces/Base/AMReX_distromap_mod.F90</span></code>) is a wrapper for the
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code> class. Here is an example of building a
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> and a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code>.</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">n_cell</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_box</span><span class="p">)</span> <span class="kd">::</span> <span class="n">domain</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_boxarray</span><span class="p">)</span> <span class="p">:</span> <span class="n">ba</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_distromap</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dm</span>
@@ -295,9 +295,9 @@ wrapper for the <code class="code cpp c++ docutils literal"><span class="name"><
 <span class="k">call </span><span class="n">amrex_boxarray_destroy</span><span class="p">(</span><span class="n">ba</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Given <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_boxarray</span></span></code> and <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_distromap</span></span></code>, we can build
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code>, a wrapper for the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> class, as follows.</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ncomp</span><span class="p">,</span> <span class="n">nghost</span>
+<p>Given <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_boxarray</span></span></code> and <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_distromap</span></span></code>, we can build
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code>, a wrapper for the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> class, as follows.</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ncomp</span><span class="p">,</span> <span class="n">nghost</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_boxarray</span><span class="p">)</span> <span class="p">:</span> <span class="n">ba</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_distromap</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dm</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_multifab</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mf</span><span class="p">,</span> <span class="n">ndmf</span>
@@ -316,21 +316,21 @@ wrapper for the <code class="code cpp c++ docutils literal"><span class="name"><
 <span class="k">call </span><span class="n">amrex_multifab_destroy</span><span class="p">(</span><span class="n">ndmf</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>There are many type-bound procedures for <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code>. For example</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="n">ncomp</span>   <span class="c">! Return the number of components</span>
+<p>There are many type-bound procedures for <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code>. For example</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="n">ncomp</span>   <span class="c">! Return the number of components</span>
 <span class="n">nghost</span>  <span class="c">! Return the number of ghost cells</span>
 <span class="n">setval</span>  <span class="c">! Set the data to the given value</span>
 <span class="n">copy</span>    <span class="c">! Copy data from given amrex_multifab to this amrex_multifab</span>
 </pre></div>
 </div>
 <p>Note that the copy function here only works on copying data from another
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code> built with the same <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_distromap</span></span></code>, like
-the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Copy</span></span></code> function in C++.  <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code> also has
-two parallel communication procedures, <code class="code fortran docutils literal"><span class="name"><span class="pre">fill_boundary</span></span></code> and
-<code class="code fortran docutils literal"><span class="name"><span class="pre">parallel_copy</span></span></code>. Their and interface and usage are very similar to
-functions <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillBoundary</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParallelCopy</span></span></code> for <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> in
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code> built with the same <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_distromap</span></span></code>, like
+the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Copy</span></span></code> function in C++.  <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code> also has
+two parallel communication procedures, <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">fill_boundary</span></span></code> and
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">parallel_copy</span></span></code>. Their and interface and usage are very similar to
+functions <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillBoundary</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParallelCopy</span></span></code> for <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> in
 C++.</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_geometry</span><span class="p">)</span> <span class="kd">::</span> <span class="n">geom</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_geometry</span><span class="p">)</span> <span class="kd">::</span> <span class="n">geom</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_multifab</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mf</span><span class="p">,</span> <span class="n">mfsrc</span>
 <span class="c">! ...</span>
 <span class="k">call </span><span class="n">mf</span><span class="p">%</span><span class="n">fill_boundary</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>       <span class="c">! Fill all components</span>
@@ -339,14 +339,14 @@ C++.</p>
 <span class="k">call </span><span class="n">mf</span><span class="p">%</span><span class="n">parallel_copy</span><span class="p">(</span><span class="n">mfsrc</span><span class="p">,</span> <span class="n">geom</span><span class="p">)</span> <span class="c">! Parallel copy from another multifab</span>
 </pre></div>
 </div>
-<p>It should be emphasized that the component index for <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code>
+<p>It should be emphasized that the component index for <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code>
 starts with 1 following Fortran convention. This is different from the C++&nbsp;part
 of AMReX.</p>
-<p>AMReX&nbsp;provides a Fortran interface to <code class="code fortran docutils literal"><span class="name"><span class="pre">MFIter</span></span></code> for iterating over the
-data in <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code>. The Fortran type for this is
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_mfiter</span></span></code>. Here is an example of using <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_mfiter</span></span></code> to
-loop over <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code> with tiling and launch a kernel function.</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">plo</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">phi</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<p>AMReX&nbsp;provides a Fortran interface to <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">MFIter</span></span></code> for iterating over the
+data in <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code>. The Fortran type for this is
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_mfiter</span></span></code>. Here is an example of using <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_mfiter</span></span></code> to
+loop over <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code> with tiling and launch a kernel function.</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">plo</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">phi</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_box</span><span class="p">)</span> <span class="kd">::</span> <span class="n">bx</span>
 <span class="kt">real</span><span class="p">(</span><span class="n">amrex_real</span><span class="p">),</span> <span class="k">contiguous</span><span class="p">,</span> <span class="k">dimension</span><span class="p">(:,:,:,:),</span> <span class="k">pointer</span> <span class="kd">::</span> <span class="n">po</span><span class="p">,</span> <span class="n">pn</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_multifab</span><span class="p">)</span> <span class="kd">::</span> <span class="n">old_phi</span><span class="p">,</span> <span class="n">new_phi</span>
@@ -366,8 +366,8 @@ loop over <code class="code fortran docutils literal"><span class="name"><span c
 <span class="k">call </span><span class="n">amrex_mfiter_destroy</span><span class="p">(</span><span class="n">mfi</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Here procedure <code class="code fortran docutils literal"><span class="name"><span class="pre">update_phi</span></span></code> is</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">update_phi</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">pold</span><span class="p">,</span> <span class="n">pnew</span><span class="p">,</span> <span class="n">plo</span><span class="p">,</span> <span class="n">phi</span><span class="p">)</span>
+<p>Here procedure <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">update_phi</span></span></code> is</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">update_phi</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">pold</span><span class="p">,</span> <span class="n">pnew</span><span class="p">,</span> <span class="n">plo</span><span class="p">,</span> <span class="n">phi</span><span class="p">)</span>
  <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">lo</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">hi</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">plo</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">phi</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
   <span class="kt">real</span><span class="p">(</span><span class="n">amrex_real</span><span class="p">),</span><span class="k">intent</span><span class="p">(</span><span class="n">in</span>   <span class="p">)</span> <span class="n">pold</span><span class="p">(</span><span class="n">plo</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span><span class="n">phi</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">plo</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span><span class="n">phi</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="n">plo</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span><span class="n">phi</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
   <span class="kt">real</span><span class="p">(</span><span class="n">amrex_real</span><span class="p">),</span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="n">pnew</span><span class="p">(</span><span class="n">plo</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span><span class="n">phi</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">plo</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span><span class="n">phi</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="n">plo</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span><span class="n">phi</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
@@ -375,26 +375,26 @@ loop over <code class="code fortran docutils literal"><span class="name"><span c
 <span class="k">end subroutine </span><span class="n">update_phi</span>
 </pre></div>
 </div>
-<p>Note that amrex_multifab’s procedure <code class="code fortran docutils literal"><span class="name"><span class="pre">dataptr</span></span></code> takes
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_mfiter</span></span></code> and returns a 4-dimensional Fortran pointer. For
-performance, we should declare the pointer as <code class="code fortran docutils literal"><span class="keyword"><span class="pre">contiguous</span></span></code>. In C++,
-the similar operation returns a reference to <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FArrayBox</span></span></code>.  However,
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FArrayBox</span></span></code> and Fortran pointer have a similar capability of containing
-array bound information. We can call <code class="code fortran docutils literal"><span class="name builtin"><span class="pre">lbound</span></span></code> and <code class="code fortran docutils literal"><span class="name builtin"><span class="pre">ubound</span></span></code> on
+<p>Note that amrex_multifab’s procedure <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">dataptr</span></span></code> takes
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_mfiter</span></span></code> and returns a 4-dimensional Fortran pointer. For
+performance, we should declare the pointer as <code class="code fortran docutils literal notranslate"><span class="keyword"><span class="pre">contiguous</span></span></code>. In C++,
+the similar operation returns a reference to <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FArrayBox</span></span></code>.  However,
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FArrayBox</span></span></code> and Fortran pointer have a similar capability of containing
+array bound information. We can call <code class="code fortran docutils literal notranslate"><span class="name builtin"><span class="pre">lbound</span></span></code> and <code class="code fortran docutils literal notranslate"><span class="name builtin"><span class="pre">ubound</span></span></code> on
 the pointer to return its lower and upper bounds. The first three dimensions of
 the bounds are spatial and the fourth is for the number of component.</p>
-<p>Many of the derived Fortran types in &nbsp;(e.g., <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code>,
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_boxarray</span></span></code>, <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_distromap</span></span></code>, <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_mfiter</span></span></code>,
-and <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_geometry</span></span></code>) contain a <code class="code fortran docutils literal"><span class="keyword"><span class="pre">type</span></span><span class="punctuation"><span class="pre">(</span></span><span class="keyword type"><span class="pre">c_ptr</span></span><span class="punctuation"><span class="pre">)</span></span></code> that points a
-C++&nbsp;object. They also contain a <code class="code fortran docutils literal"><span class="keyword type"><span class="pre">logical</span></span></code> type indicating whether or
+<p>Many of the derived Fortran types in &nbsp;(e.g., <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code>,
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_boxarray</span></span></code>, <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_distromap</span></span></code>, <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_mfiter</span></span></code>,
+and <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_geometry</span></span></code>) contain a <code class="code fortran docutils literal notranslate"><span class="keyword"><span class="pre">type</span></span><span class="punctuation"><span class="pre">(</span></span><span class="keyword type"><span class="pre">c_ptr</span></span><span class="punctuation"><span class="pre">)</span></span></code> that points a
+C++&nbsp;object. They also contain a <code class="code fortran docutils literal notranslate"><span class="keyword type"><span class="pre">logical</span></span></code> type indicating whether or
 not this object owns the underlying object (i.e., responsible for deleting the
 object). Due to the semantics of Fortran, one should not return these types
 with functions. Instead we should pass them as arguments to procedures
-(preferably with <code class="code fortran docutils literal"><span class="keyword"><span class="pre">intent</span></span></code> specified). These five types all have
+(preferably with <code class="code fortran docutils literal notranslate"><span class="keyword"><span class="pre">intent</span></span></code> specified). These five types all have
 assignment(=) operator that performs a shallow copy. After the assignment, the
 original objects still owns the data and the copy is just an alias. For
 example,</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_multifab</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mf1</span><span class="p">,</span> <span class="n">mf2</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_multifab</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mf1</span><span class="p">,</span> <span class="n">mf2</span>
 <span class="k">call </span><span class="n">amrex_multifab_build</span><span class="p">(</span><span class="n">mf1</span><span class="p">,</span> <span class="p">...)</span>
 <span class="k">call </span><span class="n">amrex_multifab_build</span><span class="p">(</span><span class="n">mf2</span><span class="p">,</span> <span class="p">...)</span>
 <span class="c">! At this point, both mf1 and mf2 are data owners</span>
@@ -406,26 +406,26 @@ example,</p>
 <span class="k">call </span><span class="n">amrex_multifab_destroyed</span><span class="p">(</span><span class="n">mf2</span><span class="p">)</span>  <span class="c">! But we still need to destroy it.</span>
 </pre></div>
 </div>
-<p>If we need to transfer the ownership, <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code>,
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_boxarray</span></span></code> and <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_distromap</span></span></code> provide type-bound
-<code class="code fortran docutils literal"><span class="name"><span class="pre">move</span></span></code> procedure. We can use it as follows</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_multifab</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mf1</span><span class="p">,</span> <span class="n">mf2</span>
+<p>If we need to transfer the ownership, <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code>,
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_boxarray</span></span></code> and <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_distromap</span></span></code> provide type-bound
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">move</span></span></code> procedure. We can use it as follows</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_multifab</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mf1</span><span class="p">,</span> <span class="n">mf2</span>
 <span class="k">call </span><span class="n">amrex_multifab_build</span><span class="p">(</span><span class="n">mf1</span><span class="p">,</span> <span class="p">...)</span>
 <span class="k">call </span><span class="n">mf2</span><span class="p">%</span><span class="n">move</span><span class="p">(</span><span class="n">mf1</span><span class="p">)</span>   <span class="c">! mf2 is now the data owner and mf1 is not.</span>
 <span class="k">call </span><span class="n">amrex_multifab_destroy</span><span class="p">(</span><span class="n">mf1</span><span class="p">)</span>
 <span class="k">call </span><span class="n">amrex_multifab_destroyed</span><span class="p">(</span><span class="n">mf2</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_multifab</span></span></code> also has a type-bound <code class="code fortran docutils literal"><span class="name"><span class="pre">swap</span></span></code> procedure for
+<p><code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_multifab</span></span></code> also has a type-bound <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">swap</span></span></code> procedure for
 exchanging the data.</p>
-<p>AMReX&nbsp;also provides <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_plotfile_module</span></span></code> for writing plotfiles. The
+<p>AMReX&nbsp;also provides <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_plotfile_module</span></span></code> for writing plotfiles. The
 interface is similar to the C++ versions.</p>
 </div>
 <div class="section" id="amr-core-infrastructure">
 <span id="sec-fi-amrcore"></span><h1>Amr Core Infrastructure<a class="headerlink" href="#amr-core-infrastructure" title="Permalink to this headline">¶</a></h1>
-<p>The module <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_amr_module</span></span></code> provides interfaces to AMR core
+<p>The module <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_amr_module</span></span></code> provides interfaces to AMR core
 infrastructure. With AMR, the main program might look like below,</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">program </span><span class="n">main</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">program </span><span class="n">main</span>
   <span class="k">use </span><span class="n">amrex_amr_module</span>
   <span class="k">implicit none</span>
 <span class="k">  call </span><span class="n">amrex_init</span><span class="p">()</span>
@@ -438,11 +438,11 @@ infrastructure. With AMR, the main program might look like below,</p>
 <span class="k">end program </span><span class="n">main</span>
 </pre></div>
 </div>
-<p>Here we need to call <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_amrcore_init</span></span></code> and
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_amrcore_finalize</span></span></code>. And usually we need to call application code
+<p>Here we need to call <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_amrcore_init</span></span></code> and
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_amrcore_finalize</span></span></code>. And usually we need to call application code
 specific procedures to provide some “hooks” needed by AMReX.  In C++, this is
 achieved by using virtual functions. In Fortran, we need to call</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">amrex_init_virtual_functions</span> <span class="p">(</span><span class="n">mk_lev_scrtch</span><span class="p">,</span> <span class="n">mk_lev_crse</span><span class="p">,</span> <span class="p">&amp;</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">amrex_init_virtual_functions</span> <span class="p">(</span><span class="n">mk_lev_scrtch</span><span class="p">,</span> <span class="n">mk_lev_crse</span><span class="p">,</span> <span class="p">&amp;</span>
                                          <span class="n">mk_lev_re</span><span class="p">,</span> <span class="n">clr_lev</span><span class="p">,</span> <span class="n">err_est</span><span class="p">)</span>
 
   <span class="c">! Make a new level from scratch using provided boxarray and distromap</span>
@@ -463,7 +463,7 @@ achieved by using virtual functions. In Fortran, we need to call</p>
 </div>
 <p>We need to provide five functions and these functions have three types of
 interfaces:</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">amrex_make_level_proc</span> <span class="p">(</span><span class="n">lev</span><span class="p">,</span> <span class="nb">time</span><span class="p">,</span> <span class="n">ba</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span> <span class="k">bind</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">amrex_make_level_proc</span> <span class="p">(</span><span class="n">lev</span><span class="p">,</span> <span class="nb">time</span><span class="p">,</span> <span class="n">ba</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span> <span class="k">bind</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
   <span class="k">import</span>
 <span class="k">  implicit none</span>
 <span class="k">  </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">),</span> <span class="k">value</span> <span class="kd">::</span> <span class="n">lev</span>
@@ -489,21 +489,21 @@ interfaces:</p>
 </div>
 <p>Tutorials/Amr/Advection_F/Source/my_amr_mod.F90 shows an
 example of the setup process. The user provided
-<code class="code fortran docutils literal"><span class="keyword"><span class="pre">procedure</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">amrex_error_est_proc</span></span><span class="punctuation"><span class="pre">)</span></span></code> has a tags argument that
-is of type <code class="code fortran docutils literal"><span class="keyword type"><span class="pre">c_ptr</span></span></code> and its value is a pointer to a
-<code class="code fortran docutils literal"><span class="name"><span class="pre">TagBoxArray</span></span></code> object. We need to convert this into a Fortran
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_tagboxarray</span></span></code> object.</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_tagboxarray</span><span class="p">)</span> <span class="kd">::</span> <span class="n">tag</span>
+<code class="code fortran docutils literal notranslate"><span class="keyword"><span class="pre">procedure</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">amrex_error_est_proc</span></span><span class="punctuation"><span class="pre">)</span></span></code> has a tags argument that
+is of type <code class="code fortran docutils literal notranslate"><span class="keyword type"><span class="pre">c_ptr</span></span></code> and its value is a pointer to a
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">TagBoxArray</span></span></code> object. We need to convert this into a Fortran
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_tagboxarray</span></span></code> object.</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_tagboxarray</span><span class="p">)</span> <span class="kd">::</span> <span class="n">tag</span>
 <span class="n">tag</span> <span class="o">=</span> <span class="n">tags</span>
 </pre></div>
 </div>
-<p>The module <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_fillpatch_module</span></span></code> provides interface to
-C++&nbsp;functions <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatchSinglelevel</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatchTwoLevels</span></span></code>. To use
+<p>The module <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_fillpatch_module</span></span></code> provides interface to
+C++&nbsp;functions <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillPatchSinglelevel</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillPatchTwoLevels</span></span></code>. To use
 it, the application code needs to provide procedures for interpolation and
 filling physical boundaries.  See
 Tutorials/Amr/Advection_F/Source/fillpatch_mod.F90 for an example.</p>
-<p>Module <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_fluxregister_module</span></span></code> provides interface to
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FluxRegister</span></span></code> (see the section on&nbsp;<a class="reference internal" href="AmrCore.html#sec-amrcore-fluxreg"><span class="std std-ref">Using FluxRegisters</span></a>). Its usage
+<p>Module <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_fluxregister_module</span></span></code> provides interface to
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FluxRegister</span></span></code> (see the section on&nbsp;<a class="reference internal" href="AmrCore.html#sec-amrcore-fluxreg"><span class="std std-ref">Using FluxRegisters</span></a>). Its usage
 is demonstrated in the tutorial at Tutorials/Amr/Advection_F/.</p>
 </div>
 <div class="section" id="octree">
@@ -513,11 +513,11 @@ of coarse level grids. There are no required direct parent-child connections
 between levels. Therefore, grids in AMReX&nbsp;in general cannot be represented by
 trees. Nevertheless, octree type grids are supported via Fortran interface,
 because &nbsp;grids are more general than octree grids. A tutorial example using
-amrex_octree_module ( <code class="docutils literal"><span class="pre">amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90</span></code>) is
-available at <code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/Advection_octree_F/</span></code>. Procedures
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_octree_init</span></span></code> and <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_octree_finalize</span></span></code> must be
+amrex_octree_module ( <code class="docutils literal notranslate"><span class="pre">amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90</span></code>) is
+available at <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Amr/Advection_octree_F/</span></code>. Procedures
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_octree_init</span></span></code> and <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_octree_finalize</span></span></code> must be
 called as follows,</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">program </span><span class="n">main</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">program </span><span class="n">main</span>
   <span class="k">use </span><span class="n">amrex_amrcore_module</span>
   <span class="k">use </span><span class="n">amrex_octree_module</span>
   <span class="k">implicit none</span>
@@ -533,11 +533,11 @@ called as follows,</p>
 <span class="k">end program </span><span class="n">main</span>
 </pre></div>
 </div>
-<p>By default, the grid size is <span class="math">\(8^3\)</span>, and this can be changed via
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParmParse</span></span></code> parameter <code class="docutils literal"><span class="pre">amr.max_grid_size</span></code>. The module
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_octree_module</span></span></code> provides <code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_octree_iter</span></span></code> that can
+<p>By default, the grid size is <span class="math notranslate">\(8^3\)</span>, and this can be changed via
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParmParse</span></span></code> parameter <code class="docutils literal notranslate"><span class="pre">amr.max_grid_size</span></code>. The module
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_octree_module</span></span></code> provides <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_octree_iter</span></span></code> that can
 be used to iterate over leaves of octree. For example,</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_octree_iter</span><span class="p">)</span> <span class="kd">::</span> <span class="n">oti</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">type</span><span class="p">(</span><span class="n">amrex_octree_iter</span><span class="p">)</span> <span class="kd">::</span> <span class="n">oti</span>
 <span class="k">type</span><span class="p">(</span><span class="n">multifab</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phi_new</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>   <span class="c">! one multifab for each level</span>
 <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ilev</span><span class="p">,</span> <span class="n">igrd</span>
 <span class="k">type</span><span class="p">(</span><span class="n">amrex_box</span><span class="p">)</span> <span class="kd">::</span> <span class="n">bx</span>

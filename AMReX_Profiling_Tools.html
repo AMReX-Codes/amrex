@@ -196,50 +196,50 @@
 <div class="section" id="tiny-profiling">
 <span id="sec-tiny-profiling"></span><h2>Tiny Profiling<a class="headerlink" href="#tiny-profiling" title="Permalink to this headline">¶</a></h2>
 <p>To enable “Tiny Profiling”, if using GNU Make then set</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">TINY_PROFILE</span> <span class="o">=</span> <span class="n">TRUE</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TINY_PROFILE</span> <span class="o">=</span> <span class="n">TRUE</span>
 <span class="n">PROFILE</span>      <span class="o">=</span> <span class="n">FALSE</span>
 </pre></div>
 </div>
 <p>in your GNUMakefile.   If using cmake then set the following cmake flags</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">AMREX_ENABLE_TINY_PROFILE</span> <span class="o">=</span> <span class="n">ON</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AMREX_ENABLE_TINY_PROFILE</span> <span class="o">=</span> <span class="n">ON</span>
 <span class="n">AMREX_ENABLE_BASE_PROFILE</span> <span class="o">=</span> <span class="n">OFF</span>
 </pre></div>
 </div>
-<p>Note that if you set <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>  (or <code class="docutils literal"><span class="pre">AMREX_ENABLE_BASE_PROFILE</span> <span class="pre">=</span> <span class="pre">ON</span></code>)
-then this will override the <code class="docutils literal"><span class="pre">TINY_PROFILE</span></code> flag and tiny profiling will be disabled.</p>
+<p>Note that if you set <code class="docutils literal notranslate"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>  (or <code class="docutils literal notranslate"><span class="pre">AMREX_ENABLE_BASE_PROFILE</span> <span class="pre">=</span> <span class="pre">ON</span></code>)
+then this will override the <code class="docutils literal notranslate"><span class="pre">TINY_PROFILE</span></code> flag and tiny profiling will be disabled.</p>
 <p>At the end of the run, a summary of exclusive and inclusive function times will be written to stdout.
 This output includes the minimum and maximum (over processes) time spent in each routine
 as well as the average and the maximum percentage of total run time.   See <a class="reference internal" href="#sec-sample-tiny"><span class="std std-ref">Sample Output From Tiny Profile</span></a>
 for sample output.</p>
 <p>The tiny profiler automatically writes the results to stdout at the end of your code, when
-<code class="docutils literal"><span class="pre">amrex::Finalize();</span></code> is reached. However, you may want to write partial profiling results to
+<code class="docutils literal notranslate"><span class="pre">amrex::Finalize();</span></code> is reached. However, you may want to write partial profiling results to
 ensure your information is saved when you may fail to converge or if you expect to run out of
 allocated time. Partial results can be written at user-defined times by inserting the line:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_TINY_FLUSH</span><span class="p">();</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_TINY_FLUSH</span><span class="p">();</span>
 </pre></div>
 </div>
-<p>Any timers that have not reached their <code class="docutils literal"><span class="pre">BL_PROFILE_VAR_STOP</span></code> call or exited their scope and
+<p>Any timers that have not reached their <code class="docutils literal notranslate"><span class="pre">BL_PROFILE_VAR_STOP</span></code> call or exited their scope and
 deconstructed will not be included in these partial outputs. (e.g., a properly instrumented
-<code class="docutils literal"><span class="pre">main()</span></code> should show a time of zero in all partial outputs.) Therefore, it is recommended to
+<code class="docutils literal notranslate"><span class="pre">main()</span></code> should show a time of zero in all partial outputs.) Therefore, it is recommended to
 place these flush calls in easily identifiable regions of your code and outside of as many
 profiling timers as possible, such as immediately before or after writing a checkpoint.</p>
 <p>Also, since flush calls will print multiple, similar looking outputs to stdout, it is also
-recommended to wrap any <code class="docutils literal"><span class="pre">BL_PROFILE_TINY_FLUSH();</span></code> calls in informative <code class="docutils literal"><span class="pre">amrex::Print()</span></code>
+recommended to wrap any <code class="docutils literal notranslate"><span class="pre">BL_PROFILE_TINY_FLUSH();</span></code> calls in informative <code class="docutils literal notranslate"><span class="pre">amrex::Print()</span></code>
 lines to ensure accurate identification of each set of timers.</p>
 </div>
 <div class="section" id="full-profiling">
 <span id="sec-full-profiling"></span><h2>Full Profiling<a class="headerlink" href="#full-profiling" title="Permalink to this headline">¶</a></h2>
-<p>If you set <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> then a <code class="docutils literal"><span class="pre">bl_prof</span></code> directory will be written that
+<p>If you set <code class="docutils literal notranslate"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> then a <code class="docutils literal notranslate"><span class="pre">bl_prof</span></code> directory will be written that
 contains detailed per-task timings for each processor.  This will be written in
-<code class="docutils literal"><span class="pre">nfiles</span></code> files (where <code class="docutils literal"><span class="pre">nfiles</span></code> is specified by the user).
+<code class="docutils literal notranslate"><span class="pre">nfiles</span></code> files (where <code class="docutils literal notranslate"><span class="pre">nfiles</span></code> is specified by the user).
 In addition, an exclusive-only set of function timings will be written to stdout.</p>
 <div class="section" id="trace-profiling">
 <h3>Trace Profiling<a class="headerlink" href="#trace-profiling" title="Permalink to this headline">¶</a></h3>
 <blockquote>
-<div>If, in addition to <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, you set <code class="docutils literal"><span class="pre">TRACE_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, then
+<div>If, in addition to <code class="docutils literal notranslate"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, you set <code class="docutils literal notranslate"><span class="pre">TRACE_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, then
 the profiler keeps track of when each profiled function is called and the
-<code class="docutils literal"><span class="pre">bl_prof</span></code> directory will include the function call stack. This is especially
-useful when core functions, such as <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillBoundary</span></span></code> can be called from many
+<code class="docutils literal notranslate"><span class="pre">bl_prof</span></code> directory will include the function call stack. This is especially
+useful when core functions, such as <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillBoundary</span></span></code> can be called from many
 different regions of the code. Part of the trace profiling is the ability to
 set regions in the code which can be analyzed for profiling information
 independently from other regions.</div></blockquote>
@@ -247,10 +247,10 @@ independently from other regions.</div></blockquote>
 <div class="section" id="communication-profiling">
 <h3>Communication Profiling<a class="headerlink" href="#communication-profiling" title="Permalink to this headline">¶</a></h3>
 <blockquote>
-<div>If, in addition to <code class="docutils literal"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, you set <code class="docutils literal"><span class="pre">COMM_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, then
-the <code class="docutils literal"><span class="pre">bl_prof</span></code> directory will contain additional information about MPI
+<div>If, in addition to <code class="docutils literal notranslate"><span class="pre">PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, you set <code class="docutils literal notranslate"><span class="pre">COMM_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, then
+the <code class="docutils literal notranslate"><span class="pre">bl_prof</span></code> directory will contain additional information about MPI
 communication (point-to-point timings, data volume, barrier/reduction times,
-etc.). <code class="docutils literal"><span class="pre">TRACE_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> and <code class="docutils literal"><span class="pre">COMM_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can be set
+etc.). <code class="docutils literal notranslate"><span class="pre">TRACE_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> and <code class="docutils literal notranslate"><span class="pre">COMM_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can be set
 together.</div></blockquote>
 <p>The AMReX-specific profiling tools are currently under development and this
 documentation will reflect the latest status in the development branch.</p>
@@ -260,7 +260,7 @@ documentation will reflect the latest status in the development branch.</p>
 <div class="section" id="instrumenting-c-code">
 <h1>Instrumenting C++ Code<a class="headerlink" href="#instrumenting-c-code" title="Permalink to this headline">¶</a></h1>
 <p>You must at least instrument main(), i.e</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">main</span><span class="p">(...)</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">main</span><span class="p">(...)</span>
 <span class="p">{</span>
   <span class="n">amrex</span><span class="o">::</span><span class="n">Initialize</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="n">argv</span><span class="p">);</span>
   <span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;main()&quot;</span><span class="p">,</span><span class="n">pmain</span><span class="p">);</span>
@@ -273,7 +273,7 @@ documentation will reflect the latest status in the development branch.</p>
 </pre></div>
 </div>
 <p>You can then instrument any of your functions</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">YourClass</span><span class="o">::</span><span class="n">YourFunction</span><span class="p">()</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">YourClass</span><span class="o">::</span><span class="n">YourFunction</span><span class="p">()</span>
 <span class="p">{</span>
   <span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;YourClass::YourFunction()&quot;</span><span class="p">,</span><span class="n">object_name</span><span class="p">);</span>  <span class="c1">// this name can be any string</span>
 
@@ -284,13 +284,13 @@ documentation will reflect the latest status in the development branch.</p>
 <p>Note that you do not need to put BL_PROFILE_VAR_STOP because the profiler will go out of scope
 at the end of the function.</p>
 <p>For other timers within an already instrumented function, add:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;Flaten::FORT_FLATENX()&quot;</span><span class="p">,</span> <span class="n">anyname</span><span class="p">);</span>  <span class="c1">// add this before</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;Flaten::FORT_FLATENX()&quot;</span><span class="p">,</span> <span class="n">anyname</span><span class="p">);</span>  <span class="c1">// add this before</span>
   <span class="n">FORT_FLATENX</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">);</span>
 <span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">anyname</span><span class="p">);</span>   <span class="c1">// add this after, using the same name</span>
 </pre></div>
 </div>
 <p>if you want to use the same name within the same scope, you can use:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;MyFuncs()&quot;</span><span class="p">,</span> <span class="n">myfuncs</span><span class="p">);</span>  <span class="c1">// the first one</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR</span><span class="p">(</span><span class="s">&quot;MyFuncs()&quot;</span><span class="p">,</span> <span class="n">myfuncs</span><span class="p">);</span>  <span class="c1">// the first one</span>
   <span class="n">MyFunc_0</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
 <span class="n">BL_PROFILE_VAR_STOP</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
 <span class="p">...</span>
@@ -300,7 +300,7 @@ at the end of the function.</p>
 </pre></div>
 </div>
 <p>or create a profiling variable without starting, then start/stop:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR_NS</span><span class="p">(</span><span class="s">&quot;MyFuncs()&quot;</span><span class="p">,</span> <span class="n">myfuncs</span><span class="p">);</span>  <span class="c1">// dont start the timer</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">BL_PROFILE_VAR_NS</span><span class="p">(</span><span class="s">&quot;MyFuncs()&quot;</span><span class="p">,</span> <span class="n">myfuncs</span><span class="p">);</span>  <span class="c1">// dont start the timer</span>
 <span class="p">...</span>
 <span class="n">BL_PROFILE_VAR_START</span><span class="p">(</span><span class="n">myfuncs</span><span class="p">);</span>
   <span class="n">MyFunc_0</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
@@ -315,34 +315,34 @@ at the end of the function.</p>
 <div class="section" id="instrumenting-fortran90-code">
 <h1>Instrumenting Fortran90 Code<a class="headerlink" href="#instrumenting-fortran90-code" title="Permalink to this headline">¶</a></h1>
 <p>Fortran90 functions can also be instrumented with the following calls:</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">bl_proffortfuncstart</span><span class="p">(</span><span class="s2">&quot;my_function&quot;</span><span class="p">)</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">bl_proffortfuncstart</span><span class="p">(</span><span class="s2">&quot;my_function&quot;</span><span class="p">)</span>
 <span class="p">...</span>
 <span class="k">call </span><span class="n">bl_proffortfuncstop</span><span class="p">(</span><span class="s2">&quot;my_function&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Note that the start and stop calls must be matched and the profiling output
-will warn of any <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstart</span></span></code> calls that were not stopped
-with <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstop</span></span></code> calls (in debug mode only). You will need
-to add <code class="code fortran docutils literal"><span class="name"><span class="pre">bl_proffortfuncstop</span></span></code> before any returns and at the end of the
+will warn of any <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">bl_proffortfuncstart</span></span></code> calls that were not stopped
+with <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">bl_proffortfuncstop</span></span></code> calls (in debug mode only). You will need
+to add <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">bl_proffortfuncstop</span></span></code> before any returns and at the end of the
 function or at the point in the function you want to stop profiling.</p>
 <p>For functions with a high number of calls, there is a lighter-weight interface:</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">bl_proffortfuncstart_int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">call </span><span class="n">bl_proffortfuncstart_int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
 <span class="p">...</span>
 <span class="k">call </span><span class="n">bl_proffortfuncstop_int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>where <code class="docutils literal"><span class="pre">n</span></code> is an integer in the range <code class="docutils literal"><span class="pre">[1,mFortProfsIntMaxFuncs]</span></code>.
-<code class="docutils literal"><span class="pre">mFortProfsIntMaxFuncs</span></code> is currently set to 32.  The profiled
-function will be named <code class="docutils literal"><span class="pre">FORTFUNC_n</span></code> in the profiler output,
-unless you rename it with <code class="docutils literal"><span class="pre">BL_PROFILE_CHANGE_FORT_INT_NAME(fname,</span> <span class="pre">int)</span></code>
-where <code class="docutils literal"><span class="pre">fname</span></code> is a std::string and <code class="docutils literal"><span class="pre">int</span></code> is the integer <code class="docutils literal"><span class="pre">n</span></code>
-in the <code class="docutils literal"><span class="pre">bl_proffortfuncstart_int/bl_proffortfuncstop_int</span></code> calls.
-<code class="docutils literal"><span class="pre">BL_PROFILE_CHANGE_FORT_INT_NAME</span></code> should be called in <code class="docutils literal"><span class="pre">main()</span></code>.</p>
+<p>where <code class="docutils literal notranslate"><span class="pre">n</span></code> is an integer in the range <code class="docutils literal notranslate"><span class="pre">[1,mFortProfsIntMaxFuncs]</span></code>.
+<code class="docutils literal notranslate"><span class="pre">mFortProfsIntMaxFuncs</span></code> is currently set to 32.  The profiled
+function will be named <code class="docutils literal notranslate"><span class="pre">FORTFUNC_n</span></code> in the profiler output,
+unless you rename it with <code class="docutils literal notranslate"><span class="pre">BL_PROFILE_CHANGE_FORT_INT_NAME(fname,</span> <span class="pre">int)</span></code>
+where <code class="docutils literal notranslate"><span class="pre">fname</span></code> is a std::string and <code class="docutils literal notranslate"><span class="pre">int</span></code> is the integer <code class="docutils literal notranslate"><span class="pre">n</span></code>
+in the <code class="docutils literal notranslate"><span class="pre">bl_proffortfuncstart_int/bl_proffortfuncstop_int</span></code> calls.
+<code class="docutils literal notranslate"><span class="pre">BL_PROFILE_CHANGE_FORT_INT_NAME</span></code> should be called in <code class="docutils literal notranslate"><span class="pre">main()</span></code>.</p>
 </div>
 <div class="section" id="sample-output-from-tiny-profile">
 <span id="sec-sample-tiny"></span><h1>Sample Output From Tiny Profile<a class="headerlink" href="#sample-output-from-tiny-profile" title="Permalink to this headline">¶</a></h1>
-<p>Sample output using <code class="docutils literal"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can look like the following:</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">TinyProfiler total time across processes [min...avg...max]: 1.765...1.765...1.765</span>
+<p>Sample output using <code class="docutils literal notranslate"><span class="pre">TINY_PROFILE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> can look like the following:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">TinyProfiler total time across processes [min...avg...max]: 1.765...1.765...1.765</span>
 <span class="go">---------------------------------------------------------------------------------</span>
 <span class="go">Name                          NCalls   Excl. Min   Excl. Avg   Excl. Max   Max  %</span>
 <span class="go">---------------------------------------------------------------------------------</span>
@@ -364,7 +364,7 @@ in the <code class="docutils literal"><span class="pre">bl_proffortfuncstart_int
 </div>
 <div class="section" id="amrprofparser">
 <h1>AMRProfParser<a class="headerlink" href="#amrprofparser" title="Permalink to this headline">¶</a></h1>
-<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AMRProfParser</span></span></code> is a tool for processing and analyzing the <code class="docutils literal"><span class="pre">bl_prof</span></code>
+<p><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AMRProfParser</span></span></code> is a tool for processing and analyzing the <code class="docutils literal notranslate"><span class="pre">bl_prof</span></code>
 database. It is a command line application that can create performance
 summaries, plotfiles showing point to point communication and timelines, HTML
 call trees, communication call statistics, function timing graphs, and other

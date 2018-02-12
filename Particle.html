@@ -196,36 +196,36 @@
 <span id="sec-particles-particle"></span><h1>The Particle<a class="headerlink" href="#the-particle" title="Permalink to this headline">¶</a></h1>
 <p>The particle classes can be used by including the header AMReX_Particles.H. The
 most basic particle data structure is the particle itself:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
 </pre></div>
 </div>
 <p>This is a templated data type, designed to allow flexibility in the number and
 type of variables that the particles carry. The first template parameter is the
-number of extra <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Real</span></span></code> variables this particle will have (either single or
+number of extra <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Real</span></span></code> variables this particle will have (either single or
 double precision <a class="footnote-reference" href="#id4" id="id1">[1]</a>), while the second is the number of extra integer
 variables.  It is important to note that this is the number of <em>extra</em> real and
-integer variables; a particle will always have at least <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BL_SPACEDIM</span></span></code> real
+integer variables; a particle will always have at least <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BL_SPACEDIM</span></span></code> real
 components that store the particle’s position and 2 integer components that
-store the particle’s <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">id</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">cpu</span></span></code> numbers. <a class="footnote-reference" href="#id5" id="id2">[2]</a></p>
+store the particle’s <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">id</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">cpu</span></span></code> numbers. <a class="footnote-reference" href="#id5" id="id2">[2]</a></p>
 <p>The particle struct is designed to store these variables in a way that
-minimizes padding, which in practice means that the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Real</span></span></code> components
+minimizes padding, which in practice means that the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Real</span></span></code> components
 always come first, and the integer components second. Additionally, the
 required particle variables are stored before the optional ones, for both the
 real and the integer components. For example, say we want to define a particle
 type that stores a mass, three velocity components, and two extra integer
 flags. Our particle struct would be set up like:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
 </pre></div>
 </div>
-<p>and the order of the particle components in would be: <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">x</span></span> <span class="name"><span class="pre">y</span></span> <span class="name"><span class="pre">z</span></span> <span class="name"><span class="pre">m</span></span> <span class="name"><span class="pre">vx</span></span> <span class="name"><span class="pre">vy</span></span> <span class="name"><span class="pre">vz</span></span> <span class="name"><span class="pre">id</span></span>
+<p>and the order of the particle components in would be: <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">x</span></span> <span class="name"><span class="pre">y</span></span> <span class="name"><span class="pre">z</span></span> <span class="name"><span class="pre">m</span></span> <span class="name"><span class="pre">vx</span></span> <span class="name"><span class="pre">vy</span></span> <span class="name"><span class="pre">vz</span></span> <span class="name"><span class="pre">id</span></span>
 <span class="name"><span class="pre">cpu</span></span> <span class="name"><span class="pre">flag1</span></span> <span class="name"><span class="pre">flag2</span></span></code>.  <a class="footnote-reference" href="#id6" id="id3">[3]</a></p>
 <div class="section" id="setting-particle-data">
 <h2>Setting Particle data<a class="headerlink" href="#setting-particle-data" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Particle</span></span></code> struct provides a number of methods for getting and setting
+<p>The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Particle</span></span></code> struct provides a number of methods for getting and setting
 a particle’s data. For the required particle components, there are special,
 named methods. For the “extra” real and integer data, you can use the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">rdata</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">idata</span></span></code> methods, respectively.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">rdata</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">idata</span></span></code> methods, respectively.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Particle</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
 
 <span class="n">p</span><span class="p">.</span><span class="n">pos</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
 <span class="n">p</span><span class="p">.</span><span class="n">pos</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">;</span>
@@ -251,13 +251,13 @@ named methods. For the “extra” real and integer data, you can use the
 collection of particles needs to be defined, and the location of the particles
 within the AMR hierarchy (and the corresponding MPI process) needs to be
 tracked as the particle positions change. To do this, we provide the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> class:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="o">&gt;</span> <span class="n">mypc</span><span class="p">;</span>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code> class:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="o">&gt;</span> <span class="n">mypc</span><span class="p">;</span>
 </pre></div>
 </div>
 <div class="section" id="arrays-of-structs-and-structs-of-arrays">
 <h2>Arrays-of-Structs and Structs-of-Arrays<a class="headerlink" href="#arrays-of-structs-and-structs-of-arrays" title="Permalink to this headline">¶</a></h2>
-<p>Like the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Particle</span></span></code> class itself, the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code>
+<p>Like the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Particle</span></span></code> class itself, the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code>
 class is templated. The first two template parameters have the same meaning as
 before: they define the number of each type of variables that the particles in
 this container will store. Particles added to the container are stored in the
@@ -276,16 +276,16 @@ Struct-of-Arrays as particle <em>attributes</em>. See the figure
 <div class="figure" id="id7">
 <span id="fig-particles-particle-arrays"></span><img alt="_images/particle_arrays.png" src="_images/particle_arrays.png" />
 <p class="caption"><span class="caption-number">Fig. 7 </span><span class="caption-text">An illustration of how the particle data for a single tile is arranged in
-memory. This particle container has been defined with <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NStructReal</span></span> <span class="operator"><span class="pre">=</span></span>
-<span class="literal number integer"><span class="pre">1</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NStructInt</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">2</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NArrayReal</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">2</span></span></code>, and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NArrayInt</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">2</span></span></code>.
+memory. This particle container has been defined with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NStructReal</span></span> <span class="operator"><span class="pre">=</span></span>
+<span class="literal number integer"><span class="pre">1</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NStructInt</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">2</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NArrayReal</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">2</span></span></code>, and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NArrayInt</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">2</span></span></code>.
 In this case, each tile in the particle container has five arrays: one with
 the particle struct data, two additional real arrays, and two additional
 integer arrays.  In the tile shown, there are only 2 particles. We have
 labelled the extra real data member of the particle struct to be
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">mass</span></span></code>, while the extra integer members of the particle struct are
-labeled <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">p</span></span></code>, and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">s</span></span></code>, for “phase” and “state”. The variables in
-the real and integer arrays are labelled <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">foo</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">bar</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">l</span></span></code>,
-and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">n</span></span></code>, respectively. We have assumed that the particles are double
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mass</span></span></code>, while the extra integer members of the particle struct are
+labeled <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">p</span></span></code>, and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">s</span></span></code>, for “phase” and “state”. The variables in
+the real and integer arrays are labelled <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">foo</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">bar</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">l</span></span></code>,
+and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">n</span></span></code>, respectively. We have assumed that the particles are double
 precision.</span></p>
 </div>
 <p>To see why the distinction between AoS and SoA data is important, consider the
@@ -311,34 +311,34 @@ valid or invalid, respectively.</p>
 <p>A particle container is always associated with a particular set of AMR grids
 and a particular set of DistributionMaps that describes which MPI processes
 those grids live on.  For example, if you only have one level, you can define a
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> to store particles on that level using the following
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code> to store particles on that level using the following
 constructor:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span> <span class="p">(</span><span class="k">const</span> <span class="n">Geometry</span>            <span class="o">&amp;</span> <span class="n">geom</span><span class="p">,</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span> <span class="p">(</span><span class="k">const</span> <span class="n">Geometry</span>            <span class="o">&amp;</span> <span class="n">geom</span><span class="p">,</span>
                    <span class="k">const</span> <span class="n">DistributionMapping</span> <span class="o">&amp;</span> <span class="n">dmap</span><span class="p">,</span>
                    <span class="k">const</span> <span class="n">BoxArray</span>            <span class="o">&amp;</span> <span class="n">ba</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Or, if you have multiple levels, you can use following constructor instead:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span> <span class="p">(</span><span class="k">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">Geometry</span><span class="o">&gt;</span>            <span class="o">&amp;</span> <span class="n">geom</span><span class="p">,</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ParticleContainer</span> <span class="p">(</span><span class="k">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">Geometry</span><span class="o">&gt;</span>            <span class="o">&amp;</span> <span class="n">geom</span><span class="p">,</span>
                    <span class="k">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">DistributionMapping</span><span class="o">&gt;</span> <span class="o">&amp;</span> <span class="n">dmap</span><span class="p">,</span>
                    <span class="k">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">BoxArray</span><span class="o">&gt;</span>            <span class="o">&amp;</span> <span class="n">ba</span><span class="p">,</span>
                    <span class="k">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>                 <span class="o">&amp;</span> <span class="n">rr</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>Note the set of grids used to define the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> doesn’t have
+<p>Note the set of grids used to define the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code> doesn’t have
 to be the same set used to define the simulation’s mesh data. However, it is
 often desirable to have the two hierarchies track each other. If you are using
-an <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code> class in your simulation (see the Chapter&nbsp;on
+an <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code> class in your simulation (see the Chapter&nbsp;on
 <a class="reference internal" href="Chapter5.html#chap-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>), you can achieve this by using the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrParticleContainer</span></span></code> class. The constructor for this class takes a
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrParticleContainer</span></span></code> class. The constructor for this class takes a
 pointer to your AmrCore derived class, instead:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">AmrTracerParticleContainer</span> <span class="p">(</span><span class="n">AmrCore</span><span class="o">*</span> <span class="n">amr_core</span><span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">AmrTracerParticleContainer</span> <span class="p">(</span><span class="n">AmrCore</span><span class="o">*</span> <span class="n">amr_core</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>In this case, the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">BoxArray</span></span><span class="operator"><span class="pre">&gt;</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">DistributionMap</span></span><span class="operator"><span class="pre">&gt;</span></span></code>
-used by your <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> will be updated automatically to match
-those in your <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>.</p>
-<p>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> stores the particle data in a manner prescribed by
+<p>In this case, the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">BoxArray</span></span><span class="operator"><span class="pre">&gt;</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Vector</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="name"><span class="pre">DistributionMap</span></span><span class="operator"><span class="pre">&gt;</span></span></code>
+used by your <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code> will be updated automatically to match
+those in your <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code>.</p>
+<p>The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code> stores the particle data in a manner prescribed by
 the set of AMR grids used to define it. If tiling is turned off, then every
 grid has its own Array-of-Structs and Struct-of-Arrays. Which AMR grid a
 particle is assigned to is determined by examining its position and binning it,
@@ -353,23 +353,23 @@ arrays when tiling is enabled. As with mesh data, the particle tile size can be
 tuned so that an entire tile’s worth of particles will fit into a cache line at
 once.</p>
 <p>Once the particles move, their data may no longer be in the right place in the
-container. They can be reassigned by calling the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Redistribute</span></span><span class="punctuation"><span class="pre">()</span></span></code> method
-of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code>.  After calling this method, all the particles will
+container. They can be reassigned by calling the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Redistribute</span></span><span class="punctuation"><span class="pre">()</span></span></code> method
+of <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code>.  After calling this method, all the particles will
 be moved to their proper places in the container, and all invalid particles
-(particles with id set to <code class="code cpp c++ docutils literal"><span class="operator"><span class="pre">-</span></span><span class="literal number integer"><span class="pre">1</span></span></code>) will be removed. All the MPI communication
+(particles with id set to <code class="code cpp c++ docutils literal notranslate"><span class="operator"><span class="pre">-</span></span><span class="literal number integer"><span class="pre">1</span></span></code>) will be removed. All the MPI communication
 needed to do this happens automatically.</p>
 <p>Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
-particles, etc. See the <code class="docutils literal"><span class="pre">amrex/Tutorials/Particles</span></code> for examples of this.</p>
+particles, etc. See the <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Particles</span></code> for examples of this.</p>
 </div>
 </div>
 <div class="section" id="initializing-particle-data">
 <span id="sec-particles-initializing"></span><h1>Initializing Particle Data<a class="headerlink" href="#initializing-particle-data" title="Permalink to this headline">¶</a></h1>
 <p>In the following code snippet, we demonstrate how to set particle initial
 conditions for both SoA and AoS data. We loop over all the tiles using
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MFIter</span></span></code>, and add as many particles as we want to each one.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="n">MFIter</span> <span class="n">mfi</span> <span class="o">=</span> <span class="n">MakeMFIter</span><span class="p">(</span><span class="n">lev</span><span class="p">);</span> <span class="n">mfi</span><span class="p">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">mfi</span><span class="p">)</span> <span class="p">{</span>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MFIter</span></span></code>, and add as many particles as we want to each one.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="n">MFIter</span> <span class="n">mfi</span> <span class="o">=</span> <span class="n">MakeMFIter</span><span class="p">(</span><span class="n">lev</span><span class="p">);</span> <span class="n">mfi</span><span class="p">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">mfi</span><span class="p">)</span> <span class="p">{</span>
 
     <span class="c1">// ``particles&#39;&#39; starts off empty</span>
     <span class="k">auto</span><span class="o">&amp;</span> <span class="n">particles</span> <span class="o">=</span> <span class="n">GetParticles</span><span class="p">(</span><span class="n">lev</span><span class="p">)[</span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span><span class="n">mfi</span><span class="p">.</span><span class="n">index</span><span class="p">(),</span>
@@ -409,7 +409,7 @@ conditions for both SoA and AoS data. We loop over all the tiles using
 </div>
 <p>Often, it makes sense to have each process only generate particles that it
 owns, so that the particles are already in the right place in the container.
-In general, however, users may need to call <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Redistribute</span></span><span class="punctuation"><span class="pre">()</span></span></code> after adding
+In general, however, users may need to call <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Redistribute</span></span><span class="punctuation"><span class="pre">()</span></span></code> after adding
 particles, if the processes generate particles they don’t own (for example, if
 the particle positions are perturbed from the cell centers and thus end up
 outside their parent grid).</p>
@@ -417,9 +417,9 @@ outside their parent grid).</p>
 <div class="section" id="iterating-over-particles">
 <span id="sec-particles-iterating"></span><h1>Iterating over Particles<a class="headerlink" href="#iterating-over-particles" title="Permalink to this headline">¶</a></h1>
 <p>To iterate over the particles on a given level in your container, you can use
-the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParIter</span></span></code> class, which comes in both const and non-const flavors. For
+the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParIter</span></span></code> class, which comes in both const and non-const flavors. For
 example, to iterate over all the AoS data:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="k">using</span> <span class="n">MyParIter</span> <span class="o">=</span> <span class="n">ConstParIter</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">*</span><span class="n">BL_SPACEDIM</span><span class="o">&gt;</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">using</span> <span class="n">MyParIter</span> <span class="o">=</span> <span class="n">ConstParIter</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">*</span><span class="n">BL_SPACEDIM</span><span class="o">&gt;</span><span class="p">;</span>
 <span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="n">pc</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="p">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">const</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="n">particles</span> <span class="o">=</span> <span class="n">pti</span><span class="p">.</span><span class="n">GetArrayOfStructs</span><span class="p">();</span>
     <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">p</span> <span class="p">:</span> <span class="n">particles</span><span class="p">)</span> <span class="p">{</span>
@@ -430,8 +430,8 @@ example, to iterate over all the AoS data:</p>
 </div>
 <p>The outer loop will execute once every grid (or tile, if tiling is enabled)
 <em>that contains particles</em>; grids or tiles that don’t have any particles will be
-skipped. You can also access the SoA data using the <span class="math">\(ParIter\)</span> as follows:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="k">using</span> <span class="n">MyParIter</span> <span class="o">=</span> <span class="n">ParIter</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span><span class="p">;</span>
+skipped. You can also access the SoA data using the <span class="math notranslate">\(ParIter\)</span> as follows:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">using</span> <span class="n">MyParIter</span> <span class="o">=</span> <span class="n">ParIter</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span><span class="p">;</span>
 <span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="n">pc</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="p">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">auto</span><span class="o">&amp;</span> <span class="n">particle_attributes</span> <span class="o">=</span> <span class="n">pti</span><span class="p">.</span><span class="n">GetStructOfArrays</span><span class="p">();</span>
     <span class="n">Vector</span><span class="o">&lt;</span><span class="n">Real</span><span class="o">&gt;&amp;</span> <span class="n">real_comp0</span> <span class="o">=</span> <span class="n">particle_attributes</span><span class="p">.</span><span class="n">GetRealData</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
@@ -446,12 +446,12 @@ skipped. You can also access the SoA data using the <span class="math">\(ParIter
 <div class="section" id="passing-particle-data-into-fortran-routines">
 <span id="sec-particles-fortran"></span><h1>Passing particle data into Fortran routines<a class="headerlink" href="#passing-particle-data-into-fortran-routines" title="Permalink to this headline">¶</a></h1>
 <p>Because the AMReX particle struct is a Plain-Old-Data type, it is interoperable
-with Fortran when the <code class="code fortran docutils literal"><span class="keyword"><span class="pre">bind</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">C</span></span><span class="punctuation"><span class="pre">)</span></span></code> attribute is used. It is therefore
+with Fortran when the <code class="code fortran docutils literal notranslate"><span class="keyword"><span class="pre">bind</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">C</span></span><span class="punctuation"><span class="pre">)</span></span></code> attribute is used. It is therefore
 possible to pass a grid or tile worth of particles into fortran routines for
 processing, instead of iterating over them in C++. You can also define a
 Fortran derived type that is equivalent to C struct used for the particles. For
 example:</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">use </span><span class="n">amrex_fort_module</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">amrex_particle_real</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">use </span><span class="n">amrex_fort_module</span><span class="p">,</span> <span class="n">only</span><span class="p">:</span> <span class="n">amrex_particle_real</span>
 <span class="k">use </span><span class="nb">iso_c_binding</span> <span class="p">,</span>    <span class="n">only</span><span class="p">:</span> <span class="kt">c_int</span>
 
 <span class="k">type</span><span class="p">,</span> <span class="k">bind</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>  <span class="kd">::</span> <span class="n">particle_t</span>
@@ -463,9 +463,9 @@ example:</p>
 <span class="k">end type </span><span class="n">particle_t</span>
 </pre></div>
 </div>
-<p>is equivalent to a particle struct you get with <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Particle</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="literal number integer"><span class="pre">6</span></span><span class="punctuation"><span class="pre">,</span></span> <span class="literal number integer"><span class="pre">0</span></span><span class="operator"><span class="pre">&gt;</span></span></code>. Here,
-<code class="code fortran docutils literal"><span class="name"><span class="pre">amrex_particle_real</span></span></code> is either single or doubled precision, depending
-on whether <code class="docutils literal"><span class="pre">USE_SINGLE_PRECISION_PARTICLES</span></code> is <code class="docutils literal"><span class="pre">TRUE</span></code> or not. We recommend
+<p>is equivalent to a particle struct you get with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Particle</span></span><span class="operator"><span class="pre">&lt;</span></span><span class="literal number integer"><span class="pre">6</span></span><span class="punctuation"><span class="pre">,</span></span> <span class="literal number integer"><span class="pre">0</span></span><span class="operator"><span class="pre">&gt;</span></span></code>. Here,
+<code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">amrex_particle_real</span></span></code> is either single or doubled precision, depending
+on whether <code class="docutils literal notranslate"><span class="pre">USE_SINGLE_PRECISION_PARTICLES</span></code> is <code class="docutils literal notranslate"><span class="pre">TRUE</span></code> or not. We recommend
 always using this type in Fortran routines that work on particle data to avoid
 hard-to-debug incompatibilities between floating point types.</p>
 </div>
@@ -476,7 +476,7 @@ and vice versa. For example, in Particle-in-Cell calculations, the particles
 deposit their charges onto the mesh, and later, the electric fields computed on
 the mesh are interpolated back to the particles. Below, we show examples of
 both these sorts of operations.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">Ex</span><span class="p">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">gm</span><span class="p">.</span><span class="n">periodicity</span><span class="p">());</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Ex</span><span class="p">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">gm</span><span class="p">.</span><span class="n">periodicity</span><span class="p">());</span>
 <span class="n">Ey</span><span class="p">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">gm</span><span class="p">.</span><span class="n">periodicity</span><span class="p">());</span>
 <span class="n">Ez</span><span class="p">.</span><span class="n">FillBoundary</span><span class="p">(</span><span class="n">gm</span><span class="p">.</span><span class="n">periodicity</span><span class="p">());</span>
 <span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="n">MyPC</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="p">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
@@ -496,22 +496,22 @@ both these sorts of operations.</p>
     <span class="p">}</span>
 </pre></div>
 </div>
-<p>Here, <code class="code fortran docutils literal"><span class="name"><span class="pre">interpolate_cic</span></span></code> is a Fortran subroutine that actually performs
-the interpolation on a single box. <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Ex</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Ey</span></span></code>, and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Ez</span></span></code> are
+<p>Here, <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">interpolate_cic</span></span></code> is a Fortran subroutine that actually performs
+the interpolation on a single box. <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Ex</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Ey</span></span></code>, and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Ez</span></span></code> are
 MultiFabs that contain the electric field data. These MultiFabs must be defined
 with the correct number of ghost cells to perform the desired type of
-interpolation, and we call <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillBoundary</span></span></code> prior to the Fortran call so
+interpolation, and we call <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillBoundary</span></span></code> prior to the Fortran call so
 that those ghost cells will be up-to-date.</p>
-<p>In this example, we have assumed that the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span> <span class="name"><span class="pre">MyPC</span></span></code> has
+<p>In this example, we have assumed that the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span> <span class="name"><span class="pre">MyPC</span></span></code> has
 been defined on the same grids as the electric field MultiFabs, so that we use
-the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParIter</span></span></code> to index into the MultiFabs to get the data associated with
+the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParIter</span></span></code> to index into the MultiFabs to get the data associated with
 current tile. If this is not the case, then an additional copy will need to be
 performed. However, if the particles are distributed in an extremely uneven
 fashion, it is possible that the load balancing improvements associated with
 the two-grid approach are worth the cost of the extra copy.</p>
 <p>The inverse operation, in which the particles communicate data <em>to</em> the mesh,
 is quite similar:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">rho</span><span class="p">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">ng</span><span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">rho</span><span class="p">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">ng</span><span class="p">);</span>
 <span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="p">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">box</span> <span class="o">=</span> <span class="n">rho</span><span class="p">[</span><span class="n">pti</span><span class="p">].</span><span class="n">validbox</span><span class="p">();</span>
 
@@ -529,13 +529,13 @@ is quite similar:</p>
 </pre></div>
 </div>
 <p>As before, we loop over all our particles, calling a Fortran routine that
-deposits them on to the appropriate <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FArrayBox</span></span> <span class="name"><span class="pre">rhofab</span></span></code>. The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">rhofab</span></span></code>
+deposits them on to the appropriate <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FArrayBox</span></span> <span class="name"><span class="pre">rhofab</span></span></code>. The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">rhofab</span></span></code>
 must have enough ghost cells to cover the support of all the particles
-associated with them. Note that we call <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">SumBoundary</span></span></code> instead of
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillBoundary</span></span></code> after performing the deposition, to add up the charge in
+associated with them. Note that we call <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">SumBoundary</span></span></code> instead of
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillBoundary</span></span></code> after performing the deposition, to add up the charge in
 the ghost cells surrounding each Fab into the corresponding valid cells.</p>
 <p>For a complete example of an electrostatic PIC calculation that includes static
-mesh refinement, please see <code class="docutils literal"><span class="pre">amrex/Tutorials/Particles/ElectrostaticPIC</span></code>.</p>
+mesh refinement, please see <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Particles/ElectrostaticPIC</span></code>.</p>
 </div>
 <div class="section" id="short-range-forces">
 <span id="sec-particles-shortrange"></span><h1>Short Range Forces<a class="headerlink" href="#short-range-forces" title="Permalink to this headline">¶</a></h1>
@@ -545,7 +545,7 @@ that exert short-range forces on each other. In this case, beyond some cut-off
 distance, the particles don’t interact with each other and therefore don’t need
 to be included in the force calculation. Our approach to these kind of
 particles is to fill “neighbor buffers” on each tile that contain copies of the
-particles on neighboring tiles that are within some number of cells <span class="math">\(N_g\)</span>
+particles on neighboring tiles that are within some number of cells <span class="math notranslate">\(N_g\)</span>
 of the tile boundaries. See <a class="reference internal" href="#fig-particles-neighbor-particles"><span class="std std-numref">Fig. 8</span></a>, below
 for an illustration. By choosing the number of ghost cells to match the
 interaction radius of the particles, you can capture all of the neighbors that
@@ -555,9 +555,9 @@ of each other using a variety of methods.</p>
 <div class="figure" id="id8">
 <span id="fig-particles-neighbor-particles"></span><a class="reference internal image-reference" href="_images/neighbor_particles.png"><img alt="_images/neighbor_particles.png" src="_images/neighbor_particles.png" style="width: 75.0%;" /></a>
 <p class="caption"><span class="caption-number">Fig. 8 </span><span class="caption-text">: An illustration of filling neighbor particles for short-range force
-calculations. Here, we have a domain consisting of one <span class="math">\(32 \times 32\)</span>
-grid, broken up into <span class="math">\(8 \times 8\)</span> tiles. The number of ghost cells is
-taken to be <span class="math">\(1\)</span>.  For the tile in green, particles on other tiles in
+calculations. Here, we have a domain consisting of one <span class="math notranslate">\(32 \times 32\)</span>
+grid, broken up into <span class="math notranslate">\(8 \times 8\)</span> tiles. The number of ghost cells is
+taken to be <span class="math notranslate">\(1\)</span>.  For the tile in green, particles on other tiles in
 the entire shaded region will copied and packed into the green tile’s
 neighbor buffer. These particles can then be included in the force
 calculation. If the domain is periodic, particles in the grown region for
@@ -565,16 +565,16 @@ the blue tile that lie on the other side of the domain will also be copied,
 and their positions will modified so that a naive distance calculation
 between valid particles and neighbors will be correct.</span></p>
 </div>
-<p>For a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> that does this neighbor finding, please see
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NeighborParticleContainer</span></span></code> in
-<code class="docutils literal"><span class="pre">amrex/Src/Particles/AMReX_NeighborParticleContainer.H.</span></code> This
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> has additional methods called <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">fillNeighbors</span></span><span class="punctuation"><span class="pre">()</span></span></code>
-and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">clearNeighbors</span></span><span class="punctuation"><span class="pre">()</span></span></code> that fill the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">neighbors</span></span></code> data structure with
+<p>For a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code> that does this neighbor finding, please see
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NeighborParticleContainer</span></span></code> in
+<code class="docutils literal notranslate"><span class="pre">amrex/Src/Particles/AMReX_NeighborParticleContainer.H.</span></code> This
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code> has additional methods called <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fillNeighbors</span></span><span class="punctuation"><span class="pre">()</span></span></code>
+and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">clearNeighbors</span></span><span class="punctuation"><span class="pre">()</span></span></code> that fill the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">neighbors</span></span></code> data structure with
 copies of the proper particles. A tutorial that uses these features is
-available at <code class="docutils literal"><span class="pre">amrex/Tutorials/Particles/ShortRangeParticles</span></code>. This tutorial
+available at <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Particles/ShortRangeParticles</span></code>. This tutorial
 computes the forces on a given tile via direct summation by passing the real
 and neighbor particles into a Fortran subroutine, as follows:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">ShortRangeParticleContainer</span><span class="o">::</span><span class="n">computeForces</span><span class="p">()</span> <span class="p">{</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">ShortRangeParticleContainer</span><span class="o">::</span><span class="n">computeForces</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">MyParIter</span> <span class="n">pti</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span> <span class="n">pti</span><span class="p">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">pti</span><span class="p">)</span> <span class="p">{</span>
         <span class="n">AoS</span><span class="o">&amp;</span> <span class="n">particles</span> <span class="o">=</span> <span class="n">pti</span><span class="p">.</span><span class="n">GetArrayOfStructs</span><span class="p">();</span>
         <span class="kt">int</span> <span class="n">Np</span> <span class="o">=</span> <span class="n">particles</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
@@ -586,10 +586,10 @@ and neighbor particles into a Fortran subroutine, as follows:</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>Alternatively, one can avoid doing a direct <span class="math">\(N^2\)</span> summation over the
+<p>Alternatively, one can avoid doing a direct <span class="math notranslate">\(N^2\)</span> summation over the
 particles on a tile by binning the particles by cell and building a neighbor
 list. A tutorial that demonstrates this process is available at
-<code class="docutils literal"><span class="pre">amrex/Tutorials/Particles/NeighborList</span></code>. The data structure used to represent
+<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Particles/NeighborList</span></code>. The data structure used to represent
 the neighbor lists is illustrated in <a class="reference internal" href="#fig-particles-neighbor-list"><span class="std std-numref">Fig. 9</span></a>.</p>
 <div class="figure" id="id9">
 <span id="fig-particles-neighbor-list"></span><img alt="_images/neighbor_list.png" src="_images/neighbor_list.png" />
@@ -603,46 +603,46 @@ indices of the collision partners in the real and neighbor particle arrays,
 respectively. This pattern continues for all the particles on this tile.</span></p>
 </div>
 <p>This array can then be used to compute the forces on all the particles in one
-scan. Users can define their own <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NeighborParticleContainer</span></span></code> subclasses
+scan. Users can define their own <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NeighborParticleContainer</span></span></code> subclasses
 that have their own collision criteria by overloading the virtual
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">check_pair</span></span></code> function. For an example of this in action, please see the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NeighborList</span></span></code> Tutorial.</p>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">check_pair</span></span></code> function. For an example of this in action, please see the
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NeighborList</span></span></code> Tutorial.</p>
 </div>
 <div class="section" id="particle-io">
 <span id="sec-particles-io"></span><h1>Particle IO<a class="headerlink" href="#particle-io" title="Permalink to this headline">¶</a></h1>
 <p>AMReX provides routines for writing particle data to disk for analysis,
 visualization, and for checkpoint / restart. The most important methods are the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">WritePlotFile</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Checkpoint</span></span></code>, and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Restart</span></span></code> methods of
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code>, which all use a parallel-aware binary file format for
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">WritePlotFile</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Checkpoint</span></span></code>, and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Restart</span></span></code> methods of
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code>, which all use a parallel-aware binary file format for
 reading and writing particle data on a grid-by-grid basis. These methods are
 designed to complement the functions in AMReX_PlotFileUtil.H for performing
 mesh data IO. For example:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">WriteMultiLevelPlotfile</span><span class="p">(</span><span class="s">&quot;plt00000&quot;</span><span class="p">,</span> <span class="n">output_levs</span><span class="p">,</span> <span class="n">GetVecOfConstPtrs</span><span class="p">(</span><span class="n">output</span><span class="p">),</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">WriteMultiLevelPlotfile</span><span class="p">(</span><span class="s">&quot;plt00000&quot;</span><span class="p">,</span> <span class="n">output_levs</span><span class="p">,</span> <span class="n">GetVecOfConstPtrs</span><span class="p">(</span><span class="n">output</span><span class="p">),</span>
                         <span class="n">varnames</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">level_steps</span><span class="p">,</span> <span class="n">outputRR</span><span class="p">);</span>
 <span class="n">pc</span><span class="p">.</span><span class="n">Checkpoint</span><span class="p">(</span><span class="s">&quot;plt00000&quot;</span><span class="p">,</span> <span class="s">&quot;particle0&quot;</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>will create a plot file called “plt00000” and write the mesh data in <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">output</span></span></code> to it, and then write the particle data in a subdirectory called “particle0”. There is also the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">WriteAsciiFile</span></span></code> method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.</p>
-<p>The binary file format is currently readable by <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">yt</span></span></code>. In additional, there is a Python conversion script in
-<code class="docutils literal"><span class="pre">amrex/Tools/Py_util/amrex_particles_to_vtp</span></code> that can convert both the ASCII and the binary particle files to a
+<p>will create a plot file called “plt00000” and write the mesh data in <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">output</span></span></code> to it, and then write the particle data in a subdirectory called “particle0”. There is also the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">WriteAsciiFile</span></span></code> method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.</p>
+<p>The binary file format is currently readable by <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">yt</span></span></code>. In additional, there is a Python conversion script in
+<code class="docutils literal notranslate"><span class="pre">amrex/Tools/Py_util/amrex_particles_to_vtp</span></code> that can convert both the ASCII and the binary particle files to a
 format readable by Paraview. See the chapter&nbsp;on <a class="reference internal" href="Chapter11.html#chap-visualization"><span class="std std-ref">Visualization</span></a> for more information on visualizing AMReX datasets, including those with particles.</p>
 <table class="docutils footnote" frame="void" id="id4" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>Particles default to double precision for their real data. To use single precision, compile your code with <code class="docutils literal"><span class="pre">USE_SINGLE_PRECISION_PARTICLES=TRUE</span></code>.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>Particles default to double precision for their real data. To use single precision, compile your code with <code class="docutils literal notranslate"><span class="pre">USE_SINGLE_PRECISION_PARTICLES=TRUE</span></code>.</td></tr>
 </tbody>
 </table>
 <table class="docutils footnote" frame="void" id="id5" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td>Note that <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">cpu</span></span></code> stores the number of the process the particle was <em>generated</em> on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">id</span></span></code>. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td>Note that <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">cpu</span></span></code> stores the number of the process the particle was <em>generated</em> on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">id</span></span></code>. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.</td></tr>
 </tbody>
 </table>
 <table class="docutils footnote" frame="void" id="id6" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td>Note that for the extra particle components, which component refers to which
-variable is an application-specific convention - the particles have 4 extra real comps, but which one is “mass” is up to the user. We suggest using an <code class="code cpp c++ docutils literal"><span class="keyword"><span class="pre">enum</span></span></code> to keep these indices straight; please see <code class="docutils literal"><span class="pre">amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H</span></code> for an example of this.</td></tr>
+variable is an application-specific convention - the particles have 4 extra real comps, but which one is “mass” is up to the user. We suggest using an <code class="code cpp c++ docutils literal notranslate"><span class="keyword"><span class="pre">enum</span></span></code> to keep these indices straight; please see <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H</span></code> for an example of this.</td></tr>
 </tbody>
 </table>
 </div>

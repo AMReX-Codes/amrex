@@ -182,10 +182,10 @@
 <h1>Compiling AMReX&nbsp;with CVODE<a class="headerlink" href="#compiling-amrex-with-cvode" title="Permalink to this headline">¶</a></h1>
 <p>The following steps describe how to compile an AMReX&nbsp;application with
 CVODE&nbsp;support.  On Cray systems (e.g., Cori or Edison at NERSC), Cray provides
-a system module called <code class="docutils literal"><span class="pre">cray-tpsl</span></code> (“Cray Third-Party Scientific Libraries”)
+a system module called <code class="docutils literal notranslate"><span class="pre">cray-tpsl</span></code> (“Cray Third-Party Scientific Libraries”)
 which contains the latest version of the SUNDIALS&nbsp;solver suite (including
-CVODE).  Simply type <code class="docutils literal"><span class="pre">module</span> <span class="pre">load</span> <span class="pre">cray-tpsl</span></code> and set <code class="docutils literal"><span class="pre">USE_CVODE=TRUE</span></code> in
-the <code class="docutils literal"><span class="pre">GNUmakefile</span></code>, and AMReX&nbsp;will automatically link the SUNDIALS&nbsp;libraries.</p>
+CVODE).  Simply type <code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">load</span> <span class="pre">cray-tpsl</span></code> and set <code class="docutils literal notranslate"><span class="pre">USE_CVODE=TRUE</span></code> in
+the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>, and AMReX&nbsp;will automatically link the SUNDIALS&nbsp;libraries.</p>
 <p>On systems which are not Cray:</p>
 <ol class="arabic">
 <li><p class="first">Obtain the CVODE&nbsp;source code, which is hosted here:
@@ -196,18 +196,18 @@ One can download either the complete SUNDIALS&nbsp;package, or just the CVODE&nb
 can be anywhere).</p>
 </li>
 <li><p class="first">Navigate to the new, empty build directory, and type</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> \
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> \
   <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="p">:</span><span class="n">PATH</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">install</span><span class="o">/</span><span class="nb">dir</span> \
   <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">cvode</span><span class="o">/</span><span class="ow">or</span><span class="o">/</span><span class="n">sundials</span><span class="o">/</span><span class="n">top</span><span class="o">/</span><span class="n">level</span><span class="o">/</span><span class="n">source</span><span class="o">/</span><span class="nb">dir</span>
 </pre></div>
 </div>
-<p>The <code class="docutils literal"><span class="pre">CMAKE_INSTALL_DIR</span></code> option tells CMake where to install the libraries.
+<p>The <code class="docutils literal notranslate"><span class="pre">CMAKE_INSTALL_DIR</span></code> option tells CMake where to install the libraries.
 Note that CMake will attempt to deduce the compilers automatically, but
-respects certain environment variables if they are defined, such as <code class="docutils literal"><span class="pre">CC</span></code>
-(for the C compiler), <code class="docutils literal"><span class="pre">CXX</span></code> (for the C++ compiler), and <code class="docutils literal"><span class="pre">FC</span></code> (for the
+respects certain environment variables if they are defined, such as <code class="docutils literal notranslate"><span class="pre">CC</span></code>
+(for the C compiler), <code class="docutils literal notranslate"><span class="pre">CXX</span></code> (for the C++ compiler), and <code class="docutils literal notranslate"><span class="pre">FC</span></code> (for the
 Fortran compiler).  So one may modify the above CMake invocation to be
 something like the following:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">CC</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">gcc</span> \
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CC</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">gcc</span> \
 <span class="n">CXX</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">g</span><span class="o">++</span> \
 <span class="n">FC</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">gfortran</span> \
   <span class="n">cmake</span> \
@@ -216,41 +216,41 @@ something like the following:</p>
 </pre></div>
 </div>
 <p>One can supply additional flags to CMake or to the compiler to customize the
-compilation process.  Flags of interest may include <code class="docutils literal"><span class="pre">CMAKE_C_FLAGS</span></code>, which
+compilation process.  Flags of interest may include <code class="docutils literal notranslate"><span class="pre">CMAKE_C_FLAGS</span></code>, which
 add the specified flags to the compile statement, e.g.,
-<code class="docutils literal"><span class="pre">-DCMAKE_C_FLAGS=&quot;-h</span> <span class="pre">list=a&quot;</span></code> will append the <code class="docutils literal"><span class="pre">-h</span> <span class="pre">list=a</span></code> flag to the
-<code class="docutils literal"><span class="pre">cc</span></code> statement when compiling the source code.  Here one may wish to add
-something like <code class="docutils literal"><span class="pre">&quot;-O2</span> <span class="pre">-g&quot;</span></code> to provide an optimized library that still
+<code class="docutils literal notranslate"><span class="pre">-DCMAKE_C_FLAGS=&quot;-h</span> <span class="pre">list=a&quot;</span></code> will append the <code class="docutils literal notranslate"><span class="pre">-h</span> <span class="pre">list=a</span></code> flag to the
+<code class="docutils literal notranslate"><span class="pre">cc</span></code> statement when compiling the source code.  Here one may wish to add
+something like <code class="docutils literal notranslate"><span class="pre">&quot;-O2</span> <span class="pre">-g&quot;</span></code> to provide an optimized library that still
 contains debugging symbols; if one neglects debugging symbols in the CVODE
 library, and if a code that uses CVODE&nbsp;encounters a segmentation fault in
 the solve, then the backtrace has no information about where in the solver
 the error occurred.  Also, if one wishes to compile only the solver library
 itself and not the examples that come with the source (compiling the
-examples is enabled by default), one can add <code class="docutils literal"><span class="pre">&quot;-DEXAMPLES_ENABLE=OFF&quot;</span></code>.
+examples is enabled by default), one can add <code class="docutils literal notranslate"><span class="pre">&quot;-DEXAMPLES_ENABLE=OFF&quot;</span></code>.
 Users should be aware that the CVODE&nbsp;examples are linked dynamically, so
 when compiling the solver library on Cray system using the Cray compiler
-wrappers <code class="docutils literal"><span class="pre">cc</span></code>, <code class="docutils literal"><span class="pre">CC</span></code>, and <code class="docutils literal"><span class="pre">ftn</span></code>, one should explicitly disable
-compiling the examples via the <code class="docutils literal"><span class="pre">&quot;-DEXAMPLES_ENABLE=OFF&quot;</span></code> flag.</p>
+wrappers <code class="docutils literal notranslate"><span class="pre">cc</span></code>, <code class="docutils literal notranslate"><span class="pre">CC</span></code>, and <code class="docutils literal notranslate"><span class="pre">ftn</span></code>, one should explicitly disable
+compiling the examples via the <code class="docutils literal notranslate"><span class="pre">&quot;-DEXAMPLES_ENABLE=OFF&quot;</span></code> flag.</p>
 </li>
-<li><p class="first">In the <code class="docutils literal"><span class="pre">GNUmakefile</span></code> for the &nbsp;application which uses the Fortran 2003
-interface to , add <code class="docutils literal"><span class="pre">USE_CVODE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, which will compile the Fortran 2003
+<li><p class="first">In the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code> for the &nbsp;application which uses the Fortran 2003
+interface to , add <code class="docutils literal notranslate"><span class="pre">USE_CVODE</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, which will compile the Fortran 2003
 interfaces and link the &nbsp;libraries.  Note that one must define the
-<code class="docutils literal"><span class="pre">CVODE_LIB_DIR</span></code> environment variable to point to the location where the
+<code class="docutils literal notranslate"><span class="pre">CVODE_LIB_DIR</span></code> environment variable to point to the location where the
 libraries are installed.</p>
 </li>
 </ol>
 </div>
 <div class="section" id="the-cvode-tutorials">
 <h1>The CVODE&nbsp;Tutorials<a class="headerlink" href="#the-cvode-tutorials" title="Permalink to this headline">¶</a></h1>
-<p>AMReX&nbsp;provides two CVODE&nbsp;tutorials in the <code class="docutils literal"><span class="pre">amrex/Tutorials/CVODE</span></code> directory, called
-<code class="docutils literal"><span class="pre">EX1</span></code> and <code class="docutils literal"><span class="pre">EX2</span></code>.  <code class="docutils literal"><span class="pre">EX1</span></code> consists of a single ODE that is integrated with
+<p>AMReX&nbsp;provides two CVODE&nbsp;tutorials in the <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/CVODE</span></code> directory, called
+<code class="docutils literal notranslate"><span class="pre">EX1</span></code> and <code class="docutils literal notranslate"><span class="pre">EX2</span></code>.  <code class="docutils literal notranslate"><span class="pre">EX1</span></code> consists of a single ODE that is integrated with
 CVODE&nbsp;within each cell of a 3-D grid.  It demonstrates how to initialize the
 CVODE&nbsp;solver, how to call the ODE right-hand-side (RHS), and, more importantly,
 how to <em>re-</em>initialize the solver between cells, which avoids allocating and
-freeing solver memory between each cell (see the call to <code class="docutils literal"><span class="pre">FCVReInit()</span></code> in the
-<code class="docutils literal"><span class="pre">integrate_ode.f90</span></code> file in the <code class="docutils literal"><span class="pre">EX1</span></code> directory.)</p>
-<p>The <code class="docutils literal"><span class="pre">EX2</span></code> example demonstrates the slightly more complicated case of
-integrating a system of coupled ODEs within each cell.  Similarly to <code class="docutils literal"><span class="pre">EX1</span></code>,
+freeing solver memory between each cell (see the call to <code class="docutils literal notranslate"><span class="pre">FCVReInit()</span></code> in the
+<code class="docutils literal notranslate"><span class="pre">integrate_ode.f90</span></code> file in the <code class="docutils literal notranslate"><span class="pre">EX1</span></code> directory.)</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">EX2</span></code> example demonstrates the slightly more complicated case of
+integrating a system of coupled ODEs within each cell.  Similarly to <code class="docutils literal notranslate"><span class="pre">EX1</span></code>,
 it provides an RHS and some solver initialization.  However, it also
 demonstrates the performance effect of providing an analytic Jacobian matrix
 for the system of ODEs, rather than requiring the &nbsp;solver to compute the

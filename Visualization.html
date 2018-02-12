@@ -192,7 +192,7 @@
   <div class="section" id="amrvis">
 <h1>Amrvis<a class="headerlink" href="#amrvis" title="Permalink to this headline">¶</a></h1>
 <p>Our favorite visualization tool is Amrvis. We heartily encourage you to build
-the <code class="docutils literal"><span class="pre">amrvis1d</span></code>, <code class="docutils literal"><span class="pre">amrvis2d</span></code>, and <code class="docutils literal"><span class="pre">amrvis3d</span></code> executables, and to try using
+the <code class="docutils literal notranslate"><span class="pre">amrvis1d</span></code>, <code class="docutils literal notranslate"><span class="pre">amrvis2d</span></code>, and <code class="docutils literal notranslate"><span class="pre">amrvis3d</span></code> executables, and to try using
 them to visualize your data. A very useful feature is View/Dataset, which
 allows you to actually view the numbers in a spreadsheet that is nested to
 reflect the AMR hierarchy – this can be handy for debugging. You can modify how
@@ -202,33 +202,33 @@ Amrvis; you can find additional information in Amrvis/Docs/Amrvis.tex (which
 you can build into a pdf using pdflatex).</p>
 <ol class="arabic">
 <li><p class="first">Download and build :</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">git clone https://github.com/AMReX-Codes/Amrvis</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">git clone https://github.com/AMReX-Codes/Amrvis</span>
 </pre></div>
 </div>
-<p>Then cd into Amrvis/, edit the GNUmakefile by setting <code class="docutils literal"><span class="pre">COMP</span></code> to the
+<p>Then cd into Amrvis/, edit the GNUmakefile by setting <code class="docutils literal notranslate"><span class="pre">COMP</span></code> to the
 compiler suite you have.</p>
-<p>Type <code class="docutils literal"><span class="pre">make</span> <span class="pre">DIM=1</span></code>, <code class="docutils literal"><span class="pre">make</span> <span class="pre">DIM=2</span></code>, or <code class="docutils literal"><span class="pre">make</span> <span class="pre">DIM=3</span></code> to build, resulting
+<p>Type <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">DIM=1</span></code>, <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">DIM=2</span></code>, or <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">DIM=3</span></code> to build, resulting
 in an executable that looks like amrvis2d…ex.</p>
-<p>If you want to build amrvis with <code class="docutils literal"><span class="pre">DIM=3</span></code>, you must first download and build
-<code class="docutils literal"><span class="pre">volpack</span></code>:</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">git clone https://ccse.lbl.gov/pub/Downloads/volpack.git</span>
+<p>If you want to build amrvis with <code class="docutils literal notranslate"><span class="pre">DIM=3</span></code>, you must first download and build
+<code class="docutils literal notranslate"><span class="pre">volpack</span></code>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">git clone https://ccse.lbl.gov/pub/Downloads/volpack.git</span>
 </pre></div>
 </div>
-<p>Then cd into volpack/ and type <code class="docutils literal"><span class="pre">make</span></code>.</p>
+<p>Then cd into volpack/ and type <code class="docutils literal notranslate"><span class="pre">make</span></code>.</p>
 <p>Note: Amrvis&nbsp;requires the OSF/Motif libraries and headers. If you don’t have
 these you will need to install the development version of motif through your
-package manager.  <code class="docutils literal"><span class="pre">lesstif</span></code> gives some functionality and will allow you to
+package manager.  <code class="docutils literal notranslate"><span class="pre">lesstif</span></code> gives some functionality and will allow you to
 build the amrvis executable, but Amrvis&nbsp;may exhibit subtle anomalies.</p>
 <p>On most Linux distributions, the motif library is provided by the
-<code class="docutils literal"><span class="pre">openmotif</span></code> package, and its header files (like Xm.h) are provided by
-<code class="docutils literal"><span class="pre">openmotif-devel</span></code>. If those packages are not installed, then use the
+<code class="docutils literal notranslate"><span class="pre">openmotif</span></code> package, and its header files (like Xm.h) are provided by
+<code class="docutils literal notranslate"><span class="pre">openmotif-devel</span></code>. If those packages are not installed, then use the
 OS-specific package management tool to install them.</p>
 <p>You may then want to create an alias to amrvis2d, for example</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">alias amrvis2d /tmp/Amrvis/amrvis2d...ex</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">alias amrvis2d /tmp/Amrvis/amrvis2d...ex</span>
 </pre></div>
 </div>
 </li>
-<li><p class="first">Run the command <code class="docutils literal"><span class="pre">cp</span> <span class="pre">Amrvis/amrvis.defaults</span> <span class="pre">~/.amrvis.defaults</span></code>.  Then, in
+<li><p class="first">Run the command <code class="docutils literal notranslate"><span class="pre">cp</span> <span class="pre">Amrvis/amrvis.defaults</span> <span class="pre">~/.amrvis.defaults</span></code>.  Then, in
 your copy, edit the line containing “palette” line to point to, e.g.,
 “palette /home/username/Amrvis/Palette”. The other lines control options
 such as the initial field to display, the number format, widow size, etc.
@@ -237,14 +237,14 @@ precedence.</p>
 </li>
 <li><p class="first">Generally the plotfiles have the form pltXXXXX (the plt prefix can be
 changed), where XXXXX is a number corresponding to the timestep the file was
-output. <code class="docutils literal"><span class="pre">amrvis2d</span> <span class="pre">&lt;filename&gt;</span></code> or <code class="docutils literal"><span class="pre">amrvis3d</span> <span class="pre">&lt;filename&gt;</span></code> to see a single
-plotfile, or for 2D data sets, <code class="docutils literal"><span class="pre">amrvis2d</span> <span class="pre">-a</span> <span class="pre">plt*</span></code>, which will animate the
+output. <code class="docutils literal notranslate"><span class="pre">amrvis2d</span> <span class="pre">&lt;filename&gt;</span></code> or <code class="docutils literal notranslate"><span class="pre">amrvis3d</span> <span class="pre">&lt;filename&gt;</span></code> to see a single
+plotfile, or for 2D data sets, <code class="docutils literal notranslate"><span class="pre">amrvis2d</span> <span class="pre">-a</span> <span class="pre">plt*</span></code>, which will animate the
 sequence of plotfiles. FArrayBoxes and MultiFabs can also be viewed with the
-<code class="docutils literal"><span class="pre">-fab</span></code> and <code class="docutils literal"><span class="pre">-mf</span></code> options. When opening MultiFabs, use the name of the
-MultiFab’s header file <code class="docutils literal"><span class="pre">amrvis2d</span> <span class="pre">-mf</span> <span class="pre">MyMultiFab_H</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">-fab</span></code> and <code class="docutils literal notranslate"><span class="pre">-mf</span></code> options. When opening MultiFabs, use the name of the
+MultiFab’s header file <code class="docutils literal notranslate"><span class="pre">amrvis2d</span> <span class="pre">-mf</span> <span class="pre">MyMultiFab_H</span></code>.</p>
 <p>You can use the “Variable” menu to change the variable.
 You can left-click drag a box around a region and click “View”
-<span class="math">\(\rightarrow\)</span> “Dataset” in order to look at the actual numerical
+<span class="math notranslate">\(\rightarrow\)</span> “Dataset” in order to look at the actual numerical
 values (see <a class="reference internal" href="#fig-amrvis"><span class="std std-numref">Table 9</span></a>).  Or you can simply left
 click on a point to obtain the numerical value.  You can also export the
 pictures in several different formats under “File/Export”.  In 2D you can
@@ -278,19 +278,19 @@ analysis software. To follow along with this example, first build and run the
 first heat equation tutorial code (see the section on <a class="reference internal" href="GettingStarted.html#sec-heat-equation"><span class="std std-ref">Example: Heat Equation Solver</span></a>).</p>
 <p>Next, download and install VisIt from
 <a class="reference external" href="https://wci.llnl.gov/simulation/computer-codes/visit">https://wci.llnl.gov/simulation/computer-codes/visit</a>.  To open a single
-plotfile, run VisIt, then select “File” <span class="math">\(\rightarrow\)</span> “Open file …”,
+plotfile, run VisIt, then select “File” <span class="math notranslate">\(\rightarrow\)</span> “Open file …”,
 then select the Header file associated the the plotfile of interest (e.g.,
 plt00000/Header).  Assuming you ran the simulation in 2D, here are instructions
 for making a simple plot:</p>
 <ul class="simple">
-<li>To view the data, select “Add” <span class="math">\(\rightarrow\)</span> “Pseudocolor”
-<span class="math">\(\rightarrow\)</span> “phi”, and then select “Draw”.</li>
+<li>To view the data, select “Add” <span class="math notranslate">\(\rightarrow\)</span> “Pseudocolor”
+<span class="math notranslate">\(\rightarrow\)</span> “phi”, and then select “Draw”.</li>
 <li>To view the grid structure (not particularly interesting yet, but when we
-add AMR it will be), select “ <span class="math">\(\rightarrow\)</span> “subset”
-<span class="math">\(\rightarrow\)</span> “levels”. Then double-click the text “Subset - levels”,
+add AMR it will be), select “ <span class="math notranslate">\(\rightarrow\)</span> “subset”
+<span class="math notranslate">\(\rightarrow\)</span> “levels”. Then double-click the text “Subset - levels”,
 enable the “Wireframe” option, select “Apply”, select “Dismiss”, and then
 select “Draw”.</li>
-<li>To save the image, select “File” <span class="math">\(\rightarrow\)</span> “Set save options”,
+<li>To save the image, select “File” <span class="math notranslate">\(\rightarrow\)</span> “Set save options”,
 then customize the image format to your liking, then click “Save”.</li>
 </ul>
 <p>Your image should look similar to the left side of <a class="reference internal" href="#fig-visit"><span class="std std-numref">Table 10</span></a>.</p>
@@ -306,15 +306,15 @@ then customize the image format to your liking, then click “Save”.</li>
 </tr>
 </tbody>
 </table>
-<p>In 3D, you must apply the “Operators” <span class="math">\(\rightarrow\)</span> “Slicing”
-<span class="math">\(\rightarrow\)</span> “ThreeSlice”, with the “ThreeSlice operator attribute” set
-to <code class="docutils literal"><span class="pre">x=0.25</span></code>, <code class="docutils literal"><span class="pre">y=0.25</span></code>, and <code class="docutils literal"><span class="pre">z=0.25</span></code>. You can left-click and drag over the
+<p>In 3D, you must apply the “Operators” <span class="math notranslate">\(\rightarrow\)</span> “Slicing”
+<span class="math notranslate">\(\rightarrow\)</span> “ThreeSlice”, with the “ThreeSlice operator attribute” set
+to <code class="docutils literal notranslate"><span class="pre">x=0.25</span></code>, <code class="docutils literal notranslate"><span class="pre">y=0.25</span></code>, and <code class="docutils literal notranslate"><span class="pre">z=0.25</span></code>. You can left-click and drag over the
 image to rotate the image to generate something similar to right side of
 <a class="reference internal" href="#fig-visit"><span class="std std-numref">Table 10</span></a>.</p>
-<p>To make a movie, you must first create a text file named <code class="docutils literal"><span class="pre">movie.visit</span></code> with a
+<p>To make a movie, you must first create a text file named <code class="docutils literal notranslate"><span class="pre">movie.visit</span></code> with a
 list of the Header files for the individual frames. This can most easily be
 done using the command:</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">~/amrex/Tutorials/Basic/HeatEquation_EX1_C&gt; ls -1 plt*/Header | tee movie.visit</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">~/amrex/Tutorials/Basic/HeatEquation_EX1_C&gt; ls -1 plt*/Header | tee movie.visit</span>
 <span class="go">plt00000/Header</span>
 <span class="go">plt01000/Header</span>
 <span class="go">plt02000/Header</span>
@@ -328,10 +328,10 @@ done using the command:</p>
 <span class="go">plt10000/Header</span>
 </pre></div>
 </div>
-<p>The next step is to run VisIt, select “File” <span class="math">\(\rightarrow\)</span> “Open file
+<p>The next step is to run VisIt, select “File” <span class="math notranslate">\(\rightarrow\)</span> “Open file
 …”, then select movie.visit. Create an image to your liking and press the
 “play” button on the VCR-like control panel to preview all the frames. To save
-the movie, choose “File” <span class="math">\(\rightarrow\)</span> “Save movie …”, and follow the
+the movie, choose “File” <span class="math notranslate">\(\rightarrow\)</span> “Save movie …”, and follow the
 on-screen instructions.</p>
 </div>
 <div class="section" id="paraview">
@@ -340,9 +340,9 @@ on-screen instructions.</p>
 plotfiles, and v5.4.0 can be used to view particle data. Download the package
 at <a class="reference external" href="https://www.paraview.org/">https://www.paraview.org/</a>.</p>
 <p>To open a single plotfile (for example, you could run the
-<code class="docutils literal"><span class="pre">HeatEquation_EX1_C</span></code> in 3D):</p>
+<code class="docutils literal notranslate"><span class="pre">HeatEquation_EX1_C</span></code> in 3D):</p>
 <ol class="arabic simple">
-<li>Run ParaView&nbsp;v5.3.0, then select “File” <span class="math">\(\rightarrow\)</span> “Open”.</li>
+<li>Run ParaView&nbsp;v5.3.0, then select “File” <span class="math notranslate">\(\rightarrow\)</span> “Open”.</li>
 <li>Navigate to the plotfile directory, and manually type in “Header”.
 &nbsp;will ask you about the file type – choose “Boxlib 3D Files”</li>
 <li>Under the “Cell Arrays” field, select a variable (e.g., “phi”)
@@ -359,17 +359,17 @@ shown in <a class="reference internal" href="#fig-paraview"><span class="std std
 <span id="fig-paraview"></span><a class="reference internal image-reference" href="_images/ParaView.png"><img alt="_images/ParaView.png" src="_images/ParaView.png" style="width: 3.1in;" /></a>
 <p class="caption"><span class="caption-number">Fig. 14 </span><span class="caption-text">: Plotfile image generated with ParaView</span></p>
 </div>
-<p>To visualize particles (for example, you could run the <code class="docutils literal"><span class="pre">ShortRangeParticles</span></code>
+<p>To visualize particles (for example, you could run the <code class="docutils literal notranslate"><span class="pre">ShortRangeParticles</span></code>
 example):</p>
 <ol class="arabic simple">
 <li>First, we have to convert the AMReX&nbsp;particle data to a format ParaView&nbsp;can
 read. In the run directory, there will be a sequence of particle files
-(particles00000, particles00001, <span class="math">\(\cdots\)</span>, particles01000).</li>
+(particles00000, particles00001, <span class="math notranslate">\(\cdots\)</span>, particles01000).</li>
 <li>Run the script,
-<code class="docutils literal"><span class="pre">amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py</span></code> as
-follows, e.g., <code class="docutils literal"><span class="pre">python</span> <span class="pre">amrex_particles_to_vtp.py</span> <span class="pre">0</span> <span class="pre">1000</span> <span class="pre">particles</span></code>. You
+<code class="docutils literal notranslate"><span class="pre">amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py</span></code> as
+follows, e.g., <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">amrex_particles_to_vtp.py</span> <span class="pre">0</span> <span class="pre">1000</span> <span class="pre">particles</span></code>. You
 will generate a sequence of .vtp files.</li>
-<li>Run ParaView v5.4.0, and select “File” <span class="math">\(\rightarrow\)</span> “Open”. You will
+<li>Run ParaView v5.4.0, and select “File” <span class="math notranslate">\(\rightarrow\)</span> “Open”. You will
 see a combined “particles..vtp” file grouping the files. Select that and
 click OK.</li>
 <li>Click “Apply” and under “Representation” select “Point Gaussian”.</li>
@@ -397,8 +397,8 @@ performance. Consequently, this configuration is best when doing exploratory
 visualization (e.g., experimenting with camera angles, lighting, and color
 schemes) of small data sets.</p>
 <p>To use yt&nbsp;on an AMReX&nbsp;plot file, first start a Jupyter notebook or an IPython
-kernel, and import the <code class="docutils literal"><span class="pre">yt</span></code> module:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">import</span> <span class="nn">yt</span>
+kernel, and import the <code class="docutils literal notranslate"><span class="pre">yt</span></code> module:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">import</span> <span class="nn">yt</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="k">print</span><span class="p">(</span><span class="n">yt</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 <span class="mf">3.4</span><span class="o">-</span><span class="n">dev</span>
@@ -406,7 +406,7 @@ kernel, and import the <code class="docutils literal"><span class="pre">yt</span
 </div>
 <p>Next, load a plot file; in this example we use a plot file from the Nyx
 cosmology application:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;plt00401&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;plt00401&quot;</span><span class="p">)</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mo">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">current_time</span>              <span class="o">=</span> <span class="mf">0.00605694344696544</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mo">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_dimensions</span>         <span class="o">=</span> <span class="p">[</span><span class="mi">128</span> <span class="mi">128</span> <span class="mi">128</span><span class="p">]</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mo">03</span><span class="p">:</span><span class="mi">56</span><span class="p">,</span><span class="mi">182</span> <span class="n">Parameters</span><span class="p">:</span> <span class="n">domain_left_edge</span>          <span class="o">=</span> <span class="p">[</span> <span class="mf">0.</span>  <span class="mf">0.</span>  <span class="mf">0.</span><span class="p">]</span>
@@ -434,7 +434,7 @@ cosmology application:</p>
 </div>
 <p>From here one can make slice plots, 3-D volume renderings, etc. An example of
 the slice plot feature is shown below:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">9</span><span class="p">]:</span> <span class="n">slc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">SlicePlot</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;density&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">9</span><span class="p">]:</span> <span class="n">slc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">SlicePlot</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;density&quot;</span><span class="p">)</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">358</span> <span class="n">xlim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">358</span> <span class="n">ylim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">10</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span><span class="mi">359</span> <span class="n">xlim</span> <span class="o">=</span> <span class="mf">0.000000</span> <span class="mf">14.245010</span>
@@ -451,9 +451,9 @@ the slice plot feature is shown below:</p>
 volume renderings with ; an example is show below:</p>
 <div class="figure" id="id7">
 <span id="fig-yt-nyx-slice-plot"></span><img alt="_images/yt_Nyx_density_slice.png" src="_images/yt_Nyx_density_slice.png" />
-<p class="caption"><span class="caption-number">Fig. 16 </span><span class="caption-text">: Slice plot of <span class="math">\(128^3\)</span> Nyx simulation using yt.</span></p>
+<p class="caption"><span class="caption-number">Fig. 16 </span><span class="caption-text">: Slice plot of <span class="math notranslate">\(128^3\)</span> Nyx simulation using yt.</span></p>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">12</span><span class="p">]:</span> <span class="n">sc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">create_scene</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s2">&quot;density&quot;</span><span class="p">,</span> <span class="n">lens_type</span><span class="o">=</span><span class="s2">&quot;perspective&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">12</span><span class="p">]:</span> <span class="n">sc</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">create_scene</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s2">&quot;density&quot;</span><span class="p">,</span> <span class="n">lens_type</span><span class="o">=</span><span class="s2">&quot;perspective&quot;</span><span class="p">)</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">13</span><span class="p">]:</span> <span class="n">source</span> <span class="o">=</span> <span class="n">sc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -491,7 +491,7 @@ volume renderings with ; an example is show below:</p>
 <p>The output of this is <a class="reference internal" href="#fig-yt-nyx-vol-rend"><span class="std std-numref">Fig. 17</span></a>.</p>
 <div class="figure" id="id8">
 <span id="fig-yt-nyx-vol-rend"></span><img alt="_images/yt_Nyx_density_vol_rend.png" src="_images/yt_Nyx_density_vol_rend.png" />
-<p class="caption"><span class="caption-number">Fig. 17 </span><span class="caption-text">Volume rendering of <span class="math">\(128^3\)</span> Nyx simulation using yt. This corresponds
+<p class="caption"><span class="caption-number">Fig. 17 </span><span class="caption-text">Volume rendering of <span class="math notranslate">\(128^3\)</span> Nyx simulation using yt. This corresponds
 to the same plot file used to generate the slice plot in
 <a class="reference internal" href="#fig-yt-nyx-slice-plot"><span class="std std-numref">Fig. 16</span></a>.</span></p>
 </div>
@@ -514,14 +514,14 @@ visualizing the data itself on a workstation, can be prohibitively slow.</p>
 <p>Fortunately, NERSC has implemented several resources which allow one to
 interact with yt&nbsp;remotely, emulating a client-server model. In particular,
 NERSC now hosts Jupyter notebooks which run IPython kernels on the Cori system;
-this provides users access to the <code class="docutils literal"><span class="pre">$HOME</span></code>, <code class="docutils literal"><span class="pre">/project</span></code>, and
-<code class="docutils literal"><span class="pre">$SCRATCH</span></code> file systems from a web browser-based Jupyter notebook.
+this provides users access to the <code class="docutils literal notranslate"><span class="pre">$HOME</span></code>, <code class="docutils literal notranslate"><span class="pre">/project</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">$SCRATCH</span></code> file systems from a web browser-based Jupyter notebook.
 <strong>*Please note that Jupyter hosting at NERSC is still under
 development, and the environment may change without notice.*</strong></p>
 <p>NERSC also provides Anaconda Python, which allows users to create their own
 customizable Python environments. It is recommended to install yt&nbsp;in such an
 environment. One can do so with the following example:</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">user@cori10:~&gt; module load python/3.5-anaconda</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">user@cori10:~&gt; module load python/3.5-anaconda</span>
 <span class="go">user@cori10:~&gt; conda create -p $HOME/yt-conda numpy</span>
 <span class="go">user@cori10:~&gt; source activate $HOME/yt-conda</span>
 <span class="go">(/global/homes/u/user/yt-conda/) user@cori10:~&gt; pip install yt</span>
@@ -537,7 +537,7 @@ notebooks will look like at NERSC, but it is still under development and
 subject to change. To load this custom Python kernel in a Jupyter notebook,
 follow the instructions at this URL under the “Custom Kernels” heading:
 <a class="reference external" href="http://www.nersc.gov/users/data-analytics/data-analytics/web-applications-for-data-analytics">http://www.nersc.gov/users/data-analytics/data-analytics/web-applications-for-data-analytics</a>.
-After writing the appropriate <code class="docutils literal"><span class="pre">kernel.json</span></code> file, the custom kernel will
+After writing the appropriate <code class="docutils literal notranslate"><span class="pre">kernel.json</span></code> file, the custom kernel will
 appear as an available Jupyter notebook. Then one can interactively visualize
 AMReX&nbsp;plot files in the web browser. <a class="footnote-reference" href="#id2" id="id1">[1]</a></p>
 </div>
@@ -550,12 +550,12 @@ at NERSC is its parallelization capabilities. yt&nbsp;supports both MPI- and
 OpenMP-based parallelization of various tasks, which are discussed here:
 <a class="reference external" href="http://yt-project.org/doc/analyzing/parallel_computation.html">http://yt-project.org/doc/analyzing/parallel_computation.html</a>.</p>
 <p>Configuring yt&nbsp;for MPI parallelization at NERSC is a more complex task than
-discussed in the official yt&nbsp;documentation; the command <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">mpi4py</span></code> is
-not sufficient. Rather, one must compile <code class="docutils literal"><span class="pre">mpi4py</span></code> from source using the Cray
-compiler wrappers <code class="docutils literal"><span class="pre">cc</span></code>, <code class="docutils literal"><span class="pre">CC</span></code>, and <code class="docutils literal"><span class="pre">ftn</span></code> on Cori. Instructions for
-compiling <code class="docutils literal"><span class="pre">mpi4py</span></code> at NERSC are provided here:
+discussed in the official yt&nbsp;documentation; the command <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">mpi4py</span></code> is
+not sufficient. Rather, one must compile <code class="docutils literal notranslate"><span class="pre">mpi4py</span></code> from source using the Cray
+compiler wrappers <code class="docutils literal notranslate"><span class="pre">cc</span></code>, <code class="docutils literal notranslate"><span class="pre">CC</span></code>, and <code class="docutils literal notranslate"><span class="pre">ftn</span></code> on Cori. Instructions for
+compiling <code class="docutils literal notranslate"><span class="pre">mpi4py</span></code> at NERSC are provided here:
 <a class="reference external" href="http://www.nersc.gov/users/data-analytics/data-analytics/python/anaconda-python/#toc-anchor-3">http://www.nersc.gov/users/data-analytics/data-analytics/python/anaconda-python/#toc-anchor-3</a>.
-After <code class="docutils literal"><span class="pre">mpi4py</span></code> has been compiled, one can use the regular Python interpreter
+After <code class="docutils literal notranslate"><span class="pre">mpi4py</span></code> has been compiled, one can use the regular Python interpreter
 in the Anaconda environment as normal; when executing yt&nbsp;operations which support
 MPI parallelization, the multiple MPI processes will spawn automatically.</p>
 <p>Although several components of &nbsp;support MPI parallelization, a few are particularly useful:</p>
@@ -563,7 +563,7 @@ MPI parallelization, the multiple MPI processes will spawn automatically.</p>
 <li><p class="first"><strong>Time series analysis.</strong> Often one runs a simulation for many
 time steps and periodically writes plot files to disk for visualization and
 post-processing. yt&nbsp;supports parallelization over time series data via the
-<code class="docutils literal"><span class="pre">DatasetSeries</span></code> object. yt&nbsp;can iterate over a <code class="docutils literal"><span class="pre">DatasetSeries</span></code>
+<code class="docutils literal notranslate"><span class="pre">DatasetSeries</span></code> object. yt&nbsp;can iterate over a <code class="docutils literal notranslate"><span class="pre">DatasetSeries</span></code>
 in parallel, with different MPI processes operating on different elements of
 the series. This page provides more documentation:
 <a class="reference external" href="http://yt-project.org/doc/analyzing/time_series_analysis.html#time-series-analysis">http://yt-project.org/doc/analyzing/time_series_analysis.html#time-series-analysis</a>.</p>
@@ -576,17 +576,17 @@ approach. See this URL for more detail:
 <a class="reference external" href="http://yt-project.org/doc/visualizing/volume_rendering.html?highlight=openmp#openmp-parallelization">http://yt-project.org/doc/visualizing/volume_rendering.html?highlight=openmp#openmp-parallelization</a>.</p>
 </li>
 <li><p class="first"><strong>Generic parallelization over multiple objects.</strong> Sometimes one
-wishes to loop over a series which is not a <code class="docutils literal"><span class="pre">DatasetSeries</span></code>, e.g.,
+wishes to loop over a series which is not a <code class="docutils literal notranslate"><span class="pre">DatasetSeries</span></code>, e.g.,
 performing translational or rotational operations on a camera to make a volume
 rendering in which the field of view moves through the simulation. In this
 case, one is applying a set of operations on a single object (a single plot
 file), rather than over a time series of data. For this workflow, yt&nbsp;provides
-the <code class="docutils literal"><span class="pre">parallel_objects()</span></code> function. See this URL for more details:
+the <code class="docutils literal notranslate"><span class="pre">parallel_objects()</span></code> function. See this URL for more details:
 <a class="reference external" href="http://yt-project.org/doc/analyzing/parallel_computation.html#parallelizing-over-multiple-objects">http://yt-project.org/doc/analyzing/parallel_computation.html#parallelizing-over-multiple-objects</a>.</p>
 <p>An example of MPI parallelization in yt&nbsp;is shown below, where one animates a
 time series of plot files from an IAMR simulation while revolving the camera
 such that it completes two full revolutions over the span of the animation:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">yt</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">yt</span>
 <span class="kn">import</span> <span class="nn">glob</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
@@ -627,7 +627,7 @@ such that it completes two full revolutions over the span of the animation:</p>
 </pre></div>
 </div>
 <p>When executed on 4 CPUs on a Haswell node of Cori, the output looks like the following:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">user</span><span class="nd">@nid00009</span><span class="p">:</span><span class="o">~/</span><span class="n">yt_vis</span><span class="o">/&gt;</span> <span class="n">srun</span> <span class="o">-</span><span class="n">n</span> <span class="mi">4</span> <span class="o">-</span><span class="n">c</span> <span class="mi">2</span> <span class="o">--</span><span class="n">cpu_bind</span><span class="o">=</span><span class="n">cores</span> <span class="n">python</span> <span class="n">make_yt_movie</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">user</span><span class="nd">@nid00009</span><span class="p">:</span><span class="o">~/</span><span class="n">yt_vis</span><span class="o">/&gt;</span> <span class="n">srun</span> <span class="o">-</span><span class="n">n</span> <span class="mi">4</span> <span class="o">-</span><span class="n">c</span> <span class="mi">2</span> <span class="o">--</span><span class="n">cpu_bind</span><span class="o">=</span><span class="n">cores</span> <span class="n">python</span> <span class="n">make_yt_movie</span><span class="o">.</span><span class="n">py</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">565</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">0</span> <span class="o">/</span> <span class="mi">4</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">565</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">4</span>
 <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="mi">566</span> <span class="n">Global</span> <span class="n">parallel</span> <span class="n">computation</span> <span class="n">enabled</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">4</span>
@@ -658,7 +658,7 @@ such that it completes two full revolutions over the span of the animation:</p>
 <span class="n">P001</span> <span class="n">yt</span> <span class="p">:</span> <span class="p">[</span><span class="n">INFO</span>     <span class="p">]</span> <span class="mi">2017</span><span class="o">-</span><span class="mo">05</span><span class="o">-</span><span class="mi">23</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">607</span> <span class="n">Creating</span> <span class="n">volume</span>
 </pre></div>
 </div>
-<p>Because the <code class="docutils literal"><span class="pre">parallel_objects()</span></code> function transforms the loop into a
+<p>Because the <code class="docutils literal notranslate"><span class="pre">parallel_objects()</span></code> function transforms the loop into a
 data-parallel problem, this procedure strong scales nearly perfectly to an
 arbitrarily large number of MPI processes, allowing for rapid rendering of
 large time series of data.</p>
@@ -668,7 +668,7 @@ large time series of data.</p>
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>It is convenient to use the
-magic command <code class="docutils literal"><span class="pre">%matplotlib</span> <span class="pre">inline</span></code> in order to render matplotlib
+magic command <code class="docutils literal notranslate"><span class="pre">%matplotlib</span> <span class="pre">inline</span></code> in order to render matplotlib
 figures in the same browser window as the notebook, as opposed to displaying it
 as a new window.</td></tr>
 </tbody>

@@ -194,7 +194,7 @@
 <p>The profiling suite available on Cray XC systems is Cray Performance
 Measurement and Analysis Tools (“CrayPat”) <a class="footnote-reference" href="#id6" id="id1">[1]</a>.  Most CrayPat functionality is
 supported for all compilers available in the Cray “programming environments“
-(modules which begin “<code class="docutils literal"><span class="pre">PrgEnv-</span></code>”); however, a few features, chiefly the
+(modules which begin “<code class="docutils literal notranslate"><span class="pre">PrgEnv-</span></code>”); however, a few features, chiefly the
 “Reveal” tool, are supported only on applications compiled with Cray’s compiler
 CCE <a class="footnote-reference" href="#id7" id="id2">[2]</a> <a class="footnote-reference" href="#id8" id="id3">[3]</a>.</p>
 <p>CrayPat supports both high-level profiling tools, as well as fine-grained
@@ -205,30 +205,30 @@ uses sampling to identify the most time-consuming functions in an application.</
 <p>The simplest way to obtain a high-level overview of an application’s
 performance consists of the following steps:</p>
 <ol class="arabic">
-<li><p class="first">Load the <code class="docutils literal"><span class="pre">perftools-base</span></code> module, then the <code class="docutils literal"><span class="pre">perftools-lite</span></code> module. (The
+<li><p class="first">Load the <code class="docutils literal notranslate"><span class="pre">perftools-base</span></code> module, then the <code class="docutils literal notranslate"><span class="pre">perftools-lite</span></code> module. (The
 modules will not work if loaded in the opposite order.)</p>
 </li>
-<li><p class="first">Compile the application with the Cray compiler wrappers <code class="docutils literal"><span class="pre">cc</span></code>, <code class="docutils literal"><span class="pre">CC</span></code>,
-and/or <code class="docutils literal"><span class="pre">ftn</span></code>. This works with any of the compilers available in the
-<code class="docutils literal"><span class="pre">PrgEnv-</span></code> modules. E.g., on the Cori system at NERSC, one can use the
+<li><p class="first">Compile the application with the Cray compiler wrappers <code class="docutils literal notranslate"><span class="pre">cc</span></code>, <code class="docutils literal notranslate"><span class="pre">CC</span></code>,
+and/or <code class="docutils literal notranslate"><span class="pre">ftn</span></code>. This works with any of the compilers available in the
+<code class="docutils literal notranslate"><span class="pre">PrgEnv-</span></code> modules. E.g., on the Cori system at NERSC, one can use the
 Intel, GCC, or CCE compilers. No extra compiler flags are necessary in order
 for CrayPat to work. CrayPat instruments the application, so the
-<code class="docutils literal"><span class="pre">perftools-</span></code> modules must be loaded before one compiles the application.</p>
+<code class="docutils literal notranslate"><span class="pre">perftools-</span></code> modules must be loaded before one compiles the application.</p>
 </li>
 <li><p class="first">Run the application as normal. No special flags are required. Upon
 application completion, CrayPat will write a few files to the directory from
 which the application was launched. The profiling database is a single file
-with the <code class="docutils literal"><span class="pre">.ap2</span></code> suffix.</p>
+with the <code class="docutils literal notranslate"><span class="pre">.ap2</span></code> suffix.</p>
 </li>
-<li><p class="first">One can query the database in many different ways using the <code class="docutils literal"><span class="pre">pat_report</span></code>
-command on the <code class="docutils literal"><span class="pre">.ap2</span></code> file. <code class="docutils literal"><span class="pre">pat_report</span></code> is available on login nodes, so
+<li><p class="first">One can query the database in many different ways using the <code class="docutils literal notranslate"><span class="pre">pat_report</span></code>
+command on the <code class="docutils literal notranslate"><span class="pre">.ap2</span></code> file. <code class="docutils literal notranslate"><span class="pre">pat_report</span></code> is available on login nodes, so
 the analysis need not be done on a compute node.  Querying the database with
-no arguments to <code class="docutils literal"><span class="pre">pat_report</span></code> prints several different profiling reports to
+no arguments to <code class="docutils literal notranslate"><span class="pre">pat_report</span></code> prints several different profiling reports to
 STDOUT, including a list of the most time-consuming regions in the
 application. The output of this command can be long, so it can be convenient
 to pipe the output to a pager or a file. A portion of the output from
-<code class="docutils literal"><span class="pre">pat_report</span> <span class="pre">&lt;file&gt;.ap2</span></code> is shown below:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Table</span> <span class="mi">1</span><span class="p">:</span>  <span class="n">Profile</span> <span class="n">by</span> <span class="n">Function</span>
+<code class="docutils literal notranslate"><span class="pre">pat_report</span> <span class="pre">&lt;file&gt;.ap2</span></code> is shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Table</span> <span class="mi">1</span><span class="p">:</span>  <span class="n">Profile</span> <span class="n">by</span> <span class="n">Function</span>
 
   <span class="n">Samp</span><span class="o">%</span> <span class="o">|</span>    <span class="n">Samp</span> <span class="o">|</span>  <span class="n">Imb</span><span class="o">.</span> <span class="o">|</span>  <span class="n">Imb</span><span class="o">.</span> <span class="o">|</span> <span class="n">Group</span>
         <span class="o">|</span>         <span class="o">|</span>  <span class="n">Samp</span> <span class="o">|</span> <span class="n">Samp</span><span class="o">%</span> <span class="o">|</span>  <span class="n">Function</span>
@@ -290,21 +290,21 @@ hardware performance counters can also be collected through PAPI.</p>
 <ol class="arabic simple">
 <li>Run module load ipm.</li>
 <li>Build code as normal with make.</li>
-<li>Re-run the link command (e.g. cut-and-paste) with <code class="docutils literal"><span class="pre">$IPM</span></code> added to the end of the line.</li>
+<li>Re-run the link command (e.g. cut-and-paste) with <code class="docutils literal notranslate"><span class="pre">$IPM</span></code> added to the end of the line.</li>
 </ol>
 </div>
 <div class="section" id="running-with-ipm-on-cori">
 <h2>Running with IPM on cori<a class="headerlink" href="#running-with-ipm-on-cori" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
-<li>Set environment variables: <code class="docutils literal"><span class="pre">export</span> <span class="pre">IPM_REPORT=full</span> <span class="pre">IPM_LOG=full</span> <span class="pre">IPM_LOGDIR=</span> <span class="pre">&lt;dir&gt;</span></code></li>
-<li>Results will be printed to stdout and an xml file generated in the directory specified by <code class="docutils literal"><span class="pre">IPM_LOGDIR</span></code>.</li>
-<li>Post-process the xml with <code class="docutils literal"><span class="pre">ipm_parse</span> <span class="pre">-html</span> <span class="pre">&lt;xmlfile&gt;</span></code>, which produces an directory with html.</li>
+<li>Set environment variables: <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">IPM_REPORT=full</span> <span class="pre">IPM_LOG=full</span> <span class="pre">IPM_LOGDIR=</span> <span class="pre">&lt;dir&gt;</span></code></li>
+<li>Results will be printed to stdout and an xml file generated in the directory specified by <code class="docutils literal notranslate"><span class="pre">IPM_LOGDIR</span></code>.</li>
+<li>Post-process the xml with <code class="docutils literal notranslate"><span class="pre">ipm_parse</span> <span class="pre">-html</span> <span class="pre">&lt;xmlfile&gt;</span></code>, which produces an directory with html.</li>
 </ol>
 </div>
 <div class="section" id="summary-mpi-profile">
 <h2>Summary MPI Profile<a class="headerlink" href="#summary-mpi-profile" title="Permalink to this headline">¶</a></h2>
 <p>Example MPI profile output:</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="gp">#</span><span class="c1">#IPMv2.0.5########################################################</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">#</span><span class="c1">#IPMv2.0.5########################################################</span>
 <span class="gp">#</span>
 <span class="gp">#</span> <span class="nb">command</span>   : /global/cscratch1/sd/cchan2/projects/lbl/BoxLib/Tests/LinearSolvers/C_CellMG/./main3d.intel.MPI.OMP.ex.ipm inputs.3d.25600
 <span class="gp">#</span> start     : Tue Aug <span class="m">15</span> <span class="m">17</span>:34:23 <span class="m">2017</span>   host      : nid11311
@@ -348,12 +348,12 @@ number of calls and total time spent in each type of MPI call.</p>
 </div>
 <div class="section" id="papi-performance-counters">
 <h2>PAPI Performance Counters<a class="headerlink" href="#papi-performance-counters" title="Permalink to this headline">¶</a></h2>
-<p>To collect performance counters, set <code class="docutils literal"><span class="pre">IPM_HPM=&lt;list&gt;</span></code>, where the list is a
-comma-separated list of PAPI counters. For example: <code class="docutils literal"><span class="pre">export</span>
+<p>To collect performance counters, set <code class="docutils literal notranslate"><span class="pre">IPM_HPM=&lt;list&gt;</span></code>, where the list is a
+comma-separated list of PAPI counters. For example: <code class="docutils literal notranslate"><span class="pre">export</span>
 <span class="pre">IPM_HPM=PAPI_L2_TCA,PAPI_L2_TCM</span></code>.</p>
 <p>For reference, here is the list of available counters on cori, which can be
-found by running <code class="docutils literal"><span class="pre">papi_avail</span></code>:</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">    Name        Code    Avail Deriv Description (Note)</span>
+found by running <code class="docutils literal notranslate"><span class="pre">papi_avail</span></code>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">    Name        Code    Avail Deriv Description (Note)</span>
 <span class="go">PAPI_L1_DCM  0x80000000  Yes   No   Level 1 data cache misses</span>
 <span class="go">PAPI_L1_ICM  0x80000001  Yes   No   Level 1 instruction cache misses</span>
 <span class="go">PAPI_L1_TCM  0x80000006  Yes   Yes  Level 1 cache misses</span>
@@ -388,7 +388,7 @@ registers and thus cannot be collected at the same time.</p>
 </div>
 <div class="section" id="example-html-performance-summary">
 <h2>Example HTML Performance Summary<a class="headerlink" href="#example-html-performance-summary" title="Permalink to this headline">¶</a></h2>
-<p>Running <code class="docutils literal"><span class="pre">ipm_parse</span> <span class="pre">-html</span> <span class="pre">&lt;xmlfile&gt;</span></code> on the generated xml file will produce an
+<p>Running <code class="docutils literal notranslate"><span class="pre">ipm_parse</span> <span class="pre">-html</span> <span class="pre">&lt;xmlfile&gt;</span></code> on the generated xml file will produce an
 HTML document that includes summary performance numbers and automatically
 generated figures. Some examples are shown here.</p>
 <div class="figure" id="id11">

@@ -190,7 +190,7 @@ However, the use of FCVODE&nbsp;is discouraged in AMReX&nbsp;due to its incompat
 with being used inside OpenMP parallel regions (which is the primary use case
 in AMReX&nbsp;applications).</p>
 <p>The alternative, and recommended, Fortran interface to &nbsp;uses the
-<code class="docutils literal"><span class="pre">iso_c_binding</span></code> feature of the Fortran 2003 standard to implement a direct
+<code class="docutils literal notranslate"><span class="pre">iso_c_binding</span></code> feature of the Fortran 2003 standard to implement a direct
 interface to the C functions in CVODE.  When compiling CVODE, one need not
 build the CVODE&nbsp;library with the FCVODE&nbsp;interface enabled at all.  Rather, the
 Fortran 2003 interface to CVODE&nbsp;is provided within AMReX&nbsp;itself.  The

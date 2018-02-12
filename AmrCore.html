@@ -196,7 +196,7 @@
            <div itemprop="articleBody">
             
   <span id="fig-adv"></span><table border="1" class="docutils align-center" id="id1">
-<caption><span class="caption-number">Table 6 </span><span class="caption-text">Time sequence (<span class="math">\(t=0,0.5,1,1.5,2\)</span>&nbsp;s) of advection of a Gaussian profile using the SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels <span class="math">\(\ell=0,1\)</span>, and <span class="math">\(2\)</span>.</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<caption><span class="caption-number">Table 6 </span><span class="caption-text">Time sequence (<span class="math notranslate">\(t=0,0.5,1,1.5,2\)</span>&nbsp;s) of advection of a Gaussian profile using the SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels <span class="math notranslate">\(\ell=0,1\)</span>, and <span class="math notranslate">\(2\)</span>.</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col width="25%" />
 <col width="25%" />
@@ -214,28 +214,28 @@
 <div class="section" id="the-advection-equation">
 <h1>The Advection Equation<a class="headerlink" href="#the-advection-equation" title="Permalink to this headline">¶</a></h1>
 <p>We seek to solve the advection equation on a multi-level, adaptive grid structure:</p>
-<div class="math">
+<div class="math notranslate">
 \[\frac{\partial\phi}{\partial t} = -\nabla\cdot(\phi{\bf U}).\]</div>
 <p>The velocity field is a specified divergence-free (so the flow field is incompressible)
 function of space and time. The initial scalar field is a
 Gaussian profile. To integrate these equations on a given level, we use a simple conservative update,</p>
-<div class="math">
+<div class="math notranslate">
 \[\frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = \frac{(\phi u)_{i+^1\!/_2,\,j}^{n+^1\!/_2}-(\phi u)_{i-^1\!/_2,\,j}^{n+^1\!/_2}}{\Delta x} + \frac{(\phi v)_{i,\,j+^1\!/_2}^{n+^1\!/_2} - (\phi v)_{i,\,j-^1\!/_2}^{n+^1\!/_2}}{\Delta y},\]</div>
 <p>where the velocities on faces are prescribed functions of space and time, and the scalars on faces
 are computed using a Godunov advection integration scheme. The fluxes in this case are the face-centered,
-time-centered “<span class="math">\(\phi u\)</span>” and “<span class="math">\(\phi v\)</span>” terms.</p>
+time-centered “<span class="math notranslate">\(\phi u\)</span>” and “<span class="math notranslate">\(\phi v\)</span>” terms.</p>
 <p>We use a subcycling-in-time approach where finer levels are advanced with smaller
 time steps than coarser levels, and then synchronization is later performed between levels.
 More specifically, the multi-level procedure can most
-easily be thought of as a recursive algorithm in which, to advance level <span class="math">\(\ell\)</span>,
-<span class="math">\(0\le\ell\le\ell_{\rm max}\)</span>, the following steps are taken:</p>
+easily be thought of as a recursive algorithm in which, to advance level <span class="math notranslate">\(\ell\)</span>,
+<span class="math notranslate">\(0\le\ell\le\ell_{\rm max}\)</span>, the following steps are taken:</p>
 <ul class="simple">
-<li>Advance level <span class="math">\(\ell\)</span> in time by one time step, <span class="math">\(\Delta t^{\ell}\)</span>, as if it is
-the only level. If <span class="math">\(\ell&gt;0\)</span>, obtain boundary data (i.e. fill the level <span class="math">\(\ell\)</span> ghost cells)
-using space- and time-interpolated data from the grids at <span class="math">\(\ell-1\)</span> where appropriate.</li>
-<li>If <span class="math">\(\ell&lt;\ell_{\rm max}\)</span><ul>
-<li>Advance level <span class="math">\((\ell+1)\)</span> for <span class="math">\(r\)</span> time steps with <span class="math">\(\Delta t^{\ell+1} = \frac{1}{r}\Delta t^{\ell}\)</span>.</li>
-<li>Synchronize the data between levels <span class="math">\(\ell\)</span> and <span class="math">\(\ell+1\)</span>.</li>
+<li>Advance level <span class="math notranslate">\(\ell\)</span> in time by one time step, <span class="math notranslate">\(\Delta t^{\ell}\)</span>, as if it is
+the only level. If <span class="math notranslate">\(\ell&gt;0\)</span>, obtain boundary data (i.e. fill the level <span class="math notranslate">\(\ell\)</span> ghost cells)
+using space- and time-interpolated data from the grids at <span class="math notranslate">\(\ell-1\)</span> where appropriate.</li>
+<li>If <span class="math notranslate">\(\ell&lt;\ell_{\rm max}\)</span><ul>
+<li>Advance level <span class="math notranslate">\((\ell+1)\)</span> for <span class="math notranslate">\(r\)</span> time steps with <span class="math notranslate">\(\Delta t^{\ell+1} = \frac{1}{r}\Delta t^{\ell}\)</span>.</li>
+<li>Synchronize the data between levels <span class="math notranslate">\(\ell\)</span> and <span class="math notranslate">\(\ell+1\)</span>.</li>
 </ul>
 </li>
 </ul>
@@ -246,32 +246,32 @@ using space- and time-interpolated data from the grids at <span class="math">\(\
 <p>Specifically, for a 3-level simulation, depicted graphically in the figure
 showing the <a class="reference internal" href="#fig-subcycling"><span class="std std-ref">Schematic of subcycling-in-time algorithm.</span></a> above:</p>
 <ol class="arabic simple">
-<li>Integrate <span class="math">\(\ell=0\)</span> over <span class="math">\(\Delta t\)</span>.</li>
-<li>Integrate <span class="math">\(\ell=1\)</span> over <span class="math">\(\Delta t/2\)</span>.</li>
-<li>Integrate <span class="math">\(\ell=2\)</span> over <span class="math">\(\Delta t/4\)</span>.</li>
-<li>Integrate <span class="math">\(\ell=2\)</span> over <span class="math">\(\Delta t/4\)</span>.</li>
-<li>Synchronize levels <span class="math">\(\ell=1,2\)</span>.</li>
-<li>Integrate <span class="math">\(\ell=1\)</span> over <span class="math">\(\Delta t/2\)</span>.</li>
-<li>Integrate <span class="math">\(\ell=2\)</span> over <span class="math">\(\Delta t/4\)</span>.</li>
-<li>Integrate <span class="math">\(\ell=2\)</span> over <span class="math">\(\Delta t/4\)</span>.</li>
-<li>Synchronize levels <span class="math">\(\ell=1,2\)</span>.</li>
-<li>Synchronize levels <span class="math">\(\ell=0,1\)</span>.</li>
+<li>Integrate <span class="math notranslate">\(\ell=0\)</span> over <span class="math notranslate">\(\Delta t\)</span>.</li>
+<li>Integrate <span class="math notranslate">\(\ell=1\)</span> over <span class="math notranslate">\(\Delta t/2\)</span>.</li>
+<li>Integrate <span class="math notranslate">\(\ell=2\)</span> over <span class="math notranslate">\(\Delta t/4\)</span>.</li>
+<li>Integrate <span class="math notranslate">\(\ell=2\)</span> over <span class="math notranslate">\(\Delta t/4\)</span>.</li>
+<li>Synchronize levels <span class="math notranslate">\(\ell=1,2\)</span>.</li>
+<li>Integrate <span class="math notranslate">\(\ell=1\)</span> over <span class="math notranslate">\(\Delta t/2\)</span>.</li>
+<li>Integrate <span class="math notranslate">\(\ell=2\)</span> over <span class="math notranslate">\(\Delta t/4\)</span>.</li>
+<li>Integrate <span class="math notranslate">\(\ell=2\)</span> over <span class="math notranslate">\(\Delta t/4\)</span>.</li>
+<li>Synchronize levels <span class="math notranslate">\(\ell=1,2\)</span>.</li>
+<li>Synchronize levels <span class="math notranslate">\(\ell=0,1\)</span>.</li>
 </ol>
 <p>For the scalar field, we keep track volume and time-weighted fluxes at coarse-fine interfaces.
-We accumulate area and time-weighted fluxes in <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FluxRegister</span></span></code> objects, which can be
+We accumulate area and time-weighted fluxes in <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FluxRegister</span></span></code> objects, which can be
 thought of as special boundary FABsets associated with coarse-fine interfaces.
 Since the fluxes are area and time-weighted (and sign-weighted, depending on whether they
 come from the coarse or fine level), the flux registers essentially store the extent by
 which the solution does not maintain conservation. Conservation only happens if the
 sum of the (area and time-weighted) fine fluxes equals the coarse flux, which in general
 is not true.</p>
-<p>The idea behind the level <span class="math">\(\ell/(\ell+1)\)</span> synchronization step is to correct for sources of
+<p>The idea behind the level <span class="math notranslate">\(\ell/(\ell+1)\)</span> synchronization step is to correct for sources of
 mismatch in the composite solution:</p>
 <ol class="arabic simple">
-<li>The data at level <span class="math">\(\ell\)</span> that underlie the level <span class="math">\(\ell+1\)</span> data are not synchronized with the level <span class="math">\(\ell+1\)</span> data.
+<li>The data at level <span class="math notranslate">\(\ell\)</span> that underlie the level <span class="math notranslate">\(\ell+1\)</span> data are not synchronized with the level <span class="math notranslate">\(\ell+1\)</span> data.
 This is simply corrected by overwriting covered coarse cells to be the average of the overlying fine cells.</li>
-<li>The area and time-weighted fluxes from the level <span class="math">\(\ell\)</span> faces and the level <span class="math">\(\ell+1\)</span> faces
-do not agree at the <span class="math">\(\ell/(\ell+1)\)</span> interface, resulting in a loss of conservation.
+<li>The area and time-weighted fluxes from the level <span class="math notranslate">\(\ell\)</span> faces and the level <span class="math notranslate">\(\ell+1\)</span> faces
+do not agree at the <span class="math notranslate">\(\ell/(\ell+1)\)</span> interface, resulting in a loss of conservation.
 The remedy is to modify the solution in the coarse cells immediately next to the coarse-fine interface
 to account for the mismatch stored in the flux register (computed by taking the coarse-level divergence of the
 flux register data).</li>
@@ -279,19 +279,19 @@ flux register data).</li>
 </div>
 <div class="section" id="amrcore-source-code">
 <span id="ss-amrcore"></span><h1>AmrCore Source Code<a class="headerlink" href="#amrcore-source-code" title="Permalink to this headline">¶</a></h1>
-<p>Here we provide a high-level overview of the source code in <code class="docutils literal"><span class="pre">amrex/Src/AmrCore.</span></code></p>
+<p>Here we provide a high-level overview of the source code in <code class="docutils literal notranslate"><span class="pre">amrex/Src/AmrCore.</span></code></p>
 <div class="section" id="amrmesh-and-amrcore">
 <h2>AmrMesh and AmrCore<a class="headerlink" href="#amrmesh-and-amrcore" title="Permalink to this headline">¶</a></h2>
 <p>For single-level simulations
-(see e.g., <code class="docutils literal"><span class="pre">amrex/Tutorials/Basic/HeatEquation_EX1_C/main.cpp</span></code>)
-the user needs to build <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Geometry</span></span></code>, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">DistributionMapping</span></span></code>,
-and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BoxArray</span></span></code> objects associated with the simulation. For simulations
-with multiple levels of refinement, the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrMesh</span></span></code> class can be thought
+(see e.g., <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HeatEquation_EX1_C/main.cpp</span></code>)
+the user needs to build <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Geometry</span></span></code>, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code>,
+and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> objects associated with the simulation. For simulations
+with multiple levels of refinement, the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrMesh</span></span></code> class can be thought
 of as a container to store arrays of these objects (one for each level), and
 information about the current grid structure.</p>
-<p><code class="docutils literal"><span class="pre">amrex/Src/AmrCore/AMReX_AmrMesh.cpp/H</span></code> contains the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrMesh</span></span></code> class.
+<p><code class="docutils literal notranslate"><span class="pre">amrex/Src/AmrCore/AMReX_AmrMesh.cpp/H</span></code> contains the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrMesh</span></span></code> class.
 The protected data members are:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="k">protected</span><span class="o">:</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">protected</span><span class="o">:</span>
     <span class="kt">int</span>            <span class="n">verbose</span><span class="p">;</span>
     <span class="kt">int</span>            <span class="n">max_level</span><span class="p">;</span>       <span class="c1">// Maximum allowed level.</span>
     <span class="n">Vector</span><span class="o">&lt;</span><span class="n">IntVect</span><span class="o">&gt;</span> <span class="n">ref_ratio</span><span class="p">;</span>       <span class="c1">// Refinement ratios [0:finest_level-1]</span>
@@ -365,16 +365,16 @@ Their usage is described in the section&nbsp;on <a class="reference internal" hr
 </tr>
 </tbody>
 </table>
-<p>AMReX_AmrCore.cpp/H contains the pure virtual class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>,
-which is derived from the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrMesh</span></span></code> class. AmrCore does not actually
+<p>AMReX_AmrCore.cpp/H contains the pure virtual class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code>,
+which is derived from the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrMesh</span></span></code> class. AmrCore does not actually
 have any data members, just additional member functions, some of which override
 the base class AmrMesh.</p>
-<p>There are no pure virtual functions in <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrMesh</span></span></code>, but
-there are 5 pure virtual functions in the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code> class. Any applications
+<p>There are no pure virtual functions in <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrMesh</span></span></code>, but
+there are 5 pure virtual functions in the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code> class. Any applications
 you create must implement these functions. The tutorial code
 Amr/Advection_AmrCore provides sample implementation in the derived
-class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span></code>.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">//! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.</span>
+class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span></code>.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">//! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.</span>
 <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">ErrorEst</span> <span class="p">(</span><span class="kt">int</span> <span class="n">lev</span><span class="p">,</span> <span class="n">TagBoxArray</span><span class="o">&amp;</span> <span class="n">tags</span><span class="p">,</span> <span class="n">Real</span> <span class="n">time</span><span class="p">,</span>
                        <span class="kt">int</span> <span class="n">ngrow</span><span class="p">)</span> <span class="k">override</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 
@@ -397,20 +397,20 @@ class <code class="code cpp c++ docutils literal"><span class="name"><span class
 <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">ClearLevel</span> <span class="p">(</span><span class="kt">int</span> <span class="n">lev</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </pre></div>
 </div>
-<p>Refer to the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span></code> class in the
-<code class="docutils literal"><span class="pre">amrex/Tutorials/Amr/AmrCore_Advection/Source</span></code>
+<p>Refer to the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span></code> class in the
+<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Amr/AmrCore_Advection/Source</span></code>
 code for a sample implementation.</p>
 </div>
 <div class="section" id="tagbox-and-cluster">
 <h2>TagBox, and Cluster<a class="headerlink" href="#tagbox-and-cluster" title="Permalink to this headline">¶</a></h2>
 <p>These classes are used in the grid generation process.
-The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">TagBox</span></span></code> class is essentially a data structure that marks which
+The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">TagBox</span></span></code> class is essentially a data structure that marks which
 cells are “tagged” for refinement.
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Cluster</span></span></code> (and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ClusterList</span></span></code> contained within the same file) are classes
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Cluster</span></span></code> (and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ClusterList</span></span></code> contained within the same file) are classes
 that help sort tagged cells and generate a grid structure that contains all
 the tagged cells. These classes and their member functions are largely
 hidden from any application codes through simple interfaces
-such as <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">regrid</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ErrorEst</span></span></code> (a routine for tagging cells for refinement).</p>
+such as <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">regrid</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ErrorEst</span></span></code> (a routine for tagging cells for refinement).</p>
 </div>
 <div class="section" id="fillpatchutil-and-interpolater">
 <span id="sec-amrcore-fillpatch"></span><h2>FillPatchUtil and Interpolater<a class="headerlink" href="#fillpatchutil-and-interpolater" title="Permalink to this headline">¶</a></h2>
@@ -426,39 +426,39 @@ need to be filled. At the non-coarsest level, the ghost cells can also be interi
 but can also be at coarse-fine interfaces away from the domain boundary.
 AMReX_FillPatchUtil.cpp/H contains two primary functions of interest.</p>
 <ol class="arabic simple">
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatchSingleLevel</span></span><span class="punctuation"><span class="pre">()</span></span></code> fills a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> and its ghost region at a single level of
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillPatchSingleLevel</span></span><span class="punctuation"><span class="pre">()</span></span></code> fills a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> and its ghost region at a single level of
 refinement. The routine is flexible enough to interpolate in time between two MultiFabs
 associated with different times.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatchTwoLevels</span></span><span class="punctuation"><span class="pre">()</span></span></code> fills a MultiFab and its ghost region at a single level of
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillPatchTwoLevels</span></span><span class="punctuation"><span class="pre">()</span></span></code> fills a MultiFab and its ghost region at a single level of
 refinement, assuming there is an underlying coarse level. This routine is flexible enough to interpolate
-the coarser level in time first using <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatchSingleLevel</span></span><span class="punctuation"><span class="pre">()</span></span></code>.</li>
+the coarser level in time first using <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillPatchSingleLevel</span></span><span class="punctuation"><span class="pre">()</span></span></code>.</li>
 </ol>
-<p>A <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FillPatchUtil</span></span></code> uses an <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Interpolator</span></span></code>. This is largely hidden from application codes.
-AMReX_Interpolater.cpp/H contains the virtual base class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Interpolater</span></span></code>, which provides
+<p>A <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FillPatchUtil</span></span></code> uses an <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Interpolator</span></span></code>. This is largely hidden from application codes.
+AMReX_Interpolater.cpp/H contains the virtual base class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Interpolater</span></span></code>, which provides
 an interface for coarse-to-fine spatial interpolation operators. The fillpatch routines described
 above require an Interpolater for FillPatchTwoLevels()
 Within AMReX_Interpolater.cpp/H are the derived classes:</p>
 <ul class="simple">
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">NodeBilinear</span></span></code></li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">CellBilinear</span></span></code></li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">CellConservativeLinear</span></span></code></li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">CellConservativeProtected</span></span></code></li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">CellQuadratic</span></span></code></li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">PCInterp</span></span></code></li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">CellConservativeQuartic</span></span></code></li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">NodeBilinear</span></span></code></li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">CellBilinear</span></span></code></li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">CellConservativeLinear</span></span></code></li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">CellConservativeProtected</span></span></code></li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">CellQuadratic</span></span></code></li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">PCInterp</span></span></code></li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">CellConservativeQuartic</span></span></code></li>
 </ul>
-<p>The Fortran routines that perform the actual work associated with <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Interpolater</span></span></code> are
+<p>The Fortran routines that perform the actual work associated with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Interpolater</span></span></code> are
 contained in the files AMReX_INTERP_F.H and AMReX_INTERP_xD.F.</p>
 </div>
 <div class="section" id="using-fluxregisters">
 <span id="sec-amrcore-fluxreg"></span><h2>Using FluxRegisters<a class="headerlink" href="#using-fluxregisters" title="Permalink to this headline">¶</a></h2>
-<p>AMReX_FluxRegister.cpp/H contains the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FluxRegister</span></span></code>, which is
-derived from the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BndryRegister</span></span></code> (in <code class="docutils literal"><span class="pre">amrex/Src/Boundary/AMReX_BndryRegister</span></code>).
+<p>AMReX_FluxRegister.cpp/H contains the class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FluxRegister</span></span></code>, which is
+derived from the class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BndryRegister</span></span></code> (in <code class="docutils literal notranslate"><span class="pre">amrex/Src/Boundary/AMReX_BndryRegister</span></code>).
 In the most general terms, a FluxRegister is a special type of BndryRegister
 that stores and manipulates data (most often fluxes) at coarse-fine interfaces.
 A simple usage scenario comes from a conservative discretization of a hyperbolic
 system:</p>
-<div class="math">
+<div class="math notranslate">
 \[\frac{\partial\phi}{\partial t} = \nabla\cdot{\bf F}
 \rightarrow
 \frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = \frac{F_{i+^1\!/_2,\,j}-F_{i-^1\!/_2,\,j}}{\Delta x} + \frac{F_{i,\,j+^1\!/_2} - F_{i,\,j-^1\!/_2}}{\Delta y}.\]</div>
@@ -469,18 +469,18 @@ coarse level only to supply boundary conditions. At the coarse-fine interface,
 the area-weighted fluxes from the fine grid advance do not in general match the
 underlying flux from the coarse grid face, resulting in a lack of global
 conservation. Note that for subcycling-in-time algorithms (where for each coarse
-grid advance, the fine grid is advanced <span class="math">\(r\)</span> times using a coarse grid time
-step reduced by a factor of <span class="math">\(r\)</span>, where <span class="math">\(r\)</span> is the refinement ratio),
+grid advance, the fine grid is advanced <span class="math notranslate">\(r\)</span> times using a coarse grid time
+step reduced by a factor of <span class="math notranslate">\(r\)</span>, where <span class="math notranslate">\(r\)</span> is the refinement ratio),
 the coarse grid flux must be compared to the area <em>and</em> time-weighted fine grid
-fluxes. A <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FluxRegister</span></span></code> accumulates and ultimately stores the net
+fluxes. A <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FluxRegister</span></span></code> accumulates and ultimately stores the net
 difference in fluxes between the coarse grid and fine grid advance over each
 face over a given coarse time step. The simplest possible synchronization step
 is to modify the coarse grid solution in coarse cells immediately adjacent to
 the coarse-fine interface are updated to account for the mismatch stored in the
 FluxRegister. This can be done “simply” by taking the coarse-level divergence of
-the data in the FluxRegister using the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">reflux</span></span></code> function.</p>
+the data in the FluxRegister using the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">reflux</span></span></code> function.</p>
 <p>The Fortran routines that perform the actual floating point work associated with
-incrementing data in a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">FluxRegister</span></span></code> are contained in the files
+incrementing data in a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">FluxRegister</span></span></code> are contained in the files
 AMReX_FLUXREG_F.H and AMReX_FLUXREG_xD.F.</p>
 </div>
 <div class="section" id="amrparticles-and-amrpargdb">
@@ -488,12 +488,12 @@ AMReX_FLUXREG_F.H and AMReX_FLUXREG_xD.F.</p>
 <p>The AmrCore/ directory contains derived classes for dealing with particles
 in a multi-level framework. The description of the base classes
 are given in the chapter on <a class="reference internal" href="Chapter8.html#chap-particles"><span class="std std-ref">Particles</span></a>.</p>
-<p>AMReX_AmrParticles.cpp/H contains the classes <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrParticleContainer</span></span></code>
-and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrTracerParticleContainer</span></span></code>, which are derived from the classes
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParticleContainer</span></span></code> (in <code class="docutils literal"><span class="pre">amrex/Src/Particle/AMReX_Particles</span></code>)
-and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">TracerParticleContainer</span></span></code> (in <code class="docutils literal"><span class="pre">amrex/Src/Particle/AMReX_TracerParticles</span></code>).</p>
-<p>AMReX_AmrParGDB.cpp/H contains the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrParGDB</span></span></code>, which is derived from
-the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ParGDBBase</span></span></code> (in <code class="docutils literal"><span class="pre">amrex/Src/Particle/AMReX_ParGDB</span></code>).</p>
+<p>AMReX_AmrParticles.cpp/H contains the classes <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrParticleContainer</span></span></code>
+and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrTracerParticleContainer</span></span></code>, which are derived from the classes
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParticleContainer</span></span></code> (in <code class="docutils literal notranslate"><span class="pre">amrex/Src/Particle/AMReX_Particles</span></code>)
+and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">TracerParticleContainer</span></span></code> (in <code class="docutils literal notranslate"><span class="pre">amrex/Src/Particle/AMReX_TracerParticles</span></code>).</p>
+<p>AMReX_AmrParGDB.cpp/H contains the class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrParGDB</span></span></code>, which is derived from
+the class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ParGDBBase</span></span></code> (in <code class="docutils literal notranslate"><span class="pre">amrex/Src/Particle/AMReX_ParGDB</span></code>).</p>
 </div>
 </div>
 <div class="section" id="example-advection-amrcore">
@@ -512,16 +512,16 @@ the class <code class="code cpp c++ docutils literal"><span class="name"><span c
 <li>AmrCore/ AMR data management classes, described in more detail above.</li>
 </ul>
 </li>
-<li><code class="docutils literal"><span class="pre">Advection_AmrCore/Src</span></code> Source code specific to this example. Most notably
-is the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span></code> class, which is derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>. The subdirectories <code class="docutils literal"><span class="pre">Src_2d</span></code>
-and <code class="docutils literal"><span class="pre">Src_3d</span></code> contain dimension specific routines. <code class="docutils literal"><span class="pre">Src_nd</span></code> contains dimension-independent routines.</li>
+<li><code class="docutils literal notranslate"><span class="pre">Advection_AmrCore/Src</span></code> Source code specific to this example. Most notably
+is the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span></code> class, which is derived from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code>. The subdirectories <code class="docutils literal notranslate"><span class="pre">Src_2d</span></code>
+and <code class="docutils literal notranslate"><span class="pre">Src_3d</span></code> contain dimension specific routines. <code class="docutils literal notranslate"><span class="pre">Src_nd</span></code> contains dimension-independent routines.</li>
 <li>Exec Contains a makefile so a user can write other examples besides SingleVortex.</li>
 <li>SingleVortex Build the code here by editing the GNUmakefile and running make. There
 is also problem-specific source code here used for initialization or specifying the velocity field used in this
 simulation.</li>
 </ul>
 <p>Here is a high-level pseudo-code of the flow of the program:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="cm">/* Advection_AmrCore Pseudocode */</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/* Advection_AmrCore Pseudocode */</span>
 <span class="n">main</span><span class="p">()</span>
   <span class="n">AmrCoreAdv</span> <span class="n">amr_core_adv</span><span class="p">;</span> <span class="c1">// build an AmrCoreAdv object</span>
   <span class="n">amr_core_adv</span><span class="p">.</span><span class="n">InitData</span><span class="p">()</span>  <span class="c1">// initialize data all all levels</span>
@@ -565,17 +565,17 @@ simulation.</li>
 </div>
 <div class="section" id="the-amrcoreadv-class">
 <h2>The AmrCoreAdv Class<a class="headerlink" href="#the-amrcoreadv-class" title="Permalink to this headline">¶</a></h2>
-<p>This example uses the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span></code>, which is derived from the class <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>
-(which is derived from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrMesh</span></span></code>). The function definitions/implementations
+<p>This example uses the class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span></code>, which is derived from the class <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code>
+(which is derived from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrMesh</span></span></code>). The function definitions/implementations
 are given in AmrCoreAdv.H/cpp.</p>
 </div>
 <div class="section" id="fluxregisters">
 <h2>FluxRegisters<a class="headerlink" href="#fluxregisters" title="Permalink to this headline">¶</a></h2>
-<p>The function <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Advance</span></span><span class="punctuation"><span class="pre">()</span></span></code> calls the Fortran
-subroutine, <code class="code fortran docutils literal"><span class="name"><span class="pre">advect</span></span></code> (in <code class="docutils literal"><span class="pre">./Src_xd/Adv_xd.f90</span></code>). <code class="code fortran docutils literal"><span class="name"><span class="pre">advect</span></span></code> computes
+<p>The function <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Advance</span></span><span class="punctuation"><span class="pre">()</span></span></code> calls the Fortran
+subroutine, <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">advect</span></span></code> (in <code class="docutils literal notranslate"><span class="pre">./Src_xd/Adv_xd.f90</span></code>). <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">advect</span></span></code> computes
 and returns the time-advanced state as well as the fluxes used to update the state.
 These fluxes are used to set or increment the flux registers.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// increment or decrement the flux registers by area and time-weighted fluxes</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// increment or decrement the flux registers by area and time-weighted fluxes</span>
 <span class="c1">// Note that the fluxes have already been scaled by dt and area</span>
 <span class="c1">// In this example we are solving phi_t = -div(+F)</span>
 <span class="c1">// The fluxes contain, e.g., F_{i+1/2,j} = (phi*u)_{i+1/2,j}</span>
@@ -597,8 +597,8 @@ These fluxes are used to set or increment the flux registers.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The synchronization is performed at the end of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">timeStep</span></span></code>:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="p">(</span><span class="n">do_reflux</span><span class="p">)</span>
+<p>The synchronization is performed at the end of <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">timeStep</span></span></code>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="p">(</span><span class="n">do_reflux</span><span class="p">)</span>
 <span class="p">{</span>
     <span class="c1">// update lev based on coarse-fine flux mismatch</span>
     <span class="n">flux_reg</span><span class="p">[</span><span class="n">lev</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">Reflux</span><span class="p">(</span><span class="o">*</span><span class="n">phi_new</span><span class="p">[</span><span class="n">lev</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">phi_new</span><span class="p">[</span><span class="n">lev</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">nComp</span><span class="p">(),</span>
@@ -611,13 +611,13 @@ These fluxes are used to set or increment the flux registers.</p>
 </div>
 <div class="section" id="regridding">
 <span id="ss-regridding"></span><h2>Regridding<a class="headerlink" href="#regridding" title="Permalink to this headline">¶</a></h2>
-<p>The regrid function belongs to the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code> class (it is virtual – in this
-tutorial we use the instance in <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>).</p>
+<p>The regrid function belongs to the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code> class (it is virtual – in this
+tutorial we use the instance in <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code>).</p>
 <p>At the beginning of each time step, we check whether we need to regrid.
-In this example, we use a <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">regrid_int</span></span></code> and keep track of how many times each level
-has been advanced. When any given particular level <span class="math">\(\ell&lt;\ell_{\rm max}\)</span> has been
-advanced a multiple of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">regrid_int</span></span></code>, we call the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">regrid</span></span></code> function.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span>
+In this example, we use a <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">regrid_int</span></span></code> and keep track of how many times each level
+has been advanced. When any given particular level <span class="math notranslate">\(\ell&lt;\ell_{\rm max}\)</span> has been
+advanced a multiple of <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">regrid_int</span></span></code>, we call the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">regrid</span></span></code> function.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span>
 <span class="n">AmrCoreAdv</span><span class="o">::</span><span class="n">timeStep</span> <span class="p">(</span><span class="kt">int</span> <span class="n">lev</span><span class="p">,</span> <span class="n">Real</span> <span class="n">time</span><span class="p">,</span> <span class="kt">int</span> <span class="n">iteration</span><span class="p">)</span>
 <span class="p">{</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">regrid_int</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1">// We may need to regrid</span>
@@ -643,11 +643,11 @@ advanced a multiple of <code class="code cpp c++ docutils literal"><span class="
 </pre></div>
 </div>
 <p>Central to the regridding process is the concept of “tagging” which cells need refinement.
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">ErrorEst</span></span></code> is a pure virtual function of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCore</span></span></code>, so each application code must
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ErrorEst</span></span></code> is a pure virtual function of <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCore</span></span></code>, so each application code must
 contain an implementation. In AmrCoreAdv.cpp the ErrorEst function is essentially an
-interface to a Fortran routine that tags cells (in this case, <code class="code fortran docutils literal"><span class="name"><span class="pre">state_error</span></span></code> in
-<code class="docutils literal"><span class="pre">Src_nd/Tagging_nd.f90</span></code>). Note that this code uses tiling.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="c1">// tag all cells for refinement</span>
+interface to a Fortran routine that tags cells (in this case, <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">state_error</span></span></code> in
+<code class="docutils literal notranslate"><span class="pre">Src_nd/Tagging_nd.f90</span></code>). Note that this code uses tiling.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// tag all cells for refinement</span>
 <span class="c1">// overrides the pure virtual function in AmrCore</span>
 <span class="kt">void</span>
 <span class="n">AmrCoreAdv</span><span class="o">::</span><span class="n">ErrorEst</span> <span class="p">(</span><span class="kt">int</span> <span class="n">lev</span><span class="p">,</span> <span class="n">TagBoxArray</span><span class="o">&amp;</span> <span class="n">tags</span><span class="p">,</span> <span class="n">Real</span> <span class="n">time</span><span class="p">,</span> <span class="kt">int</span> <span class="n">ngrow</span><span class="p">)</span>
@@ -720,9 +720,9 @@ interface to a Fortran routine that tags cells (in this case, <code class="code 
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The <code class="code fortran docutils literal"><span class="name"><span class="pre">state_error</span></span></code> subroutine in <code class="docutils literal"><span class="pre">Src_nd/Tagging_nd.f90</span></code> in this example
+<p>The <code class="code fortran docutils literal notranslate"><span class="name"><span class="pre">state_error</span></span></code> subroutine in <code class="docutils literal notranslate"><span class="pre">Src_nd/Tagging_nd.f90</span></code> in this example
 is simple:</p>
-<div class="highlight-fortran"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">state_error</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span><span class="n">tag_lo</span><span class="p">,</span><span class="n">tag_hi</span><span class="p">,</span> <span class="p">&amp;</span>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">subroutine </span><span class="n">state_error</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span><span class="n">tag_lo</span><span class="p">,</span><span class="n">tag_hi</span><span class="p">,</span> <span class="p">&amp;</span>
                        <span class="n">state</span><span class="p">,</span><span class="n">state_lo</span><span class="p">,</span><span class="n">state_hi</span><span class="p">,</span> <span class="p">&amp;</span>
                        <span class="n">set</span><span class="p">,</span><span class="n">clear</span><span class="p">,&amp;</span>
                        <span class="n">lo</span><span class="p">,</span><span class="n">hi</span><span class="p">,&amp;</span>
@@ -764,40 +764,40 @@ is simple:</p>
 <p>The gridding algorithm proceeds in this order, using the parameters described
 in the section on the <a class="reference internal" href="#ss-amrcore"><span class="std std-ref">AmrCore Source Code</span></a>.</p>
 <ol class="arabic simple">
-<li>If at level 0, the domain is initially defined by <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">n_cell</span></span></code>
+<li>If at level 0, the domain is initially defined by <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">n_cell</span></span></code>
 as specified in the inputs file. If at level greater than 0,
 grids are created using the Berger-Rigoutsis clustering algorithm applied to the
 tagged cells from the section&nbsp;on <a class="reference internal" href="#ss-regridding"><span class="std std-ref">Regridding</span></a>, modified to ensure that
-all new fine grids are divisible by <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">blocking_factor</span></span></code>.</li>
-<li>Next, the grid list is chopped up if any grids are larger than <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">max_grid_size</span></span></code>.
-Note that because <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">max_grid_size</span></span></code> is a multiple of <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">blocking_factor</span></span></code>
-(as long as <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">max_grid_size</span></span></code> is greater than <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">blocking_factor</span></span></code>),
+all new fine grids are divisible by <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">blocking_factor</span></span></code>.</li>
+<li>Next, the grid list is chopped up if any grids are larger than <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">max_grid_size</span></span></code>.
+Note that because <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">max_grid_size</span></span></code> is a multiple of <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">blocking_factor</span></span></code>
+(as long as <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">max_grid_size</span></span></code> is greater than <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">blocking_factor</span></span></code>),
 the blocking_factor criterion is still satisfied.</li>
-<li>Next, if <code class="docutils literal"><span class="pre">refine_grid_layout</span> <span class="pre">=</span> <span class="pre">1</span></code> and there are more processors than grids
+<li>Next, if <code class="docutils literal notranslate"><span class="pre">refine_grid_layout</span> <span class="pre">=</span> <span class="pre">1</span></code> and there are more processors than grids
 at this level, then the grids at this level are further divided in order to ensure that
 no processors has less than one grid (at each level).
-In <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrMesh</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">ChopGrids</span></span></code>,<ul>
-<li>if <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">max_grid_size</span></span> <span class="operator"><span class="pre">/</span></span> <span class="literal number integer"><span class="pre">2</span></span></code> in the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BL_SPACEDIM</span></span></code> direction is a multiple of
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">blocking_factor</span></span></code>, then chop the grids in the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BL_SPACEDIM</span></span></code> direction
-so that none of the grids are longer in that direction than <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">max_grid_size</span></span> <span class="operator"><span class="pre">/</span></span> <span class="literal number integer"><span class="pre">2</span></span></code></li>
+In <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrMesh</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">ChopGrids</span></span></code>,<ul>
+<li>if <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">max_grid_size</span></span> <span class="operator"><span class="pre">/</span></span> <span class="literal number integer"><span class="pre">2</span></span></code> in the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BL_SPACEDIM</span></span></code> direction is a multiple of
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">blocking_factor</span></span></code>, then chop the grids in the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BL_SPACEDIM</span></span></code> direction
+so that none of the grids are longer in that direction than <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">max_grid_size</span></span> <span class="operator"><span class="pre">/</span></span> <span class="literal number integer"><span class="pre">2</span></span></code></li>
 <li>If there are still fewer grids than processes, repeat the procedure in the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BL_SPACEDIM</span></span><span class="operator"><span class="pre">-</span></span><span class="literal number integer"><span class="pre">1</span></span></code> direction, and again in the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">BL_SPACEDIM</span></span><span class="operator"><span class="pre">-</span></span><span class="literal number integer"><span class="pre">2</span></span></code> direction if necessary</li>
-<li>If after completing a sweep in all coordinate directions with <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">max_grid_size</span></span> <span class="operator"><span class="pre">/</span></span> <span class="literal number integer"><span class="pre">2</span></span></code>,
-there are still fewer grids than processes, repeat the steps above with <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">max_grid_size</span></span> <span class="operator"><span class="pre">/</span></span> <span class="literal number integer"><span class="pre">4</span></span></code>.</li>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BL_SPACEDIM</span></span><span class="operator"><span class="pre">-</span></span><span class="literal number integer"><span class="pre">1</span></span></code> direction, and again in the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BL_SPACEDIM</span></span><span class="operator"><span class="pre">-</span></span><span class="literal number integer"><span class="pre">2</span></span></code> direction if necessary</li>
+<li>If after completing a sweep in all coordinate directions with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">max_grid_size</span></span> <span class="operator"><span class="pre">/</span></span> <span class="literal number integer"><span class="pre">2</span></span></code>,
+there are still fewer grids than processes, repeat the steps above with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">max_grid_size</span></span> <span class="operator"><span class="pre">/</span></span> <span class="literal number integer"><span class="pre">4</span></span></code>.</li>
 </ul>
 </li>
 </ol>
 </div>
 <div class="section" id="fillpatch">
 <h2>FillPatch<a class="headerlink" href="#fillpatch" title="Permalink to this headline">¶</a></h2>
-<p>This example has two functions, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">FillPatch</span></span></code> and <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">CoarseFillPatch</span></span></code>,
+<p>This example has two functions, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">FillPatch</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">CoarseFillPatch</span></span></code>,
 that make use of functions in AmrCore/AMReX_FillPatchUtil.</p>
-<p>In <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Advance</span></span></code>, we create a temporary <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">MultiFab</span></span></code> called <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Sborder</span></span></code>, which
-is essentially <span class="math">\(\phi\)</span> but with ghost cells filled in. The valid and ghost cells are filled in from
+<p>In <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrCoreAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Advance</span></span></code>, we create a temporary <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFab</span></span></code> called <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Sborder</span></span></code>, which
+is essentially <span class="math notranslate">\(\phi\)</span> but with ghost cells filled in. The valid and ghost cells are filled in from
 actual valid data at that level, space-time interpolated data from the next-coarser level,
 neighboring grids at the same level, or domain boundary conditions
 (for examples that have non-periodic boundary conditions).</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">MultiFab</span> <span class="nf">Sborder</span><span class="p">(</span><span class="n">grids</span><span class="p">[</span><span class="n">lev</span><span class="p">],</span> <span class="n">dmap</span><span class="p">[</span><span class="n">lev</span><span class="p">],</span> <span class="n">S_new</span><span class="p">.</span><span class="n">nComp</span><span class="p">(),</span> <span class="n">num_grow</span><span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">MultiFab</span> <span class="nf">Sborder</span><span class="p">(</span><span class="n">grids</span><span class="p">[</span><span class="n">lev</span><span class="p">],</span> <span class="n">dmap</span><span class="p">[</span><span class="n">lev</span><span class="p">],</span> <span class="n">S_new</span><span class="p">.</span><span class="n">nComp</span><span class="p">(),</span> <span class="n">num_grow</span><span class="p">);</span>
 <span class="n">FillPatch</span><span class="p">(</span><span class="n">lev</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">Sborder</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Sborder</span><span class="p">.</span><span class="n">nComp</span><span class="p">());</span>
 </pre></div>
 </div>

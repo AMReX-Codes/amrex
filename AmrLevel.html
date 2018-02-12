@@ -187,13 +187,13 @@
             
   <div class="section" id="amr-class">
 <h1>Amr Class<a class="headerlink" href="#amr-class" title="Permalink to this headline">¶</a></h1>
-<p>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Amr</span></span></code> class is designed to manage parts of the computation which do
+<p>The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Amr</span></span></code> class is designed to manage parts of the computation which do
 not belong on a single level, like establishing and updating the hierarchy of
 levels, global timestepping, and managing the different AmrLevels.  Most likely
-you will not need to derive any classes from <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Amr</span></span></code>. Our mature application
+you will not need to derive any classes from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Amr</span></span></code>. Our mature application
 codes use this base class without any derived classes.</p>
 <p>One of the most important data members is an array of AmrLevels - the
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">Amr</span></span></code> class calls many functions from the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code> class to do
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">Amr</span></span></code> class calls many functions from the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevel</span></span></code> class to do
 things like advance the solution on a level, compute a time step to be used for
 a level, etc.</p>
 </div>
@@ -201,44 +201,44 @@ a level, etc.</p>
 <h1>AmrLevel Class<a class="headerlink" href="#amrlevel-class" title="Permalink to this headline">¶</a></h1>
 <p>Pure virtual functions include:</p>
 <ul class="simple">
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">computeInitialDt</span></span></code> Compute an array of time steps for each level of
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">computeInitialDt</span></span></code> Compute an array of time steps for each level of
 refinement. Called at the beginning of the simulation.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">computeNewDt</span></span></code> Compute an array of time steps for each level of
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">computeNewDt</span></span></code> Compute an array of time steps for each level of
 refinement. Called at the end of a coarse level advance.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">advance</span></span></code> Advance the grids at a level.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">post_timestep</span></span></code> Work after at time step at a given level. In this
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">advance</span></span></code> Advance the grids at a level.</li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">post_timestep</span></span></code> Work after at time step at a given level. In this
 tutorial we do the AMR synchronization here.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">post_regrid</span></span></code> Work after regridding. In this tutorial we redistribute
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">post_regrid</span></span></code> Work after regridding. In this tutorial we redistribute
 particles.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">post_init</span></span></code> Work after initialization. In this tutorial we perform AMR
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">post_init</span></span></code> Work after initialization. In this tutorial we perform AMR
 synchronization.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">initData</span></span></code> Initialize the data on a given level at the beginning of the
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">initData</span></span></code> Initialize the data on a given level at the beginning of the
 simulation.</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">init</span></span></code> There are two versions of this function used to initialize data
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">init</span></span></code> There are two versions of this function used to initialize data
 on a level during regridding. One version is specifically for the case where
 the level did not previously exist (a newly created refined level)</li>
-<li><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">errorEst</span></span></code> Perform the tagging at a level for refinement.</li>
+<li><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">errorEst</span></span></code> Perform the tagging at a level for refinement.</li>
 </ul>
 <div class="section" id="statedata">
 <h2>StateData<a class="headerlink" href="#statedata" title="Permalink to this headline">¶</a></h2>
-<p>The most important data managed by the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code> is an array of
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">StateData</span></span></code>, which holds the scalar fields, etc., in the boxes that
+<p>The most important data managed by the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevel</span></span></code> is an array of
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">StateData</span></span></code>, which holds the scalar fields, etc., in the boxes that
 together make up the level.</p>
-<p><code class="code cpp c++ docutils literal"><span class="name"><span class="pre">StateData</span></span></code> is a class that essentially holds a pair of MultiFabs: one at
+<p><code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">StateData</span></span></code> is a class that essentially holds a pair of MultiFabs: one at
 the old time and one at the new time. AMReX knows how to interpolate in time
 between these states to get data at any intermediate point in time. The main
 data that we care about in our applications codes (such as the fluid state)
-will be stored as <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">StateData</span></span></code>.  Essentially, data is made <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">StateData</span></span></code>
+will be stored as <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">StateData</span></span></code>.  Essentially, data is made <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">StateData</span></span></code>
 if we need it to be stored in checkpoints/plotfiles, and/or we want it to be
-automatically interpolated when we refine.  An <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevel</span></span></code> stores an array
-of StateData (in a C++ array called <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">state</span></span></code>). We index this array using
+automatically interpolated when we refine.  An <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevel</span></span></code> stores an array
+of StateData (in a C++ array called <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">state</span></span></code>). We index this array using
 integer keys (defined via an enum in, e.g., AmrLevelAdv.H):</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="k">enum</span> <span class="n">StateType</span> <span class="p">{</span> <span class="n">Phi_Type</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">enum</span> <span class="n">StateType</span> <span class="p">{</span> <span class="n">Phi_Type</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
                  <span class="n">NUM_STATE_TYPE</span> <span class="p">};</span>
 </pre></div>
 </div>
-<p>In our tutorial code, we use the function <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevelAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">variableSetup</span></span></code> to
-tell our simulation about the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">StateData</span></span></code> (e.g., how many variables, ghost
+<p>In our tutorial code, we use the function <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevelAdv</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">variableSetup</span></span></code> to
+tell our simulation about the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">StateData</span></span></code> (e.g., how many variables, ghost
 cells, nodality, etc.) Note that if you have more than one StateType, each of
 the different StateData carried in the state array can have different numbers
 of components, ghost cells, boundary conditions, etc. This is the main reason
@@ -248,12 +248,12 @@ an indexable array.</p>
 </div>
 <div class="section" id="levelbld-class">
 <h1>LevelBld Class<a class="headerlink" href="#levelbld-class" title="Permalink to this headline">¶</a></h1>
-<p>The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBld</span></span></code> class is a pure virtual class for defining variable types
+<p>The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">LevelBld</span></span></code> class is a pure virtual class for defining variable types
 and attributes. To more easily understand its usage, refer to the derived
-class, <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">LevelBldAdv</span></span></code> in the tutorial. The <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">variableSetUp</span></span></code> and
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">variableCleanUp</span></span></code> are implemented, and in this tutorial call routines in
-the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">AmrLevelAdv</span></span></code> class, e.g.,</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="kt">void</span>
+class, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">LevelBldAdv</span></span></code> in the tutorial. The <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">variableSetUp</span></span></code> and
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">variableCleanUp</span></span></code> are implemented, and in this tutorial call routines in
+the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">AmrLevelAdv</span></span></code> class, e.g.,</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span>
 <span class="n">AmrLevelAdv</span><span class="o">::</span><span class="n">variableSetUp</span> <span class="p">()</span>
 <span class="p">{</span>
     <span class="n">BL_ASSERT</span><span class="p">(</span><span class="n">desc_lst</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
@@ -278,14 +278,14 @@ the <code class="code cpp c++ docutils literal"><span class="name"><span class="
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>We see how to define the <code class="code cpp c++ docutils literal"><span class="name"><span class="pre">StateType</span></span></code>, including nodality, whether or not
+<p>We see how to define the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">StateType</span></span></code>, including nodality, whether or not
 we want the variable to represent a point in time or an interval over time
 (useful for returning the time associated with data), the number of ghost
 cells, number of components, and the interlevel interpolation (See
 AMReX_Interpolator for various interpolation types. We also see how to specify
 physical boundary functions by providing a function (in this case,
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">nullfill</span></span></code> since we are not using physical boundary conditions), where
-<code class="code cpp c++ docutils literal"><span class="name"><span class="pre">nullfill</span></span></code> is defined in a fortran routine in the tutorial source code.</p>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">nullfill</span></span></code> since we are not using physical boundary conditions), where
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">nullfill</span></span></code> is defined in a fortran routine in the tutorial source code.</p>
 </div>
 <div class="section" id="example-advection-amrlevel">
 <h1>Example: Advection_AmrLevel<a class="headerlink" href="#example-advection-amrlevel" title="Permalink to this headline">¶</a></h1>
@@ -302,16 +302,16 @@ physical boundary functions by providing a function (in this case,
 <li>Amr/</li>
 </ul>
 </li>
-<li><code class="docutils literal"><span class="pre">Advection_AmrLevel/Src</span></code> Source code specific to this example. Most notably
-is the AmrLevelAdv class, which is derived from AmrLevel. The subdirectories <code class="docutils literal"><span class="pre">Src_2d</span></code>
-and <code class="docutils literal"><span class="pre">Src_3d</span></code> contain dimension specific routines. <code class="docutils literal"><span class="pre">Src_nd</span></code> contains dimension-independent routines.</li>
+<li><code class="docutils literal notranslate"><span class="pre">Advection_AmrLevel/Src</span></code> Source code specific to this example. Most notably
+is the AmrLevelAdv class, which is derived from AmrLevel. The subdirectories <code class="docutils literal notranslate"><span class="pre">Src_2d</span></code>
+and <code class="docutils literal notranslate"><span class="pre">Src_3d</span></code> contain dimension specific routines. <code class="docutils literal notranslate"><span class="pre">Src_nd</span></code> contains dimension-independent routines.</li>
 <li>Exec Contains a makefile so a user can write other examples besides SingleVortex and UniformVelocity.</li>
 <li>SingleVortex and UniformVelocity
 Build the code here by editing the GNUmakefile and running make. There
 is also problem-specific source code here used for initialization or specifying the velocity field used in this
 simulation.</li>
 </ul>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="cm">/* Advection_AmrLevel Pseudocode */</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/* Advection_AmrLevel Pseudocode */</span>
 <span class="n">main</span><span class="p">()</span>
   <span class="n">Amr</span> <span class="n">amr</span><span class="p">;</span>
   <span class="n">amr</span><span class="p">.</span><span class="n">init</span><span class="p">()</span>
@@ -332,14 +332,14 @@ simulation.</li>
 <div class="section" id="particles">
 <h1>Particles<a class="headerlink" href="#particles" title="Permalink to this headline">¶</a></h1>
 <p>There is an option to turn on passively advected particles. In the GNUmakefile,
-add the line <code class="docutils literal"><span class="pre">USE_PARTICLES</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> and build the code
-(do a <code class="docutils literal"><span class="pre">make</span> <span class="pre">realclean</span> <span class="pre">first</span></code>).
-In the inputs file, add the line <code class="docutils literal"><span class="pre">adv.do_tracers</span> <span class="pre">=</span> <span class="pre">1</span></code>.
+add the line <code class="docutils literal notranslate"><span class="pre">USE_PARTICLES</span> <span class="pre">=</span> <span class="pre">TRUE</span></code> and build the code
+(do a <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">realclean</span> <span class="pre">first</span></code>).
+In the inputs file, add the line <code class="docutils literal notranslate"><span class="pre">adv.do_tracers</span> <span class="pre">=</span> <span class="pre">1</span></code>.
 When you run the code, within each plotfile directory there will be a subdirectory
 called “Tracer”.</p>
 <p>Copy the files from amrex/Tools/Py_util/amrex_particles_to_vtp into
 the run directory and type, e.g.,</p>
-<div class="highlight-console"><div class="highlight"><pre><span></span><span class="go">python amrex_binary_particles_to_vtp.py plt00000 Tracer</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python amrex_binary_particles_to_vtp.py plt00000 Tracer</span>
 </pre></div>
 </div>
 <p>To generate a vtp file you can open with ParaView&nbsp;(Refer to the chapter on <a class="reference internal" href="Chapter11.html#chap-visualization"><span class="std std-ref">Visualization</span></a>).</p>
