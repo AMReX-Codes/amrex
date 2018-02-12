@@ -94,7 +94,7 @@ private:
     void timeStep (int lev, amrex::Real time, int iteration);
 
     // advance a single level for a single time step, updates flux registers
-    void Advance (int lev, amrex::Real time, amrex::Real dt, int iteration, int ncycle);
+    void Advance (int lev, amrex::Real time, amrex::Real dt_lev, int iteration, int ncycle);
 
     // a wrapper for EstTimeStep(0
     void ComputeDt ();
@@ -113,6 +113,15 @@ private:
 
     // write plotfile to disk
     void WritePlotFile () const;
+
+    // write checkpoint file to disk
+    void WriteCheckpointFile () const;
+
+    // read checkpoint file from disk
+    void ReadCheckpointFile ();
+
+    // utility to skip to next line in Header
+    static void GotoNextLine (std::istream& is);
 
     ////////////////
     // private data members
@@ -149,6 +158,9 @@ private:
     int max_step = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
 
+    // if >= 0 we restart from a checkpoint
+    std::string restart_chkfile = "";
+
     // advective cfl number - dt = cfl*dx/umax
     amrex::Real cfl = 0.7;
 
@@ -162,6 +174,10 @@ private:
     // plotfile prefix and frequency
     std::string plot_file {"plt"};
     int plot_int = -1;
+
+    // checkpoint prefix and frequency
+    std::string chk_file {"chk"};
+    int chk_int = -1;
 };
 
 #endif
