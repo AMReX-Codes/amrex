@@ -518,6 +518,19 @@ namespace amrex
       
     }
 
+    void writeFabs (const MultiFab& mf, const std::string& name)
+    {
+        writeFabs (mf, 0, mf.nComp(), name);
+    }
+
+    void writeFabs (const MultiFab& mf, int comp, int ncomp, const std::string& name)
+    {
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            std::ofstream ofs(name+"-fab-"+std::to_string(mfi.index()));
+            mf[mfi].writeOn(ofs, comp, ncomp);
+        }
+    }
+
     MultiFab ToMultiFab (const iMultiFab& imf)
     {
         MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow(),

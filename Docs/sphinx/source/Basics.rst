@@ -11,7 +11,7 @@ Example: HeatEquation_EX1_C
 
 The source code tree for the heat equation example is simple, as shown in
 :numref:`fig:Basics_Heat_flowchart`. We recommend you study
-main.cpp and advance.cpp to see some of the classes described
+``main.cpp`` and ``advance.cpp`` to see some of the classes described
 below in action.
 
 .. raw:: latex
@@ -29,13 +29,184 @@ below in action.
 
 Source code tree for the HeatEquation_EX1_C example
 
+    amrex/Src/Base
+        Contains source code for single-level simulations.  Note that in
+        ``amrex/Src`` there are many sub-directories, e.g., ``Base``,
+        ``Amr``, ``AmrCore``, ``LinearSolvers``, etc.  In this tutorial
+        the only source code directory we need is ``Base``.
 
-    amrex/Src/Base/
-        Contains source code for single-level simulations.
+    amrex/Tutorials/HeatEquation_EX1_C/Source
+        Contains the following source code specific to this tutorial:
+        
+        #. ``Make.package``: lists the source code files
+        #. ``main.cpp``: contains the C++ ``main`` function
+        #. ``advance.cpp``: advance the solution by a time step
+        #. ``init_phi_Xd.f90, advance_Xd.f90``: fortran work functions used to initialize
+           and advance the solution
+        #. ``myfunc.H``: header file for C++ functions
+        #. ``myfunc_F.H``: header file for fortran90 functions that are called in .cpp files
 
-    amrex/Tutorials/HeatEquation_EX1_C
-        Build the code here by editing the GNUmakefile and running make.
+    amrex/Tutorials/HeatEquation_EX1_C/Exec
+        This is where you build the code with make.  There is a a GNUmakefile
+        and inputs files, inputs_2d and inputs_3d.
 
+Now we highlight a few key sections of the code.  In ``main.cpp`` we demonstrate
+how to read in parameters from the inputs file:
+
+.. highlight:: c++
+
+::
+
+    // inputs parameters
+    {
+        // ParmParse is way of reading inputs from the inputs file
+        ParmParse pp;
+
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        //   a square (or cubic) domain.
+        pp.get("n_cell",n_cell);
+
+        // The domain is broken into boxes of size max_grid_size
+        pp.get("max_grid_size",max_grid_size);
+
+        // Default plot_int to -1, allow us to set it to something else in the inputs file
+        //  If plot_int < 0 then no plot files will be writtenq
+        plot_int = -1;
+        pp.query("plot_int",plot_int);
+
+        // Default nsteps to 0, allow us to set it to something else in the inputs file
+        nsteps = 10;
+        pp.query("nsteps",nsteps);
+
+        pp.queryarr("is_periodic", is_periodic);
+    }
+
+In ``main.cpp`` we demonstrate how to define a ``Box`` for the problem domain,
+and then how to chop that ``Box`` up into multiple boxes that define
+a ``BoxArray``  We also define a ``Geometry`` object that knows about
+the problem domain, the physical coordinates of the box, and the periodicity:
+
+::
+
+    // make BoxArray and Geometry
+    BoxArray ba;
+    Geometry geom;
+    {
+        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+        Box domain(dom_lo, dom_hi);
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba.define(domain);
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        ba.maxSize(max_grid_size);
+
+       // This defines the physical box, [-1,1] in each direction.
+        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+
+        // This defines a Geometry object
+        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    }
+
+In ``main.cpp`` we demonstrate how to build a ``DistributionMapping`` from
+the ``BoxArray``, and then build ``MultiFabs`` with a desired number of components
+and ghost cells associated with each grid:
+
+::
+
+    // Nghost = number of ghost cells for each array 
+    int Nghost = 1;
+    
+    // Ncomp = number of components for each array
+    int Ncomp  = 1;
+  
+    // How Boxes are distrubuted among MPI processes
+    DistributionMapping dm(ba);
+
+    // we allocate two phi multifabs; one will store the old state, the other the new.
+    MultiFab phi_old(ba, dm, Ncomp, Nghost);
+    MultiFab phi_new(ba, dm, Ncomp, Nghost);
+
+We demonstrate how to build an array of face-based ``MultiFabs`` :
+
+::
+
+    // build the flux multifabs
+    std::array<MultiFab, AMREX_SPACEDIM> flux;
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+    {
+        // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
+        BoxArray edge_ba = ba;
+        edge_ba.surroundingNodes(dir);
+        flux[dir].define(edge_ba, dm, 1, 0);
+    }
+
+To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each processor
+loops over grids it owns to access and/or modify data on that grid:
+
+::
+
+    // Initialize phi_new by calling a Fortran routine.
+    // MFIter = MultiFab Iterator
+    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+    {
+        const Box& bx = mfi.validbox();
+
+        init_phi(BL_TO_FORTRAN_BOX(bx),
+                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
+                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+    }
+
+Note that these calls to fortran subroutines require a header
+in ``myfunc_F.H``:
+
+::
+
+    void init_phi(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+
+The associated fortran routines must shape the data accordinly:
+
+::
+
+ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
+
+   use amrex_fort_module, only : amrex_real
+
+   implicit none
+
+   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
+   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
+   real(amrex_real), intent(in   ) :: dx(2) 
+   real(amrex_real), intent(in   ) :: prob_lo(2) 
+   real(amrex_real), intent(in   ) :: prob_hi(2) 
+
+   integer          :: i,j
+   double precision :: x,y,r2
+
+   do j = lo(2), hi(2)
+      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
+      do i = lo(1), hi(1)
+         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
+
+         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
+
+         phi(i,j) = 1.d0 + exp(-r2)
+
+      end do
+   end do
+
+ end subroutine init_phi
+
+Ghost cells are filled using the ``FillBoundary`` function:
+
+::
+
+    // Fill the ghost cells of each grid from the other grids
+    // includes periodic domain boundaries
+    phi_old.FillBoundary(geom.periodicity());
 
 .. _sec:basics:dim:
 
@@ -1875,213 +2046,6 @@ AMReX does provide support for some common operations.
 See the section on :ref:`sec:basics:boundary` for a discussion on domain
 boundary conditions in general, including how to implement
 physical (non-periodic) boundary conditions.
-
-
-I/O
-===
-
-In this section, we will discuss parallel I/O capabilities for mesh
-data in AMReX. The section on :ref:`sec:Particles:IO` will discuss I/O for
-particle data.
-
-Plotfile
---------
-
-AMReX has its own native plotfile format. Many visualization tools are
-available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`). 
-AMReX provides the following two functions for writing a generic AMReX plotfile.
-Many AMReX application codes may have their own plotfile routines that store
-additional information such as compiler options, git hashes of the
-source codes and :cpp:`ParmParse` runtime parameters.
-
-.. highlight:: c++
-
-::
-
-      void WriteSingleLevelPlotfile (const std::string &plotfilename,
-                                     const MultiFab &mf,
-                                     const Vector<std::string> &varnames,
-                                     const Geometry &geom,
-                                     Real time,
-                                     int level_step);
-
-      void WriteMultiLevelPlotfile (const std::string &plotfilename,
-                                    int nlevels,
-                                    const Vector<const MultiFab*> &mf,
-                                    const Vector<std::string> &varnames,
-                                    const Vector<Geometry> &geom,
-                                    Real time,
-                                    const Vector<int> &level_steps,
-                                    const Vector<IntVect> &ref_ratio);
-
-:cpp:`WriteSingleLevelPlotfile` is for single level runs and
-:cpp:`WriteMultiLevelPlotfile` is for multiple levels. The name of the
-plotfile is specified by the plotfilename argument. This is the
-top level directory name for the plotfile. In AMReX convention, the
-plotfile name consist of letters followed by numbers (e.g.,
-plt00258). :cpp:`amrex::Concatenate` is a useful helper function for
-making such strings.
-
-.. highlight:: c++
-
-::
-
-      int istep = 258;
-      const std::string& pfname = amrex::Concatenate("plt",istep); // plt00258
-
-      // By default there are 5 digits, but we can change it to say 4.
-      const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258  
-
-      istep =1234567;  // Having more than 5 digits is OK.
-      const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
-
-The argument :cpp:`mf` above (:cpp:`MultiFab` for single level and
-:cpp:`Vector<const MultiFab*>` for multi-level) is the data to be written
-to the disk. Note that many visualization tools expect this to be
-cell-centered data. So for nodal data, we need to convert them to
-cell-centered data through some kind of averaging. Also note that if
-you have data at each AMR level in several MultiFabs, you need
-to build a new MultiFab at each level to hold all the data on
-that level. This involves local data copy in memory and is not
-expected to significantly increase the total wall time for writing
-plotfiles. For the multi-level version, the function expects
-:cpp:`Vector<const MultiFab*>`, whereas the multi-level data are often
-stored as :cpp:`Vector<std::unique_ptr<MultiFab>>`. AMReX has a
-helper function for this and one can use it as follows,
-
-.. highlight:: c++
-
-::
-
-       WriteMultiLevelPlotfile(......, amrex::GetVecOfConstPtrs(mf), ......);
-
-The argument :cpp:`varnames` has the names for each component of the
-MultiFab data. The size of the Vector should be equal to the
-number of components. The argument :cpp:`geom` is for passing
-:cpp:`Geometry` objects that contain the physical domain
-information. The argument :cpp:`time` is for the time associated with the
-data. The argument :cpp:`level_step` is for the current time step
-associated with the data. For multi-level plotfiles, the argument
-:cpp:`nlevels` is the total number of levels, and we also need to provide
-the refinement ratio via an :cpp:`Vector` of size nlevels-1.
-
-We note that AMReX does not overwrite old plotfiles if the new
-plotfile has the same name. The old plotfiles will be renamed to
-new directories named like plt00350.old.46576787980.
-
-Checkpoint File
----------------
-
-Checkpoint files are used for restarting simulations from where the
-checkpoints are written. Each application code has its own set of
-data needed for restart. AMReX provides I/O functions for basic
-data structures like :cpp:`MultiFab` and :cpp:`BoxArray`. These
-functions can be used to build codes for reading and writing
-checkpoint files. Since each application code has its own
-requirement, there is no standard AMReX checkpoint format.
-
-Typically a checkpoint file is a directory containing some text files
-and sub-directories (e.g., Level_0 and Level_1)
-containing various data. It is a good idea that we fist make these
-directories ready for subsequently writing to the disk. For example,
-to build directories chk00016, chk00016/Level_0, and
-chk00016/Level_1, we do
-
-.. highlight:: c++
-
-::
-
-      const std::string& chkname {"chk00016"};
-      const std::string& subDirPrefix {"Level_"};
-      const int nSubDirs = 2;
-      const bool callBarrier = true; // Parallel barrier after directories are built.
-      PreBuildDirectorHierarchy(chkname, subDirPrefix, nSubDirs, callBarrier);
-
-A checkpoint file of AMReX application codes often has a clear text
-Header file that only the I/O process writes to it using
-:cpp:`std::ofstream`. The Header file contains information such as
-the time, the physical domain size, grids, etc. that are necessary for
-restarting the simulation. To guarantee that precision is not lost
-for storing floating point number like time in clear text file, the
-file stream’s precision needs to be set properly. And a stream buffer
-can also be used. For example,
-
-.. highlight:: c++
-
-::
-
-      if (ParallelDescriptor::IOProcessor())
-      {
-          const std::string& chkname = "chk00016";
-          std::string HeaderFileName(chkname+"/Header");
-          std::ofstream HeaderFile(HeaderFileName.c_str(),
-               std::ofstream::out | std::ofstream::trunc | std::ofstream::binary);
-          HeaderFile.precision(std::numeric_limits<Real>::max_digits10);
-          VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-          HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-          HeaderFile << "Checkpoint version 1.0\n";
-          HeaderFile << time << "\n";
-          HeaderFile << domain_box << "\n";
-          // HeaderFile << ......;
-          box_array.writeOn(HeaderFile); // write BoxArray
-          // HeaderFile << ......;
-      }
-
-For reading the Header file, AMReX can have the I/O process
-read the file from the disk and broadcast it to others as
-:cpp:`Vector<char>`. Then all processes can read the information with
-:cpp:`std::istringstream`. For example,
-
-.. highlight:: c++
-
-::
-
-      std::string HeaderFileName {"chk00016/Header"};
-      Vector<char> fileChar;
-      ParallelDescriptor::ReadAndBcastFile(HeaderFileName, fileChar);
-      std::istringstream is(std::string{fileChar.data()}, std::istringstream::in);
-      // is >> ....;
-      BoxArray ba;
-      ba.readFrom(is);
-      // is >> ....;
-
-:cpp:`amrex::VisMF` is a class that can be used to perform
-MultiFab I/O in parallel. How many processes are allowed to
-perform I/O simultaneously can be set via
-
-::
-
-      VisMF::SetNOutFiles(64);  // up to 64 processes, which is also the default.
-
-The optimal number is of course system dependent. The following code
-shows how to write and read a :cpp:`MultiFab`.
-
-.. highlight:: c++
-
-::
-
-      const std::string name {"state"};
-
-      VisMF::Write(mf, name);  // Write MultiFab to disk
-
-      // Read the data to a new MultiFab
-      // WARNING: mf2 may have a completely different DistributionMapping!
-      MultiFab mf2;
-      VisMF::Read(mf2, name);
-
-      // Read the data to a MultiFab with identical
-      // BoxArray, DistributionMapping, and number of components and ghost cells.
-      MultiFab mf3(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
-      VisMF::Read(mf3, name);
-
-It should be emphasized that calling :cpp:`VisMF::Read` with an empty
-:cpp:`MultiFab` (i.e., no memory allocated for floating point data)
-will result in a :cpp:`MultiFab` with a new :cpp:`DistributionMapping`
-that could be different from any other existing
-:cpp:`DistributionMapping` objects. It should also be noted that all the
-data including those in ghost cells are written/read by
-VisMF::Write/Read.
 
 Memory Allocation
 =================
