@@ -37,6 +37,7 @@ at https://github.com/AMReX-Codes/amrex
    Chapter4
    Chapter5
    Chapter6
+   Chapter6a
    Chapter7
    Chapter8
    Chapter9
