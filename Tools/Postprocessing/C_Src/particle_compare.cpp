@@ -258,7 +258,7 @@ std::string getDataFileName(const std::string& prefix, int level, int file_num) 
     std::stringstream ss;
     ss << prefix << "/Level_" << level << "/DATA_";
     ss << std::setfill('0');
-    ss << std::setw(4);
+    ss << std::setw(5);
     ss << file_num;
     return ss.str();
 }

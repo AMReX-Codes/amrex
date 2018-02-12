@@ -84,6 +84,7 @@ namespace amrex
 
     EBISLevel()
       {
+        m_alreadyCheckedForMVCells = false;
       }
 
     ///
@@ -122,6 +123,22 @@ namespace amrex
       {
         return m_domain;
       }
+
+    ///return true if this refinement contains multivalued cells.
+    /**
+       if this has not been called before, this generates a blocking communication
+     */
+    bool hasMultiValuedCells() const
+      {
+        if(!m_alreadyCheckedForMVCells)
+        {
+          checkForMultiValuedCells();
+        }
+        return m_hasMultiValuedCells;
+      }
+    
+    ///
+    void checkForMultiValuedCells() const;
 
     ///
     void fixRegularNextToMultiValued();
@@ -173,6 +190,10 @@ namespace amrex
     ///
     bool m_build_eb_surface;
 
+    //only generated if needed (ergo mutable).
+    mutable bool m_hasMultiValuedCells;
+
+    bool m_alreadyCheckedForMVCells;
     void defineFromGeometryService(const GeometryService &  a_geoserver);
     void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);
 

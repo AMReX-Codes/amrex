@@ -233,7 +233,6 @@ BoxArray
 MLCellLinOp::makeNGrids (int grid_size) const
 {
     const Box& dombx = m_geom[0].back().Domain();
-    const IntVect& domsz = dombx.size();
 
     const BoxArray& old_ba = m_grids[0].back();
     const int N = old_ba.size();
