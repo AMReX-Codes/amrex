@@ -48,7 +48,7 @@ module amrex_mlnodelap_2d_module
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_connection, &
-       amrex_mlndlap_vel_cc_to_ct, amrex_mlndlap_mknewu_eb, &
+       amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, &
        amrex_mlndlap_adotx_aa_eb, amrex_mlndlap_jacobi_aa_eb
 #endif
 
@@ -1450,12 +1450,13 @@ contains
 
 #ifdef AMREX_USE_EB
 
-  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, flag, flo, fhi, &
+  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
        vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, bcen, blo, bhi) &
        bind(c,name='amrex_mlndlap_set_connection')
-    use amrex_ebcellflag_module, only : is_single_valued_cell, is_covered_cell
-    integer, dimension(2) :: lo, hi, clo, chi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
+    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
+    integer, dimension(2) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
     real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2),2)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
     real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2))
     real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2))
@@ -1466,14 +1467,21 @@ contains
     real(amrex_real) :: Sx, Sx2, Sy, Sy2 ! integral of x, x2, y, and y2
     real(amrex_real) :: axm, axp, aym, ayp, apnorm, apnorminv, anrmx, anrmy, bcx, bcy
     real(amrex_real) :: xmin, xmax, ymin, ymax
+    real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (is_covered_cell(flag(i,j))) then
 
              conn(i,j,:) = 0.d0
+             intg(i,j,:) = 0.d0
 
-          else if (is_single_valued_cell(flag(i,j))) then
+          else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
+
+             conn(i,j,:) = 1.d0
+             intg(i,j,2) = 0.d0
+
+          else
 
              axm = ax(i,j)
              axp = ax(i+1,j)
@@ -1502,7 +1510,7 @@ contains
                 if (anrmx .gt. 0.d0) then
                    xmin = -0.5d0 + min(aym,ayp)
                    xmax = -0.5d0 + max(aym,ayp)
-                else if (anrmx .lt. 0.d0) then
+                else
                    xmin = 0.5d0 - max(aym,ayp)
                    xmax = 0.5d0 - min(aym,ayp)
                 end if
@@ -1520,7 +1528,7 @@ contains
                 if (anrmy .gt. 0.d0) then
                    ymin = -0.5d0 + min(axm,axp)
                    ymax = -0.5d0 + max(axm,axp)
-                else if (anrmy .lt. 0.d0) then
+                else
                    ymin = 0.5d0 - max(axm,axp)
                    ymax = 0.5d0 - min(axm,axp)
                 end if
@@ -1545,132 +1553,73 @@ contains
 
              ! For d/dy of (i,j  ) & (i+1,j  )
              !             (i,j+1) & (i+1,j+1)
-             !             
              !             (i  ,j) & (i+1,j+1)
              !             (i+1,j) & (i  ,j+1)
              conn(i,j,5) = 1.5d0*vol(i,j) - 6.d0*Sx2
 
              ! For d/dy of (i+1,j) and (i+1,j+1)
              conn(i,j,6) = 3.d0*Sx2 + 3.d0*Sx + 0.75d0*vol(i,j)
+
+             intg(i,j,1) = Sx
+             intg(i,j,2) = Sy
           end if
        end do
     end do
   end subroutine amrex_mlndlap_set_connection
 
 
-  subroutine amrex_mlndlap_vel_cc_to_ct (lo, hi, vel, vlo, vhi, ovel, olo, ohi, vfrac, flo, fhi, &
-       cent, clo, chi, flag, glo, ghi) bind(c,name='amrex_mlndlap_vel_cc_to_ct')
-    use amrex_ebcellflag_module, only : get_neighbor_cells, is_single_valued_cell, is_covered_cell, &
-         is_regular_cell
-    integer, dimension(2), intent(in) :: lo, hi, vlo, vhi, olo, ohi, flo, fhi, clo, chi, glo, ghi
-    real(amrex_real), intent(inout) ::   vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
-    real(amrex_real), intent(in   ) ::  ovel(olo(1):ohi(1),olo(2):ohi(2),2)
+  subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
+       intg, glo, ghi, msk, mlo, mhi, dxinv) &
+       bind(c,name='amrex_mlndlap_divu_eb')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, flo, fhi, glo, ghi, mlo, mhi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
     real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1),flo(2):fhi(2))
-    real(amrex_real), intent(in   ) ::  cent(clo(1):chi(1),clo(2):chi(2),2)
-    integer         , intent(in   ) ::  flag(glo(1):ghi(1),glo(2):ghi(2))
+    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),2)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    integer :: nbr(-1:1,-1:1)
-    real(amrex_real) :: dvxdx, dvxdy, dvydx, dvydy
+    real(amrex_real) :: facx, facy
+
+    facx = 0.5d0*dxinv(1)
+    facy = 0.5d0*dxinv(2)
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (.not.is_regular_cell(flag(i,j))) then
-             if (is_covered_cell(flag(i,j))) then
-                vel(i,j,1) = 0.d0
-                vel(i,j,2) = 0.d0
-             else
-                call get_neighbor_cells(flag(i,j), nbr)
-
-#if 1
-                if (cent(i,j,1) .gt. 0.d0) then
-                   if (nbr(1,0) .eq. 1) then
-                      dvxdx = ovel(i+1,j,1)-ovel(i,j,1)
-                      dvydx = ovel(i+1,j,2)-ovel(i,j,2)                   
-                   else
-                      dvxdx = 0.d0
-                      dvydx = 0.d0
-                   end if
-                else
-                   if (nbr(-1,0) .eq. 1) then
-                      dvxdx = ovel(i,j,1)-ovel(i-1,j,1)
-                      dvydx = ovel(i,j,2)-ovel(i-1,j,2)
-                   else
-                      dvxdx = 0.d0
-                      dvydx = 0.d0
-                   end if
-                end if
-
-                if (cent(i,j,2) .gt. 0.d0) then
-                   if (nbr(0,1) .eq. 1) then
-                      dvxdy = ovel(i,j+1,1)-ovel(i,j,1)
-                      dvydy = ovel(i,j+1,2)-ovel(i,j,2)
-                   else
-                      dvxdy = 0.d0
-                      dvydy = 0.d0
-                   end if
-                else
-                   if (nbr(0,-1) .eq. 1) then
-                      dvxdy = ovel(i,j,1)-ovel(i,j-1,1)
-                      dvydy = ovel(i,j,2)-ovel(i,j-1,2)
-                   else
-                      dvxdy = 0.d0
-                      dvydy = 0.d0
-                   end if
-                end if
-#else
-                if (nbr(-1,0) .eq. 1 .and. nbr(1,0) .eq. 1) then
-                   dvxdx = 0.5d0*(ovel(i+1,j,1)-ovel(i-1,j,1))
-                   dvydx = 0.5d0*(ovel(i+1,j,2)-ovel(i-1,j,2))
-                else if (nbr(-1,0) .eq. 1) then
-                   dvxdx = ovel(i,j,1)-ovel(i-1,j,1)
-                   dvydx = ovel(i,j,2)-ovel(i-1,j,2)
-                else if (nbr(1,0) .eq. 1) then
-                   dvxdx = ovel(i+1,j,1)-ovel(i,j,1)
-                   dvydx = ovel(i+1,j,2)-ovel(i,j,2)
-                else
-                   dvxdx = 0.d0
-                   dvydx = 0.d0
-                end if
-
-                if (nbr(0,-1) .eq. 1 .and. nbr(0,1) .eq. 1) then
-                   dvxdy = 0.5d0*(ovel(i,j+1,1)-ovel(i,j-1,1))
-                   dvydy = 0.5d0*(ovel(i,j+1,2)-ovel(i,j-1,2))
-                else if (nbr(0,-1) .eq. 1) then
-                   dvxdy = ovel(i,j,1)-ovel(i,j-1,1)
-                   dvydy = ovel(i,j,2)-ovel(i,j-1,2)
-                else if (nbr(0,1) .eq. 1) then
-                   dvxdy = ovel(i,j+1,1)-ovel(i,j,1)
-                   dvydy = ovel(i,j+1,2)-ovel(i,j,2)
-                else
-                   dvxdy = 0.d0
-                   dvydy = 0.d0
-                end if
-#endif
-
-                !xxxxx
-                vel(i,j,1) = vfrac(i,j)*(ovel(i,j,1) + cent(i,j,1)*dvxdx + cent(i,j,2)*dvxdy)
-                vel(i,j,2) = vfrac(i,j)*(ovel(i,j,2) + cent(i,j,1)*dvydx + cent(i,j,2)*dvydy)
-                vel(i,j,1) = vfrac(i,j)*ovel(i,j,1)
-                vel(i,j,2) = vfrac(i,j)*ovel(i,j,2)
-             end if
+          if (msk(i,j) .ne. dirichlet) then
+             rhs(i,j) = facx*(-vel(i-1,j-1,1)*(vfrac(i-1,j-1)+2.d0*intg(i-1,j-1,2)) &
+                  &           +vel(i  ,j-1,1)*(vfrac(i  ,j-1)+2.d0*intg(i  ,j-1,2)) &
+                  &           -vel(i-1,j  ,1)*(vfrac(i-1,j  )-2.d0*intg(i-1,j  ,2)) &
+                  &           +vel(i  ,j  ,1)*(vfrac(i  ,j  )-2.d0*intg(i  ,j  ,2))) &
+                  &   + facy*(-vel(i-1,j-1,2)*(vfrac(i-1,j-1)+2.d0*intg(i-1,j-1,1)) &
+                  &           -vel(i  ,j-1,2)*(vfrac(i  ,j-1)-2.d0*intg(i  ,j-1,1)) &
+                  &           +vel(i-1,j  ,2)*(vfrac(i-1,j  )+2.d0*intg(i-1,j  ,1)) &
+                  &           +vel(i  ,j  ,2)*(vfrac(i  ,j  )-2.d0*intg(i  ,j  ,1)))
+          else
+             rhs(i,j) = 0.d0
           end if
        end do
     end do
-  end subroutine amrex_mlndlap_vel_cc_to_ct
+
+  end subroutine amrex_mlndlap_divu_eb
 
 
   subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
-       vfrac, vlo, vhi, cent, clo, chi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
-    integer, dimension(2), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi, clo, chi
+       vfrac, vlo, vhi, intg, glo, ghi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
+    integer, dimension(2), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi, glo, ghi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),2)
     real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
     real(amrex_real), intent(in   )::vfrac(vlo(1):vhi(1),vlo(2):vhi(2))
-    real(amrex_real), intent(in   ):: cent(clo(1):chi(1),clo(2):chi(2),2)
+    real(amrex_real), intent(in   ) ::intg(glo(1):ghi(1),glo(2):ghi(2),2)
 
     integer :: i, j
+    real(amrex_real) :: dpdx, dpdy, facx, facy, dpp
+
+    facx = 0.5d0*dxinv(1)
+    facy = 0.5d0*dxinv(2)
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
@@ -1678,16 +1627,11 @@ contains
              u(i,j,1) = 0.d0
              u(i,j,2) = 0.d0
           else
-             u(i,j,1) = u(i,j,1) - dxinv(1)*sig(i,j)* &
-                  ( p(i  ,j  ) * ( cent(i,j,2)-0.5d0) &
-                  + p(i+1,j  ) * (-cent(i,j,2)+0.5d0) &
-                  + p(i  ,j+1) * (-cent(i,j,2)-0.5d0) &
-                  + p(i+1,j+1) * ( cent(i,j,2)+0.5d0))
-             u(i,j,2) = u(i,j,2) - dxinv(2)*sig(i,j)* &
-                  ( p(i  ,j  ) * ( cent(i,j,1)-0.5d0) &
-                  + p(i+1,j  ) * (-cent(i,j,1)-0.5d0) &
-                  + p(i  ,j+1) * (-cent(i,j,1)+0.5d0) &
-                  + p(i+1,j+1) * ( cent(i,j,1)+0.5d0))
+             dpdx = facx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
+             dpdy = facy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
+             dpp = (p(i,j)+p(i+1,j+1)-p(i+1,j)-p(i,j+1))/vfrac(i,j)
+             u(i,j,1) = u(i,j,1) - sig(i,j)*(dpdx + dxinv(1)*intg(i,j,2)*dpp)
+             u(i,j,2) = u(i,j,2) - sig(i,j)*(dpdy + dxinv(2)*intg(i,j,1)*dpp)
           end if
        end do
     end do
@@ -1721,9 +1665,9 @@ contains
              fmp = sig(i-1,j  )*(facx*conn(i-1,j  ,2)+facy*conn(i-1,j  ,5))
              fpp = sig(i  ,j  )*(facx*conn(i  ,j  ,2)+facy*conn(i  ,j  ,5))
              fm0 =  sig(i-1,j-1)*(2.d0*facx*conn(i-1,j-1,3) &
-                  &                  -facy*conn(i-1,j-1,5)) &
+                  &                   -facy*conn(i-1,j-1,5)) &
                   + sig(i-1,j  )*(2.d0*facx*conn(i-1,j  ,1) &
-                  &                  -facy*conn(i-1,j  ,5))
+                  &                   -facy*conn(i-1,j  ,5))
              fp0 =  sig(i  ,j-1)*(2.d0*facx*conn(i  ,j-1,3) &
                   &                   -facy*conn(i  ,j-1,5)) &
                   + sig(i  ,j  )*(2.d0*facx*conn(i  ,j  ,1) &
