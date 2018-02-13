@@ -7,8 +7,9 @@ them to visualize your data. A very useful feature is View/Dataset, which
 allows you to actually view the numbers in a spreadsheet that is nested to
 reflect the AMR hierarchy – this can be handy for debugging. You can modify how
 many levels of data you want to see, whether you want to see the grid boxes or
-not, what palette you use, etc. Here are some instructions and tips for using
-Amrvis:
+not, what palette you use, etc. Below are some instructions and tips for using
+Amrvis; you can find additional information in Amrvis/Docs/Amrvis.tex (which
+you can build into a pdf using pdflatex).
 
 #. Download and build :
 
@@ -16,7 +17,7 @@ Amrvis:
 
    ::
 
-       git clone https://ccse.lbl.gov/pub/Downloads/Amrvis.git
+       git clone https://github.com/AMReX-Codes/Amrvis
 
    Then cd into Amrvis/, edit the GNUmakefile by setting ``COMP`` to the
    compiler suite you have.
