@@ -42,12 +42,6 @@ public:
     enum struct BCMode { Homogeneous, Inhomogeneous };
     using BCType = LinOpBCType;
 
-#ifdef AMREX_USE_EB
-    using FactoryType = EBFArrayBoxFactory;
-#else
-    using FactoryType = FArrayBoxFactory;
-#endif
-
     MLLinOp ();
     virtual ~MLLinOp ();
 
@@ -60,7 +54,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<FactoryType const*>& a_factory);
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory);
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.
@@ -99,7 +93,7 @@ public:
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
-    static constexpr int mg_box_min_width = 256;
+    static constexpr int mg_box_min_width = 2;
 
     LPInfo info;
 
@@ -122,7 +116,7 @@ protected:
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
-    Vector<std::unique_ptr<FactoryType> > m_factory;
+    Vector<std::unique_ptr<FabFactory<FArrayBox>> > m_factory;
     Vector<int>                          m_domain_covered;
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
@@ -230,7 +224,7 @@ private:
     void defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const Vector<FactoryType const*>& a_factory);
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory);
     void defineAuxData ();
     void defineBC ();
     static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);

@@ -20,9 +20,22 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
-                                  const Vector<FactoryType const*>& a_factory)
+                                  const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
+}
+
+MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
+                                  const Vector<BoxArray>& a_grids,
+                                  const Vector<DistributionMapping>& a_dmap,
+                                  const LPInfo& a_info,
+                                  const Vector<EBFArrayBoxFactory const*>& a_factory)
+{
+    Vector<FabFactory<FArrayBox> const*> _factory;
+    for (auto x : a_factory) {
+        _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
+    }
+    define(a_geom, a_grids, a_dmap, a_info, _factory);
 }
 
 MLNodeLaplacian::~MLNodeLaplacian ()
@@ -33,7 +46,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
-                         const Vector<FactoryType const*>& a_factory)
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLNodeLaplacian::define()");
 
@@ -90,7 +103,7 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 }
 
 void
-MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& a_vel,
+MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
                           const Vector<const MultiFab*>& rhnd,
                           const Vector<MultiFab*>& a_rhcc)
 {
@@ -105,29 +118,11 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     Vector<std::unique_ptr<MultiFab> > rhcc(m_num_amr_levels);
     Vector<std::unique_ptr<MultiFab> > rhs_cc(m_num_amr_levels);
 
-    Vector<MultiFab*> vel{a_vel.begin(), a_vel.begin()+m_num_amr_levels};
-    Vector<std::unique_ptr<MultiFab> > vel_raii(m_num_amr_levels);
-
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
     {
         const Geometry& geom = m_geom[ilev][0];
         AMREX_ASSERT(vel[ilev]->nComp() >= AMREX_SPACEDIM);
         AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
-
-#ifdef AMREX_USE_EB
-        vel_raii[ilev].reset(new MultiFab(a_vel[ilev]->boxArray(),
-                                          a_vel[ilev]->DistributionMap(),
-                                          AMREX_SPACEDIM, 1));
-        vel[ilev] = vel_raii[ilev].get();
-        a_vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
-        MultiFab::Copy(*vel[ilev], *a_vel[ilev], 0, 0, AMREX_SPACEDIM, 1);
-
-        const FabArray<EBCellFlagFab>& flags = m_factory[ilev]->getMultiEBCellFlagFab();
-        const MultiFab& vfrac = m_factory[ilev]->getVolFrac();
-        const auto& intg = *m_integral[ilev];
-        const MultiCutFab& cent = m_factory[ilev]->getCentroid();
-#endif
-
         vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 
         if (ilev < a_rhcc.size() && a_rhcc[ilev])
@@ -147,6 +142,13 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
         const iMultiFab& dmsk = *m_dirichlet_mask[ilev][0];
 
+#ifdef AMREX_USE_EB
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev].get());
+        const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+        const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+        const MultiFab* intg = m_integral[ilev].get();
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -155,24 +157,32 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
             const Box& bx = mfi.tilebox();
 
 #ifdef AMREX_USE_EB
-            const auto& flag = flags[mfi];
-            const auto& ccbx = amrex::grow(amrex::enclosedCells(bx),1);
-            const auto& typ = flag.getType(ccbx);
-            if (typ == FabType::covered)
+            bool regular = !factory;
+            if (factory)
             {
-                (*rhs[ilev])[mfi].setVal(0.0, bx);
+                const auto& flag = (*flags)[mfi];
+                const auto& ccbx = amrex::grow(amrex::enclosedCells(bx),1);
+                const auto& typ = flag.getType(ccbx);
+                if (typ == FabType::covered)
+                {
+                    (*rhs[ilev])[mfi].setVal(0.0, bx);
+                }
+                else if (typ == FabType::singlevalued)
+                {
+                    amrex_mlndlap_divu_eb(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*intg)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                          dxinv);
+                }
+                else
+                {
+                    regular = true;
+                }
             }
-            else if (typ == FabType::singlevalued)
-            {
-                amrex_mlndlap_divu_eb(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
-                                      BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
-                                      BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                      BL_TO_FORTRAN_ANYD(intg[mfi]),
-                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                      dxinv);
-            }
-            else
+            if (regular)
 #endif
             {
                 amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
@@ -362,33 +372,40 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
         const auto& sigma = *m_sigma[amrlev][0][0];
         const Real* dxinv = m_geom[amrlev][0].InvCellSize();
 #ifdef AMREX_USE_EB
-        const MultiFab& vfrac = m_factory[amrlev]->getVolFrac();
-        const auto& area = m_factory[amrlev]->getAreaFrac();
-        const MultiCutFab& cent = m_factory[amrlev]->getCentroid();
-        const FabArray<EBCellFlagFab>& flags = m_factory[amrlev]->getMultiEBCellFlagFab();
-        const auto& intg = *m_integral[amrlev];
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev].get());
+        const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+        const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+        const MultiFab* intg = m_integral[amrlev].get();
 #endif
         for (MFIter mfi(*vel[amrlev], true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             auto& vfab = (*vel[amrlev])[mfi];
 #ifdef AMREX_USE_EB
-            auto type = flags[mfi].getType(bx);
-            if (type == FabType::covered)
+            bool regular = !factory;
+            if (factory)
             {
-                vfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+                auto type = (*flags)[mfi].getType(bx);
+                if (type == FabType::covered)
+                {
+                    vfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+                }
+                else if (type == FabType::singlevalued)
+                {
+                    amrex_mlndlap_mknewu_eb(BL_TO_FORTRAN_BOX(bx),
+                                            BL_TO_FORTRAN_ANYD(vfab),
+                                            BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
+                                            BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*intg)[mfi]),
+                                            dxinv);
+                }
+                else
+                {
+                    regular = true;
+                }
             }
-            else if (type == FabType::singlevalued)
-            {
-                amrex_mlndlap_mknewu_eb(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(vfab),
-                                        BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
-                                        BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                        BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                        BL_TO_FORTRAN_ANYD(intg[mfi]),
-                                        dxinv);
-            }
-            else
+            if (regular)
 #endif
             {
                 amrex_mlndlap_mknewu(BL_TO_FORTRAN_BOX(bx),
@@ -1478,34 +1495,39 @@ MLNodeLaplacian::buildConnection ()
         auto& conn = *m_connection[amrlev][0];
         auto& intg = *m_integral[amrlev];
         const int ncomp = conn.nComp();
-        const auto& flags = m_factory[amrlev]->getMultiEBCellFlagFab();
-        const auto& vfrac = m_factory[amrlev]->getVolFrac();
-        const auto& area = m_factory[amrlev]->getAreaFrac();
-        const auto& bcent = m_factory[amrlev]->getBndryCent();
+
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev].get());
+        if (factory)
+        {
+            const auto& flags = factory->getMultiEBCellFlagFab();
+            const auto& vfrac = factory->getVolFrac();
+            const auto& area = factory->getAreaFrac();
+            const auto& bcent = factory->getBndryCent();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(conn, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox();
-            auto& cfab = conn[mfi];
-            auto& gfab = intg[mfi];
-            const auto& flag = flags[mfi];
-            auto typ = flag.getType(bx);
+            for (MFIter mfi(conn, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox();
+                auto& cfab = conn[mfi];
+                auto& gfab = intg[mfi];
+                const auto& flag = flags[mfi];
+                auto typ = flag.getType(bx);
 
-            if (typ == FabType::covered) {
-                cfab.setVal(0.0, bx, 0, ncomp);
-                gfab.setVal(0.0, bx, 0, ncomp);
-            } else if (typ == FabType::singlevalued) {
-                amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
-                                             BL_TO_FORTRAN_ANYD(cfab),
-                                             BL_TO_FORTRAN_ANYD(gfab),
-                                             BL_TO_FORTRAN_ANYD(flag),
-                                             BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                          BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                          BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                             BL_TO_FORTRAN_ANYD(bcent[mfi]));
+                if (typ == FabType::covered) {
+                    cfab.setVal(0.0, bx, 0, ncomp);
+                    gfab.setVal(0.0, bx, 0, ncomp);
+                } else if (typ == FabType::singlevalued) {
+                    amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
+                                                 BL_TO_FORTRAN_ANYD(cfab),
+                                                 BL_TO_FORTRAN_ANYD(gfab),
+                                                 BL_TO_FORTRAN_ANYD(flag),
+                                                 BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                              BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                              BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                                 BL_TO_FORTRAN_ANYD(bcent[mfi]));
+                }
             }
         }
     }

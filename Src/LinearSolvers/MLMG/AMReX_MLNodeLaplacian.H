@@ -18,7 +18,12 @@ public :
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
-                     const Vector<FactoryType const*>& a_factory = {});
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+    MLNodeLaplacian (const Vector<Geometry>& a_geom,
+                     const Vector<BoxArray>& a_grids,
+                     const Vector<DistributionMapping>& a_dmap,
+                     const LPInfo& a_info,
+                     const Vector<EBFArrayBoxFactory const*>& a_factory);
     virtual ~MLNodeLaplacian ();
 
     MLNodeLaplacian (const MLNodeLaplacian&) = delete;
@@ -30,7 +35,7 @@ public :
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FactoryType const*>& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
     void setRZCorrection (bool rz) { m_is_rz = rz; }
 
