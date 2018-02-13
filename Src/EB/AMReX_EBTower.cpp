@@ -28,6 +28,13 @@ EBTower::Destroy ()
     m_instance = nullptr;
 }
 
+bool
+EBTower::validDomain (const Box& domain)
+{
+    auto bx_it = std::find(m_instance->m_domains.begin(), m_instance->m_domains.end(), domain);
+    return (bx_it != m_instance->m_domains.end());
+}
+
 EBTower::EBTower ()
 {
     BL_PROFILE("EBTower::EBTower()");
@@ -35,6 +42,20 @@ EBTower::EBTower ()
     const EBIndexSpace* ebis = AMReX_EBIS::instance();
 
     m_domains = ebis->getDomains();
+
+    {
+        Box finest_mv_domain;
+        int finest_mv_level;
+        ebis->getFinestLevelWithMultivaluedCells(finest_mv_domain, finest_mv_level);
+        if (finest_mv_level > 0)
+        {
+            m_domains.erase(m_domains.begin()+finest_mv_level, m_domains.end());
+        }
+        else if (finest_mv_level == 0)
+        {
+            amrex::Abort("EBTower doesn't support multi-valued cells");
+        }
+    }
 
     const int nlevels = m_domains.size();
 

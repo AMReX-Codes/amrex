@@ -25,6 +25,8 @@ public:
                                   std::array<MultiCutFab*,AMREX_SPACEDIM>& a_facecent,
                                   const Geometry& a_geom);
 
+    static bool validDomain (const Box& a_domain);
+
 private:
 
     EBTower ();
