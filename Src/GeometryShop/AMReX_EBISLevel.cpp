@@ -36,7 +36,33 @@ namespace amrex
   static const VolIndex  ebl_debvoflo(ebl_debivlo, 0);
   static const VolIndex  ebl_debvofhi(ebl_debivhi, 0);
   static const FaceIndex ebl_debface(ebl_debvoflo, ebl_debvofhi);
+/***/
+  void
+  EBISLevel::checkForMultiValuedCells() const
+  {
+    int ihasMV = 0;
+    for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
+    {
+      const Box& valid = m_grids[mfi];
+      IntVectSet ivsmulti = m_graph[mfi].getMultiCells(valid);
+      if(!ivsmulti.isEmpty())
+      {
+        ihasMV = 1;
+      }
+    }
+    int imaxval = ihasMV;
+#ifdef BL_USE_MPI
+    int sendBuf = ihasMV;
+    int result = MPI_Allreduce(&sendBuf, &imaxval, 1, MPI_INT,MPI_MAX, MPI_COMM_WORLD);
 
+    if (result != MPI_SUCCESS)
+    {
+      amrex::Error("Communication error in EBISLevel::checkForMultiValuedCells");
+    }
+#endif
+    m_hasMultiValuedCells = (imaxval == 1);
+  }
+  /***/
   void EBISLevel_checkGraph(const BoxArray          & a_grids,
                             const DistributionMapping & a_dm,
                             const FabArray<EBGraph> & a_graph,
@@ -97,12 +123,12 @@ namespace amrex
   write(const string& a_dirname) const
   {
     //this creates the directory of all the stuff
-    UtilCreateDirectoryDestructive(a_dirname, true);
+    UtilCreateCleanDirectory(a_dirname, true);
     writeHeader(a_dirname);
     string graphdirname = a_dirname + "/_graph";
     string  datadirname = a_dirname + "/_data";
-    UtilCreateDirectoryDestructive(graphdirname, true);
-    UtilCreateDirectoryDestructive( datadirname, true);
+//    UtilCreateDirectoryDestructive(graphdirname, true); done in functions below
+//    UtilCreateDirectoryDestructive( datadirname, true);done in functions below
     FabArrayIO<EBGraph>::write(m_graph, graphdirname);
     FabArrayIO<EBData >::write(m_data ,  datadirname);
   }
@@ -202,6 +228,7 @@ namespace amrex
 
     ParmParse pp("ebis");
     m_build_eb_surface = false;
+    m_alreadyCheckedForMVCells = false;
 
     int n_name = pp.countval("eb_surface_filename");
     if (n_name > 0) {
@@ -215,6 +242,7 @@ namespace amrex
     {
       fixRegularNextToMultiValued();
     }
+    //checkForMultiValuedCells();
   }
 
   void
@@ -537,8 +565,8 @@ namespace amrex
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     m_dm.define(m_grids);
-    int ngrowGraph =2;
-    int ngrowData =0;
+    int ngrowGraph =3;
+    int ngrowData =1;
     m_graph.define(m_grids, m_dm, 1, ngrowGraph, MFInfo(), DefaultFabFactory<EBGraph>());
 
     m_intersections.define(m_grids, m_dm);
@@ -607,6 +635,7 @@ namespace amrex
 
     m_data.define(m_grids, m_dm, 1, ngrowData, MFInfo(), ebdf);
 
+    int ibox = 0;
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       const Box& valid  = mfi.validbox();
@@ -626,8 +655,11 @@ namespace amrex
         const Vector<IrregNode>&   nodes = allNodes[mfi];
         ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
+      ibox++;
     }
 
+
+    m_data.FillBoundary();
 //begin debug
 //    EBISLevel_checkData(m_grids, dm, m_data, string("after initial build"));
 // end debug
@@ -644,6 +676,7 @@ namespace amrex
   { // method used by EBIndexSpace::buildNextLevel
     BL_PROFILE("EBISLevel::EBISLevel_fineEBIS");
 
+    m_alreadyCheckedForMVCells = false;
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
 
@@ -656,6 +689,7 @@ namespace amrex
     //fix the regular next to the multivalued cells
     //to be full irregular cells
     fixRegularNextToMultiValued();
+//    checkForMultiValuedCells();
   }
 
   //steps to coarsen an ebislevel:
