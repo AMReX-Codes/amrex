@@ -92,7 +92,10 @@ private:
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
 
 #ifdef AMREX_USE_EB
+    // they could be MultiCutFab
     Vector<Vector<std::unique_ptr<MultiFab> > > m_connection;
+    Vector<std::unique_ptr<MultiFab> > m_integral;
+    bool m_connection_built = false;
 #endif
 
     bool m_use_gauss_seidel = true;

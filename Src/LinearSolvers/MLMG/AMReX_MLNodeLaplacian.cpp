@@ -59,15 +59,20 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     }
 
 #ifdef AMREX_USE_EB
-    const int ncomp = (AMREX_SPACEDIM == 2) ? 6 : 24;
+    const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 24;
+    const int ncomp_i = AMREX_SPACEDIM;
     m_connection.resize(m_num_amr_levels);
+    m_integral.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_connection[amrlev].resize(m_num_mg_levels[amrlev]);
+        m_integral[amrlev].reset
+            (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1));
+        m_integral[amrlev]->setVal(0.0);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             m_connection[amrlev][mglev].reset
-                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], ncomp, 1));
+                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], ncomp_c, 1));
             m_connection[amrlev][mglev]->setVal(1.0);
         }
     }
@@ -93,6 +98,10 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
     if (!m_masks_built) buildMasks();
 
+#if AMREX_USE_EB
+    if (!m_connection_built) buildConnection();
+#endif
+
     Vector<std::unique_ptr<MultiFab> > rhcc(m_num_amr_levels);
     Vector<std::unique_ptr<MultiFab> > rhs_cc(m_num_amr_levels);
 
@@ -115,34 +124,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
         const FabArray<EBCellFlagFab>& flags = m_factory[ilev]->getMultiEBCellFlagFab();
         const MultiFab& vfrac = m_factory[ilev]->getVolFrac();
+        const auto& intg = *m_integral[ilev];
         const MultiCutFab& cent = m_factory[ilev]->getCentroid();
-
-//        const Box& ccdom = geom.Domain();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(*vel[ilev],MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            auto& vfab = (*vel[ilev])[mfi];
-            const auto& flag = flags[mfi];
-
-            const auto& typ = flag.getType(bx);
-            if (typ == FabType::covered)
-            {
-                vfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
-            }
-            else if (typ == FabType::singlevalued)
-            {
-                amrex_mlndlap_vel_cc_to_ct(BL_TO_FORTRAN_BOX(bx),
-                                           BL_TO_FORTRAN_ANYD(vfab),
-                                           BL_TO_FORTRAN_ANYD((*a_vel[ilev])[mfi]),
-                                           BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                           BL_TO_FORTRAN_ANYD(cent[mfi]),
-                                           BL_TO_FORTRAN_ANYD(flag));
-            }
-        }
 #endif
 
         vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
@@ -171,11 +154,33 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         {
             const Box& bx = mfi.tilebox();
 
-            amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
-                               BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
-                               BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
-                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                               dxinv);
+#ifdef AMREX_USE_EB
+            const auto& flag = flags[mfi];
+            const auto& ccbx = amrex::grow(amrex::enclosedCells(bx),1);
+            const auto& typ = flag.getType(ccbx);
+            if (typ == FabType::covered)
+            {
+                (*rhs[ilev])[mfi].setVal(0.0, bx);
+            }
+            else if (typ == FabType::singlevalued)
+            {
+                amrex_mlndlap_divu_eb(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                      BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
+                                      BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                      BL_TO_FORTRAN_ANYD(intg[mfi]),
+                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                      dxinv);
+            }
+            else
+#endif
+            {
+                amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
+                                   BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                   BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
+                                   BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                   dxinv);
+            }
 
             amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
                                             BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
@@ -358,8 +363,10 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
         const Real* dxinv = m_geom[amrlev][0].InvCellSize();
 #ifdef AMREX_USE_EB
         const MultiFab& vfrac = m_factory[amrlev]->getVolFrac();
+        const auto& area = m_factory[amrlev]->getAreaFrac();
         const MultiCutFab& cent = m_factory[amrlev]->getCentroid();
         const FabArray<EBCellFlagFab>& flags = m_factory[amrlev]->getMultiEBCellFlagFab();
+        const auto& intg = *m_integral[amrlev];
 #endif
         for (MFIter mfi(*vel[amrlev], true); mfi.isValid(); ++mfi)
         {
@@ -378,7 +385,7 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
                                         BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
                                         BL_TO_FORTRAN_ANYD(sigma[mfi]),
                                         BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                        BL_TO_FORTRAN_ANYD(cent[mfi]),
+                                        BL_TO_FORTRAN_ANYD(intg[mfi]),
                                         dxinv);
             }
             else
@@ -1460,9 +1467,16 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 void
 MLNodeLaplacian::buildConnection ()
 {
+    if (m_connection_built) return;
+
+    BL_PROFILE("MLNodeLaplacian::buildConnection()");
+
+    m_connection_built = true;
+
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         auto& conn = *m_connection[amrlev][0];
+        auto& intg = *m_integral[amrlev];
         const int ncomp = conn.nComp();
         const auto& flags = m_factory[amrlev]->getMultiEBCellFlagFab();
         const auto& vfrac = m_factory[amrlev]->getVolFrac();
@@ -1475,14 +1489,17 @@ MLNodeLaplacian::buildConnection ()
         {
             const Box& bx = mfi.growntilebox();
             auto& cfab = conn[mfi];
+            auto& gfab = intg[mfi];
             const auto& flag = flags[mfi];
             auto typ = flag.getType(bx);
 
             if (typ == FabType::covered) {
                 cfab.setVal(0.0, bx, 0, ncomp);
+                gfab.setVal(0.0, bx, 0, ncomp);
             } else if (typ == FabType::singlevalued) {
                 amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
                                              BL_TO_FORTRAN_ANYD(cfab),
+                                             BL_TO_FORTRAN_ANYD(gfab),
                                              BL_TO_FORTRAN_ANYD(flag),
                                              BL_TO_FORTRAN_ANYD(vfrac[mfi]),
                                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
