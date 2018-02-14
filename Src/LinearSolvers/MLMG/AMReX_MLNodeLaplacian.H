@@ -105,7 +105,7 @@ private:
 
     bool m_use_gauss_seidel = true;
 #if AMREX_USE_EB
-    bool m_use_harmonic_average = false;
+    bool m_use_harmonic_average = true;
 #else
     bool m_use_harmonic_average = false;
 #endif
