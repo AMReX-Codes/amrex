@@ -987,6 +987,18 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                              const FArrayBox& syfab = (*sigma[1])[mfi];,
                              const FArrayBox& szfab = (*sigma[2])[mfi];);
+#ifdef AMREX_USE_EB
+                amrex_mlndlap_gauss_seidel_ha_eb(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                              BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                           BL_TO_FORTRAN_ANYD(syfab),
+                                                           BL_TO_FORTRAN_ANYD(szfab)),
+                                              BL_TO_FORTRAN_ANYD((*m_connection[amrlev][mglev])[mfi]),
+                                              BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                              dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                              m_lobc.data(), m_hibc.data());
+#else
                 amrex_mlndlap_gauss_seidel_ha(BL_TO_FORTRAN_BOX(bx),
                                               BL_TO_FORTRAN_ANYD(sol[mfi]),
                                               BL_TO_FORTRAN_ANYD(rhs[mfi]),
@@ -996,6 +1008,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                               dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                               m_lobc.data(), m_hibc.data());
+#endif
             }
         }
         else
@@ -1007,6 +1020,16 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             {
                 const Box& bx = mfi.validbox();
                 const FArrayBox& sfab = (*sigma[0])[mfi];
+#ifdef AMREX_USE_EB
+                amrex_mlndlap_gauss_seidel_aa_eb(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                              BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                              BL_TO_FORTRAN_ANYD(sfab),
+                                              BL_TO_FORTRAN_ANYD((*m_connection[amrlev][mglev])[mfi]),
+                                              BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                              dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                              m_lobc.data(), m_hibc.data());
+#else
                 amrex_mlndlap_gauss_seidel_aa(BL_TO_FORTRAN_BOX(bx),
                                               BL_TO_FORTRAN_ANYD(sol[mfi]),
                                               BL_TO_FORTRAN_ANYD(rhs[mfi]),
@@ -1014,6 +1037,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                               dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                               m_lobc.data(), m_hibc.data());
+#endif
             }
         }
 
