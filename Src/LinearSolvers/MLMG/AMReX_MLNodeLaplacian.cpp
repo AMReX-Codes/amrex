@@ -143,7 +143,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const iMultiFab& dmsk = *m_dirichlet_mask[ilev][0];
 
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev].get());
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
         const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
         const MultiFab* intg = m_integral[ilev].get();
@@ -372,7 +372,7 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
         const auto& sigma = *m_sigma[amrlev][0][0];
         const Real* dxinv = m_geom[amrlev][0].InvCellSize();
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev].get());
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
         const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
         const MultiFab* intg = m_integral[amrlev].get();
@@ -1492,41 +1492,51 @@ MLNodeLaplacian::buildConnection ()
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        auto& conn = *m_connection[amrlev][0];
-        auto& intg = *m_integral[amrlev];
-        const int ncomp = conn.nComp();
-
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev].get());
-        if (factory)
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            const auto& flags = factory->getMultiEBCellFlagFab();
-            const auto& vfrac = factory->getVolFrac();
-            const auto& area = factory->getAreaFrac();
-            const auto& bcent = factory->getBndryCent();
+            auto& conn = *m_connection[amrlev][mglev];
+            MultiFab* intg = (mglev == 0) ? m_integral[amrlev].get() : nullptr;
+            const int ncomp = conn.nComp();
+
+            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+            if (factory)
+            {
+                const auto& flags = factory->getMultiEBCellFlagFab();
+                const auto& vfrac = factory->getVolFrac();
+                const auto& area = factory->getAreaFrac();
+                const auto& bcent = factory->getBndryCent();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(conn, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.growntilebox();
-                auto& cfab = conn[mfi];
-                auto& gfab = intg[mfi];
-                const auto& flag = flags[mfi];
-                auto typ = flag.getType(bx);
+                {
+                    FArrayBox gfab_tmp;
+                    for (MFIter mfi(conn, MFItInfo().EnableTiling().SetDynamic(true));
+                         mfi.isValid(); ++mfi)
+                    {
+                        const Box& bx = mfi.growntilebox();
+                        auto& cfab = conn[mfi];
 
-                if (typ == FabType::covered) {
-                    cfab.setVal(0.0, bx, 0, ncomp);
-                    gfab.setVal(0.0, bx, 0, ncomp);
-                } else if (typ == FabType::singlevalued) {
-                    amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
-                                                 BL_TO_FORTRAN_ANYD(cfab),
-                                                 BL_TO_FORTRAN_ANYD(gfab),
-                                                 BL_TO_FORTRAN_ANYD(flag),
-                                                 BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                              BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                              BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                                 BL_TO_FORTRAN_ANYD(bcent[mfi]));
+                        auto& gfab = (intg) ? (*intg)[mfi] : gfab_tmp;
+                        if (!intg) gfab.resize(bx, AMREX_SPACEDIM);
+
+                        const auto& flag = flags[mfi];
+                        auto typ = flag.getType(bx);
+
+                        if (typ == FabType::covered) {
+                            cfab.setVal(0.0, bx, 0, ncomp);
+                            gfab.setVal(0.0, bx, 0, ncomp);
+                        } else if (typ == FabType::singlevalued) {
+                            amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
+                                                         BL_TO_FORTRAN_ANYD(cfab),
+                                                         BL_TO_FORTRAN_ANYD(gfab),
+                                                         BL_TO_FORTRAN_ANYD(flag),
+                                                         BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                                      BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                                      BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                                         BL_TO_FORTRAN_ANYD(bcent[mfi]));
+                        }
+                    }
                 }
             }
         }
