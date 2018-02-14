@@ -116,7 +116,7 @@ protected:
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
-    Vector<std::unique_ptr<FabFactory<FArrayBox>> > m_factory;
+    Vector<Vector<std::unique_ptr<FabFactory<FArrayBox> > > > m_factory;
     Vector<int>                          m_domain_covered;
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
