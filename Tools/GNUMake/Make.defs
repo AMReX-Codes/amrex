@@ -163,7 +163,11 @@ FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 
 lowercase_comp := $(shell echo $(COMP) | tr A-Z a-z)
 
-ifeq ($(lowercase_comp),$(filter $(lowercase_comp),gcc gnu g++))
+ifeq ($(lowercase_comp),$(filter $(lowercase_comp),gcc-7 gnu-7 g++-7))
+  lowercase_comp = gnu-7
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/gnu-7.mak
+else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),gcc gnu g++))
   lowercase_comp = gnu
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
