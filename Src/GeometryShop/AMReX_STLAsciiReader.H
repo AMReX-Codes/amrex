@@ -18,8 +18,8 @@
 using namespace std;
 
 
-#include "STLReader.H"
-#include "STLMesh.H"
+#include "AMReX_STLReader.H"
+#include "AMReX_STLMesh.H"
 
 
 namespace amrex
@@ -51,7 +51,7 @@ namespace amrex
     void GetNtriMatch(bool& a_ntriMatch) const;
 
     /// Return pointer to the mesh
-    RefCountedPtr<STLMesh> GetMesh() const;
+    shared_ptr<STLMesh> GetMesh() const;
 
   protected:
     void ReadData(istream&   a_file,
@@ -62,7 +62,7 @@ namespace amrex
     bool    m_ntriMatch; // true if m_ntri equals the number of triangles declared in the header
 
     // actual data - shared by all copies
-    RefCountedPtr<STLMesh> m_stlmesh; // pointer to the mesh
+    shared_ptr<STLMesh> m_stlmesh; // pointer to the mesh
 
   private:
     void operator=(const STLAsciiReader& a_inputReader)

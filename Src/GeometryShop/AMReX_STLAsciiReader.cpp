@@ -75,7 +75,7 @@ namespace amrex
   }
 
 /// Return pointer to the mesh
-  RefCountedPtr<STLMesh> STLAsciiReader::GetMesh() const
+  shared_ptr<STLMesh> STLAsciiReader::GetMesh() const
   {
     return m_stlmesh;
   }
@@ -84,9 +84,8 @@ namespace amrex
                                 const int offset)
   {
 
-    BL_PROFILE("STLAsciiReader::ReadData");
 
-    RefCountedPtr<STLMesh> temp(new STLMesh());
+    shared_ptr<STLMesh> temp(new STLMesh());
     m_stlmesh = temp;
     m_header = new string;
     m_stlmesh->tol = 1.0e-10; // maybe do something fancier later, for now just constant
@@ -177,7 +176,7 @@ namespace amrex
           // if all dimensions match within tol, then it's the same point
           condition = true;
           for (int j = 0; j < SpaceDim; j++)
-            condition = condition && Abs(verts[ivertl][j]-m_stlmesh->vertices.vertex[ivertg][j])<m_stlmesh->tol;
+            condition = condition && std::abs(verts[ivertl][j]-m_stlmesh->vertices.vertex[ivertg][j])<m_stlmesh->tol;
           if (condition)
             m_stlmesh->triangles.corners[itri][ivertl] = ivertg;
         }
@@ -210,8 +209,8 @@ namespace amrex
         for (int iedgeg = 0; iedgeg < m_stlmesh->edges.edge.size(); iedgeg++)
         {
           // if all indices are the same, it's the same edge
-          if ( m_stlmesh->edges.edge[iedgeg].stdVector() == tmpedge.stdVector() || \
-               m_stlmesh->edges.edge[iedgeg].stdVector() == tmpedg2.stdVector() )
+          if ( m_stlmesh->edges.edge[iedgeg] == tmpedge || \
+               m_stlmesh->edges.edge[iedgeg] == tmpedg2 )
           {
             foundedge=true;
             if (m_stlmesh->connect.edgeToTriangle[iedgeg][0]==-1)

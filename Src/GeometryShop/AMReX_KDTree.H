@@ -99,7 +99,8 @@ using std::string;
 
 #include "AMReX_KDStruct.H"
 
-
+namespace amrex
+{
 
   /****************************************************************/
   /****************************************************************/
@@ -519,5 +520,5 @@ void LListDataDestructor(ListHead *head, void (*destr)(void*));
      This will free all stack members with a warning. */
 
 
-
+}
 #endif  /* _KDTREE_H_ */

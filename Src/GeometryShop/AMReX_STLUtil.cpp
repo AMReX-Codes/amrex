@@ -1,70 +1,76 @@
-#ifdef CH_LANG_CC
+
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
 
-#include "STLUtil.H"
 
-#include "NamespaceHeader.H"
+
+#include "AMReX_STLUtil.H"
+#include "AMReX_Print.H"
+
 
 /*
  * Printing functions
  */
 
+namespace amrex
+{
 namespace STLUtil
 {
 
-  void PMap(const CellMap& m)
+  void PMap(const stlCellMap& m)
   {
     // print out map
-    CellMap::const_iterator it;
-    pout() << "Cell Map has " << m.size() << " cells\n";
+    stlCellMap::const_iterator it;
+    amrex::Print() << "Cell Map has " << m.size() << " cells\n";
     for ( it = m.begin(); it != m.end(); it++)
     {
-      pout() << "cell "; PIV(it->first); pout() << "\n";
-      pout() << " verts: "; PVec(it->second.vertices); pout() << "\n";
-      pout() << " tris : "; PVec(it->second.triangles); pout() << "\n";
+      amrex::Print() << "cell "; PIV(it->first); amrex::Print() << "\n";
+      amrex::Print() << " verts: "; PVec(it->second.vertices); amrex::Print() << "\n";
+      amrex::Print() << " tris : "; PVec(it->second.triangles); amrex::Print() << "\n";
     }
   }
 
   void PMap(const pair<IntVect, TriInCell>& p)
   {
     // print out map
-    pout() << "cell "; PIV(p.first); pout() << "\n";
-    pout() << " verts: "; PVec(p.second.vertices); pout() << "\n";
-    pout() << " tris : "; PVec(p.second.triangles); pout() << "\n";
+    amrex::Print() << "cell "; PIV(p.first); amrex::Print() << "\n";
+    amrex::Print() << " verts: "; PVec(p.second.vertices); amrex::Print() << "\n";
+    amrex::Print() << " tris : "; PVec(p.second.triangles); amrex::Print() << "\n";
   }
 
-  void PMap(const NodeMap& m)
+  void PMap(const stlNodeMap& m)
   {
     // print out map
-    NodeMap::const_iterator it;
-    pout() << "Node map has " << m.size() << " nodes\n";
+    stlNodeMap::const_iterator it;
+    amrex::Print() << "Node map has " << m.size() << " nodes\n";
     for (it=m.begin(); it!=m.end(); it++)
     {
-      pout() << "node "; PIV(it->first); pout() << ": " << it->second << "\n";
+      amrex::Print() << "node "; PIV(it->first); amrex::Print() << ": " << it->second << "\n";
     }
   }
 
   void PIV(const IntVect& iv)
   {
-    pout() << "(";
+    amrex::Print() << "(";
     for (int i=0; i<(SpaceDim-1); i++)
-      pout() << iv[i] << ",";
-    pout() << iv[SpaceDim-1] << ")"; // last element without comma
+      amrex::Print() << iv[i] << ",";
+    amrex::Print() << iv[SpaceDim-1] << ")"; // last element without comma
   }
 
   void PRV(const RealVect& iv)
   {
-    pout() << "(";
+    amrex::Print() << "(";
     for (int i=0; i<(SpaceDim-1); i++)
-      pout() << iv[i] << ",";
-    pout() << iv[SpaceDim-1] << ")"; // last element without comma
+      amrex::Print() << iv[i] << ",";
+    amrex::Print() << iv[SpaceDim-1] << ")"; // last element without comma
   }
 
   void PVec(const Vector<int>& v)
@@ -72,8 +78,8 @@ namespace STLUtil
     if (v.size()<1)
       return;
     for (int i=0; i<(v.size()-1); i++)
-      pout() << v[i] << ",";
-    pout() << v[v.size()-1]; // last element without comma
+      amrex::Print() << v[i] << ",";
+    amrex::Print() << v[v.size()-1]; // last element without comma
   }
 
   void PVec(const Vector<IntVect>& v)
@@ -82,7 +88,7 @@ namespace STLUtil
       return;
     for (int i=0; i<v.size(); i++)
     {
-      pout() << "\n   " << i << ": "; PIV(v[i]);
+      amrex::Print() << "\n   " << i << ": "; PIV(v[i]);
     }
   }
 
@@ -92,7 +98,7 @@ namespace STLUtil
       return;
     for (int i=0; i<v.size(); i++)
     {
-      pout() << "\n   " << i << ": "; PRV(v[i]);
+      amrex::Print() << "\n   " << i << ": "; PRV(v[i]);
     }
   }
 
@@ -102,7 +108,7 @@ namespace STLUtil
       return;
     for (int i=0; i<v.size(); i++)
     {
-      pout() << "\n  " << i << ": ";
+      amrex::Print() << "\n  " << i << ": ";
       PVec(v[i]);
     }
   }
@@ -113,7 +119,7 @@ namespace STLUtil
       return;
     for (int i=0; i<v.size(); i++)
     {
-      pout() << "\n  " << i << ": ";
+      amrex::Print()     << "\n  " << i << ": ";
       PVec(v[i]);
     }
   }
@@ -141,6 +147,6 @@ namespace STLUtil
   }
 
 }
+}
 
 
-#include "NamespaceFooter.H"

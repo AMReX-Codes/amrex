@@ -16,6 +16,7 @@
 #include "AMReX_STLBox.H"
 #include "AMReX_CellEdge.H"
 #include "AMReX_STLIF.H"
+#include "AMReX_BLProfiler.H"
 
 
 namespace amrex
@@ -61,16 +62,6 @@ namespace amrex
     return static_cast<BaseIF*>(dataFilePtr);
   }
 
-  std::shared_ptr<STLExplorer> STLIF::getExplorer() const
-  {
-    if (!m_explorer)
-    {
-      amrex::Error("STLIF::getExplorer - STLExplorer not defined yet");
-    }
-
-    return m_explorer;
-  }
-
   void STLIF::makeExplorer()
   {
     BL_PROFILE("STLIF::makeExplorer");
@@ -81,7 +72,7 @@ namespace amrex
     mesh = reader.GetMesh();
 
 
-    m_explorer = shared_ptr(new STLExplorer(mesh));
+    m_explorer = shared_ptr<STLExplorer>(new STLExplorer(mesh));
   }
 }
 

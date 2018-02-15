@@ -1,12 +1,14 @@
-#ifdef CH_LANG_CC
+
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
 
 #ifndef _STLUTIL_H_
 #define _STLUTIL_H_
@@ -24,15 +26,13 @@
 #include <unordered_map>
 #endif
 
-#include "RealVect.H"
-#include "IntVect.H"
-#include "MayDay.H"
-#include "CellEdge.H"
+#include "AMReX_RealVect.H"
+#include "AMReX_IntVect.H"
+#include "AMReX_CellEdge.H"
 
 using namespace std;
-
-#include "NamespaceHeader.H"
-
+namespace amrex
+{
 namespace STLUtil
 {
   // returns true if a[0]<b[0];
@@ -50,7 +50,7 @@ namespace STLUtil
     IVCompareSWO(int a_dir) {
       m_dir = a_dir;
       if (m_dir<0 || m_dir>(SpaceDim-1))
-        MayDay::Abort("IVCompareSWO: cannot compare IntVects along a direction that doesn't exist");
+        amrex::Abort("IVCompareSWO: cannot compare IntVects along a direction that doesn't exist");
     }
 
     IVCompareSWO() {
@@ -58,21 +58,21 @@ namespace STLUtil
     }
 
     inline bool operator()(const IntVect& a, const IntVect& b) const
-    {
-      if (a[m_dir%SpaceDim] < b[m_dir%SpaceDim])
-        return true;
-      else if (SpaceDim>1 && \
-          a[ m_dir   %SpaceDim] == b[ m_dir   %SpaceDim] && \
-          a[(m_dir+1)%SpaceDim] <  b[(m_dir+1)%SpaceDim])
-        return true;
-      else if (SpaceDim>2 && \
-          a[ m_dir   %SpaceDim] == b[ m_dir   %SpaceDim] && \
-          a[(m_dir+1)%SpaceDim] == b[(m_dir+1)%SpaceDim] && \
-          a[(m_dir+2)%SpaceDim] <  b[(m_dir+2)%SpaceDim])
-        return true;
-      else
-        return false;
-    }
+      {
+        if (a[m_dir%SpaceDim] < b[m_dir%SpaceDim])
+          return true;
+        else if (SpaceDim>1 && \
+                 a[ m_dir   %SpaceDim] == b[ m_dir   %SpaceDim] && \
+                 a[(m_dir+1)%SpaceDim] <  b[(m_dir+1)%SpaceDim])
+          return true;
+        else if (SpaceDim>2 && \
+                 a[ m_dir   %SpaceDim] == b[ m_dir   %SpaceDim] && \
+                 a[(m_dir+1)%SpaceDim] == b[(m_dir+1)%SpaceDim] && \
+                 a[(m_dir+2)%SpaceDim] <  b[(m_dir+2)%SpaceDim])
+          return true;
+        else
+          return false;
+      }
 
   private:
     int m_dir; // compare along this direction first
@@ -83,22 +83,22 @@ namespace STLUtil
   struct EdgeCompareSWO
   {
     inline bool operator()(const CellEdge& a,const CellEdge& b) const
-    {
-      if (a.m_node0==b.m_node0)
-        return (a.m_dir<b.m_dir); // compare directions, first x, then y,z
+      {
+        if (a.m_node0==b.m_node0)
+          return (a.m_dir<b.m_dir); // compare directions, first x, then y,z
 
-      IVCompareSWO comparator;
-      return comparator(a.m_node0,b.m_node0);
-    }
+        IVCompareSWO comparator;
+        return comparator(a.m_node0,b.m_node0);
+      }
   };
 
   // a functor to compare pairs of real & int based on the real
   struct RealIntCompare
   {
     inline bool operator()(const pair<Real,int>& a,const pair<Real,int>& b)
-    {
-      return a.first<b.first;
-    }
+      {
+        return a.first<b.first;
+      }
   };
 
 #ifdef STL_UNORDERED_MAP
@@ -106,8 +106,8 @@ namespace STLUtil
   template <class T>
   inline void hash_combine(std::size_t& seed, const T& v)
   {
-      std::hash<T> hasher;
-      seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
   }
 
   // now make a hash function for intvects
@@ -115,12 +115,12 @@ namespace STLUtil
     : std::unary_function<IntVect, std::size_t>
   {
     inline std::size_t operator()(const IntVect& a) const
-    {
-      std::size_t seed = 0;
-      for (int i=0; i<SpaceDim; i++)
-        hash_combine(seed,a[i]);
-      return seed;
-    }
+      {
+        std::size_t seed = 0;
+        for (int i=0; i<SpaceDim; i++)
+          hash_combine(seed,a[i]);
+        return seed;
+      }
   };
 
   // use this to make a hash f'n for a CellEdge, using just m_node0 and m_dir
@@ -128,13 +128,13 @@ namespace STLUtil
   struct CellEdgeHash
     : std::unary_function<CellEdge, std::size_t>
   {
-  inline std::size_t operator()(const CellEdge& a) const
-    {
-      IVHash node0hasher;
-      std::size_t seed = node0hasher(a.m_node0);
-      hash_combine(seed,a.m_dir);
-      return seed;
-    }
+    inline std::size_t operator()(const CellEdge& a) const
+      {
+        IVHash node0hasher;
+        std::size_t seed = node0hasher(a.m_node0);
+        hash_combine(seed,a.m_dir);
+        return seed;
+      }
   };
 #endif
 
@@ -146,18 +146,18 @@ namespace STLUtil
 
   // map definitions, depending on whether or not we can use unordered maps
 #ifndef STL_UNORDERED_MAP
-  typedef map<IntVect, TriInCell, IVCompareSWO> CellMap;
-  typedef map<IntVect, bool, IVCompareSWO>      NodeMap;
-  typedef map<CellEdge, RealVect, EdgeCompareSWO> EdgeMap;
+  typedef map<IntVect, TriInCell, IVCompareSWO>   stlCellMap;
+  typedef map<IntVect, bool, IVCompareSWO>        stlNodeMap;
+  typedef map<CellEdge, RealVect, EdgeCompareSWO> stlEdgeMap;
 #else
-  typedef unordered_map<IntVect, TriInCell, IVHash> CellMap;
-  typedef unordered_map<IntVect, bool, IVHash>      NodeMap;
-  typedef unordered_map<CellEdge, RealVect, CellEdgeHash> EdgeMap;
+  typedef unordered_map<IntVect, TriInCell, IVHash>       stlCellMap;
+  typedef unordered_map<IntVect, bool, IVHash>            stlNodeMap;
+  typedef unordered_map<CellEdge, RealVect, CellEdgeHash> stlEdgeMap;
 #endif
 
   // printing functions
-  void PMap(const CellMap& m); // print a cell map
-  void PMap(const NodeMap& m); // print a node map
+  void PMap(const stlCellMap& m); // print a cell map
+  void PMap(const stlNodeMap& m); // print a node map
   void PMap(const pair<IntVect, TriInCell>& p); // print a cell map entry
   void PIV(const IntVect& iv); // print an intvect
   void PRV(const RealVect& iv); // print a realvect
@@ -175,12 +175,13 @@ namespace STLUtil
   // get signum of the values in an IntVect
   IntVect RVSign(const RealVect& rv);
 
-  typedef CellMap::iterator CellMapIt;
-  typedef NodeMap::iterator NodeMapIt;
-  typedef EdgeMap::iterator EdgeMapIt;
+  typedef stlCellMap::iterator stlCellMapIt;
+  typedef stlNodeMap::iterator stlNodeMapIt;
+  typedef stlEdgeMap::iterator stlEdgeMapIt;
 
 }
+}
 
-#include "NamespaceFooter.H"
+
 #endif
 
