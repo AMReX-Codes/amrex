@@ -63,70 +63,72 @@ URL:    http://raphael.mit.edu
 
 #include "AMReX_REAL.H"
 
+namespace amrex
+{
 /*!
   \file   PXKDStruct.h
 
-   This header file defines the structures used to create KDTrees
-   and LinkedLists in ProjectX.
+  This header file defines the structures used to create KDTrees
+  and LinkedLists in ProjectX.
 */
 
 
 #define KD_MAX_DIM 4
 
-typedef struct _kdnode KDNode;
-struct _kdnode {
-  void *data;
-  struct _kdnode *left, *right; /* negative/positive side */
-  Real pos[KD_MAX_DIM];
-  Real xmin[KD_MAX_DIM];
-  Real xmax[KD_MAX_DIM];
-  unsigned char dir;
-};
+  typedef struct _kdnode KDNode;
+  struct _kdnode {
+    void *data;
+    struct _kdnode *left, *right; /* negative/positive side */
+    Real pos[KD_MAX_DIM];
+    Real xmin[KD_MAX_DIM];
+    Real xmax[KD_MAX_DIM];
+    unsigned char dir;
+  };
 
-typedef struct _resultnode ResultNode;
-struct _resultnode {
-  //KDNode *item;
-  void *data; //ptr to data from the kdnode
-  Real *pos; //ptr to coordinates of kdnode
-  Real dist_sq;
-  struct _resultnode *next;
-};
+  typedef struct _resultnode ResultNode;
+  struct _resultnode {
+    //KDNode *item;
+    void *data; //ptr to data from the kdnode
+    Real *pos; //ptr to coordinates of kdnode
+    Real dist_sq;
+    struct _resultnode *next;
+  };
 
 
-typedef struct _kdtree KDTree;
-struct _kdtree {
-  KDNode *root;
-  int dim;
-  char globalDestrFlag;
-  /* value: -1 => destr == NULL == globalData, no node-based data to free
-             0 => destr != NULL, globalData == NULL, destr called on each node's data ptr
-             1 => destr != NULL, globalData != NULL, destr called on globalData ptr (only once)
-  */
-  void *globalData;
-  void (*destr)(void*); //function called to release memory
-};
+  typedef struct _kdtree KDTree;
+  struct _kdtree {
+    KDNode *root;
+    int dim;
+    char globalDestrFlag;
+    /* value: -1 => destr == NULL == globalData, no node-based data to free
+       0 => destr != NULL, globalData == NULL, destr called on each node's data ptr
+       1 => destr != NULL, globalData != NULL, destr called on globalData ptr (only once)
+    */
+    void *globalData;
+    void (*destr)(void*); //function called to release memory
+  };
 
-typedef struct _kdres KDResult;
-struct _kdres {
-        KDTree *tree;
-        ResultNode *rlist, *riter;
-        int size;
-};
+  typedef struct _kdres KDResult;
+  struct _kdres {
+    KDTree *tree;
+    ResultNode *rlist, *riter;
+    int size;
+  };
 
-typedef struct _linkedlistnode LListNode;
-struct _linkedlistnode {
-  void *data;
-  Real key;
-  struct _linkedlistnode *next;
-};
+  typedef struct _linkedlistnode LListNode;
+  struct _linkedlistnode {
+    void *data;
+    Real key;
+    struct _linkedlistnode *next;
+  };
 
-typedef struct _linkedlisthead ListHead;
-struct _linkedlisthead {
-  LListNode *llist, *listIter;
-  int size;
-  int ordered;
-  void (*destr)(void*);
-};
-
+  typedef struct _linkedlisthead ListHead;
+  struct _linkedlisthead {
+    LListNode *llist, *listIter;
+    int size;
+    int ordered;
+    void (*destr)(void*);
+  };
+}
 
 #endif

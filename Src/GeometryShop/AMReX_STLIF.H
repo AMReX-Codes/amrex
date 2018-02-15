@@ -60,7 +60,10 @@ namespace amrex
 
     virtual BaseIF* newImplicitFunction() const;
 
-    virtual STLExplorer* getExplorer() const;
+    shared_ptr<STLExplorer> getExplorer() const
+      {
+        return m_explorer;
+      }
 
   protected:
     void makeExplorer();

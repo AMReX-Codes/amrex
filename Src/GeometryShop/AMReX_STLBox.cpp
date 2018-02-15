@@ -19,7 +19,7 @@ namespace amrex
 
   STLBox::STLBox(shared_ptr<STLMesh>    a_stlmesh,
                  const Box&             a_region,
-                 const ProblemDomain&   a_domain,
+                 const Box          &   a_domain,
                  const RealVect&        a_origin,
                  const RealVect&        a_dx)
   {
@@ -28,7 +28,7 @@ namespace amrex
 
   void STLBox::SetMeshBox(shared_ptr<STLMesh>   a_stlmesh,
                           const Box&             a_region,
-                          const ProblemDomain&   a_domain,
+                          const Box          &   a_domain,
                           const RealVect&        a_origin,
                           const RealVect&        a_dx)
   {

@@ -53,9 +53,9 @@ namespace amrex
   CellEdge::CellEdge(const IntVect& a_node0,
                      const int      a_dir)
   {
-    if (Abs(a_dir) > (SpaceDim-1))
+    if (std::abs(a_dir) > (SpaceDim-1))
     {
-      MayDay::Abort("CellEdge: Contructor: invalid direction");
+      amrex::Abort("CellEdge: Contructor: invalid direction");
     }
     else if (a_dir<0)
     {
