@@ -13,9 +13,9 @@ F90FLAGS =
 
 ########################################################################
 
-cray_version := $(shell $(CXX) -V 2>&1 | grep 'Version')
+cray_version = $(shell $(CXX) -V 2>&1 | grep 'Version')
 
-COMP_VERSION := $(cray_version)
+COMP_VERSION = $(cray_version)
 
 ########################################################################
 

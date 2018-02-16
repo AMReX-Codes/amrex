@@ -13,9 +13,9 @@ F90FLAGS =
 
 ########################################################################
 
-pgi_version := $(shell $(CXX) -V 2>&1 | grep 'target')
+pgi_version = $(shell $(CXX) -V 2>&1 | grep 'target')
 
-COMP_VERSION := $(pgi_version)
+COMP_VERSION = $(pgi_version)
 
 ########################################################################
 
