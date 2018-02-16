@@ -152,8 +152,8 @@ namespace amrex
           (verts[1]-verts[2]).vectorLength() < m_stlmesh->tol || \
           (verts[2]-verts[0]).vectorLength() < m_stlmesh->tol)
       {
-        pout() << "STLAsciiReader: Building mesh: Warning, encountered degenerate triangle\n";
-        pout() << " itri = " << itri << " corners = "; PRV(verts[0]); PRV(verts[1]); PRV(verts[2]); pout() << "\n";
+//        pout() << "STLAsciiReader: Building mesh: Warning, encountered degenerate triangle\n";
+//        pout() << " itri = " << itri << " corners = "; PRV(verts[0]); PRV(verts[1]); PRV(verts[2]); pout() << "\n";
       }
 
       // initialize triangle
@@ -220,22 +220,22 @@ namespace amrex
             else
             {
               //MayDay::Abort("STLAsciiReader: Building mesh: edge has more than two triangles connected to it");
-              pout() << "STLAsciiReader: Building mesh: edge has more than two triangles connected\n";
-              printf(" iedgel=%i, iedgeg=%i, itri=%i, connected tri1=%i, connected tri2=%i\n",iedgel,iedgeg,itri,m_stlmesh->connect.edgeToTriangle[iedgeg][0],m_stlmesh->connect.edgeToTriangle[iedgeg][1]);
-              //pout() << " old left="; PRV(m_stlmesh->vertices.vertex[ tmpedge[0] ]);
-              //pout() << " right="; PRV(m_stlmesh->vertices.vertex[ tmpedge[1] ]); pout() << "\n";
-              //pout() << " current left="; PRV(verts[ (iedgel) % 3 ]);
-              //pout() << " right="; PRV(verts[ (iedgel+1) % 3 ]); pout() << "\n";
-              pout() << " this triangle: "; PRV(verts[0]); PRV(verts[1]); PRV(verts[2]); pout() << "\n";
-              int itri1 = m_stlmesh->connect.edgeToTriangle[iedgeg][0];
-              pout() << " old triangle1: "; PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][0] ]);
-              PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][1] ]);
-              PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][2] ]); pout() << "\n";
-              itri1 = m_stlmesh->connect.edgeToTriangle[iedgeg][1];
-              pout() << " old triangle2: "; PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][0] ]);
-              PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][1] ]);
-              PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][2] ]); pout() << "\n";
-              //m_stlmesh->PrintMesh(); pout() << "\n";
+              //pout << "STLAsciiReader: Building mesh: edge has more than two triangles connected\n";
+              //printf(" iedgel=%i, iedgeg=%i, itri=%i, connected tri1=%i, connected tri2=%i\n",iedgel,iedgeg,itri,m_stlmesh->connect.edgeToTriangle[iedgeg][0],m_stlmesh->connect.edgeToTriangle[iedgeg][1]);
+              ////pout << " old left="; PRV(m_stlmesh->vertices.vertex[ tmpedge[0] ]);
+              ////pout << " right="; PRV(m_stlmesh->vertices.vertex[ tmpedge[1] ]); //pout << "\n";
+              ////pout << " current left="; PRV(verts[ (iedgel) % 3 ]);
+              ////pout << " right="; PRV(verts[ (iedgel+1) % 3 ]); //pout << "\n";
+              //pout << " this triangle: "; PRV(verts[0]); PRV(verts[1]); PRV(verts[2]); //pout << "\n";
+              //int itri1 = m_stlmesh->connect.edgeToTriangle[iedgeg][0];
+              //pout << " old triangle1: "; PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][0] ]);
+              //PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][1] ]);
+              //PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][2] ]); //pout << "\n";
+              //itri1 = m_stlmesh->connect.edgeToTriangle[iedgeg][1];
+              //pout << " old triangle2: "; PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][0] ]);
+              //PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][1] ]);
+              //PRV(m_stlmesh->vertices.vertex[ m_stlmesh->triangles.corners[itri1][2] ]); //pout << "\n";
+              //m_stlmesh->PrintMesh(); //pout << "\n";
             }
           }
         }

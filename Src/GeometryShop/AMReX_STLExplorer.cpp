@@ -115,6 +115,7 @@ namespace amrex
     BL_PROFILE("STLExplorer::~STLExplorer");
 
     // get rid of the KDTree
+/**
     Vector<pair<IntVect,bool> >* pdata;
     KDGetGlobalData( m_ptree , (void **) &pdata );
     delete pdata;
@@ -126,6 +127,7 @@ namespace amrex
       amrex::Print() << "KDFree returned an error" << endl;
     }
     KDTreeFinalize();
+**/
   }
 
 /// return the point of intersection between an edge and the mesh
@@ -268,10 +270,10 @@ namespace amrex
     }
     if (m_printdebug)
     {
-      PMap(m_sb->m_cellmap);
-      amrex::Print() << "m_vertmap: ";
-      PVec(m_vertmap);
-      amrex::Print() << endl;
+//      PMap(m_sb->m_cellmap);
+//      amrex::Print() << "m_vertmap: ";
+//      PVec(m_vertmap);
+//      amrex::Print() << endl;
     }
 
   }
@@ -321,9 +323,9 @@ namespace amrex
 
       if (m_printdebug)
       {
-        amrex::Print() << "  Debug: RVSign(d)=" << RVSign(d) << ", signs=" << signs << endl;
-        amrex::Print() << "  Along edge from " << v0 << " to " << d+v0 << ":" << endl;
-        amrex::Print() << curcell << " --> ";
+//        amrex::Print() << "  Debug: RVSign(d)=" << RVSign(d) << ", signs=" << signs << endl;
+//        amrex::Print() << "  Along edge from " << v0 << " to " << d+v0 << ":" << endl;
+//        amrex::Print() << curcell << " --> ";
       }
 
       // start marching along edge
@@ -364,7 +366,7 @@ namespace amrex
 
         if (m_printdebug)
         {
-          amrex::Print() << curcell << " --> ";
+//          amrex::Print() << curcell << " --> ";
         }
 
         // add triangles to new cell
@@ -384,7 +386,7 @@ namespace amrex
       }
       if (m_printdebug)
       {
-        amrex::Print() << " Done" << endl;
+//        amrex::Print() << " Done" << endl;
       }
       /*
         amrex::Print() << "edge " << iedge << " from ";
@@ -539,16 +541,16 @@ namespace amrex
     
     if (m_printdebug)
     {
-      int itri = 102; IntVect iv(D_DECL(33,32,13));
-      stlCellMapIt it = m_sb->m_cellmap.find(iv); 
-      amrex::Print() << " After fill-in:"; PVec(m_trimap[itri]);
-      amrex::Print() << endl;
-      amrex::Print() << " Found IntVect " << iv << "? " << (it!=m_sb->m_cellmap.end()) << endl;
+//      int itri = 102; IntVect iv(D_DECL(33,32,13));
+//      stlCellMapIt it = m_sb->m_cellmap.find(iv); 
+//      amrex::Print() << " After fill-in:"; PVec(m_trimap[itri]);
+//      amrex::Print() << endl;
+//      amrex::Print() << " Found IntVect " << iv << "? " << (it!=m_sb->m_cellmap.end()) << endl;
     }
 
     if (m_printdebug)
     {
-      amrex::Print() << "Filled in cells." << endl;
+//      amrex::Print() << "Filled in cells." << endl;
       //PMap(m_sb->m_cellmap);
       //amrex::Print() << " now triangle index -> cells:\n";
       //PVec(m_trimap);
@@ -770,20 +772,20 @@ namespace amrex
           pair<stlNodeMapIt, bool>  rvNode = m_sb->m_nodemap.insert(make_pair( curedge.m_node0 ,  !isNode1Inside ));
           if (!rvNode.second && (rvNode.first->second != (!isNode1Inside) ))
           {
-            // node was not inserted and the existing node has the opposite in/out'ness
-            amrex::Print() << endl;
-            amrex::Print() << "STLExplorer: Building boundary nodes: Warning, a node is specified as inside for one edge but outside for another!" << endl;
-            amrex::Print() << curedge.m_node0 << " at " << IVToRV(curedge.m_node0, m_sb->m_origin, m_sb->m_dx) << endl; 
+          //  // node was not inserted and the existing node has the opposite in/out'ness
+          //  amrex::Print() << endl;
+          //  amrex::Print() << "STLExplorer: Building boundary nodes: Warning, a node is specified as inside for one edge but outside for another!" << endl;
+          //  amrex::Print() << curedge.m_node0 << " at " << IVToRV(curedge.m_node0, m_sb->m_origin, m_sb->m_dx) << endl; 
           }
 
           // put node1 in the m_sb->m_nodemap
           rvNode = m_sb->m_nodemap.insert(make_pair( curedge.m_node1 , isNode1Inside ));
           if (!rvNode.second && (rvNode.first->second != (isNode1Inside) ))
           {
-            // node was not inserted and the existing node has the opposite in/out'ness
-            amrex::Print() << endl;
-            amrex::Print() << "STLExplorer: Building boundary nodes: Warning, a node is specified as inside for one edge but outside for another!\n";
-            amrex::Print() << curedge.m_node1 << " at " << IVToRV(curedge.m_node1, m_sb->m_origin, m_sb->m_dx) << endl;
+           // // node was not inserted and the existing node has the opposite in/out'ness
+           // amrex::Print() << endl;
+           // amrex::Print() << "STLExplorer: Building boundary nodes: Warning, a node is specified as inside for one edge but outside for another!\n";
+           // amrex::Print() << curedge.m_node1 << " at " << IVToRV(curedge.m_node1, m_sb->m_origin, m_sb->m_dx) << endl;
           }
 
           // and store away the intersection point between the edge and the triangle
@@ -878,7 +880,7 @@ namespace amrex
     STLExplorer::RecursiveKDTreeInsert(allNodes,0,allNodes.size()-1,0);
 
     KDTreeStatistics(m_ptree);
-    amrex::Print() << endl;
+//    amrex::Print() << endl;
     // KDTreePrint(m_ptree);
   }
 
@@ -1111,9 +1113,9 @@ namespace amrex
       closestRV[i] = closestArr[i];
     if (m_printdebug)
     {
-      amrex::Print() << "In KDTree: searched for " << node0;
-      amrex::Print() << " found " << closestRV;
-      amrex::Print() << " with IntVect " << inout0->first << " and boolean " << inout0->second << endl;
+//      amrex::Print() << "In KDTree: searched for " << node0;
+//      amrex::Print() << " found " << closestRV;
+//      amrex::Print() << " with IntVect " << inout0->first << " and boolean " << inout0->second << endl;
     }
 
     // do search for node1
@@ -1125,9 +1127,9 @@ namespace amrex
       closestRV[i] = closestArr[i];
     if (m_printdebug)
     {
-      amrex::Print() << "In KDTree: searched for " << node1;
-      amrex::Print() << " found " << closestRV;
-      amrex::Print() << " with IntVect " << inout1->first << " and boolean " << inout1->second << endl;
+  //    amrex::Print() << "In KDTree: searched for " << node1;
+  //    amrex::Print() << " found " << closestRV;
+  //    amrex::Print() << " with IntVect " << inout1->first << " and boolean " << inout1->second << endl;
     }
 
     isNode0Inside = inout0->second;
@@ -1217,8 +1219,8 @@ namespace amrex
       {
         // within a small radius around node0/node1 (should be the same in this direction)
         condition = condition && ( std::abs(point[idir]-node0[idir]) < m_msh->tol );
-        if (std::abs(node0[idir]-node1[idir])>m_msh->tol)
-          amrex::Print() << "STLExplorer::IsPointOnCellEdge: Bad input, CellEdge has non-adjacent nodes" << endl;
+//        if (std::abs(node0[idir]-node1[idir])>m_msh->tol)
+//          amrex::Print() << "STLExplorer::IsPointOnCellEdge: Bad input, CellEdge has non-adjacent nodes" << endl;
       }
     }
 
@@ -1257,8 +1259,8 @@ namespace amrex
     {
       tmpcell[(idir1+1)%SpaceDim] = c0[(idir1+1)%SpaceDim];
       // quick sanity check
-      if (c0[(idir1+1)%SpaceDim] != c1[(idir1+1)%SpaceDim] || idir1 != (idir0+1)%SpaceDim)
-        amrex::Print() << "STLExplorer::FillInCellLine: Warning, inconsistent inputs." << endl;
+//      if (c0[(idir1+1)%SpaceDim] != c1[(idir1+1)%SpaceDim] || idir1 != (idir0+1)%SpaceDim)
+//        amrex::Print() << "STLExplorer::FillInCellLine: Warning, inconsistent inputs." << endl;
     }
   
     int ninserted = 0;
@@ -1287,7 +1289,7 @@ namespace amrex
     // sanity check
     if (cells.size()-origsize != ninrect-2 || ninserted != ninrect-2)
     {
-      amrex::Print() << "STLExplorer::FillInCellLine: Warning, wrong number of cells to add." << endl;
+//      amrex::Print() << "STLExplorer::FillInCellLine: Warning, wrong number of cells to add." << endl;
     }
   }
 
