@@ -101,6 +101,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Building with GNU Make</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#dissecting-a-simple-make-file">Dissecting a Simple Make File</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#tweaking-the-make-system">Tweaking the Make System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#specifying-your-own-compiler-gcc-on-macos">Specifying your own compiler / GCC on macOS</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#building-libamrex">Building libamrex</a></li>
@@ -190,17 +191,16 @@
             
   <div class="section" id="building-with-gnu-make">
 <span id="sec-build-make"></span><h1>Building with GNU Make<a class="headerlink" href="#building-with-gnu-make" title="Permalink to this headline">¶</a></h1>
-<p>In this build approach, you write your own make files defining a
-number of variables and rules. Then you invoke  <code class="docutils literal notranslate"><span class="pre">make</span></code> to start
-the building process. This will result in an executable upon
-successful completion. The temporary files generated in the building
-process are stored in a temporary directory named  <code class="docutils literal notranslate"><span class="pre">tmp_build_dir</span></code></p>
+<p>In this build approach, you write your own make files defining a number of
+variables and rules. Then you invoke  <code class="docutils literal notranslate"><span class="pre">make</span></code> to start the building process.
+This will result in an executable upon successful completion. The temporary
+files generated in the building process are stored in a temporary directory
+named  <code class="docutils literal notranslate"><span class="pre">tmp_build_dir</span></code></p>
 <div class="section" id="dissecting-a-simple-make-file">
 <h2>Dissecting a Simple Make File<a class="headerlink" href="#dissecting-a-simple-make-file" title="Permalink to this headline">¶</a></h2>
 <p>An example of building with GNU Make can be found in
-<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C</span></code>.
-<a class="reference internal" href="#tab-makevars"><span class="std std-numref">Table 1</span></a>
-below shows a list of important variables.</p>
+<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C</span></code>.  <a class="reference internal" href="#tab-makevars"><span class="std std-numref">Table 1</span></a> below shows a
+list of important variables.</p>
 <span id="tab-makevars"></span><table border="1" class="docutils" id="id1">
 <caption><span class="caption-number">Table 1 </span><span class="caption-text">Important make variables</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
 <colgroup>
@@ -242,11 +242,11 @@ below shows a list of important variables.</p>
 </tbody>
 </table>
 <p>At the beginning of <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile</span></code>,
-<code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> is set to the path to the top directory of AMReX.
-Note that in the example <code class="code cpp c++ docutils literal notranslate"><span class="operator"><span class="pre">?=</span></span></code> is a conditional variable assignment
-operator that only has an effect if <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> has not been defined
-(including in the environment). One can also set <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> as an
-environment variable. For example in bash, one can set</p>
+<code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> is set to the path to the top directory of AMReX.  Note that in
+the example <code class="code cpp c++ docutils literal notranslate"><span class="operator"><span class="pre">?=</span></span></code> is a conditional variable assignment operator that only
+has an effect if <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> has not been defined (including in the
+environment). One can also set <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> as an environment variable. For
+example in bash, one can set</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">AMREX_HOME</span><span class="o">=</span>/path/to/amrex
 </pre></div>
 </div>
@@ -254,33 +254,29 @@ environment variable. For example in bash, one can set</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>setenv AMREX_HOME /path/to/amrex
 </pre></div>
 </div>
-<p>One must set the <code class="docutils literal notranslate"><span class="pre">COMP</span></code> variable to choose a compiler. Currently
-the list of supported compilers includes gnu, cray,
-ibm, intel, llvm, and pgi. One must also set the
-DIM variable to either 1, 2, or 3, depending on the
-dimensionality of the problem.</p>
-<p>Variables <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code>, <code class="docutils literal notranslate"><span class="pre">USE_MPI</span></code> and <code class="docutils literal notranslate"><span class="pre">USE_OMP</span></code> are optional
-with default set to TRUE, FALSE and FALSE, respectively.
-The meaning of these variables should be obvious.
-When <code class="docutils literal notranslate"><span class="pre">DEBUG</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, aggressive compiler optimization flags are turned
-off and assertions in &nbsp;source code are turned on. For
-production runs, <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code> should be set to FALSE.</p>
-<p>After defining these make variables, a number of files,
-<code class="docutils literal notranslate"><span class="pre">Make.defs,</span> <span class="pre">Make.package</span></code> and <code class="docutils literal notranslate"><span class="pre">Make.rules</span></code>, are included in the
-GNUmakefile. AMReX-based applications do not need to include
-all directories in AMReX; an application which does not use particles,
-for example, does not need to include files from the Particle
-directory in its build.
-In this simple example, we only need to include
-<code class="docutils literal notranslate"><span class="pre">$(AMREX_HOME)/Src/Base/Make.package</span></code>. An application code also
-has its own Make.package file (e.g., <code class="docutils literal notranslate"><span class="pre">./Make.package</span></code> in
-this example) to append source files to the build system using
-operator <code class="docutils literal notranslate"><span class="pre">+=</span></code>. Variables for various source files are shown
-below.</p>
+<p>One must set the <code class="docutils literal notranslate"><span class="pre">COMP</span></code> variable to choose a compiler. Currently the list of
+supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must
+also set the DIM variable to either 1, 2, or 3, depending on the dimensionality
+of the problem.</p>
+<p>Variables <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code>, <code class="docutils literal notranslate"><span class="pre">USE_MPI</span></code> and <code class="docutils literal notranslate"><span class="pre">USE_OMP</span></code> are optional with default set
+to TRUE, FALSE and FALSE, respectively.  The meaning of these variables should
+be obvious.  When <code class="docutils literal notranslate"><span class="pre">DEBUG</span> <span class="pre">=</span> <span class="pre">TRUE</span></code>, aggressive compiler optimization flags are
+turned off and assertions in &nbsp;source code are turned on. For production runs,
+<code class="docutils literal notranslate"><span class="pre">DEBUG</span></code> should be set to FALSE.</p>
+<p>After defining these make variables, a number of files, <code class="docutils literal notranslate"><span class="pre">Make.defs,</span>
+<span class="pre">Make.package</span></code> and <code class="docutils literal notranslate"><span class="pre">Make.rules</span></code>, are included in the GNUmakefile. AMReX-based
+applications do not need to include all directories in AMReX; an application
+which does not use particles, for example, does not need to include files from
+the Particle directory in its build.  In this simple example, we only need to
+include <code class="docutils literal notranslate"><span class="pre">$(AMREX_HOME)/Src/Base/Make.package</span></code>. An application code also has
+its own Make.package file (e.g., <code class="docutils literal notranslate"><span class="pre">./Make.package</span></code> in this example) to append
+source files to the build system using operator <code class="docutils literal notranslate"><span class="pre">+=</span></code>. Variables for various
+source files are shown below.</p>
 <blockquote>
 <div><dl class="docutils">
 <dt>CEXE_sources</dt>
-<dd>C++ source files. Note that C++ source files are assumed to have a .cpp extension.</dd>
+<dd>C++ source files. Note that C++ source files are assumed to have a .cpp
+extension.</dd>
 <dt>CEXE_headers</dt>
 <dd>C++ headers with .h or .H extension.</dd>
 <dt>cEXE_sources</dt>
@@ -290,96 +286,113 @@ below.</p>
 <dt>f90EXE_sources</dt>
 <dd>Free format Fortran source with .f90 extension.</dd>
 <dt>F90EXE_sources</dt>
-<dd>Free format Fortran source with .F90 extension.
-Note that these Fortran files will go through preprocessing.</dd>
+<dd>Free format Fortran source with .F90 extension.  Note that these
+Fortran files will go through preprocessing.</dd>
 </dl>
 </div></blockquote>
-<p>In this simple example, the extra source file, <code class="docutils literal notranslate"><span class="pre">main.cpp</span></code> is in
-the current directory that is already in the build system’s search
-path. If this example has files in a subdirectory (e.g.,
-<code class="docutils literal notranslate"><span class="pre">mysrcdir</span></code>), you will then need to add the following to
-<code class="docutils literal notranslate"><span class="pre">Make.package</span></code>.</p>
+<p>In this simple example, the extra source file, <code class="docutils literal notranslate"><span class="pre">main.cpp</span></code> is in the current
+directory that is already in the build system’s search path. If this example
+has files in a subdirectory (e.g., <code class="docutils literal notranslate"><span class="pre">mysrcdir</span></code>), you will then need to add the
+following to <code class="docutils literal notranslate"><span class="pre">Make.package</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">VPATH_LOCATIONS</span> <span class="o">+=</span> mysrcdir
 <span class="nv">INCLUDE_LOCATIONS</span> <span class="o">+=</span> mysrcdir
 </pre></div>
 </div>
-<p>Here <code class="docutils literal notranslate"><span class="pre">VPATH_LOCATIONS</span></code> and <code class="docutils literal notranslate"><span class="pre">INCLUDE_LOCATIONS</span></code> are the search
-path for source and header files, respectively.</p>
+<p>Here <code class="docutils literal notranslate"><span class="pre">VPATH_LOCATIONS</span></code> and <code class="docutils literal notranslate"><span class="pre">INCLUDE_LOCATIONS</span></code> are the search path for
+source and header files, respectively.</p>
 </div>
 <div class="section" id="tweaking-the-make-system">
 <h2>Tweaking the Make System<a class="headerlink" href="#tweaking-the-make-system" title="Permalink to this headline">¶</a></h2>
-<p>The GNU Make build system is located at <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake</span></code>.
-You can read <code class="docutils literal notranslate"><span class="pre">README.md</span></code> and the make files there for more
-information. Here we will give a brief overview.</p>
+<p>The GNU Make build system is located at <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake</span></code>.  You can read
+<code class="docutils literal notranslate"><span class="pre">README.md</span></code> and the make files there for more information. Here we will give
+a brief overview.</p>
 <p>Besides building executable, other common make commands include:</p>
 <blockquote>
 <div><dl class="docutils">
 <dt><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">clean</span></code></dt>
-<dd>This removes the executable, .o files, and
-the temporarily generated files. Note that one can add additional
-targets to this rule using the double colon (::)</dd>
+<dd>This removes the executable, .o files, and the temporarily generated
+files. Note that one can add additional targets to this rule using the
+double colon (::)</dd>
 <dt><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">realclean</span></code></dt>
 <dd>This removes all files generated by make.</dd>
 <dt><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">help</span></code></dt>
 <dd>This shows the rules for compilation.</dd>
 <dt><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">print-xxx</span></code></dt>
-<dd>This shows the value of variable xxx. This is
-very useful for debugging and tweaking the make system.</dd>
+<dd>This shows the value of variable xxx. This is very useful for debugging
+and tweaking the make system.</dd>
 </dl>
 </div></blockquote>
-<p>Compiler flags are set in <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/comps/</span></code>. Note that
-variables like <code class="docutils literal notranslate"><span class="pre">CC</span></code> and <code class="docutils literal notranslate"><span class="pre">CFLAGS</span></code> are reset in that directory
-and their values in environment variables are disregarded.
-Site-specific setups (e.g., the MPI installation) are in
-<code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/sites/</span></code>, which includes a generic setup in
-<code class="docutils literal notranslate"><span class="pre">Make.unknown</span></code>. You can override the setup by having your own
-<code class="docutils literal notranslate"><span class="pre">sites/Make.$(host_name)</span></code> file, where variable <code class="docutils literal notranslate"><span class="pre">host_name</span></code> is your
-host name in the make system and can be found via <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">print-host_name</span></code>.
-You can also have an <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/Make.local</span></code> file to override
-various variables. See <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/Make.local.template</span></code> for an example.</p>
+<p>Compiler flags are set in <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/comps/</span></code>. Note that variables
+like <code class="docutils literal notranslate"><span class="pre">CC</span></code> and <code class="docutils literal notranslate"><span class="pre">CFLAGS</span></code> are reset in that directory and their values in
+environment variables are disregarded.  Site-specific setups (e.g., the MPI
+installation) are in <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/sites/</span></code>, which includes a generic
+setup in <code class="docutils literal notranslate"><span class="pre">Make.unknown</span></code>. You can override the setup by having your own
+<code class="docutils literal notranslate"><span class="pre">sites/Make.$(host_name)</span></code> file, where variable <code class="docutils literal notranslate"><span class="pre">host_name</span></code> is your host
+name in the make system and can be found via <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">print-host_name</span></code>.  You can
+also have an <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/Make.local</span></code> file to override various
+variables. See <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/Make.local.template</span></code> for an example.</p>
+</div>
+<div class="section" id="specifying-your-own-compiler-gcc-on-macos">
+<h2>Specifying your own compiler / GCC on macOS<a class="headerlink" href="#specifying-your-own-compiler-gcc-on-macos" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/Make.local</span></code> (cf. above for template) can also be
+used to specify your own compile commands by setting the valiables <code class="docutils literal notranslate"><span class="pre">CXX</span></code>,
+<code class="docutils literal notranslate"><span class="pre">CC</span></code>, <code class="docutils literal notranslate"><span class="pre">FC</span></code>, and <code class="docutils literal notranslate"><span class="pre">F90</span></code>. This might be neccarry if your systems contains
+non-standard names for compiler commands.</p>
+<p>For example, macOS’ Xcode ships with its own (woefully outdated) version of GCC
+(4.2.1). It is therefore commonplace to install GCC using the <a class="reference external" href="https://brew.sh">homebrew</a> package manager. This in turn installs compilers with names
+reflecting the version number. If GCC 7.3 is installed, homebrew installs it as
+<code class="docutils literal notranslate"><span class="pre">gcc-7</span></code>. AMReX can be built using <code class="docutils literal notranslate"><span class="pre">gcc-7</span></code> by using the following
+<code class="docutils literal notranslate"><span class="pre">amrex/Tools/GNUMake/Make.local</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CXX</span> <span class="o">=</span> g++-7
+<span class="nv">CC</span>  <span class="o">=</span> gcc-7
+<span class="nv">FC</span>  <span class="o">=</span> gfortran-7
+<span class="nv">F90</span> <span class="o">=</span> gfortran-7
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="building-libamrex">
 <span id="sec-build-lib"></span><h1>Building libamrex<a class="headerlink" href="#building-libamrex" title="Permalink to this headline">¶</a></h1>
-<p>If an application code already has its own elaborated build system and
-wants to use AMReX an external library, this might be your
-choice. In this approach, one runs <code class="docutils literal notranslate"><span class="pre">./configure</span></code>, followed by
-<code class="docutils literal notranslate"><span class="pre">make</span></code> and <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code>. In the top AMReX directory, one
-can run <code class="docutils literal notranslate"><span class="pre">./configure</span> <span class="pre">-h</span></code> to show the various options for the
-configure script. This approach is built on the AMReX GNU Make
-system. Thus the section on&nbsp;<a class="reference internal" href="#sec-build-make"><span class="std std-ref">Building with GNU Make</span></a> is recommended if any fine
-tuning is needed.</p>
+<p>If an application code already has its own elaborated build system and wants to
+use AMReX an external library, this might be your choice. In this approach, one
+runs <code class="docutils literal notranslate"><span class="pre">./configure</span></code>, followed by <code class="docutils literal notranslate"><span class="pre">make</span></code> and <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code>. In the top
+AMReX directory, one can run <code class="docutils literal notranslate"><span class="pre">./configure</span> <span class="pre">-h</span></code> to show the various options for
+the configure script. This approach is built on the AMReX GNU Make system. Thus
+the section on&nbsp;<a class="reference internal" href="#sec-build-make"><span class="std std-ref">Building with GNU Make</span></a> is recommended if any fine tuning is
+needed.</p>
 </div>
 <div class="section" id="building-with-cmake">
 <span id="sec-build-cmake"></span><h1>Building with CMake<a class="headerlink" href="#building-with-cmake" title="Permalink to this headline">¶</a></h1>
 <p>An alternative to the approach described in the section&nbsp;on <a class="reference internal" href="#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>
-is to install AMReX&nbsp;as an external library busing the CMake build system.
-A CMake build is a two-step process. First <code class="docutils literal notranslate"><span class="pre">cmake</span></code> is invoked to create
-configuration files and makefiles in a chosen directory (<code class="docutils literal notranslate"><span class="pre">builddir</span></code>).
-This is roughly equivalent to running <code class="docutils literal notranslate"><span class="pre">./configure</span></code> (see the section on
-<a class="reference internal" href="#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>). Next, the actual build and installation are performed
-by invoking <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code> from within builddir. This installs
-the library files in a chosen installation directory (<code class="docutils literal notranslate"><span class="pre">installdir</span></code>).
-If no installation path is provided by the user, AMReX will be installed in
-/path/to/amrex/installdir. The CMake build process is summarized as follows:</p>
+is to install AMReX&nbsp;as an external library busing the CMake build system.  A
+CMake build is a two-step process. First <code class="docutils literal notranslate"><span class="pre">cmake</span></code> is invoked to create
+configuration files and makefiles in a chosen directory (<code class="docutils literal notranslate"><span class="pre">builddir</span></code>).  This
+is roughly equivalent to running <code class="docutils literal notranslate"><span class="pre">./configure</span></code> (see the section on
+<a class="reference internal" href="#sec-build-lib"><span class="std std-ref">Building libamrex</span></a>). Next, the actual build and installation are performed by
+invoking <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code> from within builddir. This installs the library files
+in a chosen installation directory (<code class="docutils literal notranslate"><span class="pre">installdir</span></code>).  If no installation path
+is provided by the user, AMReX will be installed in /path/to/amrex/installdir.
+The CMake build process is summarized as follows:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">mkdir /path/to/builddir</span>
 <span class="go">cd    /path/to/builddir</span>
 <span class="go">cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex</span>
 <span class="go">make  install</span>
 </pre></div>
 </div>
-<p>In the above snippet, <code class="docutils literal notranslate"><span class="pre">[options]</span></code> indicates one or more options for the customization
-of the build, as described in the subsection&nbsp;on <a class="reference internal" href="#sec-build-cmake-options"><span class="std std-ref">Customization options</span></a>.
-Although the AMReX&nbsp;source could be used as build directory, we advise against doing so.
-After the installation is complete, builddir can be removed.</p>
+<p>In the above snippet, <code class="docutils literal notranslate"><span class="pre">[options]</span></code> indicates one or more options for the
+customization of the build, as described in the subsection&nbsp;on
+<a class="reference internal" href="#sec-build-cmake-options"><span class="std std-ref">Customization options</span></a>.  Although the AMReX&nbsp;source could be used as
+build directory, we advise against doing so.  After the installation is
+complete, builddir can be removed.</p>
 <div class="section" id="customization-options">
 <span id="sec-build-cmake-options"></span><h2>Customization options<a class="headerlink" href="#customization-options" title="Permalink to this headline">¶</a></h2>
-<p>AMReX&nbsp;configuration settings may be specified on the command line with the -D option.
-For example, one can enable OpenMP support as follows:</p>
+<p>AMReX&nbsp;configuration settings may be specified on the command line with the
+<code class="docutils literal notranslate"><span class="pre">-D</span></code> option.  For example, one can enable OpenMP support as follows:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex</span>
 </pre></div>
 </div>
-<p>The list of available option is reported in the table on&nbsp;<a class="reference internal" href="#tab-cmakevar"><span class="std std-ref">Important cmake build options</span></a> below.</p>
+<p>The list of available option is reported in the table on&nbsp;<a class="reference internal" href="#tab-cmakevar"><span class="std std-ref">Important cmake build options</span></a>
+below.</p>
 <span id="tab-cmakevar"></span><table border="1" class="docutils" id="id2">
 <caption><span class="caption-number">Table 2 </span><span class="caption-text">Important cmake build options</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
 <colgroup>
@@ -513,24 +526,25 @@ For example, one can enable OpenMP support as follows:</p>
 </tr>
 </tbody>
 </table>
-<p>The option <code class="docutils literal notranslate"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code> triggers the inclusion of C++-based linear
-solvers in the build. Fortran-based linear solvers can be included as well by providing
-the option <code class="docutils literal notranslate"><span class="pre">ENABLE_FBASELIB=ON</span></code> in addition to <code class="docutils literal notranslate"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code>.</p>
-<p>The option <code class="docutils literal notranslate"><span class="pre">DEBUG=ON</span></code> implies <code class="docutils literal notranslate"><span class="pre">ENABLE_ASSERTION=ON</span></code>. In order to turn off assertions
-in debug mode, <code class="docutils literal notranslate"><span class="pre">ENABLE_ASSERTION=OFF</span></code> must be set explicitly while invoking CMake.</p>
+<p>The option <code class="docutils literal notranslate"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code> triggers the inclusion of C++-based
+linear solvers in the build. Fortran-based linear solvers can be included as
+well by providing the option <code class="docutils literal notranslate"><span class="pre">ENABLE_FBASELIB=ON</span></code> in addition to
+<code class="docutils literal notranslate"><span class="pre">ENABLE_LINEAR_SOLVERS=ON</span></code>.</p>
+<p>The option <code class="docutils literal notranslate"><span class="pre">DEBUG=ON</span></code> implies <code class="docutils literal notranslate"><span class="pre">ENABLE_ASSERTION=ON</span></code>. In order to turn off
+assertions in debug mode, <code class="docutils literal notranslate"><span class="pre">ENABLE_ASSERTION=OFF</span></code> must be set explicitly while
+invoking CMake.</p>
 </div>
 <div class="section" id="importing-amrex-configuration-into-a-cmake-project">
 <span id="sec-build-cmake-config"></span><h2>Importing AMReX configuration into a CMake project<a class="headerlink" href="#importing-amrex-configuration-into-a-cmake-project" title="Permalink to this headline">¶</a></h2>
-<p>In order to import the AMReX&nbsp;configuration options into your CMake
-build system, include the following line in the appropriate
-CMakeLists.txt file:</p>
+<p>In order to import the AMReX&nbsp;configuration options into your CMake build
+system, include the following line in the appropriate CMakeLists.txt file:</p>
 <div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">find_package</span> <span class="p">(</span><span class="s">AMReX</span> <span class="s">CONFIG</span> <span class="s">REQUIRED</span> <span class="s">HINTS</span> <span class="s">/path/to/installdir/cmake</span> <span class="p">)</span>
 </pre></div>
 </div>
 <p>This will load AMReX-specific CMake variables containing the necessary
-information to compile and link your code to AMReX. For a list of all the available
-configuration variables, refer to the file <code class="docutils literal notranslate"><span class="pre">AMReXConfig.cmake.in</span></code> in
-<code class="docutils literal notranslate"><span class="pre">/path/to/installdir/cmake/</span></code>.</p>
+information to compile and link your code to AMReX. For a list of all the
+available configuration variables, refer to the file <code class="docutils literal notranslate"><span class="pre">AMReXConfig.cmake.in</span></code>
+in <code class="docutils literal notranslate"><span class="pre">/path/to/installdir/cmake/</span></code>.</p>
 </div>
 </div>
 

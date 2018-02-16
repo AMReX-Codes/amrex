@@ -179,32 +179,35 @@
             
   <div class="section" id="amrcore-source-code">
 <span id="chap-amrcore"></span><h1>AmrCore Source Code<a class="headerlink" href="#amrcore-source-code" title="Permalink to this headline">¶</a></h1>
-<p>In this Chapter we give an overview of functionality contained in the <code class="docutils literal notranslate"><span class="pre">amrex/Src/AmrCore</span></code> source code.
-This directory contains source code for the following:</p>
+<p>In this Chapter we give an overview of functionality contained in the
+<code class="docutils literal notranslate"><span class="pre">amrex/Src/AmrCore</span></code> source code.  This directory contains source code for the
+following:</p>
 <ul class="simple">
 <li>Storing information about the grid layout and processor distribution mapping
 at each level of refinement.</li>
-<li>Functions to create grids at different levels of refinement, including tagging
-operations.</li>
-<li>Operations on data at different levels of refinement, such as interpolation and
-restriction operators.</li>
-<li>Flux registers used to store and manipulate fluxes at coarse-fine interfaces.</li>
+<li>Functions to create grids at different levels of refinement, including
+tagging operations.</li>
+<li>Operations on data at different levels of refinement, such as interpolation
+and restriction operators.</li>
+<li>Flux registers used to store and manipulate fluxes at coarse-fine
+interfaces.</li>
 <li>Particle support for AMR (see <a class="reference internal" href="Chapter8.html#chap-particles"><span class="std std-ref">Particles</span></a>).</li>
 </ul>
 <p>There is another source directory, <code class="docutils literal notranslate"><span class="pre">amrex/Src/Amr/</span></code>, which contains
 additional classes used to manage the time-stepping for AMR simulations.
-However, it is possible to build a fully adaptive, subcycling-in-time simulation code
-without these additional classes.</p>
+However, it is possible to build a fully adaptive, subcycling-in-time
+simulation code without these additional classes.</p>
 <p>In this Chapter, we restrict our use to the <code class="docutils literal notranslate"><span class="pre">amrex/Src/AmrCore</span></code> source code
 and present a tutorial that performs an adaptive, subcycling-in-time simulation
-of the advection equation for a passively advected scalar.
-The accompanying tutorial code is available in <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore</span></code>
-with build/run directory <code class="docutils literal notranslate"><span class="pre">Exec/SingleVortex</span></code>. In this example, the velocity
-field is a specified function of space and time, such that an initial
-Gaussian profile is displaced but returns to its original configuration at the final time.
-The boundary conditions are periodic and we use a refinement ratio of <span class="math notranslate">\(r=2\)</span> between each
-AMR level. The results of the simulation in two-dimensions are depicted in the Table
-showing the <a class="reference internal" href="AmrCore.html#fig-adv"><span class="std std-ref">SingleVortex Tutorial</span></a>.</p>
+of the advection equation for a passively advected scalar.  The accompanying
+tutorial code is available in <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Amr/Advection_AmrCore</span></code> with
+build/run directory <code class="docutils literal notranslate"><span class="pre">Exec/SingleVortex</span></code>. In this example, the velocity field
+is a specified function of space and time, such that an initial Gaussian
+profile is displaced but returns to its original configuration at the final
+time.  The boundary conditions are periodic and we use a refinement ratio of
+<span class="math notranslate">\(r=2\)</span> between each AMR level. The results of the simulation in
+two-dimensions are depicted in the Table showing the <a class="reference internal" href="AmrCore.html#fig-adv"><span class="std std-ref">SingleVortex
+Tutorial</span></a>.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="AmrCore.html">The Advection Equation</a></li>

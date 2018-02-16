@@ -191,21 +191,18 @@
             
   <div class="section" id="downloading-the-code">
 <h1>Downloading the Code<a class="headerlink" href="#downloading-the-code" title="Permalink to this headline">¶</a></h1>
-<p>The source code of &nbsp;is available at
-<a class="reference external" href="https://github.com/AMReX-Codes/amrex">https://github.com/AMReX-Codes/amrex</a>. The GitHub repo is our
-central repo for development. The development branch
-includes the latest state of the code, and it is merged into the
-master branch on a monthly basis. The master branch is
-considered the release branch. The releases are tagged with version
-number YY.MM (e.g., 17.04). The MM part of the
-version is incremented every month, and the YY part every year.
-Bug fix releases are tagged with YY.MM.patch (e.g.,
-17.04.1).</p>
+<p>The source code of &nbsp;is available at <a class="reference external" href="https://github.com/AMReX-Codes/amrex">https://github.com/AMReX-Codes/amrex</a>. The
+GitHub repo is our central repo for development. The development branch
+includes the latest state of the code, and it is merged into the master branch
+on a monthly basis. The master branch is considered the release branch. The
+releases are tagged with version number YY.MM (e.g., 17.04). The MM part of the
+version is incremented every month, and the YY part every year.  Bug fix
+releases are tagged with YY.MM.patch (e.g., 17.04.1).</p>
 </div>
 <div class="section" id="example-hello-world">
 <h1>Example: Hello World<a class="headerlink" href="#example-hello-world" title="Permalink to this headline">¶</a></h1>
-<p>The source code of this example is at
-<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C/</span></code> and is also shown below.</p>
+<p>The source code of this example is at <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C/</span></code>
+and is also shown below.</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;AMReX.H&gt;</span><span class="cp"></span>
 <span class="cp">#include</span> <span class="cpf">&lt;AMReX_Print.H&gt;</span><span class="cp"></span>
 
@@ -218,26 +215,24 @@ Bug fix releases are tagged with YY.MM.patch (e.g.,
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The main body of this short example contains three statements.
-Usually the first and last statements for the <code class="code cpp c++ docutils literal notranslate"><span class="keyword type"><span class="pre">int</span></span> <span class="name"><span class="pre">main</span></span><span class="punctuation"><span class="pre">(…)</span></span></code> function of
-every program should be calling <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Initialize</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Finalize</span></span></code>,
-respectively. The second statement calls <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Print</span></span></code> to print out
-a string that includes the AMReX version returned by the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Version</span></span></code>
-function. The example code includes two AMReX&nbsp;header files. Note
-that the name of all AMReX&nbsp;header files starts with <code class="docutils literal notranslate"><span class="pre">AMReX_</span></code>
-(or just AMReX in the case of AMReX.H). All AMReX C++&nbsp;functions are in the
-<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span></code> namespace.</p>
+<p>The main body of this short example contains three statements.  Usually the
+first and last statements for the <code class="code cpp c++ docutils literal notranslate"><span class="keyword type"><span class="pre">int</span></span> <span class="name"><span class="pre">main</span></span><span class="punctuation"><span class="pre">(…)</span></span></code> function of every
+program should be calling <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Initialize</span></span></code> and <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Finalize</span></span></code>,
+respectively. The second statement calls <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Print</span></span></code> to print out a
+string that includes the AMReX version returned by the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">Version</span></span></code>
+function. The example code includes two AMReX&nbsp;header files. Note that the name
+of all AMReX&nbsp;header files starts with <code class="docutils literal notranslate"><span class="pre">AMReX_</span></code> (or just AMReX in the case of
+AMReX.H). All AMReX C++&nbsp;functions are in the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span></code> namespace.</p>
 <div class="section" id="building-the-code">
 <h2>Building the Code<a class="headerlink" href="#building-the-code" title="Permalink to this headline">¶</a></h2>
-<p>You build the code in the <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C/</span></code>
-directory. Typing <code class="docutils literal notranslate"><span class="pre">make</span></code> will start the compilation process and
-result in an executable named <code class="docutils literal notranslate"><span class="pre">main3d.gnu.DEBUG.ex</span></code>. The name
-shows that the GNU compiler with debug options set by AMReX&nbsp;is used.
-It also shows that the executable is built for 3D. Although this
-simple example code is dimension independent, dimensionality does matter
-for all non-trivial examples. The build process can be adjusted by
-modifying the <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile</span></code> file.
-More details on how to build AMReX&nbsp;can be found in <a class="reference internal" href="Chapter3.html#chap-buildingamrex"><span class="std std-ref">Building AMReX</span></a>.</p>
+<p>You build the code in the <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C/</span></code> directory.
+Typing <code class="docutils literal notranslate"><span class="pre">make</span></code> will start the compilation process and result in an executable
+named <code class="docutils literal notranslate"><span class="pre">main3d.gnu.DEBUG.ex</span></code>. The name shows that the GNU compiler with debug
+options set by AMReX&nbsp;is used.  It also shows that the executable is built for
+3D. Although this simple example code is dimension independent, dimensionality
+does matter for all non-trivial examples. The build process can be adjusted by
+modifying the <code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile</span></code> file.  More
+details on how to build AMReX&nbsp;can be found in <a class="reference internal" href="Chapter3.html#chap-buildingamrex"><span class="std std-ref">Building AMReX</span></a>.</p>
 </div>
 <div class="section" id="running-the-code">
 <h2>Running the Code<a class="headerlink" href="#running-the-code" title="Permalink to this headline">¶</a></h2>
@@ -249,22 +244,20 @@ More details on how to build AMReX&nbsp;can be found in <a class="reference inte
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Hello world from AMReX version 17.05-30-g5775aed933c4-dirty</span>
 </pre></div>
 </div>
-<p>The version string means the current commit 5775aed933c4 (note
-that the first letter g in g577.. is not part of the hash)
-is based on 17.05 with 30 additional commits and the AMReX&nbsp;work tree
-is dirty (i.e. there are uncommitted changes).</p>
-<p>In the GNUmakefile there are compilation options for DEBUG
-mode (less optimized code with more error checking), dimensionality,
-compiler type, and flags to enable MPI and/or OpenMP parallelism.
-If there are multiple instances of a parameter, the last instance
-takes precedence.</p>
+<p>The version string means the current commit 5775aed933c4 (note that the first
+letter g in g577.. is not part of the hash) is based on 17.05 with 30
+additional commits and the AMReX&nbsp;work tree is dirty (i.e. there are uncommitted
+changes).</p>
+<p>In the GNUmakefile there are compilation options for DEBUG mode (less optimized
+code with more error checking), dimensionality, compiler type, and flags to
+enable MPI and/or OpenMP parallelism.  If there are multiple instances of a
+parameter, the last instance takes precedence.</p>
 </div>
 <div class="section" id="parallelization">
 <h2>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline">¶</a></h2>
-<p>Now let’s build with MPI by typing <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">USE_MPI=TRUE</span></code> (alternatively
-you can set <code class="docutils literal notranslate"><span class="pre">USE_MPI=TRUE</span></code> in the GNUmakefile). This
-should make an executable named <code class="docutils literal notranslate"><span class="pre">main3d.gnu.DEBUG.MPI.ex</span></code>. Note
-MPI in the file name. You can then run,</p>
+<p>Now let’s build with MPI by typing <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">USE_MPI=TRUE</span></code> (alternatively you can
+set <code class="docutils literal notranslate"><span class="pre">USE_MPI=TRUE</span></code> in the GNUmakefile). This should make an executable named
+<code class="docutils literal notranslate"><span class="pre">main3d.gnu.DEBUG.MPI.ex</span></code>. Note MPI in the file name. You can then run,</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">mpiexec -n 4 ./main3d.gnu.DEBUG.MPI.ex</span>
 </pre></div>
 </div>
@@ -273,12 +266,12 @@ MPI in the file name. You can then run,</p>
 <span class="go">Hello world from AMReX version 17.05-30-g5775aed933c4-dirty</span>
 </pre></div>
 </div>
-<p>If the compilation fails, you are referred to&nbsp;<a class="reference internal" href="Chapter3.html#chap-buildingamrex"><span class="std std-ref">Building AMReX</span></a>
-for more details on how to configure the build system.</p>
-<p>If you want to build with OpenMP, type make <code class="docutils literal notranslate"><span class="pre">USE_OMP=TRUE</span></code>.
-This should make an executable named <code class="docutils literal notranslate"><span class="pre">main3d.gnu.DEBUG.OMP.ex</span></code>. Note
-OMP in the file name. Make sure the <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code>
-environment variable is set on your system. You can then run,</p>
+<p>If the compilation fails, you are referred to&nbsp;<a class="reference internal" href="Chapter3.html#chap-buildingamrex"><span class="std std-ref">Building AMReX</span></a> for
+more details on how to configure the build system.</p>
+<p>If you want to build with OpenMP, type make <code class="docutils literal notranslate"><span class="pre">USE_OMP=TRUE</span></code>.  This should make
+an executable named <code class="docutils literal notranslate"><span class="pre">main3d.gnu.DEBUG.OMP.ex</span></code>. Note OMP in the file name.
+Make sure the <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> environment variable is set on your system.
+You can then run,</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">./main3d.gnu.DEBUG.OMP.ex</span>
 </pre></div>
 </div>
@@ -287,8 +280,8 @@ environment variable is set on your system. You can then run,</p>
 <span class="go">Hello world from AMReX version 17.06-287-g51875485fe51-dirty</span>
 </pre></div>
 </div>
-<p>Note that you can build with both USE_MPI=TRUE and USE_OMP=TRUE.
-You can then run,</p>
+<p>Note that you can build with both <code class="docutils literal notranslate"><span class="pre">USE_MPI=TRUE</span></code> and <code class="docutils literal notranslate"><span class="pre">USE_OMP=TRUE</span></code>.  You
+can then run,</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">mpiexec -n 2 ./main3d.gnu.DEBUG.MPI.OMP.ex</span>
 </pre></div>
 </div>
@@ -303,13 +296,13 @@ You can then run,</p>
 <div class="section" id="example-heat-equation-solver">
 <span id="sec-heat-equation"></span><h1>Example: Heat Equation Solver<a class="headerlink" href="#example-heat-equation-solver" title="Permalink to this headline">¶</a></h1>
 <p>We now look at a more complicated example at
-<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HeatEquation_EX1_C</span></code> and show how simulation
-results can be visualized. This example solves the heat equation,</p>
+<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HeatEquation_EX1_C</span></code> and show how simulation results
+can be visualized. This example solves the heat equation,</p>
 <div class="math notranslate">
 \[\frac{\partial\phi}{\partial t} = \nabla^2\phi\]</div>
-<p>using forward Euler temporal integration on a periodic domain.
-We could use a 5-point (in 2D) or 7-point (in 3D) stencil, but for demonstration
-purposes we spatially discretize the PDE by first constructing fluxes on cell faces, e.g.,</p>
+<p>using forward Euler temporal integration on a periodic domain.  We could use a
+5-point (in 2D) or 7-point (in 3D) stencil, but for demonstration purposes we
+spatially discretize the PDE by first constructing fluxes on cell faces, e.g.,</p>
 <div class="math notranslate">
 \[F_{i+^1\!/_2,\,j} = \frac{\phi_{i+1,j}-\phi_{i,j}}{\Delta x},\]</div>
 <p>and then taking the divergence to update the cells,</p>
@@ -318,37 +311,35 @@ purposes we spatially discretize the PDE by first constructing fluxes on cell fa
 + \frac{\Delta t}{\Delta x}\left(F_{i+^1\!/_2,\,j}-F_{i-^1\!/_2,\,j}\right)
 + \frac{\Delta t}{\Delta y}\left(F_{i,\,j+^1\!/_2}-F_{i,\,j-^1\!/_2}\right)\]</div>
 <p>The implementation details of the code are discussed in section
-<a class="reference internal" href="Basics.html#sec-basics-heat1"><span class="std std-ref">Example: HeatEquation_EX1_C</span></a>.  For now let’s just build and run the code,
-and visualizae the results.</p>
+<a class="reference internal" href="Basics.html#sec-basics-heat1"><span class="std std-ref">Example: HeatEquation_EX1_C</span></a>.  For now let’s just build and run the code, and
+visualizae the results.</p>
 <div class="section" id="building-and-running-the-code">
 <h2>Building and Running the Code<a class="headerlink" href="#building-and-running-the-code" title="Permalink to this headline">¶</a></h2>
 <p>To build a 2D executable, go to
-<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HeatEquation_EX1_C/Exec</span></code> and type <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">DIM=2</span></code>. This will generate
-an executable named <code class="docutils literal notranslate"><span class="pre">main2d.gnu.ex</span></code>. To run it, type,</p>
+<code class="docutils literal notranslate"><span class="pre">amrex/Tutorials/Basic/HeatEquation_EX1_C/Exec</span></code> and type <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">DIM=2</span></code>. This
+will generate an executable named <code class="docutils literal notranslate"><span class="pre">main2d.gnu.ex</span></code>. To run it, type,</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">./main2d.gnu.ex inputs_2d</span>
 </pre></div>
 </div>
-<p>Note that the command takes a file <code class="docutils literal notranslate"><span class="pre">inputs_2d.</span></code>
-The calculation solves the heat equation in 2D on a domain with
-<span class="math notranslate">\(256 \times 256\)</span> cells.  It runs <span class="math notranslate">\(10,000\)</span> steps and makes a
-plotfile every <span class="math notranslate">\(1,000\)</span> steps.  When the run finishes,
-you will have a number of plotfiles, <code class="docutils literal notranslate"><span class="pre">plt00000,</span> <span class="pre">plt01000,</span></code> etc, in the
-directory where you are running.  You can control runtime parameters such as
-how many time steps to run and how often to write plotfiles by setting them in
-<code class="docutils literal notranslate"><span class="pre">inputs_2d.</span></code></p>
+<p>Note that the command takes a file <code class="docutils literal notranslate"><span class="pre">inputs_2d.</span></code> The calculation solves the
+heat equation in 2D on a domain with <span class="math notranslate">\(256 \times 256\)</span> cells.  It runs
+<span class="math notranslate">\(10,000\)</span> steps and makes a plotfile every <span class="math notranslate">\(1,000\)</span> steps.  When the
+run finishes, you will have a number of plotfiles, <code class="docutils literal notranslate"><span class="pre">plt00000,</span> <span class="pre">plt01000,</span></code> etc,
+in the directory where you are running.  You can control runtime parameters
+such as how many time steps to run and how often to write plotfiles by setting
+them in <code class="docutils literal notranslate"><span class="pre">inputs_2d.</span></code></p>
 </div>
 </div>
 <div class="section" id="visualization">
 <h1>Visualization<a class="headerlink" href="#visualization" title="Permalink to this headline">¶</a></h1>
 <p>There are several visualization tools that can be used for AMReX plotfiles.
-One standard tool used within the AMReX-community is Amrvis,
-a package developed and supported by CCSE that is designed specifically
-for highly efficient visualization of block-structured hierarchical AMR data.
-(Amrvis can also be used to visualize performance data; see the ref:<cite>Chap:Profiling</cite>
-chapter for further details.)
-Plotfiles can also be viewed using the VisIt, ParaView, and yt packages.
-Particle data can be viewed using ParaView.
-Refer to Chapter on <a class="reference internal" href="Chapter11.html#chap-visualization"><span class="std std-ref">Visualization</span></a> for how to use each of these tools.</p>
+One standard tool used within the AMReX-community is Amrvis, a package
+developed and supported by CCSE that is designed specifically for highly
+efficient visualization of block-structured hierarchical AMR data.  (Amrvis can
+also be used to visualize performance data; see the ref:<cite>Chap:Profiling</cite>
+chapter for further details.) Plotfiles can also be viewed using the VisIt,
+ParaView, and yt packages.  Particle data can be viewed using ParaView.  Refer
+to Chapter on <a class="reference internal" href="Chapter11.html#chap-visualization"><span class="std std-ref">Visualization</span></a> for how to use each of these tools.</p>
 </div>
 
 
