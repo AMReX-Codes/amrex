@@ -20,9 +20,9 @@ F90FLAGS =
 
 ########################################################################
 
-ibm_version       := $(shell $(CXX) --version | head -1)
+ibm_version  = $(shell $(CXX) --version | head -1)
 
-COMP_VERSION := $(ibm_version)
+COMP_VERSION = $(ibm_version)
 
 
 ########################################################################
@@ -73,4 +73,4 @@ CPP_PREFIX = -WF,
 #override XTRALIBS += 
 override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath
 
-FORTLINK := LOWERCASE
+FORTLINK = LOWERCASE
