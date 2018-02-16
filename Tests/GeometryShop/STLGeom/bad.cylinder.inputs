@@ -1,0 +1,8 @@
+# n_cell = 40 40 40 
+# n_cell = 32 32 32
+n_cell = 64 64 64
+# n_cell = 128 128 128
+maxboxsize = 1024
+STL_file = "cylinder.stl"
+geometry.prob_lo =  -0.250001 0.1 -0.250001
+geometry.prob_hi =   0.25 0.6 0.25
