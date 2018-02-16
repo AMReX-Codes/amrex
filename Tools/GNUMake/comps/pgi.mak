@@ -68,11 +68,6 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 # Because we do not have a Fortran main
 
-ifeq ($(which_computer),$(filter $(which_computer),summit))
-override XTRALIBS += -lstdc++ -pgf90libs -L /sw/summitdev/gcc/5.4.0new/lib64/ -latomic
-else
 override XTRALIBS += -lstdc++ -pgf90libs -latomic
-endif
 
 LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
-
