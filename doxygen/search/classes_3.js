@@ -1,10 +1,24 @@
 var searchData=
 [
-  ['defaultfabfactory',['DefaultFabFactory',['../classamrex_1_1_default_fab_factory.html',1,'amrex']]],
-  ['derivelist',['DeriveList',['../classamrex_1_1_derive_list.html',1,'amrex']]],
-  ['deriverec',['DeriveRec',['../classamrex_1_1_derive_rec.html',1,'amrex']]],
-  ['descriptorlist',['DescriptorList',['../classamrex_1_1_descriptor_list.html',1,'amrex']]],
-  ['distributionmapping',['DistributionMapping',['../classamrex_1_1_distribution_mapping.html',1,'amrex']]],
-  ['divergenceop',['DivergenceOp',['../classamrex_1_1_divergence_op.html',1,'amrex']]],
-  ['divisionop',['divisionOp',['../classamrex_1_1_irreg_f_a_b_1_1division_op.html',1,'amrex::IrregFAB']]]
+  ['cachestats',['CacheStats',['../structamrex_1_1_fab_array_base_1_1_cache_stats.html',1,'amrex::FabArrayBase']]],
+  ['carena',['CArena',['../classamrex_1_1_c_arena.html',1,'amrex']]],
+  ['cellbilinear',['CellBilinear',['../classamrex_1_1_cell_bilinear.html',1,'amrex']]],
+  ['cellconservativelinear',['CellConservativeLinear',['../classamrex_1_1_cell_conservative_linear.html',1,'amrex']]],
+  ['cellconservativeprotected',['CellConservativeProtected',['../classamrex_1_1_cell_conservative_protected.html',1,'amrex']]],
+  ['cellconservativequartic',['CellConservativeQuartic',['../classamrex_1_1_cell_conservative_quartic.html',1,'amrex']]],
+  ['celledge',['CellEdge',['../classamrex_1_1_cell_edge.html',1,'amrex']]],
+  ['cellquadratic',['CellQuadratic',['../classamrex_1_1_cell_quadratic.html',1,'amrex']]],
+  ['cfinfo',['CFinfo',['../structamrex_1_1_fab_array_base_1_1_c_finfo.html',1,'amrex::FabArrayBase']]],
+  ['cluster',['Cluster',['../classamrex_1_1_cluster.html',1,'amrex']]],
+  ['clusterlist',['ClusterList',['../classamrex_1_1_cluster_list.html',1,'amrex']]],
+  ['coar_5flogic_5ft',['coar_logic_t',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1coar__logic__t.html',1,'amrex::AggEBPWLFillPatch']]],
+  ['color',['Color',['../classamrex_1_1_parallel_descriptor_1_1_color.html',1,'amrex::ParallelDescriptor']]],
+  ['complementif',['ComplementIF',['../classamrex_1_1_complement_i_f.html',1,'amrex']]],
+  ['conninfo',['conninfo',['../structamrex_1_1_s_t_l_mesh_1_1conninfo.html',1,'amrex::STLMesh']]],
+  ['const_5fiterator',['const_iterator',['../structamrex_1_1_base_umap_1_1const__iterator.html',1,'amrex::BaseUmap']]],
+  ['contourfragment',['ContourFragment',['../structamrex_1_1_contour_fragment.html',1,'amrex']]],
+  ['coordsys',['CoordSys',['../classamrex_1_1_coord_sys.html',1,'amrex']]],
+  ['copycomtag',['CopyComTag',['../structamrex_1_1_fab_array_base_1_1_copy_com_tag.html',1,'amrex::FabArrayBase']]],
+  ['cpc',['CPC',['../structamrex_1_1_fab_array_base_1_1_c_p_c.html',1,'amrex::FabArrayBase']]],
+  ['cut',['Cut',['../classamrex_1_1_cut.html',1,'amrex']]]
 ];

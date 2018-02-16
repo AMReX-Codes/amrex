@@ -68,6 +68,7 @@ var searchData=
   ['execoninitialize',['ExecOnInitialize',['../namespaceamrex.html#a6911748ceb0d88bf5b6bf7f3f0402e97',1,'amrex']]],
   ['exist',['Exist',['../classamrex_1_1_vis_m_f.html#ab895515b73ef0cdc6d0e06c7590f3e76',1,'amrex::VisMF']]],
   ['expect',['expect',['../classamrex_1_1expect.html#a2136ece586212ef73074aaab29247505',1,'amrex::expect::expect(const std::string &amp;str_)'],['../classamrex_1_1expect.html#a29077faf3a3650e3eeb67285023d7e5e',1,'amrex::expect::expect(const char *istr_)'],['../classamrex_1_1expect.html#a76c80085267c42ef73ed0e63c65af898',1,'amrex::expect::expect(char c)']]],
+  ['explore',['Explore',['../classamrex_1_1_s_t_l_explorer.html#adaf4ec38603c9b64319838978d447be9',1,'amrex::STLExplorer::Explore(shared_ptr&lt; STLBox &gt; a_sb)'],['../classamrex_1_1_s_t_l_explorer.html#a98c1b4ec8e1eecbffda0b1459e14d409',1,'amrex::STLExplorer::Explore(const Box &amp;a_region, const Box &amp;a_domain, const RealVect &amp;a_origin, const RealVect &amp;a_dx)']]],
   ['extrap',['extrap',['../classamrex_1_1_state_descriptor.html#a368a6869c80cad37b4949b47cff5013f',1,'amrex::StateDescriptor']]],
   ['extrapolatebc',['ExtrapolateBC',['../classamrex_1_1_e_b_arith.html#a09472388dff04fd70581d16c9242f466',1,'amrex::EBArith']]],
   ['extrudeif',['ExtrudeIF',['../classamrex_1_1_extrude_i_f.html#a87e982d1283438e6a38ec5b49aec1e71',1,'amrex::ExtrudeIF']]]

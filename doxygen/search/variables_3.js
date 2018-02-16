@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['data',['data',['../classamrex_1_1_base_umap.html#a407410aa62ca3aa7e0b3c331f877ea46',1,'amrex::BaseUmap::data()'],['../structamrex__string__module_1_1amrex__string.html#a1cb43abc58711a19adfafd9c4a44fd69',1,'amrex_string_module::amrex_string::data()']]],
+  ['data',['data',['../classamrex_1_1_base_umap.html#a407410aa62ca3aa7e0b3c331f877ea46',1,'amrex::BaseUmap::data()'],['../structamrex__string__module_1_1amrex__string.html#a1cb43abc58711a19adfafd9c4a44fd69',1,'amrex_string_module::amrex_string::data()'],['../structamrex_1_1__kdnode.html#a8ec8014459a2d4618e162c45b1694062',1,'amrex::_kdnode::data()'],['../structamrex_1_1__resultnode.html#a8409feba7a06870ea3ef32e0ee0bcf0f',1,'amrex::_resultnode::data()'],['../structamrex_1_1__linkedlistnode.html#accab7fdd9d83eb21ef7dc47ef5d542ae',1,'amrex::_linkedlistnode::data()']]],
   ['data_5faccess',['data_access',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1coar__logic__t.html#a187a770df85f15a620e33ec206975834',1,'amrex::AggEBPWLFillPatch::coar_logic_t']]],
   ['data_5fkey_5ftuple_5fmap',['data_key_tuple_map',['../classamrex_1_1_base_umap.html#ac76f08b25e30b916da1c13f2e3cc87da',1,'amrex::BaseUmap']]],
   ['dataid',['dataID',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1access__t.html#aa638e6de370e3376fefc085d04af1c76',1,'amrex::AggEBPWLFillPatch::access_t::dataID()'],['../structamrex_1_1_agg_stencil_1_1access__t.html#a439030aa5038c0424aaecccb90fa9a1c',1,'amrex::AggStencil::access_t::dataID()']]],
@@ -14,6 +14,10 @@ var searchData=
   ['desc_5flst',['desc_lst',['../classamrex_1_1_amr_level.html#acb5f9e8c8d903d3a700d2cc11be500e5',1,'amrex::AmrLevel']]],
   ['dest_5faccess',['dest_access',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1fine__logic__t.html#af8bb53bc76b32a95593e042fa51a4234',1,'amrex::AggEBPWLFillPatch::fine_logic_t']]],
   ['destcomp',['destComp',['../structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a727cd5fc638afd570a51cec1ba21db89',1,'amrex::FabArrayBase::FabComTag::destComp()'],['../structamrex_1_1_fab_copy_descriptor.html#a164510f57c480c98b19458a1516ba6dd',1,'amrex::FabCopyDescriptor::destComp()']]],
+  ['destr',['destr',['../structamrex_1_1__kdtree.html#a9e01db391dede69667a656dae8d9922c',1,'amrex::_kdtree::destr()'],['../structamrex_1_1__linkedlisthead.html#ac878eed71533379a8a2df4cab2835df3',1,'amrex::_linkedlisthead::destr()']]],
+  ['dim',['dim',['../structamrex_1_1__kdtree.html#a116ac2508333623c1677ccdc1045b05f',1,'amrex::_kdtree']]],
+  ['dir',['dir',['../structamrex_1_1__kdnode.html#ae2d359bf47b828870a949b92e363e411',1,'amrex::_kdnode']]],
+  ['dist_5fsq',['dist_sq',['../structamrex_1_1__resultnode.html#acceec026fa6a75407f295ebf5cb504b6',1,'amrex::_resultnode']]],
   ['distmapindex',['distMapIndex',['../structamrex_1_1_fab_array_1_1_f_a_b_moves.html#a9b8653dc00050cf5f2db34ba4bdea7a2',1,'amrex::FabArray::FABMoves']]],
   ['distributionmap',['distributionMap',['../classamrex_1_1_fab_array_base.html#adcb92e864340876da67df2fc64d8bdd7',1,'amrex::FabArrayBase']]],
   ['dlen',['dlen',['../classamrex_1_1_base_fab.html#a5b93724d7041d0fe2a0fd3c86e4eff60',1,'amrex::BaseFab']]],

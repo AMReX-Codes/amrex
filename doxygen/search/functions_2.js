@@ -128,6 +128,7 @@ var searchData=
   ['buildebsurface',['buildEBSurface',['../classamrex_1_1_e_b_i_s_level.html#a1764a6ad7c7b018243dd4ef11311e077',1,'amrex::EBISLevel']]],
   ['buildfirstlevel',['buildFirstLevel',['../classamrex_1_1_e_b_index_space.html#a6c90deecedbcaf8b5b41b97769c3e95c',1,'amrex::EBIndexSpace']]],
   ['buildgraph',['buildGraph',['../classamrex_1_1_e_b_graph_implem.html#a8446d906383de254134646ca3641a37e',1,'amrex::EBGraphImplem::buildGraph()'],['../classamrex_1_1_e_b_graph.html#a1542e3b9e7392d9a2570cc80685d5f1f',1,'amrex::EBGraph::buildGraph()']]],
+  ['buildkdtree',['BuildKDTree',['../classamrex_1_1_s_t_l_explorer.html#a0851053685eeed803b3fd6efd913c26b',1,'amrex::STLExplorer']]],
   ['buildlevelmask',['BuildLevelMask',['../classamrex_1_1_neighbor_particle_container.html#a40d2eb01cf60075e92e75542e4d6b36e',1,'amrex::NeighborParticleContainer']]],
   ['buildmask',['BuildMask',['../classamrex_1_1_fab_array.html#a542bac940ae8e28ba4511df6425972a7',1,'amrex::FabArray']]],
   ['buildneighborlist',['buildNeighborList',['../classamrex_1_1_neighbor_particle_container.html#a629d1fec40d6c7034d090e90453d3c5a',1,'amrex::NeighborParticleContainer']]],

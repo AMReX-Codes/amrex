@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['yafluxregister',['YAFluxRegister',['../classamrex_1_1_y_a_flux_register.html',1,'amrex']]]
+  ['weightedbox',['WeightedBox',['../classamrex_1_1_weighted_box.html',1,'amrex']]],
+  ['weightedboxlist',['WeightedBoxList',['../classamrex_1_1_weighted_box_list.html',1,'amrex']]]
 ];

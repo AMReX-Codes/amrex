@@ -32,6 +32,10 @@ var searchData=
   ['reverse_5ffloat_5forder',['reverse_float_order',['../classamrex_1_1_f_p_c.html#ad8695587637ebea6ad37b278fb7e677d',1,'amrex::FPC']]],
   ['reverse_5ffloat_5forder_5f2',['reverse_float_order_2',['../classamrex_1_1_f_p_c.html#a71ce71bf65be5235d8e74ee6921cfea7',1,'amrex::FPC']]],
   ['reverse_5forder',['REVERSE_ORDER',['../namespaceamrex.html#a4f06187236b4b28934f47fc5bffad56d',1,'amrex']]],
+  ['right',['right',['../structamrex_1_1__kdnode.html#a8f8813c2ac5b4fca5c175458f9ba6aa4',1,'amrex::_kdnode']]],
+  ['riter',['riter',['../structamrex_1_1__kdres.html#a93dbde2640207da41c3a3b8fce726471',1,'amrex::_kdres']]],
+  ['rlist',['rlist',['../structamrex_1_1__kdres.html#aa2ce03750bc4f754092bea64d1c02d36',1,'amrex::_kdres']]],
+  ['root',['root',['../structamrex_1_1__kdtree.html#a4234dc7093a08f27333bbf01c8f0ee0c',1,'amrex::_kdtree']]],
   ['runlog',['runlog',['../classamrex_1_1_amr.html#abca666179e968bdbf467f8a903830bcd',1,'amrex::Amr']]],
   ['runlog_5fterse',['runlog_terse',['../classamrex_1_1_amr.html#a693fdb636ccbf5dde6fb220c835ee2a2',1,'amrex::Amr']]]
 ];

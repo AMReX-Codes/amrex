@@ -14,5 +14,8 @@ var searchData=
   ['amrex_5flo_5freflect_5fodd',['AMREX_LO_REFLECT_ODD',['../_a_m_re_x___l_o___b_c_t_y_p_e_s_8_h.html#a911e22551a8578fcc62588ad4232a1b1',1,'AMReX_LO_BCTYPES.H']]],
   ['amrex_5flo_5fsanchez_5fpomraning',['AMREX_LO_SANCHEZ_POMRANING',['../_a_m_re_x___l_o___b_c_t_y_p_e_s_8_h.html#acb24c91365aea47c8c5e66ef6a3d32be',1,'AMReX_LO_BCTYPES.H']]],
   ['amrex_5fparticles_5ff_5fh_5f',['AMREX_Particles_F_H_',['../_a_m_re_x___neighbor_particles_8_h.html#a5c62f44894eb82d4df5dd7251a409ac4',1,'AMReX_NeighborParticles.H']]],
-  ['arlim_5fp',['ARLIM_P',['../_a_m_re_x___array_lim_8_h.html#a60a7ca6e338f0cb094a09b4eb21d97c8',1,'AMReX_ArrayLim.H']]]
+  ['arlim_5fp',['ARLIM_P',['../_a_m_re_x___array_lim_8_h.html#a60a7ca6e338f0cb094a09b4eb21d97c8',1,'AMReX_ArrayLim.H']]],
+  ['assertdblgreater',['AssertDblGreater',['../_a_m_re_x___p_x_stuff_8_h.html#a91872bcb52275c531f9a8c5727d8878d',1,'AMReX_PXStuff.H']]],
+  ['assertdblwithin',['AssertDblWithin',['../_a_m_re_x___p_x_stuff_8_h.html#a70b72ed89c58167175ee1619e6450896',1,'AMReX_PXStuff.H']]],
+  ['assertintequals',['AssertIntEquals',['../_a_m_re_x___p_x_stuff_8_h.html#a8cda696afe800dcadfeb1e3f5cfb83b7',1,'AMReX_PXStuff.H']]]
 ];

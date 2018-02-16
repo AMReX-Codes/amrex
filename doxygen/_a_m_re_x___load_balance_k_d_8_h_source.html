@@ -100,15 +100,15 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;</div>
 <div class="line"><a name="l00011"></a><span class="lineno"><a class="line" href="class_k_d_tree.html">   11</a></span>&#160;<span class="keyword">class </span><a class="code" href="class_k_d_tree.html">KDTree</a> {</div>
 <div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;</div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;    <span class="keyword">struct </span>KDNode {</div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;    <span class="keyword">struct </span><a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a> {</div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;        </div>
 <div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;        <a class="code" href="classamrex_1_1_box.html">amrex::Box</a> box;</div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;        KDNode* left;</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;        KDNode* right;</div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;        <a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a>* left;</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;        <a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a>* right;</div>
 <div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;        amrex::Real cost;</div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;        <span class="keywordtype">int</span> num_procs_left;    </div>
 <div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;        </div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;        KDNode(<span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">amrex::Box</a>&amp; box_in, </div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;        <a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a>(<span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">amrex::Box</a>&amp; box_in, </div>
 <div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;               amrex::Real cost_in, </div>
 <div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;               <span class="keywordtype">int</span> num_procs_in)</div>
 <div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;            : box(box_in),</div>
@@ -130,13 +130,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    </div>
 <div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="keyword">private</span>:</div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;    </div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;    <span class="keywordtype">void</span> buildKDTree(KDNode* node, <span class="keyword">const</span> <a class="code" href="classamrex_1_1_f_array_box.html">amrex::FArrayBox</a>&amp; cost);</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;    <span class="keywordtype">void</span> buildKDTree(<a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a>* node, <span class="keyword">const</span> <a class="code" href="classamrex_1_1_f_array_box.html">amrex::FArrayBox</a>&amp; cost);</div>
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;    <span class="keywordtype">void</span> freeKDTree(KDNode* node);</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;    <span class="keywordtype">void</span> freeKDTree(<a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a>* node);</div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;    <span class="keywordtype">void</span> walkKDTree(KDNode* node, <a class="code" href="classamrex_1_1_box_list.html">amrex::BoxList</a>&amp; bl, <a class="code" href="classamrex_1_1_vector.html">amrex::Vector&lt;amrex::Real&gt;</a>&amp; costs);</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;    <span class="keywordtype">void</span> walkKDTree(<a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a>* node, <a class="code" href="classamrex_1_1_box_list.html">amrex::BoxList</a>&amp; bl, <a class="code" href="classamrex_1_1_vector.html">amrex::Vector&lt;amrex::Real&gt;</a>&amp; costs);</div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;    </div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;    <span class="keywordtype">bool</span> partitionNode(KDNode* node, <span class="keyword">const</span> <a class="code" href="classamrex_1_1_f_array_box.html">amrex::FArrayBox</a>&amp; cost);</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;    <span class="keywordtype">bool</span> partitionNode(<a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a>* node, <span class="keyword">const</span> <a class="code" href="classamrex_1_1_f_array_box.html">amrex::FArrayBox</a>&amp; cost);</div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;</div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;    <span class="keywordtype">int</span> getLongestDir(<span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">amrex::Box</a>&amp; box);</div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;</div>
@@ -144,7 +144,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;    <span class="keywordtype">bool</span> splitBox(<span class="keywordtype">int</span> split, <span class="keywordtype">int</span> dir,</div>
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;                  <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">amrex::Box</a>&amp; box, <a class="code" href="classamrex_1_1_box.html">amrex::Box</a>&amp; left, <a class="code" href="classamrex_1_1_box.html">amrex::Box</a>&amp; right);</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    KDNode* root;</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    <a class="code" href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">KDNode</a>* root;</div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;    </div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">int</span> min_box_size;</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;};</div>
@@ -202,7 +202,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;            cost = &amp;global_cost[mfi];</div>
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;        }</div>
 <div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;        </div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;        <a class="code" href="class_k_d_tree.html">KDTree</a> tree = <a class="code" href="class_k_d_tree.html">KDTree</a>(domain, *cost, num_procs);</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;        <a class="code" href="class_k_d_tree.html">KDTree</a> tree = <a class="code" href="namespaceamrex.html#abcfe48e30d74110d39f2ee16dde9afc9">KDTree</a>(domain, *cost, num_procs);</div>
 <div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;        </div>
 <div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;        <a class="code" href="classamrex_1_1_box_list.html">amrex::BoxList</a> new_bl;</div>
 <div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;<span class="comment">//      amrex::Vector&lt;amrex::Real&gt; box_costs;</span></div>
@@ -212,6 +212,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;}</div>
 <div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;</div>
 <div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;<span class="preprocessor">#endif // AMREX_LOADBALANCEKD_H_</span></div>
+<div class="ttc" id="namespaceamrex_html_abcfe48e30d74110d39f2ee16dde9afc9"><div class="ttname"><a href="namespaceamrex.html#abcfe48e30d74110d39f2ee16dde9afc9">amrex::KDTree</a></div><div class="ttdeci">struct _kdtree KDTree</div><div class="ttdef"><b>Definition:</b> AMReX_KDStruct.H:98</div></div>
+<div class="ttc" id="namespaceamrex_html_a6d18be7f18683a63f9cf0beddea627b1"><div class="ttname"><a href="namespaceamrex.html#a6d18be7f18683a63f9cf0beddea627b1">amrex::KDNode</a></div><div class="ttdeci">struct _kdnode KDNode</div><div class="ttdef"><b>Definition:</b> AMReX_KDStruct.H:78</div></div>
 <div class="ttc" id="namespaceamrex_html_a80ec36e3f3da3a42bac50af1a797551a"><div class="ttname"><a href="namespaceamrex.html#a80ec36e3f3da3a42bac50af1a797551a">amrex::num_procs</a></div><div class="ttdeci">int num_procs</div><div class="ttdef"><b>Definition:</b> AMReX_SPMD.cpp:46</div></div>
 <div class="ttc" id="classamrex_1_1_fab_array_html_aa9b8434579afa8f9c0ec62305b04d463"><div class="ttname"><a href="classamrex_1_1_fab_array.html#aa9b8434579afa8f9c0ec62305b04d463">amrex::FabArray::copy</a></div><div class="ttdeci">void copy(const FabArray&lt; FAB &gt; &amp;fa, const Periodicity &amp;period=Periodicity::NonPeriodic(), CpOp op=FabArrayBase::COPY)</div><div class="ttdef"><b>Definition:</b> AMReX_FabArray.H:318</div></div>
 <div class="ttc" id="classamrex_1_1_box_html"><div class="ttname"><a href="classamrex_1_1_box.html">amrex::Box</a></div><div class="ttdoc">A Rectangular Domain on an Integer Lattice. </div><div class="ttdef"><b>Definition:</b> AMReX_Box.H:181</div></div>

@@ -1,20 +1,12 @@
 var searchData=
 [
-  ['segment',['Segment',['../structamrex_1_1_segment.html',1,'amrex']]],
-  ['sendinfo',['SendInfo',['../structamrex_1_1_b_l_pgas_1_1_send_info.html',1,'amrex::BLPgas']]],
-  ['serialtask',['SerialTask',['../classamrex_1_1_serial_task.html',1,'amrex']]],
-  ['shift_5fhasher',['shift_hasher',['../classamrex_1_1_int_vect_1_1shift__hasher.html',1,'amrex::IntVect']]],
-  ['shmem',['ShMem',['../structamrex_1_1_fab_array_1_1_sh_mem.html',1,'amrex::FabArray']]],
-  ['side',['Side',['../classamrex_1_1_side.html',1,'amrex']]],
-  ['sideiterator',['SideIterator',['../classamrex_1_1_side_iterator.html',1,'amrex']]],
-  ['slabservice',['SlabService',['../class_slab_service.html',1,'']]],
-  ['sphereif',['SphereIF',['../classamrex_1_1_sphere_i_f.html',1,'amrex']]],
-  ['statedata',['StateData',['../classamrex_1_1_state_data.html',1,'amrex']]],
-  ['statedataphysbcfunct',['StateDataPhysBCFunct',['../classamrex_1_1_state_data_phys_b_c_funct.html',1,'amrex']]],
-  ['statedescriptor',['StateDescriptor',['../classamrex_1_1_state_descriptor.html',1,'amrex']]],
-  ['staterange',['StateRange',['../structamrex_1_1_derive_rec_1_1_state_range.html',1,'amrex::DeriveRec']]],
-  ['streamretry',['StreamRetry',['../classamrex_1_1_stream_retry.html',1,'amrex']]],
-  ['structofarrays',['StructOfArrays',['../structamrex_1_1_struct_of_arrays.html',1,'amrex']]],
-  ['structofarrays_3c_20narrayreal_2c_20narrayint_20_3e',['StructOfArrays&lt; NArrayReal, NArrayInt &gt;',['../structamrex_1_1_struct_of_arrays.html',1,'amrex']]],
-  ['subtractionop',['subtractionOp',['../classamrex_1_1_irreg_f_a_b_1_1subtraction_op.html',1,'amrex::IrregFAB']]]
+  ['realbox',['RealBox',['../classamrex_1_1_real_box.html',1,'amrex']]],
+  ['realdescriptor',['RealDescriptor',['../classamrex_1_1_real_descriptor.html',1,'amrex']]],
+  ['realintcompare',['RealIntCompare',['../structamrex_1_1_s_t_l_util_1_1_real_int_compare.html',1,'amrex::STLUtil']]],
+  ['realvect',['RealVect',['../classamrex_1_1_real_vect.html',1,'amrex']]],
+  ['record',['Record',['../classamrex_1_1_parm_parse_1_1_record.html',1,'amrex::ParmParse']]],
+  ['rediststencil',['RedistStencil',['../classamrex_1_1_redist_stencil.html',1,'amrex']]],
+  ['refid',['RefID',['../structamrex_1_1_distribution_mapping_1_1_ref_i_d.html',1,'amrex::DistributionMapping']]],
+  ['refid',['RefID',['../structamrex_1_1_box_array_1_1_ref_i_d.html',1,'amrex::BoxArray']]],
+  ['rm_5ft',['rm_t',['../unionamrex_1_1_particle_1_1rm__t.html',1,'amrex::Particle']]]
 ];
