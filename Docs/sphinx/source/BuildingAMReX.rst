@@ -164,6 +164,33 @@ host name in the make system and can be found via ``make print-host_name``.
 You can also have an ``amrex/Tools/GNUMake/Make.local`` file to override 
 various variables. See ``amrex/Tools/GNUMake/Make.local.template`` for an example.
 
+
+.. _sec:build:local
+
+Specifying your own compiler / GCC on macOS
+-------------------------------------------
+
+The ``amrex/Tools/GNUMake/Make.local`` (cf. above for template) can also be
+used to specify your own compile commands by setting the valiables ``CXX``,
+``CC``, ``FC``, and ``F90``. This might be neccarry if your systems contains
+non-standard names for compiler commands.
+
+For example, macOS' Xcode ships with its own (woefully outdated) version of GCC
+(4.2.1). It is therefore commonplace to install GCC using the `homebrew
+<https://brew.sh>`_ package manager. This in turn installs compilers with names
+reflecting the version number. If GCC 7.3 is installed, homebrew installs it as
+``gcc-7``. AMReX can be built using ``gcc-7`` by using the following
+``amrex/Tools/GNUMake/Make.local``:
+
+:: 
+
+    CXX = g++-7
+    CC  = gcc-7
+    FC  = gfortran-7
+    F90 = gfortran-7
+    
+
+
 .. _sec:build:lib:
 
 Building libamrex
