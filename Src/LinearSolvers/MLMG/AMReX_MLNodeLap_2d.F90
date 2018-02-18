@@ -49,7 +49,8 @@ module amrex_mlnodelap_2d_module
        ! RAP
   public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
        amrex_mlndlap_adotx_sten, amrex_mlndlap_gauss_seidel_sten, &
-       amrex_mlndlap_jacobi_sten, amrex_mlndlap_interpolation_rap
+       amrex_mlndlap_jacobi_sten, amrex_mlndlap_interpolation_rap, &
+       amrex_mlndlap_restriction_rap
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_connection, &
@@ -1618,7 +1619,7 @@ contains
        jc = (j-flo(2))/2 + clo(2)
        jeven = jc*2 .eq. j
        do i = flo(1), fhi(1)
-          if (msk(i,j) .ne. dirichlet) then
+          if (msk(i,j) .ne. dirichlet .and. sten(i,j,1) .ne. 0.d0) then
              ic = (i-flo(1))/2 + clo(1)
              ieven = ic*2 .eq. i
              if (ieven .and. jeven) then
@@ -1642,7 +1643,7 @@ contains
                 wpp = sten(i,j,4) * (1.d0 + wxp + wyp)
                 fine(i,j) = (wmm*crse(ic,jc) + wpm*crse(ic+1,jc) &
                      + wmp*crse(ic,jc+1) + wpp*crse(ic+1,jc+1)) &
-                     / (wmm+wpm+wmp+wpp+1.d-100)
+                     / (-sten(i,j,1))
              end if
           else
              fine(i,j) = 0.d0
@@ -1651,6 +1652,59 @@ contains
     end do
 
   end subroutine amrex_mlndlap_interpolation_rap
+
+
+  subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
+       sten, slo, shi, msk, mlo, mhi, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_restriction_rap')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, &
+         mlo, mhi, domlo, domhi, bclo, bchi
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
+    real(amrex_real), intent(in   ) :: sten(slo(1):shi(1),slo(2):shi(2),4)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: i,j, ii, jj
+    real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
+
+    do    j = lo(2), hi(2)
+       jj = 2*j
+       do i = lo(1), hi(1)
+          ii = 2*i
+          if (msk(ii,jj) .ne. dirichlet) then
+             crse(i,j) = fine(ii,jj) &
+                  + fine(ii-1,jj)*sten(ii-1,jj,2)/(sten(ii-2,jj,2)+sten(ii-1,jj,2)) &
+                  + fine(ii+1,jj)*sten(ii,jj,2)/(sten(ii,jj,2)+sten(ii+1,jj,2)) &
+                  + fine(ii,jj-1)*sten(ii,jj-1,3)/(sten(ii,jj-2,3)+sten(ii,jj-1,3)) &
+                  + fine(ii,jj+1)*sten(ii,jj,3)/(sten(ii,jj,3)+sten(ii,jj+1,3))
+
+             wxp = sten(ii-1,jj-1,2)/(sten(ii-1,jj-2,4)+sten(ii-1,jj-1,4))
+             wyp = sten(ii-1,jj-1,3)/(sten(ii-2,jj-1,4)+sten(ii-1,jj-1,4))
+             wpp = sten(ii-1,jj-1,4)*(1.d0+wxp+wyp)
+             crse(i,j) = crse(i,j) + wpp/(-sten(ii-1,jj-1,1))*fine(ii-1,jj-1)
+
+             wxm = sten(ii  ,jj-1,2)/(sten(ii,jj-2,4)+sten(ii  ,jj-1,4))
+             wyp = sten(ii+1,jj-1,3)/(sten(ii,jj-1,4)+sten(ii+1,jj-1,4))
+             wmp = sten(ii  ,jj-1,4) *(1.d0 + wxm + wyp)
+             crse(i,j) = crse(i,j) + wmp/(-sten(ii+1,jj-1,1))*fine(ii+1,jj-1)
+
+             wxp = sten(ii-1,jj+1,2)/(sten(ii-1,jj,4)+sten(ii-1,jj+1,4))
+             wym = sten(ii-1,jj  ,3)/(sten(ii-2,jj,4)+sten(ii-1,jj  ,4))
+             wpm = sten(ii-1,jj,4) * (1.d0 + wxp + wym)
+             crse(i,j) = crse(i,j) + wpm/(-sten(ii-1,jj+1,1))*fine(ii-1,jj+1)
+
+             wxm = sten(ii  ,jj+1,2)/(sten(ii  ,jj  ,4)+sten(ii  ,jj+1,4))
+             wym = sten(ii+1,jj  ,3)/(sten(ii  ,jj  ,4)+sten(ii+1,jj  ,4))
+             wmm = sten(ii  ,jj  ,4) * (1.d0 + wxm + wym)
+             crse(i,j) = crse(i,j) + wmm/(-sten(ii+1,jj+1,1))*fine(ii+1,jj+1)
+             
+             crse(i,j) = 0.25d0*crse(i,j)
+          else
+             crse(i,j) = 0.d0
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_restriction_rap
 
 
 #ifdef AMREX_USE_EB
