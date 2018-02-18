@@ -240,7 +240,35 @@ extern "C" {
                                           const int* ndmsk, const int* ndmlo, const int* ndmhi,
                                           const int* ccmsk, const int* ccmlo, const int* ccmhi);
 
+    // stencils
+    
+    void amrex_mlndlap_set_stencil (const int* lo, const int* hi,
+                                    amrex_real* sten, const int* tlo, const int* thi,
+                                    const amrex_real* sigma, const int* glo, const int* ghi,
+                                    const amrex_real* dxinv);
 
+    void amrex_mlndlap_set_stencil_s0 (const int* lo, const int* hi,
+                                       amrex_real* sten, const int* tlo, const int* thi);
+
+    void amrex_mlndlap_adotx_sten (const int* lo, const int* hi,
+                                   amrex_real* y, const int* ylo, const int* yhi,
+                                   const amrex_real* x, const int* xlo, const int* xhi,
+                                   const amrex_real* sten, const int* slo, const int* shi,
+                                   const int* dmsk, const int* dmlo, const int* dmhi);
+
+    void amrex_mlndlap_gauss_seidel_sten (const int* lo, const int* hi,
+                                          amrex_real* sol, const int* slo, const int* shi,
+                                          const amrex_real* rhs, const int* rlo, const int* rhi,
+                                          const amrex_real* sten, const int* tlo, const int* thi,
+                                          const int* dmsk, const int* dmlo, const int* dmhi);
+
+    void amrex_mlndlap_jacobi_sten (const int* lo, const int* hi,
+                                    amrex_real* sol, const int* slo, const int* shi,
+                                    const amrex_real* Ax, const int* alo, const int* ahi,
+                                    const amrex_real* rhs, const int* rlo, const int* rhi,
+                                    const amrex_real* sten, const int* tlo, const int* thi,
+                                    const int* dmsk, const int* dmlo, const int* dmhi);
+    
 #ifdef AMREX_USE_EB
 
     void amrex_mlndlap_set_connection (const int* lo, const int* hi,
@@ -307,8 +335,6 @@ extern "C" {
                               const amrex_real* dxinv, const int* domlo, const int* domhi,
                               const void* bclo, const void* bchi);
 
-#endif
-
     void amrex_mlndlap_jacobi_ha_eb (const int* lo, const int* hi,
                                amrex_real* sol, const int* slo, const int* shi,
                                const amrex_real* Ax, const int* alo, const int* ahi,
@@ -348,6 +374,8 @@ extern "C" {
                                      const int* dmsk, const int* dmlo, const int* dmhi,
                                      const amrex_real* dxinv, const int* domlo, const int* domhi,
                                      const void* bclo, const void* bchi);
+
+#endif
 
 
 #ifdef __cplusplus

@@ -46,6 +46,11 @@ module amrex_mlnodelap_2d_module
        ! sync residual
        amrex_mlndlap_zero_fine
 
+       ! stencil
+  public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
+       amrex_mlndlap_adotx_sten, amrex_mlndlap_gauss_seidel_sten, &
+       amrex_mlndlap_jacobi_sten
+
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_connection, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, &
@@ -1448,6 +1453,148 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
+
+
+  subroutine amrex_mlndlap_set_stencil (lo, hi, sten, tlo, thi, sigma, glo, ghi, dxinv) &
+       bind(c,name='amrex_mlndlap_set_stencil')
+    integer, dimension(2), intent(in) :: lo, hi, tlo, thi, glo, ghi
+    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),4)
+    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1),glo(2):ghi(2))
+    real(amrex_real), intent(in) :: dxinv(2)
+
+    integer :: i, j
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fp, fm
+
+    if (is_rz) then
+       print *, "amrex_mlndlap_set_stencil: rz todo"
+    end if
+
+    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
+    fxy = facx + facy
+    f2xmy = 2.d0*facx - facy
+    fmx2y = 2.d0*facy - facx
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          sten(i,j,2) = f2xmy*(sigma(i,j-1)+sigma(i,j))
+          sten(i,j,3) = fmx2y*(sigma(i-1,j)+sigma(i,j))
+          sten(i,j,4) = fxy*sigma(i,j)
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_set_stencil
+
+
+  subroutine amrex_mlndlap_set_stencil_s0 (lo, hi, sten, tlo, thi) &
+       bind(c,name='amrex_mlndlap_set_stencil_s0')
+    integer, dimension(2), intent(in) :: lo, hi, tlo, thi
+    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),4)
+
+    integer :: i, j
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          sten(i,j,1) = -(sten(i-1,j,2) + sten(i,j,2) + sten(i,j-1,3) + sten(i,j,3) &
+               + sten(i-1,j-1,4) + sten(i,j-1,4) + sten(i-1,j,4) + sten(i,j,4))
+       end do
+    end do
+  end subroutine amrex_mlndlap_set_stencil_s0
+
+
+  subroutine amrex_mlndlap_adotx_sten (lo, hi, y, ylo, yhi, x, xlo, xhi, &
+       sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_adotx_sten')
+    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, mlo, mhi
+    real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2))
+    real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2))
+    real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),slo(2):shi(2),4)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: i,j
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (msk(i,j) .ne. dirichlet) then
+             y(i,j) = x(i-1,j-1)*sten(i-1,j-1,4) &
+                  +   x(i  ,j-1)*sten(i  ,j-1,3) &
+                  +   x(i+1,j-1)*sten(i  ,j-1,4) &
+                  +   x(i-1,j  )*sten(i-1,j  ,2) &
+                  +   x(i  ,j  )*sten(i  ,j  ,1) &
+                  +   x(i+1,j  )*sten(i  ,j  ,2) &
+                  +   x(i-1,j+1)*sten(i-1,j  ,4) &
+                  +   x(i  ,j+1)*sten(i  ,j  ,3) &
+                  +   x(i+1,j+1)*sten(i  ,j  ,4)
+          else
+             y(i,j) = 0.d0
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_adotx_sten
+
+
+  subroutine amrex_mlndlap_gauss_seidel_sten (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
+       sten, stlo, sthi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_gauss_seidel_sten')
+    integer, dimension(2),intent(in) :: lo,hi,slo,shi,rlo,rhi,stlo,sthi,mlo,mhi
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) ::sten(stlo(1):sthi(1),stlo(2):sthi(2),4)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: i,j
+    real(amrex_real) :: Ax
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (msk(i,j) .ne. dirichlet) then
+             if (sten(i,j,1) .ne. 0.d0) then
+                Ax =     sol(i-1,j-1)*sten(i-1,j-1,4) &
+                     +   sol(i  ,j-1)*sten(i  ,j-1,3) &
+                     +   sol(i+1,j-1)*sten(i  ,j-1,4) &
+                     +   sol(i-1,j  )*sten(i-1,j  ,2) &
+                     +   sol(i  ,j  )*sten(i  ,j  ,1) &
+                     +   sol(i+1,j  )*sten(i  ,j  ,2) &
+                     +   sol(i-1,j+1)*sten(i-1,j  ,4) &
+                     +   sol(i  ,j+1)*sten(i  ,j  ,3) &
+                     +   sol(i+1,j+1)*sten(i  ,j  ,4)
+                sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / sten(i,j,1)
+             end if
+          else
+             sol(i,j) = 0.d0
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_gauss_seidel_sten
+
+
+  subroutine amrex_mlndlap_jacobi_sten (lo, hi, sol, slo, shi, Ax, alo, ahi, &
+       rhs, rlo, rhi, sten, stlo, sthi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_jacobi_sten')
+    integer, dimension(2),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,stlo,sthi,mlo,mhi
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
+    real(amrex_real), intent(in   ) :: Ax ( alo(1): ahi(1), alo(2): ahi(2))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) ::sten(stlo(1):sthi(1),stlo(2):sthi(2),4)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: i,j
+    real(amrex_real), parameter :: omega = 2.d0/3.d0
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (msk(i,j) .ne. dirichlet) then
+             if (sten(i,j,1) .ne. 0.d0) then
+                sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) / sten(i,j,1)
+             end if
+          else
+             sol(i,j) = 0.d0
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_jacobi_sten
 
 
 #ifdef AMREX_USE_EB

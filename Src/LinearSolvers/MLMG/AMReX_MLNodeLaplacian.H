@@ -13,17 +13,26 @@ class MLNodeLaplacian
 {
 public :
 
+    enum struct CoarseningStrategy {
+#ifndef AMREX_USE_EB
+        Sigma,
+#endif
+        RAP
+    };
+
     MLNodeLaplacian () {}
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
                      const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+#ifdef AMREX_USE_EB
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
                      const Vector<EBFArrayBoxFactory const*>& a_factory);
+#endif
     virtual ~MLNodeLaplacian ();
 
     MLNodeLaplacian (const MLNodeLaplacian&) = delete;
@@ -56,6 +65,10 @@ public :
 
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
+
+#ifndef AMREX_USE_EB
+    void setCoarseningStrategy (CoarseningStrategy cs) { m_coarsening_strategy = cs; }
+#endif
 
 protected:
 
@@ -90,7 +103,14 @@ private:
 
     int m_is_rz = 0;
 
+#ifdef AMREX_USE_EB
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
+#else
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
+#endif
+
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
+    Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab
@@ -114,6 +134,8 @@ private:
     void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
 
     void buildMasks ();
+
+    void buildStencil ();
 
 #ifdef AMREX_USE_EB
     void buildConnection ();
