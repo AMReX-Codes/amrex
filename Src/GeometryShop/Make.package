@@ -53,7 +53,7 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_PolynomialIF.cpp  AMReX_EllipsoidIF.cpp
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_STLAsciiReader.H    AMReX_STLExplorer.H    AMReX_STLMesh.H   AMReX_STLBox.H	  AMReX_STLIF.H	     AMReX_STLUtil.H   AMReX_STLReader.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_STLAsciiReader.cpp  AMReX_STLExplorer.cpp  AMReX_STLMesh.cpp AMReX_STLBox.cpp	  AMReX_STLIF.cpp    AMReX_STLUtil.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_CellEdge.H   AMReX_KDTree.H   AMReX_PXStuff.H
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_CellEdge.H   AMReX_KDTree.H   AMReX_PXStuff.H	AMReX_KDStruct.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_CellEdge.cpp AMReX_KDTree.cpp AMReX_PXStuff.cpp
 
 

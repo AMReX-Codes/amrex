@@ -66,7 +66,7 @@ list ( APPEND ALLHEADERS AMReX_STLIF.H	     AMReX_STLUtil.H   AMReX_STLReader.H 
 list ( APPEND CXXSRC     AMReX_STLAsciiReader.cpp  AMReX_STLExplorer.cpp )
 list ( APPEND CXXSRC     AMReX_STLMesh.cpp AMReX_STLBox.cpp	  AMReX_STLIF.cpp    AMReX_STLUtil.cpp )
 
-list ( APPEND ALLHEADERS AMReX_CellEdge.H   AMReX_KDTree.H   AMReX_PXStuff.H )
+list ( APPEND ALLHEADERS AMReX_CellEdge.H   AMReX_KDTree.H   AMReX_PXStuff.H  	AMReX_KDStruct.H )
 list ( APPEND CXXSRC     AMReX_CellEdge.cpp AMReX_KDTree.cpp AMReX_PXStuff.cpp )
 
 # 
