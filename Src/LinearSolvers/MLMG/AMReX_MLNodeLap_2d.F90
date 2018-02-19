@@ -15,6 +15,8 @@ module amrex_mlnodelap_2d_module
   integer, parameter :: crse_fine_node = 1
   integer, parameter :: fine_node = 2
 
+  real(amrex_real), private, parameter :: eps = 1.d-100
+
   logical, private, save :: is_rz = .false.
 
   private
@@ -50,7 +52,7 @@ module amrex_mlnodelap_2d_module
   public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
        amrex_mlndlap_adotx_sten, amrex_mlndlap_gauss_seidel_sten, &
        amrex_mlndlap_jacobi_sten, amrex_mlndlap_interpolation_rap, &
-       amrex_mlndlap_restriction_rap
+       amrex_mlndlap_restriction_rap, amrex_mlndlap_rap
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_connection, &
@@ -1627,23 +1629,23 @@ contains
              else if (ieven) then
                 wym = sten(i,j-1,3)
                 wyp = sten(i,j  ,3)
-                fine(i,j) = (wym*crse(ic,jc) + wyp*crse(ic,jc+1)) / (wym+wyp+1.d-100)
+                fine(i,j) = (wym*crse(ic,jc) + wyp*crse(ic,jc+1)) / (wym+wyp+eps)
              else if (jeven) then
                 wxm = sten(i-1,j,2)
                 wxp = sten(i  ,j,2)
-                fine(i,j) = (wxm*crse(ic,jc) + wxp*crse(ic+1,jc)) / (wxm+wxp+1.d-100)
+                fine(i,j) = (wxm*crse(ic,jc) + wxp*crse(ic+1,jc)) / (wxm+wxp+eps)
              else
-                wxm = sten(i-1,j  ,2)/(sten(i-1,j-1,4)+sten(i-1,j  ,4))
-                wxp = sten(i  ,j  ,2)/(sten(i  ,j-1,4)+sten(i  ,j  ,4))
-                wym = sten(i  ,j-1,3)/(sten(i-1,j-1,4)+sten(i  ,j-1,4))
-                wyp = sten(i  ,j  ,3)/(sten(i-1,j  ,4)+sten(i  ,j  ,4))
+                wxm = sten(i-1,j  ,2)/(sten(i-1,j-1,4)+sten(i-1,j  ,4)+eps)
+                wxp = sten(i  ,j  ,2)/(sten(i  ,j-1,4)+sten(i  ,j  ,4)+eps)
+                wym = sten(i  ,j-1,3)/(sten(i-1,j-1,4)+sten(i  ,j-1,4)+eps)
+                wyp = sten(i  ,j  ,3)/(sten(i-1,j  ,4)+sten(i  ,j  ,4)+eps)
                 wmm = sten(i-1,j-1,4) * (1.d0 + wxm + wym)
                 wpm = sten(i,j-1,4) * (1.d0 + wxp + wym)
                 wmp = sten(i-1,j,4) *(1.d0 + wxm + wyp)
                 wpp = sten(i,j,4) * (1.d0 + wxp + wyp)
                 fine(i,j) = (wmm*crse(ic,jc) + wpm*crse(ic+1,jc) &
                      + wmp*crse(ic,jc+1) + wpp*crse(ic+1,jc+1)) &
-                     / (-sten(i,j,1))
+                     / (-sten(i,j,1)+eps)
              end if
           else
              fine(i,j) = 0.d0
@@ -1673,30 +1675,30 @@ contains
           ii = 2*i
           if (msk(ii,jj) .ne. dirichlet) then
              crse(i,j) = fine(ii,jj) &
-                  + fine(ii-1,jj)*sten(ii-1,jj,2)/(sten(ii-2,jj,2)+sten(ii-1,jj,2)) &
-                  + fine(ii+1,jj)*sten(ii,jj,2)/(sten(ii,jj,2)+sten(ii+1,jj,2)) &
-                  + fine(ii,jj-1)*sten(ii,jj-1,3)/(sten(ii,jj-2,3)+sten(ii,jj-1,3)) &
-                  + fine(ii,jj+1)*sten(ii,jj,3)/(sten(ii,jj,3)+sten(ii,jj+1,3))
+                  + fine(ii-1,jj)*sten(ii-1,jj,2)/(sten(ii-2,jj,2)+sten(ii-1,jj,2)+eps) &
+                  + fine(ii+1,jj)*sten(ii,jj,2)/(sten(ii,jj,2)+sten(ii+1,jj,2)+eps) &
+                  + fine(ii,jj-1)*sten(ii,jj-1,3)/(sten(ii,jj-2,3)+sten(ii,jj-1,3)+eps) &
+                  + fine(ii,jj+1)*sten(ii,jj,3)/(sten(ii,jj,3)+sten(ii,jj+1,3)+eps)
 
-             wxp = sten(ii-1,jj-1,2)/(sten(ii-1,jj-2,4)+sten(ii-1,jj-1,4))
-             wyp = sten(ii-1,jj-1,3)/(sten(ii-2,jj-1,4)+sten(ii-1,jj-1,4))
+             wxp = sten(ii-1,jj-1,2)/(sten(ii-1,jj-2,4)+sten(ii-1,jj-1,4)+eps)
+             wyp = sten(ii-1,jj-1,3)/(sten(ii-2,jj-1,4)+sten(ii-1,jj-1,4)+eps)
              wpp = sten(ii-1,jj-1,4)*(1.d0+wxp+wyp)
-             crse(i,j) = crse(i,j) + wpp/(-sten(ii-1,jj-1,1))*fine(ii-1,jj-1)
+             crse(i,j) = crse(i,j) + wpp/(-sten(ii-1,jj-1,1)+eps)*fine(ii-1,jj-1)
 
-             wxm = sten(ii  ,jj-1,2)/(sten(ii,jj-2,4)+sten(ii  ,jj-1,4))
-             wyp = sten(ii+1,jj-1,3)/(sten(ii,jj-1,4)+sten(ii+1,jj-1,4))
+             wxm = sten(ii  ,jj-1,2)/(sten(ii,jj-2,4)+sten(ii  ,jj-1,4)+eps)
+             wyp = sten(ii+1,jj-1,3)/(sten(ii,jj-1,4)+sten(ii+1,jj-1,4)+eps)
              wmp = sten(ii  ,jj-1,4) *(1.d0 + wxm + wyp)
-             crse(i,j) = crse(i,j) + wmp/(-sten(ii+1,jj-1,1))*fine(ii+1,jj-1)
+             crse(i,j) = crse(i,j) + wmp/(-sten(ii+1,jj-1,1)+eps)*fine(ii+1,jj-1)
 
-             wxp = sten(ii-1,jj+1,2)/(sten(ii-1,jj,4)+sten(ii-1,jj+1,4))
-             wym = sten(ii-1,jj  ,3)/(sten(ii-2,jj,4)+sten(ii-1,jj  ,4))
+             wxp = sten(ii-1,jj+1,2)/(sten(ii-1,jj,4)+sten(ii-1,jj+1,4)+eps)
+             wym = sten(ii-1,jj  ,3)/(sten(ii-2,jj,4)+sten(ii-1,jj  ,4)+eps)
              wpm = sten(ii-1,jj,4) * (1.d0 + wxp + wym)
-             crse(i,j) = crse(i,j) + wpm/(-sten(ii-1,jj+1,1))*fine(ii-1,jj+1)
+             crse(i,j) = crse(i,j) + wpm/(-sten(ii-1,jj+1,1)+eps)*fine(ii-1,jj+1)
 
-             wxm = sten(ii  ,jj+1,2)/(sten(ii  ,jj  ,4)+sten(ii  ,jj+1,4))
-             wym = sten(ii+1,jj  ,3)/(sten(ii  ,jj  ,4)+sten(ii+1,jj  ,4))
+             wxm = sten(ii  ,jj+1,2)/(sten(ii  ,jj  ,4)+sten(ii  ,jj+1,4)+eps)
+             wym = sten(ii+1,jj  ,3)/(sten(ii  ,jj  ,4)+sten(ii+1,jj  ,4)+eps)
              wmm = sten(ii  ,jj  ,4) * (1.d0 + wxm + wym)
-             crse(i,j) = crse(i,j) + wmm/(-sten(ii+1,jj+1,1))*fine(ii+1,jj+1)
+             crse(i,j) = crse(i,j) + wmm/(-sten(ii+1,jj+1,1)+eps)*fine(ii+1,jj+1)
              
              crse(i,j) = 0.25d0*crse(i,j)
           else
@@ -1705,6 +1707,272 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_restriction_rap
+
+
+  subroutine amrex_mlndlap_rap (lo, hi, csten, clo, chi, fsten, flo, fhi, &
+       msk, mlo, mhi, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_rap')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi, &
+         domlo, domhi, bclo, bchi
+    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),clo(2):chi(2),4)
+    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),4)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    
+    integer :: i,j, ii, jj
+    real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
+    real(amrex_real) :: ap(-1:1,-1:1), p(-1:1,-1:1)
+
+    ! for eb, we need to make sure not divided by zero
+
+    do    j = lo(2), hi(2)
+       jj = 2*j
+       do i = lo(1), hi(1)
+          ii = 2*i
+          if (msk(ii,jj) .ne. dirichlet) then
+             ap = 0.d0
+             p = 0.d0
+
+             ! csten(i,j,2)
+             p(-1,-1) = interp_from_pp_to(ii+1,jj-1)
+             p( 0,-1) = interp_from_0p_to(ii+2,jj-1)
+             p(-1, 0) = interp_from_p0_to(ii+1,jj  )
+             p( 0, 0) = 1.d0
+             p(-1, 1) = interp_from_pm_to(ii+1,jj+1)
+             p( 0, 1) = interp_from_0m_to(ii+2,jj+1)
+
+             ap(0,-1) = Ap0(ii,jj-1)*p(-1,-1) + App(ii,jj-1)*p(-1,0)
+             ap(1,-1) = A00(ii+1,jj-1)*p(-1,-1) + Ap0(ii+1,jj-1)*p(0,-1) &
+                  + A0p(ii+1,jj-1)*p(-1,0) + App(ii+1,jj-1)*p(0,0)
+             ap(0,0) = Apm(ii,jj)*p(-1,-1) + Ap0(ii,jj)*p(-1,0) + App(ii,jj)*p(-1,1)
+             ap(1,0) = A0m(ii+1,jj)*p(-1,-1) + Apm(ii+1,jj)*p(0,-1) &
+                  + A00(ii+1,jj)*p(-1,0) + Ap0(ii+1,jj)*p(0,0) &
+                  + A0p(ii+1,jj)*p(-1,1) + App(ii+1,jj)*p(0,1)
+             ap(0,1) = Apm(ii,jj+1)*p(-1,0) + Ap0(ii,jj+1)*p(-1,1)
+             ap(1,1) = A0m(ii+1,jj+1)*p(-1,0) + Apm(ii+1,jj+1)*p(0,0) &
+                  + A00(ii+1,jj+1)*p(-1,1) + Ap0(ii+1,jj+1)*p(0,1)
+
+             csten(i,j,2) = 0.25d0*(restrict_from_0m_to(ii,jj)*ap(0,-1) &
+                  + restrict_from_pm_to(ii,jj)*ap(1,-1) &
+                  + ap(0,0) &
+                  + restrict_from_p0_to(ii,jj)*ap(1,0) &
+                  + restrict_from_0p_to(ii,jj)*ap(0,1) &
+                  + restrict_from_pp_to(ii,jj)*ap(1,1))
+
+             ! csten(i,j,3)
+             p(-1,-1) = interp_from_pp_to(ii-1,jj+1)
+             p( 0,-1) = interp_from_0p_to(ii  ,jj+1)
+             p( 1,-1) = interp_from_mp_to(ii+1,jj+1)
+             p(-1, 0) = interp_from_p0_to(ii-1,jj+2)
+             p( 0, 0) = 1.d0
+             p( 1, 0) = interp_from_m0_to(ii+1,jj+2)
+
+             ap(-1,0) = A0p(ii-1,jj)*p(-1,-1) + App(ii-1,jj)*p(0,-1)
+             ap(0,0) = Amp(ii,jj)*p(-1,-1) + A0p(ii,jj)*p(0,-1) + App(ii,jj)*p(1,-1)
+             ap(1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1)
+             ap(-1,1) = A00(ii-1,jj+1)*p(-1,-1) + Ap0(ii-1,jj+1)*p(0,-1) &
+                  + A0p(ii-1,jj+1)*p(-1,0) + App(ii-1,jj+1)*p(0,0)
+             ap(0,1) = Am0(ii,jj+1)*p(-1,-1) + A00(ii,jj+1)*p(0,-1) + Ap0(ii,jj+1)*p(1,-1) &
+                  + Amp(ii,jj+1)*p(-1,0) + A0p(ii,jj+1)*p(0,0) + App(ii,jj+1)*p(1,0)
+             ap(1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1) &
+                  + Amp(ii+1,jj+1)*p(0,0) + A0p(ii+1,jj+1)*p(1,0)
+
+             csten(i,j,3) = 0.25d0*(restrict_from_m0_to(ii,jj)*ap(-1,0) &
+                  + ap(0,0) &
+                  + restrict_from_p0_to(ii,jj)*ap(1,0) &
+                  + restrict_from_mp_to(ii,jj)*ap(-1,1) &
+                  + restrict_from_0p_to(ii,jj)*ap(0,1) &
+                  + restrict_from_pp_to(ii,jj)*ap(1,1))
+
+             ! csten(i,j,4)
+             p(-1,-1) = interp_from_pp_to(ii+1,jj+1)
+             p( 0,-1) = interp_from_0p_to(ii+2,jj+1)
+             p(-1, 0) = interp_from_p0_to(ii+1,jj+2)
+             p( 0, 0) = 1.d0
+
+             ap(0,0) = App(ii,jj)*p(-1,-1)
+             ap(1,0) = A0p(ii+1,jj)*p(-1,-1) + App(ii+1,jj)*p(0,-1)
+             ap(0,1) = Ap0(ii,jj+1)*p(-1,-1) + App(ii,jj+1)*p(-1,0)
+             ap(1,1) = A00(ii+1,jj+1)*p(-1,-1) + Ap0(ii+1,jj+1)*p(0,-1) &
+                  + A0p(ii+1,jj+1)*p(-1,0) + App(ii+1,jj+1)*p(0,0)
+
+             csten(i,j,4) = 0.25d0*(ap(0,0) &
+                  + restrict_from_p0_to(ii,jj)*ap(1,0) &
+                  + restrict_from_0p_to(ii,jj)*ap(0,1) &
+                  + restrict_from_pp_to(ii,jj)*ap(1,1))
+          else
+             csten(i,j,:) = 0.d0
+          end if
+       end do
+    end do
+
+  contains
+
+    elemental function interp_from_mm_to (i,j) result(p)
+      integer, intent(in) :: i,j
+      real(amrex_real) :: p, wxm, wym, wmm
+      wxm = fsten(i-1,j  ,2)/(fsten(i-1,j-1,4)+fsten(i-1,j  ,4)+eps)
+      wym = fsten(i  ,j-1,3)/(fsten(i-1,j-1,4)+fsten(i  ,j-1,4)+eps)
+      wmm = fsten(i-1,j-1,4) * (1.d0 + wxm + wym)
+      p = wmm / (-fsten(i,j,1))
+    end function interp_from_mm_to
+
+    elemental function interp_from_mp_to (i,j) result(p)
+      integer, intent(in) :: i,j
+      real(amrex_real) :: p, wxm, wyp, wmp
+      wxm = fsten(i-1,j  ,2)/(fsten(i-1,j-1,4)+fsten(i-1,j  ,4)+eps)
+      wyp = fsten(i  ,j  ,3)/(fsten(i-1,j  ,4)+fsten(i  ,j  ,4)+eps)
+      wmp = fsten(i-1,j,4) *(1.d0 + wxm + wyp)
+      p = wmp / (-fsten(i,j,1))
+    end function interp_from_mp_to
+
+    elemental function interp_from_pm_to (i,j) result(p)
+      integer, intent(in) :: i,j
+      real(amrex_real) :: p, wxp, wym, wpm
+      wxp = fsten(i  ,j  ,2)/(fsten(i  ,j-1,4)+fsten(i  ,j  ,4)+eps)
+      wym = fsten(i  ,j-1,3)/(fsten(i-1,j-1,4)+fsten(i  ,j-1,4)+eps)
+      wpm = fsten(i,j-1,4) * (1.d0 + wxp + wym)
+      p = wpm / (-fsten(i,j,1))
+    end function interp_from_pm_to
+
+    elemental function interp_from_pp_to (i,j) result(p)
+      integer, intent(in) :: i,j
+      real(amrex_real) :: p, wxp, wyp, wpp
+      wxp = fsten(i  ,j  ,2)/(fsten(i  ,j-1,4)+fsten(i  ,j  ,4)+eps)
+      wyp = fsten(i  ,j  ,3)/(fsten(i-1,j  ,4)+fsten(i  ,j  ,4)+eps)
+      wpp = fsten(i,j,4) * (1.d0 + wxp + wyp)
+      p = wpp / (-fsten(i,j,1)+eps)
+    end function interp_from_pp_to
+
+    elemental function interp_from_m0_to (i,j) result(p)
+      integer, intent(in) :: i,j
+      real(amrex_real) :: p
+      p = fsten(i-1,j,2)/(fsten(i-1,j,2)+fsten(i,j,2)+eps)
+    end function interp_from_m0_to
+
+    elemental function interp_from_p0_to (i,j) result(p)
+      integer, intent(in) :: i,j
+      real(amrex_real) :: p
+      p = fsten(i,j,2)/(fsten(i-1,j,2)+fsten(i,j,2)+eps)
+    end function interp_from_p0_to
+    
+    elemental function interp_from_0m_to (i,j) result(p)
+      integer, intent(in) :: i,j
+      real(amrex_real) :: p
+      p = fsten(i,j-1,3)/(fsten(i,j-1,3)+fsten(i,j,3)+eps)
+    end function interp_from_0m_to
+
+    elemental function interp_from_0p_to (i,j) result(p)
+      integer, intent(in) :: i,j
+      real(amrex_real) :: p
+      p = fsten(i,j,3)/(fsten(i,j-1,3)+fsten(i,j,3)+eps)
+    end function interp_from_0p_to
+
+    elemental real(amrex_real) function Amm (i,j)
+      integer, intent(in) :: i,j
+      Amm = fsten(i-1,j-1,4)
+    end function Amm
+
+    elemental real(amrex_real) function A0m (i,j)
+      integer, intent(in) :: i,j
+      A0m = fsten(i,j-1,3)
+    end function A0m
+
+    elemental real(amrex_real) function Apm (i,j)
+      integer, intent(in) :: i,j
+      Apm = fsten(i,j-1,4)
+    end function Apm
+
+    elemental real(amrex_real) function Am0 (i,j)
+      integer, intent(in) :: i,j
+      Am0 = fsten(i-1,j,2)
+    end function Am0
+
+    elemental real(amrex_real) function A00 (i,j)
+      integer, intent(in) :: i,j
+      A00 = fsten(i,j,1)
+    end function A00
+
+    elemental real(amrex_real) function Ap0 (i,j)
+      integer, intent(in) :: i,j
+      Ap0 = fsten(i,j,2)
+    end function Ap0
+
+    elemental real(amrex_real) function Amp (i,j)
+      integer, intent(in) :: i,j
+      Amp = fsten(i-1,j,4)
+    end function Amp
+
+    elemental real(amrex_real) function A0p (i,j)
+      integer, intent(in) :: i,j
+      A0p = fsten(i,j,3)
+    end function A0p
+
+    elemental real(amrex_real) function App (i,j)
+      integer, intent(in) :: i,j
+      App = fsten(i,j,4)
+    end function App
+
+    elemental function restrict_from_mm_to (ii,jj) result(r)
+      integer, intent(in) :: ii,jj
+      real(amrex_real) :: r, wxp, wyp, wpp
+      wxp = fsten(ii-1,jj-1,2)/(fsten(ii-1,jj-2,4)+fsten(ii-1,jj-1,4)+eps)
+      wyp = fsten(ii-1,jj-1,3)/(fsten(ii-2,jj-1,4)+fsten(ii-1,jj-1,4)+eps)
+      wpp = fsten(ii-1,jj-1,4)*(1.d0+wxp+wyp)
+      r = wpp/(-fsten(ii-1,jj-1,1)+eps)
+    end function restrict_from_mm_to
+
+    elemental function restrict_from_0m_to (ii,jj) result(r)
+      integer, intent(in) :: ii,jj
+      real(amrex_real) :: r
+      r = fsten(ii,jj-1,3)/(fsten(ii,jj-2,3)+fsten(ii,jj-1,3)+eps)
+    end function restrict_from_0m_to
+
+    elemental function restrict_from_pm_to (ii,jj) result(r)
+      integer, intent(in) :: ii,jj
+      real(amrex_real) :: r, wxm, wyp, wmp
+      wxm = fsten(ii  ,jj-1,2)/(fsten(ii,jj-2,4)+fsten(ii  ,jj-1,4)+eps)
+      wyp = fsten(ii+1,jj-1,3)/(fsten(ii,jj-1,4)+fsten(ii+1,jj-1,4)+eps)
+      wmp = fsten(ii  ,jj-1,4) *(1.d0 + wxm + wyp)
+      r = wmp/(-fsten(ii+1,jj-1,1)+eps)
+    end function restrict_from_pm_to
+
+    elemental function restrict_from_m0_to (ii,jj) result(r)
+      integer, intent(in) :: ii,jj
+      real(amrex_real) :: r
+      r = fsten(ii-1,jj,2)/(fsten(ii-2,jj,2)+fsten(ii-1,jj,2)+eps)
+    end function restrict_from_m0_to
+
+    elemental function restrict_from_p0_to (ii,jj) result(r)
+      integer, intent(in) :: ii,jj
+      real(amrex_real) :: r
+      r = fsten(ii,jj,2)/(fsten(ii,jj,2)+fsten(ii+1,jj,2)+eps)
+    end function restrict_from_p0_to
+
+    elemental function restrict_from_mp_to (ii,jj) result(r)
+      integer, intent(in) :: ii,jj
+      real(amrex_real) :: r, wxp, wym, wpm
+      wxp = fsten(ii-1,jj+1,2)/(fsten(ii-1,jj,4)+fsten(ii-1,jj+1,4)+eps)
+      wym = fsten(ii-1,jj  ,3)/(fsten(ii-2,jj,4)+fsten(ii-1,jj  ,4)+eps)
+      wpm = fsten(ii-1,jj,4) * (1.d0 + wxp + wym)
+      r = wpm/(-fsten(ii-1,jj+1,1)+eps)
+    end function restrict_from_mp_to
+
+    elemental function restrict_from_0p_to (ii,jj) result(r)
+      integer, intent(in) :: ii,jj
+      real(amrex_real) :: r
+      r = fsten(ii,jj,3)/(fsten(ii,jj,3)+fsten(ii,jj+1,3)+eps)
+    end function restrict_from_0p_to
+    
+    elemental function restrict_from_pp_to (ii,jj) result(r)
+      integer, intent(in) :: ii,jj
+      real(amrex_real) :: r, wxm, wym, wmm
+      wxm = fsten(ii  ,jj+1,2)/(fsten(ii  ,jj  ,4)+fsten(ii  ,jj+1,4)+eps)
+      wym = fsten(ii+1,jj  ,3)/(fsten(ii  ,jj  ,4)+fsten(ii+1,jj  ,4)+eps)
+      wmm = fsten(ii  ,jj  ,4) * (1.d0 + wxm + wym)
+      r = wmm/(-fsten(ii+1,jj+1,1)+eps)
+    end function restrict_from_pp_to
+
+  end subroutine amrex_mlndlap_rap
 
 
 #ifdef AMREX_USE_EB
