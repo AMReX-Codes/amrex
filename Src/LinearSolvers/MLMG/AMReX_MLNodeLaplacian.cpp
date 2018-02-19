@@ -192,10 +192,12 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                    dxinv);
             }
 
-            amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
-                                            BL_TO_FORTRAN_BOX(nddom),
-                                            m_lobc.data(), m_hibc.data());
+            if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+                amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
+                                                BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                                BL_TO_FORTRAN_BOX(nddom),
+                                                m_lobc.data(), m_hibc.data());
+            }
 
             if (rhcc[ilev])
             {
@@ -204,10 +206,12 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                    BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]));
 
-                amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
-                                                BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
-                                                BL_TO_FORTRAN_BOX(nddom),
-                                                m_lobc.data(), m_hibc.data());
+                if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+                    amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
+                                                    BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
+                                                    BL_TO_FORTRAN_BOX(nddom),
+                                                    m_lobc.data(), m_hibc.data());
+                }
             }
         }
     }
@@ -691,7 +695,11 @@ MLNodeLaplacian::buildMasks ()
         m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
 
         const Geometry& geom = m_geom[amrlev][mglev];
-        const Box& nddomain = amrex::surroundingNodes(geom.Domain());
+        Box nddomain = amrex::surroundingNodes(geom.Domain());
+
+        if (m_coarsening_strategy != CoarseningStrategy::Sigma) {
+            nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+        }
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -699,9 +707,11 @@ MLNodeLaplacian::buildMasks ()
         for (MFIter mfi(m_bottom_dot_mask,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
+            auto& dfab = m_bottom_dot_mask[mfi];
+            const auto& sfab = omask[mfi];
             amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(m_bottom_dot_mask[mfi]),
-                                       BL_TO_FORTRAN_ANYD(omask[mfi]),
+                                       BL_TO_FORTRAN_ANYD(dfab),
+                                       BL_TO_FORTRAN_ANYD(sfab),
                                        BL_TO_FORTRAN_BOX(nddomain),
                                        m_lobc.data(), m_hibc.data());
         }
@@ -1010,16 +1020,19 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode
 
 //    int inhom = (bc_mode == BCMode::Inhomogeneous);
 
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(phi); mfi.isValid(); ++mfi)
-    {
-        if (!nd_domain.strictly_contains(mfi.fabbox()))
+        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
-            amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                  BL_TO_FORTRAN_BOX(nd_domain),
-                                  m_lobc.data(), m_hibc.data());
+            if (!nd_domain.strictly_contains(mfi.fabbox()))
+            {
+                amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                      BL_TO_FORTRAN_BOX(nd_domain),
+                                      m_lobc.data(), m_hibc.data());
+            }
         }
     }
 }
@@ -1375,16 +1388,19 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
     const auto& nddom = amrex::surroundingNodes(ccdom);
 
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(phi); mfi.isValid(); ++mfi)
-    {
-        if (!nddom.strictly_contains(mfi.fabbox()))
+        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
-            amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                  BL_TO_FORTRAN_BOX(nddom),
-                                  m_lobc.data(), m_hibc.data());
+            if (!nddom.strictly_contains(mfi.fabbox()))
+            {
+                amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                      BL_TO_FORTRAN_BOX(nddom),
+                                      m_lobc.data(), m_hibc.data());
+            }
         }
     }
 
