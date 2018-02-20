@@ -866,6 +866,14 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     int ng = linop.isCellCentered() ? 0 : 1;
     linop.make(res, nc, ng);
     linop.make(rescor, nc, ng);
+    for (int alev = 0; alev <= finest_amr_lev; ++alev)
+    {
+        const int nmglevs = linop.NMGLevels(alev);
+        for (int mglev = 0; mglev < nmglevs; ++mglev)
+        {
+            rescor[alev][mglev].setVal(0.0);
+        }
+    }
 
     ng = 1;
     cor.resize(namrlevs);

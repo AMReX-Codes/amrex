@@ -541,18 +541,21 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 
     sigma.FillBoundary(geom.periodicity());
 
-    const Box& domain = geom.Domain();
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+    {
+        const Box& domain = geom.Domain();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(sigma, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-    {
-        if (!domain.contains(mfi.fabbox()))
+        for (MFIter mfi(sigma, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
-            amrex_mlndlap_fillbc_cc(BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                    BL_TO_FORTRAN_BOX(domain),
-                                    m_lobc.data(), m_hibc.data());
+            if (!domain.contains(mfi.fabbox()))
+            {
+                amrex_mlndlap_fillbc_cc(BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                        BL_TO_FORTRAN_BOX(domain),
+                                        m_lobc.data(), m_hibc.data());
+            }
         }
     }
 }
@@ -740,7 +743,8 @@ MLNodeLaplacian::buildStencil ()
             m_stencil[amrlev][mglev].reset
                 (new MultiFab(amrex::convert(m_grids[amrlev][mglev],
                                              IntVect::TheNodeVector()),
-                              m_dmap[amrlev][mglev], ncomp, 1));
+                              m_dmap[amrlev][mglev], ncomp, 4));
+            m_stencil[amrlev][mglev]->setVal(0.0);
         }
 
         {
@@ -761,7 +765,7 @@ MLNodeLaplacian::buildStencil ()
                 for (MFIter mfi(*m_stencil[amrlev][0], MFItInfo().EnableTiling().SetDynamic(true));
                      mfi.isValid(); ++mfi)
                 {
-                    const Box& bx = mfi.growntilebox();
+                    const Box& bx = mfi.growntilebox(1);
                     const Box& ccbx = amrex::enclosedCells(bx);
                     FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
                     const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
@@ -789,7 +793,7 @@ MLNodeLaplacian::buildStencil ()
                     if (regular)
 #endif
                     {
-                        Box bx2 = amrex::grow(ccbx,2);
+                        Box bx2 = amrex::grow(ccbx,1);
                         sgfab.resize(bx2);
                         sgfab.setVal(0.0);
                         bx2 &= sgfab_orig.box();
@@ -810,8 +814,10 @@ MLNodeLaplacian::buildStencil ()
                                                  BL_TO_FORTRAN_ANYD(stfab));
                 }
             }
+
+            m_stencil[amrlev][0]->FillBoundary(geom.periodicity());
         }
-        
+
         for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             const MultiFab& fine = *m_stencil[amrlev][mglev-1];
@@ -820,7 +826,8 @@ MLNodeLaplacian::buildStencil ()
             MultiFab cfine;
             if (need_parallel_copy) {
                 const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
-                cfine.define(ba, fine.DistributionMap(), fine.nComp(), 0);
+                cfine.define(ba, fine.DistributionMap(), fine.nComp(), 1);
+                cfine.setVal(0.0);
             }
 
             MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
@@ -828,16 +835,33 @@ MLNodeLaplacian::buildStencil ()
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
             {
-                const Box& bx = mfi.tilebox();
-                //                amrex_mlndlap_avgdown_stencil(BL_TO_FORTRAN_BOX(bx),
-                //                                              xxx);
+                for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
+                {
+                    Box vbx = mfi.validbox();
+                    AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
+                    Box bx = mfi.growntilebox(1);
+                    bx &= vbx;
+                    amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                              BL_TO_FORTRAN_ANYD(fine[mfi]));
+                }
+
+                for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    FArrayBox& stfab = (*pcrse)[mfi];
+                    
+                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                                 BL_TO_FORTRAN_ANYD(stfab));
+                }
             }
 
             if (need_parallel_copy) {
                 crse.ParallelCopy(cfine);
             }
+
+            m_stencil[amrlev][mglev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
         }
     }
 }
@@ -910,18 +934,31 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
 
+    const auto& stencil = m_stencil[amrlev][cmglev-1];
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                  BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                  BL_TO_FORTRAN_BOX(nd_domain),
-                                  m_lobc.data(), m_hibc.data());
+        if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+        {
+            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                      BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                      BL_TO_FORTRAN_BOX(nd_domain),
+                                      m_lobc.data(), m_hibc.data());
+        }
+        else
+        {
+            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+        }
     }
 
     if (need_parallel_copy) {
@@ -935,6 +972,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     BL_PROFILE("MLNodeLaplacian::interpolation()");
 
     const auto& sigma = m_sigma[amrlev][fmglev];
+    const auto& stencil = m_stencil[amrlev][fmglev];
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
@@ -964,7 +1002,11 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 
             if (m_coarsening_strategy == CoarseningStrategy::RAP)
             {
-                amrex::Abort("MLNodeLaplacian::interpolation: todo");
+                amrex_mlndlap_interpolation_rap(BL_TO_FORTRAN_BOX(cbx),
+                                                BL_TO_FORTRAN_ANYD(tmpfab),
+                                                BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+                                                BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                                BL_TO_FORTRAN_ANYD(dmsk[mfi]));
             }
             else if (m_use_harmonic_average && fmglev > 0)
             {
