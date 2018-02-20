@@ -52,7 +52,7 @@ module amrex_mlnodelap_2d_module
   public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
        amrex_mlndlap_adotx_sten, amrex_mlndlap_gauss_seidel_sten, &
        amrex_mlndlap_jacobi_sten, amrex_mlndlap_interpolation_rap, &
-       amrex_mlndlap_restriction_rap, amrex_mlndlap_rap
+       amrex_mlndlap_restriction_rap, amrex_mlndlap_stencil_rap
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_connection, &
@@ -1601,10 +1601,8 @@ contains
 
 
   subroutine amrex_mlndlap_interpolation_rap (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sten, stlo, sthi, msk, mlo, mhi, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_interpolation_rap')
-    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
+       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap')
+    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
     real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
     real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
     real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),stlo(2):sthi(2),4)
@@ -1657,10 +1655,8 @@ contains
 
 
   subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
-       sten, slo, shi, msk, mlo, mhi, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_restriction_rap')
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
+       sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_restriction_rap')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, mlo, mhi
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
     real(amrex_real), intent(in   ) :: sten(slo(1):shi(1),slo(2):shi(2),4)
@@ -1709,14 +1705,11 @@ contains
   end subroutine amrex_mlndlap_restriction_rap
 
 
-  subroutine amrex_mlndlap_rap (lo, hi, csten, clo, chi, fsten, flo, fhi, &
-       msk, mlo, mhi, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_rap')
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi, &
-         domlo, domhi, bclo, bchi
+  subroutine amrex_mlndlap_stencil_rap (lo, hi, csten, clo, chi, fsten, flo, fhi) &
+       bind(c,name='amrex_mlndlap_stencil_rap')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi
     real(amrex_real), intent(inout) :: csten(clo(1):chi(1),clo(2):chi(2),4)
     real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),4)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
     
     integer :: i,j, ii, jj
     real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
@@ -1728,80 +1721,77 @@ contains
        jj = 2*j
        do i = lo(1), hi(1)
           ii = 2*i
-          if (msk(ii,jj) .ne. dirichlet) then
-             ap = 0.d0
-             p = 0.d0
 
-             ! csten(i,j,2)
-             p(-1,-1) = interp_from_pp_to(ii+1,jj-1)
-             p( 0,-1) = interp_from_0p_to(ii+2,jj-1)
-             p(-1, 0) = interp_from_p0_to(ii+1,jj  )
-             p( 0, 0) = 1.d0
-             p(-1, 1) = interp_from_pm_to(ii+1,jj+1)
-             p( 0, 1) = interp_from_0m_to(ii+2,jj+1)
-
-             ap(0,-1) = Ap0(ii,jj-1)*p(-1,-1) + App(ii,jj-1)*p(-1,0)
-             ap(1,-1) = A00(ii+1,jj-1)*p(-1,-1) + Ap0(ii+1,jj-1)*p(0,-1) &
-                  + A0p(ii+1,jj-1)*p(-1,0) + App(ii+1,jj-1)*p(0,0)
-             ap(0,0) = Apm(ii,jj)*p(-1,-1) + Ap0(ii,jj)*p(-1,0) + App(ii,jj)*p(-1,1)
-             ap(1,0) = A0m(ii+1,jj)*p(-1,-1) + Apm(ii+1,jj)*p(0,-1) &
-                  + A00(ii+1,jj)*p(-1,0) + Ap0(ii+1,jj)*p(0,0) &
-                  + A0p(ii+1,jj)*p(-1,1) + App(ii+1,jj)*p(0,1)
-             ap(0,1) = Apm(ii,jj+1)*p(-1,0) + Ap0(ii,jj+1)*p(-1,1)
-             ap(1,1) = A0m(ii+1,jj+1)*p(-1,0) + Apm(ii+1,jj+1)*p(0,0) &
-                  + A00(ii+1,jj+1)*p(-1,1) + Ap0(ii+1,jj+1)*p(0,1)
-
-             csten(i,j,2) = 0.25d0*(restrict_from_0m_to(ii,jj)*ap(0,-1) &
-                  + restrict_from_pm_to(ii,jj)*ap(1,-1) &
-                  + ap(0,0) &
-                  + restrict_from_p0_to(ii,jj)*ap(1,0) &
-                  + restrict_from_0p_to(ii,jj)*ap(0,1) &
-                  + restrict_from_pp_to(ii,jj)*ap(1,1))
-
-             ! csten(i,j,3)
-             p(-1,-1) = interp_from_pp_to(ii-1,jj+1)
-             p( 0,-1) = interp_from_0p_to(ii  ,jj+1)
-             p( 1,-1) = interp_from_mp_to(ii+1,jj+1)
-             p(-1, 0) = interp_from_p0_to(ii-1,jj+2)
-             p( 0, 0) = 1.d0
-             p( 1, 0) = interp_from_m0_to(ii+1,jj+2)
-
-             ap(-1,0) = A0p(ii-1,jj)*p(-1,-1) + App(ii-1,jj)*p(0,-1)
-             ap(0,0) = Amp(ii,jj)*p(-1,-1) + A0p(ii,jj)*p(0,-1) + App(ii,jj)*p(1,-1)
-             ap(1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1)
-             ap(-1,1) = A00(ii-1,jj+1)*p(-1,-1) + Ap0(ii-1,jj+1)*p(0,-1) &
-                  + A0p(ii-1,jj+1)*p(-1,0) + App(ii-1,jj+1)*p(0,0)
-             ap(0,1) = Am0(ii,jj+1)*p(-1,-1) + A00(ii,jj+1)*p(0,-1) + Ap0(ii,jj+1)*p(1,-1) &
-                  + Amp(ii,jj+1)*p(-1,0) + A0p(ii,jj+1)*p(0,0) + App(ii,jj+1)*p(1,0)
-             ap(1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1) &
-                  + Amp(ii+1,jj+1)*p(0,0) + A0p(ii+1,jj+1)*p(1,0)
-
-             csten(i,j,3) = 0.25d0*(restrict_from_m0_to(ii,jj)*ap(-1,0) &
-                  + ap(0,0) &
-                  + restrict_from_p0_to(ii,jj)*ap(1,0) &
-                  + restrict_from_mp_to(ii,jj)*ap(-1,1) &
-                  + restrict_from_0p_to(ii,jj)*ap(0,1) &
-                  + restrict_from_pp_to(ii,jj)*ap(1,1))
-
-             ! csten(i,j,4)
-             p(-1,-1) = interp_from_pp_to(ii+1,jj+1)
-             p( 0,-1) = interp_from_0p_to(ii+2,jj+1)
-             p(-1, 0) = interp_from_p0_to(ii+1,jj+2)
-             p( 0, 0) = 1.d0
-
-             ap(0,0) = App(ii,jj)*p(-1,-1)
-             ap(1,0) = A0p(ii+1,jj)*p(-1,-1) + App(ii+1,jj)*p(0,-1)
-             ap(0,1) = Ap0(ii,jj+1)*p(-1,-1) + App(ii,jj+1)*p(-1,0)
-             ap(1,1) = A00(ii+1,jj+1)*p(-1,-1) + Ap0(ii+1,jj+1)*p(0,-1) &
-                  + A0p(ii+1,jj+1)*p(-1,0) + App(ii+1,jj+1)*p(0,0)
-
-             csten(i,j,4) = 0.25d0*(ap(0,0) &
-                  + restrict_from_p0_to(ii,jj)*ap(1,0) &
-                  + restrict_from_0p_to(ii,jj)*ap(0,1) &
-                  + restrict_from_pp_to(ii,jj)*ap(1,1))
-          else
-             csten(i,j,:) = 0.d0
-          end if
+          ap = 0.d0
+          p = 0.d0
+          
+          ! csten(i,j,2)
+          p(-1,-1) = interp_from_pp_to(ii+1,jj-1)
+          p( 0,-1) = interp_from_0p_to(ii+2,jj-1)
+          p(-1, 0) = interp_from_p0_to(ii+1,jj  )
+          p( 0, 0) = 1.d0
+          p(-1, 1) = interp_from_pm_to(ii+1,jj+1)
+          p( 0, 1) = interp_from_0m_to(ii+2,jj+1)
+          
+          ap(0,-1) = Ap0(ii,jj-1)*p(-1,-1) + App(ii,jj-1)*p(-1,0)
+          ap(1,-1) = A00(ii+1,jj-1)*p(-1,-1) + Ap0(ii+1,jj-1)*p(0,-1) &
+               + A0p(ii+1,jj-1)*p(-1,0) + App(ii+1,jj-1)*p(0,0)
+          ap(0,0) = Apm(ii,jj)*p(-1,-1) + Ap0(ii,jj)*p(-1,0) + App(ii,jj)*p(-1,1)
+          ap(1,0) = A0m(ii+1,jj)*p(-1,-1) + Apm(ii+1,jj)*p(0,-1) &
+               + A00(ii+1,jj)*p(-1,0) + Ap0(ii+1,jj)*p(0,0) &
+               + A0p(ii+1,jj)*p(-1,1) + App(ii+1,jj)*p(0,1)
+          ap(0,1) = Apm(ii,jj+1)*p(-1,0) + Ap0(ii,jj+1)*p(-1,1)
+          ap(1,1) = A0m(ii+1,jj+1)*p(-1,0) + Apm(ii+1,jj+1)*p(0,0) &
+               + A00(ii+1,jj+1)*p(-1,1) + Ap0(ii+1,jj+1)*p(0,1)
+          
+          csten(i,j,2) = 0.25d0*(restrict_from_0m_to(ii,jj)*ap(0,-1) &
+               + restrict_from_pm_to(ii,jj)*ap(1,-1) &
+               + ap(0,0) &
+               + restrict_from_p0_to(ii,jj)*ap(1,0) &
+               + restrict_from_0p_to(ii,jj)*ap(0,1) &
+               + restrict_from_pp_to(ii,jj)*ap(1,1))
+          
+          ! csten(i,j,3)
+          p(-1,-1) = interp_from_pp_to(ii-1,jj+1)
+          p( 0,-1) = interp_from_0p_to(ii  ,jj+1)
+          p( 1,-1) = interp_from_mp_to(ii+1,jj+1)
+          p(-1, 0) = interp_from_p0_to(ii-1,jj+2)
+          p( 0, 0) = 1.d0
+          p( 1, 0) = interp_from_m0_to(ii+1,jj+2)
+          
+          ap(-1,0) = A0p(ii-1,jj)*p(-1,-1) + App(ii-1,jj)*p(0,-1)
+          ap(0,0) = Amp(ii,jj)*p(-1,-1) + A0p(ii,jj)*p(0,-1) + App(ii,jj)*p(1,-1)
+          ap(1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1)
+          ap(-1,1) = A00(ii-1,jj+1)*p(-1,-1) + Ap0(ii-1,jj+1)*p(0,-1) &
+               + A0p(ii-1,jj+1)*p(-1,0) + App(ii-1,jj+1)*p(0,0)
+          ap(0,1) = Am0(ii,jj+1)*p(-1,-1) + A00(ii,jj+1)*p(0,-1) + Ap0(ii,jj+1)*p(1,-1) &
+               + Amp(ii,jj+1)*p(-1,0) + A0p(ii,jj+1)*p(0,0) + App(ii,jj+1)*p(1,0)
+          ap(1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1) &
+               + Amp(ii+1,jj+1)*p(0,0) + A0p(ii+1,jj+1)*p(1,0)
+          
+          csten(i,j,3) = 0.25d0*(restrict_from_m0_to(ii,jj)*ap(-1,0) &
+               + ap(0,0) &
+               + restrict_from_p0_to(ii,jj)*ap(1,0) &
+               + restrict_from_mp_to(ii,jj)*ap(-1,1) &
+               + restrict_from_0p_to(ii,jj)*ap(0,1) &
+               + restrict_from_pp_to(ii,jj)*ap(1,1))
+          
+          ! csten(i,j,4)
+          p(-1,-1) = interp_from_pp_to(ii+1,jj+1)
+          p( 0,-1) = interp_from_0p_to(ii+2,jj+1)
+          p(-1, 0) = interp_from_p0_to(ii+1,jj+2)
+          p( 0, 0) = 1.d0
+          
+          ap(0,0) = App(ii,jj)*p(-1,-1)
+          ap(1,0) = A0p(ii+1,jj)*p(-1,-1) + App(ii+1,jj)*p(0,-1)
+          ap(0,1) = Ap0(ii,jj+1)*p(-1,-1) + App(ii,jj+1)*p(-1,0)
+          ap(1,1) = A00(ii+1,jj+1)*p(-1,-1) + Ap0(ii+1,jj+1)*p(0,-1) &
+               + A0p(ii+1,jj+1)*p(-1,0) + App(ii+1,jj+1)*p(0,0)
+          
+          csten(i,j,4) = 0.25d0*(ap(0,0) &
+               + restrict_from_p0_to(ii,jj)*ap(1,0) &
+               + restrict_from_0p_to(ii,jj)*ap(0,1) &
+               + restrict_from_pp_to(ii,jj)*ap(1,1))
        end do
     end do
 
@@ -1813,7 +1803,7 @@ contains
       wxm = fsten(i-1,j  ,2)/(fsten(i-1,j-1,4)+fsten(i-1,j  ,4)+eps)
       wym = fsten(i  ,j-1,3)/(fsten(i-1,j-1,4)+fsten(i  ,j-1,4)+eps)
       wmm = fsten(i-1,j-1,4) * (1.d0 + wxm + wym)
-      p = wmm / (-fsten(i,j,1))
+      p = wmm / (-fsten(i,j,1)+eps)
     end function interp_from_mm_to
 
     elemental function interp_from_mp_to (i,j) result(p)
@@ -1822,7 +1812,7 @@ contains
       wxm = fsten(i-1,j  ,2)/(fsten(i-1,j-1,4)+fsten(i-1,j  ,4)+eps)
       wyp = fsten(i  ,j  ,3)/(fsten(i-1,j  ,4)+fsten(i  ,j  ,4)+eps)
       wmp = fsten(i-1,j,4) *(1.d0 + wxm + wyp)
-      p = wmp / (-fsten(i,j,1))
+      p = wmp / (-fsten(i,j,1)+eps)
     end function interp_from_mp_to
 
     elemental function interp_from_pm_to (i,j) result(p)
@@ -1831,7 +1821,7 @@ contains
       wxp = fsten(i  ,j  ,2)/(fsten(i  ,j-1,4)+fsten(i  ,j  ,4)+eps)
       wym = fsten(i  ,j-1,3)/(fsten(i-1,j-1,4)+fsten(i  ,j-1,4)+eps)
       wpm = fsten(i,j-1,4) * (1.d0 + wxp + wym)
-      p = wpm / (-fsten(i,j,1))
+      p = wpm / (-fsten(i,j,1)+eps)
     end function interp_from_pm_to
 
     elemental function interp_from_pp_to (i,j) result(p)
@@ -1972,7 +1962,7 @@ contains
       r = wmm/(-fsten(ii+1,jj+1,1)+eps)
     end function restrict_from_pp_to
 
-  end subroutine amrex_mlndlap_rap
+  end subroutine amrex_mlndlap_stencil_rap
 
 
 #ifdef AMREX_USE_EB
