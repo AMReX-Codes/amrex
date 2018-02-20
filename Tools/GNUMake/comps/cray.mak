@@ -28,6 +28,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
+  GENERIC_COMP_FLAGS += -h list=a
+
   CXXFLAGS += -O2
   CFLAGS   += -O2
   FFLAGS   += -O2
@@ -44,8 +46,6 @@ F90FLAGS += -N 255 -I $(fmoddir) -J $(fmoddir) -em
 FFLAGS   += -N 255 -I $(fmoddir) -J $(fmoddir) -em
 
 ########################################################################
-
-GENERIC_COMP_FLAGS = -h list=a
 
 ifneq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -h noomp
