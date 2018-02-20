@@ -21,6 +21,8 @@ COMP_VERSION := $(cray_version)
 
 ifeq ($(DEBUG),TRUE)
 
+  GENERIC_COMP_FLAGS += -K trap=fp
+
   CXXFLAGS += -g -O0
   CFLAGS   += -g -O0
   FFLAGS   += -g -O0 -e i
