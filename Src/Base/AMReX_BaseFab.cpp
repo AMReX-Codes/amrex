@@ -38,7 +38,11 @@ BF_init::BF_init ()
     {
         BL_ASSERT(the_arena == 0);
 
+#if defined(BL_COALESCE_FABS)
+        the_arena = new CArena;
+#else
         the_arena = new BArena;
+#endif
 
 #ifdef AMREX_USE_CUDA
         the_arena->SetPreferred();
