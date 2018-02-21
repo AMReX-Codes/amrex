@@ -279,7 +279,17 @@ extern "C" {
                                     amrex_real* csten, const int* clo, const int* chi,
                                     const amrex_real* fsten, const int* flo, const int* fhi);
 
+    void amrex_mlndlap_stencil_rap_sp (const int* lo, const int* hi,
+                                       amrex_real* csten, const int* clo, const int* chi,
+                                       const amrex_real* fsten, const int* flo, const int* fhi);
+
     void amrex_mlndlap_interpolation_rap (const int* clo, const int* chi,
+                                          amrex_real* fine, const int* fflo, const int* ffhi,
+                                          const amrex_real* crse, const int* cflo, const int* cfhi,
+                                          const amrex_real* sten, const int* tlo, const int* thi,
+                                          const int* dmsk, const int* dmlo, const int* dmhi);
+
+    void amrex_mlndlap_interpolation_rap_sp (const int* clo, const int* chi,
                                           amrex_real* fine, const int* fflo, const int* ffhi,
                                           const amrex_real* crse, const int* cflo, const int* cfhi,
                                           const amrex_real* sten, const int* tlo, const int* thi,
