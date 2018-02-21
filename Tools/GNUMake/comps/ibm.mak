@@ -51,8 +51,8 @@ CXXFLAGS += -std=c++1y
 CFLAGS   += -std=gnu99
 F90FLAGS += -qlanglvl=extended -qxlf2003=polymorphic
 
-FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
-F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
+FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
+F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
 
 ########################################################################
 
