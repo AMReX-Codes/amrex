@@ -696,11 +696,6 @@ MLMG::actualBottomSolve ()
         }
         else
         {
-            // xxxxx
-            for (int i = 0; i < 100; ++i) {
-                linop.smooth(amrlev, mglev, x, b);
-            }
-
             MLCGSolver cg_solver(linop);
             cg_solver.setVerbose(bottom_verbose);
             cg_solver.setMaxIter(bottom_maxiter);

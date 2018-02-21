@@ -732,7 +732,7 @@ MLNodeLaplacian::buildStencil ()
     
     if (m_coarsening_strategy != CoarseningStrategy::RAP) return;
 
-    const int ncomp = (AMREX_SPACEDIM == 2) ? 4 : 14;
+    const int ncomp = (AMREX_SPACEDIM == 2) ? 5 : 15;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
                                      "MLNodeLaplacian::buildStencil: 1d not supported");
 
@@ -762,10 +762,14 @@ MLNodeLaplacian::buildStencil ()
 #endif
             {
                 FArrayBox sgfab;
+                FArrayBox cnfab;
                 for (MFIter mfi(*m_stencil[amrlev][0], MFItInfo().EnableTiling().SetDynamic(true));
                      mfi.isValid(); ++mfi)
                 {
-                    const Box& bx = mfi.growntilebox(1);
+                    Box vbx = mfi.validbox();
+                    AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
+                    Box bx = mfi.growntilebox(1);
+                    bx &= vbx;
                     const Box& ccbx = amrex::enclosedCells(bx);
                     FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
                     const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
@@ -783,7 +787,25 @@ MLNodeLaplacian::buildStencil ()
                         }
                         else if (typ == FabType::singlevalued)
                         {
-                            amrex::Abort("xxxxx buildStencil");
+                            const Box& bx2 = amrex::grow(ccbx,1);
+                            sgfab.resize(bx2);
+                            const FArrayBox& cnfab_orig = (*conn)[mfi];
+                            cnfab.resize(bx2,cnfab_orig.nComp());
+
+                            sgfab.setVal(0.0);
+                            cnfab.setVal(0.0);
+
+                            Box btmp = bx2 & sgfab_orig.box();
+                            sgfab.copy(sgfab_orig, btmp, 0, btmp, 0, 1);
+
+                            btmp = bx2 & cnfab_orig.box();
+                            cnfab.copy(cnfab_orig, btmp, 0, btmp, 0, cnfab.nComp());
+
+                            amrex_mlndlap_set_stencil_eb(BL_TO_FORTRAN_BOX(bx),
+                                                         BL_TO_FORTRAN_ANYD(stfab),
+                                                         BL_TO_FORTRAN_ANYD(sgfab),
+                                                         BL_TO_FORTRAN_ANYD(cnfab),
+                                                         dxinv);
                         }
                         else
                         {
