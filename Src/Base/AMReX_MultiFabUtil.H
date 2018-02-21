@@ -37,8 +37,9 @@ namespace amrex
     void average_down(const MultiFab& S_fine, MultiFab& S_crse, const Geometry& fine_geom, const Geometry& crse_geom,
                       int scomp, int ncomp, const int ratio);
 
-    //! Average fine cell-based MultiFab onto crse cell-centered MultiFab without volume weighting.
+    //! Average MultiFab onto crse MultiFab without volume weighting.
     //! This routine DOES NOT assume that the crse BoxArray is a coarsened version of the fine BoxArray.
+    //! Work for both cell-centered and nodal MultiFabs.
     void average_down(const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, const IntVect& ratio);
     void average_down(const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,       int      ratio);
 
@@ -51,6 +52,10 @@ namespace amrex
 
     //! Output state data for a single zone
     void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
+
+    //! Write each fab individually
+    void writeFabs (const MultiFab& mf, const std::string& name);
+    void writeFabs (const MultiFab& mf, int comp, int ncomp, const std::string& name);
 
     //! Convert iMultiFab to MultiFab
     MultiFab ToMultiFab (const iMultiFab& imf);

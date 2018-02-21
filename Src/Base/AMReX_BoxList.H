@@ -78,6 +78,8 @@ public:
     BoxList& operator= (const BoxList& rhs) = default;
     BoxList& operator= (BoxList&& rhs) = default;
 
+    void reserve (std::size_t n) { m_lbox.reserve(n); }
+
     //! Append a Box to this BoxList.
     void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); m_lbox.push_back(bn); }
 
@@ -128,6 +130,9 @@ public:
 
     BoxList& complementIn (const Box&     b,
                            const BoxList& bl);
+    BoxList& complementIn (const Box&     b,
+                            BoxList&&     bl);
+    BoxList& complementIn (const Box& b, const BoxArray& ba);
     //! Refine each Box in the BoxList by the ratio.
     BoxList& refine (int ratio);
     //! Refine each Box in the BoxList by the ratio.
@@ -188,6 +193,11 @@ public:
     Vector<Box>& data() { return m_lbox; }
     //! Returns a constant reference to the Vector<Box>.
     const Vector<Box>& data() const { return m_lbox; }
+
+    void swap (BoxList& rhs) {
+	std::swap(m_lbox, rhs.m_lbox);
+	std::swap(btype, rhs.btype);
+    }
 
 private:
     //! Core simplify routine.

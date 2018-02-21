@@ -398,6 +398,8 @@ AmrMesh::MakeBaseGrids () const
 void
 AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids)
 {
+    BL_PROFILE("AmrMesh::MakeNewGrids()");
+
     BL_ASSERT(lbase < max_level);
 
     // Add at most one new level
@@ -462,6 +464,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
         p_n[i].simplify();
     }
+
     //
     // Now generate grids from finest level down.
     //
@@ -617,7 +620,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         //
         // Create initial cluster containing all tagged points.
         //
-	std::vector<IntVect> tagvec;
+	Vector<IntVect> tagvec;
 	tags.collate(tagvec);
         tags.clear();
 
@@ -662,23 +665,6 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             //
             new_bx.maxSize(largest_grid_size);
 
-#ifdef BL_FIX_GATHERV_ERROR
-	      int wcount = 0, iLGS = largest_grid_size[0];
-
-              while (new_bx.size() < 64 && wcount++ < 4)
-              {
-                  iLGS /= 2;
-		  amrex::Print() << "BL_FIX_GATHERV_ERROR:  using iLGS = " << iLGS
-				 << "   largest_grid_size was:  " << largest_grid_size[0] << '\n'
-				 << "BL_FIX_GATHERV_ERROR:  new_bx.size() was:   "
-				 << new_bx.size() << '\n';
-
-                  new_bx.maxSize(iLGS);
-
-		  amrex::Print() << "BL_FIX_GATHERV_ERROR:  new_bx.size() now:   "
-				 << new_bx.size() << '\n';
-	      }
-#endif
             //
             // Refine up to levf.
             //
@@ -880,13 +866,27 @@ AmrMesh::checkInput ()
         }
     }
 
-    if( ! Geometry::ProbDomain().ok()) {
+    if( ! (Geometry::ProbDomain().volume() > 0.0) ) {
         amrex::Error("Amr::checkInput: bad physical problem size"); 
     }
 
     if(verbose > 0) {
         amrex::Print() << "Successfully read inputs file ... " << '\n';
     }
+}
+
+long
+AmrMesh::CountCells (int& lev)
+{
+        const int N = grids[lev].size();
+        long cnt = 0;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:cnt)
+#endif
+        for (int i = 0; i < N; ++i) {
+            cnt += grids[lev][i].numPts();
+        }
+        return cnt;
 }
 
 

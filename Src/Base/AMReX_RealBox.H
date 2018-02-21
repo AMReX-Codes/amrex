@@ -13,7 +13,7 @@
 
 namespace amrex {
 
-//!A Box with real dimensions.  A RealBox is OK iff volume > 0.
+//!A Box with real dimensions.  A RealBox is OK iff volume >= 0.
 
 class RealBox
 {
@@ -94,6 +94,9 @@ public:
     void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); initialize_device_memory(); xhi[dir] = a_hi; copy_device_memory(); }
     //! Is the RealBox OK; i.e. does it have positive volume?
     bool ok () const;
+    //! Returns the volume of the RealBox. If this RealBox is invalid, 
+    //! it's volume is considered to be zero.
+    Real volume () const;
     //! Is the specified point contained in the RealBox?
     bool contains (const Real* point, Real eps=0.0) const;
     bool contains (const RealVect& rv, Real eps=0.0) const { return contains(rv.dataPtr(), eps); }

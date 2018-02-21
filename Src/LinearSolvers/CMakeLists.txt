@@ -1,3 +1,81 @@
+#-------------------------------------------------------------------------------make 
+#
+# Sources in folder MGML
+# 
+set (CXXSRC "")
+set (F90SRC "")
+set (F77SRC "")
+set (ALLHEADERS "")
+set (ALLSRC "")
+
+
+list ( APPEND ALLHEADERS AMReX_MLMG.H )
+list ( APPEND CXXSRC     AMReX_MLMG.cpp )
+list ( APPEND ALLHEADERS AMReX_MLMG_F.H )
+list ( APPEND F90SRC     AMReX_MLMG_${DIM}d.F90 )
+
+list ( APPEND ALLHEADERS AMReX_MLMGBndry.H )
+list ( APPEND CXXSRC     AMReX_MLMGBndry.cpp )
+
+list ( APPEND ALLHEADERS AMReX_MLLinOp.H )
+list ( APPEND CXXSRC     AMReX_MLLinOp.cpp )
+list ( APPEND ALLHEADERS AMReX_MLLinOp_F.H )
+list ( APPEND F90SRC     AMReX_MLLinOp_nd.F90 )
+list ( APPEND F90SRC     AMReX_MLLinOp_${DIM}d.F90 )
+
+list ( APPEND ALLHEADERS AMReX_MLCellLinOp.H )
+list ( APPEND CXXSRC     AMReX_MLCellLinOp.cpp )
+
+list ( APPEND ALLHEADERS AMReX_MLNodeLinOp.H )
+list ( APPEND CXXSRC     AMReX_MLNodeLinOp.cpp )
+
+list ( APPEND ALLHEADERS AMReX_MLCGSolver.H )
+list ( APPEND CXXSRC     AMReX_MLCGSolver.cpp )
+
+list ( APPEND ALLHEADERS AMReX_MLABecLaplacian.H )
+list ( APPEND CXXSRC     AMReX_MLABecLaplacian.cpp )
+list ( APPEND ALLHEADERS AMReX_MLABecLap_F.H )
+list ( APPEND F90SRC     AMReX_MLABecLap_${DIM}d.F90 )
+
+list ( APPEND ALLHEADERS AMReX_MLALaplacian.H )
+list ( APPEND CXXSRC     AMReX_MLALaplacian.cpp )
+list ( APPEND ALLHEADERS AMReX_MLALap_F.H )
+list ( APPEND F90SRC     AMReX_MLALap_${DIM}d.F90 )
+
+list ( APPEND ALLHEADERS AMReX_MLPoisson.H )
+list ( APPEND CXXSRC     AMReX_MLPoisson.cpp )
+list ( APPEND ALLHEADERS AMReX_MLPoisson_F.H )
+list ( APPEND F90SRC     AMReX_MLPoisson_${DIM}d.F90 )
+
+list ( APPEND ALLHEADERS AMReX_MLNodeLaplacian.H )
+list ( APPEND CXXSRC     AMReX_MLNodeLaplacian.cpp )
+list ( APPEND ALLHEADERS AMReX_MLNodeLap_F.H )
+list ( APPEND F90SRC     AMReX_MLNodeLap_${DIM}d.F90 )
+
+# 
+# Collect sources
+# 
+set ( ALLSRC   ${CXXSRC} ${F90SRC} )
+
+#
+# Add absolute path (needed by target_sources)
+# 
+prepend ( ALLSRC     ${CMAKE_CURRENT_LIST_DIR}/MLMG )
+prepend ( ALLHEADERS ${CMAKE_CURRENT_LIST_DIR}/MLMG )
+
+target_sources ( amrex PRIVATE ${ALLSRC} ${ALLHEADERS} )
+
+# 
+# Accumulate headers 
+#
+accumulate_headers (ALLHEADERS)   
+
+#
+# Add to include dirs
+#
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/MLMG)
+
+#-------------------------------------------------------------------------------
 #
 # Sources in folder C_CellMG
 # 
@@ -43,7 +121,6 @@ accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/C_CellMG)
 
 
 #-------------------------------------------------------------------------------
-
 #
 # Source in folder C_CellMG4
 #

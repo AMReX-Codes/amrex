@@ -3,6 +3,7 @@
 #include <Adv_F.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_TagBox.H>
+#include <AMReX_FillPatchUtil.H>
 #include <AMReX_ParmParse.H>
 
 namespace amrex
@@ -14,9 +15,197 @@ namespace amrex
   int      AmrLevelAdv::do_reflux       = 1;
 
   int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
-  int      AmrLevelAdv::NUM_GROW        = 4;  // number of ghost cells
+  int      AmrLevelAdv::NUM_GROW        = 5;  // number of ghost cells
 
+  using std::string;
 
+  /////
+  void
+  AmrLevelAdv::
+  fillGhostCellsRK3 (MultiFab & a_phi, //phi on the this level
+                     const int& a_stage,
+                     const int& a_iteration) //rk4 stage to fill ghost for
+  {
+    if(level > 0)
+    {
+      BL_ASSERT(a_stage >= 0);
+      BL_ASSERT(a_stage <= 2);
+      //this one needs to be prevTime because we just did swapTimeLevels
+      Real tf      = getLevel(level  ).state[Phi_Type].prevTime(); 
+      Real dt_f    = parent->dtLevel(level);
+      Real dt_c    = parent->dtLevel(level-1);
+      BoxArray coarGrids         = getLevel(level-1).grids;
+      DistributionMapping dmCoar = getLevel(level-1).dmap;
+      MultiFab phiC(coarGrids,dmCoar,NUM_STATE,0);
+      MultiFab& oldC = getLevel(level-1).get_old_data(Phi_Type);
+      Real tc_new  = getLevel(level-1).state[Phi_Type].curTime();
+      Real tc_old  = getLevel(level-1).state[Phi_Type].prevTime();
+      BL_ASSERT(tf >= tc_old);
+      BL_ASSERT(tf <  tc_new);
+      Real xi;//coefficient from mccorquodale
+      if(a_stage == 0)
+      {
+        xi = (tf - tc_old)/dt_c;
+      }
+      else if(a_stage == 1)
+      {
+        xi = (tf + dt_f - tc_old)/dt_c;
+      }
+      else if(a_stage == 2)
+      {
+        xi = (tf + 0.5*dt_f - tc_old)/dt_c; 
+      }
+      else
+      {
+        amrex::Error("bogus stage number");
+      }
+
+      MultiFab & k1  = getLevel(level-1).m_k1;
+      MultiFab & k2  = getLevel(level-1).m_k2;
+      BoxArray bak1 = k1.boxArray();
+      BoxArray bak2 = k2.boxArray();
+      IntVect refrat  = parent->refRatio(level-1);
+      for (MFIter mfi(phiC); mfi.isValid(); ++mfi)
+      {
+        const Box& box     = mfi.validbox();
+        const int* lo      = box.loVect();
+        const int* hi      = box.hiVect();
+        int nref = refrat[0];
+
+        timeinterprk3_jbb(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+                          BL_TO_FORTRAN_3D(  phiC[mfi]),
+                          BL_TO_FORTRAN_3D(  oldC[mfi]),
+                          BL_TO_FORTRAN_3D(    k1[mfi]),
+                          BL_TO_FORTRAN_3D(    k2[mfi]),
+                          &tf, &tc_old, &dt_c, &dt_f, &a_iteration, &nref);
+      }
+      //debug turn off time interp
+      //phiC.copy(oldC);
+      //end debug
+
+      //now we can spatially interpolate 
+      //these need to be in vectors but they are the same data
+      //since we have already done time interpolation
+      MultiFab phiSave(grids,dmap,NUM_STATE,0);
+      phiSave.copy(a_phi);
+
+      BCRec bcs;
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        bcs.setLo(idir, BCType::int_dir);  // periodic uses "internal Dirichlet"
+        bcs.setHi(idir, BCType::int_dir);  // periodic uses "internal Dirichlet"
+      }
+
+      Vector<Real> timevec(2, tf);
+      Vector<MultiFab*> coarmf(2, &phiC);
+      Vector<MultiFab*> finemf(2, &phiSave);
+      int isrc = 0; int idst = 0; int inco = NUM_STATE;
+      Geometry geomC = getLevel(level-1).geom;
+      //I have no idea why this needs to be here for periodic
+      PhysBCFunct cphysbc(geomC,bcs,BndryFunctBase());
+      PhysBCFunct fphysbc(geom ,bcs,BndryFunctBase());
+      Interpolater* mapper = &quartic_interp;
+      FillPatchTwoLevels(a_phi, tf, 
+                         coarmf, timevec,
+                         finemf, timevec,
+                         isrc, idst, inco,
+                         geomC, geom,
+                         cphysbc, fphysbc, refrat,
+                         mapper, bcs);
+    }
+
+    //for level >0, this might not be necessary.   I cannot tell from the FillPatchUtil documentation.
+    //since we are in periodic-land, no need to call FillPatchUtil::FillPatchSingleLevel
+    a_phi.FillBoundary(geom.periodicity());
+  }
+  /////
+  void
+  AmrLevelAdv::
+  fillGhostCellsRK4 (MultiFab  & a_phi, //phi on the this level
+                     const int & a_stage, //rk4 stage to fill ghost for
+                     const int & a_iteration)
+  {
+    if(level > 0)
+    {
+      BL_ASSERT(a_stage >= 0);
+      BL_ASSERT(a_stage <= 3);
+      //this one needs to be prevTime because we just did swapTimeLevels
+      Real tf      = getLevel(level  ).state[Phi_Type].prevTime(); 
+      Real dt_f    = parent->dtLevel(level);
+      Real dt_c    = parent->dtLevel(level-1);
+      BoxArray coarGrids         = getLevel(level-1).grids;
+      DistributionMapping dmCoar = getLevel(level-1).dmap;
+      MultiFab phiC(coarGrids,dmCoar,NUM_STATE,0);
+      MultiFab& oldC = getLevel(level-1).get_old_data(Phi_Type);
+      Real tc_new  = getLevel(level-1).state[Phi_Type].curTime();
+      Real tc_old  = getLevel(level-1).state[Phi_Type].prevTime();
+      BL_ASSERT(tf >= tc_old);
+      BL_ASSERT(tf <  tc_new);
+
+      MultiFab & k1  = getLevel(level-1).m_k1;
+      MultiFab & k2  = getLevel(level-1).m_k2;
+      MultiFab & k3  = getLevel(level-1).m_k3;
+      MultiFab & k4  = getLevel(level-1).m_k4;
+      BoxArray bak1 = k1.boxArray();
+      BoxArray bak2 = k2.boxArray();
+      BoxArray bak3 = k3.boxArray();
+      BoxArray bak4 = k4.boxArray();
+      IntVect refrat  = parent->refRatio(level-1);
+      for (MFIter mfi(phiC); mfi.isValid(); ++mfi)
+      {
+        const Box& box     = mfi.validbox();
+        const int* lo      = box.loVect();
+        const int* hi      = box.hiVect();
+        int nref = refrat[0];
+        timeinterprk4_jbb(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+                          BL_TO_FORTRAN_3D(  phiC[mfi]),
+                          BL_TO_FORTRAN_3D(  oldC[mfi]),
+                          BL_TO_FORTRAN_3D(    k1[mfi]),
+                          BL_TO_FORTRAN_3D(    k2[mfi]),
+                          BL_TO_FORTRAN_3D(    k3[mfi]),
+                          BL_TO_FORTRAN_3D(    k4[mfi]),
+                          &tf, &tc_old, &dt_c, &dt_f, 
+                          &a_iteration, &nref);
+      }
+      //debug turn off time interp
+      //phiC.copy(oldC);
+      //end debug
+
+      //now we can spatially interpolate 
+      //these need to be in vectors but they are the same data
+      //since we have already done time interpolation
+      MultiFab phiSave(grids,dmap,NUM_STATE,0);
+      phiSave.copy(a_phi);
+
+      BCRec bcs;
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        bcs.setLo(idir, BCType::int_dir);  // periodic uses "internal Dirichlet"
+        bcs.setHi(idir, BCType::int_dir);  // periodic uses "internal Dirichlet"
+      }
+
+      Vector<Real> timevec(2, tf);
+      Vector<MultiFab*> coarmf(2, &phiC);
+      Vector<MultiFab*> finemf(2, &phiSave);
+      int isrc = 0; int idst = 0; int inco = NUM_STATE;
+      Geometry geomC = getLevel(level-1).geom;
+      //I have no idea why this needs to be here for periodic
+      PhysBCFunct cphysbc(geomC,bcs,BndryFunctBase());
+      PhysBCFunct fphysbc(geom ,bcs,BndryFunctBase());
+      Interpolater* mapper = &quartic_interp;
+      FillPatchTwoLevels(a_phi, tf, 
+                         coarmf, timevec,
+                         finemf, timevec,
+                         isrc, idst, inco,
+                         geomC, geom,
+                         cphysbc, fphysbc, refrat,
+                         mapper, bcs);
+    }
+
+    //for level >0, this might not be necessary.   I cannot tell from the FillPatchUtil documentation.
+    //since we are in periodic-land, no need to call FillPatchUtil::FillPatchSingleLevel
+    a_phi.FillBoundary(geom.periodicity());
+  }
 //
 //Default constructor.  Builds invalid object.
 //
@@ -24,6 +213,7 @@ namespace amrex
   AmrLevelAdv ()
   {
     flux_reg = 0;
+    initSwitches();
   }
 
 //
@@ -39,6 +229,7 @@ namespace amrex
     :
     AmrLevel(papa,lev,level_geom,bl,dm,time) 
   {
+    initSwitches();
     flux_reg = 0;
     if (level > 0 && do_reflux)
       flux_reg = new YAFluxRegister(bl, papa.boxArray(level-1),
@@ -94,7 +285,6 @@ namespace amrex
                  std::ostream&      os,
                  VisMF::How         how)
   {
-
     AmrLevel::writePlotFile (dir,os,how);
   }
 
@@ -163,7 +353,7 @@ namespace amrex
       const int* lo      = box.loVect();
       const int* hi      = box.hiVect();
 
-      initdata(level, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
+      initdata(&level, &cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
                BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
                ZFILL(prob_lo));
     }
@@ -178,6 +368,57 @@ namespace amrex
 //
 //Initialize data on this level from another AmrLevelAdv (during regrid).
 //
+  void
+  AmrLevelAdv::
+  initSwitches()
+  {
+    string algorithm("rk3");
+    ParmParse pp("adv");
+    pp.query("algorithm", algorithm);
+    static bool printedstuff = false;
+    bool use_limiting = true;
+    pp.query("use_limiting",use_limiting);
+    m_use_fixed_dt = false;
+    pp.query("use_fixed_dt", m_use_fixed_dt);
+    if(m_use_fixed_dt)
+    {
+      pp.get("fixed_dt", m_fixed_dt);
+    }
+
+    if(!printedstuff)
+    {
+      amrex::Print() << "**** using the " << algorithm << " algorithm ";
+      if(use_limiting)
+      {
+        amrex::Print() << "with limiting ON ****" << endl;
+      }
+      else
+      {
+        amrex::Print() << "with limiting OFF ****" << endl;
+      }
+      if(m_use_fixed_dt)
+      {
+        amrex::Print() << "using fixed dt = " << m_fixed_dt  << endl;
+      }
+      else
+      {
+        amrex::Print() << "dt calculated dynamically" << endl;
+      }
+      printedstuff = true;
+    }
+
+    m_algorithm = algorithm;
+    m_use_limiting = use_limiting;
+    if(m_use_limiting)
+    {
+      m_iuselimit = 1;
+    }
+    else
+    {
+      m_iuselimit = 0;
+    }
+
+  }
   void
   AmrLevelAdv::
   init (AmrLevel &old)
@@ -195,6 +436,7 @@ namespace amrex
     MultiFab& S_new = get_new_data(Phi_Type);
 
     FillPatch(old, S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
+
   }
 
 //
@@ -213,6 +455,7 @@ namespace amrex
     setTimeLevel(cur_time,dt_old,dt);
     MultiFab& S_new = get_new_data(Phi_Type);
     FillCoarsePatch(S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
+
   }
 
   Real
@@ -228,19 +471,37 @@ namespace amrex
     Real minval = S_new.min(0);
     amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
     Real dtval;
-//    dtval = advanceGodunov(time, dt, iteration, ncycle);
-//  dtval = advanceMOLRK2(time, dt, iteration, ncycle);
-    dtval = advanceMOLRK3(time, dt, iteration, ncycle);
-//    dtval = advanceMOLRK4(time, dt, iteration, ncycle);
-    ParmParse pp;
-    if(pp.contains("fixed_dt"))
+
+    if(m_algorithm.compare(string("godunov")) == 0)
     {
-      pp.get("fixed_dt", dtval);
+      dtval = advanceGodunov(time, dt, iteration, ncycle);
+    }
+    else if(m_algorithm.compare(string("rk2")) == 0)
+    {
+      dtval = advanceMOLRK2(time, dt, iteration, ncycle);
+    }
+    else if(m_algorithm.compare(string("rk3")) == 0)
+    {
+      dtval = advanceMOLRK3(time, dt, iteration, ncycle);
+    }
+    else if(m_algorithm.compare(string("rk4")) == 0)
+    {
+      dtval = advanceMOLRK4(time, dt, iteration, ncycle);
+    }
+    else
+    {
+      amrex::Error("bogus algorithm parameter");
+    }
+
+
+    if(m_use_fixed_dt);
+    {
+      dtval = m_fixed_dt;
     }
     return dtval;
   }
 
-
+  /////
   Real
   AmrLevelAdv::
   advanceMOLRK2 (Real time,
@@ -248,6 +509,14 @@ namespace amrex
                  int  iteration,
                  int  ncycle)
   {
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest && (iteration > 1))
+    {
+      return dt;
+    }
+
     for (int i = 0; i < NUM_STATE_TYPE; ++i) 
     {
       state[i].allocOldData();
@@ -280,14 +549,12 @@ namespace amrex
     FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
     compute_dPhiDt_MOL2ndOrd(Sborder, dPhiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
 
-    bool truncationErrorTest = false;
-    ParmParse pp;
-    pp.query("truncation_error_only", truncationErrorTest);
     if(truncationErrorTest)
     {
       S_new.copy(dPhiDt);
       return dt;
     }
+    
 
     // U^* = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
@@ -313,6 +580,15 @@ namespace amrex
                  int  iteration,
                  int  ncycle)
   {
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+
+    if(truncationErrorTest && (iteration > 1))
+    {
+      return dt;
+    }
+
     for (int i = 0; i < NUM_STATE_TYPE; ++i) 
     {
       state[i].allocOldData();
@@ -321,13 +597,15 @@ namespace amrex
 
     MultiFab& S_new = get_new_data(Phi_Type);
     MultiFab& S_old = get_old_data(Phi_Type);
-    MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
 
     MultiFab u1(grids,dmap,NUM_STATE,NUM_GROW);
     MultiFab u2(grids,dmap,NUM_STATE,NUM_GROW);
+    MultiFab k1(grids,dmap,NUM_STATE,0);
+    MultiFab k2(grids,dmap,NUM_STATE,0);
+    MultiFab k3(grids,dmap,NUM_STATE,0);
   
     YAFluxRegister* fr_as_crse = nullptr;
-    if (do_reflux && level < parent->finestLevel()) 
+    if (do_reflux && level < parent->finestLevel() ) 
     {
       fr_as_crse = &getFluxReg(level+1);
     }
@@ -347,50 +625,59 @@ namespace amrex
     // RK3 stage 1
     //FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
     u1.copy(S_old);
-    u1.FillBoundary(geom.periodicity());
+    fillGhostCellsRK3(u1, 0, iteration);
     //the dt/6 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_MOL4thOrd(u1, k1, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
-    bool truncationErrorTest = false;
-    ParmParse pp;
-    pp.query("truncation_error_only", truncationErrorTest);
     if(truncationErrorTest)
     {
-      S_new.copy(dPhiDt);
-      return dt;
+      S_new.copy(k1);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
     }
 
     //u1 is already set to u^n
     // this sets U1 = U^n + dt*dPhiDt^n
-    MultiFab::Saxpy(u1, dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    MultiFab::LinComb(u1, 1.0, S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    u1.FillBoundary();
+    MultiFab::Saxpy(u1, dt, k1, 0, 0, NUM_STATE, 0);
+    k1.mult(dt);
 
-    compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
-
+    fillGhostCellsRK3(u1, 1, iteration);
+    compute_dPhiDt_MOL4thOrd(u1, k2, time, dt/6., fr_as_crse, fr_as_fine, iteration);
     //           u2 = 3/4 U^n + 1/4 U^1 + 1/4 dPhiDt^1
     //this makes u2 = 3/4 u^n + 1/4 u^1
     MultiFab::LinComb(u2, 0.75, S_old, 0, 0.25, u1, 0, 0, NUM_STATE, 0);
     //this makes u2 = 3/4 u^n + 1/4 u^1 + 1/4*dt*dPhiDt^1
-    MultiFab::Saxpy(u2, 0.25*dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(u2, 0.25*dt, k2, 0, 0, NUM_STATE, 0);
+    k2.mult(dt);
 
-    u2.FillBoundary();
+    fillGhostCellsRK3(u2, 2, iteration);
     //the 2*dt/3 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(u2, dPhiDt, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_MOL4thOrd(u2, k3, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
 
     // RK3 stage 3
     //           S_new = 1/3 u^n + 2/3 u^2 + 2/3 dtL(u^2)
 
-    //this makes S_new = 1/3 u^n + 2/3 u^2
-    MultiFab::LinComb(S_new, 1./3., S_old, 0, 2./3., u2, 0, 0, NUM_STATE, 0);
-    //this makes S_new = 1/3 u^n + 2/3  u^2 + 2/3 dtL(u^2)
-    MultiFab::Saxpy(S_new, 2.*dt/3., dPhiDt, 0, 0, NUM_STATE, 0);
+    if(!truncationErrorTest)
+    {
+      //this makes S_new = 1/3 u^n + 2/3 u^2
+      MultiFab::LinComb(S_new, 1./3., S_old, 0, 2./3., u2, 0, 0, NUM_STATE, 0);
+      //this makes S_new = 1/3 u^n + 2/3  u^2 + 2/3 dtL(u^2)
+      MultiFab::Saxpy(S_new, 2.*dt/3., k3, 0, 0, NUM_STATE, 0);
+    }
 
+    if(level < parent->finestLevel() ) 
+    {
+      m_k1.define(grids,dmap,NUM_STATE,0);
+      m_k2.define(grids,dmap,NUM_STATE,0);
+
+      m_k1.copy(k1);
+      m_k2.copy(k2);
+    }
     /**/ 
     return dt;
   }
 
-#if 0
+
   Real
   AmrLevelAdv::
   advanceMOLRK4 (Real time,
@@ -398,6 +685,21 @@ namespace amrex
                  int  iteration,
                  int  ncycle)
   {
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    int truncationStage = 1;
+    pp.query("truncation_error_stage", truncationStage);
+    if(truncationErrorTest &&((truncationStage < 1) || truncationStage > 4))
+    {
+      amrex::Error("bogus truncation error stage");
+    }
+
+    if(truncationErrorTest && (iteration > 1))
+    {
+      return dt;
+    }
+
     for (int i = 0; i < NUM_STATE_TYPE; ++i) 
     {
       state[i].allocOldData();
@@ -406,12 +708,15 @@ namespace amrex
 
     MultiFab& S_new = get_new_data(Phi_Type);
     MultiFab& S_old = get_old_data(Phi_Type);
-    MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
-    MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
+
     MultiFab u1(grids,dmap,NUM_STATE,NUM_GROW);
     MultiFab u2(grids,dmap,NUM_STATE,NUM_GROW);
     MultiFab u3(grids,dmap,NUM_STATE,NUM_GROW);
-    MultiFab u4(grids,dmap,NUM_STATE,NUM_GROW);
+
+    MultiFab k1(grids,dmap,NUM_STATE,0);
+    MultiFab k2(grids,dmap,NUM_STATE,0);
+    MultiFab k3(grids,dmap,NUM_STATE,0);
+    MultiFab k4(grids,dmap,NUM_STATE,0);
   
     YAFluxRegister* fr_as_crse = nullptr;
     if (do_reflux && level < parent->finestLevel()) 
@@ -430,52 +735,95 @@ namespace amrex
       fr_as_crse->reset();
     }
 
+    //phi^1 = phi^n + dt*F(phi^n)
     // RK3 stage 1
-    FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE); // 
+    u1.copy(S_old);
+    fillGhostCellsRK4(u1, 0, iteration);
     //the dt/6 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_MOL4thOrd(u1, k1, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
-    // U^1 = U^n + dt*dPhiDt^n
-    MultiFab::LinComb(u1, 1.0, S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    ///fillpatch works with uold and unew
-    ///so need to put this into S_new
-    ///need to also save u1 
-    S_new.copy(u1);
-    
-    /**/
-    // RK3 stage 2
-    // After fillpatch Sborder = U^n+dt*dUdt^n = u1 (including ghost)
-    FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
-    //the dt/6 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+    if(truncationErrorTest && (truncationStage==1))
+    {
+      S_new.copy(k1);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
 
-    //           u2 = 3/4 U^n + 1/4 U^1 + 1/4 dPhiDt^1
-    //this makes u2 = 3/4 u^n + 1/4 u^1
-    MultiFab::LinComb(u2, 0.75, S_old, 0, 0.25, u1, 0, 0, NUM_STATE, 0);
-    //this makes u2 = 3/4 u^n + 1/4 u^1 + 1/4*dt*dPhiDt^1
-    MultiFab::Saxpy(u2, 0.25*dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    ///fillpatch works with uold and unew
-    ///so need to put this into S_new so u2 is the thing in the ghost cells
-    S_new.copy(u2);
+    // phi^1 = phi^n + dt/2*dPhiDt^n
+    // this sets U1 = U^n + dt*dPhiDt^n 
+    k1.mult(dt);
+    MultiFab::LinComb(u1, 1., S_old, 0, 0.5, k1, 0, 0, NUM_STATE, 0);
+    fillGhostCellsRK4(u1, 1, iteration);
 
-    // After fillpatch Sborder = u2.   I am not so sure about what dt to use here.  
-    //I am using time+dt so that, away from coarse-fine boundaries, no interpolation is done.
-    FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
-    //the 2*dt/3 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
+    //phi^2 = phi^n + dt/2*dPhiDt(phi^1)
+    //the dt/3 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(u1, k2, time, dt/3., fr_as_crse, fr_as_fine, iteration);
 
-    // RK3 stage 3
-    //           S_new = 1/3 u^n + 2/3 u^2 + 2/3 dtL(u^2)
+    if(truncationErrorTest && (truncationStage==2))
+    {
+      S_new.copy(k2);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
 
-    //this makes S_new = 1/3 u^n + 2/3 u^2
-    MultiFab::LinComb(S_new, 1./3., S_old, 0, 2./3., u2, 0, 0, NUM_STATE, 0);
-    //this makes S_new = 1/3 u^n + 2/3  u^2 + 2/3 dtL(u^2)
-    MultiFab::Saxpy(S_new, 2.*dt/3., dPhiDt, 0, 0, NUM_STATE, 0);
+    k2.mult(dt);
+    MultiFab::LinComb(u2, 1., S_old, 0, 0.5, k2, 0, 0, NUM_STATE, 0);
+    fillGhostCellsRK4(u2, 2, iteration);
 
-    /**/ 
+    //phi^3 = phi^n + dt*dPhiDt(phi^2)
+    //the dt/3 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(u2, k3, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+
+    if(truncationErrorTest && (truncationStage==3))
+    {
+      S_new.copy(k3);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
+
+    k3.mult(dt);
+    MultiFab::LinComb(u3, 1., S_old, 0, 1.0, k3, 0, 0, NUM_STATE, 0);
+    fillGhostCellsRK4(u3, 3, iteration);
+
+    //phi^4 = phi^n + dt*F(phi^3)
+    //the dt/6. is for the flux register.
+    compute_dPhiDt_MOL4thOrd(u3, k4, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+
+
+    if(truncationErrorTest && (truncationStage==4))
+    {
+      S_new.copy(k3);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
+    k4.mult(dt);
+
+    //phi^n+1  = 1/6(phi1 +  2 phi2  + 2phi3  + phi4)
+    if(!truncationErrorTest)
+    {
+      S_new.copy(S_old);
+
+      MultiFab::Saxpy(  S_new, 1./6., k1, 0, 0, NUM_STATE, 0);
+      MultiFab::Saxpy(  S_new, 1./3., k2, 0, 0, NUM_STATE, 0);
+      MultiFab::Saxpy(  S_new, 1./3., k3, 0, 0, NUM_STATE, 0);
+      MultiFab::Saxpy(  S_new, 1./6., k4, 0, 0, NUM_STATE, 0);
+    }
+    //if we are not on the finest level, need to save the k objects for c/f time interpolation
+    if(level < parent->finestLevel() ) 
+    {
+      m_k1.define(grids,dmap,NUM_STATE,0);
+      m_k2.define(grids,dmap,NUM_STATE,0);
+      m_k3.define(grids,dmap,NUM_STATE,0);
+      m_k4.define(grids,dmap,NUM_STATE,0);
+
+      m_k1.copy(k1);
+      m_k2.copy(k2);
+      m_k3.copy(k3);
+      m_k4.copy(k4);
+    }
     return dt;
   }
-#endif
+
   Real
   AmrLevelAdv::
   advanceGodunov (Real time,
@@ -485,6 +833,14 @@ namespace amrex
   {
     BL_PROFILE("AmrLevelAdv::advance()");
         
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest && (iteration > 1))
+    {
+      return dt;
+    }
+
     for (int i = 0; i < NUM_STATE_TYPE; ++i) 
     {
       state[i].allocOldData();
@@ -492,7 +848,6 @@ namespace amrex
     }
 
     MultiFab& S_new = get_new_data(Phi_Type);
-
     MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
   
@@ -521,9 +876,6 @@ namespace amrex
     //dt needs to be there because it weights the fluxes
     compute_dPhiDt_godunov(Sborder, dPhiDt, time, dt, fr_as_crse, fr_as_fine, iteration);
 
-    bool truncationErrorTest = false;
-    ParmParse pp;
-    pp.query("truncation_error_only", truncationErrorTest);
     if(truncationErrorTest)
     {
       S_new.copy(dPhiDt);
@@ -577,13 +929,13 @@ namespace amrex
         //velocity for godunov is at time n+1/2 because that is wheree flux is centered
         const Real ctr_time = 0.5*(prev_time + cur_time); 
 
-        get_face_velocity(level, ctr_time,
+        get_face_velocity(&level, &ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                        BL_TO_FORTRAN(uface[1]),
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        advectDiffGodunov(time, bx.loVect(), bx.hiVect(),
+        advectDiffGodunov(&time, bx.loVect(), bx.hiVect(),
                           BL_TO_FORTRAN_3D(statein), 
                           BL_TO_FORTRAN_3D(dphidtout),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -592,7 +944,7 @@ namespace amrex
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                        BL_TO_FORTRAN_3D(flux[1]), 
                                        BL_TO_FORTRAN_3D(flux[2])), 
-                          dx, dt, diffco);
+                          dx, &dt, &diffco, &m_iuselimit);
 
         if(do_reflux)
         {
@@ -640,7 +992,7 @@ namespace amrex
     pp.query("ref_to_coarsest", reftocoarsest);
     Box domain = geom.Domain();
 
-    IntVect startpt;
+    IntVect startpt = IntVect::Zero;
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       startpt[idir] = domain.size()[idir]/4;
@@ -657,7 +1009,7 @@ namespace amrex
 
       for (MFIter mfi(Sborder); mfi.isValid(); ++mfi)
       {
-        const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.validbox();
 
         const FArrayBox& statein = Sborder[mfi];
         FArrayBox& dphidtout     =  dPhiDt[mfi];
@@ -674,20 +1026,28 @@ namespace amrex
           uface[i].resize(velBox, 1);
         }
 
-        int debdir = 2;
+        int debdir = 0;
         Box debugboxcell = debboxcc & bx;
-        Box debugboxface = bdryHi(debugboxcell, debdir, 1);
+        int printstuff = 0;
+        Box debugboxfaceHi;
+        Box debugboxfaceLo; 
+        if(debugboxcell.ok())
+        {
+          debugboxfaceHi = bdryHi(debugboxcell, debdir, 1);
+          debugboxfaceLo = bdryLo(debugboxcell, debdir, 1);
+          printstuff = 1;
+        }
 
         //velocity is a time because this is MOL
         const Real ctr_time = time;
 
-        get_face_velocity(level, ctr_time,
+        get_face_velocity(&level, &ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                        BL_TO_FORTRAN(uface[1]),
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        advectDiffMOL4thOrd(time, bx.loVect(), bx.hiVect(),
+        advectDiffMOL4thOrd(&time, bx.loVect(), bx.hiVect(),
                             BL_TO_FORTRAN_3D(statein), 
                             BL_TO_FORTRAN_3D(dphidtout),
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -696,9 +1056,11 @@ namespace amrex
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                          BL_TO_FORTRAN_3D(flux[1]), 
                                          BL_TO_FORTRAN_3D(flux[2])), 
-                            dx, dt, diffco, 
+                            dx, &dt, &diffco, 
                             debugboxcell.loVect(), debugboxcell.hiVect(),
-                            debugboxface.loVect(), debugboxface.hiVect()
+                            debugboxfaceHi.loVect(), debugboxfaceHi.hiVect(),
+                            debugboxfaceLo.loVect(), debugboxfaceLo.hiVect(),
+                           &printstuff, &m_iuselimit
                           );
 
         if(do_reflux)
@@ -768,13 +1130,13 @@ namespace amrex
         //MOL
         const Real ctr_time = time;
 
-        get_face_velocity(level, ctr_time,
+        get_face_velocity(&level, &ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                        BL_TO_FORTRAN(uface[1]),
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        advectDiffMOL2ndOrd(time, bx.loVect(), bx.hiVect(),
+        advectDiffMOL2ndOrd(&time, bx.loVect(), bx.hiVect(),
                             BL_TO_FORTRAN_3D(statein), 
                             BL_TO_FORTRAN_3D(dphidtout),
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -783,7 +1145,7 @@ namespace amrex
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                          BL_TO_FORTRAN_3D(flux[1]), 
                                          BL_TO_FORTRAN_3D(flux[2])), 
-                            dx, dt, diffco);
+                            dx, &dt, &diffco,  &m_iuselimit);
 
         if(do_reflux)
         {
@@ -839,7 +1201,7 @@ namespace amrex
           uface[i].resize(bx,1);
         }
 
-        get_face_velocity(level, cur_time,
+        get_face_velocity(&level, &cur_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                        BL_TO_FORTRAN(uface[1]),
                                        BL_TO_FORTRAN(uface[2])),
@@ -1020,11 +1382,18 @@ namespace amrex
     //
     int finest_level = parent->finestLevel();
 
-    if (do_reflux && level < finest_level)
-      reflux();
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
 
-    if (level < finest_level)
-      avgDown();
+    if(!truncationErrorTest)
+    {
+      if (do_reflux && level < finest_level)
+        reflux();
+
+      if (level < finest_level)
+        avgDown();
+    }
 
   }
 
@@ -1081,6 +1450,15 @@ namespace amrex
 
     MultiFab& S_new = get_new_data(Phi_Type);
 
+    
+    ParmParse pp;
+    int tag_domain_middle = 0;
+    if(pp.contains("tag_domain_middle"))
+    {
+      pp.get("tag_domain_middle", tag_domain_middle);
+    }
+    Box domain = geom.Domain();
+    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1101,12 +1479,15 @@ namespace amrex
         int*        tptr    = itags.dataPtr();
         const int*  tlo     = tilebx.loVect();
         const int*  thi     = tilebx.hiVect();
+        const int*  dlo     = domain.loVect();
+        const int*  dhi     = domain.hiVect();
 
         state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
                     BL_TO_FORTRAN_3D(S_new[mfi]),
                     &tagval, &clearval, 
                     ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                    ZFILL(dx), ZFILL(prob_lo), &time, &level);
+                    ZFILL(dx), ZFILL(prob_lo), &time, &level,
+                    ARLIM_3D(dlo), ARLIM_3D(dhi), &tag_domain_middle);
         //
         // Now update the tags in the TagBox.
         //

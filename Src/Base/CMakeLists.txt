@@ -38,10 +38,10 @@ list ( APPEND CXXSRC     AMReX_parstream.cpp )
 list ( APPEND ALLHEADERS AMReX_parstream.H )
 
 #
-# FAB I/O stuff
+# I/O stuff
 # 
-list ( APPEND CXXSRC     AMReX_FabConv.cpp AMReX_FPC.cpp )
-list ( APPEND ALLHEADERS AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H )
+list ( APPEND CXXSRC     AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMReX_VectorIO.cpp)
+list ( APPEND ALLHEADERS AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H AMReX_VectorIO.H)
 
 #
 # Index space
@@ -67,7 +67,7 @@ list ( APPEND ALLHEADERS AMReX_BoxList.H AMReX_BoxArray.H AMReX_BoxDomain.H )
 # Fortran array data
 # 
 list ( APPEND CXXSRC     AMReX_FArrayBox.cpp AMReX_IArrayBox.cpp AMReX_BaseFab.cpp )
-list ( APPEND ALLHEADERS AMReX_FArrayBox.H AMReX_IArrayBox.H AMReX_Looping.H AMReX_MakeType.H
+list ( APPEND ALLHEADERS AMReX_FArrayBox.H AMReX_IArrayBox.H AMReX_MakeType.H
    AMReX_TypeTraits.H AMReX_BaseFab.H AMReX_FabFactory.H )
 
 #
@@ -106,11 +106,11 @@ list ( APPEND ALLHEADERS AMReX_PlotFileUtil.H )
 # Fortran interface routines.
 # In GNUMake system, this is included only if BL_NO_FORT=FALSE
 #
-list ( APPEND F77SRC     AMReX_COORDSYS_${DIM}D.F )
+list ( APPEND F90SRC     AMReX_COORDSYS_${DIM}D.F90 )
 list ( APPEND ALLHEADERS AMReX_COORDSYS_F.H AMReX_filcc_f.H )
 
-list ( APPEND F77SRC     AMReX_BLutil_F.f AMReX_BLParmParse_F.f AMReX_BLBoxLib_F.f
-   AMReX_BLProfiler_F.f)
+list ( APPEND F90SRC     AMReX_BLutil_F.F90 AMReX_BLParmParse_F.F90 AMReX_BLBoxLib_F.F90
+   AMReX_BLProfiler_F.F90)
 
 list ( APPEND F90SRC     AMReX_BaseFab_nd.f90 AMReX_MultiFabUtil_${DIM}d.f90 AMReX_MultiFabUtil_nd.F90 AMReX_FILCC_${DIM}D.F90 )
 list ( APPEND ALLHEADERS AMReX_BaseFab_f.H AMReX_MultiFabUtil_F.H )

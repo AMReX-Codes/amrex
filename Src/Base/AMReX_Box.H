@@ -3,6 +3,7 @@
 #define BL_BOX_H
 
 #include <iosfwd>
+#include <array>
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_IntVect.H>
@@ -67,6 +68,8 @@ namespace amrex
 
     //! Return a Box with indices shifted by nzones in dir direction.
     Box shift (const Box& b, int dir, int nzones);
+
+    Box shift (const Box& b, const IntVect& nzones);
 
     /**
     * \brief Refine Box by given (positive) refinement ratio.
@@ -259,6 +262,16 @@ public:
     //! Return the length of the Box in given direction.
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
+    std::array<int,3> length3d () const {
+#if (AMREX_SPACEDIM == 1)
+        return {bigend[0]-smallend[0]+1, 1, 1};
+#elif (AMREX_SPACEDIM == 2)
+        return {bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, 1};
+#elif (AMREX_SPACEDIM == 3)
+        return {bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, bigend[2]-smallend[2]+1};
+#endif
+    }
+
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
     const int* loVect () const& { 
 #ifdef AMREX_USE_CUDA
@@ -336,6 +349,23 @@ public:
 
     //! Returns true if Boxes differ (including type).
     bool operator!= (const Box& b) const { return !operator==(b); }
+
+    bool operator< (const Box& rhs) const
+    {
+        return btype < rhs.btype ||
+             ((btype == rhs.btype) &&
+	         (  (smallend < rhs.smallend) ||
+                   ((smallend == rhs.smallend) && (bigend < rhs.bigend)) ));
+    }
+    bool operator <= (const Box& rhs) const {
+        return !(rhs < *this);
+    }
+    bool operator> (const Box& rhs) const {
+        return rhs < *this;
+    }
+    bool operator>= (const Box& rhs) const {
+        return !(*this < rhs);
+    }
 
     //! Returns true if Box is cell-centered in all indexing directions.
     bool cellCentered () const { return !btype.any(); }

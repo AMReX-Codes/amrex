@@ -52,7 +52,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
     crse_S_fine_BA.coarsen(ratio);
 
     
-    MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0);
+    MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
 
 #ifdef _OPENMP
 #pragma omp parallel

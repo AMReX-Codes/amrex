@@ -31,7 +31,7 @@
 //   Call solve.  This will store the solution in phi.
 //
 // Step 6: OPTIONAL
-//   Call get_fluxes to get fluxes (i.e., -beta b grad phi).  The need_grad_phi 
+//   Call get_fluxes to get fluxes (i.e., -b grad phi).  The need_grad_phi 
 //   flag in last step must be 1.  Note that grad_phi is Array with BL_SPACEDIM
 //   face-centered MultiFab pointers or Vector<Array> in case of multiple levels.
 //

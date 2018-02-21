@@ -97,6 +97,12 @@ extern "C"
                                      const int* msk, const int* mlo, const int* mhi,
                                      const amrex_real* src, const int* slo, const int* shi, const int* ncomp);
 
+    amrex_real fort_fab_dot_mask (const int* lo, const int* hi,
+		       const amrex_real* x, const int* xlo, const int* xhi,
+		       const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
+		       const int* m, const int* mlo, const int* mhi,
+		       const int* ncomp);
+
     void fort_ifab_copy (const int* lo, const int* hi,
                          int* dst, const int* dlo, const int* dhi,
                          const int* src, const int* slo, const int* shi, const int* sblo,

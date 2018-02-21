@@ -102,15 +102,72 @@ CNS::initData ()
 #endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
-        const Box& box = mfi.validbox();
-        cns_initdata(&level, &cur_time,
-                     BL_TO_FORTRAN_BOX(box),
-                     BL_TO_FORTRAN_ANYD(S_new[mfi]),
-                     dx, prob_lo);
+      const Box& box = mfi.validbox();
+      cns_initdata(&level, &cur_time,
+                   BL_TO_FORTRAN_BOX(box),
+                   BL_TO_FORTRAN_ANYD(S_new[mfi]),
+                   dx, prob_lo);
     }
 
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(1.0);
+
+#if 0
+    testEBStuff();
+#endif
+
+}
+
+void 
+CNS::
+testEBStuff() const
+{
+  //test for geometry info outside domain
+  Box domain = geom.Domain();
+  const MultiFab& S_new = get_new_data(State_Type);
+  for(int idir = 0; idir < SpaceDim; idir++)
+  {
+    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+    {
+      
+      Box validbox = mfi.validbox();
+      Box grownbox = grow(validbox, 1);
+      const EBFArrayBox& sfab = dynamic_cast<EBFArrayBox const&>(S_new[mfi]);
+      const EBCellFlagFab& flagfab = sfab.getEBCellFlagFab();
+      for(BoxIterator bit(grownbox); bit.ok(); ++bit)
+      {
+        if(!domain.contains(bit()))
+        {
+          const EBCellFlag& flag = flagfab(bit(), 0); 
+          printPointStuff(flag, bit(), mfi);
+        }
+      }
+    }
+  }
+}
+
+void
+CNS::printPointStuff(const EBCellFlag& a_flag, 
+                     const IntVect&    a_iv,
+                     const MFIter &    a_mfi) const
+{
+  amrex::Print() << a_iv << ":" ;
+  if(a_flag.isRegular())
+  {
+    amrex::Print() <<  "regular, " ;
+  }
+  else if(a_flag.isCovered())
+  {
+    amrex::Print() <<  "covered, " ;
+  }
+  else
+  {
+    amrex::Print() <<  "irregular, " ;
+  }
+  Real kappa = (*volfrac)[a_mfi](a_iv, 0);
+  amrex::Print() << "kappa= " << kappa;
+  amrex::Print() << endl;
+  
 }
 
 void
@@ -121,49 +178,49 @@ CNS::computeInitialDt (int                   finest_level,
                        Vector<Real>&          dt_level,
                        Real                  stop_time)
 {
-    //
-    // Grids have been constructed, compute dt for all levels.
-    //
-    if (level > 0) {
-        return;
-    }
+  //
+  // Grids have been constructed, compute dt for all levels.
+  //
+  if (level > 0) {
+    return;
+  }
 
-    Real dt_0 = std::numeric_limits<Real>::max();
-    int n_factor = 1;
-    for (int i = 0; i <= finest_level; i++)
-    {
-        dt_level[i] = getLevel(i).initialTimeStep();
-        n_factor   *= n_cycle[i];
-        dt_0 = std::min(dt_0,n_factor*dt_level[i]);
-    }
+  Real dt_0 = std::numeric_limits<Real>::max();
+  int n_factor = 1;
+  for (int i = 0; i <= finest_level; i++)
+  {
+    dt_level[i] = getLevel(i).initialTimeStep();
+    n_factor   *= n_cycle[i];
+    dt_0 = std::min(dt_0,n_factor*dt_level[i]);
+  }
 
-    //
-    // Limit dt's by the value of stop_time.
-    //
-    const Real eps = 0.001*dt_0;
-    Real cur_time  = state[State_Type].curTime();
-    if (stop_time >= 0.0) {
-        if ((cur_time + dt_0) > (stop_time - eps))
-            dt_0 = stop_time - cur_time;
-    }
+  //
+  // Limit dt's by the value of stop_time.
+  //
+  const Real eps = 0.001*dt_0;
+  Real cur_time  = state[State_Type].curTime();
+  if (stop_time >= 0.0) {
+    if ((cur_time + dt_0) > (stop_time - eps))
+      dt_0 = stop_time - cur_time;
+  }
 
-    n_factor = 1;
-    for (int i = 0; i <= finest_level; i++)
-    {
-        n_factor *= n_cycle[i];
-        dt_level[i] = dt_0/n_factor;
-    }
+  n_factor = 1;
+  for (int i = 0; i <= finest_level; i++)
+  {
+    n_factor *= n_cycle[i];
+    dt_level[i] = dt_0/n_factor;
+  }
 }
 
 void
-CNS::computeNewDt (int                   finest_level,
-                   int                   sub_cycle,
+CNS::computeNewDt (int                    finest_level,
+                   int                    sub_cycle,
                    Vector<int>&           n_cycle,
                    const Vector<IntVect>& ref_ratio,
                    Vector<Real>&          dt_min,
                    Vector<Real>&          dt_level,
-                   Real                  stop_time,
-                   int                   post_regrid_flag)
+                   Real                   stop_time,
+                   int                    post_regrid_flag)
 {
     //
     // We are at the end of a coarse grid timecycle.
@@ -443,9 +500,9 @@ CNS::buildMetrics ()
 
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
-//    if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
-//        amrex::Abort("CNS: must have dx == dy == dz\n");
-//    }
+    if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
+        amrex::Abort("CNS: must have dx == dy == dz\n");
+    }
 
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
     

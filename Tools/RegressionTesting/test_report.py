@@ -649,6 +649,12 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     os.chdir(suite.full_web_dir)
 
 
+    try:
+        wall_time = sum([q.wall_time for q in test_list])
+    except:
+        wall_time = -1
+
+
     # keep track of the number of tests that passed and the number that failed
     num_failed = 0
     num_passed = 0
@@ -676,17 +682,17 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
     if not make_benchmarks is None:
         hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">{}</font>\n".format(make_benchmarks) )
-        hf.write("<p>&nbsp;\n")
-
 
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (test_file, test_file) )
+
+    if wall_time > 0:
+        hf.write("<p><b>wall clock time for all tests:</b> {} s\n".format(wall_time))
 
     # git info lists
     any_update = any([suite.repos[t].update for t in suite.repos])
 
     if any_update and not update_time == "":
-        hf.write("<p>&nbsp;\n")
         hf.write("<p><b>Git update was done at: </b>%s\n" % (update_time) )
 
         hf.write("<ul>\n")

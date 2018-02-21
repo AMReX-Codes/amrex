@@ -67,4 +67,4 @@ namespace ParallelDescriptor
 
 #endif /*BL_USE_MPI*/
 
-#endif /*BL_CCSE_MPP*/
+#endif

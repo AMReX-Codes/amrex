@@ -31,6 +31,7 @@ program fextract3d
   integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
   integer :: flo(MAX_SPACEDIM), fhi(MAX_SPACEDIM)
   integer :: dim
+  integer :: fine_level, coarse_level
 
   character(len=256) :: slicefile
   character(len=256) :: pltfile
@@ -56,6 +57,8 @@ program fextract3d
   idir = 1
   varnames = ''
   center = .true.
+  coarse_level = 1
+  fine_level = -1 ! This will be fixed later if the user doesn't select one
 
   narg = command_argument_count()
 
@@ -85,6 +88,16 @@ program fextract3d
      case ('-l', '--lower_left')
         center = .false.
 
+     case ('-c', '--coarse_level')
+        farg = farg + 1
+        call get_command_argument(farg, value = fname)
+        read(fname,*) coarse_level
+
+     case ('-f', '--fine_level')
+        farg = farg + 1
+        call get_command_argument(farg, value = fname)
+        read(fname,*) fine_level
+
      case default
         exit
 
@@ -102,17 +115,19 @@ program fextract3d
      print *, "Works with 1-, 2-, or 3-d datasets."
      print *, " "
      print *, "Usage:"
-     print *, "   fextract [-p plotfile] [-s outfile] [-d dir] [-v variable] plotfile"
+     print *, "   fextract [-p plotfile] [-s outfile] [-d dir] [-v variable] [-c coarse_level] [-f fine_level] plotfile"
      print *, " "
-     print *, "args [-p|--pltfile]   plotfile   : plot file directory (depreciated, optional)"
-     print *, "     [-s|--slicefile] slice file : slice file          (optional)"
-     print *, "     [-d|--direction] idir       : slice direction {1 (default), 2, or 3}"
-     print *, "     [-v|--variable]  varname(s) : only output the values of variable varname"
-     print *, "                                  (space separated string for multiple variables)"
-     print *, "     [-l|--lower_left]           : slice through lower left corner instead of center"
+     print *, "args [-p|--pltfile]   plotfile        : plot file directory (depreciated, optional)"
+     print *, "     [-s|--slicefile] slice file      : slice file          (optional)"
+     print *, "     [-d|--direction] idir            : slice direction {1 (default), 2, or 3}"
+     print *, "     [-v|--variable]  varname(s)      : only output the values of variable varname"
+     print *, "                                        (space separated string for multiple variables)"
+     print *, "     [-l|--lower_left]                : slice through lower left corner instead of center"
+     print *, "     [-c|--coarse_level] coarse level : coarsest level to extract from"
+     print *, "     [-f|--fine_level]   fine level   : finest level to extract from"
      print *, " "
      print *, "Note the plotfile at the end of the commandline is only required if you do"
-     print *, "not use the depreciated '-p' option"
+     print *, "not use the deprecated '-p' option"
      print *, " "
      print *, "If a job_info file is present in the plotfile, that information is made"
      print *, "available at the end of the slice file (commented out), for reference."
@@ -246,6 +261,18 @@ program fextract3d
   ! the variables will be stored in sv(:,2:nvvs+1)
   allocate(sv(max_points,nvs+1), isv(max_points))
 
+  ! If the user didn't select a finest level, assume we want the finest level available
+
+  if (fine_level < 0) then
+     fine_level = pf%flevel
+  end if
+
+  ! sanity check on valid selected levels
+
+  if (fine_level > pf%flevel .or. coarse_level < 1 .or. coarse_level > fine_level) then
+     call bl_error("Invalid level selection")
+  end if
+
   ! loop over the data, starting at the finest grid, and if we haven't
   ! already store data in that grid location (according to imask),
   ! store it.  We'll put it in the correct order later.
@@ -256,7 +283,7 @@ program fextract3d
   ! FINEST level
   r1  = 1
 
-  do i = pf%flevel, 1, -1
+  do i = fine_level, coarse_level, -1
 
      ! rr is the factor between the COARSEST level grid spacing and
      ! the current level

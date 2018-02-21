@@ -79,11 +79,11 @@ public:
 
     virtual ~MultiFab () override;
 
-    MultiFab (MultiFab&& rhs) noexcept = default;
+    MultiFab (MultiFab&& rhs) noexcept;
+    MultiFab& operator= (MultiFab&& rhs) noexcept = default;
 
     MultiFab (const MultiFab& rhs) = delete;
     MultiFab& operator= (const MultiFab& rhs) = delete;
-    MultiFab& operator= (MultiFab&& rhs) = delete;
 
     virtual void define (const BoxArray&            bxs,
 			 const DistributionMapping& dm,
@@ -401,6 +401,11 @@ public:
     static Real Dot (const MultiFab& x, int xcomp,
 		     const MultiFab& y, int ycomp,
 		     int num_comp, int nghost, bool local = false);
+
+    static Real Dot (const iMultiFab& mask,
+                     const MultiFab& x, int xcomp,
+		     const MultiFab& y, int ycomp,
+		     int num_comp, int nghost, bool local = false);
     /**
     * \brief Add src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -519,6 +524,10 @@ public:
     * \brief This tests on whether the MultiFab is fully nodal.
     */
     bool is_nodal () const;
+    /**
+    * \brief This tests on whether the MultiFab is cell-centered.
+    */
+    bool is_cell_centered () const;
 
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     /**

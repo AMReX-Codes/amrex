@@ -127,6 +127,8 @@ std::list<BLProfStats::TimeRange> BLProfStats::RangeIntersection(
 bool BLProfStats::RemovePiece(std::list<TimeRange> &removeFromHere,
                               const TimeRange &pieceToRemove)
 {
+  
+
   bool piecesRemoved(false);
   std::list<TimeRange>::iterator it;
   std::list<std::list<TimeRange>::iterator> eraseThese;
@@ -138,14 +140,15 @@ bool BLProfStats::RemovePiece(std::list<TimeRange> &removeFromHere,
                    (pieceToRemove.startTime < tRangeFrom.stopTime));
     bool hiInRange((pieceToRemove.stopTime  > tRangeFrom.startTime)  &&
                    (pieceToRemove.stopTime  < tRangeFrom.stopTime));
-    bool covered((pieceToRemove.startTime < tRangeFrom.startTime) &&
-                 (pieceToRemove.stopTime  > tRangeFrom.stopTime));
+    bool covered((pieceToRemove.startTime <= tRangeFrom.startTime) &&
+                 (pieceToRemove.stopTime  >= tRangeFrom.stopTime));
     bool bothHigh(pieceToRemove.startTime > tRangeFrom.stopTime);
-
+    // Warning! covered test may require an epsilon in future
+    //    implementations. Works fine now given fixed nature of
+    //    presently used data.
 
     // ---- there are six cases
     if(bothLow) {                            // ---- do nothing
-
     } else if( ! loInRange && hiInRange) {   // ---- remove low end piece
       tRangeFrom.startTime = pieceToRemove.stopTime;
       piecesRemoved = true;
@@ -166,7 +169,7 @@ bool BLProfStats::RemovePiece(std::list<TimeRange> &removeFromHere,
 
     } else if(bothHigh) {                    // ---- do nothing
     }
-
+    
   }
   std::list<std::list<TimeRange>::iterator >::iterator eit;
   for(eit = eraseThese.begin(); eit != eraseThese.end(); ++eit) {
@@ -314,9 +317,9 @@ void BLProfStats::InitFilterTimeRanges() {
 
 // ----------------------------------------------------------------------
 bool BLProfStats::InTimeRange(int proc, Real calltime) {
-  if( ! bTimeRangeInitialized) {
-    return true;
-  }
+//  if( ! bTimeRangeInitialized) {
+//    return true;
+//  }
   if(filterTimeRanges.empty()) {
 #ifdef DEBUG
   static int count(0);

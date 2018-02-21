@@ -29,8 +29,6 @@
 #include <omp.h>
 #endif
 
-const char* path_sep_str = "/";
-
 #include <sys/types.h>
 #include <sys/times.h>
 #include <sys/time.h>
@@ -38,6 +36,10 @@ const char* path_sep_str = "/";
 #include <unistd.h>
 
 using std::ostringstream;
+
+namespace {
+    const char* path_sep_str = "/";
+}
 
 //
 // Return true if argument is a non-zero length string of digits.
@@ -1198,8 +1200,6 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
 
 }
 
-
-
 amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &stringArray)
 {
   std::ostringstream stringStream;
@@ -1212,10 +1212,6 @@ amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &strin
 
   return charArray;
 }
-
-
-
-
 
 amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &charArray)
 {
@@ -1232,6 +1228,50 @@ amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &cha
   return stringArray;
 }
 
+void amrex::BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  int numBool;
+  if (myLocalId == rootId) {
+    numBool = bBool;
+  }
+
+  amrex::ParallelDescriptor::Bcast(&numBool, 1, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    bBool = numBool;
+  }
+}
+
+
+void amrex::BroadcastString(std::string &bStr, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  Vector<std::string> vecString(1, bStr);
+  Vector<char> serialString;
+  if(myLocalId == rootId) {
+    serialString = amrex::SerializeStringArray(vecString);
+  }
+
+  amrex::BroadcastArray(serialString, myLocalId, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    vecString = amrex::UnSerializeStringArray(serialString);
+    bStr = vecString[0];
+  }
+}
+
+void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  Vector<char> serialStringArray;
+  if(myLocalId == rootId) {
+    serialStringArray = amrex::SerializeStringArray(bSA);
+  }
+
+  amrex::BroadcastArray(serialStringArray, myLocalId, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    bSA = amrex::UnSerializeStringArray(serialStringArray);
+  }
+}
 
 void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
@@ -1302,3 +1342,13 @@ void amrex::USleep(double sleepsec) {
   usleep(sleepsec * msps);
 }
 
+
+namespace {
+    static auto clock_time_begin = amrex::MaxResSteadyClock::now();
+}
+
+double amrex::second ()
+{
+    return std::chrono::duration_cast<std::chrono::duration<double> >
+        (amrex::MaxResSteadyClock::now() - clock_time_begin).count();
+}

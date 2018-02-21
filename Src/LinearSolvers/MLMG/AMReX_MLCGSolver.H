@@ -14,9 +14,7 @@ class MLCGSolver
 {
 public:
 
-    enum class Solver { BiCGStab, CG };
-
-    MLCGSolver (MLLinOp& _lp, Solver _solver = Solver::BiCGStab);
+    MLCGSolver (MLLinOp& _lp);
     ~MLCGSolver ();
 
     MLCGSolver (const MLCGSolver& rhs) = delete;
@@ -40,40 +38,13 @@ public:
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     int getMaxIter () const { return maxiter; }
 
-    void setUnstableCriterion (int i) { unstable_criterion = i; }
-    int getUnstableCriterion () const { return unstable_criterion; }
-
-protected:
-
-    int solve_cg (MultiFab&       solnL,
-		  const MultiFab& rhsL,
-		  Real            eps_rel,
-		  Real            eps_abs);
-
-    int solve_bicgstab (MultiFab&       solnL,
-                        const MultiFab& rhsL,
-                        Real            eps_rel,
-                        Real            eps_abs);
-
-    int solve_cabicgstab (MultiFab&       solnL,
-                          const MultiFab& rhsL,
-                          Real            eps_rel,
-                          Real            eps_abs);
-
-    int solve_cabicgstab_quad (MultiFab&       solnL,
-                               const MultiFab& rhsL,
-                               Real            eps_rel,
-                               Real            eps_abs);
-
 private:
 
     MLLinOp& Lp;
     const int amrlev;
     const int mglev;
-    Solver cg_solver;
     int    verbose   = 0;
     int    maxiter   = 100;
-    int    unstable_criterion = 10;
 
     Real dotxy (const MultiFab& r, const MultiFab& z, bool local = false);
     Real norm_inf (const MultiFab& res, bool local = false);

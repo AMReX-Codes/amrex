@@ -1,0 +1,24 @@
+###
+#n_cell = 32 32 32
+#n_cell = 128 128 128
+n_cell = 256 256 256
+#n_cell = 8 8 8
+
+#if true, outputs the stencil
+maxboxsize    = 32
+
+## domain params
+## prob_hi is the high point of the box in the 0 direction
+## dx=dy=dz
+prob_hi       = 1.0
+start_pt = 0.123456789
+#prob_hi       = 32.0 
+#start_pt = 4.0
+ellipse_radius = 0.04 0.2 0.1
+ellipse_center = 0.4 0.5 0.5
+sphere_radius = 0.0625
+sphere_center = 0.25 0.25 0.5
+
+
+# 0 for all regular, 1 for ramp, 2 for slab, 5 for sphere, 55 ellipse, 77 flat plate
+which_geom = 5

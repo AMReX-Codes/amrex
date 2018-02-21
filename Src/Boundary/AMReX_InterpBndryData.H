@@ -78,7 +78,7 @@ public:
     //
     virtual void setBndryConds (const BCRec&   phys_bc,
                                 const IntVect& ratio,
-				int            comp = 0) = 0;
+				int            comp = 0) {}
     //
     // set bndry values at coarse level (non interpolation performed)
     //
@@ -131,6 +131,8 @@ public:
 
     void updateBndryValues (BndryRegister& crse, int c_start, int bnd_start, int num_comp,
                             int ratio, int max_order = IBD_max_order_DEF);
+
+    void setHomogValues ();
     
     static int IBD_max_order_DEF;
 

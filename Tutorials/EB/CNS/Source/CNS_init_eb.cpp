@@ -17,6 +17,7 @@
 #include <AMReX_LatheIF.H>
 #include <AMReX_PolynomialIF.H>
 #include <AMReX_AnisotropicDxPlaneIF.H>
+#include <AMReX_AnisotropicIF.H>
 
 #include <AMReX_ParmParse.H>
 
@@ -204,6 +205,27 @@ initialize_EBIS(const int max_level)
 
             impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
           }
+          else if (geom_type == "ramp_normal_point")
+          {
+            amrex::Print() << "ramp geometry using normal and point directly \n";
+            RealVect normal;
+            RealVect point;
+            Vector<Real> pointvec; 
+            Vector<Real> normalvec;
+            int inside;
+            pp.getarr("ramp_normal", normalvec, 0, SpaceDim);
+            pp.getarr("ramp_point" ,  pointvec, 0, SpaceDim);
+            pp.get("ramp_inside", inside);
+            bool normalInside = (inside == 0);
+            for(int idir = 0; idir < SpaceDim; idir++)
+            {
+              point[idir]  =  pointvec[idir];
+              normal[idir] = normalvec[idir];
+            }
+
+
+            impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
+          }
           else if (geom_type == "anisotropic_ramp")
           {
             amrex::Print() << "anisotropic ramp geometry\n";
@@ -226,6 +248,24 @@ initialize_EBIS(const int max_level)
             bool normalInside = true;
 
             impfunc.reset(static_cast<BaseIF*>(new AnisotropicDxPlaneIF(normal,point,normalInside,dxVec)));
+          }
+
+          else if (geom_type == "anisotropic_sphere")
+          {
+            amrex::Print() << "anisotropic sphere geometry\n";
+            Vector<Real> centervec(SpaceDim);
+            Real radius;
+            pp.get(   "sphere_radius", radius);
+            pp.getarr("sphere_center", centervec, 0, SpaceDim);
+            RealVect center;
+            for(int idir = 0; idir < SpaceDim; idir++)
+            {
+              center[idir] = centervec[idir];
+            }
+            bool insideRegular = false;
+            shared_ptr<BaseIF> baseif(new SphereIF(radius, center, insideRegular));
+
+            impfunc.reset(static_cast<BaseIF*>(new AnisotropicIF(baseif,dxVec)));
           }
           else if (geom_type == "sphere")
           {
@@ -385,12 +425,42 @@ initialize_EBIS(const int max_level)
         
 
             IntersectionIF* intersectif = new IntersectionIF(planes);
-            UnionIF* unionif = new UnionIF(planes);
+//            UnionIF* unionif = new UnionIF(planes);
 
             impfunc.reset(intersectif);
         
           }
       
+          else if (geom_type == "double_ramp")
+          {
+            amrex::Print() << "box within a box" << endl;
+            bool inside = true;  
+            
+            // A list of all the polygons as implicit functions
+            Vector<BaseIF*> planes;
+            // Process each polygon
+            int idir = 1;
+            {
+//              Real domlen = fine_dx*finest_domain.size()[idir];
+              RealVect pointLo = 10.0*BASISREALV(idir);
+              RealVect pointHi = 19.0*BASISREALV(idir);
+              RealVect normalLo = BASISREALV(idir);
+              RealVect normalHi = -BASISREALV(idir);
+              PlaneIF* planeLo = new PlaneIF(normalLo,pointLo,inside);
+              PlaneIF* planeHi = new PlaneIF(normalHi,pointHi,inside);
+
+              planes.push_back(planeLo);
+              planes.push_back(planeHi);
+            }
+            
+        
+
+            IntersectionIF* intersectif = new IntersectionIF(planes);
+//            UnionIF* unionif = new UnionIF(planes);
+
+            impfunc.reset(intersectif);
+        
+          }
           else if (geom_type == "polygon_revolution")
           {
             amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;

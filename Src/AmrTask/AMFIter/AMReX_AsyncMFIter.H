@@ -12,18 +12,28 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_FArrayBox.H>
 #include "AMReX_Connections.H"
+#include <AMReX_Amr.H>
+#include <AMReX_AmrLevel.H>
 
-#ifdef _OPENMP
+//#ifdef _OPENMP
 #include <omp.h>
-#endif
+//#endif
 
 namespace amrex {
     typedef MFIter LocalFabIdx; 
-
     class Action :public Task{
 	protected:
 	    LocalConnection l_con;
 	    RemoteConnection r_con;
+	    struct TileArray
+	    {
+		Vector<int> numLocalTiles;
+		Vector<int> localTileIndexMap;
+		Vector<Box> tileArray;
+	    } ta;
+	    bool _do_tiling;
+	    int current_tile;
+
 	    size_t tagGen(int src, int dest, int amrlevels, int fabs)
 	    {
 		return (src*fabs + dest%fabs)*amrlevels;
@@ -67,6 +77,7 @@ namespace amrex {
 		}
 	    }
 	    bool isSatisfied(){
+		if(!DependSignal()) return false; //wait for dependent signal if ANY
 		bool satisfied=true;
 		for(int i=0; i<l_con.ndcpy; i++){
 		    satisfied= Depend_on(TaskName(l_con.dcpy[i].ns), l_con.dcpy[i].sPartner);
@@ -81,6 +92,7 @@ namespace amrex {
 		}
 		return true;
 	    }
+	    void extendIters(int extra){_nIters+= extra;}
 	    int _iter, _nIters;
 	    FabArray<FArrayBox> *_mf;
 	    FArrayBox* _fab;
@@ -96,6 +108,7 @@ namespace amrex {
 		_nIters=1;
 		_communicateFirstTimeStep=true; //the default is we exchange ghost cells before the first time step
 		_communicateUponCompletion=false;
+		_do_tiling=false;
 	    }
 	    ~Action(){
 		free(l_con.scpy);
@@ -103,6 +116,8 @@ namespace amrex {
 		free(r_con.snd);
 		free(r_con.rcv);
 	    }
+	    void enable_tiling(){_do_tiling=true;}
+	    vector<Box>& getTileArray(){return ta.tileArray;}
 	    void SetFab(FArrayBox* fab){_fab= fab;}
 	    void SetSteps(int nIters){
 		assert(nIters>=1);
@@ -115,7 +130,29 @@ namespace amrex {
 		_idx=idx;
 	    }
 	    void SetLocalIdx(int lIdx){_lIdx= lIdx;}
-	    virtual void Compute()=0;
+	    virtual void Compute(Box)=0;
+	    virtual void Init(){};
+	    virtual bool DependSignal(){return true;}
+
+	    void tileIndices(int &beginIndex, int &endIndex){
+#ifdef _OPENMP
+		int tid = omp_get_thread_num();
+		int nthreads= omp_get_num_threads();
+		int ntot= ta.tileArray.size();
+		int nr   = ntot / nthreads;
+		int nlft = ntot - nr * nthreads;
+		if (tid < nlft) {  // get nr+1 items
+		    beginIndex += tid * (nr + 1);
+		    endIndex = beginIndex + nr + 1;
+		} else {           // get nr items
+		    beginIndex += tid * nr + nlft;
+		    endIndex = beginIndex + nr;
+		}
+#else
+		beginIndex=0;
+		endIndex= ta.tileArray.size();
+#endif
+	    }
 	    void Job(){
 		if(_communicateFirstTimeStep){
 		    if(_iter==-1) FillBoundary_Push();
@@ -125,23 +162,33 @@ namespace amrex {
 		}else if(_iter==-1) _iter++; //go directly to the first compute step
 		if(_iter>=0 && _iter<_nIters){ //always compute from time step 0 to _nIters-1
 		    if(_iter>0)FillBoundary_Pull(); //communication at step 0 is already governed by _communicateFirstTimeStep 
-		    //for(int i=0; i<nTiles(); i++){
-		    Compute();//visit tiles in current Fab
-		    //}
+		    if(!_do_tiling) Compute(validbox());//execute task at Fab level
+		    else{
+#ifdef _OPENMP
+#pragma omp parallel
+			{
+#endif
+			    int beginIndex, endIndex;
+			    tileIndices(beginIndex, endIndex);
+			    for(int tile=beginIndex; tile<endIndex; tile++){
+				Compute(ta.tileArray[tile]);
+			    }
+#ifdef _OPENMP
+			}
+#endif
+		    }
 		    if(_iter<_nIters-1) FillBoundary_Push();
 		}
 		_iter++;
 		if(_communicateUponCompletion){
 		    if(_iter<=_nIters) {
 			if(_iter==_nIters)FillBoundary_Push(); 
-			KeepTaskAlive();
 		    }else if (_iter==(_nIters+1)){
 			FillBoundary_Pull();
 			SelfDestroy();
 		    }
 		}else{
 		    if(_iter==_nIters)SelfDestroy();
-		    else KeepTaskAlive();
 		}
 	    }
 	    bool Dependency(){
@@ -176,14 +223,72 @@ namespace amrex {
 	    FArrayBox& validFab(const FabArray<FArrayBox> &mf, int lIdx){
 		return *(mf.m_fabs_v[lIdx]);
 	    }
-    };
+
+	    void generateTileArray(const IntVect& tileSize){
+		IntVect nt_in_fab, tsize, nleft;
+		int ntiles = 1;
+		const Box& bx = validbox();
+
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    int ncells = bx.length(d);
+		    nt_in_fab[d] = std::max(ncells/tileSize[d], 1);
+		    tsize    [d] = ncells/nt_in_fab[d];
+		    nleft    [d] = ncells - nt_in_fab[d]*tsize[d];
+		    ntiles *= nt_in_fab[d];
+		}
+
+		IntVect small, big, ijk;  // note that the initial values are all zero.
+		ijk[0] = -1;
+		for (int t = 0; t < ntiles; ++t) {
+		    ta.localTileIndexMap.push_back(t);
+		    ta.numLocalTiles.push_back(ntiles);
+
+		    for (int d=0; d<BL_SPACEDIM; d++) {
+			if (ijk[d]<nt_in_fab[d]-1) {
+			    ijk[d]++;
+			    break;
+			} else {
+			    ijk[d] = 0;
+			}
+		    }
+
+		    for (int d=0; d<BL_SPACEDIM; d++) {
+			if (ijk[d] < nleft[d]) {
+			    small[d] = ijk[d]*(tsize[d]+1);
+			    big[d] = small[d] + tsize[d];
+			} else {
+			    small[d] = ijk[d]*tsize[d] + nleft[d];
+			    big[d] = small[d] + tsize[d] - 1;
+			}
+		    }
+
+		    Box tbx(small, big, IndexType::TheCellType());
+		    tbx.shift(bx.smallEnd());
+
+		    ta.tileArray.push_back(tbx);
+		}
+	    }
+	    Box growntilebox (Box bx, int ng){
+		const Box& vbx = _mf->m_fabs_v[_lIdx]->box();
+		for (int d=0; d<BL_SPACEDIM; ++d) {
+		    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+			bx.growLo(d, ng);
+		    }
+		    if (bx.bigEnd(d) == vbx.bigEnd(d)) {
+			bx.growHi(d, ng);
+		    }
+		}
+		return bx;
+	    }
+    };//end class Action
 
     template <class T>
 	class MFGraph: public AbstractTaskGraph<T>{
 	    protected:
 		string _graphName;
+		bool _do_tiling;
 	    public:
-		MFGraph(const FabArray<FArrayBox> &mf, int nSteps, int rank, int nProcs, Periodicity period){
+		MFGraph(const FabArray<FArrayBox> &mf, int nSteps, int rank, int nProcs, Periodicity period, bool do_tiling){
 		    AbstractTaskGraph<T>::_nProcs= nProcs;
 		    AbstractTaskGraph<T>::_rank= rank;
 		    for(int i=0; i< mf.local_size(); i++){
@@ -195,6 +300,12 @@ namespace amrex {
 			t->SetIdx(mf.IndexArray()[i]);
 			t->SetName(name);
 			t->SetLocalIdx(i);
+			if(do_tiling){  
+			    IntVect ts= FabArrayBase::mfiter_tile_size;
+			    t->generateTileArray(ts); //create tile array associated with this FAB
+			}
+			t->Init();
+			if(do_tiling) t->enable_tiling();
 			AbstractTaskGraph<T>::_initialTasks.push_back(t);
 			AbstractTaskGraph<T>::_taskPool[name]= t;
 		    }
@@ -204,7 +315,51 @@ namespace amrex {
 		    AbstractTaskGraph<T>::_current= *(AbstractTaskGraph<T>::_currIt);
 		    AbstractTaskGraph<T>::_mode= _Push;
 		    SetupFabConnections(mf, period);
+		    _do_tiling= do_tiling;
 		}
+
+		MFGraph(const Amr* amr, int max_step, Real stop_time, int rank, int nProcs, bool do_tiling){
+		    AbstractTaskGraph<T>::_nProcs= nProcs;
+		    AbstractTaskGraph<T>::_rank= rank;
+		    //create an initial graph corresponding to the coarsest AMR level, this graph will evolve with time
+		    int n_intervals=1;
+		    for(int l=0; l<= amr->finest_level; l++){
+			n_intervals*= amr->n_cycle[l];
+			for(int s=0; s< amr->amr_level[l]->numStates(); s++){
+			    MultiFab& mf = amr->amr_level[l]->get_new_data(s);
+			    amr->amr_level[l]->get_state_data(s).allocOldData();
+			    for(int i=0; i< mf.local_size(); i++){
+				for(int it=0; it< n_intervals; it++){
+				    TaskName name(l /*level*/, s/*state*/, mf.IndexArray()[i] /*fab*/, it);
+				    T *t= new T();
+				    t->SetName(name);
+				    t->SetLocalIdx(i);
+				    t->SetMF(mf);
+				    t->SetFab(mf.m_fabs_v[i]);
+				    t->SetIdx(mf.IndexArray()[i]);
+				    t->InitAmrTask(amr, max_step, stop_time);
+				    t->CreateLevelTask(l);
+				    if(i==0) t->SetMaster();
+				    if(do_tiling){
+					IntVect ts= FabArrayBase::mfiter_tile_size;
+					t->generateTileArray(ts); //create tile array associated with this FAB
+				    }
+				    if(do_tiling) t->enable_tiling();
+				    AbstractTaskGraph<T>::_initialTasks.push_back(t);
+				    AbstractTaskGraph<T>::_taskPool[name]= t;
+		    		    SetupFabConnections(mf, amr->amr_level[l]->Geom().periodicity());
+				}
+			    }
+			}
+		    }
+		    AbstractTaskGraph<T>::_begin= *(AbstractTaskGraph<T>::_initialTasks.begin());
+		    AbstractTaskGraph<T>::_end= *(AbstractTaskGraph<T>::_initialTasks.end());
+		    AbstractTaskGraph<T>::_currIt= AbstractTaskGraph<T>::_initialTasks.begin();
+		    AbstractTaskGraph<T>::_current= *(AbstractTaskGraph<T>::_currIt);
+		    AbstractTaskGraph<T>::_mode= _Push;
+		    _do_tiling= do_tiling;
+		}
+
 		int FindProcessAssociation(TaskName name){
 		    assert(false);
 		}
@@ -217,8 +372,8 @@ namespace amrex {
 		    const int n_loc_mf = TheFB.m_LocTags->size();
 		    const int n_snds_mf = TheFB.m_SndTags->size();
 		    const int n_rcvs_mf = TheFB.m_RcvTags->size();
-		    Array<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-		    Array<int> send_pr;
+		    Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
+		    Vector<int> send_pr;
 		    send_cctc.reserve(n_snds_mf);
 
 		    for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_SndTags->begin(),
@@ -232,8 +387,8 @@ namespace amrex {
 			    send_cctc.push_back(&(m_it->second));
 			}
 		    }
-		    Array<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
-		    Array<int> recv_pr;
+		    Vector<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
+		    Vector<int> recv_pr;
 		    recv_cctc.reserve(n_rcvs_mf);
 
 		    for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_RcvTags->begin(),
@@ -402,17 +557,32 @@ namespace amrex {
 	};
 
     template <class A>
+#define max_life 2^32-1
 	class AMFIter{
 	    private:
 		RTS rts;
 		MFGraph<A> *graph;
+		bool _do_tiling;
 	    public:
-		AMFIter(const FabArray<FArrayBox> &mf, int nSteps, Periodicity period){
-		    graph= new MFGraph<A>(mf, nSteps, ParallelDescriptor::MyProc(), ParallelDescriptor::NProcs(), period);
+		AMFIter(const FabArray<FArrayBox> &mf, int nSteps, Periodicity period, bool do_tiling=false){
+		    _do_tiling= do_tiling;
+		    graph= new MFGraph<A>(mf, nSteps, ParallelDescriptor::MyProc(), ParallelDescriptor::NProcs(), period, do_tiling);
 		}
+
+		AMFIter(const FabArray<FArrayBox> &mf, Periodicity period, bool do_tiling=false){
+		    _do_tiling= do_tiling;
+		    graph= new MFGraph<A>(mf, max_life, ParallelDescriptor::MyProc(), ParallelDescriptor::NProcs(), period, do_tiling);
+		}
+
+		AMFIter(const Amr* amr, int max_step, Real stop_time, bool do_tiling=false){
+		    _do_tiling= do_tiling;
+		    graph= new MFGraph<A>(amr, max_step, stop_time, ParallelDescriptor::MyProc(), ParallelDescriptor::NProcs(), do_tiling);
+		}
+
 		~AMFIter(){
 		    delete graph;
 		}
+
 		void Iterate(){
 		    rts.Init(ParallelDescriptor::MyProc(), ParallelDescriptor::NProcs());
 		    rts.Iterate(graph);
