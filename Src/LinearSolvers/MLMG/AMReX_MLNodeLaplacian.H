@@ -13,12 +13,7 @@ class MLNodeLaplacian
 {
 public :
 
-    enum struct CoarseningStrategy {
-#ifndef AMREX_USE_EB
-        Sigma,
-#endif
-        RAP
-    };
+    enum struct CoarseningStrategy { Sigma, RAP };
 
     MLNodeLaplacian () {}
     MLNodeLaplacian (const Vector<Geometry>& a_geom,

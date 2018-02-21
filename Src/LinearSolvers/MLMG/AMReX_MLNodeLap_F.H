@@ -287,6 +287,12 @@ extern "C" {
 
 #ifdef AMREX_USE_EB
 
+    void amrex_mlndlap_set_stencil_eb (const int* lo, const int* hi,
+                                       amrex_real* sten, const int* tlo, const int* thi,
+                                       const amrex_real* sigma, const int* glo, const int* ghi,
+                                       const amrex_real* conn, const int* clo, const int* chi,
+                                       const amrex_real* dxinv);
+
     void amrex_mlndlap_set_connection (const int* lo, const int* hi,
                                        amrex_real* conn, const int* clo, const int* chi,
                                        amrex_real* intg, const int* glo, const int* ghi,
