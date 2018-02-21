@@ -12,7 +12,7 @@ NeighborListParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
                               int                         ncells)
-    : NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM+1> 
+    : NeighborParticleContainer<2*BL_SPACEDIM, 0> 
       (geom, dmap, ba, ncells)
 {}
 

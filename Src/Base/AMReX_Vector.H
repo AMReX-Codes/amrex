@@ -14,14 +14,14 @@ namespace amrex {
 * DEBUG=TRUE.
 */
 
-template <class T>
+template <class T, class Allocator = std::allocator<T> >
 class Vector
     :
-    public std::vector<T>
+    public std::vector<T, Allocator>
 {
 public:
 
-    using std::vector<T>::vector;
+    using std::vector<T,Allocator>::vector;
 
     T& operator[] (std::size_t i)
     {
@@ -48,12 +48,14 @@ public:
 
 namespace amrex
 {
-    template <class T>
-    Vector<const T*> GetVecOfConstPtrs (const Vector<T>& a)
+    /////////////////////////////////////////////////////////////
+
+    template <class T, typename = typename T::FABType>
+    Vector<T*> GetVecOfPtrs (Vector<T>& a)
     {
-	Vector<const T*> r;
+	Vector<T*> r;
         r.reserve(a.size());
-	for (const auto& x : a)  r.push_back(&x);
+	for (auto& x : a)  r.push_back(&x);
 	return r;
     }
 
@@ -66,6 +68,17 @@ namespace amrex
 	return r;
     }
 
+    /////////////////////////////////////////////////////////////
+
+    template <class T, typename = typename T::FABType>
+    Vector<const T*> GetVecOfConstPtrs (const Vector<T>& a)
+    {
+	Vector<const T*> r;
+        r.reserve(a.size());
+	for (const auto& x : a)  r.push_back(&x);
+	return r;
+    }
+
     template <class T>
     Vector<const T*> GetVecOfConstPtrs (const Vector<std::unique_ptr<T> >& a)
     {
@@ -75,11 +88,13 @@ namespace amrex
 	return r;
     }
 
-    template <class T>
+    template <class T, typename = typename T::FABType>
     Vector<const T*> GetVecOfConstPtrs (const Vector<T*>& a)
     {
 	return {a.begin(), a.end()};
     }
+
+    /////////////////////////////////////////////////////////////
 
     template <class T>
     Vector<Vector<T*> > GetVecOfVecOfPtrs (const Vector<Vector<std::unique_ptr<T> > >& a)
@@ -89,6 +104,8 @@ namespace amrex
 	for (const auto& x : a)  r.push_back(GetVecOfPtrs(x));
 	return r;
     }
+
+    /////////////////////////////////////////////////////////////
 
     template <class T>
     void FillNull (Vector<T*>& a)
@@ -101,6 +118,8 @@ namespace amrex
     {
 	std::for_each(a.begin(), a.end(), [](std::unique_ptr<T>& p) { p.reset(); });
     }
+
+    /////////////////////////////////////////////////////////////
 
     template <class T> 
     void RemoveDuplicates(Vector<T>& vec) {

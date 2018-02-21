@@ -15,6 +15,9 @@ extern "C"
     void amrex_compute_cost(const amrex_real* pcounts, amrex_real* cost, const int* lo,
                             const int* hi, const amrex_real cell_weight);
 
+    void amrex_set_box_cost(const amrex_real*, const int*, const int*,
+                            const int*, const int*, amrex_real*);
+
 #ifdef __cplusplus
 }
 #endif

@@ -39,10 +39,10 @@ C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
 #
-# FAB I/O stuff.
+# I/O stuff.
 #
-C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H
-C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp
+C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H AMReX_VectorIO.H
+C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMReX_VectorIO.cpp
 
 #
 # Index space.
@@ -70,8 +70,6 @@ C$(AMREX_BASE)_headers += AMReX_FArrayBox.H
 
 C$(AMREX_BASE)_sources += AMReX_IArrayBox.cpp
 C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
-
-C$(AMREX_BASE)_headers += AMReX_Looping.H
 
 C$(AMREX_BASE)_headers += AMReX_MakeType.H
 C$(AMREX_BASE)_headers += AMReX_TypeTraits.H
@@ -123,17 +121,17 @@ C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  F$(AMREX_BASE)_sources += AMReX_COORDSYS_$(DIM)D.F
+  F90$(AMREX_BASE)_sources += AMReX_COORDSYS_$(DIM)D.F90
   F$(AMREX_BASE)_headers += AMReX_COORDSYS_F.H
   ifneq ($(USE_CUDA),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
   endif
   F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
-  f$(AMREX_BASE)_sources += AMReX_BLutil_F.f
-  f$(AMREX_BASE)_sources += AMReX_BLParmParse_F.f
-  f$(AMREX_BASE)_sources += AMReX_BLBoxLib_F.f
-  f$(AMREX_BASE)_sources += AMReX_BLProfiler_F.f
+  F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90
+  F90$(AMREX_BASE)_sources += AMReX_BLParmParse_F.F90
+  F90$(AMREX_BASE)_sources += AMReX_BLBoxLib_F.F90
+  F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90
 
   F90$(AMREX_BASE)_sources += AMReX_BaseFab_nd.F90
   f90$(AMREX_BASE)_headers += AMReX_BaseFab_f.H

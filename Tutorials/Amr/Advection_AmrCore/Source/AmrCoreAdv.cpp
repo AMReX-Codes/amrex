@@ -4,7 +4,12 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
+
+#ifdef BL_MEM_PROFILING
+#include <AMReX_MemProfiler.H>
+#endif
 
 #include <AmrCoreAdv.H>
 #include <AmrCoreAdv_F.H>
@@ -13,6 +18,7 @@ using namespace amrex;
 
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
+//             - initializes BCRec boundary condition object
 AmrCoreAdv::AmrCoreAdv ()
 {
     ReadParameters();
@@ -22,11 +28,11 @@ AmrCoreAdv::AmrCoreAdv ()
     // No valid BoxArray and DistributionMapping have been defined.
     // But the arrays for them have been resized.
 
-    int nlevs_max = maxLevel() + 1;
+    int nlevs_max = max_level + 1;
 
     istep.resize(nlevs_max, 0);
     nsubsteps.resize(nlevs_max, 1);
-    for (int lev = 1; lev <= maxLevel(); ++lev) {
+    for (int lev = 1; lev <= max_level; ++lev) {
 	nsubsteps[lev] = MaxRefRatio(lev-1);
     }
 
@@ -114,7 +120,7 @@ AmrCoreAdv::Evolve ()
                        << " DT = " << dt[0]  << std::endl;
 
 	// sync up time
-	for (int lev = 0; lev <= finest_level; ++lev) {
+	for (lev = 0; lev <= finest_level; ++lev) {
 	    t_new[lev] = cur_time;
 	}
 
@@ -122,6 +128,18 @@ AmrCoreAdv::Evolve ()
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
+
+        if (chk_int > 0 && (step+1) % chk_int == 0) {
+            WriteCheckpointFile();
+        }
+
+#ifdef BL_MEM_PROFILING
+        {
+            std::ostringstream ss;
+            ss << "[STEP " << step+1 << "]";
+            MemProfiler::report(ss.str());
+        }
+#endif
 
 	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
     }
@@ -135,9 +153,21 @@ AmrCoreAdv::Evolve ()
 void
 AmrCoreAdv::InitData ()
 {
-    const Real time = 0.0;
-    InitFromScratch(time);
-    AverageDown();
+    if (restart_chkfile == "") {
+        // start simulation from the beginning
+        const Real time = 0.0;
+        InitFromScratch(time);
+        AverageDown();
+
+        if (chk_int > 0) {
+            WriteCheckpointFile();
+        }
+
+    }
+    else {
+        // restart from a checkpoint
+        ReadCheckpointFile();
+    }
 
     if (plot_int > 0) {
         WritePlotFile();
@@ -151,11 +181,11 @@ void
 AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 				    const DistributionMapping& dm)
 {
-    const int ncomp = phi_new[lev-1]->nComp();
-    const int nghost = phi_new[lev-1]->nGrow();
+    const int ncomp = phi_new[lev-1].nComp();
+    const int nghost = phi_new[lev-1].nGrow();
     
-    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
-    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+    phi_new[lev].define(ba, dm, ncomp, nghost);
+    phi_old[lev].define(ba, dm, ncomp, nghost);
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
@@ -164,7 +194,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
     }
 
-    FillCoarsePatch(lev, time, *phi_new[lev], 0, ncomp);
+    FillCoarsePatch(lev, time, phi_new[lev], 0, ncomp);
 }
 
 // Remake an existing level using provided BoxArray and DistributionMapping and 
@@ -174,18 +204,13 @@ void
 AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 			 const DistributionMapping& dm)
 {
-    const int ncomp = phi_new[lev]->nComp();
-    const int nghost = phi_new[lev]->nGrow();
+    const int ncomp = phi_new[lev].nComp();
+    const int nghost = phi_new[lev].nGrow();
 
-#if __cplusplus >= 201402L
-    auto new_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
-    auto old_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
-#else
-    std::unique_ptr<MultiFab> new_state(new MultiFab(ba, dm, ncomp, nghost));
-    std::unique_ptr<MultiFab> old_state(new MultiFab(ba, dm, ncomp, nghost));
-#endif
+    MultiFab new_state(ba, dm, ncomp, nghost);
+    MultiFab old_state(ba, dm, ncomp, nghost);
 
-    FillPatch(lev, time, *new_state, 0, ncomp);
+    FillPatch(lev, time, new_state, 0, ncomp);
 
     std::swap(new_state, phi_new[lev]);
     std::swap(old_state, phi_old[lev]);
@@ -203,8 +228,8 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 void
 AmrCoreAdv::ClearLevel (int lev)
 {
-    phi_new[lev].reset(nullptr);
-    phi_old[lev].reset(nullptr);
+    phi_new[lev].clear();
+    phi_old[lev].clear();
     flux_reg[lev].reset(nullptr);
 }
 
@@ -217,8 +242,8 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     const int ncomp = 1;
     const int nghost = 0;
 
-    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
-    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+    phi_new[lev].define(ba, dm, ncomp, nghost);
+    phi_old[lev].define(ba, dm, ncomp, nghost);
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
@@ -231,7 +256,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     const Real* prob_lo = geom[lev].ProbLo();
     Real cur_time = t_new[lev];
 
-    MultiFab& state = *phi_new[lev];
+    MultiFab& state = phi_new[lev];
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
@@ -239,7 +264,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         const int* lo  = box.loVect();
         const int* hi  = box.hiVect();
 
-	initdata(lev, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
+	initdata(&lev, &cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
 		 BL_TO_FORTRAN_3D(state[mfi]), ZFILL(dx),
 		 ZFILL(prob_lo));
     }
@@ -277,7 +302,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
     const Real* dx      = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
 
-    const MultiFab& state = *phi_new[lev];
+    const MultiFab& state = phi_new[lev];
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -333,6 +358,9 @@ AmrCoreAdv::ReadParameters ()
 	pp.query("regrid_int", regrid_int);
 	pp.query("plot_file", plot_file);
 	pp.query("plot_int", plot_int);
+	pp.query("chk_file", chk_file);
+	pp.query("chk_int", chk_int);
+        pp.query("restart",restart_chkfile);
     }
 
     {
@@ -349,9 +377,9 @@ AmrCoreAdv::AverageDown ()
 {
     for (int lev = finest_level-1; lev >= 0; --lev)
     {
-	amrex::average_down(*phi_new[lev+1], *phi_new[lev],
-			     geom[lev+1], geom[lev],
-			     0, phi_new[lev]->nComp(), refRatio(lev));
+	amrex::average_down(phi_new[lev+1], phi_new[lev],
+                            geom[lev+1], geom[lev],
+                            0, phi_new[lev].nComp(), refRatio(lev));
     }
 }
 
@@ -359,9 +387,9 @@ AmrCoreAdv::AverageDown ()
 void
 AmrCoreAdv::AverageDownTo (int crse_lev)
 {
-    amrex::average_down(*phi_new[crse_lev+1], *phi_new[crse_lev],
-			 geom[crse_lev+1], geom[crse_lev],
-			 0, phi_new[crse_lev]->nComp(), refRatio(crse_lev));
+    amrex::average_down(phi_new[crse_lev+1], phi_new[crse_lev],
+                        geom[crse_lev+1], geom[crse_lev],
+                        0, phi_new[crse_lev].nComp(), refRatio(crse_lev));
 }
 
 // compute the number of cells at a level
@@ -453,18 +481,18 @@ AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab*>& data, Vector<Real>& 
 
     if (time > t_new[lev] - teps && time < t_new[lev] + teps)
     {
-	data.push_back(phi_new[lev].get());
+	data.push_back(&phi_new[lev]);
 	datatime.push_back(t_new[lev]);
     }
     else if (time > t_old[lev] - teps && time < t_old[lev] + teps)
     {
-	data.push_back(phi_old[lev].get());
+	data.push_back(&phi_old[lev]);
 	datatime.push_back(t_old[lev]);
     }
     else
     {
-	data.push_back(phi_old[lev].get());
-	data.push_back(phi_new[lev].get());
+	data.push_back(&phi_old[lev]);
+	data.push_back(&phi_new[lev]);
 	datatime.push_back(t_old[lev]);
 	datatime.push_back(t_new[lev]);
     }
@@ -510,7 +538,8 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
     if (Verbose()) {
 	amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
-	amrex::Print() << "ADVANCE with dt = " << dt[lev] << std::endl;
+	amrex::Print() << "ADVANCE with time = " << t_new[lev] 
+                       << " dt = " << dt[lev] << std::endl;
     }
 
     // advance a single level for a single time step, updates flux registers
@@ -535,7 +564,7 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 	if (do_reflux)
 	{
             // update lev based on coarse-fine flux mismatch
-	    flux_reg[lev+1]->Reflux(*phi_new[lev], 1.0, 0, 0, phi_new[lev]->nComp(), geom[lev]);
+	    flux_reg[lev+1]->Reflux(phi_new[lev], 1.0, 0, 0, phi_new[lev].nComp(), geom[lev]);
 	}
 
 	AverageDownTo(lev); // average lev+1 down to lev
@@ -545,15 +574,15 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
 // advance a single level for a single time step, updates flux registers
 void
-AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
+AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 {
     constexpr int num_grow = 3;
 
     std::swap(phi_old[lev], phi_new[lev]);
     t_old[lev] = t_new[lev];
-    t_new[lev] += dt;
+    t_new[lev] += dt_lev;
 
-    MultiFab& S_new = *phi_new[lev];
+    MultiFab& S_new = phi_new[lev];
 
     const Real old_time = t_old[lev];
     const Real new_time = t_new[lev];
@@ -598,14 +627,14 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 	    }
 
             // compute velocities on faces (prescribed function of space and time)
-	    get_face_velocity(lev, ctr_time,
+	    get_face_velocity(&lev, &ctr_time,
 			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
 			      dx, prob_lo);
 
             // compute new state (stateout) and fluxes.
-            advect(time, bx.loVect(), bx.hiVect(),
+            advect(&time, bx.loVect(), bx.hiVect(),
 		   BL_TO_FORTRAN_3D(statein), 
 		   BL_TO_FORTRAN_3D(stateout),
 		   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -614,7 +643,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
 			  BL_TO_FORTRAN_3D(flux[1]), 
 			  BL_TO_FORTRAN_3D(flux[2])), 
-		   dx, dt);
+		   dx, &dt_lev);
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++) {
@@ -692,7 +721,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
     const Real* dx = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
     const Real cur_time = t_new[lev];
-    const MultiFab& S_new = *phi_new[lev];
+    const MultiFab& S_new = phi_new[lev];
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(min:dt_est)
@@ -707,7 +736,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 		uface[i].resize(bx,1);
 	    }
 
-	    get_face_velocity(lev, cur_time,
+	    get_face_velocity(&lev, &cur_time,
 			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
@@ -744,7 +773,7 @@ AmrCoreAdv::PlotFileMF () const
 {
     Vector<const MultiFab*> r;
     for (int i = 0; i <= finest_level; ++i) {
-	r.push_back(phi_new[i].get());
+	r.push_back(&phi_new[i]);
     }
     return r;
 }
@@ -764,6 +793,185 @@ AmrCoreAdv::WritePlotFile () const
     const auto& mf = PlotFileMF();
     const auto& varnames = PlotFileVarNames();
     
+    amrex::Print() << "Writing plotfile " << plotfilename << "\n";
+
     amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
 				   Geom(), t_new[0], istep, refRatio());
+}
+
+void
+AmrCoreAdv::WriteCheckpointFile () const
+{
+
+    // chk00010            write a checkpoint file with this root directory
+    // chk00010/Header     this contains information you need to save (e.g., finest_level, t_new, etc.) and also
+    //                     the BoxArrays at each level
+    // chk00010/Level_0/
+    // chk00010/Level_1/
+    // etc.                these subdirectories will hold the MultiFab data at each level of refinement
+
+    // checkpoint file name, e.g., chk00010
+    const std::string& checkpointname = amrex::Concatenate(chk_file,istep[0]);
+
+    amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
+
+    const int nlevels = finest_level+1;
+
+    // ---- prebuild a hierarchy of directories
+    // ---- dirName is built first.  if dirName exists, it is renamed.  then build
+    // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nlevels-1
+    // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
+    // ---- after all directories are built
+    // ---- ParallelDescriptor::IOProcessor() creates the directories
+    amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
+
+    // write Header file
+   if (ParallelDescriptor::IOProcessor()) {
+
+       std::string HeaderFileName(checkpointname + "/Header");
+       std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
+				                        std::ofstream::trunc |
+				                        std::ofstream::binary);
+       if( ! HeaderFile.good()) {
+           amrex::FileOpenFailed(HeaderFileName);
+       }
+
+       HeaderFile.precision(17);
+
+       VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+       HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+       // write out title line
+       HeaderFile << "Checkpoint file for AmrCoreAdv\n";
+
+       // write out finest_level
+       HeaderFile << finest_level << "\n";
+
+       // write out array of istep
+       for (int i = 0; i < istep.size(); ++i) {
+           HeaderFile << istep[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write out array of dt
+       for (int i = 0; i < dt.size(); ++i) {
+           HeaderFile << dt[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write out array of t_new
+       for (int i = 0; i < t_new.size(); ++i) {
+           HeaderFile << t_new[i] << " ";
+       }
+       HeaderFile << "\n";
+
+       // write the BoxArray at each level
+       for (int lev = 0; lev <= finest_level; ++lev) {
+           boxArray(lev).writeOn(HeaderFile);
+           HeaderFile << '\n';
+       }
+   }
+
+   // write the MultiFab data to, e.g., chk00010/Level_0/
+   for (int lev = 0; lev <= finest_level; ++lev) {
+       VisMF::Write(phi_new[lev],
+                    amrex::MultiFabFileFullPrefix(lev, checkpointname, "Level_", "phi"));
+   }
+
+}
+
+
+void
+AmrCoreAdv::ReadCheckpointFile ()
+{
+
+    amrex::Print() << "Restart from checkpoint " << restart_chkfile << "\n";
+
+    // Header
+    std::string File(restart_chkfile + "/Header");
+
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
+
+    Vector<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream is(fileCharPtrString, std::istringstream::in);
+
+    std::string line, word;
+
+    // read in title line
+    std::getline(is, line);
+
+    // read in finest_level
+    is >> finest_level;
+    GotoNextLine(is);
+
+    // read in array of istep
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            istep[i++] = std::stoi(word);
+        }
+    }
+
+    // read in array of dt
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            dt[i++] = std::stod(word);
+        }
+    }
+
+    // read in array of t_new
+    std::getline(is, line);
+    {
+        std::istringstream lis(line);
+        int i = 0;
+        while (lis >> word) {
+            t_new[i++] = std::stod(word);
+        }
+    }
+
+    for (int lev = 0; lev <= finest_level; ++lev) {
+
+        // read in level 'lev' BoxArray from Header
+        BoxArray ba;
+        ba.readFrom(is);
+        GotoNextLine(is);
+
+        // create a distribution mapping
+        DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
+
+        // set BoxArray grids and DistributionMapping dmap in AMReX_AmrMesh.H class
+        SetBoxArray(lev, ba);
+        SetDistributionMap(lev, dm);
+
+        // build MultiFab and FluxRegister data
+        int ncomp = 1;
+        int nghost = 0;
+        phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
+        phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
+        if (lev > 0 && do_reflux) {
+            flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+        }
+    }
+
+    // read in the MultiFab data
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        VisMF::Read(phi_new[lev],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, "Level_", "phi"));
+    }
+
+}
+
+// utility to skip to next line in Header
+void
+AmrCoreAdv::GotoNextLine (std::istream& is)
+{
+    constexpr std::streamsize bl_ignore_max { 100000 };
+    is.ignore(bl_ignore_max, '\n');
 }

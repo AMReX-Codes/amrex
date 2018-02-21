@@ -13,11 +13,11 @@ F90FLAGS =
 
 ########################################################################
 
-clang_version       := $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')
-clang_major_version := $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;\..*;;')
-clang_minor_version := $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+clang_version       = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')
+clang_major_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;\..*;;')
+clang_minor_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
-COMP_VERSION := $(clang_version)
+COMP_VERSION = $(clang_version)
 
 DEFINES += -DBL_CLANG_VERSION='$(clang_version)'
 DEFINES += -DBL_CLANG_MAJOR_VERSION='$(clang_major_version)'
@@ -75,8 +75,8 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 # ask gfortran the name of the library to link in.  First check for the
 # static version.  If it returns only the name w/o a path, then it
 # was not found.  In that case, ask for the shared-object version.
-gfortran_liba  := $(shell $(F90) -print-file-name=libgfortran.a)
-gfortran_libso := $(shell $(F90) -print-file-name=libgfortran.so)
+gfortran_liba  = $(shell $(F90) -print-file-name=libgfortran.a)
+gfortran_libso = $(shell $(F90) -print-file-name=libgfortran.so)
 
 ifneq ($(gfortran_liba),libgfortran.a)  # if found the full path is printed, thus `neq`.
   LIBRARY_LOCATIONS += $(dir $(gfortran_liba))

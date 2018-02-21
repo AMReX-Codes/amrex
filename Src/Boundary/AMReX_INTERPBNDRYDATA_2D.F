@@ -10,8 +10,6 @@
 #include "AMReX_INTERPBNDRYDATA_F.H"
 #include "AMReX_ArrayLim.H"
 
-#define USE_REORG_VERSION
-      
 #define SDIM 2
 #define NUMDERIV 2
 #define XDER   1
@@ -58,13 +56,9 @@ c ---------------------------------------------------------------
       integer  i, j, ic, jc, off, n
       integer  jclo, jchi, ratioy
 
-#ifndef USE_REORG_VERSION
-      REAL_T   xx
-#else
       integer Norder, NN, m
       parameter (Norder = 3)
       REAL_T x(Norder), y(Norder), c(Norder), xInt
-#endif
       ratioy = ratios(2)
 
       jclo = ARG_L2(cb)
@@ -82,63 +76,6 @@ c ---------------------------------------------------------------
             end do
          end do
       else
-
-#ifndef USE_REORG_VERSION
-
-      do n = 1, nvar
-c        ::::: define interp coefs
-         do jc = jclo, jchi
-            j = ratioy*jc
-            derives(jc,XDER)  = half * (crse(ic,jc+1,n) - crse(ic,jc-1,n))
-            derives(jc,X2DER) = crse(ic,jc+1,n)
-     &           -              crse(ic,jc  ,n) * two
-     &           +              crse(ic,jc-1,n)
-
-            if (mask(i,j-1) .ne. not_covered) then
-               derives(jc,XDER)  = crse(ic,jc+1,n) - crse(ic,jc  ,n)
-               derives(jc,X2DER) = zero
-c     Can we do better by sliding stencil up?
-               if (mask(i,j+2*ratioy) .eq. not_covered) then
-                  derives(jc,XDER)  = half*(-three*crse(ic,jc,n)
-     &           +                           four*crse(ic,jc+1,n)
-     &           -                           crse(ic,jc+2,n))
-                  derives(jc,X2DER) = crse(ic,jc+2,n)
-     &           -                    crse(ic,jc+1,n) * two
-     &           +                    crse(ic  ,jc,n)
-               end if
-            end if
-            if (mask(i,j+ratioy) .ne. not_covered) then
-               derives(jc,XDER)  = crse(ic,jc  ,n) - crse(ic,jc-1,n)
-               derives(jc,X2DER) = zero
-c     Can we do better by sliding stencil down?
-               if (mask(i,j+ratioy) .eq. not_covered) then
-                  derives(jc,XDER)  = half*(three*crse(ic,jc,n)
-     &           -                          four*crse(ic,jc-1,n)
-     &           +                          crse(ic,jc-2,n))
-                  derives(jc,X2DER) = crse(ic,jc,n)
-     &           -                    crse(ic,jc-1,n) * two
-     &           +                    crse(ic,jc-2,n)
-               end if
-            end if
-            if (mask(i,j-1)     .ne. not_covered .and. 
-     $          mask(i,j+ratioy) .ne. not_covered) then
-               derives(jc,XDER)  = zero
-            end if
-         end do
-
-c        ::::: interpolate to fine grid
-         do off = 0, ratioy - 1
-            xx = (dble(off - ratioy/2) + half)/ratioy
-            do jc = jclo, jchi
-               j = ratioy*jc + off
-               bdry(i,j,n) = crse(ic,jc,n)
-     &              +        derives(jc,XDER) *xx
-     &              +        half*derives(jc,X2DER)*xx**2
-            end do
-         end do
-      end do
-
-#else
 
       do n=1,nvar
          do jc=jclo,jchi
@@ -182,7 +119,6 @@ c        ::::: interpolate to fine grid
          end do
       end do
       
-#endif
       endif
       end
 
@@ -225,13 +161,10 @@ c ---------------------------------------------------------------
       integer  i, j, ic, jc, off, n
       integer  jclo, jchi, ratioy
 
-#ifndef USE_REORG_VERSION
-      REAL_T   xx
-#else
       integer Norder, NN, m
       parameter (Norder = 3)
       REAL_T x(Norder), y(Norder), c(Norder), xInt
-#endif      
+
       ratioy = ratios(2)
 
       jclo = ARG_L2(cb)
@@ -249,64 +182,6 @@ c ---------------------------------------------------------------
             end do
          end do
       else
-
-#ifndef USE_REORG_VERSION
-
-      do n = 1, nvar
-c        ::::: define interp coefs
-         do jc = jclo, jchi
-            j = ratioy*jc
-            derives(jc,XDER)  = half * (crse(ic,jc+1,n) - crse(ic,jc-1,n))
-            derives(jc,X2DER) = crse(ic,jc+1,n)
-     &           -              crse(ic,jc  ,n) * two
-     &           +              crse(ic,jc-1,n)
-
-            if (mask(i,j-1) .ne. not_covered) then
-               derives(jc,XDER)  = crse(ic,jc+1,n) - crse(ic,jc  ,n)
-               derives(jc,X2DER) = zero
-c     Can we do better by sliding stencil up?
-               if (mask(i,j+2*ratioy) .eq. not_covered) then
-                  derives(jc,XDER)  = half*(-three*crse(ic,jc,n)
-     &           +                           four*crse(ic,jc+1,n)
-     &           -                           crse(ic,jc+2,n))
-                  derives(jc,X2DER) = crse(ic,jc+2,n)
-     &           -                    crse(ic,jc+1,n) * two
-     &           +                    crse(ic  ,jc,n)
-               end if
-            end if
-            if (mask(i,j+ratioy) .ne. not_covered) then
-               derives(jc,XDER)  = crse(ic,jc  ,n) - crse(ic,jc-1,n)
-               derives(jc,X2DER) = zero
-c     Can we do better by sliding stencil down?
-               if (mask(i,j+ratioy) .eq. not_covered) then
-                  derives(jc,XDER)  = half*(three*crse(ic,jc,n)
-     &           -                          four*crse(ic,jc-1,n)
-     &           +                          crse(ic,jc-2,n))
-                  derives(jc,X2DER) = crse(ic,jc,n)
-     &           -                    crse(ic,jc-1,n) * two
-     &           +                    crse(ic,jc-2,n)
-               end if
-            end if
-            if (mask(i,j-1) .ne. not_covered .and.
-     $          mask(i,j+ratioy) .ne. not_covered) then
-               derives(jc,XDER)  = zero
-               derives(jc,X2DER)  = zero
-            end if
-         end do
-
-c        ::::: interpolate to fine grid
-         do off = 0, ratioy - 1
-            xx = (dble(off - ratioy/2) + half)/ratioy
-            do jc = jclo, jchi
-               j = ratioy*jc + off
-               bdry(i,j,n) = crse(ic,jc,n)
-     &              +        derives(jc,XDER) *xx
-     &              +        half*derives(jc,X2DER)*xx**2
-            end do
-         end do
-      end do
-
-#else
       
       do n=1,nvar
          do jc=jclo,jchi
@@ -350,7 +225,6 @@ c        ::::: interpolate to fine grid
          end do
       end do
       
-#endif
       endif
       end
 
@@ -393,13 +267,9 @@ c ---------------------------------------------------------------
       integer  i, j, ic, jc, off, n
       integer  iclo, ichi, ratiox
 
-#ifndef USE_REORG_VERSION
-      REAL_T   xx
-#else
       integer Norder, NN, m
       parameter (Norder = 3)
       REAL_T x(Norder), y(Norder), c(Norder), xInt
-#endif
 
       ratiox = ratios(1)
 
@@ -418,63 +288,6 @@ c ---------------------------------------------------------------
          end do
       end do
       else
-
-#ifndef USE_REORG_VERSION
-
-      do n = 1, nvar
-c        ::::: define interp coefs
-         do ic = iclo, ichi
-            i = ratiox*ic
-            derives(ic,XDER)  = half * (crse(ic+1,jc,n) - crse(ic-1,jc,n))
-            derives(ic,X2DER) = crse(ic+1,jc,n)
-     &           -              crse(ic  ,jc,n) * two
-     &           +              crse(ic-1,jc,n)
-            if (mask(i-1,j) .ne. not_covered) then
-               derives(ic,XDER)  = crse(ic+1,jc,n) - crse(ic  ,jc,n)
-               derives(ic,X2DER) = zero
-c     Can we do better by sliding stencil to the right
-               if (mask(i+2*ratiox,j) .eq. not_covered) then
-                  derives(ic,XDER)  = half*(-three*crse(ic,jc,n)
-     &           +                           four*crse(ic+1,jc,n)
-     &           -                           crse(ic+2,jc,n))
-                  derives(ic,X2DER) = crse(ic+2,jc,n)
-     &           -                    crse(ic+1,jc,n) * two
-     &           +                    crse(ic  ,jc,n)
-               end if
-            end if
-            if (mask(i+ratiox,j) .ne. not_covered) then
-               derives(ic,XDER)  = crse(ic  ,jc,n) - crse(ic-1,jc,n)
-               derives(ic,X2DER) = zero
-            end if
-c     Can we do better by sliding stencil to the left
-               if (mask(i-ratiox,j) .eq. not_covered) then
-                  derives(ic,XDER)  = half*(three*crse(ic,jc,n)
-     &           -                          four*crse(ic-1,jc,n)
-     &           +                          crse(ic-2,jc,n))
-                  derives(ic,X2DER) = crse(ic,jc,n)
-     &           -                    crse(ic-1,jc,n) * two
-     &           +                    crse(ic-2,jc,n)
-               end if
-            if (mask(i-1,j) .ne. not_covered .and.
-     $          mask(i+ratiox,j) .ne. not_covered) then
-               derives(ic,XDER)  = zero
-               derives(ic,X2DER)  = zero
-            end if
-         end do
-
-c        ::::: interpolate to fine grid
-         do off = 0, ratiox - 1
-            xx = (dble(off - ratiox/2) + half)/ratiox
-            do ic = iclo, ichi
-               i = ratiox*ic + off
-               bdry(i,j,n) = crse(ic,jc,n)
-     &              +        derives(ic,XDER) *xx
-     &              +        half*derives(ic,X2DER)*xx**2
-            end do
-         end do
-      end do
-
-#else
       
       do n=1,nvar
          do ic=iclo,ichi
@@ -518,7 +331,6 @@ c        ::::: interpolate to fine grid
          end do
       end do
       
-#endif
       endif
       end
 
@@ -561,13 +373,9 @@ c ---------------------------------------------------------------
       integer  i, j, ic, jc, off, n
       integer  iclo, ichi, ratiox
 
-#ifndef USE_REORG_VERSION
-      REAL_T   xx
-#else
       integer Norder, NN, m
       parameter (Norder = 3)
       REAL_T x(Norder), y(Norder), c(Norder), xInt
-#endif
       
       ratiox = ratios(1)
 
@@ -587,62 +395,6 @@ c ---------------------------------------------------------------
          end do
       else
 
-#ifndef USE_REORG_VERSION
-      do n = 1, nvar
-c        ::::: define interp coefs
-         do ic = iclo, ichi
-            i = ratiox*ic
-            derives(ic,XDER)  = half * (crse(ic+1,jc,n) - crse(ic-1,jc,n))
-            derives(ic,X2DER) = crse(ic+1,jc,n)
-     &           -              crse(ic  ,jc,n) * two
-     &           +              crse(ic-1,jc,n)
-            if (mask(i-1,j) .ne. not_covered) then
-               derives(ic,XDER)  = crse(ic+1,jc,n) - crse(ic  ,jc,n)
-               derives(ic,X2DER) = zero
-c     Can we do better by sliding stencil to the right
-               if (mask(i+2*ratiox,j) .eq. not_covered) then
-                  derives(ic,XDER)  = half*(-three*crse(ic,jc,n)
-     &           +                           four*crse(ic+1,jc,n)
-     &           -                           crse(ic+2,jc,n))
-                  derives(ic,X2DER) = crse(ic+2,jc,n)
-     &           -                    crse(ic+1,jc,n) * two
-     &           +                    crse(ic  ,jc,n)
-               end if
-            end if
-            if (mask(i+ratiox,j) .ne. not_covered) then
-               derives(ic,XDER)  = crse(ic  ,jc,n) - crse(ic-1,jc,n)
-               derives(ic,X2DER) = zero
-c     Can we do better by sliding stencil to the left
-               if (mask(i-ratiox,j) .eq. not_covered) then
-                  derives(ic,XDER)  = half*(three*crse(ic,jc,n)
-     &           -                          four*crse(ic-1,jc,n)
-     &           +                          crse(ic-2,jc,n))
-                  derives(ic,X2DER) = crse(ic,jc,n)
-     &           -                    crse(ic-1,jc,n) * two
-     &           +                    crse(ic-2,jc,n)
-               end if
-            end if
-            if (mask(i-1,j) .ne. not_covered .and.
-     $          mask(i+ratiox,j) .ne. not_covered) then
-               derives(ic,XDER)  = zero
-               derives(ic,X2DER)  = zero
-            end if
-         end do
-
-c        ::::: interpolate to fine grid
-         do off = 0, ratiox - 1
-            xx = (dble(off - ratiox/2) + half)/ratiox
-            do ic = iclo, ichi
-               i = ratiox*ic + off
-               bdry(i,j,n) = crse(ic,jc,n)
-     &              +        derives(ic,XDER) *xx
-     &              +        half*derives(ic,X2DER)*xx**2
-            end do
-         end do
-      end do
-
-#else
-      
       do n=1,nvar
          do ic=iclo,ichi
             i = ratiox*ic
@@ -685,7 +437,6 @@ c        ::::: interpolate to fine grid
          end do
       end do
       
-#endif
       endif
       end
 

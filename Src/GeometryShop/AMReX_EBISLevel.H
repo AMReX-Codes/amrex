@@ -26,6 +26,8 @@
 #include "AMReX_EBISLayout.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_GeometryService.H"
+#include "AMReX_LayoutData.H"
+#include "AMReX_GeomIntersectUtils.H"
 
 namespace amrex
 {
@@ -82,6 +84,7 @@ namespace amrex
 
     EBISLevel()
       {
+        m_alreadyCheckedForMVCells = false;
       }
 
     ///
@@ -121,6 +124,22 @@ namespace amrex
         return m_domain;
       }
 
+    ///return true if this refinement contains multivalued cells.
+    /**
+       if this has not been called before, this generates a blocking communication
+     */
+    bool hasMultiValuedCells() const
+      {
+        if(!m_alreadyCheckedForMVCells)
+        {
+          checkForMultiValuedCells();
+        }
+        return m_hasMultiValuedCells;
+      }
+    
+    ///
+    void checkForMultiValuedCells() const;
+
     ///
     void fixRegularNextToMultiValued();
          
@@ -138,6 +157,10 @@ namespace amrex
     void  readHeader(const string& a_dirname);
 
     const FabArray<EBGraph>& getGraph () const { return m_graph; }
+
+  protected:
+
+    void buildEBSurface(const GeometryService & a_geoserver);
 
   private:
     int m_nCellMax;
@@ -161,7 +184,16 @@ namespace amrex
     ///
     FabArray<EBData>  m_data;
 
+    ///
+    LayoutData<NodeMap> m_intersections;
 
+    ///
+    bool m_build_eb_surface;
+
+    //only generated if needed (ergo mutable).
+    mutable bool m_hasMultiValuedCells;
+
+    bool m_alreadyCheckedForMVCells;
     void defineFromGeometryService(const GeometryService &  a_geoserver);
     void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);
 

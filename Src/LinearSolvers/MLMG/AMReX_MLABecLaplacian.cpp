@@ -23,7 +23,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLABecLaplacian::define()");
 
-    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info);
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
@@ -82,6 +82,8 @@ MLABecLaplacian::setBCoeffs (int amrlev,
 void
 MLABecLaplacian::averageDownCoeffs ()
 {
+    BL_PROFILE("MLABecLaplacian::averageDownCoeffs()");
+
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
@@ -158,13 +160,11 @@ MLABecLaplacian::applyMetricTermsCoeffs ()
 #if (AMREX_SPACEDIM != 3)
     for (int alev = 0; alev < m_num_amr_levels; ++alev)
     {
-        for (int mglev = 0; mglev < m_num_mg_levels[alev]; ++mglev)
+        const int mglev = 0;
+        applyMetricTerm(alev, mglev, m_a_coeffs[alev][mglev]);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            applyMetricTerm(alev, mglev, m_a_coeffs[alev][mglev]);
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                applyMetricTerm(alev, mglev, m_b_coeffs[alev][mglev][idim]);
-            }
+            applyMetricTerm(alev, mglev, m_b_coeffs[alev][mglev][idim]);
         }
     }
 #endif
@@ -175,19 +175,13 @@ MLABecLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
 
-    MLLinOp::prepareForSolve();
+    MLCellLinOp::prepareForSolve();
 
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();
 #endif
 
     averageDownCoeffs();
-
-    m_Anorm.resize(m_num_amr_levels);
-    for (int alev = 0; alev < m_num_amr_levels; ++alev)
-    {
-        m_Anorm[alev].assign(m_num_mg_levels[alev], -1.0);
-    }
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
@@ -205,8 +199,8 @@ MLABecLaplacian::prepareForSolve ()
                 }
                 else
                 {
-                    Real asum = m_a_coeffs[alev][0].sum();
-                    Real amax = m_a_coeffs[alev][0].norm0();
+                    Real asum = m_a_coeffs[alev].back().sum();
+                    Real amax = m_a_coeffs[alev].back().norm0();
                     m_is_singular[alev] = (asum <= amax * 1.e-12);
                 }
             }
@@ -410,71 +404,6 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
                                       BL_TO_FORTRAN_ANYD(by),
                                       BL_TO_FORTRAN_ANYD(bz)),
                          dxinv, m_b_scalar, face_only);
-}
-
-Real
-MLABecLaplacian::Anorm (int amrlev, int mglev) const
-{
-    BL_PROFILE("MLABecLaplacian::Anorm()");
-
-    if (m_Anorm[amrlev][mglev] < 0.0)
-    {
-        const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
-        AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
-                     const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
-                     const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
-        const Real* dx = m_geom[amrlev][mglev].CellSize();
-
-        const int nc = 1;
-        Real res = 0.0;
-
-#ifdef _OPENMP
-#pragma omp parallel reduction(max:res)
-#endif
-        {
-            for (MFIter mfi(acoef,true); mfi.isValid(); ++mfi)
-            {
-                Real tres;
-	    
-                const Box&       tbx  = mfi.tilebox();
-                const FArrayBox& afab = acoef[mfi];
-                AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
-                             const FArrayBox& byfab = bycoef[mfi];,
-                             const FArrayBox& bzfab = bzcoef[mfi];);
-
-#if (BL_SPACEDIM == 1)
-                FORT_NORMA(&tres,
-                           &m_a_scalar, &m_b_scalar,
-                           afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                           bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                           tbx.loVect(), tbx.hiVect(), &nc, dx);
-#elif (BL_SPACEDIM==2)
-                FORT_NORMA(&tres,
-                           &m_a_scalar, &m_b_scalar,
-                           afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                           bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                           byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                           tbx.loVect(), tbx.hiVect(), &nc, dx);
-#elif (BL_SPACEDIM==3)
-                
-                FORT_NORMA(&tres,
-                           &m_a_scalar, &m_b_scalar,
-                           afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                           bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                           byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                           bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                           tbx.loVect(), tbx.hiVect(), &nc, dx);
-#endif
-                
-                res = std::max(res, tres);
-            }
-        }
-        
-        ParallelAllReduce::Max(res, Communicator(amrlev,mglev));
-        m_Anorm[amrlev][mglev] = res;
-    }
-
-    return m_Anorm[amrlev][mglev];
 }
 
 }

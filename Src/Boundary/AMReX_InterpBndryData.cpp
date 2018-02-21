@@ -228,7 +228,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
     //
     if (max_order==3 || max_order==1)
     {
-        MultiFab foo(grids,bndry[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
+        MultiFab foo(grids,bndry[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false), FArrayBoxFactory());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -341,6 +341,20 @@ InterpBndryData::updateBndryValues (BndryRegister& crse, int c_start, int bnd_st
                                     int ratio, int max_order)
 {
     updateBndryValues(crse, c_start, bnd_start, num_comp, IntVect{ratio}, max_order);
+}
+
+void
+InterpBndryData::setHomogValues ()
+{
+    for (OrientationIter fi; fi; ++fi)
+    {
+        const Orientation face  = fi();
+        
+        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
+        {
+            bndry[face][fsi].setVal(0.);
+        }
+    }
 }
 
 }

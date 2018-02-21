@@ -21,17 +21,18 @@ subroutine state_error(tag,tag_lo,tag_hi, &
                        state,state_lo,state_hi, &
                        set,clear,&
                        lo,hi,&
-                       dx,problo,time,level) bind(C, name="state_error")
+                       dx,problo,time,level, &
+                       domlo, domhi, tag_dom_middle) bind(C, name="state_error")
 
   use tagging_params_module, only : phierr, phigrad, max_phierr_lev, max_phigrad_lev
   implicit none
   
-  integer          :: lo(3),hi(3)
+  integer          :: lo(3),hi(3),domlo(3),domhi(3),tag_dom_middle,midlo(3),midhi(3)
   integer          :: state_lo(3),state_hi(3)
   integer          :: tag_lo(3),tag_hi(3)
   double precision :: state(state_lo(1):state_hi(1), &
-                            state_lo(2):state_hi(2), &
-                            state_lo(3):state_hi(3))
+       state_lo(2):state_hi(2), &
+       state_lo(3):state_hi(3))
   integer          :: tag(tag_lo(1):tag_hi(1),tag_lo(2):tag_hi(2),tag_lo(3):tag_hi(3))
   double precision :: problo(3),dx(3),time
   integer          :: level,set,clear
@@ -44,42 +45,64 @@ subroutine state_error(tag,tag_lo,tag_hi, &
   else
      dim = 3
   end if
-
-  ! Tag on regions of high phi
-  if (level .lt. max_phierr_lev) then
+  do i = 1,3
+     midlo(i) = 3*(domhi(i) + 1 - domlo(i))/8
+     midhi(i) = 5*(domhi(i) + 1 - domlo(i))/8
+  enddo
+  if(tag_dom_middle .eq. 1) then
+     
      do       k = lo(3), hi(3)
-        do    j = lo(2), hi(2)
-           do i = lo(1), hi(1)
-              if (state(i,j,k) .ge. phierr(level)) then
-                 tag(i,j,k) = set
+        if((dim.eq.2).or.((k.lt.midlo(3)).and.(k.lt.midhi(3)))) then
+           do    j = lo(2), hi(2)
+              if((j.ge.midlo(2)).and.(j.lt.midhi(2))) then
+                 do i = lo(1), hi(1)
+                    if((i.ge.midlo(1)).and.(i.lt.midhi(1))) then
+                       tag(i,j,k) = set
+                    endif
+                 enddo
               endif
            enddo
-        enddo
+        endif
      enddo
+     
+  else
+
+     ! Tag on regions of high phi
+     if (level .lt. max_phierr_lev) then
+        do       k = lo(3), hi(3)
+           do    j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 if (state(i,j,k) .ge. phierr(level)) then
+                    tag(i,j,k) = set
+                 endif
+              enddo
+           enddo
+        enddo
+     endif
+
+     ! Tag on regions of high phi gradient
+     if (level .lt. max_phigrad_lev) then
+        do       k = lo(3), hi(3)
+           do    j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 ax = abs(state(i-1,j,k)-state(i,j,k))
+                 ax = max(ax, abs(state(i,j,k)-state(i+1,j,k)))
+                 ay = abs(state(i,j-1,k)-state(i,j,k))
+                 ay = max(ay, abs(state(i,j,k)-state(i,j+1,k)))
+                 if (dim .eq. 2) then
+                    az = 0.d0
+                 else
+                    az = abs(state(i,j,k-1)-state(i,j,k))
+                    az = max(az, abs(state(i,j,k)-state(i,j,k+1)))
+                 end if
+                 if (max(ax,ay,az) .ge. phigrad(level)) then
+                    tag(i,j,k) = set
+                 end if
+              enddo
+           enddo
+        end do
+     endif
   endif
 
-  ! Tag on regions of high phi gradient
-  if (level .lt. max_phigrad_lev) then
-     do       k = lo(3), hi(3)
-        do    j = lo(2), hi(2)
-           do i = lo(1), hi(1)
-              ax = abs(state(i-1,j,k)-state(i,j,k))
-              ax = max(ax, abs(state(i,j,k)-state(i+1,j,k)))
-              ay = abs(state(i,j-1,k)-state(i,j,k))
-              ay = max(ay, abs(state(i,j,k)-state(i,j+1,k)))
-              if (dim .eq. 2) then
-                 az = 0.d0
-              else
-                 az = abs(state(i,j,k-1)-state(i,j,k))
-                 az = max(az, abs(state(i,j,k)-state(i,j,k+1)))
-              end if
-              if (max(ax,ay,az) .ge. phigrad(level)) then
-                 tag(i,j,k) = set
-              end if
-            enddo
-         enddo
-      end do
-   endif
-  
 end subroutine state_error
 

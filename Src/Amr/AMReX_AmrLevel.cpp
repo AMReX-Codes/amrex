@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <memory>
+#include <limits>
 
 #include <AMReX_AmrLevel.H>
 #include <AMReX_Derive.H>
@@ -66,8 +67,10 @@ AmrLevel::manual_tags_placement (TagBoxArray&    tags,
 
 AmrLevel::AmrLevel ()
 {
+   BL_PROFILE("AmrLevel::AmrLevel()");
    parent = 0;
    level = -1;
+   levelDirectoryCreated = false;
 }
 
 AmrLevel::AmrLevel (Amr&            papa,
@@ -84,6 +87,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
     level  = lev;
     parent = &papa;
+    levelDirectoryCreated = false;
 
     fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
     crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
@@ -139,10 +143,16 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     std::vector<std::pair<int,int> > plot_var_map;
     for (int typ = 0; typ < desc_lst.size(); typ++)
+    {
         for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
+	{
             if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
                 desc_lst[typ].getType() == IndexType::TheCellType())
+	    {
                 plot_var_map.push_back(std::pair<int,int>(typ,comp));
+	    }
+	}
+    }
 
     int n_data_items = plot_var_map.size();
 
@@ -212,19 +222,24 @@ AmrLevel::writePlotFile (const std::string& dir,
     // Now for the full pathname of that directory.
     //
     std::string FullPath = dir;
-    if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
+    if ( ! FullPath.empty() && FullPath[FullPath.size()-1] != '/')
+    {
         FullPath += '/';
+    }
     FullPath += sLevel;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
-    if (ParallelDescriptor::IOProcessor())
-        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+    if ( ! levelDirectoryCreated) {
+      if (ParallelDescriptor::IOProcessor()) {
+        amrex::Print() << "IOIOIOIO:CD  AmrLevel::writePlotFile:  " << FullPath << "\n";
+        if ( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
             amrex::CreateDirectoryFailed(FullPath);
-    //
-    // Force other processors to wait till directory is built.
-    //
-    ParallelDescriptor::Barrier();
+	}
+      }
+      // Force other processors to wait until directory is built.
+      ParallelDescriptor::Barrier();
+    }
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -275,6 +290,22 @@ AmrLevel::writePlotFile (const std::string& dir,
     std::string TheFullPath = FullPath;
     TheFullPath += BaseName;
     VisMF::Write(plotMF,TheFullPath,how,true);
+
+    levelDirectoryCreated = false;  // ---- now that the plotfile is finished
+}
+
+
+void
+AmrLevel::writePlotFilePre (const std::string& dir,
+                            std::ostream&      os)
+{
+}
+
+
+void
+AmrLevel::writePlotFilePost (const std::string& dir,
+                             std::ostream&      os)
+{
 }
 
 
@@ -451,6 +482,23 @@ AmrLevel::checkPoint (const std::string& dir,
 
     levelDirectoryCreated = false;  // ---- now that the checkpoint is finished
 }
+
+
+void
+AmrLevel::checkPointPre (const std::string& dir,
+                         std::ostream&      os)
+{
+    BL_PROFILE("AmrLevel::checkPointPre()");
+}
+
+
+void
+AmrLevel::checkPointPost (const std::string& dir,
+                          std::ostream&      os)
+{
+    BL_PROFILE("AmrLevel::checkPointPost()");
+}
+
 
 AmrLevel::~AmrLevel ()
 {
@@ -905,6 +953,10 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_fabs.define(m_leveldata.boxArray(),m_leveldata.DistributionMap(),
 		  m_ncomp,boxGrow,MFInfo(),m_leveldata.Factory());
 
+    const Geometry& geom = m_amrlevel.Geom();
+
+    m_fabs.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), geom);
+
     const IndexType& boxType = m_leveldata.boxArray().ixType();
     const int level = m_amrlevel.level;
 
@@ -1184,10 +1236,19 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         CrseFabs.resize(NC);
 
+        Box domain_box = amrex::convert(amrLevels[l]->Geom().Domain(), fab.box().ixType());
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (Geometry::isPeriodic(idim)) {
+                int n = domain_box.length(idim);
+                domain_box.grow(idim, n);
+            }
+        }
+
         for (int i = 0; i < NC; i++)
         {
             BL_ASSERT(CrseBoxes[i].ok());
             CrseFabs[i].reset(new FArrayBox(CrseBoxes[i],m_ncomp));
+            CrseFabs[i]->setComplement(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
 	}
 
         for (int i = 0; i < NC; i++)
@@ -1470,6 +1531,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
 	    StateDataPhysBCFunct physbcf(statedata,SComp,cgeom);
 
+            crseMF.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 	    amrex::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf);
 	}
 	else
@@ -2155,6 +2217,23 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
     MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
 
+void
+AmrLevel::FillPatchAdd(AmrLevel& amrlevel,
+		       MultiFab& leveldata,
+                       int       boxGrow,
+                       Real      time,
+                       int       index,
+                       int       scomp,
+                       int       ncomp,
+                       int       dcomp)
+{
+    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(boxGrow <= leveldata.nGrow());
+    FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
+    const MultiFab& mf_fillpatched = fpi.get_mf();
+    MultiFab::Add(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
+}
+
 
 
 void
@@ -2249,11 +2328,11 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
     LevelDirectoryNames(dir, LevelDir, FullPath);
 
     if(ParallelDescriptor::IOProcessor()) {
+      amrex::Print() << "IOIOIOIO:CD  AmrLevel::CreateLevelDirectory:  " << FullPath << "\n";
       if( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
         amrex::CreateDirectoryFailed(FullPath);
       }
     }
-
     levelDirectoryCreated = true;
 }
 

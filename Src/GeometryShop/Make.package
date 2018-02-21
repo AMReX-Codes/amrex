@@ -5,9 +5,8 @@ ifeq ($(LBASE),GeometryShop)
 endif
 
 
-C$(GEOMETRYSHOP_BASE)_headers += AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H
-C$(GEOMETRYSHOP_BASE)_sources +=                 AMReX_GeometryShop.cpp AMReX_Moments.cpp 
-
+C$(GEOMETRYSHOP_BASE)_headers += AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H   AMReX_GeomIntersectUtils.H
+C$(GEOMETRYSHOP_BASE)_sources +=                 AMReX_GeometryShop.cpp AMReX_Moments.cpp AMReX_GeomIntersectUtils.cpp
 C$(GEOMETRYSHOP_BASE)_headers +=  AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_PlaneIF.H    AMReX_IrregNode.H   AMReX_LoHiSide.H 
 C$(GEOMETRYSHOP_BASE)_sources +=  AMReX_LSquares.cpp AMReX_SphereIF.cpp  AMReX_PlaneIF.cpp  AMReX_IrregNode.cpp AMReX_LoHiSide.cpp
 
@@ -45,11 +44,17 @@ C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBNormalizeByVolumeFraction.H   AMReX_E
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBNormalizeByVolumeFraction.cpp AMReX_EBLoHiCenter.cpp AMReX_FabArrayIO.cpp
 
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H AMReX_ExtrudeIF.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp AMReX_ExtrudeIF.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_PolynomialIF.H   
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_PolynomialIF.cpp 
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_PolynomialIF.H    AMReX_EllipsoidIF.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_PolynomialIF.cpp  AMReX_EllipsoidIF.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_STLAsciiReader.H    AMReX_STLExplorer.H    AMReX_STLMesh.H   AMReX_STLBox.H	  AMReX_STLIF.H	     AMReX_STLUtil.H   AMReX_STLReader.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_STLAsciiReader.cpp  AMReX_STLExplorer.cpp  AMReX_STLMesh.cpp AMReX_STLBox.cpp	  AMReX_STLIF.cpp    AMReX_STLUtil.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_CellEdge.H   AMReX_KDTree.H   AMReX_PXStuff.H	AMReX_KDStruct.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_CellEdge.cpp AMReX_KDTree.cpp AMReX_PXStuff.cpp
 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop

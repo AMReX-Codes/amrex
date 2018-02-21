@@ -21,20 +21,22 @@ extern "C"
 		   const int* tagval, const int* clearval,
 		   const int* lo, const int* hi,
 		   const amrex_real* dx, const amrex_real* problo,
-		   const amrex_real* time, const int* level);
+		   const amrex_real* time, const int* level,
+                   const int* domlo, const int* domhi, 
+                   const int* tag_domain_middle);
   
-  void initdata(const int& level, const amrex_real& time, 
+  void initdata(const int* level, const amrex_real* time, 
 		const int* lo, const int* hi,
 		BL_FORT_FAB_ARG_3D(state),
 		const amrex_real* dx, const amrex_real* problo);
   
-  void get_face_velocity(const int& level, const amrex_real& time, 
+  void get_face_velocity(const int* level, const amrex_real* time, 
 			 AMREX_D_DECL(BL_FORT_FAB_ARG(xvel),
 				BL_FORT_FAB_ARG(yvel),
 				BL_FORT_FAB_ARG(zvel)),
 			 const amrex_real* dx, const amrex_real* problo);
   
-  void advectDiffGodunov(const amrex_real& time, const int* lo, const int*hi,
+  void advectDiffGodunov(const amrex_real* time, const int* lo, const int*hi,
                          const BL_FORT_FAB_ARG_3D(statein),
                          BL_FORT_FAB_ARG_3D(dphidtout),
                          AMREX_D_DECL(const BL_FORT_FAB_ARG_3D(xvel),
@@ -43,10 +45,12 @@ extern "C"
                          AMREX_D_DECL(BL_FORT_FAB_ARG_3D(fx),
                                       BL_FORT_FAB_ARG_3D(fy),
                                       BL_FORT_FAB_ARG_3D(fz)),
-                         const amrex_real* dx, const amrex_real& dt,
-                         const amrex_real& nu);
+                         const amrex_real* dx, const amrex_real* dt,
+                         const amrex_real* nu,
+                         const int* uselimit
+    );
 
-  void advectDiffMOL2ndOrd(const amrex_real& time, const int* lo, const int*hi,
+  void advectDiffMOL2ndOrd(const amrex_real* time, const int* lo, const int*hi,
                            const BL_FORT_FAB_ARG_3D(statein),
                            BL_FORT_FAB_ARG_3D(dphidtout),
                            AMREX_D_DECL(const BL_FORT_FAB_ARG_3D(xvel),
@@ -55,11 +59,12 @@ extern "C"
                            AMREX_D_DECL(BL_FORT_FAB_ARG_3D(fx),
                                         BL_FORT_FAB_ARG_3D(fy),
                                         BL_FORT_FAB_ARG_3D(fz)),
-                           const amrex_real* dx, const amrex_real& dt,
-                           const amrex_real& nu);
+                           const amrex_real* dx, const amrex_real* dt,
+                           const amrex_real* nu,
+                           const int* uselimit);
 
 
-  void advectDiffMOL4thOrd(const amrex_real& time, const int* lo, const int*hi,
+  void advectDiffMOL4thOrd(const amrex_real* time, const int* lo, const int*hi,
                            const BL_FORT_FAB_ARG_3D(statein),
                            BL_FORT_FAB_ARG_3D(dphidtout),
                            AMREX_D_DECL(const BL_FORT_FAB_ARG_3D(xvel),
@@ -68,12 +73,112 @@ extern "C"
                            AMREX_D_DECL(BL_FORT_FAB_ARG_3D(fx),
                                         BL_FORT_FAB_ARG_3D(fy),
                                         BL_FORT_FAB_ARG_3D(fz)),
-                           const amrex_real* dx, const amrex_real& dt,
-                           const amrex_real& nu, 
+                           const amrex_real* dx, const amrex_real* dt,
+                           const amrex_real* nu, 
                            const int* deblocell, const int* debhicell,
-                           const int* debloface, const int* debhiface);
+                           const int* deblofaceHi, const int* debhifaceHi,
+                           const int* deblofaceLo, const int* debhifaceLo,
+                           const int* printstuff,
+                           const int* uselimit);
 
 
+
+
+  void timeinterprk4_simplepoly(const int* stage, 
+                                const int* lo, const int* hi,
+                                BL_FORT_FAB_ARG_3D(phinew),
+                                BL_FORT_FAB_ARG_3D(phiold),
+                                BL_FORT_FAB_ARG_3D(k1),
+                                BL_FORT_FAB_ARG_3D(k2),
+                                BL_FORT_FAB_ARG_3D(k3),
+                                BL_FORT_FAB_ARG_3D(k4),
+                                const amrex_real* tf,
+                                const amrex_real* tc_old,
+                                const amrex_real* dt_c,
+                                const amrex_real* dt_f,
+                                const int* iter, const int* nref);
+
+  void timeinterprk3_simplepoly(const int* stage, 
+                                const int* lo, const int* hi,
+                                BL_FORT_FAB_ARG_3D(phinew),
+                                BL_FORT_FAB_ARG_3D(phiold),
+                                BL_FORT_FAB_ARG_3D(k1),
+                                BL_FORT_FAB_ARG_3D(k2),
+                                const amrex_real* tf,
+                                const amrex_real* tc_old,
+                                const amrex_real* dt_c,
+                                const amrex_real* dt_f,
+                                const int* iter, const int* nref);
+
+
+
+
+  void timeinterprk4_jbb(const int* stage, 
+                         const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_3D(phinew),
+                         BL_FORT_FAB_ARG_3D(phiold),
+                         BL_FORT_FAB_ARG_3D(k1),
+                         BL_FORT_FAB_ARG_3D(k2),
+                         BL_FORT_FAB_ARG_3D(k3),
+                         BL_FORT_FAB_ARG_3D(k4),
+                         const amrex_real* tf,
+                         const amrex_real* tc_old,
+                         const amrex_real* dt_c,
+                         const amrex_real* dt_f,
+                         const int* iter, const int* nref);
+
+  void timeinterprk3_jbb(const int* stage, 
+                         const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_3D(phinew),
+                         BL_FORT_FAB_ARG_3D(phiold),
+                         BL_FORT_FAB_ARG_3D(k1),
+                         BL_FORT_FAB_ARG_3D(k2),
+                         const amrex_real* tf,
+                         const amrex_real* tc_old,
+                         const amrex_real* dt_c,
+                         const amrex_real* dt_f,
+                         const int* iter, const int* nref);
+
+
+  void timeinterprk4_pwm(const int* stage, 
+                         const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_3D(phinew),
+                         BL_FORT_FAB_ARG_3D(phiold),
+                         BL_FORT_FAB_ARG_3D(k1),
+                         BL_FORT_FAB_ARG_3D(k2),
+                         BL_FORT_FAB_ARG_3D(k3),
+                         BL_FORT_FAB_ARG_3D(k4),
+                         const amrex_real* tf,
+                         const amrex_real* tc_old,
+                         const amrex_real* dt_c,
+                         const amrex_real* dt_f,
+                         const int* iter, const int* nref);
+
+  void timeinterprk4_pwm_cd(const int* stage, 
+                            const int* lo, const int* hi,
+                            BL_FORT_FAB_ARG_3D(phinew),
+                            BL_FORT_FAB_ARG_3D(phiold),
+                            BL_FORT_FAB_ARG_3D(k1),
+                            BL_FORT_FAB_ARG_3D(k2),
+                            BL_FORT_FAB_ARG_3D(k3),
+                            BL_FORT_FAB_ARG_3D(k4),
+                            const amrex_real* tf,
+                            const amrex_real* tc_old,
+                            const amrex_real* dt_c,
+                            const amrex_real* dt_f,
+                            const int* iter, const int* nref);
+
+  void timeinterprk3_pwm(const int* stage, 
+                         const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_3D(phinew),
+                         BL_FORT_FAB_ARG_3D(phiold),
+                         BL_FORT_FAB_ARG_3D(k1),
+                         BL_FORT_FAB_ARG_3D(k2),
+                         const amrex_real* tf,
+                         const amrex_real* tc_old,
+                         const amrex_real* dt_c,
+                         const amrex_real* dt_f,
+                         const int* iter, const int* nref);
 
 #ifdef __cplusplus
 }

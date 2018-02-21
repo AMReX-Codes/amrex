@@ -11,9 +11,9 @@ CC  = pgcc
 
 ########################################################################
 
-pgi_version := $(shell $(CXX) -V 2>&1 | grep 'target')
+pgi_version = $(shell $(CXX) -V 2>&1 | grep 'target')
 
-COMP_VERSION := $(pgi_version)
+COMP_VERSION = $(pgi_version)
 
 ########################################################################
 
@@ -117,6 +117,7 @@ else
 
   FFLAGS   += -gopt $(PGI_OPT)
   F90FLAGS += -gopt $(PGI_OPT)
+
 endif
 
 # Note that we do not have a Fortran main
@@ -141,4 +142,3 @@ F90FLAGS += $(GENERIC_PGI_FLAGS)
 override XTRALIBS += -lstdc++ -pgf90libs -latomic
 
 LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
-

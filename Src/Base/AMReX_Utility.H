@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <chrono>
+#include <type_traits>
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -298,6 +300,11 @@ namespace amrex
     template <typename T> long bytesOf (const std::vector<T>& v);
     template <typename Key, typename T, class Compare> long bytesOf (const std::map<Key,T,Compare>& m);
 
+    void BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm);
+
+    void BroadcastString(std::string &bStr, int myLocalId, int rootId, const MPI_Comm &localComm);
+    void BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm);
+
     template<class T> void BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
     void BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm);
     void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm);
@@ -305,6 +312,11 @@ namespace amrex
                                       int myLocalId, int rootId, const MPI_Comm &localComm);
     void USleep(double sleepsec);
 
+
+    using MaxResSteadyClock = std::conditional<std::chrono::high_resolution_clock::is_steady,
+                                               std::chrono::high_resolution_clock,
+                                               std::chrono::steady_clock>::type;
+    double second ();
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)

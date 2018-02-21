@@ -147,7 +147,8 @@ namespace amrex
       ghostRegion &= domain;
       BaseFab<int> regIrregCovered;
       Vector<IrregNode> nodes;
-      gshop.fillGraph(regIrregCovered, nodes, validRegion, ghostRegion, domain, origin, dx);
+      NodeMap nodemap;
+      gshop.fillGraph(regIrregCovered, nodes, nodemap, validRegion, ghostRegion, domain, origin, dx);
       EBGraph& ebgraph = allgraphs[mfi];
       ebgraph.buildGraph(regIrregCovered, nodes, validRegion, domain);
     }

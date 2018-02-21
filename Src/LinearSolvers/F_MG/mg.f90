@@ -9,6 +9,8 @@ module mg_module
 
   implicit none
 
+  integer, save :: n_mg_iters = -1
+
   interface destroy
      module procedure mg_tower_destroy
   end interface
@@ -16,6 +18,10 @@ module mg_module
   private :: get_bottom_box_size, impose_physbc_cc_2d, impose_physbc_cc_3d
 
 contains
+
+  integer function amrex_f90mg_get_niters () bind(c,name='amrex_f90mg_get_niters')
+    amrex_f90mg_get_niters = n_mg_iters
+  end function amrex_f90mg_get_niters
 
   recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type, &
                                       nu1, nu2, nuf, nub, cycle_type, &
@@ -370,11 +376,15 @@ contains
        if (.not. contains(get_boxarray(old_coarse_la),bounding_box) &
             .or.  (nboxes(old_coarse_la) .lt. 2**mgt%dim) ) then
 
-          mgt%bottom_solver = 1
+          if (present(fancy_bottom_type)) then
+             mgt%bottom_solver = fancy_bottom_type
+          else
+             mgt%bottom_solver = 1
+          end if
 
           if ( parallel_IOProcessor() .and. verbose > 1 ) then
               print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
-              print *,'F90mg: Using bottom_solver = 1 instead'
+              print *,'F90mg: Using bottom_solver = ',mgt%bottom_solver,'instead'
           end if
 
        else

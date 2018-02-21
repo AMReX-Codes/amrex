@@ -15,9 +15,9 @@ CFLAGS   =
 
 ########################################################################
 
-ibm_version       := $(shell $(CXX) --version | head -1)
+ibm_version  = $(shell $(CXX) --version | head -1)
 
-COMP_VERSION := $(ibm_version)
+COMP_VERSION = $(ibm_version)
 
 ########################################################################
 
@@ -78,9 +78,8 @@ else
   F90 = xlf
 endif
 
-FFLAGS   =
+FFLAGS =
 F90FLAGS =
-
 
 ifeq ($(DEBUG),TRUE)
 
@@ -96,16 +95,15 @@ endif
 
 F90FLAGS += -qlanglvl=extended -qxlf2003=polymorphic
 
-FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
-F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
+FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
+F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
 
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
 override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath -L $(OLCF_XLC_ROOT)/lib -libmc++ -lstdc++ -lxlsmp
 
-FORTLINK := LOWERCASE
-
+FORTLINK = LOWERCASE
 
 ifeq ($(USE_CUDA),TRUE)
   F90FLAGS += -qcuda
