@@ -52,7 +52,8 @@ module amrex_mlnodelap_2d_module
   public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
        amrex_mlndlap_adotx_sten, amrex_mlndlap_gauss_seidel_sten, &
        amrex_mlndlap_jacobi_sten, amrex_mlndlap_interpolation_rap, &
-       amrex_mlndlap_restriction_rap, amrex_mlndlap_stencil_rap
+       amrex_mlndlap_interpolation_rap_sp, amrex_mlndlap_restriction_rap, &
+       amrex_mlndlap_stencil_rap, amrex_mlndlap_stencil_rap_sp
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_connection, &
@@ -1658,6 +1659,45 @@ contains
   end subroutine amrex_mlndlap_interpolation_rap
 
 
+  subroutine amrex_mlndlap_interpolation_rap_sp (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
+       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap_sp')
+    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
+    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
+    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
+    real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),stlo(2):sthi(2),5)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: flo(2), fhi(2), i,j, ic, jc
+    logical :: jeven, ieven
+
+    flo = 2*clo
+    fhi = 2*chi
+
+    do j = flo(2), fhi(2)
+       jc = (j-flo(2))/2 + clo(2)
+       jeven = jc*2 .eq. j
+       do i = flo(1), fhi(1)
+          if (msk(i,j) .ne. dirichlet .and. sten(i,j,1) .ne. 0.d0) then
+             ic = (i-flo(1))/2 + clo(1)
+             ieven = ic*2 .eq. i
+             if (ieven .and. jeven) then
+                fine(i,j) = crse(ic,jc)
+             else if (ieven) then
+                fine(i,j) = 0.5d0*(crse(ic,jc) + crse(ic,jc+1))
+             else if (jeven) then
+                fine(i,j) = 0.5d0*(crse(ic,jc) + crse(ic+1,jc))
+             else
+                fine(i,j) = 0.25d0*(crse(ic,jc) + crse(ic+1,jc) + crse(ic,jc+1) + crse(ic+1,jc+1))
+             end if
+          else
+             fine(i,j) = 0.d0
+          end if
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_interpolation_rap_sp
+
+
   subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
        sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_restriction_rap')
     integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, mlo, mhi
@@ -1718,8 +1758,6 @@ contains
     integer :: i,j, ii, jj
     real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
     real(amrex_real) :: ap(-1:1,-1:1), p(-1:1,-1:1)
-
-    ! for eb, we need to make sure not divided by zero
 
     do    j = lo(2), hi(2)
        jj = 2*j
@@ -1967,6 +2005,133 @@ contains
     end function restrict_from_pp_to
 
   end subroutine amrex_mlndlap_stencil_rap
+
+
+  subroutine amrex_mlndlap_stencil_rap_sp (lo, hi, csten, clo, chi, fsten, flo, fhi) &
+       bind(c,name='amrex_mlndlap_stencil_rap_sp')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi
+    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),clo(2):chi(2),5)
+    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),5)
+
+    integer :: i,j, ii, jj
+    real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
+    real(amrex_real) :: ap(-1:1,-1:1), p(-1:1,-1:1)
+
+    do    j = lo(2), hi(2)
+       jj = 2*j
+       do i = lo(1), hi(1)
+          ii = 2*i
+
+          ap = 0.d0
+          p = 0.d0
+
+          ! csten(i,j,2)
+          p(-1,-1) = 0.25d0
+          p( 0,-1) = 0.5d0
+          p(-1, 0) = 0.5d0
+          p( 0, 0) = 1.d0
+          p(-1, 1) = 0.25d0
+          p( 0, 1) = 0.5d0
+
+          ap(0,-1) = Ap0(ii,jj-1)*p(-1,-1) + App(ii,jj-1)*p(-1,0)
+          ap(1,-1) = A00(ii+1,jj-1)*p(-1,-1) + Ap0(ii+1,jj-1)*p(0,-1) &
+               + A0p(ii+1,jj-1)*p(-1,0) + App(ii+1,jj-1)*p(0,0)
+          ap(0,0) = Apm(ii,jj)*p(-1,-1) + Ap0(ii,jj)*p(-1,0) + App(ii,jj)*p(-1,1)
+          ap(1,0) = A0m(ii+1,jj)*p(-1,-1) + Apm(ii+1,jj)*p(0,-1) &
+               + A00(ii+1,jj)*p(-1,0) + Ap0(ii+1,jj)*p(0,0) &
+               + A0p(ii+1,jj)*p(-1,1) + App(ii+1,jj)*p(0,1)
+          ap(0,1) = Apm(ii,jj+1)*p(-1,0) + Ap0(ii,jj+1)*p(-1,1)
+          ap(1,1) = A0m(ii+1,jj+1)*p(-1,0) + Apm(ii+1,jj+1)*p(0,0) &
+               + A00(ii+1,jj+1)*p(-1,1) + Ap0(ii+1,jj+1)*p(0,1)
+
+          csten(i,j,2) = 0.25d0*(0.5d0*ap(0,-1) + 0.25*ap(1,-1) + ap(0,0) &
+               + 0.5d0*ap(1,0) + 0.5d0*ap(0,1) + 0.25d0*ap(1,1))
+
+          ! csten(i,j,3)
+          p(-1,-1) = 0.25d0
+          p( 0,-1) = 0.5d0
+          p( 1,-1) = 0.25d0
+          p(-1, 0) = 0.5d0
+          p( 0, 0) = 1.d0
+          p( 1, 0) = 0.5d0
+          
+          ap(-1,0) = A0p(ii-1,jj)*p(-1,-1) + App(ii-1,jj)*p(0,-1)
+          ap(0,0) = Amp(ii,jj)*p(-1,-1) + A0p(ii,jj)*p(0,-1) + App(ii,jj)*p(1,-1)
+          ap(1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1)
+          ap(-1,1) = A00(ii-1,jj+1)*p(-1,-1) + Ap0(ii-1,jj+1)*p(0,-1) &
+               + A0p(ii-1,jj+1)*p(-1,0) + App(ii-1,jj+1)*p(0,0)
+          ap(0,1) = Am0(ii,jj+1)*p(-1,-1) + A00(ii,jj+1)*p(0,-1) + Ap0(ii,jj+1)*p(1,-1) &
+               + Amp(ii,jj+1)*p(-1,0) + A0p(ii,jj+1)*p(0,0) + App(ii,jj+1)*p(1,0)
+          ap(1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1) &
+               + Amp(ii+1,jj+1)*p(0,0) + A0p(ii+1,jj+1)*p(1,0)
+
+          csten(i,j,3) = 0.25d0*(0.5d0*ap(-1,0) + ap(0,0) + 0.5d0*ap(1,0) &
+               + 0.25d0*ap(-1,1) + 0.5d0*ap(0,1) + 0.25d0*ap(1,1))
+
+          ! csten(i,j,4)
+          p(-1,-1) = 0.25d0
+          p( 0,-1) = 0.5d0
+          p(-1, 0) = 0.5d0
+          p( 0, 0) = 1.d0
+
+          ap(0,0) = App(ii,jj)*p(-1,-1)
+          ap(1,0) = A0p(ii+1,jj)*p(-1,-1) + App(ii+1,jj)*p(0,-1)
+          ap(0,1) = Ap0(ii,jj+1)*p(-1,-1) + App(ii,jj+1)*p(-1,0)
+          ap(1,1) = A00(ii+1,jj+1)*p(-1,-1) + Ap0(ii+1,jj+1)*p(0,-1) &
+               + A0p(ii+1,jj+1)*p(-1,0) + App(ii+1,jj+1)*p(0,0)
+
+          csten(i,j,4) = 0.25d0*(ap(0,0) + 0.5d0*ap(1,0) + 0.5d0*ap(0,1) + 0.25d0*ap(1,1))
+       end do
+    end do
+
+  contains
+
+    elemental real(amrex_real) function Amm (i,j)
+      integer, intent(in) :: i,j
+      Amm = fsten(i-1,j-1,4)
+    end function Amm
+
+    elemental real(amrex_real) function A0m (i,j)
+      integer, intent(in) :: i,j
+      A0m = fsten(i,j-1,3)
+    end function A0m
+
+    elemental real(amrex_real) function Apm (i,j)
+      integer, intent(in) :: i,j
+      Apm = fsten(i,j-1,4)
+    end function Apm
+
+    elemental real(amrex_real) function Am0 (i,j)
+      integer, intent(in) :: i,j
+      Am0 = fsten(i-1,j,2)
+    end function Am0
+
+    elemental real(amrex_real) function A00 (i,j)
+      integer, intent(in) :: i,j
+      A00 = fsten(i,j,1)
+    end function A00
+
+    elemental real(amrex_real) function Ap0 (i,j)
+      integer, intent(in) :: i,j
+      Ap0 = fsten(i,j,2)
+    end function Ap0
+
+    elemental real(amrex_real) function Amp (i,j)
+      integer, intent(in) :: i,j
+      Amp = fsten(i-1,j,4)
+    end function Amp
+
+    elemental real(amrex_real) function A0p (i,j)
+      integer, intent(in) :: i,j
+      A0p = fsten(i,j,3)
+    end function A0p
+
+    elemental real(amrex_real) function App (i,j)
+      integer, intent(in) :: i,j
+      App = fsten(i,j,4)
+    end function App
+
+  end subroutine amrex_mlndlap_stencil_rap_sp
 
 
 #ifdef AMREX_USE_EB
