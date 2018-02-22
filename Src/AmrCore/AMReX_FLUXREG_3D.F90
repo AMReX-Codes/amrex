@@ -11,26 +11,28 @@
 
 #define SDIM 3
 
-c ::: -----------------------------------------------------------
-c ::: Add fine grid flux to flux register.  Flux array is a fine grid
-c ::: edge based object, Register is a coarse grid edge based object.      
-c ::: It is assumed that the coarsened flux region contains the register
-c ::: region.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: reg       <=> edge centered coarse grid flux register
-c ::: DIMS(reg)  => index limits for reg
-c ::: flx        => edge centered fine grid flux array
-c ::: DIMS(flx)  => index limits for flx
-c ::: numcomp    => number of components to update
-c ::: dir        => direction normal to flux register
-c ::: ratio(3)   => refinement ratios between coarse and fine
-c ::: mult       => scalar multiplicative factor      
-c ::: -----------------------------------------------------------
+! ::: -----------------------------------------------------------
+! ::: Add fine grid flux to flux register.  Flux array is a fine grid
+! ::: edge based object, Register is a coarse grid edge based object.      
+! ::: It is assumed that the coarsened flux region contains the register
+! ::: region.
+! ::: 
+! ::: INPUTS/OUTPUTS:
+! ::: reg       <=> edge centered coarse grid flux register
+! ::: DIMS(reg)  => index limits for reg
+! ::: flx        => edge centered fine grid flux array
+! ::: DIMS(flx)  => index limits for flx
+! ::: numcomp    => number of components to update
+! ::: dir        => direction normal to flux register
+! ::: ratio(3)   => refinement ratios between coarse and fine
+! ::: mult       => scalar multiplicative factor      
+! ::: -----------------------------------------------------------
 
-      subroutine FORT_FRFINEADD(reg,DIMS(reg),flx,DIMS(flx),
-     &                          numcomp,dir,ratio,mult)
+    subroutine FORT_FRFINEADD(reg,DIMS(reg),flx,DIMS(flx), &
+                              numcomp,dir,ratio,mult)
+
       implicit none
+
       integer    DIMDEC(reg)
       integer    DIMDEC(flx)
       integer    ratio(3), dir, numcomp
@@ -46,9 +48,9 @@ c ::: -----------------------------------------------------------
       ratioz = ratio(3)
 
       if (dir .eq. 0) then
-c
-c        ::::: flux normal to X direction
-c
+
+         ! flux normal to X direction
+
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
@@ -73,7 +75,7 @@ c
          end do
 
       else if (dir .eq. 1) then
-c        ::::: flux normal to Y direction
+         ! flux normal to Y direction
          jc = ARG_L2(reg)
          j = jc*ratioy
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
@@ -98,9 +100,9 @@ c        ::::: flux normal to Y direction
          end do
 
       else
-c
-c        ::::: flux normal to Z direction
-c
+
+         ! flux normal to Z direction
+
          kc = ARG_L3(reg)
          k = kc*ratioz
          if (ARG_L3(reg) .ne. ARG_H3(reg)) then
@@ -126,31 +128,33 @@ c
 
       end if
       
-      end
+    end subroutine FORT_FRFINEADD
 
-c ::: -----------------------------------------------------------
-c ::: Add fine grid flux times area to flux register.  
-c ::: Flux array is a fine grid edge based object, Register is a 
-c ::: coarse grid edge based object.      
-c ::: It is assumed that the coarsened flux region contains the register
-c ::: region.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: reg       <=> edge centered coarse grid flux register
-c ::: DIMS(reg)  => index limits for reg
-c ::: flx        => edge centered fine grid flux array
-c ::: DIMS(flx)  => index limits for flx
-c ::: area       => edge centered area array
-c ::: DIMS(area) => index limits for area
-c ::: numcomp    => number of components to update
-c ::: dir        => direction normal to flux register
-c ::: ratio(3)   => refinement ratios between coarse and fine
-c ::: mult       => scalar multiplicative factor      
-c ::: -----------------------------------------------------------
+! ::: -----------------------------------------------------------
+! ::: Add fine grid flux times area to flux register.  
+! ::: Flux array is a fine grid edge based object, Register is a 
+! ::: coarse grid edge based object.      
+! ::: It is assumed that the coarsened flux region contains the register
+! ::: region.
+! ::: 
+! ::: INPUTS/OUTPUTS:
+! ::: reg       <=> edge centered coarse grid flux register
+! ::: DIMS(reg)  => index limits for reg
+! ::: flx        => edge centered fine grid flux array
+! ::: DIMS(flx)  => index limits for flx
+! ::: area       => edge centered area array
+! ::: DIMS(area) => index limits for area
+! ::: numcomp    => number of components to update
+! ::: dir        => direction normal to flux register
+! ::: ratio(3)   => refinement ratios between coarse and fine
+! ::: mult       => scalar multiplicative factor      
+! ::: -----------------------------------------------------------
 
-      subroutine FORT_FRFAADD(reg,DIMS(reg),flx,DIMS(flx),area,DIMS(area),
-     &                        numcomp,dir,ratio,mult)
+    subroutine FORT_FRFAADD(reg,DIMS(reg),flx,DIMS(flx),area,DIMS(area), &
+                            numcomp,dir,ratio,mult)
+
       implicit none
+
       integer    DIMDEC(reg)
       integer    DIMDEC(flx)
       integer    DIMDEC(area)
@@ -168,9 +172,9 @@ c ::: -----------------------------------------------------------
       ratioz = ratio(3)
 
       if (dir .eq. 0) then
-c
-c        ::::: flux normal to X direction
-c
+
+         ! flux normal to X direction
+
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
@@ -187,8 +191,8 @@ c
                   do joff = 0, ratioy-1            
                      do jc = ARG_L2(reg), ARG_H2(reg)
                         j = ratioy*jc + joff
-                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
-     &                       mult*area(i,j,k)*flx(i,j,k,n)
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + &
+                             mult*area(i,j,k)*flx(i,j,k,n)
                      end do
                   end do
                end do
@@ -196,9 +200,9 @@ c
          end do
 
       else if (dir .eq. 1) then
-c
-c        ::::: flux normal to Y direction
-c
+
+         ! flux normal to Y direction
+
          jc = ARG_L2(reg)
          j = jc*ratioy
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
@@ -215,8 +219,8 @@ c
                   do ioff = 0, ratiox-1            
                      do ic = ARG_L1(reg), ARG_H1(reg)
                         i = ratiox*ic + ioff
-                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
-     &                       mult*area(i,j,k)*flx(i,j,k,n)
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + &
+                             mult*area(i,j,k)*flx(i,j,k,n)
                      end do
                   end do
                end do
@@ -224,9 +228,9 @@ c
          end do
 
       else
-c
-c        ::::: flux normal to Z direction
-c
+
+         ! flux normal to Z direction
+
          kc = ARG_L3(reg)
          k = kc*ratioz
          if (ARG_L3(reg) .ne. ARG_H3(reg)) then
@@ -243,8 +247,8 @@ c
                   do ioff = 0, ratiox-1            
                      do ic = ARG_L1(reg), ARG_H1(reg)
                         i = ratiox*ic + ioff
-                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
-     &                       mult*area(i,j,k)*flx(i,j,k,n)
+                        reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + &
+                             mult*area(i,j,k)*flx(i,j,k,n)
                      end do
                   end do
                end do
@@ -253,23 +257,23 @@ c
 
       end if
       
-      end
+    end subroutine FORT_FRFAADD
 
-      subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi,
-     &     v, vlo, vhi, nc, mult, dir, isloface)
+    subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi, &
+                              v, vlo, vhi, nc, mult, dir, isloface)
+
       implicit none
+
       integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
       integer, intent(in) :: flo(3), fhi(3), vlo(3), vhi(3)
       integer, intent(in) :: nc, dir, isloface
       REAL_T , intent(in) :: mult
-      REAL_T , intent(inout) :: s(slo(1):shi(1),slo(2):shi(2),
-     &                                          slo(3):shi(3),nc)
-      REAL_T , intent(in   ) :: f(flo(1):fhi(1),flo(2):fhi(2),
-     &                                          flo(3):fhi(3),nc)
-      REAL_T , intent(in   ) :: v(vlo(1):vhi(1),vlo(2):vhi(2),
-     &                                          vlo(3):vhi(3))
-      !
+      REAL_T , intent(inout) :: s(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc)
+      REAL_T , intent(in   ) :: f(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),nc)
+      REAL_T , intent(in   ) :: v(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
+
       integer :: i, j, k, n
+
       if (isloface .eq. 1) then
          if (dir .eq. 0) then
             do n = 1, nc
@@ -313,4 +317,5 @@ c
             end do
             end do
       end if
-      end subroutine FORT_FRREFLUX
+
+    end subroutine FORT_FRREFLUX

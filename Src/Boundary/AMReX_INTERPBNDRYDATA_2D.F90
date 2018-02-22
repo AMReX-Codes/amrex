@@ -16,32 +16,33 @@
 #define X2DER  2
       
       
-c ---------------------------------------------------------------
-c ::  FORT_BDINTERPXLO : Interpolation on Xlo Face
-c ::       Quadratic Interpolation from crse data
-c ::       in directions transverse to face of grid
-c ::
-c ::  Inputs/Outputs:
-c ::  bdry       <=  fine grid bndry data strip
-c ::  DIMS(bdry)  => index limits of bdry
-c ::  lo,hi       => index limits of grd interior
-c ::  DIMS(cb)    => index limits of coarsened grid interior
-c ::  nvar        => number of variables to interpolate
-c ::  ratios(2)   => refinement ratios
-c ::  not_covered => mask is set to this value if cell is not
-c ::                 covered by another fine grid and not outside the domain.
-c ::  mask        => fine grid mask bndry strip
-c ::  DIMS(mask)  => index limits of mask array
-c ::  crse        => crse grid bndry data strip
-c ::  DIMS(crse)  => index limits of crse array
-c ::  derives     => crse grid tmp array
-c ---------------------------------------------------------------
+! ---------------------------------------------------------------
+! ::  FORT_BDINTERPXLO : Interpolation on Xlo Face
+! ::       Quadratic Interpolation from crse data
+! ::       in directions transverse to face of grid
+! ::
+! ::  Inputs/Outputs:
+! ::  bdry       <=  fine grid bndry data strip
+! ::  DIMS(bdry)  => index limits of bdry
+! ::  lo,hi       => index limits of grd interior
+! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  nvar        => number of variables to interpolate
+! ::  ratios(2)   => refinement ratios
+! ::  not_covered => mask is set to this value if cell is not
+! ::                 covered by another fine grid and not outside the domain.
+! ::  mask        => fine grid mask bndry strip
+! ::  DIMS(mask)  => index limits of mask array
+! ::  crse        => crse grid bndry data strip
+! ::  DIMS(crse)  => index limits of crse array
+! ::  derives     => crse grid tmp array
+! ---------------------------------------------------------------
 
-      subroutine FORT_BDINTERPXLO (bdry,DIMS(bdry),
-     &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine FORT_BDINTERPXLO (bdry,DIMS(bdry), &
+                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
+                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
 
       implicit none
+
       integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -105,8 +106,8 @@ c ---------------------------------------------------------------
                x(NN) = -two
             endif
                
-            if ( (mask(i,j-1).ne.not_covered).and.
-     &           (mask(i,j+ratioy).ne.not_covered) ) NN = 1
+            if ( (mask(i,j-1).ne.not_covered).and. &
+                 (mask(i,j+ratioy).ne.not_covered) ) NN = 1
             
             do off = 0,ratioy-1
                xInt = (dble(off - ratioy/2) + half)/ratioy
@@ -120,33 +121,36 @@ c ---------------------------------------------------------------
       end do
       
       endif
-      end
 
-c ---------------------------------------------------------------
-c ::  FORT_BDINTERPXHI : Interpolation on Xhi Face
-c ::       Quadratic Interpolation from crse data
-c ::       in directions transverse to face of grid
-c ::
-c ::  Inputs/Outputs:
-c ::  bdry       <=  fine grid bndry data strip
-c ::  DIMS(bdry)  => index limits of bdry
-c ::  lo,hi       => index limits of grd interior
-c ::  DIMS(cb)    => index limits of coarsened grid interior
-c ::  nvar        => number of variables to interpolate
-c ::  ratios(2)   => refinement ratios
-c ::  not_covered => mask is set to this value if cell is not
-c ::                 covered by another fine grid and not outside the domain.
-c ::  mask        => fine grid mask bndry strip
-c ::  DIMS(mask)  => index limits of mask array
-c ::  crse        => crse grid bndry data strip
-c ::  DIMS(crse)  => index limits of crse array
-c ::  derives     => crse grid tmp array
-c ---------------------------------------------------------------
+    end subroutine FORT_BDINTERPXLO
 
-      subroutine FORT_BDINTERPXHI (bdry,DIMS(bdry),
-     &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+! ---------------------------------------------------------------
+! ::  FORT_BDINTERPXHI : Interpolation on Xhi Face
+! ::       Quadratic Interpolation from crse data
+! ::       in directions transverse to face of grid
+! ::
+! ::  Inputs/Outputs:
+! ::  bdry       <=  fine grid bndry data strip
+! ::  DIMS(bdry)  => index limits of bdry
+! ::  lo,hi       => index limits of grd interior
+! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  nvar        => number of variables to interpolate
+! ::  ratios(2)   => refinement ratios
+! ::  not_covered => mask is set to this value if cell is not
+! ::                 covered by another fine grid and not outside the domain.
+! ::  mask        => fine grid mask bndry strip
+! ::  DIMS(mask)  => index limits of mask array
+! ::  crse        => crse grid bndry data strip
+! ::  DIMS(crse)  => index limits of crse array
+! ::  derives     => crse grid tmp array
+! ---------------------------------------------------------------
+
+    subroutine FORT_BDINTERPXHI (bdry,DIMS(bdry), &
+                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
+                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+
       implicit none
+
       integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -211,8 +215,8 @@ c ---------------------------------------------------------------
                x(NN) = -two
             endif
                
-            if ( (mask(i,j-1).ne.not_covered).and.
-     &           (mask(i,j+ratioy).ne.not_covered) ) NN = 1
+            if ( (mask(i,j-1).ne.not_covered).and. &
+                 (mask(i,j+ratioy).ne.not_covered) ) NN = 1
             
             do off = 0,ratioy-1
                xInt = (dble(off - ratioy/2) + half)/ratioy
@@ -226,33 +230,36 @@ c ---------------------------------------------------------------
       end do
       
       endif
-      end
 
-c ---------------------------------------------------------------
-c ::  FORT_BDINTERPYLO : Interpolation on Ylo Face
-c ::       Quadratic Interpolation from crse data
-c ::       in directions transverse to face of grid
-c ::
-c ::  Inputs/Outputs:
-c ::  bdry       <=  fine grid bndry data strip
-c ::  DIMS(bdry)  => index limits of bdry
-c ::  lo,hi       => index limits of grd interior
-c ::  DIMS(cb)    => index limits of coarsened grid interior
-c ::  nvar        => number of variables to interpolate
-c ::  ratios(2)   => refinement ratios
-c ::  not_covered => mask is set to this value if cell is not
-c ::                 covered by another fine grid and not outside the domain.
-c ::  mask        => fine grid mask bndry strip
-c ::  DIMS(mask)  => index limits of mask array
-c ::  crse        => crse grid bndry data strip
-c ::  DIMS(crse)  => index limits of crse array
-c ::  derives     => crse grid tmp array
-c ---------------------------------------------------------------
+    end subroutine FORT_BDINTERPXHI
 
-      subroutine FORT_BDINTERPYLO (bdry,DIMS(bdry),
-     &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+! ---------------------------------------------------------------
+! ::  FORT_BDINTERPYLO : Interpolation on Ylo Face
+! ::       Quadratic Interpolation from crse data
+! ::       in directions transverse to face of grid
+! ::
+! ::  Inputs/Outputs:
+! ::  bdry       <=  fine grid bndry data strip
+! ::  DIMS(bdry)  => index limits of bdry
+! ::  lo,hi       => index limits of grd interior
+! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  nvar        => number of variables to interpolate
+! ::  ratios(2)   => refinement ratios
+! ::  not_covered => mask is set to this value if cell is not
+! ::                 covered by another fine grid and not outside the domain.
+! ::  mask        => fine grid mask bndry strip
+! ::  DIMS(mask)  => index limits of mask array
+! ::  crse        => crse grid bndry data strip
+! ::  DIMS(crse)  => index limits of crse array
+! ::  derives     => crse grid tmp array
+! ---------------------------------------------------------------
+
+    subroutine FORT_BDINTERPYLO (bdry,DIMS(bdry), &
+                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
+                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+
       implicit none
+
       integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -317,8 +324,8 @@ c ---------------------------------------------------------------
                x(NN) = -two
             endif
                
-            if ( (mask(i-1,j).ne.not_covered).and.
-     &           (mask(i+ratiox,j).ne.not_covered) ) NN = 1
+            if ( (mask(i-1,j).ne.not_covered).and. &
+                 (mask(i+ratiox,j).ne.not_covered) ) NN = 1
             
             do off = 0,ratiox-1
                xInt = (dble(off - ratiox/2) + half)/ratiox
@@ -332,33 +339,36 @@ c ---------------------------------------------------------------
       end do
       
       endif
-      end
 
-c ---------------------------------------------------------------
-c ::  FORT_BDINTERPYHI : Interpolation on Yhi Face
-c ::       Quadratic Interpolation from crse data
-c ::       in directions transverse to face of grid
-c ::
-c ::  Inputs/Outputs:
-c ::  bdry       <=  fine grid bndry data strip
-c ::  DIMS(bdry)  => index limits of bdry
-c ::  lo,hi       => index limits of grd interior
-c ::  DIMS(cb)    => index limits of coarsened grid interior
-c ::  nvar        => number of variables to interpolate
-c ::  ratios(2)   => refinement ratios
-c ::  not_covered => mask is set to this value if cell is not
-c ::                 covered by another fine grid and not outside the domain.
-c ::  mask        => fine grid mask bndry strip
-c ::  DIMS(mask)  => index limits of mask array
-c ::  crse        => crse grid bndry data strip
-c ::  DIMS(crse)  => index limits of crse array
-c ::  derives     => crse grid tmp array
-c ---------------------------------------------------------------
+    end subroutine FORT_BDINTERPYLO
 
-      subroutine FORT_BDINTERPYHI (bdry,DIMS(bdry),
-     &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+! ---------------------------------------------------------------
+! ::  FORT_BDINTERPYHI : Interpolation on Yhi Face
+! ::       Quadratic Interpolation from crse data
+! ::       in directions transverse to face of grid
+! ::
+! ::  Inputs/Outputs:
+! ::  bdry       <=  fine grid bndry data strip
+! ::  DIMS(bdry)  => index limits of bdry
+! ::  lo,hi       => index limits of grd interior
+! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  nvar        => number of variables to interpolate
+! ::  ratios(2)   => refinement ratios
+! ::  not_covered => mask is set to this value if cell is not
+! ::                 covered by another fine grid and not outside the domain.
+! ::  mask        => fine grid mask bndry strip
+! ::  DIMS(mask)  => index limits of mask array
+! ::  crse        => crse grid bndry data strip
+! ::  DIMS(crse)  => index limits of crse array
+! ::  derives     => crse grid tmp array
+! ---------------------------------------------------------------
+
+    subroutine FORT_BDINTERPYHI (bdry,DIMS(bdry), &
+                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
+                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+
       implicit none
+
       integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
@@ -423,8 +433,8 @@ c ---------------------------------------------------------------
                x(NN) = -two
             endif
                
-            if ( (mask(i-1,j).ne.not_covered).and.
-     &           (mask(i+ratiox,j).ne.not_covered) ) NN = 1
+            if ( (mask(i-1,j).ne.not_covered).and. &
+                 (mask(i+ratiox,j).ne.not_covered) ) NN = 1
             
             do off = 0,ratiox-1
                xInt = (dble(off - ratiox/2) + half)/ratiox
@@ -438,5 +448,5 @@ c ---------------------------------------------------------------
       end do
       
       endif
-      end
 
+    end subroutine FORT_BDINTERPYHI
