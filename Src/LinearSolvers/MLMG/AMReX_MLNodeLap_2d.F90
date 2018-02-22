@@ -2138,6 +2138,7 @@ contains
     real(amrex_real) :: axm, axp, aym, ayp, apnorm, apnorminv, anrmx, anrmy, bcx, bcy
     real(amrex_real) :: xmin, xmax, ymin, ymax
     real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
+    real(amrex_real), parameter :: twentyfourth = 1.d0/24.d0
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
