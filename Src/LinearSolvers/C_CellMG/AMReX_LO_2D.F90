@@ -9,15 +9,16 @@
 #include "AMReX_LO_F.H"
 #include "AMReX_ArrayLim.H"
 
-c-----------------------------------------------------------------------
-      subroutine FORT_HARMONIC_AVERAGEEC (
-     $     c, DIMS(c),
-     $     f, DIMS(f),
-     $     lo, hi, nc,
-     $     cdir
-     $     )
-c
+!-----------------------------------------------------------------------
+    subroutine FORT_HARMONIC_AVERAGEEC ( &
+           c, DIMS(c), &
+           f, DIMS(f), &
+           lo, hi, nc, &
+           cdir &
+           )
+
       implicit none
+
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -26,13 +27,13 @@ c
       REAL_T f(DIMV(f),nc)
       integer DIMDEC(c)
       REAL_T c(DIMV(c),nc)
-c
+
       REAL_T factor, den
       parameter(factor=2.00D0)
       integer n
       integer i
       integer j
-c
+
       if ( cdir .eq. 0 ) then
          do n = 1, nc
             do j = lo(2), hi(2)
@@ -60,17 +61,18 @@ c
             end do
          end do
       end if
-c
-      end
-c-----------------------------------------------------------------------
-      subroutine FORT_AVERAGEEC (
-     $     c, DIMS(c),
-     $     f, DIMS(f),
-     $     lo, hi, nc,
-     $     cdir
-     $     )
-c
+
+    end subroutine FORT_HARMONIC_AVERAGEEC
+!-----------------------------------------------------------------------
+    subroutine FORT_AVERAGEEC ( &
+           c, DIMS(c), &
+           f, DIMS(f), &
+           lo, hi, nc, &
+           cdir &
+           )
+
       implicit none
+
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
@@ -79,13 +81,13 @@ c
       REAL_T f(DIMV(f),nc)
       integer DIMDEC(c)
       REAL_T c(DIMV(c),nc)
-c
+
       integer n
       integer i
       integer j
       REAL_T denom
       parameter(denom=half)
-c
+
       if (cdir .eq. 0 ) then
          do n = 1, nc
             do j = lo(2), hi(2)
@@ -103,16 +105,17 @@ c
             end do
          end do
       end if
-c
-      end
-c-----------------------------------------------------------------------
-      subroutine FORT_AVERAGECC (
-     $     c, DIMS(c),
-     $     f, DIMS(f),
-     $     lo, hi, nc
-     $     )
-c
+
+    end subroutine FORT_AVERAGEEC
+!-----------------------------------------------------------------------
+    subroutine FORT_AVERAGECC ( &
+           c, DIMS(c), &
+           f, DIMS(f), &
+           lo, hi, nc &
+           )
+
       implicit none
+
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)
@@ -120,56 +123,56 @@ c
       integer hi(BL_SPACEDIM)
       REAL_T f(DIMV(f),nc)
       REAL_T c(DIMV(c),nc)
-c
+
       integer i
       integer j
       integer n
       REAL_T denom
       parameter(denom=fourth)
-c
+
       do n = 1, nc
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               c(i,j,n) =  (
-     $              f(2*i+1,2*j+1,n) + f(2*i  ,2*j+1,n)
-     $              + f(2*i+1,2*j  ,n) + f(2*i  ,2*j  ,n))*denom
+               c(i,j,n) =  ( &
+                    f(2*i+1,2*j+1,n) + f(2*i  ,2*j+1,n) &
+                    + f(2*i+1,2*j  ,n) + f(2*i  ,2*j  ,n))*denom
             end do
          end do
       end do
-c
-      end
-c-----------------------------------------------------------------------
-      subroutine FORT_APPLYBC (
-     $     flagden, flagbc, maxorder,
-     $     phi,   DIMS(phi),
-     $     cdir, bct, bcl,
-     $     bcval, DIMS(bcval),
-     $     mask,  DIMS(mask),
-     $     den,   DIMS(den),
-     $     lo, hi, nc,
-     $     h
-     $     )
+
+    end subroutine FORT_AVERAGECC
+!-----------------------------------------------------------------------
+    subroutine FORT_APPLYBC ( &
+           flagden, flagbc, maxorder, &
+           phi,   DIMS(phi), &
+           cdir, bct, bcl, &
+           bcval, DIMS(bcval), &
+           mask,  DIMS(mask), &
+           den,   DIMS(den), &
+           lo, hi, nc, &
+           h &
+           )
 
       implicit none
-c
-c     If the boundary is of Neumann type, set the ghost cell value to
-c     that of the outermost point in the valid data (2nd order accurate)
-c     and then fill the "den" array with the value "1"
-c     
-c     
-c     If flagbc==1:
-c     
-c     If the boundary is of Dirichlet type, construct a polynomial
-c     interpolation through the boundary location and internal points
-c     (at locations x(-1:len-2) that generates the ghost cell value (at
-c     location xInt).  Then fill the ghost cell with the interpolated value.
-c     If flagden==1, load the "den" array with the interpolation
-c     coefficient corresponding to outermost point in the valid region
-c     ( the coef(0) corresponding to the location x(0) )
-c      
-c     Note: 
-c     The bc type = LO_REFLECT_ODD is a special type of boundary condition.
-c      
+
+!     If the boundary is of Neumann type, set the ghost cell value to
+!     that of the outermost point in the valid data (2nd order accurate)
+!     and then fill the "den" array with the value "1"
+!     
+!     
+!     If flagbc==1:
+!     
+!     If the boundary is of Dirichlet type, construct a polynomial
+!     interpolation through the boundary location and internal points
+!     (at locations x(-1:len-2) that generates the ghost cell value (at
+!     location xInt).  Then fill the ghost cell with the interpolated value.
+!     If flagden==1, load the "den" array with the interpolation
+!     coefficient corresponding to outermost point in the valid region
+!     ( the coef(0) corresponding to the location x(0) )
+!      
+!     Note: 
+!     The bc type = LO_REFLECT_ODD is a special type of boundary condition.
+ 
       integer maxorder
       integer nc, cdir, flagden, flagbc
       integer lo(BL_SPACEDIM)
@@ -185,28 +188,28 @@ c
       integer bct
       REAL_T bcl
       REAL_T h(BL_SPACEDIM)
-c
+
       integer i
       integer j
       integer n
       logical is_dirichlet
       logical is_neumann
-c      REAL_T xb
-c
+!      REAL_T xb
+
       integer lenx
       integer leny
       integer m
-c
+
       integer Lmaxorder
       integer maxmaxorder
       parameter(maxmaxorder=4)
       REAL_T x(-1:maxmaxorder-2)
       REAL_T coef(-1:maxmaxorder-2)
       REAL_T xInt
-c
+
       is_dirichlet(i) = ( i .eq. LO_DIRICHLET )
       is_neumann(i)   = ( i .eq. LO_NEUMANN )
-c
+
       if ( maxorder .eq. -1 ) then
          Lmaxorder = maxmaxorder
       else
@@ -214,22 +217,22 @@ c
       end if
       lenx = MIN(hi(1)-lo(1), Lmaxorder-2)
       leny = MIN(hi(2)-lo(2), Lmaxorder-2)
-c
-c     TODO:
-c     In order for this to work with growing multigrid, must
-c     sort xa[] because it is possible for the xb value to lay
-c     within this range.
-c     
-c     The Left face of the grid
-c
+
+!     TODO:
+!     In order for this to work with growing multigrid, must
+!     sort xa[] because it is possible for the xb value to lay
+!     within this range.
+!     
+!     The Left face of the grid
+
       if(cdir .eq. 0) then
          if (is_neumann(bct)) then
             do n = 1, nc
                do j = lo(2), hi(2)
-                  phi(lo(1)-1,j,n) = merge(
-     $                 phi(lo(1),j,n),
-     $                 phi(lo(1)-1,j,n),
-     $                 mask(lo(1)-1,j) .gt. 0)
+                  phi(lo(1)-1,j,n) = merge( &
+                       phi(lo(1),j,n), &
+                       phi(lo(1)-1,j,n), &
+                       mask(lo(1)-1,j) .gt. 0)
                end do
             end do
             if ( flagden .eq. 1) then
@@ -247,33 +250,33 @@ c
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     phi(lo(1)-1, j, n) = merge(
-     $                    bcval(lo(1)-1,j,n)*coef(-1),
-     $                    phi(lo(1)-1, j, n),
-     $                    mask(lo(1)-1,j) .gt. 0)
+                     phi(lo(1)-1, j, n) = merge( &
+                          bcval(lo(1)-1,j,n)*coef(-1), &
+                          phi(lo(1)-1, j, n), &
+                          mask(lo(1)-1,j) .gt. 0)
                   end do
                else
                   do j = lo(2), hi(2)
-                     phi(lo(1)-1, j, n) = merge(
-     $                    0.0D0,
-     $                    phi(lo(1)-1, j, n),
-     $                    mask(lo(1)-1,j) .gt. 0)
+                     phi(lo(1)-1, j, n) = merge( &
+                          0.0D0, &
+                          phi(lo(1)-1, j, n), &
+                          mask(lo(1)-1,j) .gt. 0)
                   end do
                end if
                do m = 0, lenx
                   do j = lo(2), hi(2)
-                     phi(lo(1)-1,j,n) = merge(
-     $                    phi(lo(1)-1,j,n)
-     $                    + phi(lo(1)+m, j, n)*coef(m),
-     $                    phi(lo(1)-1,j,n),
-     $                    mask(lo(1)-1,j) .gt. 0)
+                     phi(lo(1)-1,j,n) = merge( &
+                          phi(lo(1)-1,j,n) &
+                          + phi(lo(1)+m, j, n)*coef(m), &
+                          phi(lo(1)-1,j,n), &
+                          mask(lo(1)-1,j) .gt. 0)
                   end do
                end do
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(lo(1),j) = merge(coef(0), 0.0D0,
-     $                 mask(lo(1)-1,j) .gt. 0)
+                  den(lo(1),j) = merge(coef(0), 0.0D0, &
+                       mask(lo(1)-1,j) .gt. 0)
                end do
             end if
 
@@ -281,16 +284,16 @@ c
 
             do n = 1, nc
                do j = lo(2), hi(2)
-                  phi(lo(1)-1, j, n) = merge(
-     $                -phi(lo(1),j,n),
-     $                 phi(lo(1)-1, j, n),
-     $                 mask(lo(1)-1,j) .gt. 0)
+                  phi(lo(1)-1, j, n) = merge( &
+                      -phi(lo(1),j,n), &
+                       phi(lo(1)-1, j, n), &
+                       mask(lo(1)-1,j) .gt. 0)
                end do
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(lo(1),j) = merge(-1.0D0, 0.0D0,
-     $                 mask(lo(1)-1,j) .gt. 0)
+                  den(lo(1),j) = merge(-1.0D0, 0.0D0, &
+                       mask(lo(1)-1,j) .gt. 0)
                end do
             end if
 
@@ -299,17 +302,17 @@ c
             call bl_error("stop")
          end if
       end if
-c     
-c     The Right face of the grid
-c
+
+!     The Right face of the grid
+
       if(cdir .eq. 2) then
          if(is_neumann(bct)) then
             do n = 1, nc
                do j = lo(2), hi(2)
-                  phi(hi(1)+1,j,n) = merge(
-     $                 phi(hi(1), j, n),
-     $                 phi(hi(1)+1, j, n),
-     $                 mask(hi(1)+1,j) .gt. 0)
+                  phi(hi(1)+1,j,n) = merge( &
+                       phi(hi(1), j, n), &
+                       phi(hi(1)+1, j, n), &
+                       mask(hi(1)+1,j) .gt. 0)
                end do
             end do
 	    if ( flagden .eq. 1 ) then
@@ -327,33 +330,33 @@ c
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     phi(hi(1)+1,j,n) = merge(
-     $                    bcval(hi(1)+1,j,n)*coef(-1),
-     $                    phi(hi(1)+1,j,n),
-     $                    mask(hi(1)+1,j) .gt. 0)
+                     phi(hi(1)+1,j,n) = merge( &
+                          bcval(hi(1)+1,j,n)*coef(-1), &
+                          phi(hi(1)+1,j,n), &
+                          mask(hi(1)+1,j) .gt. 0)
                   end do
                else
                   do j = lo(2), hi(2)
-                     phi(hi(1)+1,j,n) = merge(
-     $                    0.0D0,
-     $                    phi(hi(1)+1,j,n),
-     $                    mask(hi(1)+1,j) .gt. 0)
+                     phi(hi(1)+1,j,n) = merge( &
+                          0.0D0, &
+                          phi(hi(1)+1,j,n), &
+                          mask(hi(1)+1,j) .gt. 0)
                   end do
                end if
                do m = 0, lenx
                   do j = lo(2), hi(2)
-                     phi(hi(1)+1,j,n) = merge(
-     $                    phi(hi(1)+1,j,n)
-     $                    + phi(hi(1)-m,j,n)*coef(m),
-     $                    phi(hi(1)+1,j,n),
-     $                    mask(hi(1)+1,j) .gt. 0)
+                     phi(hi(1)+1,j,n) = merge( &
+                          phi(hi(1)+1,j,n) &
+                          + phi(hi(1)-m,j,n)*coef(m), &
+                          phi(hi(1)+1,j,n), &
+                          mask(hi(1)+1,j) .gt. 0)
                   end do
                end do
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(hi(1),j)   = merge(coef(0), 0.0D0,
-     $                 mask(hi(1)+1,j) .gt. 0)
+                  den(hi(1),j)   = merge(coef(0), 0.0D0, &
+                       mask(hi(1)+1,j) .gt. 0)
                end do
             end if
 
@@ -361,16 +364,16 @@ c
 
             do n = 1, nc
                do j = lo(2), hi(2)
-                  phi(hi(1)+1, j, n) = merge(
-     $                -phi(hi(1),j,n),
-     $                 phi(hi(1)+1, j, n),
-     $                 mask(hi(1)+1,j) .gt. 0)
+                  phi(hi(1)+1, j, n) = merge( &
+                      -phi(hi(1),j,n), &
+                       phi(hi(1)+1, j, n), &
+                       mask(hi(1)+1,j) .gt. 0)
                end do
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(hi(1),j) = merge(-1.0D0, 0.0D0,
-     $                 mask(hi(1)+1,j) .gt. 0)
+                  den(hi(1),j) = merge(-1.0D0, 0.0D0, &
+                       mask(hi(1)+1,j) .gt. 0)
                end do
             end if
 
@@ -379,17 +382,17 @@ c
             call bl_error("stop")
          end if
       end if
-c
-c     The Bottom of the Grid
-c
+
+!     The Bottom of the Grid
+
       if(cdir .eq. 1) then
          if(is_neumann(bct)) then
             do n = 1, nc
                do i = lo(1),hi(1)
-                  phi(i,lo(2)-1,n) = merge(
-     $                 phi(i,lo(2),n),
-     $                 phi(i,lo(2)-1,n),
-     $                 mask(i,lo(2)-1) .gt. 0)
+                  phi(i,lo(2)-1,n) = merge( &
+                       phi(i,lo(2),n), &
+                       phi(i,lo(2)-1,n), &
+                       mask(i,lo(2)-1) .gt. 0)
                end do
             end do
             if ( flagden .eq. 1 ) then
@@ -407,33 +410,33 @@ c
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     phi(i,lo(2)-1,n) = merge(
-     $                    bcval(i,lo(2)-1,n)*coef(-1),
-     $                    phi(i,lo(2)-1,n),
-     $                    mask(i,lo(2)-1) .gt. 0)
+                     phi(i,lo(2)-1,n) = merge( &
+                          bcval(i,lo(2)-1,n)*coef(-1), &
+                          phi(i,lo(2)-1,n), &
+                          mask(i,lo(2)-1) .gt. 0)
                   end do
                else
                   do i = lo(1), hi(1)
-                     phi(i,lo(2)-1,n) = merge(
-     $                    0.0D0,
-     $                    phi(i,lo(2)-1,n),
-     $                    mask(i,lo(2)-1) .gt. 0)
+                     phi(i,lo(2)-1,n) = merge( &
+                          0.0D0, &
+                          phi(i,lo(2)-1,n), &
+                          mask(i,lo(2)-1) .gt. 0)
                   end do
                end if
                do m = 0, leny
                   do i = lo(1), hi(1)
-                     phi(i, lo(2)-1, n) = merge(
-     $                    phi(i, lo(2)-1,n)
-     $                    + phi(i, lo(2)+m,n)*coef(m),
-     $                    phi(i, lo(2)-1, n),
-     $                    mask(i, lo(2)-1) .gt. 0)
+                     phi(i, lo(2)-1, n) = merge( &
+                          phi(i, lo(2)-1,n) &
+                          + phi(i, lo(2)+m,n)*coef(m), &
+                          phi(i, lo(2)-1, n), &
+                          mask(i, lo(2)-1) .gt. 0)
                   end do
                end do
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i, lo(2))   = merge(coef(0), 0.0D0,
-     $                 mask(i, lo(2)-1) .gt. 0)
+                  den(i, lo(2))   = merge(coef(0), 0.0D0, &
+                       mask(i, lo(2)-1) .gt. 0)
                end do
             end if
 
@@ -441,16 +444,16 @@ c
 
             do n = 1, nc
                do i = lo(1), hi(1)
-                  phi(i,lo(2)-1,n) = merge(
-     $                -phi(i,lo(2),n),
-     $                 phi(i,lo(2)-1,n),
-     $                 mask(i,lo(2)-1) .gt. 0)
+                  phi(i,lo(2)-1,n) = merge( &
+                      -phi(i,lo(2),n), &
+                       phi(i,lo(2)-1,n), &
+                       mask(i,lo(2)-1) .gt. 0)
                end do
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,lo(2)) = merge(-1.0D0, 0.0D0,
-     $                 mask(i,lo(2)-1) .gt. 0)
+                  den(i,lo(2)) = merge(-1.0D0, 0.0D0, &
+                       mask(i,lo(2)-1) .gt. 0)
                end do
             end if
 
@@ -459,17 +462,17 @@ c
             call bl_error("stop")
          end if
       end if
-c
-c     The top of the grid
-c
+
+!     The top of the grid
+
       if (cdir .eq. 3) then
          if(is_neumann(bct)) then
             do n = 1, nc
                do i = lo(1), hi(1)
-                  phi(i,hi(2)+1,n) = merge(
-     $                 phi(i,hi(2),n),
-     $                 phi(i,hi(2)+1,n),
-     $                 mask(i,hi(2)+1) .gt. 0)
+                  phi(i,hi(2)+1,n) = merge( &
+                       phi(i,hi(2),n), &
+                       phi(i,hi(2)+1,n), &
+                       mask(i,hi(2)+1) .gt. 0)
                end do
             end do
             if ( flagden .eq. 1 ) then
@@ -488,33 +491,33 @@ c
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     phi(i,hi(2)+1,n) = merge(
-     $                    bcval(i,hi(2)+1,n)*coef(-1),
-     $                    phi(i,hi(2)+1,n),
-     $                    mask(i,hi(2)+1) .gt. 0)
+                     phi(i,hi(2)+1,n) = merge( &
+                          bcval(i,hi(2)+1,n)*coef(-1), &
+                          phi(i,hi(2)+1,n), &
+                          mask(i,hi(2)+1) .gt. 0)
                   end do
                else
                   do i = lo(1), hi(1)
-                     phi(i,hi(2)+1,n) = merge(
-     $                    0.0D0,
-     $                    phi(i,hi(2)+1,n),
-     $                    mask(i,hi(2)+1) .gt. 0)
+                     phi(i,hi(2)+1,n) = merge( &
+                          0.0D0, &
+                          phi(i,hi(2)+1,n), &
+                          mask(i,hi(2)+1) .gt. 0)
                   end do
                end if
                do m = 0, leny
                   do i = lo(1), hi(1)
-                     phi(i, hi(2)+1,n) = merge(
-     $                    phi(i,hi(2)+1,n)
-     $                    + phi(i, hi(2)-m,n)*coef(m),
-     $                    phi(i,hi(2)+1,n),
-     $                    mask(i,hi(2)+1) .gt. 0)
+                     phi(i, hi(2)+1,n) = merge( &
+                          phi(i,hi(2)+1,n) &
+                          + phi(i, hi(2)-m,n)*coef(m), &
+                          phi(i,hi(2)+1,n), &
+                          mask(i,hi(2)+1) .gt. 0)
                   end do
                end do
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,hi(2))   = merge(coef(0), 0.0D0,
-     $                 mask(i,hi(2)+1) .gt. 0)
+                  den(i,hi(2))   = merge(coef(0), 0.0D0, &
+                       mask(i,hi(2)+1) .gt. 0)
                end do
             end if
 
@@ -522,16 +525,16 @@ c
 
             do n = 1, nc
                do i = lo(1), hi(1)
-                  phi(i,hi(2)+1,n) = merge(
-     $                -phi(i,hi(2),n),
-     $                 phi(i,hi(2)+1,n),
-     $                 mask(i,hi(2)+1) .gt. 0)
+                  phi(i,hi(2)+1,n) = merge( &
+                      -phi(i,hi(2),n), &
+                       phi(i,hi(2)+1,n), &
+                       mask(i,hi(2)+1) .gt. 0)
                end do
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,hi(2)) = merge(-1.0D0, 0.0D0,
-     $                 mask(i,hi(2)+1) .gt. 0)
+                  den(i,hi(2)) = merge(-1.0D0, 0.0D0, &
+                       mask(i,hi(2)+1) .gt. 0)
                end do
             end if
 
@@ -540,5 +543,5 @@ c
             call bl_error("stop")
          end if
       end if
-c
-      end
+
+    end subroutine FORT_APPLYBC

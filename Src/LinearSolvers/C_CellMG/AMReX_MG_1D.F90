@@ -8,10 +8,11 @@
 #include "AMReX_MG_F.H"
 #include "AMReX_ArrayLim.H"
 
-      subroutine FORT_AVERAGE (
-     $     c, DIMS(c),
-     $     f, DIMS(f),
-     $     lo, hi, nc)
+    subroutine FORT_AVERAGE ( &
+           c, DIMS(c), &
+           f, DIMS(f), &
+           lo, hi, nc)
+
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)
@@ -28,12 +29,13 @@
          end do
       end do
 
-      end
+    end subroutine FORT_AVERAGE
 
-      subroutine FORT_INTERP (
-     $     f, DIMS(f),
-     $     c, DIMS(c),
-     $     lo, hi, nc)
+    subroutine FORT_INTERP ( &
+           f, DIMS(f), &
+           c, DIMS(c), &
+           lo, hi, nc)
+
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)
@@ -51,4 +53,4 @@
          end do
       end do
 
-      end
+    end subroutine FORT_INTERP
