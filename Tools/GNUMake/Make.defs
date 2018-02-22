@@ -161,7 +161,7 @@ EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 
 
-lowercase_comp := $(shell echo $(COMP) | tr A-Z a-z)
+lowercase_comp = $(shell echo $(COMP) | tr A-Z a-z)
 
 ifeq ($(lowercase_comp),$(filter $(lowercase_comp),gcc gnu g++))
   lowercase_comp = gnu

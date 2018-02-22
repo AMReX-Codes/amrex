@@ -45,6 +45,17 @@ namespace amrex
     Box allCorners(a_region);
     allCorners.surroundingNodes();
 
+    shared_ptr<STLExplorer> stlExplorer;
+    if (m_stlIF != NULL)
+    {
+      if (!m_STLBoxSet)
+      {
+        m_stlIF->getExplorer()->Explore(a_domain,a_domain,a_origin,a_dx*RealVect::Unit);
+        m_STLBoxSet = true;
+      }
+
+      stlExplorer = m_stlIF->getExplorer();
+    }
     RealVect physCorner;
     BoxIterator bit(allCorners);
     // If every corner is inside, the box is regular
@@ -64,13 +75,30 @@ namespace amrex
           physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
         }
 
-        // If the implicit function value is positive then the current
-        // corner is outside the domain
-        Real functionValue = m_implicitFunction->value(physCorner);
-
-        if (functionValue > 0.0 )
+        if (m_stlIF == NULL)
         {
-          return false;
+          // If the implicit function value is positive then the current
+          // corner is outside the domain
+          Real functionValue = m_implicitFunction->value(physCorner);
+
+          if (functionValue > 0.0 )
+          {
+            return false;
+          }
+        }
+        else
+        {
+          if (!m_STLBoxSet)
+          {
+            m_stlIF->getExplorer()->Explore(a_domain,a_domain,a_origin,a_dx*RealVect::Unit);
+            m_STLBoxSet = true;
+          }
+          bool influid;
+          stlExplorer->GetPointInOut(corner,influid);
+          if(!influid)
+          {
+            return false;
+          }
         }
       }
       bit.reset();
@@ -92,6 +120,17 @@ namespace amrex
     Box allCorners(a_region);
     allCorners.surroundingNodes();
 
+    shared_ptr<STLExplorer> stlExplorer;
+    if (m_stlIF != NULL)
+    {
+      if (!m_STLBoxSet)
+      {
+        m_stlIF->getExplorer()->Explore(a_domain,a_domain,a_origin,a_dx*RealVect::Unit);
+        m_STLBoxSet = true;
+      }
+
+      stlExplorer = m_stlIF->getExplorer();
+    }
     RealVect physCorner;
     BoxIterator bit(allCorners);
 
@@ -112,13 +151,28 @@ namespace amrex
 
         // If the implicit function value is positive then the current
         // corner is outside the domain
-        Real functionValue = m_implicitFunction->value(physCorner);
-
-        if (functionValue < 0.0 )
+        if (m_stlIF == NULL)
         {
+          Real functionValue = m_implicitFunction->value(physCorner);
 
-
-          return false;
+          if (functionValue < 0.0 )
+          {
+            return false;
+          }
+        }
+        else
+        {
+          if (!m_STLBoxSet)
+          {
+            m_stlIF->getExplorer()->Explore(a_domain,a_domain,a_origin,a_dx*RealVect::Unit);
+            m_STLBoxSet = true;
+          }
+          bool influid;
+          stlExplorer->GetPointInOut(corner,influid);
+          if(influid)
+          {
+            return false;
+          }
         }
       }
       bit.reset();
@@ -132,6 +186,10 @@ namespace amrex
                              Real          a_thrshdVoF)
   {
     m_implicitFunction.reset(a_localGeom.newImplicitFunction());
+
+    // See if this is an STL description - m_stlIF will be NULL if it isn't
+    m_stlIF = dynamic_cast<const STLIF *>(&(*m_implicitFunction));
+    m_STLBoxSet = false;
 
     m_verbosity = a_verbosity;
 
@@ -153,28 +211,13 @@ namespace amrex
                 const Real&          a_dx) const
   {
     GeometryShop::InOut rtn;
-//begin debug
-//    bool debugc = (a_region.contains(gs_debivlo) || a_region.contains(gs_debivhi));
-//end debug
     if(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Regular;
-//begin debug
-//      if(debugc)
-//      {
-//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all regular box" << endl;
-//      }
-//end debug
     }
     else if(isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Covered;
-//begin debug
-//      if(debugc)
-//      {
-//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all covered box" << endl;
-//      }
-//end debug
     }
     else
     {
@@ -1078,22 +1121,27 @@ namespace amrex
                 Real physIntercept = 0;
                 bool dropOrder = false;
 
+                
+                if(m_stlIF == NULL)
+                {
+                  Real fLo = m_implicitFunction->value(physSegLo);
+                  Real fHi = m_implicitFunction->value(physSegHi);
 
-
-                Real fLo = m_implicitFunction->value(physSegLo);
-                Real fHi = m_implicitFunction->value(physSegHi);
-
-                // This guards against the "root must be bracketed" error
-                // by dropping order
-                if (fLo*fHi > 0.0)
+                  // This guards against the "root must be bracketed" error
+                  // by dropping order
+                  if (fLo*fHi > 0.0)
                   {
                     dropOrder = true;
                   }
-                else
+                  else
                   {
                     physIntercept = BrentRootFinder(physSegLo, physSegHi, minDir);
                   }
-
+                }
+                else
+                {
+                  dropOrder = true;
+                }
                 if(!dropOrder)
                 {
                   // put physIntercept into relative coordinates
@@ -1838,7 +1886,7 @@ namespace amrex
                 RealVect MidPt = LoPt;
                 MidPt += HiPt;
                 MidPt /= 2.0;
-
+                                                       // 
                 Real signHi;
                 Real signLo;
 
@@ -1847,10 +1895,47 @@ namespace amrex
                 bool regular  = false;
                 bool dontKnow = false;
 
-                //                RealVect interceptPt = RealVect::Zero;
+                RealVect interceptPt = RealVect::Zero;
 
-                funcHi = m_implicitFunction->value(HiPt);
-                funcLo = m_implicitFunction->value(LoPt);
+                if(m_stlIF == NULL)
+                {
+                  funcHi = m_implicitFunction->value(HiPt);
+                  funcLo = m_implicitFunction->value(LoPt);
+                }
+                else
+                {
+                  IntVect loIV(a_iv);
+                  loIV[a_faceNormal] += a_hiLoFace;
+                  loIV[dom]          += lohi;
+
+                  IntVect hiIV(a_iv);
+                  hiIV[a_faceNormal] += a_hiLoFace;
+                  hiIV[dom]          += lohi;
+                  hiIV[range]        += 1;
+
+                  CellEdge curEdge(loIV,hiIV);
+
+                  bool loIn,hiIn;
+                  m_stlIF->getExplorer()->GetCellEdgeIntersection(curEdge,interceptPt,loIn,hiIn);
+
+                  if (loIn)
+                  {
+                    funcLo = -1.0;
+                  }
+                  else
+                  {
+                    funcLo = 1.0;
+                  }
+
+                  if (hiIn)
+                  {
+                    funcHi = -1.0;
+                  }
+                  else
+                  {
+                    funcHi = 1.0;
+                  }
+                }
 
                 // For level set data negative -> in the fluid
                 //                    positive -> out of the fluid
@@ -1883,7 +1968,14 @@ namespace amrex
                     Real intercept;
                   
                     // find where the surface intersects the edge
-                    intercept = BrentRootFinder(LoPt, HiPt, range);
+                    if (m_stlIF == NULL)
+                    {
+                      intercept = BrentRootFinder(LoPt, HiPt, range);
+                    }
+                    else
+                    {
+                      intercept = interceptPt[range];
+                    }
 
                     if (funcHi >= 0 && funcLo*funcHi <= 0)
                       {
