@@ -13,31 +13,33 @@
 #define IX_PROJ(A,B) (A+B*iabs(A))/B-iabs(A)
 #define SDIM 3
 
-c ::: --------------------------------------------------------------
-c ::: nbinterp:  node based bilinear interpolation
-c :::
-c ::: INPUTS/OUTPUTS
-c ::: fine        <=>  (modify) fine grid array
-c ::: DIMS(fine)   =>  (const)  index limits of fine grid
-c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
-c :::
-c ::: crse         =>  (const)  coarse grid data widened by 1 zone
-c ::: DIMS(crse)   =>  (const)  index limits of coarse grid
-c :::
-c ::: lratio(3)    =>  (const)  refinement ratio between levels
-c ::: nvar         =>  (const)  number of components in array
-c ::: num_slp      =>  (const)  number of types of slopes
-c :::
-c ::: TEMPORARY ARRAYS
-c ::: sl           =>  num_slp 1-D slope arrays
-c ::: --------------------------------------------------------------
-c :::
-      subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb),
-     $                          fine, DIMS(fine), DIMS(fb),
-     $                          lratiox, lratioy, lratioz, nvar,
-     $                          sl, num_slp,
-     $                          actual_comp, actual_state)
+! ::: --------------------------------------------------------------
+! ::: nbinterp:  node based bilinear interpolation
+! :::
+! ::: INPUTS/OUTPUTS
+! ::: fine        <=>  (modify) fine grid array
+! ::: DIMS(fine)   =>  (const)  index limits of fine grid
+! ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+! :::
+! ::: crse         =>  (const)  coarse grid data widened by 1 zone
+! ::: DIMS(crse)   =>  (const)  index limits of coarse grid
+! :::
+! ::: lratio(3)    =>  (const)  refinement ratio between levels
+! ::: nvar         =>  (const)  number of components in array
+! ::: num_slp      =>  (const)  number of types of slopes
+! :::
+! ::: TEMPORARY ARRAYS
+! ::: sl           =>  num_slp 1-D slope arrays
+! ::: --------------------------------------------------------------
+! :::
+    subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb), &
+                              fine, DIMS(fine), DIMS(fb), &
+                              lratiox, lratioy, lratioz, nvar, &
+                              sl, num_slp, &
+                              actual_comp, actual_state)
+
       implicit none
+
       integer DIMDEC(crse)
       integer DIMDEC(cb)
       integer DIMDEC(fine)
@@ -127,10 +129,10 @@ c :::
                         do ioff = ilo, ihi
                            i = lratiox*ic + ioff
                            fx = ioff
-                           fine(i,j,k,n) = crse(ic,jc,kc,n) +
-     $                          fx*sx + fy*sy + fz*sz +
-     $                          fx*fy*sxy + fx*fz*sxz + fy*fz*syz +
-     $                          fx*fy*fz*sxyz
+                           fine(i,j,k,n) = crse(ic,jc,kc,n) + &
+                                fx*sx + fy*sy + fz*sz + &
+                                fx*fy*sxy + fx*fz*sxz + fy*fz*syz + &
+                                fx*fy*fz*sxyz
                         end do
                      end do
                   end do           
@@ -140,37 +142,37 @@ c :::
          end do
       end do
 
-      end
+    end subroutine FORT_NBINTERP
 
-c ::: 
-c ::: --------------------------------------------------------------
-c ::: cbinterp:  cell centered bilinear interpolation
-c ::: 
-c ::: NOTE: it is assumed that the coarse grid array is
-c ::: large enough to define interpolated values
-c ::: in the region fblo:fbhi on the fine grid
-c ::: 
-c ::: Inputs/Outputs
-c ::: fine        <=>  (modify) fine grid array
-c ::: DIMS(fine)   =>  (const)  index limits of fine grid
-c ::: DIMS(fb)     =>  (const)  subregion of fine grid to get values
-c ::: 
-c ::: crse         =>  (const)  coarse grid data 
-c ::: DIMS(crse)   =>  (const)  index limits of coarse grid
-c ::: 
-c ::: lratio(3)    =>  (const)  refinement ratio between levels
-c ::: nvar         =>  (const)  number of components in array
-c ::: 
-c ::: TEMPORARY ARRAYS
-c ::: slx,sly,slxy =>  1-D slope arrays
-c ::: strip        =>  1-D temp array
-c ::: --------------------------------------------------------------
-c ::: 
-      subroutine FORT_CBINTERP (crse, DIMS(crse), DIMS(cb),
-     $                          fine, DIMS(fine), DIMS(fb),
-     $                          lratiox, lratioy, lratioz, nvar,
-     $                          sl, num_slp, strip, strip_lo, strip_hi,
-     $                          actual_comp, actual_state)
+! ::: 
+! ::: --------------------------------------------------------------
+! ::: cbinterp:  cell centered bilinear interpolation
+! ::: 
+! ::: NOTE: it is assumed that the coarse grid array is
+! ::: large enough to define interpolated values
+! ::: in the region fblo:fbhi on the fine grid
+! ::: 
+! ::: Inputs/Outputs
+! ::: fine        <=>  (modify) fine grid array
+! ::: DIMS(fine)   =>  (const)  index limits of fine grid
+! ::: DIMS(fb)     =>  (const)  subregion of fine grid to get values
+! ::: 
+! ::: crse         =>  (const)  coarse grid data 
+! ::: DIMS(crse)   =>  (const)  index limits of coarse grid
+! ::: 
+! ::: lratio(3)    =>  (const)  refinement ratio between levels
+! ::: nvar         =>  (const)  number of components in array
+! ::: 
+! ::: TEMPORARY ARRAYS
+! ::: slx,sly,slxy =>  1-D slope arrays
+! ::: strip        =>  1-D temp array
+! ::: --------------------------------------------------------------
+! ::: 
+    subroutine FORT_CBINTERP (crse, DIMS(crse), DIMS(cb), &
+                              fine, DIMS(fine), DIMS(fb), &
+                              lratiox, lratioy, lratioz, nvar, &
+                              sl, num_slp, strip, strip_lo, strip_hi, &
+                              actual_comp, actual_state)
 
       implicit none
 
@@ -189,57 +191,58 @@ c :::
 
       call bl_abort("FORT_CBINTERP not implemented")
 
-      end
-c ::: 
-c ::: --------------------------------------------------------------
-c ::: linccinterp:   linear conservative interpolation from coarse grid to
-c ::: subregion of fine grid defined by (fblo,fbhi)
-c ::: 
-c ::: The interpolation is linear in that it uses a
-c ::: a limiting scheme that preserves the value of 
-c ::: any linear combination of the
-c ::: coarse grid data components--e.g.,
-c ::: if sum_ivar a(ic,jc,ivar)*fab(ic,jc,ivar) = 0, then
-c ::: sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
-c ::: in all fine cells if,jf covering coarse cell ic,jc.
-c ::: 
-c ::: If lin_limit = 0, the interpolation scheme is identical to
-c ::: that used in ccinterp for limslope=1; the results should
-c ::: be exactly the same -- difference = hard 0.
-c :::
-c ::: Inputs/Outputs
-c ::: fine        <=>  (modify) fine grid array
-c ::: flo,fhi      =>  (const)  index limits of fine grid
-c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
-c ::: nvar         =>  (const)  number of variables in state vector
-c ::: lratio(2)    =>  (const)  refinement ratio between levels
-c ::: 
-c ::: crse         =>  (const)  coarse grid data widended by 1 zone
-c ::: clo,chi      =>  (const)  index limits of crse grid
-c ::: cslo,cshi    =>  (const)  coarse grid index limits where
-c :::				slopes are to be defined. This is
-c :::				the projection of (fblo,fbhi) down
-c :::				to the coarse level 
-c ::: ucslope      =>  (modify) temp array of unlimited coarse grid slopes
-c ::: lcslope      =>  (modify) temp array of limited coarse grid slopes
-c ::: slope_factor =>  (modify) temp array of slope limiting factors
-c ::: lin_limit    =>  (const)  != 0 => do linear slope limiting scheme
-c :::
-c ::: --------------------------------------------------------------
-c ::: 
-      subroutine FORT_LINCCINTERP (fine, DIMS(fine), fblo, fbhi, 
-     &                          DIMS(fvcb), 
-     &                          crse, DIMS(crse), DIMS(cvcb),
-     &                          uc_xslope, lc_xslope, xslope_factor,
-     &                          uc_yslope, lc_yslope, yslope_factor,
-     &                          uc_zslope, lc_zslope, zslope_factor,
-     &                          DIMS(cslope),
-     &                          cslopelo, cslopehi,
-     $                          nvar, lratiox, lratioy, lratioz, 
-     $                          bc, lim_slope, lin_limit,
-     $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz,
-     $                          voffx,voffy,voffz, alpha, cmax, cmin,
-     $                          actual_comp, actual_state)
+    end subroutine FORT_CBINTERP
+! ::: 
+! ::: --------------------------------------------------------------
+! ::: linccinterp:   linear conservative interpolation from coarse grid to
+! ::: subregion of fine grid defined by (fblo,fbhi)
+! ::: 
+! ::: The interpolation is linear in that it uses a
+! ::: a limiting scheme that preserves the value of 
+! ::: any linear combination of the
+! ::: coarse grid data components--e.g.,
+! ::: if sum_ivar a(ic,jc,ivar)*fab(ic,jc,ivar) = 0, then
+! ::: sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
+! ::: in all fine cells if,jf covering coarse cell ic,jc.
+! ::: 
+! ::: If lin_limit = 0, the interpolation scheme is identical to
+! ::: that used in ccinterp for limslope=1; the results should
+! ::: be exactly the same -- difference = hard 0.
+! :::
+! ::: Inputs/Outputs
+! ::: fine        <=>  (modify) fine grid array
+! ::: flo,fhi      =>  (const)  index limits of fine grid
+! ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+! ::: nvar         =>  (const)  number of variables in state vector
+! ::: lratio(2)    =>  (const)  refinement ratio between levels
+! ::: 
+! ::: crse         =>  (const)  coarse grid data widended by 1 zone
+! ::: clo,chi      =>  (const)  index limits of crse grid
+! ::: cslo,cshi    =>  (const)  coarse grid index limits where
+! :::				slopes are to be defined. This is
+! :::				the projection of (fblo,fbhi) down
+! :::				to the coarse level 
+! ::: ucslope      =>  (modify) temp array of unlimited coarse grid slopes
+! ::: lcslope      =>  (modify) temp array of limited coarse grid slopes
+! ::: slope_factor =>  (modify) temp array of slope limiting factors
+! ::: lin_limit    =>  (const)  != 0 => do linear slope limiting scheme
+! :::
+! ::: --------------------------------------------------------------
+! ::: 
+    subroutine FORT_LINCCINTERP (fine, DIMS(fine), fblo, fbhi, &
+                                 DIMS(fvcb), &
+                                 crse, DIMS(crse), DIMS(cvcb), &
+                                 uc_xslope, lc_xslope, xslope_factor, &
+                                 uc_yslope, lc_yslope, yslope_factor, &
+                                 uc_zslope, lc_zslope, zslope_factor, &
+                                 DIMS(cslope), &
+                                 cslopelo, cslopehi, &
+                                 nvar, lratiox, lratioy, lratioz, &
+                                 bc, lim_slope, lin_limit, &
+                                 fvcx, fvcy, fvcz, cvcx, cvcy, cvcz, &
+                                 voffx,voffy,voffz, alpha, cmax, cmin, &
+                                 actual_comp, actual_state)
+
       implicit none
 
       integer DIMDEC(fine)
@@ -329,9 +332,9 @@ c :::
       end do
 
       do n = 1, nvar 
-c
-c     Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
-c
+
+!     Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
+
           do k = cslopelo(3),cslopehi(3)
             do j = cslopelo(2),cslopehi(2)
               do i = cslopelo(1), cslopehi(1)
@@ -350,9 +353,9 @@ c
             end do
           end do
       end do
-c
-c     Computed unlimited and limited slopes
-c
+
+!     Computed unlimited and limited slopes
+
       do n = 1, nvar 
 
           do k=cslopelo(3), cslopehi(3)
@@ -374,16 +377,16 @@ c
             if (xok) then
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
-                  uc_xslope(i,j,k,n)  = -sixteen/fifteen*crse(i-1,j,k,n) 
-     &                        + half*crse(i,j,k,n)
-     &                        + two3rd*crse(i+1,j,k,n) - tenth*crse(i+2,j,k,n)
+                  uc_xslope(i,j,k,n)  = -sixteen/fifteen*crse(i-1,j,k,n) &
+                              + half*crse(i,j,k,n) &
+                              + two3rd*crse(i+1,j,k,n) - tenth*crse(i+2,j,k,n)
                 end do
               end do
             else
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
-                  uc_xslope(i,j,k,n)  = fourth * (
-     &               crse(i+1,j,k,n) + five*crse(i,j,k,n) - six*crse(i-1,j,k,n) )
+                  uc_xslope(i,j,k,n)  = fourth * ( &
+                     crse(i+1,j,k,n) + five*crse(i,j,k,n) - six*crse(i-1,j,k,n) )
                 end do
               end do
             endif
@@ -404,16 +407,16 @@ c
             if (xok) then
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
-                  uc_xslope(i,j,k,n) = sixteen/fifteen*crse(i+1,j,k,n) 
-     &                      - half*crse(i,j,k,n)
-     &                      - two3rd*crse(i-1,j,k,n) + tenth*crse(i-2,j,k,n)
+                  uc_xslope(i,j,k,n) = sixteen/fifteen*crse(i+1,j,k,n) &
+                            - half*crse(i,j,k,n) &
+                            - two3rd*crse(i-1,j,k,n) + tenth*crse(i-2,j,k,n)
                 end do
               end do
             else 
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
-                  uc_xslope(i,j,k,n)  = -fourth * (
-     &               crse(i-1,j,k,n) + five*crse(i,j,k,n) - six*crse(i+1,j,k,n) )
+                  uc_xslope(i,j,k,n)  = -fourth * ( &
+                     crse(i-1,j,k,n) + five*crse(i,j,k,n) - six*crse(i+1,j,k,n) )
                 end do
               end do
             endif
@@ -448,16 +451,16 @@ c
             if (yok) then
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
-                  uc_yslope(i,j,k,n)  = -sixteen/fifteen*crse(i,j-1,k,n) 
-     &                        + half*crse(i,j,k,n)
-     $                        + two3rd*crse(i,j+1,k,n) - tenth*crse(i,j+2,k,n)
+                  uc_yslope(i,j,k,n)  = -sixteen/fifteen*crse(i,j-1,k,n) &
+                              + half*crse(i,j,k,n) &
+                              + two3rd*crse(i,j+1,k,n) - tenth*crse(i,j+2,k,n)
                 end do
               end do
             else
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
-                  uc_yslope(i,j,k,n)  = fourth * (
-     &               crse(i,j+1,k,n) + five*crse(i,j,k,n) - six*crse(i,j-1,k,n) )
+                  uc_yslope(i,j,k,n)  = fourth * ( &
+                     crse(i,j+1,k,n) + five*crse(i,j,k,n) - six*crse(i,j-1,k,n) )
                 end do
               end do
             endif
@@ -478,16 +481,16 @@ c
             if (yok) then
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
-                  uc_yslope(i,j,k,n) = sixteen/fifteen*crse(i,j+1,k,n) 
-     &                      - half*crse(i,j,k,n)
-     $                      - two3rd*crse(i,j-1,k,n) + tenth*crse(i,j-2,k,n)
+                  uc_yslope(i,j,k,n) = sixteen/fifteen*crse(i,j+1,k,n) &
+                            - half*crse(i,j,k,n) &
+                            - two3rd*crse(i,j-1,k,n) + tenth*crse(i,j-2,k,n)
                 end do
               end do
             else
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
-                  uc_yslope(i,j,k,n)  = -fourth * (
-     &               crse(i,j-1,k,n) + five*crse(i,j,k,n) - six*crse(i,j+1,k,n) )
+                  uc_yslope(i,j,k,n)  = -fourth * ( &
+                     crse(i,j-1,k,n) + five*crse(i,j,k,n) - six*crse(i,j+1,k,n) )
                 end do
               end do
             endif
@@ -522,16 +525,16 @@ c
             if (zok) then
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
-                  uc_zslope(i,j,k,n)  = -sixteen/fifteen*crse(i,j,k-1,n) 
-     &                        + half*crse(i,j,k,n)
-     $                        + two3rd*crse(i,j,k+1,n) - tenth*crse(i,j,k+2,n)
+                  uc_zslope(i,j,k,n)  = -sixteen/fifteen*crse(i,j,k-1,n) &
+                              + half*crse(i,j,k,n) &
+                              + two3rd*crse(i,j,k+1,n) - tenth*crse(i,j,k+2,n)
                 end do
               end do
             else
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
-                  uc_zslope(i,j,k,n)  = fourth * (
-     &               crse(i,j,k+1,n) + five*crse(i,j,k,n) - six*crse(i,j,k-1,n) )
+                  uc_zslope(i,j,k,n)  = fourth * ( &
+                     crse(i,j,k+1,n) + five*crse(i,j,k,n) - six*crse(i,j,k-1,n) )
                 end do
               end do
             endif
@@ -552,16 +555,16 @@ c
             if (zok) then
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
-                  uc_zslope(i,j,k,n) = sixteen/fifteen*crse(i,j,k+1,n) 
-     &                      - half*crse(i,j,k,n)
-     $                      - two3rd*crse(i,j,k-1,n) + tenth*crse(i,j,k-2,n)
+                  uc_zslope(i,j,k,n) = sixteen/fifteen*crse(i,j,k+1,n) &
+                            - half*crse(i,j,k,n) &
+                            - two3rd*crse(i,j,k-1,n) + tenth*crse(i,j,k-2,n)
                end do
               end do
             else
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
-                  uc_zslope(i,j,k,n)  = -fourth * (
-     &               crse(i,j,k-1,n) + five*crse(i,j,k,n) - six*crse(i,j,k+1,n) )
+                  uc_zslope(i,j,k,n)  = -fourth * ( &
+                     crse(i,j,k-1,n) + five*crse(i,j,k,n) - six*crse(i,j,k+1,n) )
                end do
               end do
             endif
@@ -580,9 +583,9 @@ c
        end do
 
        if (lim_slope.eq.0) then
-c
-c        Do the interpolation using unlimited slopes.
-c
+
+!        Do the interpolation using unlimited slopes.
+
           do n = 1, nvar
              do k = fblo(3), fbhi(3)
                kc = IX_PROJ(k,lratioz)
@@ -590,10 +593,10 @@ c
                   jc = IX_PROJ(j,lratioy)
                   do i = fblo(1), fbhi(1)
                      ic = IX_PROJ(i,lratiox)
-                     fine(i,j,k,n) = crse(ic,jc,kc,n) 
-     &                    + voffx(i)*uc_xslope(ic,jc,kc,n)
-     &                    + voffy(j)*uc_yslope(ic,jc,kc,n)
-     &                    + voffz(k)*uc_zslope(ic,jc,kc,n)
+                     fine(i,j,k,n) = crse(ic,jc,kc,n) &
+                          + voffx(i)*uc_xslope(ic,jc,kc,n) &
+                          + voffy(j)*uc_yslope(ic,jc,kc,n) &
+                          + voffz(k)*uc_zslope(ic,jc,kc,n)
                   end do
                end do
              end do
@@ -602,13 +605,13 @@ c
        else
 
          if (lin_limit.eq.1)then
-c
-c     compute linear limited slopes
-c     Note that the limited and the unlimited slopes
-c     have the same sign, and it is assumed that they do.
-c
-c     compute slope factors
-c
+
+!     compute linear limited slopes
+!     Note that the limited and the unlimited slopes
+!     have the same sign, and it is assumed that they do.
+!
+!     compute slope factors
+
           xslope_factor = one
           yslope_factor = one
           zslope_factor = one
@@ -638,9 +641,9 @@ c
               end do
             end do
           end do
-c
-c         Compute linear limited slopes
-c
+
+!         Compute linear limited slopes
+
           do n = 1, nvar 
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
@@ -654,9 +657,9 @@ c
           end do
 
          else
-c
-c         Limit slopes so as to not introduce new maxs or mins.
-c
+
+!         Limit slopes so as to not introduce new maxs or mins.
+
             do n = 1,nvar
                do k = voff_lo(3),voff_hi(3)
                   kc = IX_PROJ(k,lratioz)
@@ -664,18 +667,18 @@ c
                      jc = IX_PROJ(j,lratioy)
                      do i = voff_lo(1),voff_hi(1)
                         ic = IX_PROJ(i,lratiox)
-                        orig_corr_fact = voffx(i)*lc_xslope(ic,jc,kc,n)
-     &                       + voffy(j)*lc_yslope(ic,jc,kc,n)
-     &                       + voffz(k)*lc_zslope(ic,jc,kc,n)
+                        orig_corr_fact = voffx(i)*lc_xslope(ic,jc,kc,n) &
+                             + voffy(j)*lc_yslope(ic,jc,kc,n) &
+                             + voffz(k)*lc_zslope(ic,jc,kc,n)
                         dummy_fine = crse(ic,jc,kc,n) + orig_corr_fact
-                        if ((dummy_fine .gt. cmax(ic,jc,kc,n)) .and.
-     $                       (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,kc,n)))) then
+                        if ((dummy_fine .gt. cmax(ic,jc,kc,n)) .and. &
+                             (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,kc,n)))) then
                            corr_fact = (cmax(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
                            alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                         endif
 
-                        if ((dummy_fine .lt. cmin(ic,jc,kc,n)) .and.
-     $                       (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,kc,n)))) then
+                        if ((dummy_fine .lt. cmin(ic,jc,kc,n)) .and. &
+                             (abs(orig_corr_fact) .gt. 1.e-10*abs(crse(ic,jc,kc,n)))) then
                            corr_fact = (cmin(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
                            alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                         endif
@@ -701,9 +704,9 @@ c
                end do
             end do
          end if
-c
-c       Do the interpolation with limited slopes.
-c
+
+!       Do the interpolation with limited slopes.
+
         do n = 1, nvar
           do k = fblo(3), fbhi(3)
             kc = IX_PROJ(k,lratioz)
@@ -711,10 +714,10 @@ c
               jc = IX_PROJ(j,lratioy)
               do i = fblo(1), fbhi(1)
                 ic = IX_PROJ(i,lratiox)
-                fine(i,j,k,n) = crse(ic,jc,kc,n) + alpha(ic,jc,kc,n) *
-     &               ( voffx(i)*lc_xslope(ic,jc,kc,n)
-     &                +voffy(j)*lc_yslope(ic,jc,kc,n)
-     &                +voffz(k)*lc_zslope(ic,jc,kc,n) )
+                fine(i,j,k,n) = crse(ic,jc,kc,n) + alpha(ic,jc,kc,n) * &
+                     ( voffx(i)*lc_xslope(ic,jc,kc,n) &
+                      +voffy(j)*lc_yslope(ic,jc,kc,n) &
+                      +voffz(k)*lc_zslope(ic,jc,kc,n) )
               end do
             end do
           end do
@@ -722,16 +725,16 @@ c
 
       end if
 
-      end
+    end subroutine FORT_LINCCINTERP
 
-      subroutine FORT_CQINTERP (fine, DIMS(fine), 
-     $                          DIMS(fb),
-     $                          nvar, lratiox, lratioy, lratioz, crse,
-     $                          clo, chi, DIMS(cb),
-     $		                fslo, fshi, cslope, clen, fslope, fdat,
-     $                          flen, voff, bc, limslope,
-     $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz,
-     $                          actual_comp, actual_state)
+    subroutine FORT_CQINTERP (fine, DIMS(fine), &
+                              DIMS(fb), &
+                              nvar, lratiox, lratioy, lratioz, crse, &
+                              clo, chi, DIMS(cb), &
+                              fslo, fshi, cslope, clen, fslope, fdat, &
+                              flen, voff, bc, limslope, &
+                              fvcx, fvcy, fvcz, cvcx, cvcy, cvcz, &
+                              actual_comp, actual_state)
 
       implicit none
 
@@ -758,23 +761,23 @@ c
 
       call bl_abort('QUADRATIC INTERP NOT IMPLEMEMNTED IN 3-D')
 
-      end
+    end subroutine FORT_CQINTERP
 
 # if 0
-c 
-c -----------------------------------------------------------------
-c THIS IS A SCALAR VERSION OF THE ABOVE CODE
-c -----------------------------------------------------------------
-c
-      subroutine FORT_CCINTERP2 (fine, DIMS(fine),
-     $                           fb_l1, fb_l2, fb_l3,
-     $                           fb_h1, fb_h2, fb_h3,
-     $                           nvar, lratiox, lratioy, lratioz, crse,
-     $                           clo, chi, cb_l1, cb_l2, cb_l3,
-     $                           cb_h1, cb_h2, cb_h3,
-     $		                 fslo, fshi, cslope, clen, fslope, fdat,
-     $                           flen, voff, bc, limslope,
-     $                           actual_comp, actual_state)
+
+! -----------------------------------------------------------------
+! THIS IS A SCALAR VERSION OF THE ABOVE CODE
+! -----------------------------------------------------------------
+
+    subroutine FORT_CCINTERP2 (fine, DIMS(fine), &
+                               fb_l1, fb_l2, fb_l3, &
+                               fb_h1, fb_h2, fb_h3, &
+                               nvar, lratiox, lratioy, lratioz, crse, &
+                               clo, chi, cb_l1, cb_l2, cb_l3, &
+                               cb_h1, cb_h2, cb_h3, &
+                               fslo, fshi, cslope, clen, fslope, fdat, &
+                               flen, voff, bc, limslope, &
+                               actual_comp, actual_state)
 
       implicit none
 
@@ -789,10 +792,8 @@ c
       integer limslope
       integer actual_comp,actual_state
       REAL_T fine(DIMV(fine),nvar)
-      REAL_T crse(cb_l1-1:cb_h1+1, cb_l2-1:cb_h2+1, 
-     &            cb_l3-1:cb_h3+1, nvar )
-      REAL_T cslope(cb_l1-1:cb_h1+1, cb_l2-1:cb_h2+1, 
-     &              cb_l3-1:cb_h3+1, 3 )
+      REAL_T crse(cb_l1-1:cb_h1+1, cb_l2-1:cb_h2+1, cb_l3-1:cb_h3+1, nvar )
+      REAL_T cslope(cb_l1-1:cb_h1+1, cb_l2-1:cb_h2+1, cb_l3-1:cb_h3+1, 3 )
       REAL_T fslope(flen, 3)
       REAL_T fdat(flen)
       REAL_T voff(flen)
@@ -800,7 +801,7 @@ c
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)
 
-c ::: local var
+! ::: local var
       integer n, fn
       integer i, ii, ic, ioff
       integer j, jj, jc, joff
@@ -812,35 +813,35 @@ c ::: local var
       REAL_T sgn
       integer ilo, ihi, jlo, jhi, klo, khi
 
-c     :::::: helpful statement functions
+!     :::::: helpful statement functions
       REAL_T  slplox, slphix, slploy, slphiy, slploz, slphiz
       REAL_T  c1, c2, c3, c4
 
-      slplox(i,j,k,n) =  - c1*crse(i-1,j,k,n)
-     $		         + c2*crse(i  ,j,k,n)
-     $                   + c3*crse(i+1,j,k,n)
-     $			 - c4*crse(i+2,j,k,n)
-      slphix(i,j,k,n) =    c1*crse(i+1,j,k,n)
-     $		         - c2*crse(i  ,j,k,n)
-     $                   - c3*crse(i-1,j,k,n)
-     $			 + c4*crse(i-2,j,k,n)
-      slploy(i,j,k,n) =  - c1*crse(i,j-1,k,n)
-     $		         + c2*crse(i,j  ,k,n)
-     $                   + c3*crse(i,j+1,k,n)
-     $			 - c4*crse(i,j+2,k,n)
-      slphiy(i,j,k,n) =    c1*crse(i,j+1,k,n)
-     $		         - c2*crse(i,j  ,k,n)
-     $                   - c3*crse(i,j-1,k,n)
-     $			 + c4*crse(i,j-2,k,n)
-      slploz(i,j,k,n) =  - c1*crse(i,j,k-1,n)
-     $		         + c2*crse(i,j,k  ,n)
-     $                   + c3*crse(i,j,k+1,n)
-     $			 - c4*crse(i,j,k+2,n)
-      slphiz(i,j,k,n) =    c1*crse(i,j,k+1,n)
-     $		         - c2*crse(i,j,k  ,n)
-     $                   - c3*crse(i,j,k-1,n)
-     $			 + c4*crse(i,j,k-2,n)
-      
+      slplox(i,j,k,n) =  - c1*crse(i-1,j,k,n) &
+      		         + c2*crse(i  ,j,k,n) &
+                         + c3*crse(i+1,j,k,n) &
+      			 - c4*crse(i+2,j,k,n)
+      slphix(i,j,k,n) =    c1*crse(i+1,j,k,n) &
+      		         - c2*crse(i  ,j,k,n) &
+                         - c3*crse(i-1,j,k,n) &
+      			 + c4*crse(i-2,j,k,n)
+      slploy(i,j,k,n) =  - c1*crse(i,j-1,k,n) &
+      		         + c2*crse(i,j  ,k,n) &
+                         + c3*crse(i,j+1,k,n) &
+      			 - c4*crse(i,j+2,k,n)
+      slphiy(i,j,k,n) =    c1*crse(i,j+1,k,n) &
+      		         - c2*crse(i,j  ,k,n) & 
+                         - c3*crse(i,j-1,k,n) &
+      			 + c4*crse(i,j-2,k,n)
+      slploz(i,j,k,n) =  - c1*crse(i,j,k-1,n) &
+      		         + c2*crse(i,j,k  ,n) &
+                         + c3*crse(i,j,k+1,n) &
+      			 - c4*crse(i,j,k+2,n)
+      slphiz(i,j,k,n) =    c1*crse(i,j,k+1,n) &
+      		         - c2*crse(i,j,k  ,n) &
+                         - c3*crse(i,j,k-1,n) &
+      			 + c4*crse(i,j,k-2,n)
+
       c1 = sixteen/fifteen
       c2 = half
       c3 = two3rd
@@ -859,7 +860,7 @@ c     :::::: helpful statement functions
       do jc = cb_l2, cb_h2
       do ic = cb_l1, cb_h1
 
-c        ::::: compute x slopes
+!        ::::: compute x slopes
 	 if (limslope .ne. 0) then
             cen  = half*(crse(ic+1,jc,kc,n)-crse(ic-1,jc,kc,n))
             forw = two*(crse(ic+1,jc,kc,n)-crse(ic,jc,kc,n))
@@ -868,29 +869,29 @@ c        ::::: compute x slopes
 	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cx   = sgn*min(slp,abs(cen))
-            if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. EXT_DIR 
-     &	        .or. bclo(1,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. EXT_DIR &
+      	        .or. bclo(1,n).eq.HOEXTRAP)) then
 	        cen  = slplox(ic,jc,kc,n)
                 cx   = sgn*min(slp,abs(cen))
             end if
-            if (ic.eq.cb_h1 .and. (bchi(1,n) .eq. EXT_DIR 
-     &          .or. bchi(1,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_h1 .and. (bchi(1,n) .eq. EXT_DIR &
+                .or. bchi(1,n).eq.HOEXTRAP)) then
                 cen  = slphix(ic,jc,kc,n)
                 cx   = sgn*min(slp,abs(cen))
             end if
 	 else
 	    cx = half*(crse(ic+1,jc,kc,n)-crse(ic-1,jc,kc,n))
-            if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. EXT_DIR 
-     &	        .or. bclo(1,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. EXT_DIR &
+     	        .or. bclo(1,n).eq.HOEXTRAP)) then
 	        cx  = slplox(ic,jc,kc,n)
             end if
-            if (ic.eq.cb_h1 .and. (bchi(1,n) .eq. EXT_DIR 
-     &          .or. bchi(1,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_h1 .and. (bchi(1,n) .eq. EXT_DIR &
+                .or. bchi(1,n).eq.HOEXTRAP)) then
                 cx  = slphix(ic,jc,kc,n)
             end if
 	 end if
 
-c	 ::::: slopes in the Y direction
+!	 ::::: slopes in the Y direction
 	 if (limslope .ne. 0) then
             cen  = half*(crse(ic,jc+1,kc,n)-crse(ic,jc-1,kc,n))
             forw = two*(crse(ic,jc+1,kc,n)-crse(ic,jc,kc,n))
@@ -899,29 +900,29 @@ c	 ::::: slopes in the Y direction
 	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cy   = sgn*min(slp,abs(cen))
-            if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. EXT_DIR 
-     &	        .or. bclo(2,n).eq.HOEXTRAP)) then
+            if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. EXT_DIR &
+      	        .or. bclo(2,n).eq.HOEXTRAP)) then
 	        cen  = slploy(ic,jc,kc,n)
                 cy   = sgn*min(slp,abs(cen))
             end if
-            if (jc.eq.cb_h2 .and. (bchi(2,n) .eq. EXT_DIR 
-     &          .or. bchi(2,n).eq.HOEXTRAP)) then
+            if (jc.eq.cb_h2 .and. (bchi(2,n) .eq. EXT_DIR &
+                .or. bchi(2,n).eq.HOEXTRAP)) then
                 cen  = slphiy(ic,jc,kc,n)
                 cy   = sgn*min(slp,abs(cen))
             end if
 	 else
 	    cy = half*(crse(ic,jc+1,kc,n)-crse(ic,jc-1,kc,n))
-            if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. EXT_DIR 
-     &	        .or. bclo(2,n).eq.HOEXTRAP)) then
+            if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. EXT_DIR &
+      	        .or. bclo(2,n).eq.HOEXTRAP)) then
 	        cy   = slploy(ic,jc,kc,n)
             end if
-            if (ic.eq.cb_h2 .and. (bchi(2,n) .eq. EXT_DIR 
-     &          .or. bchi(2,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_h2 .and. (bchi(2,n) .eq. EXT_DIR &
+                .or. bchi(2,n).eq.HOEXTRAP)) then
                 cy   = slphiy(ic,jc,kc,n)
             end if
 	 end if
 
-c	 ::::: slopes in the Z direction
+!	 ::::: slopes in the Z direction
 	 if (limslope .ne. 0) then
             cen  = half*(crse(ic,jc,kc+1,n)-crse(ic,jc,kc-1,n))
             forw = two*(crse(ic,jc,kc+1,n)-crse(ic,jc,kc,n))
@@ -930,29 +931,29 @@ c	 ::::: slopes in the Z direction
 	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cz   = sgn*min(slp,abs(cen))
-            if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. EXT_DIR 
-     &	        .or. bclo(3,n).eq.HOEXTRAP)) then
+            if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. EXT_DIR &
+      	        .or. bclo(3,n).eq.HOEXTRAP)) then
 	        cen  = slploz(ic,jc,kc,n)
                 cz   = sgn*min(slp,abs(cen))
             end if
-            if (kc.eq.cb_h3 .and. (bchi(3,n) .eq. EXT_DIR 
-     &          .or. bchi(3,n).eq.HOEXTRAP)) then
+            if (kc.eq.cb_h3 .and. (bchi(3,n) .eq. EXT_DIR &
+                .or. bchi(3,n).eq.HOEXTRAP)) then
                 cen  = slphiz(ic,jc,kc,n)
                 cz   = sgn*min(slp,abs(cen))
             end if
 	 else
 	    cz = half*(crse(ic,jc,kc+1,n)-crse(ic,jc,kc-1,n))
-            if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. EXT_DIR 
-     &	        .or. bclo(3,n).eq.HOEXTRAP)) then
+            if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. EXT_DIR &
+      	        .or. bclo(3,n).eq.HOEXTRAP)) then
 	        cz   = slploz(ic,jc,kc,n)
             end if
-            if (kc.eq.cb_h3 .and. (bchi(3,n) .eq. EXT_DIR 
-     &          .or. bchi(3,n).eq.HOEXTRAP)) then
+            if (kc.eq.cb_h3 .and. (bchi(3,n) .eq. EXT_DIR &
+                .or. bchi(3,n).eq.HOEXTRAP)) then
                 cz   = slphiz(ic,jc,kc,n)
             end if
 	 end if
 
-c	 ::::: now interpolate to fine grid
+!	 ::::: now interpolate to fine grid
 	 ii  = lratiox*ic
 	 ilo = max(ii,fb_l1) - ii
 	 ihi = min(ii+lratiox-1,fb_h1) - ii
@@ -972,9 +973,9 @@ c	 ::::: now interpolate to fine grid
 	       do ioff = ilo, ihi
 	          i = lratiox*ic + ioff
 		  xoff = dble(ioff)-hafratx
-		  fine(i,j,k,n) = crse(ic,jc,kc,n) + 
-     &				( volratiox*xoff*cx + volratioy*yoff*cy 
-     &                          + volratioz*zoff*cz )
+		  fine(i,j,k,n) = crse(ic,jc,kc,n) + &
+      				( volratiox*xoff*cx + volratioy*yoff*cy &
+                                + volratioz*zoff*cz )
 	       end do
 	    end do
 	 end do
@@ -984,35 +985,35 @@ c	 ::::: now interpolate to fine grid
       end do
       end do
 
-      end
+    end subroutine FORT_CCINTERP2
 #endif
 
-c ::: 
-c ::: --------------------------------------------------------------
-c ::: pcinterp:  cell centered piecewise constant interpolation
-c ::: 
-c ::: Inputs/Outputs
-c ::: fine        <=>  (modify) fine grid array
-c ::: DIMS(fine)   =>  (const)  index limits of fine grid
-c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
-c ::: 
-c ::: crse         =>  (const)  coarse grid data 
-c ::: DIMS(crse)   =>  (const)  index limits of coarse grid
-c ::: cblo,cbhi    =>  (const) coarse grid region containing fblo,fbhi
-c ::: 
-c ::: longdir      =>  (const)  which index direction is longest (1 or 2)
-c ::: lratio(3)    =>  (const)  refinement ratio between levels
-c ::: nvar         =>  (const)  number of components in array
-c ::: 
-c ::: TEMPORARY ARRAYS
-c ::: ftmp         =>  1-D temp array
-c ::: --------------------------------------------------------------
-c ::: 
-      subroutine FORT_PCINTERP (crse,DIMS(crse),cblo,cbhi,
-     $                          fine,DIMS(fine),fblo,fbhi,
-     $                          longdir,lratiox,lratioy,lratioz,nvar,
-     $                          ftmp, ftmp_lo, ftmp_hi,
-     $                          actual_comp, actual_state)
+! ::: 
+! ::: --------------------------------------------------------------
+! ::: pcinterp:  cell centered piecewise constant interpolation
+! ::: 
+! ::: Inputs/Outputs
+! ::: fine        <=>  (modify) fine grid array
+! ::: DIMS(fine)   =>  (const)  index limits of fine grid
+! ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+! ::: 
+! ::: crse         =>  (const)  coarse grid data 
+! ::: DIMS(crse)   =>  (const)  index limits of coarse grid
+! ::: cblo,cbhi    =>  (const) coarse grid region containing fblo,fbhi
+! ::: 
+! ::: longdir      =>  (const)  which index direction is longest (1 or 2)
+! ::: lratio(3)    =>  (const)  refinement ratio between levels
+! ::: nvar         =>  (const)  number of components in array
+! ::: 
+! ::: TEMPORARY ARRAYS
+! ::: ftmp         =>  1-D temp array
+! ::: --------------------------------------------------------------
+! ::: 
+    subroutine FORT_PCINTERP (crse,DIMS(crse),cblo,cbhi, &
+                              fine,DIMS(fine),fblo,fbhi, &
+                              longdir,lratiox,lratioy,lratioz,nvar, &
+                              ftmp, ftmp_lo, ftmp_hi, &
+                              actual_comp, actual_state)
 
       implicit none
 
@@ -1040,7 +1041,7 @@ c :::
 	    khi = min(fbhi(3),kstop)
             do jc = cblo(2), cbhi(2)
 
-c	       ::::: fill strip in i direction
+!	       ::::: fill strip in i direction
 	       do ioff = 0, lratiox-1
 	          do ic = cblo(1), cbhi(1)
 	             i = lratiox*ic + ioff
@@ -1048,7 +1049,7 @@ c	       ::::: fill strip in i direction
                   end do
 	       end do
 
-c	       ::::: stuff into fine array
+!	       ::::: stuff into fine array
 	       jstrt = jc*lratioy
 	       jstop = (jc+1)*lratioy - 1
 	       jlo = max(fblo(2),jstrt)
@@ -1072,7 +1073,7 @@ c	       ::::: stuff into fine array
 	    khi = min(fbhi(3),kstop)
             do ic = cblo(1), cbhi(1)
 
-c	       ::::: fill strip in j direction
+!	       ::::: fill strip in j direction
 	       do joff = 0, lratioy-1
 	          do jc = cblo(2), cbhi(2)
 	             j = lratioy*jc + joff
@@ -1080,7 +1081,7 @@ c	       ::::: fill strip in j direction
                   end do
 	       end do
 
-c	       ::::: stuff into fine array
+!	       ::::: stuff into fine array
 	       istrt = ic*lratiox
 	       istop = (ic+1)*lratiox - 1
 	       ilo = max(fblo(1),istrt)
@@ -1104,7 +1105,7 @@ c	       ::::: stuff into fine array
 	    ihi = min(fbhi(1),istop)
             do jc = cblo(2), cbhi(2)
 
-c	       ::::: fill strip in k direction
+!	       ::::: fill strip in k direction
 	       do koff = 0, lratioz-1
 	          do kc = cblo(3), cbhi(3)
 	             k = lratioz*kc + koff
@@ -1112,7 +1113,7 @@ c	       ::::: fill strip in k direction
                   end do
 	       end do
 
-c	       ::::: stuff into fine array
+!	       ::::: stuff into fine array
 	       jstrt = jc*lratioy
 	       jstop = (jc+1)*lratioy - 1
 	       jlo = max(fblo(2),jstrt)
@@ -1129,31 +1130,31 @@ c	       ::::: stuff into fine array
 	 end do
       end if
 
-      end
+    end subroutine FORT_PCINTERP
 
-c ::: 
-c ::: --------------------------------------------------------------
-c ::: protect_interp:   redo interpolation if the result of linccinterp
-c ::: generates under- or overshoots.
-c ::: 
-c ::: 
-c ::: Inputs/Outputs
-c ::: fine        <=>  (modify) fine grid array
-c ::: flo,fhi      =>  (const)  index limits of fine grid
-c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
-c ::: cblo,cbhi    =>  (const)  coarse equivalent of fblo,fbhi
-c ::: nvar         =>  (const)  number of variables in state vector
-c ::: lratio(3)    =>  (const)  refinement ratio between levels
-c ::: 
-c ::: crse         =>  (const)  coarse grid data widended by 1 zone
-c ::: clo,chi      =>  (const)  index limits of crse grid
-c :::
-c ::: --------------------------------------------------------------
-c ::: 
-      subroutine FORT_PROTECT_INTERP (fine, DIMS(fine), fblo, fbhi, 
-     &                                crse, DIMS(crse), cblo, cbhi,
-     &                                fine_state, DIMS(state), 
-     &                                nvar, lratiox,lratioy,lratioz, bc)
+! ::: 
+! ::: --------------------------------------------------------------
+! ::: protect_interp:   redo interpolation if the result of linccinterp
+! ::: generates under- or overshoots.
+! ::: 
+! ::: 
+! ::: Inputs/Outputs
+! ::: fine        <=>  (modify) fine grid array
+! ::: flo,fhi      =>  (const)  index limits of fine grid
+! ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+! ::: cblo,cbhi    =>  (const)  coarse equivalent of fblo,fbhi
+! ::: nvar         =>  (const)  number of variables in state vector
+! ::: lratio(3)    =>  (const)  refinement ratio between levels
+! ::: 
+! ::: crse         =>  (const)  coarse grid data widended by 1 zone
+! ::: clo,chi      =>  (const)  index limits of crse grid
+! :::
+! ::: --------------------------------------------------------------
+! ::: 
+    subroutine FORT_PROTECT_INTERP (fine, DIMS(fine), fblo, fbhi, &
+                                    crse, DIMS(crse), cblo, cbhi, &
+                                    fine_state, DIMS(state), &
+                                    nvar, lratiox,lratioy,lratioz, bc)
 
       implicit none
 
@@ -1180,8 +1181,8 @@ c :::
       integer icase
 
       if (MAX(lratiox,lratioy,lratioz).gt.rMAX) then
-         print *,'rMAX in INTERP_3D::FORT_PROTECT_INTERP must be >= ',
-     $        MAX(lratiox,lratioy,lratioz)
+         print *,'rMAX in INTERP_3D::FORT_PROTECT_INTERP must be >= ', &
+              MAX(lratiox,lratioy,lratioz)
          call bl_abort(" ")
       endif
 
@@ -1206,45 +1207,44 @@ c :::
             enddo
             enddo
             enddo
-c
-c ****************************************************************************************
-c
-c           If all the fine values are non-negative after the original interpolated 
-c            correction, then we do nothing here.
-c
-c           If any of the fine values are negative after the original interpolated
-c            correction, then we do our best.
-c
-c           Special cases:
-c
-c             1) Coarse correction > 0, and fine_state has some cells with 
-c                negative values which will be filled before adding to the other cells.
-c                Use the correction to bring negative cells to zero, then
-c                distribute the remaining positive proportionally.
-c
-c             2) Coarse correction > 0, and correction can not make them all
-c                positive.  Add correction only to the negative cells, in proportion
-c                to their magnitude.
-c
-c             3) Coarse correction < 0, and fine_state DOES NOT have enough
-c                  have enough positive state to absorb it.  Here we bring
-c                  all the positive fine cells to zero then distribute the remaining
-c                  negative amount in such a way as to make them all as close to the
-c                  same negative value as possible.
-c
-c             4) Coarse correction < 0, fine_state has enough
-c                  positive state to absorb it without making any fine 
-c                  cells negative, BUT fine_state+fine is currently negative
-c                  in at least one fine cell.  Here just take a constant percentage
-c                  away from each positive and don't touch the negatives.
-c
-c             crseTot = sum of all interpolated values of the correction,
-c                       which is equivalent to the coarse correction * ratio**3
-c             SumN = sum of all negative values of fine_state
-c             SumP = sum of all positive values of fine_state
-c
-c ****************************************************************************************
-c
+
+! ****************************************************************************************
+!
+!           If all the fine values are non-negative after the original interpolated 
+!            correction, then we do nothing here.
+!
+!           If any of the fine values are negative after the original interpolated
+!            correction, then we do our best.
+!
+!           Special cases:
+!
+!             1) Coarse correction > 0, and fine_state has some cells with 
+!                negative values which will be filled before adding to the other cells.
+!                Use the correction to bring negative cells to zero, then
+!                distribute the remaining positive proportionally.
+!
+!             2) Coarse correction > 0, and correction can not make them all
+!                positive.  Add correction only to the negative cells, in proportion
+!                to their magnitude.
+!
+!             3) Coarse correction < 0, and fine_state DOES NOT have enough
+!                  have enough positive state to absorb it.  Here we bring
+!                  all the positive fine cells to zero then distribute the remaining
+!                  negative amount in such a way as to make them all as close to the
+!                  same negative value as possible.
+!
+!             4) Coarse correction < 0, fine_state has enough
+!                  positive state to absorb it without making any fine 
+!                  cells negative, BUT fine_state+fine is currently negative
+!                  in at least one fine cell.  Here just take a constant percentage
+!                  away from each positive and don't touch the negatives.
+!
+!             crseTot = sum of all interpolated values of the correction,
+!                       which is equivalent to the coarse correction * ratio**3
+!             SumN = sum of all negative values of fine_state
+!             SumP = sum of all positive values of fine_state
+!
+! ****************************************************************************************
 
             if (redo_me .eq. 1) then
 
@@ -1277,8 +1277,8 @@ c
                enddo
 
                if (crseTot .gt. 0.d0 .and. crseTot .ge. abs(sumN)) then
-c              Here we want to fill in the negative values first, then add
-c                the remaining positive proportionally.
+!              Here we want to fill in the negative values first, then add
+!                the remaining positive proportionally.
 
                    icase = 1
                    do k = klo,khi
@@ -1321,10 +1321,10 @@ c                the remaining positive proportionally.
 
                endif
 
-               if (crseTot .gt. 0.d0. and. crseTot .lt. abs(sumN)) then
-c              Here we don't have enough positive correction to fill all the
-c                negative values of state, so we just try to fill them proportionally
-c                and don't add any correction to the states already positive.
+               if (crseTot .gt. 0.d0 .and. crseTot .lt. abs(sumN)) then
+!              Here we don't have enough positive correction to fill all the
+!                negative values of state, so we just try to fill them proportionally
+!                and don't add any correction to the states already positive.
 
                    icase = 2
                    alpha = crseTot / abs(sumN)
@@ -1343,10 +1343,10 @@ c                and don't add any correction to the states already positive.
 
                endif
 
-               if (crseTot .lt. 0.d0. and. abs(crseTot) .gt. sumP) then
-c              Here we don't have enough positive states to absorb all the
-c                negative correction, so we want to end up with all the fine
-c                cells having the same negative value.
+               if (crseTot .lt. 0.d0 .and. abs(crseTot) .gt. sumP) then
+!              Here we don't have enough positive states to absorb all the
+!                negative correction, so we want to end up with all the fine
+!                cells having the same negative value.
 
                    icase = 3
                    negVal = (sumP + sumN + crseTot)/float(numFineCells)
@@ -1361,11 +1361,11 @@ c                cells having the same negative value.
 
                endif
 
-               if (crseTot .lt. 0.d0 .and. abs(crseTot) .lt. sumP
-     $              .and. (sumP+sumN+crseTot) .gt. 0.d0) then
-c              Here we have enough positive states to absorb all the
-c                negative correction *and* redistribute to make negative cells
-c                positive. 
+               if (crseTot .lt. 0.d0 .and. abs(crseTot) .lt. sumP &
+                    .and. (sumP+sumN+crseTot) .gt. 0.d0) then
+!              Here we have enough positive states to absorb all the
+!                negative correction *and* redistribute to make negative cells
+!                positive. 
 
                    icase = 4
                    alpha = (crseTot + sumN) / sumP
@@ -1384,12 +1384,12 @@ c                positive.
 
                endif
 
-               if (crseTot .lt. 0.d0. and. abs(crseTot) .lt. sumP
-     $              .and. (sumP+sumN+crseTot) .le. 0.d0) then
-c              Here we have enough positive states to absorb all the
-c                negative correction, but not to fix the states already negative. 
-c                We bring all the positive states to zero, and use whatever 
-c                remaining positiveness from the states to help the negative states.
+               if (crseTot .lt. 0.d0 .and. abs(crseTot) .lt. sumP &
+                    .and. (sumP+sumN+crseTot) .le. 0.d0) then
+!              Here we have enough positive states to absorb all the
+!                negative correction, but not to fix the states already negative. 
+!                We bring all the positive states to zero, and use whatever 
+!                remaining positiveness from the states to help the negative states.
 
                    icase = 5
                    alpha = (crseTot + sumP) / sumN
@@ -1419,47 +1419,47 @@ c                remaining positiveness from the states to help the negative sta
 
                if (abs(sum_fine_new - sum_fine_old) .gt. 1.e-8) then
                   print *,' '
-                  print *,
-     $                 'PROTECT_INTERP: BLEW CONSERVATION with ICASE = '
-     $                 ,icase
+                  print *, &
+                       'PROTECT_INTERP: BLEW CONSERVATION with ICASE = ' &
+                       ,icase
                   print *,'AT COARSE CELL ',ic,jc,kc,' AND COMPONENT ',n
-                  print *,'NEW SUM / OLD SUM ',
-     $                 sum_fine_new, sum_fine_old
+                  print *,'NEW SUM / OLD SUM ', &
+                       sum_fine_new, sum_fine_old
                   print *,'CRSETOT ',crseTot
                   print *,'SUMP SUMN ',sumP,sumN
                   do k = klo,khi
                   do j = jlo,jhi
                   do i = ilo,ihi
-                     print *,'FINE OLD NEW ',
-     $                    i,j,k,orig_fine(i-ilo,j-jlo,k-klo),
-     $                    fine(i,j,k,n), fine_state(i,j,k,n)
+                     print *,'FINE OLD NEW ', &
+                          i,j,k,orig_fine(i-ilo,j-jlo,k-klo), &
+                          fine(i,j,k,n), fine_state(i,j,k,n)
                   enddo
                   enddo
                   enddo
                endif
 
-c              do k = klo,khi
-c              do j = jlo,jhi
-c              do i = ilo,ihi
-c                 if ((fine_state(i,j,k,n) + fine(i,j,k,n)) .lt. 0.d0) then
-c                    print *,'STILL NEGATIVE AT ',i,j,k,n
-c                    print *,'AT COARSE CELL ',ic,jc,kc
-c                    print *,'FINE STATE ',fine_state(i,j,k,n)
-c                    print *,'FINE CORRECTION ',fine(i,j,k,n)
-c                    print *,'CRSETOT ',crseTot
-c                    print *,'SUMN / SUMP ',sumN, sumP
-c                    print *,' '
-c                 endif
-c              enddo
-c              enddo
-c              enddo
+!              do k = klo,khi
+!              do j = jlo,jhi
+!              do i = ilo,ihi
+!                 if ((fine_state(i,j,k,n) + fine(i,j,k,n)) .lt. 0.d0) then
+!                    print *,'STILL NEGATIVE AT ',i,j,k,n
+!                    print *,'AT COARSE CELL ',ic,jc,kc
+!                    print *,'FINE STATE ',fine_state(i,j,k,n)
+!                    print *,'FINE CORRECTION ',fine(i,j,k,n)
+!                    print *,'CRSETOT ',crseTot
+!                    print *,'SUMN / SUMP ',sumN, sumP
+!                    print *,' '
+!                 endif
+!              enddo
+!              enddo
+!              enddo
 
-c           End (if redo .eq. 1)
+!           End (if redo .eq. 1)
             endif
 
          enddo
 
-c     Set sync for density (n=1) to sum of spec sync (2:nvar-1)
+!     Set sync for density (n=1) to sum of spec sync (2:nvar-1)
          do k = klo,khi
          do j = jlo,jhi
          do i = ilo,ihi
@@ -1471,45 +1471,46 @@ c     Set sync for density (n=1) to sum of spec sync (2:nvar-1)
          enddo
          enddo
 
-c     End of coarse index loops
+!     End of coarse index loops
       enddo
       enddo
       enddo
-      end
 
-c ::: 
-c ::: --------------------------------------------------------------
-c ::: quartinterp: quartic conservative interpolation from coarse grid to
-c ::: subregion of fine grid defined by (fblo,fbhi)
-c ::: 
-c ::: Inputs/Outputs
-c ::: fine        <=>  (modify) fine grid array
-c ::: flo,fhi      =>  (const)  index limits of fine grid
-c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
-c ::: nvar         =>  (const)  number of variables in state vector
-c ::: lratio[xyz]  =>  (const)  refinement ratio between levels
-c ::: 
-c ::: crse         =>  (const)  coarse grid data
-c ::: clo,chi      =>  (const)  index limits of crse grid
-c ::: cblo,cbhi    =>  (const)  coarse grid region containing fblo,fbhi and widen by 2 or 4 cells
-c :::
-c ::: cb2lo,cb2hi  =>  (const)  coarse grid region containing fblo,fbhi
-c ::: fb2lo,fb2hi  =>  (const)  fine version of cb2. It could be wider than fb
-c ::: 
-c ::: TEMPORARY ARRAYS
-c ::: ftmp         =>  1-D temp array
-c ::: ctmp         =>  2-D temp array
-c ::: ctmp2        =>  2-D temp array
-c ::: --------------------------------------------------------------
-c ::: 
-       subroutine FORT_QUARTINTERP (fine, DIMS(fine), 
-     $                              fblo, fbhi, fb2lo, fb2hi,
-     $                              crse, DIMS(crse), 
-     $                              cblo, cbhi, cb2lo, cb2hi,
-     $                              nvar, 
-     $                              lratiox, lratioy, lratioz,
-     $                              ftmp, ctmp, ctmp2,
-     $                              bc,actual_comp,actual_state)
+    end subroutine FORT_PROTECT_INTERP
+
+! ::: 
+! ::: --------------------------------------------------------------
+! ::: quartinterp: quartic conservative interpolation from coarse grid to
+! ::: subregion of fine grid defined by (fblo,fbhi)
+! ::: 
+! ::: Inputs/Outputs
+! ::: fine        <=>  (modify) fine grid array
+! ::: flo,fhi      =>  (const)  index limits of fine grid
+! ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+! ::: nvar         =>  (const)  number of variables in state vector
+! ::: lratio[xyz]  =>  (const)  refinement ratio between levels
+! ::: 
+! ::: crse         =>  (const)  coarse grid data
+! ::: clo,chi      =>  (const)  index limits of crse grid
+! ::: cblo,cbhi    =>  (const)  coarse grid region containing fblo,fbhi and widen by 2 or 4 cells
+! :::
+! ::: cb2lo,cb2hi  =>  (const)  coarse grid region containing fblo,fbhi
+! ::: fb2lo,fb2hi  =>  (const)  fine version of cb2. It could be wider than fb
+! ::: 
+! ::: TEMPORARY ARRAYS
+! ::: ftmp         =>  1-D temp array
+! ::: ctmp         =>  2-D temp array
+! ::: ctmp2        =>  2-D temp array
+! ::: --------------------------------------------------------------
+! ::: 
+     subroutine FORT_QUARTINTERP (fine, DIMS(fine), &
+                                  fblo, fbhi, fb2lo, fb2hi, &
+                                  crse, DIMS(crse), &
+                                  cblo, cbhi, cb2lo, cb2hi, &
+                                  nvar, &
+                                  lratiox, lratioy, lratioz, &
+                                  ftmp, ctmp, ctmp2, &
+                                  bc,actual_comp,actual_state)
 
        implicit none
 
@@ -1526,14 +1527,14 @@ c :::
        REAL_T ctmp(cblo(1):cbhi(1),0:lratioy-1)
        REAL_T ctmp2(cblo(1):cbhi(1),cblo(2):cbhi(2),0:lratioz-1)
 
-c      Local variables
+!      Local variables
        integer i,j,k,ii,jj,kk,n,iry,irz
        REAL_T cL(-2:2)
-c       REAL_T cR(-2:2)
-       data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0,
-     $           0.01171875D0 /
-c       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
-c     $          -0.01171875D0 /
+!       REAL_T cR(-2:2)
+       data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0, &
+                 0.01171875D0 /
+!       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0, &
+!                -0.01171875D0 /
        
        if (lratiox.eq.2 .and. lratioy.eq.2 .and. lratioz.eq.2) then
 
@@ -1542,17 +1543,17 @@ c     $          -0.01171875D0 /
 
              do j = cblo(2), cbhi(2)
              do i = cblo(1), cbhi(1)
-                ctmp2(i,j,0) = 2.d0*(cL(-2)*crse(i,j,k-2,n) 
-     $               +               cL(-1)*crse(i,j,k-1,n)
-     $               +               cL( 0)*crse(i,j,k  ,n)
-     $               +               cL( 1)*crse(i,j,k+1,n)
-     $               +               cL( 2)*crse(i,j,k+2,n))
+                ctmp2(i,j,0) = 2.d0*(cL(-2)*crse(i,j,k-2,n) &
+                     +               cL(-1)*crse(i,j,k-1,n) &
+                     +               cL( 0)*crse(i,j,k  ,n) &
+                     +               cL( 1)*crse(i,j,k+1,n) &
+                     +               cL( 2)*crse(i,j,k+2,n))
                 ctmp2(i,j,1) = 2.d0*crse(i,j,k,n) - ctmp2(i,j,0)
-c$$$                ctmp2(i,j,1) = 2.d0*(cR(-2)*crse(i,j,k-2,n) 
-c$$$     $               +               cR(-1)*crse(i,j,k-1,n)
-c$$$     $               +               cR( 0)*crse(i,j,k  ,n)
-c$$$     $               +               cR( 1)*crse(i,j,k+1,n)
-c$$$     $               +               cR( 2)*crse(i,j,k+2,n))
+!$$$                ctmp2(i,j,1) = 2.d0*(cR(-2)*crse(i,j,k-2,n) & 
+!$$$                     +               cR(-1)*crse(i,j,k-1,n) &
+!$$$                     +               cR( 0)*crse(i,j,k  ,n) &
+!$$$                     +               cR( 1)*crse(i,j,k+1,n) &
+!$$$                     +               cR( 2)*crse(i,j,k+2,n))
              enddo
              enddo
 
@@ -1563,17 +1564,17 @@ c$$$     $               +               cR( 2)*crse(i,j,k+2,n))
                    do j = cb2lo(2), cb2hi(2)
 
                       do i = cblo(1), cbhi(1)
-                         ctmp(i,0) = 2.d0*(cL(-2)*ctmp2(i,j-2,irz) 
-     $                        +            cL(-1)*ctmp2(i,j-1,irz)
-     $                        +            cL( 0)*ctmp2(i,j  ,irz)
-     $                        +            cL( 1)*ctmp2(i,j+1,irz)
-     $                        +            cL( 2)*ctmp2(i,j+2,irz))
+                         ctmp(i,0) = 2.d0*(cL(-2)*ctmp2(i,j-2,irz) & 
+                              +            cL(-1)*ctmp2(i,j-1,irz) &
+                              +            cL( 0)*ctmp2(i,j  ,irz) &
+                              +            cL( 1)*ctmp2(i,j+1,irz) &
+                              +            cL( 2)*ctmp2(i,j+2,irz))
                          ctmp(i,1) = 2.d0*ctmp2(i,j,irz) - ctmp(i,0)
-c$$$                         ctmp(i,1) = 2.d0*(cR(-2)*ctmp2(i,j-2,irz) 
-c$$$     $                        +            cR(-1)*ctmp2(i,j-1,irz)
-c$$$     $                        +            cR( 0)*ctmp2(i,j  ,irz)
-c$$$     $                        +            cR( 1)*ctmp2(i,j+1,irz)
-c$$$     $                        +            cR( 2)*ctmp2(i,j+2,irz))
+!$$$                         ctmp(i,1) = 2.d0*(cR(-2)*ctmp2(i,j-2,irz) & 
+!$$$                              +            cR(-1)*ctmp2(i,j-1,irz) &
+!$$$                              +            cR( 0)*ctmp2(i,j  ,irz) &
+!$$$                              +            cR( 1)*ctmp2(i,j+1,irz) &
+!$$$                              +            cR( 2)*ctmp2(i,j+2,irz))
                       enddo
 
                       do iry = 0, 1
@@ -1582,17 +1583,17 @@ c$$$     $                        +            cR( 2)*ctmp2(i,j+2,irz))
                          if (jj.ge.fblo(2).and.jj.le.fbhi(2)) then
                             do i = cb2lo(1), cb2hi(1)
                                ii = 2*i
-                               ftmp(ii  ) = 2.d0*(cL(-2)*ctmp(i-2,iry) 
-     $                              +             cL(-1)*ctmp(i-1,iry)
-     $                              +             cL( 0)*ctmp(i  ,iry)
-     $                              +             cL( 1)*ctmp(i+1,iry)
-     $                              +             cL( 2)*ctmp(i+2,iry))
+                               ftmp(ii  ) = 2.d0*(cL(-2)*ctmp(i-2,iry) &
+                                    +             cL(-1)*ctmp(i-1,iry) &
+                                    +             cL( 0)*ctmp(i  ,iry) &
+                                    +             cL( 1)*ctmp(i+1,iry) &
+                                    +             cL( 2)*ctmp(i+2,iry))
                                ftmp(ii+1) = 2.d0*ctmp(i,iry) - ftmp(ii)
-c$$$                               ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) 
-c$$$     $                              +             cR(-1)*ctmp(i-1,iry)
-c$$$     $                              +             cR( 0)*ctmp(i  ,iry)
-c$$$     $                              +             cR( 1)*ctmp(i+1,iry)
-c$$$     $                              +             cR( 2)*ctmp(i+2,iry))
+!$$$                               ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) &
+!$$$                                    +             cR(-1)*ctmp(i-1,iry) &
+!$$$                                    +             cR( 0)*ctmp(i  ,iry) &
+!$$$                                    +             cR( 1)*ctmp(i+1,iry) &
+!$$$                                    +             cR( 2)*ctmp(i+2,iry))
                             enddo
                             do ii = fblo(1), fbhi(1)
                                fine(ii,jj,kk,n) = ftmp(ii)
@@ -1609,7 +1610,7 @@ c$$$     $                              +             cR( 2)*ctmp(i+2,iry))
           enddo  ! do n
 
        else if (lratiox.eq.4 .and. lratioy.eq.4 .and. lratioz.eq.4) then
-c      todo
+!      todo
           write(6,*) 'FORT_QUARTINTERP: refinement ratio = 4 TODO'
           stop
        else
@@ -1617,4 +1618,4 @@ c      todo
           stop
        endif
 
-       end
+     end subroutine FORT_QUARTINTERP

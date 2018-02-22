@@ -7,22 +7,25 @@
 #include <AMReX_CONSTANTS.H>
 #include <AMReX_REAL.H>
 
-c     polyInterpCoeff:
-c  
-c     This routine returns the Lagrange interpolating coefficients for a
-c     polynomial through N points, evaluated at xInt (see Numerical Recipes,
-c     v2, p102, e.g.):
-c
-c            (x-x2)(x-x3)...(x-xN)              (x-x1)(x-x2)...(x-x(N-1))
-c    P(x) = ----------------------- y1  + ... + ------------------------  yN
-c           (x1-x2)(x1-x3)...(x1-xN)            (x1-x2)(x1-x3)...(x1-xN)
-c
-c     P(xInt) = sum_(i=1)^(N) y[i]*c[i]
-c
-      subroutine polyInterpCoeff(xInt, x, N, c)
+!     polyInterpCoeff:
+!  
+!     This routine returns the Lagrange interpolating coefficients for a
+!     polynomial through N points, evaluated at xInt (see Numerical Recipes,
+!     v2, p102, e.g.):
+!
+!            (x-x2)(x-x3)...(x-xN)              (x-x1)(x-x2)...(x-x(N-1))
+!    P(x) = ----------------------- y1  + ... + ------------------------  yN
+!           (x1-x2)(x1-x3)...(x1-xN)            (x1-x2)(x1-x3)...(x1-xN)
+!
+!     P(xInt) = sum_(i=1)^(N) y[i]*c[i]
+!
+    subroutine polyInterpCoeff(xInt, x, N, c)
+
       implicit none
+
       integer N, i, j
       REAL_T xInt, x(N), c(N), num, den
+
       do j=1,N
          num = one
          den = one
@@ -39,5 +42,5 @@ c
 #endif         
          c(j) = num/den
       end do
-      return
-      end
+
+    end subroutine polyInterpCoeff
