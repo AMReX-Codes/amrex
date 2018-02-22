@@ -24,6 +24,9 @@ module cuda_module
 
   integer :: is_program_running = 1
 
+  ! Max block size in each direction
+  integer :: max_threads_dim(3)
+
   ! The current stream index
 
   integer :: stream_index
@@ -98,6 +101,8 @@ contains
     if (prop%major < 3) then
        call bl_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
     end if
+
+    max_threads_dim = prop%maxThreadsDim
 
     ! Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
 
@@ -275,9 +280,9 @@ contains
 
     else
 
-       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z)))
-       numThreads % y = max(numThreadsMin % y, min(tile_size(2), CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z)))
-       numThreads % z = max(numThreadsMin % z, min(tile_size(3), CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   )))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), min(max_threads_dim(1), CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z))))
+       numThreads % y = max(numThreadsMin % y, min(tile_size(2), min(max_threads_dim(2), CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z))))
+       numThreads % z = max(numThreadsMin % z, min(tile_size(3), min(max_threads_dim(3), CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   ))))
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
        numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
