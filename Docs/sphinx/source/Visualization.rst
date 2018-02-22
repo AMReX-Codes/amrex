@@ -193,14 +193,14 @@ on-screen instructions.
 ParaView
 ========
 
-The open source visualization package ParaView v5.3.0 can be used to view 3D
-plotfiles, and v5.4.0 can be used to view particle data. Download the package
+The open source visualization package ParaView v5.5 can be used to view 3D
+plotfiles, and particle data. Download the package
 at https://www.paraview.org/.
 
 To open a single plotfile (for example, you could run the
 ``HeatEquation_EX1_C`` in 3D):
 
-#. Run ParaView v5.3.0, then select “File” :math:`\rightarrow` “Open”.
+#. Run ParaView v5.5, then select “File” :math:`\rightarrow` “Open”.
 
 #. Navigate to the plotfile directory, and manually type in “Header”.
     will ask you about the file type – choose “Boxlib 3D Files”
@@ -234,21 +234,34 @@ To open a single plotfile (for example, you could run the
 
    \end{center}
 
-To visualize particles (for example, you could run the ``ShortRangeParticles``
-example):
+To visualize particle data within plofile directories (for example, you could run the
+``ShortRangeParticles`` example):
 
-#. First, we have to convert the AMReX particle data to a format ParaView can
-   read. In the run directory, there will be a sequence of particle files
-   (particles00000, particles00001, :math:`\cdots`, particles01000).
+#. Run ParaView v5.5, and select  then  “File” :math:`\rightarrow` “Open”. You
+   will see a combined “plt..” group. Click on “+” to expand the group, if you
+   want inspect the files in the group. You can select an
+   individual plotfile directory or select a group of directories to read them
+   a time series, as shown in :numref:`fig:ParaView_filegroup`, and click OK.
 
-#. Run the script,
-   ``amrex/Tools/Py_util/amrex_particles_to_vtp/amrex_particles_to_vtp.py`` as
-   follows, e.g., ``python amrex_particles_to_vtp.py 0 1000 particles``. You
-   will generate a sequence of .vtp files.
+.. raw:: latex
 
-#. Run ParaView v5.4.0, and select “File” :math:`\rightarrow` “Open”. You will
-   see a combined “particles..vtp” file grouping the files. Select that and
-   click OK.
+   \begin{center}
+
+.. _fig:ParaView_filegroup:
+
+.. figure:: ./Visualization/ParaView_filegroup.png
+   :width: 3.1in
+
+   : File dialog in ParaView showing a group of plotfile directories selected
+
+.. raw:: latex
+
+   \end{center}
+
+
+#. The “Properties” panel in ParaView allows you to specify the “Particle Type”,
+   which defaults to “particles”. Using the “Properties” panel, you can also
+   choose which point arrays to read.
 
 #. Click “Apply” and under “Representation” select “Point Gaussian”.
 

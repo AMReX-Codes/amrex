@@ -21,6 +21,7 @@
 #include "AMReX_BaseFab.H"
 #include "AMReX_Moments.H"
 #include "AMReX_IrregNode.H"
+#include "AMReX_STLIF.H"
 #include "AMReX_GeometryService.H"
 #include <array>
 
@@ -148,6 +149,10 @@ namespace amrex
     Real m_threshold;
     Real m_thrshdVoF; //CP, threshold to remove very small VoFs.
 
+    //for STL-based geometry descriptions
+    //this just an address.  not managed by this object (do not delete)
+    const STLIF* m_stlIF;
+    mutable bool m_STLBoxSet;
 
     std::shared_ptr<const BaseIF> m_implicitFunction;
 

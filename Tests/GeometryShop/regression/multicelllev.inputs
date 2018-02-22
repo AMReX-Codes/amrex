@@ -16,6 +16,9 @@ start_pt = 0.123456789
 #start_pt = 4.0
 ellipse_radius = 0.04 0.2 0.1
 ellipse_center = 0.4 0.5 0.5
+sphere_radius = 0.0625
+sphere_center = 0.25 0.25 0.5
+
 
 # 0 for all regular, 1 for ramp, 2 for slab, 5 for sphere, 55 ellipse, 77 flat plate
-which_geom = 55
+which_geom = 5

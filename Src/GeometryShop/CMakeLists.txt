@@ -53,12 +53,21 @@ list ( APPEND CXXSRC     AMReX_IrregFAB.cpp AMReX_EBFluxFactory.cpp AMReX_IrregF
 list ( APPEND ALLHEADERS AMReX_EBNormalizeByVolumeFraction.H   AMReX_EBLoHiCenter.H   AMReX_FabArrayIO.H )
 list ( APPEND CXXSRC     AMReX_EBNormalizeByVolumeFraction.cpp AMReX_EBLoHiCenter.cpp AMReX_FabArrayIO.cpp )
 
-
 list ( APPEND ALLHEADERS AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H AMReX_ExtrudeIF.H )
 list ( APPEND CXXSRC     AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp AMReX_ExtrudeIF.cpp )
 
 list ( APPEND ALLHEADERS AMReX_PolynomialIF.H   )
 list ( APPEND CXXSRC     AMReX_PolynomialIF.cpp )
+
+list ( APPEND ALLHEADERS AMReX_STLAsciiReader.H    AMReX_STLExplorer.H )
+list ( APPEND ALLHEADERS AMReX_STLMesh.H   AMReX_STLBox.H )
+list ( APPEND ALLHEADERS AMReX_STLIF.H	     AMReX_STLUtil.H   AMReX_STLReader.H )
+
+list ( APPEND CXXSRC     AMReX_STLAsciiReader.cpp  AMReX_STLExplorer.cpp )
+list ( APPEND CXXSRC     AMReX_STLMesh.cpp AMReX_STLBox.cpp	  AMReX_STLIF.cpp    AMReX_STLUtil.cpp )
+
+list ( APPEND ALLHEADERS AMReX_CellEdge.H   AMReX_KDTree.H   AMReX_PXStuff.H  	AMReX_KDStruct.H )
+list ( APPEND CXXSRC     AMReX_CellEdge.cpp AMReX_KDTree.cpp AMReX_PXStuff.cpp )
 
 # 
 #  Collect sources

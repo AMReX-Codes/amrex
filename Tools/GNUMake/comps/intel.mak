@@ -13,9 +13,9 @@ F90FLAGS =
 
 ########################################################################
 
-intel_version := $(shell $(CXX) -dumpversion)
+intel_version = $(shell $(CXX) -dumpversion)
 
-COMP_VERSION := $(intel_version)
+COMP_VERSION = $(intel_version)
 
 ########################################################################
 
