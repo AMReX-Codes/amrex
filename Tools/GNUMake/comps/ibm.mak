@@ -59,9 +59,9 @@ F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
 GENERIC_COMP_FLAGS =
 
 
-#ifeq ($(USE_OMP),TRUE)
-#  GENERIC_COMP_FLAGS += -fopenmp
-#endif
+ifeq ($(USE_OMP),TRUE)
+  GENERIC_COMP_FLAGS += -qsmp=omp
+endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)
 CFLAGS   += $(GENERIC_COMP_FLAGS)
