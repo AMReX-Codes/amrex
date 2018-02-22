@@ -9,7 +9,7 @@ C$(BNDRYLIB_BASE)_headers += AMReX_FabSet.H AMReX_BndryRegister.H AMReX_Mask.H A
 
 F$(BNDRYLIB_BASE)_headers += AMReX_INTERPBNDRYDATA_F.H
 
-F$(BNDRYLIB_BASE)_sources += AMReX_INTERPBNDRYDATA_$(DIM)D.F AMReX_LO_UTIL.F
+F90$(BNDRYLIB_BASE)_sources += AMReX_INTERPBNDRYDATA_$(DIM)D.F90 AMReX_LO_UTIL.F90
 
 CEXE_headers += AMReX_YAFluxRegister_F.H
 CEXE_headers += AMReX_YAFluxRegister.H

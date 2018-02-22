@@ -9,11 +9,13 @@
 #include "AMReX_MG_F.H"
 #include "AMReX_ArrayLim.H"
 
-      subroutine FORT_AVERAGE (
-     $     c, DIMS(c),
-     $     f, DIMS(f),
-     $     lo, hi, nc)
+    subroutine FORT_AVERAGE ( &
+           c, DIMS(c), &
+           f, DIMS(f), &
+           lo, hi, nc)
+
       implicit none
+
       integer nc
       integer DIMDEC(c)
       integer DIMDEC(f)
@@ -34,25 +36,27 @@
                do i = lo(1), hi(1)
                   i2 = 2*i
                   i2p1 = i2 + 1
-                  c(i,j,k,n) =  (
-     $                 + f(i2p1,j2p1,k2  ,n) + f(i2,j2p1,k2  ,n)
-     $                 + f(i2p1,j2  ,k2  ,n) + f(i2,j2  ,k2  ,n)
-     $                 + f(i2p1,j2p1,k2p1,n) + f(i2,j2p1,k2p1,n)
-     $                 + f(i2p1,j2  ,k2p1,n) + f(i2,j2  ,k2p1,n)
-     $                 )*eighth
+                  c(i,j,k,n) =  ( &
+                       + f(i2p1,j2p1,k2  ,n) + f(i2,j2p1,k2  ,n) &
+                       + f(i2p1,j2  ,k2  ,n) + f(i2,j2  ,k2  ,n) &
+                       + f(i2p1,j2p1,k2p1,n) + f(i2,j2p1,k2p1,n) &
+                       + f(i2p1,j2  ,k2p1,n) + f(i2,j2  ,k2p1,n) &
+                       )*eighth
                end do
             end do
          end do
       end do
 
-      end
+    end subroutine FORT_AVERAGE
 
 
-      subroutine FORT_INTERP (
-     $     f, DIMS(f),
-     $     c, DIMS(c),
-     $     lo, hi, nc)
+    subroutine FORT_INTERP ( &
+           f, DIMS(f), &
+           c, DIMS(c), &
+           lo, hi, nc)
+
       implicit none
+
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)
@@ -93,4 +97,4 @@
          end do
       end do
 
-      end
+    end subroutine FORT_INTERP

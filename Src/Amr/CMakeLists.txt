@@ -15,7 +15,7 @@ list ( APPEND CXXSRC     AMReX_StateDescriptor.cpp AMReX_AuxBoundaryData.cpp AMR
 
 list ( APPEND F90SRC     AMReX_extrapolater_${DIM}d.f90)
 
-list ( APPEND F77SRC     AMReX_ARRAYLIM_${DIM}D.F)
+list ( APPEND F90SRC     AMReX_ARRAYLIM_${DIM}D.F90)
 
 #
 # This is an option to display arrays in GDB. It is for debugging

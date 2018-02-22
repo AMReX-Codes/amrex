@@ -17,7 +17,7 @@ list ( APPEND ALLHEADERS  AMReX_FillPatchUtil.H   AMReX_FluxRegister.H )
 list ( APPEND CXXSRC      AMReX_Interpolater.cpp AMReX_TagBox.cpp AMReX_AmrMesh.cpp )
 list ( APPEND ALLHEADERS  AMReX_Interpolater.H   AMReX_TagBox.H   AMReX_AmrMesh.H   )
 
-list ( APPEND F77SRC      AMReX_FLUXREG_${DIM}D.F  AMReX_INTERP_${DIM}D.F )
+list ( APPEND F90SRC      AMReX_FLUXREG_${DIM}D.F90  AMReX_INTERP_${DIM}D.F90 )
 list ( APPEND ALLHEADERS  AMReX_FLUXREG_F.H        AMReX_INTERP_F.H )
 
 list ( APPEND F90SRC      AMReX_FillPatchUtil_${DIM}d.F90 )
