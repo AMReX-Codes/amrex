@@ -113,10 +113,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         m_factory[0].emplace_back(new FArrayBoxFactory());
     }
 
-#ifdef AMREX_USE_EB
-    bool has_eb = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
-#endif
-
     m_domain_covered.resize(m_num_amr_levels, false);
     auto npts0 = m_grids[0][0].numPts();
     m_domain_covered[0] = (npts0 == m_geom[0][0].Domain().numPts());
@@ -161,12 +157,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         boundboxes.push_back(bbx);
         agg_flag.push_back(false);
         while (    dbx.coarsenable(mg_coarsen_ratio,mg_box_min_width)
-               and bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width)
-#ifdef AMREX_USE_EB
-                   // either no eb or no multi-valued cells
-               and (!has_eb or EBTower::validDomain(amrex::coarsen(dbx,mg_coarsen_ratio)))
-#endif
-              )
+               and bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
         {
             dbx.coarsen(mg_coarsen_ratio);
             domainboxes.push_back(dbx);
@@ -217,12 +208,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                                                             *info.con_grid_size));
         }
         while (a_geom[0].Domain().coarsenable(rr)
-               and a_grids[0].coarsenable(rr, mg_box_min_width)
-#ifdef AMREX_USE_EB
-                   // either no eb or no multi-valued cells
-               and (!has_eb or EBTower::validDomain(amrex::coarsen(a_geom[0].Domain(),rr)))
-#endif
-              )
+               and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
             m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
             
@@ -276,21 +262,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     {
         for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-#ifdef AMREX_USE_EB
-            if (has_eb)
-            {
-                m_factory[amrlev].emplace_back(new EBFArrayBoxFactory(m_geom[amrlev][mglev],
-                                                                      m_grids[amrlev][mglev],
-                                                                      m_dmap[amrlev][mglev],
-                                                                      {2,1,1},
-                                                                      EBSupport::full));
-
-            }
-            else
-#endif
-            {
-                m_factory[amrlev].emplace_back(new FArrayBoxFactory());
-            }
+            m_factory[amrlev].emplace_back(new FArrayBoxFactory());
         }
     }
 }
