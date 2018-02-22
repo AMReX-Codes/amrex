@@ -19,7 +19,6 @@ module amrex_constants_module
   real(kind = amrex_real), parameter :: TWELVE  = 12.0_amrex_real
   real(kind = amrex_real), parameter :: FIFTEEN = 15.0_amrex_real
   real(kind = amrex_real), parameter :: SIXTEEN = 16.0_amrex_real
-  real(kind = amrex_real), parameter :: TWENTYFOUR = 24.0_amrex_real
 
   real(kind = amrex_real), parameter :: HALF    = 0.5_amrex_real
   real(kind = amrex_real), parameter :: THIRD   = ONE/THREE
@@ -31,7 +30,6 @@ module amrex_constants_module
   real(kind = amrex_real), parameter :: NINETH  = ONE/NINE
   real(kind = amrex_real), parameter :: TENTH   = 0.10_amrex_real
   real(kind = amrex_real), parameter :: TWELFTH = ONE/TWELVE
-  real(kind = amrex_real), parameter :: TWENTYFOURTH = ONE/TWENTYFOUR
 
   real(kind = amrex_real), parameter :: TWO3RD    = TWO/THREE
   real(kind = amrex_real), parameter :: FOUR3RD   = FOUR/THREE
