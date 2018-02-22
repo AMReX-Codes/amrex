@@ -78,16 +78,13 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     m_integral.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_connection[amrlev].resize(m_num_mg_levels[amrlev]);
         m_integral[amrlev].reset
             (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1));
         m_integral[amrlev]->setVal(0.0);
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
-        {
-            m_connection[amrlev][mglev].reset
-                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], ncomp_c, 1));
-            m_connection[amrlev][mglev]->setVal(1.0);
-        }
+
+        m_connection[amrlev].reset
+            (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_c, 1));
+        m_connection[amrlev]->setVal(1.0);
     }
 #endif
 
@@ -735,6 +732,8 @@ MLNodeLaplacian::buildStencil ()
     const int ncomp = (AMREX_SPACEDIM == 2) ? 5 : 15;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
                                      "MLNodeLaplacian::buildStencil: 1d not supported");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Geometry::IsRZ(),
+                                     "MLNodeLaplacian::buildStencil: cylindrical not supported for RAP");
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -754,7 +753,7 @@ MLNodeLaplacian::buildStencil ()
 #ifdef AMREX_USE_EB
             auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
             const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-            const MultiFab* conn = (factory) ? m_connection[amrlev][0].get() : nullptr;
+            const MultiFab* conn = (factory) ? m_connection[amrlev].get() : nullptr;
 #endif
 
 #ifdef _OPENMP
@@ -1133,10 +1132,6 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
     const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
-#ifdef AMREX_USE_EB
-    const auto& conn = *m_connection[amrlev][mglev];
-#endif
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1159,18 +1154,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
             AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                          const FArrayBox& syfab = (*sigma[1])[mfi];,
                          const FArrayBox& szfab = (*sigma[2])[mfi];);
-#ifdef AMREX_USE_EB
-            amrex_mlndlap_adotx_ha_eb(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(yfab),
-                                      BL_TO_FORTRAN_ANYD(xfab),
-                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                   BL_TO_FORTRAN_ANYD(syfab),
-                                                   BL_TO_FORTRAN_ANYD(szfab)),
-                                      BL_TO_FORTRAN_ANYD(conn[mfi]),
-                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                      dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                      m_lobc.data(), m_hibc.data());
-#else
+
             amrex_mlndlap_adotx_ha(BL_TO_FORTRAN_BOX(bx),
                                    BL_TO_FORTRAN_ANYD(yfab),
                                    BL_TO_FORTRAN_ANYD(xfab),
@@ -1180,21 +1164,11 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                    dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                    m_lobc.data(), m_hibc.data());
-#endif
         }
         else
         {
             const FArrayBox& sfab = (*sigma[0])[mfi];
-#ifdef AMREX_USE_EB
-            amrex_mlndlap_adotx_aa_eb(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(yfab),
-                                      BL_TO_FORTRAN_ANYD(xfab),
-                                      BL_TO_FORTRAN_ANYD(sfab),
-                                      BL_TO_FORTRAN_ANYD(conn[mfi]),
-                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                      dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                      m_lobc.data(), m_hibc.data());
-#else
+
             amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
                                    BL_TO_FORTRAN_ANYD(yfab),
                                    BL_TO_FORTRAN_ANYD(xfab),
@@ -1202,7 +1176,6 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                    dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                    m_lobc.data(), m_hibc.data());
-#endif
         }
     }
 }
@@ -1248,18 +1221,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                              const FArrayBox& syfab = (*sigma[1])[mfi];,
                              const FArrayBox& szfab = (*sigma[2])[mfi];);
-#ifdef AMREX_USE_EB
-                amrex_mlndlap_gauss_seidel_ha_eb(BL_TO_FORTRAN_BOX(bx),
-                                              BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                              BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                           BL_TO_FORTRAN_ANYD(syfab),
-                                                           BL_TO_FORTRAN_ANYD(szfab)),
-                                              BL_TO_FORTRAN_ANYD((*m_connection[amrlev][mglev])[mfi]),
-                                              BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                              dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                              m_lobc.data(), m_hibc.data());
-#else
+
                 amrex_mlndlap_gauss_seidel_ha(BL_TO_FORTRAN_BOX(bx),
                                               BL_TO_FORTRAN_ANYD(sol[mfi]),
                                               BL_TO_FORTRAN_ANYD(rhs[mfi]),
@@ -1269,7 +1231,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                               dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                               m_lobc.data(), m_hibc.data());
-#endif
             }
         }
         else
@@ -1281,16 +1242,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             {
                 const Box& bx = mfi.validbox();
                 const FArrayBox& sfab = (*sigma[0])[mfi];
-#ifdef AMREX_USE_EB
-                amrex_mlndlap_gauss_seidel_aa_eb(BL_TO_FORTRAN_BOX(bx),
-                                              BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                              BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                              BL_TO_FORTRAN_ANYD(sfab),
-                                              BL_TO_FORTRAN_ANYD((*m_connection[amrlev][mglev])[mfi]),
-                                              BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                              dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                              m_lobc.data(), m_hibc.data());
-#else
+
                 amrex_mlndlap_gauss_seidel_aa(BL_TO_FORTRAN_BOX(bx),
                                               BL_TO_FORTRAN_ANYD(sol[mfi]),
                                               BL_TO_FORTRAN_ANYD(rhs[mfi]),
@@ -1298,7 +1250,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                               dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                               m_lobc.data(), m_hibc.data());
-#endif
             }
         }
 
@@ -1342,19 +1293,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                              const FArrayBox& syfab = (*sigma[1])[mfi];,
                              const FArrayBox& szfab = (*sigma[2])[mfi];);
-#ifdef AMREX_USE_EB
-                amrex_mlndlap_jacobi_ha_eb(BL_TO_FORTRAN_BOX(bx),
-                                           BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                           BL_TO_FORTRAN_ANYD(Ax[mfi]),
-                                           BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                           AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                        BL_TO_FORTRAN_ANYD(syfab),
-                                                        BL_TO_FORTRAN_ANYD(szfab)),
-                                           BL_TO_FORTRAN_ANYD((*m_connection[amrlev][mglev])[mfi]),
-                                           BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                           dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                           m_lobc.data(), m_hibc.data());
-#else
+
                 amrex_mlndlap_jacobi_ha(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(sol[mfi]),
                                         BL_TO_FORTRAN_ANYD(Ax[mfi]),
@@ -1365,7 +1304,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                         dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                         m_lobc.data(), m_hibc.data());
-#endif
             }
         }
         else
@@ -1377,17 +1315,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             {
                 const Box& bx = mfi.tilebox();
                 const FArrayBox& sfab = (*sigma[0])[mfi];
-#ifdef AMREX_USE_EB
-                amrex_mlndlap_jacobi_aa_eb(BL_TO_FORTRAN_BOX(bx),
-                                           BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                           BL_TO_FORTRAN_ANYD(Ax[mfi]),
-                                           BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                           BL_TO_FORTRAN_ANYD(sfab),
-                                           BL_TO_FORTRAN_ANYD((*m_connection[amrlev][mglev])[mfi]),
-                                           BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                           dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                           m_lobc.data(), m_hibc.data());
-#else
+
                 amrex_mlndlap_jacobi_aa(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(sol[mfi]),
                                         BL_TO_FORTRAN_ANYD(Ax[mfi]),
@@ -1396,7 +1324,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                         dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                         m_lobc.data(), m_hibc.data());
-#endif
             }
         }
     }
@@ -1824,51 +1751,42 @@ MLNodeLaplacian::buildConnection ()
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
-        {
-            auto& conn = *m_connection[amrlev][mglev];
-            MultiFab* intg = (mglev == 0) ? m_integral[amrlev].get() : nullptr;
-            const int ncomp = conn.nComp();
+        auto& conn = *m_connection[amrlev];
+        MultiFab* intg = m_integral[amrlev].get();
+        const int ncomp = conn.nComp();
 
-            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-            if (factory)
-            {
-                const auto& flags = factory->getMultiEBCellFlagFab();
-                const auto& vfrac = factory->getVolFrac();
-                const auto& area = factory->getAreaFrac();
-                const auto& bcent = factory->getBndryCent();
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        if (factory)
+        {
+            const auto& flags = factory->getMultiEBCellFlagFab();
+            const auto& vfrac = factory->getVolFrac();
+            const auto& area = factory->getAreaFrac();
+            const auto& bcent = factory->getBndryCent();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-                {
-                    FArrayBox gfab_tmp;
-                    for (MFIter mfi(conn, MFItInfo().EnableTiling().SetDynamic(true));
-                         mfi.isValid(); ++mfi)
-                    {
-                        const Box& bx = mfi.growntilebox();
-                        auto& cfab = conn[mfi];
-
-                        auto& gfab = (intg) ? (*intg)[mfi] : gfab_tmp;
-                        if (!intg) gfab.resize(bx, AMREX_SPACEDIM);
-
-                        const auto& flag = flags[mfi];
-                        auto typ = flag.getType(bx);
-
-                        if (typ == FabType::covered) {
-                            cfab.setVal(0.0, bx, 0, ncomp);
-                            gfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
-                        } else if (typ == FabType::singlevalued) {
-                            amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
-                                                         BL_TO_FORTRAN_ANYD(cfab),
-                                                         BL_TO_FORTRAN_ANYD(gfab),
-                                                         BL_TO_FORTRAN_ANYD(flag),
-                                                         BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                                      BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                                      BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                                         BL_TO_FORTRAN_ANYD(bcent[mfi]));
-                        }
-                    }
+            for (MFIter mfi(conn, MFItInfo().EnableTiling().SetDynamic(true));
+                 mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox();
+                auto& cfab = conn[mfi];
+                auto& gfab = (*intg)[mfi];                    
+                const auto& flag = flags[mfi];
+                auto typ = flag.getType(bx);
+                
+                if (typ == FabType::covered) {
+                    cfab.setVal(0.0, bx, 0, ncomp);
+                    gfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+                } else if (typ == FabType::singlevalued) {
+                    amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
+                                                 BL_TO_FORTRAN_ANYD(cfab),
+                                                 BL_TO_FORTRAN_ANYD(gfab),
+                                                 BL_TO_FORTRAN_ANYD(flag),
+                                                 BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                              BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                              BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                                 BL_TO_FORTRAN_ANYD(bcent[mfi]));
                 }
             }
         }

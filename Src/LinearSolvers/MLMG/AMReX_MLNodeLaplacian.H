@@ -110,7 +110,7 @@ private:
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab
-    Vector<Vector<std::unique_ptr<MultiFab> > > m_connection;
+    Vector<std::unique_ptr<MultiFab> > m_connection;
     Vector<std::unique_ptr<MultiFab> > m_integral;
     bool m_connection_built = false;
 #endif
