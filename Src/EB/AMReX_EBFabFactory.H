@@ -37,7 +37,7 @@ public:
 
     const MultiFab& getVolFrac () const { return m_ebdc->getVolFrac(); }
 
-    const MultiCutFab& getCentroid () const { return m_ebdc->getCentroid(); }
+//    const MultiCutFab& getCentroid () const { return m_ebdc->getCentroid(); }
 
     const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
 
