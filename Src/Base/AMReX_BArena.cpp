@@ -15,10 +15,10 @@ amrex::BArena::alloc (std::size_t _sz)
 	gpu_malloc_managed(&pt, &_sz);
 	const int device = Device::deviceId();
 	if (device_set_readonly)
-	    mem_advise_set_readonly(pt, _sz);
+	    Device::mem_advise_set_readonly(pt, _sz);
 	if (device_set_preferred) {
 	    const int device = Device::deviceId();
-	    mem_advise_set_preferred(pt, _sz, &device);
+	    Device::mem_advise_set_preferred(pt, _sz, device);
 	}
 
     }

@@ -369,6 +369,24 @@ amrex::Device::device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::s
 }
 
 void
+amrex::Device::mem_advise_set_preferred(void* p, const std::size_t sz, const int device) {
+
+#ifdef AMREX_USE_CUDA
+    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
+#endif
+
+}
+
+void
+amrex::Device::mem_advise_set_readonly(void* p, const std::size_t sz) {
+
+#ifdef AMReX_USE_CUDA
+    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+#endif
+
+}
+
+void
 amrex::Device::start_profiler() {
 
 #ifdef AMREX_USE_CUDA
