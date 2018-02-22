@@ -48,7 +48,7 @@ module amrex_mlnodelap_2d_module
        ! sync residual
        amrex_mlndlap_zero_fine
 
-       ! RAP
+  ! RAP
   public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
        amrex_mlndlap_adotx_sten, amrex_mlndlap_gauss_seidel_sten, &
        amrex_mlndlap_jacobi_sten, amrex_mlndlap_interpolation_rap, &
@@ -226,14 +226,14 @@ contains
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              crse(i,j) = (fine(2*i,2*j)+fine(2*i,2*j+1))*(fine(2*i+1,2*j)+fine(2*i+1,2*j+1))/ &
-                  (fine(2*i,2*j)+fine(2*i+1,2*j)+fine(2*i,2*j+1)+fine(2*i+1,2*j+1) + 1.d-80)
+                  (fine(2*i,2*j)+fine(2*i+1,2*j)+fine(2*i,2*j+1)+fine(2*i+1,2*j+1))
           end do
        end do
     else
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              crse(i,j) = (fine(2*i,2*j)+fine(2*i+1,2*j))*(fine(2*i,2*j+1)+fine(2*i+1,2*j+1))/ &
-                  (fine(2*i,2*j)+fine(2*i+1,2*j)+fine(2*i,2*j+1)+fine(2*i+1,2*j+1) + 1.d-80)
+                  (fine(2*i,2*j)+fine(2*i+1,2*j)+fine(2*i,2*j+1)+fine(2*i+1,2*j+1))
           end do
        end do
     end if
@@ -581,7 +581,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, facsig
+    real(amrex_real) :: facx, facy
     real(amrex_real), parameter :: omega = 2.d0/3.d0
 
     facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
@@ -590,11 +590,9 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             facsig = facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
-                  +   facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j))
-             if (facsig .ne. 0.d0) then
-                sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) / facsig
-             end if
+             sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
+                  / (facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
+                  +  facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
           else
              sol(i,j) = 0.d0
           end if
@@ -617,7 +615,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, fac, facsig
+    real(amrex_real) :: facx, facy, fac
     real(amrex_real), parameter :: omega = 2.d0/3.d0
 
     facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
@@ -627,10 +625,8 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             facsig = fac*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
-             if (facsig .ne. 0.d0) then
-                sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) / facsig
-             end if
+             sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
+                  / (fac*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j)))
           else
              sol(i,j) = 0.d0
           end if
@@ -688,9 +684,7 @@ contains
                      &  + frzlo*(sol(i,j-1)-sol(i,j))
              end if
 
-             if (s0 .ne. 0.d0) then
-                sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
-             end if
+             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
           else
              sol(i,j) = 0.d0
           end if
@@ -744,9 +738,7 @@ contains
                      &  + frzlo*(sol(i,j-1)-sol(i,j))
              end if
 
-             if (s0 .ne. 0.d0) then
-                sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
-             end if
+             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
           else
              sol(i,j) = 0.d0
           end if
@@ -819,7 +811,7 @@ contains
              if (msk(i,j) .ne. dirichlet) then
                 wxm = sigx(i-1,j-1) + sigx(i-1,j)
                 wxp = sigx(i  ,j-1) + sigx(i  ,j)
-                fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp+1.d-80)
+                fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp)
              else
                 fine(i,j) = 0.d0
              end if
@@ -830,7 +822,7 @@ contains
              if (msk(i,j) .ne. dirichlet) then
                 wym = sigy(i-1,j-1) + sigy(i,j-1)
                 wyp = sigy(i-1,j  ) + sigy(i,j  )
-                fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp+1.d-80)
+                fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp)
              else
                 fine(i,j) = 0.d0
              end if
@@ -845,7 +837,7 @@ contains
           wym = sigy(i-1,j-1) + sigy(i  ,j-1)
           wyp = sigy(i-1,j  ) + sigy(i  ,j  )
           fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j) + wym*fine(i,j-1) + wyp*fine(i,j+1)) &
-               / (wxm+wxp+wym+wyp+1.d-80)
+               / (wxm+wxp+wym+wyp)
        end do
     end do
 
@@ -888,7 +880,7 @@ contains
              if (msk(i,j) .ne. dirichlet) then
                 wxm = sig(i-1,j-1) + sig(i-1,j)
                 wxp = sig(i  ,j-1) + sig(i  ,j)
-                fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp+1.d-80)
+                fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp)
              else
                 fine(i,j) = 0.d0
              end if
@@ -899,7 +891,7 @@ contains
              if (msk(i,j) .ne. dirichlet) then
                 wym = sig(i-1,j-1) + sig(i,j-1)
                 wyp = sig(i-1,j  ) + sig(i,j  )
-                fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp+1.d-80)
+                fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp)
              else
                 fine(i,j) = 0.d0
              end if
@@ -914,7 +906,7 @@ contains
           wym = sig(i-1,j-1) + sig(i  ,j-1)
           wyp = sig(i-1,j  ) + sig(i  ,j  )
           fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j) + wym*fine(i,j-1) + wyp*fine(i,j+1)) &
-               / (wxm+wxp+wym+wyp+1.d-80)
+               / (wxm+wxp+wym+wyp)
        end do
     end do
 
@@ -1465,10 +1457,6 @@ contains
 
     integer :: i, j
     real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fp, fm
-
-    if (is_rz) then
-       print *, "amrex_mlndlap_set_stencil: rz todo"
-    end if
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
