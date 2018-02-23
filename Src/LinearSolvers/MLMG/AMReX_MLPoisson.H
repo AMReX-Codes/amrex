@@ -44,6 +44,8 @@ protected:
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
 
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final;
+
     virtual Real getAScalar () const final { return  0.0; }
     virtual Real getBScalar () const final { return -1.0; }
     virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final { return nullptr; }
