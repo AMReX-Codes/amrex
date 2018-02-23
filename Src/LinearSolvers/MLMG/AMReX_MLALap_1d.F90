@@ -5,7 +5,7 @@ module amrex_mlalap_1d_module
   implicit none
 
   private
-  public :: amrex_mlalap_adotx, amrex_mlalap_flux, amrex_mlalap_gsrb
+  public :: amrex_mlalap_adotx, amrex_mlalap_normalize, amrex_mlalap_flux, amrex_mlalap_gsrb
 
 contains
 
@@ -21,6 +21,19 @@ contains
     real(amrex_real), intent(in) :: rc(rlo:rhi)
     real(amrex_real), intent(in) :: re(rlo:rhi+1)
   end subroutine amrex_mlalap_adotx
+
+
+  subroutine amrex_mlalap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
+       rc, re, rlo, rhi, dxinv, alpha, beta) bind(c,name='amrex_mlalap_normalize')
+    integer, dimension(1), intent(in) :: lo, hi, xlo, xhi, alo, ahi
+    integer, intent(in) :: rlo, rhi
+    real(amrex_real), intent(in) :: dxinv(1)
+    real(amrex_real), value, intent(in) :: alpha, beta
+    real(amrex_real), intent(inout) ::  x( xlo(1): xhi(1))
+    real(amrex_real), intent(in   ) ::  a( alo(1): ahi(1))    
+    real(amrex_real), intent(in) :: rc(rlo:rhi)
+    real(amrex_real), intent(in) :: re(rlo:rhi+1)
+  end subroutine amrex_mlalap_normalize
 
 
   subroutine amrex_mlalap_flux (lo, hi, fx, fxlo, fxhi, &
