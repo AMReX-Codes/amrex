@@ -248,6 +248,41 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 }
 
 void
+MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+    BL_PROFILE("MLABecLaplacian::normalize()");
+
+    const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
+    AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
+                 const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
+                 const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+        const FArrayBox& afab = acoef[mfi];
+        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
+                     const FArrayBox& byfab = bycoef[mfi];,
+                     const FArrayBox& bzfab = bzcoef[mfi];);
+
+        amrex_mlabeclap_normalize(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD(fab),
+                                  BL_TO_FORTRAN_ANYD(afab),
+                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
+                                               BL_TO_FORTRAN_ANYD(byfab),
+                                               BL_TO_FORTRAN_ANYD(bzfab)),
+                                  dxinv, m_a_scalar, m_b_scalar);
+
+    }
+}
+
+void
 MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
