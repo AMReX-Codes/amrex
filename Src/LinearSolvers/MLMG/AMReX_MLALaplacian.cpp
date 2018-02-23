@@ -179,6 +179,41 @@ MLALaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) 
 }
 
 void
+MLALaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+    BL_PROFILE("MLALaplacian::normalize()");
+
+    const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+        const FArrayBox& afab = acoef[mfi];
+
+#if (AMREX_SPACEDIM != 3)
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+#endif
+
+        amrex_mlalap_normalize(BL_TO_FORTRAN_BOX(bx),
+                               BL_TO_FORTRAN_ANYD(fab),
+                               BL_TO_FORTRAN_ANYD(afab),
+#if (AMREX_SPACEDIM != 3)
+                               rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
+#endif
+                               dxinv, m_a_scalar, m_b_scalar);
+
+    }
+}
+
+void
 MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
     BL_PROFILE("MLALaplacian::Fsmooth()");
