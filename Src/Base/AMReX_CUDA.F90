@@ -640,56 +640,6 @@ contains
 
 
 
-  subroutine mem_advise_set_preferred(p, sz, device) bind(c, name='mem_advise_set_preferred')
-
-    use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetPreferredLocation
-    use iso_c_binding, only: c_size_t, c_int
-
-    type(c_devptr), value :: p
-    integer(c_size_t), value :: sz
-    integer(c_int) :: device
-
-    integer :: cudaResult
-
-    ! Note: we do not error test in this subroutine because the error
-    ! code seems to be broken in PGI.
-
-#ifndef NO_CUDA_8
-    if ((.not. have_prop) .or. (have_prop .and. prop%concurrentManagedAccess == 1)) then
-       cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)
-    end if
-#endif
-
-  end subroutine mem_advise_set_preferred
-
-
-
-  subroutine mem_advise_set_readonly(p, sz) bind(c, name='mem_advise_set_readonly')
-
-    use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetReadMostly, cudaCpuDeviceId
-    use iso_c_binding, only: c_size_t
-
-    implicit none
-
-    type(c_devptr), value :: p
-    integer(c_size_t), value :: sz
-
-    integer :: cudaResult
-
-    ! Note: we do not error test in this subroutine because the error
-    ! code seems to be broken in PGI.
-
-    ! Note: the device argument in this call is ignored, so we arbitrarily pick the CPU.
-#ifndef NO_CUDA_8
-    if ((.not. have_prop) .or. (have_prop .and. prop%concurrentManagedAccess == 1)) then
-       cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)
-    end if
-#endif
-
-  end subroutine mem_advise_set_readonly
-
-
-
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
 
 #if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
