@@ -84,6 +84,34 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
 }
 
 void
+MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+#if (AMREX_SPACEDIM != 3)
+    BL_PROFILE("MLPoisson::normalize()");
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        amrex_mlpoisson_normalize(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD(fab),
+                                  rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
+                                  dxinv);                                     
+    }
+#endif
+}
+
+void
 MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
     BL_PROFILE("MLPoisson::Fsmooth()");
