@@ -41,8 +41,8 @@ ifeq ($(USE_MPI),TRUE)
 
   CC  := mpicc
   CXX := mpicxx
-  FC  := mpif90
-  F90 := mpif90
+  FC  := mpifort
+  F90 := mpifort
 
   # If we're using CUDA, make sure that the C/C++ MPI
   # wrappers are calling nvcc to compile the code.
