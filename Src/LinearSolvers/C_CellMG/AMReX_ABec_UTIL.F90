@@ -5,11 +5,11 @@
 
 #include <AMReX_REAL.H>
 
-c-----------------------------------------------------------------------
-c
-c     Tridiagonal solve
-c
-      subroutine tridiag(a,b,c,r,u,n)
+!-----------------------------------------------------------------------
+!
+!     Tridiagonal solve
+!
+    subroutine tridiag(a,b,c,r,u,n)
  
       integer n
       integer nmax
@@ -42,7 +42,4 @@ c
         u(j) = u(j) - gam(j+1)*u(j+1)
       end do
 
-      return
-      end
-
-      
+    end subroutine tridiag

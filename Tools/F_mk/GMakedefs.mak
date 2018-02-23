@@ -105,7 +105,7 @@ ifdef CUDA
   FPPFLAGS += -DCUDA
 
   ifndef CUDA_VERSION
-    CUDA_VERSION := 8.0
+    CUDA_VERSION := 9.0
   endif
 endif
 
