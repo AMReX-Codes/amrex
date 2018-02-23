@@ -59,11 +59,6 @@ else
   GENERIC_PGI_FLAGS += -noacc
 endif
 
-ifeq ($(USE_CUDA),TRUE)
-  CXXFLAGS += -Mcuda=cuda$(CUDA_VERSION)
-  CFLAGS   += -Mcuda=cuda$(CUDA_VERSION)
-endif
-
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)
 
