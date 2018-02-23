@@ -1330,6 +1330,57 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 }
 
 void
+MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+    BL_PROFILE("MLNodeLaplacian::normalize()");
+
+    const auto& sigma = m_sigma[amrlev][mglev];
+    const auto& stencil = m_stencil[amrlev][mglev];
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+        if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        {
+            amrex_mlndlap_normalize_sten(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(fab),
+                                         BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+        }
+        else if (m_use_harmonic_average && mglev > 0)
+        {
+            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                         const FArrayBox& syfab = (*sigma[1])[mfi];,
+                         const FArrayBox& szfab = (*sigma[2])[mfi];);
+
+            amrex_mlndlap_normalize_ha(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(fab),
+                                       AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                    BL_TO_FORTRAN_ANYD(syfab),
+                                                    BL_TO_FORTRAN_ANYD(szfab)),
+                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                       dxinv);
+        }
+        else
+        {
+            const FArrayBox& sfab = (*sigma[0])[mfi];
+
+            amrex_mlndlap_normalize_aa(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(fab),
+                                       BL_TO_FORTRAN_ANYD(sfab),
+                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                       dxinv);
+        }
+    }
+}
+
+void
 MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a_phi,
                                          const MultiFab& vold, const MultiFab* rhcc,
                                          const BoxArray& fine_grids, const IntVect& ref_ratio)

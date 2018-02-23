@@ -345,11 +345,11 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     BL_PROFILE_VAR_START(blp_down);
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
-        if (verbose > 1)        
+        if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << std::endl;
-            amrex::Print() << "   DN: Norm before smooth " << norm << std::endl;
+            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+                           << "   DN: Norm before smooth " << norm << "\n";
         }
 
         cor[amrlev][mglev]->setVal(0.0);
@@ -363,10 +363,10 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
 
-        if (verbose > 1)        
+        if (verbose >= 4)
         {
             Real norm = rescor[amrlev][mglev].norm0();
-            amrex::Print() << "   DN: Norm after  smooth " << norm << std::endl;
+            amrex::Print() << "   DN: Norm after  smooth " << norm << "\n";
         }
 
         // res_crse = R(rescor_fine); this provides res/b to the level below
@@ -377,11 +377,11 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     BL_PROFILE_VAR_START(blp_bottom);
     if (amrlev == 0)
     {
-        if (verbose > 1)        
+        if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev_bottom].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev_bottom << std::endl;
-            amrex::Print() << "   DN: Norm before bottom " << norm << std::endl;
+            amrex::Print() << "AT LEVEL "                << mglev_bottom << "\n"
+                           << "   DN: Norm before bottom " << norm << "\n";
         }
         bottomSolve();
     }
@@ -402,20 +402,20 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     {
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
-        if (verbose > 1)        
+        if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << std::endl;
-            amrex::Print() << "   UP: Norm before smooth " << norm << std::endl;
+            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+                           << "   UP: Norm before smooth " << norm << "\n";
         }
         for (int i = 0; i < nu2; ++i) {
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
         }
-        if (verbose > 1)        
+        if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << std::endl;
-            amrex::Print() << "   UP: Norm after  smooth " << norm << std::endl;
+            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+                           << "   UP: Norm after  smooth " << norm << "\n";
         }
     }
     BL_PROFILE_VAR_STOP(blp_up);
