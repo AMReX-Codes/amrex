@@ -88,6 +88,7 @@ MLCGSolver::solve (MultiFab&       sol,
     MultiFab t    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
+    Lp.normalize(amrlev, mglev, r);
 
     MultiFab::Copy(sorig,sol,0,0,1,0);
     MultiFab::Copy(rh,   r,  0,0,1,0);
@@ -134,6 +135,7 @@ MLCGSolver::solve (MultiFab&       sol,
         }
         MultiFab::Copy(ph,p,0,0,1,0);
         Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous);
+        Lp.normalize(amrlev, mglev, v);
 
         if ( Real rhTv = dotxy(rh,v) )
 	{
@@ -160,6 +162,7 @@ MLCGSolver::solve (MultiFab&       sol,
 
         MultiFab::Copy(sh,s,0,0,1,0);
         Lp.apply(amrlev, mglev, t, sh, MLLinOp::BCMode::Homogeneous);
+        Lp.normalize(amrlev, mglev, t);
         //
         // This is a little funky.  I want to elide one of the reductions
         // in the following two dotxy()s.  We do that by calculating the "local"

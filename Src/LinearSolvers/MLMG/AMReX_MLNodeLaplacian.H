@@ -84,6 +84,7 @@ protected:
                           bool skip_fillboundary=false) const final;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
     virtual Real getAScalar () const final { return  0.0; }
     virtual Real getBScalar () const final { return -1.0; }

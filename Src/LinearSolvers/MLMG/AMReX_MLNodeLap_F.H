@@ -79,6 +79,23 @@ extern "C" {
                               const amrex_real* dxinv, const int* domlo, const int* domhi,
                               const void* bclo, const void* bchi);
 
+    void amrex_mlndlap_normalize_ha (const int* lo, const int* hi,
+                                     amrex_real* x, const int* xlo, const int* xhi,
+                                     const amrex_real* sx, const int* sxlo, const int* sxhi,
+#if (AMREX_SPACEDIM >= 2)
+                                     const amrex_real* sy, const int* sylo, const int* syhi,
+#if (AMREX_SPACEDIM == 3)
+                                     const amrex_real* sz, const int* szlo, const int* szhi,
+#endif
+#endif
+                                     const int* dmsk, const int* dmlo, const int* dmhi,
+                                     const amrex_real* dxinv);
+
+    void amrex_mlndlap_normalize_aa (const int* lo, const int* hi,
+                                     amrex_real* x, const int* xlo, const int* xhi,
+                                     const amrex_real* sig, const int* slo, const int* shi,
+                                     const int* dmsk, const int* dmlo, const int* dmhi,
+                                     const amrex_real* dxinv);
 
     void amrex_mlndlap_jacobi_ha (const int* lo, const int* hi,
                                amrex_real* sol, const int* slo, const int* shi,
@@ -255,6 +272,11 @@ extern "C" {
                                    const amrex_real* x, const int* xlo, const int* xhi,
                                    const amrex_real* sten, const int* slo, const int* shi,
                                    const int* dmsk, const int* dmlo, const int* dmhi);
+
+    void amrex_mlndlap_normalize_sten (const int* lo, const int* hi,
+                                       amrex_real* x, const int* xlo, const int* xhi,
+                                       const amrex_real* sten, const int* slo, const int* shi,
+                                       const int* dmsk, const int* dmlo, const int* dmhi);
 
     void amrex_mlndlap_gauss_seidel_sten (const int* lo, const int* hi,
                                           amrex_real* sol, const int* slo, const int* shi,

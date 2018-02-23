@@ -189,6 +189,9 @@ protected:
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                          bool skip_fillboundary=false) const = 0;
 
+    // Divide mf by the diagonal component of the operator. Used by bicgstab.
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const {}
+
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) = 0;
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
