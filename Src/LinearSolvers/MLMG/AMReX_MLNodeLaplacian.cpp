@@ -357,6 +357,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
     {
         if (ilev < rhnd.size() && rhnd[ilev]) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coarsening_strategy != CoarseningStrategy::RAP,
+                                             "MLNodeLaplacian::compRHS RAP TODO");
             MultiFab::Add(*rhs[ilev], *rhnd[ilev], 0, 0, 1, 0);
         }
     }
@@ -920,6 +922,9 @@ MLNodeLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLNodeLaplacian::prepareForSolve()");
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_amr_levels == 1 || m_coarsening_strategy != CoarseningStrategy::RAP,
+                                     "MLNodeLaplacian::prepareForSolve RAP TODO");
+
     MLNodeLinOp::prepareForSolve();
 
     averageDownCoeffs();
@@ -1387,6 +1392,9 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 {
     BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coarsening_strategy != CoarseningStrategy::RAP,
+                                     "MLNodeLaplacian::compSyncResidualCoarse RAP TODO");
+
     sync_resid.setVal(0.0);
 
     const Geometry& geom = m_geom[0][0];
@@ -1574,6 +1582,9 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                                        const MultiFab* rhcc)
 {
     BL_PROFILE("MLNodeLaplacian::SyncResFine()");
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coarsening_strategy != CoarseningStrategy::RAP,
+                                     "MLNodeLaplacian::compSyncResidualFine RAP TODO");
 
     const MultiFab& sigma_orig = *m_sigma[0][0][0];
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
