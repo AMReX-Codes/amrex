@@ -79,6 +79,12 @@ CFLAGS   += $(GENERIC_PGI_FLAGS)
 ifeq ($(USE_CUDA),TRUE)
   include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
 
+  # Force immediate expansion of the GCC defines,
+  # since after this point GCC will no longer be
+  # the actual compiler defined in CXX.
+
+  DEFINES := $(DEFINES)
+
   CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
   CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 
