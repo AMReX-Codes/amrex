@@ -128,7 +128,7 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
   ifndef CUDA_VERSION
-    CUDA_VERSION := 9.0
+    CUDA_VERSION = cuda9.0
   endif
 endif
 

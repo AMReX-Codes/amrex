@@ -123,10 +123,19 @@ endif
 
 # Note that we do not have a Fortran main
 
+F90FLAGS += -Mnomain
+FFLAGS   += -Mnomain
+
 ifeq ($(USE_CUDA),TRUE)
-  F90FLAGS += -Mcuda=cuda$(CUDA_VERSION) -Mnomain
-  FFLAGS   += -Mcuda=cuda$(CUDA_VERSION) -Mnomain
+
+  F90FLAGS += -Mcuda=$(CUDA_VERSION)
+  FFLAGS   += -Mcuda=$(CUDA_VERSION)
+
+  F90FLAGS += CUDAROOT=$(COMPILE_CUDA_PATH)
+  FFLAGS   += CUDAROOT=$(COMPILE_CUDA_PATH)
+
 endif
+
 
 ########################################################################
 
