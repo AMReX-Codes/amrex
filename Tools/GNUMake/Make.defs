@@ -360,7 +360,7 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     # Maximum number of CUDA threads per block.
-    CUDA_MAX_THREADS ?= 256
+    CUDA_MAX_THREADS ?= 512
 
     CUDASuffix := .CUDA
     DEFINES += -DAMREX_LAUNCH='attributes(global)'
