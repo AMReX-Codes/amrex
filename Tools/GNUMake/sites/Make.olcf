@@ -66,6 +66,11 @@ SYSTEM_CUDA_PATH=$(CUDAPATH)
 
 SYSTEM_NVML_PATH=/usr/lib64/nvidia
 
+# Specify that we want to build for Pascal on Summit
+
+CUDA_VERSION = cc60
+COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+
 endif
 
 ifeq ($(which_computer),$(filter $(which_computer),summit))
@@ -95,5 +100,10 @@ endif
 # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
 
 SYSTEM_CUDA_PATH=$(CUDAPATH)
+
+# Specify that we want to build for Volta on Summit
+
+CUDA_VERSION = cc70
+COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
 endif
