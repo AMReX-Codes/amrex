@@ -134,6 +134,11 @@ ifeq ($(USE_CUDA),TRUE)
   F90FLAGS += CUDAROOT=$(COMPILE_CUDA_PATH)
   FFLAGS   += CUDAROOT=$(COMPILE_CUDA_PATH)
 
+  ifdef CUDA_MAXREGCOUNT
+    F90FLAGS += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)
+    FFLAGS   += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)
+  endif
+
 endif
 
 

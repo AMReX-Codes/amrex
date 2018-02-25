@@ -127,9 +127,14 @@ ifndef USE_CUDA_UM
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  ifndef CUDA_VERSION
-    CUDA_VERSION = cuda9.0
-  endif
+  # Set the default CUDA version.
+  CUDA_VERSION ?= cuda9.0
+
+  # Maximum number of CUDA threads per block.
+  CUDA_MAX_THREADS ?= 512
+
+  # Limit the maximum number of registers available.
+  CUDA_MAXREGCOUNT ?= 128
 endif
 
 ifdef DIMENSION_AGNOSTIC
@@ -358,9 +363,6 @@ ifeq ($(USE_CUDA),TRUE)
         DEFINES += -DAMREX_USE_CUDA_UM
 	DEFINES += -DBL_COALESCE_FABS
     endif
-
-    # Maximum number of CUDA threads per block.
-    CUDA_MAX_THREADS ?= 512
 
     CUDASuffix := .CUDA
     DEFINES += -DAMREX_LAUNCH='attributes(global)'
