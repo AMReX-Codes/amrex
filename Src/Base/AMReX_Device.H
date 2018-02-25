@@ -132,8 +132,8 @@ public:
     static std::shared_ptr<T> create_device_pointer(const int n = 1);
 #endif
 
-    static void device_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t sz, const int idx);
-    static void device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t sz, const int idx);
+    static void device_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t sz);
+    static void device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t sz);
 
     static void start_profiler();
     static void stop_profiler();
