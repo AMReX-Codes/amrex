@@ -54,6 +54,12 @@ CPP_PREFIX = -WF,
 ifeq ($(USE_CUDA),TRUE)
   include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
 
+  # Force immediate expansion of the GCC defines,
+  # since after this point GCC will no longer be
+  # the actual compiler defined in CXX.
+
+  DEFINES := $(DEFINES)
+
   CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
   CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 
@@ -102,7 +108,15 @@ FFLAGS   += -qfixed=72
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
-override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath -L $(OLCF_XLC_ROOT)/lib -libmc++ -lstdc++ -lxlsmp
+override XTRALIBS = -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
+
+ifeq ($(USE_OMP),TRUE)
+  override XTRALIBS += -lxlsmp
+endif
+
+ifeq ($(USE_MPI),TRUE)
+  override XTRALIBS += $(shell mpifort -showme:link)
+endif
 
 FORTLINK = LOWERCASE
 
