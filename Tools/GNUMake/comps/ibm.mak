@@ -123,4 +123,9 @@ FORTLINK = LOWERCASE
 ifeq ($(USE_CUDA),TRUE)
   F90FLAGS += -qcuda
   FFLAGS += -qcuda
+
+  ifdef CUDA_MAXREGCOUNT
+    F90FLAGS += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
+    FFLAGS   += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
+  endif
 endif
