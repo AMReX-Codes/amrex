@@ -15,6 +15,10 @@ Lecture 1: `Introduction and TINYPROFILER <http://ccse.lbl.gov/AMReX/AMReX_Profi
 
 Lecture 2: `Introduction to  Full Profiling <http://ccse.lbl.gov/AMReX/AMReX_Profiling_Lecture2.pdf>`_ 
 
+Lecture 3: `Using ProfVis -- GUI Features <http://ccse.lbl.gov/AMReX/AMReX_Profiling_Lecture3.pdf>`_ 
+
+Lecture 4: `Batch Options and Advanced Profiling Flags <http://ccse.lbl.gov/AMReX/AMReX_Profiling_Lecture4.pdf>`_ 
+
 .. toctree::
    :maxdepth: 1
 
