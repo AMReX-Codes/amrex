@@ -2496,7 +2496,7 @@ void
 FabArray<FAB>::shift (const IntVect& v)
 {
     clearThisBD();  // The new boxarry will have a different ID.
-    for(int id(0); id < BL_SPACEDIM; ++id)
+    for(int id(0); id < AMREX_SPACEDIM; ++id)
     {
       boxarray.shift(id, v[id]);
     }
@@ -2726,14 +2726,14 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   // ---- IntVects
   Vector<int> allIntVects;
   if(scsMyId == ioProcNumSCS) {
-    for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
-    for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
+    for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
+    for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
   }
   amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
   if(scsMyId != ioProcNumSCS) {
     int count(0);
-    for(int i(0); i < BL_SPACEDIM; ++i)    { mfiter_tile_size[i] = allIntVects[count++]; }
-    for(int i(0); i < BL_SPACEDIM; ++i)    { comm_tile_size[i] = allIntVects[count++]; }
+    for(int i(0); i < AMREX_SPACEDIM; ++i)    { mfiter_tile_size[i] = allIntVects[count++]; }
+    for(int i(0); i < AMREX_SPACEDIM; ++i)    { comm_tile_size[i] = allIntVects[count++]; }
   }
 
   // ---- add to allocatedFAPointers
@@ -3768,7 +3768,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
 
     Box domain = amrex::convert(phys_domain, boxArray().ixType());
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (period.isPeriodic(i)) {
 	    domain.grow(i, ngrow);
 	}

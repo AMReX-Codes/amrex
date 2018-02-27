@@ -407,16 +407,16 @@ iMultiFab::minIndex (int comp,
         if (ParallelDescriptor::IOProcessor())
         {
             mns.resize(NProcs);
-            locs.resize(NProcs*BL_SPACEDIM);
+            locs.resize(NProcs*AMREX_SPACEDIM);
         }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
         ParallelDescriptor::Gather(&mn, 1, mns.dataPtr(), 1, IOProc);
 
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*BL_SPACEDIM);
+        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
 
-        ParallelDescriptor::Gather(loc.getVect(), BL_SPACEDIM, locs.dataPtr(), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -429,14 +429,14 @@ iMultiFab::minIndex (int comp,
                 {
                     mn = mns[i];
 
-                    const int j = BL_SPACEDIM * i;
+                    const int j = AMREX_SPACEDIM * i;
 
                     loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
             }
         }
 
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
 
     return loc;
@@ -493,16 +493,16 @@ iMultiFab::maxIndex (int comp,
         if (ParallelDescriptor::IOProcessor())
         {
             mxs.resize(NProcs);
-            locs.resize(NProcs*BL_SPACEDIM);
+            locs.resize(NProcs*AMREX_SPACEDIM);
         }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
         ParallelDescriptor::Gather(&mx, 1, mxs.dataPtr(), 1, IOProc);
 
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*BL_SPACEDIM);
+        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
 
-        ParallelDescriptor::Gather(loc.getVect(), BL_SPACEDIM, locs.dataPtr(), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -515,14 +515,14 @@ iMultiFab::maxIndex (int comp,
                 {
                     mx = mxs[i];
 
-                    const int j = BL_SPACEDIM * i;
+                    const int j = AMREX_SPACEDIM * i;
 
                     loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
             }
         }
 
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
 
     return loc;

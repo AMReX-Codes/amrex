@@ -542,7 +542,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
 
   // Create hash by summing smallEnd, bigEnd and type
   //   over a looped hash array of given size.
-  // For any empty boxes, skip BL_SPACEDIM inputs.
+  // For any empty boxes, skip AMREX_SPACEDIM inputs.
   // For an empty box array, hash=0, regardless of size.
   if (!ba.empty())
   {
@@ -550,7 +550,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
     {
       if (!ba[i].isEmpty())
       {
-        for (int j=0; j<BL_SPACEDIM; j++)
+        for (int j=0; j<AMREX_SPACEDIM; j++)
         {
            hashSum = ba[i].smallEnd(j) + ba[i].bigEnd(j) + ba[i].ixType()[j];
            hash[(hashCount%hashSize)] += hashSum;
@@ -559,7 +559,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
       }
       else
       {
-        hashCount+=BL_SPACEDIM;
+        hashCount+=AMREX_SPACEDIM;
       }
     }
   }
