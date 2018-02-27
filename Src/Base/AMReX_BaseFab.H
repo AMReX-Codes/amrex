@@ -143,15 +143,15 @@ public:
       AMREX_ASSERT(domain.contains(a_iv));
 
       IntVect ivDiff = a_iv - domain.smallEnd();
-#if BL_SPACEDIM > 1
+#if AMREX_SPACEDIM > 1
       IntVect ivSize = domain.size();
 #endif
       long retval = ivDiff[0];
 
-#if BL_SPACEDIM > 1
+#if AMREX_SPACEDIM > 1
       retval += ivDiff[1]*ivSize[0] ;
 #endif
-#if BL_SPACEDIM > 2
+#if AMREX_SPACEDIM > 2
       retval += ivDiff[2]*ivSize[0]*ivSize[1];
 #endif
       retval += numpts * a_ivar;

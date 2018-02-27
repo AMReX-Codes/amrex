@@ -480,7 +480,7 @@ FabArrayCopyDescriptor<FAB>::CollectData_AM_handler(uint32_t src_rank,
                                                     int numboxes,
                                                     int isAsync)
 {
-  const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
+  const int Nints = 4 + 3*AMREX_SPACEDIM;  // # of ints in a meta-data
   typedef typename FAB::value_type value_type;
   int *p = (int *)payload;
 
@@ -501,8 +501,8 @@ FabArrayCopyDescriptor<FAB>::CollectData_AM_handler(uint32_t src_rank,
     scomp[i] = md[2];
     ncomp[i] = md[3];
     bxs.push_back(Box(IntVect(&md[4]),
-                      IntVect(&md[4+BL_SPACEDIM]),
-                      IntVect(&md[4+BL_SPACEDIM*2])));
+                      IntVect(&md[4+AMREX_SPACEDIM]),
+                      IntVect(&md[4+AMREX_SPACEDIM*2])));
     npts[i] = bxs.back().numPts()*ncomp[i];
     N += npts[i];
   }
@@ -610,7 +610,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
   const int N_rcvs = Rcvs.size();
 
-  const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
+  const int Nints = 4 + 3*AMREX_SPACEDIM;  // # of ints in a meta-data
 
   // for meta-data
   Vector<int> md_offset, md_icnts, md_bcnts;
@@ -653,12 +653,12 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         AMREX_D_EXPR(md[4] = lo[0],
                md[5] = lo[1],
                md[6] = lo[2]);
-        AMREX_D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
-               md[5+  BL_SPACEDIM] = hi[1],
-               md[6+  BL_SPACEDIM] = hi[2]);
-        AMREX_D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
-               md[5+2*BL_SPACEDIM] = tp[1],
-               md[6+2*BL_SPACEDIM] = tp[2]);
+        AMREX_D_EXPR(md[4+  AMREX_SPACEDIM] = hi[0],
+               md[5+  AMREX_SPACEDIM] = hi[1],
+               md[6+  AMREX_SPACEDIM] = hi[2]);
+        AMREX_D_EXPR(md[4+2*AMREX_SPACEDIM] = tp[0],
+               md[5+2*AMREX_SPACEDIM] = tp[1],
+               md[6+2*AMREX_SPACEDIM] = tp[2]);
       }
 
       data_sender.push_back(rank);
@@ -858,7 +858,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
     if ( N_snds == 0 && N_rcvs == 0 ) return;
 
-    const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
+    const int Nints = 4 + 3*AMREX_SPACEDIM;  // # of ints in a meta-data
 
     // for meta-data
     Vector<int> md_sender, md_offset, md_icnts, md_bcnts;
@@ -926,12 +926,12 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		AMREX_D_EXPR(md[4] = lo[0],
 		       md[5] = lo[1],
 		       md[6] = lo[2]);
-		AMREX_D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
-		       md[5+  BL_SPACEDIM] = hi[1],
-		       md[6+  BL_SPACEDIM] = hi[2]);
-		AMREX_D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
-		       md[5+2*BL_SPACEDIM] = tp[1],
-		       md[6+2*BL_SPACEDIM] = tp[2]);
+		AMREX_D_EXPR(md[4+  AMREX_SPACEDIM] = hi[0],
+		       md[5+  AMREX_SPACEDIM] = hi[1],
+		       md[6+  AMREX_SPACEDIM] = hi[2]);
+		AMREX_D_EXPR(md[4+2*AMREX_SPACEDIM] = tp[0],
+		       md[5+2*AMREX_SPACEDIM] = tp[1],
+		       md[6+2*AMREX_SPACEDIM] = tp[2]);
 	    }
 
 	    md_send_reqs.push_back(ParallelDescriptor::Asend(p,cnt,rank,SeqNum_md).req());
@@ -989,8 +989,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		scomp[i] = md[2];
 		ncomp[i] = md[3];
 		bxs.push_back(Box(IntVect(&md[4]),
-				  IntVect(&md[4+BL_SPACEDIM]), 
-				  IntVect(&md[4+BL_SPACEDIM*2]))); 
+				  IntVect(&md[4+AMREX_SPACEDIM]), 
+				  IntVect(&md[4+AMREX_SPACEDIM*2]))); 
 		npts[i] = bxs.back().numPts()*ncomp[i];
 		N += npts[i];
 	    }
