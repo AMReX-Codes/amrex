@@ -17,6 +17,17 @@ module amrex_mlnodelap_3d_module
 
   real(amrex_real), private, parameter :: eps = 1.d-100
 
+  integer, private, parameter :: ist_000 = 1
+  integer, private, parameter :: ist_p00 = 2
+  integer, private, parameter :: ist_0p0 = 3
+  integer, private, parameter :: ist_00p = 4
+  integer, private, parameter :: ist_pp0 = 5
+  integer, private, parameter :: ist_p0p = 6
+  integer, private, parameter :: ist_0pp = 7
+  integer, private, parameter :: ist_ppp = 8
+  integer, private, parameter :: ist_inv = 9
+  integer, private, parameter :: n_sten = 9
+
 #ifdef AMREX_USE_EB
   integer, private, parameter :: i_S_x     = 1
   integer, private, parameter :: i_S_y     = 2
@@ -2660,19 +2671,116 @@ contains
   end subroutine amrex_mlndlap_zero_fine
 
 
-  subroutine amrex_mlndlap_set_stencil (lo, hi, sten, tlo, thi, sigma, glo, ghi, dxinv) &
+  subroutine amrex_mlndlap_set_stencil (lo, hi, sten, tlo, thi, sig, glo, ghi, dxinv) &
        bind(c,name='amrex_mlndlap_set_stencil')
     integer, dimension(3), intent(in) :: lo, hi, tlo, thi, glo, ghi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),1)
-    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
+    real(amrex_real), intent(inout) :: sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),n_sten)
+    real(amrex_real), intent(in   ) ::  sig(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
     real(amrex_real), intent(in) :: dxinv(3)
+
+    integer :: i,j,k
+    real(amrex_real) :: facx, facy, facz, fxyz, fmx2y2z, f2xmy2z, f2x2ymz
+    real(amrex_real) :: f4xm2ym2z, fm2x4ym2z, fm2xm2y4z
+    
+    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
+    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
+    fxyz = facx + facy + facz
+    fmx2y2z = -facx + 2.d0*facy + 2.d0*facz
+    f2xmy2z = 2.d0*facx - facy + 2.d0*facz
+    f2x2ymz = 2.d0*facx + 2.d0*facy - facz
+    f4xm2ym2z = 4.d0*facx - 2.d0*facy - 2.d0*facz
+    fm2x4ym2z = -2.d0*facx + 4.d0*facy - 2.d0*facz
+    fm2xm2y4z = -2.d0*facx - 2.d0*facy + 4.d0*facz
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+
+             ! i+1,j,k
+             sten(i,j,k,ist_p00) = f4xm2ym2z * (sig(i,j-1,k-1)+sig(i,j,k-1)+sig(i,j-1,k)+sig(i,j,k))
+             ! i-1,j,k: sten(i-1,j,k,ist_p00)
+
+             ! i,j+1,k
+             sten(i,j,k,ist_0p0) = fm2x4ym2z * (sig(i-1,j,k-1)+sig(i,j,k-1)+sig(i-1,j,k)+sig(i,j,k))
+             ! i,j-1,k: sten(i,j-1,k,ist_0p0)
+
+             ! i,j,k+1
+             sten(i,j,k,ist_00p) = fm2xm2y4z * (sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k))
+             ! i,j,k-1: sten(i,j,k-1,ist_00p)
+
+             ! i+1,j+1,k
+             sten(i,j,k,ist_pp0) = f2x2ymz * (sig(i,j,k-1)+sig(i,j,k))
+             ! i-1,j-1,k: sten(i-1,j-1,k,ist_pp0)
+             ! i+1,j-1,k: sten(i  ,j-1,k,ist_pp0)
+             ! i-1,j+1,k: sten(i-1,j  ,k,ist_pp0)
+             
+             ! i+1,j,k+1
+             sten(i,j,k,ist_p0p) = f2xmy2z * (sig(i,j-1,k)+sig(i,j,k))
+             ! i-1,j,k-1: sten(i-1,j,k-1,ist_p0p)
+             ! i+1,j,k-1: sten(i  ,j,k-1,ist_p0p)
+             ! i-1,j,k+1: sten(i-1,j,k  ,ist_p0p)
+
+             ! i,j+1,k+1
+             sten(i,j,k,ist_0pp) = fmx2y2z * (sig(i-1,j,k)+sig(i,j,k))
+             ! i,j-1,k-1: sten(i,j-1,k-1,ist_0pp)
+             ! i,j+1,k-1: sten(i,j  ,k-1,ist_0pp)
+             ! i,j-1,k+1: sten(i,j-1,k  ,ist_0pp)
+
+             ! i+1,j+1,k+1
+             sten(i,j,k,ist_ppp) = fxyz * sig(i,j,k)
+             ! i-1,j-1,k-1: sten(i-1,j-1,k-1,ist_ppp)
+             ! i+1,j-1,k-1: sten(i  ,j-1,k-1,ist_ppp)
+             ! i-1,j+1,k-1: sten(i-1,j  ,k-1,ist_ppp)
+             ! i+1,j+1,k-1: sten(i  ,j  ,k-1,ist_ppp)
+             ! i-1,j-1,k+1: sten(i-1,j-1,k  ,ist_ppp)
+             ! i+1,j-1,k+1: sten(i  ,j-1,k  ,ist_ppp)
+             ! i-1,j+1,k+1: sten(i-1,j  ,k  ,ist_ppp)
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_set_stencil
 
 
   subroutine amrex_mlndlap_set_stencil_s0 (lo, hi, sten, tlo, thi) &
        bind(c,name='amrex_mlndlap_set_stencil_s0')
     integer, dimension(3), intent(in) :: lo, hi, tlo, thi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),1)
+    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),n_sten)
+
+    integer :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             sten(i,j,k,ist_000) = -(sten(i-1,j,k,ist_p00) + sten(i,j,k,ist_p00) &
+                  + sten(i,j-1,k,ist_0p0) + sten(i,j,k,ist_0p0) &
+                  + sten(i,j,k-1,ist_00p) + sten(i,j,k,ist_00p) &
+                  + sten(i-1,j-1,k,ist_pp0) + sten(i,j-1,k,ist_pp0) &
+                  + sten(i-1,j,k,ist_pp0) + sten(i,j,k,ist_pp0) &
+                  + sten(i-1,j,k-1,ist_p0p) + sten(i,j,k-1,ist_p0p) &
+                  + sten(i-1,j,k,ist_p0p) + sten(i,j,k,ist_p0p) &
+                  + sten(i,j-1,k-1,ist_0pp) + sten(i,j,k-1,ist_0pp) &
+                  + sten(i,j-1,k,ist_0pp) + sten(i,j,k,ist_0pp) &
+                  + sten(i-1,j-1,k-1,ist_ppp) + sten(i,j-1,k-1,ist_ppp) &
+                  + sten(i-1,j,k-1,ist_ppp) + sten(i,j,k-1,ist_ppp) &
+                  + sten(i-1,j-1,k,ist_ppp) + sten(i,j-1,k,ist_ppp) &
+                  + sten(i-1,j,k,ist_ppp) + sten(i,j,k,ist_ppp))
+             sten(i,j,k,ist_inv) = 1.d0 / (abs(sten(i-1,j,k,ist_p00)) + abs(sten(i,j,k,ist_p00)) &
+                  + abs(sten(i,j-1,k,ist_0p0)) + abs(sten(i,j,k,ist_0p0)) &
+                  + abs(sten(i,j,k-1,ist_00p)) + abs(sten(i,j,k,ist_00p)) &
+                  + abs(sten(i-1,j-1,k,ist_pp0)) + abs(sten(i,j-1,k,ist_pp0)) &
+                  + abs(sten(i-1,j,k,ist_pp0)) + abs(sten(i,j,k,ist_pp0)) &
+                  + abs(sten(i-1,j,k-1,ist_p0p)) + abs(sten(i,j,k-1,ist_p0p)) &
+                  + abs(sten(i-1,j,k,ist_p0p)) + abs(sten(i,j,k,ist_p0p)) &
+                  + abs(sten(i,j-1,k-1,ist_0pp)) + abs(sten(i,j,k-1,ist_0pp)) &
+                  + abs(sten(i,j-1,k,ist_0pp)) + abs(sten(i,j,k,ist_0pp)) &
+                  + abs(sten(i-1,j-1,k-1,ist_ppp)) + abs(sten(i,j-1,k-1,ist_ppp)) &
+                  + abs(sten(i-1,j,k-1,ist_ppp)) + abs(sten(i,j,k-1,ist_ppp)) &
+                  + abs(sten(i-1,j-1,k,ist_ppp)) + abs(sten(i,j-1,k,ist_ppp)) &
+                  + abs(sten(i-1,j,k,ist_ppp)) + abs(sten(i,j,k,ist_ppp)))
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_set_stencil_s0
 
 
@@ -2681,8 +2789,55 @@ contains
     integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, mlo, mhi
     real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3))
     real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
-    real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),1)
+    real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),n_sten)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+
+    integer :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (msk(i,j,k) .ne. dirichlet) then
+                y(i,j,k) = x(i  ,j  ,k  ) * sten(i  ,j  ,k  ,ist_000) &
+                     !
+                     +     x(i-1,j  ,k  ) * sten(i-1,j  ,k  ,ist_p00) &
+                     +     x(i+1,j  ,k  ) * sten(i  ,j  ,k  ,ist_p00) &
+                     !
+                     +     x(i  ,j-1,k  ) * sten(i  ,j-1,k  ,ist_0p0) &
+                     +     x(i  ,j+1,k  ) * sten(i  ,j  ,k  ,ist_0p0) &
+                     !
+                     +     x(i  ,j  ,k-1) * sten(i  ,j  ,k-1,ist_00p) &
+                     +     x(i  ,j  ,k+1) * sten(i  ,j  ,k  ,ist_00p) &
+                     !
+                     +     x(i-1,j-1,k  ) * sten(i-1,j-1,k  ,ist_pp0) &
+                     +     x(i+1,j-1,k  ) * sten(i  ,j-1,k  ,ist_pp0) &
+                     +     x(i-1,j+1,k  ) * sten(i-1,j  ,k  ,ist_pp0) &
+                     +     x(i+1,j+1,k  ) * sten(i  ,j  ,k  ,ist_pp0) &
+                     !
+                     +     x(i-1,j  ,k-1) * sten(i-1,j  ,k-1,ist_p0p) &
+                     +     x(i+1,j  ,k-1) * sten(i  ,j  ,k-1,ist_p0p) &
+                     +     x(i-1,j  ,k+1) * sten(i-1,j  ,k  ,ist_p0p) &
+                     +     x(i+1,j  ,k+1) * sten(i  ,j  ,k  ,ist_p0p) &
+                     !
+                     +     x(i  ,j-1,k-1) * sten(i  ,j-1,k-1,ist_0pp) &
+                     +     x(i  ,j+1,k-1) * sten(i  ,j  ,k-1,ist_0pp) &
+                     +     x(i  ,j-1,k+1) * sten(i  ,j-1,k  ,ist_0pp) &
+                     +     x(i  ,j+1,k+1) * sten(i  ,j  ,k  ,ist_0pp) &
+                     !
+                     +     x(i-1,j-1,k-1) * sten(i-1,j-1,k-1,ist_ppp) &
+                     +     x(i+1,j-1,k-1) * sten(i  ,j-1,k-1,ist_ppp) &
+                     +     x(i-1,j+1,k-1) * sten(i-1,j  ,k-1,ist_ppp) &
+                     +     x(i+1,j+1,k-1) * sten(i  ,j  ,k-1,ist_ppp) &
+                     +     x(i-1,j-1,k+1) * sten(i-1,j-1,k  ,ist_ppp) &
+                     +     x(i+1,j-1,k+1) * sten(i  ,j-1,k  ,ist_ppp) &
+                     +     x(i-1,j+1,k+1) * sten(i-1,j  ,k  ,ist_ppp) &
+                     +     x(i+1,j+1,k+1) * sten(i  ,j  ,k  ,ist_ppp)
+             else
+                y(i,j,k) = 0.d0
+             end if
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_adotx_sten
 
 
