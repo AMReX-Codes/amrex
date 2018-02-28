@@ -5,11 +5,11 @@
 #ifdef BL_LANG_FORT
 #    define FORT_BDINTERPXLO  bdintrpxlo
 #    define FORT_BDINTERPXHI  bdintrpxhi
-#  if (BL_SPACEDIM > 1)
+#  if (AMREX_SPACEDIM > 1)
 #    define FORT_BDINTERPYLO  bdintrpylo
 #    define FORT_BDINTERPYHI  bdintrpyhi
 #  endif
-#  if (BL_SPACEDIM > 2)
+#  if (AMREX_SPACEDIM > 2)
 #    define FORT_BDINTERPZLO  bdintrpzlo
 #    define FORT_BDINTERPZHI  bdintrpzhi
 #  endif
@@ -17,33 +17,33 @@
 #  if  defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_BDINTERPXLO  BDINTRPXLO
 #    define FORT_BDINTERPXHI  BDINTRPXHI
-#    if (BL_SPACEDIM > 1)
+#    if (AMREX_SPACEDIM > 1)
 #    define FORT_BDINTERPYLO  BDINTRPYLO
 #    define FORT_BDINTERPYHI  BDINTRPYHI
 #    endif
-#    if (BL_SPACEDIM > 2)
+#    if (AMREX_SPACEDIM > 2)
 #    define FORT_BDINTERPZLO  BDINTRPZLO
 #    define FORT_BDINTERPZHI  BDINTRPZHI
 #    endif
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_BDINTERPXLO  bdintrpxlo
 #    define FORT_BDINTERPXHI  bdintrpxhi
-#    if (BL_SPACEDIM > 1)
+#    if (AMREX_SPACEDIM > 1)
 #    define FORT_BDINTERPYLO  bdintrpylo
 #    define FORT_BDINTERPYHI  bdintrpyhi
 #    endif
-#    if (BL_SPACEDIM > 2)
+#    if (AMREX_SPACEDIM > 2)
 #    define FORT_BDINTERPZLO  bdintrpzlo
 #    define FORT_BDINTERPZHI  bdintrpzhi
 #    endif
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_BDINTERPXLO  bdintrpxlo_
 #    define FORT_BDINTERPXHI  bdintrpxhi_
-#    if (BL_SPACEDIM > 1)
+#    if (AMREX_SPACEDIM > 1)
 #    define FORT_BDINTERPYLO  bdintrpylo_
 #    define FORT_BDINTERPYHI  bdintrpyhi_
 #    endif
-#    if (BL_SPACEDIM > 2)
+#    if (AMREX_SPACEDIM > 2)
 #    define FORT_BDINTERPZLO  bdintrpzlo_
 #    define FORT_BDINTERPZHI  bdintrpzhi_
 #    endif
@@ -68,12 +68,12 @@ extern "C"
     BDInterpFunc FORT_BDINTERPXLO;
     BDInterpFunc FORT_BDINTERPXHI;
 
-#if (BL_SPACEDIM > 1)    
+#if (AMREX_SPACEDIM > 1)    
     BDInterpFunc FORT_BDINTERPYLO;
     BDInterpFunc FORT_BDINTERPYHI;
 #endif    
 
-#if (BL_SPACEDIM > 2)    
+#if (AMREX_SPACEDIM > 2)    
     BDInterpFunc FORT_BDINTERPZLO;
     BDInterpFunc FORT_BDINTERPZHI;
 #endif    
