@@ -56,7 +56,8 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_stencil_rap, amrex_mlndlap_stencil_rap_sp
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+  public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
+       amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
 #endif
 
@@ -531,16 +532,31 @@ contains
 
 #ifdef AMREX_USE_EB
 
-  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
-       vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, bcen, blo, bhi) &
-       bind(c,name='amrex_mlndlap_set_connection')
+  subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
+       bind(c,name='amrex_mlndlap_set_integral')
+    integer, dimension(1) :: lo, hi, glo, ghi
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
+  end subroutine amrex_mlndlap_set_integral
+
+  subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
+       vol, vlo, vhi, ax, axlo, axhi, bcen, blo, bhi) &
+       bind(c,name='amrex_mlndlap_set_integral_eb')
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(1) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
-    real(amrex_real), intent(inout) :: conn( clo(1): chi(1),2)
+    integer, dimension(1) :: lo, hi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, blo, bhi
     real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1))
     real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1))
     real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1))
+    integer         , intent(in   ) :: flag( flo(1): fhi(1))
+  end subroutine amrex_mlndlap_set_integral_eb
+
+  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+       vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')
+    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
+    integer, dimension(1) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi
+    real(amrex_real), intent(inout) :: conn( clo(1): chi(1),2)
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
+    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1))
     integer         , intent(in   ) :: flag( flo(1): fhi(1))
   end subroutine amrex_mlndlap_set_connection
 

@@ -325,19 +325,27 @@ extern "C" {
                                        const amrex_real* conn, const int* clo, const int* chi,
                                        const amrex_real* dxinv);
 
-    void amrex_mlndlap_set_connection (const int* lo, const int* hi,
-                                       amrex_real* conn, const int* clo, const int* chi,
-                                       amrex_real* intg, const int* glo, const int* ghi,
-                                       const void* flag, const int* flo, const int* fhi,
-                                       const void* vol, const int* vlo, const int* vhi,
-                                       const amrex_real* ax, const int* axlo, const int* axhi,
+    void amrex_mlndlap_set_integral (const int* lo, const int* hi,
+                                     amrex_real* intg, const int* glo, const int* ghi);
+
+    void amrex_mlndlap_set_integral_eb (const int* lo, const int* hi,
+                                        amrex_real* intg, const int* glo, const int* ghi,
+                                        const void* flag, const int* flo, const int* fhi,
+                                        const void* vol, const int* vlo, const int* vhi,
+                                        const amrex_real* ax, const int* axlo, const int* axhi,
 #if (AMREX_SPACEDIM >= 2)
-                                       const amrex_real* ay, const int* aylo, const int* ayhi,
+                                        const amrex_real* ay, const int* aylo, const int* ayhi,
 #endif
 #if (AMREX_SPACEDIM == 3)
-                                       const amrex_real* az, const int* azlo, const int* azhi,
+                                        const amrex_real* az, const int* azlo, const int* azhi,
 #endif
-                                       const amrex_real* bcent, const int* blo, const int* bhi);
+                                        const amrex_real* bcent, const int* blo, const int* bhi);
+
+    void amrex_mlndlap_set_connection (const int* lo, const int* hi,
+                                       amrex_real* conn, const int* clo, const int* chi,
+                                       const amrex_real* intg, const int* glo, const int* ghi,
+                                       const void* flag, const int* flo, const int* fhi,
+                                       const void* vol, const int* vlo, const int* vhi);
 
     void amrex_mlndlap_divu_eb (const int* lo, const int* hi,
                                 amrex_real* rhs, const int* rlo, const int* rhi,

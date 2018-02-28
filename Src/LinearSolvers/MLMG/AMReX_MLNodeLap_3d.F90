@@ -17,6 +17,44 @@ module amrex_mlnodelap_3d_module
 
   real(amrex_real), private, parameter :: eps = 1.d-100
 
+#ifdef AMREX_USE_EB
+  integer, private, parameter :: i_S_x     = 1
+  integer, private, parameter :: i_S_y     = 2
+  integer, private, parameter :: i_S_z     = 3
+  integer, private, parameter :: i_S_x2    = 4
+  integer, private, parameter :: i_S_y2    = 5
+  integer, private, parameter :: i_S_z2    = 6
+  integer, private, parameter :: i_S_x_y   = 7
+  integer, private, parameter :: i_S_x_z   = 8
+  integer, private, parameter :: i_S_y_z   = 9
+  integer, private, parameter :: i_S_x2_y  = 10
+  integer, private, parameter :: i_S_x2_z  = 11
+  integer, private, parameter :: i_S_x_y2  = 12
+  integer, private, parameter :: i_S_y2_z  = 13
+  integer, private, parameter :: i_S_x_z2  = 14
+  integer, private, parameter :: i_S_y_z2  = 15
+  integer, private, parameter :: i_S_x2_y2 = 16
+  integer, private, parameter :: i_S_x2_z2 = 17
+  integer, private, parameter :: i_S_y2_z2 = 18
+  integer, private, parameter :: n_Sintg = 18
+
+  integer, private, parameter :: i_c_x00 = 1
+  integer, private, parameter :: i_c_x10 = 2
+  integer, private, parameter :: i_c_x01 = 3
+  integer, private, parameter :: i_c_x11 = 4
+  integer, private, parameter :: i_c_y00 = 5
+  integer, private, parameter :: i_c_y10 = 6
+  integer, private, parameter :: i_c_y01 = 7
+  integer, private, parameter :: i_c_y11 = 8
+  integer, private, parameter :: i_c_z00 = 9
+  integer, private, parameter :: i_c_z10 = 10
+  integer, private, parameter :: i_c_z01 = 11
+  integer, private, parameter :: i_c_z11 = 12
+  integer, private, parameter :: n_conn = 12
+#endif
+
+  
+
   private
   public :: &
        ! masks
@@ -55,7 +93,8 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_stencil_rap, amrex_mlndlap_stencil_rap_sp
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+  public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
+       amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
 #endif
 
@@ -2727,20 +2766,133 @@ contains
 
 #ifdef AMREX_USE_EB
 
-  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+  subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
+       bind(c,name='amrex_mlndlap_set_integral')
+    integer, dimension(3) :: lo, hi, glo, ghi
+    real(amrex_real), intent(inout) :: intg(glo(1):hi(1),lo(2):hi(2),lo(3):hi(3),n_Sintg)
+    integer :: i,j,k
+    real(amrex_real), parameter :: offth = 1.d0/144.d0
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             intg(i,j,k,i_S_x    ) = 0.d0
+             intg(i,j,k,i_S_y    ) = 0.d0
+             intg(i,j,k,i_S_z    ) = 0.d0
+             intg(i,j,k,i_S_x2   ) = twelfth
+             intg(i,j,k,i_S_y2   ) = twelfth
+             intg(i,j,k,i_S_z2   ) = twelfth
+             intg(i,j,k,i_S_x_y  ) = 0.d0
+             intg(i,j,k,i_S_x_z  ) = 0.d0
+             intg(i,j,k,i_S_y_z  ) = 0.d0
+             intg(i,j,k,i_S_x2_y ) = 0.d0
+             intg(i,j,k,i_S_x2_z ) = 0.d0
+             intg(i,j,k,i_S_x_y2 ) = 0.d0
+             intg(i,j,k,i_S_y2_z ) = 0.d0
+             intg(i,j,k,i_S_x_z2 ) = 0.d0
+             intg(i,j,k,i_S_y_z2 ) = 0.d0
+             intg(i,j,k,i_S_x2_y2) = offth
+             intg(i,j,k,i_S_x2_z2) = offth
+             intg(i,j,k,i_S_y2_z2) = offth
+          end do
+       end do
+    end do
+  end subroutine amrex_mlndlap_set_integral
+
+
+  subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
        vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, az, azlo, azhi, bcen, blo, bhi) &
-       bind(c,name='amrex_mlndlap_set_connection')
+       bind(c,name='amrex_mlndlap_set_integral_eb')
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(3) :: lo, hi, clo, chi, glo, ghi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, &
+    integer, dimension(3) :: lo, hi, glo, ghi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, &
          azlo, azhi, blo, bhi
-    real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3),1)
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2), glo(3): ghi(3),1)
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2), glo(3): ghi(3),n_Sintg)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
     real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
     real(amrex_real), intent(in   ) :: az  (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
     real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3),3)
     integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
+    call amrex_mlndlap_set_integral(lo, hi, intg, glo, ghi)
+  end subroutine amrex_mlndlap_set_integral_eb
+
+
+  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+       vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')
+    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
+    integer, dimension(3) :: lo, hi, clo, chi, glo, ghi, flo, fhi, vlo, vhi
+    real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3),n_conn)
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2), glo(3): ghi(3),n_Sintg)
+    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
+
+    integer :: i,j,k
+    real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (is_covered_cell(flag(i,j,k))) then
+                conn(i,j,k,:) = 0.d0
+             else if (is_regular_cell(flag(i,j,k)) .or. vol(i,j,k).ge.almostone) then
+                conn(i,j,k,:) = 1.d0
+             else
+                conn(i,j,k,i_c_x00) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*(intg(i,j,k,i_S_y_z) - intg(i,j,k,i_S_y2_z) &
+                     &      -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
+
+                conn(i,j,k,i_c_x10) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2))
+
+                conn(i,j,k,i_c_x01) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_y) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2))
+
+                conn(i,j,k,i_c_x11) = 2.25d0*vol(i,j,k) &
+                     + 9.d0*(-intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
+                     + 36.d0*intg(i,j,k,i_S_y2_z2)
+
+                conn(i,j,k,i_c_y00) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*(-intg(i,j,k,i_S_x) - intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*(intg(i,j,k,i_S_x_z) - intg(i,j,k,i_S_x2_z) &
+                     &      -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
+
+                conn(i,j,k,i_c_y10) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2))
+
+                conn(i,j,k,i_c_y01) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2))
+
+                conn(i,j,k,i_c_y11) = 2.25d0*vol(i,j,k) &
+                     + 9.d0*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2)) &
+                     + 36.d0*intg(i,j,k,i_S_x2_z2)
+
+                conn(i,j,k,i_c_z00) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*(-intg(i,j,k,i_S_x) - intg(i,j,k,i_S_y) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 9.d0*(intg(i,j,k,i_S_x_y) - intg(i,j,k,i_S_x2_y) &
+                     &      -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
+
+                conn(i,j,k,i_c_z10) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 18.d0*(intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2))
+
+                conn(i,j,k,i_c_z01) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
+                     + 18.d0*(intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2))
+
+                conn(i,j,k,i_c_z11) = 2.25d0*vol(i,j,k) &
+                     + 9.d0*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
+                     + 36.d0*intg(i,j,k,i_S_x2_y2)
+             end if
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_set_connection
 
 
