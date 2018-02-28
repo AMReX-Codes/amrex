@@ -188,7 +188,7 @@ protected:
     long num_snds;
     std::map<int, Vector<char> > send_data;
 
-    std::array<bool, BL_SPACEDIM + NStructReal> rc; 
+    std::array<bool, AMREX_SPACEDIM + NStructReal> rc; 
     std::array<bool, 2 + NStructInt>  ic;
 };
 
