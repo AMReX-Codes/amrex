@@ -127,9 +127,9 @@ SWFFT_Solver::solve ()
 
       }
     }
-  }
+   }
 
-   VisMF::Write(rhs,"RHS");
+   VisMF::Write(rhs,"RHS_BEFORE");
 
     dfft.forward(&a[0]);
 
@@ -138,7 +138,7 @@ SWFFT_Solver::solve ()
      for(size_t j=0; j<(size_t)ny; j++) {
       for(size_t k=0; k<(size_t)nz; k++) {
 
-        soln[0].dataPtr()[local_indx] = std::real(a[local_indx]);
+        soln[0].dataPtr()[local_indx] = std::real(a[local_indx]) / std::sqrt(local_size);
 	local_indx++;
 
       }
@@ -161,7 +161,7 @@ SWFFT_Solver::solve ()
      }
     }
 
-   VisMF::Write(rhs,"RHS2");
+    VisMF::Write(rhs,"RHS_AFTER");
 
     {
         MultiFab diff(ba, dm, 1, 0);
