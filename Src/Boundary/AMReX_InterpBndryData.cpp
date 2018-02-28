@@ -3,15 +3,15 @@
 #include <AMReX_InterpBndryData.H>
 #include <AMReX_INTERPBNDRYDATA_F.H>
 
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
 #define NUMDERIV 2
 #endif
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 #define NUMDERIV 2
 #endif
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 #define NUMDERIV 5
 #endif
 
@@ -35,7 +35,7 @@ namespace
 {
     bool initialized = false;
 
-    BDInterpFunc* bdfunc[2*BL_SPACEDIM];
+    BDInterpFunc* bdfunc[2*AMREX_SPACEDIM];
 }
 
 static
@@ -48,14 +48,14 @@ bdfunc_init ()
     bdfunc[xloface] = FORT_BDINTERPXLO;
     bdfunc[xhiface] = FORT_BDINTERPXHI;
 
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
     const Orientation yloface(1,Orientation::low);
     const Orientation yhiface(1,Orientation::high);
     bdfunc[yloface] = FORT_BDINTERPYLO;
     bdfunc[yhiface] = FORT_BDINTERPYHI;
 #endif
 
-#if (BL_SPACEDIM > 2)
+#if (AMREX_SPACEDIM > 2)
     const Orientation zloface(2,Orientation::low);
     const Orientation zhiface(2,Orientation::high);
     bdfunc[zloface] = FORT_BDINTERPZLO;
@@ -248,10 +248,10 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
             const int*       lo       = fine_bx.loVect();
             const int*       hi       = fine_bx.hiVect();
 
-            for (int i = 0; i < 2*BL_SPACEDIM; i++)
+            for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
             {
-                const int               dir  = ((i<BL_SPACEDIM) ? i : (i-BL_SPACEDIM));
-                const Orientation::Side side = ((i<BL_SPACEDIM) ? Orientation::low : Orientation::high);
+                const int               dir  = ((i<AMREX_SPACEDIM) ? i : (i-AMREX_SPACEDIM));
+                const Orientation::Side side = ((i<AMREX_SPACEDIM) ? Orientation::low : Orientation::high);
 
                 const Orientation face(dir,side);
 
@@ -283,7 +283,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
 
                     if (max_order == 3) 
                     {
-                        for (int k=0;k<BL_SPACEDIM;k++)
+                        for (int k=0;k<AMREX_SPACEDIM;k++)
                             if (k!=dir)
                                 crsebnd.grow(k,2);
                         BL_ASSERT(crse_fab.box().contains(crsebnd));

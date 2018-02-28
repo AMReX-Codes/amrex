@@ -50,7 +50,7 @@ BndryRegister::define (const BoxArray& grids_,
 void
 BndryRegister::clear ()
 {
-    for (int i = 0; i <= 2*BL_SPACEDIM; ++i) {
+    for (int i = 0; i <= 2*AMREX_SPACEDIM; ++i) {
         bndry[i].clear();
     }
     grids.clear();
@@ -61,7 +61,7 @@ BndryRegister::init (const BndryRegister& src)
 {
     grids = src.grids;
 
-    for (int i = 0; i < 2*BL_SPACEDIM; i++)
+    for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
     {
         bndry[i].define(src.bndry[i].boxArray(), src.DistributionMap(),
 			src.bndry[i].nComp());
@@ -87,7 +87,7 @@ BndryRegister::operator= (const BndryRegister& src)
         {
             grids.clear();
 
-            for (int i = 0; i < 2*BL_SPACEDIM; i++)
+            for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
                 bndry[i].clear();
         }
 
@@ -205,7 +205,7 @@ BndryRegister::setBoxes (const BoxArray& _grids)
     //
     // Check that bndry regions are not allocated.
     //
-    for (int k = 0; k < 2*BL_SPACEDIM; k++)
+    for (int k = 0; k < 2*AMREX_SPACEDIM; k++)
         BL_ASSERT(bndry[k].size() == 0);
 }
 
@@ -364,7 +364,7 @@ BndryRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
   amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
 
   // ---- FabSet
-  for(int i(0); i < (2 * BL_SPACEDIM); ++i) {
+  for(int i(0); i < (2 * AMREX_SPACEDIM); ++i) {
     bndry[i].AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
   }
 }
