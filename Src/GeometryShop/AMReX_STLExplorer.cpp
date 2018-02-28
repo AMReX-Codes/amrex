@@ -603,7 +603,7 @@ namespace amrex
 
 //  if (SpaceDim==3)
 //  {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     edgeinc.push_back(IntVect(0,0,0)); edgedir.push_back(0); // along x-dir
     edgeinc.push_back(IntVect(0,0,1)); edgedir.push_back(0);
     edgeinc.push_back(IntVect(0,1,0)); edgedir.push_back(0);
@@ -620,7 +620,7 @@ namespace amrex
 //  else if (SpaceDim==2)
 //  {
 #endif
-#if BL_SPACEDIM == 2
+#if AMREX_SPACEDIM == 2
     edgeinc.push_back(IntVect(0,0)); edgedir.push_back(0); // along x-dir
     edgeinc.push_back(IntVect(0,1)); edgedir.push_back(0);
     edgeinc.push_back(IntVect(0,0)); edgedir.push_back(1); // along y-dir
@@ -629,7 +629,7 @@ namespace amrex
 //  }
 //  else
 //  {
-#if BL_SPACEDIM > 3
+#if AMREX_SPACEDIM > 3
     amrex::Abort("STLEXplorer::FindCellEdgesOnBoundary only implemented for 2D and 3D");
 #endif
 //  }

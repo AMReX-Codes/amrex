@@ -56,10 +56,10 @@ namespace amrex
                                      const RealVect& a_lo2, const RealVect& a_hi2)
   {
     if (a_lo1[0] >= a_hi2[0] || a_hi1[0] <= a_lo2[0]) return false;
-#if BL_SPACEDIM > 1
+#if AMREX_SPACEDIM > 1
     if (a_lo1[1] >= a_hi2[1] || a_hi1[1] <= a_lo2[1]) return false;
 #endif
-#if BL_SPACEDIM > 2
+#if AMREX_SPACEDIM > 2
     if (a_lo1[2] >= a_hi2[2] || a_hi1[2] <= a_lo2[2]) return false;
 #endif
     return true;

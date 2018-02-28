@@ -59,11 +59,11 @@ namespace amrex
 
 
   ///
-  extern void EBLoHiCenAllDirs(Box         a_loBox [BL_SPACEDIM],
-                               Box         a_hiBox [BL_SPACEDIM],
-                               Box         a_cenBox[BL_SPACEDIM],
-                               int         a_hasLo [BL_SPACEDIM],
-                               int         a_hasHi [BL_SPACEDIM],
+  extern void EBLoHiCenAllDirs(Box         a_loBox [AMREX_SPACEDIM],
+                               Box         a_hiBox [AMREX_SPACEDIM],
+                               Box         a_cenBox[AMREX_SPACEDIM],
+                               int         a_hasLo [AMREX_SPACEDIM],
+                               int         a_hasHi [AMREX_SPACEDIM],
                                int       & a_nearAnyBoundary,
                                const Box & a_inBox,
                                const Box & a_domain);
