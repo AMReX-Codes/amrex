@@ -51,9 +51,9 @@ module amrex_mlnodelap_1d_module
   public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
        amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
        amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
-       amrex_mlndlap_interpolation_rap, amrex_mlndlap_interpolation_rap_sp, &
+       amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
-       amrex_mlndlap_stencil_rap, amrex_mlndlap_stencil_rap_sp
+       amrex_mlndlap_stencil_rap
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
@@ -494,16 +494,6 @@ contains
   end subroutine amrex_mlndlap_interpolation_rap
 
 
-  subroutine amrex_mlndlap_interpolation_rap_sp (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap_sp')
-    integer, dimension(1), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
-    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1))
-    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1))
-    real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),3)
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_interpolation_rap_sp
-
-
   subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
        sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_restriction_rap')
     integer, dimension(1), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, mlo, mhi
@@ -520,14 +510,6 @@ contains
     real(amrex_real), intent(inout) :: csten(clo(1):chi(1),3)
     real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),3)
   end subroutine amrex_mlndlap_stencil_rap
-
-
-  subroutine amrex_mlndlap_stencil_rap_sp (lo, hi, csten, clo, chi, fsten, flo, fhi) &
-       bind(c,name='amrex_mlndlap_stencil_rap_sp')
-    integer, dimension(1), intent(in) :: lo, hi, clo, chi, flo, fhi
-    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),3)
-    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),3)
-  end subroutine amrex_mlndlap_stencil_rap_sp
 
 
 #ifdef AMREX_USE_EB

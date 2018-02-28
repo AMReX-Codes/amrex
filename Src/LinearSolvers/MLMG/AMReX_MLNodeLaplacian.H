@@ -60,7 +60,6 @@ public :
 
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
-    void setSimpleInterpolation (bool flag) { m_use_simple_interp = flag; } // for P in RAP
 
 #ifndef AMREX_USE_EB
     void setCoarseningStrategy (CoarseningStrategy cs) { m_coarsening_strategy = cs; }
@@ -117,7 +116,6 @@ private:
 
     bool m_use_gauss_seidel = true;
     bool m_use_harmonic_average = false;
-    bool m_use_simple_interp = false;
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;

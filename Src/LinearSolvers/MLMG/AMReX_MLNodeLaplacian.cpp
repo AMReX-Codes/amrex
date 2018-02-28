@@ -865,18 +865,9 @@ MLNodeLaplacian::buildStencil ()
                     AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
                     Box bx = mfi.growntilebox(1);
                     bx &= vbx;
-                    if (m_use_simple_interp)
-                    {
-                        amrex_mlndlap_stencil_rap_sp(BL_TO_FORTRAN_BOX(bx),
-                                                     BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                                     BL_TO_FORTRAN_ANYD(fine[mfi]));
-                    }
-                    else
-                    {
-                        amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
-                                                  BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                                  BL_TO_FORTRAN_ANYD(fine[mfi]));
-                    }
+                    amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                              BL_TO_FORTRAN_ANYD(fine[mfi]));
                 }
 
                 for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
@@ -977,7 +968,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        if (m_coarsening_strategy == CoarseningStrategy::Sigma || m_use_simple_interp)
+        if (m_coarsening_strategy == CoarseningStrategy::Sigma)
         {
             amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
                                       BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
@@ -1037,22 +1028,11 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 
             if (m_coarsening_strategy == CoarseningStrategy::RAP)
             {
-                if (m_use_simple_interp)
-                {
-                    amrex_mlndlap_interpolation_rap_sp(BL_TO_FORTRAN_BOX(cbx),
-                                                       BL_TO_FORTRAN_ANYD(tmpfab),
-                                                       BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
-                                                       BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]));
-                }
-                else
-                {
-                    amrex_mlndlap_interpolation_rap(BL_TO_FORTRAN_BOX(cbx),
-                                                    BL_TO_FORTRAN_ANYD(tmpfab),
-                                                    BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
-                                                    BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]));
-                }
+                amrex_mlndlap_interpolation_rap(BL_TO_FORTRAN_BOX(cbx),
+                                                BL_TO_FORTRAN_ANYD(tmpfab),
+                                                BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+                                                BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                                BL_TO_FORTRAN_ANYD(dmsk[mfi]));
             }
             else if (m_use_harmonic_average && fmglev > 0)
             {
