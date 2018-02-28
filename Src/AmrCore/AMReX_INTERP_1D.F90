@@ -9,7 +9,7 @@
 #include "AMReX_ArrayLim.H"
 
 #define IX_PROJ(A,B) (A+B*iabs(A))/B-iabs(A)
-#define SDIM BL_SPACEDIM
+#define SDIM AMREX_SPACEDIM
 
 ! ::: --------------------------------------------------------------
 ! ::: nbinterp:  node based bilinear interpolation

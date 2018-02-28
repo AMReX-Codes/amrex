@@ -317,7 +317,7 @@ void
 TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const
 {
     int Lbx[] = {1,1,1};
-    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+    for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
     }
     
@@ -325,7 +325,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const
 
     long Ntb = 1, stb=0;
     int Ltb[] = {1,1,1};
-    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+    for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Ltb[idim] = tilebx.length(idim);
 	Ntb *= Ltb[idim];
 	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
@@ -357,7 +357,7 @@ void
 TagBox::tags (const Vector<int>& ar, const Box& tilebx)
 {
     int Lbx[] = {1,1,1};
-    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+    for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
     }
     
@@ -365,7 +365,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx)
 
     long stb=0;
     int Ltb[] = {1,1,1};
-    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+    for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Ltb[idim] = tilebx.length(idim);
 	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
@@ -390,7 +390,7 @@ void
 TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx)
 {
     int Lbx[] = {1,1,1};
-    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+    for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
     }
     
@@ -398,7 +398,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx)
 
     long stb=0;
     int Ltb[] = {1,1,1};
-    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+    for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Ltb[idim] = tilebx.length(idim);
 	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
@@ -549,7 +549,7 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
     // Tell root CPU how many tags each CPU will be sending.
     //
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    count *= BL_SPACEDIM;  // Convert from count of tags to count of integers to expect.
+    count *= AMREX_SPACEDIM;  // Convert from count of tags to count of integers to expect.
     const std::vector<long>& countvec = ParallelDescriptor::Gather(count, IOProcNumber);
     
     std::vector<long> offset(countvec.size(),0L);
@@ -562,7 +562,7 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
     //
     // Gather all the tags to IOProcNumber into TheGlobalCollateSpace.
     //
-    BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
+    BL_ASSERT(sizeof(IntVect) == AMREX_SPACEDIM * sizeof(int));
     const int* psend = (count > 0) ? TheLocalCollateSpace[0].getVect() : 0;
     int* precv = TheGlobalCollateSpace[0].getVect();
     ParallelDescriptor::Gatherv(psend, count,
@@ -578,7 +578,7 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
     // Now broadcast them back to the other processors.
     //
     ParallelDescriptor::Bcast(&numtags, 1, IOProcNumber);
-    ParallelDescriptor::Bcast(TheGlobalCollateSpace[0].getVect(), numtags*BL_SPACEDIM, IOProcNumber);
+    ParallelDescriptor::Bcast(TheGlobalCollateSpace[0].getVect(), numtags*AMREX_SPACEDIM, IOProcNumber);
     TheGlobalCollateSpace.resize(numtags);
 
 #else
