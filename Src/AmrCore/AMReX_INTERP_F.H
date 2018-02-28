@@ -109,11 +109,11 @@ extern "C"
                            ARLIM_P(cvcblo), ARLIM_P(cvcbhi),
                            amrex_real* ucc_xslopes, amrex_real* lcc_xslopes,
                            amrex_real* xslope_factors,
-#if (BL_SPACEDIM>=2)
+#if (AMREX_SPACEDIM>=2)
                            amrex_real* ucc_yslopes, amrex_real* lcc_yslopes,
                            amrex_real* yslope_factors,
 #endif
-#if (BL_SPACEDIM==3)
+#if (AMREX_SPACEDIM==3)
                            amrex_real* ucc_zslopes, amrex_real* lcc_zslopes,
                            amrex_real* zslope_factors,
 #endif
@@ -158,7 +158,7 @@ extern "C"
                               const  int* fblo, const int* fbhi,
                               const amrex_real* crse, ARLIM_P(clo), ARLIM_P(chi),
                               const  int* cblo, const int* cbhi,
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
                               const amrex_real* fvcx, const amrex_real* fvcy,
                               ARLIM_P(fblo), ARLIM_P(fbhi),
                               const amrex_real* cvcx, const amrex_real* cvcy,
