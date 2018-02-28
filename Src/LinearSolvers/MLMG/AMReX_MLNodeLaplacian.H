@@ -111,9 +111,8 @@ private:
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab
-    Vector<std::unique_ptr<MultiFab> > m_connection;
     Vector<std::unique_ptr<MultiFab> > m_integral;
-    bool m_connection_built = false;
+    bool m_integral_built = false;
 #endif
 
     bool m_use_gauss_seidel = true;
@@ -136,7 +135,7 @@ private:
     void buildStencil ();
 
 #ifdef AMREX_USE_EB
-    void buildConnection ();
+    void buildIntegral ();
 #endif
 };
 

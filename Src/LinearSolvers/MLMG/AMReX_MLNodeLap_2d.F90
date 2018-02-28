@@ -58,7 +58,8 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_stencil_rap, amrex_mlndlap_stencil_rap_sp
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+  public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
+       amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
 #endif
 
@@ -1525,7 +1526,6 @@ contains
           sten(i,j,4) = fxy*sigma(i,j)
        end do
     end do
-
   end subroutine amrex_mlndlap_set_stencil
 
 
@@ -1627,7 +1627,6 @@ contains
           end if
        end do
     end do
-
   end subroutine amrex_mlndlap_gauss_seidel_sten
 
 
@@ -1655,7 +1654,6 @@ contains
           end if
        end do
     end do
-
   end subroutine amrex_mlndlap_jacobi_sten
 
 
@@ -2190,13 +2188,25 @@ contains
 
 #ifdef AMREX_USE_EB
 
-  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+  subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
+       bind(c,name='amrex_mlndlap_set_integral')
+    integer, dimension(2) :: lo, hi, glo, ghi
+    real(amrex_real), intent(inout) :: intg(glo(1):ghi(1),glo(2):ghi(2),4)
+    integer :: i,j
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          intg(i,j,1:2) = 0.d0
+          intg(i,j,3:4) = twelfth
+       end do
+    end do
+  end subroutine amrex_mlndlap_set_integral
+
+  subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
        vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, bcen, blo, bhi) &
-       bind(c,name='amrex_mlndlap_set_connection')
+       bind(c,name='amrex_mlndlap_set_integral_eb')
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(2) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
-    real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2),2)
+    integer, dimension(2) :: lo, hi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2),4)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
     real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2))
     real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2))
@@ -2214,13 +2224,12 @@ contains
        do i = lo(1), hi(1)
           if (is_covered_cell(flag(i,j))) then
 
-             conn(i,j,:) = 0.d0
              intg(i,j,:) = 0.d0
 
           else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
 
-             conn(i,j,:) = 1.d0
-             intg(i,j,2) = 0.d0
+             intg(i,j,1:2) = 0.d0
+             intg(i,j,3:4) = twelfth
 
           else
 
@@ -2231,7 +2240,7 @@ contains
 
              apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2)
              if (apnorm .eq. 0.d0) then
-                call amrex_abort("amrex_mlndlap_set_connection: we are in trouble")
+                call amrex_abort("amrex_mlndlap_set_integral: we are in trouble")
              end if
 
              apnorminv = 1.d0/apnorm
@@ -2277,6 +2286,46 @@ contains
                 Sy2 = twentyfourth*(ayp+aym) + (anrmy/abs(anrmx))*twelfth*(ymax**4-ymin**4)
              end if
 
+             intg(i,j,1) = Sx
+             intg(i,j,2) = Sy
+             intg(i,j,3) = Sx2
+             intg(i,j,4) = Sy2
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_set_integral_eb
+
+
+  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+       vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')
+    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
+    integer, dimension(2) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi
+    real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
+    real(amrex_real), intent(in   ) :: intg( glo(1): ghi(1), glo(2): ghi(2),4)
+    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
+
+    integer :: i,j
+    real(amrex_real) :: Sx, Sx2, Sy, Sy2 ! integral of x, x2, y, and y2
+    real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (is_covered_cell(flag(i,j))) then
+
+             conn(i,j,:) = 0.d0
+
+          else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
+
+             conn(i,j,:) = 1.d0
+
+          else
+
+             Sx = intg(i,j,1)
+             Sy = intg(i,j,2)
+             Sx2 = intg(i,j,3)
+             Sy2 = intg(i,j,4)
+
              ! For d/dx of (i,j) and (i+1,j)
              conn(i,j,1) = 3.d0*Sy2 - 3.d0*Sy + 0.75d0*vol(i,j)
 
@@ -2300,9 +2349,6 @@ contains
 
              ! For d/dy of (i+1,j) and (i+1,j+1)
              conn(i,j,6) = 3.d0*Sx2 + 3.d0*Sx + 0.75d0*vol(i,j)
-
-             intg(i,j,1) = Sx
-             intg(i,j,2) = Sy
           end if
        end do
     end do
