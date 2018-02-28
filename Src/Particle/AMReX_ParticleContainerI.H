@@ -37,9 +37,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         
         ParmParse pp("particles");
         pp.query("do_tiling", do_tiling);
-        Vector<int> tilesize(BL_SPACEDIM);
-        if (pp.queryarr("tile_size", tilesize, 0, BL_SPACEDIM)) {
-            for (int i=0; i<BL_SPACEDIM; ++i) tile_size[i] = tilesize[i];
+        Vector<int> tilesize(AMREX_SPACEDIM);
+        if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
+            for (int i=0; i<AMREX_SPACEDIM; ++i) tile_size[i] = tilesize[i];
         }
         if ( ! std::is_pod<ParticleType>::value) {
             amrex::Abort("Particle is not POD");
@@ -233,7 +233,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift
     const IntVect&  iv      = Index(p, 0);
     bool            shifted = false;  
 
-    for (int i = 0; i < BL_SPACEDIM; i++) {
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         if (!geom.isPeriodic(i)) continue;
 
         if (iv[i] > dmn.bigEnd(i)) {
@@ -533,7 +533,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::MoveRandom (i
     const Real FRAC = 0.25;
     auto&       pmap              = m_particles[lev];
     const Real* dx                = Geom(lev).CellSize();
-    const Real  dist[BL_SPACEDIM] = { AMREX_D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
+    const Real  dist[AMREX_SPACEDIM] = { AMREX_D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
 
     for (auto& kv : pmap) {
         auto& aos = kv.second.GetArrayOfStructs();
@@ -547,7 +547,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::MoveRandom (i
 	  
 	  if (p.m_idata.id <= 0) continue;
 	  
-	  for (int j = 0; j < BL_SPACEDIM; j++)
+	  for (int j = 0; j < AMREX_SPACEDIM; j++)
               {
                   p.m_rdata.pos[j] += dist[j]*(2*amrex::Random()-1);
               }
@@ -641,7 +641,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::sumParticleMa
       const auto& pbox = kv.second.GetArrayOfStructs();
       for (const auto& p : pbox) {
           if (p.m_idata.id > 0) {
-              msum += p.m_rdata.arr[BL_SPACEDIM+rho_index];
+              msum += p.m_rdata.arr[AMREX_SPACEDIM+rho_index];
           }
       }
   }
@@ -747,11 +747,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetParticleLo
   long start, npart;
   std::tie(start,npart) = StartIndexInGlobalArray();
   
-  // Each particle takes up BL_SPACEDIM Reals
-  start *= (BL_SPACEDIM);
+  // Each particle takes up AMREX_SPACEDIM Reals
+  start *= (AMREX_SPACEDIM);
   
   // Locations
-  part_data.resize(BL_SPACEDIM*npart,0);
+  part_data.resize(AMREX_SPACEDIM*npart,0);
 
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
       const auto& pmap = m_particles[lev];
@@ -760,7 +760,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetParticleLo
           for (const auto& p : pbx) {
               if (p.m_idata.id > 0) {
                   // Load positions
-                  for (int d=0; d < BL_SPACEDIM; d++)
+                  for (int d=0; d < AMREX_SPACEDIM; d++)
                       part_data[start++] = p.m_rdata.pos[d];
               }
           }
@@ -793,7 +793,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetParticleDa
               if (p.m_idata.id > 0) {
                   // Load particle data, whatever it is.
                   for (int d = 0; d < num_comp; d++)
-                      part_data[start++] = p.m_rdata.arr[BL_SPACEDIM + start_comp + d];
+                      part_data[start++] = p.m_rdata.arr[AMREX_SPACEDIM + start_comp + d];
               }
           }
       }
@@ -850,11 +850,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetParticleLo
   long start, npart;
   std::tie(start,npart) = StartIndexInGlobalArray();
   
-  // Each particle takes up BL_SPACEDIM Reals
-  start*= BL_SPACEDIM;
+  // Each particle takes up AMREX_SPACEDIM Reals
+  start*= AMREX_SPACEDIM;
   
   // Mass + locations
-  if (part_data.size() != npart*BL_SPACEDIM)
+  if (part_data.size() != npart*AMREX_SPACEDIM)
     amrex::Abort("Sending in wrong size part_data to SetParticleLocations");
 
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
@@ -864,7 +864,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetParticleLo
           for (auto& p : pbx) {
               if (p.m_idata.id > 0) {
                   // Load positions
-                  for (int d=0; d < BL_SPACEDIM; d++)
+                  for (int d=0; d < AMREX_SPACEDIM; d++)
                       p.m_rdata.pos[d] = part_data[start++];
               }
           }
@@ -979,7 +979,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtual
 	    else if (aggregation_type == "Cell")
 	      {
 		//
-		// Note that Cell aggregation assumes that p.m_rdata.arr[BL_SPACEDIM] is mass and
+		// Note that Cell aggregation assumes that p.m_rdata.arr[AMREX_SPACEDIM] is mass and
 		// that all other components should be combined in a mass-weighted
 		// average.
 		//
@@ -1002,13 +1002,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtual
 		    BL_ASSERT(agg_map_it != agg_map.end());
 		    const ParticleType&  pnew       = *it;
 		    ParticleType&        pold       = agg_map_it->second;
-		    const Real           old_mass   = pold.m_rdata.arr[BL_SPACEDIM];
-		    const Real           new_mass   = pnew.m_rdata.arr[BL_SPACEDIM];
+		    const Real           old_mass   = pold.m_rdata.arr[AMREX_SPACEDIM];
+		    const Real           new_mass   = pnew.m_rdata.arr[AMREX_SPACEDIM];
 		    const Real           total_mass = old_mass + new_mass;
 		    //
 		    // Set the position to the center of mass.
 		    //
-		    for (int i = 0; i < BL_SPACEDIM; i++)
+		    for (int i = 0; i < AMREX_SPACEDIM; i++)
 		      {
 			pold.m_rdata.pos[i] = (old_mass*pold.m_rdata.pos[i] + new_mass*pnew.m_rdata.pos[i])/total_mass;
 		      }
@@ -1016,11 +1016,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtual
 		    //
 		    // Set the metadata (presumably velocity) to the mass-weighted average.
 		    //
-		    for (int i = BL_SPACEDIM + 1; i < BL_SPACEDIM + NStructReal; i++)
+		    for (int i = AMREX_SPACEDIM + 1; i < AMREX_SPACEDIM + NStructReal; i++)
 		      {
 			pold.m_rdata.arr[i] = (old_mass*pold.m_rdata.arr[i] + new_mass*pnew.m_rdata.arr[i])/total_mass;
 		      }
-		    pold.m_rdata.arr[BL_SPACEDIM] = total_mass;
+		    pold.m_rdata.arr[AMREX_SPACEDIM] = total_mass;
 		  }
 	      }
 	    else if (aggregation_type == "Flow")
@@ -1919,9 +1919,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             HdrFile << ParticleType::Version() << "_double" << '\n';
 	  }
         //
-        // BL_SPACEDIM and N for sanity checking.
+        // AMREX_SPACEDIM and N for sanity checking.
         //
-        HdrFile << BL_SPACEDIM << '\n';
+        HdrFile << AMREX_SPACEDIM << '\n';
 	
 	// The number of extra real parameters
         HdrFile << NStructReal + NArrayReal << '\n';
@@ -2379,7 +2379,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
       }
       
       // Write the Real data in binary.
-      const int rChunkSize = BL_SPACEDIM + NStructReal + NArrayReal;
+      const int rChunkSize = AMREX_SPACEDIM + NStructReal + NArrayReal;
       Vector<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
       typename ParticleType::RealType* rptr = rstuff.dataPtr();
       
@@ -2388,10 +2388,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
           int pindex = 0;
           for (const auto& p : pbox.GetArrayOfStructs()) {
               if (p.m_idata.id > 0) {
-                  for (int j = 0; j < BL_SPACEDIM + NStructReal; j++) {
+                  for (int j = 0; j < AMREX_SPACEDIM + NStructReal; j++) {
                       rptr[j] = p.m_rdata.arr[j];
                   }
-                  rptr += BL_SPACEDIM + NStructReal;
+                  rptr += AMREX_SPACEDIM + NStructReal;
                   const auto& soa  = pbox.GetStructOfArrays();
                   for (int j = 0; j < NArrayReal; j++) {
                       rptr[j] = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
@@ -2471,8 +2471,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   
   int dm;
   HdrFile >> dm;
-  if (dm != BL_SPACEDIM)
-    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): dm != BL_SPACEDIM");
+  if (dm != AMREX_SPACEDIM)
+    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): dm != AMREX_SPACEDIM");
   
   int nr;
   HdrFile >> nr;
@@ -2604,7 +2604,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
         readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
 
     // Then the real data in binary.
-    const int rChunkSize = BL_SPACEDIM + NStructReal + NArrayReal;
+    const int rChunkSize = AMREX_SPACEDIM + NStructReal + NArrayReal;
     Vector<RTYPE> rstuff(cnt*rChunkSize);
     ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs, ParticleRealDescriptor);
 
@@ -2643,9 +2643,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
 	     p.m_rdata.pos[2] = rptr[2];);
 
       for (int j = 0; j < NStructReal; j++)
-	p.m_rdata.arr[BL_SPACEDIM+j] = rptr[BL_SPACEDIM+j];
+	p.m_rdata.arr[AMREX_SPACEDIM+j] = rptr[AMREX_SPACEDIM+j];
 
-      rptr += BL_SPACEDIM + NStructReal;
+      rptr += AMREX_SPACEDIM + NStructReal;
       
       locateParticle(p, pld, 0, finestLevel(), 0);
 
@@ -2765,7 +2765,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
                                << it->m_rdata.pos[1] << ' ',
                                << it->m_rdata.pos[2] << ' ');
 
-                        for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NStructReal; i++)
+                        for (int i = AMREX_SPACEDIM; i < AMREX_SPACEDIM + NStructReal; i++)
                             File << it->m_rdata.arr[i] << ' ';
 
                         File << it->m_idata.id  << ' ';
@@ -2920,9 +2920,9 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
                               }
                               index++;
                               
-                              for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NStructReal; i++) {
-                                  char ws = (i == BL_SPACEDIM + NStructReal - 1) ? '\n' : ' ';
-                                  if (i == BL_SPACEDIM) {
+                              for (int i = AMREX_SPACEDIM; i < AMREX_SPACEDIM + NStructReal; i++) {
+                                  char ws = (i == AMREX_SPACEDIM + NStructReal - 1) ? '\n' : ' ';
+                                  if (i == AMREX_SPACEDIM) {
                                       // Multiply mass by 8 since we are only taking 1/8 of the 
                                       // total particles and want to keep the mass in the domain the same.
                                       File << 8.0* it->m_rdata.arr[i] << ws;
@@ -3108,7 +3108,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::FineToCrse (c
         // end of the domain because coarsening & refining don't work right
         // when indices go negative.
         //
-        for (int dm = 0; dm < BL_SPACEDIM; dm++)
+        for (int dm = 0; dm < AMREX_SPACEDIM; dm++)
             ccell_refined[dm] = std::max(ccell_refined[dm], -1);
 
         if (!fvalid.contains(ccell_refined))
@@ -3191,7 +3191,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::FineCellsToUp
     {
         bool touches = true;
 
-        for (int k = 0; k < BL_SPACEDIM; k++)
+        for (int k = 0; k < AMREX_SPACEDIM; k++)
         {
             const Real celllo = iv[k]  * fdx[k] + plo[k];
             const Real cellhi = celllo + fdx[k];
@@ -3219,7 +3219,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::FineCellsToUp
 
         Real the_frac = 1;
 
-        for (int k = 0; k < BL_SPACEDIM; k++)
+        for (int k = 0; k < AMREX_SPACEDIM; k++)
         {
             const Real celllo = (iv[k] * fdx[k] + plo[k]);
 
@@ -3288,7 +3288,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::AssignDensity()");
     BL_ASSERT(NStructReal >= 1);
     BL_ASSERT(NStructReal >= ncomp);
-    BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
+    BL_ASSERT(ncomp == 1 || ncomp == AMREX_SPACEDIM+1);
 
     if (finest_level == -1) {
       finest_level = finestLevel();
@@ -3605,7 +3605,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                         // Sum up mass in first component.
                         //
                         {
-                            fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+                            fab(cells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
                         }
                         //
                         // Sum up momenta in next components.
@@ -3621,7 +3621,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 			}
 
                         for (int n = 1; n < ncomp; n++) {
-                            fab(cells[i],n) += p.m_rdata.arr[BL_SPACEDIM + n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+                            fab(cells[i],n) += p.m_rdata.arr[AMREX_SPACEDIM + n] * p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
 			}
                     }
                     //
@@ -3666,13 +3666,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf[lev_index+1])[grid](fcells[j],0) += p.m_rdata.arr[BL_SPACEDIM] * ffracs[j];
+                                        (*mf[lev_index+1])[grid](fcells[j],0) += p.m_rdata.arr[AMREX_SPACEDIM] * ffracs[j];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf[lev_index+1])[grid](fcells[j],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * ffracs[j];
+                                        (*mf[lev_index+1])[grid](fcells[j],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * ffracs[j];
 				    }
                                 }
                                 else
@@ -3686,14 +3686,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 				  // Sum up mass in first component.
 				  //
 				  {
-				    pb.m_data[0] = p.m_rdata.arr[BL_SPACEDIM] *  ffracs[j];
+				    pb.m_data[0] = p.m_rdata.arr[AMREX_SPACEDIM] *  ffracs[j];
 				  }
 				  
 				  //
 				  // Sum up momenta in next components.
 				  //
 				  for (int n = 1; n < ncomp; n++) {
-				    pb.m_data[n] = p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * ffracs[j];
+				    pb.m_data[n] = p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * ffracs[j];
 				  }
 				  
 				  data[who].push_back(pb);
@@ -3740,13 +3740,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf[lev_index-1])[grid](ccells[j],0) += p.m_rdata.arr[BL_SPACEDIM] * cfracs[j];
+                                        (*mf[lev_index-1])[grid](ccells[j],0) += p.m_rdata.arr[AMREX_SPACEDIM] * cfracs[j];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf[lev_index-1])[grid](ccells[j],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * cfracs[j];
+                                        (*mf[lev_index-1])[grid](ccells[j],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * cfracs[j];
 				    }
                                 }
                                 else
@@ -3760,14 +3760,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 				  // Sum up mass in first component.
 				  //
 				  {
-				    pb.m_data[0] = p.m_rdata.arr[BL_SPACEDIM] * cfracs[j];
+				    pb.m_data[0] = p.m_rdata.arr[AMREX_SPACEDIM] * cfracs[j];
 				  }
                                   
 				  //
 				  // Sum up momenta in next components.
 				  //
 				  for (int n = 1; n < ncomp; n++) {
-				    pb.m_data[n] = p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * cfracs[j];
+				    pb.m_data[n] = p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * cfracs[j];
 				  }
 				  
 				  data[who].push_back(pb);
@@ -3815,13 +3815,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                             // Sum up mass in first component.
                             //
                             {
-                                fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+                                fab(cells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
                             }
                             //
                             // Sum up momenta in next components.
                             //
                             for (int n = 1; n < ncomp; n++) {
-                                fab(cells[i],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+                                fab(cells[i],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
 			    }
                         }
                     }
@@ -3864,13 +3864,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * cfracs[i];
+                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM] * cfracs[i];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * cfracs[i];
+                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * cfracs[i];
 				    }
                                 }
                                 else
@@ -3883,14 +3883,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 				  // Sum up mass in first component.
 				  //
 				  {
-				    pb.m_data[0] = p.m_rdata.arr[BL_SPACEDIM] * cfracs[i];
+				    pb.m_data[0] = p.m_rdata.arr[AMREX_SPACEDIM] * cfracs[i];
 				  }
 
 				  //
 				  // Sum up momenta in next components.
 				  //
 				  for (int n = 1; n < ncomp; n++) {
-				    pb.m_data[n] = p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * cfracs[i];
+				    pb.m_data[n] = p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * cfracs[i];
 				  }
 				  data[who].push_back(pb);
                                 }
@@ -3901,7 +3901,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                         //
                         // We've updated the Crse cells.  Now we have to update the fine
                         // cells in such a way that the total amount of mass we move
-                        // around is precisely p.m_rdata.arr[BL_SPACEDIM]. In other words, the fractions
+                        // around is precisely p.m_rdata.arr[AMREX_SPACEDIM]. In other words, the fractions
                         // we use at crse and fine have to sum to zero.  In the fine
                         // case, we have to account for the case where one or more of the
                         // cell indices is not in the valid region of the box containing 
@@ -3926,13 +3926,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                                 // Sum up mass in first component.
                                 //
                                 {
-                                    fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+                                    fab(cells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
                                 }
                                 //
                                 // Sum up momenta in next components.
                                 //
                                 for (int n = 1; n < ncomp; n++) {
-                                    fab(cells[i],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+                                    fab(cells[i],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
 				}
                                 fwhich[i] = false;
                             }
@@ -3970,13 +3970,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                                 // Sum up mass in first component.
                                 //
                                 {
-                                    fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i] * mult;
+                                    fab(cells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i] * mult;
                                 }
                                 //
                                 // Sum up momenta in next components.
                                 //
                                 for (int n = 1; n < ncomp; n++) {
-                                    fab(cells[i],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i] * mult;
+                                    fab(cells[i],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i] * mult;
 				}
 
                                 sum_fine += fracs[i] * mult;
@@ -4005,13 +4005,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                                 // Sum up mass in first component.
                                 //
                                 {
-                                    fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+                                    fab(cells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
                                 }
                                 //
                                 // Sum up momenta in next components.
                                 //
                                 for (int n = 1; n < ncomp; n++) {
-                                    fab(cells[i],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+                                    fab(cells[i],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
 				}
 
                                 sum += fracs[i];
@@ -4033,13 +4033,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                                         // Sum up mass in first component.
                                         //
                                         {
-                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i] * ffracs[j];
+                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],0) += p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i] * ffracs[j];
                                         }
                                         //
                                         // Sum up momenta in next components.
                                         //
                                         for (int n = 1; n < ncomp; n++) {
-                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i] * ffracs[j];
+                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i] * ffracs[j];
 					}
                                     }
                                     else
@@ -4052,14 +4052,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 				      // Sum up mass in first component.
 				      //
 				      {
-					pb.m_data[0] = p.m_rdata.arr[BL_SPACEDIM] * fracs[i] * ffracs[j];
+					pb.m_data[0] = p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i] * ffracs[j];
 				      }
 
 				      //
 				      // Sum up momenta in next components.
 				      //
 				      for (int n = 1; n < ncomp; n++) {
-					pb.m_data[0] = p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i] * ffracs[j];
+					pb.m_data[0] = p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i] * ffracs[j];
 					}
 
                                         data[who].push_back(pb);
@@ -4234,7 +4234,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     //
     // The data we want to receive.
     //
-    const int iChunkSize = 2 + BL_SPACEDIM;
+    const int iChunkSize = 2 + AMREX_SPACEDIM;
     const int rChunkSize = ncomp;
 
     Vector<int>                    irecvdata (NumRcvs*iChunkSize);
@@ -4363,7 +4363,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     
     BL_ASSERT(NStructReal >= 1);
     BL_ASSERT(NStructReal >= ncomp);
-    BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
+    BL_ASSERT(ncomp == 1 || ncomp == AMREX_SPACEDIM+1);
 
     if (finest_level == -1) {
         finest_level = finestLevel();
@@ -4493,7 +4493,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 {
   BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::AssignDensitySingleLevel()");
   BL_ASSERT(NStructReal >= 1);
-  BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
+  BL_ASSERT(ncomp == 1 || ncomp == AMREX_SPACEDIM+1);
   
   if (lev >= int(m_particles.size()))
     {
@@ -4786,7 +4786,7 @@ AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-	      fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+	      fab(cells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
 	    }
 	    // 
 	    // Sum up momenta in next components.
@@ -4795,7 +4795,7 @@ AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-	      fab(cells[i],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+	      fab(cells[i],n) += p.m_rdata.arr[AMREX_SPACEDIM+n] * p.m_rdata.arr[AMREX_SPACEDIM] * fracs[i];
 	  }
         }
     }
@@ -4880,13 +4880,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
     Vector<Real> fracs;
     fracs.resize(8);
 
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
     Vector<Real> sx;
     sx.resize(2);
     Vector<Real> sy;
     sy.resize(2);
 #endif
-#if (BL_SPACEDIM > 2)
+#if (AMREX_SPACEDIM > 2)
     Vector<Real> sz;
     sz.resize(2);
 #endif
@@ -4906,7 +4906,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
 	    
 	    Where(p, pld);
 
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
             cells[0] = pld.m_cell;
             cells[1] = pld.m_cell+IntVect(1);
 
@@ -4918,10 +4918,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
 
             for (int i = 0; i < 2; i++)
             {
-               fab(cells[0],0) += p.m_rdata.arr[BL_SPACEDIM+rho_index] * (1.0 - xint);
-               fab(cells[1],0) += p.m_rdata.arr[BL_SPACEDIM+rho_index] *        xint ;
+               fab(cells[0],0) += p.m_rdata.arr[AMREX_SPACEDIM+rho_index] * (1.0 - xint);
+               fab(cells[1],0) += p.m_rdata.arr[AMREX_SPACEDIM+rho_index] *        xint ;
             }
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
             cells[0] = pld.m_cell;
             cells[1] = pld.m_cell+IntVect(1,0);
             cells[2] = pld.m_cell+IntVect(0,1);
@@ -4948,7 +4948,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
 
             for (int ind = 0; ind < 4; ind++)
             {
-               fab(cells[ind],0) += p.m_rdata.arr[BL_SPACEDIM+rho_index] * fracs[ind];
+               fab(cells[ind],0) += p.m_rdata.arr[AMREX_SPACEDIM+rho_index] * fracs[ind];
             }
 #else
             cells[0] = pld.m_cell;
@@ -4990,7 +4990,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
 
             for (int i = 0; i < 8; i++)
             {
-               fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM+rho_index] * fracs[i];
+               fab(cells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM+rho_index] * fracs[i];
             }
 #endif
         }
@@ -5041,7 +5041,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (Mul
                                                                              int             start_comp_for_accel)
 {
     BL_PROFILE("ParticleContainer::moveKick()");
-    BL_ASSERT(NStructReal >= BL_SPACEDIM+1);
+    BL_ASSERT(NStructReal >= AMREX_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
     const Real strttime  = ParallelDescriptor::second();
@@ -5082,31 +5082,31 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (Mul
             {
 
 	      //
-	      // Note: rdata.arr[BL_SPACEDIM] is mass, BL_SPACEDIM+1 is v_x, ...
+	      // Note: rdata.arr[AMREX_SPACEDIM] is mass, AMREX_SPACEDIM+1 is v_x, ...
 	      //
-	      Real grav[BL_SPACEDIM];
+	      Real grav[AMREX_SPACEDIM];
 
 	      ParticleType::GetGravity(gfab, m_gdb->Geom(lev), p, grav);
 	      //
 	      // Define (a u)^new = (a u)^half + dt/2 grav^new
 	      //
-	      AMREX_D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] *= a_half;,
-		     p.m_rdata.arr[BL_SPACEDIM+2] *= a_half;,
-		     p.m_rdata.arr[BL_SPACEDIM+3] *= a_half;);
+	      AMREX_D_TERM(p.m_rdata.arr[AMREX_SPACEDIM+1] *= a_half;,
+		     p.m_rdata.arr[AMREX_SPACEDIM+2] *= a_half;,
+		     p.m_rdata.arr[AMREX_SPACEDIM+3] *= a_half;);
 
-	      AMREX_D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] += half_dt * grav[0];,
-		     p.m_rdata.arr[BL_SPACEDIM+2] += half_dt * grav[1];,
-		     p.m_rdata.arr[BL_SPACEDIM+3] += half_dt * grav[2];);
+	      AMREX_D_TERM(p.m_rdata.arr[AMREX_SPACEDIM+1] += half_dt * grav[0];,
+		     p.m_rdata.arr[AMREX_SPACEDIM+2] += half_dt * grav[1];,
+		     p.m_rdata.arr[AMREX_SPACEDIM+3] += half_dt * grav[2];);
 
-	      AMREX_D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] *= a_new_inv;,
-		     p.m_rdata.arr[BL_SPACEDIM+2] *= a_new_inv;,
-		     p.m_rdata.arr[BL_SPACEDIM+3] *= a_new_inv;);
+	      AMREX_D_TERM(p.m_rdata.arr[AMREX_SPACEDIM+1] *= a_new_inv;,
+		     p.m_rdata.arr[AMREX_SPACEDIM+2] *= a_new_inv;,
+		     p.m_rdata.arr[AMREX_SPACEDIM+3] *= a_new_inv;);
 
-	      if (start_comp_for_accel > BL_SPACEDIM)
+	      if (start_comp_for_accel > AMREX_SPACEDIM)
                 {
-		  AMREX_D_TERM(p.m_rdata.arr[BL_SPACEDIM + start_comp_for_accel  ] = grav[0];,
-			 p.m_rdata.arr[BL_SPACEDIM + start_comp_for_accel+1] = grav[1];,
-			 p.m_rdata.arr[BL_SPACEDIM + start_comp_for_accel+2] = grav[2];);
+		  AMREX_D_TERM(p.m_rdata.arr[AMREX_SPACEDIM + start_comp_for_accel  ] = grav[0];,
+			 p.m_rdata.arr[AMREX_SPACEDIM + start_comp_for_accel+1] = grav[1];,
+			 p.m_rdata.arr[AMREX_SPACEDIM + start_comp_for_accel+2] = grav[2];);
                 }
             }
         }
