@@ -160,7 +160,7 @@ BndryData::define (const BoxArray& _grids,
     {
         Orientation face = fi();
         BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp,_dmap);
-	masks[face].define(grids, _dmap, geom, face, 0, 2, NTangHalfWidth, 1, true);
+	masks[face].define(grids, _dmap, geom, face, 0, 2, NTangHalfWidth,_ncomp, true);
     }
     //
     // Define "bcond" and "bcloc".
