@@ -1511,7 +1511,7 @@ contains
     real(amrex_real), intent(in) :: dxinv(2)
 
     integer :: i, j
-    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fp, fm
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
