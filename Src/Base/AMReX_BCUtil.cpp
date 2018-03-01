@@ -28,7 +28,7 @@ namespace amrex
         int n_bc = AMREX_SPACEDIM * 2 * phi.nComp();
         int* bcrs_d = (int*) Device::device_malloc(n_bc * sizeof(int));
         const int* bcrs = bc[0].data();
-        Device::device_htod_memcpy_async(bcrs_d, bcrs, n_bc * sizeof(int), -1);
+        Device::device_htod_memcpy_async(bcrs_d, bcrs, n_bc * sizeof(int));
 #else
         const int* bcrs_d = bc[0].data();
 #endif
