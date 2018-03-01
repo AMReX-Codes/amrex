@@ -40,7 +40,7 @@ CFLAGS   += -std=gnu99
 
 ########################################################################
 
-GENERIC_IBM_FLAGS =
+GENERIC_IBM_FLAGS = -qmoddir=$(fmoddir) -I $(fmoddir)
 
 ifeq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -qsmp=omp
@@ -53,6 +53,12 @@ CPP_PREFIX = -WF,
 
 ifeq ($(USE_CUDA),TRUE)
   include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
+
+  # Force immediate expansion of the GCC defines,
+  # since after this point GCC will no longer be
+  # the actual compiler defined in CXX.
+
+  DEFINES := $(DEFINES)
 
   CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
   CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
@@ -94,17 +100,32 @@ endif
 
 F90FLAGS += -qlanglvl=extended -qxlf2003=polymorphic
 
-FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
-F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
+FFLAGS   += -WF,-C!
+F90FLAGS += -WF,-C!
+
+FFLAGS   += -qfixed=72
 
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
-override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath -L $(OLCF_XLC_ROOT)/lib -libmc++ -lstdc++ -lxlsmp
+override XTRALIBS = -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
+
+ifeq ($(USE_OMP),TRUE)
+  override XTRALIBS += -lxlsmp
+endif
+
+ifeq ($(USE_MPI),TRUE)
+  override XTRALIBS += $(shell mpifort -showme:link)
+endif
 
 FORTLINK = LOWERCASE
 
 ifeq ($(USE_CUDA),TRUE)
   F90FLAGS += -qcuda
   FFLAGS += -qcuda
+
+  ifdef CUDA_MAXREGCOUNT
+    F90FLAGS += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
+    FFLAGS   += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
+  endif
 endif

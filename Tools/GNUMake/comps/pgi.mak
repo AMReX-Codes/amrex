@@ -59,11 +59,6 @@ else
   GENERIC_PGI_FLAGS += -noacc
 endif
 
-ifeq ($(USE_CUDA),TRUE)
-  CXXFLAGS += -Mcuda=cuda$(CUDA_VERSION)
-  CFLAGS   += -Mcuda=cuda$(CUDA_VERSION)
-endif
-
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)
 
@@ -78,6 +73,12 @@ CFLAGS   += $(GENERIC_PGI_FLAGS)
 
 ifeq ($(USE_CUDA),TRUE)
   include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
+
+  # Force immediate expansion of the GCC defines,
+  # since after this point GCC will no longer be
+  # the actual compiler defined in CXX.
+
+  DEFINES := $(DEFINES)
 
   CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
   CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
@@ -122,10 +123,24 @@ endif
 
 # Note that we do not have a Fortran main
 
+F90FLAGS += -Mnomain
+FFLAGS   += -Mnomain
+
 ifeq ($(USE_CUDA),TRUE)
-  F90FLAGS += -Mcuda=cuda$(CUDA_VERSION) -Mnomain
-  FFLAGS   += -Mcuda=cuda$(CUDA_VERSION) -Mnomain
+
+  F90FLAGS += -Mcuda=$(CUDA_VERSION)
+  FFLAGS   += -Mcuda=$(CUDA_VERSION)
+
+  F90FLAGS += CUDAROOT=$(COMPILE_CUDA_PATH)
+  FFLAGS   += CUDAROOT=$(COMPILE_CUDA_PATH)
+
+  ifdef CUDA_MAXREGCOUNT
+    F90FLAGS += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)
+    FFLAGS   += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)
+  endif
+
 endif
+
 
 ########################################################################
 
