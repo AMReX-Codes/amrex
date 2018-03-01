@@ -1531,7 +1531,6 @@ BuildRedistributeMask(int lev, int nghost) {
                 for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
                     const int grid = (*redistribute_mask_ptr)[mfi](iv, 0);
                     if (grid >= 0) {
-                        const int tile = (*redistribute_mask_ptr)[mfi](iv, 1);
                         const int proc = this->ParticleDistributionMap(lev)[grid];
                         if (proc != ParallelDescriptor::MyProc())  
                             neighbor_procs.push_back(proc);
@@ -1551,7 +1550,6 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
-    const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
     
     // We may now have particles that are rightfully owned by another CPU.
@@ -1818,7 +1816,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 || sizeof(typename ParticleType::RealType) == 8);
 
-    const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
     const int  IOProcNumber   = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = ParallelDescriptor::second();
@@ -4988,9 +4985,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
             fracs[6] = sx[0] * sy[1] * sz[1];
             fracs[7] = sx[1] * sy[1] * sz[1];
 
-            for (int i = 0; i < 8; i++)
+            for (int ip = 0; ip < 8; ip++)
             {
-               fab(cells[i],0) += p.m_rdata.arr[AMREX_SPACEDIM+rho_index] * fracs[i];
+               fab(cells[ip],0) += p.m_rdata.arr[AMREX_SPACEDIM+rho_index] * fracs[ip];
             }
 #endif
         }
