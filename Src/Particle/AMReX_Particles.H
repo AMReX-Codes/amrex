@@ -256,7 +256,7 @@ public:
     typename Vector<ParticleType>::const_iterator cend () const { return m_data.cend(); }
 
 private:
-    ParticleVector m_data;
+    Vector<ParticleType> m_data;
 };
 template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeInReal;
 
