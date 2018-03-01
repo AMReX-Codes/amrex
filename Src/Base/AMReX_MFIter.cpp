@@ -434,7 +434,7 @@ MFIter::operator++ () {
     if (real_reduce_list.size() == currentIndex + 1) {
         Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
                                          real_device_reduce_list[currentIndex],
-                                         sizeof(Real), currentIndex);
+                                         sizeof(Real));
     }
 #endif
 
@@ -468,7 +468,7 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 
     Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
                                      &real_reduce_list[currentIndex],
-                                     sizeof(Real), currentIndex);
+                                     sizeof(Real));
 
     return dval;
 
