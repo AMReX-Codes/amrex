@@ -37,6 +37,26 @@ static void chop_boxes (Box* bxv, const Box& bx, int nboxes)
     }
 }
 
+static void chop_boxes_dir (Box* bxv, const Box& bx, int nboxes, int idir)
+{
+    if (nboxes == 1)
+    {
+        *bxv = bx;
+    }
+    else
+    {
+        int chop_pnt = bx.smallEnd(idir) + bx.length(idir)/2;
+        Box bxleft = bx;
+        Box bxright = bxleft.chop(idir, chop_pnt);
+
+        int nleft = nboxes / 2;
+        chop_boxes_dir(bxv, bxleft, nleft, idir);
+
+        int nright = nboxes - nleft;
+        chop_boxes_dir(bxv+nleft, bxright, nright, idir);
+    }
+}
+
 }
 
 void
@@ -206,6 +226,18 @@ BoxList::BoxList (const Box& bx, int nboxes)
 
     m_lbox.resize(nboxes);
     chop_boxes(m_lbox.data(), bx, nboxes);
+}
+
+BoxList::BoxList (const Box& bx, int nboxes, Direction dir)
+    : btype(bx.ixType())
+{
+    int idir = static_cast<int>(dir);
+
+    AMREX_ASSERT(nboxes > 0);
+    AMREX_ASSERT(bx.length(idir) >= nboxes);
+
+    m_lbox.resize(nboxes);
+    chop_boxes_dir(m_lbox.data(), bx, nboxes, idir);
 }
 
 bool

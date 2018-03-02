@@ -76,6 +76,9 @@ public:
     //! Make a BoxList consisting of nboxes Boxes from a single Box
     BoxList (const Box& bx, int nboxes);
 
+    //! Make a BoxList consisting of nboxes Boxes chopped in dir-direction from a single Box
+    BoxList (const Box& bx, int nboxes, Direction dir);
+
     BoxList (const BoxList& rhs) = default;
     BoxList (BoxList&& rhs) = default;
     BoxList& operator= (const BoxList& rhs) = default;
