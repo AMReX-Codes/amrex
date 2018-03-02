@@ -102,7 +102,8 @@ private:
 #ifdef AMREX_USE_EB
     CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
 #else
-    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
+//xxxxx    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
 #endif
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
