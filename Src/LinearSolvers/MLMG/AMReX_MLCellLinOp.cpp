@@ -42,7 +42,7 @@ MLCellLinOp::defineAuxData ()
         {
             m_undrrelxr[amrlev][mglev].define(m_grids[amrlev][mglev],
                                               m_dmap[amrlev][mglev],
-                                              ncomp, 0, 0, 1);
+                                              1, 0, 0, ncomp);
         }
     }
     
@@ -438,7 +438,6 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
     const auto& maskvals = m_maskvals[amrlev][mglev];
-
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
     FArrayBox foo(Box::TheUnitBox(),ncomp);
@@ -462,16 +461,19 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
             Real bcl = bdl[ori];
             int  bct = bdc[ori];
 
+	    foo.setVal(10.0);
+	    
 	    const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
 
             const Mask& m = maskvals[ori][mfi];
-
-            amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
-                                   BL_TO_FORTRAN_ANYD(iofab),
-                                   BL_TO_FORTRAN_ANYD(m),
-                                   cdr, bct, bcl,
-                                   BL_TO_FORTRAN_ANYD(fsfab),
-                                   maxorder, dxinv, flagbc, ncomp);
+	    
+            amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),     // lo, hi
+                                   BL_TO_FORTRAN_ANYD(iofab),  // phi, hlo, hhi
+                                   BL_TO_FORTRAN_ANYD(m),      // mask, mlo, mhi
+                                   cdr, bct, bcl,              // cdir, bct, bcl
+                                   BL_TO_FORTRAN_ANYD(fsfab),  // bcval, blo, bhi
+                                   maxorder, dxinv, flagbc,
+				   ncomp);
         }
     }
 }
@@ -484,6 +486,8 @@ MLCellLinOp::reflux (int crse_amrlev,
     BL_PROFILE("MLCellLinOp::reflux()");
     YAFluxRegister& fluxreg = m_fluxreg[crse_amrlev];
     fluxreg.reset();
+
+    const int ncomp = getNComp();
 
     const int fine_amrlev = crse_amrlev+1;
 
@@ -507,9 +511,9 @@ MLCellLinOp::reflux (int crse_amrlev,
             if (fluxreg.CrseHasWork(mfi))
             {
                 const Box& tbx = mfi.tilebox();
-                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
-                             flux[1].resize(amrex::surroundingNodes(tbx,1));,
-                             flux[2].resize(amrex::surroundingNodes(tbx,2)););
+                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
+                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
+                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
                 FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi]);
                 fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
             }
@@ -571,6 +575,9 @@ void
 MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
 {
     BL_PROFILE("MLCellLinOp::compGrad()");
+
+    if (sol.nComp() > 1)
+      amrex::Abort("MLCellLinOp::compGrad called, but only works for single-component solves");
 
     const int mglev = 0;
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
@@ -636,7 +643,7 @@ MLCellLinOp::prepareForSolve ()
                     amrex_mllinop_comp_interp_coef0(BL_TO_FORTRAN_BOX(vbx),
                                                     BL_TO_FORTRAN_ANYD(ffab),
                                                     BL_TO_FORTRAN_ANYD(m),
-                                                    cdr, bct, bcl, maxorder, dxinv);
+                                                    cdr, bct, bcl, maxorder, dxinv, ncomp);
                 }
             }
         }
@@ -697,6 +704,10 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
     
     if (Geometry::IsCartesian() || !info.has_metric_term) return;
 
+    const int ncomp = rhs.nComp();
+      
+    std::cout << __FILE__ << ":" << __LINE__ << "rhs.ncomp = " << rhs.nComp() << std::endl;
+
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
     int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
@@ -713,7 +724,8 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
         const int rhi = vbx.hiVect()[0] + nextra;
         amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
                                    BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                   r.data(), &rlo, &rhi);
+                                   r.data(), &rlo, &rhi,
+				   ncomp);
     }
 #endif
 }
@@ -724,6 +736,8 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 #if (AMREX_SPACEDIM != 3)
 
     if (Geometry::IsCartesian() || !info.has_metric_term) return;
+
+    const int ncomp = rhs.nComp();
 
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
@@ -740,7 +754,8 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
         const int rhi = vbx.hiVect()[0] + nextra;
         amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
                                    BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                   r.data(), &rlo, &rhi);
+                                   r.data(), &rlo, &rhi,
+				   ncomp);
     }
 #endif
 }

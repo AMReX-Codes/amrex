@@ -501,7 +501,8 @@ MLMG::interpCorrection (int alev)
             amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
                                      BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
                                      BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                     &refratio[0]);
+                                     &refratio[0],
+				     &ncomp);
         }
     }
     else
@@ -521,7 +522,8 @@ MLMG::interpCorrection (int alev)
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
-                                         BL_TO_FORTRAN_ANYD(cfine[mfi]));
+                                         BL_TO_FORTRAN_ANYD(cfine[mfi]),
+					 &ncomp);
                 fine_cor[mfi].copy(tmpfab, fbx, 0, fbx, 0, ncomp);
             }
         }
@@ -574,7 +576,7 @@ MLMG::interpCorrection (int alev, int mglev)
             amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
                                      BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
                                      BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
-                                     &refratio);
+                                     &refratio,&ncomp);
         }
     }
     else
@@ -593,7 +595,8 @@ MLMG::interpCorrection (int alev, int mglev)
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
-                                         BL_TO_FORTRAN_ANYD((*cmf)[mfi]));
+                                         BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+					 &ncomp);
                 fine_cor[mfi].copy(tmpfab, fbx, 0, fbx, 0, ncomp);
             }
         }
@@ -711,8 +714,8 @@ MLMG::actualBottomSolve ()
         MultiFab raii_b;
         if (linop.isBottomSingular())
         {
-            raii_b.define(b.boxArray(), b.DistributionMap(), ncomp, b.nGrow   
-         MultiFab::Copy(raii_b,b,0,0,ncomp,b.nGrow());
+            raii_b.define(b.boxArray(), b.DistributionMap(), ncomp, b.nGrow());
+            MultiFab::Copy(raii_b,b,0,0,ncomp,b.nGrow());
             bottom_b = &raii_b;
 
             Real offset;
