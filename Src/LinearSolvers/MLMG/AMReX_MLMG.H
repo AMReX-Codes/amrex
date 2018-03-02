@@ -69,7 +69,7 @@ private:
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  bottom_verbose        = 0;
-    int  bottom_maxiter        = 200;
+    int  bottom_maxiter        = 2000;
 
     int always_use_bnorm = 0;
 
