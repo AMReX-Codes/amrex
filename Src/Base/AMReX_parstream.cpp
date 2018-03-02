@@ -17,7 +17,7 @@
 namespace amrex
 {
 //
-// pout() returns the standard output stream for Chombo codes.
+// pout() returns a standard output stream.
 //
 // In parallel, each proc sends the stream to a separate file,
 //  distinguished by having the proc num in the filename.
