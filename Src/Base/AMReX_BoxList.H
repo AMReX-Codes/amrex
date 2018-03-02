@@ -73,6 +73,9 @@ public:
     //! Make a boxList consisting of non-overlapping tile box from a single Box
     BoxList (const Box& bx, const IntVect& tilesize);
 
+    //! Make a BoxList consisting of nboxes Boxes from a single Box
+    BoxList (const Box& bx, int nboxes);
+
     BoxList (const BoxList& rhs) = default;
     BoxList (BoxList&& rhs) = default;
     BoxList& operator= (const BoxList& rhs) = default;

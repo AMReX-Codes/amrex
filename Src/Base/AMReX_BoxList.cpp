@@ -13,6 +13,32 @@
 
 namespace amrex {
 
+namespace {
+
+static void chop_boxes (Box* bxv, const Box& bx, int nboxes)
+{
+    if (nboxes == 1)
+    {
+        *bxv = bx;
+    }
+    else
+    {
+        int longdir;
+        int longlen = bx.longside(longdir);
+        int chop_pnt = bx.smallEnd(longdir) + longlen/2;
+        Box bxleft = bx;
+        Box bxright = bxleft.chop(longdir, chop_pnt);
+
+        int nleft = nboxes / 2;
+        chop_boxes(bxv, bxleft, nleft);
+
+        int nright = nboxes - nleft;
+        chop_boxes(bxv+nleft, bxright, nright);
+    }
+}
+
+}
+
 void
 BoxList::clear ()
 {
@@ -170,6 +196,16 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
 	tbx.shift(bx.smallEnd());
 	push_back(tbx);
     }
+}
+
+BoxList::BoxList (const Box& bx, int nboxes)
+    : btype(bx.ixType())
+{
+    AMREX_ASSERT(nboxes > 0);
+    AMREX_ASSERT(bx.numPts() >= nboxes);
+
+    m_lbox.resize(nboxes);
+    chop_boxes(m_lbox.data(), bx, nboxes);
 }
 
 bool
