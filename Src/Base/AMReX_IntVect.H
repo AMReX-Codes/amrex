@@ -35,9 +35,9 @@ public:
 	std::size_t operator()(const IntVect& vec) const
         {
 	    AMREX_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
-#if BL_SPACEDIM == 1
+#if AMREX_SPACEDIM == 1
 	    return ret0;
-#elif BL_SPACEDIM == 2
+#elif AMREX_SPACEDIM == 2
 	    return ret0 ^ (ret1 << shift1);
 #else
 	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);	    
@@ -71,7 +71,7 @@ public:
     /**
     * \brief Construct an IntVect given the specific values for its
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
-    * to take BL_SPACEDIM arguments.
+    * to take AMREX_SPACEDIM arguments.
     */
     IntVect (AMREX_D_DECL(int i, int j, int k)) { AMREX_D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
 
@@ -95,15 +95,15 @@ public:
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
-    int& operator[] (int i) { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
+    int& operator[] (int i) { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
-    const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
+    const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
     IntVect& setVal (int i, int val)
     {
-        BL_ASSERT(i >=0 && i < BL_SPACEDIM); vect[i] = val; return *this;
+        BL_ASSERT(i >=0 && i < AMREX_SPACEDIM); vect[i] = val; return *this;
     }
 
     /**
@@ -139,9 +139,9 @@ public:
     //! Return ture if this is lexicographically less than rhs.
     bool operator< (const IntVect& rhs) const
     {
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
     return vect[0] < rhs[0];
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     return (vect[1] < rhs[1]) || ((vect[1] == rhs[1]) && (vect[0] < rhs[0]));
 #else
     return (vect[2] < rhs[2]) || ((vect[2] == rhs[2]) &&
@@ -303,14 +303,14 @@ public:
     */
     IntVect& reflect (int ref_ix, int idir)
     {
-        BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
+        BL_ASSERT(idir >= 0 && idir < AMREX_SPACEDIM);
         vect[idir] = -vect[idir] + 2*ref_ix;
         return *this;
     }
     //! Modify IntVect by adding s to given coordinate.
     IntVect& shift (int coord, int s)
     {
-        BL_ASSERT(coord >= 0 && coord < BL_SPACEDIM); vect[coord] += s; return *this;
+        BL_ASSERT(coord >= 0 && coord < AMREX_SPACEDIM); vect[coord] += s; return *this;
     }
     //! Equivalent to shift(0,iv[0]).shift(1,iv[1]) ...
     IntVect& shift (const IntVect& iv) { *this += iv; return *this; }
@@ -360,33 +360,33 @@ public:
 
     /**
     * \brief This static member function returns a reference to a constant IntVect
-    * object, all of whose BL_SPACEDIM arguments are set to zero (0).
-    * Figuratively, it is the zero vector in BL_SPACEDIM-dimensional space.
+    * object, all of whose AMREX_SPACEDIM arguments are set to zero (0).
+    * Figuratively, it is the zero vector in AMREX_SPACEDIM-dimensional space.
     * It is provided as a convenient way to specify the zero vector.
     */
     static const IntVect& TheZeroVector ();
     /**
     * \brief This static member function returns a reference to a constant IntVect
-    * object, all of whose BL_SPACEDIM arguments are set to one (1).
-    * Figuratively, it is the unit vector in BL_SPACEDIM-dimensional space.
+    * object, all of whose AMREX_SPACEDIM arguments are set to one (1).
+    * Figuratively, it is the unit vector in AMREX_SPACEDIM-dimensional space.
     * It is provided as a convenient way to specify the unit vector.
     */
     static const IntVect& TheUnitVector ();
     /**
     * \brief This static member function returns a reference to a constant IntVect
-    * object, all of whose BL_SPACEDIM arguments are set to zero except that
+    * object, all of whose AMREX_SPACEDIM arguments are set to zero except that
     * the d-direction is set to one. 
     */
     static const IntVect& TheDimensionVector (int d);
     /**
     * \brief This static member function returns a reference to a constant IntVect
-    * object, all of whose BL_SPACEDIM arguments are set to IndexType::NODE.
+    * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::NODE.
     * It is provided as a convenience to our users when defining Boxes.
     */
     static const IntVect& TheNodeVector ();
     /** 
     * \brief This static member function returns a reference to a constant IntVect
-    * object, all of whose BL_SPACEDIM arguments are set to IndexType::CELL.
+    * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::CELL.
     * It is provided as a convenience to our users when defining Boxes.
     */
     static const IntVect& TheCellVector ();
@@ -399,7 +399,7 @@ private:
     friend std::ostream& operator<< (std::ostream& os, const IntVect& iv);
     friend std::istream& operator>> (std::istream& is, IntVect& iv);
 
-    int vect[BL_SPACEDIM];
+    int vect[AMREX_SPACEDIM];
 };
 
 //

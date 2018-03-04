@@ -175,7 +175,7 @@ private:
     // Static data.
     //
     static int     spherical_origin_fix;
-    static bool    is_periodic[BL_SPACEDIM]; // 0 means not periodic
+    static bool    is_periodic[AMREX_SPACEDIM]; // 0 means not periodic
     static RealBox prob_domain;
     // Non-static data.
     //

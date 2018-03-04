@@ -167,12 +167,12 @@ namespace amrex
   void BoxIterator::next()
   {
     m_current[0]++;
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
     if (m_current[0] > m_boxHi[0])
       {
         m_current[0] = m_boxLo[0];
         m_current[1]++;
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
         if (m_current[1] > m_boxHi[1])
           {
             m_current[1] = m_boxLo[1];

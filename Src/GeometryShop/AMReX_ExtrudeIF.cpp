@@ -36,7 +36,7 @@ namespace amrex
 
         Real x = a_point[0];
         Real y = a_point[1];
-#if BL_SPACEDIM > 2
+#if AMREX_SPACEDIM > 2
         RealVect coord3(x,y,0.0);
         retval = m_impFunc1->value(coord3);
 #else
