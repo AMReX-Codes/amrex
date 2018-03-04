@@ -61,7 +61,7 @@ public:
   /**
      Construct a RealVect given the specific values for its
      coordinates.  AMREX_D_DECL is a macro that sets the constructor to
-     take BL_SPACEDIM arguments.
+     take AMREX_SPACEDIM arguments.
   */
   RealVect (AMREX_D_DECL(Real i, Real j, Real k));
 

@@ -44,11 +44,11 @@ namespace amrex
 
     r = sqrt(r+a);
 
-#if BL_SPACEDIM == 2
+#if AMREX_SPACEDIM == 2
     RealVect coord(r,0.0);
 
     retval =  m_impFunc1->value(coord);
-#elif BL_SPACEDIM == 3
+#elif AMREX_SPACEDIM == 3
     Real z = a_point[2];
     Real r1,z1;
 

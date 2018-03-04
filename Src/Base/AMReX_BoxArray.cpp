@@ -1544,7 +1544,7 @@ readBoxArray (BoxArray&     ba,
 
 Vector<int> SerializeBoxArray(const BoxArray &ba)
 {
-  int nIntsInBox(3 * BL_SPACEDIM);
+  int nIntsInBox(3 * AMREX_SPACEDIM);
   Vector<int> retArray(ba.size() * nIntsInBox, -1);
   for(int i(0); i < ba.size(); ++i) {
     Vector<int> aiBox(amrex::SerializeBox(ba[i]));
@@ -1559,7 +1559,7 @@ Vector<int> SerializeBoxArray(const BoxArray &ba)
 
 BoxArray UnSerializeBoxArray(const Vector<int> &serarray)
 {
-  int nIntsInBox(3 * BL_SPACEDIM);
+  int nIntsInBox(3 * AMREX_SPACEDIM);
   int nBoxes(serarray.size() / nIntsInBox);
   BoxArray ba(nBoxes);
   for(int i(0); i < nBoxes; ++i) {

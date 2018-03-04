@@ -42,7 +42,7 @@ program main
   if (parallel_IOProcessor()) then
      print*, ' '
      print*, 'Total Run Time = ', r1
-     call flush(6)
+     flush(6)
   end if
 
   call boxlib_finalize()

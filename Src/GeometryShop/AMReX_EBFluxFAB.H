@@ -208,7 +208,7 @@ namespace amrex
     bool m_isDefined;
 
     /// CH_SPACEDIM EBFaceFABes which hold fluxes
-    EBFaceFAB m_fluxes[BL_SPACEDIM];
+    EBFaceFAB m_fluxes[AMREX_SPACEDIM];
     IrregFAB  m_irrFlux;
 
 

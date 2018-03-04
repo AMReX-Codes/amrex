@@ -20,7 +20,7 @@ namespace amrex
 {
   int VolIndex::linearSize() const
   {
-    return (BL_SPACEDIM + 1)*sizeof(int);
+    return (AMREX_SPACEDIM + 1)*sizeof(int);
   }
 
   void VolIndex::linearOut(void* const a_outBuf) const
@@ -28,7 +28,7 @@ namespace amrex
     assert(m_isDefined);
     int* buf = (int*)a_outBuf;
     AMREX_D_TERM(buf[0]=m_iv[0],; buf[1]=m_iv[1],; buf[2]=m_iv[2]);
-    buf[BL_SPACEDIM]=m_cellIndex;
+    buf[AMREX_SPACEDIM]=m_cellIndex;
 
   }
 
@@ -36,7 +36,7 @@ namespace amrex
   {
     int* buf = (int*)inBuf;
     AMREX_D_TERM(m_iv[0]=buf[0],; m_iv[1]=buf[1],; m_iv[2]=buf[2]);
-    m_cellIndex = buf[BL_SPACEDIM];
+    m_cellIndex = buf[AMREX_SPACEDIM];
     m_isDefined = true;
   }
   /*****************************************/

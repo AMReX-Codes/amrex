@@ -76,10 +76,10 @@ namespace amrex
 //given a normal vector, get spacedim-1 tangential vectors that are
 //unit vectors and
     static void
-    getTangentVectors( RealVect              a_tangen[BL_SPACEDIM-1],
+    getTangentVectors( RealVect              a_tangen[AMREX_SPACEDIM-1],
                        const RealVect&       a_normal)
       {
-#if BL_SPACEDIM==2
+#if AMREX_SPACEDIM==2
         a_tangen[0][1] =  a_normal[0];
         a_tangen[0][0] = -a_normal[1];
 #else
@@ -106,7 +106,7 @@ namespace amrex
 #endif
 
         //make them all unit vectors
-        for (int itan = 0; itan < BL_SPACEDIM-1; itan++)
+        for (int itan = 0; itan < AMREX_SPACEDIM-1; itan++)
         {
           Real tmpsumSquare;
           PolyGeom::unifyVector(a_tangen[itan], tmpsumSquare);
@@ -253,7 +253,7 @@ namespace amrex
     static void computeNormalAndAlpha(Real& a_alpha,
                                       RealVect& a_normal,
                                       const int& a_upDir,
-                                      const Tuple<RealVect, BL_SPACEDIM>& a_poly);
+                                      const Tuple<RealVect, AMREX_SPACEDIM>& a_poly);
 
     // solve ax = b (gives icomp component of x using cramers rule).
     static Real
@@ -298,7 +298,7 @@ namespace amrex
     static void unifyVector(RealVect& normal, Real& sumSquare);
 
     ///
-    static Tuple<int, BL_SPACEDIM-1> computeTanDirs(int upDir);
+    static Tuple<int, AMREX_SPACEDIM-1> computeTanDirs(int upDir);
 
   protected:
 

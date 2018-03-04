@@ -315,8 +315,8 @@ namespace amrex
                     a_A[1][1]*(a_A[2][0]*a_A[3][2]-a_A[3][0]*a_A[2][2])+
                     a_A[1][2]*(a_A[2][0]*a_A[3][1]-a_A[3][0]*a_A[2][1]));
     }
-#if BL_SPACEDIM==2
-#elif BL_SPACEDIM==3
+#if AMREX_SPACEDIM==2
+#elif AMREX_SPACEDIM==3
 #else
     bogus_ch_spacedim_macro();
 #endif
@@ -372,9 +372,9 @@ namespace amrex
   PolyGeom::computeNormalAndAlpha(Real& a_alpha,
                                   RealVect& a_normal,
                                   const int& a_upDir,
-                                  const Tuple<RealVect, BL_SPACEDIM>& a_poly)
+                                  const Tuple<RealVect, AMREX_SPACEDIM>& a_poly)
   {
-#if BL_SPACEDIM == 2
+#if AMREX_SPACEDIM == 2
     RealVect pt0 = a_poly[0];
     RealVect pt1 = a_poly[1];
     //make pt0 the point with smaller x
@@ -411,7 +411,7 @@ namespace amrex
       a_normal[0] = signx/sqrt(denom);
       a_normal[1] = ratio*a_normal[0];
     }
-#elif BL_SPACEDIM == 3
+#elif AMREX_SPACEDIM == 3
     //compute cross product of two vectors formed by difference
     //between pt0 and pt2 and pt1 and pt2
     RealVect xvec1 = a_poly[0];
@@ -462,7 +462,7 @@ namespace amrex
   PolyGeom::cross(const RealVect& a_xvec1,const RealVect& a_xvec0)
   {
     RealVect retval;
-#if BL_SPACEDIM==3
+#if AMREX_SPACEDIM==3
     retval[0] =   a_xvec0[1]*a_xvec1[2] - a_xvec0[2]*a_xvec1[1];
     retval[1] = -(a_xvec0[0]*a_xvec1[2] - a_xvec0[2]*a_xvec1[0]);
     retval[2] =   a_xvec0[0]*a_xvec1[1] - a_xvec0[1]*a_xvec1[0];
