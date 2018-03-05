@@ -195,7 +195,7 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 
 namespace {
     template <class T>
-    T sum(Vector<T> v) {
+    T sum(const Vector<T> &v) {
         T s = 0;
         for (int i = 0; i < v.size(); ++i) {
             s += v[i];
@@ -208,40 +208,21 @@ namespace ParallelContext {
 
     struct Frame
     {
+        // sub-communicator associated with frame
         MPI_Comm comm;
-
-#if 0
-        // potential implementation where members of task may have non-contiguous global ranks
-
-        // ranks that are members of this frame
-        // indexed by rank in current frame
-        Vector<int> global_ranks;
-        int rank_n() { return global_ranks.size(); }
-        int global_rank(int rank) {
-            assert(rank < ranks.size();
-            return ranks[rank];
-        }
-#else
-        // members of task must have contiguous global ranks
-        int glo_rank_lo, glo_rank_hi;
-        int rank_n() { return glo_rank_hi - glo_rank_lo; }
-        int glo_rank(int rank) {
-            assert(rank >= 0 && rank < rank_n());
-            return glo_rank_lo + rank;
-        }
-#endif
-
-        // specific to this rank
+        int mpi_tag = 0; // tag to use for MPI communications in this frame
+        int glo_rank_lo, glo_rank_hi; // members of task have contiguous global ranks
         int loc_rank_me; // local rank relative to current sub-communicator
-        int rank_me() { return loc_rank_me; }
 
-        Frame(const Frame &) = delete;
-        Frame(Frame &&) = default;
         Frame(MPI_Comm c, int glo, int ghi, int lme) :
           comm(c), glo_rank_lo(glo), glo_rank_hi(ghi), loc_rank_me(lme) { }
-        ~Frame() = default;
-        Frame &operator=(const Frame &) = delete;
-        Frame &operator=(Frame &&) = delete;
+
+        int rank_n() { return glo_rank_hi - glo_rank_lo; }
+        int rank_me() { return loc_rank_me; }
+        int glo_rank(int rank) {
+            assert(rank >= 0 && rank <= rank_n()); // allow inclusive upper bound
+            return glo_rank_lo + rank;
+        }
     };
 
     Vector<Frame> frames; // stack of communicator frames
@@ -266,34 +247,50 @@ namespace ParallelContext {
     int rank_n() { return frames.back().rank_n(); }
     // my sub-rank in current frame
     int rank_me() { return frames.back().rank_me(); }
+    int glo_rank(int rank) { return frames.back().glo_rank(rank); }
     MPI_Comm comm() { return frames.back().comm; }
 
+    // split ranks in current frame into contiguous chunks
+    // task i has ranks over the interval [result[i], result[i+1])
+    Vector<int> get_split_bounds(const Vector<int> &task_rank_n)
+    {
+        auto task_n = task_rank_n.size();
+        assert(sum(task_rank_n) == rank_n());
+
+        Vector<int> result(task_n + 1);
+        result[0] = 0;
+        for (int i = 0; i < task_n; ++i) {
+            result[i + 1] = result[i] + task_rank_n[i];
+        }
+        return result;
+    }
+
     // split top frame of stack and push new frame on top
-    int split(Vector<int> task_rank_n)
+    int split(const Vector<int> &task_rank_n)
     {
         auto task_n = task_rank_n.size();
         assert(sum(task_rank_n) == rank_n());
 
         // figure out what color (task_me) to pass into MPI_Comm_split
-        int glo_rank_lo, glo_rank_hi, loc_rank_me;
+        auto split_bounds = get_split_bounds(task_rank_n);
+        int new_glo_rank_lo, new_glo_rank_hi, new_loc_rank_me;
         int task_me;
-        int lo = 0, hi = 0; // local rank cursors
         for (task_me = 0; task_me < task_n; ++task_me) {
-            hi += task_rank_n[task_me];
+            int lo = split_bounds[task_me];
+            int hi = split_bounds[task_me + 1];
             if (rank_me() >= lo && rank_me() < hi) {
-                glo_rank_lo = glo_rank_lo + lo;
-                glo_rank_hi = glo_rank_lo + hi;
-                loc_rank_me = rank_me() - lo;
+                new_glo_rank_lo = glo_rank(lo);
+                new_glo_rank_hi = glo_rank(hi);
+                new_loc_rank_me = rank_me() - lo;
                 break;
             }
-            lo = hi;
         }
         assert(task_me < task_n);
 
         MPI_Comm new_comm;
         MPI_Comm_split(comm(), task_me, rank_me(), &new_comm);
 
-        frames.emplace_back(new_comm, glo_rank_lo, glo_rank_hi, loc_rank_me);
+        frames.emplace_back(new_comm, new_glo_rank_lo, new_glo_rank_hi, new_loc_rank_me);
         return task_me;
     }
 
@@ -308,6 +305,7 @@ class ForkJoin
   public:
 
     enum Strategy {
+        SINGLE,     // one task gets a copy of whole MF
         DUPLICATE,  // all tasks get a copy of whole MF
         SPLIT,      // split MF components across tasks
     };
@@ -318,20 +316,21 @@ class ForkJoin
         MultiFab *orig;
         Strategy strategy;
         Access access;
+        int owner_task; // only used if access == SINGLE or DUPLICATE
         Vector<MultiFab> forked; // holds new multifab for each task in fork
 
         MFFork() = default;
         MFFork(MultiFab *o, Strategy s = DUPLICATE, Access a = RW) : orig(o), strategy(s), access(a) {}
     };
 
-    ForkJoin(Vector<int> trn) : task_rank_n(trn) {
+    ForkJoin(Vector<int> trn) : task_rank_n(std::move(trn)) {
         auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
         auto task_n = task_rank_n.size();
         assert(task_n >= 2);
         assert(sum(task_rank_n) == rank_n);
     }
 
-    ForkJoin(Vector<double> task_rank_pct) {
+    ForkJoin(const Vector<double> &task_rank_pct) {
         auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
         auto task_n = task_rank_pct.size();
         assert(task_n >= 2);
@@ -368,7 +367,7 @@ class ForkJoin
         reg_mf(mf, name, 0, strategy, access);
     };
 
-    void reg_mf_vec(Vector<MultiFab *> &mfs, std::string name, Strategy strategy, Access access) {
+    void reg_mf_vec(const Vector<MultiFab *> &mfs, std::string name, Strategy strategy, Access access) {
         for (int i = 0; i < mfs.size(); ++i) {
             reg_mf(*mfs[i], name, i, strategy, access);
         }
@@ -388,12 +387,8 @@ class ForkJoin
         reg_mf(mf, name, 0, strategy, access);
     };
 
-    void reg_mf_vec(const Vector<MultiFab *> &mfs, std::string name, Strategy strategy, Access access) {
-        for (int i = 0; i < mfs.size(); ++i) {
-            reg_mf(*mfs[i], name, i, strategy, access);
-        }
-    }
-
+    // this is called before ParallelContext::split
+    // the parent task is the top frame in ParallelContext's stack
     void copy_data_to_tasks() {
         for (auto &p : data) { // for each name
             for (auto &mff : p.second) { // for each index
@@ -404,26 +399,38 @@ class ForkJoin
                 int task_n = task_rank_n.size();
                 int comp_n = orig.nComp(); // number of components in original
 
+                auto task_bounds = ParallelContext::get_split_bounds(task_rank_n);
+
                 forked.reserve(task_n);
                 for (int i = 0; i < task_n; ++i) {
 
-                    // create distribution map of current box array over current task's ranks
-                    // TODO: hard coded colors only right now
-                    //       replace with distribution mapping over custom set of ranks
+                    if (mff.strategy == SINGLE && i != mff.owner_task) {
+                        forked.push_back(MultiFab()); // empty placeholder, not used
+                        continue;
+                    }
 
+                    // create distribution map of current box array over current task's ranks
+#if 0
+                    const auto &ba = orig.boxArray();
+                    auto task_glo_rank_lo = ParallelContext::glo_rank(task_bounds[i].first);
+                    auto task_glo_rank_hi = ParallelContext::glo_rank(task_bounds[i].second);
+                    DistributionMapping dm {ba, task_glo_rank_lo, task_glo_rank_hi};
+#else
+                    // hard coded colors only right now
                     assert(task_n == ParallelDescriptor::NColors());
                     ParallelDescriptor::Color color = ParallelDescriptor::Color(i);
                     int nprocs = ParallelDescriptor::NProcs();
                     const auto &ba = orig.boxArray();
                     DistributionMapping dm {ba, nprocs, color};
-
+#endif
+                    // compute component lower and upper bound
                     int comp_lo, comp_hi;
                     if (mff.strategy == SPLIT) {
                         // split components across tasks
                         comp_lo = comp_n *  i    / task_n;
                         comp_hi = comp_n * (i+1) / task_n;
                     } else {
-                        // duplicate all components to all tasks
+                        // copy all components to task
                         comp_lo = 0;
                         comp_hi = comp_n;
                     }
@@ -438,10 +445,13 @@ class ForkJoin
 
                     forked.push_back(std::move(mf));
                 }
+                assert(forked.size() == task_n);
             }
         }
     }
 
+    // this is called after ParallelContext::unsplit
+    // the parent task is the top frame in ParallelContext's stack
     void copy_data_from_tasks() {
         for (auto &p : data) { // for each name
             for (auto &mff : p.second) { // for each index
@@ -457,11 +467,9 @@ class ForkJoin
                             int comp_hi = comp_n * (i+1) / task_n;
                             orig.copy(forked[i], 0, comp_lo, comp_hi - comp_lo);
                         }
-                    } else { // mff.strategy == DUPLICATE
-                        // TODO: maybe user wants to specify which task's copy to keep?
-                        // for now, copy all components from task 0
-                        int output_task = 0;
-                        orig.copy(forked[output_task], 0, 0, comp_n);
+                    } else { // mff.strategy == SINGLE or DUPLICATE
+                        // copy all components from owner_task
+                        orig.copy(forked[mff.owner_task], 0, 0, comp_n);
                     }
                 }
             }
@@ -479,8 +487,10 @@ class ForkJoin
     }
 
     MultiFab &get_mf(std::string name, int idx = 0) {
-        assert(idx < data.at(name).size() &&
-               task_me < data.at(name)[idx].forked.size());
+        assert(data.count(name) > 0 &&
+               idx < data[name].size() &&
+               task_me >= 0 &&
+               task_me < data[name][idx].forked.size());
         return data[name][idx].forked[task_me];
     }
 
@@ -489,7 +499,7 @@ class ForkJoin
         int dim = data.at(name).size();
         Vector<MultiFab *> result(dim);
         for (int idx = 0; idx < dim; ++idx) {
-            result[idx] = &data[name][idx].forked[task_me];
+            result[idx] = &get_mf(name, idx);
         }
         return result;
     }
@@ -503,20 +513,22 @@ class ForkJoin
 void solve(MultiFab& soln, const MultiFab& rhs, 
 	   const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
 {
-    ForkJoin fj(ParallelDescriptor::NColors()); // even split ranks among NColors() tasks
+    // evenly split ranks among NColors() tasks
+    ForkJoin fj(ParallelDescriptor::NColors());
+
+    // register how to copy multifabs to/from tasks
     fj.reg_mf(rhs, "rhs", ForkJoin::SPLIT, ForkJoin::RD);
     fj.reg_mf(alpha, "alpha", ForkJoin::SPLIT, ForkJoin::RD);
     fj.reg_mf_vec(beta, "beta", ForkJoin::SPLIT, ForkJoin::RD);
-    // soln gets initialized to 0.0 in single_component_solve
     fj.reg_mf(soln, "soln", ForkJoin::SPLIT, ForkJoin::WR);
 
-    fj.fork_join([&] (ForkJoin &f) {
-        colored_solve(f.get_mf("soln"),
-                      f.get_mf("rhs"),
-                      f.get_mf("alpha"),
-                      f.get_mf_vec("beta"),
-                      geom);
-    });
+    // issue fork-join
+    fj.fork_join(
+        [&] (ForkJoin &f) {
+            colored_solve(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
+                          f.get_mf_vec("beta"), geom);
+        }
+    );
 }
 
 void colored_solve(MultiFab& soln, const MultiFab& rhs, 
