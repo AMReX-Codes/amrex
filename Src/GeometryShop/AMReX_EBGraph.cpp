@@ -1,21 +1,9 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_EBGraph.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
 #include "AMReX_parstream.H"
 #include "AMReX_Print.H"
-
 
 namespace amrex
 {
