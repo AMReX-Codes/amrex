@@ -31,7 +31,8 @@ namespace amrex
   value(const RealVect& a_point) const
   {
     RealVect dist = a_point - m_center;
-    Real distance2 = D_TERM(dist[0]*dist[0], + dist[1]*dist[1], + dist[2]*dist[2]);
+    //do not include z dependence (which makes it a cylinder instead of a sphere
+    Real distance2 = dist[0]*dist[0] + dist[1]*dist[1];
 
     Real retval = distance2 - m_radius2;
     // Change the sign to change inside to outside
