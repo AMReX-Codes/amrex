@@ -858,14 +858,14 @@ protected:
     // nGrow ghost cells).
     //
     bool Where (const ParticleType& prt, ParticleLocData& pld, 
-		int lev_min = 0, int lev_max = -1, int nGrow=0) const;
+		int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
 
     //
     // Checks whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     //
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
-                               int lev_min = 0, int lev_max = -1) const;
+                               int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
@@ -926,7 +926,7 @@ private:
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, bool local=false);
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
-                        int lev_min, int lev_max, int nGrow) const;
+                        int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
     static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
