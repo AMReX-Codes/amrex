@@ -219,43 +219,60 @@ namespace ParallelContext {
 
         int rank_n() { return glo_rank_hi - glo_rank_lo; }
         int rank_me() { return loc_rank_me; }
-        int glo_rank(int rank) {
-            assert(rank >= 0 && rank <= rank_n()); // allow inclusive upper bound
-            return glo_rank_lo + rank;
+        int local_to_global_rank(int rank) {
+            AMREX_ASSERT(rank >= 0 && rank <= rank_n()); // allow inclusive upper bound
+            return rank + glo_rank_lo;
+        }
+        int global_to_local_rank(int rank) {
+            AMREX_ASSERT(rank >= glo_rank_lo && rank <= glo_rank_hi); // allow inclusive upper bound
+            return rank - glo_rank_lo;
+        }
+        int get_inc_mpi_tag() {
+            // get and increment the mpi_tag in this frame
+            auto cur_tag = mpi_tag;
+            mpi_tag = mpi_tag < ParallelDescriptor::MaxTag() ?
+                      mpi_tag + 1 : ParallelDescriptor::MinTag();
+            return cur_tag;
         }
     };
 
     Vector<Frame> frames; // stack of communicator frames
 
-    // call at beginning of program, after MPI_Init
+    // call at beginning of program, after MPI_Init and ParallelDescriptor::StartParallel()
     // probably somewhere inside amrex::Initialize()
     void init() {
-        // initialize first frame in stack to global communicator
+        // initialize "global" first frame in stack to ParallelDescriptor's communicator
         int glo_rank_n, glo_rank_me;
-        MPI_Comm_size(MPI_COMM_WORLD, &glo_rank_n);
-        MPI_Comm_rank(MPI_COMM_WORLD, &glo_rank_me);
-        frames.emplace_back(MPI_COMM_WORLD, 0, glo_rank_n, glo_rank_me);
+        MPI_Comm_size(ParallelDescriptor::Communicator(), &glo_rank_n);
+        MPI_Comm_rank(ParallelDescriptor::Communicator(), &glo_rank_me);
+        frames.emplace_back(ParallelDescriptor::Communicator(), 0, glo_rank_n, glo_rank_me);
     }
 
+    // world communicator
+    MPI_Comm comm_global() { return frames[0].comm; }
     // number of ranks in world communicator
     int rank_n_global() { return frames[0].rank_n(); }
     // my rank in world communicator
     int rank_me_global() { return frames[0].rank_me(); }
-    MPI_Comm comm_global() { return frames[0].comm; }
 
+    // sub-communicator for current frame
+    MPI_Comm comm() { return frames.back().comm; }
     // number of ranks in current frame
     int rank_n() { return frames.back().rank_n(); }
     // my sub-rank in current frame
     int rank_me() { return frames.back().rank_me(); }
-    int glo_rank(int rank) { return frames.back().glo_rank(rank); }
-    MPI_Comm comm() { return frames.back().comm; }
+    // get and increment mpi tag in current frame
+    int get_inc_mpi_tag() { return frames.back().get_inc_mpi_tag(); }
+    // translate between local rank and global rank
+    int local_to_global_rank(int rank) { return frames.back().local_to_global_rank(rank); }
+    int global_to_local_rank(int rank) { return frames.back().global_to_local_rank(rank); }
 
     // split ranks in current frame into contiguous chunks
     // task i has ranks over the interval [result[i], result[i+1])
     Vector<int> get_split_bounds(const Vector<int> &task_rank_n)
     {
         auto task_n = task_rank_n.size();
-        assert(sum(task_rank_n) == rank_n());
+        AMREX_ASSERT(sum(task_rank_n) == rank_n());
 
         Vector<int> result(task_n + 1);
         result[0] = 0;
@@ -266,10 +283,11 @@ namespace ParallelContext {
     }
 
     // split top frame of stack and push new frame on top
+    // TODO: write version that takes cached comm object as argument in case of repeated identical split calls
     int split(const Vector<int> &task_rank_n)
     {
         auto task_n = task_rank_n.size();
-        assert(sum(task_rank_n) == rank_n());
+        AMREX_ASSERT(sum(task_rank_n) == rank_n());
 
         // figure out what color (task_me) to pass into MPI_Comm_split
         auto split_bounds = get_split_bounds(task_rank_n);
@@ -279,13 +297,13 @@ namespace ParallelContext {
             int lo = split_bounds[task_me];
             int hi = split_bounds[task_me + 1];
             if (rank_me() >= lo && rank_me() < hi) {
-                new_glo_rank_lo = glo_rank(lo);
-                new_glo_rank_hi = glo_rank(hi);
+                new_glo_rank_lo = local_to_global_rank(lo);
+                new_glo_rank_hi = local_to_global_rank(hi);
                 new_loc_rank_me = rank_me() - lo;
                 break;
             }
         }
-        assert(task_me < task_n);
+        AMREX_ASSERT(task_me < task_n);
 
         MPI_Comm new_comm;
         MPI_Comm_split(comm(), task_me, rank_me(), &new_comm);
@@ -298,18 +316,26 @@ namespace ParallelContext {
         MPI_Comm_free(&frames.back().comm);
         frames.pop_back();
     }
+
+    // use this if we want to stash and reuse the split communicator
+    MPI_Comm unsplit_reuse_comm() {
+        // TODO: cache the comm in the ForkJoin object in case of reuse, free in ForkJoin destructor
+        MPI_Comm result = frames.back().comm;
+        frames.pop_back();
+        return result;
+    }
 }
 
 class ForkJoin
 {
   public:
 
-    enum Strategy {
+    enum class Strategy {
         SINGLE,     // one task gets a copy of whole MF
         DUPLICATE,  // all tasks get a copy of whole MF
         SPLIT,      // split MF components across tasks
     };
-    enum Access { RW, RD, WR };
+    enum class Access { RD, WR, RW };
 
     struct MFFork
     {
@@ -320,52 +346,44 @@ class ForkJoin
         Vector<MultiFab> forked; // holds new multifab for each task in fork
 
         MFFork() = default;
-        MFFork(MultiFab *o, Strategy s = DUPLICATE, Access a = RW) : orig(o), strategy(s), access(a) {}
+        MFFork(MultiFab *o, Strategy s = Strategy::DUPLICATE, Access a = Access::RW) : orig(o), strategy(s), access(a) {}
     };
 
     ForkJoin(Vector<int> trn) : task_rank_n(std::move(trn)) {
         auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
         auto task_n = task_rank_n.size();
-        assert(task_n >= 2);
-        assert(sum(task_rank_n) == rank_n);
+        AMREX_ASSERT(task_n >= 2);
+        AMREX_ASSERT(sum(task_rank_n) == rank_n);
     }
 
     ForkJoin(const Vector<double> &task_rank_pct) {
         auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
         auto task_n = task_rank_pct.size();
-        assert(task_n >= 2);
+        AMREX_ASSERT(task_n >= 2);
         task_rank_n.resize(task_n);
         int prev = 0;
         double accum = 0;
         for (int i = 0; i < task_n; ++i) {
             accum += task_rank_pct[i];
-            int cur = std::round(task_n * accum);
+            int cur = std::round(rank_n * accum);
             task_rank_n[i] = cur - prev;
             prev = cur;
         }
-        assert(sum(task_rank_n) == rank_n);
+        AMREX_ASSERT(sum(task_rank_n) == rank_n);
     }
 
-    ForkJoin(int task_n = 2) {
-        auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
-        assert(task_n >= 2);
-        task_rank_n.resize(task_n);
-        for (int i = 0; i < task_n; ++i) {
-            task_rank_n[i] = rank_n * (i+1) / task_n -
-                             rank_n *  i    / task_n;
-        }
-    }
+    ForkJoin(int task_n = 2) : ForkJoin( Vector<double>(task_n, 1.0 / task_n) ) { }
 
     void reg_mf(MultiFab &mf, std::string name, int idx, Strategy strategy, Access access) {
         if (idx >= data[name].size()) {
             data[name].resize(idx + 1);
         }
         data[name][idx] = MFFork(&mf, strategy, access);
-    };
+    }
 
     void reg_mf(MultiFab &mf, std::string name, Strategy strategy, Access access) {
         reg_mf(mf, name, 0, strategy, access);
-    };
+    }
 
     void reg_mf_vec(const Vector<MultiFab *> &mfs, std::string name, Strategy strategy, Access access) {
         for (int i = 0; i < mfs.size(); ++i) {
@@ -376,25 +394,29 @@ class ForkJoin
     // these overloads are for in case the MultiFab argument is const
     // access must be read-only
     void reg_mf(const MultiFab &mf, std::string name, int idx, Strategy strategy, Access access) {
-        assert(access == RD);
-        if (idx >= data[name].size()) {
-            data[name].resize(idx + 1);
-        }
-        data[name][idx] = MFFork(const_cast<MultiFab *>(&mf), strategy, access);
-    };
-
+        AMREX_ASSERT_WITH_MESSAGE(access == Access::RD, "const MultiFab must be registered read-only");
+        reg_mf(*const_cast<MultiFab *>(&mf), name, idx, strategy, access);
+    }
     void reg_mf(const MultiFab &mf, std::string name, Strategy strategy, Access access) {
         reg_mf(mf, name, 0, strategy, access);
-    };
+    }
 
     // this is called before ParallelContext::split
     // the parent task is the top frame in ParallelContext's stack
     void copy_data_to_tasks() {
+
+        // TODO: for MFs that share same box array and strategy, create the DistributionMapping only once
+        // TODO: don't recreate forked MultiFabs if created on previous fork_join call
+
+        // create hash table from box array to vector of DistributionMapping indexed by task ID
+        // for each box array, only init the DM if a particular task uses an MF with that box array
+        // set DM pointer in MFFork struct to point to the DM in the hash table
+
         for (auto &p : data) { // for each name
             for (auto &mff : p.second) { // for each index
                 const MultiFab &orig = *mff.orig;
                 Vector<MultiFab> &forked = mff.forked;
-                assert(forked.size() == 0); // should be initialized to empty
+                AMREX_ASSERT(forked.size() == 0); // should be initialized to empty
 
                 int task_n = task_rank_n.size();
                 int comp_n = orig.nComp(); // number of components in original
@@ -404,7 +426,7 @@ class ForkJoin
                 forked.reserve(task_n);
                 for (int i = 0; i < task_n; ++i) {
 
-                    if (mff.strategy == SINGLE && i != mff.owner_task) {
+                    if (mff.strategy == Strategy::SINGLE && i != mff.owner_task) {
                         forked.push_back(MultiFab()); // empty placeholder, not used
                         continue;
                     }
@@ -417,7 +439,7 @@ class ForkJoin
                     DistributionMapping dm {ba, task_glo_rank_lo, task_glo_rank_hi};
 #else
                     // hard coded colors only right now
-                    assert(task_n == ParallelDescriptor::NColors());
+                    AMREX_ASSERT(task_n == ParallelDescriptor::NColors());
                     ParallelDescriptor::Color color = ParallelDescriptor::Color(i);
                     int nprocs = ParallelDescriptor::NProcs();
                     const auto &ba = orig.boxArray();
@@ -425,7 +447,7 @@ class ForkJoin
 #endif
                     // compute component lower and upper bound
                     int comp_lo, comp_hi;
-                    if (mff.strategy == SPLIT) {
+                    if (mff.strategy == Strategy::SPLIT) {
                         // split components across tasks
                         comp_lo = comp_n *  i    / task_n;
                         comp_hi = comp_n * (i+1) / task_n;
@@ -438,14 +460,14 @@ class ForkJoin
                     // build current task's multifab
                     MultiFab mf(ba, dm, comp_hi - comp_lo, 0);
 
-                    if (mff.access == RD || mff.access == RW) {
+                    if (mff.access == Access::RD || mff.access == Access::RW) {
                         // parallel copy data into current task's multifab
                         mf.copy(orig, comp_lo, 0, comp_hi - comp_lo);
                     }
 
                     forked.push_back(std::move(mf));
                 }
-                assert(forked.size() == task_n);
+                AMREX_ASSERT(forked.size() == task_n);
             }
         }
     }
@@ -455,11 +477,11 @@ class ForkJoin
     void copy_data_from_tasks() {
         for (auto &p : data) { // for each name
             for (auto &mff : p.second) { // for each index
-                if (mff.access == WR || mff.access == RW) {
+                if (mff.access == Access::WR || mff.access == Access::RW) {
                     MultiFab &orig = *mff.orig;
                     int comp_n = orig.nComp(); // number of components in original
                     const Vector<MultiFab> &forked = mff.forked;
-                    if (mff.strategy == SPLIT) {
+                    if (mff.strategy == Strategy::SPLIT) {
                         // gather components from across tasks
                         auto task_n = task_rank_n.size();
                         for (int i = 0; i < task_n; ++i) {
@@ -487,10 +509,8 @@ class ForkJoin
     }
 
     MultiFab &get_mf(std::string name, int idx = 0) {
-        assert(data.count(name) > 0 &&
-               idx < data[name].size() &&
-               task_me >= 0 &&
-               task_me < data[name][idx].forked.size());
+        AMREX_ASSERT_WITH_MESSAGE(data.count(name) > 0 && idx < data[name].size(), "get_mf(): name or index not found");
+        AMREX_ASSERT(task_me >= 0 && task_me < data[name][idx].forked.size());
         return data[name][idx].forked[task_me];
     }
 
@@ -506,7 +526,7 @@ class ForkJoin
 
   private:
     Vector<int> task_rank_n; // number of ranks in each forked task
-    int task_me; // task the current rank belongs to
+    int task_me = -1; // task the current rank belongs to
     std::unordered_map<std::string, Vector<MFFork>> data;
 };
 
@@ -517,10 +537,10 @@ void solve(MultiFab& soln, const MultiFab& rhs,
     ForkJoin fj(ParallelDescriptor::NColors());
 
     // register how to copy multifabs to/from tasks
-    fj.reg_mf(rhs, "rhs", ForkJoin::SPLIT, ForkJoin::RD);
-    fj.reg_mf(alpha, "alpha", ForkJoin::SPLIT, ForkJoin::RD);
-    fj.reg_mf_vec(beta, "beta", ForkJoin::SPLIT, ForkJoin::RD);
-    fj.reg_mf(soln, "soln", ForkJoin::SPLIT, ForkJoin::WR);
+    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::SPLIT, ForkJoin::Access::RD);
+    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::SPLIT, ForkJoin::Access::RD);
+    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::SPLIT, ForkJoin::Access::RD);
+    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::SPLIT, ForkJoin::Access::WR);
 
     // issue fork-join
     fj.fork_join(
