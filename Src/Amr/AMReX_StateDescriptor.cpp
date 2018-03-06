@@ -64,7 +64,7 @@ StateDescriptor::bf_thread_safety (const int* lo,const int* hi,
     bool thread_safe = true;
     if (!bf_ext_dir_threadsafe) {
 	bool has_ext_dir = false;
-	for (int i=0; i<2*BL_SPACEDIM*ng && !has_ext_dir; ++i) {
+	for (int i=0; i<2*AMREX_SPACEDIM*ng && !has_ext_dir; ++i) {
 	    has_ext_dir = bc[i]==EXT_DIR;
 	}
 	if (has_ext_dir) thread_safe = false;

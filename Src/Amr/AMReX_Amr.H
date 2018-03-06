@@ -409,7 +409,7 @@ protected:
     Vector<int>       n_cycle;
     std::string      subcycling_mode; //Type of subcycling to use.
     Vector<Real>      dt_min;
-    bool             isPeriodic[BL_SPACEDIM];  // Domain periodic?
+    bool             isPeriodic[AMREX_SPACEDIM];  // Domain periodic?
     Vector<int>       regrid_int;      // Interval between regridding.
     int              last_checkpoint; // Step number of previous checkpoint.
     int              check_int;       // How often checkpoint (# time steps).

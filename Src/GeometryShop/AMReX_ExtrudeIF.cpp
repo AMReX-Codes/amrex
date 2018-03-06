@@ -1,15 +1,3 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_ExtrudeIF.H"
 #include "AMReX_UnionIF.H"
 
@@ -36,7 +24,7 @@ namespace amrex
 
         Real x = a_point[0];
         Real y = a_point[1];
-#if BL_SPACEDIM > 2
+#if AMREX_SPACEDIM > 2
         RealVect coord3(x,y,0.0);
         retval = m_impFunc1->value(coord3);
 #else
