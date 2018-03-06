@@ -1,5 +1,5 @@
-#ifndef _SPHEREIF_H_
-#define _SPHEREIF_H_
+#ifndef _ZCYLINDER_H_
+#define _ZCYLINDER_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"
@@ -9,9 +9,9 @@ namespace amrex
 {
   ///
   /**
-     This implicit function specifies a sphere.
+     This implicit function specifies a cylinder with the z direction as its axis
   */
-  class SphereIF: public BaseIF
+  class ZCylinder: public BaseIF
   {
   public:
     ///
@@ -19,12 +19,12 @@ namespace amrex
        Constructor specifying sphere radius (a_radius), center (a_center), and
        whether the domain is on the inside (a_inside).
     */
-    SphereIF(const Real&     a_radius,
+    ZCylinder(const Real&     a_radius,
              const RealVect& a_center,
              const bool&     a_inside);
 
     /// Destructor
-    virtual ~SphereIF()
+    virtual ~ZCylinder()
     {;}
 
 
@@ -51,11 +51,11 @@ namespace amrex
     bool              m_inside;    // inside flag
     Real              m_radius2;   // precomputed radius squared
   private:
-    SphereIF();
+    ZCylinder();
 
-    void operator=(const SphereIF& a_inputIF)
+    void operator=(const ZCylinder& a_inputIF)
     {
-      //MayDay::Abort("SphereIF doesn't allow assignment");
+      //MayDay::Abort("ZCylinder doesn't allow assignment");
     }
   };
 }//namespace amrex
