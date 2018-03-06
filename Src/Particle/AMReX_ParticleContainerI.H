@@ -118,12 +118,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::getTileIndex(
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const ParticleType& p,
-                                                                          ParticleLocData&    pld,
-                                                                          int                 lev_min,
-                                                                          int                 lev_max,
-                                                                          int                 nGrow) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Where (const ParticleType& p,
+	 ParticleLocData&    pld,
+	 int                 lev_min,
+	 int                 lev_max,
+	 int                 nGrow,
+	 int                 local_grid) const
 {
+
   BL_ASSERT(m_gdb != 0);
   
   if (lev_max == -1)
@@ -150,14 +153,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const 
           }
       }
 
+      int grid;
       const BoxArray& ba = ParticleBoxArray(lev);
-      BL_ASSERT(ba.ixType().cellCentered());      
-      ba.intersections(Box(iv, iv), isects, true, nGrow);
-      
-      if (!isects.empty()) {
-          const Box& bx = ba.getCellCenteredBox(isects[0].first);
+      BL_ASSERT(ba.ixType().cellCentered());
+
+      if (local_grid < 0) {
+          ba.intersections(Box(iv, iv), isects, true, nGrow);
+          grid = isects.empty() ? -1 : isects[0].first;
+      } else {
+          grid = (*redistribute_mask_ptr)[local_grid](iv, 0);
+      }
+
+      if (grid >= 0) {
+          const Box& bx = ba.getCellCenteredBox(grid);
 	  pld.m_lev  = lev;
-	  pld.m_grid = isects[0].first;
+	  pld.m_grid = grid;
 	  pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
 	  pld.m_cell = iv;
 	  pld.m_gridbox = bx;
@@ -165,17 +175,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const 
 	  return true;
       }
   }
-
+  
   return false;
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::EnforcePeriodicWhere (ParticleType&    p,
-                                                                                         ParticleLocData& pld,
-                                                                                         int              lev_min,
-                                                                                         int              lev_max) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::EnforcePeriodicWhere (ParticleType&    p,
+			ParticleLocData& pld,
+			int              lev_min,
+			int              lev_max,
+			int              local_grid) const
 {
+
     BL_ASSERT(m_gdb != 0);
 
     if (!Geom(0).isAnyPeriodic()) return false;
@@ -190,21 +203,31 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::EnforcePeriod
     if (PeriodicShift(p_prime)) {
         std::vector< std::pair<int,Box> > isects;
         for (int lev = lev_max; lev >= lev_min; lev--) {
-            const IntVect& iv = Index(p_prime, lev);
+            
+	    int grid;
+            IntVect iv;
             const BoxArray& ba = ParticleBoxArray(lev);
             BL_ASSERT(ba.ixType().cellCentered());
             
-            ba.intersections(Box(iv,iv),isects,true,0);
+	    if (local_grid < 0) {
+                iv = Index(p_prime, lev);
+                ba.intersections(Box(iv, iv), isects, true, 0);
+                grid = isects.empty() ? -1 : isects[0].first;
+	    } else {
+                iv = Index(p, lev);
+                grid = (*redistribute_mask_ptr)[local_grid](iv, 0);
+                iv = Index(p_prime, lev);
+	    }
             
-            if (!isects.empty()) {
+            if (grid >= 0) {
                 AMREX_D_TERM(p.m_rdata.pos[0] = p_prime.m_rdata.pos[0];,
                              p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
                              p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
                 
-                const Box& bx = ba.getCellCenteredBox(isects[0].first);
+                const Box& bx = ba.getCellCenteredBox(grid);
                 
                 pld.m_lev  = lev;
-                pld.m_grid = isects[0].first;
+                pld.m_grid = grid;
 		pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
                 pld.m_cell = iv;
                 pld.m_gridbox = bx;
@@ -220,7 +243,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::EnforcePeriod
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift (ParticleType& p) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::PeriodicShift (ParticleType& p) const
 {
     //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::PeriodicShift()");
 
@@ -346,6 +370,9 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummyMF (int lev) 
 {
+
+  BL_PROFILE("ParticleContainer::RedefineDummyMF");
+
     if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
     
     if (m_dummy_mf[lev] == nullptr || 
@@ -363,8 +390,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummy
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle (ParticleType& p, ParticleLocData& pld, 
-                                                                                   int lev_min, int lev_max, int nGrow) const
+                                                                                   int lev_min, int lev_max, int nGrow, int local_grid) const
 {
+
     bool outside = AMREX_D_TERM(   p.m_rdata.pos[0] <  Geometry::ProbLo(0)
                           || p.m_rdata.pos[0] >= Geometry::ProbHi(0),
                           || p.m_rdata.pos[1] <  Geometry::ProbLo(1)
@@ -375,18 +403,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
     bool success;
     if (outside)
     {
-        // Note that EnforcePeriodicWhere may shift the particle if it is successful.
-        success = EnforcePeriodicWhere(p, pld, lev_min, lev_max);
-        if (!success && lev_min == 0)
-        {
-            // The particle has left the domain; invalidate it.
-            p.m_idata.id = -p.m_idata.id;
-            success = true;
-        }
+      // Note that EnforcePeriodicWhere may shift the particle if it is successful.
+      success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
+      if (!success && lev_min == 0)
+      {
+	// The particle has left the domain; invalidate it.
+	p.m_idata.id = -p.m_idata.id;
+	success = true;
+      }
     }
     else
     {
-        success = Where(p, pld, lev_min, lev_max);
+        success = Where(p, pld, lev_min, lev_max, 0, local_grid);
     }
 
     if (!success)
@@ -1108,13 +1136,26 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostPa
 //
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute (int lev_min, int lev_max, int nGrow, bool local)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Redistribute (int lev_min, int lev_max, int nGrow, bool local)
 {
 
   BL_PROFILE("ParticleContainer::Redistribute()");
+  // BL_PROFILE_VAR_NS("locate", blp_locate);
+  // BL_PROFILE_VAR_NS("copy", blp_copy);
+  // BL_PROFILE_VAR_NS("partition", blp_partition);
+  // BL_PROFILE_VAR_NS("second_pass", blp_second_pass);
+  // BL_PROFILE_VAR_NS("map_clear", blp_map_clear);
+  // BL_PROFILE_VAR_NS("erase", blp_erase);
+  // BL_PROFILE_VAR_NS("setup", blp_setup);
+  
+  // BL_PROFILE_VAR_START(blp_setup);
+
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = ParallelDescriptor::second();
   
+  if (local) BuildRedistributeMask(0);
+
   // On startup there are cases where Redistribute() could be called
   // with a given finestLevel() where that AmrLevel has yet to be defined.
   int theEffectiveFinestLevel = m_gdb->finestLevel();
@@ -1172,9 +1213,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           soa_local[lev][index].resize(num_threads);
       }
   }
-  for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+  if (local) {
+    for (int i = 0; i < neighbor_procs.size(); ++i)
+      tmp_remote[neighbor_procs[i]].resize(num_threads);
+  } else {
+    for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
       tmp_remote[i].resize(num_threads);
   }
+  //  BL_PROFILE_VAR_STOP(blp_setup);
 
   // first pass: for each tile in parallel, in each thread copies the particles that
   // need to be moved into it's own, temporary buffer.
@@ -1207,9 +1253,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                       ParticleType& p = aos[pindex];
                       
                       if (p.m_idata.id < 0) continue;                      
-                      locateParticle(p, pld, lev_min, lev_max, nGrow);
+		      //		      BL_PROFILE_VAR_START(blp_locate);
+                      locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
+		      //		      BL_PROFILE_VAR_STOP(blp_locate);
                       if (p.m_idata.id < 0) continue;                      
-                      
+
+		      //		      BL_PROFILE_VAR_START(blp_copy);                      
                       // The owner of the particle is the CPU owning the finest grid
                       // in state data that contains the particle.
                       const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
@@ -1254,7 +1303,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                           // Invalidate the particle so we can reclaim its space.
                           p.m_idata.id = -p.m_idata.id;
                       }
-                      
+		      //		      BL_PROFILE_VAR_STOP(blp_copy);
+
+		      //		      BL_PROFILE_VAR_START(blp_partition);
                       // this is a valid particle
                       if (p.m_idata.id > 0) {
                           if (pindex != first) {
@@ -1266,8 +1317,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                           }
                           ++first;
                       }
+		      //		      BL_PROFILE_VAR_STOP(blp_partition);
                   }
               
+		  //		  BL_PROFILE_VAR_START(blp_erase);
                   aos().erase(aos().begin() + first, aos().begin() + npart);
                   for (int comp = 0; comp < NArrayReal; comp++) {
                       Vector<Real>& rdata = soa.GetRealData(comp);
@@ -1277,6 +1330,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                       Vector<int>& idata = soa.GetIntData(comp);
                       idata.erase(idata.begin() + first, idata.begin() + npart);
                   }
+		  //		  BL_PROFILE_VAR_STOP(blp_erase);
               }
            }
         }
@@ -1295,11 +1349,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           }
         }
     }
-
+    
+    //    BL_PROFILE_VAR_START(blp_second_pass);
     // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
     for (int lev = lev_min; lev <= lev_max; lev++) {
         typename std::map<std::pair<int, int>, Vector<Vector<ParticleType> > >::iterator pmap_it;
-
+      
         // we need to create any missing map entries in serial here
         for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
             m_particles[lev][pmap_it->first];
@@ -1361,7 +1416,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           }
       }
   }
-  
+  //  BL_PROFILE_VAR_STOP(blp_second_pass);
+
+  //  BL_PROFILE_VAR_START(blp_map_clear);  
   // remove any empty map entries from not_ours
   for (auto pmap_it = not_ours.begin(); pmap_it != not_ours.end(); /* no ++ */) {        
       if (pmap_it->second.empty()) {
@@ -1371,6 +1428,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           ++pmap_it;
       }
   }
+  //  BL_PROFILE_VAR_STOP(blp_map_clear);
 
   if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
       // Looks like we lost an AmrLevel on a regrid.
@@ -1558,7 +1616,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     long NumSnds = 0;
     if (local) {
         AMREX_ALWAYS_ASSERT(lev_min == 0);
-        AMREX_ALWAYS_ASSERT(lev_max == 0);        
+        AMREX_ALWAYS_ASSERT(lev_max == 0);
         BuildRedistributeMask(0);
         NumSnds = doHandShakeLocal(not_ours, neighbor_procs, Snds, Rcvs);
     }
