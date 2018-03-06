@@ -39,36 +39,6 @@
 
 using namespace amrex;
 
-static
-Real
-mfnorm_0_valid (const MultiFab& mf)
-{
-    Real r = 0;
-    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi )
-    {
-	Real s = cmfi->norm(cmfi.validbox(), 0, 0, cmfi->nComp());
-	r = (r > s) ? r : s;
-    }
-    ParallelDescriptor::ReduceRealMax(r);
-    return r;
-}
-
-static
-Real
-mfnorm_2_valid (const MultiFab& mf)
-{
-    Real r = 0;
-    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi )
-    {
-	Real s = cmfi->norm(cmfi.validbox(), 2, 0, cmfi->nComp());
-	r += s*s;
-    }
-    ParallelDescriptor::ReduceRealSum(r);
-    return ::sqrt(r);
-}
-
-
-
 BoxList readBoxList(aString file, 
                     Box& domain);
 
@@ -184,12 +154,12 @@ main (int   argc, char* argv[])
     //
     if ( dump_norm )
     {
-        double d1 = mfnorm_2_valid(mac_phi);
-        double d2 = mfnorm_0_valid(mac_phi);
+        double d1 = mac_phi.norm2();
+        double d2 = mac_phi.norm0();
 
         if ( ParallelDescriptor::IOProcessor() )
         {
-            cout << "solution norm = " << d1 << "/" << d2 << endl;
+            cout << "solution norm = " << d1 << " / " << d2 << endl;
         }
     }
   
