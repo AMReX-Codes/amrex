@@ -430,7 +430,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
     const int ncomp = getNComp();
     const bool cross = true;
     if (!skip_fillboundary) {
-      in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(), cross); 
+      in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross); 
     }
 
     int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;

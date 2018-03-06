@@ -212,6 +212,30 @@ contains
        else
           call amrex_error("amrex_mllinop_nd_module: unknown bc");
        end if
+
+       ! Fill corners with averages
+
+#if (AMREX_SPACEDIM == 2)
+       do k = lo(3), hi(3)
+          phi(lo(1)-1,lo(2)-1,k,n) = & ! Southwest
+               0.5*(2.0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
+               0.5*(2.0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n)) 
+
+          phi(hi(1)+1,lo(2)-1,k,n) = & ! Southeast
+               0.5*(2.0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
+               0.5*(2.0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n)) 
+
+          phi(lo(1)-1,hi(2)+1,k,n) = & ! Northwest
+               0.5*(2.0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
+               0.5*(2.0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n)) 
+
+          phi(hi(1)+1,hi(2)+1,k,n) = & ! Northeast
+               0.5*(2.0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
+               0.5*(2.0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n)) 
+
+       end do
+#endif
+
     end do
   end subroutine amrex_mllinop_apply_bc
 
