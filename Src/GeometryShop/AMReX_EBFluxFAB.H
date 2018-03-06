@@ -1,3 +1,4 @@
+#ifndef _EBFLUXFAB_H_
 #define _EBFLUXFAB_H_
 
 #include "AMReX_Box.H"
