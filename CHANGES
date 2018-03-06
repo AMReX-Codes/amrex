@@ -1,5 +1,8 @@
 # changes since the last release
 
+  -- New BoxList constructors making a given number of Boxes from a
+     single Box.
+
 # 18.03
 
   -- STL support for EB
