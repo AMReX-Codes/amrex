@@ -1,4 +1,3 @@
-
 #include <AMReX_BArena.H>
 
 void*

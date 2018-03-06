@@ -451,7 +451,7 @@ protected:
 
 private:
 
-    mutable BoxArray      edge_grids[BL_SPACEDIM];  // face-centered grids
+    mutable BoxArray      edge_grids[AMREX_SPACEDIM];  // face-centered grids
     mutable BoxArray      nodal_grids;              // all nodal grids
 };
 

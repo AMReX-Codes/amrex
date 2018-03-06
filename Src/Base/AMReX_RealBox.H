@@ -25,8 +25,8 @@ public:
     RealBox (const Real* lo,
              const Real* hi);
 
-    RealBox (const std::array<Real,BL_SPACEDIM>& lo,
-             const std::array<Real,BL_SPACEDIM>& hi);
+    RealBox (const std::array<Real,AMREX_SPACEDIM>& lo,
+             const std::array<Real,AMREX_SPACEDIM>& hi);
 
     /**
     * \brief Construct region given index box, cell spacing
@@ -55,13 +55,13 @@ public:
     //! Sets lo side.
     void setLo (const Vector<Real>& a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
     //! Sets lo side in specified direction.
-    void setLo (int dir, Real a_lo) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xlo[dir] = a_lo; }
+    void setLo (int dir, Real a_lo) { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); xlo[dir] = a_lo; }
     //! Sets hi side.
     void setHi (const Real* a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
     //! Sets hi side.
     void setHi (const Vector<Real>& a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
     //! Sets hi side in specified direction.
-    void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xhi[dir] = a_hi; }
+    void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); xhi[dir] = a_hi; }
     //! Is the RealBox OK; i.e. does it have non-negative volume?
     bool ok () const;
     //! Returns the volume of the RealBox. If this RealBox is invalid, 
@@ -77,8 +77,8 @@ private:
     //
     // The data.
     //
-    Real xlo[BL_SPACEDIM];
-    Real xhi[BL_SPACEDIM];
+    Real xlo[AMREX_SPACEDIM];
+    Real xhi[AMREX_SPACEDIM];
 };
 
 //

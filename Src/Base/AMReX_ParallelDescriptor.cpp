@@ -2644,7 +2644,7 @@ template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 	    MPI_LB,
 	    MPI_INT,
 	    MPI_UB};
-	int blocklens[] = { 1, BL_SPACEDIM, 1};
+	int blocklens[] = { 1, AMREX_SPACEDIM, 1};
 	MPI_Aint disp[3];
 	int n = 0;
 	BL_MPI_REQUIRE( MPI_Address(&iv[0],      &disp[n++]) );
