@@ -2963,7 +2963,7 @@ contains
 
     integer :: flo(3), fhi(3), i,j,k, ic,jc,kc
     logical :: ieven, jeven, keven
-    real(amrex_real) :: w1, w2, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp, winv
+    real(amrex_real) :: w1, w2, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp, wtmp
     real(amrex_real) :: wmmm, wpmm, wmpm, wppm, wmmp, wpmp, wmpp, wppp
 
     flo = 2*clo
@@ -3051,45 +3051,137 @@ contains
                    wmpp = 1.d0
                    wppp = 1.d0
 
-                   ! xxxxx
-                   winv = 1.d0/(abs(sten(i-1,j-1,k-1,ist_ppp)) &
+                   wtmp = abs(sten(i-1,j,k,ist_p00)) / &
+                        &     ( abs(sten(i-1,j-1,k-1,ist_ppp)) &
                         &     + abs(sten(i-1,j  ,k-1,ist_ppp)) &
                         &     + abs(sten(i-1,j-1,k  ,ist_ppp)) &
                         &     + abs(sten(i-1,j  ,k  ,ist_ppp)) + eps)
-                   wmmm = wmmm + abs(sten(i-1,j,k,ist_p00)) * winv
-                   wmpm = wmpm + abs(sten(i-1,j,k,ist_p00)) * winv
-                   wmmp = wmmp + abs(sten(i-1,j,k,ist_p00)) * winv
-                   wmpp = wmpp + abs(sten(i-1,j,k,ist_p00)) * winv
+                   wmmm = wmmm + wtmp
+                   wmpm = wmpm + wtmp
+                   wmmp = wmmp + wtmp
+                   wmpp = wmpp + wtmp
 
-                   winv = 1.d0/(abs(sten(i,j-1,k-1,ist_ppp)) &
+                   wtmp = abs(sten(i,j,k,ist_p00)) / &
+                        &     ( abs(sten(i,j-1,k-1,ist_ppp)) &
                         &     + abs(sten(i,j  ,k-1,ist_ppp)) &
                         &     + abs(sten(i,j-1,k  ,ist_ppp)) &
                         &     + abs(sten(i,j  ,k  ,ist_ppp)) + eps)
-                   wpmm = wpmm + abs(sten(i,j,k,ist_p00)) * winv
-                   wppm = wppm + abs(sten(i,j,k,ist_p00)) * winv
-                   wpmp = wpmp + abs(sten(i,j,k,ist_p00)) * winv
-                   wppp = wppp + abs(sten(i,j,k,ist_p00)) * winv
+                   wpmm = wpmm + wtmp
+                   wppm = wppm + wtmp
+                   wpmp = wpmp + wtmp
+                   wppp = wppp + wtmp
 
-                   winv = 1.d0/(abs(sten(i-1,j-1,k-1,ist_ppp)) &
-                        &     + abs(sten(i-1,j  ,k-1,ist_ppp)) &
+                   wtmp = abs(sten(i,j-1,k,ist_0p0)) / &
+                        &     ( abs(sten(i-1,j-1,k-1,ist_ppp)) &
+                        &     + abs(sten(i  ,j-1,k-1,ist_ppp)) &
                         &     + abs(sten(i-1,j-1,k  ,ist_ppp)) &
-                        &     + abs(sten(i-1,j  ,k  ,ist_ppp)) + eps)
-                   wmmm = wmmm + abs(sten(i,j-1,k,ist_0p0)) * winv
-                   wpmm = wpmm + abs(sten(i,j-1,k,ist_0p0)) * winv
-                   wmmp = wmmp + abs(sten(i,j-1,k,ist_0p0)) * winv
-                   wpmp = wpmp + abs(sten(i,j-1,k,ist_0p0)) * winv
+                        &     + abs(sten(i  ,j-1,k  ,ist_ppp)) + eps)
+                   wmmm = wmmm + wtmp
+                   wpmm = wpmm + wtmp
+                   wmmp = wmmp + wtmp
+                   wpmp = wpmp + wtmp
 
-                   winv = 1.d0/(abs(sten(i-1,j,k-1,ist_ppp)) &
+                   wtmp = abs(sten(i,j,k,ist_0p0)) / &
+                        &     ( abs(sten(i-1,j,k-1,ist_ppp)) &
                         &     + abs(sten(i  ,j,k-1,ist_ppp)) &
                         &     + abs(sten(i-1,j,k  ,ist_ppp)) &
                         &     + abs(sten(i  ,j,k  ,ist_ppp)) + eps)
-                   wmpm = wmpm + abs(sten(i,j,k,ist_0p0)) * winv
-                   wppm = wppm + abs(sten(i,j,k,ist_0p0)) * winv
-                   wmpp = wmpp + abs(sten(i,j,k,ist_0p0)) * winv
-                   wppp = wppp + abs(sten(i,j,k,ist_0p0)) * winv
+                   wmpm = wmpm + wtmp
+                   wppm = wppm + wtmp
+                   wmpp = wmpp + wtmp
+                   wppp = wppp + wtmp
 
-                   
+                   wtmp = abs(sten(i,j,k-1,ist_00p)) / &
+                        &     ( abs(sten(i-1,j-1,k-1,ist_ppp)) &
+                        &     + abs(sten(i  ,j-1,k-1,ist_ppp)) &
+                        &     + abs(sten(i-1,j  ,k-1,ist_ppp)) &
+                        &     + abs(sten(i  ,j  ,k-1,ist_ppp)) + eps)
+                   wmmm = wmmm + wtmp
+                   wpmm = wpmm + wtmp
+                   wmpm = wmpm + wtmp
+                   wppm = wppm + wtmp
 
+                   wtmp = abs(sten(i,j,k,ist_00p)) / &
+                        &     ( abs(sten(i-1,j-1,k,ist_ppp)) &
+                        &     + abs(sten(i  ,j-1,k,ist_ppp)) &
+                        &     + abs(sten(i-1,j  ,k,ist_ppp)) &
+                        &     + abs(sten(i  ,j  ,k,ist_ppp)) + eps)
+                   wmmp = wmmp + wtmp
+                   wpmp = wpmp + wtmp
+                   wmpp = wmpp + wtmp
+                   wppp = wppp + wtmp
+
+                   wtmp = abs(sten(i-1,j-1,k,ist_pp0)) / &
+                        &     ( abs(sten(i-1,j-1,k-1,ist_ppp)) &
+                        &     + abs(sten(i-1,j-1,k  ,ist_ppp)) + eps)
+                   wmmm = wmmm + wtmp
+                   wmmp = wmmp + wtmp
+
+                   wtmp = abs(sten(i,j-1,k,ist_pp0)) / &
+                        &     ( abs(sten(i,j-1,k-1,ist_ppp)) &
+                        &     + abs(sten(i,j-1,k  ,ist_ppp)) + eps)
+                   wpmm = wpmm + wtmp
+                   wpmp = wpmp + wtmp
+
+                   wtmp = abs(sten(i-1,j,k,ist_pp0)) / &
+                        &     ( abs(sten(i-1,j,k-1,ist_ppp)) &
+                        &     + abs(sten(i-1,j,k  ,ist_ppp)) + eps)
+                   wmpm = wmpm + wtmp
+                   wmpp = wmpp + wtmp
+
+                   wtmp = abs(sten(i,j,k,ist_pp0)) / &
+                        &     ( abs(sten(i,j,k-1,ist_ppp)) &
+                        &     + abs(sten(i,j,k  ,ist_ppp)) + eps)
+                   wppm = wppm + wtmp
+                   wppp = wppp + wtmp
+
+                   wtmp = abs(sten(i-1,j,k-1,ist_p0p)) / &
+                        &     ( abs(sten(i-1,j-1,k-1,ist_ppp)) &
+                        &     + abs(sten(i-1,j  ,k-1,ist_ppp)) + eps)
+                   wmmm = wmmm + wtmp
+                   wmpm = wmpm + wtmp
+
+                   wtmp = abs(sten(i,j,k-1,ist_p0p)) / &
+                        &     ( abs(sten(i,j-1,k-1,ist_ppp)) &
+                        &     + abs(sten(i,j  ,k-1,ist_ppp)) + eps)
+                   wpmm = wpmm + wtmp
+                   wppm = wppm + wtmp
+
+                   wtmp = abs(sten(i-1,j,k,ist_p0p)) / &
+                        &     ( abs(sten(i-1,j-1,k,ist_ppp)) &
+                        &     + abs(sten(i-1,j  ,k,ist_ppp)) + eps)
+                   wmmp = wmmp + wtmp
+                   wmpp = wmpp + wtmp
+
+                   wtmp = abs(sten(i,j,k,ist_p0p)) / &
+                        &     ( abs(sten(i,j-1,k,ist_ppp)) &
+                        &     + abs(sten(i,j  ,k,ist_ppp)) + eps)
+                   wpmp = wpmp + wtmp
+                   wppp = wppp + wtmp
+
+                   wtmp = abs(sten(i,j-1,k-1,ist_0pp)) / &
+                        &     ( abs(sten(i-1,j-1,k-1,ist_ppp)) &
+                        &     + abs(sten(i  ,j-1,k-1,ist_ppp)) + eps)
+                   wmmm = wmmm + wtmp
+                   wpmm = wpmm + wtmp
+
+                   wtmp = abs(sten(i,j,k-1,ist_0pp)) / &
+                        &     ( abs(sten(i-1,j,k-1,ist_ppp)) &
+                        &     + abs(sten(i  ,j,k-1,ist_ppp)) + eps)
+                   wmpm = wmpm + wtmp
+                   wppm = wppm + wtmp
+
+                   wtmp = abs(sten(i,j-1,k,ist_0pp)) / &
+                        &     ( abs(sten(i-1,j-1,k,ist_ppp)) &
+                        &     + abs(sten(i  ,j-1,k,ist_ppp)) + eps)
+                   wmmp = wmmp + wtmp
+                   wpmp = wpmp + wtmp
+
+                   wtmp = abs(sten(i,j,k,ist_0pp)) / &
+                        &     ( abs(sten(i-1,j,k,ist_ppp)) &
+                        &     + abs(sten(i  ,j,k,ist_ppp)) + eps)
+                   wmpp = wmpp + wtmp
+                   wppp = wppp + wtmp
 
                    wmmm = wmmm * abs(sten(i-1,j-1,k-1,ist_ppp))
                    wpmm = wpmm * abs(sten(i  ,j-1,k-1,ist_ppp))
