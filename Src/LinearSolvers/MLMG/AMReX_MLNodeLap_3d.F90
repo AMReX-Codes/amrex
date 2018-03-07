@@ -3635,7 +3635,7 @@ contains
                 wppp = wppp * abs(sten(ii-1,jj-1,kk-1,ist_ppp))
                 crse(i,j,k) = crse(i,j,k) + wppm*fine(ii-1,jj-1,kk-1)*sten(ii-1,jj-1,kk-1,ist_inv)
 
-                crse(i,j,k) = 0.125d0
+                crse(i,j,k) = crse(i,j,k) * 0.125d0
              else
                 crse(i,j,k) = 0.d0
              end if
