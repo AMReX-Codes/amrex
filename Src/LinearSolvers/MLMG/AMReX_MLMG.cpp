@@ -404,7 +404,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         addInterpCorrection(amrlev, mglev);
         if (verbose >= 4)
         {
-            Real norm = res[amrlev][mglev].norm0();
+            computeResOfCorrection(amrlev, mglev);
+            Real norm = rescor[amrlev][mglev].norm0();
             amrex::Print() << "AT LEVEL "                << mglev << "\n"
                            << "   UP: Norm before smooth " << norm << "\n";
         }
@@ -413,7 +414,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         }
         if (verbose >= 4)
         {
-            Real norm = res[amrlev][mglev].norm0();
+            computeResOfCorrection(amrlev, mglev);
+            Real norm = rescor[amrlev][mglev].norm0();
             amrex::Print() << "AT LEVEL "                << mglev << "\n"
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
