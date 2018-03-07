@@ -3647,8 +3647,30 @@ contains
   subroutine amrex_mlndlap_stencil_rap (lo, hi, csten, clo, chi, fsten, flo, fhi) &
        bind(c,name='amrex_mlndlap_stencil_rap')
     integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi
-    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),1)
-    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),1)
+    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),n_sten)
+    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),n_sten)
+
+    integer :: i,j,k,ii,jj,kk
+
+    do k = lo(3), hi(3)
+       kk = 2*k
+       do j = lo(2), hi(2)
+          jj = 2*j
+          do i = lo(1), hi(1)
+             ii = 2*i
+
+             ! for testing only!!!!! this works for constant sigma only
+             csten(i,j,k,ist_p00) = fsten(ii,jj,kk,ist_p00) * 0.25d0
+             csten(i,j,k,ist_0p0) = fsten(ii,jj,kk,ist_0p0) * 0.25d0
+             csten(i,j,k,ist_00p) = fsten(ii,jj,kk,ist_00p) * 0.25d0
+             csten(i,j,k,ist_pp0) = fsten(ii,jj,kk,ist_pp0) * 0.25d0
+             csten(i,j,k,ist_p0p) = fsten(ii,jj,kk,ist_p0p) * 0.25d0
+             csten(i,j,k,ist_0pp) = fsten(ii,jj,kk,ist_0pp) * 0.25d0
+             csten(i,j,k,ist_ppp) = fsten(ii,jj,kk,ist_ppp) * 0.25d0
+
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_stencil_rap
 
 
