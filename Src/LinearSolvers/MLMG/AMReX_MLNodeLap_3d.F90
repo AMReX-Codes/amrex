@@ -3215,7 +3215,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
     integer :: i,j,k,ii,jj,kk
-    real(amrex_real) :: w1m, w1p, w2m ,w2p, wmm, wpm, wmp, wpp, wtmp
+    real(amrex_real) :: w1m, w1p, w2m ,w2p, wmm, wpm, wmp, wpp
     real(amrex_real) :: wmmm, wpmm, wmpm, wppm, wmmp, wpmp, wmpp, wppp
 
     do k = lo(3), hi(3)
@@ -3382,7 +3382,6 @@ contains
                 wpp = abs(sten(ii,jj  ,kk-1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps)
 
-                ! ?????
                 w1m = abs(sten(ii,jj-2,kk  ,ist_0p0)) / (abs(sten(ii,jj-2,kk-1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-2,kk  ,ist_0pp)) + eps)
                 w1p = abs(sten(ii,jj-1,kk  ,ist_0p0)) / (abs(sten(ii,jj-1,kk-1,ist_0pp)) &
@@ -3411,52 +3410,229 @@ contains
                 wpp = abs(sten(ii,jj  ,kk  ,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk)*wmm/(wmm+wpm+wmp+wpp+eps)
 
+                wmmm = 1.d0 &
+                     +   abs(sten(ii  ,jj+1,kk+1,ist_p00)) / &
+                     & ( abs(sten(ii  ,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj+1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj  ,kk+1,ist_ppp)) &
+                     & + abs(sten(ii  ,jj+1,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii+1,jj  ,kk+1,ist_0p0)) / &
+                     & ( abs(sten(ii  ,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii+1,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj  ,kk+1,ist_ppp)) &
+                     & + abs(sten(ii+1,jj  ,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii+1,jj+1,kk  ,ist_00p)) / &
+                     & ( abs(sten(ii  ,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii+1,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj+1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii+1,jj+1,kk  ,ist_ppp)) + eps) &
+                     +   abs(sten(ii  ,jj  ,kk+1,ist_pp0)) / &
+                     & ( abs(sten(ii  ,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj  ,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii  ,jj+1,kk  ,ist_p0p)) / &
+                     & ( abs(sten(ii  ,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj+1,kk  ,ist_ppp)) + eps) &
+                      +  abs(sten(ii+1,jj  ,kk  ,ist_0pp)) / &
+                     & ( abs(sten(ii  ,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii+1,jj  ,kk  ,ist_ppp)) + eps)
+                wmmm = wmmm * abs(sten(ii,jj,kk,ist_ppp))
+                crse(i,j,k) = crse(i,j,k) + wmmm*fine(ii+1,jj+1,kk+1)*sten(ii+1,jj+1,kk+1,ist_inv)
 
+                wpmm = 1.d0 &
+                     +   abs(sten(ii-1,jj+1,kk+1,ist_p00)) / &
+                     & ( abs(sten(ii-1,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj+1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk+1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj+1,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj  ,kk+1,ist_0p0)) / &
+                     & ( abs(sten(ii-2,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-2,jj  ,kk+1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj+1,kk  ,ist_00p)) / &
+                     & ( abs(sten(ii-2,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-2,jj+1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj+1,kk  ,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj  ,kk+1,ist_pp0)) / &
+                     & ( abs(sten(ii-1,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj+1,kk  ,ist_p0p)) / &
+                     & ( abs(sten(ii-1,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj+1,kk  ,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj  ,kk  ,ist_0pp)) / &
+                     & ( abs(sten(ii-2,jj  ,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk  ,ist_ppp)) + eps)
+                wpmm = wpmm * abs(sten(ii-1,jj,kk,ist_ppp))
+                crse(i,j,k) = crse(i,j,k) + wpmm*fine(ii-1,jj+1,kk+1)*sten(ii-1,jj+1,kk+1,ist_inv)
 
-!               copy
-!               i -> ii+1,  j -> jj+1,  k -> kk+1
-!                wmmm =
-!                crse(i,j,k) = crse(i,j,k) + wmmm*fine(ii+1,jj+1,kk+1)*sten(ii+1,jj+1,kk+1,ist_inv)
+                wmpm = 1.d0 &
+                     +   abs(sten(ii  ,jj-1,kk+1,ist_p00)) / &
+                     & ( abs(sten(ii  ,jj-2,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj-2,kk+1,ist_ppp)) &
+                     & + abs(sten(ii  ,jj-1,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii+1,jj-1,kk+1,ist_0p0)) / &
+                     & ( abs(sten(ii  ,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii+1,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj-1,kk+1,ist_ppp)) &
+                     & + abs(sten(ii+1,jj-1,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii+1,jj-1,kk  ,ist_00p)) / &
+                     & ( abs(sten(ii  ,jj-2,kk  ,ist_ppp)) &
+                     & + abs(sten(ii+1,jj-2,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii+1,jj-1,kk  ,ist_ppp)) + eps) &
+                     +   abs(sten(ii  ,jj-1,kk+1,ist_pp0)) / &
+                     & ( abs(sten(ii  ,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj-1,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii  ,jj-1,kk  ,ist_p0p)) / &
+                     & ( abs(sten(ii  ,jj-2,kk  ,ist_ppp)) &
+                     & + abs(sten(ii  ,jj-1,kk  ,ist_ppp)) + eps) &
+                     +   abs(sten(ii+1,jj-1,kk  ,ist_0pp)) / &
+                     & ( abs(sten(ii  ,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii+1,jj-1,kk  ,ist_ppp)) + eps)
+                   wmpm = wmpm * abs(sten(ii  ,jj-1,kk  ,ist_ppp))
+                crse(i,j,k) = crse(i,j,k) + wmpm*fine(ii+1,jj-1,kk+1)*sten(ii+1,jj-1,kk+1,ist_inv)
 
-!               copy
-!               i -> ii-1,  j -> jj+1,  k -> kk+1
-!                wpmm =
-!                crse(i,j,k) = crse(i,j,k) + wpmm*fine(ii-1,jj+1,kk+1)*sten(ii-1,jj+1,kk+1,ist_inv)
+                wppm = 1.d0 &
+                     +   abs(sten(ii-1,jj-1,kk+1,ist_p00)) / &
+                     & ( abs(sten(ii-1,jj-2,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-2,kk+1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk+1,ist_0p0)) / &
+                     & ( abs(sten(ii-2,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-2,jj-1,kk+1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk  ,ist_00p)) / &
+                     & ( abs(sten(ii-2,jj-2,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-2,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-2,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk+1,ist_pp0)) / &
+                     & ( abs(sten(ii-1,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk+1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk  ,ist_p0p)) / &
+                     & ( abs(sten(ii-1,jj-2,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk  ,ist_0pp)) / &
+                     & ( abs(sten(ii-2,jj-1,kk  ,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk  ,ist_ppp)) + eps)
+                wppm = wppm * abs(sten(ii-1,jj-1,kk  ,ist_ppp))
+                crse(i,j,k) = crse(i,j,k) + wppm*fine(ii-1,jj-1,kk+1)*sten(ii-1,jj-1,kk+1,ist_inv)
 
-!               copy
-!               i -> ii+1,  j -> jj-1,  k -> kk+1
-!                wmpm =
-!                crse(i,j,k) = crse(i,j,k) + wmpm*fine(ii+1,jj-1,kk+1)*sten(ii+1,jj-1,kk+1,ist_inv)
+                wmmp = 1.d0 &
+                     +   abs(sten(ii  ,jj+1,kk-1,ist_p00)) / &
+                     & ( abs(sten(ii  ,jj  ,kk-2,ist_ppp)) &
+                     & + abs(sten(ii  ,jj+1,kk-2,ist_ppp)) &
+                     & + abs(sten(ii  ,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii  ,jj+1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii+1,jj  ,kk-1,ist_0p0)) / &
+                     & ( abs(sten(ii  ,jj  ,kk-2,ist_ppp)) &
+                     & + abs(sten(ii+1,jj  ,kk-2,ist_ppp)) &
+                     & + abs(sten(ii  ,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii+1,jj  ,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii+1,jj+1,kk-1,ist_00p)) / &
+                     & ( abs(sten(ii  ,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii+1,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii  ,jj+1,kk-1,ist_ppp)) &
+                     & + abs(sten(ii+1,jj+1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii  ,jj  ,kk-1,ist_pp0)) / &
+                     & ( abs(sten(ii  ,jj  ,kk-2,ist_ppp)) &
+                     & + abs(sten(ii  ,jj  ,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii  ,jj+1,kk-1,ist_p0p)) / &
+                     & ( abs(sten(ii  ,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii  ,jj+1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii+1,jj  ,kk-1,ist_0pp)) / &
+                     & ( abs(sten(ii  ,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii+1,jj  ,kk-1,ist_ppp)) + eps)
+                wmmp = wmmp * abs(sten(ii  ,jj  ,kk-1,ist_ppp))
+                crse(i,j,k) = crse(i,j,k) + wmmp*fine(ii+1,jj+1,kk-1)*sten(ii+1,jj+1,kk-1,ist_inv)
 
-!               copy
-!               i -> ii-1,  j -> jj-1,  k -> kk+1
-!                wppm =
-!                crse(i,j,k) = crse(i,j,k) + wppm*fine(ii-1,jj-1,kk+1)*sten(ii-1,jj-1,kk+1,ist_inv)
+                wpmp = 1.d0 &
+                     +   abs(sten(ii-1,jj+1,kk-1,ist_p00)) / &
+                     & ( abs(sten(ii-1,jj  ,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-1,jj+1,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj  ,kk-1,ist_0p0)) / &
+                     & ( abs(sten(ii-2,jj  ,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-2,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj+1,kk-1,ist_00p)) / &
+                     & ( abs(sten(ii-2,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-2,jj+1,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj  ,kk-1,ist_pp0)) / &
+                     & ( abs(sten(ii-1,jj  ,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj+1,kk-1,ist_p0p)) / &
+                     & ( abs(sten(ii-1,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj+1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj  ,kk-1,ist_0pp)) / &
+                     & ( abs(sten(ii-2,jj  ,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj  ,kk-1,ist_ppp)) + eps)
+                wpmp = wpmp * abs(sten(ii-1,jj  ,kk-1,ist_ppp))
+                crse(i,j,k) = crse(i,j,k) + wpmp*fine(ii-1,jj+1,kk-1)*sten(ii-1,jj+1,kk-1,ist_inv)
 
+                wmpp = 1.d0 &
+                     +       abs(sten(ii  ,jj-1,kk-1,ist_p00)) / &
+                     &     ( abs(sten(ii  ,jj-2,kk-2,ist_ppp)) &
+                     &     + abs(sten(ii  ,jj-1,kk-2,ist_ppp)) &
+                     &     + abs(sten(ii  ,jj-2,kk-1,ist_ppp)) &
+                     &     + abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps) &
+                     +       abs(sten(ii+1,jj-1,kk-1,ist_0p0)) / &
+                     &     ( abs(sten(ii  ,jj-1,kk-2,ist_ppp)) &
+                     &     + abs(sten(ii+1,jj-1,kk-2,ist_ppp)) &
+                     &     + abs(sten(ii  ,jj-1,kk-1,ist_ppp)) &
+                     &     + abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps) &
+                     +       abs(sten(ii+1,jj-1,kk-1,ist_00p)) / &
+                     &     ( abs(sten(ii  ,jj-2,kk-1,ist_ppp)) &
+                     &     + abs(sten(ii+1,jj-2,kk-1,ist_ppp)) &
+                     &     + abs(sten(ii  ,jj-1,kk-1,ist_ppp)) &
+                     &     + abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps) &
+                     +       abs(sten(ii  ,jj-1,kk-1,ist_pp0)) / &
+                     &     ( abs(sten(ii  ,jj-1,kk-2,ist_ppp)) &
+                     &     + abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps) &
+                     +       abs(sten(ii  ,jj-1,kk-1,ist_p0p)) / &
+                     &     ( abs(sten(ii  ,jj-2,kk-1,ist_ppp)) &
+                     &     + abs(sten(ii  ,jj-1,kk-1,ist_ppp)) + eps) &
+                     +       abs(sten(ii+1,jj-1,kk-1,ist_0pp)) / &
+                     &     ( abs(sten(ii  ,jj-1,kk-1,ist_ppp)) &
+                     &     + abs(sten(ii+1,jj-1,kk-1,ist_ppp)) + eps)
+                wmpp = wmpp * abs(sten(ii  ,jj-1,kk-1,ist_ppp))
+                crse(i,j,k) = crse(i,j,k) + wmpp*fine(ii+1,jj-1,kk-1)*sten(ii+1,jj-1,kk-1,ist_inv)
 
-
-!               copy
-!               i -> ii+1,  j -> jj+1,  k -> kk-1
-!                wmmp =
-!                crse(i,j,k) = crse(i,j,k) + wmmp*fine(ii+1,jj+1,kk-1)*sten(ii+1,jj+1,kk-1,ist_inv)
-
-!               copy
-!               i -> ii-1,  j -> jj+1,  k -> kk-1
-!                wpmp =
-!                crse(i,j,k) = crse(i,j,k) + wpmp*fine(ii-1,jj+1,kk-1)*sten(ii-1,jj+1,kk-1,ist_inv)
-
-!               copy
-!               i -> ii+1,  j -> jj-1,  k -> kk-1
-!                wmpp =
-!                crse(i,j,k) = crse(i,j,k) + wmpp*fine(ii+1,jj-1,kk-1)*sten(ii+1,jj-1,kk-1,ist_inv)
-
-!               copy
-!               i -> ii-1,  j -> jj-1,  k -> kk-1
-!                wppp =
-!                crse(i,j,k) = crse(i,j,k) + wppm*fine(ii-1,jj-1,kk-1)*sten(ii-1,jj-1,kk-1,ist_inv)
-
-
-                ! xxxxxxxxxxxxx
+                wppp = 1.d0 &
+                     +   abs(sten(ii-1,jj-1,kk-1,ist_p00)) / &
+                     & ( abs(sten(ii-1,jj-2,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-2,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk-1,ist_0p0)) / &
+                     & ( abs(sten(ii-2,jj-1,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-2,jj-1,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk-1,ist_00p)) / &
+                     & ( abs(sten(ii-2,jj-2,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-2,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-2,jj-1,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk-1,ist_pp0)) / &
+                     & ( abs(sten(ii-1,jj-1,kk-2,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk-1,ist_p0p)) / &
+                     & ( abs(sten(ii-1,jj-2,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps) &
+                     +   abs(sten(ii-1,jj-1,kk-1,ist_0pp)) / &
+                     & ( abs(sten(ii-2,jj-1,kk-1,ist_ppp)) &
+                     & + abs(sten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+                wppp = wppp * abs(sten(ii-1,jj-1,kk-1,ist_ppp))
+                crse(i,j,k) = crse(i,j,k) + wppm*fine(ii-1,jj-1,kk-1)*sten(ii-1,jj-1,kk-1,ist_inv)
 
                 crse(i,j,k) = 0.125d0
              else
