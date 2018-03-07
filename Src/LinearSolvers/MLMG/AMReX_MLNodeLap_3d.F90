@@ -1,3 +1,4 @@
+
 module amrex_mlnodelap_3d_module
 
   use amrex_error_module
@@ -3227,17 +3228,17 @@ contains
              if (msk(ii,jj,kk) .ne. dirichlet) then
                 crse(i,j,k) = fine(ii,jj,kk) &
                      + fine(ii-1,jj,kk)*abs(sten(ii-1,jj,kk,ist_p00)) &
-                     &                /(abs(sten(ii-2,jj,kk,ist_p00))+abs(sten(ii-1,jj,kk,ist_p00))) &
+                     &                /(abs(sten(ii-2,jj,kk,ist_p00))+abs(sten(ii-1,jj,kk,ist_p00))+eps) &
                      + fine(ii+1,jj,kk)*abs(sten(ii,jj,kk,ist_p00)) &
-                     &                /(abs(sten(ii,jj,kk,ist_p00))+abs(sten(ii+1,jj,kk,ist_p00))) &
+                     &                /(abs(sten(ii,jj,kk,ist_p00))+abs(sten(ii+1,jj,kk,ist_p00))+eps) &
                      + fine(ii,jj-1,kk)*abs(sten(ii,jj-1,kk,ist_0p0)) &
-                     &                /(abs(sten(ii,jj-2,kk,ist_0p0))+abs(sten(ii,jj-1,kk,ist_0p0))) &
+                     &                /(abs(sten(ii,jj-2,kk,ist_0p0))+abs(sten(ii,jj-1,kk,ist_0p0))+eps) &
                      + fine(ii,jj+1,kk)*abs(sten(ii,jj,kk,ist_0p0)) &
-                     &                /(abs(sten(ii,jj,kk,ist_0p0))+abs(sten(ii,jj+1,kk,ist_0p0))) &
+                     &                /(abs(sten(ii,jj,kk,ist_0p0))+abs(sten(ii,jj+1,kk,ist_0p0))+eps) &
                      + fine(ii,jj,kk-1)*abs(sten(ii,jj,kk-1,ist_00p)) &
-                     &                /(abs(sten(ii,jj,kk-2,ist_00p))+abs(sten(ii,jj,kk-1,ist_00p))) &
+                     &                /(abs(sten(ii,jj,kk-2,ist_00p))+abs(sten(ii,jj,kk-1,ist_00p))+eps) &
                      + fine(ii,jj,kk+1)*abs(sten(ii,jj,kk,ist_00p)) &
-                     &                /(abs(sten(ii,jj,kk,ist_00p))+abs(sten(ii,jj,kk+1,ist_00p)))
+                     &                /(abs(sten(ii,jj,kk,ist_00p))+abs(sten(ii,jj,kk+1,ist_00p))+eps)
 
                 ! keven
                 w1m = abs(sten(ii-2,jj-1,kk,ist_p00)) / (abs(sten(ii-2,jj-2,kk,ist_pp0)) &
