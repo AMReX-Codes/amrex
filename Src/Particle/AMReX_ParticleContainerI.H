@@ -1932,8 +1932,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 HdrFile << "real_comp" << i << '\n';
             }
         } else {
-            BL_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
-            for (int i = 0; i < NStructReal + NArrayReal; ++i ) {
+            std::cout << "PC " << NStructReal << " " << NArrayReal << " " << real_comp_names.size() 
+            //BL_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
+            for (int i = 0; i < real_comp_names.size(); ++i ) {
+            //for (int i = 0; i < NStructReal + NArrayReal; ++i ) {
                 HdrFile << real_comp_names[i] << '\n';
             }
         }
@@ -2712,11 +2714,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
         if (!File.good())
             amrex::FileOpenFailed(filename);
 
-        File << nparticles  << '\n';
-        File << NStructReal << '\n';
-        File << NStructInt  << '\n';
-        File << NArrayReal  << '\n';
-        File << NArrayInt   << '\n';
+//      File << nparticles  << '\n';
+//      File << NStructReal << '\n';
+//      File << NStructInt  << '\n';
+//      File << NArrayReal  << '\n';
+//      File << NArrayInt   << '\n';
             
         File.flush();
 
