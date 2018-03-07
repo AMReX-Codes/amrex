@@ -3211,7 +3211,7 @@ contains
        sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_restriction_rap')
     integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, mlo, mhi
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
-    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),clo(3):chi(3))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
     real(amrex_real), intent(in   ) :: sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),n_sten)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
