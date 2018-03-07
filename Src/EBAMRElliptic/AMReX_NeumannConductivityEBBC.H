@@ -1,19 +1,5 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #ifndef _NEUMANNCONDUCTIVITYEBBC_H_
 #define _NEUMANNCONDUCTIVITYEBBC_H_
-
 
 #include "AMReX_ConductivityBaseEBBC.H"
 #include "AMReX_EBCellFAB.H"
