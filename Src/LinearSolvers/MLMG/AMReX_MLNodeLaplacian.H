@@ -61,9 +61,7 @@ public :
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
 
-#ifndef AMREX_USE_EB
     void setCoarseningStrategy (CoarseningStrategy cs) { m_coarsening_strategy = cs; }
-#endif
 
 protected:
 
@@ -102,8 +100,7 @@ private:
 #ifdef AMREX_USE_EB
     CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
 #else
-//xxxxx    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
-    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
 #endif
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
