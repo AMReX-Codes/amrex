@@ -3637,7 +3637,7 @@ contains
 
                 crse(i,j,k) = 0.125d0
              else
-                crse(ii,jj,kk) = 0.d0
+                crse(i,j,k) = 0.d0
              end if
           end do
        end do
