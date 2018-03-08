@@ -1,0 +1,15 @@
+This Tutorial demonstrates how to call the SWFFT wrapper to the FFTW3 solver.
+
+In this test case we set up a right hand side (rhs), call the forward transform and output the solution, 
+then call the backward solver and output the returned field which is identical to the original rhs.
+
+To build the code, type 'make' in this directory.
+
+To run the code, type 'main3d.gnu.MPI.ex inputs' in this directory
+
+To visualize the output, you can use amrvis3d (source available at https://github.com/AMReX-Codes/Amrvis):
+
+amrvis3d -mf RHS_BEFORE
+amrvis3d -mf RHS_AFTER
+amrvis3d -mf SOLN
+

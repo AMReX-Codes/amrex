@@ -26,18 +26,18 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
 
-    Vector<std::unique_ptr<MultiFab> > raii_umac(BL_SPACEDIM);
-    Vector<MultiFab*> umac_pointer(BL_SPACEDIM);
+    Vector<std::unique_ptr<MultiFab> > raii_umac(AMREX_SPACEDIM);
+    Vector<MultiFab*> umac_pointer(AMREX_SPACEDIM);
     // We assume that if umac[0]'s boxArray matches then the others will too...
     if (OnSameGrids(lev, umac[0]))
     {
-        for (int i = 0; i < BL_SPACEDIM; i++) {
+        for (int i = 0; i < AMREX_SPACEDIM; i++) {
 	    umac_pointer[i] = &umac[i];
 	}
     }
     else
     {
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
         {
 	    int ng = umac[i].nGrow();
 	    raii_umac[i].reset(new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
@@ -58,7 +58,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	  auto& pbox = kv.second.GetArrayOfStructs();
 	  const int n = pbox.size();
 
-	  FArrayBox* fab[BL_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
+	  FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
 						 &((*umac_pointer[1])[grid]),
 						 &((*umac_pointer[2])[grid])) };
 
@@ -73,25 +73,25 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
                 const IntVect& cc_cell = Index(p, lev);
 
-                const Real len[BL_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
+                const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
                                                        (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
                                                        (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
                 const IntVect cell(AMREX_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-                const Real frac[BL_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
+                const Real frac[AMREX_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
-                for (int d = 0; d < BL_SPACEDIM; d++)
+                for (int d = 0; d < AMREX_SPACEDIM; d++)
                 {
                     IntVect ecell = cell;
 
                     ecell[d] = cc_cell[d] + 1;
 
-                    Real efrac[BL_SPACEDIM] = { AMREX_D_DECL(frac[0], frac[1], frac[2]) };
+                    Real efrac[AMREX_SPACEDIM] = { AMREX_D_DECL(frac[0], frac[1], frac[2]) };
 
                     efrac[d] = (p.m_rdata.pos[d]-plo[d])/dx[d] - cc_cell[d];
 
-                    for (int j = 0; j < BL_SPACEDIM; j++)
+                    for (int j = 0; j < AMREX_SPACEDIM; j++)
                     {
                         if (efrac[j] > 1) efrac[j] = 1;
                         if (efrac[j] < 0) efrac[j] = 0;
@@ -104,7 +104,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                         //
                         // Save old position and the vel & predict location at dt/2.
                         //
-                        p.m_rdata.arr[BL_SPACEDIM+d] = p.m_rdata.pos[d];
+                        p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
                         p.m_rdata.pos[d] += 0.5*dt*vel;
                     }
                     else
@@ -112,9 +112,9 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 		        //
                         // Update to final time using the orig position and the vel at dt/2.
                         //
-		        p.m_rdata.pos[d]  = p.m_rdata.arr[BL_SPACEDIM+d] + dt*vel;
+		        p.m_rdata.pos[d]  = p.m_rdata.arr[AMREX_SPACEDIM+d] + dt*vel;
                         // Save the velocity for use in Timestamp().
-			p.m_rdata.arr[BL_SPACEDIM+d] = vel;
+			p.m_rdata.arr[AMREX_SPACEDIM+d] = vel;
                     }
                 }
             }
@@ -156,7 +156,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     BL_ASSERT(OnSameGrids(lev, Ucc));
 
-    int idx[BL_SPACEDIM] = {AMREX_D_DECL(0,1,2)};
+    int idx[AMREX_SPACEDIM] = {AMREX_D_DECL(0,1,2)};
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -176,28 +176,28 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
                 if (p.m_idata.id <= 0) continue;
 
-		Real v[BL_SPACEDIM];
+		Real v[AMREX_SPACEDIM];
 
-		ParticleType::Interp(p, geom, fab, idx, v, BL_SPACEDIM);
+		ParticleType::Interp(p, geom, fab, idx, v, AMREX_SPACEDIM);
 
 		if (ipass == 0) {
 		    //
 		    // Save old position and the vel & predict location at dt/2.
 		    //
-		    for (int d = 0; d < BL_SPACEDIM; d++)
+		    for (int d = 0; d < AMREX_SPACEDIM; d++)
 		    {
-			p.m_rdata.arr[BL_SPACEDIM+d] = p.m_rdata.pos[d];
+			p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
                         p.m_rdata.pos[d] += 0.5*dt*v[d];
                     }
 		} else {
 		    //
 		    // Update to final time using the orig position and the vel at dt/2.
 		    //
-		    for (int d = 0; d < BL_SPACEDIM; d++)
+		    for (int d = 0; d < AMREX_SPACEDIM; d++)
 		    {
-                        p.m_rdata.pos[d]  = p.m_rdata.arr[BL_SPACEDIM+d] + dt*v[d];
+                        p.m_rdata.pos[d]  = p.m_rdata.arr[AMREX_SPACEDIM+d] + dt*v[d];
                         // Save the velocity for use in Timestamp().
-			p.m_rdata.arr[BL_SPACEDIM+d] = v[d];
+			p.m_rdata.arr[AMREX_SPACEDIM+d] = v[d];
                     }
                 }
             }
@@ -328,9 +328,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      //
 		      // AdvectWithUmac stores the velocity in rdata ...
 		      //
-		      AMREX_D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+0];,
-			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+1];,
-			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+2];);
+		      AMREX_D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+0];,
+			     TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+1];,
+			     TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+2];);
 		      
 		      if (M > 0)
                         {

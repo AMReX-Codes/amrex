@@ -20,7 +20,7 @@ namespace amrex {
 //
 int     Geometry::spherical_origin_fix = 0;
 RealBox Geometry::prob_domain;
-bool    Geometry::is_periodic[BL_SPACEDIM] = {AMREX_D_DECL(0,0,0)};
+bool    Geometry::is_periodic[AMREX_SPACEDIM] = {AMREX_D_DECL(0,0,0)};
 
 std::ostream&
 operator<< (std::ostream&   os,
@@ -67,18 +67,18 @@ Geometry::define (const Box&     dom,
     domain = dom;
     ok     = true;
 
-    for (int k = 0; k < BL_SPACEDIM; k++)
+    for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
 	inv_dx[k] = 1.0/dx[k];
     }
     if (Geometry::spherical_origin_fix == 1)
     {
-	if (c_sys == SPHERICAL && prob_domain.lo(0) == 0 && BL_SPACEDIM > 1)
+	if (c_sys == SPHERICAL && prob_domain.lo(0) == 0 && AMREX_SPACEDIM > 1)
         {
             prob_domain.setLo(0,2*dx[0]);
 
-            for (int k = 0; k < BL_SPACEDIM; k++)
+            for (int k = 0; k < AMREX_SPACEDIM; k++)
             {
                 dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
 		inv_dx[k] = 1.0/dx[k];
@@ -118,12 +118,12 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     }
 
     if (rb == nullptr) {
-        Vector<Real> prob_lo(BL_SPACEDIM);
-        Vector<Real> prob_hi(BL_SPACEDIM);
-        pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
-        BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
-        pp.getarr("prob_hi",prob_hi,0,BL_SPACEDIM);
-        BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
+        Vector<Real> prob_lo(AMREX_SPACEDIM);
+        Vector<Real> prob_hi(AMREX_SPACEDIM);
+        pp.getarr("prob_lo",prob_lo,0,AMREX_SPACEDIM);
+        BL_ASSERT(prob_lo.size() == AMREX_SPACEDIM);
+        pp.getarr("prob_hi",prob_hi,0,AMREX_SPACEDIM);
+        BL_ASSERT(prob_lo.size() == AMREX_SPACEDIM);
         prob_domain.setLo(prob_lo);
         prob_domain.setHi(prob_hi);
         SetOffset(prob_lo.data());
@@ -140,14 +140,14 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     //
     if (isper == nullptr)
     {
-        Vector<int> is_per(BL_SPACEDIM,0);
-        pp.queryarr("is_periodic",is_per,0,BL_SPACEDIM);
-        for (int n = 0; n < BL_SPACEDIM; n++)  
+        Vector<int> is_per(AMREX_SPACEDIM,0);
+        pp.queryarr("is_periodic",is_per,0,AMREX_SPACEDIM);
+        for (int n = 0; n < AMREX_SPACEDIM; n++)  
             is_periodic[n] = is_per[n];
     }
     else
     {
-        for (int n = 0; n < BL_SPACEDIM; n++)  
+        for (int n = 0; n < AMREX_SPACEDIM; n++)  
             is_periodic[n] = isper[n];
     }
 
@@ -185,7 +185,7 @@ Geometry::GetVolume (FArrayBox&      vol,
     CoordSys::GetVolume(vol, amrex::grow(grds[idx],ngrow));
 }
 
-#if (BL_SPACEDIM <= 2)
+#if (AMREX_SPACEDIM <= 2)
 void
 Geometry::GetDLogA (MultiFab&       dloga,
                     const BoxArray& grds, 
@@ -275,7 +275,7 @@ Geometry::periodicShift (const Box&      target,
             for (rk = nkst; rk <= nkend; rk++)
             {
                 if (rk!=0
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                     && !is_periodic[2]
 #endif
                     )
@@ -283,7 +283,7 @@ Geometry::periodicShift (const Box&      target,
                     continue;
                 }
                 if (rk!=0
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                     && is_periodic[2]
 #endif
                     )
@@ -303,7 +303,7 @@ Geometry::periodicShift (const Box&      target,
                                                  rk*domain.length(2))));
                 }
                 if (rk != 0
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                     && is_periodic[2]
 #endif
                     )
@@ -357,16 +357,16 @@ void
 Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool bcastSource)
 {
   int coord;
-  int is_periodic[BL_SPACEDIM];
-  Real realBox_lo[BL_SPACEDIM];
-  Real realBox_hi[BL_SPACEDIM];
+  int is_periodic[AMREX_SPACEDIM];
+  Real realBox_lo[AMREX_SPACEDIM];
+  Real realBox_hi[AMREX_SPACEDIM];
   Vector<int> baseBoxAI;
 
   CoordSys::BroadcastCoordSys(geom, fromProc, comm, bcastSource);
 
   if(bcastSource) {  // ---- initialize the source data
     const RealBox &realBox = geom.ProbDomain();
-    for(int n(0); n < BL_SPACEDIM; ++n) {
+    for(int n(0); n < AMREX_SPACEDIM; ++n) {
       realBox_lo[n] = realBox.lo(n);
       realBox_hi[n] = realBox.hi(n);
       is_periodic[n] = geom.isPeriodic(n);
@@ -382,11 +382,11 @@ Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool b
   }
   ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), fromProc, comm);
 
-  ParallelDescriptor::Bcast(realBox_lo, BL_SPACEDIM, fromProc, comm);
-  ParallelDescriptor::Bcast(realBox_hi, BL_SPACEDIM, fromProc, comm);
+  ParallelDescriptor::Bcast(realBox_lo, AMREX_SPACEDIM, fromProc, comm);
+  ParallelDescriptor::Bcast(realBox_hi, AMREX_SPACEDIM, fromProc, comm);
 
   ParallelDescriptor::Bcast(&coord, 1, fromProc, comm);
-  ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, fromProc, comm);
+  ParallelDescriptor::Bcast(is_periodic, AMREX_SPACEDIM, fromProc, comm);
   ParallelDescriptor::Bcast(&Geometry::spherical_origin_fix, 1, fromProc, comm);
 
 

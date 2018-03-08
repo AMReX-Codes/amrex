@@ -47,16 +47,16 @@ namespace amrex
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
 				Interpolater* mapper, const Vector<BCRec>& bcs);
 
-    void InterpCrseFineBndryBfield (const std::array<MultiFab,BL_SPACEDIM>& crse,
-                                    std::array<MultiFab,BL_SPACEDIM>& fine,
+    void InterpCrseFineBndryBfield (const std::array<MultiFab,AMREX_SPACEDIM>& crse,
+                                    std::array<MultiFab,AMREX_SPACEDIM>& fine,
                                     const Geometry& cgeom, const Geometry& fgeom,
                                     int ref_ratio);
 
     enum InterpEM_t { InterpE, InterpB};
     
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
-                                     const std::array<MultiFab,BL_SPACEDIM>& crse,
-                                     std::array<MultiFab,BL_SPACEDIM>& fine,
+                                     const std::array<MultiFab,AMREX_SPACEDIM>& crse,
+                                     std::array<MultiFab,AMREX_SPACEDIM>& fine,
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio);
 }

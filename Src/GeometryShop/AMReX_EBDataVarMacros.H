@@ -1,21 +1,9 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #ifndef _AMReX_EBDataVarMacros_H_
 #define _AMReX_EBDataVarMacros_H_
 
 namespace amrex {
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 
 static constexpr int V_VOLFRAC       = 0;
 static constexpr int V_BNDAREA       = 1;
@@ -32,7 +20,7 @@ static constexpr int F_FACECENTROIDX = 1;
 static constexpr int F_FACECENTROIDY = 2;
 static constexpr int F_FACENUMBER    = 3;
 
-#elif (BL_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
 
 static constexpr int V_VOLFRAC      = 0;
 static constexpr int V_BNDAREA      = 1;

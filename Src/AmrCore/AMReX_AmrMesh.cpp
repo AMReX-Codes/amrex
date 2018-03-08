@@ -32,7 +32,7 @@ AmrMesh::AmrMesh ()
     Initialize();
     Geometry::Setup();
     int max_level_in = -1;
-    Vector<int> n_cell_in(BL_SPACEDIM, -1);
+    Vector<int> n_cell_in(AMREX_SPACEDIM, -1);
     InitAmrMesh(max_level_in,n_cell_in);    
 }
 
@@ -85,7 +85,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
     for (int i = 0; i < nlev; ++i) {
 	n_error_buf[i] = 1;
         blocking_factor[i] = IntVect{D_DECL(8,8,8)};
-        max_grid_size[i] = (BL_SPACEDIM == 2) ? IntVect{D_DECL(128,128,128)} 
+        max_grid_size[i] = (AMREX_SPACEDIM == 2) ? IntVect{D_DECL(128,128,128)} 
                                               : IntVect{D_DECL(32,32,32)};
     }
 
@@ -107,10 +107,10 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
         }
     }
 
-    // Read in the refinement ratio IntVects as integer BL_SPACEDIM-tuples.
+    // Read in the refinement ratio IntVects as integer AMREX_SPACEDIM-tuples.
     if (max_level > 0)
     {
-        const int nratios_vect = max_level*BL_SPACEDIM;
+        const int nratios_vect = max_level*AMREX_SPACEDIM;
 
         Vector<int> ratios_vect(nratios_vect);
 
@@ -129,7 +129,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
             int k = 0;
             for (int i = 0; i < max_level; i++)
             {
-                for (int n = 0; n < BL_SPACEDIM; n++,k++)
+                for (int n = 0; n < AMREX_SPACEDIM; n++,k++)
                     ref_ratio[i][n] = ratios_vect[k];
             }
         }
@@ -138,13 +138,13 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
             const int ncnt = ratios.size();
             for (int i = 0; i < ncnt && i < max_level; ++i)
             {
-                for (int n = 0; n < BL_SPACEDIM; n++) {
+                for (int n = 0; n < AMREX_SPACEDIM; n++) {
                     ref_ratio[i][n] = ratios[i];
                 }
             }
             for (int i = ncnt; i < max_level; ++i)
             {
-                for (int n = 0; n < BL_SPACEDIM; n++) {
+                for (int n = 0; n < AMREX_SPACEDIM; n++) {
                     ref_ratio[i][n] = ratios.back();
                 }
             }
@@ -161,7 +161,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
     {
       for (int i = 0; i < max_level; i++)
       {
-        for (int n = 0; n < BL_SPACEDIM; n++)
+        for (int n = 0; n < AMREX_SPACEDIM; n++)
           ref_ratio[i][n] = a_refrat[i];
       }
     }
@@ -190,7 +190,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
         }
     }
 
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
     cnt = pp.countval("max_grid_size_y");
     if (cnt > 0) {
         int idim = 1;
@@ -206,7 +206,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
     }
 #endif
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     cnt = pp.countval("max_grid_size_z");
     if (cnt > 0) {
         int idim = 2;
@@ -246,7 +246,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
         }
     }
 
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
     cnt = pp.countval("blocking_factor_y");
     if (cnt > 0) {
         int idim = 1;
@@ -262,7 +262,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
     }
 #endif
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     cnt = pp.countval("blocking_factor_z");
     if (cnt > 0) {
         int idim = 2;
@@ -280,14 +280,14 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
 
     // Read computational domain and set geometry.
     {
-	Vector<int> n_cell(BL_SPACEDIM);
+	Vector<int> n_cell(AMREX_SPACEDIM);
 	if (n_cell_in[0] == -1)
 	{
-	    pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
+	    pp.getarr("n_cell",n_cell,0,AMREX_SPACEDIM);
 	}
 	else
 	{
-	    for (int i = 0; i < BL_SPACEDIM; i++) n_cell[i] = n_cell_in[i];
+	    for (int i = 0; i < AMREX_SPACEDIM; i++) n_cell[i] = n_cell_in[i];
 	}
 
 	IntVect lo(IntVect::TheZeroVector()), hi(n_cell);
@@ -300,8 +300,8 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
 		index_domain.refine(ref_ratio[i]);
 	}
 
-	Real offset[BL_SPACEDIM];
-	for (int i = 0; i < BL_SPACEDIM; i++)
+	Real offset[AMREX_SPACEDIM];
+	for (int i = 0; i < AMREX_SPACEDIM; i++)
 	{
 	    const Real delta = Geometry::ProbLength(i)/(Real)n_cell[i];
 	    offset[i]        = Geometry::ProbLo(i) + delta*lo[i];
@@ -325,7 +325,7 @@ int
 AmrMesh::MaxRefRatio (int lev) const
 {
     int maxval = 0;
-    for (int n = 0; n<BL_SPACEDIM; n++) 
+    for (int n = 0; n<AMREX_SPACEDIM; n++) 
         maxval = std::max(maxval,ref_ratio[lev][n]);
     return maxval;
 }
@@ -367,7 +367,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
     {
         IntVect chunk = max_grid_size[lev] / cnt;
 
-	for (int j = BL_SPACEDIM-1; j >= 0 ; j--)
+	for (int j = AMREX_SPACEDIM-1; j >= 0 ; j--)
 	{
 	    chunk[j] /= 2;
 	    
@@ -416,13 +416,13 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
     for (int i = 0; i <= max_crse; i++)
     {
-        for (int n=0; n<BL_SPACEDIM; n++) {
+        for (int n=0; n<AMREX_SPACEDIM; n++) {
             bf_lev[i][n] = std::max(1,blocking_factor[i+1][n]/ref_ratio[i][n]);
         }
     }
     for (int i = lbase; i < max_crse; i++)
     {
-        for (int n=0; n<BL_SPACEDIM; n++)
+        for (int n=0; n<AMREX_SPACEDIM; n++)
             rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
     }
     for (int i = lbase; i <= max_crse; i++) {
@@ -537,7 +537,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                  blt != End;
                  ++blt)
             {
-                for (int idir = 0; idir < BL_SPACEDIM; idir++)
+                for (int idir = 0; idir < AMREX_SPACEDIM; idir++)
                 {
                     if (blt->smallEnd(idir) == Geom(levf).Domain().smallEnd(idir))
                         blt->growLo(idir,nerr);
@@ -565,7 +565,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             // levc will not be enough to cover the error buffering
             // at levf which was just subtracted off.
             //
-            for (int idir = 0; idir < BL_SPACEDIM; idir++) 
+            for (int idir = 0; idir < AMREX_SPACEDIM; idir++) 
             {
                 if (nerr > n_error_buf[levc]*ref_ratio[levc][idir]) 
                     baF.grow(idir,nerr-n_error_buf[levc]*ref_ratio[levc][idir]);
@@ -596,7 +596,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         // Coarsen the taglist by blocking_factor/ref_ratio.
         //
         int bl_max = 0;
-        for (int n=0; n<BL_SPACEDIM; n++) {
+        for (int n=0; n<AMREX_SPACEDIM; n++) {
             bl_max = std::max(bl_max,bf_lev[levc][n]);
         }
         if (bl_max >= 1) {
@@ -844,7 +844,7 @@ AmrMesh::checkInput ()
     // Check that domain size is a multiple of blocking_factor[0].
     //   (only check if blocking_factor <= max_grid_size)
     //
-    for (int idim = 0; idim < BL_SPACEDIM; idim++)
+    for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
         int len = domain.length(idim);
         if (blocking_factor[0][idim] <= max_grid_size[0][idim])
@@ -858,7 +858,7 @@ AmrMesh::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
            if (blocking_factor[i][idim] <= max_grid_size[i][idim])
               if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) { 
                  amrex::Error("max_grid_size not divisible by blocking_factor");

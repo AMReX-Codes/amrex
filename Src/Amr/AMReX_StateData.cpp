@@ -458,11 +458,11 @@ StateData::FillBoundary (FArrayBox&     dest,
 
     Vector<int> bcrs;
 
-    Real xlo[BL_SPACEDIM];
+    Real xlo[AMREX_SPACEDIM];
     BCRec bcr;
     const Real* problo = prob_domain.lo();
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
     }
@@ -483,7 +483,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Can do the whole group at once.
                 //
-                bcrs.resize(2*BL_SPACEDIM*groupsize);
+                bcrs.resize(2*AMREX_SPACEDIM*groupsize);
 
                 int* bci  = bcrs.dataPtr();
 
@@ -493,10 +493,10 @@ StateData::FillBoundary (FArrayBox&     dest,
 
                     const int* bc = bcr.vect();
 
-                    for (int k = 0; k < 2*BL_SPACEDIM; k++)
+                    for (int k = 0; k < 2*AMREX_SPACEDIM; k++)
                         bci[k] = bc[k];
 
-                    bci += 2*BL_SPACEDIM;
+                    bci += 2*AMREX_SPACEDIM;
                 }
                 //
                 // Use the "group" boundary fill routine.
@@ -829,7 +829,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 	    
 	    bool has_phys_bc = false;
 	    bool is_periodic = false;
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 		bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
 		if (geom.isPeriodic(i)) {
 		    is_periodic = is_periodic || touch;
@@ -846,7 +846,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 		{
 		    Box GrownDomain = domain;
 		    
-		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 		    {
 			if (!geom.isPeriodic(dir))
 			{
@@ -857,7 +857,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			}
 		    }
 		    
-		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 		    {
 			if (!geom.isPeriodic(dir)) continue;
 			
