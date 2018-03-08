@@ -1,18 +1,5 @@
 #include <AMReX_ParallelContext.H>
 
-namespace {
-
-template <class T>
-T sum(const amrex::Vector<T> &v) {
-    T s = 0;
-    for (int i = 0; i < v.size(); ++i) {
-        s += v[i];
-    }
-    return s;
-}
-
-}
-
 namespace amrex {
 namespace ParallelContext {
 
@@ -28,11 +15,17 @@ void init() {
     frames.emplace_back(ParallelDescriptor::Communicator(), 0, glo_rank_n, glo_rank_me);
 }
 
+void finalize ()
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(frames.size() == 1,
+                                     "ParallelContext: something wrong with the frame stack");
+}
+
 // split ranks in current frame into contiguous chunks
 // task i has ranks over the interval [result[i], result[i+1])
 Vector<int> get_split_bounds(const Vector<int> &task_rank_n)
 {
-    AMREX_ASSERT(sum(task_rank_n) == rank_n());
+    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n());
 
     const auto task_n = task_rank_n.size();
     Vector<int> result(task_n + 1);
@@ -49,7 +42,7 @@ int split(const Vector<int> &task_rank_n)
 {
     // figure out what color (task_me) to pass into MPI_Comm_split
     const auto task_n = task_rank_n.size();
-    AMREX_ASSERT(sum(task_rank_n) == rank_n());
+    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n());
     auto split_bounds = get_split_bounds(task_rank_n);
     int new_glo_rank_lo, new_glo_rank_hi, new_loc_rank_me;
     int task_me;

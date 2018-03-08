@@ -111,7 +111,7 @@ void ForkJoin::copy_data_from_tasks() {
 // multiple MultiFabs may share the same box array
 // only compute the DM once per unique (box array, task) pair and cache it
 // create map from box array RefID to vector of DistributionMapping indexed by task ID
-const DistributionMapping & ForkJoin::get_dm(BoxArray ba, int task_idx)
+const DistributionMapping & ForkJoin::get_dm(const BoxArray& ba, int task_idx)
 {
     auto &dm_vec = dms[ba.getRefID()];
 
