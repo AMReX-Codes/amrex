@@ -17,34 +17,6 @@
 using namespace amrex;
 
 static
-Real
-mfnorm_0_valid (const MultiFab& mf)
-{
-    Real r = 0;
-    for ( MFIter cmfi(mf); cmfi.isValid(); ++cmfi )
-    {
-        Real s = mf[cmfi].norm(cmfi.validbox(), 0, 0, mf[cmfi].nComp());
-        r = (r > s) ? r : s;
-    }
-    ParallelDescriptor::ReduceRealMax(r);
-    return r;
-}
-
-static
-Real
-mfnorm_2_valid (const MultiFab& mf)
-{
-    Real r = 0;
-    for ( MFIter cmfi(mf); cmfi.isValid(); ++cmfi )
-    {
-        Real s = mf[cmfi].norm(cmfi.validbox(), 2, 0, mf[cmfi].nComp());
-        r += s*s;
-    }
-    ParallelDescriptor::ReduceRealSum(r);
-    return ::sqrt(r);
-}
-
-static
 BoxArray
 readBoxList (const std::string file, Box& domain)
 {
@@ -541,13 +513,14 @@ main (int argc, char* argv[])
   //
   // Write solution, and rhs.
   //
+  double d1, d2;
   if ( dump_norm )
   {
-      double d1 = mfnorm_2_valid(soln);
-      double d2 = mfnorm_0_valid(soln);
+      d1 = soln.norm2();
+      d2 = soln.norm0();
       if ( ParallelDescriptor::IOProcessor() )
       {
-	  std::cout << "solution norm = " << d1 << "/" << d2 << std::endl;
+	  std::cout << "solution 2-norm / 0-norm = " << d1 << " / " << d2 << std::endl;
       }
 
       if (false)
@@ -563,8 +536,8 @@ main (int argc, char* argv[])
           for (MFIter mfi(soln); mfi.isValid(); ++mfi)
               soln[mfi].plus(-mean);
 
-          double d1 = mfnorm_2_valid(soln);
-          double d2 = mfnorm_0_valid(soln);
+          d1 = soln.norm2();
+          d2 = soln.norm0();
           if ( ParallelDescriptor::IOProcessor() )
           {
               std::cout << "solution norm (w/mean subtracted off) = " << d1 << "/" << d2 << std::endl;

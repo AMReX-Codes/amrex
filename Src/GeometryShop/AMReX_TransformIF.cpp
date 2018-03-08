@@ -1,15 +1,3 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_PolyGeom.H"
 #include "AMReX_TransformIF.H"
 
@@ -159,7 +147,7 @@ namespace amrex
     matrixTranslate(forTrans,invTranslate);
     matrixTranslate(invTrans,invTranslate);
 
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     // Rotate everything so a_axis aligns with the z-axis
     Real theta = 0.0;
     Real sinTheta = 0.0;
@@ -232,7 +220,7 @@ namespace amrex
     // Update the inverse transformation
     matrixMultiply(invTrans,temp,invTrans);
 
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     // Set up the rotation matrix
     matrixIdentity(temp);
 
@@ -289,7 +277,7 @@ namespace amrex
 
     Real angle = acos(PolyGeom::dot(a_axis1,a_axis2)/(axis1Length*axis2Length));
 
-#if BL_SPACEDIM == 2
+#if AMREX_SPACEDIM == 2
     if (axis3[0] < 0.0)
     {
       angle *= -1.0;

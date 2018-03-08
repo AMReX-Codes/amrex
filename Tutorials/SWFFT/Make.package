@@ -1,0 +1,6 @@
+
+CEXE_sources += main.cpp SWFFT_Solver.cpp
+CEXE_headers += SWFFT_Solver.H SWFFT_Solver_F.H
+
+F90EXE_sources += SWFFT_Solver_F.F90
+
