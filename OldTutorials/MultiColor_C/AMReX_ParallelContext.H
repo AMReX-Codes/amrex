@@ -10,10 +10,9 @@ namespace ParallelContext {
 struct Frame
 {
     // sub-communicator associated with frame
-    MPI_Comm comm;
-    int mpi_tag = 0; // tag to use for MPI communications in this frame
-    int glo_rank_lo, glo_rank_hi; // members of task have contiguous global ranks
-    int loc_rank_me; // local rank relative to current sub-communicator
+    MPI_Comm comm = MPI_COMM_NULL;
+    int glo_rank_lo = -1, glo_rank_hi = -1; // members of task have contiguous global ranks
+    int loc_rank_me = -1; // local rank relative to current sub-communicator
 
     Frame(MPI_Comm c, int glo, int ghi, int lme) :
       comm(c), glo_rank_lo(glo), glo_rank_hi(ghi), loc_rank_me(lme) { }
@@ -30,6 +29,7 @@ struct Frame
     }
     int get_inc_mpi_tag() {
         // get and increment the mpi_tag in this frame
+        static int mpi_tag = ParallelDescriptor::MinTag();
         auto cur_tag = mpi_tag;
         mpi_tag = mpi_tag < ParallelDescriptor::MaxTag() ?
                   mpi_tag + 1 : ParallelDescriptor::MinTag();
@@ -42,6 +42,7 @@ extern Vector<Frame> frames; // stack of communicator frames
 // call at beginning of program, after MPI_Init and ParallelDescriptor::StartParallel()
 // probably somewhere inside amrex::Initialize()
 void init();
+void finalize ();
 
 // world communicator
 inline MPI_Comm comm_global() { return frames[0].comm; }

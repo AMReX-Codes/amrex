@@ -208,7 +208,7 @@ void solve(MultiFab& soln, const MultiFab& rhs,
     for (int i = 0; i < 2; ++i) {
         // issue fork-join
         fj.fork_join(
-            [&] (ForkJoin &f) {
+            [&geom] (ForkJoin &f) {
                 colored_solve(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
                               f.get_mf_vec("beta"), geom);
             }

@@ -4,19 +4,6 @@
 #include <AMReX_ParallelContext.H>
 #include <AMReX_MultiFab.H>
 
-namespace detail {
-
-template <class T>
-T sum(const amrex::Vector<T> &v) {
-    T s = 0;
-    for (int i = 0; i < v.size(); ++i) {
-        s += v[i];
-    }
-    return s;
-}
-
-}
-
 namespace amrex {
 
 class ForkJoin
@@ -39,6 +26,10 @@ class ForkJoin
         Vector<MultiFab> forked; // holds new multifab for each task in fork
 
         MFFork() = default;
+        MFFork (const MFFork&) = delete;
+        MFFork& operator= (const MFFork&) = delete;
+        MFFork (MFFork&&) = default;
+        MFFork& operator= (MFFork&&) = default;
         MFFork(MultiFab *omf, Strategy s = Strategy::DUPLICATE,
                Access a = Access::RW, int own = -1)
             : orig(omf), strategy(s), access(a), owner_task(own) {}
@@ -47,26 +38,26 @@ class ForkJoin
     ForkJoin(Vector<int> trn) : task_rank_n(std::move(trn)) {
         auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
         AMREX_ASSERT(task_n() >= 2);
-        AMREX_ASSERT(detail::sum(task_rank_n) == rank_n);
+        AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
     }
 
     ForkJoin(const Vector<double> &task_rank_pct) {
         auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
-        auto task_n = task_rank_pct.size();
-        AMREX_ASSERT(task_n >= 2);
-        task_rank_n.resize(task_n);
+        auto ntasks = task_rank_pct.size();
+        AMREX_ASSERT(ntasks >= 2);
+        task_rank_n.resize(ntasks);
         int prev = 0;
         double accum = 0;
-        for (int i = 0; i < task_n; ++i) {
+        for (int i = 0; i < ntasks; ++i) {
             accum += task_rank_pct[i];
             int cur = std::round(rank_n * accum);
             task_rank_n[i] = cur - prev;
             prev = cur;
         }
-        AMREX_ASSERT(detail::sum(task_rank_n) == rank_n);
+        AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
     }
 
-    ForkJoin(int task_n = 2) : ForkJoin( Vector<double>(task_n, 1.0 / task_n) ) { }
+    ForkJoin(int ntasks = 2) : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
 
     int task_n() const { return task_rank_n.size(); }
 
@@ -96,7 +87,7 @@ class ForkJoin
                 Strategy strategy, Access access, int owner = -1) {
         AMREX_ASSERT_WITH_MESSAGE(access == Access::RD,
                                   "const MultiFab must be registered read-only");
-        reg_mf(*const_cast<MultiFab *>(&mf), name, idx, strategy, access, owner);
+        reg_mf(const_cast<MultiFab&>(mf), name, idx, strategy, access, owner);
     }
     void reg_mf(const MultiFab &mf, std::string name,
                 Strategy strategy, Access access, int owner = -1) {
@@ -125,14 +116,14 @@ class ForkJoin
 
     int get_task_me() const { return task_me; }
 
-    MultiFab &get_mf(std::string name, int idx = 0) {
+    MultiFab &get_mf(const std::string& name, int idx = 0) {
         AMREX_ASSERT_WITH_MESSAGE(data.count(name) > 0 && idx < data[name].size(), "get_mf(): name or index not found");
         AMREX_ASSERT(task_me >= 0 && task_me < data[name][idx].forked.size());
         return data[name][idx].forked[task_me];
     }
 
     // vector of pointers to all MFs under a name
-    Vector<MultiFab *> get_mf_vec(std::string name) {
+    Vector<MultiFab *> get_mf_vec(const std::string& name) {
         int dim = data.at(name).size();
         Vector<MultiFab *> result(dim);
         for (int idx = 0; idx < dim; ++idx) {
@@ -151,7 +142,7 @@ class ForkJoin
     // multiple MultiFabs may share the same box array
     // only compute the DM once per unique (box array, task) pair and cache it
     // create map from box array RefID to vector of DistributionMapping indexed by task ID
-    const DistributionMapping &get_dm(BoxArray ba, int task_idx);
+    const DistributionMapping &get_dm(const BoxArray& ba, int task_idx);
 };
 
 }
