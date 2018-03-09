@@ -11,38 +11,38 @@ class ForkJoin
   public:
 
     enum class Strategy {
-        SINGLE,     // one task gets a copy of whole MF
-        DUPLICATE,  // all tasks get a copy of whole MF
-        SPLIT,      // split MF components across tasks
+        single,     // one task gets a copy of whole MF
+        duplicate,  // all tasks get a copy of whole MF
+        split,      // split MF components across tasks
     };
-    enum class Access { RD, WR, RW };
+    enum class Intent { in, out, inout };
 
     struct MFFork
     {
         MultiFab *orig;
         Strategy strategy;
-        Access access;
-        int owner_task; // only used if access == SINGLE or DUPLICATE
+        Intent intent;
+        int owner_task; // only used if strategy == single or duplicate
         Vector<MultiFab> forked; // holds new multifab for each task in fork
 
-        MFFork() = default;
+        MFFork () = default;
         MFFork (const MFFork&) = delete;
         MFFork& operator= (const MFFork&) = delete;
         MFFork (MFFork&&) = default;
         MFFork& operator= (MFFork&&) = default;
-        MFFork(MultiFab *omf, Strategy s = Strategy::DUPLICATE,
-               Access a = Access::RW, int own = -1)
-            : orig(omf), strategy(s), access(a), owner_task(own) {}
+        MFFork (MultiFab *omf, Strategy s = Strategy::duplicate,
+                Intent i = Intent::inout, int own = -1)
+            : orig(omf), strategy(s), intent(i), owner_task(own) {}
     };
 
-    ForkJoin(Vector<int> trn) : task_rank_n(std::move(trn)) {
-        auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
+    ForkJoin (Vector<int> trn) : task_rank_n(std::move(trn)) {
+        auto rank_n = ParallelContext::NProcs(); // number of ranks in current frame
         AMREX_ASSERT(task_n() >= 2);
         AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
     }
 
-    ForkJoin(const Vector<double> &task_rank_pct) {
-        auto rank_n = ParallelContext::rank_n(); // number of ranks in current frame
+    ForkJoin (const Vector<double> &task_rank_pct) {
+        auto rank_n = ParallelContext::NProcs(); // number of ranks in current frame
         auto ntasks = task_rank_pct.size();
         AMREX_ASSERT(ntasks >= 2);
         task_rank_n.resize(ntasks);
@@ -57,55 +57,65 @@ class ForkJoin
         AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
     }
 
-    ForkJoin(int ntasks = 2) : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
+    ForkJoin (int ntasks) : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
 
-    int task_n() const { return task_rank_n.size(); }
+    int task_n () const { return task_rank_n.size(); }
 
-    void reg_mf(MultiFab &mf, std::string name, int idx,
-                Strategy strategy, Access access, int owner = -1) {
+    void reg_mf (MultiFab &mf, const std::string &name, int idx,
+                 Strategy strategy, Intent intent, int owner = -1) {
         if (idx >= data[name].size()) {
             data[name].resize(idx + 1);
         }
-        data[name][idx] = MFFork(&mf, strategy, access, owner);
+        data[name][idx] = MFFork(&mf, strategy, intent, owner);
     }
 
-    void reg_mf(MultiFab &mf, std::string name,
-                Strategy strategy, Access access, int owner = -1) {
-        reg_mf(mf, name, 0, strategy, access, owner);
-    }
-
-    void reg_mf_vec(const Vector<MultiFab *> &mfs, std::string name,
-                    Strategy strategy, Access access, int owner = -1) {
-        for (int i = 0; i < mfs.size(); ++i) {
-            reg_mf(*mfs[i], name, i, strategy, access, owner);
-        }
+    void reg_mf (MultiFab &mf, const std::string &name,
+                 Strategy strategy, Intent intent, int owner = -1) {
+        reg_mf(mf, name, 0, strategy, intent, owner);
     }
 
     // these overloads are for in case the MultiFab argument is const
-    // access must be read-only
-    void reg_mf(const MultiFab &mf, std::string name, int idx,
-                Strategy strategy, Access access, int owner = -1) {
-        AMREX_ASSERT_WITH_MESSAGE(access == Access::RD,
+    // intent must be in
+    void reg_mf (const MultiFab &mf, const std::string &name, int idx,
+                 Strategy strategy, Intent intent, int owner = -1) {
+        AMREX_ASSERT_WITH_MESSAGE(intent == Intent::in,
                                   "const MultiFab must be registered read-only");
-        reg_mf(const_cast<MultiFab&>(mf), name, idx, strategy, access, owner);
+        reg_mf(const_cast<MultiFab&>(mf), name, idx, strategy, intent, owner);
     }
-    void reg_mf(const MultiFab &mf, std::string name,
-                Strategy strategy, Access access, int owner = -1) {
-        reg_mf(mf, name, 0, strategy, access, owner);
+    void reg_mf (const MultiFab &mf, const std::string &name,
+                 Strategy strategy, Intent intent, int owner = -1) {
+        reg_mf(mf, name, 0, strategy, intent, owner);
+    }
+
+    void reg_mf_vec (const Vector<MultiFab *> &mfs, const std::string &name,
+                     Strategy strategy, Intent intent, int owner = -1) {
+        data[name].reserve(mfs.size());
+        for (int i = 0; i < mfs.size(); ++i) {
+            reg_mf(*mfs[i], name, i, strategy, intent, owner);
+        }
+    }
+
+    // overload in case of vector of pointer to const MultiFab
+    void reg_mf_vec (const Vector<MultiFab const *> &mfs, const std::string &name,
+                     Strategy strategy, Intent intent, int owner = -1) {
+        data[name].reserve(mfs.size());
+        for (int i = 0; i < mfs.size(); ++i) {
+            reg_mf(*mfs[i], name, i, strategy, intent, owner);
+        }
     }
 
     // TODO: may want to de-register MFs if they change across invocations
 
     // this is called before ParallelContext::split
     // the parent task is the top frame in ParallelContext's stack
-    void copy_data_to_tasks();
+    void copy_data_to_tasks ();
 
     // this is called after ParallelContext::unsplit
     // the parent task is the top frame in ParallelContext's stack
-    void copy_data_from_tasks();
+    void copy_data_from_tasks ();
 
     template <class F>
-    void fork_join(const F &fn)
+    void fork_join (const F &fn)
     {
         copy_data_to_tasks(); // move data to local tasks
         task_me = ParallelContext::split(task_rank_n);
@@ -114,16 +124,16 @@ class ForkJoin
         copy_data_from_tasks(); // move local data back
     }
 
-    int get_task_me() const { return task_me; }
+    int get_task_me () const { return task_me; }
 
-    MultiFab &get_mf(const std::string& name, int idx = 0) {
+    MultiFab &get_mf (const std::string &name, int idx = 0) {
         AMREX_ASSERT_WITH_MESSAGE(data.count(name) > 0 && idx < data[name].size(), "get_mf(): name or index not found");
         AMREX_ASSERT(task_me >= 0 && task_me < data[name][idx].forked.size());
         return data[name][idx].forked[task_me];
     }
 
     // vector of pointers to all MFs under a name
-    Vector<MultiFab *> get_mf_vec(const std::string& name) {
+    Vector<MultiFab *> get_mf_vec (const std::string &name) {
         int dim = data.at(name).size();
         Vector<MultiFab *> result(dim);
         for (int idx = 0; idx < dim; ++idx) {
@@ -142,7 +152,7 @@ class ForkJoin
     // multiple MultiFabs may share the same box array
     // only compute the DM once per unique (box array, task) pair and cache it
     // create map from box array RefID to vector of DistributionMapping indexed by task ID
-    const DistributionMapping &get_dm(const BoxArray& ba, int task_idx);
+    const DistributionMapping &get_dm (const BoxArray& ba, int task_idx);
 };
 
 }

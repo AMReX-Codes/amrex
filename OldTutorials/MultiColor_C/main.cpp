@@ -198,10 +198,10 @@ void solve(MultiFab& soln, const MultiFab& rhs,
     ForkJoin fj(ParallelDescriptor::NColors());
 
     // register how to copy multifabs to/from tasks
-    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::SPLIT, ForkJoin::Access::RD);
-    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::SPLIT, ForkJoin::Access::RD);
-    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::SPLIT, ForkJoin::Access::RD);
-    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::SPLIT, ForkJoin::Access::WR);
+    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out);
 
     // can reuse ForkJoin object for multiple fork-join invocations
     // creates forked multifabs only first time around, reuses them thereafter

@@ -4,7 +4,7 @@ namespace amrex {
 
 // this is called before ParallelContext::split
 // the parent task is the top frame in ParallelContext's stack
-void ForkJoin::copy_data_to_tasks()
+void ForkJoin::copy_data_to_tasks ()
 {
     if (flag_verbose && ParallelDescriptor::IOProcessor()) {
         std::cout << "Copying data into fork-join tasks ..." << std::endl;
@@ -21,11 +21,11 @@ void ForkJoin::copy_data_to_tasks()
             forked.reserve(task_n()); // does nothing if forked MFs already created
             for (int i = 0; i < task_n(); ++i) {
                 // check if this task needs this MF
-                if (mff.strategy != Strategy::SINGLE || i == mff.owner_task) {
+                if (mff.strategy != Strategy::single || i == mff.owner_task) {
 
                     // compute task's component lower and upper bound
                     int comp_lo, comp_hi;
-                    if (mff.strategy == Strategy::SPLIT) {
+                    if (mff.strategy == Strategy::split) {
                         // split components across tasks
                         comp_lo = comp_n *  i    / task_n();
                         comp_hi = comp_n * (i+1) / task_n();
@@ -39,7 +39,7 @@ void ForkJoin::copy_data_to_tasks()
                     if (forked.size() <= i) {
                         if (flag_verbose && ParallelDescriptor::IOProcessor()) {
                             std::cout << "  Creating forked " << mf_name << "[" << idx << "] for task " << i
-                                      << (mff.strategy == Strategy::SPLIT ? " (split)" : " (whole)") << std::endl;
+                                      << (mff.strategy == Strategy::split ? " (split)" : " (whole)") << std::endl;
                         }
                         // look up the distribution mapping for this (box array, task) pair
                         const DistributionMapping &dm = get_dm(ba, i);
@@ -51,7 +51,7 @@ void ForkJoin::copy_data_to_tasks()
                     AMREX_ASSERT(i < forked.size());
 
                     // copy data if needed
-                    if (mff.access == Access::RD || mff.access == Access::RW) {
+                    if (mff.intent == Intent::in || mff.intent == Intent::inout) {
                         if (flag_verbose && ParallelDescriptor::IOProcessor()) {
                             std::cout << "    Copying " << mf_name << "[" << idx << "] into to task " << i << std::endl;
                         }
@@ -74,7 +74,7 @@ void ForkJoin::copy_data_to_tasks()
 
 // this is called after ParallelContext::unsplit
 // the parent task is the top frame in ParallelContext's stack
-void ForkJoin::copy_data_from_tasks() {
+void ForkJoin::copy_data_from_tasks () {
     if (flag_verbose && ParallelDescriptor::IOProcessor()) {
         std::cout << "Copying data out of fork-join tasks ..." << std::endl;
     }
@@ -82,11 +82,11 @@ void ForkJoin::copy_data_from_tasks() {
         const auto &mf_name = p.first;
         for (int idx = 0; idx < p.second.size(); ++idx) { // for each index
             auto &mff = p.second[idx];
-            if (mff.access == Access::WR || mff.access == Access::RW) {
+            if (mff.intent == Intent::out || mff.intent == Intent::inout) {
                 MultiFab &orig = *mff.orig;
                 int comp_n = orig.nComp(); // number of components in original
                 const Vector<MultiFab> &forked = mff.forked;
-                if (mff.strategy == Strategy::SPLIT) {
+                if (mff.strategy == Strategy::split) {
                     // gather components from across tasks
                     for (int i = 0; i < task_n(); ++i) {
                         if (flag_verbose && ParallelDescriptor::IOProcessor()) {
@@ -96,7 +96,7 @@ void ForkJoin::copy_data_from_tasks() {
                         int comp_hi = comp_n * (i+1) / task_n();
                         orig.copy(forked[i], 0, comp_lo, comp_hi - comp_lo);
                     }
-                } else { // mff.strategy == SINGLE or DUPLICATE
+                } else { // mff.strategy == single or duplicate
                     // copy all components from owner_task
                     if (flag_verbose && ParallelDescriptor::IOProcessor()) {
                         std::cout << "Copying " << mf_name << " out from task " << mff.owner_task << "  (whole)" << std::endl;
@@ -111,7 +111,7 @@ void ForkJoin::copy_data_from_tasks() {
 // multiple MultiFabs may share the same box array
 // only compute the DM once per unique (box array, task) pair and cache it
 // create map from box array RefID to vector of DistributionMapping indexed by task ID
-const DistributionMapping & ForkJoin::get_dm(const BoxArray& ba, int task_idx)
+const DistributionMapping & ForkJoin::get_dm (const BoxArray& ba, int task_idx)
 {
     auto &dm_vec = dms[ba.getRefID()];
 
