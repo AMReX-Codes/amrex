@@ -24,5 +24,7 @@ USE_PYTHON_MAIN = FALSE
 
 WarpxBinDir = Bin
 
+USE_PSATD = FALSE
+
 WARPX_HOME := .
 include $(WARPX_HOME)/Source/Make.WarpX
