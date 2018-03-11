@@ -92,6 +92,17 @@ public:
 
     void setMaxOrder (int o) { maxorder = o; }
 
+    // out = L(in).  Here L is the composite linear operator.  Before
+    // this function is called, BC must have been set up.  In
+    // principle `in` could be Vector<const MultiFab*> with no ghost
+    // cells, because we could always make an internal copy of `in`.
+    // However, this function requires that in has ghost cells, and
+    // FillBoundary will be called on `in`.  Also note, if this
+    // MLLinOp is not used by MLMG for an acutal solve, one could turn
+    // off multigrid coarsening by calling setMaxCoarseningLevel(0) on
+    // the LPInfo object passed to MLLinOp constructor.
+    void apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& in);
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;

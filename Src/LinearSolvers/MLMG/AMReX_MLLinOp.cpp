@@ -423,4 +423,29 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
     }
 }
 
+void
+MLLinOp::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& in)
+{
+    Vector<MultiFab> rhs(m_num_amr_levels);
+    for (int alev = m_num_amr_levels-1; alev >= 0; --alev)
+    {
+        rhs[alev].define(in[alev]->boxArray(), in[alev]->DistributionMap(),
+                         in[alev]->nComp(), 0);
+        rhs[alev].setVal(0.0);
+
+        const MultiFab* crse_bcdata = (alev > 0) ? in[alev-1] : nullptr;
+
+        solutionResidual(alev, *out[alev], *in[alev], rhs[alev], crse_bcdata);
+
+        if (alev < m_num_amr_levels-1) {
+            reflux(alev, *out[alev], *in[alev], rhs[alev],
+                   *out[alev+1], *in[alev+1], rhs[alev+1]);
+        }
+    }
+
+    for (int alev = 0; alev < m_num_amr_levels; ++alev) {
+        out[alev]->negate();
+    }
+}
+
 }
