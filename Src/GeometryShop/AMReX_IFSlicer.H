@@ -112,8 +112,8 @@ namespace amrex
        Represent the partial derivative as a list of integers.
        Return the partial derivative evaluated at a_point.
     */
-    virtual Real value(const IndexTM<int, GLOBALDIM> & a_partialDerivative,
-                       const IndexTM<Real,GLOBALDIM> & a_point) const;
+    virtual Real value(const IntVect  & a_partialDerivative,
+                       const RealVect & a_point) const;
 
     void print(ostream& a_out) const;
 

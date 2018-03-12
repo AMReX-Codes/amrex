@@ -58,7 +58,7 @@ namespace amrex
 */
   template<typename T, int N> IndexTM<T,N> BASISV_TM(int a_dir);
 
-  template<typename T, int N=CH_SPACEDIM> class IndexTM: public GenericArithmeticable< T,IndexTM<T,N> >
+  template<typename T, int N=BL_SPACEDIM> class IndexTM: public GenericArithmeticable< T,IndexTM<T,N> >
   {
   public:
     /**

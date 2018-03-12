@@ -32,15 +32,15 @@ namespace amrex
     }
   }
 
-  Real IFSlicer<GLOBALDIM>::value(const IndexTM<int, GLOBALDIM> & a_partialDerivative,
-                                  const IndexTM<Real,GLOBALDIM> & a_point) const
+  Real IFSlicer<GLOBALDIM>::value(const IntVect  & a_partialDerivative,
+                                  const RealVect & a_point) const
   {
     return m_implicitFunction->value(a_partialDerivative,a_point);
   }
 
   void IFSlicer<GLOBALDIM>::print(ostream& a_out) const
   {
-    MayDay::Abort("Not implemented");
+    amrex::Abort("Not implemented");
     // m_implicitFunction->print(a_out);
   }
 

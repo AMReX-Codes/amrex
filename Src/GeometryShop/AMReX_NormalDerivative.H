@@ -7,7 +7,8 @@
 
 namespace amrex
 {
-
+  using std::map;
+  using std::pair;
 /// This computes the derivatives of the normal of a sliced implicit function
 /**
    This computes the derivatives of the normal of a sliced implicit function
@@ -83,12 +84,10 @@ namespace amrex
   private:
     NormalDerivative(const NormalDerivative& a_input)
       {
-        MayDay::Abort("NormalDerivativeIF doesn't allow copy construction");
       }
 
     void operator=(const NormalDerivative& a_input)
       {
-        MayDay::Abort("NormalDerivativeIF doesn't allow assignment");
       }
   };
 
@@ -180,12 +179,10 @@ namespace amrex
   private:
     NormalDerivative(const NormalDerivative& a_input)
       {
-        MayDay::Abort("NormalDerivativeIF doesn't allow copy construction");
       }
 
     void operator=(const NormalDerivative& a_input)
       {
-        MayDay::Abort("NormalDerivativeIF doesn't allow assignment");
       }
   };
 

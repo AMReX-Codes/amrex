@@ -30,7 +30,6 @@ namespace amrex
   template <int dim> CoordinateSystem<dim>::CoordinateSystem(const CoordinateSystem<dim+1> & a_hiCoord,
                                                              const int                     & a_idir)
   {
-    CH_TIME("CoordinateSystem::ConstructorReduceInfo");
     for (int idir = 0; idir < dim; ++idir)
     {
       if (idir < a_idir)
@@ -94,24 +93,13 @@ namespace amrex
   template <int dim> void CoordinateSystem<dim>::print(ostream& a_out) const
   {
     std::ios::fmtflags origFlags = a_out.flags();
-    int origWidth = a_out.width();
-    int origPrecision = a_out.precision();
 
     a_out << "origin = "
-          << setprecision(16)
-          << setiosflags(ios::showpoint)
-          << setiosflags(ios::scientific)
           << m_origin << ", ";
 
     a_out << "dx = "
-          << setprecision(16)
-          << setiosflags(ios::showpoint)
-          << setiosflags(ios::scientific)
           << m_dx << "\n";
 
-    a_out.flags(origFlags);
-    a_out.width(origWidth);
-    a_out.precision(origPrecision);
   }
 
   template <int dim> ostream& operator<<(ostream                     & a_out,

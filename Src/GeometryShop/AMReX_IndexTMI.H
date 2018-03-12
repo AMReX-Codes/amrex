@@ -14,6 +14,8 @@ using std::ws;
 #include <functional>
 #include <numeric>
 #include "AMReX_MetaPrograms.H"
+#include "AMReX.H"
+#include "AMReX_parstream.H"
 
 namespace amrex
 {
@@ -37,7 +39,7 @@ namespace amrex
 
     if (a_os.fail())
     {
-      MayDay::Abort("operator<<(ostream&,Index&) failed");
+      amrex::Error("operator<<(ostream&,Index&) failed");
     }
 
     return a_os;
@@ -80,12 +82,12 @@ namespace amrex
     }
     else
     {
-      MayDay::Abort("operator>>(istream&,Index&): expected \'(\' or \'<\'");
+      amrex::Abort("operator>>(istream&,Index&): expected \'(\' or \'<\'");
     }
 
     if (a_is.fail())
     {
-      MayDay::Abort("operator>>(istream&,Index&) failed");
+      amrex::Abort("operator>>(istream&,Index&) failed");
     }
 
     return a_is;
@@ -147,7 +149,7 @@ namespace amrex
     if     (a_reference[0] == 48) setAll(0);
     else if (a_reference[0] == 49) setAll(1);
     else
-      MayDay::Error("unknown static initialization for IndexTM");
+      amrex::Error("unknown static initialization for IndexTM");
   }
 
   template<typename T, int N> inline IndexTM<T,N>::IndexTM(const IndexTM<T,N> & a_iv)
@@ -164,20 +166,20 @@ namespace amrex
 
   template<typename T, int N> inline T& IndexTM<T,N>::operator[] (int a_i)
   {
-    CH_assert(a_i >= 0 && a_i < N);
+//    BL_ASSERT(a_i >= 0 && a_i < N);
     return m_vect[a_i];
   }
 
   template<typename T, int N> inline T IndexTM<T,N>::operator[] (int a_i) const
   {
-    CH_assert(a_i >= 0 && a_i < N);
+//    BL_ASSERT(a_i >= 0 && a_i < N);
     return m_vect[a_i];
   }
 
   template<typename T, int N> inline void IndexTM<T,N>::setVal(int a_i,
                                                                T   a_val)
   {
-    CH_assert(a_i >= 0 && a_i < N);
+//    BL_ASSERT(a_i >= 0 && a_i < N);
     m_vect[a_i] = a_val;
   }
 
@@ -346,7 +348,7 @@ namespace amrex
   template<typename T, int N> inline IndexTM<T,N>& IndexTM<T,N>::reflect (T   a_refIx,
                                                                           int a_idir)
   {
-    CH_assert(a_idir >= 0 && a_idir < N);
+//    BL_ASSERT(a_idir >= 0 && a_idir < N);
     m_vect[a_idir] = -m_vect[a_idir] + 2*a_refIx;
     return *this;
   }
@@ -354,7 +356,7 @@ namespace amrex
   template<typename T, int N> inline IndexTM<T,N>& IndexTM<T,N>::shift(int a_coord,
                                                                        T   a_s)
   {
-    CH_assert(a_coord >= 0 && a_coord < N);
+//    BL_ASSERT(a_coord >= 0 && a_coord < N);
     m_vect[a_coord] += a_s;
     return *this;
   }
@@ -397,7 +399,7 @@ namespace amrex
 
   template<typename T, int N> inline IndexTM<T,N> BASISV_TM(int a_dir)
   {
-    CH_assert(a_dir >= 0 && a_dir < N);
+//    BL_ASSERT(a_dir >= 0 && a_dir < N);
     IndexTM<T,N> tmp = IndexTM<T,N>::Zero ;
     tmp.dataPtr()[a_dir] = T(1);
     return tmp;
@@ -445,7 +447,7 @@ namespace amrex
 
   template<typename T, int N> inline IndexTM<T,N>& IndexTM<T,N>::coarsen(T a_s)
   {
-    CH_assert(a_s > 0);
+    BL_ASSERT(a_s > 0);
     std::transform(m_vect, m_vect+N, m_vect,
                    std::bind2nd(std::ptr_fun(ourcoarsen<T>),a_s));
     return *this;
@@ -453,7 +455,7 @@ namespace amrex
 
   template<typename T, int N> inline IndexTM<T,N>& IndexTM<T,N>::coarsen(const IndexTM<T,N> & a_p)
   {
-    CH_assert(a_p > (IndexTM<T,N>::Zero));
+    BL_ASSERT(a_p > (IndexTM<T,N>::Zero));
     std::transform(m_vect, m_vect+N, a_p.m_vect, m_vect, std::ptr_fun(ourcoarsen<T>));
     return *this;
   }
@@ -471,7 +473,7 @@ namespace amrex
   template<typename T, int N> IndexTM<T,N>::IndexTM(T a_i)
     : GenericArithmeticable< T, IndexTM<T,N> >(this)
   {
-    STATIC_ASSERT(N == 1);
+//    static_assert(N == 1);
     m_vect[0] = a_i;
   }
 
@@ -479,7 +481,7 @@ namespace amrex
                                                     T a_j)
     : GenericArithmeticable< T, IndexTM<T,N> >(this)
   {
-    STATIC_ASSERT(N == 2);
+//    static_assert(N == 2);
     m_vect[0] = a_i;
     m_vect[1] = a_j;
   }
@@ -489,7 +491,7 @@ namespace amrex
                                                     T a_k)
     : GenericArithmeticable< T, IndexTM<T,N> >(this)
   {
-    STATIC_ASSERT(N == 3);
+//    static_assert(N == 3);
     m_vect[0] = a_i;
     m_vect[1] = a_j;
     m_vect[2] = a_k;
@@ -501,7 +503,7 @@ namespace amrex
                                                     T a_l)
     : GenericArithmeticable< T, IndexTM<T,N> >(this)
   {
-    STATIC_ASSERT(N == 4);
+//    static_assert(N == 4);
     m_vect[0] = a_i;
     m_vect[1] = a_j;
     m_vect[2] = a_k;
@@ -515,7 +517,7 @@ namespace amrex
                                                     T a_m)
     : GenericArithmeticable< T, IndexTM<T,N> >(this)
   {
-    STATIC_ASSERT(N == 5);
+//    static_assert(N == 5);
     m_vect[0] = a_i;
     m_vect[1] = a_j;
     m_vect[2] = a_k;
@@ -531,7 +533,7 @@ namespace amrex
                                                     T a_n)
     : GenericArithmeticable< T, IndexTM<T,N> >(this)
   {
-    STATIC_ASSERT(N == 6);
+//    static_assert(N == 6);
     m_vect[0] = a_i;
     m_vect[1] = a_j;
     m_vect[2] = a_k;
