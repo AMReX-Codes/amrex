@@ -14,6 +14,7 @@
 #include "AMReX_IrregNode.H"
 #include "AMReX_CutCellMoments.H"
 
+using std::shared_ptr;
 namespace amrex
 {
 ///base class for special refinement
@@ -54,10 +55,10 @@ namespace amrex
        This class will refine a cell if it is between min and max refinements.
        If it violates bounds, that triggers refinement until max refinement.
     */
-    WrappedGShop(const RefCountedPtr<BaseIF>  & a_baseIF,
+    WrappedGShop(const shared_ptr<BaseIF>  & a_baseIF,
                  const RealVect               & a_origin,
                  const Real                   & a_dx,
-                 const ProblemDomain          & a_domain,
+                 const Box          & a_domain,
                  int   minNumberRefines,
                  int   maxNumberRefines);
   
@@ -91,7 +92,7 @@ namespace amrex
        refinement described by dx.
     */
     virtual bool isRegular(const Box           & a_region,
-                           const ProblemDomain & a_domain,
+                           const Box & a_domain,
                            const RealVect      & a_origin,
                            const Real          & a_dx) const;
 
@@ -101,13 +102,13 @@ namespace amrex
        refinement described by dx.
     */
     virtual bool isCovered(const Box           & a_region,
-                           const ProblemDomain & a_domain,
+                           const Box & a_domain,
                            const RealVect      & a_origin,
                            const Real          & a_dx) const;
 
 
     virtual bool isIrregular(const Box           & a_region,
-                             const ProblemDomain & a_domain,
+                             const Box & a_domain,
                              const RealVect      & a_origin,
                              const Real          & a_dx) const;
 
@@ -129,21 +130,9 @@ namespace amrex
                            Vector<IrregNode>   & a_nodes,
                            const Box           & a_validRegion,
                            const Box           & a_ghostRegion,
-                           const ProblemDomain & a_domain,
+                           const Box & a_domain,
                            const RealVect      & a_origin,
                            const Real          & a_dx) const;
-
-    virtual void fillGraph(BaseFab<int>        & a_regIrregCovered,
-                           Vector<IrregNode>   & a_nodes,
-                           const Box           & a_validRegion,
-                           const Box           & a_ghostRegion,
-                           const ProblemDomain & a_domain,
-                           const RealVect      & a_origin,
-                           const Real          & a_dx,
-                           const DataIndex     & a_dt) const
-      {
-        fillGraph(a_regIrregCovered, a_nodes, a_validRegion, a_ghostRegion, a_domain, a_origin, a_dx);
-      }
 
 
     /**
@@ -151,7 +140,7 @@ namespace amrex
     void
     computeVoFInternals(IrregNode                &     a_node,
                         const IntVectSet         &     a_ivsIrreg,
-                        const ProblemDomain      &     a_domain,
+                        const Box      &     a_domain,
                         const RealVect           &     a_origin,
                         const Real               &     a_dx,
                         const IntVect            &     a_iv) const;
@@ -179,19 +168,19 @@ namespace amrex
     void
     fillNewNode(IrregNode                &     a_node,
                 const IntVectSet         &     a_ivsIrreg,
-                const ProblemDomain      &     a_domain,
+                const Box      &     a_domain,
                 const RealVect           &     a_origin,
                 const Real               &     a_dx,
                 const IntVect            &     a_iv) const;
 
-    void setRefinementCriterion(const RefCountedPtr<WGSRefinementCriterion>& a_refCrit)
+    void setRefinementCriterion(const shared_ptr<WGSRefinementCriterion>& a_refCrit)
       {
         m_refCrit = a_refCrit;
       }
 
   private:
 
-    RefCountedPtr<WGSRefinementCriterion> m_refCrit;
+    shared_ptr<WGSRefinementCriterion> m_refCrit;
   
     Real                m_threshold;
 
@@ -203,9 +192,9 @@ namespace amrex
     int                 m_minNumberRefines;
     int                 m_maxNumberRefines;
 
-    ProblemDomain m_domain;
+    Box m_domain;
 
-    RefCountedPtr<BaseIF>       m_baseIF;
+    shared_ptr<BaseIF>       m_baseIF;
   
     static Real s_relativeTol;
     /**
@@ -213,7 +202,7 @@ namespace amrex
        refinement described by dx.
     */
     bool isRegularEveryPoint(const Box&           a_region,
-                             const ProblemDomain& a_domain,
+                             const Box& a_domain,
                              const RealVect&      a_origin,
                              const Real&          a_dx) const;
 
@@ -223,7 +212,7 @@ namespace amrex
        refinement described by dx.
     */
     bool isCoveredEveryPoint(const Box&           a_region,
-                             const ProblemDomain& a_domain,
+                             const Box& a_domain,
                              const RealVect&      a_origin,
                              const Real&          a_dx) const;
 
@@ -238,15 +227,12 @@ namespace amrex
     //stuff disallowed for all the usual reasons.
     WrappedGShop()
       {
-        MayDay::Abort("WrappedGShop uses strong construction only");
       }
     WrappedGShop(const WrappedGShop& a_workshopin)
       {
-        MayDay::Abort("WrappedGShop disallows copy contruction");
       }
     void operator=(const WrappedGShop& a_workshopin)
       {
-        MayDay::Abort("WrappedGShop disallows the assignment operator");
       }
 
   };

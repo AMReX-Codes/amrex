@@ -79,7 +79,7 @@ namespace amrex
       }
       else
       {
-        CH_assert(-0.5*m_cutCellMoments.m_IFData.m_cellCenterCoord.m_dx[0]
+        BL_ASSERT(-0.5*m_cutCellMoments.m_IFData.m_cellCenterCoord.m_dx[0]
                   <= m_cutCellMoments.m_IFData.m_intersection
                   &&
                   m_cutCellMoments.m_IFData.m_intersection
@@ -100,7 +100,7 @@ namespace amrex
       }
       else
       {
-        CH_assert(-0.5*m_cutCellMoments.m_IFData.m_cellCenterCoord.m_dx[0]
+        BL_ASSERT(-0.5*m_cutCellMoments.m_IFData.m_cellCenterCoord.m_dx[0]
                   <= m_cutCellMoments.m_IFData.m_intersection
                   &&
                   m_cutCellMoments.m_IFData.m_intersection

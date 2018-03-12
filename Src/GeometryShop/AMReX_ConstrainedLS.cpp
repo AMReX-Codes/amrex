@@ -13,6 +13,7 @@ using namespace std;
 #include "AMReX_ConstrainedLS.H"
 #include "AMReX_PolyGeom.H"
 #include "AMReX_RealVect.H"
+#include "AMReX_REAL.H"
 #include "AMReX_parstream.H"
 
 namespace amrex
@@ -21,7 +22,7 @@ namespace amrex
   ConstrainedLS::ConstrainedLS()
     :
     m_nbound(0),
-    m_residual(LARGEREALVAL)
+    m_residual(1.0e30)
   {
   }
 
@@ -63,7 +64,7 @@ namespace amrex
         {
           dot+=a[i][jj]*a[i][j];
         }
-        Real constant=dot/Abs(qv1*u1);
+        Real constant=dot/std::abs(qv1*u1);
         for (int i = j1; i<nRow ; ++i)
         {
           a[i][jj]-= constant*a[i][j]; // todo pointer
@@ -78,7 +79,7 @@ namespace amrex
         dot+=rhs[i]*a[i][j];
       }
 
-      Real constant=dot/Abs(qv1*u1);
+      Real constant=dot/std::abs(qv1*u1);
       rhs[j]-=constant*u1;
       for (int i=j1; i<nRow; ++i)
       {
@@ -128,10 +129,11 @@ namespace amrex
                                                             Real**               a_A,
                                                             const Vector<Real> & a_rhs)
   {
+    Real huge = 1.0e30;
     Vector<Real>  lowBound(a_x.size());
-    lowBound.assign(-HUGE);
+    lowBound.assign(-huge, lowBound.size());
     Vector<Real> highBound(a_x.size());
-    highBound.assign(HUGE);
+    highBound.assign(huge, highBound.size());
     return solveBoundConstrained(a_x,a_A,a_rhs,lowBound,highBound);
   }
 
@@ -139,11 +141,11 @@ namespace amrex
                                        const Vector<Real> & a_hiBound) const
   {
     bool retval = true;
-    Real maxDiff = -LARGEREALVAL;
+    Real maxDiff = -1.0e30;
     for (int jbound = 0; jbound < a_loBound.size(); ++jbound)
     {
       retval &= (a_loBound[jbound] <= a_hiBound[jbound]);
-      maxDiff = Max(maxDiff, (a_hiBound[jbound] - a_loBound[jbound]));
+      maxDiff = std::max(maxDiff, (a_hiBound[jbound] - a_loBound[jbound]));
     }
     retval &= (maxDiff >= 0.0);
     return retval;
@@ -187,7 +189,7 @@ namespace amrex
 
 
     /*  Check bounds*/
-    CH_assert(lowerBound.size() == upperBound.size());
+    BL_ASSERT(lowerBound.size() == upperBound.size());
     if (!boundsConsistent(lowerBound,upperBound))
     {
       pout() << "Inconsistent bounds in BVLS constrained least squares algorithm"<<endl;;

@@ -1,8 +1,7 @@
 
-#ifndef _MOMENTITERATOR_H_
-#define _MOMENTITERATOR_H_
+#ifndef ____MOMENTITERATOR_H_
+#define ____MOMENTITERATOR_H_
 
-#include "AMReX_IndexedMoments.H"
 
 namespace amrex
 {
@@ -51,11 +50,7 @@ namespace amrex
     ///
     /**
      */
-    MomentIterator()
-      {
-        m_indicies = &(IndexedMoments<D,P>::getMonomialPowers());
-        m_current = 0;
-      }
+    MomentIterator();
 
     ///
     virtual ~MomentIterator()
@@ -110,4 +105,6 @@ namespace amrex
   };
 }
 
+
+#include "AMReX_MomentIteratorImplem.H"
 #endif

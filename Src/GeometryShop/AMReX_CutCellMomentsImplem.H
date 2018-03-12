@@ -15,6 +15,7 @@
 
 namespace amrex
 {
+  using std::string;
 // Null constructor
   template <int dim> CutCellMoments<dim>::CutCellMoments()
   {
@@ -83,7 +84,7 @@ namespace amrex
 
     if (it == m_bdCutCellMoments.end())
     {
-      MayDay::Abort("Can't find this bdId in m_bdCutCellMoments");
+      amrex::Abort("Can't find this bdId in m_bdCutCellMoments");
     }
 
     return it->second;
@@ -327,7 +328,7 @@ namespace amrex
             {
               if (coeff != 0)
               {
-                MayDay::Abort("Coeff should be zero when the derivative has higher coefficient than the monomial");
+                amrex::Abort("Coeff should be zero when the derivative has higher coefficient than the monomial");
               }
             }
             else
@@ -498,7 +499,7 @@ namespace amrex
       }
       else
       {
-        MayDay::Abort("No volume moment in m_moments");
+        amrex::Abort("No volume moment in m_moments");
       }
     }
     else if (a_EBorVol == EBMoment)
@@ -512,12 +513,12 @@ namespace amrex
       }
       else
       {
-        MayDay::Abort("No volume moment in m_bdMoments");
+        amrex::Abort("No volume moment in m_bdMoments");
       }
     }
     else
     {
-      MayDay::Abort("Must ask for EBMoment or VolMoment");
+      amrex::Abort("Must ask for EBMoment or VolMoment");
     }
 
     return moment;
@@ -549,11 +550,11 @@ namespace amrex
 
       if (volume < 0.0)
       {
-        MayDay::Warning("CutCellMoments::getCentroid: Volume fraction is negative");
+        amrex::Warning("CutCellMoments::getCentroid: Volume fraction is negative");
       }
       else if (volume == 0.0)
       {
-        //MayDay::Abort("CutCellMoments::getCentroid: Volume fraction is zero");
+        //amrex::Abort("CutCellMoments::getCentroid: Volume fraction is zero");
       }
 
       centroid[idir] /= volume;
@@ -584,7 +585,7 @@ namespace amrex
   {
     if (isCovered() || isRegular())
     {
-      MayDay::Abort("Invalid assignment to m_residual in covered or full cell");
+      amrex::Abort("Invalid assignment to m_residual in covered or full cell");
     }
     else
     {
@@ -597,7 +598,7 @@ namespace amrex
     if (isCovered() || isRegular())
     {
       pout()<<"Dim = "<< dim << endl;
-      MayDay::Abort("Invalid attemtp to slice of m_residual in a covered or full CCM");
+      amrex::Abort("Invalid attemtp to slice of m_residual in a covered or full CCM");
     }
     else
     {
@@ -628,23 +629,12 @@ namespace amrex
 
     for (typename PthMoment::const_iterator it = m_moments.begin(); it != m_moments.end(); ++it)
     {
-      std::ios::fmtflags origFlags = a_out.flags();
-      int origWidth = a_out.width();
-      int origPrecision = a_out.precision();
-
       a_out << padding << "Integral "
             << it->first
             << " = "
-            << setw(23)
-            << setprecision(16)
-            << setiosflags(ios::showpoint)
-            << setiosflags(ios::scientific)
             << it->second
             << "\n";
 
-      a_out.flags(origFlags);
-      a_out.width(origWidth);
-      a_out.precision(origPrecision);
     }
 
     if (m_moments.size() > 0)
@@ -661,16 +651,9 @@ namespace amrex
       a_out << padding << "EBIntegral "
             << it->first
             << " = "
-            << setw(23)
-            << setprecision(16)
-            << setiosflags(ios::showpoint)
-            << setiosflags(ios::scientific)
             << it->second
             << "\n";
 
-      a_out.flags(origFlags);
-      a_out.width(origWidth);
-      a_out.precision(origPrecision);
     }
 
     if (m_EBmoments.size() > 0)
@@ -691,16 +674,8 @@ namespace amrex
       {
 
         a_out << " "
-              << setw(23)
-              << setprecision(16)
-              << setiosflags(ios::showpoint)
-              << setiosflags(ios::scientific)
               << m_residual[i][j];
       }
-
-      a_out.flags(origFlags);
-      a_out.width(origWidth);
-      a_out.precision(origPrecision);
 
       a_out << padding << "\n";
     }

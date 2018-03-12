@@ -69,7 +69,6 @@ namespace amrex
   template <int dim> void MinimalCCCM<dim>::computeMoments(const int                & a_orderPmax,
                                                            const int                & a_degreePmax)
   {
-    CH_TIME("computemoments");
     int zerothOrderOfAccuracy = 0;
     int highestDegree         = a_orderPmax + a_degreePmax;
 
@@ -122,7 +121,6 @@ namespace amrex
   template <int dim> void MinimalCCCM<dim>::computeMomentsRecursively(const int                & a_orderPmax,
                                                                       const int                & a_degreePmax)
   {
-    CH_TIME("computemomentsRecursively");
     //pout() << "a_orderPmax  = " << a_orderPmax << endl;
     //pout() << "a_degreePmax = " << a_degreePmax << endl;
     //pout() << "m_cutCellMoments.m_IFData.m_maxOrder " << m_cutCellMoments.m_IFData.m_maxOrder  << endl;
@@ -228,7 +226,6 @@ namespace amrex
   template <int dim> Vector<Real> MinimalCCCM<dim>::computeRhs(LSProblem<dim> & a_lsp,
                                                                const int      & a_orderPmax)
   {
-    CH_TIME("computeRHS");
     // Resize rhs
     int numEq = dim*a_lsp.getNumberDegP();
     Vector<Real> rhs(numEq);
