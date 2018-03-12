@@ -845,7 +845,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 
     timer.assign(ntimers, 0.0);
 
-    linop.prepareForSolve();
+    if (!linop_prepared) {
+        linop.prepareForSolve();
+        linop_prepared = true;
+    }
 
     sol.resize(namrlevs);
     sol_raii.resize(namrlevs);
@@ -1036,7 +1039,10 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         }
     }
 
-    linop.prepareForSolve();
+    if (!linop_prepared) {
+        linop.prepareForSolve();
+        linop_prepared = true;
+    }
     
     const auto& amrrr = linop.AMRRefRatio();
 
@@ -1065,6 +1071,65 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.unapplyMetricTerm(alev, 0, *a_res[alev]);
     }
 #endif
+}
+
+void
+MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
+{
+    BL_PROFILE("MLMG::apply()");
+
+    Vector<MultiFab*> in(namrlevs);
+    Vector<MultiFab> in_raii(namrlevs);
+    Vector<MultiFab> rh(namrlevs);
+
+    for (int alev = 0; alev < namrlevs; ++alev)
+    {
+        if (a_in[alev]->nGrow() == 1)
+        {
+            in[alev] = a_in[alev];
+        }
+        else
+        {
+            in_raii[alev].define(a_in[alev]->boxArray(),
+                                 a_in[alev]->DistributionMap(),
+                                 a_in[alev]->nComp(), 1);
+            MultiFab::Copy(in_raii[alev], *a_in[alev], 0, 0, a_in[alev]->nComp(), 0);
+            in[alev] = &(in_raii[alev]);
+        }
+        rh[alev].define(a_in[alev]->boxArray(),
+                        a_in[alev]->DistributionMap(),
+                        a_in[alev]->nComp(), 0);
+        rh[alev].setVal(0.0);
+    }
+
+    if (!linop_prepared) {
+        linop.prepareForSolve();
+        linop_prepared = true;
+    }
+
+    const auto& amrrr = linop.AMRRefRatio();
+
+    for (int alev = finest_amr_lev; alev >= 0; --alev) {
+        const MultiFab* crse_bcdata = (alev > 0) ? in[alev-1] : nullptr;
+        linop.solutionResidual(alev, *out[alev], *in[alev], rh[alev], crse_bcdata);
+        if (alev < finest_amr_lev) {
+            linop.reflux(alev, *out[alev], *in[alev], rh[alev],
+                         *out[alev+1], *in[alev+1], rh[alev+1]);
+            if (linop.isCellCentered()) {
+                amrex::average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
+            }
+        }
+    }
+
+#if (AMREX_SPACEDIM != 3)
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        linop.unapplyMetricTerm(alev, 0, *out[alev]);
+    }
+#endif
+
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        out[alev]->negate();
+    }
 }
 
 void
