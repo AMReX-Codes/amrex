@@ -44,7 +44,7 @@ namespace amrex
 
   template <int dim> Real DivNormalRefinement<dim>::approximateDivNormal(const CutCellMoments<dim> & a_ccm)
   {
-    typedef IndexTM<int,dim>  IvDim;
+
     typedef IndexTM<Real,dim> RvDim;
     typedef IndexTM<int,dim>                      EdgeIndex;
     typedef map<EdgeIndex,Real,LexLT<EdgeIndex> > EdgeIntersections;
@@ -103,9 +103,9 @@ namespace amrex
         dotProduct += intersectPtNormal[idir]*normal[idir];
       }
 
-      if (Abs(dotProduct - 1.0) > changeInNormal)
+      if (std::abs(dotProduct - 1.0) > changeInNormal)
       {
-        changeInNormal = Abs(dotProduct -1.0);
+        changeInNormal = std::abs(dotProduct -1.0);
       }
     }
     return changeInNormal;
@@ -130,7 +130,7 @@ namespace amrex
   {
     if (a_maxNumberOfRefinements < 0)
     {
-      MayDay::Abort("DivNormalRefinement<dim>::setMaxNumberOfRefinements - maxNumberOfRefinents must be >= 0");
+      amrex::Abort("DivNormalRefinement<dim>::setMaxNumberOfRefinements - maxNumberOfRefinents must be >= 0");
     }
 
     m_maxNumberOfRefinements = a_maxNumberOfRefinements;

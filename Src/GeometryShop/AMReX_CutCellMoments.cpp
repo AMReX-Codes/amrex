@@ -219,7 +219,7 @@ namespace amrex
     }
     else
     {
-      MayDay::Abort("No volume moment in m_moments");
+      amrex::Abort("No volume moment in m_moments");
     }
 
     return moment;
@@ -245,7 +245,7 @@ namespace amrex
 
     if (volume <= 0)
     {
-      MayDay::Abort("Volume <= 0");
+      amrex::Abort("Volume <= 0");
     }
     else
     {
@@ -278,23 +278,13 @@ namespace amrex
 
     for (OneDMoments::const_iterator it = m_moments.begin(); it != m_moments.end();++it)
     {
-      std::ios::fmtflags origFlags = a_out.flags();
-      int origWidth = a_out.width();
-      int origPrecision = a_out.precision();
 
       a_out << padding << "Integral "
             << it->first
             << " = "
-            << setw(23)
-            << setprecision(16)
-            << setiosflags(ios::showpoint)
-            << setiosflags(ios::scientific)
             << it->second
             << "\n";
 
-      a_out.flags(origFlags);
-      a_out.width(origWidth);
-      a_out.precision(origPrecision);
     }
     a_out << padding << "\n";
 

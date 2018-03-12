@@ -115,7 +115,7 @@ namespace amrex
       {
         if (a_baseMaxNumberOfRefinements < 0)
         {
-          MayDay::Abort("FixedRefinement<dim>::setNumberOfRefinements - maxNumberOfRefinements must be >= 0");
+          amrex::Abort("FixedRefinement<dim>::setNumberOfRefinements - maxNumberOfRefinements must be >= 0");
         }
 
         m_baseMaxNumberOfRefinements = a_baseMaxNumberOfRefinements;

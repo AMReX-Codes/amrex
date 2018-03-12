@@ -110,8 +110,10 @@ namespace amrex
         const IvDim& curMultiIndex = it->first;
         const int&   curExponent   = it->second;
 
+        IntVect    ivind(D_DECL(curMultiIndex[0],curMultiIndex[1],curMultiIndex[2]));
+        RealVect rvpoint(D_DECL(      a_point[0],      a_point[1],      a_point[2]));
         // Evaluate a single partial derivative to its power
-        Real curValue = pow(a_implicitFunction->value(curMultiIndex,a_point),curExponent);
+        Real curValue = pow(a_implicitFunction->value(ivind, rvpoint), curExponent);
 
         value *= curValue;
       }

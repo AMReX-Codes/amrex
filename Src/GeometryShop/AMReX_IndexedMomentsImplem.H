@@ -168,7 +168,7 @@ namespace amrex
         std::cout << a_mono[idir] << " ";
       }
       std::cout << endl;
-      MayDay::Abort("getMoments in IndexedMoments: moment not found in map");
+      amrex::Abort("getMoments in IndexedMoments: moment not found in map");
     }
     return moment;
   }
@@ -203,7 +203,7 @@ namespace amrex
   IndexedMoments<Dim, P>:: 
   shift(const IndexTM<Real, Dim>& a_distance)
   {
-    CH_TIME("IndexedMoment::shift");
+    BL_PROFILE("IndexedMoment::shift");
     IndexTM<Real, Dim> x = a_distance;
 
     IndexedMoments<Dim, P> retval = *this;
@@ -329,7 +329,7 @@ namespace amrex
   IndexedMoments<Dim, P>::
   setRegular(const Real a_dx)
   {
-    CH_assert(a_dx > 0);
+    BL_ASSERT(a_dx > 0);
     m_isRegular = 1;
 
     // Get the set of multi-indexes in the correct order
@@ -364,10 +364,10 @@ namespace amrex
   IndexedMoments<Dim, P>::
   setSize()
   {
-    CH_assert(Dim <= SpaceDim);
-    CH_assert(Dim > 0);
-    CH_assert(P <  CH_IM_MAX_POWER);
-    CH_assert(P >= 0);
+    BL_ASSERT(Dim <= SpaceDim);
+    BL_ASSERT(Dim > 0);
+    BL_ASSERT(P <  CH_IM_MAX_POWER);
+    BL_ASSERT(P >= 0);
   
 
     s_size = s_max_sizes[Dim-1][P];

@@ -95,8 +95,8 @@ namespace amrex
   template<int dim> void LSProblem<dim>::computeBounds(const IndexTM<Real,dim>   & a_dx,
                                                        const CutCellMoments<dim> & a_ccm)
   {
-    m_lowerBound.assign(-HUGE);
-    m_upperBound.assign(HUGE);
+    m_lowerBound.assign(-HUGE, m_lowerBound.size());
+    m_upperBound.assign( HUGE, m_upperBound.size());
 
     int nEBBounds = 0;
     if (m_degreeP == 0 && dim == 2) // || m_degreeP == 1)
@@ -181,21 +181,21 @@ namespace amrex
         // Note that we already have integral(mono) from previous steps
         IvDim whichMono;
         // Real valAtWhichMono=LARGEREALVAL;
-        for (typename CutCellMoments<dim>::PthMoment::const_iterator it = a_ccm.m_moments.begin();
-             it != a_ccm.m_moments.end();++it)
+        for (typename CutCellMoments<dim>::PthMoment::const_iterator it2 = a_ccm.m_moments.begin();
+             it2 != a_ccm.m_moments.end();++it2)
         {
-          IvDim mono = it->first;
-          Real val = it->second;
+          IvDim mono2 = it2->first;
+          Real val = it2->second;
           Real maxMono = 0.0;
           Real minMono = 0.0;
-          monoMaxMin(maxMono,minMono,mono,a_ccm.m_IFData);
+          monoMaxMin(maxMono,minMono,mono2,a_ccm.m_IFData);
           if (minMono < 0.0)
           {
             Real newLoBnd = val/minMono;
             if (newLoBnd > zeroDegreeLoBnd)
             {
               zeroDegreeLoBnd = newLoBnd;
-              whichMono = mono;
+              whichMono = mono2;
             }
           }
           if (maxMono > 0.0)
@@ -204,11 +204,11 @@ namespace amrex
             if (newLoBnd > zeroDegreeLoBnd)
             {
               zeroDegreeLoBnd = newLoBnd;
-              whichMono = mono;
+              whichMono = mono2;
             }
           }
         }
-        lobnd = Max(lobnd, zeroDegreeLoBnd);
+        lobnd = std::max(lobnd, zeroDegreeLoBnd);
       }
 
 
@@ -348,7 +348,7 @@ namespace amrex
         pout() << "Conflicting upper/lower bounds in LS problem. Zero or bad normal?" << endl;
         break;
       case(ConstrainedLS::UNDERDETERMINED):
-        MayDay::Error("Malformed LS problem. Underdetermined");
+        amrex::Error("Malformed LS problem. Underdetermined");
       case(ConstrainedLS::UNCONVERGED):
         pout() << "BVLS failed to converge properly" << endl;
         break;
@@ -368,7 +368,7 @@ namespace amrex
       {
         AtimeX += m_matrix[i][j] * m_unknowns[j];
       }
-      Real ri = Abs(AtimeX - m_rhs[i]);
+      Real ri = std::abs(AtimeX - m_rhs[i]);
       if (ri > maxRi)
       {
         a_residual[0] = ri;
@@ -388,7 +388,7 @@ namespace amrex
     int retval = 1;
     if (a_n < 0 || a_m < 0)
     {
-      MayDay::Abort("Attempting n! for n < 0");
+      amrex::Abort("Attempting n! for n < 0");
     }
     for (int i = a_m+1; i <= a_n; ++i)
     {
@@ -459,7 +459,7 @@ namespace amrex
         int pLess1Col= LARGEINTVAL;
         if (coeff == LARGEINTVAL)
         {
-          MayDay::Abort("problem wth differentiate");
+          amrex::Abort("problem wth differentiate");
         }
         if (coeff > 0)
         {
@@ -471,7 +471,7 @@ namespace amrex
           }
           else
           {
-            MayDay::Abort("can't find derived mono");
+            amrex::Abort("can't find derived mono");
           }
         }
       }
@@ -500,7 +500,7 @@ namespace amrex
     }
     else
     {
-      MayDay::Abort("Monomial has negative power");
+      amrex::Abort("Monomial has negative power");
     }
   }
 
@@ -648,8 +648,8 @@ namespace amrex
       pout() << "Outputting Lower/Upper bounds" << endl;
       for (int i = 0; i < m_unknowns.size(); i++)
       {
-        pout() << "m_lowerBound[" << setw(2) << i << "] = " << setw(14) << m_lowerBound[i]
-               << " m_upperBound[" << setw(2) << i << "] = " << setw(14) << m_upperBound[i] << endl;
+        pout() << "m_lowerBound["  <<  i << "] = " << m_lowerBound[i]
+               << " m_upperBound[" <<  i << "] = " << m_upperBound[i] << endl;
       }
     }
     else

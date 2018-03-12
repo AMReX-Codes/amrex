@@ -35,7 +35,6 @@ namespace amrex
     m_allVerticesOut    (a_IFData.m_allVerticesOut),
     m_allVerticesOn     (a_IFData.m_allVerticesOn)
   {
-    CH_TIME("ifdata constructor 1");
     if (a_IFData.m_function != NULL)
     {
       // IFData always owns the data pointed to by m_function
@@ -59,7 +58,6 @@ namespace amrex
      m_parentCoord    (IndexTM<Real,dim>::Zero,a_dx),
      m_maxOrder       (a_maxOrder)
   {
-    CH_TIME("ifdata constructor 2");
     // Copy the implicit function; m_function is a pointer
     // IFData always owns the data pointed to by m_function
     m_function = new IFSlicer<dim>(a_function);
@@ -89,7 +87,6 @@ namespace amrex
      m_parentCoord    (IndexTM<Real,dim>::Zero,a_dx),
      m_maxOrder       (a_maxOrder)
   {
-    CH_TIME("ifdata constructor 3");
     // IFData always owns the data pointed to by m_function
     m_function = new IFSlicer<dim>(*a_function);
 
@@ -112,7 +109,6 @@ namespace amrex
                                          const int           & a_idir,
                                          const int           & a_hilo)
   {
-    CH_TIME("ifdata constructor 4");
     typedef IndexTM<int,dim+1>HDEdgeIndex;
     typedef map<HDEdgeIndex,Real > HDEdgeIntersections;
     typedef IndexTM<int,dim+1>HDVertex;
@@ -260,7 +256,6 @@ namespace amrex
 
   template <int dim> void IFData<dim>::setNormalDerivatives()
   {
-    CH_TIME("ifdata::setNormalDerivatives");
     NormalDerivativeNew<dim> normalDerivative;
     typename NormalDerivativeNew<dim>::NormalDerivativeMap ndMap = 
       normalDerivative.calculateAll(m_maxOrder,
@@ -291,7 +286,6 @@ namespace amrex
 
   template <int dim> void IFData<dim>::makeCornerSigns()
   {
-    CH_TIME("ifdata::makeCornerSigns");
     m_allVerticesIn  = true;
     m_allVerticesOut = true;
     m_allVerticesOn  = true;
@@ -349,7 +343,7 @@ namespace amrex
 
   template <int dim> void IFData<dim>::findIntersectionPts()
   {
-    CH_TIME("ifdata::findIntersectionPoints");
+
     // double iterate through corner signs map,writing to a edge map if corner1 is connected to corner2
     for (typename CornerSigns::const_iterator it0 = m_cornerSigns.begin();
          it0 != m_cornerSigns.end(); ++it0)
@@ -368,7 +362,7 @@ namespace amrex
   }
   template <int dim> void IFData<dim>::defineLocalCoords()
   {
-    CH_TIME("ifdata::defineLocalCoords");
+
     // default for full cells
     m_localCoord.m_origin = m_cellCenterCoord.m_origin;
     /**
@@ -428,7 +422,7 @@ namespace amrex
                                                    const Vertex & a_vertex1,
                                                    const Vertex & a_vertex2)
   {
-    CH_TIME("ifdata::isConnected");
+
     bool connected = true;
     int numDif = 0;
 
@@ -461,7 +455,7 @@ namespace amrex
                                                    const Vertex & a_vertex0,
                                                    const Vertex & a_vertex1)
   {
-    CH_TIME("ifdata::makeedgekey");
+
     EdgeIndex thisEdge;
 
     thisEdge[0] = a_edgeDir;
@@ -487,7 +481,7 @@ namespace amrex
     }
     else
     {
-      MayDay::Abort("Vertex not well defined in makeEdgeKey");
+      amrex::Abort("Vertex not well defined in makeEdgeKey");
     }
 
     if (m_cornerSigns.find(a_vertex1)!= m_cornerSigns.end())
@@ -496,7 +490,7 @@ namespace amrex
     }
     else
     {
-      MayDay::Abort("Vertex not well defined in makeEdgeKey");
+      amrex::Abort("Vertex not well defined in makeEdgeKey");
     }
 
     if ((lo == OUT && hi == IN) || (lo == IN && hi == OUT))
@@ -549,7 +543,6 @@ namespace amrex
 
   template <int dim> Real IFData<dim>::rootFinder(const EdgeIndex& a_thisEdge)
   {
-    CH_TIME("ifdata::rootfinder");
     Real pt = LARGEREALVAL;
 
     // the first component of an EdgeIndex gives the direction of the edge
@@ -607,7 +600,6 @@ namespace amrex
   //                                                     const Real  & a_smallestRoot,
   //                                                     const Real  & a_biggestRoot) const
   {
-    CH_TIME("ifdata::brentrootfinder");
     // Max allowed iterations and floating point precision
     const unsigned int MAXITER = 100;
     const Real         EPS   = 3.0e-15;
@@ -635,7 +627,7 @@ namespace amrex
     if (fb*fa > 0)
     {
       pout() << "fa " << fa << " fb " << fb <<endl;
-      MayDay::Abort("IFData::BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
+      amrex::Abort("IFData::BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
     }
 
     fc = fb;
@@ -651,7 +643,7 @@ namespace amrex
         e = d;
       }
 
-      if (Abs(fc) < Abs(fb))
+      if (std::abs(fc) < std::abs(fb))
       {
         aPt = bPt;
         bPt = c;
@@ -662,15 +654,15 @@ namespace amrex
       }
 
       //  Convergence check
-      tol1  = 2.0 * EPS * Abs(bPt) + 0.5 * TOLERANCE;
+      tol1  = 2.0 * EPS * std::abs(bPt) + 0.5 * TOLERANCE;
       xm    = 0.5 * (c - bPt);
 
-      if (Abs(xm) <= tol1 || fb == 0.0)
+      if (std::abs(xm) <= tol1 || fb == 0.0)
       {
         break;
       }
 
-      if (Abs(e) >= tol1 && Abs(fa) > Abs(fb))
+      if (std::abs(e) >= tol1 && std::abs(fa) > std::abs(fb))
       {
         //  Attempt inverse quadratic interpolation
         s = fb / fa;
@@ -690,9 +682,9 @@ namespace amrex
         //  Check whether in bounds
         if (p > 0) q = -q;
 
-        p = Abs(p);
+        p = std::abs(p);
 
-        if (2.0 * p < Min(((Real)3.0)*xm*q-Abs(tol1*q), Abs(e*q)))
+        if (2.0 * p < std::min(((Real)3.0)*xm*q-std::abs(tol1*q), std::abs(e*q)))
         {
           //  Accept interpolation
           e = d;
@@ -717,7 +709,7 @@ namespace amrex
       fa  = fb;
 
       //  Evaluate new trial root
-      if (Abs(d) > tol1)
+      if (std::abs(d) > tol1)
       {
         bPt = bPt + d;
       }
@@ -787,6 +779,7 @@ namespace amrex
   template <int dim> void IFData<dim>::print(ostream& a_out) const
   {
 
+    using std::string;
     // EdgeIndex first component is direction that edge varies. Subsequent components indicate hi-lo position of edge
     string padding = "  ";
     for (int i = 0; i < GLOBALDIM - dim; i++)
@@ -823,9 +816,6 @@ namespace amrex
         a_out << padding << "EdgeIndex "
               << it->first
               << " = "
-              << setprecision(16)
-              << setiosflags(ios::showpoint)
-              << setiosflags(ios::scientific)
               << it->second
               << "\n";
 
@@ -869,9 +859,6 @@ namespace amrex
                   << ", "
                   << idir
                   << ": "
-                  << setprecision(16)
-                  << setiosflags(ios::showpoint)
-                  << setiosflags(ios::scientific)
                   << (it->second)[idir]
                   << "\n";
           }

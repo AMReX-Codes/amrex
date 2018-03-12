@@ -259,7 +259,7 @@ namespace amrex
     }
     else
     {
-      MayDay::Error("need to add more cases to getIndMomLinearIndex");
+      amrex::Error("need to add more cases to getIndMomLinearIndex");
     }
     return retval;
   }
@@ -289,7 +289,7 @@ namespace amrex
     }
     else
     {
-      MayDay::Error("need to add more cases to getIndMomMultiIndex");
+      amrex::Error("need to add more cases to getIndMomMultiIndex");
     }
     return retval;
   }
@@ -318,7 +318,7 @@ namespace amrex
     }
     else
     {
-      MayDay::Error("need to add more cases to getIndMomSize");
+      amrex::Error("need to add more cases to getIndMomSize");
     }
     return retval;
   }

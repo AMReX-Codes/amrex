@@ -242,12 +242,10 @@ namespace amrex
   private:
     NormalDerivativeNew(const NormalDerivativeNew& a_input)
       {
-        MayDay::Abort("NormalDerivativeNew doesn't allow copy construction");
       }
 
     void operator=(const NormalDerivativeNew& a_input)
       {
-        MayDay::Abort("NormalDerivativeNew doesn't allow assignment");
       }
   };
 
