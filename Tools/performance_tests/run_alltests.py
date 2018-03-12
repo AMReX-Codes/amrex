@@ -222,7 +222,7 @@ if args.mode == 'run':
     process_analysis()
 
 if args.mode == 'read':
-    # Create log_file for performance tests if does not exist
+    # Create log_file for performance tests if does not exist                                                                                                                                                                                                                                                                
     if not os.path.isfile(log_dir + log_file):
         log_line = '## year month day run_name compiler architecture n_node n_mpi ' +\
                    'n_omp time_initialization time_one_iteration Redistribute '+\
@@ -241,16 +241,16 @@ if args.mode == 'read':
         n_node   = current_run[1]
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
-        n_steps  = get_nsteps(cwd  + run_name)
-        print('n_steps = ' + str(n_steps))
+        if args.n_steps == None:
+            n_steps = get_nsteps(cwd + run_name)
+        else:
+            n_steps = int(args.n_steps)
         res_dir = res_dir_base
         res_dir += '_'.join([run_name, args.compiler,\
                              args.architecture, str(n_node), str(n_mpi),\
                              str(n_omp), str(count)]) + '/'
-#        res_dir += '_'.join([year, month, '25', run_name, args.compiler,\
-#                             args.architecture, str(n_node), str(n_mpi), \
-#                             str(n_omp)]) + '/'
-      # Read performance data from the output file
+        # Read to store in text file 
+        # --------------------------
         output_filename = 'perf_output.txt'
         timing_list = read_run_perf(res_dir + output_filename, n_steps)
         # Write performance data to the performance log file
@@ -259,39 +259,64 @@ if args.mode == 'read':
                              str(n_omp)] +  timing_list + ['\n'])
         write_perf_logfile(log_dir + log_file, log_line)
 
-    # Store test parameters fot record
-    dir_record_base = './perf_warpx_record/'
-    if not os.path.exists(dir_record_base):
-        os.mkdir(dir_record_base)
-    count = 0
-    dir_record = dir_record_base + '_'.join([year, month, day]) + '_0'
-    while os.path.exists(dir_record):
-        count += 1
-        dir_record = dir_record[:-1] + str(count)
-    os.mkdir(dir_record)
-    shutil.copy(__file__, dir_record)
-    shutil.copy(log_dir + log_file, dir_record)
-    for count, current_run in enumerate(test_list):
-        shutil.copy(current_run[0], dir_record)
+        # Read data for all test to put in hdf5 a database
+        # ------------------------------------------------
+        # This is an hdf5 file containing ALL the simulation parameters and results. Might be too large for a repo 
+        df_newline = extract_dataframe(res_dir + 'perf_output.txt', n_steps)
+        # Add all simulation parameters to the dataframe                                                                                                                                                                                                                                                                     
+        df_newline['run_name'] = run_name
+        df_newline['n_node'] = n_node
+        df_newline['n_mpi'] = n_mpi
+        df_newline['n_omp'] = n_omp
+        df_newline['n_steps'] = n_steps
+        df_newline['rep'] = count
+        df_newline['date'] = datetime.datetime.now()
+        input_file = open(cwd + run_name, 'r')
+        input_file_content = input_file.read()
+        input_file.close()
+        df_newline['inputs_content'] = input_file_content
+        if os.path.exists(perf_database_file):
+            df_base = pd.read_hdf(perf_database_file, 'all_data')
+            updated_df = df_base.append(df_newline, ignore_index=True)
+        else:
+            updated_df = df_newline
+        updated_df.to_hdf(perf_database_file, key='all_data', mode='w')
 
-    for count, current_run in enumerate(test_list):
-        run_name = current_run[0]
-        n_node   = current_run[1]
-        n_mpi    = current_run[2]
-        n_omp    = current_run[3]
-        res_dir = res_dir_base
-        res_dir += '_'.join([run_name, args.compiler,\
-                             args.architecture, str(n_node), str(n_mpi),\
-                             str(n_omp), str(count)]) + '/'
-        res_dir_arch = res_dir_base
-        res_dir_arch += '_'.join([year, month, day, run_name, args.compiler,\
-                                  args.architecture, str(n_node), str(n_mpi), \
-                                  str(n_omp), str(count)]) + '/'
-        os.rename(res_dir, res_dir_arch)
+    # Store test parameters for record if requested                                                                                                                                                                                                                                                                          
+    if store_test == True:
+        dir_record_base = './perf_warpx_record/'
+        if not os.path.exists(dir_record_base):
+            os.mkdir(dir_record_base)
+        count = 0
+        dir_record = dir_record_base + '_'.join([year, month, day]) + '_0'
+        while os.path.exists(dir_record):
+            count += 1
+            dir_record = dir_record[:-1] + str(count)
+        os.mkdir(dir_record)
+        shutil.copy(__file__, dir_record)
+        shutil.copy(log_dir + log_file, dir_record)
+        for count, current_run in enumerate(test_list):
+            shutil.copy(current_run[0], dir_record)
 
-    # Commit results to the Repo
+    if do_rename == True:
+        # Rename files if requested                                                                                                                                                                                                                                                                                          
+        for count, current_run in enumerate(test_list):
+            run_name = current_run[0]
+            n_node   = current_run[1]
+            n_mpi    = current_run[2]
+            n_omp    = current_run[3]
+            res_dir = res_dir_base
+            res_dir += '_'.join([run_name, args.compiler,\
+                                 args.architecture, str(n_node), str(n_mpi),\
+                                 str(n_omp), str(count)]) + '/'
+            res_dir_arch = res_dir_base
+            res_dir_arch += '_'.join([year, month, day, run_name, args.compiler,\
+                                      args.architecture, str(n_node), str(n_mpi), \
+                                      str(n_omp), str(count)]) + '/'
+            os.rename(res_dir, res_dir_arch)
+
+    # Commit results to the Repo                                                                                                                                                                                                                                                                                             
     if args.commit == True:
         os.system('git add ' + log_dir + log_file + ';'\
                   'git commit -m "performance tests";'\
                   'git push -u origin master')
-        
