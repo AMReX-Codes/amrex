@@ -14,6 +14,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_LayoutData.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
@@ -404,6 +405,52 @@ private:
     amrex::RealVect fine_tag_hi;
 
     bool is_synchronized = true;
+
+#ifdef WARPX_USE_PSATD
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_fp;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_cp;
+
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_fp_fft;
+
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_cp_fft;
+
+    struct FFTData
+    {
+        void* data[22] = { nullptr };
+        ~FFTData () {
+            for (int i = 0; i < 22; ++i) {
+                std::free(data[i]);
+                data[i] = nullptr;
+            }
+        }
+    };
+
+    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
+    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
+
+    amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
+    amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
+
+    amrex::Vector<MPI_Comm> comm_fft;
+    amrex::Vector<int>      color_fft;
+
+    int ngroups_fft = 4;
+    int nguards_fft = 10;
+
+    void AllocLevelDataFFT (int lev);
+    void InitFFTComm (int lev);
+    void FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
+                                amrex::BoxArray& ba_valid, const amrex::Box& domain);
+    void FreeFFTCommPlan (int lev);
+#endif
 };
 
 #endif

@@ -143,10 +143,39 @@ WarpX::WarpX ()
     gather_masks.resize(nlevs_max);
 
     costs.resize(nlevs_max);
+
+#ifdef WARPX_USE_PSATD
+    rho2_fp.resize(nlevs_max);
+    rho2_cp.resize(nlevs_max);
+
+    Efield_fp_fft.resize(nlevs_max);
+    Bfield_fp_fft.resize(nlevs_max);
+    current_fp_fft.resize(nlevs_max);
+    rho_prev_fp_fft.resize(nlevs_max);
+    rho_next_fp_fft.resize(nlevs_max);
+
+    Efield_cp_fft.resize(nlevs_max);
+    Bfield_cp_fft.resize(nlevs_max);
+    current_cp_fft.resize(nlevs_max);
+    rho_prev_cp_fft.resize(nlevs_max);
+    rho_next_cp_fft.resize(nlevs_max);
+
+    dataptr_fp_fft.resize(nlevs_max);
+    dataptr_cp_fft.resize(nlevs_max);
+
+    ba_valid_fp_fft.resize(nlevs_max);
+    ba_valid_cp_fft.resize(nlevs_max);
+
+    comm_fft.resize(nlevs_max,MPI_COMM_NULL);
+    color_fft.resize(nlevs_max,-1);
+#endif
 }
 
 WarpX::~WarpX ()
 {
+    for (int lev = 0; lev < maxLevel(); ++lev) {
+        ClearLevel(lev);
+    }
 }
 
 void
@@ -349,6 +378,14 @@ WarpX::ReadParameters ()
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
     }
+
+#ifdef WARPX_USE_PSATD
+    {
+        ParmParse pp("psatd");
+        pp.query("ngroups_fft", ngroups_fft);
+        pp.query("nguards_fft", nguards_fft);
+    }
+#endif
 }
 
 // This is a virtual function.
@@ -357,6 +394,11 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
                                 const DistributionMapping& new_dmap)
 {
     AllocLevelData(lev, new_grids, new_dmap);
+
+#ifdef WARPX_USE_PSATD
+    AllocLevelDataFFT(lev);
+#endif
+
     InitLevelData(lev, time);
 }
 
@@ -382,6 +424,35 @@ WarpX::ClearLevel (int lev)
     rho_cp[lev].reset();
 
     costs[lev].reset();
+
+#ifdef WARPX_USE_PSATD
+    for (int i = 0; i < 3; ++i) {
+        Efield_fp_fft[lev][i].reset();
+        Bfield_fp_fft[lev][i].reset();
+        current_fp_fft[lev][i].reset();
+
+        Efield_cp_fft[lev][i].reset();
+        Bfield_cp_fft[lev][i].reset();
+        current_cp_fft[lev][i].reset();
+    }
+
+    rho2_fp[lev].reset();
+    rho2_cp[lev].reset();
+
+    rho_prev_fp_fft[lev].reset();
+    rho_next_fp_fft[lev].reset();
+
+    rho_prev_cp_fft[lev].reset();
+    rho_next_cp_fft[lev].reset();
+
+    dataptr_fp_fft[lev].reset();
+    dataptr_cp_fft[lev].reset();
+
+    ba_valid_fp_fft[lev] = BoxArray();
+    ba_valid_cp_fft[lev] = BoxArray();
+
+    FreeFFTCommPlan(lev);
+#endif
 }
 
 void

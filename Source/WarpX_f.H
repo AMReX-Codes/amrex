@@ -385,6 +385,10 @@ extern "C"
     void WRPX_FILTER(const amrex_real*, const int*, const int*,
                      amrex_real*, const int*, const int*, int);
 
+#ifdef WARPX_USE_PSATD
+    void warpx_fft_mpi_init (int fcomm);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
