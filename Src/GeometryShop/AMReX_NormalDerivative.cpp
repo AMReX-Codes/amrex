@@ -50,7 +50,7 @@ namespace amrex
 
     for (int idir = 0; idir < GLOBALDIM; idir++)
     {
-      Real firstPartial = a_implicitFunction->value(BASISV_TM<int,GLOBALDIM>(idir),a_point);
+      Real firstPartial = a_implicitFunction->value(BASISV(idir),RealVect(D_DECL(a_point[0], a_point[1], a_point[2])));
       m_magnitudeOfGradient += firstPartial*firstPartial;
     }
 

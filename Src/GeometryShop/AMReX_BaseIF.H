@@ -29,9 +29,32 @@ namespace amrex
 
     /// Default destructor
     virtual ~BaseIF()
-    {
-    }
+      {
+      }
   
+    ///return the partial derivative at the point
+    virtual Real derivative(const  IntVect& a_deriv,
+                            const RealVect& a_point) const
+      {
+        amrex::Error("not implemented");
+        return 0.;
+      }
+
+    ///
+    virtual Real value(const IntVect  & a_deriv,
+                       const RealVect & a_point) const
+      {
+        Real retval= 0;
+        if (a_deriv == IntVect::Zero)
+        {
+          retval = value(a_point);
+        }
+        else
+        {
+          retval = derivative(a_deriv, a_point);
+        }
+        return retval;
+      }
     ///
     /**
        Return the value of the function at a_point.  When delineating a domain,

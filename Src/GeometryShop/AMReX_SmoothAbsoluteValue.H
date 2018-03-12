@@ -126,17 +126,14 @@ namespace amrex
 
     SmoothAbsoluteValue(const SmoothAbsoluteValue& a_inputIF)
       {
-        MayDay::Abort("SmoothAbsoluteValue doesn't allow copy construction");
       }
 
     SmoothAbsoluteValue()
       {
-        MayDay::Abort("SmoothAbsoluteValue uses strong construction");
       }
 
     void operator=(const SmoothAbsoluteValue& a_inputIF)
       {
-        MayDay::Abort("SmoothAbsoluteValue doesn't allow assignment");
       }
   };
 ///
@@ -201,7 +198,6 @@ namespace amrex
 
     OffsetSphereExact()
       {
-        MayDay::Error("this uses strong construction");
       }
 
     Real m_d;
@@ -267,7 +263,6 @@ namespace amrex
   private:
     DoubleSphereExact()
       {
-        MayDay::Error("this uses strong construction");
       }
 
     Real m_d;
@@ -332,7 +327,6 @@ namespace amrex
 
     DoubleRampExact()
       {
-        MayDay::Error("this uses strong construction");
       }
 
     Real m_d;

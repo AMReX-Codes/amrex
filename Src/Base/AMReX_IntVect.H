@@ -92,6 +92,15 @@ public:
     */
     explicit IntVect (const Vector<int>& a);
 
+  ///
+  /**
+     Sum of all components of this IntVect.
+  */
+  int sum () const
+    {
+      int retval = D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
+      return retval;
+    }
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 

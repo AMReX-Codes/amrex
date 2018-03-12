@@ -16,7 +16,7 @@ namespace amrex
 /// Calculates factorial for an integer
   inline Real factorial(const int n)
   {
-    CH_assert(n >= 0);
+    BL_ASSERT(n >= 0);
     Real nfact = 1.0;
     for (int i = 2; i <= n; nfact*= i, i++);
     return nfact;
@@ -25,7 +25,7 @@ namespace amrex
   inline Real POW(const Real& a_x,  const int& a_p)
   {
     Real retval = 1;
-    for(int iexp = 0; iexp < Abs(a_p); iexp++)
+    for(int iexp = 0; iexp < std::abs(a_p); iexp++)
     {
       if(a_p >= 0)
       {
@@ -42,7 +42,7 @@ namespace amrex
 /// Calculates the binomial coefficient, "n choose k" 
   inline Real nCk(const int n, const int k)
   {
-    CH_assert((n >= k)&&(k >= 0)&&(n >= 0));
+    BL_ASSERT((n >= k)&&(k >= 0)&&(n >= 0));
     Real nck = 1.0;
     for (int i = n-k+1; i <= n; nck*= i, i++);
     return nck / factorial(k);
@@ -55,7 +55,7 @@ namespace amrex
     Real pfact = 1;
     for(int idir = 0; idir < Dim; idir++)
     {
-      CH_assert(p[idir] >= 0);
+      BL_ASSERT(p[idir] >= 0);
       pfact *=  factorial(p[idir]); 
     }
     return pfact;
@@ -65,7 +65,7 @@ namespace amrex
   template <int Dim>
   inline Real pCk(const IndexTM<int, Dim>& p, const IndexTM<int, Dim>& k)
   {
-    //CH_assert((p >= IntVect::Zero)&&(k >= IntVect::Zero)&&(p >= k));
+    //BL_ASSERT((p >= IntVect::Zero)&&(k >= IntVect::Zero)&&(p >= k));
 
     Real pfact = 1;
     for(int idir = 0; idir < Dim; idir++)
