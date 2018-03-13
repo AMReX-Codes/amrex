@@ -3,9 +3,6 @@
 
 #include <functional>
 
-namespace amrex
-{
-
 //
 // Comparison operators
 //
@@ -166,6 +163,6 @@ namespace amrex
     // and the return value from this function will also always be 0.
   }
 
-}
 
 #endif // include guard
+

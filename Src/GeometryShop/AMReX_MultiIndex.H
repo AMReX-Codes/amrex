@@ -12,14 +12,11 @@ using std::map;
 #include "AMReX_Notation.H"
 #include "AMReX_IFData.H"
 
-namespace amrex
-{
 // Generate and return a vector of all multi-indices whose magnitude (the sum
 // of their entries) equals "a_magnitude"
-  template <int dim> void generateMultiIndices(Vector<IndexTM<int,dim> > &      a_indices,
-                                               const int                      & a_magnitude);
+template <int dim> void generateMultiIndices(Vector<IndexTM<int,dim> > &      a_indices,
+                                             const int                      & a_magnitude);
 
-}
 
 #include "AMReX_MultiIndexImplem.H"
 

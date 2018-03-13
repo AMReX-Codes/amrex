@@ -101,6 +101,28 @@ public:
       int retval = D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
       return retval;
     }
+
+  /// maximum (no absolute values) value
+  int max() const
+    {
+      int retval = (*this)[0];
+      for(int idir = 1; idir < SpaceDim; idir++)
+      {
+        retval = std::max(retval, (*this)[idir]);
+      }
+      return retval;
+    }
+
+  /// minimum (no absolute values) value
+  int min() const
+    {
+      int retval = (*this)[0];
+      for(int idir = 1; idir < SpaceDim; idir++)
+      {
+        retval = std::min(retval, (*this)[idir]);
+      }
+      return retval;
+    }
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 

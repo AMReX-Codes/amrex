@@ -17,7 +17,7 @@ namespace amrex
 
     if (a_impFuncs.size() == 0)
     {
-      MayDay::Abort("Construction of SmoothIntersection requires at least one implicit function.");
+      amrex::Abort("Construction of SmoothIntersection requires at least one implicit function.");
     }
     m_delta = a_delta;
     // Number of implicit function in intersection
@@ -33,7 +33,7 @@ namespace amrex
     {
       if (a_impFuncs[ifunc] == NULL)
       {
-        MayDay::Error("you sent in a null baseif");
+        amrex::Error("you sent in a null baseif");
       }
       else
       {
@@ -66,10 +66,10 @@ namespace amrex
           
   {
 
-    CH_assert(a_closestIF     >= 0);
-    CH_assert(a_nextClosestIF >= 0);
-    CH_assert(a_closestIF      < m_numFuncs);
-    CH_assert(a_nextClosestIF  < m_numFuncs);
+    BL_ASSERT(a_closestIF     >= 0);
+    BL_ASSERT(a_nextClosestIF >= 0);
+    BL_ASSERT(a_closestIF      < m_numFuncs);
+    BL_ASSERT(a_nextClosestIF  < m_numFuncs);
   
     const BaseIF* ffunc = m_impFuncs[a_closestIF];
     const BaseIF* gfunc = m_impFuncs[a_nextClosestIF];
@@ -110,7 +110,7 @@ namespace amrex
               int            & a_numWithinDelta,
               const RealVect & a_point) const
   {
-    CH_assert(m_numFuncs > 0);
+    BL_ASSERT(m_numFuncs > 0);
 
     Real valueClosest        = -1.0e30;
     Real valueNextClosest    = -1.0e30;
@@ -128,7 +128,7 @@ namespace amrex
         foundClosest = true;
       }
     }
-    if(!foundClosest) MayDay::Error("logic error smoothie0");
+    if(!foundClosest) amrex::Error("logic error smoothie0");
     //might not be a next closest so have to be careful here
     bool foundNextClosest = false;
     for (int ifunc = 0; ifunc < m_numFuncs; ifunc++)
@@ -145,11 +145,11 @@ namespace amrex
         }
       }
     }
-    if(!foundNextClosest && (m_numFuncs > 1)) MayDay::Error("logic error smoothie1");
+    if(!foundNextClosest && (m_numFuncs > 1)) amrex::Error("logic error smoothie1");
 
     a_numWithinDelta = 0;
-    if(Abs(valueClosest)     < m_delta) a_numWithinDelta++;
-    if(Abs(valueNextClosest) < m_delta) a_numWithinDelta++;
+    if(std::abs(valueClosest)     < m_delta) a_numWithinDelta++;
+    if(std::abs(valueNextClosest) < m_delta) a_numWithinDelta++;
     
   }
 

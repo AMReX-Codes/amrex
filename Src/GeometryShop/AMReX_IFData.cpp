@@ -1,26 +1,8 @@
-#ifdef CH_LANG_CC
-/*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
- */
-#endif
-
-#if defined(CH_Darwin) && defined(__GNUC__) && ( __GNUC__ == 3 )
-// deal with the broken isnan()/isinf() in GCC on MacOS
-#include <unistd.h>
-#define _GLIBCPP_USE_C99 1
-#endif
-
 #include <iostream>
 #include <iomanip>
 
 #include "NormalDerivative.H"
 #include "IFData.H"
-//#include "CoordinateSystem.H"
-#include "NamespaceHeader.H"
 
 //leave to default faulse.   Moving the coords works better
 //but makes for weird convergence tests
@@ -128,7 +110,7 @@ IFData<1>::~IFData()
 void IFData<1>::print(ostream& a_out) const
 {
   string padding = "  ";
-  for (int i = 0; i < GLOBALDIM - 1; i++)
+  for (int i = 0; i < BL_SPACEDIM - 1; i++)
   {
     padding += "  ";
   }
@@ -242,4 +224,3 @@ void IFData<1>::operator=(const IFData & a_IFData)
   }
 }
 
-#include "NamespaceFooter.H"

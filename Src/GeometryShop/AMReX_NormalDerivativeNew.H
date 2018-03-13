@@ -5,10 +5,11 @@
 #include "AMReX_Notation.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_IFSlicer.H"
+using amrex::Box;
+using amrex::BoxIterator;
+using amrex::IntVect;
 
 
-namespace amrex
-{
 /// This computes the derivatives of the normal of a sliced implicit function
 /**
    This computes the derivatives of the normal of a sliced implicit function
@@ -28,13 +29,17 @@ namespace amrex
     /**
        Null constructor
     */
-    NormalDerivativeNew();
+    NormalDerivativeNew()
+      {
+      }
 
     /// Destructor
     /**
        Destructor
     */
-    virtual ~NormalDerivativeNew();
+    virtual ~NormalDerivativeNew()
+      {
+      }
 
     /// Evaluate the normal of a BaseIF subclass
     /**
@@ -249,8 +254,7 @@ namespace amrex
       }
   };
 
-}
 
-#include "AMReX_NormalDerivativeNewImplem.H"
+
 
 #endif
