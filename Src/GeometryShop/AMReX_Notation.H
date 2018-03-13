@@ -7,11 +7,8 @@
 #include "AMReX_IndexTM.H"
 #include "AMReX_SPACE.H"
 
-namespace amrex
-{
 
 
-#define GLOBALDIM              SpaceDim
 #define USING_TOP_FACE_MOMENTS 0
 
 
@@ -84,10 +81,9 @@ namespace amrex
 
 // N-tuples of integers and reals
   typedef IndexTM<int,2>            Iv2;
-  typedef IndexTM<int,GLOBALDIM>    IvgDim;
-  typedef IndexTM<int,GLOBALDIM-1 > IvgLess1;
-  typedef IndexTM<Real,GLOBALDIM>   RvgDim;
+  typedef IndexTM<int,BL_SPACEDIM>    IvgDim;
+  typedef IndexTM<int,BL_SPACEDIM-1 > IvgLess1;
+  typedef IndexTM<Real,BL_SPACEDIM>   RvgDim;
 
-}
 
 #endif

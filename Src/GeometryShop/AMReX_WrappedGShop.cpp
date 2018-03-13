@@ -6,34 +6,40 @@
 #include <iostream>
 #include <string>
 
-#include "AMReX_WrappedGShop.H"
-
-#include "AMReX_NoRefinement.H"
-#include "AMReX_FixedRefinement.H"
-#include "AMReX_DivNormalRefinement.H"
-#include "AMReX_NormalDerivativeNew.H"
-#include "AMReX_MinimalCCCM.H"
+#include "AMReX_REAL.H"
+#include "AMReX_CH_EBIS_ORDER.H"
+#include "AMReX_EBArith.H"
 #include "AMReX_MomentIterator.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_EB_TYPEDEFS.H"
-#include "AMReX_PolyGeom.H"
-#include "AMReX_RealVect.H"
-#include "AMReX_EBGeomDebugOut.H"
 
-Real amrex::WrappedGShop::s_relativeTol = 0.1;
+
+//#include "AMReX_NoRefinement.H"
+//#include "AMReX_FixedRefinement.H"
+//#include "AMReX_DivNormalRefinement.H"
+//#include "AMReX_NormalDerivativeNew.H"
+//#include "AMReX_MinimalCCCM.H"
+#include "AMReX_MomentIterator.H"
+
+//#include "AMReX_PolyGeom.H"
+//#include "AMReX_RealVect.H"
+//#include "AMReX_EBGeomDebugOut.H"
 
 namespace amrex
 {
+Real WrappedGShop::s_relativeTol = 0.1;
+
 /*********************************************/
 /*********************************************/
   WrappedGShop::
-  WrappedGShop(const RefCountedPtr<BaseIF>  &      a_baseIF,
+  WrappedGShop(const shared_ptr<BaseIF>  &      a_baseIF,
                const RealVect               &      a_origin,
                const Real                   &      a_dx,
                const Box          &      a_domain,
                int                                 a_minNumberRefines ,
                int                                 a_maxNumberRefines )
   {
-    CH_TIME("WrappedGShop::WrappedGShop");
+    BL_PROFILE("WrappedGShop::WrappedGShop");
     m_baseIF  = a_baseIF;
 
     m_minNumberRefines = a_minNumberRefines;
@@ -44,7 +50,7 @@ namespace amrex
             
     m_order   = 0;
     m_degreeP = CH_EBIS_ORDER + 1;
-    m_refCrit = RefCountedPtr<WGSRefinementCriterion> (new WGSRefinementCriterion());
+    m_refCrit = shared_ptr<WGSRefinementCriterion> (new WGSRefinementCriterion());
   }
 
 /*********************************************/
@@ -55,7 +61,7 @@ namespace amrex
             const RealVect      & a_origin,
             const Real          & a_dx) const
   {
-    CH_TIME("WrappedGShop::isRegular");
+    BL_PROFILE("WrappedGShop::isRegular");
 
     // first check any of the Box corners are outside, and return false
     // right away. (bvs)
@@ -66,7 +72,7 @@ namespace amrex
     for (BoxIterator bit(unitBox); bit.ok(); ++bit)
     {
       IntVect current = lo + len*bit();
-      for (int idir = 0; idir < CH_SPACEDIM; ++idir)
+      for (int idir = 0; idir < BL_SPACEDIM; ++idir)
       {
         physCorner[idir] = a_dx*(current[idir]) + a_origin[idir];
       }
@@ -87,7 +93,7 @@ namespace amrex
                       const RealVect&      a_origin,
                       const Real&          a_dx) const
   {
-    CH_TIME("WrappedGShop::isRegularEveryPoint");
+    BL_PROFILE("WrappedGShop::isRegularEveryPoint");
 
     // All corner indices for the current box
     Box allCorners(a_region);
@@ -105,7 +111,7 @@ namespace amrex
 
         // Compute physical coordinate of corner
 
-        for (int idir = 0; idir < CH_SPACEDIM; ++idir)
+        for (int idir = 0; idir < BL_SPACEDIM; ++idir)
         {
           physCorner[idir] = a_dx*(corner[idir]) + a_origin[idir];
         }
@@ -133,7 +139,7 @@ namespace amrex
             const RealVect      & a_origin,
             const Real          & a_dx) const
   {
-    CH_TIME("WrappedGShop::isCovered");
+    BL_PROFILE("WrappedGShop::isCovered");
 
     // first check any of the Box corners are inside, and return false
     // right away. (bvs)
@@ -144,7 +150,7 @@ namespace amrex
     for (BoxIterator bit(unitBox); bit.ok(); ++bit)
     {
       IntVect current = lo + len*bit();
-      for (int idir = 0; idir < CH_SPACEDIM; ++idir)
+      for (int idir = 0; idir < BL_SPACEDIM; ++idir)
       {
         physCorner[idir] = a_dx*(current[idir]) + a_origin[idir];
       }
@@ -166,7 +172,7 @@ namespace amrex
                       const RealVect&      a_origin,
                       const Real&          a_dx) const
   {
-    CH_TIME("WrappedGShop::isCoveredEveryPoint");
+    BL_PROFILE("WrappedGShop::isCoveredEveryPoint");
 
     // All corner indices for the current box
     Box allCorners(a_region);
@@ -184,7 +190,7 @@ namespace amrex
 
         // Compute physical coordinate of corner
 
-        for (int idir = 0; idir < CH_SPACEDIM; ++idir)
+        for (int idir = 0; idir < BL_SPACEDIM; ++idir)
         {
           physCorner[idir] = a_dx*(corner[idir]) + a_origin[idir];
         }
@@ -212,14 +218,14 @@ namespace amrex
               const RealVect      & a_origin,
               const Real          & a_dx) const
   {
-    CH_TIME("WrappedGShop::isIrregular");
+    BL_PROFILE("WrappedGShop::isIrregular");
 
     // first check if some Box corners are inside and some are outside, and return
     // true right away. (bvs)
     RealVect physCorner;
     IntVect lo = a_region.smallEnd();
     IntVect len = a_region.size();
-    for (int idir = 0; idir < CH_SPACEDIM; ++idir)
+    for (int idir = 0; idir < BL_SPACEDIM; ++idir)
     {
       physCorner[idir] = a_dx*(lo[idir]) + a_origin[idir];
     }
@@ -229,7 +235,7 @@ namespace amrex
     for (BoxIterator bit(unitBox); bit.ok(); ++bit)
     {
       IntVect current = lo + len*bit();
-      for (int idir = 0; idir < CH_SPACEDIM; ++idir)
+      for (int idir = 0; idir < BL_SPACEDIM; ++idir)
       {
         physCorner[idir] = a_dx*(current[idir]) + a_origin[idir];
       }
@@ -265,7 +271,7 @@ namespace amrex
     }
     else
     {
-      MayDay::Error("bogus side");
+      Error("bogus side");
     }
     return retval;
   }
@@ -340,7 +346,7 @@ namespace amrex
     bool foundBogus = checkNodeMoments(a_node, a_coarDx, fixMoments, s_relativeTol);
     if(foundBogus && verbose)
     {
-      MayDay::Warning("still found bogus after agglomeration");
+      amrex::Warning("still found bogus after agglomeration");
     }
   }
 /**********************************************/
@@ -466,14 +472,14 @@ namespace amrex
             const RealVect      & a_origin,
             const Real          & a_dx) const
   {
-    CH_TIME("WrappedGShop::fillGraph");
+    BL_PROFILE("WrappedGShop::fillGraph");
 
     CH_assert(a_domain.contains(a_ghostRegion));
 
     IntVectSet ivsirreg = IntVectSet(DenseIntVectSet(a_ghostRegion, false));
 
     {
-      CH_TIME("boxiterator loop");
+      BL_PROFILE("boxiterator loop");
       for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
@@ -522,7 +528,7 @@ namespace amrex
     for (IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
     {
       IntVect iv = ivsit();
-      CH_TIME("fillGraph::endOfirregularCellLoop");
+      BL_PROFILE("fillGraph::endOfirregularCellLoop");
       IrregNode newNode;
 
       fillNewNode(newNode,
@@ -677,7 +683,7 @@ namespace amrex
                       const Real                     &     a_dx,
                       const IntVect                  &     a_iv) const
   {
-    CH_TIME("WrappedGShop::ComputeVofInternals");
+    BL_PROFILE("WrappedGShop::ComputeVofInternals");
 
     //for each CutCellMoments<dim>, we record the cell Center
     //(in physical coordinates at the global dimension)
@@ -724,7 +730,7 @@ namespace amrex
     a_node.m_volumeMoments = thisVof.m_moments;          
     a_node.m_EBMoments     = thisVof.m_EBmoments;
 
-    IndexTM<Real,CH_SPACEDIM> point;
+    IndexTM<Real,BL_SPACEDIM> point;
     for (int idir = 0; idir < SpaceDim; ++idir)
     {
       Real cellCent = (a_iv[idir]+ 0.5)*a_dx;

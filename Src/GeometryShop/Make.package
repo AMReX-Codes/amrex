@@ -56,13 +56,14 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_STLAsciiReader.cpp  AMReX_STLExplorer.c
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_CellEdge.H   AMReX_KDTree.H   AMReX_PXStuff.H	AMReX_KDStruct.H  AMReX_ZCylinder.H AMReX_WrappedGShop.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_CellEdge.cpp AMReX_KDTree.cpp AMReX_PXStuff.cpp AMReX_ZCylinder.cpp AMReX_WrappedGShop.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_SmoothIntersection.H   AMReX_SmoothUnion.H   AMReX_SmoothAbsoluteValue.H   AMReX_MinimalCCCM.H   AMReX_MinimalCCCMImplem.H  AMReX_EBGeomDebugOut.H AMReX_EBGeomDebugDump.H 
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_SmoothIntersection.cpp AMReX_SmoothUnion.cpp AMReX_SmoothAbsoluteValue.cpp AMReX_MinimalCCCM.cpp AMReX_EBGeomDebugOut.cpp AMReX_IFSlicer.cpp  AMReX_CutCellMoments.cpp 
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_SmoothIntersection.H   AMReX_SmoothUnion.H   AMReX_SmoothAbsoluteValue.H   AMReX_MinimalCCCM.H   AMReX_MinimalCCCMImplem.H 
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_SmoothIntersection.cpp AMReX_SmoothUnion.cpp AMReX_SmoothAbsoluteValue.cpp AMReX_MinimalCCCM.cpp  AMReX_IFSlicer.cpp  AMReX_CutCellMoments.cpp 
 
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_CoordinateSystem.H AMReX_CoordinateSystemImplem.H AMReX_Notation.H AMReX_IFSlicer.H AMReX_IFSlicerImplem.H AMReX_CutCellMoments.H  AMReX_CutCellMomentsImplem.H AMReX_MetaPrograms.H  AMReX_Factorial.H
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_NormalDerivative.H AMReX_NormalDerivativeNew.H  AMReX_NormalDerivativeImplem.H AMReX_NormalDerivativeNewImplem.H  AMReX_LSProblem.H AMReX_LSProblemImplem.H   AMReX_LSquares.H  AMReX_ConstrainedLS.H AMReX_MomentIterator.H
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_NormalDerivative.cpp  AMReX_LSProblem.cpp  AMReX_LSquares.cpp AMReX_ConstrainedLS.cpp
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_NormalDerivative.H AMReX_NormalDerivativeNew.H   AMReX_NormalDerivativeImplem.H  AMReX_LSProblem.H AMReX_LSProblemImplem.H   
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_LSquares.H  AMReX_ConstrainedLS.H AMReX_MomentIterator.H AMReX_IndeXTM.H IFData.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_NormalDerivative.cpp  AMReX_LSProblem.cpp  AMReX_LSquares.cpp AMReX_ConstrainedLS.cpp IFData.cpp
 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop

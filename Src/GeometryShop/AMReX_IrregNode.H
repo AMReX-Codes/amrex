@@ -29,6 +29,10 @@ namespace amrex
         return (a_side == Side::Lo) ? a_idir : a_idir+SpaceDim;
     }
 
+    void setMomentsToZero()
+      {
+        amrex::Abort("not implemented");
+      }
     ///
     IntVect     m_cell;
     ///data for irregular nodes

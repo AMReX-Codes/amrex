@@ -15,8 +15,6 @@
 #define _GENERICARITHMETIC_H_
 
 
-namespace amrex
-{
 /** Class that you need to derive from, if you want the *global* operators below
  *  to be available for your class.
  *  For example:
@@ -81,23 +79,23 @@ namespace amrex
 // C::self_type should just be C itself.
 // C::scalar_type should be the kind of scalar that you hope to add, multiply
 // etc against a C.  For Chombo::IntVect, for example, scalar_type is int.
-  template<class C> typename C::self_type operator+( const C&, const C& );
-  template<class C> typename C::self_type operator+( const C&, const typename C::scalar_type& );
-  template<class C> typename C::self_type operator+( const typename C::scalar_type&, const C& );
+template<class C> typename C::self_type operator+( const C&, const C& );
+template<class C> typename C::self_type operator+( const C&, const typename C::scalar_type& );
+template<class C> typename C::self_type operator+( const typename C::scalar_type&, const C& );
 
-  template<class C> typename C::self_type operator*( const C&, const C& );
-  template<class C> typename C::self_type operator*( const C&, const typename C::scalar_type& );
-  template<class C> typename C::self_type operator*( const typename C::scalar_type&, const C& );
+template<class C> typename C::self_type operator*( const C&, const C& );
+template<class C> typename C::self_type operator*( const C&, const typename C::scalar_type& );
+template<class C> typename C::self_type operator*( const typename C::scalar_type&, const C& );
 
-  template<class C> typename C::self_type operator-( const C&, const C& );
-  template<class C> typename C::self_type operator-( const C&, const typename C::scalar_type& );
-  template<class C> typename C::self_type operator-( const typename C::scalar_type&, const C& );
+template<class C> typename C::self_type operator-( const C&, const C& );
+template<class C> typename C::self_type operator-( const C&, const typename C::scalar_type& );
+template<class C> typename C::self_type operator-( const typename C::scalar_type&, const C& );
 
-  template<class C> typename C::self_type operator/( const C&, const C& );
-  template<class C> typename C::self_type operator/( const C&, const typename C::scalar_type& );
-  template<class C> typename C::self_type operator/( const typename C::scalar_type&, const C& );
+template<class C> typename C::self_type operator/( const C&, const C& );
+template<class C> typename C::self_type operator/( const C&, const typename C::scalar_type& );
+template<class C> typename C::self_type operator/( const typename C::scalar_type&, const C& );
 
-}
+
 
 #include "AMReX_GenericArithmeticI.H"
 

@@ -2,17 +2,18 @@
 #ifndef _WRAPPEDGSHOP_H_
 #define _WRAPPEDGSHOP_H_
 
-#include "AMReX_REAL.H"
-#include "AMReX_RealVect.H"
-#include "AMReX_Box.H"
-#include "AMReX_IntVect.H"
-#include "AMReX_EBISBox.H"
-#include "AMReX_GeometryService.H"
-#include "AMReX_WrappedGShop.H"
-#include "AMReX_LSquares.H"
-#include "AMReX_BaseIF.H"
-#include "AMReX_IrregNode.H"
+//#include "AMReX_REAL.H"
+//#include "AMReX_RealVect.H"
+//#include "AMReX_EBISBox.H"
+//#include "AMReX_GeometryService.H"
+//#include "AMReX_WrappedGShop.H"
+//#include "AMReX_LSquares.H"
+//#include "AMReX_BaseIF.H"
+//#include "AMReX_IrregNode.H"
 #include "AMReX_CutCellMoments.H"
+#include "AMReX_GeometryService.H"
+#include "AMReX_IntVect.H"
+#include "AMReX_Box.H"
 
 using std::shared_ptr;
 namespace amrex
@@ -180,6 +181,7 @@ namespace amrex
 
   private:
 
+    Box m_domain;
     shared_ptr<WGSRefinementCriterion> m_refCrit;
   
     Real                m_threshold;
@@ -192,7 +194,6 @@ namespace amrex
     int                 m_minNumberRefines;
     int                 m_maxNumberRefines;
 
-    Box m_domain;
 
     shared_ptr<BaseIF>       m_baseIF;
   
