@@ -138,6 +138,15 @@ print_option ( ENABLE_BACKTRACE )
 option ( ENABLE_PROFPARSER "Enable profile parser" OFF)
 print_option ( ENABLE_PROFPARSER )
 
+option ( ENABLE_VTUNE "Enable VTune" OFF)
+print_option ( ENABLE_VTUNE )
+
+option ( ENABLE_CRAYPAT "Enable CrayPat" OFF)
+print_option ( ENABLE_CRAYPAT )
+
+option ( ENABLE_ALLINEA "Enable Allinea MAP" OFF)
+print_option ( ENABLE_ALLINEA )
+
 
 
 # Modify the profiling options if needed ( because of dependencies between
@@ -156,6 +165,18 @@ if (ENABLE_BASE_PROFILE)
    set (ENABLE_TINY_PROFILE OFF)
 endif()
 
+# Check consistency of options
+if (  (ENABLE_VTUNE   AND ENABLE_CRAYPAT) OR
+      (ENABLE_VTUNE   AND ENABLE_ALLINEA) OR
+      (ENABLE_ALLINEA AND ENABLE_CRAYPAT) )
+   message ( FATAL_ERROR
+      "Please select ONLY one of ENABLE_VTUNE, ENABLE_CRAYPAT, ENABLE_ALLINEA and re-configure" )
+endif ()
+
+if ( (ENABLE_VTUNE OR ENABLE_CRAYPAT OR ENABLE_ALLINEA) AND
+      (ENABLE_BASE_PROFILE OR ENABLE_TINY_PROFILE) )
+   message (WARNING "This configuration should only be used to profile BL_PROFILE!")
+endif()
 
 # After the options are set, define the following variable
 # so that other included file can check if this file has been
