@@ -392,8 +392,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::StartTeams();
 
-    ParallelDescriptor::StartSubCommunicator();
-
     amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
@@ -483,8 +481,6 @@ amrex::Finalize (bool finalize_parallel)
 #endif
     
     ParallelDescriptor::EndTeams();
-
-    ParallelDescriptor::EndSubCommunicator();
 
     ParallelContext::finalize();
 

@@ -1048,7 +1048,7 @@ FabArray<FAB>::ok () const
         }
     }
 
-    ParallelDescriptor::ReduceLongAnd(isok, this->color());
+    ParallelDescriptor::ReduceLongAnd(isok);
 
     return isok != 0;
 }
@@ -1422,30 +1422,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    int SeqNum, preSeqNum;
-    {
-	ParallelDescriptor::Color src_color = src.color();
-	ParallelDescriptor::Color dst_color = this->color();
-	if (src_color == ParallelDescriptor::DefaultColor() ||
-	    dst_color == ParallelDescriptor::DefaultColor() ||
-	    src_color != dst_color) {
-	    // If any of the two FabArrays is in the global communicator, 
-	    // or if the two have different color,
-	    // all processes are here.
-            if (!FAB::preAllocatable()) {
-                preSeqNum = ParallelDescriptor::SeqNum();
-            }
-	    SeqNum  = ParallelDescriptor::SeqNum();
-	} else { // The two have the same non-default color.
-	    if (ParallelDescriptor::SubCommColor() == src_color) {
-                if (!FAB::preAllocatable()) {
-                    preSeqNum = ParallelDescriptor::SubSeqNum();
-                }
-		SeqNum  = ParallelDescriptor::SubSeqNum();
-	    }
-	    // else I don't have any data and my SubSeqNum() should not be called.
-	}
-    }	
+    int preSeqNum;
+    if (!FAB::preAllocatable()) {
+        preSeqNum = ParallelDescriptor::SeqNum();
+    }
+    int SeqNum  = ParallelDescriptor::SeqNum();
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
@@ -1460,7 +1441,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #ifdef BL_USE_MPI3
     MPI_Group tgroup, rgroup, sgroup;
     if (ParallelDescriptor::MPIOneSided()) {
-	MPI_Comm_group(ParallelDescriptor::Communicator(this->color()), &tgroup);
+	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
     }
 #endif
 
@@ -1977,7 +1958,6 @@ FabArray<FAB>::copyTo (FAB&       dest,
 #ifdef DEBUG
     {
 	BoxCommHelper bch(subbox);	
-	BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0);
 	const Box& bx0 = bch.make_box();
 	BL_ASSERT(subbox == bx0);
@@ -2003,7 +1983,6 @@ FabArray<FAB>::copyTo (FAB&       dest,
 
 	const int N = bx.numPts()*ncomp;
 
-	BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 	ParallelDescriptor::Bcast(ovlp.dataPtr(),N,distributionMap[k]);
 
 	dest.copy(ovlp,bx,0,bx,dcomp,ncomp);
@@ -3258,22 +3237,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    int SeqNum, preSeqNum;
-    {
-	ParallelDescriptor::Color mycolor = this->color();
-	if (mycolor == ParallelDescriptor::DefaultColor()) {
-            if (!FAB::preAllocatable()) {
-                preSeqNum = ParallelDescriptor::SeqNum();
-            }
-	    SeqNum = ParallelDescriptor::SeqNum();
-	} else if (mycolor == ParallelDescriptor::SubCommColor()) {
-            if (!FAB::preAllocatable()) {
-                preSeqNum = ParallelDescriptor::SubSeqNum();
-            }
-	    SeqNum = ParallelDescriptor::SubSeqNum();
-	}
-	// else I don't have any data and my SubSeqNum() should not be called.
+    int preSeqNum;
+    if (!FAB::preAllocatable()) {
+        preSeqNum = ParallelDescriptor::SeqNum();
     }
+    int SeqNum = ParallelDescriptor::SeqNum();
 
     const int N_locs = TheFB.m_LocTags->size();
     const int N_rcvs = TheFB.m_RcvTags->size();

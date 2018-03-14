@@ -98,7 +98,7 @@ MLCGSolver::solve (MultiFab&       sol,
     Real rnorm = norm_inf(r);
     const Real rnorm0   = rnorm;
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
+    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
     {
         std::cout << "MLCGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
     }
@@ -107,7 +107,7 @@ MLCGSolver::solve (MultiFab&       sol,
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
 	{
             std::cout << "MLCGSolver_BiCGStab: niter = 0,"
                       << ", rnorm = " << rnorm 
@@ -150,7 +150,7 @@ MLCGSolver::solve (MultiFab&       sol,
 
         rnorm = norm_inf(s);
 
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
             std::cout << "MLCGSolver_BiCGStab: Half Iter "
                       << std::setw(11) << nit
@@ -185,7 +185,7 @@ MLCGSolver::solve (MultiFab&       sol,
 
         rnorm = norm_inf(r);
 
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
             std::cout << "MLCGSolver_BiCGStab: Iteration "
                       << std::setw(11) << nit
@@ -202,7 +202,7 @@ MLCGSolver::solve (MultiFab&       sol,
         rho_1 = rho;
     }
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
+    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
     {
         std::cout << "MLCGSolver_BiCGStab: Final: Iteration "
                   << std::setw(4) << nit
@@ -212,7 +212,7 @@ MLCGSolver::solve (MultiFab&       sol,
 
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
-        if ( ParallelDescriptor::IOProcessor(p.color()) )
+        if ( ParallelDescriptor::IOProcessor() )
             amrex::Warning("MLCGSolver_BiCGStab:: failed to converge!");
         ret = 8;
     }

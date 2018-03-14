@@ -129,11 +129,11 @@ const DistributionMapping & ForkJoin::get_dm (const BoxArray& ba, int task_idx)
         auto task_glo_rank_hi = ParallelContext::local_to_global_rank(task_bounds[task_idx].second);
         dm_vec[task_idx].reset(new DistributionMapping(ba, task_glo_rank_lo, task_glo_rank_hi));
 #else
-        // hard coded colors only right now
-        AMREX_ASSERT(task_rank_n.size() == ParallelDescriptor::NColors());
-        ParallelDescriptor::Color color = ParallelDescriptor::Color(task_idx);
+// xxxxx        // hard coded colors only right now
+//        AMREX_ASSERT(task_rank_n.size() == ParallelDescriptor::NColors());
+//        ParallelDescriptor::Color color = ParallelDescriptor::Color(task_idx);
         int nprocs = ParallelDescriptor::NProcs();
-        dm_vec[task_idx].reset(new DistributionMapping(ba, nprocs, color));
+        dm_vec[task_idx].reset(new DistributionMapping(ba, nprocs));
 #endif
         if (flag_verbose && ParallelDescriptor::IOProcessor()) {
             std::cout << "    Creating DM for (box array, task id) = ("

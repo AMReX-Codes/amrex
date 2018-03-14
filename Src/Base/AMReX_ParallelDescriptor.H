@@ -123,6 +123,7 @@ namespace ParallelDescriptor
     //! Return true if MPI one sided is enabled
     bool MPIOneSided ();
 
+    // For sidecar
     typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
     void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
     /**
@@ -135,16 +136,12 @@ namespace ParallelDescriptor
     extern const int myId_notInGroup;
     extern int m_MyId_all;
     extern int m_MyId_comp;
-    extern int m_MyId_sub;
     extern int m_MyId_sidecar;
     extern const int notInSidecar;
 
     extern const int nProcs_undefined;
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
-    extern int m_nProcs_sub;
-    extern Vector<int> m_num_procs_clr;
-    extern Vector<int> m_first_procs_clr;
     extern Vector<int> m_nProcs_sidecar;
     extern int nSidecars;
     extern int inWhichSidecar;
@@ -218,10 +215,6 @@ namespace ParallelDescriptor
         BL_ASSERT(m_MyId_comp != myId_undefined);
         return (m_MyId_comp >= 0);
     }
-
-    /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
-    void
-    init_clr_vars();
 
     /**
     * \brief This sets the number of MPI ranks in the sidecar and
@@ -533,7 +526,6 @@ namespace ParallelDescriptor
     // AMReX's Parallel Communicators
     //    m_comm_all       is for all ranks, probably duped from MPI_COMM_WORLD
     //    m_comm_comp      is for the ranks doing computations
-    //    m_comm_sub       m_comm_comp is split into sub communicators
     //    m_comm_sidecar[] is for the ranks in the sidecar
     //    m_comm_inter[]   is for communicating between comp and sidecars
     //                     the user must create any sidecar to sidecar communicators
@@ -542,49 +534,9 @@ namespace ParallelDescriptor
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
-    extern MPI_Comm m_comm_sub;
     extern Vector<MPI_Comm> m_comm_sidecar;  // ---- [whichsidecar]
     extern Vector<MPI_Comm> m_comm_inter;    // ---- [whichsidecar]
     extern Vector<MPI_Comm> m_comm_both;     // ---- [whichsidecar]
-
-
-    extern int m_nCommColors;
-    extern int m_clr_map;
-
-    //! A communicator can be split into multiple sub-communicators associated with different colors
-    class Color
-    {
-    public:
-	Color () : c(-100) {}
-	explicit Color (int i) : c(i) {}
-	int to_int () const { return c; }
-	bool valid () const { return c >= 0 && c <= m_nCommColors; }
-	friend bool operator== (const Color& lhs, const Color& rhs);
-	friend bool operator!= (const Color& lhs, const Color& rhs);
-	friend std::ostream& operator<< (std::ostream& os, const Color& color);
-    private:
-	int c;
-    };
-    inline bool operator== (const Color& lhs, const Color& rhs)
-    {
-	return lhs.c == rhs.c;
-    }
-    inline bool operator!= (const Color& lhs, const Color& rhs){
-	return !(lhs == rhs);
-    }
-    inline std::ostream& operator<< (std::ostream& os, const Color& color)
-    {
-	os << color.c;
-	if (os.fail())
-	    amrex::Error("operator<<(ostream&,Const Color&) failed");
-	return os;
-    }
-
-    extern Color m_MyCommSubColor;
-    extern Color m_MyCommCompColor;
-
-    void StartSubCommunicator ();
-    void EndSubCommunicator ();
 
     //! Returns the "local" communicator
     inline MPI_Comm Communicator ()         
@@ -625,61 +577,6 @@ namespace ParallelDescriptor
         return m_comm_both[whichSidecar];
     }
 
-    inline int NColors () { return m_nCommColors; }
-    inline Color DefaultColor () { return m_MyCommCompColor; }
-    inline Color SubCommColor () { return m_MyCommSubColor; }
-    inline bool isActive(Color color) 
-    { 
-	return color == DefaultColor() || color == SubCommColor();
-    }
-    inline int MyProc (Color color) 
-    {
-	if (color == DefaultColor()) {
-	    return MyProc();
-	} else if (color == SubCommColor()) {
-	    return m_MyId_sub; 
-	} else {
-	    return MPI_PROC_NULL;
-	}
-    }
-    inline int NProcs (Color color) 
-    {
-	if (color == DefaultColor()) {
-	    return NProcs();
-	} else if (color.valid()) {
-	    return m_num_procs_clr[color.to_int()];
-	} else {
-	    return 0;
-	}
-    }
-    inline MPI_Comm Communicator (Color color) 
-    { 
-	if (color == DefaultColor()) {
-	    return Communicator();
-	} else if (color == SubCommColor()) {
-	    return m_comm_sub;
-	} else {
-	    return MPI_COMM_NULL;
-	}
-    }
-
-    /* Given `rk_clrd', i.e. the rank in the colored `comm', return the
-    rank in the global `CommComp' */
-    int
-    Translate(int rk_clrd,Color clr);
-
-    inline bool
-    IOProcessor (Color color)
-    {
-	if (color == DefaultColor()) {
-	    return IOProcessor();
-	} else if (color.valid()) {
-	    return MyProc(color) == 0;
-	} else {
-	    return false;
-	}
-    }
-
     void Barrier (const std::string& message = Unnamed);
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
 
@@ -694,100 +591,100 @@ namespace ParallelDescriptor
     double second ();
 
     //! And-wise boolean reduction.
-    void ReduceBoolAnd (bool& rvar, Color color = DefaultColor());
+    void ReduceBoolAnd (bool& rvar);
     //! And-wise boolean reduction to specified cpu.
     void ReduceBoolAnd (bool& rvar, int cpu);
 
     //! Or-wise boolean reduction.
-    void ReduceBoolOr  (bool& rvar, Color color = DefaultColor());
+    void ReduceBoolOr  (bool& rvar);
     //! Or-wise boolean reduction to specified cpu.
     void ReduceBoolOr  (bool& rvar, int cpu);
 
     //! Real sum reduction.
-    void ReduceRealSum (Real& rvar, Color color = DefaultColor());
-    void ReduceRealSum (Real* rvar, int cnt, Color color = DefaultColor());
-    void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
+    void ReduceRealSum (Real& rvar);
+    void ReduceRealSum (Real* rvar, int cnt);
+    void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar);
     //! Real sum reduction to specified cpu.
     void ReduceRealSum (Real& rvar, int cpu);
     void ReduceRealSum (Real* rvar, int cnt, int cpu);
     void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
 
     //! Real max reduction.
-    void ReduceRealMax (Real& rvar, Color color = DefaultColor());
-    void ReduceRealMax (Real* rvar, int cnt, Color color = DefaultColor());
-    void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
+    void ReduceRealMax (Real& rvar);
+    void ReduceRealMax (Real* rvar, int cnt);
+    void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar);
     //! Real max reduction to specified cpu.
     void ReduceRealMax (Real& rvar, int cpu);
     void ReduceRealMax (Real* rvar, int cnt, int cpu);
     void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
 
     //! Real min reduction.
-    void ReduceRealMin (Real& rvar, Color color = DefaultColor());
-    void ReduceRealMin (Real* rvar, int cnt, Color color = DefaultColor());
-    void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
+    void ReduceRealMin (Real& rvar);
+    void ReduceRealMin (Real* rvar, int cnt);
+    void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar);
     //! Real min reduction to specified cpu.
     void ReduceRealMin (Real& rvar, int cpu);
     void ReduceRealMin (Real* rvar, int cnt, int cpu);
     void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
 
     //! Integer sum reduction.
-    void ReduceIntSum (int& rvar, Color color = DefaultColor());
-    void ReduceIntSum (int* rvar, int cnt, Color color = DefaultColor());
-    void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
+    void ReduceIntSum (int& rvar);
+    void ReduceIntSum (int* rvar, int cnt);
+    void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar);
     //! Integer sum reduction to specified cpu.
     void ReduceIntSum (int& rvar, int cpu);
     void ReduceIntSum (int* rvar, int cnt, int cpu);
     void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
 
     //! Integer max reduction.
-    void ReduceIntMax (int& rvar, Color color = DefaultColor());
-    void ReduceIntMax (int* rvar, int cnt, Color color = DefaultColor());
-    void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
+    void ReduceIntMax (int& rvar);
+    void ReduceIntMax (int* rvar, int cnt);
+    void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar);
     //! Integer max reduction to specified cpu.
     void ReduceIntMax (int& rvar, int cpu);
     void ReduceIntMax (int* rvar, int cnt, int cpu);
     void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
 
     //! Integer min reduction.
-    void ReduceIntMin (int& rvar, Color color = DefaultColor());
-    void ReduceIntMin (int* rvar, int cnt, Color color = DefaultColor());
-    void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
+    void ReduceIntMin (int& rvar);
+    void ReduceIntMin (int* rvar, int cnt);
+    void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar);
     //! Integer min reduction to specified cpu.
     void ReduceIntMin (int& rvar, int cpu);
     void ReduceIntMin (int* rvar, int cnt, int cpu);
     void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
 
     //! Long sum reduction.
-    void ReduceLongSum (long& rvar, Color color = DefaultColor());
-    void ReduceLongSum (long* rvar, int cnt, Color color = DefaultColor());
-    void ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
+    void ReduceLongSum (long& rvar);
+    void ReduceLongSum (long* rvar, int cnt);
+    void ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar);
     //! Long sum reduction to specified cpu.
     void ReduceLongSum (long& rvar, int cpu);
     void ReduceLongSum (long* rvar, int cnt, int cpu);
     void ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
 
     //! Long max reduction.
-    void ReduceLongMax (long& rvar, Color color = DefaultColor());
-    void ReduceLongMax (long* rvar, int cnt, Color color = DefaultColor());
-    void ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
+    void ReduceLongMax (long& rvar);
+    void ReduceLongMax (long* rvar, int cnt);
+    void ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar);
     //! Long max reduction to specified cpu.
     void ReduceLongMax (long& rvar, int cpu);
     void ReduceLongMax (long* rvar, int cnt, int cpu);
     void ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
 
     //! Long min reduction.
-    void ReduceLongMin (long& rvar, Color color = DefaultColor());
-    void ReduceLongMin (long* rvar, int cnt, Color color = DefaultColor());
-    void ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
+    void ReduceLongMin (long& rvar);
+    void ReduceLongMin (long* rvar, int cnt);
+    void ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar);
     //! Long min reduction to specified cpu.
     void ReduceLongMin (long& rvar, int cpu);
     void ReduceLongMin (long* rvar, int cnt, int cpu);
     void ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
 
     //! Long and-wise reduction.
-    void ReduceLongAnd (long& rvar, Color color = DefaultColor());
-    void ReduceLongAnd (long* rvar, int cnt, Color color = DefaultColor());
-    void ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
+    void ReduceLongAnd (long& rvar);
+    void ReduceLongAnd (long* rvar, int cnt);
+    void ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar);
     //! Long and-wise reduction to specified cpu.
     void ReduceLongAnd (long& rvar, int cpu);
     void ReduceLongAnd (long* rvar, int cnt, int cpu);

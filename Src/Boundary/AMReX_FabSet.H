@@ -77,8 +77,6 @@ public:
     const DistributionMapping& DistributionMap () const 
 	{ return m_mf.DistributionMap(); }
 
-    ParallelDescriptor::Color color() const { return m_mf.color(); }
-
     int nComp () const { return m_mf.nComp(); }
 
     void clear () { m_mf.clear(); }

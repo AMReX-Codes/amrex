@@ -56,9 +56,6 @@ public:
     //! Return index type.
     IndexType ixType () const { return boxarray.ixType(); }
     
-    //! Return the communicator associated with this FabArray
-    ParallelDescriptor::Color color () const { return distributionMap.color(); }
-
     //Return whether this FabArray is empty
     bool empty () const { return boxarray.empty(); }
 
