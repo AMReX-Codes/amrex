@@ -114,7 +114,7 @@ template <int dim> void MinimalCCCM<dim>::computeMomentsRecursively(const int   
   //pout() << "a_orderPmax  = " << a_orderPmax << endl;
   //pout() << "a_degreePmax = " << a_degreePmax << endl;
   //pout() << "m_cutCellMoments.m_IFData.m_maxOrder " << m_cutCellMoments.m_IFData.m_maxOrder  << endl;
-  CH_assert(m_cutCellMoments.m_IFData.m_maxOrder >= a_orderPmax);
+  BL_ASSERT(m_cutCellMoments.m_IFData.m_maxOrder >= a_orderPmax);
 
   if (m_cutCellMoments.m_IFData.m_allVerticesOut)
   {

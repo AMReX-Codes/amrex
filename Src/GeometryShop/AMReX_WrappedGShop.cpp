@@ -14,16 +14,16 @@
 #include "AMReX_EB_TYPEDEFS.H"
 
 
-//#include "AMReX_NoRefinement.H"
-//#include "AMReX_FixedRefinement.H"
-//#include "AMReX_DivNormalRefinement.H"
-//#include "AMReX_NormalDerivativeNew.H"
-//#include "AMReX_MinimalCCCM.H"
+#include "AMReX_NoRefinement.H"
+#include "AMReX_FixedRefinement.H"
+#include "AMReX_DivNormalRefinement.H"
+#include "AMReX_NormalDerivativeNew.H"
+#include "AMReX_MinimalCCCM.H"
 #include "AMReX_MomentIterator.H"
 
-//#include "AMReX_PolyGeom.H"
-//#include "AMReX_RealVect.H"
-//#include "AMReX_EBGeomDebugOut.H"
+#include "AMReX_PolyGeom.H"
+#include "AMReX_RealVect.H"
+
 
 namespace amrex
 {
@@ -474,9 +474,9 @@ Real WrappedGShop::s_relativeTol = 0.1;
   {
     BL_PROFILE("WrappedGShop::fillGraph");
 
-    CH_assert(a_domain.contains(a_ghostRegion));
+    BL_ASSERT(a_domain.contains(a_ghostRegion));
 
-    IntVectSet ivsirreg = IntVectSet(DenseIntVectSet(a_ghostRegion, false));
+    IntVectSet ivsirreg;
 
     {
       BL_PROFILE("boxiterator loop");
@@ -730,13 +730,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
     a_node.m_volumeMoments = thisVof.m_moments;          
     a_node.m_EBMoments     = thisVof.m_EBmoments;
 
-    IndexTM<Real,BL_SPACEDIM> point;
-    for (int idir = 0; idir < SpaceDim; ++idir)
-    {
-      Real cellCent = (a_iv[idir]+ 0.5)*a_dx;
-      point[idir] = cellCent;
-    }  
-
+    RealVect point = EBArith::getIVLocation(a_iv, a_dx*RealVect::Unit, RealVect::Zero);
     NormalDerivativeNew<SpaceDim> normalDerivative;
 
     int maxOrder = CH_EBIS_ORDER;
@@ -769,7 +763,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
       for (int idir = 0; idir < SpaceDim; ++idir)
       {
         int iindex = IrregNode::index(idir, sit());
-        CH_assert((a_node.m_arc[iindex].size() == 1) || (a_node.m_arc[iindex].size() == 0));
+        BL_ASSERT((a_node.m_arc[iindex].size() == 1) || (a_node.m_arc[iindex].size() == 0));
         if(a_node.m_arc[iindex].size() == 1)
         {
           bdId[BDID_HILO] = hilo;

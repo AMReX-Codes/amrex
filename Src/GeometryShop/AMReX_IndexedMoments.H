@@ -131,7 +131,7 @@ public:
       m_isRegular = 1;
 
       // Get the set of multi-indexes in the correct order
-      const Vector<IndexTM<int,Dim> >& mix = IndexedMoments<Dim, P>::getMonomialPowers();
+      const Vector<IndexTM<int, Dim> >& mix = MonomialPowers<Dim,P>::getMonomialPowers();
 
       // pout() << "Regular moments:" << endl;
       for (int ix=0; ix < mix.size(); ++ix)
