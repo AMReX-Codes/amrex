@@ -452,7 +452,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     const Real           L2_norm_of_rt = sqrt(delta);
     const LinOp::BC_Mode temp_bc_mode  = LinOp::Homogeneous_BC;
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
     {
         Spacer(std::cout, lev);
         std::cout << "CGSolver_CABiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
@@ -460,7 +460,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     if ( rnorm0 == 0 || delta == 0 || rnorm0 < eps_abs )
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
 	{
             Spacer(std::cout, lev);
             std::cout << "CGSolver_CABiCGStab: niter = 0,"
@@ -555,7 +555,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             if ( g_dot_Tpaj == 0 )
             {
-                if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
+                if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
                     std::cout << "CGSolver_CABiCGStab: g_dot_Tpaj == 0, nit = " << nit << '\n';
                 BiCGStabFailed = true; ret = 1; break;
             }
@@ -564,7 +564,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             if ( std::isinf(alpha) )
             {
-                if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
+                if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
                     std::cout << "CGSolver_CABiCGStab: alpha == inf, nit = " << nit << '\n';
                 BiCGStabFailed = true; ret = 2; break;
             }
@@ -604,21 +604,21 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt )
             {
-                if ( verbose > 1 && L2_norm_of_resid == 0 && ParallelDescriptor::IOProcessor(color()) )
+                if ( verbose > 1 && L2_norm_of_resid == 0 && ParallelDescriptor::IOProcessor() )
                     std::cout << "CGSolver_CABiCGStab: L2 norm of s: " << L2_norm_of_s << '\n';
                 BiCGStabConverged = true; break;
             }
 
             if ( omega_denominator == 0 )
             {
-                if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
+                if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
                     std::cout << "CGSolver_CABiCGStab: omega_denominator == 0, nit = " << nit << '\n';
                 BiCGStabFailed = true; ret = 3; break;
             }
 
             const Real omega = omega_numerator / omega_denominator;
 
-            if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
+            if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
             {
                 if ( omega == 0   ) std::cout << "CGSolver_CABiCGStab: omega == 0, nit = " << nit << '\n';
                 if ( std::isinf(omega) ) std::cout << "CGSolver_CABiCGStab: omega == inf, nit = " << nit << '\n';
@@ -649,14 +649,14 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt )
             {
-                if ( verbose > 1 && L2_norm_of_resid == 0 && ParallelDescriptor::IOProcessor(color()) )
+                if ( verbose > 1 && L2_norm_of_resid == 0 && ParallelDescriptor::IOProcessor() )
                     std::cout << "CGSolver_CABiCGStab: L2_norm_of_r: " << L2_norm_of_r << '\n';
                 BiCGStabConverged = true; break;
             }
 
             const Real delta_next = dot(g, cj, 4*SSS+1);
 
-            if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
+            if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
             {
                 if ( delta_next == 0   ) std::cout << "CGSolver_CABiCGStab: delta == 0, nit = " << nit << '\n';
                 if ( std::isinf(delta_next) ) std::cout << "CGSolver_CABiCGStab: delta == inf, nit = " << nit << '\n';
@@ -667,7 +667,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             const Real beta = (delta_next/delta)*(alpha/omega);
 
-            if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
+            if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
             {
                 if ( beta == 0   ) std::cout << "CGSolver_CABiCGStab: beta == 0, nit = " << nit << '\n';
                 if ( std::isinf(beta) ) std::cout << "CGSolver_CABiCGStab: beta == inf, nit = " << nit << '\n';
@@ -707,7 +707,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     if ( verbose > 0 )
     {
-        if ( ParallelDescriptor::IOProcessor(color()) )
+        if ( ParallelDescriptor::IOProcessor() )
         {
             Spacer(std::cout, lev);
             std::cout << "CGSolver_CABiCGStab: Final: Iteration "
@@ -720,9 +720,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         {
             Real tmp1[2] = { atime, gtime };
 
-            ParallelDescriptor::ReduceRealMax(tmp1,2,color());
+            ParallelDescriptor::ReduceRealMax(tmp1,2);
 
-            if ( ParallelDescriptor::IOProcessor(color()) )
+            if ( ParallelDescriptor::IOProcessor() )
             {
                 Spacer(std::cout, lev);
                 std::cout << "CGSolver_CABiCGStab apply time: " << tmp1[0] << ", gram time: " << tmp1[1] << '\n';
@@ -734,7 +734,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     {
         if ( L2_norm_of_resid > L2_norm_of_rt )
         {
-            if ( ParallelDescriptor::IOProcessor(color()) )
+            if ( ParallelDescriptor::IOProcessor() )
                 amrex::Warning("CGSolver_CABiCGStab: failed to converge!");
             //
             // Return code 8 tells the MultiGrid driver to zero out the solution!
@@ -817,7 +817,7 @@ BuildGramMatrix (Real*           Gg,
 #endif
     }
 
-    ParallelDescriptor::ReduceRealSum(&tmp[0][0], Ntmp, PR.color());
+    ParallelDescriptor::ReduceRealSum(&tmp[0][0], Ntmp);
 
     // Now fill upper triangle with "tmp".
     int cnt = 0;
@@ -883,7 +883,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     //
     Real vals[2] = { norm_inf(r, true), Lp.norm(0, lev, true) };
 
-    ParallelDescriptor::ReduceRealMax(vals,2,color());
+    ParallelDescriptor::ReduceRealMax(vals,2);
 
     Real       rnorm    = vals[0];
     const Real Lp_norm  = vals[1];
@@ -891,7 +891,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 #endif
     const Real rnorm0   = rnorm;
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
     {
         Spacer(std::cout, lev);
         std::cout << "CGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
@@ -901,7 +901,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
 	{
             Spacer(std::cout, lev);
             std::cout << "CGSolver_BiCGStab: niter = 0,"
@@ -957,7 +957,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
         rnorm = norm_inf(s);
 
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
             Spacer(std::cout, lev);
             std::cout << "CGSolver_BiCGStab: Half Iter "
@@ -994,7 +994,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         //
         Real vals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
 
-        ParallelDescriptor::ReduceRealSum(vals,2,color());
+        ParallelDescriptor::ReduceRealSum(vals,2);
 
         if ( vals[0] )
 	{
@@ -1009,7 +1009,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
         rnorm = norm_inf(r);
 
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
             Spacer(std::cout, lev);
             std::cout << "CGSolver_BiCGStab: Iteration "
@@ -1031,7 +1031,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         rho_1 = rho;
     }
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
     {
         Spacer(std::cout, lev);
         std::cout << "CGSolver_BiCGStab: Final: Iteration "
@@ -1046,7 +1046,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0 ) && rnorm > eps_abs )
 #endif
     {
-        if ( ParallelDescriptor::IOProcessor(color()) )
+        if ( ParallelDescriptor::IOProcessor() )
             amrex::Warning("CGSolver_BiCGStab:: failed to converge!");
         ret = 8;
     }
@@ -1105,7 +1105,7 @@ CGSolver::solve_cg (MultiFab&       sol,
     const Real rnorm0   = rnorm;
     Real       minrnorm = rnorm;
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
     {
         Spacer(std::cout, lev);
         std::cout << "              CG: Initial error :        " << rnorm0 << '\n';
@@ -1119,7 +1119,7 @@ CGSolver::solve_cg (MultiFab&       sol,
 
     if ( rnorm == 0 || rnorm < eps_abs )
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
 	{
             Spacer(std::cout, lev);
             std::cout << "       CG: niter = 0,"
@@ -1132,7 +1132,7 @@ CGSolver::solve_cg (MultiFab&       sol,
 
     for (; nit <= maxiter; ++nit)
     {
-        if (use_jbb_precond && ParallelDescriptor::NProcs(color()) > 1)
+        if (use_jbb_precond && ParallelDescriptor::NProcs() > 1)
         {
             z.setVal(0);
 
@@ -1166,7 +1166,7 @@ CGSolver::solve_cg (MultiFab&       sol,
             ret = 1; break;
 	}
         
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
             Spacer(std::cout, lev);
             std::cout << "CGSolver_cg:"
@@ -1179,7 +1179,7 @@ CGSolver::solve_cg (MultiFab&       sol,
         rnorm = norm_inf(r);
         sol_norm = norm_inf(sol);
 
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
             Spacer(std::cout, lev);
             std::cout << "       CG:       Iteration"
@@ -1205,7 +1205,7 @@ CGSolver::solve_cg (MultiFab&       sol,
         rho_1 = rho;
     }
     
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
     {
         Spacer(std::cout, lev);
         std::cout << "       CG: Final Iteration"
@@ -1220,7 +1220,7 @@ CGSolver::solve_cg (MultiFab&       sol,
     if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0) && rnorm > eps_abs )
 #endif
     {
-        if ( ParallelDescriptor::IOProcessor(color()) )
+        if ( ParallelDescriptor::IOProcessor() )
             amrex::Warning("CGSolver_cg: failed to converge!");
         ret = 8;
     }
@@ -1278,7 +1278,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
     const Real rnorm0   = rnorm;
     Real       minrnorm = rnorm;
 
-    if ( verbose > 2 && ParallelDescriptor::IOProcessor(color()) )
+    if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
     {
         Spacer(std::cout, lev_loc);
         std::cout << "     jbb_precond: Initial error :        " << rnorm0 << '\n';
@@ -1292,7 +1292,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
 	{
             Spacer(std::cout, lev_loc);
             std::cout << "jbb_precond: niter = 0,"
@@ -1329,7 +1329,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
             ret = 1; break;
 	}
         
-        if ( verbose > 3 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 3 && ParallelDescriptor::IOProcessor() )
         {
             Spacer(std::cout, lev_loc);
             std::cout << "jbb_precond:" << " nit " << nit
@@ -1340,7 +1340,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
         rnorm    = norm_inf(r,   local);
         sol_norm = norm_inf(sol, local);
 
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
             Spacer(std::cout, lev_loc);
             std::cout << "jbb_precond:       Iteration"
@@ -1366,7 +1366,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
         rho_1 = rho;
     }
     
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(color()) )
+    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
     {
         Spacer(std::cout, lev_loc);
         std::cout << "jbb_precond: Final Iteration"
@@ -1376,7 +1376,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
     }
     if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0) && rnorm > eps_abs )
     {
-        if ( ParallelDescriptor::IOProcessor(color()) )
+        if ( ParallelDescriptor::IOProcessor() )
 	{
             amrex::Warning("jbb_precond:: failed to converge!");
 	}

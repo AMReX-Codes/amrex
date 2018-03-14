@@ -1310,19 +1310,15 @@ void amrex::BroadcastDistributionMapping(DistributionMapping &dM,
     dM.strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
   }
 
-  // ---- Color & dmap
+  // ---- dmap
   Vector<int> dmapA;
-  int colorInt;
   if(myLocalId == rootId) {
     dmapA = dM.ProcessorMap();
-    colorInt = dM.color().to_int();
   }
   amrex::BroadcastArray(dmapA, myLocalId, rootId, localComm);
-  ParallelDescriptor::Bcast(&colorInt, 1, rootId, localComm);
   if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
-      ParallelDescriptor::Color colorA(colorInt); 
-      dM.define(dmapA, colorA);
+      dM.define(dmapA);
     }
   }
 

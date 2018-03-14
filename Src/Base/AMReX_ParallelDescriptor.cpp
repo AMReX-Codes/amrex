@@ -70,16 +70,12 @@ namespace ParallelDescriptor
     //
     int m_MyId_all         = myId_undefined;
     int m_MyId_comp        = myId_undefined;
-    int m_MyId_sub         = myId_undefined;
     int m_MyId_sidecar     = myId_undefined;
     //
     // The number of processors.
     //
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
-    int m_nProcs_sub     = nProcs_undefined;
-    Vector<int> m_num_procs_clr;
-    Vector<int> m_first_procs_clr;
     Vector<int> m_nProcs_sidecar;
     int nSidecars = 0;
     int inWhichSidecar = notInSidecar;
@@ -92,7 +88,6 @@ namespace ParallelDescriptor
     //
     MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all ranks, probably MPI_COMM_WORLD
     MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the ranks doing computations
-    MPI_Comm m_comm_sub     = MPI_COMM_NULL;    // for sub computation procs
     Vector<MPI_Comm> m_comm_sidecar;             // for the ranks in the sidecar
     Vector<MPI_Comm> m_comm_inter;               // for communicating between comp and sidecar
     Vector<MPI_Comm> m_comm_both;                // for communicating within comp and a sidecar
@@ -106,14 +101,10 @@ namespace ParallelDescriptor
     //  Set these for non-mpi codes that do not call amrex::Initialize(...)
     int m_MyId_all         = 0;
     int m_MyId_comp        = 0;
-    int m_MyId_sub         = 0;
     int m_MyId_sidecar     = myId_notInGroup;
     //
     int m_nProcs_all     = 1;
     int m_nProcs_comp    = 1;
-    int m_nProcs_sub     = 1;
-    Vector<int> m_num_procs_clr;
-    Vector<int> m_first_procs_clr;
     Vector<int> m_nProcs_sidecar;
     int nSidecars = 0;
     int inWhichSidecar = notInSidecar;
@@ -122,7 +113,6 @@ namespace ParallelDescriptor
     //
     MPI_Comm m_comm_all     = 0;
     MPI_Comm m_comm_comp    = 0;
-    MPI_Comm m_comm_sub     = 0;
     Vector<MPI_Comm> m_comm_sidecar;
     Vector<MPI_Comm> m_comm_inter;
     //
@@ -132,11 +122,6 @@ namespace ParallelDescriptor
     MPI_Group m_group_comp    = 0;
     MPI_Group m_group_sidecar = 0;
 #endif
-
-    int m_nCommColors = 1;
-    int m_clr_map = 0;
-    Color m_MyCommSubColor;
-    Color m_MyCommCompColor;
 
     int m_MinTag = 1000, m_MaxTag = -1, m_MaxTag_MPI = -1, tagBuffer = 32;
 
@@ -156,13 +141,13 @@ namespace ParallelDescriptor
 	//
 	// Reduce helper functions.
 	//
-	void DoAllReduceReal     (Real&      r, MPI_Op op, Color color = DefaultColor());
-	void DoAllReduceLong     (long&      r, MPI_Op op, Color color = DefaultColor());
-	void DoAllReduceInt      (int&       r, MPI_Op op, Color color = DefaultColor());
+	void DoAllReduceReal     (Real&      r, MPI_Op op);
+	void DoAllReduceLong     (long&      r, MPI_Op op);
+	void DoAllReduceInt      (int&       r, MPI_Op op);
 
-	void DoAllReduceReal     (Real*      r, MPI_Op op, int cnt, Color color = DefaultColor());
-	void DoAllReduceLong     (long*      r, MPI_Op op, int cnt, Color color = DefaultColor());
-	void DoAllReduceInt      (int*       r, MPI_Op op, int cnt, Color color = DefaultColor());
+	void DoAllReduceReal     (Real*      r, MPI_Op op, int cnt);
+	void DoAllReduceLong     (long*      r, MPI_Op op, int cnt);
+	void DoAllReduceInt      (int*       r, MPI_Op op, int cnt);
 
 	void DoReduceReal     (Real&      r, MPI_Op op, int cpu);
 	void DoReduceLong     (long&      r, MPI_Op op, int cpu);
@@ -173,6 +158,7 @@ namespace ParallelDescriptor
 	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
     }
 
+    // For sidecar
     typedef std::list<ParallelDescriptor::PTR_TO_SIGNAL_HANDLER> SH_LIST;
     SH_LIST The_Signal_Handler_List;
 
@@ -460,90 +446,6 @@ ParallelDescriptor::EndParallel ()
     }
 }
 
-/* Given `rk_clrd', i.e. the rank in the colored `comm', return the
-rank in the global `CommComp' */
-int
-ParallelDescriptor::Translate(int rk_clrd,Color clr)
-{
-  if (clr == DefaultColor())
-  {
-    return rk_clrd;
-  }
-  else if (clr.valid())
-  {
-    if (!m_clr_map)
-    {
-      return m_first_procs_clr[clr.to_int()]+rk_clrd;
-    }
-    else
-    {
-      return rk_clrd*m_nCommColors+clr.to_int();
-    }
-  }
-  else
-  {
-    return MPI_PROC_NULL;
-  }
-}
-
-/* Define variables `m_nProcs_sub', `m_MyCommSubColor',
-`m_num_procs_clr', and `m_first_procs_clr' */
-void
-ParallelDescriptor::init_clr_vars()
-{
-  if (m_nProcs_comp < m_nCommColors)
-  {
-    amrex::Abort("Need `nProcs >= nColors'");
-  }
-  /* Number of proc.'s per color */
-  m_nProcs_sub = m_nProcs_comp/m_nCommColors;
-  /* Remaining proc.'s */
-  int const numRemProcs = m_nProcs_comp-m_nCommColors*m_nProcs_sub;
-  /* All numbers of proc.'s per color (clear) */
-  m_num_procs_clr.clear();
-  /* All numbers of proc.'s per color (init.) */
-  m_num_procs_clr.resize(m_nCommColors,m_nProcs_sub);
-  /* Distribute remaining proc.'s */
-  for (int clr = 0; clr < numRemProcs; ++clr)
-  {
-    ++(m_num_procs_clr[clr]);
-  }
-  /* My color */
-  int my_clr;
-  /* Definition of `my_clr` */
-  if (!m_clr_map)
-  {
-    /* All first proc.'s (clear) */
-    m_first_procs_clr.clear();
-    /* All first proc.'s (init.) */
-    m_first_procs_clr.resize(m_nCommColors,0);
-    /* Add the previous `clr's `nProc's */
-    for (int clr = 1; clr < m_nCommColors; ++clr)
-    {
-      m_first_procs_clr[clr] =
-        m_first_procs_clr[clr-1]+m_num_procs_clr[clr-1];
-    }
-    /* My proc. must be larger than my first proc. */
-    int clr = 0; my_clr = -1;
-    while (clr < m_nCommColors && MyProc() > m_first_procs_clr[clr]-1)
-    {
-      /* My color */
-      ++clr; ++my_clr;
-    }
-  }
-  else
-  {
-    /* My color */
-    my_clr = MyProc()%m_nCommColors;
-  }
-  /* Possibly adjust number of proc.'s per color */
-  m_nProcs_sub = m_num_procs_clr[my_clr];
-  /* Define `Color' */
-  m_MyCommSubColor = Color(my_clr);
-
-  return;
-} /* `init_clr_vars( ...' */
-
 void
 ParallelDescriptor::SetNProcsSidecars (const Vector<int> &compRanksInAll,
                                        const Vector<Vector<int> > &sidecarRanksInAll, bool printRanks)
@@ -681,11 +583,6 @@ ParallelDescriptor::SetNProcsSidecars (const Vector<int> &compRanksInAll,
     }
     m_comm_both.clear();
 
-    if(m_comm_sub != MPI_COMM_NULL && m_comm_sub != commTemp) {
-      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sub) );
-      m_comm_sub = MPI_COMM_NULL;
-    }
-
     if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
       m_group_comp = MPI_GROUP_NULL;
@@ -784,26 +681,6 @@ ParallelDescriptor::SetNProcsSidecars (const Vector<int> &compRanksInAll,
       }
     }
 
-    // ---- recreate the color sub communicator
-    if(m_nCommColors > 1) {
-      /* Define variables `m_nProcs_sub', `m_MyCommSubColor',
-      `m_num_procs_clr', and `m_first_procs_clr' */
-      init_clr_vars();
-      /* Special color for `CommComp's color */
-      m_MyCommCompColor = Color(m_nCommColors); 
-
-      BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
-      BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
-    } else {
-      m_nProcs_sub  = NProcs();
-      m_num_procs_clr.resize(1,0);
-      m_first_procs_clr.resize(1,0);
-      m_MyCommSubColor = Color(0);
-      m_MyCommCompColor = Color(0);
-      m_comm_sub    = Communicator();
-      m_MyId_sub    = MyProc();
-    }
-
     // ---- more error checking
     if(m_MyId_all     == myId_undefined ||
        m_MyId_comp    == myId_undefined ||
@@ -864,12 +741,8 @@ ParallelDescriptor::SetNProcsSidecars (const Vector<int> &compRanksInAll,
 #endif
 
     ParallelDescriptor::EndTeams();
-    ParallelDescriptor::EndSubCommunicator();
 
     ParallelDescriptor::StartTeams();
-    ParallelDescriptor::StartSubCommunicator();
-
-
 }
 
 void
@@ -896,58 +769,6 @@ ParallelDescriptor::SetNProcsSidecars (int nscp)
     }
 
     SetNProcsSidecars(compRanksInAll, sidecarRanksInAll);
-}
-
-void
-ParallelDescriptor::StartSubCommunicator ()
-{
-    ParmParse pp("amrex");
-    pp.query("ncolors",m_nCommColors);
-    pp.query("clr_map",m_clr_map);
-
-    if (m_nCommColors > 1)
-    {
-
-#if defined(BL_USE_MPI3) || defined(BL_USE_UPCXX)
-	//    m_nCommColors = 1;
-	amrex::Abort("amrex.ncolors > 1 not supported for MPI3 and UPCXX");
-	if (doTeamReduce())
-	    amrex::Abort("amrex.ncolors > 1 not supported with team.reduce on");	    
-#endif
-
-#ifdef BL_LAZY
-	amrex::Abort("amrex.ncolors > 1 not supported for LAZY=TRUE");
-#endif
-
-      /* Define variables `m_nProcs_sub', `m_MyCommSubColor',
-      `m_num_procs_clr', and `m_first_procs_clr' */
-      init_clr_vars();
-      /* Special color for `CommComp's color */
-      m_MyCommCompColor = Color(m_nCommColors); 
-
-      BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
-      BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
-    } else {
-	m_nCommColors = 1;
-	m_nProcs_sub  = NProcs();
-  m_num_procs_clr.resize(1,0);
-  m_first_procs_clr.resize(1,0);
-	m_MyCommSubColor = Color(0);
-	m_MyCommCompColor = Color(0);
-	m_comm_sub    = Communicator();
-	m_MyId_sub    = MyProc();
-    }
-}
-
-void
-ParallelDescriptor::EndSubCommunicator ()
-{
-    if (m_nCommColors > 1) {
-      if(m_comm_sub != MPI_COMM_NULL && m_comm_sub != Communicator()) {
-	BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sub) );
-        m_comm_sub = MPI_COMM_NULL;
-      }
-    }
 }
 
 double
@@ -1032,15 +853,13 @@ ParallelDescriptor::Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
 }
 
 void
-ParallelDescriptor::ReduceBoolAnd (bool& r, Color color)
+ParallelDescriptor::ReduceBoolAnd (bool& r)
 {
-    if (!isActive(color)) return;
-
     int src = r; // src is either 0 or 1.
 
-    util::DoAllReduceInt(src,MPI_SUM,color);
+    util::DoAllReduceInt(src,MPI_SUM);
 
-    r = (src == ParallelDescriptor::NProcs(color)) ? true : false;
+    r = (src == ParallelDescriptor::NProcs()) ? true : false;
 }
 
 void
@@ -1055,13 +874,11 @@ ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
 }
 
 void
-ParallelDescriptor::ReduceBoolOr (bool& r, Color color)
+ParallelDescriptor::ReduceBoolOr (bool& r)
 {
-    if (!isActive(color)) return;
-
     int src = r; // src is either 0 or 1.
 
-    util::DoAllReduceInt(src,MPI_SUM,color);
+    util::DoAllReduceInt(src,MPI_SUM);
 
     r = (src == 0) ? false : true;
 }
@@ -1078,23 +895,23 @@ ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Real& r, Color color)
+ParallelDescriptor::ReduceRealSum (Real& r)
 {
-    util::DoAllReduceReal(r,MPI_SUM,color);
+    util::DoAllReduceReal(r,MPI_SUM);
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Real* r, int cnt, Color color)
+ParallelDescriptor::ReduceRealSum (Real* r, int cnt)
 {
-    util::DoAllReduceReal(r,MPI_SUM,cnt,color);
+    util::DoAllReduceReal(r,MPI_SUM,cnt);
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, Color color)
+ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceReal(tmp.data(),MPI_SUM,cnt,color);
+    util::DoAllReduceReal(tmp.data(),MPI_SUM,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1124,23 +941,23 @@ ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Real& r, Color color)
+ParallelDescriptor::ReduceRealMax (Real& r)
 {
-    util::DoAllReduceReal(r,MPI_MAX,color);
+    util::DoAllReduceReal(r,MPI_MAX);
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Real* r, int cnt, Color color)
+ParallelDescriptor::ReduceRealMax (Real* r, int cnt)
 {
-    util::DoAllReduceReal(r,MPI_MAX,cnt,color);
+    util::DoAllReduceReal(r,MPI_MAX,cnt);
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, Color color)
+ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceReal(tmp.data(),MPI_MAX,cnt,color);
+    util::DoAllReduceReal(tmp.data(),MPI_MAX,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1170,23 +987,23 @@ ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real& r, Color color)
+ParallelDescriptor::ReduceRealMin (Real& r)
 {
-    util::DoAllReduceReal(r,MPI_MIN,color);
+    util::DoAllReduceReal(r,MPI_MIN);
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real* r, int cnt, Color color)
+ParallelDescriptor::ReduceRealMin (Real* r, int cnt)
 {
-    util::DoAllReduceReal(r,MPI_MIN,cnt,color);
+    util::DoAllReduceReal(r,MPI_MIN,cnt);
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, Color color)
+ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<Real> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceReal(tmp.data(),MPI_MIN,cnt,color);
+    util::DoAllReduceReal(tmp.data(),MPI_MIN,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1216,23 +1033,23 @@ ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int& r, Color color)
+ParallelDescriptor::ReduceIntSum (int& r)
 {
-    util::DoAllReduceInt(r,MPI_SUM,color);
+    util::DoAllReduceInt(r,MPI_SUM);
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int* r, int cnt, Color color)
+ParallelDescriptor::ReduceIntSum (int* r, int cnt)
 {
-    util::DoAllReduceInt(r,MPI_SUM,cnt,color);
+    util::DoAllReduceInt(r,MPI_SUM,cnt);
 }
 
 void
-ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, Color color)
+ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceInt(tmp.data(),MPI_SUM,cnt,color);
+    util::DoAllReduceInt(tmp.data(),MPI_SUM,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1262,23 +1079,23 @@ ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, i
 }
 
 void
-ParallelDescriptor::ReduceIntMax (int& r, Color color)
+ParallelDescriptor::ReduceIntMax (int& r)
 {
-    util::DoAllReduceInt(r,MPI_MAX,color);
+    util::DoAllReduceInt(r,MPI_MAX);
 }
 
 void
-ParallelDescriptor::ReduceIntMax (int* r, int cnt, Color color)
+ParallelDescriptor::ReduceIntMax (int* r, int cnt)
 {
-    util::DoAllReduceInt(r,MPI_MAX,cnt,color);
+    util::DoAllReduceInt(r,MPI_MAX,cnt);
 }
 
 void
-ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, Color color)
+ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceInt(tmp.data(),MPI_MAX,cnt,color);
+    util::DoAllReduceInt(tmp.data(),MPI_MAX,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1308,23 +1125,23 @@ ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, i
 }
 
 void
-ParallelDescriptor::ReduceIntMin (int& r, Color color)
+ParallelDescriptor::ReduceIntMin (int& r)
 {
-    util::DoAllReduceInt(r,MPI_MIN,color);
+    util::DoAllReduceInt(r,MPI_MIN);
 }
 
 void
-ParallelDescriptor::ReduceIntMin (int* r, int cnt, Color color)
+ParallelDescriptor::ReduceIntMin (int* r, int cnt)
 {
-    util::DoAllReduceInt(r,MPI_MIN,cnt,color);
+    util::DoAllReduceInt(r,MPI_MIN,cnt);
 }
 
 void
-ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, Color color)
+ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceInt(tmp.data(),MPI_MIN,cnt,color);
+    util::DoAllReduceInt(tmp.data(),MPI_MIN,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1354,23 +1171,23 @@ ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, i
 }
 
 void
-ParallelDescriptor::ReduceLongSum (long& r, Color color)
+ParallelDescriptor::ReduceLongSum (long& r)
 {
-    util::DoAllReduceLong(r,MPI_SUM,color);
+    util::DoAllReduceLong(r,MPI_SUM);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (long* r, int cnt, Color color)
+ParallelDescriptor::ReduceLongSum (long* r, int cnt)
 {
-    util::DoAllReduceLong(r,MPI_SUM,cnt,color);
+    util::DoAllReduceLong(r,MPI_SUM,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, Color color)
+ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceLong(tmp.data(),MPI_SUM,cnt,color);
+    util::DoAllReduceLong(tmp.data(),MPI_SUM,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1400,23 +1217,23 @@ ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongMax (long& r, Color color)
+ParallelDescriptor::ReduceLongMax (long& r)
 {
-    util::DoAllReduceLong(r,MPI_MAX,color);
+    util::DoAllReduceLong(r,MPI_MAX);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (long* r, int cnt, Color color)
+ParallelDescriptor::ReduceLongMax (long* r, int cnt)
 {
-    util::DoAllReduceLong(r,MPI_MAX,cnt,color);
+    util::DoAllReduceLong(r,MPI_MAX,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, Color color)
+ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceLong(tmp.data(),MPI_MAX,cnt,color);
+    util::DoAllReduceLong(tmp.data(),MPI_MAX,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1446,23 +1263,23 @@ ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongMin (long& r, Color color)
+ParallelDescriptor::ReduceLongMin (long& r)
 {
-    util::DoAllReduceLong(r,MPI_MIN,color);
+    util::DoAllReduceLong(r,MPI_MIN);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (long* r, int cnt, Color color)
+ParallelDescriptor::ReduceLongMin (long* r, int cnt)
 {
-    util::DoAllReduceLong(r,MPI_MIN,cnt,color);
+    util::DoAllReduceLong(r,MPI_MIN,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, Color color)
+ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceLong(tmp.data(),MPI_MIN,cnt,color);
+    util::DoAllReduceLong(tmp.data(),MPI_MIN,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1492,23 +1309,23 @@ ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long& r, Color color)
+ParallelDescriptor::ReduceLongAnd (long& r)
 {
-    util::DoAllReduceLong(r,MPI_LAND,color);
+    util::DoAllReduceLong(r,MPI_LAND);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long* r, int cnt, Color color)
+ParallelDescriptor::ReduceLongAnd (long* r, int cnt)
 {
-    util::DoAllReduceLong(r,MPI_LAND,cnt,color);
+    util::DoAllReduceLong(r,MPI_LAND,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, Color color)
+ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar)
 {
     int cnt = rvar.size();
     Vector<long> tmp{std::begin(rvar), std::end(rvar)};
-    util::DoAllReduceLong(tmp.data(),MPI_LAND,cnt,color);
+    util::DoAllReduceLong(tmp.data(),MPI_LAND,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
     }
@@ -1539,11 +1356,8 @@ ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar,
 
 void
 ParallelDescriptor::util::DoAllReduceReal (Real&  r,
-                                           MPI_Op op,
-					   Color  color)
+                                           MPI_Op op)
 {
-    if (!isActive(color)) return;
-
 #ifdef BL_USE_UPCXX
     Mode.set_mpi_mode();
 #endif
@@ -1577,7 +1391,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 				      1,
 				      Mpi_typemap<Real>::type(),
 				      op,
-				      Communicator(color)) );
+				      Communicator()) );
     }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, sizeof(Real), false);
     r = recv;
@@ -1586,11 +1400,8 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 void
 ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            MPI_Op op,
-                                           int    cnt,
-					   Color  color)
+                                           int    cnt)
 {
-    if (!isActive(color)) return;
-
 #ifdef BL_USE_UPCXX
     Mode.set_mpi_mode();
 #endif
@@ -1627,7 +1438,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
 				      cnt,
 				      Mpi_typemap<Real>::type(),
 				      op,
-				      Communicator(color)) );
+				      Communicator()) );
     }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, cnt * sizeof(Real), false);
     for (int i = 0; i < cnt; i++)
@@ -1742,11 +1553,8 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 
 void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
-                                           MPI_Op op,
-					   Color  color)
+                                           MPI_Op op)
 {
-    if (!isActive(color)) return;
-
 #ifdef BL_USE_UPCXX
     Mode.set_mpi_mode();
 #endif
@@ -1780,7 +1588,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
 				      1,
 				      MPI_LONG,
 				      op,
-				      Communicator(color)) );
+				      Communicator()) );
     }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, sizeof(long), false);
     r = recv;
@@ -1789,11 +1597,8 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
 void
 ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            MPI_Op op,
-                                           int    cnt,
-					   Color  color)
+                                           int    cnt)
 {
-    if (!isActive(color)) return;
-
 #ifdef BL_USE_UPCXX
     Mode.set_mpi_mode();
 #endif
@@ -1830,7 +1635,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
 				      cnt,
 				      MPI_LONG,
 				      op,
-				      Communicator(color)) );
+				      Communicator()) );
     }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, cnt * sizeof(long), false);
     for (int i = 0; i < cnt; i++)
@@ -1945,11 +1750,8 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 
 void
 ParallelDescriptor::util::DoAllReduceInt (int&   r,
-                                          MPI_Op op,
-					  Color  color)
+                                          MPI_Op op)
 {
-    if (!isActive(color)) return;
-
 #ifdef BL_USE_UPCXX
     Mode.set_mpi_mode();
 #endif
@@ -1983,7 +1785,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 				      1,
 				      MPI_INT,
 				      op,
-				      Communicator(color)));
+				      Communicator()));
     }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, sizeof(int), false);
     r = recv;
@@ -1992,11 +1794,8 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 void
 ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           MPI_Op op,
-                                          int    cnt,
-					  Color  color)
+                                          int    cnt)
 {
-    if (!isActive(color)) return;
-
 #ifdef BL_USE_UPCXX
     Mode.set_mpi_mode();
 #endif
@@ -2033,7 +1832,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
 				      cnt,
 				      MPI_INT,
 				      op,
-				      Communicator(color)));
+				      Communicator()));
     }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, cnt * sizeof(int), false);
     for (int i = 0; i < cnt; i++)
@@ -2308,20 +2107,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 }
 
 void
-ParallelDescriptor::StartSubCommunicator ()
-{
-    m_nCommColors = 1;
-    m_clr_map = 0;
-    m_nProcs_sub  = 1;
-    m_num_procs_clr.resize(1,0);
-    m_first_procs_clr.resize(1,0);
-    m_MyCommSubColor = Color(0);
-    m_MyCommCompColor = Color(0);
-    m_comm_sub    = 0;
-    m_MyId_sub    = 0;
-}
-
-void
 ParallelDescriptor::Gather (Real* sendbuf,
 			    int   nsend,
 			    Real* recvbuf,
@@ -2348,8 +2133,6 @@ ParallelDescriptor::Message::test ()
 
 void ParallelDescriptor::EndParallel () {}
 
-void ParallelDescriptor::EndSubCommunicator () {}
-
 void ParallelDescriptor::Abort (int s, bool backtrace)
 { 
     if (backtrace && amrex::system::signal_handling) {
@@ -2357,12 +2140,6 @@ void ParallelDescriptor::Abort (int s, bool backtrace)
     } else {
 	std::_Exit(EXIT_FAILURE);
     }
-}
-
-int
-ParallelDescriptor::Translate(int rk_clrd,Color clr)
-{
-    return 0;
 }
 
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
@@ -2376,86 +2153,86 @@ void ParallelDescriptor::IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 
 void ParallelDescriptor::Comm_dup (MPI_Comm, MPI_Comm&) {}
 
-void ParallelDescriptor::ReduceRealMax (Real&,Color) {}
-void ParallelDescriptor::ReduceRealMin (Real&,Color) {}
-void ParallelDescriptor::ReduceRealSum (Real&,Color) {}
+void ParallelDescriptor::ReduceRealMax (Real&) {}
+void ParallelDescriptor::ReduceRealMin (Real&) {}
+void ParallelDescriptor::ReduceRealSum (Real&) {}
 
 void ParallelDescriptor::ReduceRealMax (Real&,int) {}
 void ParallelDescriptor::ReduceRealMin (Real&,int) {}
 void ParallelDescriptor::ReduceRealSum (Real&,int) {}
 
-void ParallelDescriptor::ReduceRealMax (Real*,int,Color) {}
-void ParallelDescriptor::ReduceRealMin (Real*,int,Color) {}
-void ParallelDescriptor::ReduceRealSum (Real*,int,Color) {}
+void ParallelDescriptor::ReduceRealMax (Real*,int) {}
+void ParallelDescriptor::ReduceRealMin (Real*,int) {}
+void ParallelDescriptor::ReduceRealSum (Real*,int) {}
 
 void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
 
-void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, Color color) {}
-void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, Color color) {}
-void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, Color color) {}
+void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar) {}
+void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar) {}
+void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar) {}
 
 void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu) {}
 void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu) {}
 void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu) {}
 
-void ParallelDescriptor::ReduceLongAnd (long&,Color) {}
-void ParallelDescriptor::ReduceLongSum (long&,Color) {}
-void ParallelDescriptor::ReduceLongMax (long&,Color) {}
-void ParallelDescriptor::ReduceLongMin (long&,Color) {}
+void ParallelDescriptor::ReduceLongAnd (long&) {}
+void ParallelDescriptor::ReduceLongSum (long&) {}
+void ParallelDescriptor::ReduceLongMax (long&) {}
+void ParallelDescriptor::ReduceLongMin (long&) {}
 
 void ParallelDescriptor::ReduceLongAnd (long&,int) {}
 void ParallelDescriptor::ReduceLongSum (long&,int) {}
 void ParallelDescriptor::ReduceLongMax (long&,int) {}
 void ParallelDescriptor::ReduceLongMin (long&,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (long*,int,Color) {}
-void ParallelDescriptor::ReduceLongSum (long*,int,Color) {}
-void ParallelDescriptor::ReduceLongMax (long*,int,Color) {}
-void ParallelDescriptor::ReduceLongMin (long*,int,Color) {}
+void ParallelDescriptor::ReduceLongAnd (long*,int) {}
+void ParallelDescriptor::ReduceLongSum (long*,int) {}
+void ParallelDescriptor::ReduceLongMax (long*,int) {}
+void ParallelDescriptor::ReduceLongMin (long*,int) {}
 
 void ParallelDescriptor::ReduceLongAnd (long*,int,int) {}
 void ParallelDescriptor::ReduceLongSum (long*,int,int) {}
 void ParallelDescriptor::ReduceLongMax (long*,int,int) {}
 void ParallelDescriptor::ReduceLongMin (long*,int,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, Color color) {}
-void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, Color color) {}
-void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, Color color) {}
-void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, Color color) {}
+void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar) {}
+void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar) {}
+void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar) {}
+void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar) {}
 
 void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, int cpu) {}
 void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, int cpu) {}
 void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, int cpu) {}
 void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, int cpu) {}
 
-void ParallelDescriptor::ReduceIntSum (int&,Color) {}
-void ParallelDescriptor::ReduceIntMax (int&,Color) {}
-void ParallelDescriptor::ReduceIntMin (int&,Color) {}
+void ParallelDescriptor::ReduceIntSum (int&) {}
+void ParallelDescriptor::ReduceIntMax (int&) {}
+void ParallelDescriptor::ReduceIntMin (int&) {}
 
 void ParallelDescriptor::ReduceIntSum (int&,int) {}
 void ParallelDescriptor::ReduceIntMax (int&,int) {}
 void ParallelDescriptor::ReduceIntMin (int&,int) {}
 
-void ParallelDescriptor::ReduceIntSum (int*,int,Color) {}
-void ParallelDescriptor::ReduceIntMax (int*,int,Color) {}
-void ParallelDescriptor::ReduceIntMin (int*,int,Color) {}
+void ParallelDescriptor::ReduceIntSum (int*,int) {}
+void ParallelDescriptor::ReduceIntMax (int*,int) {}
+void ParallelDescriptor::ReduceIntMin (int*,int) {}
 
 void ParallelDescriptor::ReduceIntSum (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMax (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMin (int*,int,int) {}
 
-void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, Color color) {}
-void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, Color color) {}
-void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, Color color) {}
+void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar) {}
+void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar) {}
+void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar) {}
 
 void ParallelDescriptor::ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu) {}
 void ParallelDescriptor::ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu) {}
 void ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu) {}
 
-void ParallelDescriptor::ReduceBoolAnd (bool&,Color) {}
-void ParallelDescriptor::ReduceBoolOr  (bool&,Color) {}
+void ParallelDescriptor::ReduceBoolAnd (bool&) {}
+void ParallelDescriptor::ReduceBoolOr  (bool&) {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool&,int) {}
 void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
@@ -2488,11 +2265,7 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
     switch(getsetinc) {
       case 0:  // ---- increment and return result
       {
-        if (NColors() == 1) { 
-	    ++seqno;
-        } else {
-	    seqno += 2;
-        } 
+          ++seqno;
       }
       break;
       case 1:  // ---- get current seqno

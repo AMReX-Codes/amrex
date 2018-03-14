@@ -1,4 +1,5 @@
 #include <AMReX_ParallelContext.H>
+#include <AMReX_ParallelDescriptor.H>
 
 namespace amrex {
 namespace ParallelContext {
@@ -9,9 +10,8 @@ Vector<Frame> frames; // stack of communicator frames
 // probably somewhere inside amrex::Initialize()
 void init () {
     // initialize "global" first frame in stack to ParallelDescriptor's communicator
-    int glo_rank_n, glo_rank_me;
-    MPI_Comm_size(ParallelDescriptor::Communicator(), &glo_rank_n);
-    MPI_Comm_rank(ParallelDescriptor::Communicator(), &glo_rank_me);
+    int glo_rank_n = ParallelDescriptor::NProcs();
+    int glo_rank_me = ParallelDescriptor::MyProc();
     frames.emplace_back(ParallelDescriptor::Communicator(), 0, glo_rank_n, glo_rank_me);
 }
 
@@ -58,15 +58,21 @@ int split (const Vector<int> &task_rank_n)
     }
     AMREX_ASSERT(task_me < task_n);
 
+#ifdef BL_USE_MPI
     MPI_Comm new_comm;
     MPI_Comm_split(Communicator(), task_me, MyProc(), &new_comm);
+#else
+    MPI_Comm new_comm = Communicator();
+#endif
 
     frames.emplace_back(new_comm, new_glo_rank_lo, new_glo_rank_hi, new_loc_rank_me);
     return task_me;
 }
 
 void unsplit () {
+#ifdef BL_USE_MPI
     MPI_Comm_free(&frames.back().comm);
+#endif
     frames.pop_back();
 }
 

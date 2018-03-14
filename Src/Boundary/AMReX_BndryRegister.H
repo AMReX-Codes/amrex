@@ -115,9 +115,6 @@ public:
     //! Return the number of grids in this domain.
     int size () const { return grids.size(); }
 
-    //! Return color
-    ParallelDescriptor::Color color() const { return bndry[0].color(); }
-
     //! Return const set of FABs bounding the domain grid boxes on a given orientation
     const FabSet& operator[] (Orientation face) const { return bndry[face]; }
 
