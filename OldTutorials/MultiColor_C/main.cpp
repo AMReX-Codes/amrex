@@ -12,6 +12,8 @@
 using namespace amrex;
 
 namespace {
+    int ncolors = 2;
+    
     int ncomp  = 8;
     Real a     = 1.e-3;
     Real b     = 1.0;
@@ -54,6 +56,8 @@ int main(int argc, char* argv[])
     {
 	ParmParse pp;
 	
+        pp.query("ncolors", ncolors);
+
 	pp.query("verbose", verbose);
 
 	int n_cell, max_grid_size;
@@ -193,8 +197,8 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 void solve(MultiFab& soln, const MultiFab& rhs, 
 	   const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
 {
-    // evenly split ranks among NColors() tasks
-    ForkJoin fj(ParallelDescriptor::NColors());
+    // evenly split ranks among ncolors tasks
+    ForkJoin fj(ncolors);
 
     // register how to copy multifabs to/from tasks
     fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::split, ForkJoin::Intent::in);

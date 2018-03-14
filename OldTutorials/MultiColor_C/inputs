@@ -1,4 +1,4 @@
-amrex.ncolors = 2
+ncolors = 2
 
 verbose = 1
 
