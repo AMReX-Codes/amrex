@@ -1,16 +1,17 @@
 
-#ifndef _INDEXEDMOMENTS_H_
-#define _INDEXEDMOMENTS_H_
+#ifndef _FNERGINDEXEDMOMENTS_H_
+#define _FNERGINDEXEDMOMENTS_H_
 
 #include "AMReX_IndexTM.H"
 #include "AMReX_Vector.H"
 #include "AMReX_SPACE.H"
-#include "AMReX_CH_EBIS_ORDER.H"
-
+#include "AMReX_MonomialPowers.H"
+#include "AMReX_MomentIterator.H"
+#include "AMReX_Factorial.H"
+#include <map>
 
 using std::map;
-
-#define CH_IM_MAX_POWER  8
+using amrex::Vector;
 
 //! \class IndexedMoments
 //! Vector-like container for multi-indexed Real values up to 
@@ -22,12 +23,19 @@ class IndexedMoments
 {
 public:
   /// constructor---make statics first time called
-  IndexedMoments();
-
+  IndexedMoments()
+    {
+      m_moms.resize(size());
+      m_isRegular = 0;
+    }
 
   //! Destructor
   ~IndexedMoments() {};
 
+  static int size()
+    {
+      return MonomialPowers<Dim,P>::size();
+    }
 
   //! Retrieve the moment from the index 
   //! \params a_index The lexigraphical index to the data
@@ -58,21 +66,26 @@ public:
     };
 
   ///add compoenentwise
-  IndexedMoments<Dim, P>&  operator+=(const IndexedMoments<Dim, P>& increment);
+  IndexedMoments<Dim, P>&  operator+=(const IndexedMoments<Dim, P>& a_input)
+    {
+      for(MomentIterator<Dim,P> it; it.ok(); ++it)
+      {
+        (*this)[it()] += a_input[it()];
+      }
+      return *this;
+    }
 
   ///multiply each component by constant
-  IndexedMoments<Dim, P>&  operator*=(const Real& a_factor);
-
-
-  ///number of reals in the vector
-  static int size()
+  IndexedMoments<Dim, P>&  operator*=(const Real& a_factor)
     {
-      if(!s_staticsSet) 
+      for(MomentIterator<Dim,P> it; it.ok(); ++it)
       {
-        setStatics();
+        (*this)[it()] *= a_factor;
       }
-      return s_size;
+      return *this;
     }
+
+
 
   ///for linearization
   static size_t linearSize()
@@ -112,17 +125,39 @@ public:
     }
 
   /// set to a regular IndexTM
-  void setRegular(const Real a_dx);
-
-  ///monomial powers 
-  static const Vector<IndexTM<int,Dim> >& getMonomialPowers()
+  void setRegular(const Real a_dx)
     {
-      if(!s_staticsSet) 
+      BL_ASSERT(a_dx > 0);
+      m_isRegular = 1;
+
+      // Get the set of multi-indexes in the correct order
+      const Vector<IndexTM<int,Dim> >& mix = IndexedMoments<Dim, P>::getMonomialPowers();
+
+      // pout() << "Regular moments:" << endl;
+      for (int ix=0; ix < mix.size(); ++ix)
       {
-        setStatics();
+        IndexTM<int,Dim> index = mix[ix];
+
+        bool even = true;
+        for (int d=0; (even) && (d < Dim); ++d)
+          even = even && !(index[d] % 2);
+
+        //! Only moments with an even multi-index are non-zero
+        Real moment = 0;
+        if (even)
+        {
+          moment = POW(0.5 * a_dx, index.sum()) * std::pow(a_dx, Dim);
+          for (int d=0; d < Dim; ++d)
+            moment /= (Real) (index[d]+1);
+        }
+        m_moms[ix] = moment;
+
+        // pout() << ix << ": " << index << " = " << moment << endl;
       }
-      return s_multiIndicies;
+
     }
+
+
 
   ///
   bool isRegular() const
@@ -131,7 +166,18 @@ public:
     }
 
   /// for use with irregnode
-  IndexedMoments<Dim, P>& operator=(const map<IndexTM<int, Dim>,  Real>& a_mapin);
+  IndexedMoments<Dim, P>& operator=(const map<IndexTM<int, Dim>,  Real>& a_mapin)
+    {
+  
+      for(MomentIterator<Dim, P> iter; iter.ok(); ++iter)
+      {
+        IndexTM<int, Dim> mono = iter();
+        Real moment= getMoment(iter(), a_mapin);
+        (*this)[iter()] = moment;
+      }
+      return *this;
+    }
+
 
   /// 
   IndexedMoments<Dim, P>& operator=(const IndexedMoments<Dim, P>& a_input)
@@ -151,24 +197,71 @@ public:
      this changes the current object from integral(x^p)
      to integral((x+x0)^p), where x0 = a_distance
   */
-  void shift(const IndexTM<Real, Dim>& a_distance);
+  void shift(const IndexTM<Real, Dim>& a_distance)
+    {
+      IndexTM<Real, Dim> x = a_distance;
+
+      IndexedMoments<Dim, P> retval = *this;
+      for(MomentIterator<Dim,P> itouter; itouter.ok(); ++itouter)
+      {
+        IndexTM<int, Dim> r = itouter();
+        // - use the binomial shift rule to move them to a_x0
+        Real moment = 0.0;
+        for(MomentIterator<Dim,P> itinner; itinner.ok(); ++itinner)
+        {
+          IndexTM<int, Dim> q = itinner();
+         
+          if(q.componentwiseLE(r))
+          {
+            IndexTM<int, Dim> p = r - q;
+            Real m0 = (*this)[q];
+            Real xpow = 1;
+            for(int idir = 0; idir < Dim; idir++)
+            {
+              xpow *=  std::pow(x[idir], p[idir]);
+            }
+              
+            moment += pCk<Dim>(r, q) * xpow * m0;
+            
+          } //end if (q <= r)
+        }//end loop over inner moments
+        retval[r] = moment;
+      }
+      *this = retval;
+    }
   
   ///
   void setToZero()
     {
-      for(int ivec = 0; ivec < s_size; ivec++)
+      for(int ivec = 0; ivec < size(); ivec++)
       {
         m_moms[ivec] = 0.;
       }
     }
 
   /// Calculate what linear index this multi-index is
-  static int indexOf(IndexTM<int,Dim> a_index);
+  static int indexOf(IndexTM<int,Dim> a_index)
+    {
+      BL_ASSERT(a_index.sum() <= P);
+      BL_ASSERT(allPositive(a_index));
+
+      // Formula for the layout index with 0th dim first, then 1st, etc.
+      int index = a_index[0];
+      int rem = P;
+      for (int d=Dim-1; d > 0; --d)
+      {
+        index += s_mpowers_max_sizes[d][rem] - s_mpowers_max_sizes[d][rem-a_index[d]];
+        rem -= a_index[d];
+      }
+
+      return index;
+    }
 
   ///
   static IndexTM<int,Dim> getIndex(const int& a_linearIndex)
     {
-      return s_multiIndicies[a_linearIndex];
+      const Vector<IndexTM<int, Dim> >& multiIndices = MonomialPowers<Dim,P>::getMonomialPowers();
+      return multiIndices[a_linearIndex];
     }
 
   ///
@@ -183,15 +276,52 @@ public:
      We drop all coefficents for powers s.t. p + q > P.
   */
   void setToTruncatedMultiply(const IndexedMoments<Dim, P> & a_CA,
-                              const IndexedMoments<Dim, P> & a_CB);
+                              const IndexedMoments<Dim, P> & a_CB)
+    {
+      this->setToZero();
+      //here we are computing sum(m_p) = integral(ni(x-xbar)^p1/p! (x-xbar)^p2)
+      // = sum_p2 ((n^p2)/p2!) m_p+p12
+      for(MomentIterator<Dim, P> momitOuter; momitOuter.ok(); ++momitOuter)
+      {
+        //this is where the answer goes 
+        IndexTM<int,BL_SPACEDIM>  po = momitOuter();
 
+        for(MomentIterator<Dim, P> momitInner; momitInner.ok(); ++momitInner)
+        {
+          IndexTM<int,Dim> pi = momitInner();
+          IndexTM<int,Dim> psum = po + pi;
+          if(psum.sum() <= P)
+          {
+            Real incr = a_CA[pi]*a_CB[po];
+            (*this)[psum] += incr;
+          }
+        }
+      }
 
+    }
 
   ///divides each entry by p!
-  void divideByFactorial();
+  void divideByFactorial()
+    {
+      for(MomentIterator<Dim, P> momit; momit.ok(); ++momit)
+      {
+        IndexTM<int,Dim>  p = momit();
+        Real factorial = pfactorial(p);
+        (*this)[p] /= factorial;
+      }
+    }
+
 
   ///multiply each entry by p!
-  void multiplyByFactorial();
+  void multiplyByFactorial()
+    {
+      for(MomentIterator<Dim, P> momit; momit.ok(); ++momit)
+      {
+        IndexTM<int,Dim>  p = momit();
+        Real factorial = pfactorial(p);
+        (*this)[p] *= factorial;
+      }
+}
 
 protected:
 
@@ -200,24 +330,6 @@ protected:
   getMoment(const IndexTM<int, Dim>        & a_mono,
             const map<IndexTM<int, Dim>,  Real>& a_mapin) const;
 
-  ///
-  static void setStatics();
-  
-  ///
-  static bool s_staticsSet;
-
-  ///
-  static  int s_size;
-
-  ///
-  static Vector<IndexTM<int,Dim> > s_multiIndicies;
-
-  ///
-  static void setMultiIndicies();
-
-  ///
-  static void setSize();
-  
 private:
 
   // Indicator that we contain only "full" moments
@@ -226,7 +338,6 @@ private:
   // Our moments to store    
   Vector<Real> m_moms;
 
-  static const int s_max_sizes[][CH_IM_MAX_POWER+1];
 }; 
 
 /// Calculate what linear index this multi-index is 
@@ -318,37 +429,6 @@ getIndMomSize(const int             & a_order)
   return retval;
 }
 
-///to see if all powers of p are even
-template<int Dim>
-bool allEven(const IndexTM<int, Dim>& a_p)
-{
-  bool retval = true;
-  for(int idir = 0; idir < Dim; idir++)
-  {
-    if(a_p[idir]%2 != 0)
-    {
-      retval = false;
-      break;
-    }
-  }
-  return retval;
-}
-
-/// computes x^p
-template<int Dim>
-Real 
-POW(const Real& a_x,  const IndexTM<int, Dim> a_p)
-{
-  Real retval = 1;
-  for(int idir = 0; idir < Dim; idir++)
-  {
-    for(int iexp = 0; iexp < a_p[idir]; iexp++)
-    {
-      retval *= a_x;
-    }
-  }
-  return retval;
-}
 ///
 /**
    Moments are centered at the center of the cell.
@@ -367,40 +447,126 @@ checkMoments(IndexedMoments<Dim, ORDER> & a_moments,
              const Real                 & a_dx,
              const Real                 & a_tolerance,
              const bool                 & a_ebMoment,
-             const bool                 & a_bindMoments);
+             const bool                 & a_bindMoments)
+{
+  MomentIterator<Dim, ORDER> momit;
+  a_bogusPowers.resize(0);
+  Real cellvol = 1;
+  for(int idir = 0; idir < Dim; idir++)
+  {
+    cellvol *= a_dx;
+  }
+
+  //shift moments to lowest corner 
+  IndexTM<Real, Dim> shiftvec;
+  shiftvec.setAll(0.5*a_dx);
+  a_moments.shift(shiftvec);
+
+  //because they are all shifted, to the lowest 
+  //min is always zero.
+  const Real zerval = 0;
+  for(momit.reset(); momit.ok(); ++momit)
+  {
+    const IndexTM<int, Dim>& p = momit();
+    //this makes max = dx^p
+    Real maxval = POW<Dim>(a_dx, p);
+    //because this is a vol integral...
+    maxval *= cellvol;
+    //this is a reference so it will change the input
+    Real& momval = a_moments[p];
+    if(momval < zerval)
+    {
+      if((zerval - momval) > a_tolerance*maxval)
+      {
+        a_bogusPowers.push_back(p);
+        //              MayDay::Error("minval break low");
+      }
+      if(a_bindMoments)
+      {
+        momval = zerval;
+      }
+    }
+    else if((momval > maxval) && (!a_ebMoment))
+    {
+      if((momval - maxval) > a_tolerance*maxval)
+      {
+        a_bogusPowers.push_back(p);
+        //              MayDay::Error("maxval break");
+      }
+      if(a_bindMoments)
+      {
+        momval = maxval;
+      }
+    }
+  }
+
+  //shift moments back to highest corner 
+  shiftvec.setAll(-a_dx);
+  a_moments.shift(shiftvec);
+
+  //because the moments are shifted to the highest corner
+  //even powers will always be positive, odd ones will always be negtive
+  for(momit.reset(); momit.ok(); ++momit)
+  {
+    const IndexTM<int, Dim>& p = momit();
+    int psum = p.sum();
+    bool pEven = (psum % 2 == 0);
+    Real& momval = a_moments[p];
+    //this makes max = dx^p
+    Real maxval = POW<Dim>(a_dx, p);
+    //because this is a vol integral...
+    maxval *= cellvol;
+    if(pEven && (momval < zerval) && (!a_ebMoment))
+    {
+      //p has an  sum and therefore the moment should be positive
+      if(momval < -a_tolerance*maxval )
+      {
+        a_bogusPowers.push_back(p);
+        //              MayDay::Error("high corner break even");
+      }
+      if(a_bindMoments)
+      {
+        momval = 0;
+      }
+    }
+    else if(!pEven && (momval > zerval) && (!a_ebMoment))
+    {
+      //p has an odd sum and therefore the moment should be negative
+      if(momval > a_tolerance*maxval)
+      {
+        a_bogusPowers.push_back(p);
+        //              MayDay::Error("high corner break odd");
+      }
+      if(a_bindMoments)
+      {
+        momval = 0;
+      }
+    }
+  }
+
+  //shift moments back to cell center
+  shiftvec.setAll(0.5*a_dx);
+  a_moments.shift(shiftvec);
+}
+
 
 ///
 /**
    return true if all of a_index >= 0, false otherwise
 */
 template <int Dim>
-bool allPositive(const IndexTM<int, Dim>& a_index); 
+bool allPositive(const IndexTM<int, Dim>& a_index)
+{
+  bool allpos = true;
+  for(int idir = 0; idir < Dim; idir++)
+  {
+    if(a_index[idir] < 0)
+    {
+      allpos = false;
+    }
+  }
+  return allpos;
+}
 
-/**/
-///template specializations for debugger
-/**
-   template< >
-   void
-   checkMoments(IndexedMoments<SpaceDim, CH_EBIS_ORDER> & a_moments,
-   Vector<IndexTM<int, SpaceDim> > & a_bogusPowers,
-   const Real                 & a_dx,
-   const Real                 & a_tolerance,
-   const bool                 & a_ebMoment,
-   const bool                 & a_bindMoments);
-
-
-   template< >
-   void
-   checkMoments(IndexedMoments<SpaceDim-1, CH_EBIS_ORDER> & a_moments,
-   Vector<IndexTM<int, SpaceDim-1> > & a_bogusPowers,
-   const Real                 & a_dx,
-   const Real                 & a_tolerance,
-   const bool                 & a_ebMoment,
-   const bool                 & a_bindMoments);
-**/
-
-
-
-#include "AMReX_IndexedMomentsImplem.H"
 
 #endif
