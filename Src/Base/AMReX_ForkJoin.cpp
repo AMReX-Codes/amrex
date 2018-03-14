@@ -2,6 +2,40 @@
 
 namespace amrex {
 
+ForkJoin::ForkJoin (Vector<int> trn)
+    : task_rank_n(std::move(trn))
+{
+    auto rank_n = ParallelContext::NProcs(); // number of ranks in current frame
+    AMREX_ASSERT(task_n() >= 2);
+    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
+}
+
+ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
+{
+    auto rank_n = ParallelContext::NProcs(); // number of ranks in current frame
+    auto ntasks = task_rank_pct.size();
+    AMREX_ASSERT(ntasks >= 2);
+    task_rank_n.resize(ntasks);
+    int prev = 0;
+    double accum = 0;
+    for (int i = 0; i < ntasks; ++i) {
+        accum += task_rank_pct[i];
+        int cur = std::round(rank_n * accum);
+        task_rank_n[i] = cur - prev;
+            prev = cur;
+    }
+    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
+}
+
+void ForkJoin::reg_mf (MultiFab &mf, const std::string &name, int idx,
+                     Strategy strategy, Intent intent, int owner)
+{
+    if (idx >= data[name].size()) {
+        data[name].resize(idx + 1);
+    }
+    data[name][idx] = MFFork(&mf, strategy, intent, owner);
+}
+
 // this is called before ParallelContext::split
 // the parent task is the top frame in ParallelContext's stack
 void ForkJoin::copy_data_to_tasks ()
