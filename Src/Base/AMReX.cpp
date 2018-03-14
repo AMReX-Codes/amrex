@@ -10,6 +10,7 @@
 
 #include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParallelContext.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
@@ -299,6 +300,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fb_win) );
 #endif
 
+    ParallelContext::init();
+
     while ( ! The_Initialize_Function_Stack.empty())
     {
         //
@@ -482,6 +485,8 @@ amrex::Finalize (bool finalize_parallel)
     ParallelDescriptor::EndTeams();
 
     ParallelDescriptor::EndSubCommunicator();
+
+    ParallelContext::finalize();
 
 #ifdef BL_USE_UPCXX
     upcxx::finalize();
