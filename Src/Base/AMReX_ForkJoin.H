@@ -17,57 +17,16 @@ class ForkJoin
     };
     enum class Intent { in, out, inout };
 
-    struct MFFork
-    {
-        MultiFab *orig;
-        Strategy strategy;
-        Intent intent;
-        int owner_task; // only used if strategy == single or duplicate
-        Vector<MultiFab> forked; // holds new multifab for each task in fork
+    ForkJoin (Vector<int> trn);
 
-        MFFork () = default;
-        MFFork (const MFFork&) = delete;
-        MFFork& operator= (const MFFork&) = delete;
-        MFFork (MFFork&&) = default;
-        MFFork& operator= (MFFork&&) = default;
-        MFFork (MultiFab *omf, Strategy s = Strategy::duplicate,
-                Intent i = Intent::inout, int own = -1)
-            : orig(omf), strategy(s), intent(i), owner_task(own) {}
-    };
-
-    ForkJoin (Vector<int> trn) : task_rank_n(std::move(trn)) {
-        auto rank_n = ParallelContext::NProcs(); // number of ranks in current frame
-        AMREX_ASSERT(task_n() >= 2);
-        AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
-    }
-
-    ForkJoin (const Vector<double> &task_rank_pct) {
-        auto rank_n = ParallelContext::NProcs(); // number of ranks in current frame
-        auto ntasks = task_rank_pct.size();
-        AMREX_ASSERT(ntasks >= 2);
-        task_rank_n.resize(ntasks);
-        int prev = 0;
-        double accum = 0;
-        for (int i = 0; i < ntasks; ++i) {
-            accum += task_rank_pct[i];
-            int cur = std::round(rank_n * accum);
-            task_rank_n[i] = cur - prev;
-            prev = cur;
-        }
-        AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
-    }
+    ForkJoin (const Vector<double> &task_rank_pct);
 
     ForkJoin (int ntasks) : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
 
     int task_n () const { return task_rank_n.size(); }
 
     void reg_mf (MultiFab &mf, const std::string &name, int idx,
-                 Strategy strategy, Intent intent, int owner = -1) {
-        if (idx >= data[name].size()) {
-            data[name].resize(idx + 1);
-        }
-        data[name][idx] = MFFork(&mf, strategy, intent, owner);
-    }
+                 Strategy strategy, Intent intent, int owner = -1);
 
     void reg_mf (MultiFab &mf, const std::string &name,
                  Strategy strategy, Intent intent, int owner = -1) {
@@ -143,6 +102,25 @@ class ForkJoin
     }
 
   private:
+
+    struct MFFork
+    {
+        MultiFab *orig;
+        Strategy strategy;
+        Intent intent;
+        int owner_task; // only used if strategy == single or duplicate
+        Vector<MultiFab> forked; // holds new multifab for each task in fork
+
+        MFFork () = default;
+        MFFork (const MFFork&) = delete;
+        MFFork& operator= (const MFFork&) = delete;
+        MFFork (MFFork&&) = default;
+        MFFork& operator= (MFFork&&) = default;
+        MFFork (MultiFab *omf, Strategy s = Strategy::duplicate,
+                Intent i = Intent::inout, int own = -1)
+            : orig(omf), strategy(s), intent(i), owner_task(own) {}
+    };
+
     Vector<int> task_rank_n; // number of ranks in each forked task
     int task_me = -1; // task the current rank belongs to
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
