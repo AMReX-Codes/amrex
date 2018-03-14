@@ -3,6 +3,7 @@
 #define ____MOMENTITERATOR_H_
 #include "AMReX_IndexTM.H"
 #include "AMReX_Vector.H"
+#include "AMReX_MonomialPowers.H"
 
 using amrex::Vector;
 ///class to enable template containment
@@ -49,7 +50,11 @@ public:
   ///
   /**
    */
-  MomentIterator();
+  MomentIterator()
+    {
+      m_indicies = &(MonomialPowers<D,P>::getMonomialPowers());
+      m_current = 0;
+    }
 
   ///
   virtual ~MomentIterator()
@@ -103,5 +108,5 @@ protected:
 
 };
 
-#include "AMReX_MomentIteratorImplem.H"
+//#include "AMReX_MomentIteratorImplem.H"
 #endif

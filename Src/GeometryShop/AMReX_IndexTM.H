@@ -521,6 +521,37 @@ template<> struct IndexTraits<Real>
 template <typename T, int N> const IndexTM<T,N> IndexTM<T,N>::Zero("0");
 template <typename T, int N> const IndexTM<T,N> IndexTM<T,N>::Unit("1");
 
+///to see if all powers of p are even
+template<int Dim>
+bool allEven(const IndexTM<int, Dim>& a_p)
+{
+  bool retval = true;
+  for(int idir = 0; idir < Dim; idir++)
+  {
+    if(a_p[idir]%2 != 0)
+    {
+      retval = false;
+      break;
+    }
+  }
+  return retval;
+}
+
+/// computes x^p
+template<int Dim>
+Real 
+POW(const Real& a_x,  const IndexTM<int, Dim> a_p)
+{
+  Real retval = 1;
+  for(int idir = 0; idir < Dim; idir++)
+  {
+    for(int iexp = 0; iexp < a_p[idir]; iexp++)
+    {
+      retval *= a_x;
+    }
+  }
+  return retval;
+}
 
 
 #include "AMReX_IndexTMI.H"
