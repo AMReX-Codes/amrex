@@ -48,7 +48,6 @@ void single_component_solve(MultiFab& soln, const MultiFab& rhs,
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-    ParallelContext::init();
 
     BoxArray ba;
     Geometry geom;
