@@ -12,8 +12,6 @@ EBASE = main
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-CEXE_sources += $(EBASE).cpp AMReX_ParallelContext.cpp AMReX_ForkJoin.cpp
-
 include Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package

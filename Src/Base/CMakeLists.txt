@@ -23,6 +23,9 @@ list ( APPEND ALLHEADERS AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H 
 
 list ( APPEND ALLHEADERS AMReX_ParallelReduce.H )
 
+list ( APPEND ALLHEADERS AMReX_ForkJoin.H AMReX_ParallelContext.H )
+list ( APPEND CXXSRC     AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp )
+
 list ( APPEND CXXSRC     AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp )
 list ( APPEND ALLHEADERS AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H )
 
