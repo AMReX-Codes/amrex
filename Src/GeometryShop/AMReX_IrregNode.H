@@ -27,15 +27,12 @@ namespace amrex
     ~IrregNode(){;}
 
     ///return the index into the arc vectors
-    static int index(int a_idir, Side::LoHiSide a_side) {
+    static int index(int a_idir, Side::LoHiSide a_side) 
+      {
         AMREX_ASSERT(a_idir >= 0 && a_idir < SpaceDim);
         return (a_side == Side::Lo) ? a_idir : a_idir+SpaceDim;
-    }
-
-    void setMomentsToZero()
-      {
-        amrex::Abort("not implemented");
       }
+
     ///
     IntVect     m_cell;
     ///data for irregular nodes
@@ -85,6 +82,7 @@ namespace amrex
     **/
     IndMomSpaceDim m_EBMoments;
   
+    IndMomSpaceDim m_volumeMoments;
     IndMomSpaceDim m_normalPartialDeriv[SpaceDim];
     ///face centered moments
     /// the moment at  the face associated with the  monomial with the input exponents 
@@ -95,6 +93,37 @@ namespace amrex
     IndMomSDMinOne m_faceMoments[2*SpaceDim];
 
     ///
+    void setMomentsToRegular(const Real& a_dx)
+      {
+        //no eb for regular
+        m_EBMoments.setToZero();
+        for(int idir  = 0; idir < SpaceDim; idir++)
+        {
+          m_normalPartialDeriv[idir].setToZero();
+        }
+        m_volumeMoments.setRegular(a_dx);
+        for(int iface  = 0; iface < 2*SpaceDim; iface++)
+        {
+          m_faceMoments[iface].setRegular(a_dx);
+        }
+      }
+        
+    ///
+    void setMomentsToZero()
+      {
+        m_volumeMoments.setToZero();
+        m_EBMoments.setToZero();
+        for(int idir  = 0; idir < SpaceDim; idir++)
+        {
+          m_normalPartialDeriv[idir].setToZero();
+        }
+        for(int iface  = 0; iface < 2*SpaceDim; iface++)
+        {
+          m_faceMoments[iface].setToZero();
+        }
+      }
+
+    ///
     /**
        helper function for construction.  makes irregular cell
        that has connectivitity and values like a regular cell, this
@@ -103,6 +132,8 @@ namespace amrex
     */
     void makeRegular(const IntVect& iv, const Real& a_dx, const Box& a_domain);
 
+/*******************************/
+    void setNormalizedStuff(const Real& a_dx);
   };
 }
 #endif

@@ -58,6 +58,7 @@ public:
   virtual Real value(const IndexTM<int, dim> & a_partialDerivative,
                      const IndexTM<Real,dim> & a_point)const;
 
+
   /// output function
   /**
      output function
@@ -113,8 +114,22 @@ public:
      Represent the partial derivative as a list of integers.
      Return the partial derivative evaluated at a_point.
   */
+  virtual Real value(const IndexTM<int, BL_SPACEDIM> & a_partialDerivative,
+                     const IndexTM<Real,BL_SPACEDIM> & a_point)const
+    {
+      RealVect rvpt;
+      IntVect  ivdr;
+      for(int idir = 0; idir < BL_SPACEDIM; idir++)
+      {
+        rvpt[idir] = a_point[idir];
+        ivdr[idir] = a_partialDerivative[idir];
+      }
+      return value(ivdr, rvpt);
+    }
+
   virtual Real value(const IntVect  & a_partialDerivative,
                      const RealVect & a_point) const;
+
 
   void print(ostream& a_out) const;
 
