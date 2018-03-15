@@ -2,7 +2,7 @@
 #define AMREX_PARALLELCONTEXT_H
 
 #include <AMReX_Vector.H>
-#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ccse-mpi.H>
 
 namespace amrex {
 namespace ParallelContext {
