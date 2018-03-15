@@ -239,7 +239,14 @@ MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
 Real
 MLCGSolver::norm_inf (const MultiFab& res, bool local)
 {
-    Real result = res.norm0(0,0,true);
+    int ncomp = res.nComp();
+    Real result = std::numeric_limits<Real>::max();
+    for (int n=0; n<ncomp; n++)
+      {
+	Real tmp_result = res.norm0(n,0,true);
+	if (tmp_result < result)
+	  result = tmp_result;
+      }
     if (!local) {
         ParallelAllReduce::Max(result, Lp.BottomCommunicator());
     }
