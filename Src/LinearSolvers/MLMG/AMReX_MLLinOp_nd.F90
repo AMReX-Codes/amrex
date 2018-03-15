@@ -29,13 +29,8 @@ module amrex_mllinop_nd_module
 
 contains
 
-  subroutine amrex_mllinop_apply_bc (lo, hi, &
-       phi, hlo, hhi, &
-       mask, mlo, mhi, &
-       cdir, bct, bcl, &
-       bcval, blo, bhi, &
-       maxorder, dxinv, inhomog, &
-       nc) &
+  subroutine amrex_mllinop_apply_bc (lo, hi, phi, hlo, hhi, mask, mlo, mhi, &
+       cdir, bct, bcl, bcval, blo, bhi, maxorder, dxinv, inhomog, nc) &
        bind(c,name='amrex_mllinop_apply_bc')
     integer, dimension(3), intent(in) :: lo, hi, hlo, hhi, mlo, mhi, blo, bhi
     integer, value, intent(in) :: cdir, bct, maxorder, inhomog, nc

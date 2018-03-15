@@ -917,7 +917,6 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         }
     }
 
-    //const int nc = a_sol[0]->nComp();
     int ng = linop.isCellCentered() ? 0 : 1;
     linop.make(res, ncomp, ng);
     linop.make(rescor, ncomp, ng);

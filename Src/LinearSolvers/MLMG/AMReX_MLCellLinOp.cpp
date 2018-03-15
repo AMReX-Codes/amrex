@@ -34,7 +34,6 @@ MLCellLinOp::defineAuxData ()
 
     const int ncomp = getNComp();
 
-
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_undrrelxr[amrlev].resize(m_num_mg_levels[amrlev]);
@@ -462,18 +461,16 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
             int  bct = bdc[ori];
 
 	    foo.setVal(10.0);
-	    
-	    const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
+            const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
 
             const Mask& m = maskvals[ori][mfi];
-	    
-            amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),     // lo, hi
-                                   BL_TO_FORTRAN_ANYD(iofab),  // phi, hlo, hhi
-                                   BL_TO_FORTRAN_ANYD(m),      // mask, mlo, mhi
-                                   cdr, bct, bcl,              // cdir, bct, bcl
-                                   BL_TO_FORTRAN_ANYD(fsfab),  // bcval, blo, bhi
-                                   maxorder, dxinv, flagbc,
-				   ncomp);
+
+            amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
+                                   BL_TO_FORTRAN_ANYD(iofab),
+                                   BL_TO_FORTRAN_ANYD(m),
+                                   cdr, bct, bcl,
+                                   BL_TO_FORTRAN_ANYD(fsfab),
+                                   maxorder, dxinv, flagbc, ncomp);
         }
     }
 }
@@ -668,7 +665,6 @@ MLCellLinOp::getNComp() const
   // Default is single component operator, but can be overridden by derived classes.
   return 1;
 }
-
 
 MLCellLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm)
     : bcond(ba, dm),

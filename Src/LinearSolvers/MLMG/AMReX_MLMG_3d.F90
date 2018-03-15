@@ -42,7 +42,7 @@ contains
              end do
           end do
        end do
-
+       
     else if (ratio == 4) then
 
        do n = 1, nc
@@ -57,7 +57,7 @@ contains
              end do
           end do
        end do
-
+       
     else
 
        call amrex_abort("amrex_mlmg_lin_cc_interp: only ratio 2 and 4 are supported")
@@ -126,7 +126,6 @@ contains
 
     k = chi(3)
     kk = k*2
-
     do n = 1, nc
        do j = clo(2), chi(2)-1
           jj = j*2
