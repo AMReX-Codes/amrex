@@ -456,8 +456,6 @@ ParallelDescriptor::SetNProcsSidecars (const Vector<int> &compRanksInAll,
     bool inComp(false);
     nSidecars = sidecarRanksInAll.size();
 
-    MPI_Comm commTemp = Communicator();  // ---- save to compare later
-
     // ---- check validity of the rank arrays and set inComp
     if(compRanksInAll[0] != 0) {  // ---- we require this for now
       amrex::Abort("**** Error in SetNProcsSidecars:  compRanksInAll[0] != 0");
