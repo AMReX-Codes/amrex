@@ -706,8 +706,6 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 
     const int ncomp = rhs.nComp();
       
-    std::cout << __FILE__ << ":" << __LINE__ << "rhs.ncomp = " << rhs.nComp() << std::endl;
-
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
     int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
