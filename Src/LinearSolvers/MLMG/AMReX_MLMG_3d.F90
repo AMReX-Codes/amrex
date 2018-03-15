@@ -16,7 +16,7 @@ contains
     real(amrex_real), intent(in   ) :: cc(cclo(1):cchi(1),cclo(2):cchi(2),cclo(3):cchi(3),nc)
     real(amrex_real), intent(inout) :: ff(fflo(1):ffhi(1),fflo(2):ffhi(2),fflo(3):ffhi(3),nc)
 
-    integer :: i,j,k,n ic, jc, kc, ioff, joff, koff
+    integer :: i,j,k,n, ic, jc, kc, ioff, joff, koff
 
     if (ratio == 2) then
 
@@ -71,8 +71,8 @@ contains
        bind(c,name='amrex_mlmg_lin_nd_interp')
     integer, dimension(3) :: clo, chi, flo, fhi, fdlo, fdhi, cdlo, cdhi
     integer, intent(in) :: nc
-    real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1),fdlo(2):fdhi(2),fdlo(3):fdhi(3))
-    real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1),cdlo(2):cdhi(2),cdlo(3):cdhi(3))
+    real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1),fdlo(2):fdhi(2),fdlo(3):fdhi(3),nc)
+    real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1),cdlo(2):cdhi(2),cdlo(3):cdhi(3),nc)
     
     integer :: i,j,k,n,ii,jj,kk
 
@@ -83,7 +83,7 @@ contains
              jj = j*2
              do i = clo(1), chi(1)-1
                 ii = i*2
-                fine(ii  ,jj  ,kk  ,n) = crse(i,j,k)
+                fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
                 fine(ii+1,jj  ,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n))
                 fine(ii  ,jj+1,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i  ,j+1,k  ,n))
                 fine(ii+1,jj+1,kk  ,n) = 0.25d0 *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n) &
