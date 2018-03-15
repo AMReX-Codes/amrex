@@ -83,5 +83,8 @@ private:
     
 }; 
 
+template <int Dim, int P> bool                       MonomialPowers<Dim, P>::s_staticsSet     = false;
+template <int Dim, int P> int                        MonomialPowers<Dim, P>::s_size           = -1;
+template <int Dim, int P> Vector<IndexTM<int,Dim> >  MonomialPowers<Dim, P>::s_multiIndicies  = Vector<IndexTM<int,Dim> >();
 
 #endif

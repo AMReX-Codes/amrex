@@ -328,7 +328,31 @@ protected:
   ///
   Real 
   getMoment(const IndexTM<int, Dim>        & a_mono,
-            const map<IndexTM<int, Dim>,  Real>& a_mapin) const;
+            const map<IndexTM<int, Dim>,  Real>& a_mapin) const
+    {
+      /**/
+      typename std::map<IndexTM<int, Dim>,  Real>::const_iterator iterinator;
+      iterinator = a_mapin.find(a_mono);
+
+      Real moment = 1.23456789e10;
+
+      if (iterinator != a_mapin.end())
+      {
+        moment = iterinator->second;
+
+      }
+      else
+      {
+        std::cout << "monomial = " ;
+        for(int idir = 0; idir < Dim; idir++)
+        {
+          std::cout << a_mono[idir] << " ";
+        }
+        std::cout << std::endl;
+        amrex::Abort("getMoments in IndexedMoments: moment not found in map");
+      }
+      return moment;
+    }
 
 private:
 

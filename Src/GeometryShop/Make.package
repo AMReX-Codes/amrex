@@ -62,8 +62,8 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_SmoothIntersection.cpp AMReX_SmoothUnio
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_CoordinateSystem.H AMReX_CoordinateSystemImplem.H AMReX_Notation.H AMReX_IFSlicer.H AMReX_IFSlicerImplem.H AMReX_CutCellMoments.H  AMReX_CutCellMomentsImplem.H AMReX_MetaPrograms.H  AMReX_Factorial.H
 
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_NormalDerivative.H AMReX_NormalDerivativeNew.H   AMReX_NormalDerivativeImplem.H  AMReX_LSProblem.H AMReX_LSProblemImplem.H   
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_LSquares.H  AMReX_ConstrainedLS.H AMReX_MomentIterator.H AMReX_IndeXTM.H IFData.H AMReX_MonomialPowers.H
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_NormalDerivative.cpp  AMReX_LSProblem.cpp  AMReX_LSquares.cpp AMReX_ConstrainedLS.cpp IFData.cpp
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_ConstrainedLS.H AMReX_MomentIterator.H AMReX_IndeXTM.H AMReX_IFData.H AMReX_MonomialPowers.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_NormalDerivative.cpp  AMReX_LSProblem.cpp   AMReX_ConstrainedLS.cpp AMReX_IFData.cpp
 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop
