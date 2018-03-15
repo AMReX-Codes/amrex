@@ -65,26 +65,6 @@ class ForkJoin
 
     // TODO: may want to de-register MFs if they change across invocations
 
-    // this is called before ParallelContext::split
-    // the parent task is the top frame in ParallelContext's stack
-    void copy_data_to_tasks ();
-
-    // this is called after ParallelContext::unsplit
-    // the parent task is the top frame in ParallelContext's stack
-    void copy_data_from_tasks ();
-
-    template <class F>
-    void fork_join (const F &fn)
-    {
-        copy_data_to_tasks(); // move data to local tasks
-        task_me = ParallelContext::split(task_rank_n);
-        fn(*this);
-        ParallelContext::unsplit();
-        copy_data_from_tasks(); // move local data back
-    }
-
-    int get_task_me () const { return task_me; }
-
     MultiFab &get_mf (const std::string &name, int idx = 0) {
         AMREX_ASSERT_WITH_MESSAGE(data.count(name) > 0 && idx < data[name].size(), "get_mf(): name or index not found");
         AMREX_ASSERT(task_me >= 0 && task_me < data[name][idx].forked.size());
@@ -99,6 +79,16 @@ class ForkJoin
             result[idx] = &get_mf(name, idx);
         }
         return result;
+    }
+
+    template <class F>
+    void fork_join (const F &fn)
+    {
+        copy_data_to_tasks(); // move data to local tasks
+        task_me = ParallelContext::split(task_rank_n);
+        fn(*this);
+        ParallelContext::unsplit();
+        copy_data_from_tasks(); // move local data back
     }
 
   private:
@@ -131,6 +121,16 @@ class ForkJoin
     // only compute the DM once per unique (box array, task) pair and cache it
     // create map from box array RefID to vector of DistributionMapping indexed by task ID
     const DistributionMapping &get_dm (const BoxArray& ba, int task_idx);
+
+    // this is called before ParallelContext::split
+    // the parent task is the top frame in ParallelContext's stack
+    void copy_data_to_tasks ();
+
+    // this is called after ParallelContext::unsplit
+    // the parent task is the top frame in ParallelContext's stack
+    void copy_data_from_tasks ();
+
+    int get_task_me () const { return task_me; }
 };
 
 }
