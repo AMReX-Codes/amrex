@@ -22,7 +22,7 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
         accum += task_rank_pct[i];
         int cur = std::round(rank_n * accum);
         task_rank_n[i] = cur - prev;
-            prev = cur;
+        prev = cur;
     }
     AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
 }
