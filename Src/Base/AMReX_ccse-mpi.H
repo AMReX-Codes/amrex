@@ -67,13 +67,4 @@ namespace ParallelDescriptor
 
 #endif /*BL_USE_MPI*/
 
-namespace amrex{
-namespace ParallelDescriptor {
-
-    extern int m_MinTag, m_MaxTag;  // defined in AMReX_ParallelDescriptor.cpp
-    inline int MinTag () { return m_MinTag; }
-    inline int MaxTag () { return m_MaxTag; }
-
-}}
-
 #endif

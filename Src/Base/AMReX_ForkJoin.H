@@ -23,8 +23,6 @@ class ForkJoin
 
     ForkJoin (int ntasks) : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
 
-    int task_n () const { return task_rank_n.size(); }
-
     void reg_mf (MultiFab &mf, const std::string &name, int idx,
                  Strategy strategy, Intent intent, int owner = -1);
 
@@ -84,10 +82,14 @@ class ForkJoin
     template <class F>
     void fork_join (const F &fn)
     {
-        copy_data_to_tasks(); // move data to local tasks
-        task_me = ParallelContext::split(task_rank_n);
+        MPI_Comm task_comm = split_tasks();
+        copy_data_to_tasks(task_comm); // move data to local tasks
+        ParallelContext::push(task_comm);
         fn(*this);
-        ParallelContext::unsplit();
+#ifdef BL_USE_MPI
+        MPI_Comm_free(&task_comm);
+#endif
+        ParallelContext::pop();
         copy_data_from_tasks(); // move local data back
     }
 
@@ -112,6 +114,7 @@ class ForkJoin
     };
 
     Vector<int> task_rank_n; // number of ranks in each forked task
+    Vector<int> split_bounds; // task i has ranks over the interval [result[i], result[i+1])
     int task_me = -1; // task the current rank belongs to
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
@@ -124,13 +127,21 @@ class ForkJoin
 
     // this is called before ParallelContext::split
     // the parent task is the top frame in ParallelContext's stack
-    void copy_data_to_tasks ();
+    void copy_data_to_tasks (MPI_Comm task_comm);
 
     // this is called after ParallelContext::unsplit
     // the parent task is the top frame in ParallelContext's stack
     void copy_data_from_tasks ();
 
-    int get_task_me () const { return task_me; }
+    int NTasks () const { return task_rank_n.size(); }
+
+    int MyTask () const { return task_me; }
+
+    // split ranks in current frame into contiguous chunks
+    // task i has ranks over the interval [result[i], result[i+1])
+    void compute_split_bounds ();
+    // split top frame of stack
+    MPI_Comm split_tasks ();
 };
 
 }
