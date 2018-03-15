@@ -1,6 +1,8 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 
+#include <AMReX_ccse-mpi.H>
+#include <AMReX_ParallelContext.H>
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLassert.H>
@@ -10,7 +12,6 @@
 #ifndef BL_AMRPROF
 #include <AMReX_Box.H>
 #endif
-#include <AMReX_ccse-mpi.H>
 
 #ifdef BL_USE_UPCXX
 #include <upcxx.h>
@@ -318,10 +319,6 @@ namespace ParallelDescriptor
     };
 
     extern ProcessTeam m_Team;
-
-    extern int m_MinTag, m_MaxTag;
-    inline int MinTag () { return m_MinTag; }
-    inline int MaxTag () { return m_MaxTag; }
 
     //! return the number of MPI ranks local to the comp or sidecar groups
     inline int
