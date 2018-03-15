@@ -9,10 +9,7 @@ module amrex_mlmg_interp_module
 
 contains
 
-  subroutine amrex_mlmg_lin_cc_interp (lo, hi, &
-       ff, fflo, ffhi, &
-       cc, cclo, cchi, &
-       ratio, nc) &
+  subroutine amrex_mlmg_lin_cc_interp (lo, hi, ff, fflo, ffhi, cc, cclo, cchi, ratio, nc) &
        bind(c,name='amrex_mlmg_lin_cc_interp')
     integer, dimension(2), intent(in) :: lo, hi, fflo, ffhi, cclo, cchi
     integer, intent(in) :: ratio, nc

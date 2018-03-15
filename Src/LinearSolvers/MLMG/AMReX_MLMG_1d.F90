@@ -17,7 +17,6 @@ contains
 
     integer :: i,n, ic, ioff
 
-    
     if (ratio == 2) then
 
        do n = 1, nc
