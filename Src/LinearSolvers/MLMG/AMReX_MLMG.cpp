@@ -150,6 +150,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                            << " resid, resid/" << norm_name << " = "
                            << composite_norminf << ", "
                            << composite_norminf/max_norm << "\n";
+            amrex::Abort("MLMG failed");
         }
         timer[iter_time] = amrex::second() - iter_start_time;
     }
@@ -250,7 +251,6 @@ MLMG::computeMLResidual (int amrlevmax)
     for (int alev = amrlevmax; alev >= 0; --alev) {
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         linop.solutionResidual(alev, res[alev][mglev], *sol[alev], rhs[alev], crse_bcdata);
-	
         if (alev < finest_amr_lev) {
             linop.reflux(alev, res[alev][mglev], *sol[alev], rhs[alev],
                          res[alev+1][mglev], *sol[alev+1], rhs[alev+1]);
@@ -412,7 +412,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         addInterpCorrection(amrlev, mglev);
         if (verbose >= 4)
         {
-            Real norm = res[amrlev][mglev].norm0();
+            computeResOfCorrection(amrlev, mglev);
+            Real norm = rescor[amrlev][mglev].norm0();
             amrex::Print() << "AT LEVEL "                << mglev << "\n"
                            << "   UP: Norm before smooth " << norm << "\n";
         }
@@ -421,7 +422,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         }
         if (verbose >= 4)
         {
-            Real norm = res[amrlev][mglev].norm0();
+            computeResOfCorrection(amrlev, mglev);
+            Real norm = rescor[amrlev][mglev].norm0();
             amrex::Print() << "AT LEVEL "                << mglev << "\n"
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
@@ -1065,7 +1067,10 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         }
     }
 
-    linop.prepareForSolve();
+    if (!linop_prepared) {
+        linop.prepareForSolve();
+        linop_prepared = true;
+    }
     
     const auto& amrrr = linop.AMRRefRatio();
 
@@ -1083,7 +1088,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
             linop.reflux(alev, *a_res[alev], *sol[alev], *prhs,
                          *a_res[alev+1], *sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
-	      amrex::average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+                amrex::average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
             }
         }
     }
@@ -1094,6 +1099,65 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.unapplyMetricTerm(alev, 0, *a_res[alev]);
     }
 #endif
+}
+
+void
+MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
+{
+    BL_PROFILE("MLMG::apply()");
+
+    Vector<MultiFab*> in(namrlevs);
+    Vector<MultiFab> in_raii(namrlevs);
+    Vector<MultiFab> rh(namrlevs);
+
+    for (int alev = 0; alev < namrlevs; ++alev)
+    {
+        if (a_in[alev]->nGrow() == 1)
+        {
+            in[alev] = a_in[alev];
+        }
+        else
+        {
+            in_raii[alev].define(a_in[alev]->boxArray(),
+                                 a_in[alev]->DistributionMap(),
+                                 a_in[alev]->nComp(), 1);
+            MultiFab::Copy(in_raii[alev], *a_in[alev], 0, 0, a_in[alev]->nComp(), 0);
+            in[alev] = &(in_raii[alev]);
+        }
+        rh[alev].define(a_in[alev]->boxArray(),
+                        a_in[alev]->DistributionMap(),
+                        a_in[alev]->nComp(), 0);
+        rh[alev].setVal(0.0);
+    }
+
+    if (!linop_prepared) {
+        linop.prepareForSolve();
+        linop_prepared = true;
+    }
+
+    const auto& amrrr = linop.AMRRefRatio();
+
+    for (int alev = finest_amr_lev; alev >= 0; --alev) {
+        const MultiFab* crse_bcdata = (alev > 0) ? in[alev-1] : nullptr;
+        linop.solutionResidual(alev, *out[alev], *in[alev], rh[alev], crse_bcdata);
+        if (alev < finest_amr_lev) {
+            linop.reflux(alev, *out[alev], *in[alev], rh[alev],
+                         *out[alev+1], *in[alev+1], rh[alev+1]);
+            if (linop.isCellCentered()) {
+                amrex::average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
+            }
+        }
+    }
+
+#if (AMREX_SPACEDIM != 3)
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        linop.unapplyMetricTerm(alev, 0, *out[alev]);
+    }
+#endif
+
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        out[alev]->negate();
+    }
 }
 
 void
