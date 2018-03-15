@@ -1,8 +1,8 @@
 #include <iostream>
 #include <iomanip>
 
-#include "NormalDerivative.H"
-#include "IFData.H"
+#include "AMReX_NormalDerivative.H"
+#include "AMReX_IFData.H"
 
 //leave to default faulse.   Moving the coords works better
 //but makes for weird convergence tests
@@ -66,7 +66,7 @@ IFData<1>::IFData(const IFData<2> & a_2DIFData,
   }
   else
   {
-    MayDay::Abort("Lo endpoint not in Map");
+    amrex::Abort("Lo endpoint not in Map");
   }
 
   if (localInfo.m_cornerSigns.find(hiPt2D) != localInfo.m_cornerSigns.end())
@@ -75,7 +75,7 @@ IFData<1>::IFData(const IFData<2> & a_2DIFData,
   }
   else
   {
-    MayDay::Abort("Hi endpoint not in Map");
+    amrex::Abort("Hi endpoint not in Map");
   }
 
   // set bools
@@ -107,105 +107,6 @@ IFData<1>::~IFData()
 {
 }
 
-void IFData<1>::print(ostream& a_out) const
-{
-  string padding = "  ";
-  for (int i = 0; i < BL_SPACEDIM - 1; i++)
-  {
-    padding += "  ";
-  }
-
-  typedef map<int,int> oneDCornerSigns;
-
-  for (oneDCornerSigns::const_iterator it = m_cornerSigns.begin();
-       it != m_cornerSigns.end(); ++it)
-  {
-    a_out << padding << "Vertex "
-                     << "("
-                     << it->first
-                     << ") = "
-                     << it->second
-                     << "\n";
-  }
-  a_out << padding << "\n";
-
-  a_out << padding << "m_allVerticesIn  = " << m_allVerticesIn  << "\n";
-  a_out << padding << "m_allVerticesOut = " << m_allVerticesOut << "\n";
-  a_out << padding << "m_allVerticesOn  = " << m_allVerticesOn  << "\n";
-  a_out << padding << "m_badNormal      = " << m_badNormal      << "\n";
-  a_out << padding << "\n";
-
-  if (!m_allVerticesOut)
-  {
-    a_out << padding << "m_globalCoord     = " << m_globalCoord    ;
-    a_out << padding << "m_cellCenterCoord = " << m_cellCenterCoord;
-    a_out << padding << "m_parentCoord     = " << m_parentCoord    ;
-  }
-  else
-  {
-    a_out << padding << "All vertices out" << "\n";
-  }
-  a_out << padding << "\n";
-
-  int lo = LARGEINTVAL;
-  int hi = LARGEINTVAL;
-  if (m_cornerSigns.find(0)!= m_cornerSigns.end())
-  {
-    lo = m_cornerSigns.find(0)->second;
-  }
-  else
-  {
-    MayDay::Abort("No lo in cornerSigns");
-  }
-
-  if (m_cornerSigns.find(1)!= m_cornerSigns.end())
-  {
-    hi = m_cornerSigns.find(1)->second;
-  }
-  else
-  {
-    MayDay::Abort("No hi in cornerSigns");
-  }
-
-  if (lo == OUT && hi == OUT)
-  {
-    a_out << padding << "Edge Covered" << "\n";
-  }
-  else if (lo==IN  && hi==IN)
-  {
-    a_out << padding << "Edge Uncovered" << "\n";
-  }
-  else if (lo==ON  || hi==ON)
-  {
-    a_out << padding << "Edge has vertex on the interface" << "\n";
-  }
-  else
-  {
-    if (m_intersection == LARGEREALVAL)
-    {
-      MayDay::Warning("--- No intersection pt");
-    }
-    else
-    {
-      std::ios::fmtflags origFlags = a_out.flags();
-      int origWidth = a_out.width();
-      int origPrecision = a_out.precision();
-
-      a_out << padding << "Intersection pt is "
-                       << setw(23)
-                       << setprecision(16)
-                       << setiosflags(ios::showpoint)
-                       << setiosflags(ios::scientific)
-                       << m_intersection
-                       << "\n";
-
-      a_out.flags(origFlags);
-      a_out.width(origWidth);
-      a_out.precision(origPrecision);
-    }
-  }
-  a_out << padding << "\n";
-}
 
 // equals operator
 void IFData<1>::operator=(const IFData & a_IFData)

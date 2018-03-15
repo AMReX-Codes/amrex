@@ -1,22 +1,3 @@
-#ifdef CH_LANG_CC
-/*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
- */
-#endif
-
-// These are about ten times faster than the STL analogues, since here the
-// number of elements is known at compile time.  These functions are as
-// fast as hand-unrolled loops (but you need -O3 or better on gcc).
-//
-// For examples, see lib/src/BoxTools/BaseFabImplem.H in the "template" branch
-// of the Chombo_prev module under ~tdsternberg/my-cvsroot.
-//
-// Author: Ted
-//
 
 #ifndef _METAPROGRAMS_H_
 #define _METAPROGRAMS_H_
