@@ -702,7 +702,7 @@ buildNeighborList(int lev, bool sort) {
         // For each cell on this tile, we build linked lists storing the
         // indices of the particles belonging to it.
         Box box = pti.tilebox();
-        box.grow(num_neighbor_cells);
+        box.grow(num_neighbor_cells + 1); // need an extra cell to account for roundoff errors.
         head.resize(box);
         head.setVal(-1);
         list.resize(N, -1);
