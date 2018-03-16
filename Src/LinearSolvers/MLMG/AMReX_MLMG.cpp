@@ -202,8 +202,15 @@ MLMG::oneIter (int iter)
     {
         // enforce solvability if appropriate
         if (linop.isSingular(0)) {
-            Real offset = res[0][0].sum() / linop.Geom(0,0).Domain().d_numPts();
-            res[0][0].plus(-offset, 0, 1);
+            Real npinv = 1.0 / linop.Geom(0,0).Domain().d_numPts();
+            Vector<Real> offset(ncomp);
+            for (int c = 0; c < ncomp; ++c) {
+                offset[c] = res[0][0].sum(c, true) * npinv;
+            }
+            ParallelDescriptor::ReduceRealSum(offset.data(), ncomp);
+            for (int c = 0; c < ncomp; ++c) {
+                res[0][0].plus(-offset[c], c, 1);
+            }
         }
 
         if (iter < max_fmg_iters) {
@@ -719,26 +726,30 @@ MLMG::actualBottomSolve ()
             MultiFab::Copy(raii_b,b,0,0,ncomp,b.nGrow());
             bottom_b = &raii_b;
 
-            Real offset;
+            Vector<Real> offset(ncomp);
             if (linop.isCellCentered())
             {
-                const bool local = true;
-                offset = bottom_b->sum(0,local)
-                    / linop.Geom(amrlev,mglev).Domain().d_numPts();
-                ParallelAllReduce::Sum(offset, linop.BottomCommunicator());
+                Real npinv = 1.0 / linop.Geom(amrlev,mglev).Domain().d_numPts();
+                for (int c = 0; c < ncomp; ++c) {
+                    offset[c] = bottom_b->sum(c,true) * npinv;
+                }
+                ParallelAllReduce::Sum(offset.data(), ncomp, linop.BottomCommunicator());
             }
             else
             {
+                AMREX_ASSERT_WITH_MESSAGE(ncomp==1, "ncomp > 1 not supported for singular nodal problem");
                 MultiFab one(b.boxArray(), b.DistributionMap(), ncomp, 0);
                 one.setVal(1.0);
                 const bool local = true;
                 Real s1 = linop.xdoty(amrlev, mglev, *bottom_b, one, local);
                 Real s2 = linop.xdoty(amrlev, mglev, one, one, local);
                 ParallelAllReduce::Sum<Real>({s1,s2}, linop.BottomCommunicator());
-                offset = s1/s2;
+                offset[0] = s1/s2;
             }
 
-            bottom_b->plus(-offset, 0, ncomp);
+            for (int c = 0; c < ncomp; ++c) {
+                bottom_b->plus(-offset[c], c, 1);
+            }
         }
 
         if (bottom_solver == BottomSolver::hypre)
@@ -913,12 +924,22 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     // enforce solvability if appropriate
     if (linop.isSingular(0))
     {
-        Real offset = rhs[0].sum() / linop.Geom(0,0).Domain().d_numPts();
+        Real npinv = 1.0 / linop.Geom(0,0).Domain().d_numPts();
+        Vector<Real> offset(ncomp);
+        for (int c = 0; c < ncomp; ++c) {
+            offset[c] = rhs[0].sum(c,true) * npinv;
+        }
+        ParallelDescriptor::ReduceRealSum(offset.data(), ncomp);
         if (verbose >= 4) {
-            amrex::Print() << "MLMG: Subtracting " << offset << " from rhs\n";
+            for (int c = 0; c < ncomp; ++c) {
+                amrex::Print() << "MLMG: Subtracting " << offset[c] 
+                               << " from rhs component " << c << "\n";
+            }
         }
         for (int alev = 0; alev < namrlevs; ++alev) {
-            rhs[alev].plus(-offset, 0, 1);
+            for (int c = 0; c < ncomp; ++c) {
+                rhs[alev].plus(-offset[c], c, 1);
+            }
         }
     }
 
