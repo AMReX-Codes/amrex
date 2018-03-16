@@ -71,7 +71,8 @@ namespace amrex
                            const DistributionMapping & a_dm,
                            const int               & a_nghost,
                            const FabArray<EBGraph> & a_graph,
-                           const FabArray<EBData>  & a_data)
+                           const FabArray<EBData>  & a_data,
+                           bool a_hasMoments, Real a_dx)
   {
     BL_PROFILE("EBISLayoutImplem::define");
     //pout() << "in ebislayoutimplem::define with nghost = " << a_nghost << endl;
@@ -101,7 +102,7 @@ namespace amrex
     
     m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhostGraph);
 
-    EBDataFactory ebdatafact(m_ebGraph);
+    EBDataFactory ebdatafact(m_ebGraph, a_hasMoments, a_dx);
     m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, a_dm, 1, m_nghost, MFInfo(), ebdatafact));
       
     BL_PROFILE_VAR("EBISLayout_copy_ebdata",copy_data);

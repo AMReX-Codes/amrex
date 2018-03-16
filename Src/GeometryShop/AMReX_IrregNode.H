@@ -21,7 +21,10 @@ namespace amrex
   {
   public:
     ///
-    IrregNode(){;}
+    IrregNode()
+      {
+        m_hasMoments = false;
+      }
 
     ///
     ~IrregNode(){;}
@@ -84,6 +87,7 @@ namespace amrex
   
     IndMomSpaceDim m_volumeMoments;
     IndMomSpaceDim m_normalPartialDeriv[SpaceDim];
+    bool           m_hasMoments;
     ///face centered moments
     /// the moment at  the face associated with the  monomial with the input exponents 
     /**

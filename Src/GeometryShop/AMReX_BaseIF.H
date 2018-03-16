@@ -63,7 +63,6 @@ namespace amrex
     */
     virtual Real value(const RealVect& a_point) const = 0;
 
-
     ///
     /**
        Return a newly allocated derived class.  The responsibility

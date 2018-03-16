@@ -32,21 +32,19 @@ Real WrappedGShop::s_relativeTol = 0.1;
 /*********************************************/
 /*********************************************/
   WrappedGShop::
-  WrappedGShop(const shared_ptr<BaseIF>  &      a_baseIF,
-               const RealVect               &      a_origin,
-               const Real                   &      a_dx,
-               const Box          &      a_domain,
-               int                                 a_minNumberRefines ,
-               int                                 a_maxNumberRefines )
+  WrappedGShop(const BaseIF  &       a_baseIF,
+               int                   a_verbosity,
+               Real                  a_thrshdVoF,
+               int                   a_minNumberRefines ,
+               int                   a_maxNumberRefines )
   {
     BL_PROFILE("WrappedGShop::WrappedGShop");
-    m_baseIF  = a_baseIF;
+    m_baseIF.reset(a_baseIF.newImplicitFunction());;
 
     m_minNumberRefines = a_minNumberRefines;
     m_maxNumberRefines = a_maxNumberRefines;
 
-    m_domain  = a_domain;
-    m_origin  = a_origin;
+    m_thrshdVoF = a_thrshdVoF;
             
     m_order   = 0;
     m_degreeP = CH_EBIS_ORDER + 1;
@@ -717,8 +715,8 @@ Real WrappedGShop::s_relativeTol = 0.1;
     a_node.m_cellIndex = 0;
 
     //now the arcs (0 is lo, 1 is high)
-    fillArc(loArc, thisVof, 0, a_ivsIrreg, a_iv);
-    fillArc(hiArc, thisVof, 1, a_ivsIrreg, a_iv);
+    fillArc(loArc, thisVof, 0, a_ivsIrreg, a_iv, a_domain);
+    fillArc(hiArc, thisVof, 1, a_ivsIrreg, a_iv, a_domain);
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       int indexlo = IrregNode::index(idir, Side::Lo);
@@ -789,7 +787,8 @@ Real WrappedGShop::s_relativeTol = 0.1;
           CutCellMoments<SpaceDim>       &     a_cutCellMoments,
           const int                      &     a_hilo,
           const IntVectSet               &     a_ivsIrreg,
-          const IntVect                  &     a_curriv) const
+          const IntVect                  &     a_curriv,
+          const Box                      &     a_domain) const
   {
     Iv2 bdId;
     //a_hilo is 0 or 1
@@ -811,7 +810,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
         IntVect otherIV = a_curriv;
         otherIV[idir] += (a_hilo*2) - 1;
 
-        if (m_domain.contains(otherIV))
+        if (a_domain.contains(otherIV))
         {
           int otherCellIndex;
           if (a_ivsIrreg.contains(otherIV))
@@ -825,7 +824,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
           }
           a_arc[idir][0]=otherCellIndex;
         }
-        else if (!m_domain.contains(otherIV))
+        else if (!a_domain.contains(otherIV))
         {
           //boundary arcs always -1
           a_arc[idir][0] = -1;

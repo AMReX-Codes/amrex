@@ -133,9 +133,10 @@ namespace amrex
         {
           int isrccomp = a_srccomp  + icomp;
           int idstcomp = a_destcomp + icomp;
-          if (!std::isnan(a_src(src_ifaceindex, isrccomp))) {
+//this is weiqun's beautiful solution that cannot work for IndMomSpaceDim.
+//          if (!std::isnan(a_src(src_ifaceindex, isrccomp))) {
               (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
-          }
+//          }
         }
       }
     }
