@@ -31,6 +31,8 @@ public:
 
 protected:
 
+    virtual bool isCrossStencil () const { return true; }
+
 #if (AMREX_SPACEDIM != 3)
     struct MetricFactor {
         MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
