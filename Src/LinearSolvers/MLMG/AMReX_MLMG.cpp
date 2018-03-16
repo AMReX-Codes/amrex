@@ -871,8 +871,13 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     AMREX_ASSERT(namrlevs <= a_rhs.size());
 
     timer.assign(ntimers, 0.0);
+
     const int ncomp = linop.getNComp();
-    linop.prepareForSolve();
+
+    if (!linop_prepared) {
+        linop.prepareForSolve();
+        linop_prepared = true;
+    }
 
     sol.resize(namrlevs);
     sol_raii.resize(namrlevs);
