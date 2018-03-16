@@ -54,8 +54,8 @@ contains
        bind(c,name='amrex_mlmg_lin_nd_interp')
     integer, dimension(1) :: clo, chi, flo, fhi, fdlo, fdhi, cdlo, cdhi
     integer, intent(in) :: nc
-    real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1))
-    real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1))
+    real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1),nc)
+    real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1),nc)
     
     integer :: i,n,ii
 
@@ -64,7 +64,7 @@ contains
           fine(2*i  ,n) = crse(i,n)
           fine(2*i+1,n) = 0.5d0*(crse(i,n)+crse(i+1,n))
        end do
-       fine(fhi(1,n)) = crse(chi(1,n))
+       fine(fhi(1),n) = crse(chi(1),n)
     end do
   end subroutine amrex_mlmg_lin_nd_interp
 
