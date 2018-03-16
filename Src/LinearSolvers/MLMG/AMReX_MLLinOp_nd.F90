@@ -213,20 +213,20 @@ contains
 #if (AMREX_SPACEDIM == 2)
        do k = lo(3), hi(3)
           phi(lo(1)-1,lo(2)-1,k,n) = & ! Southwest
-               0.5*(2.0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
-               0.5*(2.0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n)) 
+               0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
+               0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n)) 
 
           phi(hi(1)+1,lo(2)-1,k,n) = & ! Southeast
-               0.5*(2.0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
-               0.5*(2.0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n)) 
+               0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
+               0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n)) 
 
           phi(lo(1)-1,hi(2)+1,k,n) = & ! Northwest
-               0.5*(2.0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
-               0.5*(2.0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n)) 
+               0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
+               0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n)) 
 
           phi(hi(1)+1,hi(2)+1,k,n) = & ! Northeast
-               0.5*(2.0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
-               0.5*(2.0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n)) 
+               0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
+               0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n)) 
 
        end do
 #endif
