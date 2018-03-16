@@ -395,7 +395,8 @@ contains
        r, rlo, rhi, &
        nc) &
        bind(c,name='amrex_mllinop_apply_metric')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), rlo, rhi, nc
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), rlo, rhi
+    integer, intent(in), value :: nc
     real(amrex_real), intent(inout) :: d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nc)
     real(amrex_real), intent(in) :: r(rlo:rhi)
 
