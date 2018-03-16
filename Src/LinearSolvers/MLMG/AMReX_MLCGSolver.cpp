@@ -1,4 +1,5 @@
 
+#include <limits>
 #include <algorithm>
 #include <iomanip>
 #include <cmath>
@@ -240,7 +241,7 @@ Real
 MLCGSolver::norm_inf (const MultiFab& res, bool local)
 {
     int ncomp = res.nComp();
-    Real result = std::numeric_limits<Real>::min();
+    Real result = std::numeric_limits<Real>::lowest();
     for (int n=0; n<ncomp; n++)
       result = std::max(result,res.norm0(n,0,true));
 
