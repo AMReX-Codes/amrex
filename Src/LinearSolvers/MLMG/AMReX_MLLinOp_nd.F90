@@ -30,10 +30,10 @@ module amrex_mllinop_nd_module
 contains
 
   subroutine amrex_mllinop_apply_bc (lo, hi, phi, hlo, hhi, mask, mlo, mhi, &
-       cdir, bct, bcl, bcval, blo, bhi, maxorder, dxinv, inhomog, nc) &
+       cdir, bct, bcl, bcval, blo, bhi, maxorder, dxinv, inhomog, nc, cross) &
        bind(c,name='amrex_mllinop_apply_bc')
     integer, dimension(3), intent(in) :: lo, hi, hlo, hhi, mlo, mhi, blo, bhi
-    integer, value, intent(in) :: cdir, bct, maxorder, inhomog, nc
+    integer, value, intent(in) :: cdir, bct, maxorder, inhomog, nc, cross
     real(amrex_real), value, intent(in) :: bcl
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), intent(inout) ::  phi (hlo(1):hhi(1),hlo(2):hhi(2),hlo(3):hhi(3),nc)
@@ -208,27 +208,43 @@ contains
           call amrex_error("amrex_mllinop_nd_module: unknown bc");
        end if
 
-       ! Fill corners with averages
-
+       ! Fill corners with averages for non-cross stencil
 #if (AMREX_SPACEDIM == 2)
-       do k = lo(3), hi(3)
-          phi(lo(1)-1,lo(2)-1,k,n) = & ! Southwest
-               0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
-               0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n)) 
+       if (cross .eq. 0) then
+          ! The iteration over faces is always in the order of xlo, xhi, ylo and yhi.
+          ! No need to do anything for xlo and xhi, because at that time, ylo and yhi
+          ! have not been filled.
+          select case (cdir)
+          case (ylo_dir)
+             do k = lo(3), hi(3)
+                if (mask(lo(1)-1,lo(2)-1,k) .gt. 0) then
+                   phi(lo(1)-1,lo(2)-1,k,n) = & ! Southwest
+                        0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
+                        0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n))
+                end if
 
-          phi(hi(1)+1,lo(2)-1,k,n) = & ! Southeast
-               0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
-               0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n)) 
+                if (mask(hi(1)+1,lo(2)-1,k) .gt. 0) then
+                   phi(hi(1)+1,lo(2)-1,k,n) = & ! Southeast
+                        0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
+                        0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n))
+                end if
+             end do
+          case (yhi_dir)
+             do k = lo(3), hi(3)
+                if (mask(lo(1)-1,hi(2)+1,k) .gt. 0) then
+                   phi(lo(1)-1,hi(2)+1,k,n) = & ! Northwest
+                        0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
+                        0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n))
+                end if
 
-          phi(lo(1)-1,hi(2)+1,k,n) = & ! Northwest
-               0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
-               0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n)) 
-
-          phi(hi(1)+1,hi(2)+1,k,n) = & ! Northeast
-               0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
-               0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n)) 
-
-       end do
+                if (mask(hi(1)+1,hi(2)+1,k) .gt. 0) then
+                   phi(hi(1)+1,hi(2)+1,k,n) = & ! Northeast
+                        0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
+                        0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n))
+                end if
+             end do
+          end select
+       end if
 #endif
 
     end do
