@@ -143,6 +143,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
     BL_ASSERT(lev == 0);
+    BL_ASSERT(this->OK());
 
     clearNeighbors(lev);
     
@@ -663,6 +664,7 @@ buildNeighborList(int lev, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
     BL_ASSERT(lev == 0);
+    BL_ASSERT(this->OK());
 
     neighbor_list.clear();
     
