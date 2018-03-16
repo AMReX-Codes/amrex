@@ -144,7 +144,6 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
-    virtual int getNComp() const;
 
 private:
 

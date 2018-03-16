@@ -659,13 +659,6 @@ MLCellLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     return result;
 }
 
-int
-MLCellLinOp::getNComp() const
-{
-  // Default is single component operator, but can be overridden by derived classes.
-  return 1;
-}
-
 MLCellLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm)
     : bcond(ba, dm),
       bcloc(ba, dm)
