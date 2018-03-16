@@ -51,17 +51,22 @@ namespace amrex
 
     int m_phase;
 
+    ///this does return higher order moments.
+    virtual bool generatesHigherOrderMoments() const
+      {
+        return true; 
+      }
+
     ///
     /**
        This class will refine a cell if it is between min and max refinements.
        If it violates bounds, that triggers refinement until max refinement.
     */
-    WrappedGShop(const shared_ptr<BaseIF>  & a_baseIF,
-                 const RealVect               & a_origin,
-                 const Real                   & a_dx,
-                 const Box          & a_domain,
-                 int   minNumberRefines,
-                 int   maxNumberRefines);
+    WrappedGShop(const BaseIF  & a_baseIF,
+                 int             a_verbosity = 0,
+                 Real            a_thrshdVoF = 1.0e-16,
+                 int             a_minNumberRefines = 0,
+                 int             a_maxNumberRefines = 0);
   
 
 
@@ -181,15 +186,12 @@ namespace amrex
 
   private:
 
-    Box m_domain;
     shared_ptr<WGSRefinementCriterion> m_refCrit;
-  
-    Real                m_threshold;
+    int  m_order;
+    int  m_verbosity;
+    Real m_threshold;
+    Real m_thrshdVoF; //CP, threshold to remove very small VoFs.
 
-    //origin
-    RealVect            m_origin;
-
-    int                 m_order;
     int                 m_degreeP;
     int                 m_minNumberRefines;
     int                 m_maxNumberRefines;
@@ -222,7 +224,8 @@ namespace amrex
                  CutCellMoments<SpaceDim>       &     a_cutCellMoments,
                  const int                      &     a_hilo,
                  const IntVectSet               &     a_ivsIrreg,
-                 const IntVect                  &     a_curriv) const;
+                 const IntVect                  &     a_curriv,
+                 const Box                      &     a_domain) const;
 
 
     //stuff disallowed for all the usual reasons.

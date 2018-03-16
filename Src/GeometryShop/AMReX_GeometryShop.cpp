@@ -357,6 +357,7 @@ namespace amrex
         else
           {
             IrregNode newNode;
+            newNode.m_hasMoments = false;
             newNode.m_cell          = iv;
             newNode.m_volFrac       = volFrac;
             newNode.m_cellIndex     = 0;

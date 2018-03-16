@@ -7,6 +7,7 @@
 #include "AMReX_parstream.H"
 #include "AMReX_Print.H"
 #include "AMReX_BoxIterator.H"
+#include "AMReX_EBArith.H"
 #include "AMReX_MemPool.H"
 
 #include <limits>
@@ -319,21 +320,37 @@ namespace amrex
 
     }
     BL_PROFILE_VAR_STOP(copy_facedata);
+
     
-//    if(m_hasVolumeMask && a_src.m_hasVolumeMask)
-//    {
-//      m_volMask.copy(a_src.m_volMask, a_srcbox, 0, a_dstbox, 0, m_volMask.nComp());
-//    }
+    if(m_hasMoments && a_src.m_hasMoments)
+    {
+      int ncomp = 1;
+      m_volMoments.copy(a_src.m_volMoments, a_srcbox, 0, a_dstbox, 0, ncomp);
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        Box grownBox = a_srcbox;
+        grownBox.grow(1);
+        grownBox &= m_graph.getDomain();
+        m_faceMoments[idir].copy(a_src.m_faceMoments[idir], grownBox, 0, grownBox, 0,  ncomp);
+      }
+    }
     return *this;
   }
 /************************/
   void 
   EBDataImplem::
   define (const EBGraph&           a_graph,
-          const Box&               a_region)
+          const Box&               a_region,
+          const Real& a_dx,
+          bool a_hasMoments)
   {
+    m_hasMoments = a_hasMoments;
+    m_dx = a_dx;
     m_graph = a_graph;
     m_region = a_region & a_graph.getDomain();
+    m_regularAreaMoments.setRegular(m_dx);
+    m_regularVolumeMoments.setRegular(m_dx);
+
     const IntVectSet& ivsIrreg = a_graph.getIrregCells(a_region);
     m_isDefined = true;
     m_volData.define(ivsIrreg, a_graph, V_VOLNUMBER);
@@ -364,13 +381,15 @@ namespace amrex
   define (const EBGraph&           a_graph,
           const Vector<IrregNode>&  a_irregGraph,
           const Box&               a_validBox,
-          const Box&               a_region)
+          const Box&               a_region,
+          const Real &             a_dx,
+          bool a_hasMoments)
 
   {
     BL_PROFILE("EBDataImpem::define");
 
     m_region = a_region & a_graph.getDomain();
-    define( a_graph, a_region);
+    define( a_graph, a_region, a_dx, a_hasMoments);
     if (a_graph.hasIrregular())
     {
       for (int inode = 0; inode < a_irregGraph.size(); inode++)
@@ -387,6 +406,31 @@ namespace amrex
           {
             m_volData(vof, V_VOLCENTROIDX+faceDir) =   node.m_volCentroid[faceDir];
             m_volData(vof, V_BNDCENTROIDX+faceDir) = node.m_bndryCentroid[faceDir];
+          }
+          //put in higher order moment stuff if it is there
+          if(a_hasMoments)
+          {
+            VolData& vol = m_volMoments(vof, 0);
+            vol.m_volumeMoments = node.m_volumeMoments;
+            vol.m_averageFace.m_EBMoments = node.m_EBMoments;
+            for (int idir = 0; idir < SpaceDim; idir++)
+            {
+              vol.m_averageFace.m_normalPartialDeriv[idir] = node.m_normalPartialDeriv[idir];
+            }
+            
+            for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
+            {
+              for (SideIterator sit; sit.ok(); ++sit)
+              {
+                Vector<FaceIndex> faces = a_graph.getFaces(vof, faceDir, sit());
+                int iindex = node.index(faceDir, sit());
+                for (int iface = 0; iface < faces.size(); iface++)
+                {
+                  const FaceIndex& face = faces[iface];
+                  m_faceMoments[faceDir](face,0).m_faceMoments = node.m_faceMoments[iindex];
+                }//end list of faces on side
+              }//end side iterator
+            }//end face direction iterator
           }
           for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
           {
@@ -435,7 +479,107 @@ namespace amrex
     //defineVolumeMask();
     //setVolumeMask();
   }
+bool 
+EBDataImplem::
+irregFace(const FaceIndex& a_face) const
+{
+  bool retval = (m_volData.getIVS().contains(a_face.gridIndex(Side::Lo)) || m_volData.getIVS().contains(a_face.gridIndex(Side::Hi)));
+  return retval;
+}
+bool 
+EBDataImplem::
+irregVoF(const VolIndex& a_vof) const
+{
+  bool retval = (m_volData.getIVS().contains(a_vof.gridIndex()));
+  return retval;
+}
 
+IndMomSDMinOne 
+EBDataImplem::
+getFaceMoments(const FaceIndex& a_face) const
+{
+  IndMomSDMinOne retval;
+  if(irregFace(a_face))
+    {
+     retval = m_faceMoments[a_face.direction()](a_face, 0).m_faceMoments;
+    }
+  else
+    {
+      retval= m_regularAreaMoments;
+    }
+  return retval;
+}
+/*******************************/
+IndMomSpaceDim 
+EBDataImplem::
+getVolumeMoments(const VolIndex& a_vof) const
+{
+  IndMomSpaceDim retval;
+  bool isIrreg = irregVoF(a_vof);
+  if(isIrreg)
+    {
+      retval = m_volMoments(a_vof, 0).m_volumeMoments;
+    }
+  else
+    {
+      retval = m_regularVolumeMoments;
+    }
+  return retval;
+}
+
+/*******************************/
+IndMomSpaceDim 
+EBDataImplem::
+getEBMoments(const VolIndex& a_vof) const
+{
+  IndMomSpaceDim retval;
+  if(irregVoF(a_vof))
+    {
+      retval = m_volMoments(a_vof, 0).m_averageFace.m_EBMoments;
+    }
+  else
+    {
+      retval.setToZero();
+    }
+  return retval;
+}
+/*******************************/
+IndMomSpaceDim 
+EBDataImplem::
+getEBNormalPartialDerivs(const VolIndex& a_vof, int a_normalComponent) const
+{
+  BL_ASSERT(a_normalComponent >= 0);
+  BL_ASSERT(a_normalComponent < SpaceDim);
+  
+  IndMomSpaceDim retval;
+  if(irregVoF(a_vof))
+    {
+      retval = m_volMoments(a_vof, 0).m_averageFace.m_normalPartialDeriv[a_normalComponent];
+    }
+  else
+    {
+      retval.setToZero();
+    }
+  return retval;
+}
+void 
+EBDataImplem::
+setVolumeMomentsToZero(const VolIndex& a_vof)
+{
+  m_volMoments(a_vof, 0).m_volumeMoments.setToZero();
+  m_volMoments(a_vof, 0).m_averageFace.m_EBMoments.setToZero();
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      m_volMoments(a_vof, 0).m_averageFace.m_normalPartialDeriv[idir].setToZero();
+    }
+}
+/*******************************/
+void 
+EBDataImplem::
+setAreaMomentsToZero(const FaceIndex& a_face)
+{
+  m_faceMoments[a_face.direction()](a_face, 0).m_faceMoments.setToZero();
+}
 
   void EBDataImplem::init_snan ()
   {
@@ -617,6 +761,8 @@ namespace amrex
     BL_PROFILE("EBDataImplem::coarsenVoFs");
     //unlike before, define needs to be called first
     assert(m_isDefined);
+    Real dxFine = a_fineEBDataImplem.m_dx;
+    m_dx = 2.*dxFine;
 
     if (a_coarGraph.hasIrregular())
     {
@@ -689,9 +835,71 @@ namespace amrex
           m_volData(vofCoar, V_BNDCENTROIDX+idir) = bndryCentroidCoar[idir];
           m_volData(vofCoar, V_NORMALX     +idir) =        normalCoar[idir];
         }
+
+        if(m_hasMoments)
+        {
+          setVolumeMomentsToZero(vofCoar);
+          //grab the fine volume moments, shift them and add them up.
+          IndMomSpaceDim& coarVoMom = m_volMoments(vofCoar, 0).m_volumeMoments;
+          IndMomSpaceDim& coarEBMom = m_volMoments(vofCoar, 0).m_averageFace.m_EBMoments;
+
+          for(int ivoffine = 0; ivoffine < vofsFine.size(); ivoffine++)
+          {
+            const VolIndex& vofFine = vofsFine[ivoffine];
+            RealVect fineLoc = EBArith::getVoFLocation(vofFine, dxFine, RealVect::Zero);
+            RealVect coarLoc = EBArith::getVoFLocation(vofCoar,   m_dx, RealVect::Zero);
+            //              RealVect shiftAmt= coarLoc - fineLoc;
+            RealVect shiftAmt= fineLoc - coarLoc;
+            IndMomSpaceDim fineVoMom = a_fineEBDataImplem.getVolumeMoments(vofFine);
+            IndMomSpaceDim fineEBMom = a_fineEBDataImplem.getEBMoments(vofFine);
+            shiftAndIncrement(coarVoMom, fineVoMom, shiftAmt);
+            shiftAndIncrement(coarEBMom, fineEBMom, shiftAmt); 
+
+          }
+        }
       }
     }
   }
+/*******************************/
+///shift input by shift and increment output
+void
+EBDataImplem::
+shiftAndIncrement(IndMomSpaceDim& a_output, const IndMomSpaceDim& a_input,const RealVect& a_shiftRV)
+{
+  IndexTM<Real, SpaceDim> shiftVec;
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      shiftVec[idir] =  a_shiftRV[idir];
+    }
+  IndMomSpaceDim increment = a_input;
+  increment.shift(shiftVec);
+  
+  a_output += increment;
+}
+
+/*******************************/
+///shift input by shift and increment output
+void
+EBDataImplem::
+shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const RealVect& a_shiftRV, int faceDir)
+{
+  IndexTM<Real, SpaceDim-1> shiftVec;
+  int iindex = 0;
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      if(idir != faceDir)
+        {
+          shiftVec[iindex] =  a_shiftRV[idir];
+          iindex++;
+        }
+    }
+  IndMomSDMinOne increment = a_input;
+  increment.shift(shiftVec);
+  
+  a_output += increment;
+}
+
+
 /*******************************/
   void EBDataImplem::
   coarsenFaces (const EBDataImplem& a_fineEBDataImplem,
@@ -756,6 +964,24 @@ namespace amrex
           for(int idir = 0; idir < SpaceDim; idir++)
           {
             m_faceData[faceDir](faceCoar, F_FACECENTROIDX+idir) = centroidCoar[idir];
+          }
+          if(m_hasMoments)
+          {
+            BaseIFFAB<FaceData>& coarFaceData = m_faceMoments[faceDir];
+            setAreaMomentsToZero(faceCoar);
+            RealVect coarLoc = EBArith::getFaceLocation(faceCoar, m_dx, RealVect::Zero);
+
+            IndMomSDMinOne& coarFaceMom = coarFaceData(faceCoar, 0).m_faceMoments;
+            for(int iface = 0; iface < facesFine.size(); iface++)
+            {
+              const FaceIndex& faceFine = facesFine[iface];
+              Real dxFine = a_fineEBDataImplem.m_dx;
+              RealVect fineLoc = EBArith::getFaceLocation(faceFine, dxFine, RealVect::Zero);
+              RealVect shiftAmt= fineLoc - coarLoc;
+              shiftAmt[faceCoar.direction()] = 0;
+              IndMomSDMinOne fineFaceMom = a_fineEBDataImplem.getFaceMoments(faceFine);
+              shiftAndIncrement(coarFaceMom, fineFaceMom, shiftAmt, faceDir);
+            }
           }
         } //end loop over faces
       } //end loop over face directions
