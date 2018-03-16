@@ -54,6 +54,7 @@ MLCellLinOp::defineAuxData ()
             {
                 const Orientation face = oitr();
                 const int ngrow = 1;
+                const int extent = isCrossStencil() ? 0 : 1; // extend to corners
                 m_maskvals[amrlev][mglev][face].define(m_grids[amrlev][mglev],
                                                        m_dmap[amrlev][mglev],
                                                        m_geom[amrlev][mglev],
@@ -427,7 +428,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
     BL_ASSERT(bndry != nullptr || bc_mode == BCMode::Homogeneous);
 
     const int ncomp = getNComp();
-    const bool cross = true;
+    const int cross = isCrossStencil();
     if (!skip_fillboundary) {
       in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross); 
     }
@@ -470,7 +471,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                                    BL_TO_FORTRAN_ANYD(m),
                                    cdr, bct, bcl,
                                    BL_TO_FORTRAN_ANYD(fsfab),
-                                   maxorder, dxinv, flagbc, ncomp);
+                                   maxorder, dxinv, flagbc, ncomp, cross);
         }
     }
 }
