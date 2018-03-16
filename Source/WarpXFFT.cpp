@@ -27,7 +27,9 @@ WarpX::AllocLevelDataFFT (int lev)
 
     rho2_fp[lev].reset(new MultiFab(rho_fp[lev]->boxArray(),
                                     rho_fp[lev]->DistributionMap(),
-                                    1, ngRho));
+                                    1, ngRho+1)); 
+    // rho2 has one extra ghost cell, so that it's safe to deposit charge density after
+    // pushing particle.
 
     Efield_fp_fft[lev][0].reset(new MultiFab(amrex::convert(ba_fp_fft,Ex_nodal_flag),
                                              dm_fp_fft, 1, 0));
@@ -72,6 +74,8 @@ WarpX::AllocLevelDataFFT (int lev)
         rho2_cp[lev].reset(new MultiFab(rho_cp[lev]->boxArray(),
                                         rho_cp[lev]->DistributionMap(),
                                         1, ngRho));
+        // rho2 has one extra ghost cell, so that it's safe to deposit charge density after
+        // pushing particle.
 
         Efield_cp_fft[lev][0].reset(new MultiFab(amrex::convert(ba_cp_fft,Ex_nodal_flag),
                                                  dm_cp_fft, 1, 0));
@@ -195,3 +199,16 @@ WarpX::FreeFFTCommPlan (int lev)
     }
     comm_fft[lev] = MPI_COMM_NULL;
 }
+
+void
+WarpX::PushPSATD (amrex::Real time)
+{
+
+}
+
+void
+WarpX::PushPSATD (int lev, amrex::Real time)
+{
+
+}
+

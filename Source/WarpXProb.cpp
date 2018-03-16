@@ -43,3 +43,13 @@ WarpX::InitLevelData (int lev, Real time)
         costs[lev]->setVal(0.0);
     }
 }
+
+#ifdef WARPX_USE_PSATD
+
+void
+WarpX::InitDataPSATD (Real time)
+{
+
+}
+
+#endif

@@ -135,7 +135,8 @@ public:
     void FillBoundaryB (int lev);
 
     void SyncCurrent ();
-    void SyncRho ();
+    void SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
+                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc);
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -450,6 +451,12 @@ private:
     void FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
                                 amrex::BoxArray& ba_valid, const amrex::Box& domain);
     void FreeFFTCommPlan (int lev);
+
+    void InitDataPSATD (amrex::Real time);
+    void EvolvePSATD (int numsteps);
+    void PushPSATD (amrex::Real time);
+    void PushPSATD (int lev, amrex::Real time);
+
 #endif
 };
 
