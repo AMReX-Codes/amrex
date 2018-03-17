@@ -270,9 +270,6 @@ LaserParticleContainer::Evolve (int lev,
 
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ  = jx.nGrow();
-    long ngRho = (rho) ? rho->nGrow() : 0;
-
-    long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     Real t_lab = t;
@@ -347,13 +344,16 @@ LaserParticleContainer::Evolve (int lev,
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
 
-	    const long lvect = 8;
+            long lvect = 8;
 
-            if (rho)
+            auto depositCharge = [&] (MultiFab* rhomf)
             {
+                long ngRho = rhomf->nGrow();
+                long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
+
                 Real* data_ptr;
                 const int *rholen;
-                FArrayBox& rhofab = (*rho)[pti];
+                FArrayBox& rhofab = (*rhomf)[pti];
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
                 Box grown_box;
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
@@ -409,7 +409,9 @@ LaserParticleContainer::Evolve (int lev,
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
                                                 BL_TO_FORTRAN_3D(rhofab), ncomp);
                 }
-            }
+            };
+
+            if (rho) depositCharge(rho);
 
 	    //
 	    // Particle Push
@@ -582,6 +584,8 @@ LaserParticleContainer::Evolve (int lev,
             }
 
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
+
+            if (rho2) depositCharge(rho2);
 
 	    //
 	    // copy particle data back
