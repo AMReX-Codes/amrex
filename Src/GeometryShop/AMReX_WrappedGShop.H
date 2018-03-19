@@ -2,17 +2,18 @@
 #ifndef _WRAPPEDGSHOP_H_
 #define _WRAPPEDGSHOP_H_
 
-//#include "AMReX_REAL.H"
-//#include "AMReX_RealVect.H"
-//#include "AMReX_EBISBox.H"
-//#include "AMReX_GeometryService.H"
-//#include "AMReX_WrappedGShop.H"
-//#include "AMReX_LSquares.H"
-//#include "AMReX_BaseIF.H"
-//#include "AMReX_IrregNode.H"
+#include "AMReX_REAL.H"
+#include "AMReX_RealVect.H"
+#include "AMReX_EBISBox.H"
+#include "AMReX_GeometryService.H"
+#include "AMReX_WrappedGShop.H"
+#include "AMReX_LSquares.H"
+#include "AMReX_BaseIF.H"
+#include "AMReX_IrregNode.H"
 #include "AMReX_CutCellMoments.H"
 #include "AMReX_GeometryService.H"
 #include "AMReX_IntVect.H"
+#include "AMReX_IntVectSet.H"
 #include "AMReX_Box.H"
 
 using std::shared_ptr;
@@ -134,6 +135,7 @@ namespace amrex
     */
     virtual void fillGraph(BaseFab<int>        & a_regIrregCovered,
                            Vector<IrregNode>   & a_nodes,
+                           NodeMap&             a_intersections, //not filled here as yet.
                            const Box           & a_validRegion,
                            const Box           & a_ghostRegion,
                            const Box & a_domain,

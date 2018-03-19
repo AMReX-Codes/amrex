@@ -36,7 +36,7 @@ namespace amrex
     virtual Real derivative(const  IntVect& a_deriv,
                             const RealVect& a_point) const
       {
-        amrex::Error("not implemented");
+        amrex::Error("derivative function not implemented for this implicit function");
         return 0.;
       }
 
