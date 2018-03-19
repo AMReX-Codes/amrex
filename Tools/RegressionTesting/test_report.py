@@ -314,17 +314,18 @@ def report_single_test(suite, test, tests, failure_msg=None):
         if not test.compileTest:
             compare_successful = test.compare_successful
 
-            compare_file = "{}.compare.out".format(test.name)
-            try: cf = open(compare_file, 'r')
-            except IOError:
-                suite.log.warn("WARNING: no comparison file found")
-                diff_lines = ['']
-            else:
-                diff_lines = cf.readlines()
-                cf.close()
+            if test.doComparison:
+                compare_file = "{}.compare.out".format(test.name)
+                try: cf = open(compare_file, 'r')
+                except IOError:
+                    suite.log.warn("WARNING: no comparison file found")
+                    diff_lines = ['']
+                else:
+                    diff_lines = cf.readlines()
+                    cf.close()
 
-                # last check: did we produce any backtrace files?
-                if len(test.backtrace) > 0: compare_successful = False
+            # last check: did we produce any backtrace files?
+            if len(test.backtrace) > 0: compare_successful = False
 
         # write out the status file for this problem, with either
         # PASSED, COMPILE FAILED, or FAILED
@@ -509,7 +510,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
     ll.write_list()
 
-    if (not test.compileTest) and failure_msg is None:
+    if (not test.compileTest) and test.doComparison and failure_msg is None:
 
         # parse the compare output and make an HTML table
         ht = HTMLTable(hf, columns=3, divs=["summary", "compare"])
@@ -615,6 +616,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
         if variables_error:
             hf.write("<p>variables differ in files</p>\n")
 
+    if (not test.compileTest) and failure_msg is None:
         # show any visualizations
         if test.doVis:
             if not test.png_file is None:
@@ -625,7 +627,6 @@ def report_single_test(suite, test, tests, failure_msg=None):
         if not test.analysisOutputImage == "":
             hf.write("<P>&nbsp;\n")
             hf.write("<P><IMG SRC='%s' BORDER=0>" % (test.analysisOutputImage) )
-
 
     # close
     hf.write("</div></body>\n")
@@ -838,6 +839,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             if test.restartTest: continue
             if test.compileTest: continue
             if test.selfTest: continue
+            if not test.doComparison: continue
 
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.status" % (test.name)
