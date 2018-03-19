@@ -37,17 +37,9 @@ namespace amrex
         ihasMV = 1;
       }
     }
-    int imaxval = ihasMV;
-#ifdef BL_USE_MPI
-    int sendBuf = ihasMV;
-    int result = MPI_Allreduce(&sendBuf, &imaxval, 1, MPI_INT,MPI_MAX, MPI_COMM_WORLD);
-
-    if (result != MPI_SUCCESS)
-    {
-      amrex::Error("Communication error in EBISLevel::checkForMultiValuedCells");
-    }
-#endif
-    m_hasMultiValuedCells = (imaxval == 1);
+    ParallelDescriptor::ReduceIntMax(ihasMV);
+    m_hasMultiValuedCells = (ihasMV == 1);
+    m_alreadyCheckedForMVCells = true;
   }
   /***/
   void EBISLevel_checkGraph(const BoxArray          & a_grids,
@@ -215,7 +207,6 @@ namespace amrex
 
     ParmParse pp("ebis");
     m_build_eb_surface = false;
-    m_alreadyCheckedForMVCells = false;
 
     int n_name = pp.countval("eb_surface_filename");
     if (n_name > 0) {
@@ -664,7 +655,6 @@ namespace amrex
   { // method used by EBIndexSpace::buildNextLevel
     BL_PROFILE("EBISLevel::EBISLevel_fineEBIS");
 
-    m_alreadyCheckedForMVCells = false;
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
 

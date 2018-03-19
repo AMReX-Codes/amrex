@@ -1,6 +1,6 @@
 module amrex_fort_module
 
-  use iso_c_binding, only : c_float, c_double, c_size_t
+  use iso_c_binding, only : c_float, c_double, c_size_t, c_ptr
 
   implicit none
 
@@ -22,6 +22,19 @@ module amrex_fort_module
 #else
   integer, parameter :: amrex_particle_real = c_double
 #endif
+
+  interface
+     function amrex_malloc (s) bind(c,name='amrex_malloc')
+       import
+       integer(c_size_t), intent(in), value :: s
+       type(c_ptr) :: amrex_malloc
+     end function amrex_malloc
+
+     subroutine amrex_free (p) bind(c,name='amrex_free')
+       import
+       type(c_ptr), value :: p
+     end subroutine amrex_free
+  end interface
 
 contains
 

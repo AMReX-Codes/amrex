@@ -595,6 +595,7 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # do the comparison
         #----------------------------------------------------------------------
+        output_file = ""
         if not test.selfTest:
 
             if test.outputFile == "":
@@ -620,7 +621,7 @@ def test_suite(argv):
             if not type(params.convert_type(test.nlevels)) is int:
                 test.nlevels = ""
 
-            if args.make_benchmarks is None:
+            if args.make_benchmarks is None and test.doComparison:
 
                 suite.log.log("doing the comparison...")
                 suite.log.indent()
@@ -701,7 +702,7 @@ def test_suite(argv):
 
                     test.compare_successful = test.compare_successful and diff_successful
 
-            else:   # make_benchmarks
+            elif test.doComparison:   # make_benchmarks
 
                 suite.log.log("storing output of {} as the new benchmark...".format(test.name))
                 suite.log.indent()
@@ -744,8 +745,10 @@ def test_suite(argv):
                         shutil.copy(test.diffDir, diff_dir_bench)
                     suite.log.log("new diffDir: {}_{}".format(test.name, test.diffDir))
 
-        else:   # selfTest
+            else:  # don't do a comparison
+                test.compare_successful = True
 
+        else:   # selfTest
             if args.make_benchmarks is None:
 
                 suite.log.log("looking for selfTest success string: {} ...".format(test.stSuccessString))
@@ -776,96 +779,95 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only) and analysis
         #----------------------------------------------------------------------
-        if not test.selfTest:
-            if output_file != "":
-                if args.make_benchmarks is None:
+        if output_file != "":
+            if args.make_benchmarks is None:
+                
+                # get any parameters for the summary table
+                job_info_file = "{}/job_info".format(output_file)
+                if os.path.isfile(job_info_file):
+                    test.has_jobinfo = 1
+                    
+                try: jif = open(job_info_file, "r")
+                except:
+                    suite.log.warn("unable to open the job_info file")
+                else:
+                    job_file_lines = jif.readlines()
+                    jif.close()
+                    
+                    if suite.summary_job_info_field1 is not "":
+                        for l in job_file_lines:
+                            if l.startswith(suite.summary_job_info_field1.strip()) and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field1 = _tmp[idx:]
+                                break
 
-                    # get any parameters for the summary table
-                    job_info_file = "{}/job_info".format(output_file)
-                    if os.path.isfile(job_info_file):
-                        test.has_jobinfo = 1
+                    if suite.summary_job_info_field2 is not "":
+                        for l in job_file_lines:
+                            if l.startswith(suite.summary_job_info_field2.strip()) and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field2 = _tmp[idx:]
+                                break
 
-                    try: jif = open(job_info_file, "r")
-                    except:
-                        suite.log.warn("unable to open the job_info file")
+                    if suite.summary_job_info_field3 is not "":
+                        for l in job_file_lines:
+                            if l.startswith(suite.summary_job_info_field3.strip()) and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field3 = _tmp[idx:]
+                                break
+
+                # visualization
+                if test.doVis:
+
+                    if test.dim == 1:
+                        suite.log.log("Visualization not supported for dim = {}".format(test.dim))
                     else:
-                        job_file_lines = jif.readlines()
-                        jif.close()
+                        suite.log.log("doing the visualization...")
+                        tool = suite.tools["fsnapshot{}d".format(test.dim)]
+                        test_util.run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
+                            tool, suite.f_compare_tool_dir, test.visVar, output_file))
                         
-                        if suite.summary_job_info_field1 is not "":
-                            for l in job_file_lines:
-                                if l.startswith(suite.summary_job_info_field1.strip()) and l.find(":") >= 0:
-                                    _tmp = l.split(":")[1]
-                                    idx = _tmp.rfind("/") + 1
-                                    test.job_info_field1 = _tmp[idx:]
-                                    break
+                        # convert the .ppm files into .png files
+                        ppm_file = test_util.get_recent_filename(output_dir, "", ".ppm")
+                        if not ppm_file is None:
+                            png_file = ppm_file.replace(".ppm", ".png")
+                            test_util.run("convert {} {}".format(ppm_file, png_file))
+                            test.png_file = png_file
 
-                        if suite.summary_job_info_field2 is not "":
-                            for l in job_file_lines:
-                                if l.startswith(suite.summary_job_info_field2.strip()) and l.find(":") >= 0:
-                                    _tmp = l.split(":")[1]
-                                    idx = _tmp.rfind("/") + 1
-                                    test.job_info_field2 = _tmp[idx:]
-                                    break
+                # analysis
+                if not test.analysisRoutine == "":
 
-                        if suite.summary_job_info_field3 is not "":
-                            for l in job_file_lines:
-                                if l.startswith(suite.summary_job_info_field3.strip()) and l.find(":") >= 0:
-                                    _tmp = l.split(":")[1]
-                                    idx = _tmp.rfind("/") + 1
-                                    test.job_info_field3 = _tmp[idx:]
-                                    break
+                    suite.log.log("doing the analysis...")
+                    if not test.extra_build_dir == "":
+                        tool = "{}/{}".format(suite.repos[test.extra_build_dir].dir, test.analysisRoutine)
+                    else:
+                        tool = "{}/{}".format(suite.source_dir, test.analysisRoutine)
+                        
+                    shutil.copy(tool, os.getcwd())
+                    
+                    if test.analysisMainArgs == "":
+                        option = ""
+                    else:
+                        option = eval("suite.{}".format(test.analysisMainArgs))
 
-                    # visualization
-                    if test.doVis:
+                    cmd_name = os.path.basename(test.analysisRoutine)
+                    cmd_string = "./{} {} {}".format(cmd_name, option, output_file)
+                    outfile = "{}.analysis.out".format(test.name)
+                    _, _, rc = test_util.run(cmd_string, outfile=outfile, store_command=True)
+                    
+                    if rc == 0:
+                        analysis_successful = True
+                    else:
+                        analysis_successful = False
+                        suite.log.warn("analysis failed...")
+                        
+                    test.compare_successful = test.compare_successful and analysis_successful
 
-                        if test.dim == 1:
-                            suite.log.log("Visualization not supported for dim = {}".format(test.dim))
-                        else:
-                            suite.log.log("doing the visualization...")
-                            tool = suite.tools["fsnapshot{}d".format(test.dim)]
-                            test_util.run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
-                                tool, suite.f_compare_tool_dir, test.visVar, output_file))
-
-                            # convert the .ppm files into .png files
-                            ppm_file = test_util.get_recent_filename(output_dir, "", ".ppm")
-                            if not ppm_file is None:
-                                png_file = ppm_file.replace(".ppm", ".png")
-                                test_util.run("convert {} {}".format(ppm_file, png_file))
-                                test.png_file = png_file
-
-                    # analysis
-                    if not test.analysisRoutine == "":
-
-                        suite.log.log("doing the analysis...")
-                        if not test.extra_build_dir == "":
-                            tool = "{}/{}".format(suite.repos[test.extra_build_dir].dir, test.analysisRoutine)
-                        else:
-                            tool = "{}/{}".format(suite.source_dir, test.analysisRoutine)
-
-                        shutil.copy(tool, os.getcwd())
-
-                        if test.analysisMainArgs == "":
-                            option = ""
-                        else:
-                            option = eval("suite.{}".format(test.analysisMainArgs))
-
-                        cmd_name = os.path.basename(test.analysisRoutine)
-                        cmd_string = "./{} {} {}".format(cmd_name, option, output_file)
-                        outfile = "{}.analysis.out".format(test.name)
-                        _, _, rc = test_util.run(cmd_string, outfile=outfile, store_command=True)
-
-                        if rc == 0:
-                            analysis_successful = True
-                        else:
-                            analysis_successful = False
-                            suite.log.warn("analysis failed...")
-
-                        test.compare_successful = test.compare_successful and analysis_successful
-
-            else:
-                if test.doVis or test.analysisRoutine != "":
-                    suite.log.warn("no output file.  Skipping visualization")
+        else:
+            if test.doVis or test.analysisRoutine != "":
+                suite.log.warn("no output file.  Skipping visualization")
 
 
         #----------------------------------------------------------------------
@@ -876,7 +878,8 @@ def test_suite(argv):
             if os.path.isfile("{}.err.out".format(test.name)):
                 shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
                 test.has_stderr = True
-            shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
+            if test.doComparison:
+                shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
             try:
                 shutil.copy("{}.analysis.out".format(test.name), suite.full_web_dir)
             except:
@@ -917,7 +920,8 @@ def test_suite(argv):
             suite.copy_backtrace(test)
 
         else:
-            shutil.copy("{}.status".format(test.name), suite.full_web_dir)
+            if test.doComparison:
+                shutil.copy("{}.status".format(test.name), suite.full_web_dir)
 
 
         #----------------------------------------------------------------------
