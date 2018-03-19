@@ -126,7 +126,7 @@ namespace amrex
       }
 
     //for T==Real, we need to check for NaN
-    bool isValid(const int& a_iface,const int& varlocin) const
+    bool isValid(const T& a_value) const
       {
         return true;
       }
@@ -282,7 +282,7 @@ namespace amrex
   namespace amrex
   {
     //template specialization for valid for Real (Weiqun uses this to check for unassigned data).
-    template< >  bool BaseIFFAB<Real>::isValid(const int& a_iface,const int& varlocin) const;
+    template< >  bool BaseIFFAB<Real>::isValid(const Real& a_input) const;
     
   }
 #endif

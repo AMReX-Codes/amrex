@@ -6,9 +6,9 @@
 namespace amrex
 {
   template< >
-  bool BaseIFFAB<Real>::isValid(const int& a_iface,const int& varlocin) const
+  bool BaseIFFAB<Real>::isValid(const Real& a_input) const
   {
-    bool notvalid = std::isnan((*this)(a_iface, varlocin));
+    bool notvalid = std::isnan(a_input);
     return (!notvalid);
   }
 }

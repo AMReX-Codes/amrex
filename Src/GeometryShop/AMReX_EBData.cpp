@@ -25,6 +25,117 @@ namespace amrex
   static const VolIndex  ebd_debvofhi(ebd_debivhi, 0);
   static const FaceIndex ebd_debface(ebd_debvoflo, ebd_debvofhi);
 
+  size_t
+  BoundaryData::linearSize()
+  {
+    size_t retval = 0;
+    //eb moments
+    retval += IndMomSpaceDim::linearSize();
+    //normal derivatives
+    retval += SpaceDim*(IndMomSpaceDim::linearSize());
+  
+    return retval;
+  }
+
+  void
+  BoundaryData::linearIn(const char* const a_inbuf)
+  {
+    char* buf = (char*) a_inbuf;
+
+    int iincr = IndMomSpaceDim::linearSize();
+
+    m_EBMoments.linearIn(buf);
+    buf += iincr;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      //normal derivatives
+      m_normalPartialDeriv[idir].linearIn(buf);
+      buf += iincr;
+
+    }
+  }
+
+  void
+  BoundaryData::linearOut(const char* const a_inbuf) const
+  {
+    char* buf = (char*) a_inbuf;
+
+    int iincr = IndMomSpaceDim::linearSize();
+
+    m_EBMoments.linearOut(buf);
+    buf += iincr;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      //normal derivatives
+      m_normalPartialDeriv[idir].linearOut(buf);
+      buf += iincr;
+      
+    }
+  }
+//VolData specialization of linearSize
+  template < >
+  int linearSize(const VolData& vdata)
+  {
+    int retval = 0;
+    retval += IndMomSpaceDim::linearSize();
+    retval += BoundaryData::linearSize();
+    return retval;
+  }
+
+  template < >
+  int linearSize(const FaceData& a_fdata)
+  {
+    int retval = 0;
+    retval += IndMomSDMinOne::linearSize();
+    return retval;
+  }
+
+//VolData specialization of linearIn
+  template < >
+  void linearIn(VolData& a_outputT, const void* const a_inBuf)
+  {
+    size_t indmomsize = IndMomSpaceDim::linearSize();
+
+    char* buf = (char*) a_inBuf;
+
+    a_outputT.m_volumeMoments.linearIn(buf);
+
+    buf += indmomsize;
+
+    a_outputT.m_averageFace.linearIn(buf);
+  }
+
+  template < >
+  void linearIn(FaceData& a_outputT, const void* const a_inBuf)
+  {
+    char* buf = (char*) a_inBuf;
+    a_outputT.m_faceMoments.linearIn(buf);
+  }
+
+//VolData specialization of linearOut
+  template < >
+  void linearOut(void* const a_outBuf, const VolData& a_inputT)
+  {
+
+    size_t indmomsize = IndMomSpaceDim::linearSize();
+
+    char* buf = (char*) a_outBuf;
+
+    a_inputT.m_volumeMoments.linearOut(buf);
+
+    buf += indmomsize;
+
+    a_inputT.m_averageFace.linearOut(buf);
+  }
+
+//VolData specialization of linearOut
+  template < >
+  void linearOut(void* const a_outBuf, const FaceData& a_inputT)
+  {
+    char* buf = (char*) a_outBuf;
+    a_inputT.m_faceMoments.linearOut(buf);
+  }
+/************************/
   /******/
   void checkFaceData (const BaseIFFAB<Real> a_faceData[SpaceDim], const Box& a_valid, const string& a_identifier)
   {
@@ -128,7 +239,7 @@ namespace amrex
       }
     }
   }
- /************************/
+  /************************/
   void 
   EBDataImplem::
   addFullIrregularVoFs (const IntVectSet     &    a_vofsToChange,
@@ -243,7 +354,7 @@ namespace amrex
                 }
               }
             }
-           }
+          }
           m_faceData[idir](faceit(), F_AREAFRAC) = areaF;
           //idir = face direction, jdir= centroid direction
           for (int jdir = 0; jdir < SpaceDim; jdir++)
@@ -442,11 +553,11 @@ namespace amrex
               const Vector<RealVect>& faceCentroids = node.m_faceCentroid[nodeind];
               for (int iface = 0; iface < faces.size(); iface++)
               {
- //               int ideb = 0;
- //               if(faces[iface] == debface)
- //               {
- //                 ideb = 1;
- //               }
+                //               int ideb = 0;
+                //               if(faces[iface] == debface)
+                //               {
+                //                 ideb = 1;
+                //               }
                 const Real&     areaFracNode     = areaFracs[iface];
                 const RealVect& faceCentroidNode = faceCentroids[iface];
                 const FaceIndex& face = faces[iface];
@@ -479,140 +590,140 @@ namespace amrex
     //defineVolumeMask();
     //setVolumeMask();
   }
-bool 
-EBDataImplem::
-irregFace(const FaceIndex& a_face) const
-{
-  bool retval = (m_volData.getIVS().contains(a_face.gridIndex(Side::Lo)) || m_volData.getIVS().contains(a_face.gridIndex(Side::Hi)));
-  return retval;
-}
-bool 
-EBDataImplem::
-irregVoF(const VolIndex& a_vof) const
-{
-  bool retval = (m_volData.getIVS().contains(a_vof.gridIndex()));
-  return retval;
-}
+  bool 
+  EBDataImplem::
+  irregFace(const FaceIndex& a_face) const
+  {
+    bool retval = (m_volData.getIVS().contains(a_face.gridIndex(Side::Lo)) || m_volData.getIVS().contains(a_face.gridIndex(Side::Hi)));
+    return retval;
+  }
+  bool 
+  EBDataImplem::
+  irregVoF(const VolIndex& a_vof) const
+  {
+    bool retval = (m_volData.getIVS().contains(a_vof.gridIndex()));
+    return retval;
+  }
 
-IndMomSDMinOne 
-EBDataImplem::
-getFaceMoments(const FaceIndex& a_face) const
-{
-  IndMomSDMinOne retval;
-  if(irregFace(a_face))
+  IndMomSDMinOne 
+  EBDataImplem::
+  getFaceMoments(const FaceIndex& a_face) const
+  {
+    IndMomSDMinOne retval;
+    if(irregFace(a_face))
     {
-     retval = m_faceMoments[a_face.direction()](a_face, 0).m_faceMoments;
+      retval = m_faceMoments[a_face.direction()](a_face, 0).m_faceMoments;
     }
-  else
+    else
     {
       retval= m_regularAreaMoments;
     }
-  return retval;
-}
+    return retval;
+  }
 /*******************************/
-IndMomSpaceDim 
-EBDataImplem::
-getVolumeMoments(const VolIndex& a_vof) const
-{
-  IndMomSpaceDim retval;
-  bool isIrreg = irregVoF(a_vof);
-  if(isIrreg)
+  IndMomSpaceDim 
+  EBDataImplem::
+  getVolumeMoments(const VolIndex& a_vof) const
+  {
+    IndMomSpaceDim retval;
+    bool isIrreg = irregVoF(a_vof);
+    if(isIrreg)
     {
       retval = m_volMoments(a_vof, 0).m_volumeMoments;
     }
-  else
+    else
     {
       retval = m_regularVolumeMoments;
     }
-  return retval;
-}
+    return retval;
+  }
 
 /*******************************/
-IndMomSpaceDim 
-EBDataImplem::
-getEBMoments(const VolIndex& a_vof) const
-{
-  IndMomSpaceDim retval;
-  if(irregVoF(a_vof))
+  IndMomSpaceDim 
+  EBDataImplem::
+  getEBMoments(const VolIndex& a_vof) const
+  {
+    IndMomSpaceDim retval;
+    if(irregVoF(a_vof))
     {
       retval = m_volMoments(a_vof, 0).m_averageFace.m_EBMoments;
     }
-  else
+    else
     {
       retval.setToZero();
     }
-  return retval;
-}
+    return retval;
+  }
 /*******************************/
-IndMomSpaceDim 
-EBDataImplem::
-getEBNormalPartialDerivs(const VolIndex& a_vof, int a_normalComponent) const
-{
-  BL_ASSERT(a_normalComponent >= 0);
-  BL_ASSERT(a_normalComponent < SpaceDim);
+  IndMomSpaceDim 
+  EBDataImplem::
+  getEBNormalPartialDerivs(const VolIndex& a_vof, int a_normalComponent) const
+  {
+    BL_ASSERT(a_normalComponent >= 0);
+    BL_ASSERT(a_normalComponent < SpaceDim);
   
-  IndMomSpaceDim retval;
-  if(irregVoF(a_vof))
+    IndMomSpaceDim retval;
+    if(irregVoF(a_vof))
     {
       retval = m_volMoments(a_vof, 0).m_averageFace.m_normalPartialDeriv[a_normalComponent];
     }
-  else
+    else
     {
       retval.setToZero();
     }
-  return retval;
-}
-void 
-EBDataImplem::
-setVolumeMomentsToZero(const VolIndex& a_vof)
-{
-  m_volMoments(a_vof, 0).m_volumeMoments.setToZero();
-  m_volMoments(a_vof, 0).m_averageFace.m_EBMoments.setToZero();
-  for(int idir = 0; idir < SpaceDim; idir++)
+    return retval;
+  }
+  void 
+  EBDataImplem::
+  setVolumeMomentsToZero(const VolIndex& a_vof)
+  {
+    m_volMoments(a_vof, 0).m_volumeMoments.setToZero();
+    m_volMoments(a_vof, 0).m_averageFace.m_EBMoments.setToZero();
+    for(int idir = 0; idir < SpaceDim; idir++)
     {
       m_volMoments(a_vof, 0).m_averageFace.m_normalPartialDeriv[idir].setToZero();
     }
-}
+  }
 /*******************************/
-void 
-EBDataImplem::
-setAreaMomentsToZero(const FaceIndex& a_face)
-{
-  m_faceMoments[a_face.direction()](a_face, 0).m_faceMoments.setToZero();
-}
+  void 
+  EBDataImplem::
+  setAreaMomentsToZero(const FaceIndex& a_face)
+  {
+    m_faceMoments[a_face.direction()](a_face, 0).m_faceMoments.setToZero();
+  }
 
   void EBDataImplem::init_snan ()
   {
 #ifdef BL_USE_DOUBLE
-      std::size_t n = m_volData.size();
+    std::size_t n = m_volData.size();
+    if (n > 0) {
+      amrex_array_init_snan(m_volData.dataPtr(), n);
+    }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+      n = m_faceData[idim].size();
       if (n > 0) {
-          amrex_array_init_snan(m_volData.dataPtr(), n);
+        amrex_array_init_snan(m_faceData[idim].dataPtr(), n);
       }
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-          n = m_faceData[idim].size();
-          if (n > 0) {
-              amrex_array_init_snan(m_faceData[idim].dataPtr(), n);
-          }
-      }
+    }
 #else
-      init_qnan();
+    init_qnan();
 #endif
   }
 
   void EBDataImplem::init_qnan ()
   {
-      std::size_t n = m_volData.size();
+    std::size_t n = m_volData.size();
+    if (n > 0) {
+      std::fill(m_volData.dataPtr(), m_volData.dataPtr() + n,
+                std::numeric_limits<Real>::quiet_NaN());
+    }
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+      n = m_faceData[idim].size();
       if (n > 0) {
-          std::fill(m_volData.dataPtr(), m_volData.dataPtr() + n,
-                    std::numeric_limits<Real>::quiet_NaN());
+        std::fill(m_faceData[idim].dataPtr(), m_faceData[idim].dataPtr() + n,
+                  std::numeric_limits<Real>::quiet_NaN());
       }
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-          n = m_faceData[idim].size();
-          if (n > 0) {
-              std::fill(m_faceData[idim].dataPtr(), m_faceData[idim].dataPtr() + n,
-                        std::numeric_limits<Real>::quiet_NaN());
-          }
-      }
+    }
   }
 
 /*******************************/
@@ -862,42 +973,42 @@ setAreaMomentsToZero(const FaceIndex& a_face)
   }
 /*******************************/
 ///shift input by shift and increment output
-void
-EBDataImplem::
-shiftAndIncrement(IndMomSpaceDim& a_output, const IndMomSpaceDim& a_input,const RealVect& a_shiftRV)
-{
-  IndexTM<Real, SpaceDim> shiftVec;
-  for(int idir = 0; idir < SpaceDim; idir++)
+  void
+  EBDataImplem::
+  shiftAndIncrement(IndMomSpaceDim& a_output, const IndMomSpaceDim& a_input,const RealVect& a_shiftRV)
+  {
+    IndexTM<Real, SpaceDim> shiftVec;
+    for(int idir = 0; idir < SpaceDim; idir++)
     {
       shiftVec[idir] =  a_shiftRV[idir];
     }
-  IndMomSpaceDim increment = a_input;
-  increment.shift(shiftVec);
+    IndMomSpaceDim increment = a_input;
+    increment.shift(shiftVec);
   
-  a_output += increment;
-}
+    a_output += increment;
+  }
 
 /*******************************/
 ///shift input by shift and increment output
-void
-EBDataImplem::
-shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const RealVect& a_shiftRV, int faceDir)
-{
-  IndexTM<Real, SpaceDim-1> shiftVec;
-  int iindex = 0;
-  for(int idir = 0; idir < SpaceDim; idir++)
+  void
+  EBDataImplem::
+  shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const RealVect& a_shiftRV, int faceDir)
+  {
+    IndexTM<Real, SpaceDim-1> shiftVec;
+    int iindex = 0;
+    for(int idir = 0; idir < SpaceDim; idir++)
     {
       if(idir != faceDir)
-        {
-          shiftVec[iindex] =  a_shiftRV[idir];
-          iindex++;
-        }
+      {
+        shiftVec[iindex] =  a_shiftRV[idir];
+        iindex++;
+      }
     }
-  IndMomSDMinOne increment = a_input;
-  increment.shift(shiftVec);
+    IndMomSDMinOne increment = a_input;
+    increment.shift(shiftVec);
   
-  a_output += increment;
-}
+    a_output += increment;
+  }
 
 
 /*******************************/
@@ -1164,17 +1275,23 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
   {
 
     BL_PROFILE("EBDataImplem::nbytes");
-    size_t retval = m_volData.nBytes(bx, 0, V_VOLNUMBER);
+    //integer saying whether we have higher order moments
+    size_t retval = sizeof(int);
+    retval += m_volData.nBytes(bx, 0, V_VOLNUMBER);
+    if(m_hasMoments)
+    {
+      retval +=       m_volMoments.nBytes(bx, 0, 1);
+    }
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       retval += m_faceData[idir].nBytes(bx, 0, F_FACENUMBER);
+      if(m_hasMoments)
+      {
+        retval += m_faceMoments[idir].nBytes(bx, 0, 1);
+      }
     }
-    //do we have a volume mask that intersects this box?
-//    retval += sizeof(int);
-//    if(m_graph.hasIrregular(bx))
-//    {
-//      retval += m_volMask.nBytes(bx, 0, V_VOLNUMBER);
-//    }
+
+
     return retval;
   }
 /*******************************/
@@ -1188,8 +1305,22 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
   {
 
     BL_PROFILE("EBDataImplem::copyToMem");
-    size_t retval = 0;
+    size_t retval  = 0;
+    size_t incrval = 0;
+    
     unsigned char* buf = (unsigned char*) dst;
+    int* intbuf = (int*) dst;
+    //insert switch as to whether we have higher order moments
+    int ihasmom = 0;
+    if(m_hasMoments)
+    {
+      ihasmom = 1;
+    }
+
+    *intbuf = ihasmom;
+    incrval = sizeof(int);
+    retval += incrval;
+    buf    += incrval;
 
     //if(m_volData.getIVS().contains(ebd_debiv))
     //{
@@ -1200,35 +1331,34 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
     //  pout() << "ebdata copyto mem::domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
     //}
 
-    size_t incrval = m_volData.copyToMem(bx, 0, V_VOLNUMBER, buf);
+    incrval = m_volData.copyToMem(bx, 0, V_VOLNUMBER, buf);
     retval += incrval;
     buf    += incrval;
+
+
+    if(m_hasMoments)
+    {
+      incrval = m_volMoments.copyToMem(bx, 0, 1, buf);
+      retval += incrval;
+      buf    += incrval;
+    }
 
     for(int idir = 0; idir < SpaceDim; idir++)
     {
 
       incrval = m_faceData[idir].copyToMem(bx, 0, F_FACENUMBER, buf);
-
       retval += incrval;
       buf    += incrval;
 
+      if(m_hasMoments)
+      {
+        incrval = m_faceMoments[idir].copyToMem(bx, 0, 1, buf);
+        retval += incrval;
+        buf    += incrval;
+      }
+
     }
 
-    //do we have a volume mask that intersects this box?
-//    int hasIrreg = 0;
-//    if(m_graph.hasIrregular(bx))
-//    {
-//      hasIrreg = 1;
-//    }
-
-//    int* intbuf = (int*) buf;
-//    *intbuf = hasIrreg;
-//    buf    += sizeof(int);
-//    retval += sizeof(int);
-//    if(hasIrreg == 1)
-//    {
-//      retval += m_volMask.copyToMem(bx, 0, V_VOLNUMBER, buf);
-//    }
     //pout() << "ebdata:: copytomem:   bx = " << bx  << ", retval = " << retval << endl;
     return retval;
   }
@@ -1245,12 +1375,31 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
 
     BL_PROFILE("EBDataImplem::copyFromMem");
     size_t retval = 0;
+    size_t incrval = 0;
+    const int* intbuf = (const int*) src;
+    int ihasmom = *intbuf;
+    //insert switch as to whether we have higher order moments
+    BL_ASSERT((ihasmom == 0) || (ihasmom == 1));
+    if(((ihasmom == 0) && m_hasMoments) || ((ihasmom == 1) && (!m_hasMoments)))
+    {
+      amrex::Error("inconsistent state in serialization of BaseIFFAB");
+    }
     unsigned char* buf = (unsigned char*) src;
 
-
-    size_t incrval = m_volData.copyFromMem(bx, 0, V_VOLNUMBER, buf);
+    incrval = sizeof(int);
     retval += incrval;
     buf    += incrval;
+
+    incrval = m_volData.copyFromMem(bx, 0, V_VOLNUMBER, buf);
+    retval += incrval;
+    buf    += incrval;
+
+    if(m_hasMoments)
+    {
+      incrval = m_volMoments.copyFromMem(bx, 0, 1, buf);
+      retval += incrval;
+      buf    += incrval;
+    }
 
     for(int idir = 0; idir < SpaceDim; idir++)
     {
@@ -1259,16 +1408,14 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
       retval += incrval;
       buf    += incrval;
 
+      if(m_hasMoments)
+      {
+        incrval = m_faceMoments[idir].copyFromMem(bx, 0, 1, buf);
+        retval += incrval;
+        buf    += incrval;
+      }
     }
 
-    //do we have a volume mask that intersects this box?
-//    int hasIrreg = *buf;
-//    buf    += sizeof(int);
-//    retval += sizeof(int);
-//    if(hasIrreg == 1)
-//    {
-//      retval += m_volMask.copyFromMem(bx, 0, V_VOLNUMBER, buf);
-//    }
     //if(m_volData.getIVS().contains(ebd_debiv))
     //{
     //  pout() << "ebdata copyfrommem::domain = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
@@ -1285,13 +1432,23 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
   EBDataImplem::
   nBytesFull () const
   {
-    //first the region
-    size_t retval = m_region.linearSize();
+    //first whether we have moments
+    size_t retval = sizeof(int);
+ 
+    retval = m_region.linearSize();
     retval +=   m_graph.nBytesFull();
     retval += m_volData.nBytesFull();
+    if(m_hasMoments)
+    {
+      retval += m_volMoments.nBytesFull();
+    }
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       retval += m_faceData[idir].nBytesFull();
+      if(m_hasMoments)
+      {
+        retval += m_faceMoments[idir].nBytesFull();
+      }
     }
     return retval;
   }
@@ -1304,6 +1461,19 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
     size_t retval  = 0;
     size_t incrval = 0;
     unsigned char* buf = (unsigned char*) dst;
+    //integer telling whether m_hasMoments  is true
+    int ihasmom = 0;
+    if(m_hasMoments)
+    {
+      ihasmom = 1;
+    }
+                    
+    int* intbuf = (int*) buf;
+    *intbuf = ihasmom;
+    incrval = sizeof(int);
+    buf += incrval;
+    retval += incrval;
+
     m_region.linearOut(buf);
     incrval = m_region.linearSize();
     buf += incrval;
@@ -1317,11 +1487,24 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
     retval += incrval;
     buf    += incrval;
 
+    if(m_hasMoments)
+    {
+      incrval = m_volMoments.copyToMemFull(buf);
+      retval += incrval;
+      buf    += incrval;
+    }
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       incrval = m_faceData[idir].copyToMemFull(buf);
       retval += incrval;
       buf    += incrval;
+
+      if(m_hasMoments)
+      {
+        incrval = m_faceMoments[idir].copyToMemFull(buf);
+        retval += incrval;
+        buf    += incrval;
+      }
     }
     return retval;
   }
@@ -1336,6 +1519,14 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
     size_t retval  = 0;
     size_t incrval = 0;
     unsigned char* buf = (unsigned char*) src;
+    const int* intbuf = (const int*)src;
+    int ihasmom = *intbuf;
+    incrval = sizeof(int);
+    buf += incrval;
+    retval += incrval;
+    BL_ASSERT((ihasmom == 0) || (ihasmom == 1));
+    m_hasMoments = (ihasmom == 1); 
+    
     m_region.linearIn(buf);
     incrval = m_region.linearSize();
     buf += incrval;
@@ -1349,63 +1540,28 @@ shiftAndIncrement(IndMomSDMinOne& a_output, const IndMomSDMinOne& a_input,const 
     retval += incrval;
     buf    += incrval;
 
+    if(m_hasMoments)
+    {
+      incrval = m_volMoments.copyFromMemFull(buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       incrval = m_faceData[idir].copyFromMemFull(buf);
       retval += incrval;
       buf    += incrval;
+      if(m_hasMoments)
+      {
+        incrval = m_faceMoments[idir].copyFromMemFull(buf);
+        retval += incrval;
+        buf    += incrval;
+      }
     }
-
-    //defineVolumeMask();
-    //setVolumeMask();
 
     m_isDefined = true;
     return retval;
   }
 
-/*******************************/
-//  void 
-//  EBDataImplem::
-//  defineVolumeMask ()
-//  {
-//    if(m_graph.hasIrregular(m_region))
-//    {
-//      m_hasVolumeMask = true;
-//      m_volMask.resize(m_region, V_VOLNUMBER);
-//    }
-//  }
-/*******************************/
-//  void 
-//  EBDataImplem::
-//  setVolumeMask ()
-//  {
-//    BL_PROFILE("ebd::set_volume_mask");
-//    if(m_hasVolumeMask)
-//    {
-//      //set everything to zero. then loop and set regular volume fractions to 1.
-//      m_volMask.setVal(0.0);
-//      for(BoxIterator bit(m_region); bit.ok(); ++bit)
-//      {
-//        if(m_graph.isRegular(bit()))
-//        {
-//          m_volMask(bit(), V_VOLFRAC) = 1.0;
-//        }
-//      }
-//
-//      //  now loop through the volumes  and set stuff (if it is not nan)
-//      const Vector<VolIndex>& vofs = m_volData.getVoFs();
-//      for(int ivof = 0; ivof < vofs.size(); ivof++)
-//      {
-//        const VolIndex& vof = vofs[ivof];
-//        for(int icomp = 0; icomp < V_VOLNUMBER; icomp++)
-//        {
-//          if(!std::isnan(m_volData(vof, icomp)))
-//          {
-//            m_volMask(vof.gridIndex(), icomp) = m_volData(vof, icomp);
-//          }
-//        }
-//      }
-//    }
-//  }
-/*******************************/
 }
