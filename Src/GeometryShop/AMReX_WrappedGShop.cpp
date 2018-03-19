@@ -464,6 +464,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
   WrappedGShop::
   fillGraph(BaseFab<int>&       a_regIrregCovered,
             Vector<IrregNode>&  a_nodes,
+            NodeMap&            a_intersections, //not filled here as yet.
             const Box&          a_validRegion,
             const Box&          a_ghostRegion,
             const Box & a_domain,
