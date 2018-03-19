@@ -166,6 +166,9 @@ WarpX::WarpX ()
     ba_valid_fp_fft.resize(nlevs_max);
     ba_valid_cp_fft.resize(nlevs_max);
 
+    domain_fp_fft.resize(nlevs_max);
+    domain_cp_fft.resize(nlevs_max);
+
     comm_fft.resize(nlevs_max,MPI_COMM_NULL);
     color_fft.resize(nlevs_max,-1);
 #endif
@@ -383,7 +386,9 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("psatd");
         pp.query("ngroups_fft", ngroups_fft);
-        pp.query("nguards_fft", nguards_fft);
+        pp.query("nox", nox_fft);
+        pp.query("noy", noy_fft);
+        pp.query("noz", noz_fft);
     }
 #endif
 }
@@ -394,12 +399,12 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
                                 const DistributionMapping& new_dmap)
 {
     AllocLevelData(lev, new_grids, new_dmap);
+    InitLevelData(lev, time);
 
 #ifdef WARPX_USE_PSATD
     AllocLevelDataFFT(lev);
+    InitLevelDataFFT(lev, time);
 #endif
-
-    InitLevelData(lev, time);
 }
 
 void
@@ -451,7 +456,7 @@ WarpX::ClearLevel (int lev)
     ba_valid_fp_fft[lev] = BoxArray();
     ba_valid_cp_fft[lev] = BoxArray();
 
-    FreeFFTCommPlan(lev);
+    FreeFFT(lev);
 #endif
 }
 

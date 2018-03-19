@@ -76,10 +76,6 @@ WarpX::InitFromScratch ()
     mypc->AllocData();
     mypc->InitData();
 
-#ifdef WARPX_USE_PSATD
-    InitDataPSATD(time);
-#endif
-
 #ifdef USE_OPENBC_POISSON
     InitOpenbc();
 #endif

@@ -47,9 +47,34 @@ WarpX::InitLevelData (int lev, Real time)
 #ifdef WARPX_USE_PSATD
 
 void
-WarpX::InitDataPSATD (Real time)
+WarpX::InitLevelDataFFT (int lev, Real time)
 {
+    Efield_fp_fft[lev][0]->setVal(0.0);
+    Efield_fp_fft[lev][1]->setVal(0.0);
+    Efield_fp_fft[lev][2]->setVal(0.0);
+    Bfield_fp_fft[lev][0]->setVal(0.0);
+    Bfield_fp_fft[lev][1]->setVal(0.0);
+    Bfield_fp_fft[lev][2]->setVal(0.0);
+    current_fp_fft[lev][0]->setVal(0.0);
+    current_fp_fft[lev][1]->setVal(0.0);
+    current_fp_fft[lev][2]->setVal(0.0);
+    rho_prev_fp_fft[lev]->setVal(0.0);
+    rho_next_fp_fft[lev]->setVal(0.0);
 
+    if (lev > 0)
+    {
+        Efield_cp_fft[lev][0]->setVal(0.0);
+        Efield_cp_fft[lev][1]->setVal(0.0);
+        Efield_cp_fft[lev][2]->setVal(0.0);
+        Bfield_cp_fft[lev][0]->setVal(0.0);
+        Bfield_cp_fft[lev][1]->setVal(0.0);
+        Bfield_cp_fft[lev][2]->setVal(0.0);
+        current_cp_fft[lev][0]->setVal(0.0);
+        current_cp_fft[lev][1]->setVal(0.0);
+        current_cp_fft[lev][2]->setVal(0.0);
+        rho_prev_cp_fft[lev]->setVal(0.0);
+        rho_next_cp_fft[lev]->setVal(0.0);
+    }
 }
 
 #endif

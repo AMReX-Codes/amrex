@@ -440,22 +440,30 @@ private:
     amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
     amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
 
+    amrex::Vector<amrex::Box> domain_fp_fft;  //  "global" domain for the group this process belongs to 
+    amrex::Vector<amrex::Box> domain_cp_fft;
+
     amrex::Vector<MPI_Comm> comm_fft;
     amrex::Vector<int>      color_fft;
 
     int ngroups_fft = 4;
-    int nguards_fft = 10;
+    int nox_fft = 16;
+    int noy_fft = 16;
+    int noz_fft = 16;
 
     void AllocLevelDataFFT (int lev);
+    void InitLevelDataFFT (int lev, amrex::Real time);
+
     void InitFFTComm (int lev);
     void FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
-                                amrex::BoxArray& ba_valid, const amrex::Box& domain);
-    void FreeFFTCommPlan (int lev);
+                                amrex::BoxArray& ba_valid, amrex::Box& domain_fft,
+                                const amrex::Box& domain);
+    void InitFFTDataPlan (int lev);
+    void FreeFFT (int lev);
 
-    void InitDataPSATD (amrex::Real time);
     void EvolvePSATD (int numsteps);
-    void PushPSATD (amrex::Real time);
-    void PushPSATD (int lev, amrex::Real time);
+    void PushPSATD (amrex::Real dt);
+    void PushPSATD (int lev, amrex::Real dt);
 
 #endif
 };

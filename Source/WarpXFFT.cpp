@@ -4,6 +4,27 @@
 
 using namespace amrex;
 
+namespace {
+
+static void
+CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba_valid_fft)
+{
+    auto idx_type = mf_fft.ixType();
+    MultiFab mftmp(amrex::convert(ba_valid_fft,idx_type), mf_fft.DistributionMap(), 1, 0);
+    for (MFIter mfi(mftmp,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        if (mf_fft[mfi].box().contains(bx))
+        {
+            mftmp[mfi].copy(mf_fft[mfi], bx, 0, bx, 0, 1);
+        }
+    }
+
+    mf.ParallelCopy(mftmp);
+}
+
+}
+
 void
 WarpX::AllocLevelDataFFT (int lev)
 {
@@ -15,7 +36,8 @@ WarpX::AllocLevelDataFFT (int lev)
 
     BoxArray ba_fp_fft;
     DistributionMapping dm_fp_fft;
-    FFTDomainDecompsition(lev, ba_fp_fft, dm_fp_fft, ba_valid_fp_fft[lev], geom[lev].Domain());
+    FFTDomainDecompsition(lev, ba_fp_fft, dm_fp_fft, ba_valid_fp_fft[lev], domain_fp_fft[lev],
+                          geom[lev].Domain());
 
     int ngRho = Efield_fp[lev][0]->nGrow();
     if (rho_fp[lev] == nullptr)
@@ -60,7 +82,7 @@ WarpX::AllocLevelDataFFT (int lev)
     {
         BoxArray ba_cp_fft;
         DistributionMapping dm_cp_fft;
-        FFTDomainDecompsition(lev, ba_cp_fft, dm_cp_fft, ba_valid_cp_fft[lev],
+        FFTDomainDecompsition(lev, ba_cp_fft, dm_cp_fft, ba_valid_cp_fft[lev], domain_cp_fft[lev],
                               amrex::coarsen(geom[lev].Domain(),2));
         
         int ngRho = Efield_cp[lev][0]->nGrow();
@@ -102,6 +124,8 @@ WarpX::AllocLevelDataFFT (int lev)
         
         dataptr_cp_fft[lev].reset(new LayoutData<FFTData>(ba_cp_fft, dm_cp_fft));
     }
+
+    InitFFTDataPlan(lev);
 }
 
 void
@@ -125,9 +149,11 @@ WarpX::InitFFTComm (int lev)
 }
 
 void
-WarpX::FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
-                              amrex::BoxArray& ba_valid, const Box& domain)
+WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm_fft,
+                              BoxArray& ba_valid, Box& domain_fft, const Box& domain)
 {
+    IntVect nguards_fft(AMREX_D_DECL(nox_fft,noy_fft,noz_fft));
+
     int nprocs = ParallelDescriptor::NProcs();
     int np_fft;
     MPI_Comm_size(comm_fft[lev], &np_fft);
@@ -136,8 +162,7 @@ WarpX::FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::Distribut
     bl_fft.reserve(nprocs);
     Vector<int> gid_fft;
     gid_fft.reserve(nprocs);
-    
-    Box domain_fft; // the "global" domain for a group
+
     BoxList bl(domain, ngroups_fft);  // This does a multi-D domain decomposition for groups
     AMREX_ALWAYS_ASSERT(bl.size() == ngroups_fft);
     const Vector<Box>& bldata = bl.data();
@@ -169,8 +194,7 @@ WarpX::FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::Distribut
     // special BoxArray ba_valid
     //
 
-    const Box foobox(IntVect(AMREX_D_DECL(-nguards_fft-2,-nguards_fft-2,-nguards_fft-2)),
-                     IntVect(AMREX_D_DECL(-nguards_fft-2,-nguards_fft-2,-nguards_fft-2)));
+    const Box foobox(-nguards_fft-2, -nguards_fft-2);
 
     BoxList bl_valid;
     bl_valid.reserve(ba_fft.size());
@@ -192,8 +216,25 @@ WarpX::FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::Distribut
 }
 
 void
-WarpX::FreeFFTCommPlan (int lev)
+WarpX::InitFFTDataPlan (int lev)
 {
+    AMREX_ALWAYS_ASSERT(Efield_fp_fft[lev][0]->local_size() == 1);
+
+    for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
+    {
+        const Box& local_domain = amrex::enclosedCells(mfi.fabbox());
+        warpx_fft_dataplan_init(BL_TO_FORTRAN_BOX(domain_fp_fft[lev]),
+                                BL_TO_FORTRAN_BOX(local_domain),
+                                &nox_fft, &noy_fft, &noz_fft,
+                                (*dataptr_fp_fft[lev])[mfi].data);
+    }
+}
+
+void
+WarpX::FreeFFT (int lev)
+{
+    warpx_fft_nullify();
+
     if (comm_fft[lev] != MPI_COMM_NULL) {
         MPI_Comm_free(&comm_fft[lev]);
     }
@@ -201,14 +242,52 @@ WarpX::FreeFFTCommPlan (int lev)
 }
 
 void
-WarpX::PushPSATD (amrex::Real time)
+WarpX::PushPSATD (amrex::Real dt)
 {
-
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        PushPSATD(lev, dt);
+    }
 }
 
 void
-WarpX::PushPSATD (int lev, amrex::Real time)
+WarpX::PushPSATD (int lev, amrex::Real dt)
 {
+    auto dx_fp = CellSize(lev);
+    auto period_fp = geom[lev].periodicity();
 
+    Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
+    Efield_fp_fft[lev][1]->ParallelCopy(*Efield_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
+    Efield_fp_fft[lev][2]->ParallelCopy(*Efield_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
+    Bfield_fp_fft[lev][0]->ParallelCopy(*Bfield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
+    Bfield_fp_fft[lev][1]->ParallelCopy(*Bfield_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
+    Bfield_fp_fft[lev][2]->ParallelCopy(*Bfield_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
+    current_fp_fft[lev][0]->ParallelCopy(*current_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
+    current_fp_fft[lev][1]->ParallelCopy(*current_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
+    current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
+    rho_prev_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 1, 0, 0, period_fp);
+    rho_next_fp_fft[lev]->ParallelCopy(*rho2_fp[lev], 0, 0, 1, 0, 0, period_fp);
+
+    for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
+    {
+        warpx_fft_push_eb(BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
+                          BL_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]),
+                          dx_fp.data(), &dt);
+    }
+
+    CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
+    CopyDataFromFFTToValid(*Efield_fp[lev][1], *Efield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
+    CopyDataFromFFTToValid(*Efield_fp[lev][2], *Efield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][0], *Bfield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][1], *Bfield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][2], *Bfield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
 }
 
