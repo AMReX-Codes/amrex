@@ -766,30 +766,34 @@ WarpX::EvolvePSATD (int numsteps)
             }
         }
 
-        // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
-        // Particles have p^{n-1/2} and x^{n-1/2}.
+        // At the beginning, we have B^{n} and E^{n}.
+        // Particles have p^{n} and x^{n}.
         // is_synchronized is true.
-        //
-        // Or should we think everything is at t^{n} and push p back dt/2?
 
-        if (is_synchronized) {
-            // on first step, push X, E and B by 0.5*dt
-            // xxxxx deposit rho and sync rho
-            mypc->PushX(0.5*dt[0]);
-            // xxxxx deposit rho2 and sync rho
-            // PushPSATD(0.5*dt[0]);
-            UpdatePlasmaInjectionPosition(0.5*dt[0]);
-            mypc->Redistribute();
+        if (is_synchronized)
+        {
+            FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
+
+            // on first step, push p by -0.5*dt
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->PushP(lev, -0.5*dt[0],
+                            *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                            *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+            }
+
             is_synchronized = false;
         }
+        else
+        {
+            // Beyond one step, we have E^{n} and B^{n}.
+            // Particles have p^{n-1/2} and x^{n}.
 
-        // Beyond one step, we have E^{n} and B^{n}.
-        // Particles have p^{n-1/2} and x^{n}.
-
-        FillBoundaryE();
-        FillBoundaryB();
-
-        UpdateAuxilaryData();
+            FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
+        }
 
         // Push particle from x^{n} to x^{n+1}
         //               from p^{n-1/2} to p^{n+1/2}
@@ -806,8 +810,19 @@ WarpX::EvolvePSATD (int numsteps)
         PushPSATD(dt[0]);
 
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
-            // xxxxx TODO: what should we at the end of last step?
-            // is_synchronized = true;
+            // At the end of last step, push p by 0.5*dt to synchronize
+
+            FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
+
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->PushP(lev, 0.5*dt[0],
+                            *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                            *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+            }
+
+            is_synchronized = true;
         }
 
         for (int lev = 0; lev <= max_level; ++lev) {
