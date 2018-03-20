@@ -230,6 +230,23 @@ namespace amrex
                  const Box                      &     a_domain) const;
 
 
+    void
+    fixRegularCellsNextToCovered(Vector<IrregNode>   & a_nodes, 
+                                 BaseFab<int>        & a_regIrregCovered,
+                                 const Box           & a_validRegion,
+                                 const Box           & a_domain,
+                                 const IntVect       & a_iv,
+                                 const Real          & a_dx) const;
+
+
+
+    void
+    getFullNodeWithCoveredFace(IrregNode            & a_newNode, 
+                               const BaseFab<int>   & a_regIrregCovered,
+                               const IntVect        & a_ivshift,
+                               const Real           & a_dx,
+                               const Box            & a_domain) const;
+
     //stuff disallowed for all the usual reasons.
     WrappedGShop()
       {

@@ -138,7 +138,7 @@ namespace amrex
     }
     else
     {
-      amrex::Print() << "using WrappedGShop for geometry generationi" << endl;
+      amrex::Print() << "using WrappedGShop for geometry generation" << endl;
       gshop = &wrappedgs;
     }
     

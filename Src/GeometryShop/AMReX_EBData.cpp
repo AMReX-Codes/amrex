@@ -465,6 +465,10 @@ namespace amrex
     const IntVectSet& ivsIrreg = a_graph.getIrregCells(a_region);
     m_isDefined = true;
     m_volData.define(ivsIrreg, a_graph, V_VOLNUMBER);
+    if(m_hasMoments)
+    {
+      m_volMoments.define(ivsIrreg, a_graph, 1);
+    }
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       //this directional grow is to accomodate the fact that there 
@@ -475,6 +479,10 @@ namespace amrex
       regionG1D &= a_graph.getDomain();
       const IntVectSet& ivsIrregG1D = a_graph.getIrregCells(regionG1D);
       m_faceData[idir].define(ivsIrregG1D, a_graph, idir, F_FACENUMBER);
+      if(m_hasMoments)
+      {
+        m_faceMoments[idir].define(ivsIrregG1D, a_graph, idir, 1);
+      }
     }
 
 //#if !defined(NDEBUG) || defined(BL_TESTING)
