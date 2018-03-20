@@ -40,7 +40,8 @@ Real WrappedGShop::s_relativeTol = 0.1;
   {
     BL_PROFILE("WrappedGShop::WrappedGShop");
     m_baseIF.reset(a_baseIF.newImplicitFunction());;
-
+    m_verbosity = a_verbosity;
+    m_thrshdVoF = a_thrshdVoF;
     m_minNumberRefines = a_minNumberRefines;
     m_maxNumberRefines = a_maxNumberRefines;
 
@@ -479,6 +480,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
     a_nodes.resize(0);
     a_regIrregCovered.resize(a_ghostRegion, 1);
 
+    Real thrshd = m_thrshdVoF;
     IntVectSet ivsirreg;
 
     {
@@ -526,11 +528,25 @@ Real WrappedGShop::s_relativeTol = 0.1;
         }
       }
     }
-    //now loop through irregular cells and make nodes for each  one.
 
+    //if a regular is next to a  covered, change to irregular with correct arcs and so on.
+    for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
+      {
+        const IntVect iv =bit();
+
+      if(a_regIrregCovered(iv, 0) == -1)
+        {
+          fixRegularCellsNextToCovered(a_nodes, a_regIrregCovered, a_validRegion, a_domain, iv, a_dx);
+        }
+      }
+
+    //now loop through irregular cells and make nodes for each  one.
+    IntVectSet ivsdrop; //volumes too small to keep
+    int numIrreg = 0;
     for (IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
     {
       IntVect iv = ivsit();
+      numIrreg++;
       BL_PROFILE("fillGraph::endOfirregularCellLoop");
       IrregNode newNode;
 
@@ -540,11 +556,219 @@ Real WrappedGShop::s_relativeTol = 0.1;
                   a_origin,
                   a_dx,
                   ivsit());
-
-      bool fixMoments = true;
-      checkNodeMoments(newNode, a_dx, fixMoments, s_relativeTol);      
-      a_nodes.push_back(newNode);
+      
+      Real volFrac = newNode.m_volFrac;
+      if (thrshd > 0. && volFrac < thrshd)
+      {
+        ivsdrop |= iv;
+        a_regIrregCovered(iv, 0) = -1;
+      }//CP record these nodes to be removed
+      else
+      {
+        bool fixMoments = true;
+        checkNodeMoments(newNode, a_dx, fixMoments, s_relativeTol);      
+        a_nodes.push_back(newNode);
+      }
     } //end loop over cells in the box
+    // CP: fix sweep that removes cells with volFrac less than a certain threshold
+    for(IVSIterator ivsit(ivsdrop); ivsit.ok(); ++ivsit)
+      {
+        const IntVect& iv = ivsit();
+  
+        for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
+          {
+            for (SideIterator sit; sit.ok(); ++sit)
+              {
+                int isign = sign(sit());
+                IntVect otherIV = iv + isign*BASISV(faceDir);
+                if (a_validRegion.contains(otherIV))
+                  {
+                    if (a_regIrregCovered(otherIV,0) == 0)
+                      {
+                        // i am in the case where the other cell
+                        // is also irregular.   I just made a previously
+                        // irregular cell covered so I have to check to
+                        // see if it had any faces pointed this way.
+                        int inode = -1;
+                        bool found = false;
+                        for (int ivec = 0; ivec < a_nodes.size() && ! found; ivec++)
+                          {
+                            if (a_nodes[ivec].m_cell == otherIV)
+                              {
+                                inode = ivec;
+                                found = true;
+                              }
+                          }
+                        if (!found && a_validRegion.contains(otherIV))
+                          {
+                            amrex::Abort("something wrong in our logic");
+                          }
+                        if (found)
+                          {
+                            int arcindex = a_nodes[inode].index(faceDir, flip(sit()));
+                            a_nodes[inode].m_arc[         arcindex].resize(0);
+                            a_nodes[inode].m_areaFrac[    arcindex].resize(0);
+                            a_nodes[inode].m_faceCentroid[arcindex].resize(0);
+                            a_nodes[inode].m_faceMoments [arcindex].setToZero();
+                          }
+                      }
+                  }//valid region
+              }//sit
+          }//facedir
+        
+        //also need to fix regular cells next to new covered cell
+        fixRegularCellsNextToCovered(a_nodes, a_regIrregCovered, a_validRegion, a_domain, iv, a_dx);
+
+      }//ivsdrop
+    if(m_verbosity > 2)
+    {
+      amrex::AllPrint() << "WrappedGShop:num irreg vofs   = " << numIrreg << "\n";
+      amrex::AllPrint() << "WrappedGShop:number of nodes  = " << a_nodes.size() << "\n";
+    }
+  }
+  /*************/
+  void
+  WrappedGShop::
+  fixRegularCellsNextToCovered(Vector<IrregNode>   & a_nodes, 
+                               BaseFab<int>        & a_regIrregCovered,
+                               const Box           & a_validRegion,
+                               const Box           & a_domain,
+                               const IntVect       & a_iv,
+                               const Real          & a_dx) const
+
+  {
+    Box grownBox(a_iv, a_iv);
+    grownBox.grow(1);
+    grownBox  &= a_domain;
+    IntVectSet ivstocheck(grownBox);
+    ivstocheck -= a_iv;
+    Box ghostRegion = a_regIrregCovered.box();
+    //first check neighbors in each direction.  
+    //If any of these are regular, they are replaced 
+    //by irregular cells with a boundary face facing the covered cell.
+    for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        for(SideIterator sit; sit.ok(); ++sit)
+          {
+            int ishift = sign(sit());
+            IntVect ivshift = a_iv + ishift*BASISV(idir);
+            ivstocheck -= ivshift;
+            int bfvalshift = -1;
+            if(ghostRegion.contains(ivshift))
+              {
+                bfvalshift = a_regIrregCovered(ivshift, 0);
+              }
+            if(bfvalshift  == 1)
+              {
+                a_regIrregCovered(ivshift, 0) =  0;
+
+                if(a_validRegion.contains(ivshift))
+                  {
+                    IrregNode newNode;
+                    getFullNodeWithCoveredFace(newNode, 
+                                               a_regIrregCovered,
+                                               ivshift, 
+                                               a_dx,
+                                               a_domain);
+                    a_nodes.push_back(newNode);
+                  }
+
+              }
+          }
+      }
+    //next we loop through the remaining cells (corner cells in 2d, corner and edge cells in 3D)
+    //if any of these are regular, we change them to irregular 
+    for(IVSIterator ivsit(ivstocheck); ivsit.ok(); ++ivsit)
+      {
+        const IntVect& iv = ivsit();
+        if(ghostRegion.contains(iv))
+          {
+            if(a_regIrregCovered(iv, 0) == 1)
+              {
+                a_regIrregCovered(iv, 0) = 0;
+                IrregNode newNode;
+                newNode.makeRegular(iv, a_dx, a_domain);
+                a_nodes.push_back(newNode);
+              }
+          }
+      }
+  }
+  /**********************************************/
+  void
+  WrappedGShop::
+  getFullNodeWithCoveredFace(IrregNode            & a_newNode, 
+                             const BaseFab<int>   & a_regIrregCovered,
+                             const IntVect        & a_iv,
+                             const Real           & a_dx,
+                             const Box            & a_domain) const
+  {
+
+    a_newNode.m_cell          = a_iv;
+    a_newNode.m_volFrac       = 1.0;
+    a_newNode.m_cellIndex     = 0;
+    a_newNode.m_volCentroid   = RealVect::Zero;
+    //set regular cell values then fix up
+    a_newNode.m_bndryCentroid = RealVect::Zero;
+    //set all moments to regular and then zero out the appropriate face mometns
+    a_newNode.setMomentsToRegular(a_dx);
+    int coveredDir;
+    Side::LoHiSide coveredSide;
+    bool found = false;
+
+    for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
+      {
+        for(SideIterator sit; sit.ok(); ++sit)
+          {
+            int ishift = sign(sit());
+            IntVect ivshift = a_iv + ishift*BASISV(faceDir);
+            Vector<int> arc;
+            Vector<Real> areaFrac;
+            Vector<RealVect> faceCentroid;
+            if(!a_domain.contains(ivshift))
+              {
+                // boundary arcs always -1
+                arc.resize(1,-1);
+                areaFrac.resize(1, 1.0);
+                faceCentroid.resize(1, RealVect::Zero);
+              }
+            else if (a_regIrregCovered(ivshift, 0) >= 0)
+              {
+                //irregular cell or regular cell
+                //compute vof internals returns something special if 
+                //connected to a regular cell but EBGraph treats both the  same.
+                //it just  knows that the cell index of a regular cell is 0
+                arc.resize(1,0);
+                areaFrac.resize(1, 1.0);
+                faceCentroid.resize(1, RealVect::Zero);
+              }
+            else if (a_regIrregCovered(ivshift, 0) < 0)
+              {
+                found = true;
+                coveredDir= faceDir;
+                coveredSide = sit();
+                // covered face!
+                arc.resize(0);
+                areaFrac.resize(0);
+                faceCentroid.resize(0);
+              }
+            else
+              {
+                amrex::Error("logic error");
+              }
+          
+            int nodeInd = a_newNode.index(faceDir, sit());
+            a_newNode.m_arc[nodeInd]          = arc;
+            a_newNode.m_areaFrac[nodeInd]     = areaFrac;
+            a_newNode.m_faceCentroid[nodeInd] = faceCentroid;
+            a_newNode.m_faceMoments[nodeInd].setToZero();
+          }
+      }
+    //fix boundary centroid
+    if(found)
+      {
+        int centsign = sign(coveredSide);
+        a_newNode.m_bndryCentroid[coveredDir] =  centsign*0.5;
+      }
   }
 /******/
   bool

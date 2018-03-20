@@ -70,6 +70,9 @@ namespace amrex
         faceCenter[i] = 0.5;
         m_faceCentroid[i+SpaceDim].resize(1,faceCenter);
       }
+
+
+    setMomentsToRegular(a_dx);
   }
 
 /*******************************/

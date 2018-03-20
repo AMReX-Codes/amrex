@@ -39,4 +39,37 @@ namespace amrex
     return static_cast<BaseIF*>(newPtr);
   }
 
+    ///return the partial derivative at the point
+  Real 
+  PlaneIF::
+  derivative(const  IntVect& a_deriv,
+             const RealVect& a_point) const
+  {
+    //negative derivs make no sense
+    BL_ASSERT(a_deriv.min() >= 0);
+    int order = a_deriv.sum();
+
+    Real retval = 0;
+
+    if (order == 0)
+    {
+      retval = value(a_point);
+    }
+    else if (order == 1)
+    {
+      bool doAbs = true;
+      retval = m_normal[a_deriv.maxDir(doAbs)];
+
+      if (m_inside)
+      {
+        retval = -retval;
+      }
+    }
+    else
+    {
+      retval = 0.0;
+    }
+
+    return retval;
+  }
 }

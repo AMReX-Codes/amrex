@@ -431,8 +431,8 @@ namespace amrex
       }//ivsdrop
     if(m_verbosity > 2)
     {
-      amrex::AllPrint() << "numIrreg  = " << numIrreg << "\n";
-      amrex::AllPrint() << "number of nodes  = " << a_nodes.size() << "\n";
+      amrex::AllPrint() << "GeometryShop:num irreg vofs   = " << numIrreg << "\n";
+      amrex::AllPrint() << "GeometryShop:number of nodes  = " << a_nodes.size() << "\n";
     }
   }
   /*************/
