@@ -475,6 +475,10 @@ Real WrappedGShop::s_relativeTol = 0.1;
 
     BL_ASSERT(a_domain.contains(a_ghostRegion));
 
+    AMREX_ASSERT(a_domain.contains(a_ghostRegion));
+    a_nodes.resize(0);
+    a_regIrregCovered.resize(a_ghostRegion, 1);
+
     IntVectSet ivsirreg;
 
     {

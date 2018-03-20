@@ -123,6 +123,40 @@ public:
       }
       return retval;
     }
+
+  //return coordinate with largest value
+  int maxDir(bool a_doAbsValue) const
+    {
+      int retval = 0;
+      if(a_doAbsValue)
+      {
+        int maxval = std::abs((*this)[0]);
+        for(int idir = 1; idir < SpaceDim; idir++)
+        {
+          int curval = std::abs((*this)[idir]);
+          if(curval > maxval)
+          {
+            maxval = curval;
+            retval = idir;
+          }
+        }
+      }
+      else
+      {
+        int maxval = (*this)[0];
+        for(int idir = 1; idir < SpaceDim; idir++)
+        {
+          int curval = (*this)[idir];
+          if(curval > maxval)
+          {
+            maxval = curval;
+            retval = idir;
+          }
+        }
+      }
+      return retval;
+    }
+
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
