@@ -642,3 +642,11 @@ LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
     // Therefore, the mobility needs to be modified by a factor WarpX::gamma_boost.
     mobility = mobility/WarpX::gamma_boost;
 }
+
+void
+LaserParticleContainer::PushP (int lev, Real dt,
+                               const MultiFab&, const MultiFab&, const MultiFab&,
+                               const MultiFab&, const MultiFab&, const MultiFab&)
+{
+    // I don't think we need to do anything.
+}

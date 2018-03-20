@@ -876,3 +876,92 @@ PhysicalParticleContainer::Evolve (int lev,
 	}
     }
 }
+
+void
+PhysicalParticleContainer::PushP (int lev, Real dt,
+                                  const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                  const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+{
+    if (do_not_push) return;
+
+    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+
+    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
+    long ngE = Ex.nGrow();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+	Vector<Real> xp, yp, zp, giv;
+
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+	{
+	    const Box& box = pti.validbox();
+
+            auto& attribs = pti.GetAttribs();
+
+            auto& uxp = attribs[PIdx::ux];
+            auto& uyp = attribs[PIdx::uy];
+            auto& uzp = attribs[PIdx::uz];
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+            auto& Ezp = attribs[PIdx::Ez];
+            auto& Bxp = attribs[PIdx::Bx];
+            auto& Byp = attribs[PIdx::By];
+            auto& Bzp = attribs[PIdx::Bz];
+
+            const long np = pti.numParticles();
+
+	    // Data on the grid
+	    const FArrayBox& exfab = Ex[pti];
+	    const FArrayBox& eyfab = Ey[pti];
+	    const FArrayBox& ezfab = Ez[pti];
+	    const FArrayBox& bxfab = Bx[pti];
+	    const FArrayBox& byfab = By[pti];
+	    const FArrayBox& bzfab = Bz[pti];
+
+	    Exp.assign(np,0.0);
+	    Eyp.assign(np,0.0);
+	    Ezp.assign(np,0.0);
+	    Bxp.assign(np,WarpX::B_external[0]);
+	    Byp.assign(np,WarpX::B_external[1]);
+	    Bzp.assign(np,WarpX::B_external[2]);
+
+	    giv.resize(np);
+
+	    //
+	    // copy data from particle container to temp arrays
+	    //
+            pti.GetPosition(xp, yp, zp);
+
+            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+
+            const int ll4symtry          = false;
+            const int l_lower_order_in_v = true;
+            long lvect_fieldgathe = 64;
+            warpx_geteb_energy_conserving(
+                &np, xp.data(), yp.data(), zp.data(),
+                Exp.data(),Eyp.data(),Ezp.data(),
+                Bxp.data(),Byp.data(),Bzp.data(),
+                &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
+                &dx[0], &dx[1], &dx[2],
+                &WarpX::nox, &WarpX::noy, &WarpX::noz,
+                exfab.dataPtr(), &ngE, exfab.length(),
+                eyfab.dataPtr(), &ngE, eyfab.length(),
+                ezfab.dataPtr(), &ngE, ezfab.length(),
+                bxfab.dataPtr(), &ngE, bxfab.length(),
+                byfab.dataPtr(), &ngE, byfab.length(),
+                bzfab.dataPtr(), &ngE, bzfab.length(),
+                &ll4symtry, &l_lower_order_in_v,
+                &lvect_fieldgathe, &WarpX::field_gathering_algo);
+            
+            warpx_particle_pusher_momenta(&np, xp.data(), yp.data(), zp.data(),
+                                          uxp.data(), uyp.data(), uzp.data(), giv.data(),
+                                          Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
+                                          Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
+                                          &this->charge, &this->mass, &dt,
+                                          &WarpX::particle_pusher_algo);
+        }
+    }
+}

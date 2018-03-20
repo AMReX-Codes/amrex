@@ -98,6 +98,17 @@ public:
     void PushX (         amrex::Real dt);
     void PushX (int lev, amrex::Real dt);
 
+    ///
+    /// This pushes the particle momenta by dt.
+    /// 
+    virtual void PushP (int lev, amrex::Real dt,
+                        const amrex::MultiFab& Ex,
+                        const amrex::MultiFab& Ey,
+                        const amrex::MultiFab& Ez,
+                        const amrex::MultiFab& Bx,
+                        const amrex::MultiFab& By,
+                        const amrex::MultiFab& Bz) = 0;
+
     void DepositCharge(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                        bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);

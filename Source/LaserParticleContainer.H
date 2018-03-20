@@ -26,6 +26,14 @@ public:
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
                          amrex::MultiFab* rho, amrex::Real t, amrex::Real dt) final;
 
+    virtual void PushP (int lev, amrex::Real dt,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ) final;
+
     virtual void PostRestart () final;
 
 private:
