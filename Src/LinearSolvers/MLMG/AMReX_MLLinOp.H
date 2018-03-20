@@ -92,6 +92,8 @@ public:
 
     void setMaxOrder (int o) { maxorder = o; }
 
+    virtual int getNComp() const { return 1;};
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
