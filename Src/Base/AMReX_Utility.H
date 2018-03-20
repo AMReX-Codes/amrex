@@ -416,13 +416,8 @@ amrex::bytesOf (const std::map<Key,T,Compare>& m)
 
 
 extern "C" {
-    inline void* amrex_malloc (std::size_t size) {
-        return malloc(size);
-    }
-    
-    inline void amrex_free (void* p) {
-        std::free(p);
-    }
+    void* amrex_malloc (std::size_t size);
+    void amrex_free (void* p);
 }
 
 #endif /*BL_UTILITY_H*/
