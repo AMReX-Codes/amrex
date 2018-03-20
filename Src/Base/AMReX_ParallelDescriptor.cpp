@@ -50,10 +50,12 @@ extern "C" {
 #include <omp.h>
 #endif
 
+#ifdef BL_USE_MPI
 namespace
 {
     static int call_mpi_finalize = 0;
 }
+#endif
 
 namespace amrex {
 
