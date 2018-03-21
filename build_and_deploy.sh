@@ -36,7 +36,7 @@ cd Docs/Doxygen
 doxygen doxygen.conf
 cd ../..
 
-mkdir out/docs_html
+mkdir -p out/docs_html
 
 # move it to the right place
 mkdir -p out/docs_html/doxygen
