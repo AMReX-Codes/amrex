@@ -542,8 +542,11 @@ class BLProfiler
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
 #define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)
 
-
 #endif
+
+// ============================================================
+// If applicible, turn off comm profiling
+// ============================================================
 
 #ifndef BL_COMM_PROFILING
 
@@ -560,6 +563,41 @@ class BLProfiler
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
 #define BL_COMM_PROFILE_TAGWRAP()
 #define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd)
+
+#endif
+
+// ============================================================
+// Third party macros.
+// Mutually exclusive, including from BL_PROFILE.
+// May be turned on with BL_profiling
+//      to allow profiling the BL_PROFILE with additional flag.
+// ============================================================
+
+#if defined(VTUNE)
+
+#define TP_PROFILE_REGION_START()   __itt_resume(); \
+amrex::Print() << "Vtune regional recording has begun.\n";
+#define TP_PROFILE_REGION_STOP()    __itt_pause(); \
+amrex::Print() << "Vtune regional recording has been stopped.\n";
+
+#elif defined(CRAYPAT)
+
+#define TP_PROFILE_REGION_START()   PAT_record(PAT_STATE_ON); \
+amrex::Print() << "Craypat regional recording has begun.\n";
+#define TP_PROFILE_REGION_STOP()    PAT_record(PAT_STATE_OFF); \
+amrex::Print() << "Craypat regional recording has been stopped.\n";
+
+#elif defined(FORGE)
+
+#define TP_PROFILE_REGION_START()   allinea_start_sampling(); \
+amrex::Print() << "MAP regional recording has begun.\n"; 
+#define TP_PROFILE_REGION_STOP()    allinea_stop_sampling(); \
+amrex::Print() << "MAP regional recording has begun.\n";
+
+#else
+
+#define TP_PROFILE_REGION_START()
+#define TP_PROFILE_REGION_STOP()
 
 #endif
 
