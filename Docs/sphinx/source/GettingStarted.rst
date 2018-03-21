@@ -205,7 +205,8 @@ There are several visualization tools that can be used for AMReX plotfiles.
 One standard tool used within the AMReX-community is Amrvis, a package
 developed and supported by CCSE that is designed specifically for highly
 efficient visualization of block-structured hierarchical AMR data.  (Amrvis can
-also be used to visualize performance data; see the ref:`Chap:Profiling`
-chapter for further details.) Plotfiles can also be viewed using the VisIt,
-ParaView, and yt packages.  Particle data can be viewed using ParaView.  Refer
-to Chapter on :ref:`Chap:Visualization` for how to use each of these tools.
+also be used to visualize performance data; see the :ref:`Chap:AMRex-based
+Profiling Tools` chapter for further details.) Plotfiles can also be viewed
+using the VisIt, ParaView, and yt packages.  Particle data can be viewed using
+ParaView.  Refer to Chapter on :ref:`Chap:Visualization` for how to use each of
+these tools.

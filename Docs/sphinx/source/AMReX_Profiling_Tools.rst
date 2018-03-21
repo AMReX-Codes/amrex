@@ -7,7 +7,8 @@
 Types of Profiling
 ==================
 
-Currently you have two options for AMReX-specific profiling: :ref:`sec:tiny:profiling` and :ref:`sec:full:profiling`.
+Currently you have two options for AMReX-specific profiling:
+:ref:`sec:tiny:profiling` and :ref:`sec:full:profiling`.
 
 .. _sec:tiny:profiling:
 
@@ -28,32 +29,36 @@ in your GNUMakefile.   If using cmake then set the following cmake flags
   AMREX_ENABLE_TINY_PROFILE = ON
   AMREX_ENABLE_BASE_PROFILE = OFF
 
-Note that if you set ``PROFILE = TRUE``  (or ``AMREX_ENABLE_BASE_PROFILE = ON``)
-then this will override the ``TINY_PROFILE`` flag and tiny profiling will be disabled.
+Note that if you set ``PROFILE = TRUE``  (or ``AMREX_ENABLE_BASE_PROFILE =
+ON``) then this will override the ``TINY_PROFILE`` flag and tiny profiling will
+be disabled.
 
-At the end of the run, a summary of exclusive and inclusive function times will be written to stdout.
-This output includes the minimum and maximum (over processes) time spent in each routine
-as well as the average and the maximum percentage of total run time.   See :ref:`sec:sample:tiny` 
-for sample output.
+At the end of the run, a summary of exclusive and inclusive function times will
+be written to stdout.  This output includes the minimum and maximum (over
+processes) time spent in each routine as well as the average and the maximum
+percentage of total run time.   See :ref:`sec:sample:tiny` for sample output.
 
-The tiny profiler automatically writes the results to stdout at the end of your code, when
-``amrex::Finalize();`` is reached. However, you may want to write partial profiling results to
-ensure your information is saved when you may fail to converge or if you expect to run out of
-allocated time. Partial results can be written at user-defined times by inserting the line:
+The tiny profiler automatically writes the results to stdout at the end of your
+code, when ``amrex::Finalize();`` is reached. However, you may want to write
+partial profiling results to ensure your information is saved when you may fail
+to converge or if you expect to run out of allocated time. Partial results can
+be written at user-defined times by inserting the line:
 
 ::
 
   BL_PROFILE_TINY_FLUSH();
 
-Any timers that have not reached their ``BL_PROFILE_VAR_STOP`` call or exited their scope and 
-deconstructed will not be included in these partial outputs. (e.g., a properly instrumented
-``main()`` should show a time of zero in all partial outputs.) Therefore, it is recommended to
-place these flush calls in easily identifiable regions of your code and outside of as many
-profiling timers as possible, such as immediately before or after writing a checkpoint.
+Any timers that have not reached their ``BL_PROFILE_VAR_STOP`` call or exited
+their scope and deconstructed will not be included in these partial outputs.
+(e.g., a properly instrumented ``main()`` should show a time of zero in all
+partial outputs.) Therefore, it is recommended to place these flush calls in
+easily identifiable regions of your code and outside of as many profiling
+timers as possible, such as immediately before or after writing a checkpoint.
 
-Also, since flush calls will print multiple, similar looking outputs to stdout, it is also
-recommended to wrap any ``BL_PROFILE_TINY_FLUSH();`` calls in informative ``amrex::Print()``
-lines to ensure accurate identification of each set of timers.
+Also, since flush calls will print multiple, similar looking outputs to stdout,
+it is also recommended to wrap any ``BL_PROFILE_TINY_FLUSH();`` calls in
+informative ``amrex::Print()`` lines to ensure accurate identification of each
+set of timers.
 
 .. _sec:full:profiling:
 
@@ -61,20 +66,20 @@ Full Profiling
 --------------
 
 If you set ``PROFILE = TRUE`` then a ``bl_prof`` directory will be written that
-contains detailed per-task timings for each processor.  This will be written in 
-``nfiles`` files (where ``nfiles`` is specified by the user).
-In addition, an exclusive-only set of function timings will be written to stdout.
+contains detailed per-task timings for each processor.  This will be written in
+``nfiles`` files (where ``nfiles`` is specified by the user).  In addition, an
+exclusive-only set of function timings will be written to stdout.
 
 Trace Profiling
 ~~~~~~~~~~~~~~~
 
-   If, in addition to ``PROFILE = TRUE``, you set ``TRACE_PROFILE = TRUE``, then
-   the profiler keeps track of when each profiled function is called and the
-   ``bl_prof`` directory will include the function call stack. This is especially
-   useful when core functions, such as :cpp:`FillBoundary` can be called from many
-   different regions of the code. Part of the trace profiling is the ability to
-   set regions in the code which can be analyzed for profiling information
-   independently from other regions.
+   If, in addition to ``PROFILE = TRUE``, you set ``TRACE_PROFILE = TRUE``,
+   then the profiler keeps track of when each profiled function is called and
+   the ``bl_prof`` directory will include the function call stack. This is
+   especially useful when core functions, such as :cpp:`FillBoundary` can be
+   called from many different regions of the code. Part of the trace profiling
+   is the ability to set regions in the code which can be analyzed for
+   profiling information independently from other regions.
 
 Communication Profiling
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -97,14 +102,14 @@ You must at least instrument main(), i.e
 
 ::
 
-    int main(...)  
+    int main(...)
     {
       amrex::Initialize(argc,argv);
-      BL_PROFILE_VAR("main()",pmain); 
+      BL_PROFILE_VAR("main()",pmain);
 
       ...
 
-      BL_PROFILE_VAR_STOP(pmain); 
+      BL_PROFILE_VAR_STOP(pmain);
       amrex::Finalize();
     }
 
@@ -112,15 +117,15 @@ You can then instrument any of your functions
 
 ::
 
-    void YourClass::YourFunction() 
+    void YourClass::YourFunction()
     {
       BL_PROFILE_VAR("YourClass::YourFunction()",object_name);  // this name can be any string
 
       // your function code
     }
 
-Note that you do not need to put BL_PROFILE_VAR_STOP because the profiler will go out of scope
-at the end of the function.
+Note that you do not need to put BL_PROFILE_VAR_STOP because the profiler will
+go out of scope at the end of the function.
 
 For other timers within an already instrumented function, add:
 
