@@ -843,6 +843,9 @@ namespace ParallelDescriptor
 				     T* recv, const std::vector<long>& rc, const std::vector<long>& disp,
 				     int root);
 
+    void Wait     (MPI_Request& req, MPI_Status& status);
+    void Waitall  (Vector<MPI_Request>& reqs, Vector<MPI_Status>& status);
+    void Waitany  (Vector<MPI_Request>& reqs, int &index, Vector<MPI_Status>& status);
     void Waitsome (Vector<MPI_Request>&, int&, Vector<int>&, Vector<MPI_Status>&);
 
     void MPI_Error(const char* file, int line, const char* msg, int rc);
