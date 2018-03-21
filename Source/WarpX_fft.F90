@@ -26,7 +26,7 @@ contains
 
 
   subroutine warpx_fft_dataplan_init (global_lo, global_hi, local_lo, local_hi, &
-       nox, noy, noz, fft_data, dx_wrpx) &
+       nox, noy, noz, fft_data, dx_wrpx, dt_wrpx) &
        bind(c,name='warpx_fft_dataplan_init')
     USE picsar_precision, only: idp
     use shared_data, only : comm, c_dim,  p3dfft_flag, &
@@ -44,11 +44,12 @@ contains
          l_spectral, l_staggered, norderx, nordery, norderz
     use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
     USE fourier_psaotd, only: init_plans_blocks
+    use params, only : dt
 
     integer, dimension(3), intent(in) :: global_lo, global_hi, local_lo, local_hi
     integer, intent(in) :: nox, noy, noz
     type(c_ptr), intent(inout) :: fft_data(22)
-    real(c_double), intent(in) :: dx_wrpx(3)
+    real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
     integer :: nx_padded
     integer, dimension(3) :: shp
@@ -152,9 +153,10 @@ contains
     fft_data(22) = amrex_malloc(sz)
     call c_f_pointer(fft_data(22), rhooldf, shp)
 
-    dx = dx_wrpx(1);
-    dy = dx_wrpx(2);
-    dz = dx_wrpx(3);
+    dx = dx_wrpx(1)
+    dy = dx_wrpx(2)
+    dz = dx_wrpx(3)
+    dt = dt_wrpx
 
     CALL init_plans_blocks()
 
@@ -202,13 +204,11 @@ contains
        jy_wrpx, jylo, jyhi, &
        jz_wrpx, jzlo, jzhi, &
        rhoold_wrpx, r1lo, r1hi, &
-       rho_wrpx, r2lo, r2hi, &
-       dt_wrpx) &
+       rho_wrpx, r2lo, r2hi) &
        bind(c,name='warpx_fft_push_eb')       
        
     use fields, only: ex, ey, ez, bx, by, bz, jx, jy, jz
     use shared_data, only: rhoold, rho
-    use params, only : dt
     use constants, only: num
     
     integer, dimension(3), intent(in) :: exlo, exhi, eylo, eyhi, ezlo, ezhi, bxlo, bxhi, &
@@ -224,9 +224,6 @@ contains
     REAL(num), INTENT(INOUT), TARGET :: jz_wrpx(0:jzhi(1)-jzlo(1),0:jzhi(2)-jzlo(2),0:jzhi(3)-jzlo(3))
     REAL(num), INTENT(INOUT), TARGET :: rhoold_wrpx(0:r1hi(1)-r1lo(1),0:r1hi(2)-r1lo(2),0:r1hi(3)-r1lo(3))
     REAL(num), INTENT(INOUT), TARGET :: rho_wrpx(0:r2hi(1)-r2lo(1),0:r2hi(2)-r2lo(2),0:r2hi(3)-r2lo(3))
-    real(num), intent(in) :: dt_wrpx
-
-    dt = dt_wrpx;
 
     ! Point the fields in the PICSAR modules to the fields provided by WarpX
     ex => ex_wrpx

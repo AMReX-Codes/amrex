@@ -229,7 +229,7 @@ WarpX::InitFFTDataPlan (int lev)
                                 BL_TO_FORTRAN_BOX(local_domain),
                                 &nox_fft, &noy_fft, &noz_fft,
                                 (*dataptr_fp_fft[lev])[mfi].data,
-                                dx_fp.data());
+                                dx_fp.data(), &dt[lev]);
     }
 
     if (lev > 0)
@@ -250,15 +250,16 @@ WarpX::FreeFFT (int lev)
 }
 
 void
-WarpX::PushPSATD (amrex::Real dt)
+WarpX::PushPSATD (amrex::Real a_dt)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
-        PushPSATD(lev, dt);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dt[lev] == a_dt, "dt must be consistent");
+        PushPSATD(lev, a_dt);
     }
 }
 
 void
-WarpX::PushPSATD (int lev, amrex::Real dt)
+WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 {
     auto period_fp = geom[lev].periodicity();
 
@@ -286,8 +287,7 @@ WarpX::PushPSATD (int lev, amrex::Real dt)
                           BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
                           BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
                           BL_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]),
-                          &dt);
+                          BL_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]));
     }
 
     CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
