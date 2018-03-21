@@ -69,6 +69,10 @@ namespace amrex
     {
       retval = 0.0;
     }
+    if (m_inside && order > 0)
+    {
+      retval = -retval;
+    }
 
     return retval;
   }
