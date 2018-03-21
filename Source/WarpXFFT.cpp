@@ -220,13 +220,21 @@ WarpX::InitFFTDataPlan (int lev)
 {
     AMREX_ALWAYS_ASSERT(Efield_fp_fft[lev][0]->local_size() == 1);
 
+    auto dx_fp = CellSize(lev);
+
     for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
     {
         const Box& local_domain = amrex::enclosedCells(mfi.fabbox());
         warpx_fft_dataplan_init(BL_TO_FORTRAN_BOX(domain_fp_fft[lev]),
                                 BL_TO_FORTRAN_BOX(local_domain),
                                 &nox_fft, &noy_fft, &noz_fft,
-                                (*dataptr_fp_fft[lev])[mfi].data);
+                                (*dataptr_fp_fft[lev])[mfi].data,
+                                dx_fp.data());
+    }
+
+    if (lev > 0)
+    {
+        amrex::Abort("WarpX::InitFFTDataPlan: TODO");
     }
 }
 
@@ -252,7 +260,6 @@ WarpX::PushPSATD (amrex::Real dt)
 void
 WarpX::PushPSATD (int lev, amrex::Real dt)
 {
-    auto dx_fp = CellSize(lev);
     auto period_fp = geom[lev].periodicity();
 
     Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
@@ -280,7 +287,7 @@ WarpX::PushPSATD (int lev, amrex::Real dt)
                           BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
                           BL_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
                           BL_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]),
-                          dx_fp.data(), &dt);
+                          &dt);
     }
 
     CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
@@ -289,5 +296,10 @@ WarpX::PushPSATD (int lev, amrex::Real dt)
     CopyDataFromFFTToValid(*Bfield_fp[lev][0], *Bfield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
     CopyDataFromFFTToValid(*Bfield_fp[lev][1], *Bfield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
     CopyDataFromFFTToValid(*Bfield_fp[lev][2], *Bfield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
+
+    if (lev > 0)
+    {
+        amrex::Abort("WarpX::PushPSATD: TODO");
+    }
 }
 
