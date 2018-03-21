@@ -1,13 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
 
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_EBIndexSpace.H"
@@ -15,6 +5,7 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
@@ -41,9 +32,13 @@ namespace amrex
 {
 /***************/
   int makeGeometry(Box& a_domain,
-                   Real& a_dx)
+                   Real& a_dx, 
+                   bool& a_hasMoments,
+                   int igeom)
   {
     int eekflag =  0;
+
+    a_hasMoments = false;
     //parse input file
     ParmParse pp;
     RealVect origin = RealVect::Zero;
@@ -105,10 +100,25 @@ namespace amrex
       PlaneIF ramp(normal,point,normalInside);
 
 
-      GeometryShop workshop(ramp,0, a_dx);
-      //this generates the new EBIS
-      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop to generate geometric info" << endl;
+        GeometryShop workshop(ramp);
+        a_hasMoments = workshop.generatesHigherOrderMoments();
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedGShop to generate geometric info" << endl;
+        WrappedGShop workshop(ramp);
+        a_hasMoments = workshop.generatesHigherOrderMoments();
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      }
+
     }
     else if(whichgeom == 5)
     {
@@ -128,8 +138,20 @@ namespace amrex
 
       bool negativeInside = false;
       SphereIF lalaBall(sphereRadius, sphereCenter, negativeInside);
-      GeometryShop workshop(lalaBall);
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop to generate geometric info" << endl;
+        GeometryShop workshop(lalaBall);
+        a_hasMoments = workshop.generatesHigherOrderMoments();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedGShop to generate geometric info" << endl;
+        WrappedGShop workshop(lalaBall);
+        a_hasMoments = workshop.generatesHigherOrderMoments();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      }
     }
     else
     {
@@ -448,12 +470,13 @@ namespace amrex
     return 0;
   }
   /***************/
-  int cerealTest()
+  int cerealTest(int igeom)
   {
     Box domain;
     Real dx;
     pout() << "making the geometry" << endl;
-    makeGeometry(domain, dx);
+    bool hasMoments;
+    makeGeometry(domain, dx, hasMoments, igeom);
     int maxboxsize;
     ParmParse pp;
     pp.get("maxboxsize", maxboxsize);
@@ -761,7 +784,7 @@ namespace amrex
         {
           //now test the more limited serialization stuff
           EBData dst;
-          dst.define(ebis.getEBGraph(), src.getRegion());
+          dst.define(ebis.getEBGraph(), src.getRegion(), dx, hasMoments);
 
           int startcomp = 0;
           size_t nbytes1 = src.nBytes(valid, startcomp, nvar);
@@ -803,15 +826,18 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::cerealTest();
-  if(retval != 0)
+  for(int igeom = 0; igeom <= 1; igeom++)
   {
-    amrex::Print() << "serialization test failed with code " << retval << "\n";
+    retval = amrex::cerealTest(igeom);
+    if(retval != 0)
+    {
+      amrex::Print() << "serialization test failed with code " << retval << "\n";
+      return retval;
+    }
+
   }
-  else
-  {
-    amrex::Print() << "serialization test passed \n";
-  }
+  amrex::Print() << "serialization test passed \n";
+
   amrex::Finalize();
   return retval;
 }
