@@ -23,12 +23,19 @@ int
 Frame::local_to_global_rank (int lrank) const
 {
 #ifdef BL_USE_MPI
-    int r;
-    MPI_Group ggroup, lgroup;
-    MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
-    MPI_Comm_group(ParallelContext::Communicator(), &lgroup);
-    MPI_Group_translate_ranks(lgroup, 1, &lrank, ggroup, &r);
-    return r;
+    if (frames.size() > 1)
+    {
+        MPI_Group ggroup, lgroup;
+        MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
+        MPI_Comm_group(ParallelContext::Communicator(), &lgroup);
+        int r;
+        MPI_Group_translate_ranks(lgroup, 1, &lrank, ggroup, &r);
+        return r;
+    }
+    else
+    {
+        return lrank;
+    }
 #else
     return 0;
 #endif
@@ -38,12 +45,19 @@ int
 Frame::global_to_local_rank (int grank) const
 {
 #ifdef BL_USE_MPI
-    int r;
-    MPI_Group ggroup, lgroup;
-    MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
-    MPI_Comm_group(ParallelContext::Communicator(), &lgroup);
-    MPI_Group_translate_ranks(ggroup, 1, &grank, lgroup, &r);
-    return r;
+    if (frames.size() > 1)
+    {
+        MPI_Group ggroup, lgroup;
+        MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
+        MPI_Comm_group(ParallelContext::Communicator(), &lgroup);
+        int r;
+        MPI_Group_translate_ranks(ggroup, 1, &grank, lgroup, &r);
+        return r;
+    }
+    else
+    {
+        return grank;
+    }
 #else
     return 0;
 #endif    
