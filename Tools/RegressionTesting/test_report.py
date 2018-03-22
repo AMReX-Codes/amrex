@@ -176,6 +176,11 @@ r"""
 <CENTER><H2>@SUBTITLE@</H2></CENTER>
 """
 
+def get_particle_compare_command(diff_lines):
+    for line in diff_lines:
+        if line.find('particle_compare') > 0:
+            return line
+
 def create_css(table_height=16):
     """ write the css file for the webpages """
 
@@ -521,6 +526,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
         variables_error = False
         no_bench_error = False
         
+        pcomp_line = get_particle_compare_command(diff_lines)
+
         for line in diff_lines:
             if "number of boxes do not match" in line:
                 box_error = True
@@ -540,6 +547,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
             if not in_diff_region:
                 if line.find("fcompare") > 1:
                     hf.write("<tt>"+line+"</tt>\n")
+                    hf.write("<tt>"+pcomp_line+"</tt>\n")
 
                     ht.start_table()
                     continue
