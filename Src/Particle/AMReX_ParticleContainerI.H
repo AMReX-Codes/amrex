@@ -1541,7 +1541,7 @@ namespace {
         }
         
         if (num_rcvs > 0) {
-            BL_MPI_REQUIRE( MPI_Waitall(num_rcvs, rreqs.data(), stats.data()) );
+            ParallelDescriptor::Waitall(rreqs, stats);
         }
         
         return NumSnds;
@@ -1672,7 +1672,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     }
     
     if (nrcvs > 0) {
-        BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
+        ParallelDescriptor::Waitall(rreqs, stats);
         
         ParticleLocData pld;
         
