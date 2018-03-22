@@ -60,12 +60,9 @@ void WaitRegion() {
     ParallelDescriptor::Wait(rreqs[i], stats[i]);
   }
 
-  if (myProc == 0)
-  {
-    cout << "Wait: " << endl;
+    amrex::Print() << "Wait: " << endl;
     for (int i=0; i<nProcs; i++)
-    { cout << "data[" << i << "] = " << data[i] << endl; } 
-  }
+    { amrex::Print() << "data[" << i << "] = " << data[i] << endl; } 
 
   BL_PROFILE_REGION_STOP("R::Wait");
 }
@@ -82,7 +79,6 @@ void WaitAllRegion() {
   Vector<MPI_Request> rreqs(nProcs-1);
   const int SeqNum = ParallelDescriptor::SeqNum();
   Vector<int> data(nProcs, myProc);
-  int nSends = nProcs-1;
   int j;
 
   j=0;
@@ -107,12 +103,9 @@ void WaitAllRegion() {
 
   ParallelDescriptor::Waitall(rreqs, stats);
 
-  if (myProc == 0)
-  {
-    cout << "Waitall: " << endl;
+    amrex::Print() << "Waitall: " << endl;
     for (int i=0; i<nProcs; i++)
-    { cout << "data[" << i << "] = " << data[i] << endl; } 
-  }
+    { amrex::Print() << "data[" << i << "] = " << data[i] << endl; } 
 
   BL_PROFILE_REGION_STOP("R::WaitAll");
 }
@@ -152,16 +145,20 @@ void WaitSomeRegion() {
     } 
   }
 
-  int completed = -1; 
-  Vector<int> indx;
-  ParallelDescriptor::Waitsome(rreqs, completed, indx, stats);
-
-  if (myProc == 0)
+  int finished = 0;
+  while (finished < nSends)
   {
-    cout << "Waitsome: " << endl;
-    for (int i=0; i<nProcs; i++)
-    { cout << "data[" << i << "] = " << data[i] << endl; } 
+    int completed = -1;
+    Vector<int> indx(rreqs.size());
+    ParallelDescriptor::Waitsome(rreqs, completed, indx, stats);
+    finished += completed;
+
+    amrex::Print() << "Waitsome: " << endl;
+    for (int i=0; i<indx.size(); i++)
+    { amrex::Print() << myProc << " :data[" << i+1 << "] = " << data[i+1] << endl; } 
   }
+  amrex::Print() << myProc << " :data[" << myProc+1 << "] = " << data[myProc] << endl; 
+
   BL_PROFILE_REGION_STOP("R::WaitSome");
 }
 
@@ -200,15 +197,15 @@ void WaitAnyRegion() {
     } 
   }
 
+  amrex::Print() << "Waitany: " << endl;
   int indx = -1;
-  ParallelDescriptor::Waitany(rreqs, indx, stats);
-
-  if (myProc == 0)
+  for (int i=0; i<nSends; ++i)
   {
-    cout << "Waitall: " << endl;
-    for (int i=0; i<nProcs; i++)
-    { cout << "data[" << i << "] = " << data[i] << endl; } 
+    ParallelDescriptor::Waitany(rreqs, indx, stats);
+    amrex::Print() << myProc << " :data[" << indx+1 << "] = " << data[indx+1] << endl;
   }
+  amrex::Print() << myProc << " :data[" << myProc << "] = " << data[myProc] << endl;
+
   BL_PROFILE_REGION_STOP("R::WaitAny");
 }
 
@@ -220,9 +217,6 @@ int main(int argc, char *argv[]) {
 
   BL_PROFILE_REGION_START("main()");
   BL_PROFILE_VAR("main()", pmain);
-
-  int nProcs(ParallelDescriptor::NProcs());
-  int myProc(ParallelDescriptor::MyProc());
 
 /*
   amrex::ParallelDescriptor::Barrier();
