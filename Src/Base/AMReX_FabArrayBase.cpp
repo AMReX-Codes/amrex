@@ -1639,14 +1639,6 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
 
     ParallelDescriptor::Waitall(send_reqs, stats);
 
-/*
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, stats, false);
-
-    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, stats, false);
-*/
-
     for (int i = 0; i < N_snds; i++) {
         if (send_data[i]) {
             amrex::The_Arena()->free(send_data[i]);

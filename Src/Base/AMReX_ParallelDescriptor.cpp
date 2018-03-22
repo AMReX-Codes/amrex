@@ -2269,17 +2269,15 @@ ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
 void
 ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
                              int &index,
-                             Vector<MPI_Status>& status)
+                             MPI_Status& status)
 {
-    BL_ASSERT(status.size() >= reqs.size());
-
     BL_PROFILE_S("ParallelDescriptor::Waitany()");
-    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[0], status[0], true);
+    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[0], status, true);
     BL_MPI_REQUIRE( MPI_Waitany(reqs.size(),
                                 reqs.dataPtr(),
                                 &index,
-                                status.dataPtr()) );
-    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[index], status[index], false);
+                                &status) );
+    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[index], status, false);
 }
 
 void

@@ -170,7 +170,7 @@ void WaitAnyRegion() {
   int myProc(ParallelDescriptor::MyProc());
 
   Vector<long>        snds(nProcs,0);
-  Vector<MPI_Status>  stats(nProcs-1);
+  MPI_Status stats;
   Vector<MPI_Request> rreqs(nProcs-1);
   const int SeqNum = ParallelDescriptor::SeqNum();
   Vector<int> data(nProcs, myProc);
