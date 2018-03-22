@@ -450,12 +450,9 @@ ParallelDescriptor::EndParallel ()
     if(m_group_all != MPI_GROUP_NULL) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_all) );
     }
-// bl_fortran_mpi_comm_free() has already freed the global communicator
-#ifndef BL_USE_FORTRAN_MPI
     if(m_comm_all != MPI_COMM_NULL) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_all) );
     }
-#endif
 
     if (call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Finalize() );
