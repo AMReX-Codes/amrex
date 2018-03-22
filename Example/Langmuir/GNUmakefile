@@ -17,8 +17,6 @@ EBASE     = main
 
 USE_PYTHON_MAIN = FALSE
 
-WarpxBinDir = .
-
 USE_PSATD = FALSE
 
 WARPX_HOME := ../../../warpx
