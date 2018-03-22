@@ -30,9 +30,6 @@ private:
 
 extern Vector<Frame> frames; // stack of communicator frames
 
-void init ();
-void finalize ();
-
 // world communicator
 inline MPI_Comm CommunicatorAll () { return frames[0].comm; }
 // number of ranks in world communicator

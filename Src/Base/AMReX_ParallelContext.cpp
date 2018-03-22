@@ -58,17 +58,4 @@ Frame::get_inc_mpi_tag ()
     return cur_tag;
 }
 
-// call at beginning of program, after MPI_Init and ParallelDescriptor::StartParallel()
-// probably somewhere inside amrex::Initialize()
-void init ()
-{
-    push(ParallelDescriptor::Communicator());
-}
-
-void finalize ()
-{
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(frames.size() == 1,
-                                     "ParallelContext: something wrong with the frame stack");
-}
-
 }}

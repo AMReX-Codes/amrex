@@ -413,7 +413,12 @@ ParallelDescriptor::StartParallel (int*    argc,
     if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
 #endif
 
+    ParallelContext::push(m_comm_all);
+
     SetNProcsSidecars(0);  // ---- users resize these later
+
+    ParallelContext::pop();
+    ParallelContext::push(m_comm_comp);
 
     //
     // Wait until all other processes are properly started.
@@ -2302,6 +2307,20 @@ ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
 {}
 
 #endif
+
+int
+ParallelDescriptor::TagNum ()
+{
+    if (ParallelContext::frames.size() == 1)
+    {
+        return ParallelDescriptor::SeqNum();
+    }
+    else
+    {
+        return ParallelContext::get_inc_mpi_tag();
+    }
+}
+
 //
 // This function is the same whether or not we're using MPI.
 //
@@ -2347,7 +2366,6 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
 
     return result;
 }
-
 
 int
 ParallelDescriptor::SubSeqNum (int getsetinc, int newvalue)
