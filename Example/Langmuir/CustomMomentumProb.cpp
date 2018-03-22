@@ -25,9 +25,10 @@ void CustomMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
   // The other parameters represents the number of periods in x, y, z
   Real epsilon = params[0];
   Real n = params[1];
-  Real kx = 2*pi/params[2];
-  Real ky = 2*pi/params[3];
-  Real kz = 2*pi/params[4];
+  // NB: This assumes a box from -20 microns to 20 microns
+  Real kx = 2.*pi*params[2]/40.e-6;
+  Real ky = 2.*pi*params[3]/40.e-6;
+  Real kz = 2.*pi*params[4]/40.e-6;
   // Plasma frequency
   Real wp = std::sqrt((n*q_e*q_e)/(m_e*ep0));
 
