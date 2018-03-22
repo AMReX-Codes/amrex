@@ -154,7 +154,7 @@ namespace ParallelDescriptor
         if (m_MyId_comp != myId_notInGroup)
         {
             BL_ASSERT(m_MyId_comp != myId_undefined);
-            return m_MyId_comp;
+            return ParallelContext::MyProc();
         }
         else
         {
@@ -331,7 +331,7 @@ namespace ParallelDescriptor
         if (m_MyId_comp != myId_notInGroup)
         {
             BL_ASSERT(m_nProcs_comp != nProcs_undefined);
-            return m_nProcs_comp;
+            return ParallelContext::NProcs();
         }
         else if(inWhichSidecar != notInSidecar)
         {
@@ -544,7 +544,7 @@ namespace ParallelDescriptor
     {
         if (m_MyId_comp != myId_notInGroup)
         {
-            return m_comm_comp;
+            return ParallelContext::Communicator();
         }
         else
         {
@@ -709,6 +709,8 @@ namespace ParallelDescriptor
     */
     int SeqNum (int getsetinc = 0, int newvalue = 0);
     int SubSeqNum (int getsetinc = 0, int newvalue = 0);
+
+    int TagNum ();
 
     template <class T> Message Asend(const T*, size_t n, int pid, int tag);
     template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
