@@ -450,12 +450,9 @@ ParallelDescriptor::EndParallel ()
     if(m_group_all != MPI_GROUP_NULL) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_all) );
     }
-// bl_fortran_mpi_comm_free() has already freed the global communicator
-#ifndef BL_USE_FORTRAN_MPI
     if(m_comm_all != MPI_COMM_NULL) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_all) );
     }
-#endif
 
     if (call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Finalize() );
@@ -2246,6 +2243,42 @@ ParallelDescriptor::Mpi_typemap<double>::type ()
 }
 
 void
+ParallelDescriptor::Wait (MPI_Request& req,
+                          MPI_Status& status)
+{
+    BL_PROFILE_S("ParallelDescriptor::Wait()");
+//    BL_COMM_PROFILE_WAITSOME(,true);
+    BL_MPI_REQUIRE( MPI_Wait(&req, &status) );
+//    BL_COMM_PROFILE_WAITSOME(,false);
+}
+
+void
+ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
+                             Vector<MPI_Status>& status)
+{
+    BL_PROFILE_S("ParallelDescriptor::Waitall()");
+//    BL_COMM_PROFILE_WAITSOME(,true);
+    BL_MPI_REQUIRE( MPI_Waitall(reqs.size(),
+                                reqs.dataPtr(),
+                                status.dataPtr()) );
+//    BL_COMM_PROFILE_WAITSOME(,false);
+}
+
+void
+ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
+                             int &index,
+                             Vector<MPI_Status>& status)
+{
+    BL_PROFILE_S("ParallelDescriptor::Waitany()");
+//    BL_COMM_PROFILE_WAITSOME(,true);
+    BL_MPI_REQUIRE( MPI_Waitany(reqs.size(),
+                                reqs.dataPtr(),
+                                &index,
+                                status.dataPtr()) );
+//    BL_COMM_PROFILE_WAITSOME(,false);
+}
+
+void
 ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
                               int&                completed,
                               Vector<int>&         indx,
@@ -2469,6 +2502,22 @@ ParallelDescriptor::second ()
 {
     return amrex::second();
 }
+
+void
+ParallelDescriptor::Wait (MPI_Request& req,
+                          MPI_Status& status)
+{}
+
+void
+ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
+                             Vector<MPI_Status>& status)
+{}
+
+void
+ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
+                             int &index,
+                             Vector<MPI_Status>& status)
+{}
 
 void
 ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
