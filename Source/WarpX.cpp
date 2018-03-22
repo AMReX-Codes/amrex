@@ -176,7 +176,8 @@ WarpX::WarpX ()
 
 WarpX::~WarpX ()
 {
-    for (int lev = 0; lev < maxLevel(); ++lev) {
+    int nlevs_max = maxLevel() +1;
+    for (int lev = 0; lev < nlevs_max; ++lev) {
         ClearLevel(lev);
     }
 }
