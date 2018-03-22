@@ -147,10 +147,10 @@ void BLProfiler::Initialize() {
 #endif
   if(resultLen < 1) {
     procName   = "NoProcName";
-    procNumber = ParallelDescriptor::MyProc();
+    procNumber = ParallelDescriptor::MyProcAll();
   } else {
     procName = cProcName;
-    procNumber = ParallelDescriptor::MyProc();
+    procNumber = ParallelDescriptor::MyProcAll();
   }
   //std::cout << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
 
@@ -469,7 +469,7 @@ void BLProfiler::Finalize(bool bFlushing) {
 
   // --------------------------------------- gather global stats
   Real finalizeStart(ParallelDescriptor::second());  // time the timer
-  const int nProcs(ParallelDescriptor::NProcs());
+  const int nProcs(ParallelDescriptor::NProcsAll());
   //const int myProc(ParallelDescriptor::MyProc());
   const int iopNum(ParallelDescriptor::IOProcessorNumber());
 
@@ -751,7 +751,7 @@ void WriteStats(std::ostream &ios,
 		const Vector<BLProfiler::CallStats> &callTraces,
 		bool bwriteavg, bool bwriteinclusivetimes)
 {
-  const int myProc(ParallelDescriptor::MyProc());
+  const int myProc(ParallelDescriptor::MyProcAll());
   const int colWidth(10);
   const Real calcRunTime(BLProfiler::GetRunTime());
 
@@ -951,8 +951,8 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
     }
 
     std::string cdir(blProfDirName);
-    const int   myProc    = ParallelDescriptor::MyProc();
-    const int   nProcs    = ParallelDescriptor::NProcs();
+    const int   myProc    = ParallelDescriptor::MyProcAll();
+    const int   nProcs    = ParallelDescriptor::NProcsAll();
     const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
     std::string cFilePrefix("bl_call_stats");
     std::string cFileName(cdir + '/' + cFilePrefix + "_D_");
@@ -1170,8 +1170,8 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
   }
 
 
-  const int   myProc    = ParallelDescriptor::MyProc();
-  const int   nProcs    = ParallelDescriptor::NProcs();
+  const int   myProc    = ParallelDescriptor::MyProcAll();
+  const int   nProcs    = ParallelDescriptor::NProcsAll();
   const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
 
   // ---- write the global header
