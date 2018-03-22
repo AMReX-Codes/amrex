@@ -2504,6 +2504,22 @@ ParallelDescriptor::second ()
 }
 
 void
+ParallelDescriptor::Wait (MPI_Request& req,
+                          MPI_Status& status)
+{}
+
+void
+ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
+                             Vector<MPI_Status>& status)
+{}
+
+void
+ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
+                             int &index,
+                             Vector<MPI_Status>& status)
+{}
+
+void
 ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
                               int&                completed,
                               Vector<int>&         indx,
