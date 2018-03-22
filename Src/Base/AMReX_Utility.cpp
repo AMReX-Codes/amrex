@@ -1348,3 +1348,17 @@ double amrex::second ()
     return std::chrono::duration_cast<std::chrono::duration<double> >
         (amrex::MaxResSteadyClock::now() - clock_time_begin).count();
 }
+
+
+extern "C" {
+    void* amrex_malloc (std::size_t size)
+    {
+        return malloc(size);
+    }
+
+
+    void amrex_free (void* p)
+    {
+        std::free(p);
+    }
+}
