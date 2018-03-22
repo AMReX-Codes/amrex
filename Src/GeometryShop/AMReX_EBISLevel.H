@@ -71,10 +71,7 @@ namespace amrex
   {
   public:
 
-    EBISLevel()
-      {
-        m_alreadyCheckedForMVCells = false;
-      }
+    EBISLevel() = default;
 
     ///
     /**
@@ -182,7 +179,7 @@ namespace amrex
     //only generated if needed (ergo mutable).
     mutable bool m_hasMultiValuedCells;
 
-    bool m_alreadyCheckedForMVCells;
+    mutable bool m_alreadyCheckedForMVCells = false;
     void defineFromGeometryService(const GeometryService &  a_geoserver);
     void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);
 

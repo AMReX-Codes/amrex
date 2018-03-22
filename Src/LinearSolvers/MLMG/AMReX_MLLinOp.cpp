@@ -79,7 +79,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
         int rr = mg_coarsen_ratio;
         const Box& dom = a_geom[amrlev].Domain();
-        for (int i = 0; i < 30; ++i)
+        for (int i = 0; i < info.max_coarsening_level; ++i)
         {
             if (!dom.coarsenable(rr)) amrex::Abort("MLLinOp: Uncoarsenable domain");
 
@@ -169,7 +169,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
         int first_agglev = std::distance(agg_flag.begin(),
                                          std::find(agg_flag.begin(),agg_flag.end(),1));
-        int nmaxlev = domainboxes.size();
+        int nmaxlev = std::min(static_cast<int>(domainboxes.size()),
+                               info.max_coarsening_level + 1);
         int rr = mg_coarsen_ratio;
         for (int lev = 1; lev < nmaxlev; ++lev)
         {
@@ -207,7 +208,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                                                             *info.con_grid_size,
                                                             *info.con_grid_size));
         }
-        while (a_geom[0].Domain().coarsenable(rr)
+        while (m_num_mg_levels[0] < info.max_coarsening_level + 1
+               and a_geom[0].Domain().coarsenable(rr)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
             m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
