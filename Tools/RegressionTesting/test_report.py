@@ -546,7 +546,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
             
             if not in_diff_region:
                 if line.find("fcompare") > 1:
-                    hf.write("<tt>"+line+"</tt>\n")
+                    hf.write("<tt>"+line+"</tt>\n\n")
                     if pcomp_line:
                         hf.write("<tt>"+pcomp_line+"</tt>\n")
 
