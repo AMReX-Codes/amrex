@@ -2247,21 +2247,23 @@ ParallelDescriptor::Wait (MPI_Request& req,
                           MPI_Status& status)
 {
     BL_PROFILE_S("ParallelDescriptor::Wait()");
-//    BL_COMM_PROFILE_WAITSOME(,true);
+    BL_COMM_PROFILE_WAIT(BLProfiler::Wait, req, status, true);
     BL_MPI_REQUIRE( MPI_Wait(&req, &status) );
-//    BL_COMM_PROFILE_WAITSOME(,false);
+    BL_COMM_PROFILE_WAIT(BLProfiler::Wait, req, status, false);
 }
 
 void
 ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
                              Vector<MPI_Status>& status)
 {
+    BL_ASSERT(status.size() >= reqs.size());
+
     BL_PROFILE_S("ParallelDescriptor::Waitall()");
-//    BL_COMM_PROFILE_WAITSOME(,true);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, reqs, reqs.size(), status, true);
     BL_MPI_REQUIRE( MPI_Waitall(reqs.size(),
                                 reqs.dataPtr(),
                                 status.dataPtr()) );
-//    BL_COMM_PROFILE_WAITSOME(,false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, reqs, status.size(), status, false);
 }
 
 void
@@ -2269,13 +2271,15 @@ ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
                              int &index,
                              Vector<MPI_Status>& status)
 {
+    BL_ASSERT(status.size() >= reqs.size());
+
     BL_PROFILE_S("ParallelDescriptor::Waitany()");
-//    BL_COMM_PROFILE_WAITSOME(,true);
+    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[0], status[0], true);
     BL_MPI_REQUIRE( MPI_Waitany(reqs.size(),
                                 reqs.dataPtr(),
                                 &index,
                                 status.dataPtr()) );
-//    BL_COMM_PROFILE_WAITSOME(,false);
+    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[index], status[index], false);
 }
 
 void
@@ -2284,14 +2288,17 @@ ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
                               Vector<int>&         indx,
                               Vector<MPI_Status>&  status)
 {
+    BL_ASSERT(status.size() >= reqs.size());
+    BL_ASSERT(indx.size() >= reqs.size());
+
     BL_PROFILE_S("ParallelDescriptor::Waitsome()");
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, completed, indx, status, true);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, reqs.size(), status, true);
     BL_MPI_REQUIRE( MPI_Waitsome(reqs.size(),
                                  reqs.dataPtr(),
                                  &completed,
                                  indx.dataPtr(),
                                  status.dataPtr()));
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, completed, indx, status, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, indx.size(), status, false);
 }
 
 void
