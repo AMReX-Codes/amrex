@@ -117,9 +117,9 @@ SWFFT_Solver::solve ()
     complex_t zero(0.0, 0.0);
     complex_t one(1.0, 0.0);
     size_t local_indx = 0;
-    for(size_t i=0; i<(size_t)nx; i++) {
-     for(size_t j=0; j<(size_t)ny; j++) {
-      for(size_t k=0; k<(size_t)nz; k++) {
+    for(int i=0; i< nx; i++) {
+     for(int j=0; j< ny; j++) {
+      for(int k=0; k< nz; k++) {
 
         complex_t temp(rhs[0].dataPtr()[local_indx],0.);
         a[local_indx] = temp;
@@ -129,39 +129,50 @@ SWFFT_Solver::solve ()
     }
    }
 
-   VisMF::Write(rhs,"RHS_BEFORE");
+    VisMF::Write(rhs,"RHS_BEFORE");
 
+//  *******************************************
     dfft.forward(&a[0]);
+//  *******************************************
 
+//  *******************************************
+//  Now divide the coefficients of the transform
+//  *******************************************
     local_indx = 0;
+    Real tpi = 2 * 3.1415926535 / double(nx);
     for(size_t i=0; i<(size_t)nx; i++) {
      for(size_t j=0; j<(size_t)ny; j++) {
       for(size_t k=0; k<(size_t)nz; k++) {
 
-        soln[0].dataPtr()[local_indx] = std::real(a[local_indx]) / std::sqrt(local_size);
+        if (i == 0 && j == 0 & k == 0) {
+           a[local_indx] = 0;
+        } else {
+           double ksq = (2. * cos(tpi*i) - 2.) + (2. * cos(tpi*j) - 2.) + (2. * cos(tpi*k) - 2.);
+           a[local_indx] = a[local_indx] / ksq;
+        }
 	local_indx++;
 
       }
      }
     }
 
-   VisMF::Write(soln,"SOLN");
-
+//  *******************************************
     dfft.backward(&a[0]);
+//  *******************************************
 
     local_indx = 0;
     for(size_t i=0; i<(size_t)nx; i++) {
      for(size_t j=0; j<(size_t)ny; j++) {
       for(size_t k=0; k<(size_t)nz; k++) {
 
-        rhs[0].dataPtr()[local_indx] = std::real(a[local_indx]) / local_size;
+        soln[0].dataPtr()[local_indx] = std::real(a[local_indx]) / local_size;
 	local_indx++;
 
       }
      }
     }
-
-    VisMF::Write(rhs,"RHS_AFTER");
+    VisMF::Write(soln,"SOLN");
+    VisMF::Write(the_soln,"THE_SOLN");
 
     {
         MultiFab diff(ba, dm, 1, 0);
