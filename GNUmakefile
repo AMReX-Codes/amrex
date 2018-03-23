@@ -5,13 +5,16 @@ OPENBC_HOME ?= ../openbc_poisson
 DEBUG	= FALSE
 #DEBUG	= TRUE
 
-DIM     = 2
+#DIM     = 2
 DIM	= 3
 
-COMP    = gcc
+COMP = gcc
+#COMP = intel
 
-TINY_PROFILE = TRUE
-TINY_PROFILE = FALSE
+TINY_PROFILE   = TRUE
+#PROFILE       = TRUE
+#COMM_PROFILE  = TRUE
+#TRACE_PROFILE = TRUE
 
 USE_OMP   = TRUE
 
