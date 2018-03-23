@@ -2521,7 +2521,7 @@ ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
 void
 ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
                              int &index,
-                             Vector<MPI_Status>& status)
+                             MPI_Status& status)
 {}
 
 void
