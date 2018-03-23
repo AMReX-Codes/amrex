@@ -966,7 +966,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	{
 	    MPI_Status status;
 	    int index;
-	    MPI_Waitany(N_snds, md_recv_reqs.dataPtr(), &index, &status);
+            ParallelDescriptor::Waitany(md_recv_reqs, index, status);
 
 	    int rank = status.MPI_SOURCE;
 	    BL_ASSERT(status.MPI_TAG == SeqNum_md);
@@ -1018,12 +1018,12 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     {
 	Vector<MPI_Status> stats(N_rcvs);
 
-	BL_MPI_REQUIRE (MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr()) );
+        ParallelDescriptor::Waitall(md_send_reqs, stats);
 	for (int i = 0; i < N_rcvs; ++i) {
             amrex::The_Arena()->free(md_send_data[i]);	    
 	}
 
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, data_recv_reqs.dataPtr(), stats.dataPtr()) );
+        ParallelDescriptor::Waitall(data_recv_reqs, stats);
 
 	std::pair<FCDMapIter,FCDMapIter> match;
 	std::map< int,FabComTagIterContainer >::const_iterator found;
@@ -1077,9 +1077,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     if (N_snds > 0)
     {
 	Vector<MPI_Status> stats(N_snds);
-        BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::BeforeCall(), N_snds);
-	BL_MPI_REQUIRE( MPI_Waitall(N_snds, data_send_reqs.dataPtr(), stats.dataPtr()) );
-        BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::AfterCall(), N_snds);
+        ParallelDescriptor::Waitall(data_send_reqs, stats);
 
 	for (int i = 0; i < N_snds; ++i) {
             amrex::The_Arena()->free(send_data[i]);
