@@ -16,6 +16,8 @@ public:
     int MyProc () const { return m_rank_me; }
     int NProcs () const { return m_nranks; }
     int local_to_global_rank (int lrank) const;
+    void local_to_global_rank (int* global, const int* local, int n) const;
+    void global_to_local_rank (int* local, const int* global, int n) const;
     int global_to_local_rank (int grank) const;
     int get_inc_mpi_tag ();
 
@@ -48,7 +50,11 @@ inline int MyProc () { return frames.back().MyProc(); }
 inline int get_inc_mpi_tag () { return frames.back().get_inc_mpi_tag(); }
 // translate between local rank and global rank
 inline int local_to_global_rank (int rank) { return frames.back().local_to_global_rank(rank); }
+inline void local_to_global_rank (int* global, const int* local, int n)
+    { frames.back().local_to_global_rank(global, local, n); }
 inline int global_to_local_rank (int rank) { return frames.back().global_to_local_rank(rank); }
+inline void global_to_local_rank (int* local, const int* global, int n)
+    { frames.back().global_to_local_rank(local, global, n); }
 
 inline void push (MPI_Comm c) { frames.emplace_back(c); }
 // Note that it's the user's responsibility to free the MPI_Comm

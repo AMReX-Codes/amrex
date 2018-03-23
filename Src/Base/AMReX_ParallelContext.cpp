@@ -22,27 +22,13 @@ Frame::Frame (MPI_Comm c)
 int
 Frame::local_to_global_rank (int lrank) const
 {
-#ifdef BL_USE_MPI
-    if (frames.size() > 1)
-    {
-        MPI_Group ggroup, lgroup;
-        MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
-        MPI_Comm_group(ParallelContext::Communicator(), &lgroup);
-        int r;
-        MPI_Group_translate_ranks(lgroup, 1, &lrank, ggroup, &r);
-        return r;
-    }
-    else
-    {
-        return lrank;
-    }
-#else
-    return 0;
-#endif
+    int r;
+    local_to_global_rank(&r, &lrank, 1);
+    return r;
 }
 
-int
-Frame::global_to_local_rank (int grank) const
+void
+Frame::local_to_global_rank (int* global, const int* local, int n) const
 {
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
@@ -50,16 +36,42 @@ Frame::global_to_local_rank (int grank) const
         MPI_Group ggroup, lgroup;
         MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
         MPI_Comm_group(ParallelContext::Communicator(), &lgroup);
-        int r;
-        MPI_Group_translate_ranks(ggroup, 1, &grank, lgroup, &r);
-        return r;
+        MPI_Group_translate_ranks(lgroup, n, local, ggroup, global);
     }
     else
     {
-        return grank;
+        for (int i = 0; i < n; ++i) global[i] = local[i];
     }
 #else
-    return 0;
+    for (int i = 0; i < n; ++i) global[i] = 0;
+#endif
+}
+
+int
+Frame::global_to_local_rank (int grank) const
+{
+    int r;
+    global_to_local_rank(&r, &grank, 1);
+    return r;
+}
+
+void
+Frame::global_to_local_rank (int* local, const int* global, int n) const
+{
+#ifdef BL_USE_MPI
+    if (frames.size() > 1)
+    {
+        MPI_Group ggroup, lgroup;
+        MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
+        MPI_Comm_group(ParallelContext::Communicator(), &lgroup);
+        MPI_Group_translate_ranks(ggroup, n, global, lgroup, local);
+    }
+    else
+    {
+        for (int i = 0; i < n; ++i) local[i] = global[i];
+    }
+#else
+    return for (int i = 0; i < n; ++i) local[i] = 0;
 #endif    
 }
 
