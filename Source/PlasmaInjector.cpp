@@ -77,6 +77,12 @@ void ConstantMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) 
     u[2] = _uz;
 }
 
+CustomMomentumDistribution::CustomMomentumDistribution(const std::string& species_name)
+{
+  ParmParse pp(species_name);
+  pp.getarr("custom_momentum_params", params);
+}
+
 GaussianRandomMomentumDistribution::GaussianRandomMomentumDistribution(Real ux_m,
                                                                        Real uy_m,
                                                                        Real uz_m,
@@ -248,6 +254,8 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.query("uy", uy);
         pp.query("uz", uz);
         mom_dist.reset(new ConstantMomentumDistribution(ux, uy, uz));
+    } else if (mom_dist_s == "custom") {
+        mom_dist.reset(new CustomMomentumDistribution(species_name));
     } else if (mom_dist_s == "gaussian") {
         Real ux_m = 0.;
         Real uy_m = 0.;
