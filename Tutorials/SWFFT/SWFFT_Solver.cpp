@@ -92,6 +92,10 @@ SWFFT_Solver::solve ()
     const BoxArray& ba = soln.boxArray();
     const DistributionMapping& dm = soln.DistributionMap();
 
+    // Define (two pi) here
+    Real  pi = 4 * std::atan(1.0);
+    Real tpi = 2 * pi;
+
     // Assume one box for now
     int nx = ba[0].size()[0];
     int ny = ba[0].size()[1];
@@ -102,7 +106,6 @@ SWFFT_Solver::solve ()
     hacc::Dfft dfft(d);
 
     size_t local_size  = dfft.local_size();
-    std::cout << "LOCAL SIZE " << local_size << std::endl;
 
     std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
     std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
@@ -132,14 +135,14 @@ SWFFT_Solver::solve ()
     VisMF::Write(rhs,"RHS_BEFORE");
 
 //  *******************************************
-    dfft.forward(&a[0]);
+//  Compute the forward transform
 //  *******************************************
+    dfft.forward(&a[0]);
 
 //  *******************************************
 //  Now divide the coefficients of the transform
 //  *******************************************
     local_indx = 0;
-    Real tpi = 2 * 3.1415926535 / double(nx);
     for(size_t i=0; i<(size_t)nx; i++) {
      for(size_t j=0; j<(size_t)ny; j++) {
       for(size_t k=0; k<(size_t)nz; k++) {
@@ -147,7 +150,11 @@ SWFFT_Solver::solve ()
         if (i == 0 && j == 0 & k == 0) {
            a[local_indx] = 0;
         } else {
-           double ksq = (2. * cos(tpi*i) - 2.) + (2. * cos(tpi*j) - 2.) + (2. * cos(tpi*k) - 2.);
+           double ksq = 2. * (
+                        (cos(tpi*double(i)/double(nx)) - 1.) + 
+                        (cos(tpi*double(j)/double(ny)) - 1.) + 
+                        (cos(tpi*double(k)/double(nz)) - 1.) );
+
            a[local_indx] = a[local_indx] / ksq;
         }
 	local_indx++;
@@ -157,30 +164,41 @@ SWFFT_Solver::solve ()
     }
 
 //  *******************************************
-    dfft.backward(&a[0]);
+//  Compute the backward transform
 //  *******************************************
+    dfft.backward(&a[0]);
+
+    double divisor = local_size * local_size / pi;
 
     local_indx = 0;
     for(size_t i=0; i<(size_t)nx; i++) {
      for(size_t j=0; j<(size_t)ny; j++) {
       for(size_t k=0; k<(size_t)nz; k++) {
 
-        soln[0].dataPtr()[local_indx] = std::real(a[local_indx]) / local_size;
+        // Divide by 2 pi N
+        soln[0].dataPtr()[local_indx] = -std::real(a[local_indx]) / divisor;
 	local_indx++;
 
       }
      }
     }
+
     VisMF::Write(soln,"SOLN");
     VisMF::Write(the_soln,"THE_SOLN");
+
+    std::cout << "MAX / MIN VALUE OF SOLN " <<     soln.max(0) << " " <<     soln.min(0) << std::endl;
+    std::cout << "MAX / MIN VALUE OF THES " << the_soln.max(0) << " " << the_soln.min(0) << std::endl;
+    std::cout << "RATIO OF MAX            " << soln.max(0) / the_soln.max(0) << std::endl;
+    std::cout << "RATIO OF MIN            " << soln.min(0) / the_soln.min(0) << std::endl;
 
     {
         MultiFab diff(ba, dm, 1, 0);
         MultiFab::Copy(diff, soln, 0, 0, 1, 0);
         MultiFab::Subtract(diff, the_soln, 0, 0, 1, 0);
         amrex::Print() << "\nMax-norm of the error is " << diff.norm0()
+                       << "\nL2-norm  of the error is " << diff.norm2() << "\n";
+        amrex::Print() << "\nMaximum absolute value of the rhs is " << rhs.norm0()
                        << "\nMaximum absolute value of the solution is " << the_soln.norm0()
-                       << "\nMaximum absolute value of the rhs is " << rhs.norm0()
                        << "\n";
     }
 }

@@ -14,8 +14,8 @@ public:
 private:
 
     // runtime parameters
-    int n_cell = 128;
-    int max_grid_size = 64;
+    int n_cell = 32;
+    int max_grid_size = 32;
     int verbose = 2;
 
     // parameters in setting up the problem
