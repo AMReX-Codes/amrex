@@ -4,6 +4,7 @@
 #include "AMReX_EBISBox.H"
 #include "AMReX_Stencils.H"
 #include "AMReX_IntVectSet.H"
+#include "AMReX_IndexTM.H"
 #include "AMReX_EBLevelGrid.H"
 #include <sstream>
 
@@ -20,6 +21,20 @@ namespace amrex
   class EBArith
   {
   public:
+  ///
+  static void convertToITM(IndexTM<Real, SpaceDim>& a_diffrv,  const RealVect& a_rv);
+
+
+  ///
+  static void convertToITM(IndexTM<int, SpaceDim>& a_diffrv,  const IntVect& a_rv);
+
+  ///
+  static void convertToITM(IndexTM<Real, SpaceDim-1>& a_diffrv,  const RealVect& a_rv, const int& a_ignoreIndex);
+
+  ///
+  static void convertToITM(IndexTM<int, SpaceDim-1>& a_diffrv,  const IntVect& a_rv, const int& a_ignoreIndex);
+
+
     EBArith()
       {   }
     ~EBArith()
