@@ -167,7 +167,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
         }
     }
 
-    FArrayBox dmgrow(amrex::grow(tbx,m_ratio),nc);
+    FArrayBox dmgrow(amrex::grow(fbx,m_ratio),nc);
     dmgrow.setVal(0.0);
     const Box& tbxg1 = amrex::grow(tbx,1);
     dmgrow.copy(dm,tbxg1,0,tbxg1,0,nc);
