@@ -1,13 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
 
 #include <iostream>
 using std::cerr;
@@ -17,6 +7,7 @@ using std::cerr;
 #include "AMReX_EBCellFactory.H"
 #include "AMReX_EBNormalizeByVolumeFraction.H"
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_AllRegularService.H"
 #include "AMReX_PlaneIF.H"
 #include "AMReX_EBLevelDataOps.H"
@@ -27,7 +18,8 @@ namespace amrex
 {
 /***************/
   int makeGeometry(Box& a_domain,
-                   Real& a_dx)
+                   Real& a_dx,
+                   int igeom)
   {
     int eekflag =  0;
     //parse input file
@@ -93,10 +85,23 @@ namespace amrex
       PlaneIF ramp(normal,point,normalInside);
 
 
-      GeometryShop workshop(ramp,0, a_dx);
-      //this generates the new EBIS
-      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop for geom gen" << endl;
+        GeometryShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop);
+      }
+      else
+      {
+        amrex::Print() << "using GeometryShop for geom gen" << endl;
+        WrappedGShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop);
+      }
+
     }
     else
     {
@@ -109,12 +114,12 @@ namespace amrex
     return eekflag;
   }
 
-  int testNormalization()
+  int testNormalization(int igeom)
   {
     Box domain;
     Real dx;
   
-    int eekflag = makeGeometry(domain, dx);
+    int eekflag = makeGeometry(domain, dx, igeom);
     if(eekflag != 0) return eekflag;
     ParmParse pp;
     int maxboxsize;
@@ -184,15 +189,17 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::testNormalization();
-  if(retval != 0)
+  for(int igeom = 0; igeom <= 1; igeom++)
   {
-    amrex::Print() << "normalization test failed with code " << retval << "\n";
+    retval = amrex::testNormalization(igeom);
+    if(retval != 0)
+    {
+      amrex::Print() << "normalization test failed with code " << retval << "\n";
+    }
   }
-  else
-  {
-    amrex::Print() << "normalization test passed \n";
-  }
+
+  amrex::Print() << "normalization test passed \n";
+
   amrex::Finalize();
   return retval;
 }

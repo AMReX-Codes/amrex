@@ -1,13 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
 
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_EBIndexSpace.H"
@@ -15,6 +5,7 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
@@ -137,7 +128,8 @@ donotcallpls()
 }
 /***************/
   int makeGeometry(Box& a_domain,
-                   Real& a_dx)
+                   Real& a_dx,
+                   int igeom)
   {
     int eekflag =  0;
     int maxbox;
@@ -202,10 +194,22 @@ donotcallpls()
       PlaneIF ramp(normal,point,normalInside);
 
 
-      GeometryShop workshop(ramp,0, a_dx);
-      //this generates the new EBIS
-      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop for geom gen" << endl;
+        GeometryShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedGShop for geom gen" << endl;
+        WrappedGShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
     }
     else
     {
@@ -386,13 +390,13 @@ donotcallpls()
     return 0;
   }
   /***************/
-  int testEBIO()
+  int testEBIO(int igeom)
   {
     Box domain;
     Real dx;
     //make the initial geometry
     amrex::AllPrint() << "making EBIS" << endl;
-    makeGeometry(domain, dx);
+    makeGeometry(domain, dx, igeom);
     //extract all the info we can from the singleton
     EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
     int numLevelsIn = ebisPtr->getNumLevels();
@@ -425,6 +429,7 @@ donotcallpls()
     vector<EBLevelGrid> eblgOut(numLevelsOut);
     for(int ilev = 0; ilev < numLevelsOut; ilev++)
     {
+
       Box domlev = domainsOut[ilev];
       BoxArray ba(domlev);
       ba.maxSize(nCellMaxOut);
@@ -477,15 +482,16 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::testEBIO();
-  if(retval != 0)
+  for(int igeom = 0; igeom <= 1; igeom++)
   {
-    amrex::Print() << "EBIndexSpace I/O test failed with code " << retval << "\n";
+    retval = amrex::testEBIO(igeom);
+    if(retval != 0)
+    {
+      amrex::Print() << "EBIndexSpace I/O test failed with code " << retval << "\n";
+    }
   }
-  else
-  {
-    amrex::Print() << "EBIndexSpace I/O test passed \n";
-  }
+  amrex::Print() << "EBIndexSpace I/O test passed \n";
+
   amrex::Finalize();
   return retval;
 }
