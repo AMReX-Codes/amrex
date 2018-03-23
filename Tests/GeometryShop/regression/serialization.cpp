@@ -488,6 +488,7 @@ namespace amrex
     int retval = 0;
     int nvar = SpaceDim;//just to check to see if i am assuming scalars anywhere
     pout() << "about to loop over stuff" << endl;
+    int ibox = 0;
     for(MFIter mfi(ba, dm); mfi.isValid(); ++mfi)
     {
       const EBISBox& ebis = eblg.getEBISL()[mfi];
@@ -813,7 +814,7 @@ namespace amrex
 
         }
       }
-      
+      ibox++; 
     }
 
     return retval;

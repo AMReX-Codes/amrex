@@ -1443,7 +1443,7 @@ namespace amrex
     //first whether we have moments
     size_t retval = sizeof(int);
  
-    retval = m_region.linearSize();
+    retval +=   m_region.linearSize();
     retval +=   m_graph.nBytesFull();
     retval += m_volData.nBytesFull();
     if(m_hasMoments)
