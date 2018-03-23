@@ -104,10 +104,12 @@ namespace amrex
 
     EBDataFactory ebdatafact(m_ebGraph, a_hasMoments, a_dx);
     m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, a_dm, 1, m_nghost, MFInfo(), ebdatafact));
-      
+
+//    pout() << "before ebdata copyine ebisl::define"  << endl;
     BL_PROFILE_VAR("EBISLayout_copy_ebdata",copy_data);
     m_ebData ->copy(a_data , 0, 0, 1, srcGhost, dstGhostData);
     BL_PROFILE_VAR_STOP(copy_data);
+//    pout() << "after ebdata copyine ebisl::define"  << endl;
 
 //begin debug
 //    EBISL_checkGraph(a_grids, a_dm, *m_ebGraph, string(" my graph after copy"));
