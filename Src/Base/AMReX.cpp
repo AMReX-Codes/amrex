@@ -276,17 +276,20 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     //
     std::set_new_handler(amrex::OutOfMemory);
 
-    if (argv[0][0] != '/') {
-	constexpr int bufSize = 1024;
-	char temp[bufSize];
-	char *rCheck = getcwd(temp, bufSize);
-	if(rCheck == 0) {
-	  amrex::Abort("**** Error:  getcwd buffer too small.");
-	}
-	system::exename = temp;
-	system::exename += "/";
+    if (argc > 0)
+    {
+        if (argv[0][0] != '/') {
+            constexpr int bufSize = 1024;
+            char temp[bufSize];
+            char *rCheck = getcwd(temp, bufSize);
+            if(rCheck == 0) {
+                amrex::Abort("**** Error:  getcwd buffer too small.");
+            }
+            system::exename = temp;
+            system::exename += "/";
+        }
+        system::exename += argv[0];
     }
-    system::exename += argv[0];
 
 #ifdef BL_USE_UPCXX
     upcxx::init(&argc, &argv);
