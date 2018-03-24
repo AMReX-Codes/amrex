@@ -74,7 +74,9 @@ contains
     call MPI_Initialized(flag, ierr)
 
     if (present(comm) .and. .not.flag) then
-       stop "MPI has not been initialized.  How come we are given a communciator?"
+       if (comm .ne. MPI_COMM_WORLD) then
+          stop "MPI has not been initialized.  How come we are given a communciator?"
+       endif
     end if
 
     if (.not.flag) then
