@@ -566,6 +566,14 @@ MLNodeLaplacian::buildMasks ()
 
     m_masks_built = true;
 
+    m_is_bottom_singular = false;
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    {  // No Dirichlet
+        m_is_bottom_singular = m_domain_covered[0];
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -708,6 +716,36 @@ MLNodeLaplacian::buildMasks ()
         {
             const Box& bx = mfi.tilebox();
             auto& dfab = m_bottom_dot_mask[mfi];
+            const auto& sfab = omask[mfi];
+            amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(dfab),
+                                       BL_TO_FORTRAN_ANYD(sfab),
+                                       BL_TO_FORTRAN_BOX(nddomain),
+                                       m_lobc.data(), m_hibc.data());
+        }
+    }
+
+    if (m_is_bottom_singular)
+    {
+        int amrlev = 0;
+        int mglev = 0;
+        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+
+        const Geometry& geom = m_geom[amrlev][mglev];
+        Box nddomain = amrex::surroundingNodes(geom.Domain());
+
+        if (m_coarsening_strategy != CoarseningStrategy::Sigma) {
+            nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+        }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(m_coarse_dot_mask,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            auto& dfab = m_coarse_dot_mask[mfi];
             const auto& sfab = omask[mfi];
             amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
                                        BL_TO_FORTRAN_ANYD(dfab),
@@ -922,17 +960,9 @@ MLNodeLaplacian::prepareForSolve ()
 
     MLNodeLinOp::prepareForSolve();
 
-    averageDownCoeffs();
-
     buildMasks();
 
-    m_is_bottom_singular = false;
-    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
-    if (itlo == m_lobc.end() && ithi == m_hibc.end())
-    {  // No Dirichlet
-        m_is_bottom_singular = m_domain_covered[0];
-    }
+    averageDownCoeffs();
 
 #if (AMREX_SPACEDIM == 2)
     amrex_mlndlap_set_rz(&m_is_rz);
@@ -1086,6 +1116,83 @@ MLNodeLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiF
 {
     const auto& amrrr = AMRRefRatio(camrlev);
     amrex::average_down(fine_sol, crse_sol, 0, 1, amrrr);
+
+    if (camrlev == 0 && isSingular(0))
+    {
+        MultiFab frhs(fine_rhs.boxArray(), fine_rhs.DistributionMap(), 1, 1);
+        MultiFab::Copy(frhs, fine_rhs, 0, 0, 1, 0);
+        restrictInteriorNodes(camrlev, crse_rhs, frhs);
+    }
+}
+
+void
+MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a_frhs) const
+{
+    const BoxArray& fba = a_frhs.boxArray();
+    const DistributionMapping& fdm = a_frhs.DistributionMap();
+
+    MultiFab* frhs = nullptr;
+    std::unique_ptr<MultiFab> mf;
+    if (a_frhs.nGrow() == 1)
+    {
+        frhs = &a_frhs;
+    }
+    else
+    {
+        mf.reset(new MultiFab(fba, fdm, 1, 1));
+        frhs = mf.get();
+        MultiFab::Copy(*frhs, a_frhs, 0, 0, 1, 0);
+    }
+
+    const Geometry& cgeom = m_geom[camrlev  ][0];
+    const Box& c_cc_domain = cgeom.Domain();
+    const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
+
+    const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
+
+    MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
+
+    applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(cfine, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                  BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
+                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
+                                  BL_TO_FORTRAN_BOX(c_nd_domain),
+                                  m_lobc.data(), m_hibc.data());
+    }
+
+    MultiFab tmp_crhs(crhs.boxArray(), crhs.DistributionMap(), 1, 0);
+    tmp_crhs.setVal(0.0);
+    tmp_crhs.ParallelCopy(cfine, cgeom.periodicity());
+
+    const iMultiFab& c_nd_mask = *m_nd_fine_mask[camrlev];
+    const auto& has_fine_bndry = *m_has_fine_bndry[camrlev];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(crhs, MFItInfo().EnableTiling().SetDynamic(true));
+         mfi.isValid(); ++mfi)
+    {
+        if (has_fine_bndry[mfi])
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& mfab = c_nd_mask[mfi];
+            auto& dfab = crhs[mfi];
+            const auto& sfab = tmp_crhs[mfi];
+            amrex_mlndlap_copy_fine_node(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(dfab),
+                                         BL_TO_FORTRAN_ANYD(sfab),
+                                         BL_TO_FORTRAN_ANYD(mfab));
+        }
+    }
 }
 
 void

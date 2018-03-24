@@ -82,6 +82,7 @@ protected:
     Vector<std::unique_ptr<iMultiFab> > m_nd_fine_mask; // nodal mask: 0: this level node, 1: c/f boudnary, 2: fine node
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contains c/f boundary?
     MultiFab m_bottom_dot_mask;
+    MultiFab m_coarse_dot_mask;
 };
 
 }
