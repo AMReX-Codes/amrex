@@ -48,6 +48,7 @@ SWFFT_Solver::SWFFT_Solver ()
         geom.define(domain, &real_box, CoordSys::cartesian, is_periodic.data());
     }
 
+    // Make sure we define both the soln and the rhs with the same DistributionMapping 
     DistributionMapping dmap{ba};
 
     // Note that we are defining rhs with NO ghost cells
@@ -71,8 +72,11 @@ SWFFT_Solver::init_rhs ()
         const Box& tbx = mfi.tilebox();
         fort_init_rhs(BL_TO_FORTRAN_BOX(tbx),
                       BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                      dx, &a, &b, &sigma, &w);
+                      dx);
     }
+
+    Real sum_rhs = rhs.sum();
+    amrex::Print() << "Sum of rhs over the domain is " << sum_rhs << std::endl;
 }
 
 void
@@ -92,47 +96,96 @@ SWFFT_Solver::solve ()
     const BoxArray& ba = soln.boxArray();
     const DistributionMapping& dm = soln.DistributionMap();
 
-    // Define (two pi) here
+    // If true the write out the multifabs for rhs, soln and exact_soln
+    bool write_data = false;
+
+    // Define pi and (two pi) here
     Real  pi = 4 * std::atan(1.0);
     Real tpi = 2 * pi;
 
-    // Assume one box for now
+    // We assume that all grids have the same size hence 
+    // we have the same nx,ny,nz on all ranks
     int nx = ba[0].size()[0];
     int ny = ba[0].size()[1];
     int nz = ba[0].size()[2];
 
+    Box domain(geom.Domain());
+
+    int nbx = domain.length(0) / nx;
+    int nby = domain.length(1) / ny;
+    int nbz = domain.length(2) / nz;
+    int nboxes = nbx * nby * nbz;
+    if (nboxes != ba.size()) 
+       amrex::Error("NBOXES NOT COMPUTED CORRECTLY");
+
+    Vector<int> rank_mapping;
+    rank_mapping.resize(nboxes);
+
+    DistributionMapping dmap = rhs.DistributionMap();
+
+    if (verbose)
+       amrex::Print() << "NBX NBY NBZ " << nbx << " " << nby << " "<< nbz  << std::endl;
+    for (int ib = 0; ib < nboxes; ++ib)
+    {
+        int i = ba[ib].smallEnd(0) / nx;
+        int j = ba[ib].smallEnd(1) / ny;
+        int k = ba[ib].smallEnd(2) / nz;
+
+        // This would be the "correct" local index if the data was
+        // int local_index = k*nbx*nby + j*nbx + i;
+
+        // This is what we pass to dfft to compensate for the Fortran ordering
+        //      of amrex data in MultiFabs.
+        int local_index = k*nbx*nby + j*nbx + i;
+
+        rank_mapping[local_index] = dmap[ib];
+        if (verbose)
+          amrex::Print() << "LOADING RANK NUMBER " << dmap[ib] << " FOR GRID NUMBER " << ib 
+                         << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
+    }
+
+    if (verbose)
+      for (int ib = 0; ib < nboxes; ++ib)
+        amrex::Print() << "GRID IB " << ib << " IS ON RANK " << rank_mapping[ib] << std::endl;
+
+    int n = nx;
+    Real hsq = 1. / (n*n);
+
+    Real start_time = amrex::second();
+
     // Assume for now that nx = ny = nz
     hacc::Distribution d(MPI_COMM_WORLD,nx);
     hacc::Dfft dfft(d);
+    
+    for (MFIter mfi(rhs,false); mfi.isValid(); ++mfi)
+    {
+       int gid = mfi.index();
 
-    size_t local_size  = dfft.local_size();
+       size_t local_size  = dfft.local_size();
+   
+       std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
+       std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
 
-    std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
-    std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
+       a.resize(nx*ny*nz);
+       b.resize(nx*ny*nz);
 
-    a.resize(nx*ny*nz);
-    b.resize(nx*ny*nz);
+       dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
 
-    dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
+       // Copy real data from Rhs into real part of a -- no ghost cells and
+       // put into C++ ordering (not Fortran)
+       complex_t zero(0.0, 0.0);
+       size_t local_indx = 0;
+       for(size_t i=0; i<(size_t)nx; i++) {
+        for(size_t j=0; j<(size_t)ny; j++) {
+         for(size_t k=0; k<(size_t)nz; k++) {
 
-    // Copy real data from Rhs into real part of a -- no ghost cells and
-    // put into C++ ordering (not Fortran)
-    complex_t zero(0.0, 0.0);
-    complex_t one(1.0, 0.0);
-    size_t local_indx = 0;
-    for(int i=0; i< nx; i++) {
-     for(int j=0; j< ny; j++) {
-      for(int k=0; k< nz; k++) {
+           complex_t temp(rhs[mfi].dataPtr()[local_indx],0.);
+           a[local_indx] = temp;
+      	   local_indx++;
 
-        complex_t temp(rhs[0].dataPtr()[local_indx],0.);
-        a[local_indx] = temp;
-	local_indx++;
-
+         }
+       }
       }
-    }
-   }
-
-    VisMF::Write(rhs,"RHS_BEFORE");
 
 //  *******************************************
 //  Compute the forward transform
@@ -150,12 +203,12 @@ SWFFT_Solver::solve ()
         if (i == 0 && j == 0 & k == 0) {
            a[local_indx] = 0;
         } else {
-           double ksq = 2. * (
+           double fac = 2. * (
                         (cos(tpi*double(i)/double(nx)) - 1.) + 
                         (cos(tpi*double(j)/double(ny)) - 1.) + 
                         (cos(tpi*double(k)/double(nz)) - 1.) );
 
-           a[local_indx] = a[local_indx] / ksq;
+           a[local_indx] = a[local_indx] / fac;
         }
 	local_indx++;
 
@@ -163,42 +216,49 @@ SWFFT_Solver::solve ()
      }
     }
 
-//  *******************************************
-//  Compute the backward transform
-//  *******************************************
-    dfft.backward(&a[0]);
+//     *******************************************
+//     Compute the backward transform
+//     *******************************************
+       dfft.backward(&a[0]);
 
-    double divisor = local_size * local_size / pi;
+       double fac = hsq / local_size;
 
-    local_indx = 0;
-    for(size_t i=0; i<(size_t)nx; i++) {
-     for(size_t j=0; j<(size_t)ny; j++) {
-      for(size_t k=0; k<(size_t)nz; k++) {
+       local_indx = 0;
+       for(size_t i=0; i<(size_t)nx; i++) {
+        for(size_t j=0; j<(size_t)ny; j++) {
+         for(size_t k=0; k<(size_t)nz; k++) {
 
-        // Divide by 2 pi N
-        soln[0].dataPtr()[local_indx] = -std::real(a[local_indx]) / divisor;
-	local_indx++;
+           // Divide by 2 pi N
+           soln[mfi].dataPtr()[local_indx] = fac * std::real(a[local_indx]);
+      	   local_indx++;
 
-      }
-     }
+         }
+        }
+       }
     }
+    Real total_time = amrex::second() - start_time;
 
-    VisMF::Write(soln,"SOLN");
-    VisMF::Write(the_soln,"THE_SOLN");
-
-    std::cout << "MAX / MIN VALUE OF SOLN " <<     soln.max(0) << " " <<     soln.min(0) << std::endl;
-    std::cout << "MAX / MIN VALUE OF THES " << the_soln.max(0) << " " << the_soln.min(0) << std::endl;
-    std::cout << "RATIO OF MAX            " << soln.max(0) / the_soln.max(0) << std::endl;
-    std::cout << "RATIO OF MIN            " << soln.min(0) / the_soln.min(0) << std::endl;
-
+    if (write_data)
     {
-        MultiFab diff(ba, dm, 1, 0);
-        MultiFab::Copy(diff, soln, 0, 0, 1, 0);
-        MultiFab::Subtract(diff, the_soln, 0, 0, 1, 0);
-        amrex::Print() << "\nMax-norm of the error is " << diff.norm0()
-                       << "\nL2-norm  of the error is " << diff.norm2() << "\n";
-        amrex::Print() << "\nMaximum absolute value of the rhs is " << rhs.norm0()
-                       << "\nMaximum absolute value of the solution is " << the_soln.norm0()
-                       << "\n";
+       VisMF::Write(rhs,"RHS");
+       VisMF::Write(soln,"SOL_COMP");
+       VisMF::Write(the_soln,"SOL_EXACT");
     }
+
+    if (verbose)
+    {
+       amrex::Print() << "MAX / MIN VALUE OF COMP  SOLN " <<     soln.max(0) << " " 
+                      <<     soln.min(0) << std::endl;
+       amrex::Print() << "MAX / MIN VALUE OF EXACT SOLN " << the_soln.max(0) << " " 
+                      << the_soln.min(0) << std::endl;
+    }
+
+    MultiFab diff(ba, dm, 1, 0);
+    MultiFab::Copy(diff, soln, 0, 0, 1, 0);
+    MultiFab::Subtract(diff, the_soln, 0, 0, 1, 0);
+    amrex::Print() << "\nMax-norm of the error is " << diff.norm0() << "\n";
+    amrex::Print() << "Time spent in solve: " << total_time << std::endl;
+
+    if (write_data)
+       VisMF::Write(diff,"DIFF");
 }
