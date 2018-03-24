@@ -18,16 +18,8 @@ private:
     int max_grid_size = 32;
     int verbose = 2;
 
-    // parameters in setting up the problem
-    const amrex::Real a = 1.e-3;
-    const amrex::Real b = 1.0;
-    const amrex::Real sigma = 10.0;
-    const amrex::Real w = 0.05;
-
     // data
     amrex::MultiFab rhs;
-    amrex::MultiFab alpha;
-    std::array<amrex::MultiFab,3> beta;
     amrex::MultiFab soln;
     amrex::MultiFab the_soln;
     amrex::Geometry geom;
