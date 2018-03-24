@@ -7,6 +7,15 @@
 extern "C" {
 #endif
 
+    void amrex_mlndlap_copy_fine_node (const int* lo, const int* hi,
+                                       amrex_real* d, const int* dlo, const int* dhi,
+                                       const amrex_real* s, const int* slo, const int* shi,
+                                       const int* msk, const int* mlo, const int* mhi);
+
+    void amrex_mlndlap_zero_dirichlet_node (const int* lo, const int* hi,
+                                            amrex_real* d, const int* dlo, const int* dhi,
+                                            const int* msk, const int* mlo, const int* mhi);
+
 #if (AMREX_SPACEDIM == 2)
     void amrex_mlndlap_set_rz (const int* rz);
 #endif

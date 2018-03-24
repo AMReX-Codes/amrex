@@ -1,5 +1,6 @@
 
 #include <AMReX_MLNodeLinOp.H>
+#include <AMReX_MLNodeLap_F.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -128,6 +129,18 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
     const int mglev = 0;
     apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous);
     MultiFab::Xpay(resid, -1.0, b, 0, 0, 1, 0);
+
+    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][0];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(resid, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        amrex_mlndlap_zero_dirichlet_node(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD(resid[mfi]),
+                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+    }
 }
 
 void
@@ -160,12 +173,13 @@ Real
 MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const
 {
     AMREX_ASSERT(amrlev==0);
-    AMREX_ASSERT(mglev+1==m_num_mg_levels[0]);
+    AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
+    const auto& mask = (mglev == 0) ? m_coarse_dot_mask : m_bottom_dot_mask;
     const int ncomp = 1;
     const int nghost = 0;
     MultiFab tmp(x.boxArray(), x.DistributionMap(), 1, 0);
     MultiFab::Copy(tmp, x, 0, 0, ncomp, nghost);
-    MultiFab::Multiply(tmp, m_bottom_dot_mask, 0, 0, ncomp, nghost);
+    MultiFab::Multiply(tmp, mask, 0, 0, ncomp, nghost);
     Real result = MultiFab::Dot(tmp,0,y,0,ncomp,nghost,true);
     if (!local) {
         ParallelAllReduce::Sum(result, Communicator(amrlev, mglev));
