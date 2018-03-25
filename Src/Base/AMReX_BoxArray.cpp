@@ -215,6 +215,14 @@ BARef::Initialize ()
 			 }));
 #endif
     }
+
+    amrex::ExecOnFinalize(BARef::Finalize);
+}
+
+void
+BARef::Finalize ()
+{
+    initialized = false;
 }
 
 void
@@ -224,6 +232,14 @@ BoxArray::Initialize ()
 	initialized = true;
 	BARef::Initialize();
     }
+
+    amrex::ExecOnFinalize(BoxArray::Finalize);
+}
+
+void
+BoxArray::Finalize ()
+{
+    initialized = false;
 }
 
 BoxArray::BoxArray ()

@@ -113,6 +113,7 @@ struct BARef
     static long total_hash_bytes_hwm;
         
     static void Initialize ();
+    static void Finalize ();
     static bool initialized;
 };
 
@@ -474,6 +475,7 @@ public:
 #endif
 
     static void Initialize ();
+    static void Finalize ();
     static bool initialized;
 
     //! Make ourselves unique.
