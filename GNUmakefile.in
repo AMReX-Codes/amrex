@@ -11,15 +11,10 @@ ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
     Pdirs += F_Interfaces/Base F_Interfaces/Octree F_Interfaces/AmrCore
 endif
 ifeq ($(USE_LINEAR_SOLVERS),TRUE)
-   Pdirs += LinearSolvers/MLMG LinearSolvers/C_CellMG LinearSolvers/C_to_F_MG
+   Pdirs += LinearSolvers/MLMG LinearSolvers/C_CellMG
 endif
 Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
-
-ifeq ($(USE_LINEAR_SOLVERS),TRUE)
-    include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-    include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
-endif
 
 all: $(amrexlib)
 	@echo SUCCESS
