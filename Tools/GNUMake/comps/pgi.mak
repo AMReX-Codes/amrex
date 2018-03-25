@@ -139,6 +139,8 @@ ifeq ($(USE_CUDA),TRUE)
     FFLAGS   += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)
   endif
 
+  LINK_WITH_FORTRAN_COMPILER = TRUE
+
 endif
 
 
