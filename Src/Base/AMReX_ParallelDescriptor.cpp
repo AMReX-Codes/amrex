@@ -460,6 +460,8 @@ ParallelDescriptor::EndParallel ()
       m_comm_all = MPI_COMM_NULL;
     }
 
+    ParallelDescriptor::SeqNum(2, m_MinTag);
+
     if (call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Finalize() );
     }

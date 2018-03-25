@@ -12,6 +12,9 @@ ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
 endif
 ifeq ($(USE_LINEAR_SOLVERS),TRUE)
    Pdirs += LinearSolvers/MLMG LinearSolvers/C_CellMG
+   ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
+     Pdirs += F_Interfaces/LinearSolvers
+   endif
 endif
 Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
