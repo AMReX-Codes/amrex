@@ -324,19 +324,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     BL_PROFILE_INITIALIZE();
 
-#ifdef BL_USE_MPI
-    amrex::Print() << "MPI initialized with "
-		   << ParallelDescriptor::NProcs()
-		   << " MPI processes\n";
-#endif
-
-#ifdef _OPENMP
-//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
-    amrex::Print() << "OMP initialized with "
-		   << omp_get_max_threads()
-		   << " OMP threads\n";
-#endif
-
 #ifndef BL_AMRPROF
     if (build_parm_parse)
     {
@@ -433,6 +420,22 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #if defined(BL_MEM_PROFILING) && defined(BL_USE_F_BASELIB)
     MemProfiler_f::initialize();
 #endif
+
+    if (system::verbose > 0)
+    {
+#ifdef BL_USE_MPI
+        amrex::Print() << "MPI initialized with "
+                       << ParallelDescriptor::NProcs()
+                       << " MPI processes\n";
+#endif
+        
+#ifdef _OPENMP
+//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
+        amrex::Print() << "OMP initialized with "
+                       << omp_get_max_threads()
+                       << " OMP threads\n";
+#endif
+    }
 }
 
 void
