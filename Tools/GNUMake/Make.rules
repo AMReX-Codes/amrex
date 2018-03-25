@@ -25,9 +25,7 @@ endif
 #
 $(executable):	$(objForExecs)
 	@echo Linking $@ ...
-ifeq ($(USE_CUDA),TRUE)
-	$(SILENT) $(FC) $(FFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
-else ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	$(SILENT) $(F90) $(F90FLAGS) $(FINAL_CPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
 else
 	$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
