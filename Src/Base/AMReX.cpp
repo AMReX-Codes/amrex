@@ -262,6 +262,14 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 }
 
 void
+amrex::Initialize (MPI_Comm mpi_comm)
+{
+    int argc = 0;
+    char** argv = 0;
+    Initialize(argc, argv, false, mpi_comm);
+}
+
+void
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse)
 {
@@ -336,7 +344,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         {
             ParmParse::Initialize(0,0,0);
         }
-        else
+        else if (argc > 1)
         {
             if (strchr(argv[1],'='))
             {
