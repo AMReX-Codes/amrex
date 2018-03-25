@@ -32,11 +32,19 @@ public:
 
     virtual Box getDomain () const override { return m_geom.Domain(); }
 
+    const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const
+        { return m_ebdc->getMultiEBCellFlagFab(); }
+
     const MultiFab& getVolFrac () const { return m_ebdc->getVolFrac(); }
+
+//    const MultiCutFab& getCentroid () const { return m_ebdc->getCentroid(); }
+
     const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
+
     std::array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
         return m_ebdc->getAreaFrac();
     }
+
     std::array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const {
         return m_ebdc->getFaceCent();
     }

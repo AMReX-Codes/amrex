@@ -1,20 +1,10 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_EBISLayout.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
@@ -45,7 +35,8 @@ namespace amrex
 {
   /***************/
   int makeGeometry(Box& a_domain,
-                   Real& a_dx)
+                   Real& a_dx,
+                   int igeom)
   {
     int eekflag =  0;
     int maxbox;
@@ -110,10 +101,22 @@ namespace amrex
       PlaneIF ramp(normal,point,normalInside);
 
 
-      GeometryShop workshop(ramp,0, a_dx);
-      //this generates the new EBIS
-      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop" << endl;
+        GeometryShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedGShop" << endl;
+        WrappedGShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
     }
     else if(whichgeom == 5)
     {
@@ -132,10 +135,22 @@ namespace amrex
       amrex::Print() << "using a sphere implicit function" << "\n";
 
       bool negativeInside = false;
-      SphereIF lalaBall(sphereRadius, sphereCenter, negativeInside);
-      GeometryShop workshop(lalaBall);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop" << endl;
+        SphereIF lalaBall(sphereRadius, sphereCenter, negativeInside);
+        GeometryShop workshop(lalaBall);
       
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedShop" << endl;
+        SphereIF lalaBall(sphereRadius, sphereCenter, negativeInside);
+        WrappedGShop workshop(lalaBall);
+      
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
     }
     else if(whichgeom == 55)
     {
@@ -158,9 +173,18 @@ namespace amrex
 
       bool negativeInside = false;
       EllipsoidIF lalaBall(ellipseRadius, ellipseCenter, negativeInside);
-      GeometryShop workshop(lalaBall);
-      
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop" << endl;
+        GeometryShop workshop(lalaBall);
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedShop" << endl;
+        WrappedGShop workshop(lalaBall);
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
     }
     else if(whichgeom == 77)
     {
@@ -184,13 +208,13 @@ namespace amrex
 
   /****/
   /***************/
-  int testEBIO()
+  int testEBIO(int igeom)
   {
     Box domain;
     Real dx;
     //make the initial geometry
     amrex::Print() << "making EBIS" << endl;
-    makeGeometry(domain, dx);
+    makeGeometry(domain, dx, igeom);
     Box nodeBox = domain.surroundingNodes();
     BoxArray            ba(nodeBox);
     DistributionMapping dm(ba);
@@ -220,15 +244,17 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::testEBIO();
-  if(retval != 0)
+  for(int igeom = 0; igeom <= 1; igeom++)
   {
-    amrex::Print() << "EBIndexSpace I/O test failed with code " << retval << "\n";
+    retval = amrex::testEBIO(igeom);
+    if(retval != 0)
+    {
+      amrex::Print() << argv[0] << " failed with code " << retval << "\n";
+      return retval;
+    }
   }
-  else
-  {
-    amrex::Print() << "EBIndexSpace I/O test passed \n";
-  }
+  amrex::Print() << argv[0] << " test passed \n";
+
   amrex::Finalize();
   return retval;
 }

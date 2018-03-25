@@ -158,6 +158,13 @@ add_define ( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES )
 
 add_define ( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS ) 
 
+# More profiling stuff
+add_define ( VTUNE IF ENABLE_VTUNE)
+
+add_define ( CRAYPAT IF ENABLE_CRAYPAT )
+
+add_define ( ALLINEA IF ENABLE_ALLINEA )
+
 #
 # Add all preprocessor definitions to compile string
 # 

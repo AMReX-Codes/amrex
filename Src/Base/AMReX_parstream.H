@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #ifndef _PARSTREAM_H___
 #define _PARSTREAM_H___
 
@@ -19,7 +8,7 @@ namespace amrex
 
 /// Use this in place of std::cout for program output.
 /**
- * Replaces std::cout in most of the Chombo code.  In serial this just
+ * Can be used to replace std::cout.  In serial this just
  * returns std::cout.  In parallel, this creates a separate file for each
  * proc called <basename>.n where n is the procID and <basename> defaults to
  * "pout" but can be set by calling setPoutBaseName().  Output is then

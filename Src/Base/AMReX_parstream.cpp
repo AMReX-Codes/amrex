@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include <cstdio>
 #include <fstream>
 #include "AMReX_parstream.H"
@@ -17,7 +6,7 @@
 namespace amrex
 {
 //
-// pout() returns the standard output stream for Chombo codes.
+// pout() returns a standard output stream.
 //
 // In parallel, each proc sends the stream to a separate file,
 //  distinguished by having the proc num in the filename.

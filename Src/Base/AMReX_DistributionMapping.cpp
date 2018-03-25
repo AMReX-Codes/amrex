@@ -969,7 +969,7 @@ SFCToken::Compare::operator () (const SFCToken& lhs,
     {
         const int N = (1<<i);
 
-        for (int j = BL_SPACEDIM-1; j >= 0; --j)
+        for (int j = AMREX_SPACEDIM-1; j >= 0; --j)
         {
             const int il = lhs.m_idx[j]/N;
             const int ir = rhs.m_idx[j]/N;
@@ -2321,7 +2321,7 @@ int
 DistributionMapping::NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto)
 {
   int nhops(0);
-  for(int d(0); d < BL_SPACEDIM; ++d) {
+  for(int d(0); d < AMREX_SPACEDIM; ++d) {
     int bl(tbox.length(d));
     int ivl(std::min(ivfrom[d], ivto[d]));
     int ivh(std::max(ivfrom[d], ivto[d]));
@@ -2483,7 +2483,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
       spdim = atoi(first_line.c_str());
     }
 
-    if(spdim != BL_SPACEDIM) {
+    if(spdim != AMREX_SPACEDIM) {
       std::cerr << "Amr::restart(): bad spacedim = " << spdim << '\n';
       amrex::Abort();
     }

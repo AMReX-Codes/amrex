@@ -18,10 +18,10 @@ namespace amrex
 			 const IndexType& boxType, Interpolater* mapper)
     {
 	int ratio_max = ratio[0];
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 	ratio_max = std::max(ratio_max, ratio[1]);
 #endif
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	ratio_max = std::max(ratio_max, ratio[2]);
 #endif
 	// There are at least this many coarse cells outside fine grids 
@@ -151,7 +151,7 @@ namespace amrex
 	    Box fdomain = fgeom.Domain();
 	    fdomain.convert(mf.boxArray().ixType());
 	    Box fdomain_g(fdomain);
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 		if (fgeom.isPeriodic(i)) {
 		    fdomain_g.grow(i,ngrow);
 		}
@@ -237,7 +237,7 @@ namespace amrex
 	fdomain.convert(typ);
 
 	Box fdomain_g(fdomain);
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	    if (fgeom.isPeriodic(i)) {
 		fdomain_g.grow(i,ngrow);
 	    }
@@ -301,15 +301,15 @@ namespace amrex
 
     // B fields are assumed to be on staggered grids.
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
-                                     const std::array<MultiFab,BL_SPACEDIM>& crse,
-                                     std::array<MultiFab,BL_SPACEDIM>& fine,
+                                     const std::array<MultiFab,AMREX_SPACEDIM>& crse,
+                                     std::array<MultiFab,AMREX_SPACEDIM>& fine,
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio)
     {
         BL_ASSERT(ref_ratio == 2);
 
         int ngrow = fine[0].nGrow();
-        for (int idim = 1; idim < BL_SPACEDIM; ++idim) {
+        for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
             BL_ASSERT(ngrow == fine[idim].nGrow());
         }
 
@@ -322,8 +322,8 @@ namespace amrex
 
         if (! cfinfo.ba_cfb.empty())
         {
-            std::array<MultiFab, BL_SPACEDIM> cmf;
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+            std::array<MultiFab, AMREX_SPACEDIM> cmf;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& fine_ba = fine[idim].boxArray();
                 BoxArray fba = cfinfo.ba_cfb;
@@ -349,7 +349,7 @@ namespace amrex
 #pragma omp parallel
 #endif
             {
-                std::array<FArrayBox,BL_SPACEDIM> bfab;
+                std::array<FArrayBox,AMREX_SPACEDIM> bfab;
                 for (MFIter mfi(cmf[0]); mfi.isValid(); ++mfi)
                 {
                     const int fi = cfinfo.fine_grid_idx[mfi.LocalIndex()];
@@ -360,11 +360,11 @@ namespace amrex
 
                     const FArrayBox& cxfab = cmf[0][mfi];
                     bfab[0].resize(amrex::convert(ccbx,fine[0].ixType()));
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
                     const FArrayBox& cyfab = cmf[1][mfi];
                     bfab[1].resize(amrex::convert(ccbx,fine[1].ixType()));
 #endif
-#if (BL_SPACEDIM > 2)
+#if (AMREX_SPACEDIM > 2)
                     const FArrayBox& czfab = cmf[2][mfi];
                     bfab[2].resize(amrex::convert(ccbx,fine[2].ixType()));
 #endif
@@ -396,7 +396,7 @@ namespace amrex
                         amrex::Abort("InterpCrseFineBndryEMfield: unknown interp_type");
                     }
                     
-                    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
                         const BoxArray& fine_ba = fine[idim].boxArray();
                         const Box& fine_valid_box = fine_ba[fi];

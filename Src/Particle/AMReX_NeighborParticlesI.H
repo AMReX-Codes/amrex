@@ -29,7 +29,7 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::initializeCommComps() {
-    for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii)
+    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii)
         rc[ii] = true;
     for (int ii = 0; ii < 2 + NStructInt; ++ii)
         ic[ii] = true;
@@ -57,7 +57,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::calcCommSize() {
     size_t comm_size = 0;
-    for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
+    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
         if (rc[ii]) {
             comm_size += sizeof(typename ParticleType::RealType);
         }
@@ -143,6 +143,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
     BL_ASSERT(lev == 0);
+    BL_ASSERT(this->OK());
 
     clearNeighbors(lev);
     
@@ -227,7 +228,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             for (int dim = 0; dim < 3; ++dim)
                                 tag.periodic_shift[dim] = 0;
                             if (periodicity.isAnyPeriodic()) {
-                                for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+                                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                     if (not periodicity.isPeriodic(dir)) continue;
                                     if (neighbor_cell[dir] < lo[dir]) 
                                         tag.periodic_shift[dir] = -1;
@@ -398,7 +399,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::updateNeighbors(int lev, bool reuse_rcv_counts) {
     
-    BL_PROFILE("NeighborParticleContainer::updateNeighbors");
+    BL_PROFILE_VAR("NeighborParticleContainer::updateNeighbors", update);
     BL_ASSERT(lev == 0);
 
     const int MyProc = ParallelDescriptor::MyProc();
@@ -427,7 +428,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 const int who = dmap[tag.grid];
                 ParticleType p = particles[tag.src_index];
                 if (periodicity.isAnyPeriodic()) {
-                    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+                    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                         if (not periodicity.isPeriodic(dir)) continue;
                         if (tag.periodic_shift[dir] == -1) 
                             p.pos(dir) += prob_domain.length(dir);
@@ -443,7 +444,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 } else {
                     char* dst = &send_data[who][tag.dst_offset];
                     char* src = (char *) &p;
-                    for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
+                    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
                         if (rc[ii]) {
                             std::memcpy(dst, src, sizeof(typename ParticleType::RealType)); 
                             dst += sizeof(typename ParticleType::RealType);
@@ -469,6 +470,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
         neighbors[dst_index].resize(local_neighbor_sizes[dst_index]);
     }
     
+    BL_PROFILE_VAR_STOP(update);
+
     fillNeighborsMPI(reuse_rcv_counts);
 }
 
@@ -490,6 +493,8 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
 getRcvCountsMPI() {
+
+    BL_PROFILE("NeighborParticleContainer::getRcvCountsMPI");
 
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
@@ -538,7 +543,7 @@ getRcvCountsMPI() {
     }
 
     if (num_rcvs > 0) {
-        BL_MPI_REQUIRE( MPI_Waitall(num_rcvs, rreqs.data(), stats.data()) );
+        ParallelDescriptor::Waitall(rreqs, stats);
     }
 
 #endif // BL_USE_MPI
@@ -606,7 +611,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
     
     // unpack the received data and put them into the proper neighbor buffers
     if (nrcvs > 0) {
-        BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
+        ParallelDescriptor::Waitall(rreqs, stats);
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
             char* buffer = &recvdata[offset];
@@ -630,7 +635,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 char* src = buffer;
 
                 for (int n = 0; n < np; ++n) {
-                    for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
+                    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
                         if (rc[ii]) {
                             std::memcpy(dst, src, sizeof(typename ParticleType::RealType)); 
                             src += sizeof(typename ParticleType::RealType);
@@ -659,6 +664,7 @@ buildNeighborList(int lev, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
     BL_ASSERT(lev == 0);
+    BL_ASSERT(this->OK());
 
     neighbor_list.clear();
     
@@ -696,7 +702,7 @@ buildNeighborList(int lev, bool sort) {
         // For each cell on this tile, we build linked lists storing the
         // indices of the particles belonging to it.
         Box box = pti.tilebox();
-        box.grow(num_neighbor_cells);
+        box.grow(num_neighbor_cells + 1); // need an extra cell to account for roundoff errors.
         head.resize(box);
         head.setVal(-1);
         list.resize(N, -1);

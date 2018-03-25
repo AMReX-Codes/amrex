@@ -1,13 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
 #ifndef _BASEEBCELLFABI_H_
 #define _BASEEBCELLFABI_H_
 
@@ -418,6 +408,7 @@ namespace amrex
   {
     BL_PROFILE("BaseEBCellFAB::nbytesfull");
     size_t retval = 0;
+    size_t incrval = 0;
     //first the meta data
     //ncomp
     retval += sizeof(int);
@@ -426,8 +417,10 @@ namespace amrex
     retval += m_regFAB.box().linearSize();
 
     //these make the ebisbox
-    retval +=  m_ebisBox.getEBGraph().nBytesFull();
-    retval +=  m_ebisBox.getEBData( ).nBytesFull();
+    incrval =  m_ebisBox.getEBGraph().nBytesFull();
+    retval +=  incrval;
+    incrval =  m_ebisBox.getEBData( ).nBytesFull();
+    retval +=  incrval;
     //from the above we can call define
     //now for the data
     retval +=  m_regFAB.nBytes(m_regFAB.box(), 0, nComp());

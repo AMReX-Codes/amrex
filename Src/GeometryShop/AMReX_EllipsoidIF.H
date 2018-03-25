@@ -1,15 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #ifndef _EllipsoidIF_H_
 #define _EllipsoidIF_H_
 
@@ -49,6 +37,9 @@ namespace amrex
 
     virtual BaseIF* newImplicitFunction() const;
 
+    ///return the partial derivative at the point
+    virtual Real derivative(const  IntVect& a_deriv,
+                            const RealVect& a_point) const;
   protected:
     RealVect m_radii;     // radii
     RealVect m_center;    // center

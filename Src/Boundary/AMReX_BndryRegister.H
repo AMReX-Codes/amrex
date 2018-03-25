@@ -182,7 +182,7 @@ protected:
     void init (const BndryRegister& src);
 
     //! The data.
-    FabSet    bndry[2*BL_SPACEDIM];
+    FabSet    bndry[2*AMREX_SPACEDIM];
     BoxArray  grids;
 };
 

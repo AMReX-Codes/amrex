@@ -205,8 +205,8 @@ public:
     Real Volume (const IntVect& point) const;
 
     //! Return the volume of the specified cell.
-    Real Volume (const Real xlo[BL_SPACEDIM],
-                 const Real xhi[BL_SPACEDIM]) const;
+    Real Volume (const Real xlo[AMREX_SPACEDIM],
+                 const Real xhi[AMREX_SPACEDIM]) const;
 
     /**
     * \brief Compute area of cell faces in given region and given
@@ -265,11 +265,11 @@ public:
 protected:
     //! Static data.
     static CoordType c_sys;
-    static Real      offset[BL_SPACEDIM];
+    static Real      offset[AMREX_SPACEDIM];
 
     //! Non-static data.
-    Real dx[BL_SPACEDIM];
-    Real inv_dx[BL_SPACEDIM];
+    Real dx[AMREX_SPACEDIM];
+    Real inv_dx[AMREX_SPACEDIM];
     bool ok;
 
 #ifdef AMREX_USE_CUDA
@@ -283,10 +283,10 @@ bool
 CoordSys::IsSPHERICAL ()
 {
     BL_ASSERT(c_sys != undef);
-#if (BL_SPACEDIM <= 2)
+#if (AMREX_SPACEDIM <= 2)
     return (c_sys == SPHERICAL);
 #endif    
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     return false;
 #endif    
 }
@@ -296,10 +296,10 @@ bool
 CoordSys::IsRZ ()
 {
     BL_ASSERT(c_sys != undef);
-#if (BL_SPACEDIM <= 2)
+#if (AMREX_SPACEDIM <= 2)
     return (c_sys == RZ);
 #endif    
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     return false;
 #endif    
 }
