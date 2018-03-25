@@ -123,7 +123,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	for (int i = 0; i < nptrs; ++i) {
 	    std::string line = strings[i];
 	    line += "\n";
-	    if (have_addr2line) {
+	    if (have_addr2line && !amrex::system::exename.empty()) {
 		std::size_t found1 = line.rfind('[');
 		std::size_t found2 = line.rfind(']');
 		if (found1 != std::string::npos && found2 != std::string::npos) {
