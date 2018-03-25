@@ -2,6 +2,7 @@ module amrex_mlnodelap_3d_module
 
   use amrex_error_module
   use amrex_fort_module, only : amrex_real
+  use amrex_constants_module
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann, amrex_lo_inflow, amrex_lo_periodic
   implicit none
 
@@ -13,6 +14,8 @@ module amrex_mlnodelap_3d_module
   integer, parameter :: crse_node = 0
   integer, parameter :: crse_fine_node = 1
   integer, parameter :: fine_node = 2
+
+  real(amrex_real), private, parameter :: eps = 1.d-100
 
   private
   public :: &
@@ -26,6 +29,7 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_applybc, amrex_mlndlap_impose_neumann_bc, &
        ! operator
        amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
+       amrex_mlndlap_normalize_ha, amrex_mlndlap_normalize_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
        amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
        ! restriction
@@ -41,6 +45,19 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
        ! sync residual
        amrex_mlndlap_zero_fine
+
+  ! RAP
+  public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
+       amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
+       amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
+       amrex_mlndlap_interpolation_rap, amrex_mlndlap_interpolation_rap_sp, &
+       amrex_mlndlap_restriction_rap, &
+       amrex_mlndlap_stencil_rap, amrex_mlndlap_stencil_rap_sp
+
+#ifdef AMREX_USE_EB
+  public:: amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+       amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
+#endif
 
 contains
 
@@ -1190,6 +1207,73 @@ contains
   end subroutine amrex_mlndlap_adotx_aa
 
 
+  subroutine amrex_mlndlap_normalize_ha (lo, hi, x, xlo, xhi, &
+       sx, sxlo, sxhi, sy, sylo, syhi, sz, szlo, szhi, msk, mlo, mhi, dxinv) &
+       bind(c,name='amrex_mlndlap_normalize_ha')
+    integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, sxlo, sxhi, &
+         sylo, syhi, szlo, szhi, mlo, mhi
+    real(amrex_real), intent(in) :: dxinv(3)
+    real(amrex_real), intent(inout) ::  x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3))
+    real(amrex_real), intent(in   ) :: sx(sxlo(1):sxhi(1),sxlo(2):sxhi(2),sxlo(3):sxhi(3))
+    real(amrex_real), intent(in   ) :: sy(sylo(1):syhi(1),sylo(2):syhi(2),sylo(3):syhi(3))
+    real(amrex_real), intent(in   ) :: sz(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3))
+    integer         , intent(in   ) ::msk( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3))
+
+    integer :: i,j,k
+    real(amrex_real) :: facx, facy, facz
+
+    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
+    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (msk(i,j,k) .ne. dirichlet) then
+                x(i,j,k) = x(i,j,k)/((-4.d0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1) &
+                     &                             +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  )) &
+                     &                       +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1) &
+                     &                             +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  )) &
+                     &                       +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1) &
+                     &                             +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  ))))
+
+             end if
+          end do
+       end do
+    end do
+  end subroutine amrex_mlndlap_normalize_ha
+
+
+  subroutine amrex_mlndlap_normalize_aa (lo, hi, x, xlo, xhi, sig, slo, shi, msk, mlo, mhi, dxinv) &
+       bind(c,name='amrex_mlndlap_normalize_aa')
+    integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, slo, shi, mlo, mhi
+    real(amrex_real), intent(in) :: dxinv(3)
+    real(amrex_real), intent(inout) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
+    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+
+    integer :: i,j,k
+    real(amrex_real) :: facx, facy, facz, fxyz
+    
+    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
+    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
+    fxyz = facx + facy + facz
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (msk(i,j,k) .ne. dirichlet) then
+                x(i,j,k) = x(i,j,k) / ((-4.d0)*fxyz* &
+                     (sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1) &
+                     +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )))
+             end if
+          end do
+       end do
+    end do
+  end subroutine amrex_mlndlap_normalize_aa
+
+
   subroutine amrex_mlndlap_jacobi_ha (lo, hi, sol, slo, shi, Ax, alo, ahi, rhs, rlo, rhi, &
        sx, sxlo, sxhi, sy, sylo, syhi, sz, szlo, szhi, msk, mlo, mhi, &
        dxinv, domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_jacobi_ha')
@@ -1258,7 +1342,6 @@ contains
                 sol(i,j,k) = sol(i,j,k) + omega * (rhs(i,j,k) - Ax(i,j,k)) &
                      / (fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1) &
                      &       +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )))
-
              else
                 sol(i,j,k) = 0.d0
              end if
@@ -2536,5 +2619,165 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
+
+
+  subroutine amrex_mlndlap_set_stencil (lo, hi, sten, tlo, thi, sigma, glo, ghi, dxinv) &
+       bind(c,name='amrex_mlndlap_set_stencil')
+    integer, dimension(3), intent(in) :: lo, hi, tlo, thi, glo, ghi
+    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),1)
+    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
+    real(amrex_real), intent(in) :: dxinv(3)
+  end subroutine amrex_mlndlap_set_stencil
+
+
+  subroutine amrex_mlndlap_set_stencil_s0 (lo, hi, sten, tlo, thi) &
+       bind(c,name='amrex_mlndlap_set_stencil_s0')
+    integer, dimension(3), intent(in) :: lo, hi, tlo, thi
+    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),1)
+  end subroutine amrex_mlndlap_set_stencil_s0
+
+
+  subroutine amrex_mlndlap_adotx_sten (lo, hi, y, ylo, yhi, x, xlo, xhi, &
+       sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_adotx_sten')
+    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, mlo, mhi
+    real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3))
+    real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
+    real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),1)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+  end subroutine amrex_mlndlap_adotx_sten
+
+
+  subroutine amrex_mlndlap_normalize_sten (lo, hi, x, xlo, xhi, &
+       sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_normalize_sten')
+    integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, slo, shi, mlo, mhi
+    real(amrex_real), intent(inout) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
+    real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),1)
+    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+  end subroutine amrex_mlndlap_normalize_sten
+
+
+  subroutine amrex_mlndlap_gauss_seidel_sten (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
+       sten, stlo, sthi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_gauss_seidel_sten')
+    integer, dimension(3),intent(in) :: lo,hi,slo,shi,rlo,rhi,stlo,sthi,mlo,mhi
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2), rlo(3): rhi(3))
+    real(amrex_real), intent(in   ) ::sten(stlo(1):sthi(1),stlo(2):sthi(2),stlo(3):sthi(3),1)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+  end subroutine amrex_mlndlap_gauss_seidel_sten
+
+
+  subroutine amrex_mlndlap_jacobi_sten (lo, hi, sol, slo, shi, Ax, alo, ahi, &
+       rhs, rlo, rhi, sten, stlo, sthi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_jacobi_sten')
+    integer, dimension(3),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,stlo,sthi,mlo,mhi
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))
+    real(amrex_real), intent(in   ) :: Ax ( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2), rlo(3): rhi(3))
+    real(amrex_real), intent(in   ) ::sten(stlo(1):sthi(1),stlo(2):sthi(2),stlo(3):sthi(3),1)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+  end subroutine amrex_mlndlap_jacobi_sten
+
+
+  subroutine amrex_mlndlap_interpolation_rap (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
+       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap')
+    integer, dimension(3), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
+    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
+    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2),fflo(3):ffhi(3))
+    real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),stlo(2):sthi(2),stlo(3):sthi(3),1)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+  end subroutine amrex_mlndlap_interpolation_rap
+
+
+  subroutine amrex_mlndlap_interpolation_rap_sp (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
+       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap_sp')
+    integer, dimension(3), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
+    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
+    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2),fflo(3):ffhi(3))
+    real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),stlo(2):sthi(2),stlo(3):sthi(3),1)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+  end subroutine amrex_mlndlap_interpolation_rap_sp
+
+
+  subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
+       sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_restriction_rap')
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, mlo, mhi
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),clo(3):chi(3))
+    real(amrex_real), intent(in   ) :: sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),1)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+  end subroutine amrex_mlndlap_restriction_rap
+
+
+  subroutine amrex_mlndlap_stencil_rap (lo, hi, csten, clo, chi, fsten, flo, fhi) &
+       bind(c,name='amrex_mlndlap_stencil_rap')
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi
+    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),1)
+    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),1)
+  end subroutine amrex_mlndlap_stencil_rap
+
+
+  subroutine amrex_mlndlap_stencil_rap_sp (lo, hi, csten, clo, chi, fsten, flo, fhi) &
+       bind(c,name='amrex_mlndlap_stencil_rap_sp')
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi
+    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),1)
+    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),1)
+  end subroutine amrex_mlndlap_stencil_rap_sp
+
+
+#ifdef AMREX_USE_EB
+
+  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+       vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, az, azlo, azhi, bcen, blo, bhi) &
+       bind(c,name='amrex_mlndlap_set_connection')
+    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
+    integer, dimension(3) :: lo, hi, clo, chi, glo, ghi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, &
+         azlo, azhi, blo, bhi
+    real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3),1)
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2), glo(3): ghi(3),1)
+    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
+    real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
+    real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
+    real(amrex_real), intent(in   ) :: az  (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
+    real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3),3)
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
+  end subroutine amrex_mlndlap_set_connection
+
+
+  subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sigma, glo, ghi, &
+       conn, clo, chi, dxinv) bind(c,name='amrex_mlndlap_set_stencil_eb')
+    integer, dimension(3), intent(in) :: lo, hi, tlo, thi, glo, ghi, clo, chi
+    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),1)
+    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
+    real(amrex_real), intent(in   ) ::  conn(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),1)
+    real(amrex_real), intent(in) :: dxinv(3)
+  end subroutine amrex_mlndlap_set_stencil_eb
+
+
+  subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
+       intg, glo, ghi, msk, mlo, mhi, dxinv) &
+       bind(c,name='amrex_mlndlap_divu_eb')
+    integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, flo, fhi, glo, ghi, mlo, mhi
+    real(amrex_real), intent(in) :: dxinv(3)
+    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
+    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
+    real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),3)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+  end subroutine amrex_mlndlap_divu_eb
+
+
+  subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
+       vfrac, vlo, vhi, intg, glo, ghi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
+    integer, dimension(3), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi, glo, ghi
+    real(amrex_real), intent(in) :: dxinv(3)
+    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),3)
+    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
+    real(amrex_real), intent(in   )::vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
+    real(amrex_real), intent(in   ) ::intg(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),1)
+  end subroutine amrex_mlndlap_mknewu_eb
+
+#endif
 
 end module amrex_mlnodelap_3d_module

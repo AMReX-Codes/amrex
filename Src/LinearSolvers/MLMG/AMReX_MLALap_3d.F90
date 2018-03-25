@@ -5,7 +5,7 @@ module amrex_mlalap_3d_module
   implicit none
 
   private
-  public :: amrex_mlalap_adotx, amrex_mlalap_flux, amrex_mlalap_gsrb
+  public :: amrex_mlalap_adotx, amrex_mlalap_normalize, amrex_mlalap_flux, amrex_mlalap_gsrb
 
 contains
 
@@ -36,6 +36,32 @@ contains
        end do
     end do
   end subroutine amrex_mlalap_adotx
+
+
+  subroutine amrex_mlalap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
+       dxinv, alpha, beta) bind(c,name='amrex_mlalap_normalize')
+    integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, alo, ahi
+    real(amrex_real), intent(in) :: dxinv(3)
+    real(amrex_real), value, intent(in) :: alpha, beta
+    real(amrex_real), intent(inout) ::  x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3))
+    real(amrex_real), intent(in   ) ::  a( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3))
+    
+    integer :: i,j,k
+    real(amrex_real) :: dhx, dhy, dhz, fac
+
+    dhx = beta*dxinv(1)*dxinv(1)
+    dhy = beta*dxinv(2)*dxinv(2)
+    dhz = beta*dxinv(3)*dxinv(3)
+    fac = 2.d0*(dhx+dhy+dhz)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             x(i,j,k) = x(i,j,k) / (alpha*a(i,j,k) + fac)
+          end do
+       end do
+    end do
+  end subroutine amrex_mlalap_normalize
 
 
   subroutine amrex_mlalap_flux (lo, hi, fx, fxlo, fxhi, fy, fylo, fyhi, &

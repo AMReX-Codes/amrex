@@ -177,7 +177,7 @@ Box::convert (IndexType t)
 #ifdef AMREX_USE_DEVICE
    initialize_device_memory();
 #endif
-   for (int dir = 0; dir < BL_SPACEDIM; dir++)
+   for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
    {
       const unsigned int typ = t[dir];
       const unsigned int bitval = btype[dir];
@@ -256,7 +256,7 @@ Box::surroundingNodes ()
 #ifdef AMREX_USE_DEVICE
     initialize_device_memory();
 #endif
-    for (int i = 0; i < BL_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
         if ((btype[i] == 0))
             bigend.shift(i,1);
     btype.setall();
@@ -309,7 +309,7 @@ Box::enclosedCells ()
 #ifdef AMREX_USE_DEVICE
     initialize_device_memory();
 #endif
-    for (int i = 0 ; i < BL_SPACEDIM; ++i)
+    for (int i = 0 ; i < AMREX_SPACEDIM; ++i)
         if (btype[i])
             bigend.shift(i,-1);
     btype.clear();
@@ -440,7 +440,7 @@ Box::shiftHalf (int dir,
 Box&
 Box::shiftHalf (const IntVect& nz)
 {
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
         shiftHalf(i,nz[i]);
    return *this;
 }
@@ -452,12 +452,12 @@ Box::next (IntVect& p) const
 
     ++p[0];
 
-#if (BL_SPACEDIM >= 2)
+#if (AMREX_SPACEDIM >= 2)
     if (p[0] > bigend[0])
     {
 	p[0] = smallend[0];
 	++p[1];
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	if (p[1] > bigend[1])
 	{
 	    p[1] = smallend[1];
@@ -551,7 +551,7 @@ Box::longside (int& dir) const
 {
     int maxlen = length(0);
     dir = 0;
-    for (int i = 1; i < BL_SPACEDIM; i++)
+    for (int i = 1; i < AMREX_SPACEDIM; i++)
     {
         if (length(i) > maxlen)
         {
@@ -574,7 +574,7 @@ Box::shortside (int& dir) const
 {
     int minlen = length(0);
     dir = 0;
-    for (int i = 1; i < BL_SPACEDIM; i++)
+    for (int i = 1; i < AMREX_SPACEDIM; i++)
     {
         if (length(i) < minlen)
         {
@@ -671,7 +671,7 @@ Box::coarsen (const IntVect& ref_ratio)
     if (btype.any())
     {
         IntVect off(IntVect::TheZeroVector());
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
         {
             if (btype[dir])
                 if (bigend[dir]%ref_ratio[dir])
@@ -954,11 +954,11 @@ bool
 Box::isSquare () const
 {
     const IntVect& sz = this->size();
-#if BL_SPACEDIM==1
+#if AMREX_SPACEDIM==1
     return false; // can't build a square in 1-D
-#elif BL_SPACEDIM==2
+#elif AMREX_SPACEDIM==2
     return (sz[0] == sz[1]);
-#elif BL_SPACEDIM==3
+#elif AMREX_SPACEDIM==3
     return (sz[0] == sz[1] && (sz[1] == sz[2]));
 #endif
 }
@@ -966,17 +966,17 @@ Box::isSquare () const
 Vector<int> SerializeBox(const Box &b)
 {
   int count(0);
-  Vector<int> retArray(BL_SPACEDIM * 3);
-  for(int i(0); i < BL_SPACEDIM; ++i) {
+  Vector<int> retArray(AMREX_SPACEDIM * 3);
+  for(int i(0); i < AMREX_SPACEDIM; ++i) {
     retArray[count] = b.smallEnd(i);
     ++count;
   }
-  for(int i(0); i < BL_SPACEDIM; ++i) {
+  for(int i(0); i < AMREX_SPACEDIM; ++i) {
     retArray[count] = b.bigEnd(i);
     ++count;
   }
   IntVect ivType(b.type());
-  for(int i(0); i < BL_SPACEDIM; ++i) {
+  for(int i(0); i < AMREX_SPACEDIM; ++i) {
     retArray[count] = ivType[i];
     ++count;
   }
@@ -985,37 +985,37 @@ Vector<int> SerializeBox(const Box &b)
 
 
 int SerializeBoxSize() {
-  return (BL_SPACEDIM * 3);
+  return (AMREX_SPACEDIM * 3);
 }
 
 
 Box UnSerializeBox(const Vector<int> &serarray)
 {
-  BL_ASSERT(serarray.size() == (3 * BL_SPACEDIM));
+  BL_ASSERT(serarray.size() == (3 * AMREX_SPACEDIM));
   const int *iptr = serarray.dataPtr();
   return Box(IntVect(iptr),
-             IntVect(iptr + BL_SPACEDIM),
-	     IndexType(IntVect(iptr + (2 * BL_SPACEDIM))));
+             IntVect(iptr + AMREX_SPACEDIM),
+	     IndexType(IntVect(iptr + (2 * AMREX_SPACEDIM))));
 }
 
 BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     : p(p_)
 {
     if (p == 0) {
-	v.resize(3*BL_SPACEDIM);
+	v.resize(3*AMREX_SPACEDIM);
 	p = &v[0];
     }
 
     AMREX_D_EXPR(p[0]               = bx.smallend[0],
 	   p[1]               = bx.smallend[1],
 	   p[2]               = bx.smallend[2]);
-    AMREX_D_EXPR(p[0+BL_SPACEDIM]   = bx.bigend[0],
-	   p[1+BL_SPACEDIM]   = bx.bigend[1],
-	   p[2+BL_SPACEDIM]   = bx.bigend[2]);
+    AMREX_D_EXPR(p[0+AMREX_SPACEDIM]   = bx.bigend[0],
+	   p[1+AMREX_SPACEDIM]   = bx.bigend[1],
+	   p[2+AMREX_SPACEDIM]   = bx.bigend[2]);
     const IntVect& typ = bx.btype.ixType();
-    AMREX_D_EXPR(p[0+BL_SPACEDIM*2] = typ[0],
-	   p[1+BL_SPACEDIM*2] = typ[1],
-	   p[2+BL_SPACEDIM*2] = typ[2]);
+    AMREX_D_EXPR(p[0+AMREX_SPACEDIM*2] = typ[0],
+	   p[1+AMREX_SPACEDIM*2] = typ[1],
+	   p[2+AMREX_SPACEDIM*2] = typ[2]);
 }
 
 void

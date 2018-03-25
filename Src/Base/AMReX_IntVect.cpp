@@ -115,7 +115,7 @@ IntVect::IntVect (const int *a)
 
 IntVect::IntVect (const Vector<int> &a)
 {
-    BL_ASSERT(a.size() == BL_SPACEDIM);
+    BL_ASSERT(a.size() == AMREX_SPACEDIM);
     AMREX_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
@@ -140,7 +140,7 @@ max (const IntVect& p1,
 IntVect
 BASISV (int dir)
 {
-    BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
+    BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
     IntVect tmp;
     tmp[dir] = 1;
     return tmp;
@@ -157,7 +157,7 @@ reflect (const IntVect& a,
          int            ref_ix,
          int            idir)
 {
-    BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
+    BL_ASSERT(idir >= 0 && idir < AMREX_SPACEDIM);
     IntVect b(a);
     b[idir] = -b[idir] + 2*ref_ix;
     return b;
@@ -200,7 +200,7 @@ IntVect::coarsen (const IntVect& p)
 {
     BL_ASSERT(p.allGT(IntVect::TheZeroVector()));
     if (p != 1) {
-        for (int i = 0; i <BL_SPACEDIM; ++i)
+        for (int i = 0; i <AMREX_SPACEDIM; ++i)
         {
             const int s = p.vect[i];
             vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);

@@ -93,13 +93,13 @@ list ( APPEND ALLHEADERS AMReX_MultiGrid.H   AMReX_Laplacian.H )
 list ( APPEND CXXSRC     AMReX_MultiGrid.cpp AMReX_Laplacian.cpp )
 
 list ( APPEND ALLHEADERS AMReX_ABec_F.H AMReX_LO_F.H AMReX_LP_F.H AMReX_MG_F.H )
-list ( APPEND F77SRC     AMReX_ABec_${DIM}D.F AMReX_ABec_UTIL.F AMReX_LO_${DIM}D.F )
-list ( APPEND F77SRC     AMReX_LP_${DIM}D.F AMReX_MG_${DIM}D.F )
+list ( APPEND F90SRC     AMReX_ABec_${DIM}D.F90 AMReX_ABec_UTIL.F90 AMReX_LO_${DIM}D.F90 )
+list ( APPEND F90SRC     AMReX_LP_${DIM}D.F90 AMReX_MG_${DIM}D.F90 )
 
 # 
 # Collect sources
 # 
-set ( ALLSRC   ${CXXSRC} ${F77SRC} )
+set ( ALLSRC   ${CXXSRC} ${F90SRC} )
 
 #
 # Add absolute path (needed by target_sources)

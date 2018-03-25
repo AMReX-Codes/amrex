@@ -1,17 +1,8 @@
-/*
- *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
- *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
- *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
- *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
- *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
- * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
- *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
- *
- */
 
 #include <cmath>
 
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_RealVect.H"
@@ -97,7 +88,7 @@ namespace amrex
     return 0;
   }
 ////////////
-  int checkGraph()
+  int checkGraph(int a_ishop)
   {
     Real radius = 0.5;
     Real domlen = 1;
@@ -136,8 +127,21 @@ namespace amrex
     
     FabArray<EBGraph> allgraphs(ba, dm, 1, 0);
     pp.get("verbosity", verbosity);
-    GeometryShop gshop(sphere, verbosity);
+    GeometryShop oldschool(sphere, verbosity);
+    WrappedGShop wrappedgs(sphere, verbosity);
 
+    GeometryService* gshop;
+    if(a_ishop == 0)
+    {
+      amrex::Print() << "using GeometryShop for geometry generation" << endl;
+      gshop = &oldschool;
+    }
+    else
+    {
+      amrex::Print() << "using WrappedGShop for geometry generation" << endl;
+      gshop = &wrappedgs;
+    }
+    
     for(MFIter mfi(allgraphs); mfi.isValid(); ++mfi)
     {
       
@@ -148,7 +152,7 @@ namespace amrex
       BaseFab<int> regIrregCovered;
       Vector<IrregNode> nodes;
       NodeMap nodemap;
-      gshop.fillGraph(regIrregCovered, nodes, nodemap, validRegion, ghostRegion, domain, origin, dx);
+      gshop->fillGraph(regIrregCovered, nodes, nodemap, validRegion, ghostRegion, domain, origin, dx);
       EBGraph& ebgraph = allgraphs[mfi];
       ebgraph.buildGraph(regIrregCovered, nodes, validRegion, domain);
     }
@@ -188,17 +192,20 @@ main(int argc,char **argv)
 
   amrex::Initialize(argc,argv);
   {
-    int eekflag = amrex::checkGraph();
+    for(int ishop = 0; ishop <2; ishop++)
+    {
+      int eekflag = amrex::checkGraph(ishop);
 
-    if (eekflag != 0)
-    {
-      cout << "non zero eek detected = " << eekflag << endl;
-      cout << "sphere test failed" << endl;
+      if (eekflag != 0)
+      {
+        cout << "non zero eek detected = " << eekflag << endl;
+        cout << "sphere test failed" << endl;
+        return eekflag;
+      }
     }
-    else
-    {
-      cout << "sphere test passed" << endl;
-    }
+
+
+    cout << "sphere test passed" << endl;
   }
   amrex::Finalize();
 

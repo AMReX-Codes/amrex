@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -193,6 +182,8 @@ namespace amrex
     {
       IrregNode loNode, hiNode;
       Real areaFracLo, areaFracHi;
+      loNode.m_hasMoments = false;
+      hiNode.m_hasMoments = false;
       loNode.m_cell = a_iv;
       hiNode.m_cell = a_iv;
       loNode.m_cellIndex = 0;
@@ -275,6 +266,7 @@ namespace amrex
     else //i am one volume but I point into two on at least one side
     {
       IrregNode edgeNode;
+      edgeNode.m_hasMoments = false;
       edgeNode.m_cell = a_iv;
       edgeNode.m_volFrac = 1.;
       edgeNode.m_cellIndex = 0;

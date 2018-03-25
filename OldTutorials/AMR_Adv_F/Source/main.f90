@@ -453,7 +453,7 @@ program main
   end if
 
   ! We put this here for debugging to make sure our print statements get seen.
-  call flush(6)
+  flush(6)
 
   call boxlib_finalize()
 

@@ -1,15 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #include "AMReX_EBCoarseAverage.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_EBCellFactory.H"
@@ -17,7 +5,6 @@
 #include "AMReX_EBLevelDataOps.H"
 #include "AMReX_MultiFabUtil.H"
 #include "AMReX_EBFortND_F.H"
-
 
 namespace amrex
 {

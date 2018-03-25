@@ -1,15 +1,3 @@
-/*
- *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
- *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
- *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
- *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
- *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
- * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
- *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
- *
- */
-
-
 #ifndef AMREX_BOXITERATOR_H_
 #define AMREX_BOXITERATOR_H_
 
@@ -167,12 +155,12 @@ namespace amrex
   void BoxIterator::next()
   {
     m_current[0]++;
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
     if (m_current[0] > m_boxHi[0])
       {
         m_current[0] = m_boxLo[0];
         m_current[1]++;
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
         if (m_current[1] > m_boxHi[1])
           {
             m_current[1] = m_boxLo[1];

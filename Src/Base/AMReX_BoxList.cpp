@@ -13,6 +13,52 @@
 
 namespace amrex {
 
+namespace {
+
+static void chop_boxes (Box* bxv, const Box& bx, int nboxes)
+{
+    if (nboxes == 1)
+    {
+        *bxv = bx;
+    }
+    else
+    {
+        int longdir;
+        int longlen = bx.longside(longdir);
+        int chop_pnt = bx.smallEnd(longdir) + longlen/2;
+        Box bxleft = bx;
+        Box bxright = bxleft.chop(longdir, chop_pnt);
+
+        int nleft = nboxes / 2;
+        chop_boxes(bxv, bxleft, nleft);
+
+        int nright = nboxes - nleft;
+        chop_boxes(bxv+nleft, bxright, nright);
+    }
+}
+
+static void chop_boxes_dir (Box* bxv, const Box& bx, int nboxes, int idir)
+{
+    if (nboxes == 1)
+    {
+        *bxv = bx;
+    }
+    else
+    {
+        int chop_pnt = bx.smallEnd(idir) + bx.length(idir)/2;
+        Box bxleft = bx;
+        Box bxright = bxleft.chop(idir, chop_pnt);
+
+        int nleft = nboxes / 2;
+        chop_boxes_dir(bxv, bxleft, nleft, idir);
+
+        int nright = nboxes - nleft;
+        chop_boxes_dir(bxv+nleft, bxright, nright, idir);
+    }
+}
+
+}
+
 void
 BoxList::clear ()
 {
@@ -144,7 +190,7 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
 {
     int ntiles = 1;
     IntVect nt;
-    for (int d=0; d<BL_SPACEDIM; d++) {
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
 	nt[d] = (bx.length(d)+tilesize[d]-1)/tilesize[d];
 	ntiles *= nt[d];
     }
@@ -152,7 +198,7 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
     IntVect small, big, ijk;  // note that the initial values are all zero.
     ijk[0] = -1;
     for (int t=0; t<ntiles; ++t) {
-	for (int d=0; d<BL_SPACEDIM; d++) {
+	for (int d=0; d<AMREX_SPACEDIM; d++) {
 	    if (ijk[d]<nt[d]-1) {
 		ijk[d]++;
 		break;
@@ -161,7 +207,7 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
 	    }
 	}
 
-	for (int d=0; d<BL_SPACEDIM; d++) {
+	for (int d=0; d<AMREX_SPACEDIM; d++) {
 	    small[d] = ijk[d]*tilesize[d];
 	    big[d] = std::min(small[d]+tilesize[d]-1, bx.length(d)-1);
 	}
@@ -170,6 +216,28 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
 	tbx.shift(bx.smallEnd());
 	push_back(tbx);
     }
+}
+
+BoxList::BoxList (const Box& bx, int nboxes)
+    : btype(bx.ixType())
+{
+    AMREX_ASSERT(nboxes > 0);
+    AMREX_ASSERT(bx.numPts() >= nboxes);
+
+    m_lbox.resize(nboxes);
+    chop_boxes(m_lbox.data(), bx, nboxes);
+}
+
+BoxList::BoxList (const Box& bx, int nboxes, Direction dir)
+    : btype(bx.ixType())
+{
+    int idir = static_cast<int>(dir);
+
+    AMREX_ASSERT(nboxes > 0);
+    AMREX_ASSERT(bx.length(idir) >= nboxes);
+
+    m_lbox.resize(nboxes);
+    chop_boxes_dir(m_lbox.data(), bx, nboxes, idir);
 }
 
 bool
@@ -428,7 +496,7 @@ boxDiff (const Box& b1in,
            const int* b2lo = b2.loVect();
            const int* b2hi = b2.hiVect();
 
-           for (int i = BL_SPACEDIM-1; i >= 0; i--)
+           for (int i = AMREX_SPACEDIM-1; i >= 0; i--)
            {
                const int* b1lo = b1.loVect();
                const int* b1hi = b1.hiVect();
@@ -470,7 +538,7 @@ BoxList::simplify_doit (bool best)
     //
     // Try to merge adjacent boxes.
     //
-    int count = 0, lo[BL_SPACEDIM], hi[BL_SPACEDIM];
+    int count = 0, lo[AMREX_SPACEDIM], hi[AMREX_SPACEDIM];
 
     for (iterator bla = begin(), End = end(); bla != End; ++bla)
     {
@@ -496,7 +564,7 @@ BoxList::simplify_doit (bool best)
             //
             bool canjoin = true;
             int  joincnt = 0;
-            for (int i = 0; i < BL_SPACEDIM; i++)
+            for (int i = 0; i < AMREX_SPACEDIM; i++)
             {
                 if (alo[i]==blo[i] && ahi[i]==bhi[i])
                 {
@@ -561,7 +629,7 @@ BoxList::maxSize (const IntVect& chunk)
 {
     Vector<Box> new_boxes;
 
-    for (int i = 0; i < BL_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
         new_boxes.clear();
         for (auto& bx : m_lbox)

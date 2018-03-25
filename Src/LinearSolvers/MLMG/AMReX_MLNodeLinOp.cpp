@@ -18,9 +18,10 @@ void
 MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
-                     const LPInfo& a_info)
+                     const LPInfo& a_info,
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);
