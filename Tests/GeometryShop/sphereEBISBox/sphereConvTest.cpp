@@ -28,6 +28,7 @@
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_SphereIF.H"
 #include "AMReX_RealVect.H"
+#include "AMReX_WrappedGShop.H"
 
 namespace amrex
 {

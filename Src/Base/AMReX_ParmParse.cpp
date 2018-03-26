@@ -1025,6 +1025,7 @@ ParmParse::Initialize (int         argc,
     {
 	amrex::Error("ParmParse::Initialize(): already initialized!");
     }
+
     ppinit(argc, argv, parfile, g_table);
 
     amrex::ExecOnFinalize(ParmParse::Finalize);

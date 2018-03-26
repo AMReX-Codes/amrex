@@ -31,13 +31,13 @@ namespace
 #else
     static int init_snan = 0;
 #endif
+    static bool initialized = false;
 }
 
 extern "C" {
 
-void amrex_mempool_init()
+void amrex_mempool_init ()
 {
-    static bool initialized = false;
     if (!initialized)
     {
 	initialized = true;
@@ -76,6 +76,12 @@ void amrex_mempool_init()
 			 }));
 #endif
     }
+}
+
+void amrex_mempool_finalize ()
+{
+    initialized = false;
+    the_memory_pool.clear();
 }
 
 void* amrex_mempool_alloc (size_t nbytes)

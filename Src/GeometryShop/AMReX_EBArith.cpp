@@ -2,6 +2,62 @@
 
 namespace amrex
 {
+/******/
+void 
+EBArith::
+convertToITM(IndexTM<Real, SpaceDim>& a_diffrv,  const RealVect& a_rv)
+{
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      a_diffrv[idir] = a_rv[idir];
+    }
+}
+void 
+EBArith::
+convertToITM(IndexTM<int, SpaceDim>& a_diffrv,  const IntVect& a_rv)
+{
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      a_diffrv[idir] = a_rv[idir];
+    }
+}
+/******/
+void 
+EBArith::
+convertToITM(IndexTM<Real, SpaceDim-1>& a_diffrv,  const RealVect& a_rv, const int& a_ignoreIndex)
+{
+  BL_ASSERT(a_ignoreIndex >= 0);
+  BL_ASSERT(a_ignoreIndex < SpaceDim);
+
+  int index = 0;
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      if(idir != a_ignoreIndex)
+        {
+          a_diffrv[index] = a_rv[idir];
+          index++;
+        }
+    }
+}
+/******/
+void 
+EBArith::
+convertToITM(IndexTM<int, SpaceDim-1>& a_diffrv,  const IntVect& a_rv, const int& a_ignoreIndex)
+{
+  BL_ASSERT(a_ignoreIndex >= 0);
+  BL_ASSERT(a_ignoreIndex < SpaceDim);
+
+  int index = 0;
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      if(idir != a_ignoreIndex)
+        {
+          a_diffrv[index] = a_rv[idir];
+          index++;
+        }
+    }
+}
+
   //-----
   ///returns true if coarsenable (either by agglomeration or otherwise)
    bool
