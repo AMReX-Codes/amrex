@@ -1,20 +1,10 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_EBISLayout.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
@@ -38,7 +28,8 @@ namespace amrex
 {
 /***************/
   int makeGeometry(Box& a_domain,
-                   Real& a_dx)
+                   Real& a_dx,
+                   const int& igeom)
   {
     int eekflag =  0;
     //parse input file
@@ -102,10 +93,22 @@ namespace amrex
       PlaneIF ramp(normal,point,normalInside);
 
 
-      GeometryShop workshop(ramp,0, a_dx);
-      //this generates the new EBIS
-      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop for geom gen" << endl;
+        GeometryShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedGShop for geom gen" << endl;
+        WrappedGShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      }
     }
     else if(whichgeom == 5)
     {
@@ -125,8 +128,16 @@ namespace amrex
 
       bool negativeInside = false;
       SphereIF lalaBall(sphereRadius, sphereCenter, negativeInside);
-      GeometryShop workshop(lalaBall);
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      if(igeom == 0)
+      {
+        GeometryShop workshop(lalaBall);
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      }
+      else
+      {
+        WrappedGShop workshop(lalaBall);
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+      }
     }
     else
     {
@@ -139,11 +150,11 @@ namespace amrex
     return eekflag;
   }
 /***************/
-  int testArith()
+  int testArith(int igeom)
   {
     Box domain;
     Real dx;
-    makeGeometry(domain, dx);
+    makeGeometry(domain, dx, igeom);
     int maxboxsize;
     ParmParse pp;
     pp.get("maxboxsize", maxboxsize);
@@ -255,15 +266,16 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::testArith();
-  if(retval != 0)
+  for(int igeom = 0; igeom <= 1; igeom++)
   {
-    amrex::Print() << "simple arith test failed with code " << retval << "\n";
+    retval = amrex::testArith(igeom);
+    if(retval != 0)
+    {
+      amrex::Print() << "simple arith test failed with code " << retval << "\n";
+    }
   }
-  else
-  {
-    amrex::Print() << "simple arith test passed \n";
-  }
+  amrex::Print() << "simple arith test passed \n";
+
   amrex::Finalize();
   return retval;
 }

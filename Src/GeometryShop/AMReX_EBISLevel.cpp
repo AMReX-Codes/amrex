@@ -131,6 +131,8 @@ namespace amrex
     std::ofstream headerfile;
     string filename = a_dirname + string("/headerfile");
     headerfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
+
+    headerfile << m_hasMoments << endl;
     headerfile << m_nCellMax << endl;
     headerfile << m_domain  << endl;
     headerfile << m_origin  << endl;
@@ -153,6 +155,7 @@ namespace amrex
     std::ifstream headerfile;
     string filename = a_dirname + string("/headerfile");
     headerfile.open(filename.c_str(), std::ios::in);
+    headerfile >> m_hasMoments;
     headerfile >> m_nCellMax;
     headerfile >> m_domain;
     headerfile >> m_origin;
@@ -609,7 +612,8 @@ namespace amrex
 // end debug
 
     std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
-    EBDataFactory ebdf(graphptr);
+    m_hasMoments = a_geoserver.generatesHigherOrderMoments();
+    EBDataFactory ebdf(graphptr, m_hasMoments, m_dx );
 
     m_data.define(m_grids, m_dm, 1, ngrowData, MFInfo(), ebdf);
 
@@ -626,12 +630,12 @@ namespace amrex
       if (ebgraph.isAllRegular() || ebgraph.isAllCovered())
       {
         
-        ebdata.define(ebgraph,  ghostRegion);
+        ebdata.define(ebgraph,  ghostRegion, m_dx, m_hasMoments);
       }
       else
       {
         const Vector<IrregNode>&   nodes = allNodes[mfi];
-        ebdata.define(ebgraph, nodes, valid, ghostRegion);
+        ebdata.define(ebgraph, nodes, valid, ghostRegion, m_dx, m_hasMoments);
       }
       ibox++;
     }
@@ -740,8 +744,9 @@ namespace amrex
     //now deal with the data
     std::shared_ptr<FabArray<EBGraph> > graphptrCoar(&    m_graph, &null_deleter_fab_ebg);
     std::shared_ptr<FabArray<EBGraph> > graphptrReCo(&ebgraphReCo, &null_deleter_fab_ebg);
-    EBDataFactory ebdfCoar(graphptrCoar);
-    EBDataFactory ebdfReCo(graphptrReCo);
+    m_hasMoments = a_fineEBIS.m_hasMoments;
+    EBDataFactory ebdfCoar(graphptrCoar, m_hasMoments, m_dx);
+    EBDataFactory ebdfReCo(graphptrReCo, m_hasMoments, m_dx);
     FabArray<EBData> ebdataReCo;
 
     //pout() << "making m_data" << endl;
@@ -808,7 +813,15 @@ namespace amrex
   
     //a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
     //return; // caching disabled for now.... ugh.  bvs
-    a_ebisLayout.define(m_domain, a_grids, a_dm, a_nghost, m_graph, m_data);
+    if(m_hasMoments)
+    {
+      pout() << "has moments in fillebisl is true" << endl;
+    }
+    else
+    {
+      pout() << "has moments in fillebisl is false" << endl;
+    }
+    a_ebisLayout.define(m_domain, a_grids, a_dm, a_nghost, m_graph, m_data, m_hasMoments, m_dx);
   }
 
 
