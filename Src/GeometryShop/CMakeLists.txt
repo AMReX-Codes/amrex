@@ -11,6 +11,7 @@ list ( APPEND ALLHEADERS AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_Anisotropi
 list ( APPEND ALLHEADERS AMReX_IrregNode.H   AMReX_LoHiSide.H )
 list ( APPEND ALLHEADERS AMReX_IndexedMoments.H AMReX_IndexTM.H AMReX_IndexTMI.H)
 list ( APPEND ALLHEADERS AMReX_MultiIndexImplem.H AMReX_MultiIndex.H)
+list ( APPEND ALLHEADERS AMReX_GeometricArithmetic.H  AMReX_GeometricArithmeticI.H )
    
 list ( APPEND CXXSRC     AMReX_LSquares.cpp AMReX_SphereIF.cpp  AMReX_PlaneIF.cpp )
 list ( APPEND CXXSRC     AMReX_IrregNode.cpp AMReX_LoHiSide.cpp )
