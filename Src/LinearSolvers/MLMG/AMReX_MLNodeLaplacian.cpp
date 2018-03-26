@@ -1117,7 +1117,7 @@ MLNodeLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiF
     const auto& amrrr = AMRRefRatio(camrlev);
     amrex::average_down(fine_sol, crse_sol, 0, 1, amrrr);
 
-    if (camrlev == 0 && isSingular(0))
+    if (isSingular(0))
     {
         MultiFab frhs(fine_rhs.boxArray(), fine_rhs.DistributionMap(), 1, 1);
         MultiFab::Copy(frhs, fine_rhs, 0, 0, 1, 0);
