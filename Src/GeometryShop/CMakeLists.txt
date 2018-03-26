@@ -10,6 +10,7 @@ list ( APPEND CXXSRC     AMReX_GeometryShop.cpp AMReX_Moments.cpp AMReX_GeomInte
 
 list ( APPEND ALLHEADERS AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_AnisotropicIF.H	AMReX_PlaneIF.H	AMReX_AnisotropicDxPlaneIF.H )
 list ( APPEND ALLHEADERS AMReX_IrregNode.H   AMReX_LoHiSide.H )
+list ( APPEND ALLHEADERS AMReX_IndexedMoments.H )
    
 list ( APPEND CXXSRC     AMReX_LSquares.cpp AMReX_SphereIF.cpp  AMReX_PlaneIF.cpp )
 list ( APPEND CXXSRC     AMReX_IrregNode.cpp AMReX_LoHiSide.cpp )
