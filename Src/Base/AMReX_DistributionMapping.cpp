@@ -201,6 +201,8 @@ DistributionMapping::Finalize ()
 {
     initialized = false;
 
+    m_Strategy = SFC;
+
     DistributionMapping::m_BuildMap = 0;
 }
 

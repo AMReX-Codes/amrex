@@ -26,18 +26,21 @@ namespace amrex
       {
         EBGraph& graph = (*m_graphs)[box_index];
         EBData* retval =  new  EBData();
-        retval->define(graph, box);
+        retval->define(graph, box, m_dx, m_hasMoments);
         return retval;
       }
 
-    virtual EBDataFactory* clone () const override {
+    virtual EBDataFactory* clone () const override 
+      {
         return new EBDataFactory(*this);
-    }
+      }
 
     ///
-    EBDataFactory(const shared_ptr<FabArray<EBGraph> >& a_graphs)
+    EBDataFactory(const shared_ptr<FabArray<EBGraph> >& a_graphs, bool a_hasMoments, Real a_dx)
       {
         m_graphs = a_graphs;
+        m_hasMoments = a_hasMoments;
+        m_dx = a_dx;
       }
 
     ///
@@ -49,6 +52,8 @@ namespace amrex
 
   private:
     shared_ptr<FabArray<EBGraph> > m_graphs;
+    Real m_dx;
+    bool m_hasMoments;
   };
 
 }

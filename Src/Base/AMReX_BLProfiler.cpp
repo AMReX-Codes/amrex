@@ -219,6 +219,7 @@ void BLProfiler::Initialize() {
   CommStats::cftNames["Test"]           = Test;
   CommStats::cftNames["Wait"]           = Wait;
   CommStats::cftNames["Waitall"]        = Waitall;
+  CommStats::cftNames["Waitany"]        = Waitany;
 
   // check for exclude file
   std::string exFile("CommFuncExclude.txt");
@@ -1426,10 +1427,28 @@ void BLProfiler::AddAllReduce(const CommFuncType cft, const int size,
   }
 }
 
+void BLProfiler::AddWait(const CommFuncType cft, const MPI_Request &req,
+			 const MPI_Status &status, const bool beforecall)
+{
+#ifdef BL_USE_MPI
+  if(OnExcludeList(cft)) {
+    return;
+  }
+  if(beforecall) {
+    vCommStats.push_back(CommStats(cft, BeforeCall(), BeforeCall(), NoTag(),
+                         ParallelDescriptor::second()));
+  } else {
+      int c;
+      BL_MPI_REQUIRE( MPI_Get_count(&status, MPI_UNSIGNED_CHAR, &c) );
+      vCommStats.push_back(CommStats(cft, c, status.MPI_SOURCE, status.MPI_TAG,
+                           ParallelDescriptor::second()));
+  }
+#endif
+}
 
 void BLProfiler::AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &reqs,
-                           const int completed, const Vector<int> &indx,
-			   const Vector<MPI_Status> &status, const bool beforecall)
+                             const int completed, const Vector<MPI_Status> &status,
+                             const bool beforecall)
 {
 #ifdef BL_USE_MPI
   if(OnExcludeList(cft)) {

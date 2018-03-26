@@ -1372,9 +1372,10 @@ FabArrayBase::flushCFinfo (bool no_assertion)
 void
 FabArrayBase::Finalize ()
 {
+    nFabArrays = 0;
+
     FabArrayBase::flushFBCache();
     FabArrayBase::flushCPCache();
-
     FabArrayBase::flushTileArrayCache();
 
     if (ParallelDescriptor::IOProcessor() && amrex::system::verbose) {
@@ -1385,6 +1386,16 @@ FabArrayBase::Finalize ()
 	m_FPinfo_stats.print();
 	m_CFinfo_stats.print();
     }
+
+    m_TAC_stats = CacheStats("TileArrayCache");
+    m_FBC_stats = CacheStats("FBCache");
+    m_CPC_stats = CacheStats("CopyCache");
+    m_FPinfo_stats = CacheStats("FillPatchCache");
+    m_CFinfo_stats = CacheStats("CrseFineCache");
+
+    m_BD_count.clear();
+    
+    m_FA_stats = FabArrayStats();
 
     initialized = false;
 }
@@ -1636,11 +1647,8 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_data.size() == N_snds);
 
     Vector<int> indx;
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
 
-    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
+    ParallelDescriptor::Waitall(send_reqs, stats);
 
     for (int i = 0; i < N_snds; i++) {
         if (send_data[i]) {

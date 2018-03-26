@@ -133,9 +133,17 @@ namespace amrex
         {
           int isrccomp = a_srccomp  + icomp;
           int idstcomp = a_destcomp + icomp;
-          if (!std::isnan(a_src(src_ifaceindex, isrccomp))) {
-              (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
+//this is weiqun's beautiful solution that cannot work for IndMomSpaceDim.
+//had to move it to a template specialization
+//          if (!std::isnan(a_src(src_ifaceindex, isrccomp))) {
+//              (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
+//          }
+
+          if (isValid(a_src(src_ifaceindex, isrccomp)))
+          {
+            (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
           }
+
         }
       }
     }
@@ -360,8 +368,13 @@ namespace amrex
         //input the data
         T value;
         linearIn(value, buffer) ;
-        if (!std::isnan(value)) {
-            (*this)(face, icomp) = value;
+//this trick only works on real. has to move to a template specialization
+//        if (!std::isnan(value)) {
+//            (*this)(face, icomp) = value;
+//        }
+        if (isValid(value))
+        {
+          (*this)(face, icomp) = value;
         }
         //increment the buffer offset
         incrval = linearSize(value);
@@ -502,7 +515,13 @@ namespace amrex
       {
         T value;
         linearIn(value, buf);
-        if (!std::isnan(value)) {
+//this very nice weiqun trick only works if T is a real.
+//had to move it to a template specialization
+//        if (!std::isnan(value)) {
+//            (*this)(face, icomp) = value;
+//        }
+        if (isValid(value)) 
+        {
             (*this)(face, icomp) = value;
         }
         incval = linearSize(value);

@@ -1,13 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
 
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_EBIndexSpace.H"
@@ -15,6 +5,7 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
@@ -32,70 +23,71 @@
 namespace amrex
 {
 /***************/
-Real densityFunc(const IntVect& a_iv, const Box& a_box)
-{
-  Real retval;
-  int iside;
-  Real problen = a_box.longside(iside);
-  Real x = a_iv[0];
-  Real y = a_iv[1];
-  x /= problen;
-  y /= problen;
+  Real densityFunc(const IntVect& a_iv, const Box& a_box)
+  {
+    Real retval;
+    int iside;
+    Real problen = a_box.longside(iside);
+    Real x = a_iv[0];
+    Real y = a_iv[1];
+    x /= problen;
+    y /= problen;
 
-  retval = 1.0 + x + y + x*x + y*y;
-  return retval;
-}
+    retval = 1.0 + x + y + x*x + y*y;
+    return retval;
+  }
 /***************/
-Real massFunc(const IntVect& a_iv, const Box& a_box)
-{
-  Real retval;
-  int iside;
-  Real problen = a_box.longside(iside);
-  Real x = a_iv[0];
-  Real y = a_iv[1];
-  x /= problen;
-  y /= problen;
-  retval = x*x*x + y*y*y;
+  Real massFunc(const IntVect& a_iv, const Box& a_box)
+  {
+    Real retval;
+    int iside;
+    Real problen = a_box.longside(iside);
+    Real x = a_iv[0];
+    Real y = a_iv[1];
+    x /= problen;
+    y /= problen;
+    retval = x*x*x + y*y*y;
 
-  return retval;
-}
+    return retval;
+  }
 /***************/
-int makeGeometry(Box& a_domain,
-                 Real& a_dx)
-{
-  int eekflag =  0;
-  //parse input file
-  ParmParse pp;
-  RealVect origin = RealVect::Zero;
+  int makeGeometry(Box& a_domain,
+                   Real& a_dx,
+                   int igeom)
+  {
+    int eekflag =  0;
+    //parse input file
+    ParmParse pp;
+    RealVect origin = RealVect::Zero;
 #if (CH_SPACEDIM==2)
-  std::vector<int> n_cell(SpaceDim, 64);
+    std::vector<int> n_cell(SpaceDim, 64);
 #else
-  std::vector<int> n_cell(SpaceDim, 16);
+    std::vector<int> n_cell(SpaceDim, 16);
 #endif
 
-  BL_ASSERT(n_cell.size() == SpaceDim);
-  IntVect lo = IntVect::TheZeroVector();
-  IntVect hi;
-  for (int ivec = 0; ivec < SpaceDim; ivec++)
+    BL_ASSERT(n_cell.size() == SpaceDim);
+    IntVect lo = IntVect::TheZeroVector();
+    IntVect hi;
+    for (int ivec = 0; ivec < SpaceDim; ivec++)
     {
       if (n_cell[ivec] <= 0)
-        {
-          amrex::Print() << " bogus number of cells input = " << n_cell[ivec];
-          return(-1);
-        }
+      {
+        amrex::Print() << " bogus number of cells input = " << n_cell[ivec];
+        return(-1);
+      }
       hi[ivec] = n_cell[ivec] - 1;
     }
 
-  a_domain.setSmall(lo);
-  a_domain.setBig(hi);
+    a_domain.setSmall(lo);
+    a_domain.setBig(hi);
 
-  Real prob_hi;
-  pp.get("prob_hi",prob_hi);
-  a_dx = prob_hi/n_cell[0];
+    Real prob_hi;
+    pp.get("prob_hi",prob_hi);
+    a_dx = prob_hi/n_cell[0];
 
-  int whichgeom;
-  pp.get("which_geom",whichgeom);
-  if (whichgeom == 0)
+    int whichgeom;
+    pp.get("which_geom",whichgeom);
+    if (whichgeom == 0)
     {
       //allregular
       amrex::Print() << "all regular geometry" << "\n";
@@ -103,7 +95,7 @@ int makeGeometry(Box& a_domain,
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
       ebisPtr->define(a_domain, origin, a_dx, regserv);
     }
-  else if (whichgeom == 1)
+    else if (whichgeom == 1)
     {
       amrex::Print() << "ramp geometry" << "\n";
       int upDir;
@@ -127,10 +119,22 @@ int makeGeometry(Box& a_domain,
       PlaneIF ramp(normal,point,normalInside);
 
 
-      GeometryShop workshop(ramp,0, a_dx);
-      //this generates the new EBIS
-      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop" << endl;
+        GeometryShop workshop(ramp);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedGShop" << endl;
+        WrappedGShop workshop(ramp);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop);
+      }
     }
     else if (whichgeom == 5)
     {
@@ -154,145 +158,145 @@ int makeGeometry(Box& a_domain,
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
       ebisPtr->define(a_domain, origin, a_dx, workshop);
     }
-  else
+    else
     {
       //bogus which_geom
       amrex::Print() << " bogus which_geom input = "
-             << whichgeom << "\n";
+                     << whichgeom << "\n";
       eekflag = 33;
     }
 
-  return eekflag;
-}
+    return eekflag;
+  }
 /***************/
-int testConservation()
-{
-  Box domain;
-  Real dx;
-  makeGeometry(domain, dx);
-  int redistRad = 2;
-  int maxboxsize;
-  ParmParse pp;
-  pp.get("redist_radius", redistRad);
-  pp.get("maxboxsize", maxboxsize);
-  BoxArray ba(domain);
-  ba.maxSize(maxboxsize);
-  DistributionMapping dm(ba);
-  EBLevelGrid eblg(ba, dm, domain, 2);
-  int ncomp = 1;
+  int testConservation(int igeom)
+  {
+    Box domain;
+    Real dx;
+    makeGeometry(domain, dx, igeom);
+    int redistRad = 2;
+    int maxboxsize;
+    ParmParse pp;
+    pp.get("redist_radius", redistRad);
+    pp.get("maxboxsize", maxboxsize);
+    BoxArray ba(domain);
+    ba.maxSize(maxboxsize);
+    DistributionMapping dm(ba);
+    EBLevelGrid eblg(ba, dm, domain, 2);
+    int ncomp = 1;
 
-  EBCellFactory ebcellfact(eblg.getEBISL());
+    EBCellFactory ebcellfact(eblg.getEBISL());
 
-  BaseIVFactory<Real> baseivfact(eblg.getEBISL());
-  FabArray<EBCellFAB>        solution(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);
-  FabArray<BaseIVFAB<Real> > massdiff(ba, dm,  ncomp, 0, MFInfo(), baseivfact);
+    BaseIVFactory<Real> baseivfact(eblg.getEBISL());
+    FabArray<EBCellFAB>        solution(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);
+    FabArray<BaseIVFAB<Real> > massdiff(ba, dm,  ncomp, 0, MFInfo(), baseivfact);
 
-  //initialize solution and mass difference
-  //and add up the total mass in the system
-  Real summassdiff = 0;
-  Real sumsolmass = 0;
-  for(MFIter  mfi(solution); mfi.isValid(); ++mfi)
+    //initialize solution and mass difference
+    //and add up the total mass in the system
+    Real summassdiff = 0;
+    Real sumsolmass = 0;
+    for(MFIter  mfi(solution); mfi.isValid(); ++mfi)
     {
       Box grid = ba[mfi];
       EBISBox ebisBox = eblg.getEBISL()[mfi];
       IntVectSet ivsIrreg = ebisBox.getIrregIVS(grid);
       BaseIVFAB<Real>& massFAB = massdiff[mfi];
       for (VoFIterator vofit(ivsIrreg, ebisBox.getEBGraph());
-          vofit.ok(); ++vofit)
-        {
-          const VolIndex& vof = vofit();
-          const IntVect&  iv = vof.gridIndex();
-          Real mass = massFunc(iv, domain);
-          massFAB(vof, 0) = mass;
-          summassdiff += mass;
-        }
+           vofit.ok(); ++vofit)
+      {
+        const VolIndex& vof = vofit();
+        const IntVect&  iv = vof.gridIndex();
+        Real mass = massFunc(iv, domain);
+        massFAB(vof, 0) = mass;
+        summassdiff += mass;
+      }
 
       EBCellFAB& solFAB = solution[mfi];
       IntVectSet ivsBox(grid);
       for (VoFIterator vofit(ivsBox, ebisBox.getEBGraph());
-          vofit.ok(); ++vofit)
-        {
-          const VolIndex& vof = vofit();
-          const IntVect&  iv = vof.gridIndex();
-          Real density = densityFunc(iv, domain);
-          Real volFrac = ebisBox.volFrac(vof);
-          solFAB(vof, 0) = density;
-          sumsolmass += density*volFrac;
-        }
+           vofit.ok(); ++vofit)
+      {
+        const VolIndex& vof = vofit();
+        const IntVect&  iv = vof.gridIndex();
+        Real density = densityFunc(iv, domain);
+        Real volFrac = ebisBox.volFrac(vof);
+        solFAB(vof, 0) = density;
+        sumsolmass += density*volFrac;
+      }
     }
 
-  Real localSumOld = sumsolmass + summassdiff ;
+    Real localSumOld = sumsolmass + summassdiff ;
 
-  //now redistribute massdiff into solution
-  EBLevelRedist distributor(eblg, ncomp, redistRad);
-  distributor.setToZero();
-  for(MFIter  mfi(solution); mfi.isValid(); ++mfi)
+    //now redistribute massdiff into solution
+    EBLevelRedist distributor(eblg, ncomp, redistRad);
+    distributor.setToZero();
+    for(MFIter  mfi(solution); mfi.isValid(); ++mfi)
     {
       distributor.increment(massdiff[mfi], mfi, 0, 1);
     }
-  distributor.redistribute(solution, 0, 0, 1);
+    distributor.redistribute(solution, 0, 0, 1);
 
-  //now check that the solution has all the mass
-  sumsolmass = 0;
-  for(MFIter  mfi(solution); mfi.isValid(); ++mfi)
+    //now check that the solution has all the mass
+    sumsolmass = 0;
+    for(MFIter  mfi(solution); mfi.isValid(); ++mfi)
     {
       Box grid = ba[mfi];
       EBISBox ebisBox = eblg.getEBISL()[mfi];
       EBCellFAB& solFAB = solution[mfi];
       IntVectSet ivsBox(grid);
       for (VoFIterator vofit(ivsBox, ebisBox.getEBGraph());
-          vofit.ok(); ++vofit)
+           vofit.ok(); ++vofit)
+      {
+        const VolIndex& vof = vofit();
+        Real density = solFAB(vof, 0);
+        if (density > 1.0e-12)
         {
-          const VolIndex& vof = vofit();
-          Real density = solFAB(vof, 0);
-          if (density > 1.0e-12)
-            {
-              Real volFrac = ebisBox.volFrac(vof);
-              sumsolmass += density*volFrac;
-            }
+          Real volFrac = ebisBox.volFrac(vof);
+          sumsolmass += density*volFrac;
         }
+      }
     }
-  Real localSumNew = sumsolmass;
+    Real localSumNew = sumsolmass;
 
-  Real massTotOld = 0;
-  Real massTotNew = 0;
+    Real massTotOld = 0;
+    Real massTotNew = 0;
 
-  //gather what each processor thinks is the sum old and new
-  std::vector<Real> sumVecOld, sumVecNew;
-  int baseproc = 0;
-  gather(sumVecOld, localSumOld, baseproc);
-  gather(sumVecNew, localSumNew, baseproc);
-  if (procID() == baseproc)
+    //gather what each processor thinks is the sum old and new
+    std::vector<Real> sumVecOld, sumVecNew;
+    int baseproc = 0;
+    gather(sumVecOld, localSumOld, baseproc);
+    gather(sumVecNew, localSumNew, baseproc);
+    if (procID() == baseproc)
     {
       BL_ASSERT(sumVecOld.size() == numProc());
       BL_ASSERT(sumVecNew.size() == numProc());
       for (int ivec = 0; ivec < numProc(); ivec++)
-        {
-          massTotOld += sumVecOld[ivec];
-          massTotNew += sumVecNew[ivec];
-        }
+      {
+        massTotOld += sumVecOld[ivec];
+        massTotNew += sumVecNew[ivec];
+      }
     }
-  //broadcast the sum to all processors.
-  broadcast(massTotOld, baseproc);
-  broadcast(massTotNew, baseproc);
+    //broadcast the sum to all processors.
+    broadcast(massTotOld, baseproc);
+    broadcast(massTotNew, baseproc);
 
-  amrex::Print() << "mass tot old = "  << massTotOld << endl;
-  amrex::Print() << "mass tot new = "  << massTotNew << endl;
-  int eekflag = 0;
-  if (massTotOld > 1.0e-9)
+    amrex::Print() << "mass tot old = "  << massTotOld << endl;
+    amrex::Print() << "mass tot new = "  << massTotNew << endl;
+    int eekflag = 0;
+    if (massTotOld > 1.0e-9)
     {
       Real relDiff = std::abs(massTotOld - massTotNew)/massTotOld;
       if (relDiff > 1.5e-6)
-        {
-          amrex::Print() << "doh! " << "\n";;
-          amrex::Print() << "initial solution mass + diff      = "  << massTotOld << "\n";
-          amrex::Print() << "total mass in solution after dist = "  << massTotNew << "\n";
-          amrex::Print() << "relative difference               = "  << relDiff    << "\n"  ;
-          eekflag  = 3;
-        }
+      {
+        amrex::Print() << "doh! " << "\n";;
+        amrex::Print() << "initial solution mass + diff      = "  << massTotOld << "\n";
+        amrex::Print() << "total mass in solution after dist = "  << massTotNew << "\n";
+        amrex::Print() << "relative difference               = "  << relDiff    << "\n"  ;
+        eekflag  = 3;
+      }
     }
-  return eekflag;
-}
+    return eekflag;
+  }
 }
 /***************/
 int
@@ -301,15 +305,17 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::testConservation();
-  if(retval != 0)
+  for(int igeom = 0; igeom <= 1; igeom++)
   {
-    amrex::Print() << "conservation test failed with code " << retval << "\n";
+    retval = amrex::testConservation(igeom);
+    if(retval != 0)
+    {
+      amrex::Print() << argv[0] << " test failed with code " << retval << "\n";
+    }
   }
-  else
-  {
-    amrex::Print() << "conservation test passed \n";
-  }
+
+  amrex::Print() << argv[0] << " test passed \n";
+
   amrex::Finalize();
   return retval;
 }
