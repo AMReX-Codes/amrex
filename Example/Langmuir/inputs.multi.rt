@@ -11,7 +11,7 @@ amr.max_grid_size = 32
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
 
-amr.plot_int = 20   # How often to write plotfiles.  "<= 0" means no plotfiles.
+amr.plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
@@ -54,10 +54,10 @@ electrons.zmin = -20.e-6
 electrons.zmax = 20.e-6
 
 electrons.profile = constant
-electrons.density = 0.5e25   # number of electrons per m^3
+electrons.density = 2.e24   # number of electrons per m^3
 electrons.momentum_distribution_type = "custom"
 # See CustomMomentumProb for a definition of the parameters
-electrons.custom_momentum_params = -0.01 1.e25 2 3 4
+electrons.custom_momentum_params = -0.01 4.e24 2 2 2
 
 positrons.charge = q_e
 positrons.mass = m_e
@@ -71,7 +71,7 @@ positrons.zmin = -20.e-6
 positrons.zmax = 20.e-6
 
 positrons.profile = constant
-positrons.density = 1.e25   # number of positrons per m^3
+positrons.density = 2.e24   # number of positrons per m^3
 positrons.momentum_distribution_type = "custom"
 # See CustomMomentumProb for a definition of the parameters
-positrons.custom_momentum_params = 0.01 1.e25 2 3 4
+positrons.custom_momentum_params = 0.01 4.e24 2 2 2
