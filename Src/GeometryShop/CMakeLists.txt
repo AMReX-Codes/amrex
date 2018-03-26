@@ -4,14 +4,11 @@ set (F77SRC "")
 set (ALLHEADERS "")
 set (ALLSRC "")
 
-list ( APPEND ALLHEADERS AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H AMReX_GeomIntersectUtils.H )
-list ( APPEND CXXSRC     AMReX_GeometryShop.cpp AMReX_Moments.cpp AMReX_GeomIntersectUtils.cpp )
-
 list ( APPEND ALLHEADERS AMReX_AggStencil.H	      AMReX_CoordinateSystem.H		 AMReX_EBIndexSpace.H		      AMReX_IFData.H	       AMReX_MinimalCCCMImplem.H     AMReX_STLIF.H               )
 list ( APPEND ALLHEADERS AMReX_AggStencilI.H	      AMReX_CoordinateSystemImplem.H	 AMReX_EBLevelGrid.H		      AMReX_IFDataImplem.H     AMReX_MomentIterator.H	     AMReX_STLMesh.H             )
 list ( APPEND ALLHEADERS AMReX_AllRegularService.H    AMReX_CutCellMoments.H		 AMReX_EBLevelRedist.H		      AMReX_IFSlicer.H	       AMReX_MomentIteratorImplem.H  AMReX_STLReader.H           )
 list ( APPEND ALLHEADERS AMReX_AnisotropicDxPlaneIF.H AMReX_CutCellMomentsImplem.H	 AMReX_EBLoHiCenter.H		      AMReX_IFSlicerImplem.H   AMReX_Moments.H		     AMReX_STLUtil.H             )
-list ( APPEND ALLHEADERS AMReX_AnisotropicIF.H	      AMReX_DivNormalRefinement.H	 AMReX_EBNormalizeByVolumeFraction.H  AMReX_IndexTM.H	       AMReX_MonomialPowers.H	     AMReX_SlabService.H         )
+list ( APPEND ALLHEADERS AMReX_AnisotropicIF.H	      AMReX_DivNormalRefinement.H	 AMReX_EBNormalizeByVolumeFraction.H  AMReX_IndexTM.H	       AMReX_MonomialPowers.H	              )
 list ( APPEND ALLHEADERS AMReX_BaseEBCellFAB.H	      AMReX_DivNormalRefinementImplem.H  AMReX_EB_TYPEDEFS.H		      AMReX_IndexTMI.H	       AMReX_MultiIndex.H	     AMReX_SmoothAbsoluteValue.H )
 list ( APPEND ALLHEADERS AMReX_BaseEBCellFABI.H	      AMReX_EBArith.H			 AMReX_EllipsoidIF.H		      AMReX_IndexedMoments.H   AMReX_MultiIndexImplem.H      AMReX_SmoothIntersection.H  )
 list ( APPEND ALLHEADERS AMReX_BaseEBCellFactory.H    AMReX_EBCellFAB.H			 AMReX_ExtrudeIF.H		      AMReX_IntVectSet.H       AMReX_NoRefinement.H	     AMReX_SmoothUnion.H         )
@@ -42,7 +39,7 @@ list ( APPEND CXXSRC AMReX_EBCellFAB.cpp	     AMReX_EBLevelRedist.cpp		    AMReX
 list ( APPEND CXXSRC AMReX_EBData.cpp	             AMReX_EBLoHiCenter.cpp		    AMReX_GraphNode.cpp		  AMReX_LoHiSide.cpp	      AMReX_STLIF.cpp		AMReX_VolIndex.cpp                   )
 list ( APPEND CXXSRC AMReX_EBDebugOut.cpp	     AMReX_EBNormalizeByVolumeFraction.cpp  AMReX_IFData.cpp		  AMReX_MinimalCCCM.cpp       AMReX_STLMesh.cpp		AMReX_WrappedGShop.cpp       )
 list ( APPEND CXXSRC AMReX_EBFaceFAB.cpp	     AMReX_Ellipsoid.cpp		    AMReX_IFSlicer.cpp		  AMReX_Moments.cpp	      AMReX_STLUtil.cpp		AMReX_ZCylinder.cpp          )
-list ( APPEND CXXSRC AMReX_EBFluxFAB.cpp	     AMReX_EllipsoidIF.cpp		    AMReX_IntVectSet.cpp	  AMReX_NormalDerivative.cpp  AMReX_SlabService.cpp                                  )    
+list ( APPEND CXXSRC AMReX_EBFluxFAB.cpp	     AMReX_EllipsoidIF.cpp		    AMReX_IntVectSet.cpp	  AMReX_NormalDerivative.cpp                                    )    
 
 # 
 #  Collect sources
