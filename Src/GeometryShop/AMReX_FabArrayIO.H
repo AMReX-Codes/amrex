@@ -296,7 +296,7 @@ namespace amrex
         }
 
         a_data.define(header.m_ba, dm,  header.m_nComp, 0, MFInfo(), DefaultFabFactory<T>());
-
+        int ibox = 0;
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
           int baindex = mfi.index();
@@ -318,6 +318,7 @@ namespace amrex
           fileStream.flush();
           fileStream.close();
           delete[] inbuf;
+          ibox++;
         }
                       
       }

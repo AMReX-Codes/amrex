@@ -35,6 +35,17 @@ namespace amrex
       
     virtual ~GeometryService();
       
+    ///return true if the geometry service generates higher order moments
+    /**
+       Most of the geometry generating objects we have do *not* generate higher order
+       moments (they only generate the standard stuff (volume fractions, area fractions and centroids)).
+       WrappedGShop, does generate the higher order stuff so that one can return true;
+     */
+    virtual bool generatesHigherOrderMoments() const
+      {
+        return false; 
+      }
+
     ///
     /**
        Return true if every cell in region is regular at the

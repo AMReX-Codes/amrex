@@ -125,7 +125,11 @@ namespace amrex
         return (m_isDefined);
       }
 
-
+    //for T==Real, we need to check for NaN
+    bool isValid(const T& a_value) const
+      {
+        return true;
+      }
 ///
 /**
    Return the number of data components of this BaseIFFAB.
@@ -149,12 +153,14 @@ namespace amrex
     T& operator() (const FaceIndex& a_face,const int& varlocin);
     const T& operator()(const FaceIndex& a_face,const int& varlocin) const;
 
-    T& operator() (int a_iface, int varlocin) {
-	return *(getIndex(a_iface, varlocin));
-    }
-    const T& operator()(int a_iface, int varlocin) const {
-	return *(getIndex(a_iface, varlocin));
-    }
+    T& operator() (int a_iface, int varlocin) 
+      {
+        return *(getIndex(a_iface, varlocin));
+      }
+    const T& operator()(int a_iface, int varlocin) const 
+      {
+        return *(getIndex(a_iface, varlocin));
+      }
 
 ///
     T* dataPtr(const int& a_comp);
@@ -253,9 +259,10 @@ namespace amrex
 	return low - m_faces.begin();
       }
 
-    T* getIndex(int ifaceindex, int a_comp) const {
-      return m_data + ifaceindex + a_comp*m_nFaces;
-    }
+    T* getIndex(int ifaceindex, int a_comp) const 
+      {
+        return m_data + ifaceindex + a_comp*m_nFaces;
+      }
 
   private:
 //we disallow copy construction and assigment for data holders
@@ -272,5 +279,10 @@ namespace amrex
 }
 #include "AMReX_BaseIFFABI.H"
 
-
+  namespace amrex
+  {
+    //template specialization for valid for Real (Weiqun uses this to check for unassigned data).
+    template< >  bool BaseIFFAB<Real>::isValid(const Real& a_input) const;
+    
+  }
 #endif
