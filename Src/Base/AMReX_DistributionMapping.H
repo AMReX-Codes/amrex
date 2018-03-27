@@ -102,11 +102,6 @@ class DistributionMapping
     //! Equivalent to ProcessorMap()[index].
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
 
-    // Replace the cached processor map.  This is to support FabArray::MoveAllFabs
-    //   All FabArrays using the cached map must move their fabs before
-    //   calling this function.
-    void ReplaceCachedProcessorMap(const Vector<int> &newProcMap);
-
     //! Set/get the distribution strategy.
     static void strategy (Strategy how);
 

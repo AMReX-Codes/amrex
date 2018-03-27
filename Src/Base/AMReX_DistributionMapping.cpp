@@ -345,19 +345,6 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 #endif
 }
 
-void
-DistributionMapping::ReplaceCachedProcessorMap (const Vector<int>& newProcmapArray)
-{
-    const int N(newProcmapArray.size());
-    BL_ASSERT(m_ref->m_pmap.size() == N);
-    BL_ASSERT(newProcmapArray.size() == N);
-
-    for(int iA(0); iA < N; ++iA) {
-      m_ref->m_pmap[iA] = newProcmapArray[iA];
-    }
-
-}
-
 DistributionMapping::DistributionMapping ()
     :
     m_ref(std::make_shared<Ref>())
