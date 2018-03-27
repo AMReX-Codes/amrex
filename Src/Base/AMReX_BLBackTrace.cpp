@@ -37,7 +37,7 @@ BLBackTrace::handler(int s)
     std::string errfilename;
     {
 	std::ostringstream ss;
-	ss << "Backtrace." << ParallelDescriptor::MyProcAll();
+	ss << "Backtrace." << ParallelContext::MyProcAll();
 #ifdef _OPENMP
  	ss << "." << omp_get_thread_num();
 #endif
@@ -154,7 +154,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
 #ifdef _OPENMP
     if (omp_in_parallel()) {
 	std::ostringstream ss0;
-	ss0 << "Proc. " << ParallelDescriptor::MyProcAll()
+	ss0 << "Proc. " << ParallelContext::MyProcAll()
 	    << ", Thread " << omp_get_thread_num()
 	    << ": \"" << s << "\"";
 	BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
@@ -163,7 +163,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
         #pragma omp parallel
 	{
 	    std::ostringstream ss0;
-	    ss0 << "Proc. " << ParallelDescriptor::MyProcAll()
+	    ss0 << "Proc. " << ParallelContext::MyProcAll()
 		<< ", Master Thread"
 		<< ": \"" << s << "\"";
 	    BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
@@ -171,7 +171,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
     }
 #else
     std::ostringstream ss0;
-    ss0 << "Proc. " << ParallelDescriptor::MyProcAll()
+    ss0 << "Proc. " << ParallelContext::MyProcAll()
 	<< ": \"" << s << "\"";
     BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
 #endif    

@@ -2542,22 +2542,6 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 }
 #endif
 
-bool 
-DistributionMapping::Check () const
-{
-   bool ok(true);
-   for(int i(0); i < m_ref->m_pmap.size(); ++i) {
-     if(m_ref->m_pmap[i] >= ParallelDescriptor::NProcs()) {
-       ok = false;
-       std::cout << ParallelDescriptor::MyProc() << ":: **** error 1 in DistributionMapping::Check() "
-                 << "bad rank:  nProcs dmrank = " << ParallelDescriptor::NProcs() << "  "
-		 << m_ref->m_pmap[i] << std::endl;
-       amrex::Abort("Bad DistributionMapping::Check");
-     }
-   }
-   return ok;
-}
-
 #ifdef BL_USE_MPI
 Vector<int>
 DistributionMapping::TranslateProcMap(const Vector<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old)

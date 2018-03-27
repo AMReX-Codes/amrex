@@ -47,7 +47,7 @@ namespace amrex {
 		    _fab->copyToMem(l_con.scpy[i].sbx, 0, _mf->nComp(), msg->GetBuffer()); //pack box to the message
 		    _outputs.push(msg);//let the runtime know that the output is available
 		}
-		int np = ParallelDescriptor::NProcsAll();
+		int np = ParallelContext::NProcsAll();
 		if (np==1) return;
 		for(int i=0; i<r_con.nsnd; i++)
 		{
@@ -66,7 +66,7 @@ namespace amrex {
 		    _fab->copyFromMem(l_con.dcpy[i].dbx,0, _mf->nComp(), msg->GetBuffer());//unpack message to box
 		    msg->Free();
 		}
-		int np = ParallelDescriptor::NProcsAll();
+		int np = ParallelContext::NProcsAll();
 		if (np==1) return;
 		for(int i=0; i<r_con.nrcv; i++)
 		{
@@ -84,7 +84,7 @@ namespace amrex {
 		    if(!satisfied) return false;
 		}
 		//remote connections
-		if(ParallelDescriptor::NProcsAll() == 1) return true;
+		if(ParallelContext::NProcsAll() == 1) return true;
 		for(int i=0; i<r_con.nrcv; i++)
 		{
 		    satisfied= Depend_on(TaskName(r_con.rcv[i].ns), tagGen(r_con.rcv[i].ns, r_con.rcv[i].nd, 1, _mf->size()));
@@ -364,7 +364,7 @@ namespace amrex {
 		    assert(false);
 		}
 		void SetupFabConnections(const FabArray<FArrayBox> &mf, Periodicity period){
-		    int np = ParallelDescriptor::NProcsAll();
+		    int np = ParallelContext::NProcsAll();
 		    int myProc = ParallelDescriptor::MyProc();
 		    int numfabs = mf.size();
 		    bool cross = false;
