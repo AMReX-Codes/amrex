@@ -356,18 +356,5 @@ BndryRegister::Copy (BndryRegister& dst, const BndryRegister& src)
     }
 }
 
-void
-BndryRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
-                              int scsMyId, MPI_Comm scsComm)
-{
-  // ---- BoxArrays
-  amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
-
-  // ---- FabSet
-  for(int i(0); i < (2 * AMREX_SPACEDIM); ++i) {
-    bndry[i].AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-  }
-}
-
 }
 

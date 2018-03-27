@@ -1528,16 +1528,4 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
 
-void
-MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                          int scsMyId, MPI_Comm scsComm)
-{
-  // ---- bools
-  int bInit(initialized);
-  if(scsMyId != ioProcNumSCS) {
-    initialized   = bInit;
-  }
-  FabArray<FArrayBox>::AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-}
-
 }

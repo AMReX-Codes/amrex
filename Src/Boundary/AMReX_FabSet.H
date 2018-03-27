@@ -121,13 +121,6 @@ public:
     // Local copy function
     static void Copy (FabSet& dst, const FabSet& src);
 
-    void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-			 int scsMyId, MPI_Comm scsComm)
-	{ 
-	  m_mf.AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-          // ---- MoveAllFabs should handle this
-	}
-
 private:
     MultiFab m_mf;
 };
