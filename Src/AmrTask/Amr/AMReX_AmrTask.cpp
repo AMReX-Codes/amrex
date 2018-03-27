@@ -456,9 +456,6 @@ Amr::InitAmr ()
 #undef STRIP
     }
 
-    rebalance_grids = 0;
-    pp.query("rebalance_grids", rebalance_grids);
-
     loadbalance_with_workestimates = 0;
     pp.query("loadbalance_with_workestimates", loadbalance_with_workestimates);
 
@@ -2420,29 +2417,6 @@ Amr::regrid (int  lbase,
     //
     for(int lev(0); lev <= new_finest; ++lev) {
       amr_level[lev]->post_regrid(lbase,new_finest);
-    }
-
-    if(rebalance_grids > 0) {
-      DistributionMapping::InitProximityMap();
-
-        Vector<BoxArray> allBoxes(amr_level.size());
-	for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
-	  allBoxes[ilev] = boxArray(ilev);
-	}
-        Vector<Vector<int> > mLDM;
-	if(rebalance_grids == 1) {
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0]);
-	} else if(rebalance_grids == 2) {
-          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0)[0]);
-        } else {
-	}
-
-        for(int iMap(0); iMap < mLDM.size(); ++iMap) {
-          //MultiFab::MoveAllFabs(mLDM[iMap]);
-	  DistributionMapping newDistMap(mLDM[iMap]);
-          MultiFab::MoveAllFabs(newDistMap);
-          UpdateStateDataDistributionMaps(newDistMap);
-        }
     }
 
     //
