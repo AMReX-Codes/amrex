@@ -44,22 +44,8 @@ module parallel
 
   integer, parameter, private :: io_processor_node = 0
   integer, private :: m_nprocs = 1
-  integer, private :: m_nprocs_all     = 1
-  integer, private :: m_nprocs_comp    = 1
-  integer, private :: m_nprocs_sidecar(0:0) = 0
-  integer, private :: m_nsidecar_procs = 0
   integer, private :: m_myproc = 0
-  integer, private :: m_myproc_all     = 0
-  integer, private :: m_myproc_comp    = 0
-  integer, private :: m_myproc_sidecar = -1
   integer, private :: m_comm   = -1
-  integer, private :: m_comm_all     = -1
-  integer, private :: m_comm_comp    = -1
-  integer, private :: m_comm_sidecar(0:0) = -1
-  integer, private :: m_comm_inter(0:0)   = -1
-  integer, private :: m_group_all     = -1
-  integer, private :: m_group_comp    = -1
-  integer, private :: m_group_sidecar(0:0) = -1
 
   integer, private :: m_thread_support_level = 0
 
@@ -320,44 +306,23 @@ contains
     integer :: r
     r = m_comm
   end function parallel_communicator
+
   pure function parallel_nprocs() result(r)
     integer r
     r = m_nprocs
   end function parallel_nprocs
-  pure function parallel_nprocs_all() result(r)
-    integer r
-    r = m_nprocs_all
-  end function parallel_nprocs_all
-  pure function parallel_nprocs_comp() result(r)
-    integer r
-    r = m_nprocs_comp
-  end function parallel_nprocs_comp
-  pure function parallel_nprocs_sidecar(whichsidecar) result(r)
-    integer, intent(in) :: whichsidecar
-    integer r
-    r = 0
-  end function parallel_nprocs_sidecar
+
   pure function parallel_myproc() result(r)
     integer r
     r = m_myproc
   end function parallel_myproc
-  pure function parallel_myproc_all() result(r)
-    integer r
-    r = m_myproc_all
-  end function parallel_myproc_all
-  pure function parallel_myproc_comp() result(r)
-    integer r
-    r = m_myproc_comp
-  end function parallel_myproc_comp
-  pure function parallel_myproc_sidecar() result(r)
-    integer r
-    r = m_myproc_sidecar
-  end function parallel_myproc_sidecar
+
   pure function parallel_IOProcessor(comm) result(r)
     logical :: r
     integer, intent(in), optional :: comm
     r = (parallel_myproc() == io_processor_node)
   end function parallel_IOProcessor
+
   pure function parallel_IOProcessorNode() result(r)
     integer :: r
     r = io_processor_node

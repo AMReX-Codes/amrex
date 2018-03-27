@@ -195,8 +195,6 @@ class DistributionMapping
     int DistMapID() const { return dmID; }
     void SetDistMapID(int dmid) { dmID = dmid; }
 
-    bool Check() const;
-
 #ifdef BL_USE_MPI
     static Vector<int> TranslateProcMap(const Vector<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif

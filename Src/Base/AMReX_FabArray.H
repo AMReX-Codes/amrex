@@ -484,20 +484,6 @@ public:
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                                  int scsMyId, MPI_Comm scsComm);
 
-    static void copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
-                           int        src_comp,
-                           int        dest_comp,
-                           int        num_comp,
-                           int        src_nghost,
-                           int        dst_nghost,
-                           const MPI_Comm &commSrc,
-                           const MPI_Comm &commDest,
-                           const MPI_Comm &commInter,
-                           const MPI_Comm &commBoth,
-                           bool       isSrc,
-                           CpOp       op = FabArrayBase::COPY);
-
-
 protected:
 
     std::unique_ptr<FabFactory<FAB> > m_factory;
@@ -1989,419 +1975,6 @@ FabArray<FAB>::copyTo (FAB&       dest,
     }
 }
 
-
-
-
-template <class FAB>
-void
-FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
-                          int                  scomp,
-                          int                  dcomp,
-                          int                  ncomp,
-                          int                  snghost,
-                          int                  dnghost,
-                          const MPI_Comm      &commSrc,
-                          const MPI_Comm      &commDest,
-                          const MPI_Comm      &commInter,
-                          const MPI_Comm      &commBoth,
-                	  bool                 isSrc,
-                          CpOp                 op)
-{
-#ifdef BL_USE_MPI
-    BL_PROFILE("FabArray::copyInter()");
-
-    bool isDest( ! isSrc);
-    if(isSrc) {
-      BL_ASSERT(src  != 0);
-      BL_ASSERT(dest == 0);
-    }
-    if(isDest) {
-      BL_ASSERT(src  == 0);
-      BL_ASSERT(dest != 0);
-    }
-
-    if ((isDest && dest->size() == 0) || (isSrc && src->size() == 0)) return;
-
-    BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
-
-    if(isSrc)  { BL_ASSERT(src->nGrow() >= snghost);  }
-    if(isDest) { BL_ASSERT(dest->nGrow() >= dnghost); }
-
-    MPI_Group groupSrc(MPI_GROUP_NULL), groupDest(MPI_GROUP_NULL), groupBoth(MPI_GROUP_NULL);
-    MPI_Group groupAll(MPI_GROUP_NULL);
-    int myProcAll(ParallelDescriptor::MyProcAll()), myProcBoth(MPI_UNDEFINED);
-    int iopN(ParallelDescriptor::IOProcessorNumber()), iopNInBoth(MPI_UNDEFINED);
-    int bcastRootSrc(MPI_UNDEFINED), bcastRootDest(MPI_UNDEFINED);
-    size_t sizeOne(1);
-    int tagOne(1), tagTwo(2);
-
-    BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &groupAll) );
-    BL_MPI_REQUIRE( MPI_Comm_group(commBoth, &groupBoth) );
-
-    BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupAll, sizeOne, &myProcAll, groupBoth, &myProcBoth) );
-
-    if(isSrc) {
-      BL_MPI_REQUIRE( MPI_Comm_group(commSrc, &groupSrc) );
-      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupSrc, sizeOne, &iopN, groupBoth, &iopNInBoth) );
-      if(ParallelDescriptor::IOProcessor()) {
-        ParallelDescriptor::Asend(&iopNInBoth, sizeOne, iopN, tagOne, commBoth);
-      }
-    }
-    if(isDest) {
-      BL_MPI_REQUIRE( MPI_Comm_group(commDest, &groupDest) );
-      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupDest, sizeOne, &iopN, groupBoth, &iopNInBoth) );
-      if(ParallelDescriptor::IOProcessor()) {
-        ParallelDescriptor::Asend(&iopNInBoth, sizeOne, iopN, tagTwo, commBoth);
-      }
-    }
-    if(myProcBoth == iopN) {
-      ParallelDescriptor::Recv(&bcastRootSrc,  sizeOne, MPI_ANY_SOURCE, tagOne, commBoth);
-      ParallelDescriptor::Recv(&bcastRootDest, sizeOne, MPI_ANY_SOURCE, tagTwo, commBoth);
-    }
-    ParallelDescriptor::Bcast(&bcastRootSrc,  sizeOne, iopN, commBoth);
-    ParallelDescriptor::Bcast(&bcastRootDest, sizeOne, iopN, commBoth);
-
-
-    // ---- give all procs in commBoth source and dest boxarrays and distribution maps
-    BoxArray srcBoxArray, destBoxArray;
-    Vector<int> srcPMap, destPMap, srcPMapAll, destPMapAll;
-    DistributionMapping srcDM, destDM, srcDMAll, destDMAll;
-    Vector<int> srcIndexArray, destIndexArray;
-    if(isSrc) {
-      srcIndexArray = src->IndexArray();
-    }
-    if(isDest) {
-      destIndexArray = dest->IndexArray();
-    }
-
-
-    if(isSrc && myProcBoth == bcastRootSrc) {
-      srcBoxArray = src->boxArray();
-      srcDM = src->DistributionMap();
-      srcPMap = srcDM.ProcessorMap();
-      srcPMapAll = DistributionMapping::TranslateProcMap(srcPMap, groupBoth, groupSrc);
-    }
-    if(isDest && myProcBoth == bcastRootDest) {
-      destBoxArray = dest->boxArray();
-      destDM = dest->DistributionMap();
-      destPMap = destDM.ProcessorMap();
-      destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
-    }
-
-    amrex::BroadcastBoxArray(srcBoxArray,  myProcBoth, bcastRootSrc,  commBoth);
-
-    amrex::BroadcastBoxArray(destBoxArray, myProcBoth, bcastRootDest, commBoth);
-    BL_ASSERT(destBoxArray[0].ixType() == srcBoxArray[0].ixType());
-
-
-    amrex::BroadcastArray(srcPMapAll,  myProcBoth, bcastRootSrc,  commBoth);
-    amrex::BroadcastArray(destPMapAll, myProcBoth, bcastRootDest, commBoth);
-
-    srcDMAll.define(srcPMapAll);
-    destDMAll.define(destPMapAll);
-
-    CPC thecpc(destBoxArray, destDMAll, destIndexArray, dnghost,
-	       srcBoxArray ,  srcDMAll,  srcIndexArray, dnghost, 
-	       Periodicity::NonPeriodic(), myProcBoth);
-
-    if (ParallelDescriptor::NProcsAll() == 1) {
-        return;
-    }
-
-    // ---- syncronize sequence numbers across groups
-    int currentSeqNumber(-4);
-    if(isSrc && myProcBoth == bcastRootSrc) {
-      currentSeqNumber = ParallelDescriptor::SeqNum(1);
-    }
-    ParallelDescriptor::Bcast(&currentSeqNumber, sizeOne, bcastRootSrc, commBoth);
-    ParallelDescriptor::SeqNum(2, currentSeqNumber);
-
-    // Do this before prematurely exiting if running in parallel.
-    // Otherwise sequence numbers will not match across MPI processes.
-    int preSeqNum;
-    if (!FAB::preAllocatable()) {
-        preSeqNum = ParallelDescriptor::SeqNum();
-    }
-    const int SeqNum = ParallelDescriptor::SeqNum();
-
-    if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty()) {
-        //
-        // No work to do.
-        //
-        return;
-    }
-    //
-    // Send/Recv at most MaxComp components at a time to cut down memory usage.
-    //
-    int NCompLeft = ncomp;
-
-    for (int ipass = 0, SC = scomp, DC = dcomp; ipass < ncomp; )
-    {
-        const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
-
-        //
-        // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
-        //
-	const int N_snds = thecpc.m_SndTags->size();
-
-	Vector<char*>                       send_data;
-	Vector<int>                         send_size;
-	Vector<int>                         send_rank;
-	Vector<MPI_Request>                 send_reqs;
-	Vector<const CopyComTagsContainer*> send_cctc;
-        Vector<Vector<int> >                 indv_send_size;
-        Vector<MPI_Request>                 pre_reqs;
-
-#if defined BL_USE_UPCXX || defined BL_USE_MPI3
-        int actual_n_snds = 0;
-#endif
-        if (N_snds > 0)
-        {
-            send_data.reserve(N_snds);
-            send_size.reserve(N_snds);
-            send_rank.reserve(N_snds);
-            send_reqs.reserve(N_snds);
-            send_cctc.reserve(N_snds);
-            indv_send_size.reserve(N_snds);
-            
-            for (auto const& kv : *thecpc.m_SndVols)
-            {
-                Vector<int> iss;                
-                auto const& cctc = thecpc.m_SndTags->at(kv.first);
-
-                std::size_t nbytes = 0;
-                if (FAB::preAllocatable())
-                {
-                    for (auto const& cct : kv.second)
-                    {
-                        nbytes += (*src)[cct.srcIndex].nBytes(cct.sbox,SC,NC);
-                    }
-                }
-                else
-                {
-                    for (auto const& tag : cctc)
-                    {
-                        std::size_t b = (*src)[tag.srcIndex].nBytes(tag.sbox,SC,NC);
-                        nbytes += b;
-                        iss.push_back(static_cast<int>(b));
-                    }
-                }
-                
-                BL_ASSERT(nbytes < std::numeric_limits<int>::max());
-                
-                char* data = nullptr;
-                if (nbytes > 0) {
-                    data = static_cast<char*>(amrex::The_Arena()->alloc(nbytes));
-                }
-                    
-                send_data.push_back(data);
-                send_size.push_back(static_cast<int>(nbytes));
-                send_rank.push_back(kv.first);
-                send_reqs.push_back(MPI_REQUEST_NULL);
-                send_cctc.push_back(&cctc);
-                indv_send_size.push_back(std::move(iss));
-            }
-
-#if defined BL_USE_UPCXX || defined BL_USE_MPI3
-            actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
-#endif
-        }
-
-        if (!FAB::preAllocatable())
-        {
-            pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
-            for (int j=0; j<N_snds; ++j)
-            {
-                pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
-                                                        indv_send_size[j].size(),
-                                                        send_rank[j],preSeqNum).req();
-            }
-        }
-
-        Vector<MPI_Status>  stats;
-        Vector<int>         recv_from;
-        Vector<char*>       recv_data;
-        Vector<int>         recv_size;
-        Vector<MPI_Request> recv_reqs;
-        //
-        // Post rcvs. Allocate one chunk of space to hold'm all.
-        //
-        char* the_recv_data = nullptr;
-        const int N_rcvs = thecpc.m_RcvTags->size();
-        int actual_n_rcvs = 0;
-        if (N_rcvs > 0) {
-            dest->PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
-                           recv_data, recv_size, recv_from, recv_reqs, 
-                           SC, NC, SeqNum, preSeqNum, commBoth);
-            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
-        }
-
-	//
-	// Post sends
-	// 
-        if (N_snds > 0)
-        {
-#ifdef _OPENMP
-#pragma omp parallel for if(FAB::isCopyOMPSafe())
-#endif
-            for (int j=0; j<N_snds; ++j)
-            {
-                char* dptr = send_data[j];
-                if (dptr != nullptr)
-                {
-                    auto const& cctc = *send_cctc[j];
-                    for (auto const& tag : cctc)
-                    {
-                        const Box& bx = tag.sbox;
-                        auto n = (*src)[tag.srcIndex].copyToMem(bx,SC,NC,dptr);
-                        dptr += n;
-                    }
-                    BL_ASSERT(dptr == send_data[j] + send_size[j]);
-                }
-            }
-
-            int send_counter = 0;
-            while (send_counter < N_snds)
-            {
-                int j;
-
-                if (FAB::preAllocatable())
-                {
-                    j = send_counter;
-                }
-                else
-                {
-                    MPI_Status status;
-                    ParallelDescriptor::Waitany(pre_reqs, j, status);
-                }
-                
-                if (send_size[j] > 0)
-                {
-                    if (FabArrayBase::do_async_sends)
-                    {
-                        send_reqs[j] = ParallelDescriptor::Asend
-                            (send_data[j],send_size[j],send_rank[j],SeqNum, commBoth).req();
-                    }
-                    else
-                    {
-                        ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum, commBoth);
-                        amrex::The_Arena()->free(send_data[j]);
-                    }
-                }
-
-                ++send_counter;
-            }
-        }
-
-        //
-        // Do the local work.  Hope for a bit of communication/computation overlap.
-        //
-	int N_loc = (*thecpc.m_LocTags).size();
-
-#ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc)
-#endif
-	for (int j=0; j<N_loc; ++j)
-        {
-            const CopyComTag& tag = (*thecpc.m_LocTags)[j];
-
-            if (op == FabArrayBase::COPY)
-            {
-                dest->get(tag.dstIndex).copy((*src)[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
-            }
-            else
-            {
-                dest->get(tag.dstIndex).plus((*src)[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
-            }
-        }
-
-	//
-	//  wait and unpack
-	//
-
-	if (N_rcvs > 0)
-	{
-	    Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
-
-	    for (int k = 0; k < N_rcvs; ++k)
-	    {
-                if (recv_size[k] > 0)
-                {
-                    auto const& cctc = thecpc.m_RcvTags->at(recv_from[k]);
-                    recv_cctc[k] = &cctc;
-                }
-	    }
-
-            if (actual_n_rcvs > 0) {
-                stats.resize(N_rcvs);
-                ParallelDescriptor::Waitall(recv_reqs, stats);
-            }
-	    
-#ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv)
-#endif
-            {
-                FAB fab;
-                
-#ifdef _OPENMP
-#pragma omp for
-#endif
-                for (int k = 0; k < N_rcvs; ++k)
-                {
-                    const char* dptr = recv_data[k];
-                    if (dptr != nullptr)
-                    {
-                        auto const& cctc = *recv_cctc[k];
-                        for (auto const& tag : cctc)
-                        {
-                            const Box& bx  = tag.dbox;
-                            std::size_t n;
-                            if (op == FabArrayBase::COPY)
-                            {
-                                n = (*dest)[tag.dstIndex].copyFromMem(bx,DC,NC,dptr);
-                            }
-                            else
-                            {
-                                fab.resize(bx,NC);
-                                n = fab.copyFromMem(bx,0,NC,dptr);
-                                (*dest)[tag.dstIndex].plus(fab,bx,bx,0,DC,NC);
-                            }
-                            dptr += n;
-                        }
-                        BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
-                    }
-                }
-	    }
-	
-            if (the_recv_data) {
-                amrex::The_Arena()->free(the_recv_data);
-            }
-            else
-            {
-                for (auto p : recv_data) {
-                    amrex::The_Arena()->free(p);
-                }
-            }
-
-        }
-	
-        if (N_snds > 0) {
-            if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
-                FabArrayBase::WaitForAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
-            }
-        }
-
-        ipass     += NC;
-        SC        += NC;
-        DC        += NC;
-        NCompLeft -= NC;
-    }
-
-    return;
-#endif /*BL_USE_MPI*/
-}
-
-
 template <class FAB>
 template <class>
 void
@@ -2520,8 +2093,8 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
 
   if(allocFAPSize != FabArray<FAB>::allocatedFAPointers.size()) {
     if(abortOnError) {
-      amrex::USleep(ParallelDescriptor::MyProcAll());
-      std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  allocFAPSize != "
+      amrex::USleep(ParallelContext::MyProcAll());
+      std::cout << ParallelContext::MyProcAll() << ":: **** ERROR:  allocFAPSize != "
                 << "FabArray<FAB>::allocatedFAPointers.size() : " << allocFAPSize
 	        << "  " << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
       amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad allocFAPSize.");
@@ -2537,8 +2110,8 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     ParallelDescriptor::Bcast(&fapCMapSize, 1, iopNumber);
     if(fapCMapSize != faPtrCachedMap.size()) {
       if(abortOnError) {
-        amrex::USleep(ParallelDescriptor::MyProcAll());
-        std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fapCMapSize != "
+        amrex::USleep(ParallelContext::MyProcAll());
+        std::cout << ParallelContext::MyProcAll() << ":: **** ERROR:  fapCMapSize != "
 	          << "faPtrCachedMap.size() : " << fapCMapSize << "  "
 		  << faPtrCachedMap.size() << std::endl;
         amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapCMapSize.");
@@ -2549,8 +2122,8 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     ParallelDescriptor::Bcast(&distmapNGrids, 1, iopNumber);
     if(distmapNGrids != afapIter->first-1) {
       if(abortOnError) {
-        amrex::USleep(ParallelDescriptor::MyProcAll());
-        std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  distmapNGrids != "
+        amrex::USleep(ParallelContext::MyProcAll());
+        std::cout << ParallelContext::MyProcAll() << ":: **** ERROR:  distmapNGrids != "
 	          << "afapIter->first-1 : " << distmapNGrids << "  " << afapIter->first-1 << std::endl;
         amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad distmapNGrids.");
       }
@@ -2593,7 +2166,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     for(int i(0); i < fapId.size(); ++i) {
       if(fapId[i] != fapIdCheck[i]) {
         if(abortOnError) {
-          std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fapId[" << i
+          std::cout << ParallelContext::MyProcAll() << ":: **** ERROR:  fapId[" << i
 	            << "] != fapIdCheck[" << i << "] : "
                     << fapId[i] << "  " << fapIdCheck[i] << std::endl;
           amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapId.");
@@ -2603,7 +2176,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     for(int i(0); i < dmId.size(); ++i) {
       if(dmId[i] != dmIdCheck[i]) {
         if(abortOnError) {
-          std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  dmId[" << i
+          std::cout << ParallelContext::MyProcAll() << ":: **** ERROR:  dmId[" << i
 	            << "] != dmIdCheck[" << i << "] : "
                     << dmId[i] << "  " << dmIdCheck[i] << std::endl;
           amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad dmId.");
@@ -2613,7 +2186,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     for(int i(0); i < nDM.size(); ++i) {
       if(nDM[i] != nDMCheck[i]) {
         if(abortOnError) {
-          std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  nDM[" << i
+          std::cout << ParallelContext::MyProcAll() << ":: **** ERROR:  nDM[" << i
 	            << "] != nDMCheck[" << i << "] : "
                     << nDM[i] << "  " << nDMCheck[i] << std::endl;
           amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad nDM.");
@@ -2623,7 +2196,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     for(int i(0); i < fabsAlloced.size(); ++i) {
       if(fabsAlloced[i] != fabsAllocedCheck[i]) {
         if(abortOnError) {
-          std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fabsAlloced[" << i
+          std::cout << ParallelContext::MyProcAll() << ":: **** ERROR:  fabsAlloced[" << i
 	            << "] != fabsAllocedCheck[" << i << "] : "
                     << fabsAlloced[i] << "  " << fabsAllocedCheck[i] << std::endl;
           amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fabsAlloced.");
@@ -2635,7 +2208,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
   ParallelDescriptor::Bcast(&pLockedCheck, 1, iopNumber);
   if(pLocked != pLockedCheck) {
     if(abortOnError) {
-      std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  "
+      std::cout << ParallelContext::MyProcAll() << ":: **** ERROR:  "
                 << "pLocked != pLockedCheck : " << pLocked << "  " << pLockedCheck << std::endl;
       amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad pLocked.");
     }

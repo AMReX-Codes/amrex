@@ -71,7 +71,7 @@ Frame::global_to_local_rank (int* local, const int* global, int n) const
         for (int i = 0; i < n; ++i) local[i] = global[i];
     }
 #else
-    return for (int i = 0; i < n; ++i) local[i] = 0;
+    for (int i = 0; i < n; ++i) local[i] = 0;
 #endif    
 }
 
