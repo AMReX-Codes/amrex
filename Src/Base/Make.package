@@ -123,9 +123,7 @@ C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
 ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_COORDSYS_$(DIM)D.F90
   F$(AMREX_BASE)_headers += AMReX_COORDSYS_F.H
-  ifneq ($(USE_CUDA),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
-  endif
   F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
   F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90

@@ -1456,9 +1456,10 @@ FabArrayBase::flushCFinfo (bool no_assertion)
 void
 FabArrayBase::Finalize ()
 {
+    nFabArrays = 0;
+
     FabArrayBase::flushFBCache();
     FabArrayBase::flushCPCache();
-
     FabArrayBase::flushTileArrayCache();
 
     if (ParallelDescriptor::IOProcessor() && amrex::system::verbose) {
@@ -1469,6 +1470,16 @@ FabArrayBase::Finalize ()
 	m_FPinfo_stats.print();
 	m_CFinfo_stats.print();
     }
+
+    m_TAC_stats = CacheStats("TileArrayCache");
+    m_FBC_stats = CacheStats("FBCache");
+    m_CPC_stats = CacheStats("CopyCache");
+    m_FPinfo_stats = CacheStats("FillPatchCache");
+    m_CFinfo_stats = CacheStats("CrseFineCache");
+
+    m_BD_count.clear();
+    
+    m_FA_stats = FabArrayStats();
 
     initialized = false;
 }
