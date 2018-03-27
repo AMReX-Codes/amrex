@@ -332,8 +332,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 void
 ParallelDescriptor::EndParallel ()
 {
-    ParallelDescriptor::SeqNum(2, m_MinTag);
-
     ParallelContext::pop();
 
     if (call_mpi_finalize) {
@@ -1878,66 +1876,6 @@ ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
 {}
 
 #endif
-
-int
-ParallelDescriptor::TagNum ()
-{
-    if (ParallelContext::frames.size() == 1)
-    {
-        return ParallelDescriptor::SeqNum();
-    }
-    else
-    {
-        return ParallelContext::get_inc_mpi_tag();
-    }
-}
-
-//
-// This function is the same whether or not we're using MPI.
-//
-int
-ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
-{
-    static int seqno = m_MinTag;
-    int result = seqno;
-
-    switch(getsetinc) {
-      case 0:  // ---- increment and return result
-      {
-          ++seqno;
-      }
-      break;
-      case 1:  // ---- get current seqno
-      {
-        result = seqno;
-      }
-      break;
-      case 2:  // ---- set current seqno
-      {
-	seqno = newvalue;
-        result = seqno;
-      }
-      break;
-      case 3:  // ---- jump 
-      {
-          seqno += (m_MaxTag-m_MinTag) / 2;
-      }
-      break;
-      default:  // ---- error
-      {
-	amrex::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
-        result = -1;
-      }
-    }
-
-    if (seqno > m_MaxTag) {
-	seqno = m_MinTag;
-	BL_COMM_PROFILE_TAGWRAP();
-    }
-
-    return result;
-}
-
 
 BL_FORT_PROC_DECL(BL_PD_BARRIER,bl_pd_barrier)()
 {
