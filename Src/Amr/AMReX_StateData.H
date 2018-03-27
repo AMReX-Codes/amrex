@@ -265,10 +265,6 @@ public:
 		  Vector<Real>& datatime,
 		  Real time) const;
 
-    void AddProcsToComp(const StateDescriptor &sdPtr,
-                        int ioProcNumSCS, int ioProcNumAll,
-                        int scsMyId, MPI_Comm scsComm);
-
     //
     // These facilitate prereading FabArray headers to avoid
     // synchronization when reading multiple FabArrays

@@ -170,10 +170,6 @@ public:
     //! Local copy function
     static void Copy (BndryRegister& dst, const BndryRegister& src);
 
-    //! AddProcsToComp
-    virtual void AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
-                                int scsMyId, MPI_Comm scsComm);
-
 protected:
     //! Used by the copy constructor and assignment operator.
     void init (const BndryRegister& src);

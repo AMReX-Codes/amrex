@@ -481,8 +481,6 @@ public:
     static void LockAllFAPointers ();
     static void CheckFAPointers (bool abortOnError = true);
     static void PrintFAPointers ();
-    virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                                 int scsMyId, MPI_Comm scsComm);
 
 protected:
 
@@ -2243,109 +2241,6 @@ FabArray<FAB>::PrintFAPointers ()
     }
   }
   std::cout << "|||| |||| |||| _out PrintFAPointers: ================ " << std::endl;
-}
-
-
-template <class FAB>
-void
-FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                               int scsMyId, MPI_Comm scsComm)
-{
-  flushTileArrayCache();
-
-  // ---- BoxArrays
-  amrex::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
-
-  // ---- DistributionMapping
-  amrex::BroadcastDistributionMapping(distributionMap, scsMyId, ioProcNumSCS, scsComm);
-
-  // ---- ints
-  ParallelDescriptor::Bcast(&n_grow, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&n_comp, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&aFAPId, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&nFabArrays, 1, ioProcNumSCS, scsComm);
-
-  // ---- bools
-  bool bii(IsInitialized());
-  int bInit(bii), bDAS(do_async_sends);
-  ParallelDescriptor::Bcast(&bInit, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&bDAS, 1, ioProcNumSCS, scsComm);
-  if(scsMyId != ioProcNumSCS) {
-    SetInitialized(bInit);
-    do_async_sends = bDAS;
-  }
-
-  // ---- IntVects
-  Vector<int> allIntVects;
-  if(scsMyId == ioProcNumSCS) {
-    for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
-    for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
-  }
-  amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
-  if(scsMyId != ioProcNumSCS) {
-    int count(0);
-    for(int i(0); i < AMREX_SPACEDIM; ++i)    { mfiter_tile_size[i] = allIntVects[count++]; }
-    for(int i(0); i < AMREX_SPACEDIM; ++i)    { comm_tile_size[i] = allIntVects[count++]; }
-  }
-
-  // ---- add to allocatedFAPointers
-  int isAllocated(0);
-  if(scsMyId == ioProcNumSCS) {
-    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter =
-                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {  // ---- not found
-      isAllocated = 0;
-    } else {  // ---- now look for the fapid
-      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-      if(faPtrCachedMap.find(aFAPId) != faPtrCachedMap.end()) {
-        isAllocated = 1;
-      }
-    }
-  }
-  ParallelDescriptor::Bcast(&isAllocated, 1, ioProcNumSCS, scsComm);
-  if(scsMyId != ioProcNumSCS) {
-    if(isAllocated) {  // ---- insert into the maps
-      typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter =
-                   FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-      if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-        int dmapSize(distributionMap.size());
-        std::map<int, FabArray<FAB> *> tempMap;
-        tempMap.insert(std::make_pair(aFAPId, this));
-        FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
-
-      } else {
-        std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-        faPtrCachedMap.insert(std::make_pair(aFAPId, this));
-      }
-    }
-  }
-
-  // ---- noallocFAPIds
-  Vector<int> setArray;
-  if(scsMyId == ioProcNumSCS) {
-    std::set<int>::iterator it;
-    for(it = noallocFAPIds.begin(); it != noallocFAPIds.end(); ++it) {
-      setArray.push_back(*it);
-    }
-  }
-  amrex::BroadcastArray(setArray, scsMyId, ioProcNumSCS, scsComm);
-  if(scsMyId != ioProcNumSCS) {
-      noallocFAPIds.insert(std::begin(setArray), std::end(setArray));
-  }
-
-  // ---- m_bdkey
-  if(scsMyId != ioProcNumSCS) {
-    m_bdkey = getBDKey();
-  }
-
-  // ---- static TACache     m_TheTileArrayCache;     // ---- cleared with flushTileArrayCache();
-  // ---- static CacheStats  m_TAC_stats;             // ---- leave as is for now
-  // ---- m_BD_count                                  // ---- leave as is for now
-  // ---- m_FA_stats                                  // ---- leave as is for now
-
-
-  // ---- unlock
-  aFAPIdLock = 0;
 }
 
 
