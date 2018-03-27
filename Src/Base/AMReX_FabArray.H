@@ -480,12 +480,6 @@ protected:
     //
     std::vector<FAB*> m_fabs_v;
 
-    // ---- currently active fabarrays:  <ngrids to find distmap, <aFAPId, FabArray *> >
-    static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
-
-    // ---- set of ids of fabarrays created without allocating memory
-    static std::set<int> noallocFAPIds;
-
     // for shared memory
     struct ShMem {
 	ShMem () : alloc(false), n_values(0), n_points(0)
@@ -851,18 +845,6 @@ FabArray<FAB>::clear ()
     {
         define_function_called = false;
         clearThisBD();  // addThisBD is called in define
-
-	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-	if(afapIter != FabArray<FAB>::allocatedFAPointers.end()) {
-	    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-	    faPtrCachedMap.erase(aFAPId);
-	    if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
-		FabArray<FAB>::allocatedFAPointers.erase(afapIter);
-	    }
-	}
-
-	noallocFAPIds.erase(aFAPId);
     }
 
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
@@ -1049,25 +1031,6 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     if(info.alloc) {
         AllocFabs(*m_factory);
-    }
-
-    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-      int dmapSize(distributionMap.size());
-      std::map<int, FabArray<FAB> *> tempMap;
-      tempMap.insert(std::make_pair(aFAPId, this));
-      FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
-
-    } else {
-      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-      faPtrCachedMap.insert(std::make_pair(aFAPId, this));
-    }
-
-    if(info.alloc) {
-      noallocFAPIds.erase(aFAPId);
-    } else {
-      noallocFAPIds.insert(aFAPId);
     }
 
 #ifdef BL_USE_TEAM
@@ -2743,9 +2706,6 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 	}
     }
 }
-
-template <typename FAB> std::map<int, std::map<int, FabArray<FAB> *> > FabArray<FAB>::allocatedFAPointers;
-template <typename FAB> std::set<int> FabArray<FAB>::noallocFAPIds;
 
 }
 

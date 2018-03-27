@@ -282,12 +282,6 @@ public:
     // their maximum size.
     //
     static IntVect comm_tile_size;  // communication tile size
-    //
-    // The number of FabArrays that have been defined during this run
-    //
-    static int nFabArrays;
-    static int NFabArrays() { return nFabArrays; }
-    int AllocatedFAPtrID() const  { return aFAPId; }
 
     struct FPinfo
     {
@@ -420,8 +414,6 @@ protected:
     std::vector<bool>   ownership;
     int                 n_grow;
     int                 n_comp;
-    int                 aFAPId;      // ---- id of currently allocated fab array pointers
-    int                 aFAPIdLock;  // ---- lock for resizing sidecars
     mutable BDKey       m_bdkey;
 
     //
