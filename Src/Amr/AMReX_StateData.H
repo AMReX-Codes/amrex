@@ -269,8 +269,6 @@ public:
                         int ioProcNumSCS, int ioProcNumAll,
                         int scsMyId, MPI_Comm scsComm);
 
-    void Check() const;
-
     //
     // These facilitate prereading FabArray headers to avoid
     // synchronization when reading multiple FabArrays

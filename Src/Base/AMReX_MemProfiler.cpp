@@ -18,6 +18,8 @@
 
 namespace amrex {
 
+std::unique_ptr<MemProfiler> MemProfiler::the_instance = nullptr;
+
 void 
 MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)
 {
@@ -42,10 +44,6 @@ MemProfiler::add (const std::string& name, std::function<NBuildsInfo()>&& f)
     }
     mprofiler.the_names_builds.push_back(name);
     mprofiler.the_funcs_builds.push_back(std::move(f));
-}
-
-namespace {
-    std::unique_ptr<MemProfiler> the_instance = nullptr;
 }
 
 MemProfiler& 
