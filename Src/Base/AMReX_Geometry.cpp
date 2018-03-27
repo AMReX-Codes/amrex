@@ -15,6 +15,10 @@
 
 namespace amrex {
 
+namespace {
+    bool initialized = false;
+}
+
 //
 // The definition of some static data members.
 //
@@ -95,7 +99,11 @@ Geometry::define (const Box&     dom,
 void
 Geometry::Finalize ()
 {
+    initialized = false;
     c_sys = undef;
+    spherical_origin_fix = 0;
+    prob_domain = RealBox();
+    AMREX_D_TERM(is_periodic[0]=0;, is_periodic[1]=0;, is_periodic[2]=0);
 }
 
 void
@@ -105,12 +113,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     BL_ASSERT(!omp_in_parallel());
 #endif
 
-    static bool first = true;
-    if (first) {
-	first = false;
-    } else {
-	return;
-    }
+    if (initialized) return;
 
     ParmParse pp("geometry");
 
@@ -156,6 +159,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
             is_periodic[n] = isper[n];
     }
 
+    initialized = true;
     amrex::ExecOnFinalize(Geometry::Finalize);
 }
 

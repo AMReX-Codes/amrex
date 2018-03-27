@@ -53,7 +53,9 @@ ifeq ($(USE_MPI),TRUE)
     OMPI_CXX := nvcc
   endif
 
+
   LIBRARIES += -lmpi_mpifh
+
 endif
 
 ifeq ($(lowercase_comp),gnu)
@@ -90,6 +92,8 @@ ifeq ($(USE_MPI),TRUE)
     OMPI_CC := nvcc
     OMPI_CXX := nvcc
   endif
+
+  LIBRARIES += -lmpi_ibm_mpifh
 
 endif
 
