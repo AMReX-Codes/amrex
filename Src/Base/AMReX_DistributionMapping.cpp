@@ -328,7 +328,7 @@ DistributionMapping::operator= (const DistributionMapping& rhs)
 
 DistributionMapping::DistributionMapping (DistributionMapping&& rhs) noexcept
     :
-    m_ref(std::move(rhs.m_ref)),
+    m_ref(std::move(rhs.m_ref))
 {
 }
 
