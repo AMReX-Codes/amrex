@@ -959,15 +959,4 @@ void StateData::AddProcsToComp(const StateDescriptor &sdPtr,
 #endif
 }
 
-
-void StateData::Check() const
-{
-      if(new_data != 0) {
-        new_data->DistributionMap().Check();
-      }
-      if(old_data != 0) {
-        old_data->DistributionMap().Check();
-      }
-}
-
 }

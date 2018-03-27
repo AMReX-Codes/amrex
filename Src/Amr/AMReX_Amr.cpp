@@ -2475,6 +2475,7 @@ Amr::regrid (int  lbase,
       amr_level[lev]->post_regrid(lbase,new_finest);
     }
 
+#if 0
     if(rebalance_grids > 0) {
       DistributionMapping::InitProximityMap();
 
@@ -2497,6 +2498,7 @@ Amr::regrid (int  lbase,
           UpdateStateDataDistributionMaps(newDistMap);
         }
     }
+#endif
 
     //
     // Report creation of new grids.
