@@ -333,6 +333,8 @@ ParallelDescriptor::EndParallel ()
 {
     ParallelDescriptor::SeqNum(2, m_MinTag);
 
+    ParallelContext::pop();
+
     if (call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Finalize() );
     } else {
@@ -1706,6 +1708,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 {
     m_comm = 0;
     m_MaxTag = 9000;
+    ParallelContext::push(m_comm);
 }
 
 void
@@ -1733,7 +1736,10 @@ ParallelDescriptor::Message::test ()
     return m_finished;
 }
 
-void ParallelDescriptor::EndParallel () {}
+void ParallelDescriptor::EndParallel () 
+{
+    ParallelContext::pop();
+}
 
 void ParallelDescriptor::Abort (int s, bool backtrace)
 { 
