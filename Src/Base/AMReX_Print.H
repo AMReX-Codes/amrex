@@ -146,9 +146,8 @@ namespace amrex
 
         void Initialize() {
             int my_proc = ParallelDescriptor::MyProc(comm);
-            int my_procall = ParallelContext::MyProcAll();
             if (rank == AllProcs || rank == my_proc) {
-                std::string proc_file_name = file_name + "." + std::to_string(my_procall);
+                std::string proc_file_name = file_name + "." + std::to_string(my_proc);
 #ifdef _OPENMP
                 proc_file_name += "." + std::to_string(omp_get_thread_num());
 #endif
