@@ -708,8 +708,8 @@ MLMG::actualBottomSolve ()
 
     Real bottom_start_time = amrex::second();
 
-    int old_sn = ParallelDescriptor::SeqNum(3);
-    
+    ParallelContext::push(linop.BottomCommunicator());
+
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
     MultiFab& x = *cor[amrlev][mglev];
@@ -778,7 +778,7 @@ MLMG::actualBottomSolve ()
         }
     }
 
-    ParallelDescriptor::SeqNum(2, old_sn);
+    ParallelContext::pop();
 
     timer[bottom_time] += amrex::second() - bottom_start_time;
 }
