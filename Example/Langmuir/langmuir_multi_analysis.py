@@ -87,4 +87,4 @@ plt.tight_layout()
 plt.savefig('langmuir_analysis.png')
 
 # Automatically check the validity
-assert overall_max_error < 0.035
+assert overall_max_error < 0.1
