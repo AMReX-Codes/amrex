@@ -566,8 +566,7 @@ private:
                    int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum,
-                   int                                    preSeqNum,
-                   MPI_Comm   comm = ParallelDescriptor::Communicator());
+                   int                                    preSeqNum);
 #endif
     
 #ifdef BL_USE_MPI3
@@ -630,8 +629,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
                          int                               icomp,
                          int                               ncomp,
                          int                               SeqNum,
-                         int                               preSeqNum,
-                         MPI_Comm                          comm)
+                         int                               preSeqNum)
 {
     recv_data.clear();
     recv_size.clear();
@@ -662,6 +660,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
     Vector<Vector<int> > indv_recv_size;
     Vector<MPI_Request> pre_reqs(nrecv,MPI_REQUEST_NULL);
 
+    MPI_Comm comm = ParallelContext::Communicator();
+
     if (!FAB::preAllocatable())
     {
         BL_ASSERT(preSeqNum >= 0);
@@ -670,8 +670,9 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         {
             auto n = m_RcvTags.at(recv_from[k]).size();
             indv_recv_size[k].resize(n);
-            pre_reqs[k] = ParallelDescriptor::Arecv(indv_recv_size[k].data(),
-                                                    n, recv_from[k], preSeqNum, comm).req();
+            pre_reqs[k] = ParallelDescriptor::Arecv(indv_recv_size[k].data(), n,
+                                                    ParallelContext::global_to_local_rank(recv_from[k]),
+                                                    preSeqNum, comm).req();
         }
     }
 
@@ -699,7 +700,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         {
             recv_data[i] = static_cast<char*>(amrex::The_Arena()->alloc(recv_size[i]));
             recv_reqs[i] = ParallelDescriptor::Arecv(recv_data[i], recv_size[i],
-                                                     recv_from[i], SeqNum, comm).req();
+                                                     ParallelContext::global_to_local_rank(recv_from[i]),
+                                                     SeqNum, comm).req();
         }
         
         ++recv_counter;
@@ -984,7 +986,7 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    long isok = true;
+    int isok = 1;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
     {
@@ -992,18 +994,18 @@ FabArray<FAB>::ok () const
         {
             if (get(fai).box() != fabbox(fai.index()))
             {
-                isok = false;
+                isok = 0;
             }
         }
         else
         {
-            isok = false;
+            isok = 0;
         }
     }
 
-    ParallelDescriptor::ReduceLongAnd(isok);
+    ParallelAllReduce::Min(isok, ParallelContext::Communicator());
 
-    return isok != 0;
+    return isok == 1;
 }
 
 template <class FAB>
@@ -1314,7 +1316,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
     const CPC& thecpc = getCPC(dnghost, src, snghost, period);
 
-    if (ParallelDescriptor::NProcs() == 1)
+    if (ParallelContext::NProcs() == 1)
     {
         //
         // There can only be local work to do.
@@ -1466,9 +1468,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
             for (int j=0; j<N_snds; ++j)
             {
-                pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
-                                                        indv_send_size[j].size(),
-                                                        send_rank[j],preSeqNum).req();
+                pre_reqs[j] = ParallelDescriptor::Asend
+                    (indv_send_size[j].data(), indv_send_size[j].size(),
+                     ParallelContext::global_to_local_rank(send_rank[j]),
+                     preSeqNum,
+                     ParallelContext::Communicator()).req();
             }
         }
 
@@ -1605,11 +1609,18 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         if (FabArrayBase::do_async_sends)
                         {
                             send_reqs[j] = ParallelDescriptor::Asend
-                                (send_data[j],send_size[j],send_rank[j],SeqNum).req();
+                                (send_data[j], send_size[j],
+                                 ParallelContext::global_to_local_rank(send_rank[j]),
+                                 SeqNum,
+                                 ParallelContext::Communicator()).req();
                         }
                         else
                         {
-                            ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum);
+                            ParallelDescriptor::Send
+                                (send_data[j], send_size[j],
+                                 ParallelContext::global_to_local_rank(send_rank[j]),
+                                 SeqNum,
+                                 ParallelContext::Communicator());
                             amrex::The_Arena()->free(send_data[j]);
                         }
                     }
@@ -1871,7 +1882,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
     BL_ASSERT(nghost <= nComp());
 
-    if (ParallelDescriptor::NProcs() == 1)
+    if (ParallelContext::NProcs() == 1)
     {
         for (int j = 0, N = size(); j < N; ++j)
         {
@@ -1892,7 +1903,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 #ifdef DEBUG
     {
 	BoxCommHelper bch(subbox);	
-	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0);
+	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0, ParallelContext::Communicator());
 	const Box& bx0 = bch.make_box();
 	BL_ASSERT(subbox == bx0);
     }
@@ -1917,7 +1928,9 @@ FabArray<FAB>::copyTo (FAB&       dest,
 
 	const int N = bx.numPts()*ncomp;
 
-	ParallelDescriptor::Bcast(ovlp.dataPtr(),N,distributionMap[k]);
+	ParallelDescriptor::Bcast(ovlp.dataPtr(),N,
+                                  ParallelContext::global_to_local_rank(distributionMap[k]),
+                                  ParallelContext::Communicator());
 
 	dest.copy(ovlp,bx,0,bx,dcomp,ncomp);
     }
@@ -2125,7 +2138,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 
     const FB& TheFB = getFB(period, cross, enforce_periodicity_only);
 
-    if (ParallelDescriptor::NProcs() == 1)
+    if (ParallelContext::NProcs() == 1)
     {
         //
         // There can only be local work to do.
@@ -2260,9 +2273,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
         pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
         for (int j=0; j<N_snds; ++j)
         {
-            pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
-                                                    indv_send_size[j].size(),
-                                                    send_rank[j],preSeqNum).req();
+            pre_reqs[j] = ParallelDescriptor::Asend
+                (indv_send_size[j].data(), indv_send_size[j].size(),
+                 ParallelContext::global_to_local_rank(send_rank[j]),
+                 preSeqNum,
+                 ParallelContext::Communicator()).req();
         }
     }
 
@@ -2396,7 +2411,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                 BL_ASSERT(send_size[j] > 0);
 
                 send_reqs[j] = ParallelDescriptor::Asend
-                    (send_data[j],send_size[j],send_rank[j],SeqNum).req();
+                    (send_data[j], send_size[j],
+                     ParallelContext::global_to_local_rank(send_rank[j]),
+                     SeqNum,
+                     ParallelContext::Communicator()).req();
 
                 ++send_counter;
             }
@@ -2458,7 +2476,7 @@ FabArray<FAB>::FillBoundary_finish ()
 {
     if ( n_grow <= 0 && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
 
-    if (ParallelDescriptor::NProcs() == 1) return;
+    if (ParallelContext::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
 
