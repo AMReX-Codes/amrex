@@ -201,15 +201,24 @@ MLMG::oneIter (int iter)
     // coarest amr level
     {
         // enforce solvability if appropriate
-        if (linop.isSingular(0)) {
-            Real npinv = 1.0 / linop.Geom(0,0).Domain().d_numPts();
-            Vector<Real> offset(ncomp);
-            for (int c = 0; c < ncomp; ++c) {
-                offset[c] = res[0][0].sum(c, true) * npinv;
+        if (linop.isSingular(0))
+        {
+            if (linop.isCellCentered())
+            {
+                Real npinv = 1.0 / linop.Geom(0,0).Domain().d_numPts();
+                Vector<Real> offset(ncomp);
+                for (int c = 0; c < ncomp; ++c) {
+                    offset[c] = res[0][0].sum(c, true) * npinv;
+                }
+                ParallelDescriptor::ReduceRealSum(offset.data(), ncomp);
+                for (int c = 0; c < ncomp; ++c) {
+                    res[0][0].plus(-offset[c], c, 1);
+                }
             }
-            ParallelDescriptor::ReduceRealSum(offset.data(), ncomp);
-            for (int c = 0; c < ncomp; ++c) {
-                res[0][0].plus(-offset[c], c, 1);
+            else
+            {
+                Real offset = getNodalSum(0, 0, res[0][0]);
+                res[0][0].plus(-offset, 0, 1);
             }
         }
 
@@ -738,13 +747,7 @@ MLMG::actualBottomSolve ()
             else
             {
                 AMREX_ASSERT_WITH_MESSAGE(ncomp==1, "ncomp > 1 not supported for singular nodal problem");
-                MultiFab one(b.boxArray(), b.DistributionMap(), ncomp, 0);
-                one.setVal(1.0);
-                const bool local = true;
-                Real s1 = linop.xdoty(amrlev, mglev, *bottom_b, one, local);
-                Real s2 = linop.xdoty(amrlev, mglev, one, one, local);
-                ParallelAllReduce::Sum<Real>({s1,s2}, linop.BottomCommunicator());
-                offset[0] = s1/s2;
+                offset[0] = getNodalSum(amrlev, mglev, *bottom_b);
             }
 
             for (int c = 0; c < ncomp; ++c) {
@@ -924,21 +927,31 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     // enforce solvability if appropriate
     if (linop.isSingular(0))
     {
-        Real npinv = 1.0 / linop.Geom(0,0).Domain().d_numPts();
-        Vector<Real> offset(ncomp);
-        for (int c = 0; c < ncomp; ++c) {
-            offset[c] = rhs[0].sum(c,true) * npinv;
-        }
-        ParallelDescriptor::ReduceRealSum(offset.data(), ncomp);
-        if (verbose >= 4) {
+        if (linop.isCellCentered())
+        {
+            Real npinv = 1.0 / linop.Geom(0,0).Domain().d_numPts();
+            Vector<Real> offset(ncomp);
             for (int c = 0; c < ncomp; ++c) {
-                amrex::Print() << "MLMG: Subtracting " << offset[c] 
-                               << " from rhs component " << c << "\n";
+                offset[c] = rhs[0].sum(c,true) * npinv;
+            }
+            ParallelDescriptor::ReduceRealSum(offset.data(), ncomp);
+            if (verbose >= 4) {
+                for (int c = 0; c < ncomp; ++c) {
+                    amrex::Print() << "MLMG: Subtracting " << offset[c] 
+                                   << " from rhs component " << c << "\n";
+                }
+            }
+            for (int alev = 0; alev < namrlevs; ++alev) {
+                for (int c = 0; c < ncomp; ++c) {
+                    rhs[alev].plus(-offset[c], c, 1);
+                }
             }
         }
-        for (int alev = 0; alev < namrlevs; ++alev) {
-            for (int c = 0; c < ncomp; ++c) {
-                rhs[alev].plus(-offset[c], c, 1);
+        else
+        {
+            Real offset = getNodalSum(0, 0, rhs[0]);
+            for (int alev = 0; alev < namrlevs; ++alev) {
+                rhs[alev].plus(-offset, 0, 1);
             }
         }
     }
@@ -1215,6 +1228,18 @@ MLMG::averageDownAndSync ()
             linop.nodalSync(falev-1, 0, cmf);
         }
     }
+}
+
+Real
+MLMG::getNodalSum (int amrlev, int mglev, MultiFab& mf) const
+{
+    MultiFab one(mf.boxArray(), mf.DistributionMap(), 1, 0);
+    one.setVal(1.0);
+    const bool local = true;
+    Real s1 = linop.xdoty(amrlev, mglev, mf, one, local);
+    Real s2 = linop.xdoty(amrlev, mglev, one, one, local);
+    ParallelAllReduce::Sum<Real>({s1,s2}, linop.Communicator(amrlev,mglev));
+    return s1/s2;
 }
 
 void

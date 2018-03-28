@@ -51,6 +51,7 @@ list ( APPEND ALLHEADERS AMReX_MLNodeLaplacian.H )
 list ( APPEND CXXSRC     AMReX_MLNodeLaplacian.cpp )
 list ( APPEND ALLHEADERS AMReX_MLNodeLap_F.H )
 list ( APPEND F90SRC     AMReX_MLNodeLap_${DIM}d.F90 )
+list ( APPEND F90SRC     AMReX_MLNodeLap_nd.F90 )
 
 # 
 # Collect sources

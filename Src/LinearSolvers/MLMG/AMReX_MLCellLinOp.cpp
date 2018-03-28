@@ -526,9 +526,9 @@ MLCellLinOp::reflux (int crse_amrlev,
             if (fluxreg.FineHasWork(mfi))
             {
                 const Box& tbx = mfi.tilebox();
-                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
-                             flux[1].resize(amrex::surroundingNodes(tbx,1));,
-                             flux[2].resize(amrex::surroundingNodes(tbx,2)););
+                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
+                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
+                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
                 const int face_only = true;
                 FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], face_only);
                 fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            

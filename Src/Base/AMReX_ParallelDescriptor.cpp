@@ -402,6 +402,8 @@ ParallelDescriptor::StartParallel (int*    argc,
     if ( ! sflag) {
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
         call_mpi_finalize = 1;
+    } else {
+        call_mpi_finalize = 0;
     }
     
     BL_MPI_REQUIRE( MPI_Comm_dup(mpi_comm, &m_comm_all) );
@@ -444,15 +446,21 @@ ParallelDescriptor::EndParallel ()
     if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
     }
+    m_group_comp = MPI_GROUP_NULL;
     if(m_comm_comp != MPI_COMM_NULL && m_comm_comp != m_comm_all) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
     }
+    m_comm_comp = MPI_COMM_NULL;
     if(m_group_all != MPI_GROUP_NULL) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_all) );
+      m_group_all = MPI_GROUP_NULL;
     }
     if(m_comm_all != MPI_COMM_NULL) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_all) );
+      m_comm_all = MPI_COMM_NULL;
     }
+
+    ParallelDescriptor::SeqNum(2, m_MinTag);
 
     if (call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Finalize() );
@@ -656,12 +664,11 @@ ParallelDescriptor::SetNProcsSidecars (const Vector<int> &compRanksInAll,
     // ---- free existing groups and communicators and reinitialize values
     if(m_comm_comp != MPI_COMM_NULL && m_comm_comp != m_comm_all) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
-      m_comm_comp = MPI_COMM_NULL;
     }
+    m_comm_comp = MPI_COMM_NULL;
     for(int i(0); i < m_comm_sidecar.size(); ++i) {
       if(m_comm_sidecar[i] != MPI_COMM_NULL) {
         BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sidecar[i]) );
-        m_comm_sidecar[i] = MPI_COMM_NULL;
       }
     }
     m_comm_sidecar.clear();
@@ -682,13 +689,13 @@ ParallelDescriptor::SetNProcsSidecars (const Vector<int> &compRanksInAll,
 
     if(m_comm_sub != MPI_COMM_NULL && m_comm_sub != commTemp) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sub) );
-      m_comm_sub = MPI_COMM_NULL;
     }
+    m_comm_sub = MPI_COMM_NULL;
 
     if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
-      m_group_comp = MPI_GROUP_NULL;
     }
+    m_group_comp = MPI_GROUP_NULL;
     for(int i(0); i < m_group_sidecar.size(); ++i) {
       if(m_group_sidecar[i] != MPI_GROUP_NULL) {
         BL_MPI_REQUIRE( MPI_Group_free(&m_group_sidecar[i]) );
@@ -710,7 +717,6 @@ ParallelDescriptor::SetNProcsSidecars (const Vector<int> &compRanksInAll,
       int* castptr = (int*)compRanksInAll.dataPtr();
       BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, compRanksInAll.size(), castptr, &m_group_comp) );
       BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp) );
-
       for(int i(0); i < sidecarRanksInAll.size(); ++i) {
 	if(sidecarRanksInAll[i].size() > 0) {
           int* castptr2 = (int*)sidecarRanksInAll[i].dataPtr();
@@ -944,9 +950,9 @@ ParallelDescriptor::EndSubCommunicator ()
     if (m_nCommColors > 1) {
       if(m_comm_sub != MPI_COMM_NULL && m_comm_sub != Communicator()) {
 	BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sub) );
-        m_comm_sub = MPI_COMM_NULL;
       }
     }
+    m_comm_sub = MPI_COMM_NULL;
 }
 
 double
@@ -2269,17 +2275,15 @@ ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
 void
 ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
                              int &index,
-                             Vector<MPI_Status>& status)
+                             MPI_Status& status)
 {
-    BL_ASSERT(status.size() >= reqs.size());
-
     BL_PROFILE_S("ParallelDescriptor::Waitany()");
-    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[0], status[0], true);
+    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[0], status, true);
     BL_MPI_REQUIRE( MPI_Waitany(reqs.size(),
                                 reqs.dataPtr(),
                                 &index,
-                                status.dataPtr()) );
-    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[index], status[index], false);
+                                &status) );
+    BL_COMM_PROFILE_WAIT(BLProfiler::Waitany, reqs[index], status, false);
 }
 
 void
@@ -2523,7 +2527,7 @@ ParallelDescriptor::Waitall (Vector<MPI_Request>& reqs,
 void
 ParallelDescriptor::Waitany (Vector<MPI_Request>& reqs,
                              int &index,
-                             Vector<MPI_Status>& status)
+                             MPI_Status& status)
 {}
 
 void

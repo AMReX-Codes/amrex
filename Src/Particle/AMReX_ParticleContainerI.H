@@ -1913,13 +1913,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     amrex::Print() << "Particle::Checkpoint: pdir levelDirectoriesCreated = "
                    << pdir << "  " << levelDirectoriesCreated << '\n';
     if ( ! levelDirectoriesCreated) {
-      if (ParallelDescriptor::IOProcessor()) {
-        amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:0:  creating directory:  "
-	               << pdir << '\n';
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755)) {
+      if (ParallelDescriptor::IOProcessor()) 
+        if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
             amrex::CreateDirectoryFailed(pdir);
-	}
-      }
       // Force other processors to wait until directory is built.
       ParallelDescriptor::Barrier();
     }
@@ -2087,13 +2083,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 	    
 	    if ( ! levelDirectoriesCreated) {
-              if (ParallelDescriptor::IOProcessor()) {
-                amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:1:  creating directory:  "
-		               << LevelDir << '\n';
-	        if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
+              if (ParallelDescriptor::IOProcessor()) 
+	        if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) 
 		  amrex::CreateDirectoryFailed(LevelDir);
-	        }
-	      }
               //
               // Force other processors to wait until directory is built.
               //
@@ -2191,8 +2183,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     if (cnt[i] == 0)
                     {
                         std::string FullFileName = NFilesIter::FileName(i, filePrefix);
-			amrex::Print() << "::IOIOIOIO:  Unlinking file:  "<< FullFileName << '\n';
-
                         amrex::UnlinkFile(FullFileName.c_str());
                     }
                 }
@@ -2319,9 +2309,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           for(int i(0), N = cnt.size(); i < N; ++i) {
             if(cnt[i] == 0) {
               std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
-	      std::cout << ParallelDescriptor::MyProc() << "::IOIOIOIO:  Unlinking file:  "
-	                << FullFileName << '\n';
-
               amrex::UnlinkFile(FullFileName.c_str());
             }
           }
