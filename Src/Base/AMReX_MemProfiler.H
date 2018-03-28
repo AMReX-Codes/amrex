@@ -30,6 +30,8 @@ public:
 
     static void report (const std::string& prefix = std::string());
 
+    static void Finalize ();
+
 private:
 
     MemProfiler (const MemProfiler&) = delete;
