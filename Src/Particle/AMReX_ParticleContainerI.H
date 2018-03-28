@@ -1511,14 +1511,19 @@ namespace {
     long doHandShakeLocal(const std::map<int, Vector<char> >& not_ours,
                           const Vector<int>& neighbor_procs, Vector<long>& Snds, Vector<long>& Rcvs)
     {
-        long NumSnds = CountSnds(not_ours, Snds);
-        if (NumSnds == 0) return NumSnds;
+
+        long NumSnds = 0;        
+        for (const auto& kv : not_ours)
+        {
+            NumSnds       += kv.second.size();
+            Snds[kv.first] = kv.second.size();
+        }
+
+        const int SeqNum = ParallelDescriptor::SeqNum();
         
         const int num_rcvs = neighbor_procs.size();
         Vector<MPI_Status>  stats(num_rcvs);
         Vector<MPI_Request> rreqs(num_rcvs);
-        
-        const int SeqNum = ParallelDescriptor::SeqNum();
         
         // Post receives
         for (int i = 0; i < num_rcvs; ++i) {
@@ -1608,7 +1613,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
+
     const int NProcs = ParallelDescriptor::NProcs();
+    const int NNeighborProcs = neighbor_procs.size();
     
     // We may now have particles that are rightfully owned by another CPU.
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
@@ -1623,8 +1630,23 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     else {
         NumSnds = doHandShake(not_ours, Snds, Rcvs);
     }
-    if (NumSnds == 0)
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+    
+    if ((not local) and NumSnds == 0)
         return;  // There's no parallel work to do.
+
+    if (local) {
+        long tot_snds_this_proc = 0;
+        long tot_rcvs_this_proc = 0;
+        for (int i = 0; i < NNeighborProcs; ++i) {
+            tot_snds_this_proc += Snds[neighbor_procs[i]];
+            tot_rcvs_this_proc += Rcvs[neighbor_procs[i]];
+        }
+        if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) ) {
+            return; // There's no parallel work to do.
+        } 
+    }
 
     Vector<int> RcvProc;
     Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
@@ -1641,8 +1663,6 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     const int nrcvs = RcvProc.size();
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
-    
-    const int SeqNum = ParallelDescriptor::SeqNum();
     
     // Allocate data for rcvs as one big chunk.
     Vector<char> recvdata(TotRcvBytes);
