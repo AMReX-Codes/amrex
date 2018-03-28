@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 # This is a script that analyses the simulation results from
 # the script `inputs.multi.rt`. This simulates a 3D periodic plasma wave.
 # The electric field in the simulation is given (in theory) by:
@@ -66,6 +68,7 @@ for iteration in range(0,40,5):
                                         dims=ds.domain_dimensions)
 
     # Check the validity of the fields
+    overall_max_error = 0
     if iteration != 0:
         print('Checking fields at iteration %d' %iteration)
 
@@ -74,17 +77,33 @@ for iteration in range(0,40,5):
             E_th = get_theoretical_field(field, t0)
             max_error = abs(E_sim-E_th).max()/abs(E_th).max()
             print('Max error: %.2e' %max_error)
-            assert max_error < 0.2
+            overall_max_error = max( overall_max_error, max_error )
 
+            # Collect fields for the time-evolution plot
             t.append( t0 )
             Eval_sim.append( E_sim[5,5,5] )
             Eval_th.append( E_th[5,5,5])
 
-#np.save('E_sim.npy', np.array(Eval_sim))
-#np.save('E_th.npy', np.array(Eval_th))
-
+# Save figure that summarizes the simulation
 plt.clf()
+plt.subplot2grid( (2,2), (0,0), colspan=2 )
 plt.plot( t, Eval_sim, label='Simulation' )
 plt.plot( t, Eval_th, label='Theory' )
+plt.title('Time evolution at a given point')
 plt.legend(loc=0)
-plt.savefig('Compare_with_theory.png')
+plt.xlabel('Time (s)')
+plt.ylabel('Ez (V/m)')
+# Plot the last field from the loop (Ez at iteration 40)
+plt.subplot2grid( (2,2), (1,0) )
+plt.imshow( E_sim[:,:,32] )
+plt.colorbar()
+plt.title('Ez, last iteration\n(simulation)')
+plt.subplot2grid( (2,2), (1,1) )
+plt.imshow( E_th[:,:,32] )
+plt.colorbar()
+plt.title('Ez, last iteration\n(theory)')
+plt.tight_layout()
+plt.savefig('langmuir_analysis.png')
+
+# Automatically check the validity
+assert overall_max_error < 0.15
