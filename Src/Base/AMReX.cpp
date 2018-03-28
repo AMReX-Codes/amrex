@@ -91,7 +91,7 @@ amrex::write_to_stderr_without_buffering (const char* str)
     if (str)
     {
 	std::ostringstream procall;
-	procall << ParallelContext::MyProcAll() << "::";
+	procall << ParallelDescriptor::MyProc() << "::";
 	const char *cprocall = procall.str().c_str();
         const char * const end = " !!!\n";
 	fwrite(cprocall, strlen(cprocall), 1, stderr);

@@ -134,7 +134,7 @@ namespace ParallelDescriptor
     inline int
     MyProc ()
     {
-        return ParallelContext::MyProc();
+        return ParallelContext::MyProcAll();
     }
     inline int
     MyProc (MPI_Comm comm)
@@ -234,7 +234,7 @@ namespace ParallelDescriptor
     inline int
     NProcs ()
     {
-        return ParallelContext::NProcs();
+        return ParallelContext::NProcsAll();
     }
     /**
     * \brief The MPI rank number of the I/O Processor (probably rank 0).
@@ -388,7 +388,7 @@ namespace ParallelDescriptor
     //! Returns the "local" communicator
     inline MPI_Comm Communicator ()         
     {
-        return ParallelContext::Communicator();
+        return m_comm;
     }
 
     void Barrier (const std::string& message = Unnamed);
