@@ -1,10 +1,12 @@
+#! /usr/bin/env python
+
 # This is a script that analyses the simulation results from
 # the script `inputs.multi.rt`. This simulates a 3D periodic plasma wave.
 # The electric field in the simulation is given (in theory) by:
 # $$ E_x = -\epsilon \,\frac{m_e c^2 k_x}{q_e}\cos(k_x x)\sin(k_y y)\sin(k_z z)\sin( \omega_p t)$$
 # $$ E_y = -\epsilon \,\frac{m_e c^2 k_y}{q_e}\sin(k_x x)\cos(k_y y)\sin(k_z z)\sin( \omega_p t)$$
 # $$ E_z = -\epsilon \,\frac{m_e c^2 k_z}{q_e}\sin(k_x x)\sin(k_y y)\cos(k_z z)\sin( \omega_p t)$$
-
+import sys
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -12,6 +14,9 @@ import yt
 yt.funcs.mylog.setLevel(50)
 import numpy as np
 from scipy.constants import e, m_e, epsilon_0, c
+
+# this will be the name of the plot file
+fn = sys.argv[1]
 
 # Parameters (these parameters must match the parameters in `inputs.multi.rt`)
 epsilon = 0.01
@@ -54,37 +59,32 @@ def get_theoretical_field( field, t ):
 
     return( E )
 
-# Get the time evolution of the plasma wave at a given point
-t = []
-Eval_sim = []
-Eval_th = []
-for iteration in range(0,40,5):
-    # Read the fields
-    ds = yt.load('./plt%05d/' %iteration)
-    t0 = ds.current_time.to_ndarray().mean()
-    data = ds.covering_grid(level=0, left_edge=ds.domain_left_edge,
-                                        dims=ds.domain_dimensions)
+# Read the file
+ds = yt.load(fn)
+t0 = ds.current_time.to_ndarray().mean()
+data = ds.covering_grid(level=0, left_edge=ds.domain_left_edge,
+                                    dims=ds.domain_dimensions)
 
-    # Check the validity of the fields
-    if iteration != 0:
-        print('Checking fields at iteration %d' %iteration)
+# Check the validity of the fields
+overall_max_error = 0
+for field in ['Ex', 'Ey', 'Ez']:
+    E_sim = data[field].to_ndarray()
+    E_th = get_theoretical_field(field, t0)
+    max_error = abs(E_sim-E_th).max()/abs(E_th).max()
+    print('%s: Max error: %.2e' %(field,max_error))
+    overall_max_error = max( overall_max_error, max_error )
 
-        for field in ['Ex', 'Ey', 'Ez']:
-            E_sim = data[field].to_ndarray()
-            E_th = get_theoretical_field(field, t0)
-            max_error = abs(E_sim-E_th).max()/abs(E_th).max()
-            print('Max error: %.2e' %max_error)
-            assert max_error < 0.2
+# Plot the last field from the loop (Ez at iteration 40)
+plt.subplot2grid( (1,2), (0,0) )
+plt.imshow( E_sim[:,:,32] )
+plt.colorbar()
+plt.title('Ez, last iteration\n(simulation)')
+plt.subplot2grid( (1,2), (0,1) )
+plt.imshow( E_th[:,:,32] )
+plt.colorbar()
+plt.title('Ez, last iteration\n(theory)')
+plt.tight_layout()
+plt.savefig('langmuir_analysis.png')
 
-            t.append( t0 )
-            Eval_sim.append( E_sim[5,5,5] )
-            Eval_th.append( E_th[5,5,5])
-
-#np.save('E_sim.npy', np.array(Eval_sim))
-#np.save('E_th.npy', np.array(Eval_th))
-
-plt.clf()
-plt.plot( t, Eval_sim, label='Simulation' )
-plt.plot( t, Eval_th, label='Theory' )
-plt.legend(loc=0)
-plt.savefig('Compare_with_theory.png')
+# Automatically check the validity
+assert overall_max_error < 0.1
