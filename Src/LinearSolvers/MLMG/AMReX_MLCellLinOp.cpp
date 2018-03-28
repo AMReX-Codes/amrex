@@ -531,7 +531,7 @@ MLCellLinOp::reflux (int crse_amrlev,
                              flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
                 const int face_only = true;
                 FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], face_only);
-		fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);  // <<< Problem occurs here (cpflux has wrong number of components, does not match YAFluxRegister.m_cfpatch)
+                fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
             }
         }
     }
