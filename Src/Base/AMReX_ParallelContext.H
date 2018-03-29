@@ -40,11 +40,11 @@ inline int NProcsAll () { return frames[0].NProcs(); }
 inline int MyProcAll () { return frames[0].MyProc(); }
 
 // sub-communicator for current frame
-inline MPI_Comm Communicator () { return frames.back().comm; }
+inline MPI_Comm CommunicatorTop () { return frames.back().comm; }
 // number of ranks in current frame
-inline int NProcs () { return frames.back().NProcs(); }
+inline int NProcsTop () { return frames.back().NProcs(); }
 // my sub-rank in current frame
-inline int MyProc () { return frames.back().MyProc(); }
+inline int MyProcTop () { return frames.back().MyProc(); }
 
 // get and increment mpi tag in current frame
 inline int get_inc_mpi_tag () { return frames.back().get_inc_mpi_tag(); }
