@@ -37,6 +37,8 @@ Frame::local_to_global_rank (int* global, const int* local, int n) const
         MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
         MPI_Comm_group(ParallelContext::CommunicatorTop(), &lgroup);
         MPI_Group_translate_ranks(lgroup, n, local, ggroup, global);
+        MPI_Group_free(&ggroup);
+        MPI_Group_free(&lgroup);
     }
     else
     {
@@ -65,6 +67,8 @@ Frame::global_to_local_rank (int* local, const int* global, int n) const
         MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
         MPI_Comm_group(ParallelContext::CommunicatorTop(), &lgroup);
         MPI_Group_translate_ranks(ggroup, n, global, lgroup, local);
+        MPI_Group_free(&ggroup);
+        MPI_Group_free(&lgroup);
     }
     else
     {
