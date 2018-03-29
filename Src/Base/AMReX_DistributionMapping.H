@@ -50,6 +50,7 @@ class DistributionMapping
     * \brief Create an object with the specified mapping.
     */
     explicit DistributionMapping (const Vector<int>& pmap);
+    explicit DistributionMapping (Vector<int>&& pmap);
     //! Build mapping out of BoxArray over nprocs processors.
     explicit DistributionMapping (const BoxArray& boxes,
 				  int nprocs = ParallelDescriptor::NProcs());
@@ -83,6 +84,7 @@ class DistributionMapping
     * built your DistributionMapping with the default constructor.
     */
     void define (const Vector<int>& pmap);
+    void define (Vector<int>&& pmap);
     /**
     * \brief Returns a constant reference to the mapping of boxes in the
     * underlying BoxArray to the CPU that holds the FAB on that Box.
@@ -229,6 +231,8 @@ private:
         explicit Ref (int len) : m_pmap(len) {}
 
         explicit Ref (const Vector<int>& pmap) : m_pmap(pmap) {}
+
+        explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
 
 	//! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 

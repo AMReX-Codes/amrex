@@ -20,7 +20,7 @@ Frame::Frame (MPI_Comm c)
 #endif
 }
 
-Frame::Frame (Frame && rhs)
+Frame::Frame (Frame && rhs) noexcept
     : comm     (rhs.comm),
       group    (rhs.group),
       m_rank_me(rhs.m_rank_me),
