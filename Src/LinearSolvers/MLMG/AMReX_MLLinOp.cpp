@@ -380,7 +380,7 @@ MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
                     pmap[ibox] = grank;
                 }
             }
-            dm[i].define(pmap);
+            dm[i].define(std::move(pmap));
         }
     }
 }
@@ -430,11 +430,11 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
             }
 
             if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
-                dm[i].define(pmap);
+                dm[i].define(std::move(pmap));
             } else {
                 Vector<int> pmap_g(pmap.size());
                 ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
-                dm[i].define(pmap_g);
+                dm[i].define(std::move(pmap_g));
             }
         }
     }

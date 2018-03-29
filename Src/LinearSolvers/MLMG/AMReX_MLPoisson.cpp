@@ -280,7 +280,7 @@ MLPoisson::makeNLinOp (int grid_size) const
                 pmap[ibox] = iproc;
             }
         }
-        dm.define(pmap);
+        dm.define(std::move(pmap));
     }
 
     LPInfo minfo{};
