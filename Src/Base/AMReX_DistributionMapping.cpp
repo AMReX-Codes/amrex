@@ -335,10 +335,15 @@ DistributionMapping::DistributionMapping (DistributionMapping&& rhs) noexcept
 {
 }
 
-
 DistributionMapping::DistributionMapping (const Vector<int>& pmap)
     :
     m_ref(std::make_shared<Ref>(pmap))
+{
+}
+
+DistributionMapping::DistributionMapping (Vector<int>&& pmap)
+    :
+    m_ref(std::make_shared<Ref>(std::move(pmap)))
 {
 }
 
@@ -375,6 +380,12 @@ void
 DistributionMapping::define (const Vector<int>& pmap)
 {
     m_ref->m_pmap = pmap;
+}
+
+void
+DistributionMapping::define (Vector<int>&& pmap)
+{
+    m_ref->m_pmap = std::move(pmap);
 }
 
 DistributionMapping::~DistributionMapping () { }

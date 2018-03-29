@@ -13,7 +13,7 @@ public:
 
     explicit Frame (MPI_Comm c);
     Frame (Frame const&) = delete;
-    Frame (Frame && rhs);
+    Frame (Frame && rhs) noexcept;
     ~Frame ();
 
     int MyProc () const { return m_rank_me; }
