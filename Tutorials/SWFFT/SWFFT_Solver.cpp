@@ -27,7 +27,6 @@ SWFFT_Solver::SWFFT_Solver ()
 
         // Read in n_cell.  Use defaults if not explicitly defined.
         int cnt = pp.countval("n_cell");
-        std::cout << "cnt " << std::endl;
         if (cnt > 1) {
             Vector<int> ncs;
             pp.getarr("n_cell",ncs);
@@ -39,7 +38,6 @@ SWFFT_Solver::SWFFT_Solver ()
         } else {
            n_cell = IntVect{32,32,32};
         }
-        std::cout << "N_CELL " << n_cell << std::endl;
 
         // Read in max_grid_size.  Use defaults if not explicitly defined.
         cnt = pp.countval("max_grid_size");
@@ -60,6 +58,9 @@ SWFFT_Solver::SWFFT_Solver ()
     
     BoxArray ba;
     {
+        // Make up a dx that is not 1
+        Real dx = 0.1;
+
         IntVect dom_lo(0,0,0);
         IntVect dom_hi(n_cell[0]-1,n_cell[1]-1,n_cell[2]-1);
         Box domain(dom_lo,dom_hi);
@@ -67,7 +68,10 @@ SWFFT_Solver::SWFFT_Solver ()
         ba.maxSize(max_grid_size);
 
         // We assume a unit box (just for convenience)
-        RealBox real_box({0.0,0.0,0.0}, {1.0,1.0,1.0});
+        Real x_hi = n_cell[0]*dx;
+        Real y_hi = n_cell[1]*dx;
+        Real z_hi = n_cell[2]*dx;
+        RealBox real_box({0.0,0.0,0.0}, {x_hi,y_hi,z_hi});
 
         // The FFT assumes fully periodic boundaries
         std::array<int,3> is_periodic {1,1,1};
@@ -93,13 +97,15 @@ void
 SWFFT_Solver::init_rhs ()
 {
     const Real* dx = geom.CellSize();
+    Box domain(geom.Domain());
 
     for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
         fort_init_rhs(BL_TO_FORTRAN_BOX(tbx),
                       BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                      dx);
+                      BL_TO_FORTRAN_BOX(domain),
+                      geom.ProbLo(), geom.ProbHi(), dx);
     }
 
     Real sum_rhs = rhs.sum();
@@ -110,10 +116,15 @@ void
 SWFFT_Solver::comp_the_solution ()
 {
     const Real* dx = geom.CellSize();
+    Box domain(geom.Domain());
 
     for (MFIter mfi(the_soln); mfi.isValid(); ++mfi)
     {
-        fort_comp_asol(BL_TO_FORTRAN_ANYD(the_soln[mfi]),dx);
+        const Box& tbx = mfi.tilebox();
+        fort_comp_asol(BL_TO_FORTRAN_BOX(tbx),
+                       BL_TO_FORTRAN_ANYD(the_soln[mfi]),
+                       BL_TO_FORTRAN_BOX(domain),
+                       geom.ProbLo(), geom.ProbHi(), dx);
     }
 }
 
@@ -121,8 +132,7 @@ void
 SWFFT_Solver::solve ()
 {
     const BoxArray& ba = soln.boxArray();
-    std::cout << "BA " << ba << std::endl;
-    exit(0);
+    amrex::Print() << "BA " << ba << std::endl;
     const DistributionMapping& dm = soln.DistributionMap();
 
     // If true the write out the multifabs for rhs, soln and exact_soln
@@ -160,12 +170,12 @@ SWFFT_Solver::solve ()
         int j = ba[ib].smallEnd(1) / ny;
         int k = ba[ib].smallEnd(2) / nz;
 
-        // This would be the "correct" local index if the data was
+        // This would be the "correct" local index if the data wasn't being transformed
         // int local_index = k*nbx*nby + j*nbx + i;
 
         // This is what we pass to dfft to compensate for the Fortran ordering
         //      of amrex data in MultiFabs.
-        int local_index = k*nbx*nby + j*nbx + i;
+        int local_index = i*nby*nbz + j*nbz + k;
 
         rank_mapping[local_index] = dmap[ib];
         if (verbose)
@@ -173,17 +183,15 @@ SWFFT_Solver::solve ()
                          << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
     }
 
-    if (verbose)
-      for (int ib = 0; ib < nboxes; ++ib)
-        amrex::Print() << "GRID IB " << ib << " IS ON RANK " << rank_mapping[ib] << std::endl;
-
     int n = domain.length(0);
-    Real hsq = 1. / (n*n);
+
+    Real h = geom.CellSize(0);
+    Real hsq = h*h;
 
     Real start_time = amrex::second();
 
     // Assume for now that nx = ny = nz
-    int Ndims[3] = { nbx, nby, nbz };
+    int Ndims[3] = { nbz, nby, nbx };
     hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
     hacc::Dfft dfft(d);
     
@@ -205,9 +213,9 @@ SWFFT_Solver::solve ()
        // put into C++ ordering (not Fortran)
        complex_t zero(0.0, 0.0);
        size_t local_indx = 0;
-       for(size_t i=0; i<(size_t)nx; i++) {
+       for(size_t k=0; k<(size_t)nz; k++) {
         for(size_t j=0; j<(size_t)ny; j++) {
-         for(size_t k=0; k<(size_t)nz; k++) {
+         for(size_t i=0; i<(size_t)nx; i++) {
 
            complex_t temp(rhs[mfi].dataPtr()[local_indx],0.);
            a[local_indx] = temp;
@@ -261,9 +269,9 @@ SWFFT_Solver::solve ()
        double fac = hsq / global_size;
 
        local_indx = 0;
-       for(size_t i=0; i<(size_t)nx; i++) {
+       for(size_t k=0; k<(size_t)nz; k++) {
         for(size_t j=0; j<(size_t)ny; j++) {
-         for(size_t k=0; k<(size_t)nz; k++) {
+         for(size_t i=0; i<(size_t)nx; i++) {
 
            // Divide by 2 pi N
            soln[mfi].dataPtr()[local_indx] = fac * std::real(a[local_indx]);
