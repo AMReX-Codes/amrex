@@ -5,10 +5,10 @@
 #include <AMReX_MultiFab.H>
 
 // We solve Lap(soln) = rhs
-class SWFFT_Solver
+class SWFFT_Test
 {
 public:
-    SWFFT_Solver ();
+    SWFFT_Test ();
 
     void solve ();
 
