@@ -337,7 +337,14 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
     
-    MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+    if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
+        MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+    } else {
+        Vector<int> local_newgrp_ranks(newgrp_ranks.size());
+        ParallelContext::global_to_local_rank(local_newgrp_ranks.data(),
+                                              newgrp_ranks.data(), newgrp_ranks.size());
+        MPI_Group_incl(defgrp, local_newgrp_ranks.size(), local_newgrp_ranks.data(), &newgrp);
+    }
 
     MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
     m_raii_comm.reset(new CommContainer(newcomm));
@@ -355,8 +362,6 @@ void
 MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm)
 {
     BL_PROFILE("MLLinOp::makeAgglomeratedDMap");
-
-    amrex::AllPrint() << "xxxxx makeAgglomeratedDMap begin\n";
 
     BL_ASSERT(!dm[0].empty());
     for (int i = 1, N=ba.size(); i < N; ++i)
@@ -423,9 +428,14 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
                     x /= ratio;
                 }
             }
-            Vector<int> pmap_g(pmap.size());
-            ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
-            dm[i].define(pmap_g);
+
+            if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
+                dm[i].define(pmap);
+            } else {
+                Vector<int> pmap_g(pmap.size());
+                ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
+                dm[i].define(pmap_g);
+            }
         }
     }
 }
