@@ -47,7 +47,7 @@ namespace {
             slice_to_full_ba_map.push_back(isects[i].first);
         }
         BoxArray slice_ba(&boxes[0], boxes.size());
-        DistributionMapping slice_dmap(procs);
+        DistributionMapping slice_dmap(std::move(procs));
         std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, ncomp, 0,
                                                      MFInfo(), cell_centered_data.Factory()));
         return slice;

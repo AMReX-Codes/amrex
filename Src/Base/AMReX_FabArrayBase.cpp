@@ -1113,7 +1113,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 
     if (!iprocs.empty()) {
 	ba_crse_patch.define(bl);
-	dm_crse_patch.define(iprocs);
+	dm_crse_patch.define(std::move(iprocs));
 #ifdef AMREX_USE_EB
         fact_crse_patch.reset(new EBFArrayBoxFactory(Geometry(cdomain),
                                                      ba_crse_patch,
@@ -1273,7 +1273,7 @@ FabArrayBase::CFinfo::CFinfo (const FabArrayBase& finefa,
     if (!iprocs.empty())
     {
         ba_cfb.define(bl);
-        dm_cfb.define(iprocs);
+        dm_cfb.define(std::move(iprocs));
     }
 }
 
