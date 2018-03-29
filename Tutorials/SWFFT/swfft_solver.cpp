@@ -69,7 +69,6 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
                          << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
     }
 
-    int n = domain.length(0);
 
     Real h = geom.CellSize(0);
     Real hsq = h*h;
@@ -78,6 +77,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 
     // Assume for now that nx = ny = nz
     int Ndims[3] = { nbz, nby, nbx };
+    int     n[3] = {domain.length(2), domain.length(1), domain.length(0)};
     hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
     hacc::Dfft dfft(d);
     
@@ -116,7 +116,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 //  *******************************************
 //  Compute the forward transform
 //  *******************************************
-    dfft.forward(&a[0]);
+       dfft.forward(&a[0]);
 
 //  *******************************************
 //  Now divide the coefficients of the transform
