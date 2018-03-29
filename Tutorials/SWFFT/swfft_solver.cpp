@@ -15,7 +15,7 @@
 using namespace amrex;
 
 void
-solver_itself(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
+swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 {
     const BoxArray& ba = soln.boxArray();
     amrex::Print() << "BA " << ba << std::endl;
