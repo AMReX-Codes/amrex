@@ -1,7 +1,4 @@
 
-#include <SWFFT_Solver.H>
-#include <SWFFT_Solver_F.H>
-
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_ParmParse.H>
@@ -17,126 +14,15 @@
 
 using namespace amrex;
 
-SWFFT_Solver::SWFFT_Solver ()
-{
-    static_assert(AMREX_SPACEDIM == 3, "3D only");
-
-    // runtime parameters
-    {
-        ParmParse pp;
-
-        // Read in n_cell.  Use defaults if not explicitly defined.
-        int cnt = pp.countval("n_cell");
-        if (cnt > 1) {
-            Vector<int> ncs;
-            pp.getarr("n_cell",ncs);
-            n_cell = IntVect{ncs[0],ncs[1],ncs[2]};
-        } else if (cnt > 0) {
-            int ncs;
-            pp.get("n_cell",ncs);
-            n_cell = IntVect{ncs,ncs,ncs};
-        } else {
-           n_cell = IntVect{32,32,32};
-        }
-
-        // Read in max_grid_size.  Use defaults if not explicitly defined.
-        cnt = pp.countval("max_grid_size");
-        if (cnt > 1) {
-            Vector<int> mgs;
-            pp.getarr("max_grid_size",mgs);
-            max_grid_size = IntVect{mgs[0],mgs[1],mgs[2]};
-        } else if (cnt > 0) {
-            int mgs;
-            pp.get("max_grid_size",mgs);
-            max_grid_size = IntVect{mgs,mgs,mgs};
-        } else {
-           max_grid_size = IntVect{32,32,32};
-        }
-
-        pp.query("verbose", verbose);
-    }
-    
-    BoxArray ba;
-    {
-        // Make up a dx that is not 1
-        Real dx = 0.1;
-
-        IntVect dom_lo(0,0,0);
-        IntVect dom_hi(n_cell[0]-1,n_cell[1]-1,n_cell[2]-1);
-        Box domain(dom_lo,dom_hi);
-        ba.define(domain);
-        ba.maxSize(max_grid_size);
-
-        // We assume a unit box (just for convenience)
-        Real x_hi = n_cell[0]*dx;
-        Real y_hi = n_cell[1]*dx;
-        Real z_hi = n_cell[2]*dx;
-        RealBox real_box({0.0,0.0,0.0}, {x_hi,y_hi,z_hi});
-
-        // The FFT assumes fully periodic boundaries
-        std::array<int,3> is_periodic {1,1,1};
-
-        geom.define(domain, &real_box, CoordSys::cartesian, is_periodic.data());
-    }
-
-    // Make sure we define both the soln and the rhs with the same DistributionMapping 
-    DistributionMapping dmap{ba};
-
-    // Note that we are defining rhs with NO ghost cells
-    rhs.define(ba, dmap, 1, 0);
-    init_rhs();
-
-    // Note that we are defining soln with NO ghost cells
-    soln.define(ba, dmap, 1, 0);
-    the_soln.define(ba, dmap, 1, 0);
-
-    comp_the_solution();
-}
-
 void
-SWFFT_Solver::init_rhs ()
-{
-    const Real* dx = geom.CellSize();
-    Box domain(geom.Domain());
-
-    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
-    {
-        const Box& tbx = mfi.tilebox();
-        fort_init_rhs(BL_TO_FORTRAN_BOX(tbx),
-                      BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                      BL_TO_FORTRAN_BOX(domain),
-                      geom.ProbLo(), geom.ProbHi(), dx);
-    }
-
-    Real sum_rhs = rhs.sum();
-    amrex::Print() << "Sum of rhs over the domain is " << sum_rhs << std::endl;
-}
-
-void
-SWFFT_Solver::comp_the_solution ()
-{
-    const Real* dx = geom.CellSize();
-    Box domain(geom.Domain());
-
-    for (MFIter mfi(the_soln); mfi.isValid(); ++mfi)
-    {
-        const Box& tbx = mfi.tilebox();
-        fort_comp_asol(BL_TO_FORTRAN_BOX(tbx),
-                       BL_TO_FORTRAN_ANYD(the_soln[mfi]),
-                       BL_TO_FORTRAN_BOX(domain),
-                       geom.ProbLo(), geom.ProbHi(), dx);
-    }
-}
-
-void
-SWFFT_Solver::solve ()
+solver_itself(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 {
     const BoxArray& ba = soln.boxArray();
     amrex::Print() << "BA " << ba << std::endl;
     const DistributionMapping& dm = soln.DistributionMap();
 
-    // If true the write out the multifabs for rhs, soln and exact_soln
-    bool write_data = false;
+    if (rhs.nGrow() != 0 || soln.nGrow() != 0) 
+       amrex::Error("Current implementation requires that both rhs and soln have no ghost cells");
 
     // Define pi and (two pi) here
     Real  pi = 4 * std::atan(1.0);
@@ -209,8 +95,10 @@ SWFFT_Solver::solve ()
 
        dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
 
+       // *******************************************
        // Copy real data from Rhs into real part of a -- no ghost cells and
        // put into C++ ordering (not Fortran)
+       // *******************************************
        complex_t zero(0.0, 0.0);
        size_t local_indx = 0;
        for(size_t k=0; k<(size_t)nz; k++) {
@@ -237,10 +125,13 @@ SWFFT_Solver::solve ()
     const int *self = dfft.self_kspace();
     const int *local_ng = dfft.local_ng_kspace();
     const int *global_ng = dfft.global_ng();
+
     for(size_t i=0; i<(size_t)local_ng[0]; i++) {
      size_t global_i = local_ng[0]*self[0] + i; 
+
      for(size_t j=0; j<(size_t)local_ng[1]; j++) { 
       size_t global_j = local_ng[1]*self[1] + j;
+
       for(size_t k=0; k<(size_t)local_ng[2]; k++) {
         size_t global_k = local_ng[2]*self[2] + k;
 
@@ -281,29 +172,4 @@ SWFFT_Solver::solve ()
         }
        }
     }
-    Real total_time = amrex::second() - start_time;
-
-    if (write_data)
-    {
-       VisMF::Write(rhs,"RHS");
-       VisMF::Write(soln,"SOL_COMP");
-       VisMF::Write(the_soln,"SOL_EXACT");
-    }
-
-    if (verbose)
-    {
-       amrex::Print() << "MAX / MIN VALUE OF COMP  SOLN " <<     soln.max(0) << " " 
-                      <<     soln.min(0) << std::endl;
-       amrex::Print() << "MAX / MIN VALUE OF EXACT SOLN " << the_soln.max(0) << " " 
-                      << the_soln.min(0) << std::endl;
-    }
-
-    MultiFab diff(ba, dm, 1, 0);
-    MultiFab::Copy(diff, soln, 0, 0, 1, 0);
-    MultiFab::Subtract(diff, the_soln, 0, 0, 1, 0);
-    amrex::Print() << "\nMax-norm of the error is " << diff.norm0() << "\n";
-    amrex::Print() << "Time spent in solve: " << total_time << std::endl;
-
-    if (write_data)
-       VisMF::Write(diff,"DIFF");
 }
