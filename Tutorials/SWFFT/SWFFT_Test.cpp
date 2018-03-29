@@ -17,7 +17,7 @@
 
 using namespace amrex;
 
-void solver_itself(MultiFab& rhsn, MultiFab& soln, Geometry& geom, int verbose);
+void swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose);
 
 SWFFT_Test::SWFFT_Test ()
 {
@@ -136,7 +136,7 @@ void
 SWFFT_Test::solve ()
 {
     Real start_time = amrex::second();
-    solver_itself(rhs, soln, geom, verbose);
+    swfft_solver(rhs, soln, geom, verbose);
     Real total_time = amrex::second() - start_time;
 
     bool write_data = false;
