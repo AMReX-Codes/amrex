@@ -214,36 +214,34 @@ contains
           ! The iteration over faces is always in the order of xlo, xhi, ylo and yhi.
           ! No need to do anything for xlo and xhi, because at that time, ylo and yhi
           ! have not been filled.
-          select case (cdir)
-          case (ylo_dir)
+          if (cdir==xlo_dir .or. cdir==ylo_dir) then
              do k = lo(3), hi(3)
-                if (mask(lo(1)-1,lo(2)-1,k) .gt. 0) then
-                   phi(lo(1)-1,lo(2)-1,k,n) = & ! Southwest
-                        0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
-                        0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n))
-                end if
-
-                if (mask(hi(1)+1,lo(2)-1,k) .gt. 0) then
-                   phi(hi(1)+1,lo(2)-1,k,n) = & ! Southeast
-                        0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
-                        0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n))
-                end if
+                phi(lo(1)-1,lo(2)-1,k,n) = & ! Southwest
+                     0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
+                     0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n))
              end do
-          case (yhi_dir)
+          end if
+          if (cdir==xhi_dir .or. cdir==ylo_dir) then
              do k = lo(3), hi(3)
-                if (mask(lo(1)-1,hi(2)+1,k) .gt. 0) then
-                   phi(lo(1)-1,hi(2)+1,k,n) = & ! Northwest
-                        0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
-                        0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n))
-                end if
-
-                if (mask(hi(1)+1,hi(2)+1,k) .gt. 0) then
-                   phi(hi(1)+1,hi(2)+1,k,n) = & ! Northeast
-                        0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
-                        0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n))
-                end if
+                phi(hi(1)+1,lo(2)-1,k,n) = & ! Southeast
+                     0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
+                     0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n))
              end do
-          end select
+          end if
+          if (cdir==xlo_dir .or. cdir==yhi_dir) then
+             do k = lo(3), hi(3)
+                phi(lo(1)-1,hi(2)+1,k,n) = & ! Northwest
+                     0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
+                     0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n))
+             end do
+          end if
+          if (cdir==xhi_dir .or. cdir==yhi_dir) then
+             do k = lo(3), hi(3)
+                phi(hi(1)+1,hi(2)+1,k,n) = & ! Northeast
+                     0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
+                     0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n))
+             end do
+          end if
        end if
 #endif
 
