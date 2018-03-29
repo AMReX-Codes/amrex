@@ -192,7 +192,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::LeastUsedCPUs()");
 
-    Vector<long> bytes(ParallelDescriptor::NProcs());
+    AMREX_ASSERT(nprocs <= ParallelContext::NProcs());
+    Vector<long> bytes(ParallelContext::NProcs());
 
     long thisbyte = amrex::TotalBytesAllocatedInFabs()/1024;
 
@@ -204,7 +205,7 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
                   bytes.dataPtr(),
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
-                  ParallelDescriptor::Communicator());
+                  ParallelContext::Communicator());
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
                     BLProfiler::NoTag());
 
@@ -241,6 +242,8 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 {
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::LeastUsedTeams()");
+
+    AMREX_ALWAYS_ASSERT(ParallelContext::Communicator() == ParallelDescriptor::Communicator());
 
     Vector<long> bytes(ParallelDescriptor::NProcs());
 
@@ -381,7 +384,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                 /* nprocs */,
                                      std::vector<LIpair>* LIpairV)
 {
-    int nprocs = ParallelDescriptor::NProcs();
+    int nprocs = ParallelContext::NProcs();
 
     // If team is not use, we are going to treat it as a special case in which
     // the number of teams is nprocs and the number of workers is 1.
@@ -418,7 +421,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 	    int tid = ord[i%nteams];
 	    int wid = (w[tid]++) % nworkers;
 	    int rank = tid*nworkers + wrkerord[tid][wid];
-	    m_ref->m_pmap[(*LIpairV)[i].second] = rank;
+	    m_ref->m_pmap[(*LIpairV)[i].second] = ParallelContext::local_to_global_rank(rank);
 	}
     }
     else
@@ -428,7 +431,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 	    int tid = ord[i%nteams];
 	    int wid = (w[tid]++) % nworkers;
 	    int rank = tid*nworkers + wrkerord[tid][wid];
-	    m_ref->m_pmap[i] = rank;
+	    m_ref->m_pmap[i] = ParallelContext::local_to_global_rank(rank);
 	}
     }
 }
@@ -722,7 +725,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 {
     BL_PROFILE("DistributionMapping::KnapSackDoIt()");
 
-    int nprocs = ParallelDescriptor::NProcs();
+    int nprocs = ParallelContext::NProcs();
 
     // If team is not use, we are going to treat it as a special case in which
     // the number of teams is nprocs and the number of workers is 1.
@@ -785,7 +788,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 	if (nteams == nprocs) {
 	    for (int j = 0; j < N; ++j)
 	    {
-		m_ref->m_pmap[vi[j]] = tid;
+		m_ref->m_pmap[vi[j]] = ParallelContext::local_to_global_rank(tid);
 	    }
 	} else {
 #ifdef BL_USE_TEAM
@@ -961,7 +964,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 {
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
-    int nprocs = ParallelDescriptor::NProcs();
+    int nprocs = ParallelContext::NProcs();
 
     int nteams = nprocs;
     int nworkers = 1;
@@ -1069,7 +1072,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 	if (nteams == nprocs) { // In this case, team id is process id.
 	    for (int j = 0; j < Nbx; ++j)
 	    {
-		m_ref->m_pmap[vi[j]] = tid;
+		m_ref->m_pmap[vi[j]] = ParallelContext::local_to_global_rank(tid);
 	    }
 	} 
 	else   // We would like to do knapsack within the team workers
@@ -1226,7 +1229,7 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
 
     // Distribute boxes using roundrobin
     for (int i = 0; i < nboxes; ++i) {
-	m_ref->m_pmap[i] = ord[i%nprocs];
+	m_ref->m_pmap[i] = ParallelContext::local_to_global_rank(ord[i%nprocs]);
     }
 }
 
@@ -1257,7 +1260,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost)
         cost[i] = long(rcost[i]*scale) + 1L;
     }
 
-    int nprocs = ParallelDescriptor::NProcs();
+    int nprocs = ParallelContext::NProcs();
     Real eff;
 
     r.KnapSackProcessorMap(cost, nprocs, &eff, true);
@@ -1284,7 +1287,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
 	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
 	}
 
-	ParallelDescriptor::ReduceRealSum(&rcost[0], rcost.size());
+	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::Communicator());
 
 	Real wmax = *std::max_element(rcost.begin(), rcost.end());
 	Real scale = 1.e9/wmax;
@@ -1295,7 +1298,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
     }
 #endif
 
-    int nprocs = ParallelDescriptor::NProcs();
+    int nprocs = ParallelContext::NProcs();
     Real eff;
 
     r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
@@ -1320,7 +1323,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
 	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
 	}
 
-	ParallelDescriptor::ReduceRealSum(&rcost[0], rcost.size());
+	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::Communicator());
 
 	Real wmax = *std::max_element(rcost.begin(), rcost.end());
 	Real scale = 1.e9/wmax;
@@ -1331,7 +1334,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
     }
 #endif
 
-    int nprocs = ParallelDescriptor::NProcs();
+    int nprocs = ParallelContext::NProcs();
 
     r.RoundRobinProcessorMap(cost, nprocs);
 
@@ -1356,7 +1359,7 @@ DistributionMapping::makeSFC (const MultiFab& weight,
 	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
 	}
 
-	ParallelDescriptor::ReduceRealSum(&rcost[0], rcost.size());
+	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::Communicator());
 
 	Real wmax = *std::max_element(rcost.begin(), rcost.end());
 	Real scale = 1.e9/wmax;
@@ -1367,7 +1370,7 @@ DistributionMapping::makeSFC (const MultiFab& weight,
     }
 #endif
 
-    int nprocs = ParallelDescriptor::NProcs();
+    int nprocs = ParallelContext::NProcs();
 
     r.SFCProcessorMap(boxes, cost, nprocs);
 
@@ -1410,7 +1413,7 @@ DistributionMapping::makeSFC (const BoxArray& ba)
     //
     std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
 
-    const int nprocs = ParallelDescriptor::NProcs();
+    const int nprocs = ParallelContext::NProcs();
     Real volper = static_cast<Real>(N)/static_cast<Real>(nprocs);
 
     std::vector< std::vector<int> > r(nprocs);
