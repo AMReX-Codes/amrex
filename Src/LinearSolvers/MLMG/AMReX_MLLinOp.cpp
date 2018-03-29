@@ -356,6 +356,8 @@ MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
 {
     BL_PROFILE("MLLinOp::makeAgglomeratedDMap");
 
+    amrex::AllPrint() << "xxxxx makeAgglomeratedDMap begin\n";
+
     BL_ASSERT(!dm[0].empty());
     for (int i = 1, N=ba.size(); i < N; ++i)
     {
@@ -363,13 +365,14 @@ MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
         {
             const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
             
-            const int nprocs = ParallelDescriptor::NProcs();
+            const int nprocs = ParallelContext::NProcsSub();
             AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
             
             Vector<int> pmap(ba[i].size());
             for (int iproc = 0; iproc < nprocs; ++iproc) {
+                int grank = ParallelContext::local_to_global_rank(iproc);
                 for (int ibox : sfc[iproc]) {
-                    pmap[ibox] = iproc;
+                    pmap[ibox] = grank;
                 }
             }
             dm[i].define(pmap);
@@ -392,8 +395,10 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
         {
             factor *= ratio;
 
-            const int nprocs = ParallelDescriptor::NProcs();
-            Vector<int> pmap = dm[i-1].ProcessorMap();
+            const int nprocs = ParallelContext::NProcsSub();
+            const auto& pmap_fine = dm[i-1].ProcessorMap();
+            Vector<int> pmap(pmap_fine.size());
+            ParallelContext::global_to_local_rank(pmap.data(), pmap_fine.data(), pmap.size()); 
             if (strategy == 1) {
                 for (auto& x: pmap) {
                     x /= ratio;
@@ -418,7 +423,9 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
                     x /= ratio;
                 }
             }
-            dm[i].define(pmap);
+            Vector<int> pmap_g(pmap.size());
+            ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
+            dm[i].define(pmap_g);
         }
     }
 }

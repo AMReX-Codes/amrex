@@ -273,6 +273,7 @@ MLPoisson::makeNLinOp (int grid_size) const
     {
         const std::vector<std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
         Vector<int> pmap(ba.size());
+        AMREX_ALWAYS_ASSERT(ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator());
         const int nprocs = ParallelDescriptor::NProcs();
         for (int iproc = 0; iproc < nprocs; ++iproc) {
             for (int ibox : sfc[iproc]) {
