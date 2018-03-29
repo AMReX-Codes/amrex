@@ -1,6 +1,7 @@
 #ifndef MY_SWS_H_
 #define MY_SWS_H_
 
+#include <AMReX_IntVect.H>
 #include <AMReX_MultiFab.H>
 
 // We solve Lap(soln) = rhs
@@ -13,9 +14,10 @@ public:
 
 private:
 
-    // runtime parameters
-    int n_cell = 32;
-    int max_grid_size = 32;
+    // Runtime parameters
+    amrex::IntVect max_grid_size;   // Maximum allowable grid size in each coord direction
+    amrex::IntVect n_cell;          // Number of cells             in each coord direction
+
     int verbose = 2;
 
     // data

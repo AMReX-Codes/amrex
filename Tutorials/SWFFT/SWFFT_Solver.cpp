@@ -25,8 +25,35 @@ SWFFT_Solver::SWFFT_Solver ()
     {
         ParmParse pp;
 
-        pp.query("n_cell", n_cell);
-        pp.query("max_grid_size", max_grid_size);
+        // Read in n_cell.  Use defaults if not explicitly defined.
+        int cnt = pp.countval("n_cell");
+        std::cout << "cnt " << std::endl;
+        if (cnt > 1) {
+            Vector<int> ncs;
+            pp.getarr("n_cell",ncs);
+            n_cell = IntVect{ncs[0],ncs[1],ncs[2]};
+        } else if (cnt > 0) {
+            int ncs;
+            pp.get("n_cell",ncs);
+            n_cell = IntVect{ncs,ncs,ncs};
+        } else {
+           n_cell = IntVect{32,32,32};
+        }
+        std::cout << "N_CELL " << n_cell << std::endl;
+
+        // Read in max_grid_size.  Use defaults if not explicitly defined.
+        cnt = pp.countval("max_grid_size");
+        if (cnt > 1) {
+            Vector<int> mgs;
+            pp.getarr("max_grid_size",mgs);
+            max_grid_size = IntVect{mgs[0],mgs[1],mgs[2]};
+        } else if (cnt > 0) {
+            int mgs;
+            pp.get("max_grid_size",mgs);
+            max_grid_size = IntVect{mgs,mgs,mgs};
+        } else {
+           max_grid_size = IntVect{32,32,32};
+        }
 
         pp.query("verbose", verbose);
     }
@@ -34,7 +61,7 @@ SWFFT_Solver::SWFFT_Solver ()
     BoxArray ba;
     {
         IntVect dom_lo(0,0,0);
-        IntVect dom_hi(n_cell-1,n_cell-1,n_cell-1);
+        IntVect dom_hi(n_cell[0]-1,n_cell[1]-1,n_cell[2]-1);
         Box domain(dom_lo,dom_hi);
         ba.define(domain);
         ba.maxSize(max_grid_size);
@@ -94,6 +121,8 @@ void
 SWFFT_Solver::solve ()
 {
     const BoxArray& ba = soln.boxArray();
+    std::cout << "BA " << ba << std::endl;
+    exit(0);
     const DistributionMapping& dm = soln.DistributionMap();
 
     // If true the write out the multifabs for rhs, soln and exact_soln
@@ -148,13 +177,14 @@ SWFFT_Solver::solve ()
       for (int ib = 0; ib < nboxes; ++ib)
         amrex::Print() << "GRID IB " << ib << " IS ON RANK " << rank_mapping[ib] << std::endl;
 
-    int n = nx;
+    int n = domain.length(0);
     Real hsq = 1. / (n*n);
 
     Real start_time = amrex::second();
 
     // Assume for now that nx = ny = nz
-    hacc::Distribution d(MPI_COMM_WORLD,nx);
+    int Ndims[3] = { nbx, nby, nbz };
+    hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
     hacc::Dfft dfft(d);
     
     for (MFIter mfi(rhs,false); mfi.isValid(); ++mfi)
@@ -196,17 +226,23 @@ SWFFT_Solver::solve ()
 //  Now divide the coefficients of the transform
 //  *******************************************
     local_indx = 0;
-    for(size_t i=0; i<(size_t)nx; i++) {
-     for(size_t j=0; j<(size_t)ny; j++) {
-      for(size_t k=0; k<(size_t)nz; k++) {
+    const int *self = dfft.self_kspace();
+    const int *local_ng = dfft.local_ng_kspace();
+    const int *global_ng = dfft.global_ng();
+    for(size_t i=0; i<(size_t)local_ng[0]; i++) {
+     size_t global_i = local_ng[0]*self[0] + i; 
+     for(size_t j=0; j<(size_t)local_ng[1]; j++) { 
+      size_t global_j = local_ng[1]*self[1] + j;
+      for(size_t k=0; k<(size_t)local_ng[2]; k++) {
+        size_t global_k = local_ng[2]*self[2] + k;
 
-        if (i == 0 && j == 0 & k == 0) {
+        if (global_i == 0 && global_j == 0 & global_k == 0) {
            a[local_indx] = 0;
         } else {
            double fac = 2. * (
-                        (cos(tpi*double(i)/double(nx)) - 1.) + 
-                        (cos(tpi*double(j)/double(ny)) - 1.) + 
-                        (cos(tpi*double(k)/double(nz)) - 1.) );
+                        (cos(tpi*double(global_i)/double(global_ng[0])) - 1.) +
+                        (cos(tpi*double(global_j)/double(global_ng[1])) - 1.) +
+                        (cos(tpi*double(global_k)/double(global_ng[2])) - 1.) );
 
            a[local_indx] = a[local_indx] / fac;
         }
@@ -221,7 +257,8 @@ SWFFT_Solver::solve ()
 //     *******************************************
        dfft.backward(&a[0]);
 
-       double fac = hsq / local_size;
+       size_t global_size  = dfft.global_size();
+       double fac = hsq / global_size;
 
        local_indx = 0;
        for(size_t i=0; i<(size_t)nx; i++) {
