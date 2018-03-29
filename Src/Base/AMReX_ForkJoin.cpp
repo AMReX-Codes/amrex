@@ -81,7 +81,7 @@ ForkJoin::copy_data_to_tasks (MPI_Comm /*task_comm*/)
                                            << (mff.strategy == Strategy::split ? " (split)" : " (whole)") << std::endl;
                         }
                         // look up the distribution mapping for this (box array, task) pair
-                        const DistributionMapping &dm = get_dm(ba, i);
+                        const DistributionMapping &dm = get_dm(ba, i, orig.DistributionMap());
                         forked.emplace_back(ba, dm, comp_hi - comp_lo, 0);
                     } else if (flag_verbose) {
                         amrex::Print() << "  Forked " << mf_name << "[" << idx << "] for task " << i
@@ -153,7 +153,7 @@ ForkJoin::copy_data_from_tasks ()
 // only compute the DM once per unique (box array, task) pair and cache it
 // create map from box array RefID to vector of DistributionMapping indexed by task ID
 const DistributionMapping &
-ForkJoin::get_dm (const BoxArray& ba, int task_idx)
+ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& dm_orig)
 {
     auto &dm_vec = dms[ba.getRefID()];
 
@@ -165,11 +165,18 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx)
 
     if (dm_vec[task_idx] == nullptr) {
         // create DM of current box array over current task's ranks
-#if 0
-        dm_vec[task_idx].reset(new DistributionMapping(ba,
-                                                       split_bounds[task_idx],
-                                                       split_bounds[task_idx+1]);
-#endif
+        int rank_lo = split_bounds[task_idx];  // note that these ranks are not necessarily global
+        int nprocs_task = task_rank_n[task_idx];
+
+        Vector<int> pmap = dm_orig.ProcessorMap(); // DistributionMapping stores global ranks
+        for (auto& r : pmap) {
+            int lr = ParallelContext::global_to_local_rank(r);
+            lr = lr%nprocs_task + rank_lo;
+            r = ParallelContext::local_to_global_rank(lr);
+        }
+
+        dm_vec[task_idx].reset(new DistributionMapping(pmap));
+
         if (flag_verbose) {
             amrex::Print() << "    Creating DM for (box array, task id) = ("
                       << ba.getRefID() << ", " << task_idx << ")" << std::endl;
