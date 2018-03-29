@@ -53,7 +53,7 @@ Frame::local_to_global_rank (int* global, const int* local, int n) const
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
     {
-        MPI_Group_translate_ranks(GroupTop(), n, local, GroupAll(), global);
+        MPI_Group_translate_ranks(GroupSub(), n, local, GroupAll(), global);
     }
     else
     {
@@ -78,7 +78,7 @@ Frame::global_to_local_rank (int* local, const int* global, int n) const
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
     {
-        MPI_Group_translate_ranks(GroupAll(), n, global, GroupTop(), local);
+        MPI_Group_translate_ranks(GroupAll(), n, global, GroupSub(), local);
     }
     else
     {

@@ -660,7 +660,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
     Vector<Vector<int> > indv_recv_size;
     Vector<MPI_Request> pre_reqs(nrecv,MPI_REQUEST_NULL);
 
-    MPI_Comm comm = ParallelContext::CommunicatorTop();
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
 
     if (!FAB::preAllocatable())
     {
@@ -1003,7 +1003,7 @@ FabArray<FAB>::ok () const
         }
     }
 
-    ParallelAllReduce::Min(isok, ParallelContext::CommunicatorTop());
+    ParallelAllReduce::Min(isok, ParallelContext::CommunicatorSub());
 
     return isok == 1;
 }
@@ -1316,7 +1316,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
     const CPC& thecpc = getCPC(dnghost, src, snghost, period);
 
-    if (ParallelContext::NProcsTop() == 1)
+    if (ParallelContext::NProcsSub() == 1)
     {
         //
         // There can only be local work to do.
@@ -1472,7 +1472,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     (indv_send_size[j].data(), indv_send_size[j].size(),
                      ParallelContext::global_to_local_rank(send_rank[j]),
                      preSeqNum,
-                     ParallelContext::CommunicatorTop()).req();
+                     ParallelContext::CommunicatorSub()).req();
             }
         }
 
@@ -1612,7 +1612,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                                 (send_data[j], send_size[j],
                                  ParallelContext::global_to_local_rank(send_rank[j]),
                                  SeqNum,
-                                 ParallelContext::CommunicatorTop()).req();
+                                 ParallelContext::CommunicatorSub()).req();
                         }
                         else
                         {
@@ -1620,7 +1620,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                                 (send_data[j], send_size[j],
                                  ParallelContext::global_to_local_rank(send_rank[j]),
                                  SeqNum,
-                                 ParallelContext::CommunicatorTop());
+                                 ParallelContext::CommunicatorSub());
                             amrex::The_Arena()->free(send_data[j]);
                         }
                     }
@@ -1882,7 +1882,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
     BL_ASSERT(nghost <= nComp());
 
-    if (ParallelContext::NProcsTop() == 1)
+    if (ParallelContext::NProcsSub() == 1)
     {
         for (int j = 0, N = size(); j < N; ++j)
         {
@@ -1903,7 +1903,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 #ifdef DEBUG
     {
 	BoxCommHelper bch(subbox);	
-	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0, ParallelContext::CommunicatorTop());
+	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0, ParallelContext::CommunicatorSub());
 	const Box& bx0 = bch.make_box();
 	BL_ASSERT(subbox == bx0);
     }
@@ -1930,7 +1930,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 
 	ParallelDescriptor::Bcast(ovlp.dataPtr(),N,
                                   ParallelContext::global_to_local_rank(distributionMap[k]),
-                                  ParallelContext::CommunicatorTop());
+                                  ParallelContext::CommunicatorSub());
 
 	dest.copy(ovlp,bx,0,bx,dcomp,ncomp);
     }
@@ -2138,7 +2138,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 
     const FB& TheFB = getFB(period, cross, enforce_periodicity_only);
 
-    if (ParallelContext::NProcsTop() == 1)
+    if (ParallelContext::NProcsSub() == 1)
     {
         //
         // There can only be local work to do.
@@ -2277,7 +2277,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                 (indv_send_size[j].data(), indv_send_size[j].size(),
                  ParallelContext::global_to_local_rank(send_rank[j]),
                  preSeqNum,
-                 ParallelContext::CommunicatorTop()).req();
+                 ParallelContext::CommunicatorSub()).req();
         }
     }
 
@@ -2414,7 +2414,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                     (send_data[j], send_size[j],
                      ParallelContext::global_to_local_rank(send_rank[j]),
                      SeqNum,
-                     ParallelContext::CommunicatorTop()).req();
+                     ParallelContext::CommunicatorSub()).req();
 
                 ++send_counter;
             }
@@ -2476,7 +2476,7 @@ FabArray<FAB>::FillBoundary_finish ()
 {
     if ( n_grow <= 0 && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
 
-    if (ParallelContext::NProcsTop() == 1) return;
+    if (ParallelContext::NProcsSub() == 1) return;
 
 #ifdef BL_USE_MPI
 

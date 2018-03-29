@@ -6,7 +6,7 @@ namespace amrex {
 ForkJoin::ForkJoin (Vector<int> trn)
     : task_rank_n(std::move(trn))
 {
-    auto rank_n = ParallelContext::NProcsTop(); // number of ranks in current frame
+    auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     AMREX_ASSERT(NTasks() >= 2);
     AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
 
@@ -15,7 +15,7 @@ ForkJoin::ForkJoin (Vector<int> trn)
 
 ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
 {
-    auto rank_n = ParallelContext::NProcsTop(); // number of ranks in current frame
+    auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     auto ntasks = task_rank_pct.size();
     AMREX_ASSERT(ntasks >= 2);
     task_rank_n.resize(ntasks);
@@ -182,7 +182,7 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& d
                       << ba.getRefID() << ", " << task_idx << ")" << std::endl;
         }
 
-        amrex::Print() << " xxxxx get_dm " << task_idx << ", " << *dm_vec[task_idx] << "\n";
+//        amrex::Print() << " xxxxx get_dm " << task_idx << ", " << *dm_vec[task_idx] << "\n";
 
     } else {
         // DM has already been created
@@ -201,7 +201,7 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& d
 void
 ForkJoin::compute_split_bounds ()
 {
-    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == ParallelContext::NProcsTop());
+    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == ParallelContext::NProcsSub());
 
     const auto ntasks = task_rank_n.size();
     split_bounds.resize(ntasks + 1);
@@ -217,7 +217,7 @@ MPI_Comm
 ForkJoin::split_tasks ()
 {
     const auto ntasks = task_rank_n.size();
-    int myproc = ParallelContext::MyProcTop();
+    int myproc = ParallelContext::MyProcSub();
     for (task_me = 0; task_me < ntasks; ++task_me) {
         int lo = split_bounds[task_me];
         int hi = split_bounds[task_me + 1];
@@ -229,9 +229,9 @@ ForkJoin::split_tasks ()
 
 #ifdef BL_USE_MPI
     MPI_Comm new_comm;
-    MPI_Comm_split(ParallelContext::CommunicatorTop(), task_me, myproc, &new_comm);
+    MPI_Comm_split(ParallelContext::CommunicatorSub(), task_me, myproc, &new_comm);
 #else
-    MPI_Comm new_comm = ParallelContext::CommunicatorTop();
+    MPI_Comm new_comm = ParallelContext::CommunicatorSub();
 #endif
 
     return new_comm;
