@@ -11,11 +11,31 @@ Frame::Frame (MPI_Comm c)
       m_mpi_tag(ParallelDescriptor::MinTag())
 {
 #ifdef BL_USE_MPI
+    MPI_Comm_group(comm, &group);
     MPI_Comm_rank(comm, &m_rank_me);
     MPI_Comm_size(comm, &m_nranks);
 #else
     m_rank_me = 0;
     m_nranks = 1;
+#endif
+}
+
+Frame::Frame (Frame && rhs)
+    : comm     (rhs.comm),
+      group    (rhs.group),
+      m_rank_me(rhs.m_rank_me),
+      m_nranks (rhs.m_nranks),
+      m_mpi_tag(rhs.m_mpi_tag)
+{
+    rhs.group = MPI_GROUP_NULL;
+}
+
+Frame::~Frame ()
+{
+#ifdef BL_USE_MPI
+    if (group != MPI_GROUP_NULL) {
+        MPI_Group_free(&group);
+    }
 #endif
 }
 
@@ -33,12 +53,7 @@ Frame::local_to_global_rank (int* global, const int* local, int n) const
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
     {
-        MPI_Group ggroup, lgroup;
-        MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
-        MPI_Comm_group(ParallelContext::CommunicatorTop(), &lgroup);
-        MPI_Group_translate_ranks(lgroup, n, local, ggroup, global);
-        MPI_Group_free(&ggroup);
-        MPI_Group_free(&lgroup);
+        MPI_Group_translate_ranks(GroupTop(), n, local, GroupAll(), global);
     }
     else
     {
@@ -63,12 +78,7 @@ Frame::global_to_local_rank (int* local, const int* global, int n) const
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
     {
-        MPI_Group ggroup, lgroup;
-        MPI_Comm_group(ParallelContext::CommunicatorAll(), &ggroup);
-        MPI_Comm_group(ParallelContext::CommunicatorTop(), &lgroup);
-        MPI_Group_translate_ranks(ggroup, n, global, lgroup, local);
-        MPI_Group_free(&ggroup);
-        MPI_Group_free(&lgroup);
+        MPI_Group_translate_ranks(GroupAll(), n, global, GroupTop(), local);
     }
     else
     {
