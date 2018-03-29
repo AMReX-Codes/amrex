@@ -232,7 +232,6 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     if ( ! levelDirectoryCreated) {
       if (ParallelDescriptor::IOProcessor()) {
-          // amrex::Print() << "IOIOIOIO:CD  AmrLevel::writePlotFile:  " << FullPath << "\n";
         if ( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
             amrex::CreateDirectoryFailed(FullPath);
 	}
@@ -2141,7 +2140,6 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
     LevelDirectoryNames(dir, LevelDir, FullPath);
 
     if(ParallelDescriptor::IOProcessor()) {
-//      amrex::Print() << "IOIOIOIO:CD  AmrLevel::CreateLevelDirectory:  " << FullPath << "\n";
       if( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
         amrex::CreateDirectoryFailed(FullPath);
       }
