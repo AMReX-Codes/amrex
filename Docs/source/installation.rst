@@ -11,7 +11,7 @@ single directory (e.g. ``warpx_directory``):
 
     mkdir warpx_directory
     cd warpx_directory
-    git clone https://github.com/AMReX-Codes/amrex.git
+    git clone https://bitbucket.org/berkeleylab/warpx.git
     git clone https://bitbucket.org/berkeleylab/picsar.git
     git clone https://github.com/AMReX-Codes/amrex.git
 
