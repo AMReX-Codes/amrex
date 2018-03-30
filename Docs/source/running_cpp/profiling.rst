@@ -42,3 +42,4 @@ Follow these steps:
      advixe-gui
 
   (Note: this requires to use ``ssh -XY`` when connecting to Cori.)
+
