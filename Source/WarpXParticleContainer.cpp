@@ -46,10 +46,6 @@ WarpXParticleContainer::ReadParameters ()
 
         do_tiling = true;  // because the default in amrex is false
 	pp.query("do_tiling",  do_tiling);
-
-//        tile_size = IntVect(D_DECL(8,8,8));
-        tile_size = IntVect(D_DECL(102400,8,8));
-
         pp.query("do_not_push", do_not_push);
         
 	initialized = true;
