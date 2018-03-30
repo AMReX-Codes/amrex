@@ -125,6 +125,16 @@ extern "C"
 			const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
 			const long* particle_pusher_algo);
 
+	// Particle pusher (velocity)
+
+	void warpx_particle_pusher_momenta(const long* np,
+			amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
+			amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp, amrex::Real* gaminv,
+			const amrex::Real* exp, const amrex::Real* eyp,const amrex::Real* ezp,
+			const amrex::Real* bxp, const amrex::Real* byp,const amrex::Real* bzp,
+			const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
+			const long* particle_pusher_algo);
+
 	// Particle pusher (position)
 
 	void warpx_particle_pusher_positions(const long* np,

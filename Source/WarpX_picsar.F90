@@ -345,6 +345,59 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
   end subroutine
 
+
+  ! _________________________________________________________________
+  !>
+  !> @brief
+  !> Main subroutine for the particle pusher (velocity)
+  !>
+  !> @param[in] np number of super-particles
+  !> @param[in] xp,yp,zp particle position arrays
+  !> @param[in] uxp,uyp,uzp normalized momentum in each direction
+  !> @param[in] gaminv particle Lorentz factors
+  !> @param[in] ex,ey,ez particle electric fields in each direction
+  !> @param[in] bx,by,bz particle magnetic fields in each direction
+  !> @param[in] q charge
+  !> @param[in] m masse
+  !> @param[in] dt time step
+  !> @param[in] particle_pusher_algo Particle pusher algorithm
+  subroutine warpx_particle_pusher_momenta(np,xp,yp,zp,uxp,uyp,uzp, &
+                                  gaminv,&
+                                  ex,ey,ez,bx,by,bz,q,m,dt, &
+                                  particle_pusher_algo) &
+       bind(C, name="warpx_particle_pusher_momenta")
+
+    INTEGER(c_long), INTENT(IN)   :: np
+    REAL(amrex_real),INTENT(INOUT)    :: gaminv(np)
+    REAL(amrex_real),INTENT(IN)       :: xp(np),yp(np),zp(np)
+    REAL(amrex_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
+    REAL(amrex_real),INTENT(IN)       :: ex(np),ey(np),ez(np)
+    REAL(amrex_real),INTENT(IN)       :: bx(np),by(np),bz(np)
+    REAL(amrex_real),INTENT(IN)       :: q,m,dt
+    INTEGER(c_long), INTENT(IN)   :: particle_pusher_algo
+
+    SELECT CASE (particle_pusher_algo)
+
+    !! Vay pusher -- Full push
+    CASE (1_c_long)
+      CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
+
+      CALL pxr_ebcancelpush3d(np,uxp,uyp,uzp,gaminv, &
+                                 ex,ey,ez,  &
+                                 bx,by,bz,q,m,dt,0_c_long)
+    CASE DEFAULT
+
+      ! Momentum pusher in a single loop
+      CALL pxr_boris_push_u_3d(np,uxp,uyp,uzp,&
+                                     gaminv, &
+                                     ex,ey,ez, &
+                                     bx,by,bz, &
+                                     q,m,dt)
+
+    END SELECT
+
+  end subroutine warpx_particle_pusher_momenta
+
   ! _________________________________________________________________
   !>
   !> @brief

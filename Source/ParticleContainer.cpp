@@ -84,15 +84,15 @@ MultiParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiF
     int nlevs = rho.size();
     int ng = rho[0]->nGrow();
 
-    for (unsigned i = 0; i < nlevs; i++) { 
+    for (unsigned i = 0; i < nlevs; i++) {
         rho[i]->setVal(0.0, ng);
     }
-    
+
     for (auto& pc : allcontainers) {
 	pc->EvolveES(E, rho, t, dt);
     }
 
-    for (unsigned i = 0; i < nlevs; i++) { 
+    for (unsigned i = 0; i < nlevs; i++) {
         const Geometry& gm = allcontainers[0]->Geom(i);
         rho[i]->SumBoundary(gm.periodicity());
     }
@@ -111,7 +111,7 @@ MultiParticleContainer::Evolve (int lev,
     if (rho) rho->setVal(0.0);
     for (auto& pc : allcontainers) {
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, rho, t, dt);
-    }    
+    }
 }
 
 void
@@ -131,13 +131,23 @@ MultiParticleContainer::PushX (Real dt)
 }
 
 void
+MultiParticleContainer::PushP (int lev, Real dt,
+                               const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                               const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+{
+    for (auto& pc : allcontainers) {
+       pc->PushP(lev, dt, Ex, Ey, Ez, Bx, By, Bz);
+    }
+}
+
+void
 MultiParticleContainer::
 DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
 {
     int nlevs = rho.size();
     int ng = rho[0]->nGrow();
 
-    for (unsigned i = 0; i < nlevs; i++) { 
+    for (unsigned i = 0; i < nlevs; i++) {
         rho[i]->setVal(0.0, ng);
     }
 
@@ -238,5 +248,5 @@ MultiParticleContainer::PostRestart ()
 {
     for (auto& pc : allcontainers) {
 	pc->PostRestart();
-    }    
+    }
 }
