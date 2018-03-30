@@ -741,7 +741,7 @@ public:
     //
     // Multi-level version
     void AssignDensity (int rho_index, bool sub_cycle, Vector<std::unique_ptr<MultiFab> >& mf, 
-			int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
+			int lev_min = 0, int ncomp = 1, int finest_level = -1, int ngrow = 1) const;
     // Single-level version
     void AssignDensitySingleLevel (int rho_index, MultiFab& mf, int level,
 				   int ncomp=1, int particle_lvl_offset = 0) const;
