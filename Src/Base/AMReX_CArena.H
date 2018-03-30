@@ -42,6 +42,11 @@ public:
     */
     virtual void free (void* ap) override;
 
+#ifdef AMREX_USE_DEVICE
+    virtual void* alloc_device (size_t nbytes) override;
+    virtual void free_device (void* ap) override;
+#endif
+
     //! The current amount of heap space used by the CArena object.
     size_t heap_space_used () const;
 

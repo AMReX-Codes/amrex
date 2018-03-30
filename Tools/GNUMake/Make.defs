@@ -117,6 +117,26 @@ ifeq ($(USE_MPI3),TRUE)
   USE_MPI := TRUE
 endif
 
+
+ifndef USE_CUDA
+  USE_CUDA = FALSE
+endif
+
+ifndef USE_CUDA_UM
+  USE_CUDA_UM = TRUE
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  # Set the default CUDA version.
+  CUDA_VERSION ?= cuda9.0
+
+  # Maximum number of CUDA threads per block.
+  CUDA_MAX_THREADS ?= 512
+
+  # Limit the maximum number of registers available.
+  CUDA_MAXREGCOUNT ?= 128
+endif
+
 ifdef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
 else
@@ -315,8 +335,44 @@ else
     OMPSuffix	:=
 endif
 
-DEFINES += -DAMREX_LAUNCH=""
-DEFINES += -DAMREX_DEVICE=""
+ifeq ($(USE_ACC),TRUE)
+
+  ACCSuffix := .ACC
+
+endif
+
+USE_DEVICE := FALSE
+
+ifeq ($(USE_CUDA),TRUE)
+
+    # The CUDA implementation is not currently threadsafe.
+    # Throw an error if the user tries to build with OpenMP and CUDA.
+
+    ifeq ($(USE_OMP),TRUE)
+        $(error The CUDA implementation is not thread-safe; do not try to use OpenMP)
+    endif
+
+    DEFINES += -DCUDA
+    DEFINES += -DAMREX_USE_CUDA
+
+    USE_DEVICE := TRUE
+    DEFINES += -DAMREX_USE_DEVICE
+    
+    ifeq ($(USE_CUDA_UM),TRUE)
+        DEFINES += -DCUDA_UM
+        DEFINES += -DAMREX_USE_CUDA_UM
+	DEFINES += -DBL_COALESCE_FABS
+    endif
+
+    CUDASuffix := .CUDA
+    DEFINES += -DAMREX_LAUNCH='attributes(global)'
+    DEFINES += -DAMREX_DEVICE='attributes(device)'
+
+else
+    DEFINES += -DAMREX_LAUNCH=""
+    DEFINES += -DAMREX_DEVICE=""
+    CUDASuffix :=
+endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
   DEFINES += -DBL_SINGLE_PRECISION_PARTICLES
@@ -407,9 +463,7 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
-
-
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(CUDASuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
@@ -493,3 +547,64 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
+ifeq ($(USE_CUDA),TRUE)
+
+    # Allow the user to specify the location of the CUDA toolkit.
+    # If they don't, check if it has been defined for one of the
+    # systems we know about.
+
+    MAKE_CUDA_PATH :=
+    ifneq ($(CUDA_PATH),)
+        MAKE_CUDA_PATH := $(CUDA_PATH)
+    else ifneq ($(SYSTEM_CUDA_PATH),)
+        MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
+    endif
+
+    ifneq ($(MAKE_CUDA_PATH),)
+        LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
+        INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
+
+        ifeq ($(PROFILE),TRUE)
+            LIBRARIES += -lnvToolsExt
+        endif
+
+        ifeq ($(TINY_PROFILE),TRUE)
+            LIBRARIES += -lnvToolsExt
+        endif
+    endif
+
+    # Bring in NVML support. This is not required,
+    # but is recommended if you do not have a solution
+    # for mapping MPI ranks to GPUs. Set the environment
+    # variable NVML_PATH to point us to the library,
+    # or set SYSTEM_NVML_PATH for your site in the build system.
+
+    MAKE_NVML_PATH :=
+
+    ifneq ($(NVML_PATH),)
+        MAKE_NVML_PATH := $(NVML_PATH)
+    else ifneq ($(SYSTEM_NVML_PATH),)
+        MAKE_NVML_PATH := $(SYSTEM_NVML_PATH)
+    endif
+
+    ifneq ($(MAKE_NVML_PATH),)
+
+       LIBRARIES += -lnvidia-ml
+       LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
+       DEFINES += -DAMREX_USE_NVML
+
+    endif
+
+    ifeq ($(NO_CUDA_8_SUPPORT),TRUE)
+      DEFINES += -DNO_CUDA_8
+      ifeq ($(lowercase_comp),pgi)
+        F90FLAGS := $(subst cuda8.0,cuda7.5,$(F90FLAGS))
+        FFLAGS := $(subst cuda8.0,cuda7.5,$(FFLAGS))
+      endif
+    endif
+
+    # Set the CUDA threads define in case the user updated it.
+
+    DEFINES += -DCUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
+
+endif

@@ -180,7 +180,13 @@ public:
     int nComp () const { return nvar; }
 
     //! for calls to fortran.  
-    const int* nCompPtr() const {return &nvar;}
+    const int* nCompPtr() const {
+#ifdef AMREX_USE_CUDA
+        return nvar_d;
+#else
+        return &nvar;
+#endif
+    }
 
     //! Returns the number of points 
     long nPts () const { return numpts; }
@@ -393,6 +399,7 @@ public:
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
+
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
@@ -923,6 +930,10 @@ protected:
     T*      dptr;     // The data pointer.
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
+
+#ifdef AMREX_USE_CUDA
+    int* nvar_d;
+#endif
 };
 
 template <class B, class F>
@@ -1395,6 +1406,11 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
+#ifdef AMREX_USE_CUDA
+    nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
+    *nvar_d = nvar;
+#endif
+
     amrex::update_fab_stats(numpts, truesize, sizeof(T));
 }
 
@@ -1548,7 +1564,11 @@ BaseFab<T>::clear ()
 		ptr->~T();
 	    }
 	    amrex::The_Arena()->free(dptr);
-	    
+
+#ifdef AMREX_USE_CUDA
+            amrex::The_Nvar_Arena()->free(nvar_d);
+#endif
+
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
 	    } else {

@@ -1323,6 +1323,11 @@ Amr::FinalizeInit (Real              strt_time,
         gridlog << "INITIAL GRIDS \n";
         printGridInfo(gridlog,0,finest_level);
     }
+
+#ifdef AMREX_USE_DEVICE
+    Device::start_profiler();
+#endif
+
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
 

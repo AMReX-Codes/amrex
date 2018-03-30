@@ -10,6 +10,8 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
+#include <AMReX_Device.H>
+#include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 
 namespace amrex
@@ -213,6 +215,17 @@ public:
          const IntVect& big,
          IndexType      t);
 
+#ifdef AMREX_USE_DEVICE
+    //
+    // Operations for keeping a CUDA managed memory copy
+    // of the dimensions up to date. These have no effect
+    // if CUDA is not defined.
+    //
+    void initialize_device_memory() const;
+    void copy_lo() const;
+    void copy_hi() const;
+#endif
+
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     //! Get the smallend of the box.
@@ -260,10 +273,27 @@ public:
     }
 
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
-    const int* loVect () const& { return smallend.getVect(); }
+    const int* loVect () const& { 
+#ifdef AMREX_USE_CUDA
+        copy_lo();
+        return lo_d.get();
+#else
+        return smallend.getVect();
+#endif
+    }
+
     const int* loVect () && = delete;
+
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
-    const int* hiVect () const& { return bigend.getVect(); }
+    const int* hiVect () const& { 
+#ifdef AMREX_USE_CUDA
+        copy_hi();
+        return hi_d.get();
+#else
+        return bigend.getVect();
+#endif
+    }
+
     const int* hiVect () && = delete;
 
     //! Returns the coordinate normal to given face.
@@ -410,10 +440,22 @@ public:
     Box& setType (const IndexType& t) { btype = t; return *this; }
 
     //! Shift this Box nzones indexing positions in coordinate direction dir.
-    Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); return *this; }
+    Box& shift (int dir, int nzones) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.shift(dir,nzones); bigend.shift(dir,nzones);
+        return *this;
+    }
 
     //! Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
-    Box& shift (const IntVect& iv) { smallend.shift(iv); bigend.shift(iv); return *this; }
+    Box& shift (const IntVect& iv) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.shift(iv); bigend.shift(iv);
+        return *this;
+    }
 
     /**
     * \brief This member shifts the Box by "half" indicies, thereby
@@ -518,16 +560,42 @@ public:
     Box& minBox (const Box&);
 
     //! Shift Box (relative) by given IntVect.
-    Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; return *this; }
+    Box& operator+= (const IntVect& v) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend += v; bigend += v;
+        return *this;
+    }
 
     //! Shift Box (relative) by given IntVect.
-    Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
+    Box operator+ (const IntVect& v) const {
+        Box r(*this);
+#ifdef AMREX_USE_DEVICE
+        r.initialize_device_memory();
+#endif
+        r += v; return r;
+    }
 
     //! Shift Box (relative) by given IntVect.
-    Box& operator-= (const IntVect& v) { smallend -= v; bigend -= v; return *this; }
+    Box& operator-= (const IntVect& v) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend -= v; bigend -= v;
+        return *this;
+    }
 
     //! Shift Box (relative) by given IntVect.
-    Box operator- (const IntVect& v) const { Box r(*this); r -= v; return r; }
+    Box operator- (const IntVect& v) const {
+        Box r(*this);
+#ifdef AMREX_USE_DEVICE
+        r.initialize_device_memory();
+#endif
+        r -= v;
+        return r;
+    }
+    
 
     /**
     * \brief Chop the Box at the chop_pnt in the dir direction
@@ -547,29 +615,59 @@ public:
     * \brief Grow Box in all directions by given amount.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    Box& grow (int i) { smallend.diagShift(-i); bigend.diagShift(i); return *this; }
+    Box& grow (int i) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.diagShift(-i); bigend.diagShift(i);
+        return *this;
+    }
 
     //! Grow Box in each direction by specified amount.
-    Box& grow (const IntVect& v) { smallend -= v; bigend += v; return *this;}
+    Box& grow (const IntVect& v) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend -= v; bigend += v;
+        return *this;
+    }
 
     /**
     * \brief Grow the Box on the low and high end by n_cell cells
     * in direction idir.
     */
-    Box& grow (int idir, int n_cell) { smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); return *this; }
+    Box& grow (int idir, int n_cell) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell);
+        return *this;
+    }
 
     /**
     * \brief Grow the Box on the low end by n_cell cells in direction idir.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    Box& growLo (int idir, int n_cell = 1) { smallend.shift(idir, -n_cell); return *this; }
+    Box& growLo (int idir, int n_cell = 1) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.shift(idir, -n_cell);
+        return *this;
+    }
 
     /**
     * \brief Grow the Box on the high end by n_cell cells in
     * direction idir.  NOTE: n_cell negative shrinks the Box by that
     * number of cells.
     */
-    Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); return *this; }
+    Box& growHi (int idir, int n_cell = 1) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        bigend.shift(idir,n_cell);
+        return *this;
+    }
 
     //! Grow in the direction of the given face.
     Box& grow (Orientation face, int n_cell = 1);
@@ -658,6 +756,11 @@ private:
     IntVect         smallend;
     IntVect         bigend;
     IndexType       btype;
+
+#ifdef AMREX_USE_CUDA
+    mutable std::shared_ptr<int> lo_d;
+    mutable std::shared_ptr<int> hi_d;
+#endif
 };
 
 inline
@@ -705,6 +808,23 @@ inline BoxConverter::~BoxConverter () { }
 
 void AllGatherBoxes (Vector<Box>& bxs);
 
+#ifdef AMREX_USE_CUDA
+    // \cond CODEGEN
+    class Box_init
+    {
+    public:
+        Box_init ();
+        ~Box_init ();
+    private:
+        static int m_cnt;
+    };
+    // \endcond
+#endif
+
 }
+
+#ifdef AMREX_USE_CUDA
+static amrex::Box_init file_scope_Box_init_object;
+#endif
 
 #endif /*BL_BOX_H*/

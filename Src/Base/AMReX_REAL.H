@@ -5,27 +5,31 @@
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE
 #  undef BL_USE_FLOAT
+#if 0
 /*
   The macro BL_USE_FLOAT indicates that C++ floating-point calculations should
   use "float" variables and Fortran floating-point calculations should use
   "real*4" variables.  One of BL_USE_FLOAT or BL_USE_DOUBLE must always be
   defined when compiling and using AMReX.
 */
+#endif
 #  define BL_USE_FLOAT 1
 #else
 #  undef  BL_USE_FLOAT
 #  undef  BL_USE_DOUBLE
+#if 0
 /*
   The macro BL_USE_DOUBLE indicates that C++ floating-point calculations
   should use "double" variables and Fortran floating-point calculations
   should use "real*8" variables.  One of BL_USE_FLOAT or BL_USE_DOUBLE must
   always be defined when compiling and using AMReX.
 */
+#endif
 #  define BL_USE_DOUBLE 1
 #endif
 
 #if !defined(BL_LANG_FORT)
-
+#if 0
 /* 
   Real is a typedef specifying the precision of the floating-point
   calculations in C++ code.  It will be either float or double
@@ -37,7 +41,7 @@
   Note that exactly one of these macros must be defined
   when compiling any module that uses floating-point.
 */
-
+#endif
 #ifdef BL_USE_FLOAT
 typedef float amrex_real;
 #else
@@ -52,6 +56,7 @@ namespace amrex {
 
 #else
 
+#if 0
 /*
   The REAL_T macro specifies the precision of the floating-point
   calculations in Fortran code.  It will be either real*4 or
@@ -63,6 +68,7 @@ namespace amrex {
   Note that exactly one of these macros must be defined
   when compiling any module that uses floating-point.
 */
+#endif
 
 #ifdef BL_USE_FLOAT
 #    define REAL_T REAL

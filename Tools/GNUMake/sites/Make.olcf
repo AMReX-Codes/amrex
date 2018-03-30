@@ -35,6 +35,46 @@ NO_CUDA_8_SUPPORT = TRUE
 
 endif
 
+ifeq ($(which_computer),$(filter $(which_computer),summitdev))
+
+ifeq ($(USE_MPI),TRUE)
+
+  CC  := mpicc
+  CXX := mpicxx
+  FC  := mpifort
+  F90 := mpifort
+
+  # If we're using CUDA, make sure that the C/C++ MPI
+  # wrappers are calling nvcc to compile the code.
+  # This is OpenMPI/Spectrum MPI specific.
+
+  ifeq ($(USE_CUDA),TRUE)
+    OMPI_CC := nvcc
+    OMPI_CXX := nvcc
+  endif
+
+
+  LIBRARIES += -lmpi_mpifh
+
+endif
+
+ifeq ($(lowercase_comp),gnu)
+  override XTRALIBS := -lgfortran
+endif
+
+# If the cuda module is loaded, CUDAPATH is set as the toolkit location.
+
+SYSTEM_CUDA_PATH=$(CUDAPATH)
+
+SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
+# Specify that we want to build for Pascal on Summit
+
+CUDA_VERSION = cc60
+COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+
+endif
+
 ifeq ($(which_computer),$(filter $(which_computer),summit))
 
 ifeq ($(USE_MPI),TRUE)
@@ -65,39 +105,9 @@ endif
 
 SYSTEM_CUDA_PATH=$(CUDAPATH)
 
-SYSTEM_NVML_PATH=/usr/lib64/nvidia
+# Specify that we want to build for Volta on Summit
 
-endif
-
-ifeq ($(which_computer),$(filter $(which_computer),summitdev))
-
-ifeq ($(USE_MPI),TRUE)
-
-  CC  := mpicc
-  CXX := mpicxx
-  FC  := mpif90
-  F90 := mpif90
-
-  # If we're using CUDA, make sure that the C/C++ MPI
-  # wrappers are calling nvcc to compile the code.
-  # This is OpenMPI/Spectrum MPI specific.
-
-  ifeq ($(USE_CUDA),TRUE)
-    OMPI_CC := nvcc
-    OMPI_CXX := nvcc
-  endif
-
-  LIBRARIES += -lmpi_mpifh
-endif
-
-ifeq ($(lowercase_comp),gnu)
-  override XTRALIBS := -lgfortran
-endif
-
-# If the cuda module is loaded, CUDAPATH is set as the toolkit location.
-
-SYSTEM_CUDA_PATH=$(CUDAPATH)
-
-SYSTEM_NVML_PATH=/usr/lib64/nvidia
+CUDA_VERSION = cc70
+COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
 endif

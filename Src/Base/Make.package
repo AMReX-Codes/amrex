@@ -131,7 +131,7 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_BLBoxLib_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90
 
-  f90$(AMREX_BASE)_sources += AMReX_BaseFab_nd.f90
+  F90$(AMREX_BASE)_sources += AMReX_BaseFab_nd.F90
   f90$(AMREX_BASE)_headers += AMReX_BaseFab_f.H
 
   f90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
@@ -151,6 +151,15 @@ endif
 
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
+
+ifeq ($(USE_DEVICE),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_Device.H
+  C$(AMREX_BASE)_sources += AMReX_Device.cpp
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  F90$(AMREX_BASE)_sources += AMReX_CUDA.F90
+endif
 
 ifeq ($(LAZY),TRUE)
   C$(AMREX_BASE)_sources += AMReX_Lazy.cpp

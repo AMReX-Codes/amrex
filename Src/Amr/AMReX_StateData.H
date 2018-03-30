@@ -159,9 +159,20 @@ public:
     //
     // Set physical bndry values
     //
+    void PrepareForFillBoundary(FArrayBox& dest,
+                                const Real* dx,
+                                const RealBox& prob_domain,
+                                Real* xlo,
+                                int* bc,
+                                int dest_comp,
+                                int src_comp,
+                                int num_comp);
+
     void FillBoundary (FArrayBox&     dest,
-                       Real           time,
+                       const Real*    time_f,
                        const Real*    dx,
+                       const Real*    xlo_f,
+                       const int*     bcrs_f,
                        const RealBox& prob_domain,
                        int            dest_comp,
                        int            src_comp,

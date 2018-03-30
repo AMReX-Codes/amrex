@@ -88,7 +88,12 @@ Geometry::define (const Box&     dom,
 		inv_dx[k] = 1.0/dx[k];
             }
 	}
-    } 
+    }
+
+#ifdef AMREX_USE_DEVICE
+    init_device();
+    set_device();
+#endif
 }
 
 void

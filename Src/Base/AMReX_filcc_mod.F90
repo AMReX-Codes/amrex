@@ -5,18 +5,30 @@ module amrex_filcc_module
 
   use amrex_fort_module, only : amrex_real, amrex_spacedim, get_loop_bounds
   use amrex_constants_module
+#ifdef AMREX_USE_CUDA
+  use cuda_module, only: numBlocks, numThreads, cuda_stream
+#endif
 
   implicit none
 
+#ifndef AMREX_USE_CUDA
   interface amrex_filcc
      module procedure amrex_filcc_1
      module procedure amrex_filcc_n
   end interface amrex_filcc
+#endif
 
   private
-  public :: amrex_filcc, amrex_fab_filcc, filccn, amrex_hoextraptocc
+#ifndef AMREX_USE_CUDA
+  public :: amrex_filcc
+#endif
+  public :: amrex_fab_filcc, filccn, amrex_hoextraptocc
 
 contains
+
+  ! Old interfaces to filcc are unsupported with CUDA.
+
+#ifndef AMREX_USE_CUDA
 
   subroutine amrex_filcc_n(q,qlo,qhi,domlo,domhi,dx,xlo,bclo,bchi)
     integer, intent(in) :: qlo(4), qhi(4)
@@ -81,7 +93,9 @@ contains
 
 #endif
 
-  subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
+#endif
+
+  AMREX_LAUNCH subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
        bind(c, name='amrex_fab_filcc')
 
     implicit none
@@ -102,7 +116,7 @@ contains
 
 
 
-  subroutine filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+  AMREX_DEVICE subroutine filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 
     implicit none
 
@@ -264,6 +278,17 @@ contains
 
        end if
 
+       ! We need to synchronize the threadblock after each
+       ! dimension, since the results for the corners depend
+       ! on the i, j, and k directions being done in order.
+       ! Note: this will only work if the threadblock size is
+       ! larger in each dimension than the number of ghost zones.
+
+#ifdef AMREX_USE_CUDA
+       call syncthreads()
+#endif
+
+
 
 #if AMREX_SPACEDIM >= 2
 
@@ -390,6 +415,10 @@ contains
           end if
 
        end if
+#endif
+
+#ifdef AMREX_USE_CUDA
+       call syncthreads()
 #endif
 
 
@@ -519,6 +548,10 @@ contains
           end if
 
        end if
+#endif
+
+#ifdef AMREX_USE_CUDA
+       call syncthreads()
 #endif
 
 

@@ -38,11 +38,41 @@ public:
     //! Explicit dimension specific constructors.
     RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
              AMREX_D_DECL(Real x1, Real y1, Real z1));
+
+    void nullify_device_memory() const;
+    void initialize_device_memory() const;
+    void initialize_lo() const;
+    void initialize_hi() const;
+    void copy_device_memory() const;
+    void copy_xlo() const;
+    void copy_xhi() const;
+
     //! Returns lo side.
-    const Real* lo () const& { return xlo; }
+    const Real* lo () const& {
+#ifdef AMREX_USE_CUDA
+        if (xlo_d.get() == nullptr)
+            initialize_lo();
+
+        return xlo_d.get();
+#else
+        return xlo;
+#endif
+    }
+
     const Real* lo () && = delete;
-    //! Returns hide side.
-    const Real* hi () const& { return xhi; }
+
+    //! Returns hi side.
+    const Real* hi () const& {
+#ifdef AMREX_USE_CUDA
+        if (xhi_d.get() == nullptr)
+            initialize_hi();
+
+        return xhi_d.get();
+#else
+        return xhi;
+#endif
+    }
+
     const Real* hi () && = delete;
     //! Returns length in specified direction.
     Real lo (int dir) const { return xlo[dir]; }
@@ -51,17 +81,17 @@ public:
     //! Returns length in specified direction.
     Real length (int dir) const { return xhi[dir]-xlo[dir]; }
     //! Sets lo side.
-    void setLo (const Real* a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
+    void setLo (const Real* a_lo) { initialize_device_memory(); AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); copy_device_memory(); }
     //! Sets lo side.
-    void setLo (const Vector<Real>& a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
+    void setLo (const Vector<Real>& a_lo) { initialize_device_memory(); AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); copy_device_memory(); }
     //! Sets lo side in specified direction.
-    void setLo (int dir, Real a_lo) { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); xlo[dir] = a_lo; }
+    void setLo (int dir, Real a_lo) { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); initialize_device_memory(); xlo[dir] = a_lo; copy_device_memory(); }
     //! Sets hi side.
-    void setHi (const Real* a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
+    void setHi (const Real* a_hi) { initialize_device_memory(); AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); copy_device_memory(); }
     //! Sets hi side.
-    void setHi (const Vector<Real>& a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
+    void setHi (const Vector<Real>& a_hi) { initialize_device_memory(); AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); copy_device_memory(); }
     //! Sets hi side in specified direction.
-    void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); xhi[dir] = a_hi; }
+    void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); initialize_device_memory(); xhi[dir] = a_hi; copy_device_memory(); }
     //! Is the RealBox OK; i.e. does it have non-negative volume?
     bool ok () const;
     //! Returns the volume of the RealBox. If this RealBox is invalid, 
@@ -79,6 +109,12 @@ private:
     //
     Real xlo[AMREX_SPACEDIM];
     Real xhi[AMREX_SPACEDIM];
+
+#ifdef AMREX_USE_CUDA
+    mutable std::shared_ptr<Real> xlo_d;
+    mutable std::shared_ptr<Real> xhi_d;
+#endif
+
 };
 
 //
@@ -90,6 +126,23 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 //
 std::istream& operator>> (std::istream&, RealBox&);
 
+#ifdef AMREX_USE_CUDA
+    // \cond CODEGEN
+    class RealBox_init
+    {
+    public:
+        RealBox_init ();
+        ~RealBox_init ();
+    private:
+        static int m_cnt;
+    };
+    // \endcond
+#endif
+
 }
+
+#ifdef AMREX_USE_CUDA
+static amrex::RealBox_init file_scope_RealBox_init_object;
+#endif
 
 #endif /*_RealBox_H_*/

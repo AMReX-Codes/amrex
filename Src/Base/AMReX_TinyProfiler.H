@@ -10,6 +10,10 @@
 
 #include <AMReX_REAL.H>
 
+#ifdef AMREX_USE_CUDA
+#include "nvToolsExt.h"
+#endif
+
 namespace amrex {
 
 //! A simple profiler that returns basic performance information (e.g. min, max, and average running time)
@@ -71,6 +75,10 @@ private:
     static std::stack<std::pair<Real,Real> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static Real t_init;
+
+#ifdef AMREX_USE_CUDA
+    nvtxRangeId_t nvtx_id;
+#endif
 
     static void PrintStats(std::map<std::string,Stats>& regstats, Real dt_max);
 };

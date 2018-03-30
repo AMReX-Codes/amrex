@@ -70,6 +70,32 @@ CoordSys::CoordSys ()
            inv_dx[1]=std::numeric_limits<Real>::infinity();,
            inv_dx[2]=std::numeric_limits<Real>::infinity();)
     ok = false;
+
+    init_device();
+}
+
+void
+CoordSys::init_device() {
+#ifdef AMREX_USE_CUDA
+    if (dx_d.use_count() == 0) {
+	std::size_t sz = 3 * sizeof(Real);
+	Real* dx_temp;
+	gpu_hostalloc((void**) &dx_temp, &sz);
+	dx_d.reset(dx_temp, [](Real* ptr) { gpu_freehost(ptr); });
+    }
+#endif
+}
+
+void
+CoordSys::set_device() {
+#ifdef AMREX_USE_CUDA
+    if (dx_d.use_count() == 1) {
+	for (int k = 0; k < BL_SPACEDIM; ++k)
+	    dx_d.get()[k] = dx[k];
+	for (int k = BL_SPACEDIM; k < 3; ++k)
+	    dx_d.get()[k] = 0;
+    }
+#endif
 }
 
 void
@@ -82,6 +108,8 @@ CoordSys::define (const Real* cell_dx)
         dx[k] = cell_dx[k];
 	inv_dx[k] = 1.0/dx[k];
     }
+
+    set_device();
 }
 
 CoordSys::CoordSys (const Real* cell_dx)

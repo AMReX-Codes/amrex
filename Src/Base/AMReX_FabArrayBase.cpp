@@ -5,6 +5,9 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 
+#include <AMReX_BArena.H>
+#include <AMReX_CArena.H>
+
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
@@ -20,6 +23,22 @@ namespace amrex {
 //
 bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
+#ifdef AMREX_USE_CUDA
+int     FabArrayBase::use_cuda_aware_mpi;
+#endif
+
+#ifdef AMREX_USE_CUDA
+
+#if AMREX_SPACEDIM == 1
+IntVect FabArrayBase::mfiter_tile_size(1024000);
+#elif AMREX_SPACEDIM == 2
+IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
+#else
+IntVect FabArrayBase::mfiter_tile_size(1024000,1024000,1024000);
+#endif
+
+#else
+
 #if AMREX_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
 #elif AMREX_SPACEDIM == 2
@@ -27,8 +46,16 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 #endif
+
+#endif
+
+#ifdef AMREX_USE_CUDA
+IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
+IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
+#else
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
+#endif
 
 int FabArrayBase::nFabArrays(0);
 
@@ -47,6 +74,58 @@ FabArrayBase::CacheStats           FabArrayBase::m_CFinfo_stats("CrseFineCache")
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
 FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
+
+
+
+int FA_init::m_cnt = 0;
+
+namespace
+{
+    Arena* the_FA_arena = 0;
+}
+
+FA_init::FA_init ()
+{
+    if (m_cnt++ == 0)
+    {
+        BL_ASSERT(the_FA_arena == 0);
+
+        // Use BArena here because the
+        // FabArray parallel operations
+        // are not safe for coalesced memory.
+
+        the_FA_arena = new BArena;
+
+#ifdef AMREX_USE_CUDA
+        // Use device memory for the FabArray
+        // staging data because that will have
+        // better MPI performance than managed memory.
+
+        if (FabArrayBase::use_cuda_aware_mpi)
+            the_FA_arena->SetDeviceMemory();
+        else
+            the_FA_arena->SetHostAlloc();
+#endif
+
+    }
+}
+
+FA_init::~FA_init ()
+{
+    if (--m_cnt == 0) {
+        delete the_FA_arena;
+    }
+}
+
+Arena*
+The_FA_Arena ()
+{
+    BL_ASSERT(the_FA_arena != 0);
+
+    return the_FA_arena;
+}
+
+
 
 namespace
 {
@@ -128,6 +207,11 @@ FabArrayBase::Initialize ()
 		     ([] () -> MemProfiler::MemInfo {
 			 return {m_CFinfo_stats.bytes, m_CFinfo_stats.bytes_hwm};
 		     }));
+#endif
+
+#ifdef AMREX_USE_CUDA
+    FabArrayBase::use_cuda_aware_mpi = 1;
+    pp.query("use_cuda_aware_mpi", FabArrayBase::use_cuda_aware_mpi);
 #endif
 }
 
@@ -1652,7 +1736,7 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
 
     for (int i = 0; i < N_snds; i++) {
         if (send_data[i]) {
-            amrex::The_Arena()->free(send_data[i]);
+            amrex::The_FA_Arena()->free(send_data[i]);
         }
     }
 #endif /*BL_USE_MPI*/

@@ -81,23 +81,23 @@ F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(
 
 ########################################################################
 
-GENERIC_COMP_FLAGS =
+GENERIC_GNU_FLAGS =
 
 ifeq ($(THREAD_SANITIZER),TRUE)
-  GENERIC_COMP_FLAGS += -fsanitize=thread
+  GENERIC_GNU_FLAGS += -fsanitize=thread
 endif
 ifeq ($(FSANITIZER),TRUE)
-  GENERIC_COMP_FLAGS += -fsanitize=address -fsanitize=undefined
+  GENERIC_GNU_FLAGS += -fsanitize=address -fsanitize=undefined
 endif
 
 ifeq ($(USE_OMP),TRUE)
-  GENERIC_COMP_FLAGS += -fopenmp
+  GENERIC_GNU_FLAGS += -fopenmp
 endif
 
-CXXFLAGS += $(GENERIC_COMP_FLAGS)
-CFLAGS   += $(GENERIC_COMP_FLAGS)
-FFLAGS   += $(GENERIC_COMP_FLAGS)
-F90FLAGS += $(GENERIC_COMP_FLAGS)
+CXXFLAGS += $(GENERIC_GNU_FLAGS)
+CFLAGS   += $(GENERIC_GNU_FLAGS)
+FFLAGS   += $(GENERIC_GNU_FLAGS)
+F90FLAGS += $(GENERIC_GNU_FLAGS)
 
 ########################################################################
 

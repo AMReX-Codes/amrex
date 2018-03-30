@@ -5,10 +5,49 @@
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
 #include <AMReX_Box.H>
+#include <AMReX_BaseFab.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
 
 namespace amrex {
+
+#ifdef AMREX_USE_CUDA
+int Box_init::m_cnt = 0;
+
+namespace
+{
+    Arena* the_box_arena = 0;
+}
+
+Box_init::Box_init ()
+{
+    if (m_cnt++ == 0)
+    {
+        BL_ASSERT(the_box_arena == 0);
+
+        const std::size_t hunk_size = 64 * 1024;
+
+	the_box_arena = new CArena(hunk_size);
+
+	the_box_arena->SetHostAlloc();
+    }
+}
+
+Box_init::~Box_init ()
+{
+    if (--m_cnt == 0) {
+	delete the_box_arena;
+    }
+}
+
+Arena*
+The_Box_Arena ()
+{
+    BL_ASSERT(the_box_arena != 0);
+
+    return the_box_arena;
+}
+#endif
 
 const Box&
 Box::TheUnitBox ()
@@ -22,7 +61,11 @@ Box::Box ()
     smallend(IntVect::TheUnitVector()),
     bigend(IntVect::TheZeroVector()),
     btype()
-{}
+{
+#ifdef AMREX_USE_DEVICE
+  initialize_device_memory();
+#endif
+}
 
 Box::Box (const IntVect& small,
           const int*     vec_len)
@@ -31,7 +74,11 @@ Box::Box (const IntVect& small,
     bigend(AMREX_D_DECL(small[0]+vec_len[0]-1,
                   small[1]+vec_len[1]-1,
                   small[2]+vec_len[2]-1))
-{}
+{
+#ifdef AMREX_USE_DEVICE
+  initialize_device_memory();
+#endif
+}
 
 Box::Box (const IntVect& small,
           const IntVect& big,
@@ -40,14 +87,22 @@ Box::Box (const IntVect& small,
     smallend(small),
     bigend(big),
     btype(t)
-{}
+{
+#ifdef AMREX_USE_DEVICE
+  initialize_device_memory();
+#endif
+}
 
 Box::Box (const IntVect& small,
           const IntVect& big)
     :
     smallend(small),
     bigend(big)
-{}
+{
+#ifdef AMREX_USE_DEVICE
+  initialize_device_memory();
+#endif
+}
 
 Box::Box (const IntVect& small,
           const IntVect& big,
@@ -58,12 +113,58 @@ Box::Box (const IntVect& small,
     btype(typ)
 {
     BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
 }
+
+#ifdef AMREX_USE_DEVICE
+void
+Box::initialize_device_memory() const
+{
+#ifdef AMREX_USE_CUDA
+    const size_t sz = 3 * sizeof(int);
+
+    int* lo_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
+    lo_d.reset(lo_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
+    copy_lo();
+
+    for (int i = BL_SPACEDIM; i < 3; ++i)
+	lo_d.get()[i] = 0;
+
+    int* hi_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
+    hi_d.reset(hi_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
+    copy_hi();
+
+    for (int i = BL_SPACEDIM; i < 3; ++i)
+	hi_d.get()[i] = 0;
+#endif
+}
+
+#ifdef AMREX_USE_CUDA
+void
+Box::copy_lo() const
+{
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+	lo_d.get()[i] = smallend[i];
+}
+
+void
+Box::copy_hi() const
+{
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+	hi_d.get()[i] = bigend[i];
+}
+#endif
+#endif
 
 Box&
 Box::convert (const IntVect& typ)
 {
     BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     IntVect shft(typ - btype.ixType());
     bigend += shft;
     btype = IndexType(typ);
@@ -73,6 +174,9 @@ Box::convert (const IntVect& typ)
 Box&
 Box::convert (IndexType t)
 {
+#ifdef AMREX_USE_DEVICE
+   initialize_device_memory();
+#endif
    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
    {
       const unsigned int typ = t[dir];
@@ -88,6 +192,9 @@ Box
 convert (const Box& b, const IntVect& typ)
 {
     Box bx(b);
+#ifdef AMREX_USE_DEVICE
+    bx.initialize_device_memory();
+#endif
     bx.convert(typ);
     return bx;
 }
@@ -96,6 +203,9 @@ Box
 convert (const Box& b, const IndexType& t)
 {
     Box bx(b);
+#ifdef AMREX_USE_DEVICE
+    bx.initialize_device_memory();
+#endif
     bx.convert(t);
     return bx;
 }
@@ -105,6 +215,9 @@ surroundingNodes (const Box& b,
                           int        dir)
 {
     Box bx(b);
+#ifdef AMREX_USE_DEVICE
+    bx.initialize_device_memory();
+#endif
     bx.surroundingNodes(dir);
     return bx;
 }
@@ -112,6 +225,9 @@ surroundingNodes (const Box& b,
 Box&
 Box::surroundingNodes (int dir)
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     if (!(btype[dir]))
     {
         bigend.shift(dir,1);
@@ -127,6 +243,9 @@ Box
 surroundingNodes (const Box& b)
 {
     Box bx(b);
+#ifdef AMREX_USE_DEVICE
+    bx.initialize_device_memory();
+#endif
     bx.surroundingNodes();
     return bx;
 }
@@ -134,6 +253,9 @@ surroundingNodes (const Box& b)
 Box&
 Box::surroundingNodes ()
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
         if ((btype[i] == 0))
             bigend.shift(i,1);
@@ -146,6 +268,9 @@ enclosedCells (const Box& b,
                        int        dir)
 {
     Box bx(b);
+#ifdef AMREX_USE_DEVICE
+    bx.initialize_device_memory();
+#endif
     bx.enclosedCells(dir);
     return bx;
 }
@@ -153,6 +278,9 @@ enclosedCells (const Box& b,
 Box&
 Box::enclosedCells (int dir)
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     if (btype[dir])
     {
         bigend.shift(dir,-1);
@@ -168,6 +296,9 @@ Box
 enclosedCells (const Box& b)
 {
     Box bx(b);
+#ifdef AMREX_USE_DEVICE
+    bx.initialize_device_memory();
+#endif
     bx.enclosedCells();
     return bx;
 }
@@ -175,6 +306,9 @@ enclosedCells (const Box& b)
 Box&
 Box::enclosedCells ()
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     for (int i = 0 ; i < AMREX_SPACEDIM; ++i)
         if (btype[i])
             bigend.shift(i,-1);
@@ -187,6 +321,9 @@ grow (const Box& b,
       int        i)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.grow(i);
     return result;
 }
@@ -196,6 +333,9 @@ grow (const Box&     b,
       const IntVect& v)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.grow(v);
     return result;
 }
@@ -204,6 +344,9 @@ Box
 grow (const Box& b, int idir, int n_cell)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.grow(idir, n_cell);
     return result;
 }
@@ -212,6 +355,9 @@ Box
 growLo (const Box& b, int idir, int n_cell)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.growLo(idir, n_cell);
     return result;
 }
@@ -220,6 +366,9 @@ Box
 growHi (const Box& b, int idir, int n_cell)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.growHi(idir, n_cell);
     return result;
 }
@@ -228,11 +377,15 @@ Box&
 Box::grow (Orientation face,
            int         n_cell)
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     int idir = face.coordDir();
-    if (face.isLow())
+    if (face.isLow()) {
         smallend.shift(idir, -n_cell);
-    else
+    } else {
         bigend.shift(idir,n_cell);
+    }
     return *this;
 }
 
@@ -264,6 +417,9 @@ Box&
 Box::shiftHalf (int dir,
                 int nzones)
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     const int nbit = (nzones<0 ? -nzones : nzones)%2;
     int nshift = nzones/2;
     //
@@ -317,6 +473,9 @@ refine (const Box& b,
                 int        ref_ratio)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.refine(IntVect(AMREX_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
     return result;
 }
@@ -332,6 +491,9 @@ refine (const Box&     b,
                 const IntVect& ref_ratio)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.refine(ref_ratio);
     return result;
 }
@@ -340,6 +502,9 @@ Box&
 Box::refine (const IntVect& ref_ratio)
 {
     if (ref_ratio != 1) {
+#ifdef AMREX_USE_DEVICE
+	initialize_device_memory();
+#endif
         IntVect shft(IntVect::TheUnitVector());
         shft -= btype.ixType();
         smallend *= ref_ratio;
@@ -354,6 +519,9 @@ Box
 shift (const Box& b, int dir, int nzones)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.shift(dir, nzones);
     return result;
 }
@@ -427,6 +595,9 @@ Box
 Box::chop (int dir,
            int chop_pnt)
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     //
     // Define new high end Box including chop_pnt.
     //
@@ -463,6 +634,9 @@ coarsen (const Box& b,
                  int        ref_ratio)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.coarsen(IntVect(AMREX_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
     return result;
 }
@@ -478,6 +652,9 @@ coarsen (const Box&     b,
                  const IntVect& ref_ratio)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.coarsen(ref_ratio);
     return result;
 }
@@ -485,6 +662,10 @@ coarsen (const Box&     b,
 Box&
 Box::coarsen (const IntVect& ref_ratio)
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
+
     smallend.coarsen(ref_ratio);
 
     if (btype.any())
@@ -585,6 +766,9 @@ minBox (const Box& b,
                 const Box& o)
 {
     Box result = b;
+#ifdef AMREX_USE_DEVICE
+    result.initialize_device_memory();
+#endif
     result.minBox(o);
     return result;
 }
@@ -594,6 +778,9 @@ Box::minBox (const Box &b)
 {
 // BoxArray may call this with not ok boxes.  BL_ASSERT(b.ok() && ok());
     BL_ASSERT(sameType(b));
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     smallend.min(b.smallend);
     bigend.max(b.bigend);
     return *this;
@@ -755,6 +942,9 @@ Box::setRange (int dir,
                int sm_index,
                int n_cells)
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     smallend.setVal(dir,sm_index);
     bigend.setVal(dir,sm_index+n_cells-1);
     return *this;

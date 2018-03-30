@@ -791,7 +791,10 @@ Box
 BoxArray::operator[] (int index) const
 {
     if (m_simple) {
-        return amrex::convert(amrex::coarsen(m_ref->m_abox[index],m_crse_ratio), m_typ);
+	if (m_typ.cellCentered() && m_crse_ratio == 1)
+	    return m_ref->m_abox[index];
+	else
+	    return amrex::convert(amrex::coarsen(m_ref->m_abox[index],m_crse_ratio), m_typ);
     } else {
         return (*m_transformer)(m_ref->m_abox[index]); 
     }
