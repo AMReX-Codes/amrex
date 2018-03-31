@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <string>
 using namespace std;
 
@@ -206,11 +207,11 @@ ConstrainedLS::LSResult ConstrainedLS::solveBoundConstrained(Vector<Real>      &
     {
       x[k] = 0.0;
     }
-    else if (lowerBound[k] == -HUGE)
+    else if (lowerBound[k] == std::numeric_limits<Real>::lowest())
     {
       x[k]=upperBound[k] - eps;
     }
-    else if (upperBound[k] == HUGE)
+    else if (upperBound[k] == std::numeric_limits<Real>::max())
     {
       x[k] = lowerBound[k] + eps;
     }

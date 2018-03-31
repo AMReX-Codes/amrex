@@ -1,7 +1,7 @@
 #ifndef _LSPROBLEMIMPLEM_H_
 #define _LSPROBLEMIMPLEM_H_
 
-
+#include <limits>
 
 #include "AMReX_ConstrainedLS.H"
 #include "AMReX_LSquares.H"
@@ -73,8 +73,8 @@ template<int dim> void LSProblem<dim>::monoMaxMin(Real                   & a_max
 template<int dim> void LSProblem<dim>::computeBounds(const IndexTM<Real,dim>   & a_dx,
                                                      const CutCellMoments<dim> & a_ccm)
 {
-  m_lowerBound.assign(-HUGE, m_lowerBound.size());
-  m_upperBound.assign( HUGE, m_upperBound.size());
+  m_lowerBound.assign(std::numeric_limits<Real>::lowest(), m_lowerBound.size());
+  m_upperBound.assign(std::numeric_limits<Real>::max(), m_upperBound.size());
 
   int nEBBounds = 0;
   if (m_degreeP == 0 && dim == 2) // || m_degreeP == 1)
@@ -125,7 +125,7 @@ template<int dim> void LSProblem<dim>::computeBounds(const IndexTM<Real,dim>   &
     int ndx = 0; // todo: guarantee there should be only one for (0,0)
     int variableNdx = ndx;
     m_lowerBound[variableNdx]=lobnd;
-    m_upperBound[variableNdx]=HUGE;
+    m_upperBound[variableNdx]=std::numeric_limits<Real>::max();
 
   }
 
