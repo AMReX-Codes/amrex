@@ -18,14 +18,14 @@ The amrex/Tutorials directory is broken into the following categories:
    :maxdepth: 1
    :caption: Contents:
 
-   AMR
-   Basic
-   CVODE
-   EB
-   HYPRE
-   LinearSolvers
-   Particles
-   SWFFT
+   AMR_Tutorial
+   Basic_Tutorial
+   CVODE_Tutorial
+   EB_Tutorial
+   HYPRE_Tutorial
+   LinearSolvers_Tutorial
+   Particles_Tutorial
+   SWFFT_Tutorial
 
 Indices and tables
 ==================
