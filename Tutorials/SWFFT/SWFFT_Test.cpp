@@ -111,9 +111,13 @@ SWFFT_Test::init_rhs ()
     }
 
     Real sum_rhs = rhs.sum();
-    amrex::Print() << "Sum of rhs over the domain is " << sum_rhs << std::endl;
-    if (sum_rhs > 1e-12) 
-       amrex::Error("RHS must sum to zero");
+    amrex::Print() << "Sum of rhs over the domain was    " << sum_rhs << std::endl;
+
+         sum_rhs = sum_rhs / domain.numPts();
+    rhs.plus(-sum_rhs,0,1,0);
+
+         sum_rhs = rhs.sum();
+    amrex::Print() << "Sum of rhs over the domain is now " << sum_rhs << std::endl;
 }
 
 void
