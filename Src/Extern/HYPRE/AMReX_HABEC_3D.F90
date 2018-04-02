@@ -11,6 +11,7 @@ module amrex_habec_module
 
   use amrex_fort_module, only : rt => amrex_real
   implicit none
+  integer(kind=8), parameter :: HYPRE_PARCSR = 5555
 
 contains
 
@@ -301,11 +302,10 @@ subroutine hbvec3(vec, &
   endif
 end subroutine hbvec3
 
-
 subroutine hmac(mat, a, &
-                DIMS(abox), &
-                DIMS(reg), &
-                alpha) bind(C, name="amrex_hmac")
+     DIMS(abox), &
+     DIMS(reg), &
+     alpha) bind(C, name="amrex_hmac")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(abox)
@@ -314,6 +314,7 @@ subroutine hmac(mat, a, &
   real(rt)         :: mat(0:6, DIMV(reg))
   real(rt)         :: alpha
   integer :: i, j, k
+
   if (alpha == 0.e0_rt) then
      do k = reg_l3, reg_h3
         do j = reg_l2, reg_h2
@@ -333,6 +334,78 @@ subroutine hmac(mat, a, &
   endif
 end subroutine hmac
 
+
+subroutine hmac_ij(a,DIMS(abox), &
+     DIMS(reg),alpha, &
+     Amat,Index, DIMS(Gbox)) bind(C, name="amrex_hmac_ij")
+
+  use amrex_fort_module, only : rt => amrex_real
+  integer :: DIMDEC(abox)
+  integer :: DIMDEC(reg)
+  real(rt)         :: a(DIMV(abox))
+  real(rt)         :: alpha
+  integer :: DIMDEC(Gbox)
+  integer :: Index(DIMV(Gbox))
+  ! HYPRE objects
+  integer(kind=8) :: Amat
+  integer :: i, j, k, ierr, count
+  integer :: nrows
+  integer,  dimension(:), pointer :: cols
+  integer,  dimension(:), pointer :: rows
+  integer,  dimension(:), pointer :: ncols
+  real(rt), dimension(:), pointer :: values
+  
+  nrows = (reg_h3-reg_l3+1) * (reg_h2-reg_l2+1) * (reg_h1-reg_l1+1)
+  
+  allocate(rows  (nrows))
+  allocate(cols  (nrows))
+  allocate(values(nrows))
+  allocate(ncols(nrows))
+
+  ncols(:) = 0
+  count = 0
+  
+  if (alpha == 0.e0_rt) then
+
+     do k = reg_l3, reg_h3
+        do j = reg_l2, reg_h2
+           do i = reg_l1, reg_h1
+              count = count + 1
+              rows(count) = Index(i,j,k)
+              
+              ncols(count) = 1
+              cols(count) = Index(i,j,k)
+              values(count) = 0.e0_rt
+           end do
+        end do
+     end do
+     
+  else
+
+     do k = reg_l3, reg_h3
+        do j = reg_l2, reg_h2
+           do i = reg_l1, reg_h1
+              count = count + 1
+              rows(count) = Index(i,j,k)
+
+              ncols(count) = 1
+              cols(count) = Index(i,j,k)
+              values(count) = alpha * a(i,j,k)
+           end do
+        end do
+     end do
+     
+  endif
+
+  call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+
+  deallocate(rows)
+  deallocate(cols)
+  deallocate(values)
+  deallocate(ncols)
+ 
+end subroutine hmac_ij
+
 subroutine hmbc(mat, b, &
                 DIMS(bbox), &
                 DIMS(reg), &
@@ -347,6 +420,7 @@ subroutine hmbc(mat, b, &
   real(rt)         :: beta, dx(3)
   real(rt)         :: fac
   integer :: i, j, k
+
   if (n == 0) then
      fac = beta / (dx(1)**2)
      do k = reg_l3, reg_h3
@@ -383,6 +457,104 @@ subroutine hmbc(mat, b, &
   endif
 end subroutine hmbc
 
+subroutine hmbc_ij(b, DIMS(bbox), DIMS(reg), &
+                   beta, dx, n, &
+                   Amat, Index, DIMS(Gbox)  ) bind(C, name="amrex_hmbc_ij")
+
+  use amrex_fort_module, only : rt => amrex_real
+  integer :: DIMDEC(bbox)
+  integer :: DIMDEC(reg)
+  integer :: n
+  real(rt)  :: b(DIMV(bbox))
+  real(rt)  :: beta, dx(3)
+  integer :: DIMDEC(Gbox)
+  integer :: Index(DIMV(Gbox))
+  ! HYPRE objects
+  integer(kind=8) :: Amat
+  integer :: nrows, ncols, rows
+  integer, dimension(3) :: cols
+  real(rt), dimension(3) :: values
+  real(rt) :: fac
+  integer  :: i, j, k, ierr
+
+  ncols = 3
+  nrows = 1
+  
+  if (n == 0) then
+
+     fac = beta / (dx(1)**2)
+     do k = reg_l3, reg_h3
+        do j = reg_l2, reg_h2
+           do i = reg_l1+1, reg_h1-1
+              
+              rows      = Index(i,j,k)
+
+              cols(1)   = Index(i,j,k)
+              values(1) = fac * (b(i,j,k) + b(i+1,j,k))
+
+              cols(2)   = Index(i-1,j,k)
+              values(2) = -fac * b(i,j,k)
+
+              cols(3)   = Index(i+1,j,k)
+              values(3) = -fac * b(i+1,j,k)
+
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+                            
+           end do
+        end do
+     end do
+
+  elseif (n == 1) then
+
+     fac = beta / (dx(2)**2)
+     do k = reg_l3, reg_h3
+        do j = reg_l2+1, reg_h2-1
+           do i = reg_l1, reg_h1
+              
+              rows = Index(i,j,k)
+
+              cols(1)   = Index(i,j,k)
+              values(1) = fac * (b(i,j,k) + b(i,j+1,k))
+
+              cols(2)   = Index(i,j-1,k)
+              values(2) = -fac * b(i,j,k)
+
+              cols(3) = Index(i,j+1,k)
+              values(3) = - fac * b(i,j+1,k)
+
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+              
+           end do
+        end do
+     end do
+     
+  else
+
+     fac = beta / (dx(3)**2)
+     do k = reg_l3+1, reg_h3-1
+        do j = reg_l2, reg_h2
+           do i = reg_l1, reg_h1
+
+              rows = Index(i,j,k)
+
+              cols(1) = Index(i,j,k)
+              values(1) = fac * (b(i,j,k) + b(i,j,k+1))
+
+              cols(2) = Index(i,j,k-1)
+              values(2) = - fac * b(i,j,k)
+
+              cols(3) = Index(i,j,k+1)
+              values(3) = - fac * b(i,j,k+1)
+
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+              
+           end do
+        end do
+     end do
+     
+  endif
+  
+end subroutine hmbc_ij
 
 subroutine hmmat(mat, &
                  DIMS(reg), &
@@ -509,7 +681,254 @@ subroutine hmmat(mat, &
   else
      print *, "hmmat: impossible face orientation"
   endif
+
 end subroutine hmmat
+
+subroutine hmmat_ij(DIMS(reg), &
+                 cdir, bct, bho, bcl, &
+                 mask, DIMS(msk), &
+                 b, DIMS(bbox), &
+                 beta, dx, Amat, Index, DIMS(Gbox)) bind(C, name="amrex_hmmat_ij")
+
+  use amrex_fort_module, only : rt => amrex_real
+  integer :: DIMDEC(reg)
+  integer :: DIMDEC(msk)
+  integer :: DIMDEC(bbox)
+  integer :: cdir, bct, bho
+  real(rt) :: bcl, beta, dx(3)
+  integer :: mask(DIMV(msk))
+  real(rt) :: b(DIMV(bbox))
+  integer :: DIMDEC(Gbox)
+  integer :: Index(DIMV(Gbox))
+  ! HYPRE objects
+  integer(kind=8) :: Amat
+  real(rt)         :: h, fac, bfm, bfv
+  real(rt)         :: bfm2, h2, th2
+  integer :: i, j, k, ierr
+  integer, dimension(2)  :: cols
+  real(rt), dimension(2) :: values
+  integer, dimension(1) :: ncols
+  integer :: rows, nrows
+
+  if (cdir == 0 .OR. cdir == 3) then
+     h = dx(1)
+  elseif (cdir == 1 .OR. cdir == 4) then
+     h = dx(2)
+  else
+     h = dx(3)
+  endif
+  
+  fac = beta / (h**2)
+  if (bct == LO_DIRICHLET) then
+     if (bho >= 1) then
+        h2 = 0.5e0_rt * h
+        th2 = 3.e0_rt * h2
+        bfm = fac * (th2 - bcl) / (bcl + h2) - fac
+        bfm2 = fac * (bcl - h2) / (bcl + th2)
+     else
+        bfv = (beta / h) / (0.5e0_rt * h + bcl)
+        bfm = bfv - fac
+     endif
+  else if (bct == LO_NEUMANN) then
+     bfm = -fac
+     bfm2 = 0.e0_rt
+  else
+     print *, "hmmat: unsupported boundary type"
+     stop
+  endif
+
+  nrows = 1
+  ncols(1) = 2
+  
+  if (cdir == 0) then
+
+     i = reg_l1
+
+     do k = reg_l3, reg_h3
+        do j = reg_l2, reg_h2
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac*(b(i,j,k) + b(i+1,j,k))
+           
+           cols(2) = Index(i+1,j,k)
+           values(2) = -fac * b(i+1,j,k)
+
+           if (mask(i-1,j,k) > 0) then
+
+              values(1) = values(1) + bfm * b(i,j,k)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2 * b(i,j,k)
+              endif
+              
+           endif
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+           
+        enddo
+     enddo
+
+  else if (cdir == 3) then
+     i = reg_h1
+     
+     do k = reg_l3, reg_h3
+        do j = reg_l2, reg_h2
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac*(b(i,j,k) + b(i+1,j,k))
+           
+           cols(2) = Index(i-1,j,k)
+           values(2) = - fac * b(i,j,k)
+           
+           if (mask(i+1,j,k) > 0) then
+              
+              cols(1) = Index(i,j,k)
+              values(1) = values(1) + bfm * b(i+1,j,k)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2 * b(i+1,j,k)
+              endif
+
+           end if
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+
+        end do
+     end do
+   
+  else if (cdir == 1) then
+     j = reg_l2
+     
+     do k = reg_l3, reg_h3
+        do i = reg_l1, reg_h1
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac*(b(i,j,k) + b(i,j+1,k))
+
+           cols(2) = Index(i,j+1,k)
+           values(2) = -fac*b(i,j+1,k)
+           
+           if (mask(i,j-1,k) > 0) then
+              cols(1) = Index(i,j,k)
+              values(1) = values(1) + bfm * b(i,j,k)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2 * b(i,j,k)
+              endif
+
+           end if
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+           
+        end do
+     end do
+     
+  else if (cdir == 4) then
+
+     j = reg_h2
+
+     do k = reg_l3, reg_h3
+        do i = reg_l1, reg_h1
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac*(b(i,j,k) + b(i,j+1,k))
+
+           cols(2) = Index(i,j-1,k)
+           values(2) = -fac*b(i,j,k)
+
+           if (mask(i,j+1,k) > 0) then
+
+              cols(1) = Index(i,j,k)
+              values(1) = values(1) + bfm * b(i,j+1,k)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2 * b(i,j+1,k)
+              endif
+              
+           endif
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+           
+        end do
+     end do
+     
+  else if (cdir == 2) then
+     k = reg_l3
+
+     do j = reg_l2, reg_h2
+        do i = reg_l1, reg_h1
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac*(b(i,j,k) + b(i,j,k+1))
+           
+           cols(2) = Index(i,j,k+1)
+           values(2) = -fac*b(i,j,k+1)
+           
+           if (mask(i,j,k-1) > 0) then
+
+              cols(1) = Index(i,j,k)
+              values(1) = values(1) + bfm * b(i,j,k)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2 * b(i,j,k)
+              end if
+           end if
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+           
+        end do
+     end do
+     
+  else if (cdir == 5) then
+     k = reg_h3
+
+     do j = reg_l2, reg_h2
+        do i = reg_l1, reg_h1
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac* (b(i,j,k) + b(i,j,k+1))
+           
+           cols(2) = Index(i,j,k-1)
+           values(2) = -fac*b(i,j,k)
+
+           if (mask(i,j,k+1) > 0) then
+
+              cols(1) = Index(i,j,k)
+              values(1) = values(1) + bfm * b(i,j,k+1)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2 * b(i,j,k+1)
+              end if
+              
+           end if
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+           
+        end do
+     end do
+
+  else
+
+     print *, "hmmat: impossible face orientation"
+
+  endif
+
+  
+end subroutine hmmat_ij
+
+
 
 subroutine hmmat3(mat, &
                   DIMS(reg), &
@@ -723,7 +1142,407 @@ subroutine hmmat3(mat, &
      enddo
   else
      print *, "hmmat3: impossible face orientation"
+
   endif
 end subroutine hmmat3
+
+subroutine hmmat3_ij(DIMS(reg), &
+                  cdir, bctype, bho, bcl, &
+                  mask, DIMS(msk), &
+                  b, DIMS(bbox), &
+                  beta, dx,      &
+                  Amat, Index, DIMS(Gbox)) bind(C, name="amrex_hmmat3_ij")
+
+  use amrex_fort_module, only : rt => amrex_real
+  
+  integer :: DIMDEC(reg)
+  integer :: DIMDEC(msk)
+  integer :: DIMDEC(bbox)
+  integer  :: cdir, bctype, bho
+  real(rt) :: bcl, beta, dx(3)
+  integer  :: mask(DIMV(msk))
+  real(rt) :: b(DIMV(bbox))
+  integer  :: DIMDEC(Gbox)
+  integer  :: Index(DIMV(Gbox))
+  ! HYPRE objects
+  integer(kind=8) :: Amat
+  real(rt)  :: h, fac, bfm, bfv
+  real(rt)  :: bfm2, h2, th2
+  integer :: i, j, k, bct, ierr
+  integer,  dimension(2) :: cols
+  real(rt), dimension(2) :: values
+  integer,  dimension(1) :: ncols 
+  integer :: rows, nrows
+
+  nrows = 1
+  ncols(nrows) = 2
+  
+  ! The -fac * b(i,j,k) term applied to the matrix diagonal is the contribution
+  ! from the interior stencil which must be removed at the boundary.
+  if (cdir == 0 .OR. cdir == 3) then
+     h = dx(1)
+  elseif (cdir == 1 .OR. cdir == 4) then
+     h = dx(2)
+  else
+     h = dx(3)
+  endif
+  bct = bctype
+  fac = beta / (h**2)
+  if (cdir == 0) then
+
+     i = reg_l1
+
+     do k = reg_l3, reg_h3
+        do j = reg_l2, reg_h2
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac*(b(i,j,k) + b(i+1,j,k)) 
+
+           cols(2) = Index(i+1,j,k)
+           values(2) = -fac*b(i+1,j,k)
+           
+           if (mask(i-1,j,k) > 0) then
+
+              if (bct == LO_DIRICHLET) then
+                 if (bho >= 1) then
+                    h2 = 0.5e0_rt * h
+                    th2 = 3.e0_rt * h2
+                    bfm = fac * (th2 - bcl) / (bcl + h2)  * b(i,j,k)
+                    bfm2 = fac * (bcl - h2) / (bcl + th2) * b(i,j,k)
+                 else
+                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
+                    bfm = bfv * b(i,j,k)
+                 endif
+              else if (bct == LO_NEUMANN) then
+                 bfm  = 0.e0_rt
+                 bfm2 = 0.e0_rt
+              else
+                 print *, "hmmat3: unsupported boundary type"
+                 stop
+              endif
+
+              values(1) = values(1) + bfm - fac * b(i,j,k)
+
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2
+              endif
+
+           end if
+           
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, &
+                cols, values, ierr)
+        end do
+     end do
+     
+  else if (cdir == 3) then
+
+     i = reg_h1
+     do k = reg_l3, reg_h3
+        do j = reg_l2, reg_h2
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac*(b(i,j,k) + b(i+1,j,k))
+           
+           cols(2) = Index(i-1,j,k)
+           values(2) = -fac*b(i,j,k)
+
+           if (mask(i+1,j,k) > 0) then
+              if (bct == LO_DIRICHLET) then
+                 if (bho >= 1) then
+                    h2 = 0.5e0_rt * h
+                    th2 = 3.e0_rt * h2
+                    bfm = fac * (th2 - bcl) / (bcl + h2)  * b(i+1,j,k)
+                    bfm2 = fac * (bcl - h2) / (bcl + th2) * b(i+1,j,k)
+                 else
+                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
+                    bfm = bfv * b(i+1,j,k)
+                 endif
+              else if (bct == LO_NEUMANN) then
+                 bfm  = 0.e0_rt
+                 bfm2 = 0.e0_rt
+              else
+                 print *, "hmmat3: unsupported boundary type"
+                 stop
+              endif
+
+              values(1) = values(1) + bfm - fac * b(i+1,j,k)
+
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2
+              endif
+              
+           endif
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, &
+                cols, values, ierr)
+        end do
+     end do
+     
+  else if (cdir == 1) then
+     j = reg_l2
+     do k = reg_l3, reg_h3
+        do i = reg_l1, reg_h1
+           
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac * (b(i,j,k) + b(i,j+1,k))
+
+           cols(2) = Index(i,j+1,k)
+           values(2) = - fac * b(i,j+1,k)
+           
+           if (mask(i,j-1,k) > 0) then
+              if (bct == LO_DIRICHLET) then
+                 if (bho >= 1) then
+                    h2 = 0.5e0_rt * h
+                    th2 = 3.e0_rt * h2
+                    bfm = fac * (th2 - bcl) / (bcl + h2)  * b(i,j,k)
+                    bfm2 = fac * (bcl - h2) / (bcl + th2) * b(i,j,k)
+                 else
+                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
+                    bfm = bfv * b(i,j,k)
+                 endif
+              else if (bct == LO_NEUMANN) then
+                 bfm  = 0.e0_rt
+                 bfm2 = 0.e0_rt
+              else
+                 print *, "hmmat3: unsupported boundary type"
+                 stop
+              endif
+
+              values(1) = values(1) + bfm - fac * b(i,j,k)
+                            
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2
+              end if
+              
+           endif
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, &
+                cols, values, ierr)
+        end do
+     end do
+     
+  else if (cdir == 4) then
+     j = reg_h2
+     do k = reg_l3, reg_h3
+        do i = reg_l1, reg_h1
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac * (b(i,j,k) + b(i,j+1,k))
+
+           cols(2) = Index(i,j-1,k)
+           values(2) = - fac * b(i,j,k)
+           
+           if (mask(i,j+1,k) > 0) then
+              if (bct == LO_DIRICHLET) then
+                 if (bho >= 1) then
+                    h2 = 0.5e0_rt * h
+                    th2 = 3.e0_rt * h2
+                    bfm = fac * (th2 - bcl) / (bcl + h2)  * b(i,j+1,k)
+                    bfm2 = fac * (bcl - h2) / (bcl + th2) * b(i,j+1,k)
+                 else
+                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
+                    bfm = bfv * b(i,j+1,k)
+                 endif
+              else if (bct == LO_NEUMANN) then
+                 bfm  = 0.e0_rt
+                 bfm2 = 0.e0_rt
+              else
+                 print *, "hmmat3: unsupported boundary type"
+                 stop
+              endif
+
+              values(1) = values(1) + bfm - fac * b(i,j+1,k)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2
+              endif
+              
+           end if
+
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, &
+                cols, values, ierr)
+        end do
+     end do
+  else if (cdir == 2) then
+     k = reg_l3
+     do j = reg_l2, reg_h2
+        do i = reg_l1, reg_h1
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac * (b(i,j,k) + b(i,j,k+1))
+
+           cols(2) = Index(i,j,k+1)
+           values(2) = - fac * b(i,j,k+1)
+
+           if (mask(i,j,k-1) > 0) then
+              if (bct == LO_DIRICHLET) then
+                 if (bho >= 1) then
+                    h2 = 0.5e0_rt * h
+                    th2 = 3.e0_rt * h2
+                    bfm = fac * (th2 - bcl) / (bcl + h2)  * b(i,j,k)
+                    bfm2 = fac * (bcl - h2) / (bcl + th2) * b(i,j,k)
+                 else
+                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
+                    bfm = bfv * b(i,j,k)
+                 endif
+              else if (bct == LO_NEUMANN) then
+                 bfm  = 0.e0_rt
+                 bfm2 = 0.e0_rt
+              else
+                 print *, "hmmat3: unsupported boundary type"
+                 stop
+              endif
+              
+              values(1) = values(1) + bfm - fac * b(i,j,k)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2
+              endif
+              
+           end if
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols,&
+                values, ierr)
+        enddo
+     enddo
+     
+  else if (cdir == 5) then
+     k = reg_h3
+     do j = reg_l2, reg_h2
+        do i = reg_l1, reg_h1
+
+           rows = Index(i,j,k)
+
+           cols(1) = Index(i,j,k)
+           values(1) = fac * (b(i,j,k) + b(i,j,k+1))
+
+           cols(2) = Index(i,j,k-1)
+           values(2) = - fac * b(i,j,k)
+           
+           if (mask(i,j,k+1) > 0) then
+              if (bct == LO_DIRICHLET) then
+                 if (bho >= 1) then
+                    h2 = 0.5e0_rt * h
+                    th2 = 3.e0_rt * h2
+                    bfm = fac * (th2 - bcl) / (bcl + h2)  * b(i,j,k+1)
+                    bfm2 = fac * (bcl - h2) / (bcl + th2) * b(i,j,k+1)
+                 else
+                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
+                    bfm = bfv * b(i,j,k+1)
+                 endif
+              else if (bct == LO_NEUMANN) then
+                 bfm  = 0.e0_rt
+                 bfm2 = 0.e0_rt
+              else
+                 print *, "hmmat3: unsupported boundary type"
+                 stop
+              endif
+              
+              values(1) = values(1) + bfm - fac * b(i,j,k+1)
+              
+              if (bho >= 1) then
+                 values(2) = values(2) + bfm2
+              end if
+              
+           end if
+           
+           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, &
+                values, ierr)
+           
+        end do
+     end do
+  else
+     print *, "hmmat3: impossible face orientation"
+  endif
+  
+end subroutine hmmat3_ij
+
+subroutine BuildGlobalIndex(Index, &
+     DIMS(bbox), &
+     DIMS(reg), &
+     GIndex) bind(C, name="amrex_BuildGlobalIndex")
+
+  use amrex_fort_module, only : rt => amrex_real
+  integer :: DIMDEC(bbox)
+  integer :: DIMDEC(reg)
+  integer :: Index(DIMV(bbox))
+  integer :: GIndex
+  integer :: i, j, k,count
+
+  count = 0
+  do k = reg_l3, reg_h3
+     do j = reg_l2, reg_h2
+        do i = reg_l1, reg_h1
+           Index(i,j,k) = Index(i,j,k) + GIndex + count
+           count = count + 1
+        end do
+     end do
+  end do
+
+end subroutine BuildGlobalIndex
+
+
+subroutine conv_Vec_Local_Global(vec, VecGB, Indices, nRows, &
+     DIMS(reg),Index, DIMS(bbox)) bind(C, name="amrex_conv_Vec_Local_Global")
+
+  use amrex_fort_module, only : rt => amrex_real
+  integer :: DIMDEC(bbox)
+  integer :: DIMDEC(reg)
+  integer :: Index(DIMV(bbox))
+  integer :: nRows
+  real(rt) :: vec(DIMV(reg))
+  real(rt) :: VecGB(0:(nRows-1))
+  integer :: Indices(0:(nRows-1))
+  integer :: i, j, k, count
+
+  count = 0
+
+  do k = reg_l3, reg_h3
+     do j = reg_l2, reg_h2
+        do i = reg_l1, reg_h1
+
+           VecGB(count) = vec(i,j,k)
+           Indices(count) = Index(i,j,k)
+
+           count = count + 1
+
+        end do
+     end do
+  end do
+
+end subroutine conv_Vec_Local_Global
+
+
+subroutine conv_Vec_Global_Local(vec, DIMS(bbox), VecGB, nRows, &
+     DIMS(reg)) bind(C, name="amrex_conv_Vec_Global_Local")
+
+  use amrex_fort_module, only : rt => amrex_real
+  integer :: DIMDEC(reg)
+  integer :: nRows
+  real(rt) :: VecGB(0:(nRows-1))
+  integer :: DIMDEC(bbox)
+  real(rt) :: vec(DIMV(bbox))
+  integer :: i, j, k, count
+
+  count = 0
+  do k = reg_l3, reg_h3
+     do j = reg_l2, reg_h2
+        do i = reg_l1, reg_h1
+           vec(i,j,k) = VecGB(count)
+           count = count + 1
+        end do
+     end do
+  end do
+
+end subroutine conv_Vec_Global_Local
 
 end module amrex_habec_module
