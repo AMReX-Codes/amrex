@@ -722,7 +722,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         else
         {
             MPI_Status status;
-            MPI_Waitany(nrecv, pre_reqs.data(), &i, &status);
+            ParallelDescriptor::Waitany(pre_reqs, i, status);
 
             for (auto x : indv_recv_size[i])
             {
@@ -1655,8 +1655,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		while (send_counter < actual_n_snds) {
 		    MPI_Status status;
 		    int index;
-		    
-		    MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+		   
+                    ParallelDescriptor::Waitany(send_reqs, index, status); 
 		    
 		    BL_ASSERT(status.MPI_TAG == SeqNum);
 		    BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
@@ -1682,7 +1682,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     else
                     {
                         MPI_Status status;
-                        MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
+                        ParallelDescriptor::Waitany(pre_reqs, j, status);
                     }
                         
                     if (send_size[j] > 0)
@@ -1770,7 +1770,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	} else {
 	    if (actual_n_rcvs > 0) {
 		Vector<MPI_Status> stats(N_rcvs);
-		BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+                ParallelDescriptor::Waitall(recv_reqs, stats);
 		if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
                 {
                     amrex::Abort("ParallelCopy failed with wrong message size");
@@ -2293,7 +2293,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 else
                 {
                     MPI_Status status;
-                    MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
+                    ParallelDescriptor::Waitany(pre_reqs, j, status);
                 }
                 
                 if (send_size[j] > 0)
@@ -2355,7 +2355,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
             if (actual_n_rcvs > 0) {
                 stats.resize(N_rcvs);
-                BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+                ParallelDescriptor::Waitall(recv_reqs, stats);
             }
 	    
 #ifdef _OPENMP
@@ -3059,12 +3059,12 @@ FabArray<FAB>::MoveFabs (const Vector<int> &newDistMapArray)
   Vector<MPI_Status>  recvStats(recvReqs.size()), sendStats(sendReqs.size());
 
   if(recvReqs.size() > 0) {
-    BL_MPI_REQUIRE( MPI_Waitall(recvReqs.size(), recvReqs.dataPtr(), recvStats.dataPtr()) );
+    ParallelDescriptor::Waitall(recvReqs, recvStats);
   }
 
   if(FabArrayBase::do_async_sends) {
     if(sendReqs.size() > 0) {
-      BL_MPI_REQUIRE( MPI_Waitall(sendReqs.size(), sendReqs.dataPtr(), sendStats.dataPtr()) );
+      ParallelDescriptor::Waitall(sendReqs, sendStats);
     }
   }
 
@@ -3468,8 +3468,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 	    while (send_counter < actual_n_snds) {
 		MPI_Status status;
 		int index;
-		
-		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+	
+                ParallelDescriptor::Waitany(send_reqs, index, status);	
 		
 		BL_ASSERT(status.MPI_TAG == SeqNum);
 		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
@@ -3495,7 +3495,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                 else
                 {
                     MPI_Status status;
-                    MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
+                    ParallelDescriptor::Waitany(pre_reqs, j, status);
                 }
                         
                 BL_ASSERT(send_size[j] > 0);
@@ -3594,7 +3594,7 @@ FabArray<FAB>::FillBoundary_finish ()
     } else {
 	if (actual_n_rcvs > 0) {
 	    Vector<MPI_Status> stats(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+            ParallelDescriptor::Waitall(fb_recv_reqs, stats);
 	    if (!CheckRcvStats(stats, fb_recv_size, MPI_CHAR, fb_tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");

@@ -551,6 +551,7 @@ FArrayBox::Finalize ()
 {
     delete fabio;
     fabio = 0;
+    initialized = false;
 }
 
 //

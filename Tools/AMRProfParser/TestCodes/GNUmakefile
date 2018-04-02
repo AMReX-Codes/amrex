@@ -1,4 +1,4 @@
-AMREX_HOME ?= $(HOME)/Development/amrex
+AMREX_HOME ?= ../../../../amrex
 
 PROFILE        = TRUE
 COMM_PROFILE   = TRUE
@@ -8,7 +8,7 @@ DEBUG     = FALSE
 DEBUG     = TRUE
 DIM       = 3
 DIM       = 2
-COMP      = gnu
+COMP      = gnu 
 
 USE_MPI=TRUE
 
@@ -17,6 +17,7 @@ EBASE = blprofcalltimes
 EBASE = stest0
 EBASE = AMRProfTest0
 EBASE = TokenizeTest
+EBASE = ProfWaitTest
 
 ifeq ($(EBASE), blprofcalltimes)
   CEXE_sources += BLProfCallTimes.cpp
@@ -47,6 +48,10 @@ ifeq ($(EBASE), pieces)
   CEXE_sources += BLProfStats.cpp
   CEXE_sources += BLProfUtilities.cpp
   FEXE_sources += AVGDOWN_$(DIM)D.F
+endif
+
+ifeq ($(EBASE), ProfWaitTest)
+  CEXE_sources += ProfWaitTest.cpp
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

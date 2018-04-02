@@ -150,6 +150,8 @@ private:
 
     void averageDownAndSync ();
 
+    Real getNodalSum (int amrlve, int mglev, MultiFab& mf) const;
+
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
 };
 
