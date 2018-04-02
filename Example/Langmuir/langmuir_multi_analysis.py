@@ -84,7 +84,7 @@ plt.imshow( E_th[:,:,32] )
 plt.colorbar()
 plt.title('Ez, last iteration\n(theory)')
 plt.tight_layout()
-plt.savefig('langmuir_analysis.png')
+plt.savefig('langmuir_multi_analysis.png')
 
 # Automatically check the validity
 assert overall_max_error < 0.035
