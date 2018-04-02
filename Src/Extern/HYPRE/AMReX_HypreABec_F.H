@@ -59,6 +59,8 @@
 
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BLFort.H>
+#include "HYPRE_parcsr_ls.h" 
+#include "_hypre_parcsr_mv.h" 
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,30 +80,56 @@ extern "C" {
 		    const int* msk, ARLIM_P(mlo), ARLIM_P(mhi),
 		    const amrex_real* bcv, ARLIM_P(bvlo), ARLIM_P(bvhi));
 
-  void amrex_hmac(amrex::Real* mat, 
-	    BL_FORT_FAB_ARG(acoefs),
-	    ARLIM_P(reglo), ARLIM_P(reghi),
-	    const amrex::Real& alpha);
+    void amrex_hmac(amrex::Real* mat, 
+                    BL_FORT_FAB_ARG(acoefs),
+                    ARLIM_P(reglo), ARLIM_P(reghi),
+                    const amrex::Real& alpha);
+    
+    void amrex_hmac_ij(BL_FORT_FAB_ARG(acoefs),
+                ARLIM_P(reglo), ARLIM_P(reghi),
+                const amrex::Real& alpha, HYPRE_IJMatrix &A, BL_FORT_IFAB_ARG(Index));
+    
+    void amrex_hmbc(amrex::Real* mat,
+                    BL_FORT_FAB_ARG(bcoefs),
+                    ARLIM_P(reglo), ARLIM_P(reghi),
+                    const amrex::Real& beta, const amrex::Real* dx, const int& n);
 
-  void amrex_hmbc(amrex::Real* mat,
-	    BL_FORT_FAB_ARG(bcoefs),
-	    ARLIM_P(reglo), ARLIM_P(reghi),
-	    const amrex::Real& beta, const amrex::Real* dx, const int& n);
+    void amrex_hmbc_ij(BL_FORT_FAB_ARG(bcoefs),
+                    ARLIM_P(reglo), ARLIM_P(reghi),
+                    const amrex::Real& beta, const amrex::Real* dx, const int& n, 
+                    HYPRE_IJMatrix &A, BL_FORT_IFAB_ARG(Index));
+    
+    void amrex_hmmat(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
+                     const int& cdir, const int& bct,
+                     const int& bho, const amrex::Real& bcl,
+                     const BL_FORT_IFAB_ARG(mask),
+                     BL_FORT_FAB_ARG(bcoefs),
+                     const amrex::Real& beta, const amrex::Real* dx);
 
-  void amrex_hmmat(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
-	     const int& cdir, const int& bct,
-	     const int& bho, const amrex::Real& bcl,
-	     const BL_FORT_IFAB_ARG(mask),
-	     BL_FORT_FAB_ARG(bcoefs),
-	     const amrex::Real& beta, const amrex::Real* dx);
+    void amrex_hmmat_ij(ARLIM_P(reglo), ARLIM_P(reghi),
+                     const int& cdir, const int& bct,
+                     const int& bho, const amrex::Real& bcl,
+                     const BL_FORT_IFAB_ARG(mask),
+                     BL_FORT_FAB_ARG(bcoefs),
+                     const amrex::Real& beta, const amrex::Real* dx,
+                     HYPRE_IJMatrix &A, BL_FORT_IFAB_ARG(Index));
 
-  void amrex_hmmat3(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
-	      const int& cdir, const int& bctype,
-	      const int& bho, const amrex::Real& bcl,
-	      const BL_FORT_IFAB_ARG(mask),
-	      BL_FORT_FAB_ARG(bcoefs),
-	      const amrex::Real& beta, const amrex::Real* dx);
+    void amrex_hmmat3(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
+                      const int& cdir, const int& bctype,
+                      const int& bho, const amrex::Real& bcl,
+                      const BL_FORT_IFAB_ARG(mask),
+                      BL_FORT_FAB_ARG(bcoefs),
+                      const amrex::Real& beta, const amrex::Real* dx);
+    
+    void amrex_hmmat3_ij(ARLIM_P(reglo), ARLIM_P(reghi),
+                      const int& cdir, const int& bctype,
+                      const int& bho, const amrex::Real& bcl,
+                      const BL_FORT_IFAB_ARG(mask),
+                      BL_FORT_FAB_ARG(bcoefs),
+                      const amrex::Real& beta, const amrex::Real* dx,
+                      HYPRE_IJMatrix &A, BL_FORT_IFAB_ARG(Index));
 
+    
     void amrex_hbvec (amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
                 const int& cdir, const int& bctype,
                 const int& bho, const amrex::Real& bcl,
@@ -118,6 +146,22 @@ extern "C" {
                 const BL_FORT_FAB_ARG(bcoefs),
                 const amrex::Real& beta, const amrex::Real* dx);
 
+    void amrex_BuildGlobalIndex(BL_FORT_IFAB_ARG(Index),ARLIM_P(reglo), ARLIM_P(reghi),
+                                const int& numCellsProc);
+    
+    void amrex_MatConvertGlobal(amrex::Real* mat, int* rows, int* cols, amrex::Real* values, int* numCols,
+                                const int& nCSR, const int& nRows,
+                                ARLIM_P(reglo), ARLIM_P(reghi),
+                                BL_FORT_IFAB_ARG(Index), const int& nDim);
+    
+    void amrex_conv_Vec_Local_Global(amrex::Real* vec,amrex::Real* VecGB,int* VecIndices,const int& nRows,
+                                     ARLIM_P(reglo), ARLIM_P(reghi),
+                                     BL_FORT_IFAB_ARG(Index) );
+
+    void amrex_conv_Vec_Global_Local(BL_FORT_FAB_ARG(vec), amrex::Real* VecGB, const int& nRows,
+                                     ARLIM_P(reglo), ARLIM_P(reghi));
+
+    
 #ifdef __cplusplus
 };
 #endif
