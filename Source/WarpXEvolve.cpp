@@ -184,37 +184,37 @@ WarpX::EvolveEM (int numsteps)
             }
         }
 
-        // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
-        // Particles have p^{n-1/2} and x^{n-1/2}.
-
-        // Beyond one step, we have B^{n-1/2} and E^{n}.
-        // Particles have p^{n-1/2} and x^{n}.
-        // F for div E cleaning is at n-1/2.
-
+        // At the beginning, we have B^{n} and E^{n}.
+        // Particles have p^{n} and x^{n}.
+        // is_synchronized is true.
         if (is_synchronized) {
-            // on first step, push E and X by 0.5*dt
+            FillBoundaryE();
             FillBoundaryB();
-            EvolveE(0.5*dt[0], DtType::SecondHalf);
-            mypc->PushX(0.5*dt[0]);
-            UpdatePlasmaInjectionPosition(0.5*dt[0]);
-            mypc->Redistribute();  // Redistribute particles
-            is_synchronized = false;
-        }
-
-        FillBoundaryE();
-
-        EvolveB(0.5*dt[0], DtType::FirstHalf); // We now B^{n}
-
-        FillBoundaryB();
-
-        UpdateAuxilaryData();
+            UpdateAuxilaryData();
+            // on first step, push p by -0.5*dt
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->PushP(lev, -0.5*dt[0],
+                            *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                            *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+            }
+           is_synchronized = false;
+        } else {
+            // If is_synchronized is false, we have E^{n}, B^{n-1/2}
+           FillBoundaryE();
+           EvolveB(0.5*dt[0], DtType::FirstHalf); // We now have B^{n}
+           FillBoundaryB();
+           UpdateAuxilaryData();
+       }
+        // Beyond this, we have E^{n} and B^{n}
+        // Particles have p^{n-1/2} and x^{n}
 
         // Push particle from x^{n} to x{n+1}
+        //               from p^{n-1/2} to p^{n+1/2}
         // Deposit current j^{n+1/2}
         // Deposit charge density rho^{n}
         PushParticlesandDepose(cur_time);
 
-        EvolveB(0.5*dt[0], DtType::SecondHalf); // We now B^{n+1/2}
+        EvolveB(0.5*dt[0], DtType::SecondHalf); // We now have B^{n+1/2}
 
         SyncCurrent();
 
@@ -225,14 +225,20 @@ WarpX::EvolveEM (int numsteps)
         // Fill B's ghost cells because of the next step of evolving E.
         FillBoundaryB();
 
+        EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
+
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
-            // on last step, push by only 0.5*dt to synchronize all at n+1/2
-            EvolveE(0.5*dt[0], DtType::FirstHalf); // We now have E^{n+1/2}
-            mypc->PushX(-0.5*dt[0]);
-            UpdatePlasmaInjectionPosition(-0.5*dt[0]);
+            // At the end of last step, push p and B by 0.5*dt to synchronize
+            FillBoundaryE();
+            EvolveB(0.5*dt[0], DtType::FirstHalf); // We now have B^{n+1}
+            FillBoundaryB();
+            UpdateAuxilaryData();
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->PushP(lev, 0.5*dt[0],
+                    *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                    *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+                }
             is_synchronized = true;
-        } else {
-            EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
         }
 
          for (int lev = 0; lev <= max_level; ++lev) {

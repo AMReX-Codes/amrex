@@ -46,6 +46,14 @@ public:
                          amrex::Real t,
                          amrex::Real dt) final;
 
+    virtual void PushP (int lev, amrex::Real dt,
+                        const amrex::MultiFab& Ex,
+                        const amrex::MultiFab& Ey,
+                        const amrex::MultiFab& Ez,
+                        const amrex::MultiFab& Bx,
+                        const amrex::MultiFab& By,
+                        const amrex::MultiFab& Bz) final;
+
     virtual void PostRestart () final {}
 
     // Inject particles in Box 'part_box'

@@ -107,24 +107,15 @@ Particle initialization
     Determines how the particles will be injected in the simulation.
     The options are:
 
-    * ``NUniformPerCell``: injection with a fixed number of particles
-    per cell, with particles being evenly-spaced in each direction within a cell.
-    This requires the additional parameter ``<species_name>.num_particles_per_cell_each_dim``.
+    - ``NUniformPerCell``:
+        injection with a fixed number of particles
+        per cell, with particles being evenly-spaced in each direction within a cell.
+        This requires the additional parameter ``<species_name>.num_particles_per_cell_each_dim``.
 
-    * ``NRandomPerCell``: injection with a fixed number of particles
-    per cell, with particles being randomly distributed within each cell.
-    This requires the additional parameter ``<species_name>.num_particles_per_cell``.
-
-    * ``Gaussian_Beam``:
-
-Additional parameters for plasma injection (``NUniformPerCell`` and ``NRandomPerCell``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-Additional parameters for gaussian beams (``Gaussian_Beam``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
+    - ``NRandomPerCell``:
+        injection with a fixed number of particles
+        per cell, with particles being randomly distributed within each cell.
+        This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
 Laser initialization
 --------------------

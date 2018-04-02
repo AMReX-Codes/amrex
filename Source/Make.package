@@ -17,7 +17,7 @@ CEXE_headers += WarpX.H WarpX_f.H WarpXConst.H WarpXBoostedFrameDiagnostic.H
 CEXE_headers += ParticleContainer.H WarpXParticleContainer.H PhysicalParticleContainer.H LaserParticleContainer.H
 
 CEXE_headers += PlasmaInjector.H
-CEXE_sources += PlasmaInjector.cpp CustomDensityProb.cpp
+CEXE_sources += PlasmaInjector.cpp CustomDensityProb.cpp CustomMomentumProb.cpp
 
 CEXE_sources += WarpXPML.cpp
 CEXE_headers += WarpXPML.H

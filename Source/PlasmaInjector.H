@@ -88,6 +88,22 @@ private:
 };
 
 ///
+/// This describes a custom momentum distribution. Users can supply
+/// in their problem directory.
+///
+///
+class CustomMomentumDistribution : public PlasmaMomentumDistribution
+{
+public:
+    CustomMomentumDistribution(const std::string& species_name);
+    virtual void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z) override;
+
+private:
+    amrex::Vector<amrex::Real> params;
+};
+
+
+///
 /// This is a Gaussian Random momentum distribution.
 /// Particles will get random momenta, drawn from a normal.
 /// ux_m, ux_y, and ux_z describe the mean components in the x, y, and z
