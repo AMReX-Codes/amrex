@@ -1,6 +1,7 @@
 import os, sys, shutil
 import argparse, re, time
 from functions_perftest import *
+import datetime
 
 # This script runs automated performance tests for WarpX.
 # It runs tests in list test_list defined below, and write
@@ -40,42 +41,56 @@ from functions_perftest import *
 # [str runname, int n_node, int n_mpi PER NODE, int n_omp]
 test_list = []
 n_repeat = 3
-basename1 = 'uniform_t0.01_'
 
-test_list.extend([[basename1 +  '128',    1, 16, 8]]*n_repeat)
-test_list.extend([[basename1 +  '128',    1, 32, 16]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1,  1]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1,  2]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1,  4]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1,  8]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1, 16]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1, 32]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1, 64]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1,128]]*n_repeat)
+test_list.extend([['ompscaling_32ppc'   ,    1, 1,256]]*n_repeat)
 
-# test_list.extend([[basename1 +  '128',    1, 16, 8]]*n_repeat)
-# test_list.extend([[basename1 +  '256',    8, 16, 8]]*n_repeat)
-# test_list.extend([[basename1 +  '512',   64, 16, 8]]*n_repeat)
-# test_list.extend([[basename1 + '1024',  512, 16, 8]]*n_repeat)
-# test_list.extend([[basename1 + '2048', 4096, 16, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_0ppc_1'    ,    1, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_0ppc_8'    ,    8, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_0ppc_64'   ,   64, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_0ppc_512'  ,  512, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_0ppc_1024' , 1024, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_0ppc_2048' , 2048, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_0ppc_4096' , 4096, 8, 8]]*n_repeat)
 
+#test_list.extend([['mil_weak1_32ppc_1'    ,    1, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_32ppc_8'    ,    8, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_32ppc_64'   ,   64, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_32ppc_512'  ,  512, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_32ppc_1024' , 1024, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_32ppc_2048' , 2048, 8, 8]]*n_repeat)
+#test_list.extend([['mil_weak1_32ppc_4096' , 4096, 8, 8]]*n_repeat)
 
-# test_list.extend([['uniform_t0.01_direct1_1ppc_128', 1, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_128', 1, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_128', 1, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_128', 1, 16, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc1'   ,    1, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc1'   ,    8, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc1'   ,   64, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc1'   ,  128, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc128' ,  128, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc128' ,  256, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc128' ,  512, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc128' , 1024, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc128' , 2048, 8, 8]]*n_repeat)
+#test_list.extend([['strong_32ppc128' , 4096, 8, 8]]*n_repeat)
 
-# test_list.extend([['uniform_t0.01_direct1_1ppc_256', 8, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_256', 8, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_256', 8, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_256', 8, 16, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_1'   ,    1, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_1'   ,    8, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_1'   ,   64, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_1'   ,  128, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_1'   ,  256, 8, 8]]*n_repeat)
 
-# test_list.extend([['uniform_t0.01_direct1_1ppc_512', 64, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_512', 64, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_512', 64, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_512', 64, 16, 8]]*n_repeat)
-
-# test_list.extend([['uniform_t0.01_direct1_1ppc_1024', 512, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_1024', 512, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_1024', 512, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_1024', 512, 16, 8]]*n_repeat)
-
-# test_list.extend([['uniform_t0.01_direct1_1ppc_2048', 4096, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_direct3_1ppc_2048', 4096, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk1_1ppc_2048', 4096, 16, 8]]*n_repeat)
-# test_list.extend([['uniform_t0.01_esirk3_1ppc_2048', 4096, 16, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_128' ,  128, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_128' ,  256, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_128' ,  512, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_128' , 1024, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_128' , 2048, 8, 8]]*n_repeat)
+#test_list.extend([['strong1_0ppc_128' , 4096, 8, 8]]*n_repeat)
 
 n_tests   = len(test_list)
 
@@ -95,6 +110,8 @@ parser.add_argument( '--mode', choices=['run', 'read'], default='run',
     help='whether to run perftests or read their perf output. run calls read')
 parser.add_argument( '--log_file', dest = 'log_file', default='my_performance_log.txt',
     help='name of log file where data will be written. ignored if option --commit is used')
+parser.add_argument( '--n_steps', dest = 'n_steps', default=None,
+    help='Number of time steps in the simulation. Should be read automatically from the input file')
 
 args = parser.parse_args()
 
@@ -115,6 +132,10 @@ res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
 bin_dir = cwd + 'Bin/'
 bin_name = 'perf_tests3d.' + args.compiler + '.' + module_name[args.architecture] + '.TPROF.MPI.OMP.ex'
 log_dir  = cwd
+
+perf_database_file = cwd + 'perf_database_warpx.h5'
+do_rename = False
+store_test = False
 
 day = time.strftime('%d')
 month = time.strftime('%m')
@@ -235,6 +256,9 @@ if args.mode == 'read':
         f_log.write(log_line)
         f_log.close()
     for count, current_run in enumerate(test_list):
+
+        count += 21
+
         # Results folder
         print('read ' + str(current_run))
         run_name = current_run[0]
@@ -290,7 +314,6 @@ if args.mode == 'read':
         count = 0
         dir_record = dir_record_base + '_'.join([year, month, day]) + '_0'
         while os.path.exists(dir_record):
-            count += 1
             dir_record = dir_record[:-1] + str(count)
         os.mkdir(dir_record)
         shutil.copy(__file__, dir_record)
