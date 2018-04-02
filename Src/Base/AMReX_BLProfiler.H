@@ -576,16 +576,16 @@ class BLProfiler
 #if defined(VTUNE)
 
 #define TP_PROFILE_REGION_START()   __itt_resume(); \
-amrex::Print() << "Vtune regional recording has begun.\n";
+amrex::Print() << "VTune regional recording has begun.\n";
 #define TP_PROFILE_REGION_STOP()    __itt_pause(); \
-amrex::Print() << "Vtune regional recording has been stopped.\n";
+amrex::Print() << "VTune regional recording has been stopped.\n";
 
 #elif defined(CRAYPAT)
 
 #define TP_PROFILE_REGION_START()   PAT_record(PAT_STATE_ON); \
-amrex::Print() << "Craypat regional recording has begun.\n";
+amrex::Print() << "CrayPat regional recording has begun.\n";
 #define TP_PROFILE_REGION_STOP()    PAT_record(PAT_STATE_OFF); \
-amrex::Print() << "Craypat regional recording has been stopped.\n";
+amrex::Print() << "CrayPat regional recording has been stopped.\n";
 
 #elif defined(FORGE)
 

@@ -1,4 +1,4 @@
-
+#include <AMReX_ThirdPartyProfiling.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
@@ -119,11 +119,17 @@ void main_main ()
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
+//    TP_PROFILE_REGION_START();
     for (int n = 1; n <= nsteps; ++n)
     {
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
+        if (n > (nsteps==5))
+        {
+          TP_PROFILE_REGION_START();
+        }
+
         advance(phi_old, phi_new, flux, dt, geom); 
         time = time + dt;
         
@@ -137,6 +143,7 @@ void main_main ()
             WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
         }
     }
+    TP_PROFILE_REGION_STOP();
 
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
