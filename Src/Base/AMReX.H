@@ -24,6 +24,8 @@ namespace amrex
 
     std::string Version ();
 
+    void Initialize (MPI_Comm mpi_comm);
+
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
                      const std::function<void()>& func_parm_parse = {});

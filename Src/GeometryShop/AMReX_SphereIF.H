@@ -37,6 +37,10 @@ namespace amrex
     virtual Real value(const RealVect& a_point) const;
 
 
+    ///return the partial derivative at the point
+    virtual Real derivative(const  IntVect& a_deriv,
+                            const RealVect& a_point) const;
+
     ///
     /**
        Return a newly allocated derived class.  The responsibility

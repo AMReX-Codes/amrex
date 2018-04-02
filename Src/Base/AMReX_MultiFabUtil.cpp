@@ -303,8 +303,8 @@ namespace amrex
                        int scomp, int ncomp, const IntVect& ratio)
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(S_crse.is_cell_centered() && S_fine.is_cell_centered() ||
-                  S_crse.is_nodal()         && S_fine.is_nodal());
+        BL_ASSERT((S_crse.is_cell_centered() && S_fine.is_cell_centered()) ||
+                  (S_crse.is_nodal()         && S_fine.is_nodal()));
 
         bool is_cell_centered = S_crse.is_cell_centered();
         

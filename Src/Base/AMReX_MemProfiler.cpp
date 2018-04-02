@@ -44,11 +44,23 @@ MemProfiler::add (const std::string& name, std::function<NBuildsInfo()>&& f)
     mprofiler.the_funcs_builds.push_back(std::move(f));
 }
 
+namespace {
+    std::unique_ptr<MemProfiler> the_instance = nullptr;
+}
+
 MemProfiler& 
 MemProfiler::getInstance ()
 {
-    static MemProfiler the_instance;
-    return the_instance;
+    if (the_instance == nullptr) {
+        the_instance.reset(new MemProfiler());
+    }
+    return *the_instance;
+}
+
+void
+MemProfiler::Finalize ()
+{
+    the_instance.reset();
 }
 
 void

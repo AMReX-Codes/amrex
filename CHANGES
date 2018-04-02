@@ -1,7 +1,15 @@
-# changes since the last release
+# 18.04
 
   -- New BoxList constructors making a given number of Boxes from a
      single Box.
+
+  -- Optimization of particle redistribution
+
+  -- MLMG nodal linear solver: add solvability fix
+
+  -- Modification to amrex::Initialize and Finalize to make it
+     suitable as a library in an application that does not use AMReX
+     as a framework.
 
 # 18.03
 

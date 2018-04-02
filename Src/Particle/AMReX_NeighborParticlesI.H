@@ -142,6 +142,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::cacheNeighborInfo(int lev) {
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
+
     BL_ASSERT(lev == 0);
     BL_ASSERT(this->OK());
 
@@ -297,7 +298,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                                           tmp_local_map[index][i].end());
         }
     }
-    
+
     // do the same for the remote neighbors
     typename std::map<NeighborCommTag, Vector<Vector<NeighborIndexMap> > >::iterator it;
 #ifdef _OPENMP
@@ -326,8 +327,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
         const Vector<NeighborIndexMap>& map = local_map[dst_index];
         const int num_ghosts = map.size();
         neighbors[dst_index].resize(num_ghosts * pdata_size);
+        local_neighbor_sizes[dst_index] = neighbors[dst_index].size();  // store this for later
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
         for (int i = 0; i < num_ghosts; ++i) {
             const NeighborIndexMap& nim = map[i];
@@ -337,13 +339,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
             tags[nim.src_index].dst_offset = i * pdata_size;
             BL_ASSERT(tags[nim.src_index].dst_offset < neighbors[dst_index].size());
         }
-    }
-    
-    for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const int grid = mfi.index();
-        const int tile = mfi.LocalTileIndex();
-        PairIndex dst_index(grid, tile);
-        local_neighbor_sizes[dst_index] = neighbors[dst_index].size();
     }
 
     // now we allocate the send buffers and cache the remotes
@@ -463,6 +458,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
         }
     }
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const int grid = mfi.index();
         const int tile = mfi.LocalTileIndex();
@@ -543,7 +541,7 @@ getRcvCountsMPI() {
     }
 
     if (num_rcvs > 0) {
-        BL_MPI_REQUIRE( MPI_Waitall(num_rcvs, rreqs.data(), stats.data()) );
+        ParallelDescriptor::Waitall(rreqs, stats);
     }
 
 #endif // BL_USE_MPI
@@ -611,7 +609,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
     
     // unpack the received data and put them into the proper neighbor buffers
     if (nrcvs > 0) {
-        BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
+        ParallelDescriptor::Waitall(rreqs, stats);
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
             char* buffer = &recvdata[offset];
