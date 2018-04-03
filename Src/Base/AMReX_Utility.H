@@ -306,10 +306,6 @@ namespace amrex
     void BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm);
 
     template<class T> void BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
-    void BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm);
-    void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm);
-    void BroadcastDistributionMapping(DistributionMapping &dM,
-                                      int myLocalId, int rootId, const MPI_Comm &localComm);
     void USleep(double sleepsec);
 
 

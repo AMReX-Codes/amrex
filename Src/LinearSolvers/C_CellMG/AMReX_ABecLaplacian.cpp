@@ -106,7 +106,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealMax(res,color());
+        ParallelDescriptor::ReduceRealMax(res);
     return res;
 }
 
