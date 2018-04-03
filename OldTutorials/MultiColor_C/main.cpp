@@ -3,13 +3,16 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_BndryData.H>
-#include <AMReX_LO_BCTYPES.H>
-#include <AMReX_MultiGrid.H>
+#include <AMReX_MLMG.H>
+#include <AMReX_MLABecLaplacian.H>
+#include <AMReX_ParallelContext.H>
+#include <AMReX_ForkJoin.H>
 
 using namespace amrex;
 
 namespace {
+    int ncolors = 2;
+    
     int ncomp  = 8;
     Real a     = 1.e-3;
     Real b     = 1.0;
@@ -32,7 +35,6 @@ extern "C"
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom);
 void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom);
-void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
 void solve(MultiFab& soln, const MultiFab& rhs, 
 	   const MultiFab& alpha, const Vector<MultiFab*>& beta,
 	   const Geometry& geom);
@@ -52,6 +54,8 @@ int main(int argc, char* argv[])
     {
 	ParmParse pp;
 	
+        pp.query("ncolors", ncolors);
+
 	pp.query("verbose", verbose);
 
 	int n_cell, max_grid_size;
@@ -81,10 +85,10 @@ int main(int argc, char* argv[])
     setup_rhs(rhs, geom);
 
     MultiFab alpha(ba, dm, ncomp, 0);
-    Vector<std::unique_ptr<MultiFab> > beta(BL_SPACEDIM);
+    Vector<MultiFab> beta(BL_SPACEDIM);
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        beta[i].reset(new MultiFab(amrex::convert(ba, IntVect::TheDimensionVector(i)),
-                                   dm, ncomp, 0));
+        beta[i].define(amrex::convert(ba, IntVect::TheDimensionVector(i)),
+                       dm, ncomp, 0);
     }
     setup_coeffs(alpha, amrex::GetVecOfPtrs(beta), geom);
 
@@ -132,106 +136,28 @@ void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry
     }
 }
 
-// Dirichlet only in this test
-void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
-{
-    Real bc_value = 0.0;
-
-    const Geometry& geom = bd.getGeom();
-    const Real* dx = geom.CellSize();
-
-    for (int n=0; n<BL_SPACEDIM; ++n) {
-	for (MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
-	    int i = mfi.index(); 
-	    
-	    const Box& bx = mfi.validbox();
-	    
-	    // Our default will be that the face of this grid is either touching another grid
-	    //  across an interior boundary or a periodic boundary.  We will test for the other
-	    //  cases below.
-	    {
-		// Define the type of boundary conditions to be Dirichlet (even for periodic)
-		bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-		bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
-	
-		// Set the boundary conditions to the cell centers outside the domain
-		bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[n]);
-		bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[n]);
-	    }
-	    
-	    // Now test to see if we should override the above with Dirichlet physical bc's
-
-	    // We are on the low side of the domain in coordinate direction n
-	    if (bx.smallEnd(n) == geom.Domain().smallEnd(n)) {
-		// Set the boundary conditions to live exactly on the faces of the domain
-		bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
-	  
-		// Set the Dirichlet/Neumann boundary values 
-		bd.setValue(Orientation(n, Orientation::low) ,i, bc_value);
-	  
-		// Define the type of boundary conditions 
-		bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-	    }
-	
-	    // We are on the high side of the domain in coordinate direction n
-	    if (bx.bigEnd(n) == geom.Domain().bigEnd(n)) {
-		// Set the boundary conditions to live exactly on the faces of the domain
-		bd.setBoundLoc(Orientation(n, Orientation::high) ,i,0.0 );
-		
-		// Set the Dirichlet/Neumann boundary values
-		bd.setValue(Orientation(n, Orientation::high) ,i, bc_value);
-		
-		// Define the type of boundary conditions 
-		bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,LO_DIRICHLET);
-	    }
-	}
-    }
-}
-
 void solve(MultiFab& soln, const MultiFab& rhs, 
 	   const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
 {
-    int nprocs  = ParallelDescriptor::NProcs();
-    int ncolors = ParallelDescriptor::NColors();
-    int cncomp = ncomp / ncolors;
-    BL_ASSERT(cncomp*ncolors == ncomp);
+    // evenly split ranks among ncolors tasks
+    ForkJoin fj(ncolors);
 
-    const BoxArray& ba = rhs.boxArray();
+    // register how to copy multifabs to/from tasks
+    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out);
 
-    Vector<std::unique_ptr<MultiFab> > csoln(ncolors);
-    Vector<std::unique_ptr<MultiFab> > crhs(ncolors);
-    Vector<std::unique_ptr<MultiFab> > calpha(ncolors);
-    Vector<Vector<std::unique_ptr<MultiFab> > > cbeta(ncolors);
-
-    for (int i = 0; i < ncolors; ++i) {
-	ParallelDescriptor::Color color = ParallelDescriptor::Color(i);
-
-	DistributionMapping dm {ba, nprocs, color};
-
-	// Build colored MFs.
-	csoln [i].reset(new MultiFab(ba, dm, cncomp, 0));
-	crhs  [i].reset(new MultiFab(ba, dm, cncomp, 0));
-	calpha[i].reset(new MultiFab(ba, dm, cncomp, 0));
-	cbeta[i].resize(BL_SPACEDIM);
-	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    cbeta[i][j].reset(new MultiFab(beta[j]->boxArray(), dm, cncomp, 0));
-	}
-
-	// Parallel copy data into colored MFs.
-	crhs[i]->copy(rhs, cncomp*i, 0, cncomp);
-	calpha[i]->copy(alpha, cncomp*i, 0, cncomp);
-	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    cbeta[i][j]->copy(*beta[j], cncomp*i, 0, cncomp);
-	}
-    }
-
-    int icolor = ParallelDescriptor::SubCommColor().to_int();
-    colored_solve(*csoln[icolor], *crhs[icolor], *calpha[icolor],
-		  amrex::GetVecOfPtrs(cbeta[icolor]), geom);
-
-    // Copy solution back from colored MFs.
-    for (int i = 0; i < ncolors; ++i) {
-	soln.copy(*csoln[i], 0, cncomp*i, cncomp);
+    // can reuse ForkJoin object for multiple fork-join invocations
+    // creates forked multifabs only first time around, reuses them thereafter
+    for (int i = 0; i < 2; ++i) {
+        // issue fork-join
+        fj.fork_join(
+            [&geom] (ForkJoin &f) {
+                colored_solve(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
+                              f.get_mf_vec("beta"), geom);
+            }
+        );
     }
 }
 
@@ -250,20 +176,15 @@ void colored_solve(MultiFab& soln, const MultiFab& rhs,
     {	    
 	for (int i = 0; i < soln.nComp(); ++i) {
 	    MultiFab ssoln (ba, dm, 1, 1);
-	    MultiFab srhs  (ba, dm, 1, 0);
-	    MultiFab salpha(ba, dm, 1, 0);
-	    Vector<std::unique_ptr<MultiFab> > sbeta(BL_SPACEDIM);
-	    for (int j = 0; j < BL_SPACEDIM; ++j) {
-		sbeta[j].reset(new MultiFab(beta[j]->boxArray(), dm, 1, 0));
-	    }
-	    
-	    MultiFab::Copy(ssoln , soln , i, 0, 1, 0);
-	    MultiFab::Copy(srhs  , rhs  , i, 0, 1, 0);
-	    MultiFab::Copy(salpha, alpha, i, 0, 1, 0);
-	    for (int j = 0; j < BL_SPACEDIM; ++j) {
-		MultiFab::Copy(*sbeta[j], *beta[j], i, 0, 1, 0);
-	    }
-	    
+            ssoln.setVal(0.0);
+
+	    MultiFab srhs  (rhs, amrex::make_alias, i, 1);
+	    MultiFab salpha(alpha, amrex::make_alias, i, 1);
+            Vector<std::unique_ptr<MultiFab> > sbeta(AMREX_SPACEDIM);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                sbeta[idim].reset(new MultiFab(*beta[idim], amrex::make_alias, i, 1));
+            }
+
 	    single_component_solve(ssoln, srhs, salpha,
 				   amrex::GetVecOfPtrs(sbeta), geom);
 	    
@@ -278,20 +199,23 @@ void single_component_solve(MultiFab& soln, const MultiFab& rhs,
 {
     const BoxArray& ba = soln.boxArray();
     const DistributionMapping& dm = soln.DistributionMap();
-    const Real* dx = geom.CellSize();
 
-    BndryData bd(ba, dm, 1, geom);
-    set_boundary(bd, rhs, 0);
+    MLABecLaplacian mlabec({geom}, {ba}, {dm});
 
-    ABecLaplacian abec_operator(bd, dx);
-    abec_operator.setScalars(a, b);
-    abec_operator.setCoefficients(alpha, beta);
+    mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                     LinOpBCType::Dirichlet,
+                                     LinOpBCType::Dirichlet)},
+                       {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                     LinOpBCType::Dirichlet,
+                                     LinOpBCType::Dirichlet)});
+    mlabec.setLevelBC(0, &soln);
 
-    MultiGrid mg(abec_operator);
-    mg.setVerbose(verbose);
+    mlabec.setScalars(a, b);
+    mlabec.setACoeffs(0, alpha);
+    mlabec.setBCoeffs(0, {AMREX_D_DECL(beta[0], beta[1], beta[2])});
 
-    soln.setVal(0.0);
-
-    mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
+    MLMG mlmg(mlabec);
+    mlmg.setVerbose(verbose);
+    mlmg.solve({&soln}, {&rhs}, tolerance_rel, tolerance_abs);
 }
 

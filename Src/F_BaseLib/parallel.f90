@@ -22,26 +22,10 @@ module parallel
 
   integer, parameter :: parallel_root = 0
   integer, parameter, private :: io_processor_node = parallel_root
-  integer, parameter, private :: m_myproc_undefined  = -11
-  integer, parameter, private :: m_myproc_notingroup = -22
-  integer, parameter, private :: m_nprocs_undefined  = -33
   integer, private :: m_nprocs = -1
-  integer, private :: m_nprocs_all     = m_nprocs_undefined
-  integer, private :: m_nprocs_comp    = m_nprocs_undefined
-  integer, private, allocatable :: m_nprocs_sidecar(:)
-  integer, private :: m_nsidecars = 0
   integer, private :: m_myproc = -1
-  integer, private :: m_myproc_all     = m_myproc_undefined
-  integer, private :: m_myproc_comp    = m_myproc_undefined
-  integer, private :: m_myproc_sidecar = m_myproc_undefined
   integer, private :: m_comm   = -1
-  integer, private :: m_comm_all     = MPI_COMM_NULL
-  integer, private :: m_comm_comp    = MPI_COMM_NULL
-  integer, private, allocatable :: m_comm_sidecar(:)
-  integer, private, allocatable :: m_comm_inter(:)
-  integer, private :: m_group_all     = MPI_GROUP_NULL
-  integer, private :: m_group_comp    = MPI_GROUP_NULL
-  integer, private, allocatable :: m_group_sidecar(:)
+
   integer, private :: m_thread_support_level = MPI_THREAD_SINGLE
   integer, private :: mpi_ll_t = -1
   integer, private :: MPI_MAX_LONG = -1
@@ -313,15 +297,6 @@ contains
     else
       call MPI_Comm_Free(m_comm, ierr)
     endif
-    if(allocated(m_nprocs_sidecar)) then
-      deallocate(m_nprocs_sidecar)
-    endif
-    if(allocated(m_comm_sidecar)) then
-      deallocate(m_comm_sidecar)
-    endif
-    if(allocated(m_group_sidecar)) then
-      deallocate(m_group_sidecar)
-    endif
     if (present(do_finalize_MPI) ) then
        if (do_finalize_MPI) call MPI_Finalize(ierr)
     else
@@ -432,43 +407,17 @@ contains
     integer :: r
     r = m_comm
   end function parallel_communicator
+
   pure function parallel_nprocs() result(r)
     integer r
     r = m_nprocs
   end function parallel_nprocs
-  pure function parallel_nprocs_all() result(r)
-    integer r
-    r = m_nprocs_all
-  end function parallel_nprocs_all
-  pure function parallel_nprocs_comp() result(r)
-    integer r
-    r = m_nprocs_comp
-  end function parallel_nprocs_comp
-  pure function parallel_nprocs_sidecar(whichsidecar) result(r)
-    integer, intent(in) :: whichsidecar
-    integer r
-    if(m_nsidecars.gt.0) then
-      r = m_nprocs_sidecar(whichsidecar)
-    else
-      r = m_nprocs_undefined
-    endif
-  end function parallel_nprocs_sidecar
+
   pure function parallel_myproc() result(r)
     integer r
     r = m_myproc
   end function parallel_myproc
-  pure function parallel_myproc_all() result(r)
-    integer r
-    r = m_myproc_all
-  end function parallel_myproc_all
-  pure function parallel_myproc_comp() result(r)
-    integer r
-    r = m_myproc_comp
-  end function parallel_myproc_comp
-  pure function parallel_myproc_sidecar() result(r)
-    integer r
-    r = m_myproc_sidecar
-  end function parallel_myproc_sidecar
+
   function parallel_IOProcessor(comm) result(r)
     logical :: r
     integer, intent(in), optional :: comm
@@ -2513,91 +2462,6 @@ contains
   subroutine parallel_comm_free_from_c () bind(c, name='bl_fortran_mpi_comm_free')
     call parallel_finalize(do_finalize_MPI=.false.) ! do not finalize MPI but free communicator
   end subroutine parallel_comm_free_from_c
-
-  subroutine parallel_set_nprocs_sidecar(nsc, iws, npa, npc, nps, coma, comc, coms, &
-                                         grpa, grpc, grps, mpa, mpc, mps)          &
-                                         bind(c, name='bl_fortran_set_nprocs_sidecar')
-    use iso_c_binding
-    integer(c_int), intent(in), value :: nsc, iws, npa, npc, coma, comc
-    integer(c_int), intent(in), value :: grpa, grpc, mpa, mpc, mps
-    integer(c_int), intent(in) :: nps(0:nsc-1), coms(0:nsc-1), grps(0:nsc-1)
-    m_nsidecars = nsc
-    m_nprocs_all = npa
-    m_nprocs_comp = npc
-    if(allocated(m_nprocs_sidecar)) then
-      deallocate(m_nprocs_sidecar)
-    endif
-    if(.not.allocated(m_nprocs_sidecar)) then
-      allocate(m_nprocs_sidecar(0:nsc-1))
-    endif
-    m_nprocs_sidecar = nps
-    m_comm_all = coma
-    m_comm_comp = comc
-    if(allocated(m_comm_sidecar)) then
-      deallocate(m_comm_sidecar)
-    endif
-    if(.not.allocated(m_comm_sidecar)) then
-      allocate(m_comm_sidecar(0:nsc-1))
-    endif
-    m_comm_sidecar = coms
-    m_group_all = grpa
-    m_group_comp = grpc
-    if(allocated(m_group_sidecar)) then
-      deallocate(m_group_sidecar)
-    endif
-    if(.not.allocated(m_group_sidecar)) then
-      allocate(m_group_sidecar(0:nsc-1))
-    endif
-    m_group_sidecar = grps
-    m_myproc_all = mpa
-    m_myproc_comp = mpc
-    m_myproc_sidecar = mps
-    if(m_myproc_comp.ne.m_myproc_notingroup) then
-      m_nprocs = m_nprocs_comp
-      m_myproc = m_myproc_comp
-      m_comm   = m_comm_comp
-    else
-      if(iws.ge.0) then
-        m_nprocs = m_nprocs_sidecar(iws)
-        m_myproc = m_myproc_sidecar
-        m_comm   = m_comm_sidecar(iws)
-      else
-        m_nprocs = m_nprocs_undefined
-        m_myproc = m_myproc_undefined
-        m_comm   = MPI_COMM_NULL
-      endif
-    endif
-  end subroutine parallel_set_nprocs_sidecar
-
-  subroutine parallel_set_nprocs_sidecar_to_zero(npa, coma, comc,       &
-                                                 grpa, grpc, mpa, mpc)  &
-                                         bind(c, name='bl_fortran_set_nprocs_sidecar_to_zero')
-    use iso_c_binding
-    integer(c_int), intent(in), value :: npa, coma, comc
-    integer(c_int), intent(in), value :: grpa, grpc, mpa, mpc
-    m_nsidecars = 0
-    m_nprocs_all = npa
-    m_nprocs_comp = m_nprocs_all
-    if(allocated(m_nprocs_sidecar)) then
-      deallocate(m_nprocs_sidecar)
-    endif
-    m_comm_all = coma
-    m_comm_comp = comc
-    if(allocated(m_comm_sidecar)) then
-      deallocate(m_comm_sidecar)
-    endif
-    m_group_all = grpa
-    m_group_comp = grpc
-    if(allocated(m_group_sidecar)) then
-      deallocate(m_group_sidecar)
-    endif
-    m_myproc_all = mpa
-    m_myproc_comp = mpc
-    m_myproc_sidecar = m_myproc_undefined
-    m_nprocs = m_nprocs_comp
-    m_myproc = m_myproc_comp
-    m_comm   = m_comm_comp
-  end subroutine parallel_set_nprocs_sidecar_to_zero
 
   function parallel_tag (reset) result(tag)
     logical, intent(in), optional :: reset

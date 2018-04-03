@@ -1487,7 +1487,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       ++currentFileIndex;
     }
 
-    DistributionMapping dmFileOrder(ranksFileOrder);
+    DistributionMapping dmFileOrder(std::move(ranksFileOrder));
 
     bool inFileOrder(mf.DistributionMap() == dmFileOrder && mf.boxArray() == baFileOrder);
     if(inFileOrder) {

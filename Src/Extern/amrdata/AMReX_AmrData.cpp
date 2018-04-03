@@ -869,7 +869,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 
     Vector<int> pMap(fabBoxArray.size());
     pMap[BoxZero] = iopNum;
-    DistributionMapping dMap(pMap);
+    DistributionMapping dMap(std::move(pMap));
 
     MFInfo Fab_noallocate;
     Fab_noallocate.SetAlloc(false);
@@ -934,7 +934,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 
     Vector<int> pMap(fabBoxArray.size());
     pMap[BoxZero] = iopNum;
-    DistributionMapping dMap(pMap);
+    DistributionMapping dMap(std::move(pMap));
 
     MFInfo Fab_noallocate;
     Fab_noallocate.SetAlloc(false);
