@@ -1,5 +1,6 @@
 
 module warpx_fft_module
+  use amrex_error_module
   use amrex_fort_module
   use iso_c_binding
   implicit none
@@ -154,7 +155,7 @@ contains
     call c_f_pointer(fft_data(22), rhooldf, shp)
 
     if (ndata < 22) then
-       call amrex_error("size of fft_data is too small")
+       call amrex_abort("size of fft_data is too small")
     end if
 
     dx = dx_wrpx(1)
