@@ -1910,8 +1910,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     //
     // Make the particle directories if they don't already exist.
     //
-    amrex::Print() << "Particle::Checkpoint: pdir levelDirectoriesCreated = "
-                   << pdir << "  " << levelDirectoriesCreated << '\n';
     if ( ! levelDirectoriesCreated) {
       if (ParallelDescriptor::IOProcessor()) 
         if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
