@@ -425,13 +425,28 @@ private:
 
     struct FFTData
     {
-        void* data[22] = { nullptr };
+        static constexpr int N = 22;
+        void* data[N] = { nullptr };
+
         ~FFTData () {
-            for (int i = 0; i < 22; ++i) {
+            for (int i = 0; i < N; ++i) { // The memory is allocated by Fortran routines
                 std::free(data[i]);
                 data[i] = nullptr;
             }
         }
+
+        FFTData () = default;
+
+        FFTData (FFTData && rhs) noexcept {
+            for (int i = 0; i < N; ++i) {
+                data[i] = rhs.data[i];
+                rhs.data[i] = nullptr;
+            }
+        }
+
+        FFTData (FFTData const&) = delete;
+        void operator= (FFTData const&) = delete;
+        void operator= (FFTData&&) = delete;
     };
 
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;

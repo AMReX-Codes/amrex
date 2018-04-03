@@ -4,6 +4,8 @@
 
 using namespace amrex;
 
+constexpr int WarpX::FFTData::N;
+
 namespace {
 
 static void
@@ -31,6 +33,7 @@ WarpX::AllocLevelDataFFT (int lev)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(lev == 0, "PSATD doesn't work with mesh refinement yet");
 
     static_assert(std::is_standard_layout<FFTData>::value, "FFTData must have standard layout");
+    static_assert(sizeof(FFTData) == sizeof(void*)*FFTData::N, "sizeof FFTData is wrong");
 
     InitFFTComm(lev);
 
