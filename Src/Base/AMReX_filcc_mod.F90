@@ -14,7 +14,7 @@ module amrex_filcc_module
   end interface amrex_filcc
 
   private
-  public :: amrex_filcc, amrex_fab_filcc, filccn
+  public :: amrex_filcc, amrex_fab_filcc, filccn, amrex_hoextraptocc
 
 contains
 
@@ -1052,5 +1052,18 @@ contains
     end do
 
   end subroutine filccn
+
+  subroutine amrex_hoextraptocc (q, qlo, qhi, domlo, domhi, dx, xlo) &
+       bind(c,name='amrex_hoextraptocc')
+    integer, intent(in) :: qlo(3), qhi(3), domlo(*), domhi(*)
+    real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3))
+    real(amrex_real), intent(in) :: dx(*), xlo(*)
+
+#if (AMREX_SPACEDIM == 3)
+    call hoextraptocc(q,qlo(1),qlo(2),qlo(3),qhi(1),qhi(2),qhi(3),domlo,domhi,dx,xlo)
+#elif (AMREX_SPACEDIM == 2)
+    call hoextraptocc(q,qlo(1),qlo(2),qhi(1),qhi(2),domlo,domhi,dx,xlo)
+#endif
+  end subroutine amrex_hoextraptocc
 
 end module amrex_filcc_module
