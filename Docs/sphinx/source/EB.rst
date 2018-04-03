@@ -214,6 +214,9 @@ In AMReX the geometric information is stored in a distributed database class,
 :cpp:`EBIndexSpace`, which must be initialized at the start of the calculation.
 The procedure for this goes as follows:
 
+-  If one has an archived EBIndexSpace plt file, she can initialize the
+   database by calling EBIndexSpace::read with the filename
+
 -  Define function of position which describes the surface and use it define a
    :cpp:`GeometryShop` object – specifically, the scalar value returned by this
    function takes on a negative value inside the fluid, a positive value in the 
@@ -225,10 +228,17 @@ The procedure for this goes as follows:
    requires one to specify the actual mesh resolution that will be used in a
    calculation.
 
-To facilitate the first step, AMReX defines a virtual class, an “implicit
-function”, :cpp:`BaseIF`, which encapsulates this functionality.  An instance
-of a :cpp:`BaseIF` object is required for the construction of a
-:cpp:`GeometryShop` object.
+- If one wants to archive the geometric data for later runs, she can
+   call EBIndexSpace::write to put the data into a file.  One must be
+   cautious, however, since these plot files are not binary portable.
+   An EBIndexSpace plot file generated on one machine won't
+   necessarily work on another machine.  
+
+ To facilitate the generation step,
+   AMReX defines a virtual class, an “implicit function”,
+   :cpp:`BaseIF`, which encapsulates this functionality.  An instance
+   of a :cpp:`BaseIF` object is required for the construction of a
+   :cpp:`GeometryShop` object.
 
 .. highlight:: c++
 

@@ -59,6 +59,12 @@ else
   USE_PROFPARSER := FALSE
 endif
 
+ifdef THIRD_PARTY_PROFILING
+  TP_PROFILING := $(strip $(THIRD_PARTY_PROFILING))
+else
+  TP_PROFILING := FALSE
+endif
+
 ifdef TEST
   TEST := $(strip $(TEST))
 else
@@ -449,14 +455,19 @@ endif
 # place holder
 F90CACHE =
 
-ifeq ($(USE_VTUNE),TRUE)
+ifeq ($(TP_PROFILING),VTUNE)
   $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
 endif
 
-ifeq ($(USE_CRAYPAT),TRUE)
+ifeq ($(TP_PROFILING),CRAYPAT)
   $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+endif
+
+ifeq ($(TP_PROFILING),forge)
+  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
 endif
 
 # Use Sam Williams's HPGMG

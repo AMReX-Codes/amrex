@@ -46,7 +46,6 @@ namespace amrex
         for(int idir = 0; idir < SpaceDim; idir++)
         {
           Real ratio = m_dxVector[idir]/m_dxVector[0];
-//          Real ratio = m_dxVector[0]/m_dxVector[idir];
           scaledPt[idir] = ratio*a_point[idir];
         }
         Real retval = PlaneIF::value(scaledPt);
