@@ -2073,7 +2073,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
     }
 
     fileLengthPadded = fileLength + 1;
-    fileLengthPadded += fileLengthPadded % 8;
+//    fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);
     if (ParallelDescriptor::IOProcessor()) {
         iss.read(charBuf.dataPtr(), fileLength);
