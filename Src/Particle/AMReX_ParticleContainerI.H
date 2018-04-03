@@ -1511,14 +1511,19 @@ namespace {
     long doHandShakeLocal(const std::map<int, Vector<char> >& not_ours,
                           const Vector<int>& neighbor_procs, Vector<long>& Snds, Vector<long>& Rcvs)
     {
-        long NumSnds = CountSnds(not_ours, Snds);
-        if (NumSnds == 0) return NumSnds;
+
+        long NumSnds = 0;        
+        for (const auto& kv : not_ours)
+        {
+            NumSnds       += kv.second.size();
+            Snds[kv.first] = kv.second.size();
+        }
+
+        const int SeqNum = ParallelDescriptor::SeqNum();
         
         const int num_rcvs = neighbor_procs.size();
         Vector<MPI_Status>  stats(num_rcvs);
         Vector<MPI_Request> rreqs(num_rcvs);
-        
-        const int SeqNum = ParallelDescriptor::SeqNum();
         
         // Post receives
         for (int i = 0; i < num_rcvs; ++i) {
@@ -1608,7 +1613,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
+
     const int NProcs = ParallelDescriptor::NProcs();
+    const int NNeighborProcs = neighbor_procs.size();
     
     // We may now have particles that are rightfully owned by another CPU.
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
@@ -1623,8 +1630,23 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     else {
         NumSnds = doHandShake(not_ours, Snds, Rcvs);
     }
-    if (NumSnds == 0)
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+    
+    if ((not local) and NumSnds == 0)
         return;  // There's no parallel work to do.
+
+    if (local) {
+        long tot_snds_this_proc = 0;
+        long tot_rcvs_this_proc = 0;
+        for (int i = 0; i < NNeighborProcs; ++i) {
+            tot_snds_this_proc += Snds[neighbor_procs[i]];
+            tot_rcvs_this_proc += Rcvs[neighbor_procs[i]];
+        }
+        if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) ) {
+            return; // There's no parallel work to do.
+        } 
+    }
 
     Vector<int> RcvProc;
     Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
@@ -1641,8 +1663,6 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     const int nrcvs = RcvProc.size();
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
-    
-    const int SeqNum = ParallelDescriptor::SeqNum();
     
     // Allocate data for rcvs as one big chunk.
     Vector<char> recvdata(TotRcvBytes);
@@ -1893,13 +1913,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     amrex::Print() << "Particle::Checkpoint: pdir levelDirectoriesCreated = "
                    << pdir << "  " << levelDirectoriesCreated << '\n';
     if ( ! levelDirectoriesCreated) {
-      if (ParallelDescriptor::IOProcessor()) {
-        amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:0:  creating directory:  "
-	               << pdir << '\n';
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755)) {
+      if (ParallelDescriptor::IOProcessor()) 
+        if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
             amrex::CreateDirectoryFailed(pdir);
-	}
-      }
       // Force other processors to wait until directory is built.
       ParallelDescriptor::Barrier();
     }
@@ -2067,13 +2083,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 	    
 	    if ( ! levelDirectoriesCreated) {
-              if (ParallelDescriptor::IOProcessor()) {
-                amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:1:  creating directory:  "
-		               << LevelDir << '\n';
-	        if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
+              if (ParallelDescriptor::IOProcessor()) 
+	        if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) 
 		  amrex::CreateDirectoryFailed(LevelDir);
-	        }
-	      }
               //
               // Force other processors to wait until directory is built.
               //
@@ -2171,8 +2183,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     if (cnt[i] == 0)
                     {
                         std::string FullFileName = NFilesIter::FileName(i, filePrefix);
-			amrex::Print() << "::IOIOIOIO:  Unlinking file:  "<< FullFileName << '\n';
-
                         amrex::UnlinkFile(FullFileName.c_str());
                     }
                 }
@@ -2299,9 +2309,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           for(int i(0), N = cnt.size(); i < N; ++i) {
             if(cnt[i] == 0) {
               std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
-	      std::cout << ParallelDescriptor::MyProc() << "::IOIOIOIO:  Unlinking file:  "
-	                << FullFileName << '\n';
-
               amrex::UnlinkFile(FullFileName.c_str());
             }
           }
@@ -3336,7 +3343,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity (int rho_index, bool sub_cycle,
 					      Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
-					      int lev_min, int ncomp, int finest_level) const
+					      int lev_min, int ncomp, int finest_level, int ngrow) const
 {
     if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
 
@@ -3362,9 +3369,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     for (int lev = lev_min; lev <= finest_level; lev++)
     { 
         const int lev_index = lev - lev_min;
-        mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
-						      m_gdb->DistributionMap(lev),
-						      ncomp, 1));
+        if (lev == lev_min)
+        {
+           mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
+	   					         m_gdb->DistributionMap(lev),
+	   					         ncomp, ngrow));
+        } else {
+           mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
+	   					         m_gdb->DistributionMap(lev),
+	   					         ncomp, 1));
+        }
 	mf_to_be_filled[lev_index]->setVal(0.0);
     }
 
@@ -3376,8 +3390,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 	    all_grids_the_same = false;
 	    break;
 	}
-    }
-
+    } 
     Vector<std::unique_ptr<MultiFab> > mf_part;
     if (!all_grids_the_same)
     { 
