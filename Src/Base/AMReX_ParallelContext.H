@@ -39,7 +39,7 @@ extern Vector<Frame> frames; // stack of communicator frames
 // world communicator
 inline MPI_Comm CommunicatorAll () { return frames[0].comm; }
 // world group
-inline MPI_Comm GroupAll () { return frames[0].group; }
+inline MPI_Group GroupAll () { return frames[0].group; }
 // number of ranks in world communicator
 inline int NProcsAll () { return frames[0].NProcs(); }
 // my rank in world communicator
