@@ -202,7 +202,7 @@ To open a single plotfile (for example, you could run the
 
 #. Run ParaView v5.5, then select “File” :math:`\rightarrow` “Open”.
 
-#. Navigate to the plotfile directory, and **manually** type in “Header”.
+#. Navigate **into** the plotfile directory, and **manually** type in “Header”.
    ParaView will ask you about the file type – choose “Boxlib 3D Files”
 
 #. Under the “Cell Arrays” field, select a variable (e.g., “phi”) and click
