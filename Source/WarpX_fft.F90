@@ -26,7 +26,7 @@ contains
 
 
   subroutine warpx_fft_dataplan_init (global_lo, global_hi, local_lo, local_hi, &
-       nox, noy, noz, fft_data, dx_wrpx, dt_wrpx) &
+       nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx) &
        bind(c,name='warpx_fft_dataplan_init')
     USE picsar_precision, only: idp
     use shared_data, only : comm, c_dim,  p3dfft_flag, &
@@ -47,8 +47,8 @@ contains
     use params, only : dt
 
     integer, dimension(3), intent(in) :: global_lo, global_hi, local_lo, local_hi
-    integer, intent(in) :: nox, noy, noz
-    type(c_ptr), intent(inout) :: fft_data(22)
+    integer, intent(in) :: nox, noy, noz, ndata
+    type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
     integer :: nx_padded
@@ -152,6 +152,10 @@ contains
     call c_f_pointer(fft_data(21), rhof, shp)
     fft_data(22) = amrex_malloc(sz)
     call c_f_pointer(fft_data(22), rhooldf, shp)
+
+    if (ndata < 22) then
+       call amrex_error("size of fft_data is too small")
+    end if
 
     dx = dx_wrpx(1)
     dy = dx_wrpx(2)

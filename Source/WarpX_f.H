@@ -390,7 +390,8 @@ extern "C"
     void warpx_fft_dataplan_init (const int* global_lo, const int* global_hi,
                                   const int* local_lo, const int* local_hi,
                                   const int* nox, const int* noy, const int* noz,
-                                  void* fft_data, const amrex_real* dx_w, const amrex_real* dt_w);
+                                  void* fft_data, const int* ndata,
+                                  const amrex_real* dx_w, const amrex_real* dt_w);
     void warpx_fft_nullify ();
     void warpx_fft_push_eb (amrex_real* ex_w, const int* exlo, const int* exhi,
                             amrex_real* ey_w, const int* eylo, const int* eyhi,

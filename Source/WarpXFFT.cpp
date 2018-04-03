@@ -231,7 +231,7 @@ WarpX::InitFFTDataPlan (int lev)
         warpx_fft_dataplan_init(BL_TO_FORTRAN_BOX(domain_fp_fft[lev]),
                                 BL_TO_FORTRAN_BOX(local_domain),
                                 &nox_fft, &noy_fft, &noz_fft,
-                                (*dataptr_fp_fft[lev])[mfi].data,
+                                (*dataptr_fp_fft[lev])[mfi].data, &FFTData::N,
                                 dx_fp.data(), &dt[lev]);
     }
 
