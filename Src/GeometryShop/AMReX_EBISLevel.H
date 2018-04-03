@@ -144,6 +144,9 @@ namespace amrex
 
     const FabArray<EBGraph>& getGraph () const { return m_graph; }
 
+    ///get dx
+    Real getDx () const { return m_dx; }
+
   protected:
 
     void buildEBSurface(const GeometryService & a_geoserver);
