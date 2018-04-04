@@ -431,7 +431,7 @@ void BLProfiler::RegionStart(const std::string &rname) {
   } else {
     rnameNumber = it->second;
   }
-  rStartStop.push_back(RStartStop(true, rnameNumber, rsTime));
+  rStartStop.push_back(RStartStop(rsTime, rnameNumber, true));
 }
 
 
@@ -448,7 +448,7 @@ void BLProfiler::RegionStop(const std::string &rname) {
   } else {
     rnameNumber = it->second;
   }
-  rStartStop.push_back(RStartStop(false, rnameNumber, rsTime));
+  rStartStop.push_back(RStartStop(rsTime, rnameNumber, false));
 
   if(rname != noRegionName) {
     --inNRegions;

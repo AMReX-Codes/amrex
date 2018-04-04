@@ -72,12 +72,13 @@ class BLProfiler
 
     struct RStartStop {
       RStartStop()
-        : rssStart(false), rssRNumber(-2), rssTime(0.0)  { }
-      RStartStop(bool s, int r, Real t)
-        : rssStart(s), rssRNumber(r), rssTime(t)  { }
-      bool rssStart;
-      int  rssRNumber;
+        : rssTime(0.0), rssRNumber(-2), rssStart(false)  { }   
+      RStartStop(Real t, int r, bool s)
+        : rssTime(t), rssRNumber(r), rssStart(s)  { }
       Real rssTime;
+      int  rssRNumber;
+      int  rssStart;   // Used as a bool. Set to int to remove padding in this object (13 bytes -> 16 bytes).
+                       // Eliminates a valgrind complaint when writing these objects to files.
     };
 
     enum CommFuncType {
