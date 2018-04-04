@@ -284,8 +284,8 @@ MultiGrid::solve (MultiFab&       _sol,
     // Elide a reduction by doing these together.
     //
     Real tmp[2] = { norm_inf(_rhs,true), norm_inf(*rhs[level],true) };
-    ParallelDescriptor::ReduceRealMax(tmp,2,color());
-    if ( ParallelDescriptor::IOProcessor(color()) && verbose > 0)
+    ParallelDescriptor::ReduceRealMax(tmp,2);
+    if ( ParallelDescriptor::IOProcessor() && verbose > 0)
     {
         Spacer(std::cout, level);
         std::cout << "MultiGrid: Initial rhs                = " << tmp[0] << '\n';
@@ -342,7 +342,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
   //
   // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed
   //
-  if ( ParallelDescriptor::IOProcessor(color()) && eps_rel < 1.0e-16 && eps_rel > 0 )
+  if ( ParallelDescriptor::IOProcessor() && eps_rel < 1.0e-16 && eps_rel > 0 )
   {
       std::cout << "MultiGrid: Tolerance "
                 << eps_rel
@@ -355,7 +355,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
   //    according to the Anorm test and not the bnorm test).
   //
   Real       norm_cor    = norm_inf(*initialsolution,true);
-  ParallelDescriptor::ReduceRealMax(norm_cor,color());
+  ParallelDescriptor::ReduceRealMax(norm_cor);
 
   int        nit         = 1;
   const Real norm_Lp     = Lp.norm(0, level);
@@ -368,7 +368,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
      //
      if (error <= eps_abs || error < eps_rel*(norm_Lp*norm_cor+norm_to_test_against)) 
      {
-         if ( ParallelDescriptor::IOProcessor(color()) && (verbose > 0) )
+         if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
          {
              std::cout << "   Problem is already converged -- no iterations required\n";
          }
@@ -386,12 +386,12 @@ MultiGrid::solve_ (MultiFab&      _sol,
 
          Real tmp[2] = { norm_inf(*cor[level],true), errorEstimate(level,bc_mode,true) };
 
-         ParallelDescriptor::ReduceRealMax(tmp,2,color());
+         ParallelDescriptor::ReduceRealMax(tmp,2);
 
          norm_cor = tmp[0];
          error    = tmp[1];
 
-         if ( ParallelDescriptor::IOProcessor(color()) && verbose > 1 )
+         if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
          {
              const Real rel_error = error / norm_to_test_against;
              Spacer(std::cout, level);
@@ -417,7 +417,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
      //
      if (error <= eps_abs || error < eps_rel*norm_to_test_against) 
      {
-         if ( ParallelDescriptor::IOProcessor(color()) && (verbose > 0) )
+         if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
          {
              std::cout << "   Problem is already converged -- no iterations required\n";
          }
@@ -435,7 +435,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
 
          error = errorEstimate(level, bc_mode);
 	
-         if ( ParallelDescriptor::IOProcessor(color()) && verbose > 1 )
+         if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
          {
              const Real rel_error = error / norm_to_test_against;
              Spacer(std::cout, level);
@@ -459,7 +459,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
 
   if ( verbose > 0 )
   {
-      if ( ParallelDescriptor::IOProcessor(color()) )
+      if ( ParallelDescriptor::IOProcessor() )
       {
           const Real rel_error = error / norm_to_test_against;
           Spacer(std::cout, level);
@@ -481,16 +481,16 @@ MultiGrid::solve_ (MultiFab&      _sol,
       {
           Real tmp[2] = { run_time, cg_time };
 
-          ParallelDescriptor::ReduceRealMax(tmp,2,color());
+          ParallelDescriptor::ReduceRealMax(tmp,2);
 
-          if ( ParallelDescriptor::IOProcessor(color()) )
+          if ( ParallelDescriptor::IOProcessor() )
               std::cout << ", Solve time: " << tmp[0] << ", CG time: " << tmp[1];
       }
 
-      if ( ParallelDescriptor::IOProcessor(color()) ) std::cout << '\n';
+      if ( ParallelDescriptor::IOProcessor() ) std::cout << '\n';
   }
 
-  if ( ParallelDescriptor::IOProcessor(color()) && (verbose > 0) )
+  if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
   {
       if ( do_fixed_number_of_iters == 1)
       {
@@ -591,7 +591,7 @@ MultiGrid::relax (MultiFab&      solL,
         if ( verbose > 2 )
         {
            Real rnorm = errorEstimate(level, bc_mode);
-           if (ParallelDescriptor::IOProcessor(color()))
+           if (ParallelDescriptor::IOProcessor())
            {
               std::cout << "  AT LEVEL " << level << '\n';
               std::cout << "    DN:Norm before smooth " << rnorm << '\n';;
@@ -606,7 +606,7 @@ MultiGrid::relax (MultiFab&      solL,
         if ( verbose > 2 )
         {
            Real rnorm = norm_inf(*res[level]);
-           if (ParallelDescriptor::IOProcessor(color()))
+           if (ParallelDescriptor::IOProcessor())
               std::cout << "    DN:Norm after  smooth " << rnorm << '\n';
         }
 
@@ -623,7 +623,7 @@ MultiGrid::relax (MultiFab&      solL,
         {
            Lp.residual(*res[level], rhsL, solL, level, bc_mode);
            Real rnorm = norm_inf(*res[level]);
-           if ( ParallelDescriptor::IOProcessor(color()) )
+           if ( ParallelDescriptor::IOProcessor() )
            {
               std::cout << "  AT LEVEL " << level << '\n';
               std::cout << "    UP:Norm before  smooth " << rnorm << '\n';
@@ -638,7 +638,7 @@ MultiGrid::relax (MultiFab&      solL,
         {
            Lp.residual(*res[level], rhsL, solL, level, bc_mode);
            Real rnorm = norm_inf(*res[level]);
-           if ( ParallelDescriptor::IOProcessor(color()) ) 
+           if ( ParallelDescriptor::IOProcessor() ) 
              std::cout << "    UP:Norm after  smooth " << rnorm << '\n';
         }
     }
@@ -647,7 +647,7 @@ MultiGrid::relax (MultiFab&      solL,
         if ( verbose > 2 )
         {
            Real rnorm = norm_inf(rhsL);
-           if ( ParallelDescriptor::IOProcessor(color()) )
+           if ( ParallelDescriptor::IOProcessor() )
            {
               std::cout << "  AT LEVEL " << level << '\n';
               std::cout << "    DN:Norm before bottom " << rnorm << '\n';
@@ -660,7 +660,7 @@ MultiGrid::relax (MultiFab&      solL,
         {
            Lp.residual(*res[level], rhsL, solL, level, bc_mode);
            Real rnorm = norm_inf(*res[level]);
-           if ( ParallelDescriptor::IOProcessor(color()) ) 
+           if ( ParallelDescriptor::IOProcessor() ) 
               std::cout << "    UP:Norm after  bottom " << rnorm << '\n';
         }
     }
@@ -685,7 +685,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
         if ( verbose > 0 )
         {
             error0 = errorEstimate(level, bc_mode);
-            if ( ParallelDescriptor::IOProcessor(color()) )
+            if ( ParallelDescriptor::IOProcessor() )
                 std::cout << "   Bottom Smoother: Initial error (error0) = " 
                           << error0 << '\n';
         }
@@ -698,7 +698,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
             {
                 Real error = errorEstimate(level, bc_mode);
                 const Real rel_error = (error0 != 0) ? error/error0 : 0;
-                if ( ParallelDescriptor::IOProcessor(color()) )
+                if ( ParallelDescriptor::IOProcessor() )
                     std::cout << "   Bottom Smoother: Iteration "
                               << i
                               << " error/error0 = "
@@ -730,7 +730,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                 // issue and pound on it with the smoother.
                 // if ret == 8, then you have failure to converge
                 //
-                if ( ParallelDescriptor::IOProcessor(color()) && (verbose > 0) )
+                if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
                     std::cout << "MultiGrid::coarsestSmooth(): CGSolver returns nonzero. Smoothing ...\n";
 
                 coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode, 0, cg_time);
@@ -743,7 +743,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                 // setting solL to 0 should be ok.
                 //
                 solL.setVal(0);
-                if ( ParallelDescriptor::IOProcessor(color()) && (verbose > 0) )
+                if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
                 {
                     std::cout << "MultiGrid::coarsestSmooth(): setting coarse corr to zero" << '\n';
                 }

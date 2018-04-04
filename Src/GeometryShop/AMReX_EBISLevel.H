@@ -71,10 +71,7 @@ namespace amrex
   {
   public:
 
-    EBISLevel()
-      {
-        m_alreadyCheckedForMVCells = false;
-      }
+    EBISLevel() = default;
 
     ///
     /**
@@ -147,6 +144,9 @@ namespace amrex
 
     const FabArray<EBGraph>& getGraph () const { return m_graph; }
 
+    ///get dx
+    Real getDx () const { return m_dx; }
+
   protected:
 
     void buildEBSurface(const GeometryService & a_geoserver);
@@ -179,10 +179,12 @@ namespace amrex
     ///
     bool m_build_eb_surface;
 
+    bool m_hasMoments;
+
     //only generated if needed (ergo mutable).
     mutable bool m_hasMultiValuedCells;
 
-    bool m_alreadyCheckedForMVCells;
+    mutable bool m_alreadyCheckedForMVCells = false;
     void defineFromGeometryService(const GeometryService &  a_geoserver);
     void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);
 

@@ -22,12 +22,14 @@ struct LPInfo
     int agg_grid_size = AMREX_D_PICK(32, 16, 8);
     int con_grid_size = AMREX_D_PICK(32, 16, 8);
     bool has_metric_term = true;
+    int max_coarsening_level = 30;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
+    LPInfo& setMaxCoarseningLevel (int n) { max_coarsening_level = n; return *this; }
 };
 
 class MLLinOp
@@ -89,6 +91,8 @@ public:
     void setVerbose (int v) { verbose = v; }
 
     void setMaxOrder (int o) { maxorder = o; }
+
+    virtual int getNComp() const { return 1;};
 
 protected:
 

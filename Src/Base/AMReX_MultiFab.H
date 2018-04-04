@@ -555,9 +555,6 @@ public:
     static void Initialize ();
     static void Finalize ();
 
-    virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                                 int scsMyId, MPI_Comm scsComm) override;
-
 private:
     //
     // Some useful typedefs.

@@ -315,14 +315,6 @@ public:
 
     void InstallNewDistributionMap (int lev, const DistributionMapping& newdm);
 
-    void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
-    void AddProcsToComp(int nSidecarProcs, int prevSidecarProcs);
-    void RedistributeGrids(int how);
-    void BroadcastBoundaryPointList(BoundaryPointList &bpl, int myLocalId, int rootId, MPI_Comm comm);
-    void PrintData(std::ostream& os);
-    static void BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm);
-    void UpdateStateDataDistributionMaps(DistributionMapping& new_dmap);
-
     bool UsingPrecreateDirectories();
 
 protected:
@@ -444,7 +436,6 @@ protected:
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;
     int              stream_max_tries;
-    int              rebalance_grids;
     int              loadbalance_with_workestimates;
     int              loadbalance_level0_int;
     Real             loadbalance_max_fac;

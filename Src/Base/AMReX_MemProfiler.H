@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <memory>
 
 namespace amrex {
 
@@ -30,13 +31,15 @@ public:
 
     static void report (const std::string& prefix = std::string());
 
-private:
+    static void Finalize ();
 
     MemProfiler (const MemProfiler&) = delete;
     MemProfiler& operator= (const MemProfiler&) = delete;
 
     MemProfiler () {}
     ~MemProfiler () {}
+
+private:
 
     void report_ (const std::string& prefix, const std::string& memory_log_name) const;
 
@@ -55,6 +58,8 @@ private:
 				     const MemProfiler::Builds& builds);
 
     static MemProfiler& getInstance ();
+
+    static std::unique_ptr<MemProfiler> the_instance;
 
     std::vector<std::string>               the_names;
     std::vector<std::function<MemInfo()> > the_funcs;

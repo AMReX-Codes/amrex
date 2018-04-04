@@ -22,6 +22,8 @@ The source code tree for the heat equation example is simple, as shown in
 .. figure:: ./Basics/figs/flowchart.png
    :width: 4in
 
+   Diagram of the source code structure for the HeatEquation_EX1_C example.
+
 .. raw:: latex
 
    \end{center}

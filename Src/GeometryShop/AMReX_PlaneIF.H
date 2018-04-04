@@ -28,6 +28,10 @@ namespace amrex
     {
     }
 
+    ///return the partial derivative at the point
+    virtual Real derivative(const  IntVect& a_deriv,
+                            const RealVect& a_point) const;
+
     ///
     /**
        Return the value of the function at a_point.  When delineating a domain,

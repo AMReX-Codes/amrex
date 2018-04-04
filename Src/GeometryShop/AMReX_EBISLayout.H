@@ -121,7 +121,8 @@ namespace amrex
                 const DistributionMapping & a_dm,
                 const int               & a_nghost,
                 const FabArray<EBGraph> & a_graph,
-                const FabArray<EBData>  & a_data);
+                const FabArray<EBData>  & a_data,
+                bool a_hasMoments, Real a_dx);
 
 
     bool isDefined() const {return m_defined;}
@@ -141,9 +142,10 @@ namespace amrex
                      const DistributionMapping & a_dm,
                      const int               & a_nghost,
                      const FabArray<EBGraph> & a_graph,
-                     const FabArray<EBData>  & a_data)
+                     const FabArray<EBData>  & a_data,
+                     bool a_hasMoments, Real a_dx)
       {
-        define(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data);
+        define(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data, a_hasMoments, a_dx);
       }
 
     int getGhost() const
@@ -328,9 +330,10 @@ namespace amrex
                 const DistributionMapping & a_dm,
                 const int               & a_nghost,
                 const FabArray<EBGraph> & a_graph,
-                const FabArray<EBData>  & a_data)
+                const FabArray<EBData>  & a_data,
+                bool a_hasMoments, Real a_dx)
       {
-        m_implem->define(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data);
+        m_implem->define(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data, a_hasMoments, a_dx);
       }
 
 
@@ -340,9 +343,10 @@ namespace amrex
                const DistributionMapping & a_dm,
                const int               & a_nghost,
                const FabArray<EBGraph> & a_graph,
-               const FabArray<EBData>  & a_data)
+               const FabArray<EBData>  & a_data,
+               bool a_hasMoments, Real a_dx)
       {
-        m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data));
+        m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data, a_hasMoments, a_dx));
       }
 
     bool isDefined() const

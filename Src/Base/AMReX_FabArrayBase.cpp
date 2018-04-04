@@ -30,8 +30,6 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
 
-int FabArrayBase::nFabArrays(0);
-
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
 FabArrayBase::CPCache              FabArrayBase::m_TheCPCache;
@@ -103,8 +101,6 @@ FabArrayBase::Initialize ()
     if (MaxComp < 1)
         MaxComp = 1;
 
-    FabArrayBase::nFabArrays = 0;
-
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
 #ifdef BL_MEM_PROFILING
@@ -133,8 +129,6 @@ FabArrayBase::Initialize ()
 
 FabArrayBase::FabArrayBase ()
 {
-    aFAPId = nFabArrays++;
-    aFAPIdLock = 0;  // ---- not locked
 }
 
 FabArrayBase::~FabArrayBase () {}
@@ -1119,7 +1113,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 
     if (!iprocs.empty()) {
 	ba_crse_patch.define(bl);
-	dm_crse_patch.define(iprocs);
+	dm_crse_patch.define(std::move(iprocs));
 #ifdef AMREX_USE_EB
         fact_crse_patch.reset(new EBFArrayBoxFactory(Geometry(cdomain),
                                                      ba_crse_patch,
@@ -1279,7 +1273,7 @@ FabArrayBase::CFinfo::CFinfo (const FabArrayBase& finefa,
     if (!iprocs.empty())
     {
         ba_cfb.define(bl);
-        dm_cfb.define(iprocs);
+        dm_cfb.define(std::move(iprocs));
     }
 }
 
@@ -1374,7 +1368,6 @@ FabArrayBase::Finalize ()
 {
     FabArrayBase::flushFBCache();
     FabArrayBase::flushCPCache();
-
     FabArrayBase::flushTileArrayCache();
 
     if (ParallelDescriptor::IOProcessor() && amrex::system::verbose) {
@@ -1385,6 +1378,16 @@ FabArrayBase::Finalize ()
 	m_FPinfo_stats.print();
 	m_CFinfo_stats.print();
     }
+
+    m_TAC_stats = CacheStats("TileArrayCache");
+    m_FBC_stats = CacheStats("FBCache");
+    m_CPC_stats = CacheStats("CopyCache");
+    m_FPinfo_stats = CacheStats("FillPatchCache");
+    m_CFinfo_stats = CacheStats("CrseFineCache");
+
+    m_BD_count.clear();
+    
+    m_FA_stats = FabArrayStats();
 
     initialized = false;
 }
@@ -1636,11 +1639,8 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_data.size() == N_snds);
 
     Vector<int> indx;
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
 
-    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
+    ParallelDescriptor::Waitall(send_reqs, stats);
 
     for (int i = 0; i < N_snds; i++) {
         if (send_data[i]) {
@@ -1688,7 +1688,7 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
 
 	    if (count != recv_size[i]) {
 		r = false;
-		amrex::AllPrint() << "ERROR: Proc. " << ParallelDescriptor::MyProc()
+		amrex::AllPrint() << "ERROR: Proc. " << ParallelContext::MyProcSub()
 				  << " received " << count << " counts of data from Proc. "
 				  << recv_stats[i].MPI_SOURCE
 				  << " with tag " << recv_stats[i].MPI_TAG

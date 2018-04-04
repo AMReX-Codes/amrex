@@ -158,7 +158,7 @@ also have an ``amrex/Tools/GNUMake/Make.local`` file to override various
 variables. See ``amrex/Tools/GNUMake/Make.local.template`` for an example.
 
 
-.. _sec:build:local
+.. _sec:build:local:
 
 Specifying your own compiler / GCC on macOS
 -------------------------------------------

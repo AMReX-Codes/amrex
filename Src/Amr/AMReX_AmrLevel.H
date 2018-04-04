@@ -391,11 +391,6 @@ public:
                              int       ncomp,
                              int       dcomp=0);
     
-    virtual void AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
-                                int ioProcNumSCS, int ioProcNumAll, int scsMyId,
-			        MPI_Comm scsComm);
-    void Check() const;
-
 #ifdef AMREX_USE_EB
     static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) {
         m_eb_basic_grow_cells = nbasic;

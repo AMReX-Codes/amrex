@@ -142,7 +142,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::cacheNeighborInfo(int lev) {
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
+
     BL_ASSERT(lev == 0);
+    BL_ASSERT(this->OK());
 
     clearNeighbors(lev);
     
@@ -296,7 +298,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                                           tmp_local_map[index][i].end());
         }
     }
-    
+
     // do the same for the remote neighbors
     typename std::map<NeighborCommTag, Vector<Vector<NeighborIndexMap> > >::iterator it;
 #ifdef _OPENMP
@@ -325,8 +327,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
         const Vector<NeighborIndexMap>& map = local_map[dst_index];
         const int num_ghosts = map.size();
         neighbors[dst_index].resize(num_ghosts * pdata_size);
+        local_neighbor_sizes[dst_index] = neighbors[dst_index].size();  // store this for later
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
         for (int i = 0; i < num_ghosts; ++i) {
             const NeighborIndexMap& nim = map[i];
@@ -336,13 +339,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
             tags[nim.src_index].dst_offset = i * pdata_size;
             BL_ASSERT(tags[nim.src_index].dst_offset < neighbors[dst_index].size());
         }
-    }
-    
-    for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const int grid = mfi.index();
-        const int tile = mfi.LocalTileIndex();
-        PairIndex dst_index(grid, tile);
-        local_neighbor_sizes[dst_index] = neighbors[dst_index].size();
     }
 
     // now we allocate the send buffers and cache the remotes
@@ -398,7 +394,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::updateNeighbors(int lev, bool reuse_rcv_counts) {
     
-    BL_PROFILE("NeighborParticleContainer::updateNeighbors");
+    BL_PROFILE_VAR("NeighborParticleContainer::updateNeighbors", update);
     BL_ASSERT(lev == 0);
 
     const int MyProc = ParallelDescriptor::MyProc();
@@ -462,6 +458,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
         }
     }
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const int grid = mfi.index();
         const int tile = mfi.LocalTileIndex();
@@ -469,6 +468,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
         neighbors[dst_index].resize(local_neighbor_sizes[dst_index]);
     }
     
+    BL_PROFILE_VAR_STOP(update);
+
     fillNeighborsMPI(reuse_rcv_counts);
 }
 
@@ -490,6 +491,8 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
 getRcvCountsMPI() {
+
+    BL_PROFILE("NeighborParticleContainer::getRcvCountsMPI");
 
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
@@ -538,7 +541,7 @@ getRcvCountsMPI() {
     }
 
     if (num_rcvs > 0) {
-        BL_MPI_REQUIRE( MPI_Waitall(num_rcvs, rreqs.data(), stats.data()) );
+        ParallelDescriptor::Waitall(rreqs, stats);
     }
 
 #endif // BL_USE_MPI
@@ -606,7 +609,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
     
     // unpack the received data and put them into the proper neighbor buffers
     if (nrcvs > 0) {
-        BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
+        ParallelDescriptor::Waitall(rreqs, stats);
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
             char* buffer = &recvdata[offset];
@@ -659,6 +662,7 @@ buildNeighborList(int lev, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
     BL_ASSERT(lev == 0);
+    BL_ASSERT(this->OK());
 
     neighbor_list.clear();
     
@@ -696,7 +700,7 @@ buildNeighborList(int lev, bool sort) {
         // For each cell on this tile, we build linked lists storing the
         // indices of the particles belonging to it.
         Box box = pti.tilebox();
-        box.grow(num_neighbor_cells);
+        box.grow(num_neighbor_cells + 1); // need an extra cell to account for roundoff errors.
         head.resize(box);
         head.setVal(-1);
         list.resize(N, -1);

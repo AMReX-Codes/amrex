@@ -2,7 +2,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
-
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <map>
@@ -306,10 +306,6 @@ namespace amrex
     void BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm);
 
     template<class T> void BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
-    void BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm);
-    void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm);
-    void BroadcastDistributionMapping(DistributionMapping &dM,
-                                      int myLocalId, int rootId, const MPI_Comm &localComm);
     void USleep(double sleepsec);
 
 
@@ -412,6 +408,12 @@ long
 amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
+}
+
+
+extern "C" {
+    void* amrex_malloc (std::size_t size);
+    void amrex_free (void* p);
 }
 
 #endif /*BL_UTILITY_H*/
