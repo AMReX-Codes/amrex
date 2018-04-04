@@ -15,10 +15,16 @@ USE_OMP   = FALSE
 ###################################################
 
 EBASE     = particle_compare
+#EBASE     = PlotfileToMatLab
+
+# If NEEDS_F90_SRC=TRUE, look for ${EBASE}_F.F90
+NEEDS_F90_SRC = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-executable = particle_compare.exe
+ifeq ($(EBASE), particle_compare)
+  executable = $(EBASE).exe
+endif
 
 include ./Make.package
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
