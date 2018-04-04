@@ -19,6 +19,9 @@ C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
 
 C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 
+C$(AMREX_BASE)_headers += AMReX_ForkJoin.H AMReX_ParallelContext.H
+C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
+
 C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp
 C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H
 
@@ -89,6 +92,7 @@ C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
 C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
+C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H
 C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 
 #
@@ -151,6 +155,7 @@ endif
 
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
+C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
 
 ifeq ($(LAZY),TRUE)
   C$(AMREX_BASE)_sources += AMReX_Lazy.cpp

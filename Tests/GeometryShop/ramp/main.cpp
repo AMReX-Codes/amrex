@@ -4,6 +4,7 @@
 
 #include <AMReX_EBLevelGrid.H>
 #include <AMReX_GeometryShop.H>
+#include <AMReX_WrappedGShop.H>
 #include <AMReX_SphereIF.H>
 #include <AMReX_PlaneIF.H>
 #include <AMReX_AllRegularService.H>
@@ -31,6 +32,7 @@ int main(int argc, char* argv[])
     vector<int> n_cell;
 
     // initialize eb
+    for(int ishop = 0; ishop <=1; ishop++)
     {
         ParmParse pp;
         ParmParse ppa("amr");
@@ -102,8 +104,18 @@ int main(int argc, char* argv[])
 
           bool eb_verbosity = false;
           pp.query("eb_verbosity", eb_verbosity);
-          GeometryShop gshop(*impfunc, eb_verbosity);
-          AMReX_EBIS::instance()->define(finest_domain, origin, fine_dx, gshop, max_grid_size, max_level);
+          if(ishop == 0)
+          {
+            amrex::Print() << "using geometryshop for geometry generation" << endl;
+            GeometryShop gshop(*impfunc, eb_verbosity);
+            AMReX_EBIS::instance()->define(finest_domain, origin, fine_dx, gshop, max_grid_size, max_level);
+          }
+          else
+          {
+            amrex::Print() << "using wrappedgshop for geometry generation" << endl;
+            WrappedGShop gshop(*impfunc, eb_verbosity);
+            AMReX_EBIS::instance()->define(finest_domain, origin, fine_dx, gshop, max_grid_size, max_level);
+          }
         }
 
         Box geom_domain{Box{IntVect{D_DECL(0,0,0)}, IntVect{D_DECL(n_cell[0]-1,n_cell[1]-1,n_cell[2]-1)}}};

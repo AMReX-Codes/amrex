@@ -47,7 +47,7 @@ namespace {
             slice_to_full_ba_map.push_back(isects[i].first);
         }
         BoxArray slice_ba(&boxes[0], boxes.size());
-        DistributionMapping slice_dmap(procs);
+        DistributionMapping slice_dmap(std::move(procs));
         std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, ncomp, 0,
                                                      MFInfo(), cell_centered_data.Factory()));
         return slice;
@@ -303,8 +303,8 @@ namespace amrex
                        int scomp, int ncomp, const IntVect& ratio)
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(S_crse.is_cell_centered() && S_fine.is_cell_centered() ||
-                  S_crse.is_nodal()         && S_fine.is_nodal());
+        BL_ASSERT((S_crse.is_cell_centered() && S_fine.is_cell_centered()) ||
+                  (S_crse.is_nodal()         && S_fine.is_nodal()));
 
         bool is_cell_centered = S_crse.is_cell_centered();
         

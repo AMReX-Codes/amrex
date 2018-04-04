@@ -15,6 +15,10 @@
 
 namespace amrex {
 
+namespace {
+    bool initialized = false;
+}
+
 //
 // The definition of some static data members.
 //
@@ -90,7 +94,11 @@ Geometry::define (const Box&     dom,
 void
 Geometry::Finalize ()
 {
+    initialized = false;
     c_sys = undef;
+    spherical_origin_fix = 0;
+    prob_domain = RealBox();
+    AMREX_D_TERM(is_periodic[0]=0;, is_periodic[1]=0;, is_periodic[2]=0);
 }
 
 void
@@ -100,12 +108,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     BL_ASSERT(!omp_in_parallel());
 #endif
 
-    static bool first = true;
-    if (first) {
-	first = false;
-    } else {
-	return;
-    }
+    if (initialized) return;
 
     ParmParse pp("geometry");
 
@@ -151,6 +154,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
             is_periodic[n] = isper[n];
     }
 
+    initialized = true;
     amrex::ExecOnFinalize(Geometry::Finalize);
 }
 
@@ -318,85 +322,5 @@ Geometry::periodicShift (const Box&      target,
             locsrc.shift(0,-ri*domain.length(0));
     }
 }
-
-#ifdef BL_USE_MPI
-void
-Geometry::SendGeometryToSidecar (Geometry *geom, int whichSidecar)
-{
-  int fromProc;
-
-  MPI_Comm commSource = ParallelDescriptor::CommunicatorComp();
-  MPI_Comm commInter  = ParallelDescriptor::CommunicatorInter(whichSidecar);
-  MPI_Comm comm = commInter;
-
-  bool bcastSource(ParallelDescriptor::Communicator() == commSource);
-
-  if(bcastSource) {
-    fromProc = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-    BL_ASSERT(ParallelDescriptor::IOProcessorNumber() == 0);  // ---- because we are assuming this in commDest
-  }
-  if( ! bcastSource) {
-    fromProc = 0;  // ---- really the rank of MPI_ROOT in commSource
-  }
-
-  Geometry::BroadcastGeometry(*geom, fromProc, comm, bcastSource);
-}
-
-
-
-void
-Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm)
-{
-  bool bcastSource(ParallelDescriptor::MyProc() == fromProc);
-  Geometry::BroadcastGeometry(geom, fromProc, comm, bcastSource);
-}
-
-
-
-void
-Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool bcastSource)
-{
-  int coord;
-  int is_periodic[AMREX_SPACEDIM];
-  Real realBox_lo[AMREX_SPACEDIM];
-  Real realBox_hi[AMREX_SPACEDIM];
-  Vector<int> baseBoxAI;
-
-  CoordSys::BroadcastCoordSys(geom, fromProc, comm, bcastSource);
-
-  if(bcastSource) {  // ---- initialize the source data
-    const RealBox &realBox = geom.ProbDomain();
-    for(int n(0); n < AMREX_SPACEDIM; ++n) {
-      realBox_lo[n] = realBox.lo(n);
-      realBox_hi[n] = realBox.hi(n);
-      is_periodic[n] = geom.isPeriodic(n);
-    }
-    coord = geom.CoordInt();
-    baseBoxAI = amrex::SerializeBox(geom.Domain());
-  }
-
-
-  // ---- do the broadcasts
-  if( ! bcastSource) {
-    baseBoxAI.resize(amrex::SerializeBoxSize());
-  }
-  ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), fromProc, comm);
-
-  ParallelDescriptor::Bcast(realBox_lo, AMREX_SPACEDIM, fromProc, comm);
-  ParallelDescriptor::Bcast(realBox_hi, AMREX_SPACEDIM, fromProc, comm);
-
-  ParallelDescriptor::Bcast(&coord, 1, fromProc, comm);
-  ParallelDescriptor::Bcast(is_periodic, AMREX_SPACEDIM, fromProc, comm);
-  ParallelDescriptor::Bcast(&Geometry::spherical_origin_fix, 1, fromProc, comm);
-
-
-  if( ! bcastSource) {    // ---- define the destination geometry
-    Box baseBox(amrex::UnSerializeBox(baseBoxAI));
-    RealBox realBox(realBox_lo, realBox_hi);
-
-    geom.define(baseBox, &realBox, coord, is_periodic);
-  }
-}
-#endif
 
 }

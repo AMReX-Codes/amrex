@@ -86,6 +86,11 @@ set (AMREX_Intel_CXXFLAGS_RELEASE "-O2 -ip -qopt-report=5 -qopt-report-phase=vec
 set (AMREX_Intel_CXXFLAGS_REQUIRED "-std=c++11" )#-ftemplate-depth-64 -Wno-deprecated")
 set (AMREX_Intel_CXXFLAGS_FPE "")
 
+if (ENABLE_VTUNE)
+   set ( AMREX_Intel_FFLAGS_REQUIRED "${AMREX_Intel_FFLAGS_REQUIRED} -debug inline-debug-info -parallel-source-info=2" )
+   set ( AMREX_Intel_CXXFLAGS_REQUIRED "${AMREX_Intel_CXXFLAGS_REQUIRED} -debug inline-debug-info -parallel-source-info=2")
+endif()
+
 # PGI compiler specific flags
 set (AMREX_PGI_FFLAGS_DEBUG "-O0 -Mbounds -Ktrap=divz,inv -Mchkptr")
 set (AMREX_PGI_FFLAGS_RELEASE "-gopt -fast")

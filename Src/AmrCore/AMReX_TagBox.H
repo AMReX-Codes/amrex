@@ -179,9 +179,6 @@ public:
     // Calls collate() on all contained TagBoxes.
     //
     void collate (Vector<IntVect>& TheGlobalCollateSpace) const;
-
-    virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                                 int scsMyId, MPI_Comm scsComm) override;
 };
 
 }

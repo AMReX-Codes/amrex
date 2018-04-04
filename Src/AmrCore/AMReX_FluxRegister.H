@@ -195,12 +195,6 @@ public:
     //
     void read (const std::string& name, std::istream& is);
 
-    //
-    // AddProcsToComp
-    //
-    virtual void AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
-                                int scsMyId, MPI_Comm scsComm);
-
 private:
     //
     // Helper member function.

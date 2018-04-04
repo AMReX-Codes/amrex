@@ -647,13 +647,5 @@ TagBoxArray::coarsen (const IntVect & ratio)
     n_grow = 0;
 }
 
-void
-TagBoxArray::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                             int scsMyId, MPI_Comm scsComm)
-{
-    FabArray<TagBox>::AddProcsToComp(ioProcNumSCS, ioProcNumAll,
-				     scsMyId, scsComm);
-}
-
 }
 

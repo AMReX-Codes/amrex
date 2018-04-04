@@ -123,8 +123,9 @@ class BLProfiler
       Test,            // 39
       Wait,            // 40
       Waitall,         // 41
-      NUMBER_OF_CFTS   // 42
-    };
+      Waitany,         // 42
+      NUMBER_OF_CFTS   // 43
+   };
 
     struct CommStats {
       CommStats() : cfType(InvalidCFT), size(-2), commpid(-2), tag(-2),
@@ -176,9 +177,11 @@ class BLProfiler
 
     static void AddCommStat(const CommFuncType cft, const int size,
                             const int pid, const int tag);
+    static void AddWait(const CommFuncType cft, const MPI_Request &reqs,
+		        const MPI_Status &status, const bool bc);
     static void AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &reqs,
-                            const int completed, const Vector<int> &indx,
-			    const Vector<MPI_Status> &status, const bool bc);
+                            const int completed, const Vector<MPI_Status> &status,
+                            const bool bc);
     static void AddBarrier(const std::string &message, const bool bc);
     static void AddNameTag(const std::string &name);
     static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
@@ -373,6 +376,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
     case Test:           return "Test";
     case Wait:           return "Wait";
     case Waitall:        return "Waitall";
+    case Waitany:        return "Waitany";
     case NUMBER_OF_CFTS: return "NUMBER_OF_CFTS";
   }
   return "*** Error: Bad CommFuncType.";
@@ -434,8 +438,11 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { amrex::BLProfiler::AddAllReduce(cft, size, bc); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
         amrex::BLProfiler::AddCommStat(cft, size, pid, amrex::BLProfiler::NoTag()); }
-#define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc) {                \
-        amrex::BLProfiler::AddWaitsome(cft, reqs, completed, indx, status, bc); \
+#define BL_COMM_PROFILE_WAIT(cft, reqs, status, bc) {     \
+        amrex::BLProfiler::AddWait(cft, reqs, status, bc); \
+}
+#define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, status, bc) {                \
+        amrex::BLProfiler::AddWaitsome(cft, reqs, completed, status, bc); \
 }
 #define BL_COMM_PROFILE_NAMETAG(message) { amrex::BLProfiler::AddNameTag(message); }
 #define BL_COMM_PROFILE_FILTER(cft) { amrex::BLProfiler::CommStats::Filter(cft); }
@@ -542,8 +549,11 @@ class BLProfiler
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
 #define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)
 
-
 #endif
+
+// ============================================================
+// If applicible, turn off comm profiling
+// ============================================================
 
 #ifndef BL_COMM_PROFILING
 
@@ -551,7 +561,8 @@ class BLProfiler
 #define BL_COMM_PROFILE_BARRIER(message, bc)
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc)
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid)
-#define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc)
+#define BL_COMM_PROFILE_WAIT(cft, reqs, status, bc)
+#define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, status, bc)
 #define BL_COMM_PROFILE_NAMETAG(message)
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)
@@ -560,6 +571,41 @@ class BLProfiler
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
 #define BL_COMM_PROFILE_TAGWRAP()
 #define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd)
+
+#endif
+
+// ============================================================
+// Third party macros.
+// Mutually exclusive, including from BL_PROFILE.
+// May be turned on with BL_profiling
+//      to allow profiling the BL_PROFILE with additional flag.
+// ============================================================
+
+#if defined(VTUNE)
+
+#define TP_PROFILE_REGION_START()   __itt_resume(); \
+amrex::Print() << "VTune regional recording has begun.\n";
+#define TP_PROFILE_REGION_STOP()    __itt_pause(); \
+amrex::Print() << "VTune regional recording has been stopped.\n";
+
+#elif defined(CRAYPAT)
+
+#define TP_PROFILE_REGION_START()   PAT_record(PAT_STATE_ON); \
+amrex::Print() << "CrayPat regional recording has begun.\n";
+#define TP_PROFILE_REGION_STOP()    PAT_record(PAT_STATE_OFF); \
+amrex::Print() << "CrayPat regional recording has been stopped.\n";
+
+#elif defined(FORGE)
+
+#define TP_PROFILE_REGION_START()   allinea_start_sampling(); \
+amrex::Print() << "MAP regional recording has begun.\n"; 
+#define TP_PROFILE_REGION_STOP()    allinea_stop_sampling(); \
+amrex::Print() << "MAP regional recording has begun.\n";
+
+#else
+
+#define TP_PROFILE_REGION_START()
+#define TP_PROFILE_REGION_STOP()
 
 #endif
 

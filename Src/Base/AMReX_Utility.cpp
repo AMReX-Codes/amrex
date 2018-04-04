@@ -1273,70 +1273,6 @@ void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int ro
   }
 }
 
-void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
-{
-  Vector<int> baseBoxAI;
-  if(myLocalId == rootId) {
-    baseBoxAI = amrex::SerializeBox(bB);
-  }
-  amrex::BroadcastArray(baseBoxAI, myLocalId, rootId, localComm);
-  if(myLocalId != rootId) {
-    bB = amrex::UnSerializeBox(baseBoxAI);
-  }
-}
-
-
-void amrex::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm)
-{
-  Vector<int> sbaG;
-  if(myLocalId == rootId) {
-    sbaG = amrex::SerializeBoxArray(bBA);
-  }
-  amrex::BroadcastArray(sbaG, myLocalId, rootId, localComm);
-  if(myLocalId != rootId) {
-    if(sbaG.size() > 0) {
-      bBA = amrex::UnSerializeBoxArray(sbaG);
-    }
-  }
-}
-
-void amrex::BroadcastDistributionMapping(DistributionMapping &dM,
-                                          int myLocalId, int rootId, const MPI_Comm &localComm)
-{
-  // ---- Strategy
-  int dmStrategy(dM.strategy());
-  ParallelDescriptor::Bcast(&dmStrategy, 1, rootId, localComm);
-  if(myLocalId != rootId) {
-    dM.strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
-  }
-
-  // ---- Color & dmap
-  Vector<int> dmapA;
-  int colorInt;
-  if(myLocalId == rootId) {
-    dmapA = dM.ProcessorMap();
-    colorInt = dM.color().to_int();
-  }
-  amrex::BroadcastArray(dmapA, myLocalId, rootId, localComm);
-  ParallelDescriptor::Bcast(&colorInt, 1, rootId, localComm);
-  if(dmapA.size() > 0) {
-    if(myLocalId != rootId) {
-      ParallelDescriptor::Color colorA(colorInt); 
-      dM.define(dmapA, colorA);
-    }
-  }
-
-  // ---- dmID and nDistMaps
-  int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());
-  ParallelDescriptor::Bcast(&dmID, 1, rootId, localComm);
-  ParallelDescriptor::Bcast(&nDM, 1, rootId, localComm);
-  if(myLocalId != rootId) {
-    dM.SetDistMapID(dmID);
-    DistributionMapping::SetNDistMaps(nDM);
-  }
-}
-
-
 void amrex::USleep(double sleepsec) {
   constexpr unsigned int msps = 1000000;
   usleep(sleepsec * msps);
@@ -1351,4 +1287,18 @@ double amrex::second ()
 {
     return std::chrono::duration_cast<std::chrono::duration<double> >
         (amrex::MaxResSteadyClock::now() - clock_time_begin).count();
+}
+
+
+extern "C" {
+    void* amrex_malloc (std::size_t size)
+    {
+        return malloc(size);
+    }
+
+
+    void amrex_free (void* p)
+    {
+        std::free(p);
+    }
 }

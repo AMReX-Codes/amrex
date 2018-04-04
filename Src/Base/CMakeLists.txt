@@ -23,6 +23,9 @@ list ( APPEND ALLHEADERS AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H 
 
 list ( APPEND ALLHEADERS AMReX_ParallelReduce.H )
 
+list ( APPEND ALLHEADERS AMReX_ForkJoin.H AMReX_ParallelContext.H )
+list ( APPEND CXXSRC     AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp )
+
 list ( APPEND CXXSRC     AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp )
 list ( APPEND ALLHEADERS AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H )
 
@@ -80,7 +83,7 @@ list ( APPEND CXXSRC     AMReX_iMultiFab.cpp )
 list ( APPEND ALLHEADERS AMReX_iMultiFab.H )
 
 list ( APPEND CXXSRC     AMReX_FabArrayBase.cpp AMReX_MFIter.cpp )
-list ( APPEND ALLHEADERS AMReX_FabArray.H AMReX_FACopyDescriptor.H )
+list ( APPEND ALLHEADERS AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayCommI.H )
 list ( APPEND ALLHEADERS AMReX_FabArrayBase.H AMReX_MFIter.H AMReX_LayoutData.H)
 
 #
