@@ -25,6 +25,8 @@ Hypre::Hypre (const BoxArray& grids,
             solver_flag = 1;
         } else if (solver_flag_s == "boomeramg") {
             solver_flag = 2;
+        } else if (solver_flag_s == "boomeramgij") {
+            solver_flag = 3;
         } else if (solver_flag_s == "none") {
             pp.query("solver_flag", solver_flag);
         } else {
@@ -34,7 +36,11 @@ Hypre::Hypre (const BoxArray& grids,
 
     if (solver_flag == 2) {
         semi_struct_solver.reset(new HypreABecLap2(grids, dmap, geom, comm_));
-    } else {
+    }
+    else if (solver_flag == 3) {
+        IJ_solver.reset(new HypreABecLap3(grids, dmap, geom, comm_));
+    }
+    else {
         struct_solver.reset(new HypreABecLap(grids, dmap, geom, comm_));
     }
 }
@@ -50,7 +56,9 @@ Hypre::setScalars (Real sa, Real sb)
         struct_solver->setScalars(sa,sb);
     } else if (semi_struct_solver) {
         semi_struct_solver->setScalars(sa,sb);
-    } else {
+    }else if (IJ_solver) {
+        IJ_solver->setScalars(sa,sb);
+    }else {
         amrex::Abort("Hypre::setScalars: How did this happen?");
     }
 }
@@ -62,7 +70,9 @@ Hypre::setACoeffs (const MultiFab& alpha)
         struct_solver->setACoeffs(alpha);
     } else if (semi_struct_solver) {
         semi_struct_solver->setACoeffs(alpha);
-    } else {
+    }else if (IJ_solver) {
+        IJ_solver->setACoeffs(alpha);
+    }else {
         amrex::Abort("Hypre::setACoeffs: How did this happen?");
     }
 }
@@ -74,7 +84,9 @@ Hypre::setBCoeffs (const std::array<const MultiFab*,BL_SPACEDIM>& beta)
         struct_solver->setBCoeffs(beta);
     } else if (semi_struct_solver) {
         semi_struct_solver->setBCoeffs(beta);
-    } else {
+    } else if (IJ_solver) {
+        IJ_solver->setBCoeffs(beta);
+    }else {
         amrex::Abort("Hypre::setBCoeffs: How did this happen?");        
     }
 }
@@ -86,7 +98,9 @@ Hypre::setVerbose (int _verbose)
         struct_solver->setVerbose(_verbose);
     } else if (semi_struct_solver) {
         semi_struct_solver->setVerbose(_verbose);
-    } else {
+    } else if (IJ_solver) {
+        IJ_solver->setVerbose(_verbose);
+    }else {
         amrex::Abort("Hypre::setVerbose: How did this happen?");
     }
 }
@@ -99,6 +113,8 @@ Hypre::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
         struct_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, bc_type, bc_value);
     } else if (semi_struct_solver) {
         semi_struct_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, bc_type, bc_value);
+    } else if (IJ_solver) {
+        IJ_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, bc_type, bc_value);
     } else {
         amrex::Abort("Hypre::solve: How did this happen?");
     }
