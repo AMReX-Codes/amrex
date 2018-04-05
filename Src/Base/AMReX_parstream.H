@@ -1,5 +1,5 @@
-#ifndef _PARSTREAM_H___
-#define _PARSTREAM_H___
+#ifndef AMREX_PARSTREAM_H___
+#define AMREX_PARSTREAM_H___
 
 #include <iostream>
 #include <string>

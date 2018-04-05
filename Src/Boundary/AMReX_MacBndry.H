@@ -1,6 +1,6 @@
 
-#ifndef _MACBNDRYDATA_H_
-#define _MACBNDRYDATA_H_
+#ifndef AMREX_MACBNDRYDATA_H_
+#define AMREX_MACBNDRYDATA_H_
 
 #include <AMReX_InterpBndryData.H>
 

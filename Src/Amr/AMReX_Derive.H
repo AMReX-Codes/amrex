@@ -1,5 +1,6 @@
-#ifndef _Derive_H_
-#define _Derive_H_
+#ifndef AMREX_Derive_H_
+#define AMREX_Derive_H_
+
 #include <list>
 #include <string>
 
