@@ -1,5 +1,6 @@
-#ifndef _SPMDI_H_
-#define _SPMDI_H_
+#ifndef AMREX_SPMDI_H_
+#define AMREX_SPMDI_H_
+
 #include <cassert>
 #include "AMReX.H"
 #include "AMReX_parstream.H"

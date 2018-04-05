@@ -1,5 +1,5 @@
-#ifndef _ErrorList_H_
-#define _ErrorList_H_
+#ifndef AMREX_ErrorList_H_
+#define AMREX_ErrorList_H_
 
 #include <string>
 #include <memory>

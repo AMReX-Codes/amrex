@@ -1,5 +1,5 @@
-#ifndef BASEFAB_F_H_
-#define BASEFAB_F_H_
+#ifndef AMREX_BASEFAB_F_H_
+#define AMREX_BASEFAB_F_H_
 
 #include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>

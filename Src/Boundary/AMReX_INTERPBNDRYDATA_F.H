@@ -1,6 +1,6 @@
 
-#ifndef _INTERPBNDRY_F_H_
-#define _INTERPBNDRY_F_H_
+#ifndef AMREX_INTERPBNDRY_F_H_
+#define AMREX_INTERPBNDRY_F_H_
 
 #ifdef BL_LANG_FORT
 #    define FORT_BDINTERPXLO  bdintrpxlo

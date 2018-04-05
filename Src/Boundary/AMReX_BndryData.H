@@ -1,6 +1,6 @@
 
-#ifndef _BNDRYDATA_H_
-#define _BNDRYDATA_H_
+#ifndef AMREX_BNDRYDATA_H_
+#define AMREX_BNDRYDATA_H_
 
 #include <AMReX_BLassert.H>
 #include <AMReX_BoxArray.H>

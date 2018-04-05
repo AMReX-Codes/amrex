@@ -1,5 +1,5 @@
-#ifndef _FillPatchUtil_H_
-#define _FillPatchUtil_H_
+#ifndef AMREX_FillPatchUtil_H_
+#define AMREX_FillPatchUtil_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>

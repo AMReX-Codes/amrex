@@ -1,5 +1,5 @@
-#ifndef _HypreABecLap_H_
-#define _HypreABecLap_H_
+#ifndef AMREX_HypreABecLap_H_
+#define AMREX_HypreABecLap_H_
 
 #include <iomanip>
 #include <iostream>
