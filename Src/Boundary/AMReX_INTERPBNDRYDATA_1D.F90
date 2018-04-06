@@ -1,12 +1,14 @@
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
 
-#include "AMReX_BC_TYPES.H"
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_INTERPBNDRYDATA_F.H"
+module amrex_interpbndrydata_module
+
+  use amrex_fort_module
+  use amrex_constants_module
+
+  implicit none
+
+  include 'AMReX_bc_types.fi'
+
+contains
 
 #define SDIM 1
 #define NUMDERIV 2
@@ -34,7 +36,7 @@
 
     subroutine FORT_BDINTERPXLO (bdry,bdry_l1,bdry_h1, &
                  lo,hi,cb_l1,cb_h1,nvar,ratios,not_covered, &
-                 mask,mask_l1,mask_h1,crse,crse_l1,crse_h1,derives)
+                 mask,mask_l1,mask_h1,crse,crse_l1,crse_h1,derives) bind(c,name='amrex_bdinterpxlo')
 
       implicit none
 
@@ -44,10 +46,10 @@
       integer  mask_l1,mask_h1
       integer  crse_l1,crse_h1
       integer  cb_l1,cb_h1
-      REAL_T   bdry(bdry_l1:bdry_h1,nvar)
-      REAL_T   derives(1,NUMDERIV)
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,nvar)
+      real(amrex_real)   derives(1,NUMDERIV)
       integer  mask(mask_l1:mask_h1)
-      REAL_T   crse(crse_l1:crse_h1,nvar)
+      real(amrex_real)   crse(crse_l1:crse_h1,nvar)
 
       integer  i, ic, n
 
@@ -83,7 +85,7 @@
 
     subroutine FORT_BDINTERPXHI (bdry,bdry_l1,bdry_h1, &
                  lo,hi,cb_l1,cb_h1,nvar,ratios,not_covered, &
-                 mask,mask_l1,mask_h1,crse,crse_l1,crse_h1,derives)
+                 mask,mask_l1,mask_h1,crse,crse_l1,crse_h1,derives) bind(c,name='amrex_bdinterpxhi')
 
       implicit none
 
@@ -93,10 +95,10 @@
       integer  mask_l1,mask_h1
       integer  cb_l1,cb_h1
       integer  crse_l1,crse_h1
-      REAL_T   bdry(bdry_l1:bdry_h1,nvar)
-      REAL_T   derives(1,NUMDERIV)
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,nvar)
+      real(amrex_real)   derives(1,NUMDERIV)
       integer  mask(mask_l1:mask_h1)
-      REAL_T   crse(crse_l1:crse_h1,nvar)
+      real(amrex_real)   crse(crse_l1:crse_h1,nvar)
 
       integer  i, ic, n
 
@@ -109,3 +111,4 @@
       
     end subroutine FORT_BDINTERPXHI
 
+end module amrex_interpbndrydata_module

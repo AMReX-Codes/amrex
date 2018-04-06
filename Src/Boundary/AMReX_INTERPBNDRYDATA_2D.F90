@@ -1,13 +1,14 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_interpbndrydata_module
 
-#include "AMReX_BC_TYPES.H"
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_INTERPBNDRYDATA_F.H"
+  use amrex_fort_module
+  use amrex_constants_module
+
+  implicit none
+
+  include 'AMReX_bc_types.fi'
+
+contains
 
 #define SDIM 2
 #define NUMDERIV 2
@@ -38,7 +39,8 @@
 
     subroutine FORT_BDINTERPXLO (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
                  lo,hi,cb_l1,cb_l2,cb_h1,cb_h2,nvar,ratios,not_covered, &
-                 mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order)
+                 mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
+                 bind(c,name='amrex_bdinterpxlo')
 
       implicit none
 
@@ -48,17 +50,17 @@
       integer  mask_l1,mask_l2,mask_h1,mask_h2
       integer  crse_l1,crse_l2,crse_h1,crse_h2
       integer  cb_l1,cb_l2,cb_h1,cb_h2
-      REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
-      REAL_T   derives(cb_l2:cb_h2,NUMDERIV)      
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
+      real(amrex_real)   derives(cb_l2:cb_h2,NUMDERIV)      
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2)
-      REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
 
       integer  i, j, ic, jc, off, n
       integer  jclo, jchi, ratioy
 
       integer Norder, NN, m
       parameter (Norder = 3)
-      REAL_T x(Norder), y(Norder), c(Norder), xInt
+      real(amrex_real) x(Norder), y(Norder), c(Norder), xInt
       ratioy = ratios(2)
 
       jclo = cb_l2
@@ -146,7 +148,8 @@
 
     subroutine FORT_BDINTERPXHI (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
                  lo,hi,cb_l1,cb_l2,cb_h1,cb_h2,nvar,ratios,not_covered, &
-                 mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order)
+                 mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
+                 bind(c,name='amrex_bdinterpxhi')
 
       implicit none
 
@@ -156,17 +159,17 @@
       integer  mask_l1,mask_l2,mask_h1,mask_h2
       integer  cb_l1,cb_l2,cb_h1,cb_h2
       integer  crse_l1,crse_l2,crse_h1,crse_h2
-      REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
-      REAL_T   derives(cb_l2:cb_h2,NUMDERIV)      
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
+      real(amrex_real)   derives(cb_l2:cb_h2,NUMDERIV)      
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2)
-      REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
 
       integer  i, j, ic, jc, off, n
       integer  jclo, jchi, ratioy
 
       integer Norder, NN, m
       parameter (Norder = 3)
-      REAL_T x(Norder), y(Norder), c(Norder), xInt
+      real(amrex_real) x(Norder), y(Norder), c(Norder), xInt
 
       ratioy = ratios(2)
 
@@ -255,7 +258,8 @@
 
     subroutine FORT_BDINTERPYLO (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
                  lo,hi,cb_l1,cb_l2,cb_h1,cb_h2,nvar,ratios,not_covered, &
-                 mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order)
+                 mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
+                 bind(c,name='amrex_bdinterpylo')
 
       implicit none
 
@@ -265,17 +269,17 @@
       integer  mask_l1,mask_l2,mask_h1,mask_h2
       integer  cb_l1,cb_l2,cb_h1,cb_h2
       integer  crse_l1,crse_l2,crse_h1,crse_h2
-      REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
-      REAL_T   derives(cb_l1:cb_h1,NUMDERIV)
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
+      real(amrex_real)   derives(cb_l1:cb_h1,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2)
-      REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
 
       integer  i, j, ic, jc, off, n
       integer  iclo, ichi, ratiox
 
       integer Norder, NN, m
       parameter (Norder = 3)
-      REAL_T x(Norder), y(Norder), c(Norder), xInt
+      real(amrex_real) x(Norder), y(Norder), c(Norder), xInt
 
       ratiox = ratios(1)
 
@@ -364,7 +368,8 @@
 
     subroutine FORT_BDINTERPYHI (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
                  lo,hi,cb_l1,cb_l2,cb_h1,cb_h2,nvar,ratios,not_covered, &
-                 mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order)
+                 mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
+                 bind(c,name='amrex_bdinterpyhi')
 
       implicit none
 
@@ -374,17 +379,17 @@
       integer  mask_l1,mask_l2,mask_h1,mask_h2
       integer  cb_l1,cb_l2,cb_h1,cb_h2
       integer  crse_l1,crse_l2,crse_h1,crse_h2
-      REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
-      REAL_T   derives(cb_l1:cb_h1,NUMDERIV)
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
+      real(amrex_real)   derives(cb_l1:cb_h1,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2)
-      REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
 
       integer  i, j, ic, jc, off, n
       integer  iclo, ichi, ratiox
 
       integer Norder, NN, m
       parameter (Norder = 3)
-      REAL_T x(Norder), y(Norder), c(Norder), xInt
+      real(amrex_real) x(Norder), y(Norder), c(Norder), xInt
       
       ratiox = ratios(1)
 
@@ -449,3 +454,5 @@
       endif
 
     end subroutine FORT_BDINTERPYHI
+
+end module amrex_interpbndrydata_module

@@ -22,6 +22,7 @@ module amrex_constants_module
 
   real(kind = amrex_real), parameter :: HALF    = 0.5_amrex_real
   real(kind = amrex_real), parameter :: THIRD   = ONE/THREE
+  real(kind = amrex_real), parameter :: FORTH   = 0.25_amrex_real
   real(kind = amrex_real), parameter :: FOURTH  = 0.25_amrex_real
   real(kind = amrex_real), parameter :: FIFTH   = ONE/FIVE
   real(kind = amrex_real), parameter :: SIXTH   = ONE/SIX
