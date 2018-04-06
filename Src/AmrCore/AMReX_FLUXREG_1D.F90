@@ -1,14 +1,12 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_fluxreg_module
 
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_FLUXREG_F.H"
+  use amrex_fort_module
+  use amrex_constants_module
 
-#define SDIM 1
+  implicit none
+
+contains
 
 ! ::: -----------------------------------------------------------
 ! ::: Add fine grid flux to flux register.  Flux array is a fine grid
@@ -28,16 +26,16 @@
 ! ::: -----------------------------------------------------------
 
     subroutine FORT_FRFINEADD(reg,reg_l1,reg_h1,flx,flx_l1,flx_h1, &
-                              numcomp,dir,ratio,mult)
+                              numcomp,dir,ratio,mult) bind(c,name='amrex_frfineadd')
 
       implicit none
 
       integer    reg_l1,reg_h1
       integer    flx_l1,flx_h1
       integer    ratio(1), dir, numcomp
-      REAL_T     mult
-      REAL_T     reg(reg_l1:reg_h1,numcomp)
-      REAL_T     flx(flx_l1:flx_h1,numcomp)
+      real(amrex_real)     mult
+      real(amrex_real)     reg(reg_l1:reg_h1,numcomp)
+      real(amrex_real)     flx(flx_l1:flx_h1,numcomp)
 
       integer    n, i, ic
       integer    ratiox
@@ -82,7 +80,7 @@
 ! ::: -----------------------------------------------------------
 
     subroutine FORT_FRFAADD(reg,reg_l1,reg_h1,flx,flx_l1,flx_h1,area,area_l1,area_h1, &
-                            numcomp,dir,ratio,mult)
+                            numcomp,dir,ratio,mult) bind(c,name='amrex_frfaadd')
 
       implicit none
 
@@ -90,10 +88,10 @@
       integer    flx_l1,flx_h1
       integer    area_l1,area_h1
       integer    ratio(1), dir, numcomp
-      REAL_T     mult
-      REAL_T     reg(reg_l1:reg_h1,numcomp)
-      REAL_T     flx(flx_l1:flx_h1,numcomp)
-      REAL_T     area(area_l1:area_h1)
+      real(amrex_real)     mult
+      real(amrex_real)     reg(reg_l1:reg_h1,numcomp)
+      real(amrex_real)     flx(flx_l1:flx_h1,numcomp)
+      real(amrex_real)     area(area_l1:area_h1)
 
       integer    n, i, ic
       integer    ratiox
@@ -118,17 +116,17 @@
     end subroutine FORT_FRFAADD
 
     subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi, &
-                              v, vlo, vhi, nc, mult, dir, isloface)
+                              v, vlo, vhi, nc, mult, dir, isloface) bind(c,name='amrex_frreflux')
 
       implicit none
 
       integer, intent(in) :: lo(1), hi(1), slo(1), shi(1)
       integer, intent(in) :: flo(1), fhi(1), vlo(1), vhi(1)
       integer, intent(in) :: nc, dir, isloface
-      REAL_T , intent(in) :: mult
-      REAL_T , intent(inout) :: s(slo(1):shi(1),nc)
-      REAL_T , intent(in   ) :: f(flo(1):fhi(1),nc)
-      REAL_T , intent(in   ) :: v(vlo(1):vhi(1))
+      real(amrex_real) , intent(in) :: mult
+      real(amrex_real) , intent(inout) :: s(slo(1):shi(1),nc)
+      real(amrex_real) , intent(in   ) :: f(flo(1):fhi(1),nc)
+      real(amrex_real) , intent(in   ) :: v(vlo(1):vhi(1))
 
       integer :: i, n
       if (isloface .eq. 1) then
@@ -146,3 +144,5 @@
       end if
 
     end subroutine FORT_FRREFLUX
+
+end module amrex_fluxreg_module
