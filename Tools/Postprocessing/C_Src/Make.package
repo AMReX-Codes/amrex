@@ -2,13 +2,19 @@ CEXE_sources += ${EBASE}.cpp
 
 ifneq ($(EBASE), particle_compare)
 
-  include $(AMREX_HOME)/Src/Base/Make.package
   INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+  include $(AMREX_HOME)/Src/Base/Make.package
+  vpathdir += $(AMREX_HOME)/Src/Base
 
   INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
   include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
+  vpathdir += $(AMREX_HOME)/Src/Extern/amrdata
 
-  ifeq ($(NEEDS_F90_SRC)), TRUE)
-    F90EXE_sources += ${EBASE}_F.F90
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_util
+  include $(AMREX_HOME)/Tools/C_util/Make.package
+  vpathdir += $(AMREX_HOME)/Tools/C_util
+
+  ifeq ($(NEEDS_f90_SRC),TRUE)
+    f90EXE_sources += ${EBASE}_nd.f90
   endif
 endif
