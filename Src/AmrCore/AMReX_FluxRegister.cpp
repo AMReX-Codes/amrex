@@ -323,7 +323,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
     Real* lodat = loreg.dataPtr(destcomp);
-    FORT_FRFINEADD(lodat,ARLIM(rlo),ARLIM(rhi),
+    amrex_frfineadd(lodat,ARLIM(rlo),ARLIM(rhi),
                    flxdat,ARLIM(flo),ARLIM(fhi),
                    &numcomp,&dir,ratio.getVect(),&mult);
 
@@ -335,7 +335,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
     Real* hidat = hireg.dataPtr(destcomp);
-    FORT_FRFINEADD(hidat,ARLIM(rlo),ARLIM(rhi),
+    amrex_frfineadd(hidat,ARLIM(rlo),ARLIM(rhi),
                    flxdat,ARLIM(flo),ARLIM(fhi),
                    &numcomp,&dir,ratio.getVect(),&mult);
 }
@@ -370,7 +370,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
     Real* lodat = loreg.dataPtr(destcomp);
-    FORT_FRFAADD(lodat,ARLIM(rlo),ARLIM(rhi),
+    amrex_frfaadd(lodat,ARLIM(rlo),ARLIM(rhi),
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
                  &numcomp,&dir,ratio.getVect(),&mult);
@@ -383,7 +383,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
     Real* hidat = hireg.dataPtr(destcomp);
-    FORT_FRFAADD(hidat,ARLIM(rlo),ARLIM(rhi),
+    amrex_frfaadd(hidat,ARLIM(rlo),ARLIM(rhi),
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
                  &numcomp,&dir,ratio.getVect(),&mult);
@@ -428,7 +428,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 	    const FArrayBox& vfab = volume[mfi];
 	    const Box& vbox = vfab.box();
 
-	    FORT_FRREFLUX(bx.loVect(), bx.hiVect(),
+	    amrex_frreflux(bx.loVect(), bx.hiVect(),
 			  sfab.dataPtr(dcomp), sbox.loVect(), sbox.hiVect(),
 			  ffab.dataPtr(     ), fbox.loVect(), fbox.hiVect(),
 			  vfab.dataPtr(     ), vfab.loVect(), vbox.hiVect(),
