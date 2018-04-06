@@ -1,14 +1,12 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_coordsys_module
 
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_COORDSYS_F.H"
+  use amrex_fort_module
+  use amrex_constants_module
 
-#define SDIM 2
+  implicit none
+
+contains
 
 ! :: ----------------------------------------------------------
 ! :: SETVOL
@@ -22,20 +20,21 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = RTHETA)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETVOL(reg_l1,reg_l2,reg_h1,reg_h2,vol,vol_l1,vol_l2,vol_h1,vol_h2,offset,dx,coord)
+  subroutine FORT_SETVOL(reg_l1,reg_l2,reg_h1,reg_h2,vol,vol_l1,vol_l2,vol_h1,vol_h2,offset,dx,coord) &
+       bind(c,name='amrex_setvol')
 
     implicit none
 
     integer    reg_l1,reg_l2,reg_h1,reg_h2
     integer    vol_l1,vol_l2,vol_h1,vol_h2
     integer    coord
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     vol(vol_l1:vol_h1,vol_l2:vol_h2)
+    real(amrex_real)     dx(2), offset(2)
+    real(amrex_real)     vol(vol_l1:vol_h1,vol_l2:vol_h2)
 
     integer    i, j
-    REAL_T     ri, ro, pi, po, v
-    REAL_T     RZFACTOR
-    parameter (RZFACTOR = two*Pi)
+    real(amrex_real)     ri, ro, pi, po, v
+    real(amrex_real)     RZFACTOR
+    parameter (RZFACTOR = two*M_PI)
        
     if (coord .eq. 0) then
 
@@ -94,18 +93,19 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETDLOGA(dloga,dloga_l1,dloga_l2,dloga_h1,dloga_h2,offset,dx,dir,coord)
+  subroutine FORT_SETDLOGA(dloga,dloga_l1,dloga_l2,dloga_h1,dloga_h2,offset,dx,dir,coord) &
+       bind(c,name='amrex_setdloga')
 
     implicit none
 
     integer    dloga_l1,dloga_l2,dloga_h1,dloga_h2
     integer    coord
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     dloga(dloga_l1:dloga_h1,dloga_l2:dloga_h2)
+    real(amrex_real)     dx(2), offset(2)
+    real(amrex_real)     dloga(dloga_l1:dloga_h1,dloga_l2:dloga_h2)
     integer dir
        
     integer    i, j
-    REAL_T     rc, dlga, po, pi
+    real(amrex_real)     rc, dlga, po, pi
        
     if (coord .eq. 0) then
 
@@ -186,19 +186,20 @@
 ! ::  coord        => coordinate flag (0 =cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETAREA(reg_l1,reg_l2,reg_h1,reg_h2,area,area_l1,area_l2,area_h1,area_h2,offset,dx,dir,coord)
+  subroutine FORT_SETAREA(reg_l1,reg_l2,reg_h1,reg_h2,area,area_l1,area_l2,area_h1,area_h2,offset,dx,dir,coord) &
+       bind(c,name='amrex_setarea')
 
     implicit none
     integer    reg_l1,reg_l2,reg_h1,reg_h2
     integer    area_l1,area_l2,area_h1,area_h2
     integer    coord, dir
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     area(area_l1:area_h1,area_l2:area_h2)
+    real(amrex_real)     dx(2), offset(2)
+    real(amrex_real)     area(area_l1:area_h1,area_l2:area_h2)
 
     integer    i, j
-    REAL_T     rc, ri, ro, a, pi, po
-    REAL_T     RZFACTOR
-    parameter (RZFACTOR = two*Pi)
+    real(amrex_real)     rc, ri, ro, a, pi, po
+    real(amrex_real)     RZFACTOR
+    parameter (RZFACTOR = two*M_PI)
        
     if (coord .eq. 0) then
 
@@ -284,3 +285,6 @@
     end if
        
   end subroutine FORT_SETAREA
+
+end module amrex_coordsys_module
+
