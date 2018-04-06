@@ -14,8 +14,8 @@
            lo, hi, nc)
 
       integer nc
-      integer DIMDEC(f)
-      integer DIMDEC(c)
+      integer f_l1,f_h1
+      integer c_l1,c_h1
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       REAL_T f(DIMV(f),nc)
@@ -37,8 +37,8 @@
            lo, hi, nc)
 
       integer nc
-      integer DIMDEC(f)
-      integer DIMDEC(c)
+      integer f_l1,f_h1
+      integer c_l1,c_h1
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       REAL_T f(DIMV(f),nc)

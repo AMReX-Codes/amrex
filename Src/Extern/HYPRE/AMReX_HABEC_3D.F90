@@ -23,10 +23,10 @@ subroutine hbvec(vec, &
                  beta, dx) bind(C, name="amrex_hbvec")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(bcv)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bct, bho
   real(rt)         :: bcl, beta, dx(3)
   real(rt)         :: vec(DIMV(reg))
@@ -131,10 +131,10 @@ subroutine hbvec3(vec, &
                   beta, dx) bind(C, name="amrex_hbvec3")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(bcv)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bctype, bho
   real(rt)         :: bcl, beta, dx(3)
   real(rt)         :: vec(DIMV(reg))
@@ -308,8 +308,8 @@ subroutine hmac(mat, a, &
                 alpha) bind(C, name="amrex_hmac")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(abox)
-  integer :: DIMDEC(reg)
+  integer :: abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   real(rt)         :: a(DIMV(abox))
   real(rt)         :: mat(0:6, DIMV(reg))
   real(rt)         :: alpha
@@ -339,8 +339,8 @@ subroutine hmbc(mat, b, &
                 beta, dx, n) bind(C, name="amrex_hmbc")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(bbox)
-  integer :: DIMDEC(reg)
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: n
   real(rt)         :: b(DIMV(bbox))
   real(rt)         :: mat(0:6, DIMV(reg))
@@ -392,9 +392,9 @@ subroutine hmmat(mat, &
                  beta, dx) bind(C, name="amrex_hmmat")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bct, bho
   real(rt)         :: bcl, beta, dx(3)
   real(rt)         :: mat(0:6, DIMV(reg))
@@ -519,9 +519,9 @@ subroutine hmmat3(mat, &
                   beta, dx) bind(C, name="amrex_hmmat3")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bctype, bho
   real(rt)         :: bcl, beta, dx(3)
   real(rt)         :: mat(0:6, DIMV(reg))

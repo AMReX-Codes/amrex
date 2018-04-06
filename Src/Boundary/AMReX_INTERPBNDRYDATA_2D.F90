@@ -45,10 +45,10 @@
 
       integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(crse)
-      integer  DIMDEC(cb)
+      integer  bdry_l1,bdry_l2,bdry_h1,bdry_h2
+      integer  mask_l1,mask_l2,mask_h1,mask_h2
+      integer  crse_l1,crse_l2,crse_h1,crse_h2
+      integer  cb_l1,cb_l2,cb_h1,cb_h2
       REAL_T   bdry(DIMV(bdry),nvar)
       REAL_T   derives(DIM2(cb),NUMDERIV)      
       integer  mask(DIMV(mask))
@@ -153,10 +153,10 @@
 
       integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(crse)
+      integer  bdry_l1,bdry_l2,bdry_h1,bdry_h2
+      integer  mask_l1,mask_l2,mask_h1,mask_h2
+      integer  cb_l1,cb_l2,cb_h1,cb_h2
+      integer  crse_l1,crse_l2,crse_h1,crse_h2
       REAL_T   bdry(DIMV(bdry),nvar)
       REAL_T   derives(DIM2(cb),NUMDERIV)      
       integer  mask(DIMV(mask))
@@ -262,10 +262,10 @@
 
       integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(crse)
+      integer  bdry_l1,bdry_l2,bdry_h1,bdry_h2
+      integer  mask_l1,mask_l2,mask_h1,mask_h2
+      integer  cb_l1,cb_l2,cb_h1,cb_h2
+      integer  crse_l1,crse_l2,crse_h1,crse_h2
       REAL_T   bdry(DIMV(bdry),nvar)
       REAL_T   derives(DIM1(cb),NUMDERIV)
       integer  mask(DIMV(mask))
@@ -371,10 +371,10 @@
 
       integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(crse)
+      integer  bdry_l1,bdry_l2,bdry_h1,bdry_h2
+      integer  mask_l1,mask_l2,mask_h1,mask_h2
+      integer  cb_l1,cb_l2,cb_h1,cb_h2
+      integer  crse_l1,crse_l2,crse_h1,crse_h2
       REAL_T   bdry(DIMV(bdry),nvar)
       REAL_T   derives(DIM1(cb),NUMDERIV)
       integer  mask(DIMV(mask))

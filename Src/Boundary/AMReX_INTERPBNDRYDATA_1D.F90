@@ -41,10 +41,10 @@
 
       integer  nvar, ratios(1), not_covered
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(crse)
-      integer  DIMDEC(cb)
+      integer  bdry_l1,bdry_h1
+      integer  mask_l1,mask_h1
+      integer  crse_l1,crse_h1
+      integer  cb_l1,cb_h1
       REAL_T   bdry(DIMV(bdry),nvar)
       REAL_T   derives(1,NUMDERIV)
       integer  mask(DIMV(mask))
@@ -90,10 +90,10 @@
 
       integer  nvar, ratios(1), not_covered
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(crse)
+      integer  bdry_l1,bdry_h1
+      integer  mask_l1,mask_h1
+      integer  cb_l1,cb_h1
+      integer  crse_l1,crse_h1
       REAL_T   bdry(DIMV(bdry),nvar)
       REAL_T   derives(1,NUMDERIV)
       integer  mask(DIMV(mask))

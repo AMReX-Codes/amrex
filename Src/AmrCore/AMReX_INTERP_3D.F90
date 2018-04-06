@@ -40,10 +40,10 @@
 
       implicit none
 
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
+      integer crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      integer cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
+      integer fine_l1,fine_l2,fine_l3,fine_h1,fine_h2,fine_h3
+      integer fb_l1,fb_l2,fb_l3,fb_h1,fb_h2,fb_h3
       integer lratiox, lratioy, lratioz, nvar
       integer num_slp
       integer actual_comp,actual_state
@@ -176,10 +176,10 @@
 
       implicit none
 
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
+      integer crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      integer cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
+      integer fine_l1,fine_l2,fine_l3,fine_h1,fine_h2,fine_h3
+      integer fb_l1,fb_l2,fb_l3,fb_h1,fb_h2,fb_h3
       integer lratiox, lratioy, lratioz, nvar
       integer num_slp
       integer strip_lo, strip_hi
@@ -245,11 +245,11 @@
 
       implicit none
 
-      integer DIMDEC(fine)
-      integer DIMDEC(crse)
-      integer DIMDEC(fvcb)
-      integer DIMDEC(cvcb)
-      integer DIMDEC(cslope)
+      integer fine_l1,fine_l2,fine_l3,fine_h1,fine_h2,fine_h3
+      integer crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      integer fvcb_l1,fvcb_l2,fvcb_l3,fvcb_h1,fvcb_h2,fvcb_h3
+      integer cvcb_l1,cvcb_l2,cvcb_l3,cvcb_h1,cvcb_h2,cvcb_h3
+      integer cslope_l1,cslope_l2,cslope_l3,cslope_h1,cslope_h2,cslope_h3
       integer fblo(3), fbhi(3)
       integer cslopelo(3), cslopehi(3)
       integer lratiox, lratioy, lratioz, nvar
@@ -738,9 +738,9 @@
 
       implicit none
 
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
-      integer DIMDEC(cb)
+      integer fine_l1,fine_l2,fine_l3,fine_h1,fine_h2,fine_h3
+      integer fb_l1,fb_l2,fb_l3,fb_h1,fb_h2,fb_h3
+      integer cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
       integer fslo(3), fshi(3)
       integer nvar, lratiox, lratioy, lratioz
       integer bc(3,2,nvar)
@@ -781,7 +781,7 @@
 
       implicit none
 
-      integer DIMDEC(fine)
+      integer fine_l1,fine_l2,fine_l3,fine_h1,fine_h2,fine_h3
       integer fb_l1, fb_l2, fb_l3
       integer fb_h1, fb_h2, fb_h3
       integer cb_l1, cb_l2, cb_l3
@@ -1017,9 +1017,9 @@
 
       implicit none
 
-      integer DIMDEC(crse)
+      integer crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
       integer cblo(3), cbhi(3)
-      integer DIMDEC(fine)
+      integer fine_l1,fine_l2,fine_l3,fine_h1,fine_h2,fine_h3
       integer fblo(3), fbhi(3)
       integer nvar, lratiox, lratioy, lratioz, longdir
       integer ftmp_lo, ftmp_hi
@@ -1158,9 +1158,9 @@
 
       implicit none
 
-      integer DIMDEC(fine)
-      integer DIMDEC(crse)
-      integer DIMDEC(state)
+      integer fine_l1,fine_l2,fine_l3,fine_h1,fine_h2,fine_h3
+      integer crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      integer state_l1,state_l2,state_l3,state_h1,state_h2,state_h3
       integer fblo(3), fbhi(3)
       integer cblo(3), cbhi(3)
       integer lratiox, lratioy, lratioz, nvar
@@ -1514,8 +1514,8 @@
 
        implicit none
 
-       integer DIMDEC(fine)
-       integer DIMDEC(crse)
+       integer fine_l1,fine_l2,fine_l3,fine_h1,fine_h2,fine_h3
+       integer crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
        integer fblo(3), fbhi(3), fb2lo(3), fb2hi(3)
        integer cblo(3), cbhi(3), cb2lo(3), cb2hi(3)
        integer nvar,lratiox,lratioy,lratioz

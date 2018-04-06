@@ -48,31 +48,31 @@
       implicit none
 
       integer nc
-      integer DIMDEC(phi)
+      integer phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
       REAL_T  phi(DIMV(phi),nc)
-      integer DIMDEC(rhs)
+      integer rhs_l1,rhs_l2,rhs_l3,rhs_h1,rhs_h2,rhs_h3
       REAL_T  rhs(DIMV(rhs),nc)
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
       integer blo(BL_SPACEDIM), bhi(BL_SPACEDIM)
       integer redblack
-      integer DIMDEC(f0)
-      integer DIMDEC(f1)
-      integer DIMDEC(f2)
-      integer DIMDEC(f3)
-      integer DIMDEC(f4)
-      integer DIMDEC(f5)
+      integer f0_l1,f0_l2,f0_l3,f0_h1,f0_h2,f0_h3
+      integer f1_l1,f1_l2,f1_l3,f1_h1,f1_h2,f1_h3
+      integer f2_l1,f2_l2,f2_l3,f2_h1,f2_h2,f2_h3
+      integer f3_l1,f3_l2,f3_l3,f3_h1,f3_h2,f3_h3
+      integer f4_l1,f4_l2,f4_l3,f4_h1,f4_h2,f4_h3
+      integer f5_l1,f5_l2,f5_l3,f5_h1,f5_h2,f5_h3
       REAL_T  f0(DIMV(f0))
       REAL_T  f1(DIMV(f1))
       REAL_T  f2(DIMV(f2))
       REAL_T  f3(DIMV(f3))
       REAL_T  f4(DIMV(f4))
       REAL_T  f5(DIMV(f5))
-      integer DIMDEC(m0)
-      integer DIMDEC(m1)
-      integer DIMDEC(m2)
-      integer DIMDEC(m3)
-      integer DIMDEC(m4)
-      integer DIMDEC(m5)
+      integer m0_l1,m0_l2,m0_l3,m0_h1,m0_h2,m0_h3
+      integer m1_l1,m1_l2,m1_l3,m1_h1,m1_h2,m1_h3
+      integer m2_l1,m2_l2,m2_l3,m2_h1,m2_h2,m2_h3
+      integer m3_l1,m3_l2,m3_l3,m3_h1,m3_h2,m3_h3
+      integer m4_l1,m4_l2,m4_l3,m4_h1,m4_h2,m4_h3
+      integer m5_l1,m5_l2,m5_l3,m5_h1,m5_h2,m5_h3
       integer m0(DIMV(m0))
       integer m1(DIMV(m1))
       integer m2(DIMV(m2))
@@ -139,9 +139,9 @@
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      integer DIMDEC(y)
+      integer y_l1,y_l2,y_l3,y_h1,y_h2,y_h3
       REAL_T  y(DIMV(y),nc)
-      integer DIMDEC(x)
+      integer x_l1,x_l2,x_l3,x_h1,x_h2,x_h3
       REAL_T  x(DIMV(x),nc)
       REAL_T  h
 
@@ -188,10 +188,10 @@
       integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
       integer zlo(BL_SPACEDIM), zhi(BL_SPACEDIM)
       integer nc
-      integer DIMDEC(x)
-      integer DIMDEC(xflux)
-      integer DIMDEC(yflux)
-      integer DIMDEC(zflux)
+      integer x_l1,x_l2,x_l3,x_h1,x_h2,x_h3
+      integer xflux_l1,xflux_l2,xflux_l3,xflux_h1,xflux_h2,xflux_h3
+      integer yflux_l1,yflux_l2,yflux_l3,yflux_h1,yflux_h2,yflux_h3
+      integer zflux_l1,zflux_l2,zflux_l3,zflux_h1,zflux_h2,zflux_h3
       REAL_T  x(DIMV(x),nc)
       REAL_T xflux(DIMV(xflux),nc)
       REAL_T yflux(DIMV(yflux),nc)

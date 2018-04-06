@@ -33,8 +33,8 @@
 
       implicit none
 
-      integer    DIMDEC(reg)
-      integer    DIMDEC(flx)
+      integer    reg_l1,reg_l2,reg_h1,reg_h2
+      integer    flx_l1,flx_l2,flx_h1,flx_h2
       integer    ratio(2), dir, numcomp
       REAL_T     mult
       REAL_T     reg(DIMV(reg),numcomp)
@@ -111,9 +111,9 @@
 
       implicit none
 
-      integer    DIMDEC(reg)
-      integer    DIMDEC(flx)
-      integer    DIMDEC(area)
+      integer    reg_l1,reg_l2,reg_h1,reg_h2
+      integer    flx_l1,flx_l2,flx_h1,flx_h2
+      integer    area_l1,area_l2,area_h1,area_h2
       integer    ratio(2), dir, numcomp
       REAL_T     mult
       REAL_T     reg(DIMV(reg),numcomp)
