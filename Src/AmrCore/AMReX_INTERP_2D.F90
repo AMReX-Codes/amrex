@@ -1,17 +1,16 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_interp_module
 
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_BC_TYPES.H"
-#include "AMReX_INTERP_F.H"
+  use amrex_fort_module
+  use amrex_constants_module
+
+  implicit none
+
+  include 'AMReX_bc_types.fi'
+
+contains
 
 #define IX_PROJ(A,B) (A+B*iabs(A))/B-iabs(A)
-#define SDIM 2
-
 
 ! ::: --------------------------------------------------------------
 ! ::: nbinterp:  node based bilinear interpolation
@@ -36,7 +35,7 @@
                               fine, fine_l1,fine_l2,fine_h1,fine_h2, fb_l1,fb_l2,fb_h1,fb_h2, &
                               lratiox, lratioy, nvar, &
                               sl, num_slp, &
-                              actual_comp,actual_state)
+                              actual_comp,actual_state)  bind(c,name='amrex_nbinterp')
 
       implicit none
 
@@ -47,9 +46,9 @@
       integer lratiox, lratioy, nvar
       integer num_slp
       integer actual_comp,actual_state
-      REAL_T  fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
-      REAL_T  crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
-      REAL_T  sl(cb_l1:cb_h1,num_slp)
+      real(amrex_real)  fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      real(amrex_real)  crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      real(amrex_real)  sl(cb_l1:cb_h1,num_slp)
 
 #define  SLX 1
 #define  SLY 2
@@ -60,10 +59,10 @@
       integer ilo, ihi, jlo, jhi
       integer jstrtFine, jstopFine, istrtFine, istopFine
 
-      REAL_T fx, fy
-      REAL_T RX, RY, RXY
-      REAL_T dx0, d0x, dx1
-      REAL_T slope
+      real(amrex_real) fx, fy
+      real(amrex_real) RX, RY, RXY
+      real(amrex_real) dx0, d0x, dx1
+      real(amrex_real) slope
 
       slope(i,j,n,fx,fy) = crse(i,j,n) + &
                            fx*sl(i,SLX) + fy*sl(i,SLY) + fx*fy*sl(i,SLXY)
@@ -173,7 +172,7 @@
                               fine, fine_l1,fine_l2,fine_h1,fine_h2, fb_l1,fb_l2,fb_h1,fb_h2, &
                               lratiox, lratioy, nvar, &
                               sl, num_slp, strip, strip_lo, strip_hi, &
-                              actual_comp,actual_state)
+                              actual_comp,actual_state) bind(c,name='amrex_cbinterp')
 
       implicit none
 
@@ -185,17 +184,17 @@
       integer num_slp
       integer actual_comp,actual_state
       integer strip_lo, strip_hi
-      REAL_T  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
-      REAL_T  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
-      REAL_T  sl(cb_l1:cb_h1,num_slp)
-      REAL_T  strip(strip_lo:strip_hi)
+      real(amrex_real)  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
+      real(amrex_real)  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+      real(amrex_real)  sl(cb_l1:cb_h1,num_slp)
+      real(amrex_real)  strip(strip_lo:strip_hi)
 
 #define SLX 1
 #define SLY 2
 #define SLXY 3
 
       integer lx, ly, hratx, hraty, ic, jc, jfn, jfc, i, n
-      REAL_T x, y, denomx, denomy
+      real(amrex_real) x, y, denomx, denomy
 
       denomx = one/dble(2*lratiox)
       denomy = one/dble(2*lratioy)
@@ -286,7 +285,7 @@
                                   bc, lim_slope, lin_limit, &
                                   fvcx, fvcy, cvcx, cvcy, &
                                   voffx, voffy, alpha, cmax, cmin, &
-                                  actual_comp,actual_state)
+                                  actual_comp,actual_state) bind(c,name='amrex_linccinterp')
 
        implicit none
 
@@ -301,23 +300,23 @@
        integer lim_slope, lin_limit
        integer bc(2,2,nvar)
        integer actual_comp,actual_state
-       REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
-       REAL_T crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
-       REAL_T uc_xslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
-       REAL_T lc_xslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
-       REAL_T xslope_factor(cslope_l1:cslope_h1,cslope_l2:cslope_h2)
-       REAL_T uc_yslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
-       REAL_T lc_yslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
-       REAL_T yslope_factor(cslope_l1:cslope_h1,cslope_l2:cslope_h2)
-       REAL_T alpha(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
-       REAL_T cmax(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
-       REAL_T cmin(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
-       REAL_T fvcx(fvcb_l1:fvcb_h1)
-       REAL_T fvcy(fvcb_l2:fvcb_h2)
-       REAL_T voffx(fvcb_l1:fvcb_h1)
-       REAL_T voffy(fvcb_l2:fvcb_h2)
-       REAL_T cvcx(cvcb_l1:cvcb_h1)
-       REAL_T cvcy(cvcb_l2:cvcb_h2)
+       real(amrex_real) fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+       real(amrex_real) crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+       real(amrex_real) uc_xslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) lc_xslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) xslope_factor(cslope_l1:cslope_h1,cslope_l2:cslope_h2)
+       real(amrex_real) uc_yslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) lc_yslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) yslope_factor(cslope_l1:cslope_h1,cslope_l2:cslope_h2)
+       real(amrex_real) alpha(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) cmax(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) cmin(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) fvcx(fvcb_l1:fvcb_h1)
+       real(amrex_real) fvcy(fvcb_l2:fvcb_h2)
+       real(amrex_real) voffx(fvcb_l1:fvcb_h1)
+       real(amrex_real) voffy(fvcb_l2:fvcb_h2)
+       real(amrex_real) cvcx(cvcb_l1:cvcb_h1)
+       real(amrex_real) cvcy(cvcb_l2:cvcb_h2)
 
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)
@@ -325,11 +324,11 @@
        integer n
        integer i, ic
        integer j, jc
-       REAL_T cen, forw, back, slp
-       REAL_T factorn, denom
-       REAL_T fxcen, cxcen, fycen, cycen
-       REAL_T orig_corr_fact,corr_fact
-       REAL_T dummy_fine
+       real(amrex_real) cen, forw, back, slp
+       real(amrex_real) factorn, denom
+       real(amrex_real) fxcen, cxcen, fycen, cycen
+       real(amrex_real) orig_corr_fact,corr_fact
+       real(amrex_real) dummy_fine
        logical xok, yok
        integer ncbx, ncby
        integer ioff,joff
@@ -639,7 +638,7 @@
                                fslo, fshi, cslope, clen, fslope, fdat, &
                                flen, voff, bc, limslope, &
                                fvcx, fvcy, cvcx, cvcy, &
-                               actual_comp,actual_state)
+                               actual_comp,actual_state) bind(c,name='amrex_cqinterp')
 
       implicit none
 
@@ -651,16 +650,16 @@
       integer lratiox, lratioy, nvar, clen, flen, limslope
       integer bc(2,2,nvar)
       integer actual_comp,actual_state
-      REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
-      REAL_T crse(clo:chi, nvar)
-      REAL_T cslope(clo:chi, 5)
-      REAL_T fslope(flen, 5)
-      REAL_T fdat(flen)
-      REAL_T voff(flen)
-      REAL_T fvcx(fb_l1:fb_h1+1)
-      REAL_T fvcy(fb_l2:fb_h2+1)
-      REAL_T cvcx(cb_l1:cb_h1+1)
-      REAL_T cvcy(cb_l2:cb_h2+1)
+      real(amrex_real) fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      real(amrex_real) crse(clo:chi, nvar)
+      real(amrex_real) cslope(clo:chi, 5)
+      real(amrex_real) fslope(flen, 5)
+      real(amrex_real) fdat(flen)
+      real(amrex_real) voff(flen)
+      real(amrex_real) fvcx(fb_l1:fb_h1+1)
+      real(amrex_real) fvcy(fb_l2:fb_h2+1)
+      real(amrex_real) cvcx(cb_l1:cb_h1+1)
+      real(amrex_real) cvcy(cb_l2:cb_h2+1)
 
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)
@@ -669,10 +668,10 @@
       integer i, ic, ioff
       integer j, jc, joff
       integer ist, jst
-      REAL_T cen
-      REAL_T fcen, ccen
-      REAL_T diffxy,diffxx,diffyy
-      REAL_T yoff
+      real(amrex_real) cen
+      real(amrex_real) fcen, ccen
+      real(amrex_real) diffxy,diffxx,diffyy
+      real(amrex_real) yoff
       integer ncbx, ncby
       integer ncsx
       integer jslo
@@ -824,7 +823,7 @@
                               fine,fine_l1,fine_l2,fine_h1,fine_h2,fblo,fbhi, &
                               longdir,lratiox,lratioy,nvar, &
                               ftmp,ftmp_lo,ftmp_hi, &
-                              actual_comp,actual_state)
+                              actual_comp,actual_state) bind(c,name='amrex_pcinterp')
 
       implicit none
 
@@ -835,9 +834,9 @@
       integer ftmp_lo, ftmp_hi
       integer nvar, lratiox, lratioy, longdir
       integer actual_comp,actual_state
-      REAL_T  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
-      REAL_T  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
-      REAL_T  ftmp(ftmp_lo:ftmp_hi)
+      real(amrex_real)  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+      real(amrex_real)  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
+      real(amrex_real)  ftmp(ftmp_lo:ftmp_hi)
 
       integer i, j, ic, jc, ioff, joff, n
 
@@ -912,7 +911,7 @@
                                     cvcx, cvcy, &
                                     cb_l1, cb_l2, cb_h1, cb_h2, &
                                     fine_state, state_l1,state_l2,state_h1,state_h2, &
-                                    nvar, lratiox, lratioy, bc)
+                                    nvar, lratiox, lratioy, bc) bind(c,name='amrex_protect_interp')
 
       implicit none
 
@@ -925,20 +924,20 @@
       integer cb_l1, cb_l2, cb_h1, cb_h2
       integer lratiox, lratioy, nvar
       integer bc(2,2,nvar)
-      REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
-      REAL_T crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
-      REAL_T fine_state(state_l1:state_h1,state_l2:state_h2, nvar)
-      REAL_T fvcx(fb_l1:fb_h1)
-      REAL_T fvcy(fb_l2:fb_h2)
-      REAL_T cvcx(cb_l1:cb_h1)
-      REAL_T cvcy(cb_l2:cb_h2)
+      real(amrex_real) fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      real(amrex_real) crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+      real(amrex_real) fine_state(state_l1:state_h1,state_l2:state_h2, nvar)
+      real(amrex_real) fvcx(fb_l1:fb_h1)
+      real(amrex_real) fvcy(fb_l2:fb_h2)
+      real(amrex_real) cvcx(cb_l1:cb_h1)
+      real(amrex_real) cvcy(cb_l2:cb_h2)
 
       integer rMAX
       parameter (rMAX = 32)
-      REAL_T alpha, sumN, sumP, negVal, posVal
-      REAL_T crseTot, crseTotnew
-      REAL_T orig_fine(0:rMAX-1,0:rMAX-1)
-      REAL_T fvol,cvol
+      real(amrex_real) alpha, sumN, sumP, negVal, posVal
+      real(amrex_real) crseTot, crseTotnew
+      real(amrex_real) orig_fine(0:rMAX-1,0:rMAX-1)
+      real(amrex_real) fvol,cvol
       integer redo_me
       integer ilo,ihi,jlo,jhi
       integer i,j,ic,jc,n
@@ -1250,7 +1249,7 @@
                                   nvar, &
                                   lratiox, lratioy, &
                                   ftmp, ctmp, &
-                                  bc,actual_comp,actual_state)
+                                  bc,actual_comp,actual_state) bind(c,name='amrex_quartinterp')
 
        implicit none
 
@@ -1261,15 +1260,15 @@
        integer nvar,lratiox,lratioy
        integer bc(2,2,nvar)
        integer actual_comp,actual_state
-       REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
-       REAL_T crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
-       REAL_T ftmp(fb2lo(1):fb2hi(1))
-       REAL_T ctmp(cblo(1):cbhi(1),0:lratioy-1)
+       real(amrex_real) fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+       real(amrex_real) crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+       real(amrex_real) ftmp(fb2lo(1):fb2hi(1))
+       real(amrex_real) ctmp(cblo(1):cbhi(1),0:lratioy-1)
 
 !      Local variables
        integer i,j,ii,jj,n,iry
-       REAL_T cL(-2:2)
-!       REAL_T cR(-2:2)
+       real(amrex_real) cL(-2:2)
+!       real(amrex_real) cR(-2:2)
        data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0, &
                  0.01171875D0 /
 !       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0, &
@@ -1325,3 +1324,6 @@
        endif
 
      end subroutine FORT_QUARTINTERP
+
+end module amrex_interp_module
+
