@@ -4,7 +4,6 @@
 #define BL_LANG_FORT
 #endif
 
-#include <AMReX_ArrayLim.H>
 
 #define SDIM 2
 
