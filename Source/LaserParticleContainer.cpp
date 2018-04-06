@@ -294,8 +294,7 @@ LaserParticleContainer::Evolve (int lev,
         FArrayBox local_rho, local_jx, local_jy, local_jz;
         FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
 
-        for (WarpXParIter pti(*this, lev, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling));
-             pti.isValid(); ++pti)
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
             Real wt = ParallelDescriptor::second();
 
