@@ -50,7 +50,7 @@
       integer actual_comp,actual_state
       REAL_T  fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
       REAL_T  crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
-      REAL_T  sl(DIM1(cb),num_slp)
+      REAL_T  sl(cb_l1:cb_h1,num_slp)
 
 #define  SLX 1
 #define  SLY 2
@@ -188,7 +188,7 @@
       integer strip_lo, strip_hi
       REAL_T  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
       REAL_T  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
-      REAL_T  sl(DIM1(cb),num_slp)
+      REAL_T  sl(cb_l1:cb_h1,num_slp)
       REAL_T  strip(strip_lo:strip_hi)
 
 #define SLX 1
@@ -313,12 +313,12 @@
        REAL_T alpha(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
        REAL_T cmax(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
        REAL_T cmin(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
-       REAL_T fvcx(DIM1(fvcb))
-       REAL_T fvcy(DIM2(fvcb))
-       REAL_T voffx(DIM1(fvcb))
-       REAL_T voffy(DIM2(fvcb))
-       REAL_T cvcx(DIM1(cvcb))
-       REAL_T cvcy(DIM2(cvcb))
+       REAL_T fvcx(fvcb_l1:fvcb_h1)
+       REAL_T fvcy(fvcb_l2:fvcb_h2)
+       REAL_T voffx(fvcb_l1:fvcb_h1)
+       REAL_T voffy(fvcb_l2:fvcb_h2)
+       REAL_T cvcx(cvcb_l1:cvcb_h1)
+       REAL_T cvcy(cvcb_l2:cvcb_h2)
 
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)
