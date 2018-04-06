@@ -15,12 +15,12 @@
 ! :::
 ! ::: INPUTS/OUTPUTS:
 ! :::
-! ::: DIMS(holder)=> index extent of place holder array
+! ::: holder_l1,holder_l2,holder_h1,holder_h2=> index extent of place holder array
 ! ::: lo(SDIM)    <= lower index limits
 ! ::: hi(SDIM)    <= upper index limits
 ! ::: -----------------------------------------------------------
 
-    subroutine SET_LOHI(DIMS(holder), lo, hi)
+    subroutine SET_LOHI(holder_l1,holder_l2,holder_h1,holder_h2, lo, hi)
 
       implicit none
 
@@ -48,12 +48,12 @@
 ! :::
 ! ::: INPUTS/OUTPUTS:
 ! :::
-! ::: FF_DIMS(holder) <=  index extent of place holder array
+! ::: FF_holder_l1,holder_l2,holder_h1,holder_h2 <=  index extent of place holder array
 ! ::: lo(SDIM)         => lower index limits
 ! ::: hi(SDIM)         => upper index limits
 ! ::: -----------------------------------------------------------
 
-    subroutine SET_ARGS(DIMS(holder), lo, hi)
+    subroutine SET_ARGS(holder_l1,holder_l2,holder_h1,holder_h2, lo, hi)
 
       implicit none
 

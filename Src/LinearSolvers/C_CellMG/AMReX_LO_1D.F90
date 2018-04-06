@@ -11,8 +11,8 @@
 
 !-----------------------------------------------------------------------
     subroutine FORT_HARMONIC_AVERAGEEC ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
+           c, c_l1,c_h1, &
+           f, f_l1,f_h1, &
            lo, hi, nc, &
            cdir &
            )
@@ -37,8 +37,8 @@
     end subroutine FORT_HARMONIC_AVERAGEEC
 !-----------------------------------------------------------------------
     subroutine FORT_AVERAGEEC ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
+           c, c_l1,c_h1, &
+           f, f_l1,f_h1, &
            lo, hi, nc, &
            cdir &
            )
@@ -63,8 +63,8 @@
     end subroutine FORT_AVERAGEEC
 !-----------------------------------------------------------------------
     subroutine FORT_AVERAGECC ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
+           c, c_l1,c_h1, &
+           f, f_l1,f_h1, &
            lo, hi, nc &
            )
 
@@ -88,11 +88,11 @@
 !-----------------------------------------------------------------------
     subroutine FORT_APPLYBC ( &
            flagden, flagbc, maxorder, &
-           phi,   DIMS(phi), &
+           phi,   phi_l1,phi_h1, &
            cdir, bct, bcl, &
-           bcval, DIMS(bcval), &
-           mask,  DIMS(mask), &
-           den,   DIMS(den), &
+           bcval, bcval_l1,bcval_h1, &
+           mask,  mask_l1,mask_h1, &
+           den,   den_l1,den_h1, &
            lo, hi, nc, &
            h &
            )

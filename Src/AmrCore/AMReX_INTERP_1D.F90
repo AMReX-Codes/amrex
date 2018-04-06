@@ -16,11 +16,11 @@
 ! ::: 
 ! ::: INPUTS/OUTPUTS
 ! ::: fine        <=>  (modify) fine grid array
-! ::: DIMS(fine)   =>  (const)  index limits of fine grid
-! ::: DIMS(fb)     =>  (const)  subregion of fine grid to get values
+! ::: fine_l1,fine_h1   =>  (const)  index limits of fine grid
+! ::: fb_l1,fb_h1     =>  (const)  subregion of fine grid to get values
 ! ::: 
 ! ::: crse         =>  (const)  coarse grid data widened by 1 zone
-! ::: DIMS(crse)   =>  (const)  index limits of coarse grid
+! ::: crse_l1,crse_h1   =>  (const)  index limits of coarse grid
 ! ::: 
 ! ::: lratio       =>  (const)  refinement ratio between levels
 ! ::: nvar         =>  (const)  number of components in array
@@ -30,8 +30,8 @@
 ! ::: sl           =>  num_slp 1-D slope arrays
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb), &
-                              fine, DIMS(fine), DIMS(fb), &
+    subroutine FORT_NBINTERP (crse, crse_l1,crse_h1, cb_l1,cb_h1, &
+                              fine, fine_l1,fine_h1, fb_l1,fb_h1, &
                               lratio, nvar, &
                               sl, num_slp, &
                               actual_comp,actual_state)
@@ -103,11 +103,11 @@
 ! ::: 
 ! ::: Inputs/Outputs
 ! ::: fine        <=>  (modify) fine grid array
-! ::: DIMS(fine)   =>  (const)  index limits of fine grid
-! ::: DIMS(fb)     =>  (const)  subregion of fine grid to get values
+! ::: fine_l1,fine_h1   =>  (const)  index limits of fine grid
+! ::: fb_l1,fb_h1     =>  (const)  subregion of fine grid to get values
 ! ::: 
 ! ::: crse         =>  (const)  coarse grid data 
-! ::: DIMS(crse)   =>  (const)  index limits of coarse grid
+! ::: crse_l1,crse_h1   =>  (const)  index limits of coarse grid
 ! ::: 
 ! ::: lratio       =>  (const)  refinement ratio between levels
 ! ::: nvar         =>  (const)  number of components in array
@@ -117,8 +117,8 @@
 ! ::: strip        =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_CBINTERP (crse, DIMS(crse), DIMS(cb), &
-                              fine, DIMS(fine), DIMS(fb), &
+    subroutine FORT_CBINTERP (crse, crse_l1,crse_h1, cb_l1,cb_h1, &
+                              fine, fine_l1,fine_h1, fb_l1,fb_h1, &
                               lratio, nvar, &
                               sl, num_slp, strip, strip_lo, strip_hi, &
                               actual_comp,actual_state)
@@ -292,7 +292,7 @@
 ! ::: --------------------------------------------------------------
 ! ::: 
 #if 0
-    subroutine FORT_CCINTERP (fine, DIMS(fine), &
+    subroutine FORT_CCINTERP (fine, fine_l1,fine_h1, &
                               fb_l1, fb_h1, &
                               nvar, lratio, crse, clo, chi, &
                               cb_l1, cb_h1, &
@@ -389,7 +389,7 @@
 
 # if 1
 
-    subroutine FORT_CCINTERP (fine, DIMS(fine), &
+    subroutine FORT_CCINTERP (fine, fine_l1,fine_h1, &
                               fb_l1, fb_h1, &
                               nvar, lratio, crse, clo, chi, &
                               cb_l1, cb_h1, &
@@ -575,8 +575,8 @@
 ! ::: ftmp         =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_PCINTERP (crse,DIMS(crse),cblo,cbhi, &
-                              fine,DIMS(fine),fblo,fbhi, &
+    subroutine FORT_PCINTERP (crse,crse_l1,crse_h1,cblo,cbhi, &
+                              fine,fine_l1,fine_h1,fblo,fbhi, &
                               longdir,lratio,nvar,ftmp,ftmp_lo,ftmp_hi, &
                               actual_comp,actual_state)
 
@@ -657,11 +657,11 @@
 ! :::
 ! ::: --------------------------------------------------------------
 ! ::: 
-     subroutine FORT_LINCCINTERP (fine, DIMS(fine), fblo, fbhi, &
-                                  DIMS(fvcb), &
-                                  crse, DIMS(crse), DIMS(cvcb), &
+     subroutine FORT_LINCCINTERP (fine, fine_l1,fine_h1, fblo, fbhi, &
+                                  fvcb_l1,fvcb_h1, &
+                                  crse, crse_l1,crse_h1, cvcb_l1,cvcb_h1, &
                                   uc_xslope, lc_xslope, xslope_factor, &
-                                  DIMS(cslope), &
+                                  cslope_l1,cslope_h1, &
                                   cslopelo, cslopehi, &
                                   nvar, lratiox, &
                                   bc, lim_slope, lin_limit, &
@@ -920,9 +920,9 @@
 ! ::: ftmp         =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-     subroutine FORT_QUARTINTERP (fine, DIMS(fine), &
+     subroutine FORT_QUARTINTERP (fine, fine_l1,fine_h1, &
                                   fblo, fbhi, fb2lo, fb2hi, &
-                                  crse, DIMS(crse), &
+                                  crse, crse_l1,crse_h1, &
                                   cblo, cbhi, cb2lo, cb2hi, &
                                   nvar, &
                                   lratiox, &

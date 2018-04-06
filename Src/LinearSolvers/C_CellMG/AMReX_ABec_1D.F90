@@ -34,15 +34,15 @@
 !     
 !-----------------------------------------------------------------------
     subroutine FORT_LINESOLVE ( &
-           phi,DIMS(phi), &
-           rhs,DIMS(rhs), &
+           phi,phi_l1,phi_h1, &
+           rhs,rhs_l1,rhs_h1, &
            alpha, beta, &
-           a,  DIMS(a), &
-           bX, DIMS(bX), &
-           f0, DIMS(f0), &
-           m0, DIMS(m0), &
-           f2, DIMS(f2), &
-           m2, DIMS(m2), &
+           a,  a_l1,a_h1, &
+           bX, bX_l1,bX_h1, &
+           f0, f0_l1,f0_h1, &
+           m0, m0_l1,m0_h1, &
+           f2, f2_l1,f2_h1, &
+           m2, m2_l1,m2_h1, &
            lo,hi,nc, &
            h &
            )
@@ -123,11 +123,11 @@
 !     Fill in a matrix x vector operator here
 !
     subroutine FORT_ADOTX( &
-           y,DIMS(y), &
-           x,DIMS(x), &
+           y,y_l1,y_h1, &
+           x,x_l1,x_h1, &
            alpha, beta, &
-           a, DIMS(a), &
-           bX, DIMS(bX), &
+           a, a_l1,a_h1, &
+           bX, bX_l1,bX_h1, &
            lo,hi,nc, &
            h &
            )
@@ -167,8 +167,8 @@
     subroutine FORT_NORMA( &
            res, &
            alpha, beta, &
-           a, DIMS(a), &
-           bX,DIMS(bX), &
+           a, a_l1,a_h1, &
+           bX,bX_l1,bX_h1, &
            lo,hi,nc, &
            h &
            )
@@ -204,13 +204,13 @@
 !     Fill in fluxes
 !
     subroutine FORT_FLUX( &
-           x,DIMS(x), &
+           x,x_l1,x_h1, &
            alpha, beta, &
-           a, DIMS(a), &
-           bX,DIMS(bX), &
+           a, a_l1,a_h1, &
+           bX,bX_l1,bX_h1, &
            xlo,xhi,nc, &
            h, &
-           xflux,DIMS(xflux) &
+           xflux,xflux_l1,xflux_h1 &
            )
 
       implicit none

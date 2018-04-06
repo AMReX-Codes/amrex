@@ -33,12 +33,12 @@
 !     
 !-----------------------------------------------------------------------
     subroutine FORT_GSRB ( &
-           phi, DIMS(phi), &
-           rhs, DIMS(rhs), &
-           f0, DIMS(f0), m0, DIMS(m0), &
-           f1, DIMS(f1), m1, DIMS(m1), &
-           f2, DIMS(f2), m2, DIMS(m2), &
-           f3, DIMS(f3), m3, DIMS(m3), &
+           phi, phi_l1,phi_l2,phi_h1,phi_h2, &
+           rhs, rhs_l1,rhs_l2,rhs_h1,rhs_h2, &
+           f0, f0_l1,f0_l2,f0_h1,f0_h2, m0, m0_l1,m0_l2,m0_h1,m0_h2, &
+           f1, f1_l1,f1_l2,f1_h1,f1_h2, m1, m1_l1,m1_l2,m1_h1,m1_h2, &
+           f2, f2_l1,f2_l2,f2_h1,f2_h2, m2, m2_l1,m2_l2,m2_h1,m2_h2, &
+           f3, f3_l1,f3_l2,f3_h1,f3_h2, m3, m3_l1,m3_l2,m3_h1,m3_h2, &
            lo, hi, blo, bhi, &
            nc, h, redblack &
            )
@@ -109,8 +109,8 @@
 !     Fill in a matrix x vector operator here
 !
     subroutine FORT_ADOTX( &
-           y, DIMS(y), &
-           x, DIMS(x), &
+           y, y_l1,y_l2,y_h1,y_h2, &
+           x, x_l1,x_l2,x_h1,x_h2, &
            lo, hi, nc, &
            h &
            )
@@ -149,13 +149,13 @@
 !     Fill in fluxes
 !
     subroutine FORT_FLUX( &
-           x,DIMS(x), &
+           x,x_l1,x_l2,x_h1,x_h2, &
            xlo,xhi, &
            ylo,yhi, &
            nc, &
            h, &
-           xflux,DIMS(xflux), &
-           yflux,DIMS(yflux) &
+           xflux,xflux_l1,xflux_l2,xflux_h1,xflux_h2, &
+           yflux,yflux_l1,yflux_l2,yflux_h1,yflux_h2 &
            )
 
       implicit none

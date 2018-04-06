@@ -25,23 +25,23 @@
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPXLO (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine FORT_BDINTERPXLO (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3,crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order)
 
       implicit none
 
@@ -178,23 +178,23 @@
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPXHI (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine FORT_BDINTERPXHI (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3,crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order)
 
       implicit none
 
@@ -332,23 +332,23 @@
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPYLO (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine FORT_BDINTERPYLO (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3,crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order)
 
       implicit none
 
@@ -486,23 +486,23 @@
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPYHI (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine FORT_BDINTERPYHI (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3,crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order)
 
       implicit none
 
@@ -639,23 +639,23 @@
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPZLO (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine FORT_BDINTERPZLO (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3,crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order)
 
       implicit none
 
@@ -790,23 +790,23 @@
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPZHI (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine FORT_BDINTERPZHI (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3,crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order)
 
       implicit none
 

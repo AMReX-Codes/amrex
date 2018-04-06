@@ -23,7 +23,7 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = spherical)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETVOL(DIMS(reg),vol,DIMS(vol),offset,dx,coord)
+  subroutine FORT_SETVOL(reg_l1,reg_h1,vol,vol_l1,vol_h1,offset,dx,coord)
 
     implicit none
 
@@ -130,7 +130,7 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETDLOGA(dloga,DIMS(dloga),offset,dx,dir,coord)
+  subroutine FORT_SETDLOGA(dloga,dloga_l1,dloga_h1,offset,dx,dir,coord)
 
     integer    DIMDEC(dloga)
     integer    coord
@@ -181,7 +181,7 @@
 ! ::  coord        => coordinate flag (0 =cartesian, 1 = RZ, 2 = spherical)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETAREA(DIMS(reg),area,DIMS(area),offset,dx,dir,coord)
+  subroutine FORT_SETAREA(reg_l1,reg_h1,area,area_l1,area_h1,offset,dx,dir,coord)
 
     integer    DIMDEC(reg)
     integer    DIMDEC(area)
