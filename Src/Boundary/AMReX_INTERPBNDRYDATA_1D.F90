@@ -45,10 +45,10 @@
       integer  mask_l1,mask_h1
       integer  crse_l1,crse_h1
       integer  cb_l1,cb_h1
-      REAL_T   bdry(DIMV(bdry),nvar)
+      REAL_T   bdry(bdry_l1:bdry_h1,nvar)
       REAL_T   derives(1,NUMDERIV)
-      integer  mask(DIMV(mask))
-      REAL_T   crse(DIMV(crse),nvar)
+      integer  mask(mask_l1:mask_h1)
+      REAL_T   crse(crse_l1:crse_h1,nvar)
 
       integer  i, ic, n
 
@@ -94,10 +94,10 @@
       integer  mask_l1,mask_h1
       integer  cb_l1,cb_h1
       integer  crse_l1,crse_h1
-      REAL_T   bdry(DIMV(bdry),nvar)
+      REAL_T   bdry(bdry_l1:bdry_h1,nvar)
       REAL_T   derives(1,NUMDERIV)
-      integer  mask(DIMV(mask))
-      REAL_T   crse(DIMV(crse),nvar)
+      integer  mask(mask_l1:mask_h1)
+      REAL_T   crse(crse_l1:crse_h1,nvar)
 
       integer  i, ic, n
 

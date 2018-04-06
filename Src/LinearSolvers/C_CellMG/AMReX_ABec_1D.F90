@@ -55,18 +55,18 @@
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
       integer nc
       integer f0_l1,f0_h1
-      REAL_T f0(DIMV(f0))
+      REAL_T f0(f0_l1:f0_h1)
       integer f2_l1,f2_h1
-      REAL_T f2(DIMV(f2))
+      REAL_T f2(f2_l1:f2_h1)
       integer m0_l1,m0_h1
-      integer m0(DIMV(m0))
+      integer m0(m0_l1:m0_h1)
       integer m2_l1,m2_h1
-      integer m2(DIMV(m2))
+      integer m2(m2_l1:m2_h1)
       REAL_T  h(BL_SPACEDIM)
-      REAL_T   phi(DIMV(phi),nc)
-      REAL_T   rhs(DIMV(rhs),nc)
-      REAL_T     a(DIMV(a))
-      REAL_T    bX(DIMV(bX))
+      REAL_T   phi(phi_l1:phi_h1,nc)
+      REAL_T   rhs(rhs_l1:rhs_h1,nc)
+      REAL_T     a(a_l1:a_h1)
+      REAL_T    bX(bX_l1:bX_h1)
 
       integer  i, n
 
@@ -138,10 +138,10 @@
       integer x_l1,x_h1
       integer a_l1,a_h1
       integer bX_l1,bX_h1
-      REAL_T  x(DIMV(x),nc)
-      REAL_T  y(DIMV(x),nc)
-      REAL_T  a(DIMV(a))
-      REAL_T bX(DIMV(bX))
+      REAL_T  x(x_l1:x_h1,nc)
+      REAL_T  y(x_l1:x_h1,nc)
+      REAL_T  a(a_l1:a_h1)
+      REAL_T bX(bX_l1:bX_h1)
       REAL_T h(BL_SPACEDIM)
 
       integer i,n
@@ -178,8 +178,8 @@
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
       integer a_l1,a_h1
       integer bX_l1,bX_h1
-      REAL_T  a(DIMV(a))
-      REAL_T bX(DIMV(bX))
+      REAL_T  a(a_l1:a_h1)
+      REAL_T bX(bX_l1:bX_h1)
       REAL_T h(BL_SPACEDIM)
 
       integer i,n
@@ -221,10 +221,10 @@
       integer a_l1,a_h1
       integer bX_l1,bX_h1
       integer xflux_l1,xflux_h1
-      REAL_T  x(DIMV(x),nc)
-      REAL_T  a(DIMV(a))
-      REAL_T bX(DIMV(bX))
-      REAL_T xflux(DIMV(xflux),nc)
+      REAL_T  x(x_l1:x_h1,nc)
+      REAL_T  a(a_l1:a_h1)
+      REAL_T bX(bX_l1:bX_h1)
+      REAL_T xflux(xflux_l1:xflux_h1,nc)
       REAL_T h(BL_SPACEDIM)
 
       REAL_T dhx

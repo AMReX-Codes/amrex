@@ -37,8 +37,8 @@
       integer    flx_l1,flx_l2,flx_h1,flx_h2
       integer    ratio(2), dir, numcomp
       REAL_T     mult
-      REAL_T     reg(DIMV(reg),numcomp)
-      REAL_T     flx(DIMV(flx),numcomp)
+      REAL_T     reg(reg_l1:reg_h1,reg_l2:reg_h2,numcomp)
+      REAL_T     flx(flx_l1:flx_h1,flx_l2:flx_h2,numcomp)
 
       integer    n, i, j, ic, jc, off
       integer    ratiox, ratioy
@@ -116,9 +116,9 @@
       integer    area_l1,area_l2,area_h1,area_h2
       integer    ratio(2), dir, numcomp
       REAL_T     mult
-      REAL_T     reg(DIMV(reg),numcomp)
-      REAL_T     flx(DIMV(flx),numcomp)
-      REAL_T     area(DIMV(area))
+      REAL_T     reg(reg_l1:reg_h1,reg_l2:reg_h2,numcomp)
+      REAL_T     flx(flx_l1:flx_h1,flx_l2:flx_h2,numcomp)
+      REAL_T     area(area_l1:area_h1,area_l2:area_h2)
 
       integer    n, i, j, ic, jc, off
       integer    ratiox, ratioy

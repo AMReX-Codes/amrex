@@ -29,10 +29,10 @@ subroutine hbvec(vec, &
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bct, bho
   real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: vec(DIMV(reg))
-  real(rt)         :: bcval(DIMV(bcv))
-  integer :: mask(DIMV(msk))
-  real(rt)         :: b(DIMV(bbox))
+  real(rt)         :: vec(reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
+  real(rt)         :: bcval(bcv_l1:bcv_h1,bcv_l2:bcv_h2,bcv_l3:bcv_h3)
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)         :: h, bfv
   real(rt)         :: h2, th2
   integer :: i, j, k
@@ -137,10 +137,10 @@ subroutine hbvec3(vec, &
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bctype, bho
   real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: vec(DIMV(reg))
-  real(rt)         :: bcval(DIMV(bcv))
-  integer :: mask(DIMV(msk))
-  real(rt)         :: b(DIMV(bbox))
+  real(rt)         :: vec(reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
+  real(rt)         :: bcval(bcv_l1:bcv_h1,bcv_l2:bcv_h2,bcv_l3:bcv_h3)
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)         :: h, bfv
   real(rt)         :: h2, th2
   integer :: i, j, k, bct
@@ -310,8 +310,8 @@ subroutine hmac(mat, a, &
   use amrex_fort_module, only : rt => amrex_real
   integer :: abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
-  real(rt)         :: a(DIMV(abox))
-  real(rt)         :: mat(0:6, DIMV(reg))
+  real(rt)         :: a(abox_l1:abox_h1,abox_l2:abox_h2,abox_l3:abox_h3)
+  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
   real(rt)         :: alpha
   integer :: i, j, k
   if (alpha == 0.e0_rt) then
@@ -342,8 +342,8 @@ subroutine hmbc(mat, b, &
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: n
-  real(rt)         :: b(DIMV(bbox))
-  real(rt)         :: mat(0:6, DIMV(reg))
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
+  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
   real(rt)         :: beta, dx(3)
   real(rt)         :: fac
   integer :: i, j, k
@@ -397,9 +397,9 @@ subroutine hmmat(mat, &
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bct, bho
   real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: mat(0:6, DIMV(reg))
-  integer :: mask(DIMV(msk))
-  real(rt)         :: b(DIMV(bbox))
+  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)         :: h, fac, bfm, bfv
   real(rt)         :: bfm2, h2, th2
   integer :: i, j, k
@@ -524,9 +524,9 @@ subroutine hmmat3(mat, &
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bctype, bho
   real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: mat(0:6, DIMV(reg))
-  integer :: mask(DIMV(msk))
-  real(rt)         :: b(DIMV(bbox))
+  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)         :: h, fac, bfm, bfv
   real(rt)         :: bfm2, h2, th2
   integer :: i, j, k, bct

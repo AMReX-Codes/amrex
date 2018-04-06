@@ -21,8 +21,8 @@
       integer c_l1,c_l2,c_h1,c_h2
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(DIMV(f),nc)
-      REAL_T c(DIMV(c),nc)
+      REAL_T f(f_l1:f_h1,f_l2:f_h2,nc)
+      REAL_T c(c_l1:c_h1,c_l2:c_h2,nc)
 
       integer i
       integer j
@@ -54,8 +54,8 @@
       integer c_l1,c_l2,c_h1,c_h2
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(DIMV(f),nc)
-      REAL_T c(DIMV(c),nc)
+      REAL_T f(f_l1:f_h1,f_l2:f_h2,nc)
+      REAL_T c(c_l1:c_h1,c_l2:c_h2,nc)
 
       integer i, j, n, twoi, twoj, twoip1, twojp1
 

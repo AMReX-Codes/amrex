@@ -31,7 +31,7 @@
     integer    vol_l1,vol_l2,vol_l3,vol_h1,vol_h2,vol_h3
     integer    coord
     REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     vol(DIMV(vol))
+    REAL_T     vol(vol_l1:vol_h1,vol_l2:vol_h2,vol_l3:vol_h3)
        
     integer    i, j, k
     REAL_T     v
@@ -79,7 +79,7 @@
     integer    area_l1,area_l2,area_l3,area_h1,area_h2,area_h3
     integer    coord, dir
     REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     area(DIMV(area))
+    REAL_T     area(area_l1:area_h1,area_l2:area_h2,area_l3:area_h3)
        
     integer    i, j, k
     REAL_T     fa
@@ -135,7 +135,7 @@
     integer    dloga_l1,dloga_l2,dloga_l3,dloga_h1,dloga_h2,dloga_h3
     integer    coord
     REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     dloga(DIMV(dloga))
+    REAL_T     dloga(dloga_l1:dloga_h1,dloga_l2:dloga_h2,dloga_l3:dloga_h3)
     integer dir
        
     integer    i, j, k

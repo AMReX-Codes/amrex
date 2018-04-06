@@ -48,8 +48,8 @@
       integer lratiox, lratioy, nvar
       integer num_slp
       integer actual_comp,actual_state
-      REAL_T  fine(DIMV(fine),nvar)
-      REAL_T  crse(DIMV(crse),nvar)
+      REAL_T  fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      REAL_T  crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
       REAL_T  sl(DIM1(cb),num_slp)
 
 #define  SLX 1
@@ -186,8 +186,8 @@
       integer num_slp
       integer actual_comp,actual_state
       integer strip_lo, strip_hi
-      REAL_T  fine(DIMV(fine), nvar)
-      REAL_T  crse(DIMV(crse), nvar)
+      REAL_T  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
+      REAL_T  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
       REAL_T  sl(DIM1(cb),num_slp)
       REAL_T  strip(strip_lo:strip_hi)
 
@@ -302,17 +302,17 @@
        integer lim_slope, lin_limit
        integer bc(2,2,nvar)
        integer actual_comp,actual_state
-       REAL_T fine(DIMV(fine),nvar)
-       REAL_T crse(DIMV(crse), nvar)
-       REAL_T uc_xslope(DIMV(cslope),nvar)
-       REAL_T lc_xslope(DIMV(cslope),nvar)
-       REAL_T xslope_factor(DIMV(cslope))
-       REAL_T uc_yslope(DIMV(cslope),nvar)
-       REAL_T lc_yslope(DIMV(cslope),nvar)
-       REAL_T yslope_factor(DIMV(cslope))
-       REAL_T alpha(DIMV(cslope),nvar)
-       REAL_T cmax(DIMV(cslope),nvar)
-       REAL_T cmin(DIMV(cslope),nvar)
+       REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+       REAL_T crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+       REAL_T uc_xslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       REAL_T lc_xslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       REAL_T xslope_factor(cslope_l1:cslope_h1,cslope_l2:cslope_h2)
+       REAL_T uc_yslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       REAL_T lc_yslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       REAL_T yslope_factor(cslope_l1:cslope_h1,cslope_l2:cslope_h2)
+       REAL_T alpha(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       REAL_T cmax(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       REAL_T cmin(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
        REAL_T fvcx(DIM1(fvcb))
        REAL_T fvcy(DIM2(fvcb))
        REAL_T voffx(DIM1(fvcb))
@@ -652,7 +652,7 @@
       integer lratiox, lratioy, nvar, clen, flen, limslope
       integer bc(2,2,nvar)
       integer actual_comp,actual_state
-      REAL_T fine(DIMV(fine),nvar)
+      REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
       REAL_T crse(clo:chi, nvar)
       REAL_T cslope(clo:chi, 5)
       REAL_T fslope(flen, 5)
@@ -836,8 +836,8 @@
       integer ftmp_lo, ftmp_hi
       integer nvar, lratiox, lratioy, longdir
       integer actual_comp,actual_state
-      REAL_T  crse(DIMV(crse), nvar)
-      REAL_T  fine(DIMV(fine), nvar)
+      REAL_T  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+      REAL_T  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
       REAL_T  ftmp(ftmp_lo:ftmp_hi)
 
       integer i, j, ic, jc, ioff, joff, n
@@ -926,9 +926,9 @@
       integer cb_l1, cb_l2, cb_h1, cb_h2
       integer lratiox, lratioy, nvar
       integer bc(2,2,nvar)
-      REAL_T fine(DIMV(fine),nvar)
-      REAL_T crse(DIMV(crse), nvar)
-      REAL_T fine_state(DIMV(state), nvar)
+      REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      REAL_T crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+      REAL_T fine_state(state_l1:state_h1,state_l2:state_h2, nvar)
       REAL_T fvcx(fb_l1:fb_h1)
       REAL_T fvcy(fb_l2:fb_h2)
       REAL_T cvcx(cb_l1:cb_h1)
@@ -1262,8 +1262,8 @@
        integer nvar,lratiox,lratioy
        integer bc(2,2,nvar)
        integer actual_comp,actual_state
-       REAL_T fine(DIMV(fine),nvar)
-       REAL_T crse(DIMV(crse),nvar)
+       REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+       REAL_T crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
        REAL_T ftmp(fb2lo(1):fb2hi(1))
        REAL_T ctmp(cblo(1):cbhi(1),0:lratioy-1)
 
