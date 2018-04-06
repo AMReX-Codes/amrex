@@ -1,14 +1,12 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_coordsys_module
 
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_COORDSYS_F.H"
+  use amrex_fort_module
+  use amrex_constants_module
 
-#define SDIM 1
+  implicit none
+
+contains
 
 ! :: ----------------------------------------------------------
 ! :: SETVOL
@@ -22,20 +20,21 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = spherical)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETVOL(reg_l1,reg_h1,vol,vol_l1,vol_h1,offset,dx,coord)
+  subroutine FORT_SETVOL(reg_l1,reg_h1,vol,vol_l1,vol_h1,offset,dx,coord) &
+       bind(c,name='amrex_setvol')
 
     implicit none
 
     integer    reg_l1,reg_h1
     integer    vol_l1,vol_h1
     integer    coord
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     vol(vol_l1:vol_h1)
+    real(amrex_real)     dx(1), offset(1)
+    real(amrex_real)     vol(vol_l1:vol_h1)
 
     integer    i
-    REAL_T     ri, ro, v
-    REAL_T     RZFACTOR
-    parameter (RZFACTOR = two*Pi)
+    real(amrex_real)     ri, ro, v
+    real(amrex_real)     RZFACTOR
+    parameter (RZFACTOR = two*M_PI)
 
     if (coord .eq. 0) then
 
@@ -73,19 +72,19 @@
 
 
   subroutine FORT_SETVOLPT(vol, volloi1, volhii1, &
-       ro, roloi1, rohii1, ri, riloi1, rihii1, dx, coord)
+       ro, roloi1, rohii1, ri, riloi1, rihii1, dx, coord) bind(c,name='amrex_setvolpt')
 
     integer volloi1, volhii1
     integer roloi1, rohii1, riloi1, rihii1
     integer coord
-    REAL_T dx(SDIM)
-    REAL_T vol(volloi1:volhii1)
-    REAL_T ro(roloi1:rohii1)
-    REAL_T ri(riloi1:rihii1)
+    real(amrex_real) dx(1)
+    real(amrex_real) vol(volloi1:volhii1)
+    real(amrex_real) ro(roloi1:rohii1)
+    real(amrex_real) ri(riloi1:rihii1)
 
     integer i
-    REAL_T     RZFACTOR
-    parameter (RZFACTOR = two*Pi)
+    real(amrex_real)     RZFACTOR
+    parameter (RZFACTOR = two*M_PI)
 
     !  note that dx is usually unity.  dx not unity is used by the nfluid
     !  slic reconstruction
@@ -129,16 +128,16 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETDLOGA(dloga,dloga_l1,dloga_h1,offset,dx,dir,coord)
+  subroutine FORT_SETDLOGA(dloga,dloga_l1,dloga_h1,offset,dx,dir,coord) bind(c,name='amrex_setdloga')
 
     integer    dloga_l1,dloga_h1
     integer    coord
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     dloga(dloga_l1:dloga_h1)
+    real(amrex_real)     dx(1), offset(1)
+    real(amrex_real)     dloga(dloga_l1:dloga_h1)
     integer dir
 
     integer    i
-    REAL_T     rc
+    real(amrex_real)     rc
 
     if (coord .eq. 0) then
 
@@ -180,18 +179,18 @@
 ! ::  coord        => coordinate flag (0 =cartesian, 1 = RZ, 2 = spherical)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETAREA(reg_l1,reg_h1,area,area_l1,area_h1,offset,dx,dir,coord)
+  subroutine FORT_SETAREA(reg_l1,reg_h1,area,area_l1,area_h1,offset,dx,dir,coord) bind(c,name='amrex_setarea')
 
     integer    reg_l1,reg_h1
     integer    area_l1,area_h1
     integer    coord, dir
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     area(area_l1:area_h1)
+    real(amrex_real)     dx(1), offset(1)
+    real(amrex_real)     area(area_l1:area_h1)
 
     integer    i
-    REAL_T     ri, a
-    REAL_T     RZFACTOR
-    parameter (RZFACTOR = two*Pi)
+    real(amrex_real)     ri, a
+    real(amrex_real)     RZFACTOR
+    parameter (RZFACTOR = two*M_PI)
 
     if (coord .eq. 0) then
 
@@ -222,3 +221,5 @@
     endif
 
   end subroutine FORT_SETAREA
+
+end module amrex_coordsys_module
