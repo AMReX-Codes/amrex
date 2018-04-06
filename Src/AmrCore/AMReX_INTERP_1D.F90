@@ -47,7 +47,7 @@
       integer actual_comp,actual_state
       REAL_T  fine(fine_l1:fine_h1, nvar)
       REAL_T  crse(crse_l1:crse_h1, nvar)
-      REAL_T    sl(DIM1(cb),num_slp)
+      REAL_T    sl(cb_l1:cb_h1,num_slp)
       REAL_T strip(ARG_L1(cb)*lratio:ARG_H1(cb)*lratio)
 
 #define  SLX 1
@@ -135,7 +135,7 @@
       integer strip_lo, strip_hi
       REAL_T  fine(fine_l1:fine_h1, nvar)
       REAL_T  crse(crse_l1:crse_h1, nvar)
-      REAL_T    sl(DIM1(cb),num_slp)
+      REAL_T    sl(cb_l1:cb_h1,num_slp)
       REAL_T strip(strip_lo:strip_hi)
 
 #define SLX 1
@@ -690,9 +690,9 @@
        REAL_T alpha(cslope_l1:cslope_h1,nvar)
        REAL_T cmax(cslope_l1:cslope_h1,nvar)
        REAL_T cmin(cslope_l1:cslope_h1,nvar)
-       REAL_T fvcx(DIM1(fvcb))
-       REAL_T voffx(DIM1(fvcb))
-       REAL_T cvcx(DIM1(cvcb))
+       REAL_T fvcx(fvcb_l1:fvcb_h1)
+       REAL_T voffx(fvcb_l1:fvcb_h1)
+       REAL_T cvcx(cvcb_l1:cvcb_h1)
 
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)
