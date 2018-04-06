@@ -63,11 +63,11 @@
       ratioy = ratios(2)
       ratioz = ratios(3)
 
-      kclo = ARG_L3(cb)
-      kchi = ARG_H3(cb)
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      ic   = ARG_L1(cb)-1
+      kclo = cb_l3
+      kchi = cb_h3
+      jclo = cb_l2
+      jchi = cb_h2
+      ic   = cb_l1-1
       i    = lo(1)-1
 
       if (max_order.eq.1) then
@@ -216,11 +216,11 @@
       ratioy = ratios(2)
       ratioz = ratios(3)
 
-      kclo = ARG_L3(cb)
-      kchi = ARG_H3(cb)
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      ic   = ARG_H1(cb)+1
+      kclo = cb_l3
+      kchi = cb_h3
+      jclo = cb_l2
+      jchi = cb_h2
+      ic   = cb_h1+1
       i    = hi(1)+1
 
       if (max_order.eq.1) then
@@ -370,11 +370,11 @@
       ratiox = ratios(1)
       ratioz = ratios(3)
 
-      kclo = ARG_L3(cb)
-      kchi = ARG_H3(cb)
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      jc   = ARG_L2(cb)-1
+      kclo = cb_l3
+      kchi = cb_h3
+      iclo = cb_l1
+      ichi = cb_h1
+      jc   = cb_l2-1
       j    = lo(2)-1
 
       if (max_order.eq.1) then
@@ -524,11 +524,11 @@
       ratiox = ratios(1)
       ratioz = ratios(3)
 
-      kclo = ARG_L3(cb)
-      kchi = ARG_H3(cb)
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      jc   = ARG_H2(cb)+1
+      kclo = cb_l3
+      kchi = cb_h3
+      iclo = cb_l1
+      ichi = cb_h1
+      jc   = cb_h2+1
       j    = hi(2)+1
 
       if (max_order.eq.1) then
@@ -677,11 +677,11 @@
       ratiox = ratios(1)
       ratioy = ratios(2)
 
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      kc   = ARG_L3(cb)-1
+      jclo = cb_l2
+      jchi = cb_h2
+      iclo = cb_l1
+      ichi = cb_h1
+      kc   = cb_l3-1
       k    = lo(3)-1
 
       if (max_order.eq.1) then
@@ -828,11 +828,11 @@
       ratiox = ratios(1)
       ratioy = ratios(2)
 
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      kc   = ARG_H3(cb)+1
+      jclo = cb_l2
+      jchi = cb_h2
+      iclo = cb_l1
+      ichi = cb_h1
+      kc   = cb_h3+1
       k    = hi(3)+1
 
       if (max_order.eq.1) then

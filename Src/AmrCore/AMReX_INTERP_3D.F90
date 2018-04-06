@@ -72,31 +72,31 @@
 
       do n = 1, nvar
 
-         do kc = ARG_L3(cb), ARG_H3(cb)-1
+         do kc = cb_l3, cb_h3-1
 
             kratio = lratioz-1
-            if (kc .eq. ARG_H3(cb)-1) kratio = lratioz
+            if (kc .eq. cb_h3-1) kratio = lratioz
             kstrt = kc*lratioz
             kstop = kstrt + kratio
-            klo = max(ARG_L3(fine),kstrt) - kstrt
-            khi = min(ARG_H3(fine),kstop) - kstrt
-            do jc = ARG_L2(cb), ARG_H2(cb)-1
+            klo = max(fine_l3,kstrt) - kstrt
+            khi = min(fine_h3,kstop) - kstrt
+            do jc = cb_l2, cb_h2-1
 
                jratio = lratioy-1
-               if (jc .eq. ARG_H2(cb)-1) jratio = lratioy
+               if (jc .eq. cb_h2-1) jratio = lratioy
                jstrt = jc*lratioy
                jstop = jstrt + jratio
-               jlo = max(ARG_L2(fine),jstrt) - jstrt
-               jhi = min(ARG_H2(fine),jstop) - jstrt
+               jlo = max(fine_l2,jstrt) - jstrt
+               jhi = min(fine_h2,jstop) - jstrt
 
-               do ic = ARG_L1(cb), ARG_H1(cb)-1
+               do ic = cb_l1, cb_h1-1
 
                   iratio = lratiox-1
-                  if (ic .eq. ARG_H1(cb)-1) iratio = lratiox
+                  if (ic .eq. cb_h1-1) iratio = lratiox
                   istrt = ic*lratiox
                   istop = istrt + iratio
-                  ilo = max(ARG_L1(fine),istrt) - istrt
-                  ihi = min(ARG_H1(fine),istop) - istrt
+                  ilo = max(fine_l1,istrt) - istrt
+                  ihi = min(fine_h1,istop) - istrt
                   !
                   ! ::::: compute slopes
                   !
