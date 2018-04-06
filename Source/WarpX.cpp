@@ -45,6 +45,8 @@ bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 
+bool WarpX::do_dynamic_scheduling = false;
+
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
@@ -330,6 +332,8 @@ WarpX::ReadParameters ()
         }
 
         pp.query("load_balance_int", load_balance_int);
+
+        pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
     }
 
     {

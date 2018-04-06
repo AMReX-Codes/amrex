@@ -424,7 +424,8 @@ PhysicalParticleContainer::FieldGather (int lev,
     {
 	Vector<Real> xp, yp, zp;
 
-	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+	for (WarpXParIter pti(*this, lev, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling));
+             pti.isValid(); ++pti)
 	{
             Real wt = ParallelDescriptor::second();
 
@@ -583,7 +584,8 @@ PhysicalParticleContainer::Evolve (int lev,
         FArrayBox local_rho, local_jx, local_jy, local_jz;
         FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
 
-	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+	for (WarpXParIter pti(*this, lev, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling));
+             pti.isValid(); ++pti)
 	{
             Real wt = ParallelDescriptor::second();
 
@@ -895,7 +897,8 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     {
 	Vector<Real> xp, yp, zp, giv;
 
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        for (WarpXParIter pti(*this, lev, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling)); 
+             pti.isValid(); ++pti)
 	{
 	    const Box& box = pti.validbox();
 
