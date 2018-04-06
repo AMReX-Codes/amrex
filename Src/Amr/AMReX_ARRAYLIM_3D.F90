@@ -26,7 +26,7 @@
 
 !     :::: Passed Variables ::::
 
-      integer DIMDEC(holder)
+      integer holder_l1,holder_l2,holder_l3,holder_h1,holder_h2,holder_h3
       integer lo(SDIM), hi(SDIM)
 
 !     --------------------------------------
@@ -61,7 +61,7 @@
 
 !     :::: Passed Variables ::::
 
-      integer DIMDEC(holder)
+      integer holder_l1,holder_l2,holder_l3,holder_h1,holder_h2,holder_h3
       integer lo(SDIM), hi(SDIM)
 
 !     --------------------------------------

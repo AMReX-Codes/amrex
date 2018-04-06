@@ -27,8 +27,8 @@
 
     implicit none
 
-    integer    DIMDEC(reg)
-    integer    DIMDEC(vol)
+    integer    reg_l1,reg_l2,reg_h1,reg_h2
+    integer    vol_l1,vol_l2,vol_h1,vol_h2
     integer    coord
     REAL_T     dx(SDIM), offset(SDIM)
     REAL_T     vol(DIMV(vol))
@@ -99,7 +99,7 @@
 
     implicit none
 
-    integer    DIMDEC(dloga)
+    integer    dloga_l1,dloga_l2,dloga_h1,dloga_h2
     integer    coord
     REAL_T     dx(SDIM), offset(SDIM)
     REAL_T     dloga(DIMV(dloga))
@@ -190,8 +190,8 @@
   subroutine FORT_SETAREA(reg_l1,reg_l2,reg_h1,reg_h2,area,area_l1,area_l2,area_h1,area_h2,offset,dx,dir,coord)
 
     implicit none
-    integer    DIMDEC(reg)
-    integer    DIMDEC(area)
+    integer    reg_l1,reg_l2,reg_h1,reg_h2
+    integer    area_l1,area_l2,area_h1,area_h2
     integer    coord, dir
     REAL_T     dx(SDIM), offset(SDIM)
     REAL_T     area(DIMV(area))

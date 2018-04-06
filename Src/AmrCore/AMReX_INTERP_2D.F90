@@ -41,10 +41,10 @@
 
       implicit none
 
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
+      integer crse_l1,crse_l2,crse_h1,crse_h2
+      integer cb_l1,cb_l2,cb_h1,cb_h2
+      integer fine_l1,fine_l2,fine_h1,fine_h2
+      integer fb_l1,fb_l2,fb_h1,fb_h2
       integer lratiox, lratioy, nvar
       integer num_slp
       integer actual_comp,actual_state
@@ -178,10 +178,10 @@
 
       implicit none
 
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
+      integer crse_l1,crse_l2,crse_h1,crse_h2
+      integer cb_l1,cb_l2,cb_h1,cb_h2
+      integer fine_l1,fine_l2,fine_h1,fine_h2
+      integer fb_l1,fb_l2,fb_h1,fb_h2
       integer lratiox, lratioy, nvar
       integer num_slp
       integer actual_comp,actual_state
@@ -291,11 +291,11 @@
 
        implicit none
 
-       integer DIMDEC(fine)
-       integer DIMDEC(crse)
-       integer DIMDEC(fvcb)
-       integer DIMDEC(cvcb)
-       integer DIMDEC(cslope)
+       integer fine_l1,fine_l2,fine_h1,fine_h2
+       integer crse_l1,crse_l2,crse_h1,crse_h2
+       integer fvcb_l1,fvcb_l2,fvcb_h1,fvcb_h2
+       integer cvcb_l1,cvcb_l2,cvcb_h1,cvcb_h2
+       integer cslope_l1,cslope_l2,cslope_h1,cslope_h2
        integer fblo(2), fbhi(2)
        integer cslopelo(2), cslopehi(2)
        integer lratiox, lratioy, nvar
@@ -644,7 +644,7 @@
 
       implicit none
 
-      integer DIMDEC(fine)
+      integer fine_l1,fine_l2,fine_h1,fine_h2
       integer fslo(2), fshi(2)
       integer fb_l1, fb_l2, fb_h1, fb_h2
       integer cb_l1, cb_l2, cb_h1, cb_h2
@@ -829,9 +829,9 @@
 
       implicit none
 
-      integer DIMDEC(crse)
+      integer crse_l1,crse_l2,crse_h1,crse_h2
       integer cblo(2), cbhi(2)
-      integer DIMDEC(fine)
+      integer fine_l1,fine_l2,fine_h1,fine_h2
       integer fblo(2), fbhi(2)
       integer ftmp_lo, ftmp_hi
       integer nvar, lratiox, lratioy, longdir
@@ -917,9 +917,9 @@
 
       implicit none
 
-      integer DIMDEC(fine)
-      integer DIMDEC(crse)
-      integer DIMDEC(state)
+      integer fine_l1,fine_l2,fine_h1,fine_h2
+      integer crse_l1,crse_l2,crse_h1,crse_h2
+      integer state_l1,state_l2,state_h1,state_h2
       integer fblo(2), fbhi(2)
       integer cblo(2), cbhi(2)
       integer fb_l1, fb_l2, fb_h1, fb_h2
@@ -1255,8 +1255,8 @@
 
        implicit none
 
-       integer DIMDEC(fine)
-       integer DIMDEC(crse)
+       integer fine_l1,fine_l2,fine_h1,fine_h2
+       integer crse_l1,crse_l2,crse_h1,crse_h2
        integer fblo(2), fbhi(2), fb2lo(2), fb2hi(2)
        integer cblo(2), cbhi(2), cb2lo(2), cb2hi(2)
        integer nvar,lratiox,lratioy

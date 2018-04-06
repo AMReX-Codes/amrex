@@ -46,24 +46,24 @@
       implicit none
 
       integer nc
-      integer DIMDEC(phi)
+      integer phi_l1,phi_l2,phi_h1,phi_h2
       REAL_T phi(DIMV(phi),nc)
-      integer DIMDEC(rhs)
+      integer rhs_l1,rhs_l2,rhs_h1,rhs_h2
       REAL_T rhs(DIMV(rhs),nc)
       integer  lo(BL_SPACEDIM),  hi(BL_SPACEDIM)
       integer blo(BL_SPACEDIM), bhi(BL_SPACEDIM)
-      integer DIMDEC(f0)
-      integer DIMDEC(f1)
-      integer DIMDEC(f2)
-      integer DIMDEC(f3)
+      integer f0_l1,f0_l2,f0_h1,f0_h2
+      integer f1_l1,f1_l2,f1_h1,f1_h2
+      integer f2_l1,f2_l2,f2_h1,f2_h2
+      integer f3_l1,f3_l2,f3_h1,f3_h2
       REAL_T f0(DIMV(f0))
       REAL_T f1(DIMV(f1))
       REAL_T f2(DIMV(f2))
       REAL_T f3(DIMV(f3))
-      integer DIMDEC(m0)
-      integer DIMDEC(m1)
-      integer DIMDEC(m2)
-      integer DIMDEC(m3)
+      integer m0_l1,m0_l2,m0_h1,m0_h2
+      integer m1_l1,m1_l2,m1_h1,m1_h2
+      integer m2_l1,m2_l2,m2_h1,m2_h2
+      integer m3_l1,m3_l2,m3_h1,m3_h2
       integer m0(DIMV(m0))
       integer m1(DIMV(m1))
       integer m2(DIMV(m2))
@@ -120,9 +120,9 @@
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      integer DIMDEC(y)
+      integer y_l1,y_l2,y_h1,y_h2
       REAL_T y(DIMV(y),nc)
-      integer DIMDEC(x)
+      integer x_l1,x_l2,x_h1,x_h2
       REAL_T x(DIMV(x),nc)
       REAL_T h
 
@@ -163,9 +163,9 @@
       integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
       integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
       integer nc
-      integer DIMDEC(x)
-      integer DIMDEC(xflux)
-      integer DIMDEC(yflux)
+      integer x_l1,x_l2,x_h1,x_h2
+      integer xflux_l1,xflux_l2,xflux_h1,xflux_h2
+      integer yflux_l1,yflux_l2,yflux_h1,yflux_h2
       REAL_T  x(DIMV(x),nc)
       REAL_T xflux(DIMV(xflux),nc)
       REAL_T yflux(DIMV(yflux),nc)

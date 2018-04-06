@@ -38,10 +38,10 @@
 
       implicit none
 
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
+      integer crse_l1,crse_h1
+      integer cb_l1,cb_h1
+      integer fine_l1,fine_h1
+      integer fb_l1,fb_h1
       integer lratio, nvar
       integer num_slp
       integer actual_comp,actual_state
@@ -125,10 +125,10 @@
 
       implicit none
 
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
+      integer crse_l1,crse_h1
+      integer cb_l1,cb_h1
+      integer fine_l1,fine_h1
+      integer fb_l1,fb_h1
       integer lratio, nvar
       integer num_slp
       integer actual_comp,actual_state
@@ -303,7 +303,7 @@
 
       implicit none
 
-      integer DIMDEC(fine)
+      integer fine_l1,fine_h1
       integer fslo(1), fshi(1)
       integer fb_l1, fb_h1
       integer cb_l1, cb_h1
@@ -401,7 +401,7 @@
 
       implicit none
 
-      integer DIMDEC(fine)
+      integer fine_l1,fine_h1
       integer fslo(1), fshi(1)
       integer fb_l1, fb_h1
       integer cb_l1, cb_h1
@@ -582,9 +582,9 @@
 
       implicit none
 
-      integer DIMDEC(crse)
+      integer crse_l1,crse_h1
       integer cblo(1), cbhi(1)
-      integer DIMDEC(fine)
+      integer fine_l1,fine_h1
       integer fblo(1), fbhi(1)
       integer ftmp_lo, ftmp_hi
       integer nvar, lratio, longdir
@@ -671,11 +671,11 @@
 
        implicit none
 
-       integer DIMDEC(fine)
-       integer DIMDEC(crse)
-       integer DIMDEC(fvcb)
-       integer DIMDEC(cvcb)
-       integer DIMDEC(cslope)
+       integer fine_l1,fine_h1
+       integer crse_l1,crse_h1
+       integer fvcb_l1,fvcb_h1
+       integer cvcb_l1,cvcb_h1
+       integer cslope_l1,cslope_h1
        integer fblo(1), fbhi(1)
        integer cslopelo(1), cslopehi(1)
        integer lratiox, nvar
@@ -931,8 +931,8 @@
 
        implicit none
 
-       integer DIMDEC(fine)
-       integer DIMDEC(crse)
+       integer fine_l1,fine_h1
+       integer crse_l1,crse_h1
        integer fblo(1), fbhi(1), fb2lo(1), fb2hi(1)
        integer cblo(1), cbhi(1), cb2lo(1), cb2hi(1)
        integer lratiox, nvar
