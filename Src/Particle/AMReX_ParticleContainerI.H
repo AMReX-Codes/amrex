@@ -1435,7 +1435,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing m_particles from "
                      << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
       BL_ASSERT(int(m_particles.size()) >= 2);
-      BL_ASSERT(m_particles[m_particles.size()-1].empty());
       
       m_particles.resize(theEffectiveFinestLevel + 1);
       m_dummy_mf.resize(theEffectiveFinestLevel + 1);
@@ -2563,21 +2562,26 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   BL_ASSERT(maxnextid > 0);
   ParticleType::NextID(maxnextid);
   
-  int finest_level;
-  HdrFile >> finest_level;
-  BL_ASSERT(finest_level >= 0);
+  int finest_level_in_file;
+  HdrFile >> finest_level_in_file;
+  BL_ASSERT(finest_level_in_file >= 0);
   
-  Vector<int> ngrids(finest_level+1);
-  BL_ASSERT(finest_level == finestLevel());
-  for (int lev = 0; lev <= finest_level; lev++) {
+  Vector<int> ngrids(finest_level_in_file+1);
+  for (int lev = 0; lev <= finest_level_in_file; lev++) {
     HdrFile >> ngrids[lev];
     BL_ASSERT(ngrids[lev] > 0);
-    BL_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
+    if (lev <= finestLevel()) {
+        BL_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
+    }
   }
 
   resizeData();
   
-  for (int lev = 0; lev <= finest_level; lev++) {
+  if (finest_level_in_file > finestLevel()) {
+      m_particles.resize(finest_level_in_file+1);
+  }
+
+  for (int lev = 0; lev <= finest_level_in_file; lev++) {
     Vector<int>  which(ngrids[lev]);
     Vector<int>  count(ngrids[lev]);
     Vector<long> where(ngrids[lev]);
@@ -2585,50 +2589,84 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
       HdrFile >> which[i] >> count[i] >> where[i];
     }
     
-    for (MFIter mfi(*m_dummy_mf[lev]); mfi.isValid(); ++mfi) {
-      const int grid = mfi.index();
-      
-      if (count[grid] <= 0) continue;
-      
-      // The file names in the header file are relative.
-      std::string name = fullname;
+    Vector<int> grids_to_read;
+    if (lev <= finestLevel()) {
+        for (MFIter mfi(*m_dummy_mf[lev]); mfi.isValid(); ++mfi) {
+            grids_to_read.push_back(mfi.index());
+        }
+    } else {
+
+        // we lost a level on restart. we still need to read in particles
+        // on finer levels, and put them in the right place via Redistribute()
+
+        const int rank = ParallelDescriptor::MyProc();
+        const int NReaders = ParticleType::MaxReaders();
+        if (rank >= NReaders) return;
+        
+        const int Navg = ngrids[lev] / NReaders;
+        const int Nleft = ngrids[lev] - Navg * NReaders;
+        
+        int lo, hi;
+        if (rank < Nleft) {
+            lo = rank*(Navg + 1);
+            hi = lo + Navg + 1;
+        } 
+        else {
+            lo = rank * Navg + Nleft;
+            hi = lo + Navg;
+        }
+        
+        for (int i = lo; i < hi; ++i) {
+            grids_to_read.push_back(i);
+        }
+    }
+
+    for(int igrid = 0; igrid < static_cast<int>(grids_to_read.size()); ++igrid) {
+        const int grid = grids_to_read[igrid];
+        
+        if (count[grid] <= 0) continue;
+        
+        // The file names in the header file are relative.
+        std::string name = fullname;
     
-      if (!name.empty() && name[name.size()-1] != '/')
-	name += '/';
+        if (!name.empty() && name[name.size()-1] != '/')
+            name += '/';
       
-      name += "Level_";
-      name += amrex::Concatenate("", lev, 1);
-      name += '/';
-      name += ParticleType::DataPrefix();
-      name += amrex::Concatenate("", which[grid], DATA_Digits_Read);
-      
-      std::ifstream ParticleFile;
-      
-      ParticleFile.open(name.c_str(), std::ios::in);
-    
-      if (!ParticleFile.good())
-	amrex::FileOpenFailed(name);
-      
-      ParticleFile.seekg(where[grid], std::ios::beg);
-      
-      if (how == "single") {
-	ReadParticles<float>(count[grid], grid, lev, is_checkpoint, ParticleFile);
-      }
-      else if (how == "double") {
-	ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile);
-      }
-      else {
-	std::string msg("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): bad parameter: ");
-	msg += how;
-	amrex::Error(msg.c_str());
-      }
-      
-      ParticleFile.close();
-      
-      if (!ParticleFile.good())
-	amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): problem reading particles");
+        name += "Level_";
+        name += amrex::Concatenate("", lev, 1);
+        name += '/';
+        name += ParticleType::DataPrefix();
+        name += amrex::Concatenate("", which[grid], DATA_Digits_Read);
+        
+        std::ifstream ParticleFile;
+        
+        ParticleFile.open(name.c_str(), std::ios::in);
+        
+        if (!ParticleFile.good())
+            amrex::FileOpenFailed(name);
+        
+        ParticleFile.seekg(where[grid], std::ios::beg);
+        
+        if (how == "single") {
+            ReadParticles<float>(count[grid], grid, lev, is_checkpoint, ParticleFile);
+        }
+        else if (how == "double") {
+            ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile);
+        }
+        else {
+            std::string msg("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): bad parameter: ");
+            msg += how;
+            amrex::Error(msg.c_str());
+        }
+        
+        ParticleFile.close();
+        
+        if (!ParticleFile.good())
+            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): problem reading particles");
     }
   }
+  
+  Redistribute();
 
   BL_ASSERT(OK());
   
@@ -2652,8 +2690,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::ReadParticles()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < int(m_particles.size()));
-    BL_ASSERT(lev >= 0 && lev <= finestLevel());
-    BL_ASSERT(grd >= 0 && grd < ParticleBoxArray(lev).size());
 
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
