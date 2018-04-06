@@ -290,13 +290,16 @@ writePlotFile (const char*               name,
     
 }
 
-void WritePlotFile(const Vector<MultiFab*> mfa,
-		   AmrData&               amrdToMimic,
-		   const std::string&     oFile,
-		   bool                   verbose)
+void WritePlotFile(const Vector<MultiFab*>&   mfa,
+		   AmrData&                   amrdToMimic,
+		   const std::string&         oFile,
+		   bool                       verbose,
+                   const Vector<std::string>& varNames)
 {
-    const Vector<std::string>& derives = amrdToMimic.PlotVarNames();
-    int ntype = amrdToMimic.NComp();
+    // If varnames not provided, use names in original plotfile
+    const Vector<std::string>& derives = (varNames.size()==0 ? amrdToMimic.PlotVarNames() : varNames);
+    AMREX_ASSERT(derives.size()!=(*mfa[0]).nComp());
+    int ntype = derives.size();
     int finestLevel = amrdToMimic.FinestLevel();    
     
     if (ParallelDescriptor::IOProcessor())
