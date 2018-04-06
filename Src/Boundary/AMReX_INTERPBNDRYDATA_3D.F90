@@ -51,7 +51,7 @@
       integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
       integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
       REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
-      REAL_T   derives(DIM23(cb),NUMDERIV)
+      REAL_T   derives(cb_l2:cb_h2,cb_l3:cb_h3,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
       REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
@@ -204,7 +204,7 @@
       integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
       integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
       REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
-      REAL_T   derives(DIM23(cb),NUMDERIV)
+      REAL_T   derives(cb_l2:cb_h2,cb_l3:cb_h3,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
       REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
@@ -358,7 +358,7 @@
       integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
       integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
       REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
-      REAL_T   derives(DIM13(cb),NUMDERIV)
+      REAL_T   derives(cb_l1:cb_h1,cb_l3:cb_h3,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
       REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
@@ -512,7 +512,7 @@
       integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
       integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
       REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
-      REAL_T   derives(DIM13(cb),NUMDERIV)
+      REAL_T   derives(cb_l1:cb_h1,cb_l3:cb_h3,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
       REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
@@ -665,7 +665,7 @@
       integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
       integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
       REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
-      REAL_T   derives(DIM12(cb),NUMDERIV)
+      REAL_T   derives(cb_l1:cb_h1,cb_l2:cb_h2,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
       REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
@@ -816,7 +816,7 @@
       integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
       integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
       REAL_T   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
-      REAL_T   derives(DIM12(cb),NUMDERIV)
+      REAL_T   derives(cb_l1:cb_h1,cb_l2:cb_h2,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
       REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
