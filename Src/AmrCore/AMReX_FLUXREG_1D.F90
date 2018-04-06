@@ -47,12 +47,12 @@
 
       if (dir .eq. 0) then
          ! flux normal to X direction
-         ic = ARG_L1(reg)
+         ic = reg_l1
          i = ic*ratiox
-         if (ARG_L1(reg) .ne. ARG_H1(reg)) then
+         if (reg_l1 .ne. reg_h1) then
             call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
-         if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
+         if (i .lt. flx_l1 .or. i .gt. flx_h1) then
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
          do n = 1, numcomp
@@ -103,12 +103,12 @@
 
       if (dir .eq. 0) then
          ! flux normal to X direction
-         ic = ARG_L1(reg)
+         ic = reg_l1
          i = ic*ratiox
-         if (ARG_L1(reg) .ne. ARG_H1(reg)) then
+         if (reg_l1 .ne. reg_h1) then
             call bl_abort("FORT_FRFAADD: bad register direction")
          end if
-         if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
+         if (i .lt. flx_l1 .or. i .gt. flx_h1) then
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
          do n = 1, numcomp

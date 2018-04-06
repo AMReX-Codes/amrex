@@ -41,9 +41,9 @@
        ! cartesian
 
        v = dx(1)*dx(2)*dx(3)
-       do k = ARG_L3(reg), ARG_H3(reg)
-          do j = ARG_L2(reg), ARG_H2(reg)
-             do i = ARG_L1(reg), ARG_H1(reg)
+       do k = reg_l3, reg_h3
+          do j = reg_l2, reg_h2
+             do i = reg_l1, reg_h1
                 vol(i,j,k) = v
              end do
           end do
@@ -99,9 +99,9 @@
           call bl_abort(" ")
        end if
 
-       do k = ARG_L3(reg), ARG_H3(reg)
-          do j = ARG_L2(reg), ARG_H2(reg)
-             do i = ARG_L1(reg), ARG_H1(reg)
+       do k = reg_l3, reg_h3
+          do j = reg_l2, reg_h2
+             do i = reg_l1, reg_h1
                 area(i,j,k) = fa
              end do
           end do
@@ -144,9 +144,9 @@
 
        ! cartesian
 
-       do k = ARG_L3(dloga), ARG_H3(dloga)
-          do j = ARG_L2(dloga), ARG_H2(dloga)
-             do i = ARG_L1(dloga), ARG_H1(dloga)
+       do k = dloga_l3, dloga_h3
+          do j = dloga_l2, dloga_h2
+             do i = dloga_l1, dloga_h1
                 dloga(i,j,k) = zero
              end do
           end do

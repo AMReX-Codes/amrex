@@ -84,13 +84,13 @@
 !            as an offset from ?strtFine.
 
       do 100 n = 1, nvar
-        do 120 j = ARG_L2(cb), ARG_H2(cb)
+        do 120 j = cb_l2, cb_h2
           jstrtFine = j * lratioy
           jstopFine = jstrtFine + lratioy - 1
-          if (j .eq. ARG_H2(cb)) jstopFine = jstrtFine
+          if (j .eq. cb_h2) jstopFine = jstrtFine
 
-          jlo = max(ARG_L2(fb),jstrtFine) - jstrtFine
-          jhi = min(ARG_H2(fb),jstopFine) - jstrtFine
+          jlo = max(fb_l2,jstrtFine) - jstrtFine
+          jhi = min(fb_h2,jstopFine) - jstrtFine
 
 !         ::::: compute slopes :::::
 !
@@ -100,15 +100,15 @@
 !               slopes actually are not used since they are multiplied by
 !               zero.
 
-          do i = ARG_L1(cb), ARG_H1(cb)
+          do i = cb_l1, cb_h1
             dx0 = zero
-            if (i .NE. ARG_H1(cb)) dx0 = crse(i+1,j,n) - crse(i,j,n)
+            if (i .NE. cb_h1) dx0 = crse(i+1,j,n) - crse(i,j,n)
 
             d0x = zero
-            if (j .NE. ARG_H2(cb)) d0x = crse(i,j+1,n) - crse(i,j,n)
+            if (j .NE. cb_h2) d0x = crse(i,j+1,n) - crse(i,j,n)
 
             dx1 = zero
-            if (i .NE. ARG_H1(cb) .and. j .NE. ARG_H2(cb)) &
+            if (i .NE. cb_h1 .and. j .NE. cb_h2) &
               dx1 = crse(i+1,j+1,n) - crse(i,j+1,n)
 
             sl(i,SLX) = RX*dx0
@@ -122,13 +122,13 @@
             jfn = lratioy * j + ly
             fy = dble(ly)
 
-            do i = ARG_L1(cb), ARG_H1(cb)
+            do i = cb_l1, cb_h1
               istrtFine = i * lratiox
               istopFine = istrtFine + lratiox - 1
-              if (i .eq. ARG_H1(cb)) istopFine = istrtFine
+              if (i .eq. cb_h1) istopFine = istrtFine
 
-              ilo = max(ARG_L1(fb),istrtFine) - istrtFine
-              ihi = min(ARG_H1(fb),istopFine) - istrtFine
+              ilo = max(fb_l1,istrtFine) - istrtFine
+              ihi = min(fb_h1,istopFine) - istrtFine
 
               do lx = ilo, ihi
                 ifn = lratiox * i + lx
@@ -205,8 +205,8 @@
       hraty = lratioy/2
 
       do n = 1, nvar 
-         do jc = ARG_L2(cb), ARG_H2(cb)-1 
-            do ic = ARG_L1(cb), ARG_H1(cb)-1
+         do jc = cb_l2, cb_h2-1 
+            do ic = cb_l1, cb_h1-1
                sl(ic,SLX) = crse(ic+1,jc,n)-crse(ic,jc,n)
                sl(ic,SLY) = crse(ic,jc+1,n)-crse(ic,jc,n)
                sl(ic,SLXY) = crse(ic+1,jc+1,n)-crse(ic+1,jc,n) &
@@ -215,17 +215,17 @@
             do ly = 0, lratioy-1 
                jfn = jc*lratioy + ly
                jfc = jfn + hraty
-               if (jfc .ge. ARG_L2(fb)  .and.  jfc .le. ARG_H2(fb)) then
+               if (jfc .ge. fb_l2  .and.  jfc .le. fb_h2) then
                   y = denomy*(two*ly + one)
                   do lx = 0, lratiox-1
-                     do ic = ARG_L1(cb), ARG_H1(cb)-1
+                     do ic = cb_l1, cb_h1-1
                         i = ic*lratiox + lx
                         x = denomx*(two*lx + one)
                         strip(i) = crse(ic,jc,n) + x*sl(ic,SLX) + &
                                    y*sl(ic,SLY) + x*y*sl(ic,SLXY)
                      end do
                   end do
-                  do i = ARG_L1(fb), ARG_H1(fb) 
+                  do i = fb_l1, fb_h1 
                      fine(i,jfc,n) = strip(i-hratx)
                   end do
                end if

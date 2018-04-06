@@ -41,13 +41,13 @@
     if (coord .eq. 0) then
 
        v = dx(1)
-       do i = ARG_L1(reg), ARG_H1(reg)
+       do i = reg_l1, reg_h1
           vol(i) = v
        enddo
 
     else if (coord .eq. 1) then
 
-       do i = ARG_L1(reg), ARG_H1(reg)
+       do i = reg_l1, reg_h1
           ri = offset(1) + dx(1)*i
           ro = ri + dx(1)
           v = half*(RZFACTOR)*(ro - ri)*(ro + ri)
@@ -56,7 +56,7 @@
 
     else if (coord .eq. 2) then
 
-       do i = ARG_L1(reg), ARG_H1(reg)
+       do i = reg_l1, reg_h1
           ri = offset(1) + dx(1)*i
           ro = ri + dx(1)
           v = (two3rd*RZFACTOR)*(ro - ri)*(ro**2 + ro*ri + ri**2)
@@ -143,20 +143,20 @@
 
     if (coord .eq. 0) then
 
-       do i = ARG_L1(dloga), ARG_H1(dloga)
+       do i = dloga_l1, dloga_h1
           dloga(i) = zero
        enddo
 
     else if (coord .eq. 1) then
 
-       do i = ARG_L1(dloga), ARG_H1(dloga)
+       do i = dloga_l1, dloga_h1
           rc = offset(1) + dx(1)*(dble(i) + half)
           dloga(i) = one / rc
        enddo
 
     else if (coord .eq. 2) then
 
-       do i = ARG_L1(dloga), ARG_H1(dloga)
+       do i = dloga_l1, dloga_h1
           rc = offset(1) + dx(1)*(dfloat(i) + half)
           dloga(i) = two/rc
        enddo
@@ -196,13 +196,13 @@
 
     if (coord .eq. 0) then
 
-       do i = ARG_L1(reg), ARG_H1(reg)
+       do i = reg_l1, reg_h1
           area(i) = one
        enddo
 
     else if (coord .eq. 1) then
 
-       do i = ARG_L1(reg), ARG_H1(reg)
+       do i = reg_l1, reg_h1
           ri = offset(1) + dx(1)*dble(i)
           a = RZFACTOR*ri
           area(i) = abs(a)
@@ -210,7 +210,7 @@
 
     else if( coord .eq. 2) then
 
-       do i = ARG_L1(reg), ARG_H1(reg)
+       do i = reg_l1, reg_h1
           ri = offset(1) + dx(1)*dble(i)
           a = two*RZFACTOR*ri*ri
           area(i) = abs(a)

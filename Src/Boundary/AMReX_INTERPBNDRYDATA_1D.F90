@@ -52,7 +52,7 @@
 
       integer  i, ic, n
 
-      ic   = ARG_L1(cb)-1
+      ic   = cb_l1-1
       i    = lo(1)-1
       
       do n=1,nvar
@@ -101,7 +101,7 @@
 
       integer  i, ic, n
 
-      ic   = ARG_H1(cb)+1
+      ic   = cb_h1+1
       i    = hi(1)+1
 
       do n=1,nvar

@@ -33,10 +33,10 @@
 !     :::: Set Values for lo() and hi() ::::
 !     --------------------------------------
 
-      lo(1) = ARG_L1(holder)
-      hi(1) = ARG_H1(holder)
-      lo(2) = ARG_L2(holder)
-      hi(2) = ARG_H2(holder)
+      lo(1) = holder_l1
+      hi(1) = holder_h1
+      lo(2) = holder_l2
+      hi(2) = holder_h2
 
     end subroutine SET_LOHI
 
@@ -66,9 +66,9 @@
 !     :::: Set Values for lo() and hi() ::::
 !     --------------------------------------
 
-      ARG_L1(holder) = lo(1)
-      ARG_H1(holder) = hi(1)
-      ARG_L2(holder) = lo(2)
-      ARG_H2(holder) = hi(2)
+      holder_l1 = lo(1)
+      holder_h1 = hi(1)
+      holder_l2 = lo(2)
+      holder_h2 = hi(2)
 
     end subroutine SET_ARGS

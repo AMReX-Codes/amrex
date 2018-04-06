@@ -51,21 +51,21 @@
 
          ! flux normal to X direction
 
-         ic = ARG_L1(reg)
+         ic = reg_l1
          i = ic*ratiox
-         if (ARG_L1(reg) .ne. ARG_H1(reg)) then
+         if (reg_l1 .ne. reg_h1) then
             call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
-         if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
+         if (i .lt. flx_l1 .or. i .gt. flx_h1) then
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
 
          do koff = 0, ratioz-1
             do n = 1, numcomp
-               do kc = ARG_L3(reg), ARG_H3(reg)
+               do kc = reg_l3, reg_h3
                   k = ratioz*kc + koff
                   do joff = 0, ratioy-1            
-                     do jc = ARG_L2(reg), ARG_H2(reg)
+                     do jc = reg_l2, reg_h2
                         j = ratioy*jc + joff
                         reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
                      end do
@@ -76,21 +76,21 @@
 
       else if (dir .eq. 1) then
          ! flux normal to Y direction
-         jc = ARG_L2(reg)
+         jc = reg_l2
          j = jc*ratioy
-         if (ARG_L2(reg) .ne. ARG_H2(reg)) then
+         if (reg_l2 .ne. reg_h2) then
             call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
-         if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
+         if (j .lt. flx_l2 .or. j .gt. flx_h2) then
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
 
          do koff = 0, ratioz-1
             do n = 1, numcomp
-               do kc = ARG_L3(reg), ARG_H3(reg)
+               do kc = reg_l3, reg_h3
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox-1            
-                     do ic = ARG_L1(reg), ARG_H1(reg)
+                     do ic = reg_l1, reg_h1
                         i = ratiox*ic + ioff
                         reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
                      end do
@@ -103,21 +103,21 @@
 
          ! flux normal to Z direction
 
-         kc = ARG_L3(reg)
+         kc = reg_l3
          k = kc*ratioz
-         if (ARG_L3(reg) .ne. ARG_H3(reg)) then
+         if (reg_l3 .ne. reg_h3) then
             call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
-         if (k .lt. ARG_L3(flx) .or. k .gt. ARG_H3(flx)) then
+         if (k .lt. flx_l3 .or. k .gt. flx_h3) then
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
 
          do joff = 0, ratioy-1
             do n = 1, numcomp
-               do jc = ARG_L2(reg), ARG_H2(reg)
+               do jc = reg_l2, reg_h2
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox-1            
-                     do ic = ARG_L1(reg), ARG_H1(reg)
+                     do ic = reg_l1, reg_h1
                         i = ratiox*ic + ioff
                         reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
                      end do
@@ -175,21 +175,21 @@
 
          ! flux normal to X direction
 
-         ic = ARG_L1(reg)
+         ic = reg_l1
          i = ic*ratiox
-         if (ARG_L1(reg) .ne. ARG_H1(reg)) then
+         if (reg_l1 .ne. reg_h1) then
             call bl_abort("FORT_FRFAADD: bad register direction")
          end if
-         if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
+         if (i .lt. flx_l1 .or. i .gt. flx_h1) then
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
 
          do koff = 0, ratioz-1
             do n = 1, numcomp
-               do kc = ARG_L3(reg), ARG_H3(reg)
+               do kc = reg_l3, reg_h3
                   k = ratioz*kc + koff
                   do joff = 0, ratioy-1            
-                     do jc = ARG_L2(reg), ARG_H2(reg)
+                     do jc = reg_l2, reg_h2
                         j = ratioy*jc + joff
                         reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + &
                              mult*area(i,j,k)*flx(i,j,k,n)
@@ -203,21 +203,21 @@
 
          ! flux normal to Y direction
 
-         jc = ARG_L2(reg)
+         jc = reg_l2
          j = jc*ratioy
-         if (ARG_L2(reg) .ne. ARG_H2(reg)) then
+         if (reg_l2 .ne. reg_h2) then
             call bl_abort("FORT_FRFAADD: bad register direction")
          end if
-         if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
+         if (j .lt. flx_l2 .or. j .gt. flx_h2) then
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
 
          do koff = 0, ratioz-1
             do n = 1, numcomp
-               do kc = ARG_L3(reg), ARG_H3(reg)
+               do kc = reg_l3, reg_h3
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox-1            
-                     do ic = ARG_L1(reg), ARG_H1(reg)
+                     do ic = reg_l1, reg_h1
                         i = ratiox*ic + ioff
                         reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + &
                              mult*area(i,j,k)*flx(i,j,k,n)
@@ -231,21 +231,21 @@
 
          ! flux normal to Z direction
 
-         kc = ARG_L3(reg)
+         kc = reg_l3
          k = kc*ratioz
-         if (ARG_L3(reg) .ne. ARG_H3(reg)) then
+         if (reg_l3 .ne. reg_h3) then
             call bl_abort("FORT_FRFAADD: bad register direction")
          end if
-         if (k .lt. ARG_L3(flx) .or. k .gt. ARG_H3(flx)) then
+         if (k .lt. flx_l3 .or. k .gt. flx_h3) then
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
 
          do joff = 0, ratioy-1
             do n = 1, numcomp
-               do jc = ARG_L2(reg), ARG_H2(reg)
+               do jc = reg_l2, reg_h2
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox-1            
-                     do ic = ARG_L1(reg), ARG_H1(reg)
+                     do ic = reg_l1, reg_h1
                         i = ratiox*ic + ioff
                         reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + &
                              mult*area(i,j,k)*flx(i,j,k,n)

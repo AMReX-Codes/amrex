@@ -48,7 +48,7 @@
       REAL_T  fine(fine_l1:fine_h1, nvar)
       REAL_T  crse(crse_l1:crse_h1, nvar)
       REAL_T    sl(cb_l1:cb_h1,num_slp)
-      REAL_T strip(ARG_L1(cb)*lratio:ARG_H1(cb)*lratio)
+      REAL_T strip(cb_l1*lratio:cb_h1*lratio)
 
 #define  SLX 1
 #define  SLY 2
@@ -62,23 +62,23 @@
       REAL_T invratio
 
       invratio = one/dble(lratio)
-      ibeg = max( ARG_L1(cb)*lratio, ARG_L1(fine) )
-      iend = min( ARG_H1(cb)*lratio, ARG_H1(fine) )
+      ibeg = max( cb_l1*lratio, fine_l1 )
+      iend = min( cb_h1*lratio, fine_h1 )
 
       do 100 n = 1, nvar 
           ! first fill a strip that will fit
-          do i = ARG_L1(cb), ARG_H1(cb)-1 
+          do i = cb_l1, cb_h1-1 
             sl(i,SLX) = invratio*(crse(i+1,n)-crse(i,n))
           enddo
-          i = ARG_H1(cb)
+          i = cb_h1
 
             do lx = 0, lratio-1
-              do i = ARG_L1(cb), ARG_H1(cb)-1 
+              do i = cb_l1, cb_h1-1 
                 ii = i*lratio + lx
                 strip(ii) = crse(i,n) + dble(lx)*sl(i,SLX) 
 	      enddo
 	    enddo
-            i = ARG_H1(cb)
+            i = cb_h1
             ii = i*lratio
             strip(ii) = crse(i,n) 
             ! copy on intersection
@@ -152,12 +152,12 @@
       hrat = lratio/2
       do 200 n = 1, nvar 
       ! first fill a strip that will fit
-          do ic = ARG_L1(cb),ARG_H1(cb)-1
+          do ic = cb_l1,cb_h1-1
             sl(ic,SLX) = crse(ic+1,n)-crse(ic,n)
 	  enddo
 
             do lx = 0, lratio-1
-              do ic = ARG_L1(cb), ARG_H1(cb)-1
+              do ic = cb_l1, cb_h1-1
                 i = ic*lratio + lx
                 x = denom*(two*lratio + one)
                 strip(i) = crse(ic,n) + x*sl(ic,SLX) 
@@ -165,7 +165,7 @@
 	    enddo
 
             ! stuff into output array
-            do i = ARG_L1(fb), ARG_H1(fb) 
+            do i = fb_l1, fb_h1 
               fine(i,n) = strip(i-hrat)
             enddo
 230       continue

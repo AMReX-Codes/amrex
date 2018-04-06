@@ -62,9 +62,9 @@
       REAL_T x(Norder), y(Norder), c(Norder), xInt
       ratioy = ratios(2)
 
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      ic   = ARG_L1(cb)-1
+      jclo = cb_l2
+      jchi = cb_h2
+      ic   = cb_l1-1
       i    = lo(1)-1
 
       if (max_order.eq.1) then
@@ -171,9 +171,9 @@
 
       ratioy = ratios(2)
 
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      ic   = ARG_H1(cb)+1
+      jclo = cb_l2
+      jchi = cb_h2
+      ic   = cb_h1+1
       i    = hi(1)+1
 
       if (max_order.eq.1) then
@@ -280,9 +280,9 @@
 
       ratiox = ratios(1)
 
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      jc   = ARG_L2(cb)-1
+      iclo = cb_l1
+      ichi = cb_h1
+      jc   = cb_l2-1
       j    = lo(2)-1
 
       if (max_order.eq.1) then
@@ -389,9 +389,9 @@
       
       ratiox = ratios(1)
 
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      jc   = ARG_H2(cb)+1
+      iclo = cb_l1
+      ichi = cb_h1
+      jc   = cb_h2+1
       j    = hi(2)+1
 
       if (max_order.eq.1) then
