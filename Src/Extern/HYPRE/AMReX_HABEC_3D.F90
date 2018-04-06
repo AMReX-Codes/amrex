@@ -15,11 +15,11 @@ module amrex_habec_module
 contains
 
 subroutine hbvec(vec, &
-                 DIMS(reg), &
+                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
-                 bcval, DIMS(bcv), &
-                 mask, DIMS(msk), &
-                 b, DIMS(bbox), &
+                 bcval, bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3, &
+                 mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                 b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                  beta, dx) bind(C, name="amrex_hbvec")
 
   use amrex_fort_module, only : rt => amrex_real
@@ -123,11 +123,11 @@ subroutine hbvec(vec, &
 end subroutine hbvec
 
 subroutine hbvec3(vec, &
-                  DIMS(reg), &
+                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                   cdir, bctype, bho, bcl, &
-                  bcval, DIMS(bcv), &
-                  mask, DIMS(msk), &
-                  b, DIMS(bbox), &
+                  bcval, bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3, &
+                  mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                   beta, dx) bind(C, name="amrex_hbvec3")
 
   use amrex_fort_module, only : rt => amrex_real
@@ -303,8 +303,8 @@ end subroutine hbvec3
 
 
 subroutine hmac(mat, a, &
-                DIMS(abox), &
-                DIMS(reg), &
+                abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3, &
+                reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                 alpha) bind(C, name="amrex_hmac")
 
   use amrex_fort_module, only : rt => amrex_real
@@ -334,8 +334,8 @@ subroutine hmac(mat, a, &
 end subroutine hmac
 
 subroutine hmbc(mat, b, &
-                DIMS(bbox), &
-                DIMS(reg), &
+                bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
+                reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                 beta, dx, n) bind(C, name="amrex_hmbc")
 
   use amrex_fort_module, only : rt => amrex_real
@@ -385,10 +385,10 @@ end subroutine hmbc
 
 
 subroutine hmmat(mat, &
-                 DIMS(reg), &
+                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
-                 mask, DIMS(msk), &
-                 b, DIMS(bbox), &
+                 mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                 b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                  beta, dx) bind(C, name="amrex_hmmat")
 
   use amrex_fort_module, only : rt => amrex_real
@@ -512,10 +512,10 @@ subroutine hmmat(mat, &
 end subroutine hmmat
 
 subroutine hmmat3(mat, &
-                  DIMS(reg), &
+                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                   cdir, bctype, bho, bcl, &
-                  mask, DIMS(msk), &
-                  b, DIMS(bbox), &
+                  mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                   beta, dx) bind(C, name="amrex_hmmat3")
 
   use amrex_fort_module, only : rt => amrex_real

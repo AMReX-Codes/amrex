@@ -10,8 +10,8 @@
 #include "AMReX_ArrayLim.H"
 
     subroutine FORT_AVERAGE ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
+           c, c_l1,c_l2,c_h1,c_h2, &
+           f, f_l1,f_l2,f_h1,f_h2, &
            lo, hi, nc)
 
       implicit none
@@ -43,8 +43,8 @@
     end subroutine FORT_AVERAGE
 
     subroutine FORT_INTERP ( &
-           f, DIMS(f), &
-           c, DIMS(c), &
+           f, f_l1,f_l2,f_h1,f_h2, &
+           c, c_l1,c_l2,c_h1,c_h2, &
            lo, hi, nc)
 
       implicit none

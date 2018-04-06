@@ -19,16 +19,16 @@
 ! :::
 ! ::: INPUTS/OUTPUTS:
 ! ::: reg       <=> edge centered coarse grid flux register
-! ::: DIMS(reg)  => index limits for reg
+! ::: reg_l1,reg_l2,reg_h1,reg_h2  => index limits for reg
 ! ::: flx        => edge centered fine grid flux array
-! ::: DIMS(flx)  => index limits for flx
+! ::: flx_l1,flx_l2,flx_h1,flx_h2  => index limits for flx
 ! ::: numcomp    => number of components to update
 ! ::: dir        => direction normal to flux register
 ! ::: ratio(2)   => refinement ratios between coarse and fine
 ! ::: mult       => scalar multiplicative factor
 ! ::: -----------------------------------------------------------
 
-    subroutine FORT_FRFINEADD(reg,DIMS(reg),flx,DIMS(flx), &
+    subroutine FORT_FRFINEADD(reg,reg_l1,reg_l2,reg_h1,reg_h2,flx,flx_l1,flx_l2,flx_h1,flx_h2, &
                               numcomp,dir,ratio,mult)
 
       implicit none
@@ -97,16 +97,16 @@
 ! ::: reg       <=> edge centered coarse grid flux register
 ! ::: rlo,rhi    => index limits for reg
 ! ::: flx        => edge centered fine grid flux array
-! ::: DIMS(flx)  => index limits for flx
+! ::: flx_l1,flx_l2,flx_h1,flx_h2  => index limits for flx
 ! ::: area       => edge centered area array
-! ::: DIMS(area) => index limits for area
+! ::: area_l1,area_l2,area_h1,area_h2 => index limits for area
 ! ::: numcomp    => number of components to update
 ! ::: dir        => direction normal to flux register
 ! ::: ratio(2)   => refinements ratio between coarse and fine
 ! ::: mult       => scalar multiplicative factor
 ! ::: -----------------------------------------------------------
 
-    subroutine FORT_FRFAADD(reg,DIMS(reg),flx,DIMS(flx),area,DIMS(area), &
+    subroutine FORT_FRFAADD(reg,reg_l1,reg_l2,reg_h1,reg_h2,flx,flx_l1,flx_l2,flx_h1,flx_h2,area,area_l1,area_l2,area_h1,area_h2, &
                             numcomp,dir,ratio,mult)
 
       implicit none

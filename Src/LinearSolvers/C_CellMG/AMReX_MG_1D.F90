@@ -9,8 +9,8 @@
 #include "AMReX_ArrayLim.H"
 
     subroutine FORT_AVERAGE ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
+           c, c_l1,c_h1, &
+           f, f_l1,f_h1, &
            lo, hi, nc)
 
       integer nc
@@ -32,8 +32,8 @@
     end subroutine FORT_AVERAGE
 
     subroutine FORT_INTERP ( &
-           f, DIMS(f), &
-           c, DIMS(c), &
+           f, f_l1,f_h1, &
+           c, c_l1,c_h1, &
            lo, hi, nc)
 
       integer nc

@@ -14,7 +14,7 @@
 ! ::: 
 ! ::: INPUTS/OUTPUTS:
 ! ::: q        <=  array to fill
-! ::: DIMS(q)   => index extent of q array
+! ::: q_l1,q_l2,q_l3,q_h1,q_h2,q_h3   => index extent of q array
 ! ::: domlo,hi  => index extent of problem domain
 ! ::: dx        => cell spacing
 ! ::: xlo       => physical location of lower left hand

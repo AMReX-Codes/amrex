@@ -34,25 +34,25 @@
 !     
 !-----------------------------------------------------------------------
     subroutine FORT_GSRB ( &
-           phi,DIMS(phi), &
-           rhs,DIMS(rhs), &
+           phi,phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3, &
+           rhs,rhs_l1,rhs_l2,rhs_l3,rhs_h1,rhs_h2,rhs_h3, &
            alpha, beta, &
-           a,  DIMS(a), &
-           bX, DIMS(bX), &
-           bY, DIMS(bY), &
-           bZ, DIMS(bZ), &
-           f0, DIMS(f0), &
-           m0, DIMS(m0), &
-           f1, DIMS(f1), &
-           m1, DIMS(m1), &
-           f2, DIMS(f2), &
-           m2, DIMS(m2), &
-           f3, DIMS(f3), &
-           m3, DIMS(m3), &
-           f4, DIMS(f4), &
-           m4, DIMS(m4), &
-           f5, DIMS(f5), &
-           m5, DIMS(m5), &
+           a,  a_l1,a_l2,a_l3,a_h1,a_h2,a_h3, &
+           bX, bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3, &
+           bY, bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3, &
+           bZ, bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3, &
+           f0, f0_l1,f0_l2,f0_l3,f0_h1,f0_h2,f0_h3, &
+           m0, m0_l1,m0_l2,m0_l3,m0_h1,m0_h2,m0_h3, &
+           f1, f1_l1,f1_l2,f1_l3,f1_h1,f1_h2,f1_h3, &
+           m1, m1_l1,m1_l2,m1_l3,m1_h1,m1_h2,m1_h3, &
+           f2, f2_l1,f2_l2,f2_l3,f2_h1,f2_h2,f2_h3, &
+           m2, m2_l1,m2_l2,m2_l3,m2_h1,m2_h2,m2_h3, &
+           f3, f3_l1,f3_l2,f3_l3,f3_h1,f3_h2,f3_h3, &
+           m3, m3_l1,m3_l2,m3_l3,m3_h1,m3_h2,m3_h3, &
+           f4, f4_l1,f4_l2,f4_l3,f4_h1,f4_h2,f4_h3, &
+           m4, m4_l1,m4_l2,m4_l3,m4_h1,m4_h2,m4_h3, &
+           f5, f5_l1,f5_l2,f5_l3,f5_h1,f5_h2,f5_h3, &
+           m5, m5_l1,m5_l2,m5_l3,m5_h1,m5_h2,m5_h3, &
            lo,hi,blo,bhi, &
            nc, h,redblack &
            )
@@ -186,25 +186,25 @@
 !     
 !-----------------------------------------------------------------------
     subroutine FORT_JACOBI ( &
-           phi,DIMS(phi), &
-           rhs,DIMS(rhs), &
+           phi,phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3, &
+           rhs,rhs_l1,rhs_l2,rhs_l3,rhs_h1,rhs_h2,rhs_h3, &
            alpha, beta, &
-           a,  DIMS(a), &
-           bX, DIMS(bX), &
-           bY, DIMS(bY), &
-           bZ, DIMS(bZ), &
-           f0, DIMS(f0), &
-           m0, DIMS(m0), &
-           f1, DIMS(f1), &
-           m1, DIMS(m1), &
-           f2, DIMS(f2), &
-           m2, DIMS(m2), &
-           f3, DIMS(f3), &
-           m3, DIMS(m3), &
-           f4, DIMS(f4), &
-           m4, DIMS(m4), &
-           f5, DIMS(f5), &
-           m5, DIMS(m5), &
+           a,  a_l1,a_l2,a_l3,a_h1,a_h2,a_h3, &
+           bX, bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3, &
+           bY, bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3, &
+           bZ, bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3, &
+           f0, f0_l1,f0_l2,f0_l3,f0_h1,f0_h2,f0_h3, &
+           m0, m0_l1,m0_l2,m0_l3,m0_h1,m0_h2,m0_h3, &
+           f1, f1_l1,f1_l2,f1_l3,f1_h1,f1_h2,f1_h3, &
+           m1, m1_l1,m1_l2,m1_l3,m1_h1,m1_h2,m1_h3, &
+           f2, f2_l1,f2_l2,f2_l3,f2_h1,f2_h2,f2_h3, &
+           m2, m2_l1,m2_l2,m2_l3,m2_h1,m2_h2,m2_h3, &
+           f3, f3_l1,f3_l2,f3_l3,f3_h1,f3_h2,f3_h3, &
+           m3, m3_l1,m3_l2,m3_l3,m3_h1,m3_h2,m3_h3, &
+           f4, f4_l1,f4_l2,f4_l3,f4_h1,f4_h2,f4_h3, &
+           m4, m4_l1,m4_l2,m4_l3,m4_h1,m4_h2,m4_h3, &
+           f5, f5_l1,f5_l2,f5_l3,f5_h1,f5_h2,f5_h3, &
+           m5, m5_l1,m5_l2,m5_l3,m5_h1,m5_h2,m5_h3, &
            lo,hi,nc, &
            h &
            )
@@ -320,13 +320,13 @@
 !     Fill in a matrix x vector operator here
 !
     subroutine FORT_ADOTX( &
-           y,DIMS(y), &
-           x,DIMS(x), &
+           y,y_l1,y_l2,y_l3,y_h1,y_h2,y_h3, &
+           x,x_l1,x_l2,x_l3,x_h1,x_h2,x_h3, &
            alpha, beta, &
-           a, DIMS(a), &
-           bX,DIMS(bX), &
-           bY,DIMS(bY), &
-           bZ,DIMS(bZ), &
+           a, a_l1,a_l2,a_l3,a_h1,a_h2,a_h3, &
+           bX,bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3, &
+           bY,bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3, &
+           bZ,bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3, &
            lo,hi,nc, &
            h &
            )
@@ -384,10 +384,10 @@
     subroutine FORT_NORMA( &
            res, &
            alpha, beta, &
-           a, DIMS(a), &
-           bX,DIMS(bX), &
-           bY,DIMS(bY), &
-           bZ,DIMS(bZ), &
+           a, a_l1,a_l2,a_l3,a_h1,a_h2,a_h3, &
+           bX,bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3, &
+           bY,bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3, &
+           bZ,bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3, &
            lo,hi,nc, &
            h &
            )
@@ -438,20 +438,20 @@
 !     Fill in fluxes
 !
     subroutine FORT_FLUX( &
-           x,DIMS(x), &
+           x,x_l1,x_l2,x_l3,x_h1,x_h2,x_h3, &
            alpha, beta, &
-           a, DIMS(a), &
-           bX,DIMS(bX), &
-           bY,DIMS(bY), &
-           bZ,DIMS(bZ), &
+           a, a_l1,a_l2,a_l3,a_h1,a_h2,a_h3, &
+           bX,bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3, &
+           bY,bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3, &
+           bZ,bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3, &
            xlo,xhi, &
            ylo,yhi, &
            zlo,zhi, &
            nc, &
            h, &
-           xflux,DIMS(xflux), &
-           yflux,DIMS(yflux), &
-           zflux,DIMS(zflux) &
+           xflux,xflux_l1,xflux_l2,xflux_l3,xflux_h1,xflux_h2,xflux_h3, &
+           yflux,yflux_l1,yflux_l2,yflux_l3,yflux_h1,yflux_h2,yflux_h3, &
+           zflux,zflux_l1,zflux_l2,zflux_l3,zflux_h1,zflux_h2,zflux_h3 &
            )
 
       implicit none
