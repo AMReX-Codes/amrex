@@ -24,9 +24,9 @@
       integer hi(BL_SPACEDIM)
       integer cdir
       integer f_l1,f_l2,f_h1,f_h2
-      REAL_T f(DIMV(f),nc)
+      REAL_T f(f_l1:f_h1,f_l2:f_h2,nc)
       integer c_l1,c_l2,c_h1,c_h2
-      REAL_T c(DIMV(c),nc)
+      REAL_T c(c_l1:c_h1,c_l2:c_h2,nc)
 
       REAL_T factor, den
       parameter(factor=2.00D0)
@@ -78,9 +78,9 @@
       integer hi(BL_SPACEDIM)
       integer cdir
       integer f_l1,f_l2,f_h1,f_h2
-      REAL_T f(DIMV(f),nc)
+      REAL_T f(f_l1:f_h1,f_l2:f_h2,nc)
       integer c_l1,c_l2,c_h1,c_h2
-      REAL_T c(DIMV(c),nc)
+      REAL_T c(c_l1:c_h1,c_l2:c_h2,nc)
 
       integer n
       integer i
@@ -121,8 +121,8 @@
       integer c_l1,c_l2,c_h1,c_h2
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(DIMV(f),nc)
-      REAL_T c(DIMV(c),nc)
+      REAL_T f(f_l1:f_h1,f_l2:f_h2,nc)
+      REAL_T c(c_l1:c_h1,c_l2:c_h2,nc)
 
       integer i
       integer j
@@ -178,13 +178,13 @@
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       integer phi_l1,phi_l2,phi_h1,phi_h2
-      REAL_T phi(DIMV(phi),nc)
+      REAL_T phi(phi_l1:phi_h1,phi_l2:phi_h2,nc)
       integer den_l1,den_l2,den_h1,den_h2
-      REAL_T den(DIMV(den))
+      REAL_T den(den_l1:den_h1,den_l2:den_h2)
       integer bcval_l1,bcval_l2,bcval_h1,bcval_h2
-      REAL_T bcval(DIMV(bcval),nc)
+      REAL_T bcval(bcval_l1:bcval_h1,bcval_l2:bcval_h2,nc)
       integer mask_l1,mask_l2,mask_h1,mask_h2
-      integer mask(DIMV(mask))
+      integer mask(mask_l1:mask_h1,mask_l2:mask_h2)
       integer bct
       REAL_T bcl
       REAL_T h(BL_SPACEDIM)
