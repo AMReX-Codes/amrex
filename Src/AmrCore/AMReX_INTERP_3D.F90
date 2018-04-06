@@ -48,7 +48,7 @@
       integer actual_comp,actual_state
       REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,fine_l3:fine_h3,nvar)
       REAL_T crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
-      REAL_T sl(DIM1(cb),num_slp)
+      REAL_T sl(cb_l1:cb_h1,num_slp)
 
       integer ioff, joff, koff
       integer i, j, k, ic, jc, kc, n
@@ -186,7 +186,7 @@
       REAL_T fine(fine_l1:fine_h1,fine_l2:fine_h2,fine_l3:fine_h3,nvar)
       REAL_T crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
       REAL_T strip(strip_lo:strip_hi)
-      REAL_T sl(DIM1(cb), num_slp)
+      REAL_T sl(cb_l1:cb_h1, num_slp)
 
       call bl_abort("FORT_CBINTERP not implemented")
 
@@ -269,15 +269,15 @@
       REAL_T alpha(cslope_l1:cslope_h1,cslope_l2:cslope_h2,cslope_l3:cslope_h3,nvar)
       REAL_T  cmax(cslope_l1:cslope_h1,cslope_l2:cslope_h2,cslope_l3:cslope_h3,nvar)
       REAL_T  cmin(cslope_l1:cslope_h1,cslope_l2:cslope_h2,cslope_l3:cslope_h3,nvar)
-      REAL_T fvcx(DIM1(fvcb))
-      REAL_T fvcy(DIM2(fvcb))
-      REAL_T fvcz(DIM3(fvcb))
-      REAL_T voffx(DIM1(fvcb))
-      REAL_T voffy(DIM2(fvcb))
-      REAL_T voffz(DIM3(fvcb))       
-      REAL_T cvcx(DIM1(cvcb))
-      REAL_T cvcy(DIM2(cvcb))
-      REAL_T cvcz(DIM3(cvcb))
+      REAL_T fvcx(fvcb_l1:fvcb_h1)
+      REAL_T fvcy(fvcb_l2:fvcb_h2)
+      REAL_T fvcz(fvcb_l3:fvcb_h3)
+      REAL_T voffx(fvcb_l1:fvcb_h1)
+      REAL_T voffy(fvcb_l2:fvcb_h2)
+      REAL_T voffz(fvcb_l3:fvcb_h3)       
+      REAL_T cvcx(cvcb_l1:cvcb_h1)
+      REAL_T cvcy(cvcb_l2:cvcb_h2)
+      REAL_T cvcz(cvcb_l3:cvcb_h3)
 
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)
