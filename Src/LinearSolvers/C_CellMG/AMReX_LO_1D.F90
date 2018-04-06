@@ -7,7 +7,6 @@
 #include <AMReX_CONSTANTS.H>
 #include "AMReX_LO_BCTYPES.H"
 #include "AMReX_LO_F.H"
-#include "AMReX_ArrayLim.H"
 
 !-----------------------------------------------------------------------
     subroutine FORT_HARMONIC_AVERAGEEC ( &

@@ -7,7 +7,6 @@
 #include <AMReX_REAL.H>
 #include <AMReX_CONSTANTS.H>
 #include "AMReX_MG_F.H"
-#include "AMReX_ArrayLim.H"
 
     subroutine FORT_AVERAGE ( &
            c, c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &

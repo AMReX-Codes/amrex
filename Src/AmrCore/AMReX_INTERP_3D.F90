@@ -8,7 +8,6 @@
 #include "AMReX_CONSTANTS.H"
 #include "AMReX_BC_TYPES.H"
 #include "AMReX_INTERP_F.H"
-#include "AMReX_ArrayLim.H"
 
 #define IX_PROJ(A,B) (A+B*iabs(A))/B-iabs(A)
 #define SDIM 3
