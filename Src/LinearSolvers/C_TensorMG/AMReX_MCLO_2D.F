@@ -144,9 +144,6 @@ c-----------------------------------------------------------------------
      $     lo, hi, nc,
      $     h
      $     )
-
-      use amrex_lo_util_module, only : polyInterpCoeff
-
 c
 c     If the boundary is of Neumann type, set the ghost cell value to
 c     that of the outermost point in the valid data (2nd order accurate)
@@ -314,7 +311,7 @@ c     :::::: upper left side
                enddo
                x(-1) = - bcl/h(1)
                xInt = - 0.5
-               call polyInterpCoeff(xInt, x, lenx+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, lenx+2, coef)
                if ( flagbc .eq. 1 ) then
                   do j = lo(2), hi(2)
                      u(lo(1)-1, j, n) = merge(
@@ -494,7 +491,7 @@ c     :::::: upper right side
                enddo
                x(-1) = - bcl/h(1)
                xInt = - 0.5
-               call polyInterpCoeff(xInt, x, lenx+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, lenx+2, coef)
                if ( flagbc .eq. 1 ) then
                   do j = lo(2), hi(2)
                      u(hi(1)+1,j,n) = merge(
@@ -674,7 +671,7 @@ c :::::: right bottom side
                enddo
                x(-1) = - bcl/h(2)
                xInt = - 0.5
-               call polyInterpCoeff(xInt, x, leny+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, leny+2, coef)
                if ( flagbc .eq. 1 ) then
                   do i = lo(1), hi(1)
                      u(i,lo(2)-1,n) = merge(
@@ -853,7 +850,7 @@ c     :::::: right top side
                enddo
                x(-1) = - bcl/h(2)
                xInt = - 0.5
-               call polyInterpCoeff(xInt, x, leny+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, leny+2, coef)
                if ( flagbc .eq. 1 ) then
                   do i = lo(1), hi(1)
                      u(i,hi(2)+1,n) = merge(
