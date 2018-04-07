@@ -31,7 +31,7 @@ contains
 ! ::: sl           =>  num_slp 1-D slope arrays
 ! ::: --------------------------------------------------------------
 ! :::
-    subroutine FORT_NBINTERP (crse, crse_l1,crse_l2,crse_h1,crse_h2, cb_l1,cb_l2,cb_h1,cb_h2, &
+    subroutine AMREX_NBINTERP (crse, crse_l1,crse_l2,crse_h1,crse_h2, cb_l1,cb_l2,cb_h1,cb_h2, &
                               fine, fine_l1,fine_l2,fine_h1,fine_h2, fb_l1,fb_l2,fb_h1,fb_h2, &
                               lratiox, lratioy, nvar, &
                               sl, num_slp, &
@@ -143,7 +143,7 @@ contains
 #undef  SLY
 #undef  SLXY
 
-    end subroutine FORT_NBINTERP
+    end subroutine AMREX_NBINTERP
 ! ::: 
 ! ::: --------------------------------------------------------------
 ! ::: cbinterp:  cell centered bilinear interpolation
@@ -168,7 +168,7 @@ contains
 ! ::: strip        =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_CBINTERP (crse, crse_l1,crse_l2,crse_h1,crse_h2, cb_l1,cb_l2,cb_h1,cb_h2, &
+    subroutine AMREX_CBINTERP (crse, crse_l1,crse_l2,crse_h1,crse_h2, cb_l1,cb_l2,cb_h1,cb_h2, &
                               fine, fine_l1,fine_l2,fine_h1,fine_h2, fb_l1,fb_l2,fb_h1,fb_h2, &
                               lratiox, lratioy, nvar, &
                               sl, num_slp, strip, strip_lo, strip_hi, &
@@ -231,7 +231,7 @@ contains
          end do
       end do
 
-    end subroutine FORT_CBINTERP
+    end subroutine AMREX_CBINTERP
 
 #undef  SLX
 #undef  SLY
@@ -274,7 +274,7 @@ contains
 ! :::
 ! ::: --------------------------------------------------------------
 ! ::: 
-     subroutine FORT_LINCCINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, fblo, fbhi, &
+     subroutine AMREX_LINCCINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, fblo, fbhi, &
                                   fvcb_l1,fvcb_l2,fvcb_h1,fvcb_h2, &
                                   crse, crse_l1,crse_l2,crse_h1,crse_h2, cvcb_l1,cvcb_l2,cvcb_h1,cvcb_h2, &
                                   uc_xslope, lc_xslope, xslope_factor, &
@@ -629,9 +629,9 @@ contains
 
        end if
 
-     end subroutine FORT_LINCCINTERP
+     end subroutine AMREX_LINCCINTERP
 
-     subroutine FORT_CQINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
+     subroutine AMREX_CQINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
                                fb_l1, fb_l2, fb_h1, fb_h2, &
                                nvar, lratiox, lratioy, crse, clo, chi, &
                                cb_l1, cb_l2, cb_h1, cb_h2, &
@@ -797,7 +797,7 @@ contains
 
 290   continue
 
-    end subroutine FORT_CQINTERP
+    end subroutine AMREX_CQINTERP
 ! ::: 
 ! ::: --------------------------------------------------------------
 ! ::: pcinterp:  cell centered piecewise constant interpolation
@@ -819,7 +819,7 @@ contains
 ! ::: ftmp         =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_PCINTERP (crse,crse_l1,crse_l2,crse_h1,crse_h2,cblo,cbhi, &
+    subroutine AMREX_PCINTERP (crse,crse_l1,crse_l2,crse_h1,crse_h2,cblo,cbhi, &
                               fine,fine_l1,fine_l2,fine_h1,fine_h2,fblo,fbhi, &
                               longdir,lratiox,lratioy,nvar, &
                               ftmp,ftmp_lo,ftmp_hi, &
@@ -882,7 +882,7 @@ contains
 	 end do
       end if
 
-    end subroutine FORT_PCINTERP
+    end subroutine AMREX_PCINTERP
 
 ! ::: 
 ! ::: --------------------------------------------------------------
@@ -904,7 +904,7 @@ contains
 ! ::: --------------------------------------------------------------
 ! ::: 
 
-    subroutine FORT_PROTECT_INTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, fblo, fbhi, &
+    subroutine AMREX_PROTECT_INTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, fblo, fbhi, &
                                     crse, crse_l1,crse_l2,crse_h1,crse_h2, cblo, cbhi, &
                                     fvcx, fvcy, &
                                     fb_l1, fb_l2, fb_h1, fb_h2, &
@@ -944,7 +944,7 @@ contains
       integer icase
 
       if (MAX(lratiox,lratioy).gt.rMAX) then
-         print *,'rMAX in INTERP_2D::FORT_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy)
+         print *,'rMAX in INTERP_2D::AMREX_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy)
          call bl_abort(" ")
       endif
 
@@ -1216,7 +1216,7 @@ contains
       enddo
       enddo
 
-    end subroutine FORT_PROTECT_INTERP
+    end subroutine AMREX_PROTECT_INTERP
 
 ! ::: 
 ! ::: --------------------------------------------------------------
@@ -1242,7 +1242,7 @@ contains
 ! ::: ctmp         =>  2-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-     subroutine FORT_QUARTINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
+     subroutine AMREX_QUARTINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
                                   fblo, fbhi, fb2lo, fb2hi, &
                                   crse, crse_l1,crse_l2,crse_h1,crse_h2, &
                                   cblo, cbhi, cb2lo, cb2hi, &
@@ -1316,14 +1316,14 @@ contains
           enddo
        else if (lratiox.eq.4 .and. lratioy.eq.4) then
 !      todo
-          write(6,*) 'FORT_QUARTINTERP: refinement ratio = 4 TODO'
+          write(6,*) 'AMREX_QUARTINTERP: refinement ratio = 4 TODO'
           stop
        else
-          write(6,*) 'FORT_QUARTINTERP: unsupported refinement ratio'
+          write(6,*) 'AMREX_QUARTINTERP: unsupported refinement ratio'
           stop
        endif
 
-     end subroutine FORT_QUARTINTERP
+     end subroutine AMREX_QUARTINTERP
 
 end module amrex_interp_module
 

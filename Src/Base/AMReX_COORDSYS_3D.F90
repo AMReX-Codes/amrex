@@ -20,7 +20,7 @@ contains
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETVOL(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
+  subroutine AMREX_SETVOL(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
        vol,vol_l1,vol_l2,vol_l3,vol_h1,vol_h2,vol_h3,offset,dx,coord) &
        bind(c,name='amrex_setvol')
 
@@ -50,13 +50,13 @@ contains
 
     else
 
-       write(6,*) "FORT_SETVOLUME not define for coord = ",coord
+       write(6,*) "AMREX_SETVOLUME not define for coord = ",coord
 
        call bl_abort(" ")
 
     end if
        
-  end subroutine FORT_SETVOL
+  end subroutine AMREX_SETVOL
 
 ! :: ----------------------------------------------------------
 ! :: SETAREA
@@ -70,7 +70,7 @@ contains
 ! ::  coord        => coordinate flag (0 =cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETAREA(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
+  subroutine AMREX_SETAREA(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
        area,area_l1,area_l2,area_l3,area_h1,area_h2,area_h3,offset,dx,dir,coord) &
        bind(c,name='amrex_setarea')
 
@@ -96,7 +96,7 @@ contains
        else if (dir .eq. 2) then
           fa = dx(1)*dx(2)
        else
-          write(6,*) "FORT_SETAREA: invalid dir = ",dir
+          write(6,*) "AMREX_SETAREA: invalid dir = ",dir
           call bl_abort(" ")
        end if
 
@@ -110,12 +110,12 @@ contains
 
     else
 
-       write(6,*) "FORT_SETAREA not define for coord = ",coord
+       write(6,*) "AMREX_SETAREA not define for coord = ",coord
        call bl_abort(" ")
 
     end if
        
-  end subroutine FORT_SETAREA
+  end subroutine AMREX_SETAREA
 
 ! :: SETDLOGA
 ! ::             Compute  d(log(A))/dr in each cell
@@ -129,7 +129,7 @@ contains
 ! :: ----------------------------------------------------------
 
 
-  subroutine FORT_SETDLOGA(dloga,dloga_l1,dloga_l2,dloga_l3,dloga_h1,dloga_h2,dloga_h3,offset,dx,dir,coord) &
+  subroutine AMREX_SETDLOGA(dloga,dloga_l1,dloga_l2,dloga_l3,dloga_h1,dloga_h2,dloga_h3,offset,dx,dir,coord) &
        bind(c,name='amrex_setdloga')
 
     implicit none
@@ -161,6 +161,6 @@ contains
 
     endif
 
-  end subroutine FORT_SETDLOGA
+  end subroutine AMREX_SETDLOGA
 
 end module amrex_coordsys_module

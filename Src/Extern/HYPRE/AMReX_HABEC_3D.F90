@@ -13,7 +13,7 @@ module amrex_habec_module
 
 contains
 
-subroutine hbvec(vec, &
+subroutine amrex_hbvec(vec, &
                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
                  bcval, bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3, &
@@ -119,9 +119,9 @@ subroutine hbvec(vec, &
   else
      print *, "hbvec: impossible face orientation"
   endif
-end subroutine hbvec
+end subroutine amrex_hbvec
 
-subroutine hbvec3(vec, &
+subroutine amrex_hbvec3(vec, &
                   reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                   cdir, bctype, bho, bcl, &
                   bcval, bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3, &
@@ -298,10 +298,10 @@ subroutine hbvec3(vec, &
   else
      print *, "hbvec3: impossible face orientation"
   endif
-end subroutine hbvec3
+end subroutine amrex_hbvec3
 
 
-subroutine hmac(mat, a, &
+subroutine amrex_hmac(mat, a, &
                 abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3, &
                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                 alpha) bind(C, name="amrex_hmac")
@@ -330,9 +330,9 @@ subroutine hmac(mat, a, &
         enddo
      enddo
   endif
-end subroutine hmac
+end subroutine amrex_hmac
 
-subroutine hmbc(mat, b, &
+subroutine amrex_hmbc(mat, b, &
                 bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                 beta, dx, n) bind(C, name="amrex_hmbc")
@@ -380,10 +380,10 @@ subroutine hmbc(mat, b, &
         enddo
      enddo
   endif
-end subroutine hmbc
+end subroutine amrex_hmbc
 
 
-subroutine hmmat(mat, &
+subroutine amrex_hmmat(mat, &
                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
                  mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
@@ -508,9 +508,9 @@ subroutine hmmat(mat, &
   else
      print *, "hmmat: impossible face orientation"
   endif
-end subroutine hmmat
+end subroutine amrex_hmmat
 
-subroutine hmmat3(mat, &
+subroutine amrex_hmmat3(mat, &
                   reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                   cdir, bctype, bho, bcl, &
                   mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
@@ -723,6 +723,6 @@ subroutine hmmat3(mat, &
   else
      print *, "hmmat3: impossible face orientation"
   endif
-end subroutine hmmat3
+end subroutine amrex_hmmat3
 
 end module amrex_habec_module

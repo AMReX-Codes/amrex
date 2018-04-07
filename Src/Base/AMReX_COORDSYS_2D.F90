@@ -20,7 +20,7 @@ contains
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = RTHETA)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETVOL(reg_l1,reg_l2,reg_h1,reg_h2,vol,vol_l1,vol_l2,vol_h1,vol_h2,offset,dx,coord) &
+  subroutine AMREX_SETVOL(reg_l1,reg_l2,reg_h1,reg_h2,vol,vol_l1,vol_l2,vol_h1,vol_h2,offset,dx,coord) &
        bind(c,name='amrex_setvol')
 
     implicit none
@@ -77,7 +77,7 @@ contains
 
     end if
        
-  end subroutine FORT_SETVOL
+  end subroutine AMREX_SETVOL
 
 !========================================================
 
@@ -93,7 +93,7 @@ contains
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETDLOGA(dloga,dloga_l1,dloga_l2,dloga_h1,dloga_h2,offset,dx,dir,coord) &
+  subroutine AMREX_SETDLOGA(dloga,dloga_l1,dloga_l2,dloga_h1,dloga_h2,offset,dx,dir,coord) &
        bind(c,name='amrex_setdloga')
 
     implicit none
@@ -172,7 +172,7 @@ contains
 
     end if
    
-  end subroutine FORT_SETDLOGA
+  end subroutine AMREX_SETDLOGA
 
 ! :: ----------------------------------------------------------
 ! :: SETAREA
@@ -186,7 +186,7 @@ contains
 ! ::  coord        => coordinate flag (0 =cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETAREA(reg_l1,reg_l2,reg_h1,reg_h2,area,area_l1,area_l2,area_h1,area_h2,offset,dx,dir,coord) &
+  subroutine AMREX_SETAREA(reg_l1,reg_l2,reg_h1,reg_h2,area,area_l1,area_l2,area_h1,area_h2,offset,dx,dir,coord) &
        bind(c,name='amrex_setarea')
 
     implicit none
@@ -284,7 +284,7 @@ contains
 
     end if
        
-  end subroutine FORT_SETAREA
+  end subroutine AMREX_SETAREA
 
 end module amrex_coordsys_module
 
