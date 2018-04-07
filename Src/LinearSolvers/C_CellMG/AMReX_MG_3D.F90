@@ -1,28 +1,26 @@
+module amrex_mg_module
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+  use amrex_fort_module
+  use amrex_constants_module
 
-#include <AMReX_REAL.H>
-#include <AMReX_CONSTANTS.H>
-#include "AMReX_MG_F.H"
-#include "AMReX_ArrayLim.H"
+  implicit none
 
-    subroutine FORT_AVERAGE ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
-           lo, hi, nc)
+contains
+
+    subroutine amrex_mg_average ( &
+           c, c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &
+           f, f_l1,f_l2,f_l3,f_h1,f_h2,f_h3, &
+           lo, hi, nc) bind(c,name='amrex_mg_average')
 
       implicit none
 
       integer nc
-      integer DIMDEC(c)
-      integer DIMDEC(f)
+      integer c_l1,c_l2,c_l3,c_h1,c_h2,c_h3
+      integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(DIMV(f),nc)
-      REAL_T c(DIMV(c),nc)
+      real(amrex_real) f(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,nc)
+      real(amrex_real) c(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,nc)
 
       integer i, i2, i2p1, j, j2, j2p1, k, k2, k2p1, n
 
@@ -47,23 +45,23 @@
          end do
       end do
 
-    end subroutine FORT_AVERAGE
+    end subroutine amrex_mg_average
 
 
-    subroutine FORT_INTERP ( &
-           f, DIMS(f), &
-           c, DIMS(c), &
-           lo, hi, nc)
+    subroutine amrex_mg_interp ( &
+           f, f_l1,f_l2,f_l3,f_h1,f_h2,f_h3, &
+           c, c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &
+           lo, hi, nc) bind(c,name='amrex_mg_interp')
 
       implicit none
 
       integer nc
-      integer DIMDEC(f)
-      integer DIMDEC(c)
+      integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3
+      integer c_l1,c_l2,c_l3,c_h1,c_h2,c_h3
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(DIMV(f),nc)
-      REAL_T c(DIMV(c),nc)
+      real(amrex_real) f(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,nc)
+      real(amrex_real) c(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,nc)
 
       integer i, i2, i2p1, j, j2, j2p1, k, k2, k2p1, n
        
@@ -97,4 +95,6 @@
          end do
       end do
 
-    end subroutine FORT_INTERP
+    end subroutine amrex_mg_interp
+
+  end module amrex_mg_module
