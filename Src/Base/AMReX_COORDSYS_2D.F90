@@ -1,15 +1,12 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_coordsys_module
 
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_COORDSYS_F.H"
-#include "AMReX_ArrayLim.H"
+  use amrex_fort_module
+  use amrex_constants_module
 
-#define SDIM 2
+  implicit none
+
+contains
 
 ! :: ----------------------------------------------------------
 ! :: SETVOL
@@ -23,28 +20,29 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = RTHETA)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETVOL(DIMS(reg),vol,DIMS(vol),offset,dx,coord)
+  subroutine AMREX_SETVOL(reg_l1,reg_l2,reg_h1,reg_h2,vol,vol_l1,vol_l2,vol_h1,vol_h2,offset,dx,coord) &
+       bind(c,name='amrex_setvol')
 
     implicit none
 
-    integer    DIMDEC(reg)
-    integer    DIMDEC(vol)
+    integer    reg_l1,reg_l2,reg_h1,reg_h2
+    integer    vol_l1,vol_l2,vol_h1,vol_h2
     integer    coord
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     vol(DIMV(vol))
+    real(amrex_real)     dx(2), offset(2)
+    real(amrex_real)     vol(vol_l1:vol_h1,vol_l2:vol_h2)
 
     integer    i, j
-    REAL_T     ri, ro, pi, po, v
-    REAL_T     RZFACTOR
-    parameter (RZFACTOR = two*Pi)
+    real(amrex_real)     ri, ro, pi, po, v
+    real(amrex_real)     RZFACTOR
+    parameter (RZFACTOR = two*M_PI)
        
     if (coord .eq. 0) then
 
        ! cartesian
 
        v = dx(1)*dx(2)
-       do j = ARG_L2(reg), ARG_H2(reg)
-          do i = ARG_L1(reg), ARG_H1(reg)
+       do j = reg_l2, reg_h2
+          do i = reg_l1, reg_h1
              vol(i,j) = v
           end do
        end do
@@ -53,11 +51,11 @@
 
        ! R-Z
 
-       do i = ARG_L1(reg), ARG_H1(reg)
+       do i = reg_l1, reg_h1
           ri = offset(1) + dx(1)*i
           ro = ri + dx(1)
           v = (half*RZFACTOR)*dx(2)*dx(1)*(ro + ri)
-          do j = ARG_L2(reg), ARG_H2(reg)
+          do j = reg_l2, reg_h2
              vol(i,j) = abs(v)
           end do
        end do
@@ -66,10 +64,10 @@
 
        ! R-THETA
 
-       do i = ARG_L1(reg), ARG_H1(reg)
+       do i = reg_l1, reg_h1
           ri = offset(1) + dx(1)*i
           ro = ri + dx(1)
-          do j = ARG_L2(reg), ARG_H2(reg)
+          do j = reg_l2, reg_h2
              pi = offset(2) + dx(2)*j
              po = pi + dx(2)
              v = RZFACTOR*(ro - ri)*(ro**2 + ro*ri + ri**2)*(cos(pi)-cos(po))/three
@@ -79,7 +77,7 @@
 
     end if
        
-  end subroutine FORT_SETVOL
+  end subroutine AMREX_SETVOL
 
 !========================================================
 
@@ -95,23 +93,24 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETDLOGA(dloga,DIMS(dloga),offset,dx,dir,coord)
+  subroutine AMREX_SETDLOGA(dloga,dloga_l1,dloga_l2,dloga_h1,dloga_h2,offset,dx,dir,coord) &
+       bind(c,name='amrex_setdloga')
 
     implicit none
 
-    integer    DIMDEC(dloga)
+    integer    dloga_l1,dloga_l2,dloga_h1,dloga_h2
     integer    coord
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     dloga(DIMV(dloga))
+    real(amrex_real)     dx(2), offset(2)
+    real(amrex_real)     dloga(dloga_l1:dloga_h1,dloga_l2:dloga_h2)
     integer dir
        
     integer    i, j
-    REAL_T     rc, dlga, po, pi
+    real(amrex_real)     rc, dlga, po, pi
        
     if (coord .eq. 0) then
 
-       do j = ARG_L2(dloga), ARG_H2(dloga)
-          do i = ARG_L1(dloga), ARG_H1(dloga)
+       do j = dloga_l2, dloga_h2
+          do i = dloga_l1, dloga_h1
              dloga(i,j) = zero
           end do
        end do
@@ -120,18 +119,18 @@
 
        if (dir .eq. 0) then
 
-          do i = ARG_L1(dloga), ARG_H1(dloga)
+          do i = dloga_l1, dloga_h1
              rc = offset(1) + dx(1)*(dble(i)+half)
              dlga = 1.d0/rc
-             do j = ARG_L2(dloga), ARG_H2(dloga)
+             do j = dloga_l2, dloga_h2
                 dloga(i,j) = dlga
              end do
           end do
 
        else if (dir .eq. 1) then
 
-          do i = ARG_L1(dloga), ARG_H1(dloga)
-             do j = ARG_L2(dloga), ARG_H2(dloga)
+          do i = dloga_l1, dloga_h1
+             do j = dloga_l2, dloga_h2
                 dloga(i,j) = zero
              end do
           end do
@@ -145,20 +144,20 @@
     else if( coord .eq. 2) then
 
        if (dir .eq. 0) then
-          do i = ARG_L1(dloga), ARG_H1(dloga)
+          do i = dloga_l1, dloga_h1
              rc = offset(1) + dx(1)*(dble(i)+half)
              dlga = 2.d0/rc
-             do j = ARG_L2(dloga), ARG_H2(dloga)
+             do j = dloga_l2, dloga_h2
                 dloga(i,j) = dlga
              enddo
           enddo
 
        else if (dir .eq. 1) then
 
-          do i = ARG_L1(dloga), ARG_H1(dloga)
+          do i = dloga_l1, dloga_h1
              rc = offset(1) + dx(1)*(dble(i)+half)
              dlga = 1.d0/rc
-             do j = ARG_L2(dloga), ARG_H2(dloga)
+             do j = dloga_l2, dloga_h2
                 pi = offset(2) + dx(2)*j
                 po = pi + dx(2)
                 dloga(i,j) = dlga/tan(half*(pi+po))
@@ -173,7 +172,7 @@
 
     end if
    
-  end subroutine FORT_SETDLOGA
+  end subroutine AMREX_SETDLOGA
 
 ! :: ----------------------------------------------------------
 ! :: SETAREA
@@ -187,19 +186,20 @@
 ! ::  coord        => coordinate flag (0 =cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETAREA(DIMS(reg),area,DIMS(area),offset,dx,dir,coord)
+  subroutine AMREX_SETAREA(reg_l1,reg_l2,reg_h1,reg_h2,area,area_l1,area_l2,area_h1,area_h2,offset,dx,dir,coord) &
+       bind(c,name='amrex_setarea')
 
     implicit none
-    integer    DIMDEC(reg)
-    integer    DIMDEC(area)
+    integer    reg_l1,reg_l2,reg_h1,reg_h2
+    integer    area_l1,area_l2,area_h1,area_h2
     integer    coord, dir
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     area(DIMV(area))
+    real(amrex_real)     dx(2), offset(2)
+    real(amrex_real)     area(area_l1:area_h1,area_l2:area_h2)
 
     integer    i, j
-    REAL_T     rc, ri, ro, a, pi, po
-    REAL_T     RZFACTOR
-    parameter (RZFACTOR = two*Pi)
+    real(amrex_real)     rc, ri, ro, a, pi, po
+    real(amrex_real)     RZFACTOR
+    parameter (RZFACTOR = two*M_PI)
        
     if (coord .eq. 0) then
 
@@ -207,16 +207,16 @@
 
        if (dir .eq. 0) then
 
-          do j = ARG_L2(reg), ARG_H2(reg)
-             do i = ARG_L1(reg), ARG_H1(reg)
+          do j = reg_l2, reg_h2
+             do i = reg_l1, reg_h1
                 area(i,j) = dx(2)
              end do
           end do
 
        else
 
-          do j = ARG_L2(reg), ARG_H2(reg)
-             do i = ARG_L1(reg), ARG_H1(reg)
+          do j = reg_l2, reg_h2
+             do i = reg_l1, reg_h1
                 area(i,j) = dx(1)
              end do
           end do
@@ -229,20 +229,20 @@
 
        if (dir .eq. 0) then
 
-          do i = ARG_L1(reg), ARG_H1(reg)
+          do i = reg_l1, reg_h1
              ri = offset(1) + dx(1)*i
              a = abs(RZFACTOR*ri*dx(2))
-             do j = ARG_L2(reg), ARG_H2(reg)
+             do j = reg_l2, reg_h2
                 area(i,j) = a
              end do
           end do
 
        else
 
-          do i = ARG_L1(reg), ARG_H1(reg)
+          do i = reg_l1, reg_h1
              rc = offset(1) + dx(1)*(dble(i)+half)
              a = abs(dx(1)*RZFACTOR*rc)
-             do j = ARG_L2(reg), ARG_H2(reg)
+             do j = reg_l2, reg_h2
                 area(i,j) = a
              end do
           end do
@@ -253,9 +253,9 @@
 
        if (dir .eq. 0) then
 
-          do i = ARG_L1(reg), ARG_H1(reg)
+          do i = reg_l1, reg_h1
              ri = offset(1) + dx(1)*i
-             do j = ARG_L2(reg), ARG_H2(reg)
+             do j = reg_l2, reg_h2
                 pi = offset(2) + dx(2)*j
                 po = pi + dx(2)
                 a = RZFACTOR*ri*ri*(cos(pi)-cos(po))
@@ -265,10 +265,10 @@
 
        elseif(dir .eq. 1) then
 
-          do i = ARG_L1(reg), ARG_H1(reg)
+          do i = reg_l1, reg_h1
              ri = offset(1) + dx(1)*i
              ro = ri + dx(1)
-             do j = ARG_L2(reg), ARG_H2(reg)
+             do j = reg_l2, reg_h2
                 pi = offset(2) + dx(2)*j
                 a = RZFACTOR*sin(pi)*(ro - ri)*(ro + ri)/two
                 area(i,j) = abs(a)
@@ -284,4 +284,7 @@
 
     end if
        
-  end subroutine FORT_SETAREA
+  end subroutine AMREX_SETAREA
+
+end module amrex_coordsys_module
+

@@ -361,7 +361,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
 #if (AMREX_SPACEDIM == 1)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(tbx == vbx, "MLABecLaplacian::Fsmooth: 1d tiling not supported");
-        FORT_LINESOLVE (solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
+        amrex_abec_linesolve (solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
                         rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
                         &m_a_scalar, &m_b_scalar,
                         afab.dataPtr(), ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
@@ -374,7 +374,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-        FORT_GSRB(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
+        amrex_abec_gsrb(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
                   rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
                   &m_a_scalar, &m_b_scalar,
                   afab.dataPtr(), ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
@@ -393,7 +393,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        FORT_GSRB(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
+        amrex_abec_gsrb(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
                   rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
                   &m_a_scalar, &m_b_scalar,
                   afab.dataPtr(), ARLIM(afab.loVect()), ARLIM(afab.hiVect()),

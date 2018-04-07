@@ -45,21 +45,21 @@ bdfunc_init ()
     const Orientation xloface(0,Orientation::low);
     const Orientation xhiface(0,Orientation::high);
 
-    bdfunc[xloface] = FORT_BDINTERPXLO;
-    bdfunc[xhiface] = FORT_BDINTERPXHI;
+    bdfunc[xloface] = amrex_bdinterpxlo;
+    bdfunc[xhiface] = amrex_bdinterpxhi;
 
 #if (AMREX_SPACEDIM > 1)
     const Orientation yloface(1,Orientation::low);
     const Orientation yhiface(1,Orientation::high);
-    bdfunc[yloface] = FORT_BDINTERPYLO;
-    bdfunc[yhiface] = FORT_BDINTERPYHI;
+    bdfunc[yloface] = amrex_bdinterpylo;
+    bdfunc[yhiface] = amrex_bdinterpyhi;
 #endif
 
 #if (AMREX_SPACEDIM > 2)
     const Orientation zloface(2,Orientation::low);
     const Orientation zhiface(2,Orientation::high);
-    bdfunc[zloface] = FORT_BDINTERPZLO;
-    bdfunc[zhiface] = FORT_BDINTERPZHI;
+    bdfunc[zloface] = amrex_bdinterpzlo;
+    bdfunc[zhiface] = amrex_bdinterpzhi;
 #endif
 }
 
