@@ -46,6 +46,8 @@ contains
            h &
            ) bind(c,name='amrex_abec_linesolve')
 
+      use amrex_abec_util_module, only : tridiag
+
       real(amrex_real) alpha, beta
       integer phi_l1,phi_h1
       integer rhs_l1,rhs_h1

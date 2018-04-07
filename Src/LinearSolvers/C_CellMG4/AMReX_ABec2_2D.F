@@ -20,6 +20,8 @@
      &     m3,  m3_l1,  m3_l2,  m3_h1,  m3_h2,
      &     nc, h, redBlack)
 
+      use amrex_abec_util_module, only : tridiag
+
       implicit none
       integer lo(2), hi(2), blo(2), bhi(2), nc, redblack
       integer phi_l1, phi_l2, phi_h1, phi_h2
@@ -312,6 +314,7 @@ c
      &     mask, m_l1, m_l2, m_h1, m_h2,
      &     cdir, bct, bcl, maxorder, h)
 
+      use amrex_lo_util_module, only : polyInterpCoeff
       implicit none
       integer lo(2), hi(2)
       integer f_l1, f_l2, f_h1, f_h2

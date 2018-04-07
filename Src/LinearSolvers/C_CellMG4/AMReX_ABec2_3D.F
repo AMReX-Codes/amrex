@@ -233,6 +233,7 @@ c
      &     mask,m_l1,m_l2,m_l3,m_h1,m_h2,m_h3,
      &     cdir, bct, bcl, maxorder, h)
 
+      use amrex_lo_util_module, only : polyInterpCoeff
       implicit none
       integer lo(3), hi(3)
       integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3

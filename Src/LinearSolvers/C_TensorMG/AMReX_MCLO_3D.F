@@ -236,6 +236,9 @@ c :::    to check the masks.
      $     lo, hi, nc,
      $     h
      $     )
+
+      use amrex_lo_util_module, only : polyInterpCoeff
+
 c
 c     If the boundary is of Neumann type, set the ghost cell value to
 c     that of the outermost point in the valid data (2nd order accurate)

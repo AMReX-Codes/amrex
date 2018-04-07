@@ -98,6 +98,8 @@ contains
            h &
            ) bind(c,name='amrex_lo_applybc')
 
+      use amrex_lo_util_module, only : polyInterpCoeff
+
 !     If the boundary is of Neumann type, set the ghost cell value to
 !     that of the outermost point in the valid data (2nd order accurate)
 !     and then fill the "den" array with the value "1"
