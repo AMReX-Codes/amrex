@@ -1,24 +1,24 @@
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_mg_module
 
-#include <AMReX_REAL.H>
-#include <AMReX_CONSTANTS.H>
-#include "AMReX_MG_F.H"
+  use amrex_fort_module
+  use amrex_constants_module
 
-    subroutine FORT_AVERAGE ( &
+  implicit none
+
+contains
+
+    subroutine amrex_mg_average ( &
            c, c_l1,c_h1, &
            f, f_l1,f_h1, &
-           lo, hi, nc)
+           lo, hi, nc) bind(c,name='amrex_mg_average')
 
       integer nc
       integer f_l1,f_h1
       integer c_l1,c_h1
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(f_l1:f_h1,nc)
-      REAL_T c(c_l1:c_h1,nc)
+      real(amrex_real) f(f_l1:f_h1,nc)
+      real(amrex_real) c(c_l1:c_h1,nc)
 
       integer i,n
 
@@ -28,20 +28,20 @@
          end do
       end do
 
-    end subroutine FORT_AVERAGE
+    end subroutine amrex_mg_average
 
-    subroutine FORT_INTERP ( &
+    subroutine amrex_mg_interp ( &
            f, f_l1,f_h1, &
            c, c_l1,c_h1, &
-           lo, hi, nc)
+           lo, hi, nc) bind(c,name='amrex_mg_interp')
 
       integer nc
       integer f_l1,f_h1
       integer c_l1,c_h1
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(f_l1:f_h1,nc)
-      REAL_T c(c_l1:c_h1,nc)
+      real(amrex_real) f(f_l1:f_h1,nc)
+      real(amrex_real) c(c_l1:c_h1,nc)
 
       integer i,n
 
@@ -52,4 +52,6 @@
          end do
       end do
 
-    end subroutine FORT_INTERP
+    end subroutine amrex_mg_interp
+
+end module amrex_mg_module
