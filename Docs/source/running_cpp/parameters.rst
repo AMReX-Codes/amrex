@@ -86,6 +86,8 @@ Distribution across MPI ranks and parallelization
     This relies on each MPI rank handling several (in fact many) subdomains
     (see ``max_grid_size``).
 
+* ``warpx.do_dynamic_scheduling`` (`0` or `1`)
+    Whether to use OpenMP dynamic scheduling
 
 Particle initialization
 -----------------------
