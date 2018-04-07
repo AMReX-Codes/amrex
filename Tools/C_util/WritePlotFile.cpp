@@ -298,7 +298,7 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
 {
     // If varnames not provided, use names in original plotfile
     const Vector<std::string>& derives = (varNames.size()==0 ? amrdToMimic.PlotVarNames() : varNames);
-    AMREX_ASSERT(derives.size()!=(*mfa[0]).nComp());
+    AMREX_ASSERT(derives.size()==(*mfa[0]).nComp());
     int ntype = derives.size();
     int finestLevel = amrdToMimic.FinestLevel();    
     
