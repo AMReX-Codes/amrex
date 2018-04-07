@@ -118,8 +118,10 @@ contains
           call layout_destroy(old_la_grown)
 
           do i = 1, nfabs(new_edge_coeffs_grown)
-             sc_orig  => dataptr(coarse_edge_coeffs(maxlev_bottom,d),i,get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
-             sc_grown => dataptr(new_edge_coeffs_grown              ,i,get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
+             sc_orig  => dataptr(coarse_edge_coeffs(maxlev_bottom,d),i, &
+                  get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
+             sc_grown => dataptr(new_edge_coeffs_grown              ,i, &
+                  get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
              sc_orig = sc_grown
           end do
 

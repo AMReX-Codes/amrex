@@ -1,11 +1,4 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
-
-#include "AMReX_BC_TYPES.H"
-
 ! ::: -----------------------------------------------------------
 ! ::: This routine is intended to be a generic fill function
 ! ::: for cell centered data.  It knows how to exrapolate,
@@ -14,7 +7,7 @@
 ! ::: 
 ! ::: INPUTS/OUTPUTS:
 ! ::: q        <=  array to fill
-! ::: DIMS(q)   => index extent of q array
+! ::: q_l1,q_l2,q_l3,q_h1,q_h2,q_h3   => index extent of q array
 ! ::: domlo,hi  => index extent of problem domain
 ! ::: dx        => cell spacing
 ! ::: xlo       => physical location of lower left hand
