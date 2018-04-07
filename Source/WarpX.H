@@ -89,6 +89,8 @@ public:
     static amrex::Real beta_boost;
     static amrex::Vector<amrex::Real> boost_direction;
 
+    static bool do_dynamic_scheduling;
+
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
     const amrex::MultiFab& getBfield  (int lev, int direction) {return *Bfield_aux[lev][direction];}

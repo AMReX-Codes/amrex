@@ -11,6 +11,11 @@ using namespace amrex;
 
 int WarpXParticleContainer::do_not_push = 0;
 
+WarpXParIter::WarpXParIter (ContainerType& pc, int level)
+    : ParIter(pc, level, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling))
+{
+}
+
 #if (BL_SPACEDIM == 2)
 void
 WarpXParIter::GetPosition (Vector<Real>& x, Vector<Real>& y, Vector<Real>& z) const
