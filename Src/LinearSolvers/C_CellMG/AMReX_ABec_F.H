@@ -1,106 +1,7 @@
-#ifndef _AABBEC_F_H_
-#define _AABBEC_F_H_
+#ifndef AMREX_AABBEC_F_H_
+#define AMREX_AABBEC_F_H_
 
-#include <AMReX_REAL.H>
-
-#if        defined(BL_LANG_FORT)
-
-#if (BL_SPACEDIM == 1)
-#define FORT_LINESOLVE     linesolve1daabbec
-#define FORT_ADOTX         adotx1daabbec
-#define FORT_NORMA         norma1daabbec
-#define FORT_FLUX          flux1daabbec
-#endif
-
-#if (BL_SPACEDIM == 2)
-#define FORT_GSRB          gsrb2daabbec
-#define FORT_JACOBI        jacobi2daabbec
-#define FORT_ADOTX         adotx2daabbec
-#define FORT_NORMA         norma2daabbec
-#define FORT_FLUX          flux2daabbec
-#endif
-
-#if (BL_SPACEDIM == 3)
-#define FORT_GSRB          gsrb3daabbec
-#define FORT_JACOBI        jacobi3daabbec
-#define FORT_ADOTX         adotx3daabbec
-#define FORT_NORMA         norma3daabbec
-#define FORT_FLUX          flux3daabbec
-#endif
-
-#else
-
-#if (BL_SPACEDIM == 1)
- 
-#if  defined(BL_FORT_USE_UPPERCASE)
-#define FORT_LINESOLVE     LINESOLVE1DAABBEC
-#define FORT_ADOTX    ADOTX1DAABBEC
-#define FORT_NORMA    NORMA1DAABBEC
-#define FORT_FLUX     FLUX1DAABBEC
-#elif defined(BL_FORT_USE_LOWERCASE)
-#define FORT_LINESOLVE     linesolve1daabbec_
-#define FORT_ADOTX    adotx1daabbec
-#define FORT_NORMA    norma1daabbec
-#define FORT_FLUX     flux1daabbec
-#elif defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_LINESOLVE     linesolve1daabbec_
-#define FORT_ADOTX    adotx1daabbec_
-#define FORT_NORMA    norma1daabbec_
-#define FORT_FLUX     flux1daabbec_
-#endif
- 
-#endif
-
-#if (BL_SPACEDIM == 2)
-
-#if  defined(BL_FORT_USE_UPPERCASE)
-#define FORT_GSRB     GSRB2DAABBEC
-#define FORT_JACOBI   JACOBI2DAABBEC
-#define FORT_ADOTX    ADOTX2DAABBEC
-#define FORT_NORMA    NORMA2DAABBEC
-#define FORT_FLUX     FLUX2DAABBEC
-#elif defined(BL_FORT_USE_LOWERCASE)
-#define FORT_GSRB     gsrb2daabbec
-#define FORT_JACOBI   jacobi2daabbec
-#define FORT_ADOTX    adotx2daabbec
-#define FORT_NORMA    norma2daabbec
-#define FORT_FLUX     flux2daabbec
-#elif defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_GSRB     gsrb2daabbec_
-#define FORT_JACOBI   jacobi2daabbec_
-#define FORT_ADOTX    adotx2daabbec_
-#define FORT_NORMA    norma2daabbec_
-#define FORT_FLUX     flux2daabbec_
-#endif
-
-#endif
-
-
-#if (BL_SPACEDIM == 3)
-
-#if   defined(BL_FORT_USE_UPPERCASE)
-#define FORT_GSRB     GSRB3DAABBEC
-#define FORT_JACOBI   JACOBI3DAABBEC
-#define FORT_ADOTX    ADOTX3DAABBEC
-#define FORT_NORMA    NORMA3DAABBEC
-#define FORT_FLUX     FLUX3DAABBEC
-#elif defined(BL_FORT_USE_LOWERCASE)
-#define FORT_GSRB     gsrb3daabbec
-#define FORT_JACOBI   jacobi3daabbec
-#define FORT_ADOTX    adotx3daabbec
-#define FORT_NORMA    norma3daabbec
-#define FORT_FLUX     flux3daabbec
-#elif defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_GSRB     gsrb3daabbec_
-#define FORT_JACOBI   jacobi3daabbec_
-#define FORT_ADOTX    adotx3daabbec_
-#define FORT_NORMA    norma3daabbec_
-#define FORT_FLUX     flux3daabbec_
-#endif
-
-#endif
-
-#include <AMReX_ArrayLim.H>
+#include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C"
@@ -108,7 +9,7 @@ extern "C"
 #endif
 
 #if (BL_SPACEDIM == 1)
-    void FORT_LINESOLVE (
+    void amrex_abec_linesolve (
         amrex_real* phi       , ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const amrex_real* rhs , ARLIM_P(rhs_lo), ARLIM_P(phi_hi),
         const amrex_real* alpha, const amrex_real* beta,
@@ -122,7 +23,7 @@ extern "C"
         const amrex_real *h
         );
 
-    void FORT_ADOTX(
+    void amrex_abec_adotx(
         amrex_real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
         const amrex_real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
         const amrex_real* alpha, const amrex_real* beta,
@@ -132,7 +33,7 @@ extern "C"
         const amrex_real *h
         );
     
-    void FORT_NORMA(
+    void amrex_abec_norma(
         amrex_real* res      ,
         const amrex_real* alpha, const amrex_real* beta,
         const amrex_real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
@@ -141,7 +42,7 @@ extern "C"
         const amrex_real *h
         );
     
-    void FORT_FLUX(
+    void amrex_abec_flux(
         const amrex_real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
         const amrex_real* alpha, const amrex_real* beta,
         const amrex_real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
@@ -152,7 +53,7 @@ extern "C"
         );
 #endif    
 #if (BL_SPACEDIM == 2)
-    void FORT_GSRB (
+    void amrex_abec_gsrb (
         amrex_real* phi       , ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const amrex_real* rhs , ARLIM_P(rhs_lo), ARLIM_P(phi_hi),
         const amrex_real* alpha, const amrex_real* beta,
@@ -171,7 +72,7 @@ extern "C"
 	const int *nc, const amrex_real *h, const  int* redblack
         );
 
-    void FORT_JACOBI (
+    void amrex_abec_jacobi (
         amrex_real* phi       , ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const amrex_real* rhs , ARLIM_P(rhs_lo), ARLIM_P(phi_hi),
         const amrex_real* alpha, const amrex_real* beta,
@@ -190,7 +91,7 @@ extern "C"
         const amrex_real *h
         );
 
-    void FORT_ADOTX(
+    void amrex_abec_adotx(
         amrex_real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
         const amrex_real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
         const amrex_real* alpha, const amrex_real* beta,
@@ -201,7 +102,7 @@ extern "C"
         const amrex_real *h
         );
     
-    void FORT_NORMA(
+    void amrex_abec_norma(
         amrex_real* res      ,
         const amrex_real* alpha, const amrex_real* beta,
         const amrex_real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
@@ -211,7 +112,7 @@ extern "C"
         const amrex_real *h
         );
     
-    void FORT_FLUX(
+    void amrex_abec_flux(
         const amrex_real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
         const amrex_real* alpha, const amrex_real* beta,
         const amrex_real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
@@ -227,7 +128,7 @@ extern "C"
 #endif    
 
 #if (BL_SPACEDIM == 3)
-    void FORT_GSRB (
+    void amrex_abec_gsrb (
         amrex_real* phi,       ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const amrex_real* rhs, ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
         const amrex_real* alpha, const amrex_real* beta,
@@ -251,7 +152,7 @@ extern "C"
 	const int *nc, const amrex_real *h, const  int* redblack
         );
 
-    void FORT_JACOBI (
+    void amrex_abec_jacobi (
         amrex_real* phi,       ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const amrex_real* rhs, ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
         const amrex_real* alpha, const amrex_real* beta,
@@ -275,7 +176,7 @@ extern "C"
         const amrex_real *h
         );
 
-    void FORT_ADOTX(
+    void amrex_abec_adotx(
         amrex_real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
         const amrex_real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
         const amrex_real* alpha, const amrex_real* beta,
@@ -287,7 +188,7 @@ extern "C"
         const amrex_real *h
         );
     
-    void FORT_NORMA(
+    void amrex_abec_norma(
         amrex_real* res      ,
         const amrex_real* alpha, const amrex_real* beta,
         const amrex_real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
@@ -298,7 +199,7 @@ extern "C"
         const amrex_real *h
         );
     
-    void FORT_FLUX(
+    void amrex_abec_flux(
         const amrex_real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
         const amrex_real* alpha, const amrex_real* beta,
         const amrex_real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
@@ -318,6 +219,6 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-#endif
+
 
 #endif /*_AABBEC_F_H_*/

@@ -1,17 +1,16 @@
+module amrex_mg_module
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+  use amrex_fort_module
+  use amrex_constants_module
 
-#include <AMReX_REAL.H>
-#include <AMReX_CONSTANTS.H>
-#include "AMReX_MG_F.H"
+  implicit none
 
-    subroutine FORT_AVERAGE ( &
+contains
+
+    subroutine amrex_mg_average ( &
            c, c_l1,c_l2,c_h1,c_h2, &
            f, f_l1,f_l2,f_h1,f_h2, &
-           lo, hi, nc)
+           lo, hi, nc) bind(c,name='amrex_mg_average')
 
       implicit none
 
@@ -20,13 +19,13 @@
       integer c_l1,c_l2,c_h1,c_h2
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(f_l1:f_h1,f_l2:f_h2,nc)
-      REAL_T c(c_l1:c_h1,c_l2:c_h2,nc)
+      real(amrex_real) f(f_l1:f_h1,f_l2:f_h2,nc)
+      real(amrex_real) c(c_l1:c_h1,c_l2:c_h2,nc)
 
       integer i
       integer j
       integer n
-      REAL_T denom
+      real(amrex_real) denom
       parameter(denom=fourth)
 
       do n = 1, nc
@@ -39,12 +38,12 @@
          end do
       end do
 
-    end subroutine FORT_AVERAGE
+    end subroutine amrex_mg_average
 
-    subroutine FORT_INTERP ( &
+    subroutine amrex_mg_interp ( &
            f, f_l1,f_l2,f_h1,f_h2, &
            c, c_l1,c_l2,c_h1,c_h2, &
-           lo, hi, nc)
+           lo, hi, nc) bind(c,name='amrex_mg_interp')
 
       implicit none
 
@@ -53,8 +52,8 @@
       integer c_l1,c_l2,c_h1,c_h2
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(f_l1:f_h1,f_l2:f_h2,nc)
-      REAL_T c(c_l1:c_h1,c_l2:c_h2,nc)
+      real(amrex_real) f(f_l1:f_h1,f_l2:f_h2,nc)
+      real(amrex_real) c(c_l1:c_h1,c_l2:c_h2,nc)
 
       integer i, j, n, twoi, twoj, twoip1, twojp1
 
@@ -81,4 +80,6 @@
          end do
       end do
 
-    end subroutine FORT_INTERP
+    end subroutine amrex_mg_interp
+
+end module amrex_mg_module

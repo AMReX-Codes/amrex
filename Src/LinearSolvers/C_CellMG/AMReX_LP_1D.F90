@@ -1,12 +1,12 @@
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
 
-#include <AMReX_CONSTANTS.H>
-#include <AMReX_REAL.H>
+module amrex_lp_module
 
-#include "AMReX_LP_F.H"
+  use amrex_fort_module
+  use amrex_constants_module
+
+  implicit none
+
+contains
 
 !-----------------------------------------------------------------------
 !      
@@ -31,34 +31,34 @@
 !     element.
 !     
 !-----------------------------------------------------------------------
-    subroutine FORT_LINESOLVE ( &
+    subroutine amrex_lp_linesolve ( &
            phi, phi_l1,phi_h1, &
            rhs, rhs_l1,rhs_h1, &
            f0, f0_l1,f0_h1, m0, m0_l1,m0_h1, &
            f2, f2_l1,f2_h1, m2, m2_l1,m2_h1, &
            lo, hi, nc, &
-           h)
+           h) bind(c,name='amrex_lp_linesolve')
 
       integer nc
       integer phi_l1,phi_h1
-      REAL_T phi(phi_l1:phi_h1,nc)
+      real(amrex_real) phi(phi_l1:phi_h1,nc)
       integer rhs_l1,rhs_h1
-      REAL_T rhs(rhs_l1:rhs_h1,nc)
+      real(amrex_real) rhs(rhs_l1:rhs_h1,nc)
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
       integer f0_l1,f0_h1
       integer f2_l1,f2_h1
-      REAL_T f0(f0_l1:f0_h1)
-      REAL_T f2(f2_l1:f2_h1)
+      real(amrex_real) f0(f0_l1:f0_h1)
+      real(amrex_real) f2(f2_l1:f2_h1)
       integer m0_l1,m0_h1
       integer m2_l1,m2_h1
       integer m0(m0_l1:m0_h1)
       integer m2(m2_l1:m2_h1)
-      REAL_T  h
+      real(amrex_real)  h
 
       integer  i, n
 
-      REAL_T cf0, cf2
-      REAL_T delta, gamma, rho
+      real(amrex_real) cf0, cf2
+      real(amrex_real) delta, gamma, rho
 
       gamma = 4.0D0
       do n = 1, nc
@@ -79,29 +79,29 @@
          end do
       end do
       
-    end subroutine FORT_LINESOLVE
+    end subroutine amrex_lp_linesolve
 !-----------------------------------------------------------------------
 !
 !     Fill in a matrix x vector operator here
 !
-    subroutine FORT_ADOTX( &
+    subroutine amrex_lp_adotx( &
            y, y_l1,y_h1, &
            x, x_l1,x_h1, &
            lo, hi, nc, &
            h &
-           )
+           ) bind(c,name='amrex_lp_adotx')
 
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       integer y_l1,y_h1
-      REAL_T y(y_l1:y_h1,nc)
+      real(amrex_real) y(y_l1:y_h1,nc)
       integer x_l1,x_h1
-      REAL_T x(x_l1:x_h1,nc)
-      REAL_T h
+      real(amrex_real) x(x_l1:x_h1,nc)
+      real(amrex_real) h
 
       integer i, n
-      REAL_T scal
+      real(amrex_real) scal
 
       scal = 1.0D0/h**2
 
@@ -112,29 +112,29 @@
          end do
       end do
 
-    end subroutine FORT_ADOTX
+    end subroutine amrex_lp_adotx
 
 !-----------------------------------------------------------------------
 !
 !     Fill in fluxes
 !
-    subroutine FORT_FLUX( &
+    subroutine amrex_lp_flux( &
            x,x_l1,x_h1, &
            xlo,xhi,nc, &
            h, &
            xflux,xflux_l1,xflux_h1 &
-           )
+           ) bind(c,name='amrex_lp_flux')
 
       implicit none
 
       integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), nc
       integer x_l1,x_h1
       integer xflux_l1,xflux_h1
-      REAL_T  x(x_l1:x_h1,nc)
-      REAL_T xflux(xflux_l1:xflux_h1,nc)
-      REAL_T h(BL_SPACEDIM)
+      real(amrex_real)  x(x_l1:x_h1,nc)
+      real(amrex_real) xflux(xflux_l1:xflux_h1,nc)
+      real(amrex_real) h(BL_SPACEDIM)
 
-      REAL_T dhx
+      real(amrex_real) dhx
       integer i,n
 
       dhx = one/h(1)
@@ -145,4 +145,6 @@
          end do
       end do
 
-    end subroutine FORT_FLUX
+    end subroutine amrex_lp_flux
+
+end module amrex_lp_module

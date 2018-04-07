@@ -82,7 +82,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 		   const FArrayBox& bzfab = bZ[amfi];);
 	    
 #if (BL_SPACEDIM==2)
-	    FORT_NORMA(&tres,
+	    amrex_abec_norma(&tres,
 		       &alpha, &beta,
 		       afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
 		       bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
@@ -91,7 +91,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 		       h[level].data());
 #elif (BL_SPACEDIM==3)
 	    
-	    FORT_NORMA(&tres,
+	    amrex_abec_norma(&tres,
 		       &alpha, &beta,
 		       afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
 		       bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
@@ -358,7 +358,7 @@ ABecLaplacian::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab
                FArrayBox& yfluxfab = yflux[inmfi];,
                FArrayBox& zfluxfab = zflux[inmfi];);
 
-        FORT_FLUX(infab.dataPtr(src_comp),
+        amrex_abec_flux(infab.dataPtr(src_comp),
 		  ARLIM(infab.loVect()), ARLIM(infab.hiVect()),
 		  &alpha, &beta, a[inmfi].dataPtr(), 
 		  ARLIM(a[inmfi].loVect()), ARLIM(a[inmfi].hiVect()),
@@ -472,7 +472,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 2)
-        FORT_GSRB(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
+        amrex_abec_gsrb(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
                   rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
                   &alpha, &beta,
                   afab.dataPtr(), ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
@@ -491,7 +491,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 3)
-        FORT_GSRB(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
+        amrex_abec_gsrb(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
                   rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
                   &alpha, &beta,
                   afab.dataPtr(), ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
@@ -585,7 +585,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 2)
-        FORT_JACOBI(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
+        amrex_abec_jacobi(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
                     rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
                     &alpha, &beta,
                     afab.dataPtr(), ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
@@ -604,7 +604,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 3)
-        FORT_JACOBI(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
+        amrex_abec_jacobi(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
                     rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
                     &alpha, &beta,
                     afab.dataPtr(), ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
@@ -677,7 +677,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                const FArrayBox& bzfab = bZ[ymfi];);
 
 #if (BL_SPACEDIM == 2)
-        FORT_ADOTX(yfab.dataPtr(dst_comp),
+        amrex_abec_adotx(yfab.dataPtr(dst_comp),
                    ARLIM(yfab.loVect()),ARLIM(yfab.hiVect()),
                    xfab.dataPtr(src_comp),
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
@@ -691,7 +691,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    h[level].data());
 #endif
 #if (BL_SPACEDIM ==3)
-        FORT_ADOTX(yfab.dataPtr(dst_comp),
+        amrex_abec_adotx(yfab.dataPtr(dst_comp),
                    ARLIM(yfab.loVect()), ARLIM(yfab.hiVect()),
                    xfab.dataPtr(src_comp),
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
