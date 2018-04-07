@@ -131,7 +131,6 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
   F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90
-  F90$(AMREX_BASE)_sources += AMReX_BLParmParse_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLBoxLib_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90
 
