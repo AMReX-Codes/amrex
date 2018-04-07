@@ -17,7 +17,7 @@ contains
       
       
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPXLO : Interpolation on Xlo Face
+! ::  AMREX_BDINTERPXLO : Interpolation on Xlo Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
@@ -37,7 +37,7 @@ contains
 ! ::  derives     => crse grid tmp array
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPXLO (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
+    subroutine AMREX_BDINTERPXLO (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
                  lo,hi,cb_l1,cb_l2,cb_h1,cb_h2,nvar,ratios,not_covered, &
                  mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
                  bind(c,name='amrex_bdinterpxlo')
@@ -123,10 +123,10 @@ contains
       
       endif
 
-    end subroutine FORT_BDINTERPXLO
+    end subroutine AMREX_BDINTERPXLO
 
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPXHI : Interpolation on Xhi Face
+! ::  AMREX_BDINTERPXHI : Interpolation on Xhi Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
@@ -146,7 +146,7 @@ contains
 ! ::  derives     => crse grid tmp array
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPXHI (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
+    subroutine AMREX_BDINTERPXHI (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
                  lo,hi,cb_l1,cb_l2,cb_h1,cb_h2,nvar,ratios,not_covered, &
                  mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
                  bind(c,name='amrex_bdinterpxhi')
@@ -233,10 +233,10 @@ contains
       
       endif
 
-    end subroutine FORT_BDINTERPXHI
+    end subroutine AMREX_BDINTERPXHI
 
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPYLO : Interpolation on Ylo Face
+! ::  AMREX_BDINTERPYLO : Interpolation on Ylo Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
@@ -256,7 +256,7 @@ contains
 ! ::  derives     => crse grid tmp array
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPYLO (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
+    subroutine AMREX_BDINTERPYLO (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
                  lo,hi,cb_l1,cb_l2,cb_h1,cb_h2,nvar,ratios,not_covered, &
                  mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
                  bind(c,name='amrex_bdinterpylo')
@@ -343,10 +343,10 @@ contains
       
       endif
 
-    end subroutine FORT_BDINTERPYLO
+    end subroutine AMREX_BDINTERPYLO
 
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPYHI : Interpolation on Yhi Face
+! ::  AMREX_BDINTERPYHI : Interpolation on Yhi Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
@@ -366,7 +366,7 @@ contains
 ! ::  derives     => crse grid tmp array
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPYHI (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
+    subroutine AMREX_BDINTERPYHI (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
                  lo,hi,cb_l1,cb_l2,cb_h1,cb_h2,nvar,ratios,not_covered, &
                  mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
                  bind(c,name='amrex_bdinterpyhi')
@@ -453,6 +453,6 @@ contains
       
       endif
 
-    end subroutine FORT_BDINTERPYHI
+    end subroutine AMREX_BDINTERPYHI
 
 end module amrex_interpbndrydata_module

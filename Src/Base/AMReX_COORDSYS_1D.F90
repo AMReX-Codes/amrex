@@ -20,7 +20,7 @@ contains
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = spherical)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETVOL(reg_l1,reg_h1,vol,vol_l1,vol_h1,offset,dx,coord) &
+  subroutine AMREX_SETVOL(reg_l1,reg_h1,vol,vol_l1,vol_h1,offset,dx,coord) &
        bind(c,name='amrex_setvol')
 
     implicit none
@@ -67,11 +67,11 @@ contains
 
     endif
 
-  end subroutine FORT_SETVOL
+  end subroutine AMREX_SETVOL
 
 
 
-  subroutine FORT_SETVOLPT(vol, volloi1, volhii1, &
+  subroutine AMREX_SETVOLPT(vol, volloi1, volhii1, &
        ro, roloi1, rohii1, ri, riloi1, rihii1, dx, coord) bind(c,name='amrex_setvolpt')
 
     integer volloi1, volhii1
@@ -114,7 +114,7 @@ contains
        call bl_abort('bogus value of coord ... bndrylib::SETVOLPT')
     endif
 
-  end subroutine FORT_SETVOLPT
+  end subroutine AMREX_SETVOLPT
 
 ! :: ----------------------------------------------------------
 ! :: SETDLOGA
@@ -128,7 +128,7 @@ contains
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETDLOGA(dloga,dloga_l1,dloga_h1,offset,dx,dir,coord) bind(c,name='amrex_setdloga')
+  subroutine AMREX_SETDLOGA(dloga,dloga_l1,dloga_h1,offset,dx,dir,coord) bind(c,name='amrex_setdloga')
 
     integer    dloga_l1,dloga_h1
     integer    coord
@@ -165,7 +165,7 @@ contains
 
     endif
 
-  end subroutine FORT_SETDLOGA
+  end subroutine AMREX_SETDLOGA
 
 ! :: ----------------------------------------------------------
 ! :: SETAREA
@@ -179,7 +179,7 @@ contains
 ! ::  coord        => coordinate flag (0 =cartesian, 1 = RZ, 2 = spherical)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETAREA(reg_l1,reg_h1,area,area_l1,area_h1,offset,dx,dir,coord) bind(c,name='amrex_setarea')
+  subroutine AMREX_SETAREA(reg_l1,reg_h1,area,area_l1,area_h1,offset,dx,dir,coord) bind(c,name='amrex_setarea')
 
     integer    reg_l1,reg_h1
     integer    area_l1,area_h1
@@ -220,6 +220,6 @@ contains
 
     endif
 
-  end subroutine FORT_SETAREA
+  end subroutine AMREX_SETAREA
 
 end module amrex_coordsys_module

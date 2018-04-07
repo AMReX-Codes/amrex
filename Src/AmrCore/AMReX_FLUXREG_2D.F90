@@ -25,7 +25,7 @@ contains
 ! ::: mult       => scalar multiplicative factor
 ! ::: -----------------------------------------------------------
 
-    subroutine FORT_FRFINEADD(reg,reg_l1,reg_l2,reg_h1,reg_h2,flx,flx_l1,flx_l2,flx_h1,flx_h2, &
+    subroutine AMREX_FRFINEADD(reg,reg_l1,reg_l2,reg_h1,reg_h2,flx,flx_l1,flx_l2,flx_h1,flx_h2, &
                               numcomp,dir,ratio,mult) bind(c,name='amrex_frfineadd')
 
       implicit none
@@ -48,10 +48,10 @@ contains
          ic = reg_l1
          i = ic*ratiox
          if (reg_l1 .ne. reg_h1) then
-            call bl_abort("FORT_FRFINEADD: bad register direction")
+            call bl_abort("AMREX_FRFINEADD: bad register direction")
          end if
          if (i .lt. flx_l1 .or. i .gt. flx_h1) then
-            call bl_abort("FORT_FRFINEADD: index outside flux range")
+            call bl_abort("AMREX_FRFINEADD: index outside flux range")
          end if
          do n = 1, numcomp
             do off = 0, ratioy-1
@@ -66,10 +66,10 @@ contains
          jc = reg_l2
          j = jc*ratioy
          if (reg_l2 .ne. reg_h2) then
-            call bl_abort("FORT_FRFINEADD: bad register direction")
+            call bl_abort("AMREX_FRFINEADD: bad register direction")
          end if
          if (j .lt. flx_l2 .or. j .gt. flx_h2) then
-            call bl_abort("FORT_FRFINEADD: index outside flux range")
+            call bl_abort("AMREX_FRFINEADD: index outside flux range")
          end if
          do n = 1, numcomp
             do off = 0, ratiox-1
@@ -81,7 +81,7 @@ contains
          end do
       end if
 
-    end subroutine FORT_FRFINEADD
+    end subroutine AMREX_FRFINEADD
 
 ! ::: -----------------------------------------------------------
 ! ::: Add fine grid flux times area to flux register.
@@ -103,7 +103,7 @@ contains
 ! ::: mult       => scalar multiplicative factor
 ! ::: -----------------------------------------------------------
 
-    subroutine FORT_FRFAADD(reg,reg_l1,reg_l2,reg_h1,reg_h2,flx,flx_l1,flx_l2,flx_h1,flx_h2,&
+    subroutine AMREX_FRFAADD(reg,reg_l1,reg_l2,reg_h1,reg_h2,flx,flx_l1,flx_l2,flx_h1,flx_h2,&
          area,area_l1,area_l2,area_h1,area_h2, &
          numcomp,dir,ratio,mult) bind(c,name='amrex_frfaadd')
 
@@ -129,10 +129,10 @@ contains
          ic = reg_l1
          i = ic*ratiox
          if (reg_l1 .ne. reg_h1) then
-            call bl_abort("FORT_FRFAADD: bad register direction")
+            call bl_abort("AMREX_FRFAADD: bad register direction")
          end if
          if (i .lt. flx_l1 .or. i .gt. flx_h1) then
-            call bl_abort("FORT_FRFAADD: index outside flux range")
+            call bl_abort("AMREX_FRFAADD: index outside flux range")
          end if
          do n = 1, numcomp
             do off = 0, ratioy-1
@@ -147,10 +147,10 @@ contains
          jc = reg_l2
          j = jc*ratioy
          if (reg_l2 .ne. reg_h2) then
-            call bl_abort("FORT_FRFAADD: bad register direction")
+            call bl_abort("AMREX_FRFAADD: bad register direction")
          end if
          if (j .lt. flx_l2 .or. j .gt. flx_h2) then
-            call bl_abort("FORT_FRFAADD: index outside flux range")
+            call bl_abort("AMREX_FRFAADD: index outside flux range")
          end if
          do n = 1, numcomp
             do off = 0, ratiox-1
@@ -162,9 +162,9 @@ contains
          end do
       end if
 
-    end subroutine FORT_FRFAADD
+    end subroutine AMREX_FRFAADD
 
-    subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi, &
+    subroutine AMREX_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi, &
                               v, vlo, vhi, nc, mult, dir, isloface) bind(c,name='amrex_frreflux')
 
       implicit none
@@ -210,6 +210,6 @@ contains
             end do
       end if
 
-    end subroutine FORT_FRREFLUX
+    end subroutine AMREX_FRREFLUX
 
 end module amrex_fluxreg_module

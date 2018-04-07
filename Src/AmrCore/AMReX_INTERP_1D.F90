@@ -31,7 +31,7 @@ contains
 ! ::: sl           =>  num_slp 1-D slope arrays
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_NBINTERP (crse, crse_l1,crse_h1, cb_l1,cb_h1, &
+    subroutine AMREX_NBINTERP (crse, crse_l1,crse_h1, cb_l1,cb_h1, &
                               fine, fine_l1,fine_h1, fb_l1,fb_h1, &
                               lratio, nvar, &
                               sl, num_slp, &
@@ -88,7 +88,7 @@ contains
             enddo
 100   continue
 
-    end subroutine FORT_NBINTERP
+    end subroutine AMREX_NBINTERP
 
 #undef  SLX
 #undef  SLY
@@ -118,7 +118,7 @@ contains
 ! ::: strip        =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_CBINTERP (crse, crse_l1,crse_h1, cb_l1,cb_h1, &
+    subroutine AMREX_CBINTERP (crse, crse_l1,crse_h1, cb_l1,cb_h1, &
                               fine, fine_l1,fine_h1, fb_l1,fb_h1, &
                               lratio, nvar, &
                               sl, num_slp, strip, strip_lo, strip_hi, &
@@ -172,7 +172,7 @@ contains
 230       continue
 200   continue
 
-    end subroutine FORT_CBINTERP
+    end subroutine AMREX_CBINTERP
 
 #undef  SLX
 #undef  SLY
@@ -293,7 +293,7 @@ contains
 ! ::: --------------------------------------------------------------
 ! ::: 
 #if 0
-    subroutine FORT_CCINTERP (fine, fine_l1,fine_h1, &
+    subroutine AMREX_CCINTERP (fine, fine_l1,fine_h1, &
                               fb_l1, fb_h1, &
                               nvar, lratio, crse, clo, chi, &
                               cb_l1, cb_h1, &
@@ -381,7 +381,7 @@ contains
 250       continue
 210   continue
 
-    end subroutine FORT_CCINTERP
+    end subroutine AMREX_CCINTERP
 
 #endif
 
@@ -390,7 +390,7 @@ contains
 
 # if 1
 
-    subroutine FORT_CCINTERP (fine, fine_l1,fine_h1, &
+    subroutine AMREX_CCINTERP (fine, fine_l1,fine_h1, &
                               fb_l1, fb_h1, &
                               nvar, lratio, crse, clo, chi, &
                               cb_l1, cb_h1, &
@@ -551,7 +551,7 @@ contains
 
 290   continue
 
-    end subroutine FORT_CCINTERP
+    end subroutine AMREX_CCINTERP
 
 #endif
 
@@ -576,7 +576,7 @@ contains
 ! ::: ftmp         =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_PCINTERP (crse,crse_l1,crse_h1,cblo,cbhi, &
+    subroutine AMREX_PCINTERP (crse,crse_l1,crse_h1,cblo,cbhi, &
                               fine,fine_l1,fine_h1,fblo,fbhi, &
                               longdir,lratio,nvar,ftmp,ftmp_lo,ftmp_hi, &
                               actual_comp,actual_state) bind(c,name='amrex_pcinterp')
@@ -619,7 +619,7 @@ contains
 	enddo
 #endif
 
-    end subroutine FORT_PCINTERP
+    end subroutine AMREX_PCINTERP
 
 ! ::: 
 ! ::: --------------------------------------------------------------
@@ -658,7 +658,7 @@ contains
 ! :::
 ! ::: --------------------------------------------------------------
 ! ::: 
-     subroutine FORT_LINCCINTERP (fine, fine_l1,fine_h1, fblo, fbhi, &
+     subroutine AMREX_LINCCINTERP (fine, fine_l1,fine_h1, fblo, fbhi, &
                                   fvcb_l1,fvcb_h1, &
                                   crse, crse_l1,crse_h1, cvcb_l1,cvcb_h1, &
                                   uc_xslope, lc_xslope, xslope_factor, &
@@ -896,7 +896,7 @@ contains
 
        end if
 
-     end subroutine FORT_LINCCINTERP
+     end subroutine AMREX_LINCCINTERP
 
 ! ::: 
 ! ::: --------------------------------------------------------------
@@ -921,7 +921,7 @@ contains
 ! ::: ftmp         =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-     subroutine FORT_QUARTINTERP (fine, fine_l1,fine_h1, &
+     subroutine AMREX_QUARTINTERP (fine, fine_l1,fine_h1, &
                                   fblo, fbhi, fb2lo, fb2hi, &
                                   crse, crse_l1,crse_h1, &
                                   cblo, cbhi, cb2lo, cb2hi, &
@@ -974,13 +974,13 @@ contains
           enddo
        else if (lratiox .eq. 4) then
 !      todo
-          write(6,*) 'FORT_QUARTINTERP: refinement ratio = 4 TODO'
+          write(6,*) 'AMREX_QUARTINTERP: refinement ratio = 4 TODO'
           stop
        else
-          write(6,*) 'FORT_QUARTINTERP: unsupported refinement ratio'
+          write(6,*) 'AMREX_QUARTINTERP: unsupported refinement ratio'
           stop
        endif
 
-     end subroutine FORT_QUARTINTERP
+     end subroutine AMREX_QUARTINTERP
 
 end module amrex_interp_module
