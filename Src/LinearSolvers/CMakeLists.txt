@@ -135,7 +135,7 @@ list ( APPEND ALLHEADERS AMReX_ABec2.H   AMReX_ABec4.H )
 list ( APPEND CXXSRC     AMReX_ABec2.cpp AMReX_ABec4.cpp )
 
 list ( APPEND ALLHEADERS AMReX_ABec2_F.H AMReX_ABec4_F.H )
-list ( APPEND F77SRC     AMReX_ABec2_${DIM}D.F AMReX_ABec4_${DIM}D.F )
+list ( APPEND F90SRC     AMReX_ABec2_${DIM}D.F90 AMReX_ABec4_${DIM}D.F90 )
 
 
 # 
