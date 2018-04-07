@@ -188,6 +188,7 @@ else ()
    message ( AUTHOR_WARNING  "No specific source file for case DIM=1 in Src/LinearSolvers/C_TensorMG" )
 endif ()
 
+list ( APPEND F90SRC  amrex_tmg_util.F90 )
 
 # 
 # Collect sources
