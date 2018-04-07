@@ -16,7 +16,7 @@ list ( APPEND CXXSRC     AMReX.cpp AMReX_error_fi.cpp )
 list ( APPEND CXXSRC     AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp )
 list ( APPEND ALLHEADERS AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H )
 
-list ( APPEND ALLHEADERS AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H AMReX_SPACE_F.H )
+list ( APPEND ALLHEADERS AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H )
 
 list ( APPEND CXXSRC     AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp )
 list ( APPEND ALLHEADERS AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H )
