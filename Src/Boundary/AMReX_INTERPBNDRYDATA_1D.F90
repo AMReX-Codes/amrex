@@ -36,11 +36,12 @@ contains
 
     subroutine AMREX_BDINTERPXLO (bdry,bdry_l1,bdry_h1, &
                  lo,hi,cb_l1,cb_h1,nvar,ratios,not_covered, &
-                 mask,mask_l1,mask_h1,crse,crse_l1,crse_h1,derives) bind(c,name='amrex_bdinterpxlo')
+                 mask,mask_l1,mask_h1,crse,crse_l1,crse_h1,derives,max_order) &
+                 bind(c,name='amrex_bdinterpxlo')
 
       implicit none
 
-      integer  nvar, ratios(1), not_covered
+      integer  nvar, ratios(1), not_covered, max_order
       integer  lo(SDIM), hi(SDIM)
       integer  bdry_l1,bdry_h1
       integer  mask_l1,mask_h1
@@ -85,11 +86,12 @@ contains
 
     subroutine AMREX_BDINTERPXHI (bdry,bdry_l1,bdry_h1, &
                  lo,hi,cb_l1,cb_h1,nvar,ratios,not_covered, &
-                 mask,mask_l1,mask_h1,crse,crse_l1,crse_h1,derives) bind(c,name='amrex_bdinterpxhi')
+                 mask,mask_l1,mask_h1,crse,crse_l1,crse_h1,derives,max_order) &
+                 bind(c,name='amrex_bdinterpxhi')
 
       implicit none
 
-      integer  nvar, ratios(1), not_covered
+      integer  nvar, ratios(1), not_covered, max_order
       integer  lo(SDIM), hi(SDIM)
       integer  bdry_l1,bdry_h1
       integer  mask_l1,mask_h1

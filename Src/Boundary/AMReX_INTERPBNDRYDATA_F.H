@@ -16,17 +16,59 @@ typedef void BDInterpFunc(amrex_real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
 extern "C"
 {
 #endif
-    BDInterpFunc amrex_bdinterpxlo;
-    BDInterpFunc amrex_bdinterpxhi;
+    void amrex_bdinterpxlo(amrex_real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+                          const int* lo, const int* hi,
+                          ARLIM_P(cblo), ARLIM_P(cbhi),
+                          const int* nvar, const int* ratio,
+                          const int* not_covered,
+                          const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
+                          const amrex_real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                          amrex_real* derives, int* max_order);
+    void amrex_bdinterpxhi(amrex_real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+                          const int* lo, const int* hi,
+                          ARLIM_P(cblo), ARLIM_P(cbhi),
+                          const int* nvar, const int* ratio,
+                          const int* not_covered,
+                          const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
+                          const amrex_real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                          amrex_real* derives, int* max_order);
 
 #if (AMREX_SPACEDIM > 1)    
-    BDInterpFunc amrex_bdinterpylo;
-    BDInterpFunc amrex_bdinterpyhi;
+    void amrex_bdinterpylo(amrex_real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+                          const int* lo, const int* hi,
+                          ARLIM_P(cblo), ARLIM_P(cbhi),
+                          const int* nvar, const int* ratio,
+                          const int* not_covered,
+                          const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
+                          const amrex_real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                          amrex_real* derives, int* max_order);
+    void amrex_bdinterpyhi(amrex_real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+                          const int* lo, const int* hi,
+                          ARLIM_P(cblo), ARLIM_P(cbhi),
+                          const int* nvar, const int* ratio,
+                          const int* not_covered,
+                          const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
+                          const amrex_real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                          amrex_real* derives, int* max_order);
 #endif    
 
 #if (AMREX_SPACEDIM > 2)    
-    BDInterpFunc amrex_bdinterpzlo;
-    BDInterpFunc amrex_bdinterpzhi;
+    void amrex_bdinterpzlo(amrex_real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+                          const int* lo, const int* hi,
+                          ARLIM_P(cblo), ARLIM_P(cbhi),
+                          const int* nvar, const int* ratio,
+                          const int* not_covered,
+                          const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
+                          const amrex_real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                          amrex_real* derives, int* max_order);
+    void amrex_bdinterpzhi(amrex_real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+                          const int* lo, const int* hi,
+                          ARLIM_P(cblo), ARLIM_P(cbhi),
+                          const int* nvar, const int* ratio,
+                          const int* not_covered,
+                          const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
+                          const amrex_real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                          amrex_real* derives, int* max_order);
 #endif    
 
 #ifdef __cplusplus
