@@ -77,6 +77,6 @@ CVODE Tutorials
 ===================
 
 AMReX provides two CVODE tutorials in the ``amrex/Tutorials/CVODE`` directory, called
-``EX1`` and ``EX2``.  See the Tutorials/CVODE_ documentation for more detail.
+``EX1`` and ``EX2``.  See the Tutorials CVODE_ documentation for more detail.
 
-.. _Tutorials/CVODE: https://amrex-codes.github.io/amrex/tutorials_html/CVODE_Tutorial.html
+.. _CVODE: https://amrex-codes.github.io/amrex/tutorials_html/CVODE_Tutorial.html
