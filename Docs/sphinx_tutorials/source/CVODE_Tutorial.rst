@@ -26,3 +26,8 @@ instructs CVODE to use the analytic function that computes the Jacobian matrix,
 and in the other case, it does not, which requires CVODE to compute it
 manually.  One observes a significant performance gain by providing the
 analytic Jacobian function.
+
+See the CVODE_ section of the AMReX documentation for general instructions 
+on how to include CVODE in an AMReX application.
+
+.. _CVODE: https://amrex-codes.github.io/amrex/docs_html/CVODE.html#id1
