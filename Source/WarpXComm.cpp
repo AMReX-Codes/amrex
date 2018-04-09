@@ -40,7 +40,7 @@ WarpX::UpdateAuxilaryData ()
 {
     const int use_limiter = 0;
 
-    if (not alloc_level_0_aux) {        
+    if (alloc_level_0_aux) {        
         for (int idir = 0; idir < 3; ++idir) {
             const int ng = Bfield_fp[0][0]->nGrow();
             MultiFab::Copy(*Efield_aux[0][idir], *Efield_fp[0][idir], 0, 0, 1, ng);
