@@ -3,6 +3,7 @@
 
 #include <AMReX_BndryRegister.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_Array.H>
 
 namespace amrex {
 
@@ -183,6 +184,10 @@ public:
                  int             destcomp,
                  int             numcomp,
                  const Geometry& crse_geom);
+
+    void OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
+                        Real scale, int srccomp, int destcomp, int numcomp,
+                        const Geometry& crse_geom);
 
     // Set internal borders to zero
     void ClearInternalBorders (const Geometry& crse_geom);

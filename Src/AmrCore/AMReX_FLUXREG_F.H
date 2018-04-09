@@ -25,6 +25,13 @@ extern "C"
 			const amrex_real* v, const int* vlo, const int*vhi,
 			const int* n, const amrex_real* mult, 
 			const int* dir, const int* islo);
+
+    void amrex_froverwrite_cfb (const int* lo, const int* hi,
+                                amrex_real* dst, const int* dlo, const int* dhi,
+                                const amrex_real* src, const int* slo, const int* shi,
+                                const int* mask, const int* mlo, const int* mhi,
+                                const int* ncomp, const int* idim, const amrex_real* scale);
+
 #ifdef __cplusplus
 }
 #endif

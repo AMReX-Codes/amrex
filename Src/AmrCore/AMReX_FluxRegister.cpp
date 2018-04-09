@@ -4,7 +4,7 @@
 #include <AMReX_FLUXREG_F.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_ccse-mpi.H>
+#include <AMReX_iMultiFab.H>
 
 #include <vector>
 
@@ -512,6 +512,80 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 		}
 	    }
 	}
+    }
+}
+
+void
+FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
+                             Real scale, int srccomp, int destcomp, int numcomp,
+                             const Geometry& crse_geom)
+{
+    BL_PROFILE("FluxRegister::OverwriteFlux()");
+
+    const auto& cperiod = crse_geom.periodicity();
+
+    Box cdomain = crse_geom.Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) cdomain.grow(idim, 1);
+    }
+
+    // cell-centered mask: 0: coarse, 1: covered by fine, 2: phys bc
+    const BoxArray& cba = amrex::convert(crse_fluxes[0]->boxArray(), IntVect::TheCellVector());
+    const BoxArray& cfba = amrex::coarsen(grids, ratio);
+    iMultiFab cc_mask(cba, crse_fluxes[0]->DistributionMap(), 1, 1);
+    {
+        const std::vector<IntVect>& pshifts = cperiod.shiftIntVect();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            std::vector< std::pair<int,Box> > isects;
+
+            for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
+            {
+                IArrayBox& fab = cc_mask[mfi];
+                fab.setVal(0);  // coarse by default
+                fab.setComplement(2, cdomain, 0, 1); // phys bc
+
+                const Box& bx = fab.box();
+                for (const auto& iv : pshifts)
+                {
+                    cfba.intersections(bx+iv, isects);
+                    for (const auto& is : isects)
+                    {
+                        fab.setVal(1, is.second-iv, 0, 1);
+                    }
+                }
+            }
+        }
+    }
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        MultiFab& crse_flux = *crse_fluxes[idim];
+        MultiFab fine_flux(crse_flux.boxArray(), crse_flux.DistributionMap(),
+                           numcomp, 0);
+        fine_flux.setVal(0.0);
+
+        Orientation lo_face(idim, Orientation::low);
+        Orientation hi_face(idim, Orientation::high);
+        
+        bndry[lo_face].copyTo(fine_flux, 0, srccomp, 0, numcomp, cperiod);
+        bndry[hi_face].plusTo(fine_flux, 0, srccomp, 0, numcomp, cperiod);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(crse_flux,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_froverwrite_cfb(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_N_ANYD(crse_flux[mfi],destcomp),
+                                  BL_TO_FORTRAN_ANYD(fine_flux[mfi]),
+                                  BL_TO_FORTRAN_ANYD(cc_mask[mfi]),
+                                  &numcomp, &idim, &scale);
+        }
     }
 }
 
