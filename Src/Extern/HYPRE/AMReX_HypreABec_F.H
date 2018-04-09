@@ -97,7 +97,8 @@ extern "C" {
     void amrex_hmbc_ij(BL_FORT_FAB_ARG(bcoefs),
                     ARLIM_P(reglo), ARLIM_P(reghi),
                     const amrex::Real& beta, const amrex::Real* dx, const int& n, 
-                    HYPRE_IJMatrix &A, BL_FORT_IFAB_ARG(Index));
+                    HYPRE_IJMatrix &A, BL_FORT_IFAB_ARG(Index),
+                    const int& ndim, const int* bcFace);
     
     void amrex_hmmat(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
                      const int& cdir, const int& bct,
@@ -146,19 +147,23 @@ extern "C" {
                 const BL_FORT_FAB_ARG(bcoefs),
                 const amrex::Real& beta, const amrex::Real* dx);
 
-    void amrex_BuildGlobalIndex(BL_FORT_IFAB_ARG(Index),ARLIM_P(reglo), ARLIM_P(reghi),
+    void amrex_BuildGlobalIndex(BL_FORT_IFAB_ARG(Index),
+                                ARLIM_P(reglo), ARLIM_P(reghi),
                                 const int& numCellsProc);
     
-    void amrex_MatConvertGlobal(amrex::Real* mat, int* rows, int* cols, amrex::Real* values, int* numCols,
+    void amrex_MatConvertGlobal(amrex::Real* mat, int* rows, int* cols,
+                                amrex::Real* values, int* numCols,
                                 const int& nCSR, const int& nRows,
                                 ARLIM_P(reglo), ARLIM_P(reghi),
                                 BL_FORT_IFAB_ARG(Index), const int& nDim);
     
-    void amrex_conv_Vec_Local_Global(amrex::Real* vec,amrex::Real* VecGB,int* VecIndices,const int& nRows,
-                                     ARLIM_P(reglo), ARLIM_P(reghi),
-                                     BL_FORT_IFAB_ARG(Index) );
+  void amrex_conv_Vec_Local_Global(HYPRE_IJVector &x, amrex::Real* vec,
+                                   const int& nRows,
+                                   ARLIM_P(reglo), ARLIM_P(reghi),
+                                   BL_FORT_IFAB_ARG(Index) );
 
-    void amrex_conv_Vec_Global_Local(BL_FORT_FAB_ARG(vec), amrex::Real* VecGB, const int& nRows,
+    void amrex_conv_Vec_Global_Local(BL_FORT_FAB_ARG(vec), amrex::Real* VecGB,
+                                     const int& nRows,
                                      ARLIM_P(reglo), ARLIM_P(reghi));
 
     
