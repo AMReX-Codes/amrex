@@ -357,13 +357,13 @@ subroutine hmac_ij(a,DIMS(abox), &
   
   nrows = (reg_h3-reg_l3+1) * (reg_h2-reg_l2+1) * (reg_h1-reg_l1+1)
   
-  allocate(rows  (nrows))
-  allocate(cols  (nrows))
-  allocate(values(nrows))
-  allocate(ncols(nrows))
+  allocate(rows   (nrows))
+  allocate(cols   (nrows))
+  allocate(values (nrows))
+  allocate(ncols  (nrows))
 
   ncols(:) = 0
-  count = 0
+  count    = 0
   
   if (alpha == 0.e0_rt) then
 
@@ -459,7 +459,7 @@ end subroutine hmbc
 
 subroutine hmbc_ij(b, DIMS(bbox), DIMS(reg), &
                    beta, dx, n, &
-                   Amat, Index, DIMS(Gbox)  ) bind(C, name="amrex_hmbc_ij")
+                   Amat, Index, DIMS(Gbox), ndim, bcFace) bind(C, name="amrex_hmbc_ij")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(bbox)
@@ -469,6 +469,8 @@ subroutine hmbc_ij(b, DIMS(bbox), DIMS(reg), &
   real(rt)  :: beta, dx(3)
   integer :: DIMDEC(Gbox)
   integer :: Index(DIMV(Gbox))
+  integer, intent(in) :: ndim
+  integer,dimension(ndim) :: bcFace
   ! HYPRE objects
   integer(kind=8) :: Amat
   integer :: nrows, ncols, rows
@@ -479,36 +481,36 @@ subroutine hmbc_ij(b, DIMS(bbox), DIMS(reg), &
 
   ncols = 3
   nrows = 1
-  
+
   if (n == 0) then
 
      fac = beta / (dx(1)**2)
      do k = reg_l3, reg_h3
         do j = reg_l2, reg_h2
-           do i = reg_l1+1, reg_h1-1
+           do i = reg_l1+bcFace(1), reg_h1-bcFace(4)
               
               rows      = Index(i,j,k)
-
+              
               cols(1)   = Index(i,j,k)
               values(1) = fac * (b(i,j,k) + b(i+1,j,k))
-
+              
               cols(2)   = Index(i-1,j,k)
               values(2) = -fac * b(i,j,k)
 
               cols(3)   = Index(i+1,j,k)
               values(3) = -fac * b(i+1,j,k)
-
+              
               call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
-                            
+              
            end do
-        end do
+        end do 
      end do
 
   elseif (n == 1) then
 
      fac = beta / (dx(2)**2)
      do k = reg_l3, reg_h3
-        do j = reg_l2+1, reg_h2-1
+        do j = reg_l2+bcFace(2), reg_h2-bcFace(5)
            do i = reg_l1, reg_h1
               
               rows = Index(i,j,k)
@@ -531,7 +533,7 @@ subroutine hmbc_ij(b, DIMS(bbox), DIMS(reg), &
   else
 
      fac = beta / (dx(3)**2)
-     do k = reg_l3+1, reg_h3-1
+     do k = reg_l3+bcFace(3), reg_h3-bcFace(6)
         do j = reg_l2, reg_h2
            do i = reg_l1, reg_h1
 
@@ -705,8 +707,8 @@ subroutine hmmat_ij(DIMS(reg), &
   real(rt)         :: h, fac, bfm, bfv
   real(rt)         :: bfm2, h2, th2
   integer :: i, j, k, ierr
-  integer, dimension(2)  :: cols
-  real(rt), dimension(2) :: values
+  integer, dimension(3)  :: cols
+  real(rt), dimension(3) :: values
   integer, dimension(1) :: ncols
   integer :: rows, nrows
 
@@ -738,7 +740,7 @@ subroutine hmmat_ij(DIMS(reg), &
   endif
 
   nrows = 1
-  ncols(1) = 2
+  ncols(1) = 0
   
   if (cdir == 0) then
 
@@ -747,26 +749,28 @@ subroutine hmmat_ij(DIMS(reg), &
      do k = reg_l3, reg_h3
         do j = reg_l2, reg_h2
 
-           rows = Index(i,j,k)
-
-           cols(1) = Index(i,j,k)
-           values(1) = fac*(b(i,j,k) + b(i+1,j,k))
-           
-           cols(2) = Index(i+1,j,k)
-           values(2) = -fac * b(i+1,j,k)
-
            if (mask(i-1,j,k) > 0) then
 
-              values(1) = values(1) + bfm * b(i,j,k)
+              rows = Index(i,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(1)   = Index(i,j,k)
+              values(1) =  bfm * b(i,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(2)   = Index(i-1,j,k)
+              values(2) = fac*b(i,j,k)
               
               if (bho >= 1) then
-                 values(2) = values(2) + bfm2 * b(i,j,k)
+                 ncols(1)  = ncols(1) + 1
+                 cols(3)   = Index(i+1,j,k)
+                 values(3) =  bfm2 * b(i,j,k)
               endif
+              
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
               
            endif
 
-           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
-           
         enddo
      enddo
 
@@ -776,26 +780,26 @@ subroutine hmmat_ij(DIMS(reg), &
      do k = reg_l3, reg_h3
         do j = reg_l2, reg_h2
 
-           rows = Index(i,j,k)
-
-           cols(1) = Index(i,j,k)
-           values(1) = fac*(b(i,j,k) + b(i+1,j,k))
-           
-           cols(2) = Index(i-1,j,k)
-           values(2) = - fac * b(i,j,k)
-           
            if (mask(i+1,j,k) > 0) then
-              
-              cols(1) = Index(i,j,k)
-              values(1) = values(1) + bfm * b(i+1,j,k)
-              
+
+              rows = Index(i,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(1)   = Index(i,j,k)
+              values(1) = bfm * b(i+1,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(2)   = Index(i+1,j,k)
+              values(2) = fac * b(i+1,j,k)
+
               if (bho >= 1) then
-                 values(2) = values(2) + bfm2 * b(i+1,j,k)
+                 ncols(1)  = ncols(1) + 1
+                 cols(3)   = Index(i-1,j,k)
+                 values(3) = bfm2 * b(i+1,j,k)
               endif
 
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
            end if
-
-           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
 
         end do
      end do
@@ -806,25 +810,26 @@ subroutine hmmat_ij(DIMS(reg), &
      do k = reg_l3, reg_h3
         do i = reg_l1, reg_h1
 
-           rows = Index(i,j,k)
-
-           cols(1) = Index(i,j,k)
-           values(1) = fac*(b(i,j,k) + b(i,j+1,k))
-
-           cols(2) = Index(i,j+1,k)
-           values(2) = -fac*b(i,j+1,k)
-           
            if (mask(i,j-1,k) > 0) then
-              cols(1) = Index(i,j,k)
-              values(1) = values(1) + bfm * b(i,j,k)
+
+              rows = Index(i,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(1)   = Index(i,j,k)
+              values(1) = bfm * b(i,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(2)   = Index(i,j-1,k)
+              values(2) = fac * b(i,j,k)
               
               if (bho >= 1) then
-                 values(2) = values(2) + bfm2 * b(i,j,k)
+                 ncols(1)  = ncols(1) + 1
+                 cols(3)   = Index(i,j+1,k)
+                 values(3) = bfm2 * b(i,j,k)
               endif
 
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
            end if
-
-           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
            
         end do
      end do
@@ -836,26 +841,27 @@ subroutine hmmat_ij(DIMS(reg), &
      do k = reg_l3, reg_h3
         do i = reg_l1, reg_h1
 
-           rows = Index(i,j,k)
-
-           cols(1) = Index(i,j,k)
-           values(1) = fac*(b(i,j,k) + b(i,j+1,k))
-
-           cols(2) = Index(i,j-1,k)
-           values(2) = -fac*b(i,j,k)
-
            if (mask(i,j+1,k) > 0) then
 
-              cols(1) = Index(i,j,k)
-              values(1) = values(1) + bfm * b(i,j+1,k)
+              rows = Index(i,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(1)   = Index(i,j,k)
+              values(1) = bfm * b(i,j+1,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(2)   = Index(i,j+1,k)
+              values(2) = fac * b(i,j+1,k)
               
               if (bho >= 1) then
-                 values(2) = values(2) + bfm2 * b(i,j+1,k)
+                 ncols(1)  = ncols(1) + 1
+                 cols(3)   = Index(i,j-1,k)
+                 values(3) = bfm2 * b(i,j+1,k)
               endif
+
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
               
            endif
-
-           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
            
         end do
      end do
@@ -866,25 +872,26 @@ subroutine hmmat_ij(DIMS(reg), &
      do j = reg_l2, reg_h2
         do i = reg_l1, reg_h1
 
-           rows = Index(i,j,k)
-
-           cols(1) = Index(i,j,k)
-           values(1) = fac*(b(i,j,k) + b(i,j,k+1))
-           
-           cols(2) = Index(i,j,k+1)
-           values(2) = -fac*b(i,j,k+1)
-           
            if (mask(i,j,k-1) > 0) then
+              
+              rows = Index(i,j,k)
 
-              cols(1) = Index(i,j,k)
-              values(1) = values(1) + bfm * b(i,j,k)
+              ncols(1)  = ncols(1) + 1
+              cols(1)   = Index(i,j,k)
+              values(1) = bfm * b(i,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(2)   = Index(i,j,k-1)
+              values(2) = fac * b(i,j,k)
               
               if (bho >= 1) then
-                 values(2) = values(2) + bfm2 * b(i,j,k)
+                 ncols(1)  = ncols(1) + 1
+                 cols(3)   = Index(i,j,k+1)
+                 values(3) = bfm2 * b(i,j,k)
               end if
-           end if
 
-           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
+           end if
            
         end do
      end do
@@ -895,26 +902,27 @@ subroutine hmmat_ij(DIMS(reg), &
      do j = reg_l2, reg_h2
         do i = reg_l1, reg_h1
 
-           rows = Index(i,j,k)
-
-           cols(1) = Index(i,j,k)
-           values(1) = fac* (b(i,j,k) + b(i,j,k+1))
-           
-           cols(2) = Index(i,j,k-1)
-           values(2) = -fac*b(i,j,k)
-
            if (mask(i,j,k+1) > 0) then
 
-              cols(1) = Index(i,j,k)
-              values(1) = values(1) + bfm * b(i,j,k+1)
+              rows = Index(i,j,k)
+
+              ncols(1)  = ncols(1) + 1
+              cols(1)   = Index(i,j,k)
+              values(1) = bfm * b(i,j,k+1)
+
+              ncols(1)  = ncols(1) + 1
+              cols(2)   = Index(i,j,k+1)
+              values(2) = fac * b(i,j,k+1)
               
               if (bho >= 1) then
-                 values(2) = values(2) + bfm2 * b(i,j,k+1)
+                 ncols(1)  = ncols(1) + 1
+                 cols(3)   = Index(i,j,k-1)
+                 values(3) = bfm2 * b(i,j,k+1)
               end if
+
+              call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
               
            end if
-
-           call HYPRE_IJMatrixAddToValues(Amat, nrows, ncols, rows, cols, values, ierr)
            
         end do
      end do
@@ -1186,6 +1194,7 @@ subroutine hmmat3_ij(DIMS(reg), &
   else
      h = dx(3)
   endif
+  
   bct = bctype
   fac = beta / (h**2)
   if (cdir == 0) then
@@ -1491,8 +1500,8 @@ subroutine BuildGlobalIndex(Index, &
 end subroutine BuildGlobalIndex
 
 
-subroutine conv_Vec_Local_Global(vec, VecGB, Indices, nRows, &
-     DIMS(reg),Index, DIMS(bbox)) bind(C, name="amrex_conv_Vec_Local_Global")
+subroutine conv_Vec_Local_Global(X, vec, nRows, &
+     DIMS(reg), Index, DIMS(bbox)) bind(C, name="amrex_conv_Vec_Local_Global")
 
   use amrex_fort_module, only : rt => amrex_real
   integer :: DIMDEC(bbox)
@@ -1500,9 +1509,10 @@ subroutine conv_Vec_Local_Global(vec, VecGB, Indices, nRows, &
   integer :: Index(DIMV(bbox))
   integer :: nRows
   real(rt) :: vec(DIMV(reg))
+  integer(kind=8) :: X
   real(rt) :: VecGB(0:(nRows-1))
-  integer :: Indices(0:(nRows-1))
-  integer :: i, j, k, count
+  integer  :: Indices(0:(nRows-1))
+  integer :: i, j, k, count, ierr
 
   count = 0
 
@@ -1518,6 +1528,8 @@ subroutine conv_Vec_Local_Global(vec, VecGB, Indices, nRows, &
         end do
      end do
   end do
+
+  call HYPRE_IJVectorSetValues(X,nRows,Indices,VecGB, ierr)
 
 end subroutine conv_Vec_Local_Global
 
