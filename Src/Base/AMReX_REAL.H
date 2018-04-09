@@ -64,11 +64,21 @@ namespace amrex {
   when compiling any module that uses floating-point.
 */
 
+#ifdef NAGFOR
+#ifndef CONCAT
+#define IDENTITY(a) a
+#define CONCAT(a,b) IDENTITY(a)IDENTITY(b)
+#endif
+#endif
+
 #ifdef BL_USE_FLOAT
 #    define REAL_T REAL
 #if __STDC__==1 || defined(__INTEL_COMPILER)
 #        define BL_REAL(a) a##E0
 #        define BL_REAL_E(a,b) a##E##b
+#elif NAGFOR
+#        define BL_REAL(a) CONCAT(a,E0)
+#        define BL_REAL_E(a,b) CONCAT(,CONCAT(E,b))
 #else
 #        define BL_REAL(a) a/**/E0
 #        define BL_REAL_E(a,b) a/**/E/**/b
@@ -78,6 +88,9 @@ namespace amrex {
 #if __STDC__==1 || defined(__INTEL_COMPILER)
 #        define BL_REAL(a) a##D0
 #        define BL_REAL_E(a,b) a##D##b
+#elif NAGFOR
+#        define BL_REAL(a) CONCAT(a,D0)
+#        define BL_REAL_E(a,b) CONCAT(,CONCAT(D,b))
 #else
 #        define BL_REAL(a) a/**/D0
 #        define BL_REAL_E(a,b) a/**/D/**/b

@@ -111,6 +111,55 @@
 #define DIMARG(a) a##(1),a##(2),a##(3)
 #endif
 
+#elif NAGFOR
+
+#ifndef CONCAT
+#define IDENTITY(a) a
+#define CONCAT(a,b) IDENTITY(a)IDENTITY(b)
+#endif
+
+#if (AMREX_SPACEDIM == 1)
+#define DIMS(a) CONCAT(a,_l1), CONCAT(a,_h1)
+#define DIMDEC(a) CONCAT(a,_l1), CONCAT(a,_h1)
+#define DIMV(a) CONCAT(a,_l1):CONCAT(a,_h1)
+#define DIM1(a) CONCAT(a,_l1):CONCAT(a,_h1)
+#define ARG_L1(a) CONCAT(a,_l1)
+#define ARG_H1(a) CONCAT(a,_h1)
+#define DIMARG(a) CONCAT(a,(1))
+#endif
+
+#if (AMREX_SPACEDIM == 2)
+#define DIMS(a) CONCAT(a,_l1), CONCAT(a,_l2), CONCAT(a,_h1), CONCAT(a,_h2)
+#define DIMDEC(a) CONCAT(a,_l1), CONCAT(a,_l2), CONCAT(a,_h1), CONCAT(a,_h2)
+#define DIMV(a) CONCAT(a,_l1):CONCAT(a,_h1), CONCAT(a,_l2):CONCAT(a,_h2)
+#define DIM1(a) CONCAT(a,_l1):CONCAT(a,_h1)
+#define DIM2(a) CONCAT(a,_l2):CONCAT(a,_h2)
+#define ARG_L1(a) CONCAT(a,_l1)
+#define ARG_L2(a) CONCAT(a,_l2)
+#define ARG_H1(a) CONCAT(a,_h1)
+#define ARG_H2(a) CONCAT(a,_h2)
+#define DIMARG(a) CONCAT(a,(1)),CONCAT(a,(2))
+#endif
+
+#if (AMREX_SPACEDIM == 3)
+#define DIMS(a) CONCAT(a,_l1), CONCAT(a,_l2), CONCAT(a,_l3), CONCAT(a,_h1), CONCAT(a,_h2), CONCAT(a,_h3)
+#define DIMDEC(a) CONCAT(a,_l1), CONCAT(a,_l2), CONCAT(a,_l3), CONCAT(a,_h1), CONCAT(a,_h2), CONCAT(a,_h3)
+#define DIMV(a) CONCAT(a,_l1):CONCAT(a,_h1), CONCAT(a,_l2):CONCAT(a,_h2), CONCAT(a,_l3):CONCAT(a,_h3)
+#define DIM1(a) CONCAT(a,_l1):CONCAT(a,_h1)
+#define DIM2(a) CONCAT(a,_l2):CONCAT(a,_h2)
+#define DIM3(a) CONCAT(a,_l3):CONCAT(a,_h3)
+#define DIM12(a) CONCAT(a,_l1):CONCAT(a,_h1), CONCAT(a,_l2):CONCAT(a,_h2)
+#define DIM23(a) CONCAT(a,_l2):CONCAT(a,_h2), CONCAT(a,_l3):CONCAT(a,_h3)
+#define DIM13(a) CONCAT(a,_l1):CONCAT(a,_h1), CONCAT(a,_l3):CONCAT(a,_h3)
+#define ARG_L1(a) CONCAT(a,_l1)
+#define ARG_L2(a) CONCAT(a,_l2)
+#define ARG_L3(a) CONCAT(a,_l3)
+#define ARG_H1(a) CONCAT(a,_h1)
+#define ARG_H2(a) CONCAT(a,_h2)
+#define ARG_H3(a) CONCAT(a,_h3)
+#define DIMARG(a) CONCAT(a,(1)),CONCAT(a,(2)),CONCAT(a,(3))
+#endif
+
 #else
 
 #if (AMREX_SPACEDIM == 1)
