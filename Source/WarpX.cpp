@@ -47,6 +47,8 @@ Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 
 bool WarpX::do_dynamic_scheduling = false;
 
+bool WarpX::alloc_level_0_aux = false;
+
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
@@ -334,6 +336,8 @@ WarpX::ReadParameters ()
         pp.query("load_balance_int", load_balance_int);
 
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
+
+        pp.query("alloc_level_0_aux", alloc_level_0_aux);
     }
 
     {
@@ -421,15 +425,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     //
     // The Aux patch (i.e., the full solution)
     //
-    if (lev == 0)
+    if (lev == 0 and not alloc_level_0_aux)
     {
-        Bfield_aux[lev][0].reset(new MultiFab(*Bfield_fp[lev][0], amrex::make_alias, 0, 1));
-        Bfield_aux[lev][1].reset(new MultiFab(*Bfield_fp[lev][1], amrex::make_alias, 0, 1));
-        Bfield_aux[lev][2].reset(new MultiFab(*Bfield_fp[lev][2], amrex::make_alias, 0, 1));
-
-        Efield_aux[lev][0].reset(new MultiFab(*Efield_fp[lev][0], amrex::make_alias, 0, 1));
-        Efield_aux[lev][1].reset(new MultiFab(*Efield_fp[lev][1], amrex::make_alias, 0, 1));
-        Efield_aux[lev][2].reset(new MultiFab(*Efield_fp[lev][2], amrex::make_alias, 0, 1));
+        for (int idir = 0; idir < 3; ++idir) {
+            Efield_aux[lev][idir].reset(new MultiFab(*Efield_fp[lev][idir], amrex::make_alias, 0, 1));
+            Bfield_aux[lev][idir].reset(new MultiFab(*Bfield_fp[lev][idir], amrex::make_alias, 0, 1));
+        }
     }
     else
     {

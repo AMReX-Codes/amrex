@@ -10,7 +10,7 @@
 using namespace amrex;
 
 void
-WarpX::Evolve(int numsteps) {
+WarpX::Evolve (int numsteps) {
     BL_PROFILE("WarpX::Evolve()");
 
     if (do_electrostatic) {
@@ -21,7 +21,7 @@ WarpX::Evolve(int numsteps) {
 }
 
 void
-WarpX::EvolveES(int numsteps) {
+WarpX::EvolveES (int numsteps) {
 
     amrex::Print() << "Running in electrostatic mode \n";
 

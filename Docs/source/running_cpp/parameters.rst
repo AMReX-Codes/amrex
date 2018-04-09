@@ -89,6 +89,9 @@ Distribution across MPI ranks and parallelization
 * ``warpx.do_dynamic_scheduling`` (`0` or `1`)
     Whether to use OpenMP dynamic scheduling
 
+* ``warpx.alloc_level_0_aux``
+    Whether to allocate memory for the level 0 auxillary data or use an alias
+
 Particle initialization
 -----------------------
 
