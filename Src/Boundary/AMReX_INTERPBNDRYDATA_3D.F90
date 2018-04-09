@@ -142,7 +142,7 @@ contains
 
                      derives(jc,kc,XYDER) = zero
                   else
-                     derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n) &
+                     derives(jc,kc,XYDER) = fourth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n) &
                           + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
                   end if
                end do
@@ -297,7 +297,7 @@ contains
                      
                      derives(jc,kc,XYDER) = zero
                   else
-                     derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n) &
+                     derives(jc,kc,XYDER) = fourth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n) &
                           + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
                   end if
 
@@ -453,7 +453,7 @@ contains
                      
                      derives(ic,kc,XYDER) = zero
                   else
-                     derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n) &
+                     derives(ic,kc,XYDER) = fourth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n) &
                           + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
                   end if
 
@@ -609,7 +609,7 @@ contains
 
                      derives(ic,kc,XYDER) = zero
                   else
-                     derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n) &
+                     derives(ic,kc,XYDER) = fourth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n) &
                           + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
                   end if
                end do
@@ -762,7 +762,7 @@ contains
                      
                      derives(ic,jc,XYDER) = zero
                   else
-                     derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n) &
+                     derives(ic,jc,XYDER) = fourth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n) &
                           + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
                   end if
                end do
@@ -917,7 +917,7 @@ contains
                      
                      derives(ic,jc,XYDER) = zero
                   else
-                     derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n) &
+                     derives(ic,jc,XYDER) = fourth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n) &
                           + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
                   end if
                end do
