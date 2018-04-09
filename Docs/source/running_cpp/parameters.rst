@@ -74,7 +74,7 @@ Distribution across MPI ranks and parallelization
     of the coarsest level, but also to any of the finer level.
 
 * ``warpx.load_balance_int`` (`integer`)
-    How often WarpX should try to redistribution the work across MPI ranks,
+    How often WarpX should try to redistribute the work across MPI ranks,
     in order to have better load balancing (expressed in number of PIC cycles
     inbetween two consecutive attempts at redistributing the work).
     Use 0 to disable load_balancing.
