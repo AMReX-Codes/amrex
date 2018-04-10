@@ -88,6 +88,11 @@ WarpX::InitFromScratch ()
         // the plus one is to convert from num_cells to num_nodes
         getLevelMasks(gather_masks, n_buffer + 1);
     }
+
+// mthevenet
+    if (use_fdtd_nci_corr) {
+        InitNCICorrector();
+    }
 }
 
 void
@@ -116,6 +121,38 @@ WarpX::ComputePMLFactors ()
         {
             pml[lev]->ComputePMLFactors(dt[lev],pml_type);
         }
+    }
+}
+
+
+
+//SUBROUTINE init_godfrey_filter_coeffs(stencilz_ex, stencilz_by, nstencilz, cdtodz, l_lower_order_in_v)
+
+
+void
+WarpX::InitNCICorrector ()
+{
+    if (use_fdtd_nci_corr)
+    {
+        const int nstencilz=5;
+        std::array<amrex::Real, 5> stencilz_ex = {4,0,0,0,0};
+        std::array<amrex::Real, 5> stencilz_by;
+        const int l_lower_order_in_v = 0;
+        const amrex::Real cdtodz=0.5;
+        std::cout << "#############################\n";
+        std::cout << "#############################\n";
+        std::cout << "#############################\n";
+        std::cout << nstencilz << "\n";
+        std::cout << "#############################\n";
+        std::cout << "Initialize corr coeffs\n";
+        std::cout << stencilz_ex[0] << "\n";
+        std::cout << "#############################\n";
+        WRPX_PXR_NCI_CORR_INIT(stencilz_ex.data(),stencilz_by.data(), nstencilz, cdtodz, l_lower_order_in_v);
+        std::cout << stencilz_ex[0] << "\n";
+        std::cout << "#############################\n";
+        std::cout << "#############################\n";
+        std::cout << "#############################\n";
+        std::cout << "#############################\n";
     }
 }
 

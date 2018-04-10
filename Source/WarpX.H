@@ -77,6 +77,7 @@ public:
 
     static bool use_laser;
     static bool use_filter;
+    static bool use_fdtd_nci_corr;
     static bool serialize_ics;
 
     // Back transformation diagnostic
@@ -250,6 +251,9 @@ private:
     void ComputePMLFactors ();
 
     void InitDiagnostics ();
+
+// mthevenet
+    void InitNCICorrector ();
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;

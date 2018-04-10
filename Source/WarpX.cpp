@@ -39,6 +39,7 @@ long WarpX::noz = 1;
 
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
+bool WarpX::use_fdtd_nci_corr = false;
 bool WarpX::serialize_ics     = false;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
@@ -278,6 +279,7 @@ WarpX::ReadParameters ()
 
 	pp.query("use_laser", use_laser);
 	pp.query("use_filter", use_filter);
+	pp.query("use_fdtd_nci_corr", use_fdtd_nci_corr);
 	pp.query("serialize_ics", serialize_ics);
         pp.query("do_dive_cleaning", do_dive_cleaning);
 

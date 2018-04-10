@@ -58,6 +58,7 @@
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_2d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_2d
+#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 
 #endif
 
@@ -384,6 +385,8 @@ extern "C"
     
     void WRPX_FILTER(const amrex_real*, const int*, const int*,
                      amrex_real*, const int*, const int*, int);
+
+    void WRPX_PXR_NCI_CORR_INIT(amrex::Real* stencilz_ex,amrex::Real* stencilz_by, const int nstencilz, const amrex::Real cdtodz, const int l_lower_order_in_v);
 
 #ifdef __cplusplus
 }
