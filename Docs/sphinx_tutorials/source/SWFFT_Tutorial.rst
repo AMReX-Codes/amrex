@@ -9,6 +9,11 @@ Tutorials/SWFFT
 
 This Tutorial demonstrates how to call the SWFFT wrapper to the FFTW3 solver.
 
+Note that the SWFFT source code was developed by Adrian Pope and colleagues and
+is available at:
+
+https://xgitlab.cels.anl.gov/hacc/SWFFT
+
 In this test case we set up a right hand side (rhs), call the forward transform,
 modify the coefficients, then call the backward solver and output the solution
 to the discrete Poisson equation.
