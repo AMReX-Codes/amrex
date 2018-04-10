@@ -5,6 +5,8 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
+#include <WarpXWrappers.h>
+
 
 using namespace amrex;
 
@@ -467,7 +469,7 @@ PhysicalParticleContainer::FieldGather (int lev,
 	    // Field Gather
 	    //
 	    const int ll4symtry          = false;
-	    const int l_lower_order_in_v = true;
+	    const int l_lower_order_in_v = warpx_l_lower_order_in_v();
             long lvect_fieldgathe = 64;
 	    warpx_geteb_energy_conserving(
 	       &np, xp.data(), yp.data(), zp.data(),
@@ -704,7 +706,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
                 const int ll4symtry          = false;
-                const int l_lower_order_in_v = true;
+                // mthevenet
+                const int l_lower_order_in_v = warpx_l_lower_order_in_v();
                 long lvect_fieldgathe = 64;
                 BL_PROFILE_VAR_START(blp_pxr_fg);
                 warpx_geteb_energy_conserving(

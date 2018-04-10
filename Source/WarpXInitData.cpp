@@ -5,6 +5,7 @@
 
 #include <WarpX.H>
 #include <WarpX_f.H>
+#include <WarpXWrappers.h>
 
 using namespace amrex;
 
@@ -28,6 +29,11 @@ WarpX::InitData ()
     }
 
     ComputePMLFactors();
+
+// mthevenet
+    if (warpx_use_fdtd_nci_corr()) {
+        InitNCICorrector();
+    }
 
     InitDiagnostics();
 
@@ -88,11 +94,6 @@ WarpX::InitFromScratch ()
         // the plus one is to convert from num_cells to num_nodes
         getLevelMasks(gather_masks, n_buffer + 1);
     }
-
-// mthevenet
-    if (use_fdtd_nci_corr) {
-        InitNCICorrector();
-    }
 }
 
 void
@@ -124,35 +125,45 @@ WarpX::ComputePMLFactors ()
     }
 }
 
-
-
-//SUBROUTINE init_godfrey_filter_coeffs(stencilz_ex, stencilz_by, nstencilz, cdtodz, l_lower_order_in_v)
-
-
 void
 WarpX::InitNCICorrector ()
 {
-    if (use_fdtd_nci_corr)
+    if (warpx_use_fdtd_nci_corr())
     {
-        const int nstencilz=5;
-        std::array<amrex::Real, 5> stencilz_ex = {4,0,0,0,0};
-        std::array<amrex::Real, 5> stencilz_by;
-        const int l_lower_order_in_v = 0;
-        const amrex::Real cdtodz=0.5;
-        std::cout << "#############################\n";
-        std::cout << "#############################\n";
-        std::cout << "#############################\n";
-        std::cout << nstencilz << "\n";
-        std::cout << "#############################\n";
-        std::cout << "Initialize corr coeffs\n";
-        std::cout << stencilz_ex[0] << "\n";
-        std::cout << "#############################\n";
-        WRPX_PXR_NCI_CORR_INIT(stencilz_ex.data(),stencilz_by.data(), nstencilz, cdtodz, l_lower_order_in_v);
-        std::cout << stencilz_ex[0] << "\n";
-        std::cout << "#############################\n";
-        std::cout << "#############################\n";
-        std::cout << "#############################\n";
-        std::cout << "#############################\n";
+        const Geometry& gm = Geom(finest_level);
+        const Real* dx = gm.CellSize();
+        Real dz, cdtodz;
+//         std::cout << dx[0] << ' ' << dx[1] << ' ' << dx[2] << '\n';
+//         std::cout << dt[finest_level] << ' ' <<  dt[0] << '\n';
+//         std::cout << PhysConst::c << '\n';
+        if (BL_SPACEDIM == 3){ dz = dx[2]; }
+        else{ dz = dx[1]; }
+        cdtodz = PhysConst::c * dt[finest_level] / dz;
+        const int l_lower_order_in_v = warpx_l_lower_order_in_v();
+        // std::cout << mypc.fdtd_nci_stencilz_ex()[0] << '\n';
+        // std::cout << mypc.fdtd_nci_stencilz_ex()[1] << '\n';
+    	// auto & mypc = WarpX::GetInstance().GetPartContainer();
+    	auto & mypc = WarpX::GetInstance().GetPartContainer();
+        const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
+        std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex;
+        std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by;
+        fdtd_nci_stencilz_ex = mypc.fdtd_nci_stencilz_ex;
+        fdtd_nci_stencilz_by = mypc.fdtd_nci_stencilz_by;
+        for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
+            std::cout << fdtd_nci_stencilz_ex[i] << '\n';
+        }
+//         const int nstencilz=5;
+//         amrex::Real* stencilz_ex;
+//         amrex::Real* stencilz_by;
+//         stencilz_ex = new amrex::Real [nstencilz];
+//         stencilz_by = new amrex::Real [nstencilz];
+        WRPX_PXR_NCI_CORR_INIT(mypc.fdtd_nci_stencilz_ex.data(), mypc.fdtd_nci_stencilz_by.data(), nstencilz_fdtd_nci_corr, cdtodz, l_lower_order_in_v);
+        for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
+            std::cout << fdtd_nci_stencilz_ex[i] << '\n';
+        }
+        for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
+            std::cout << mypc.fdtd_nci_stencilz_ex[i] << '\n';
+        }
     }
 }
 

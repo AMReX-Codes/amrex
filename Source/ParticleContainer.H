@@ -141,6 +141,23 @@ public:
 
     int nSpecies() {return nspecies;}
 
+    int L_lower_order_in_v() {return l_lower_order_in_v;}
+
+    bool Use_fdtd_nci_corr() {return use_fdtd_nci_corr;}
+
+    static const int nstencilz_fdtd_nci_corr=5;
+
+    std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex;
+    std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by;
+
+//     amrex::Real* fdtd_nci_stencilz_ex=NULL;
+// 
+//     amrex::Real* fdtd_nci_stencilz_by=NULL;
+// 
+//     fdtd_nci_stencilz_ex = new amrex::Real [5];
+// 
+//     fdtd_nci_stencilz_by = new amrex::Real [5];
+
 protected:
 
     std::vector<std::string> species_names;
@@ -155,5 +172,8 @@ private:
     // runtime parameters
     int nspecies = 1;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
 
+    int l_lower_order_in_v = true;
+
+    bool use_fdtd_nci_corr = false;
 };
 #endif /*WARPX_ParticleContainer_H_*/

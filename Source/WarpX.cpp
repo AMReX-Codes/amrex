@@ -32,6 +32,10 @@ long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
+// mthevenet
+// int WarpX::l_lower_order_in_v = 1;
+// WarpX::stencilz_ex = new amrex::Real [WarpX::nstencilz];
+// WarpX::stencilz_by = new amrex::Real [WarpX::nstencilz];
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
@@ -39,7 +43,8 @@ long WarpX::noz = 1;
 
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
-bool WarpX::use_fdtd_nci_corr = false;
+// mthevenet
+// bool WarpX::use_fdtd_nci_corr = false;
 bool WarpX::serialize_ics     = false;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
@@ -279,7 +284,8 @@ WarpX::ReadParameters ()
 
 	pp.query("use_laser", use_laser);
 	pp.query("use_filter", use_filter);
-	pp.query("use_fdtd_nci_corr", use_fdtd_nci_corr);
+// mthevenet
+// 	pp.query("use_fdtd_nci_corr", use_fdtd_nci_corr);
 	pp.query("serialize_ics", serialize_ics);
         pp.query("do_dive_cleaning", do_dive_cleaning);
 
@@ -358,6 +364,8 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
+    // mthevenet
+	// pp.query("l_lower_order_in_v", l_lower_order_in_v);
     }
 }
 
