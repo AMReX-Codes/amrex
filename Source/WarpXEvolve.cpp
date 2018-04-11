@@ -215,59 +215,50 @@ WarpX::EvolveEM (int numsteps)
 
         // mthevenet
         
+
+
+
+
+
         const int nstencilz_fdtd_nci_corr = mypc->nstencilz_fdtd_nci_corr;
-//         std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex;
-//         std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by;
-//         fdtd_nci_stencilz_ex = mypc.fdtd_nci_stencilz_ex;
-//         fdtd_nci_stencilz_by = mypc.fdtd_nci_stencilz_by;
-//         for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
-//             std::cout << fdtd_nci_stencilz_ex[i] << '\n';
-//         }
-//         const int nstencilz=5;
-//         amrex::Real* stencilz_ex;
-//         amrex::Real* stencilz_by;
-//         stencilz_ex = new amrex::Real [nstencilz];
-//         stencilz_by = new amrex::Real [nstencilz];
-        for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
-            std::cout << mypc->fdtd_nci_stencilz_ex[i] << '\n';
-        }
+//         amrex::Real* fdtd_nci_stencilz_ex;
+//         std::array<amrex::Real, 5> fdtd_nci_stencilz_ex=mypc->fdtd_nci_stencilz_ex;
+
+
+//        for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
+//            std::cout << mypc->fdtd_nci_stencilz_ex[i] << '\n';
+// //            fdtd_nci_stencilz_ex[i] = mypc->fdtd_nci_stencilz_ex[i];
+//        }
 
 //      WRPX_PXR_NCI_FILTER_2D(*Efield_aux[finest_level][0].box().dataPtr(), mypc->fdtd_nci_stencilz_ex, my_nx, my_nz, my_ng, my_ng, nstencilz_fdtd_nci_corr)
 //     void WRPX_PXR_NCI_FILTER_2D(field, stencil, nx, nz, nxguard, nzguard, nz_stencil)
 
-        MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
+//         auto & mypc2 = WarpX::GetInstance().GetPartContainer();
+
+        MultiFab *Ex;
         Ex = Efield_aux[finest_level][0].get();
-        Ey = Efield_aux[finest_level][1].get();
-        Ez = Efield_aux[finest_level][2].get();
-        Bx = Bfield_aux[finest_level][0].get();
-        By = Bfield_aux[finest_level][1].get();
-        Bz = Bfield_aux[finest_level][2].get();
-//         MultiFab* cost = costs[lev].get();
-//         const IntVect& rr = (lev < finestLevel()) ? refRatio(lev) : IntVect::TheUnitVector();
+        for ( MFIter mfi(*Ex,false); mfi.isValid(); ++mfi )
+       {
+            const Box& tex  = mfi.fabbox();
+//          test( tex.loVect(),tex.hiVect(), BL_TO_FORTRAN_3D((*Ex)[mfi]), mypc->fdtd_nci_stencilz_ex.data());
+//         test2( tex.loVect(), tex.hiVect(), mypc->fdtd_nci_stencilz_ex.data(), BL_TO_FORTRAN_3D((*Ex)[mfi]));
 
-        // Loop through the grids, and over the tiles within each grid
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-        for ( MFIter mfi(*Bx,false); mfi.isValid(); ++mfi )
-        {
-            const Box& tbx  = mfi.fabbox();
-            const Box& tby  = mfi.fabbox();
-            const Box& tbz  = mfi.fabbox();
-//             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
-//             const Box& tby  = mfi.tilebox(By_nodal_flag);
-//             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
-            // Call picsar routine for each tile
-//      WRPX_PXR_NCI_FILTER_2D(*Efield_aux[finest_level][0].box().dataPtr(), mypc->fdtd_nci_stencilz_ex, tbx.loVect(), my_nz, my_ng, my_ng, nstencilz_fdtd_nci_corr)
-//             auto & mypc = WarpX::GetInstance().GetPartContainer();
-//             WRPX_PXR_NCI_FILTER_2D(
-//                 BL_TO_FORTRAN_3D((*Ex)[mfi]),
-//                 mypc.fdtd_nci_stencilz_ex.data(),
-//                 tbx.hiVect(), 
-//                 tbz.hiVect(),
-//                 3, 3, nstencilz_fdtd_nci_corr);
+// void WRPX_PXR_NCI_FILTER_2D(amrex::Real*, const int*, const int*, const amrex::Real*, const int*, const int*, const int);
+
+
+
+// void WRPX_PXR_NCI_FILTER_2D(amrex::Real*, const amrex::Real*, const int*, const int*,const int);
+            WRPX_PXR_NCI_FILTER_2D( BL_TO_FORTRAN_3D((*Ex)[mfi]),
+                                    mypc->fdtd_nci_stencilz_ex.data(),
+                                    tex.loVect(), 
+                                    tex.hiVect(),
+                                    4,
+                                    4,
+                                    nstencilz_fdtd_nci_corr);
         }
+
+// void WRPX_PXR_NCI_FILTER_2D(amrex::Real*, const amrex::Real*, const int*, const int*, const int);
 
 
 
