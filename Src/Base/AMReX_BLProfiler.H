@@ -582,21 +582,21 @@ class BLProfiler
 //      to allow profiling the BL_PROFILE with additional flag.
 // ============================================================
 
-#if defined(VTUNE)
+#if defined(AMREX_VTUNE)
 
 #define TP_PROFILE_REGION_START()   __itt_resume(); \
 amrex::Print() << "VTune regional recording has begun.\n";
 #define TP_PROFILE_REGION_STOP()    __itt_pause(); \
 amrex::Print() << "VTune regional recording has been stopped.\n";
 
-#elif defined(CRAYPAT)
+#elif defined(AMREX_CRAYPAT)
 
 #define TP_PROFILE_REGION_START()   PAT_record(PAT_STATE_ON); \
 amrex::Print() << "CrayPat regional recording has begun.\n";
 #define TP_PROFILE_REGION_STOP()    PAT_record(PAT_STATE_OFF); \
 amrex::Print() << "CrayPat regional recording has been stopped.\n";
 
-#elif defined(FORGE)
+#elif defined(AMREX_FORGE)
 
 #define TP_PROFILE_REGION_START()   allinea_start_sampling(); \
 amrex::Print() << "MAP regional recording has begun.\n"; 
