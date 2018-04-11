@@ -1133,7 +1133,7 @@ Amr::readProbinFile (int& a_init)
             //
             piStart = ParallelDescriptor::second();
 
-#ifdef DIMENSION_AGNOSTIC
+#ifdef AMREX_DIMENSION_AGNOSTIC
 
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
