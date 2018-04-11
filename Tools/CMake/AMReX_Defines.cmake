@@ -157,6 +157,8 @@ add_define ( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES )
 
 add_define ( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS ) 
 
+add_define ( AMREX_NO_STRICT_PREFIX )
+
 # More profiling stuff
 add_define ( VTUNE IF ENABLE_VTUNE)
 
