@@ -1,4 +1,4 @@
-DEFINES += -DCRAYPAT
+DEFINES += -DAMREX_CRAYPAT
 
 ifeq ($(which_site),nersc)
 

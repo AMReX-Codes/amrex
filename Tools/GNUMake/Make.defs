@@ -465,7 +465,7 @@ ifeq ($(TP_PROFILING),CRAYPAT)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
 endif
 
-ifeq ($(TP_PROFILING),forge)
+ifeq ($(TP_PROFILING),FORGE)
   $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
 endif
