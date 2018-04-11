@@ -203,7 +203,7 @@ ifeq ($(MAKECMDGOALS),check_fortran)
 endif
 
 ifeq ($(DEBUG),TRUE)
-    CPPFLAGS	+= -DDEBUG
+    CPPFLAGS	+= -DAMREX_DEBUG
     DebugSuffix := .DEBUG
 else
     CPPFLAGS	+= -DNDEBUG

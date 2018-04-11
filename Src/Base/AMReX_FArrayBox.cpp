@@ -23,7 +23,7 @@ namespace amrex {
 
 bool FArrayBox::initialized = false;
 
-#if defined(DEBUG) || defined(BL_TESTING)
+#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
 bool FArrayBox::do_initval = true;
 bool FArrayBox::init_snan  = true;
 #else
