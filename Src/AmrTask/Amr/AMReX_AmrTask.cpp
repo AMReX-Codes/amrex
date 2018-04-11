@@ -3053,7 +3053,7 @@ const Vector<BoxArray>& Amr::getInitialBA()
   return initial_ba;
 }
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
 void 
 Amr::RedistributeParticles ()
 {
