@@ -20,7 +20,7 @@ set (CMAKE_CXX_EXTENSIONS OFF)
 #
 # Always verbose output during make
 # 
-set ( CMAKE_VERBOSE_MAKEFILE on )
+# set ( CMAKE_VERBOSE_MAKEFILE on )
 
 #
 # Set the search path for cmake modules
