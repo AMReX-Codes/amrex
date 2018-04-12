@@ -1,8 +1,11 @@
 cmake_minimum_required (VERSION 3.5)
 
+
 project (AMReX)
 
+# 
 # Define the languages used by the project
+# 
 enable_language (C)
 enable_language (CXX)
 enable_language (Fortran)
@@ -25,15 +28,18 @@ set ( CMAKE_VERBOSE_MAKEFILE on )
 set ( CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/Tools/CMake )
 
 #
+# Include module with custom macros and functions
+#
+include ( AMReX_Utils )
+
+#
 # Initialize all the global variables
 #
 include ( AMReX_CMakeVariables )
 
 #
-# Include modules with options, and custom macro and functions
+# Load AMReX options 
 #
-include ( AMReX_Utils )
-include ( AMReX_Version )
 include ( AMReX_Options )
 
 #
@@ -41,14 +47,12 @@ include ( AMReX_Options )
 # 
 include ( AMReX_Config )
 
+# 
 # Source files for all binaries and libraries found under src
+# 
 add_subdirectory (Src)
 
 #
 # Tutorials
 #
 add_subdirectory (Tutorials)
-#include (AMReX_BuildTutorials)
-
-# Source file for postprocess exes
-#add_subdirectory(Tools/Postprocessing/F_Src) 

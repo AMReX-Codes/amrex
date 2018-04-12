@@ -170,31 +170,6 @@ function (prepend list prefix)
 endfunction ()
 
 
-#
-# Find Git Version
-#
-
-#
-# Find Git Version
-#
-function (find_git_version version)
-
-   set (output "")
-   
-   # Check whether .git is present and git installed
-   if (EXISTS ${CMAKE_SOURCE_DIR}/.git AND ${GIT_FOUND})
-      execute_process ( COMMAND git describe --abbrev=12 --dirty --always --tags
-	 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-	 OUTPUT_VARIABLE output )
-      string (STRIP ${output} output)
-   endif ()
-
-   set ( ${version} ${output} PARENT_SCOPE )
-
-endfunction ()
-
-
-
 
 #
 #  USE AT YOUR OWN RISK
