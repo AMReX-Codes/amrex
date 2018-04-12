@@ -406,7 +406,9 @@ void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
     // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
+    // int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
+    // mthevenet
+    int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox + 2;  // Always even number
     int ngJ = ngE;
     int ngRho = ngE;
     int ngF = (do_moving_window) ? 2 : 0;

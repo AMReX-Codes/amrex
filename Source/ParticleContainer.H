@@ -148,7 +148,12 @@ public:
     static const int nstencilz_fdtd_nci_corr=5;
 
     std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex;
+
     std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by;
+
+//     std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex = {3.35473798e-01, 2.38950703e-01, 8.21874246e-02, 1.09767377e-02, 1.48236296e-04};
+// 
+//     std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by = {3.35827725e-01, 2.38911393e-01, 8.19829992e-02, 1.10074013e-02, 1.84343902e-04};
 
 //     amrex::Real* fdtd_nci_stencilz_ex=NULL;
 // 
