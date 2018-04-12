@@ -147,15 +147,8 @@ print_option ( ENABLE_BACKTRACE )
 option ( ENABLE_PROFPARSER "Enable profile parser" OFF)
 print_option ( ENABLE_PROFPARSER )
 
-option ( ENABLE_VTUNE "Enable VTune" OFF)
-print_option ( ENABLE_VTUNE )
-
-option ( ENABLE_CRAYPAT "Enable CrayPat" OFF)
-print_option ( ENABLE_CRAYPAT )
-
-option ( ENABLE_ALLINEA "Enable Allinea MAP" OFF)
-print_option ( ENABLE_ALLINEA )
-
+set ( TP_PROFILE "" CACHE STRING "Third-party profiling options:<CRAYPAT,FORGE,VTUNE>")
+print_option ( TP_PROFILE )
 
 
 # Modify the profiling options if needed ( because of dependencies between
@@ -174,16 +167,18 @@ if (ENABLE_BASE_PROFILE)
    set (ENABLE_TINY_PROFILE OFF)
 endif()
 
-# Check consistency of options
-if (  (ENABLE_VTUNE   AND ENABLE_CRAYPAT) OR
-      (ENABLE_VTUNE   AND ENABLE_ALLINEA) OR
-      (ENABLE_ALLINEA AND ENABLE_CRAYPAT) )
-   message ( FATAL_ERROR
-      "Please select ONLY one of ENABLE_VTUNE, ENABLE_CRAYPAT, ENABLE_ALLINEA and re-configure" )
+
+# Check profile options
+if (  NOT ( ${CMAKE_CXX_COMPILER_ID} MATCHES "Intel" )  AND
+      ( ${TP_PROFILE} MATCHES "VTUNE" ) )
+   message (WARNING "Cannot use VTUNE with ${CMAKE_CXX_COMPILER_ID} compiler: ignoring TP_PROFILE")
+   set ( TP_PROFILE "" )
 endif ()
 
-if ( (ENABLE_VTUNE OR ENABLE_CRAYPAT OR ENABLE_ALLINEA) AND
-      (ENABLE_BASE_PROFILE OR ENABLE_TINY_PROFILE) )
+if (  ( ( ${TP_PROFILE} MATCHES "CRAYPAT" ) OR
+        ( ${TP_PROFILE} MATCHES "FORGE"   ) OR
+        ( ${TP_PROFILE} MATCHES "VTUNE"   )   ) AND
+     (ENABLE_BASE_PROFILE OR ENABLE_TINY_PROFILE) )
    message (WARNING "This configuration should only be used to profile BL_PROFILE!")
 endif()
 

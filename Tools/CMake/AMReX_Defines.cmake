@@ -114,6 +114,15 @@ if (ENABLE_BACKTRACE)
    add_define ( AMREX_TESTING )
 endif ()
 
+# Third party profiling
+if (${TP_PROFILE} MATCHES "CRAYPAT")
+   add_define ( AMREX_CRAYPAT )
+elseif (${TP_PROFILE} MATCHES "FORGE")
+   add_define ( AMREX_FORGE )
+elseif (${TP_PROFILE} MATCHES "VTUNE")
+   add_define ( AMREX_VTUNE )
+endif ()
+
 # MPI
 add_define ( AMREX_USE_MPI IF ENABLE_MPI )
 
@@ -158,13 +167,6 @@ add_define ( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES )
 add_define ( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS ) 
 
 add_define ( AMREX_NO_STRICT_PREFIX )
-
-# More profiling stuff
-add_define ( VTUNE IF ENABLE_VTUNE)
-
-add_define ( CRAYPAT IF ENABLE_CRAYPAT )
-
-add_define ( ALLINEA IF ENABLE_ALLINEA )
 
 #
 # Add all preprocessor definitions to compile string
