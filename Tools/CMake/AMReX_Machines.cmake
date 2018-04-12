@@ -1,7 +1,15 @@
 #
 # This file provides the following variables
-# site and machine being used
-#
+# 
+#   CCSE_MACHINES
+#   NERSC_MACHINES
+#   OCLF_MACHINES
+#   LLNL_MACHINES
+#   ALCF_MACHINES
+#   NREAL_MACHINES
+#   FLASH_MACHINES
+#   SITE
+#   MACHINE
 
 
 #

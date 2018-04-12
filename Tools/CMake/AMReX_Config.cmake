@@ -69,7 +69,6 @@ if (ENABLE_MPI)
       AMREX_EXTRA_CXX_LINK_LINE AMREX_EXTRA_CXX_LINK_FLAGS )
 endif ()
 
-
 #
 # Setup OpenMP
 # 
@@ -91,6 +90,26 @@ else ()
    endif ()
 endif()
 
+#
+# Setup third-party profilers
+#
+include ( AMReX_ThirdPartyProfilers )
+
+# Includes
+list (APPEND AMREX_EXTRA_Fortran_INCLUDE_PATH "${TPP_Fortran_INCLUDE_PATH}")
+list (APPEND AMREX_EXTRA_C_INCLUDE_PATH "${TPP_C_INCLUDE_PATH}")
+list (APPEND AMREX_EXTRA_CXX_INCLUDE_PATH "${TPP_CXX_INCLUDE_PATH}")
+
+# Compile flags
+append ( TPP_FFLAGS AMREX_EXTRA_Fortran_FLAGS ) 
+append ( TPP_CFLAGS AMREX_EXTRA_C_FLAGS )
+append ( TPP_CXXFLAGS AMREX_EXTRA_CXX_FLAGS )
+
+# Link Line
+append_to_link_line ( TPP_Fortran_LINK_LINE AMREX_EXTRA_Fortran_LINK_LINE )
+append_to_link_line ( TPP_C_LINK_LINE AMREX_EXTRA_C_LINK_LINE )
+append_to_link_line ( TPP_CXX_LINK_LINE AMREX_EXTRA_CXX_LINK_LINE )
+   
 #
 # Setup compiler flags 
 #

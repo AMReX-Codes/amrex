@@ -9,7 +9,7 @@
 #
 #  Check if AMReX_Options.cmake has been already processed
 #
-if ( NOT AMREX_OPTIONS_SET )
+if ( NOT ( DEFINED __AMREX_OPTIONS__ ) )
    message ( FATAL_ERROR "AMReX_Options.cmake must be\
 included before AMReX_Configure.cmake" )
 endif ()
