@@ -51,14 +51,10 @@ HypreABecLap3::HypreABecLap3(const BoxArray& grids,
   // These arrays store the starting global indices of all the boxes involved
   StartIndex.resize(grids.size());
 
-  // Check if a face is at the physical boundary or interface between boxes
-  FaceBcOffset.resize(grids.size()*BL_SPACEDIM*2);
-
   // Initialize all the arrays to 0
   std::fill(CellsGIndex.begin(), CellsGIndex.end(), 0);
   std::fill(numCellsProc.begin(), numCellsProc.end(), 0);
   std::fill(StartIndex.begin(), StartIndex.end(), 0);
-  std::fill(FaceBcOffset.begin(), FaceBcOffset.end(), 0);
 
   // Fill the numpoints in the box and in the proc where this box resides
   for (int i = 0; i < grids.size(); i++) {
@@ -261,21 +257,6 @@ void HypreABecLap3::loadMatrix() {
   for (MFIter mfi(acoefs); mfi.isValid(); ++mfi) {
     int i = mfi.index();
     const Box &reg = mfi.validbox();
-    const Box& domain = geom.Domain();
-
-    for (OrientationIter oitr; oitr; oitr++) {
-      int cdir(oitr());
-      FaceBcOffset[i*BL_SPACEDIM*2+cdir] = 0;
-      if (reg[oitr()] == domain[oitr()]) {
-        FaceBcOffset[i*BL_SPACEDIM*2+cdir] = 1;
-      }
-    }
-  }
-
-
-  for (MFIter mfi(acoefs); mfi.isValid(); ++mfi) {
-    int i = mfi.index();
-    const Box &reg = mfi.validbox();
 
     int volume = reg.numPts();
 
@@ -284,8 +265,6 @@ void HypreABecLap3::loadMatrix() {
     amrex_hmac_ij(BL_TO_FORTRAN(acoefs[mfi]), ARLIM(reg.loVect()),
                   ARLIM(reg.hiVect()), scalar_a,
                   A, BL_TO_FORTRAN(GbInd[mfi]));
-
-    int* BCface = FaceBcOffset.data();
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++) {
       amrex_hmbc_ij(BL_TO_FORTRAN(bcoefs[idim][mfi]),
