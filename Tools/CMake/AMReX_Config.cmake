@@ -3,21 +3,24 @@
 # Here we configure the build                 #
 
 ###############################################
+if ( DEFINED __AMREX_CONFIG__ )
+   return ()
+endif ()
+set ( __AMREX_CONFIG__ )
 
 #
-#  Check if AMReX_Options.cmake has been already processed
+# Check if AMReX_Options.cmake  and AMREX_CMakeVariables.cmake
+# have been already processed
 #
-if ( NOT AMREX_OPTIONS_SET )
+if ( NOT (DEFINED __AMREX_OPTIONS__ ) )
    message ( FATAL_ERROR "AMReX_Options.cmake must be\
 included before AMReX_Configure.cmake" )
 endif ()
 
-
-#
-# Find AMReX Git version
-#
-find_git_version ( AMREX_GIT_VERSION )
-
+if ( NOT (DEFINED __AMREX_CMAKEVARIABLES__ ) )
+   message ( FATAL_ERROR "AMReX_CMakeVariables.cmake must be\
+included before AMReX_Configure.cmake" )
+endif ()
 
 #
 # Decide whether or not to use PIC 
@@ -26,16 +29,19 @@ if (ENABLE_PIC)
    set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 endif ()
 
+#
+# Setup core compiler flags
+# 
+include ( AMReX_Compilers )
 
 #
 # Set preprocessor flags
 #
-include (AMReX_Defines)
+include ( AMReX_Defines )
 
-
-# ------------------------------------------------------------- #
-#    Setup third party packages 
-# ------------------------------------------------------------- #
+# 
+#  Setup MPI 
+# 
 if (ENABLE_MPI)
    find_package (MPI REQUIRED)
    # Includes
@@ -63,6 +69,10 @@ if (ENABLE_MPI)
       AMREX_EXTRA_CXX_LINK_LINE AMREX_EXTRA_CXX_LINK_FLAGS )
 endif ()
 
+
+#
+# Setup OpenMP
+# 
 if (ENABLE_OMP)
    find_package (OpenMP REQUIRED)
    # Compile flags
@@ -70,32 +80,31 @@ if (ENABLE_OMP)
    append ( OpenMP_C_FLAGS AMREX_EXTRA_C_FLAGS )
    append ( OpenMP_CXX_FLAGS AMREX_EXTRA_CXX_FLAGS )
 else ()
-   if ( ${FC_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+   if ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
       list ( APPEND AMREX_EXTRA_Fortran_FLAGS  "-h noomp")
    endif ()
-   if ( ${CC_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
       list ( APPEND AMREX_EXTRA_C_FLAGS  "-h noomp")
    endif ()
-   if ( ${CXX_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+   if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
       list ( APPEND AMREX_EXTRA_CXX_FLAGS  "-h noomp")
    endif ()
 endif()
 
-
-# ------------------------------------------------------------- #
-#    Setup compiler flags 
-# ------------------------------------------------------------- #
+#
+# Setup compiler flags 
+#
 if ( AMREX_FFLAGS_OVERRIDES )
    set ( AMREX_Fortran_FLAGS ${AMREX_FFLAGS_OVERRIDES} )
 else ()
-   append ( AMREX_${FC_ID}_FFLAGS_${AMREX_BUILD_TYPE}
+   append ( AMREX_FFLAGS_${AMREX_BUILD_TYPE}
       AMREX_Fortran_FLAGS )
 endif ()
 
 if ( AMREX_CXXFLAGS_OVERRIDES )
    set ( AMREX_CXX_FLAGS ${AMREX_CXXFLAGS_OVERRIDES} )
 else ()
-   append ( AMREX_${CXX_ID}_CXXFLAGS_${AMREX_BUILD_TYPE}
+   append ( AMREX_CXXFLAGS_${AMREX_BUILD_TYPE}
       AMREX_CXX_FLAGS )
 endif ()
 
@@ -103,20 +112,19 @@ append ( AMREX_EXTRA_Fortran_FLAGS AMREX_Fortran_FLAGS )
 append ( AMREX_EXTRA_CXX_FLAGS AMREX_CXX_FLAGS )
 
 # Add required flags
-append ( AMREX_${FC_ID}_FFLAGS_REQUIRED AMREX_Fortran_FLAGS )
-append ( AMREX_${CXX_ID}_CXXFLAGS_REQUIRED AMREX_CXX_FLAGS )
+append ( AMREX_FFLAGS_REQUIRED AMREX_Fortran_FLAGS )
+append ( AMREX_CXXFLAGS_REQUIRED AMREX_CXX_FLAGS )
 
 # Add FPE flags if required 
 if (ENABLE_FPE)
-   append ( AMREX_${FC_ID}_FFLAGS_FPE AMREX_Fortran_FLAGS )
-   append ( AMREX_${CXX_ID}_CXXFLAGS_FPE AMREX_CXX_FLAGS )
+   append ( AMREX_FFLAGS_FPE AMREX_Fortran_FLAGS )
+   append ( AMREX_CXXFLAGS_FPE AMREX_CXX_FLAGS )
 endif ()
 
 # Set CMake compiler flags
 set ( CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}
    "${AMREX_Fortran_FLAGS}  ${AMREX_Fortran_DEFINITIONS}" ) 
 set ( CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE} "${AMREX_CXX_FLAGS}" )
-
 
 #
 # Config summary

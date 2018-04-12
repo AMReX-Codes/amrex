@@ -10,13 +10,22 @@
 # 
 include (CMakeDependentOption)
 
+if (DEFINED __AMREX_OPTIONS__)
+   return ()
+endif ()
+
+# Define the following variable
+# so that other included file can check if this file has been
+# run already
+set (__AMREX_OPTIONS__ "")
+
 #
 # Check weather the AMReX_CMakeVariables.cmake
 # has been loaded; abort if not
 #
-if ( NOT AMREX_VARIABLES_LOADED )
-   message ( FATAL_ERROR "AMReX_Options.cmake must be included\
-after including AMReX_CMakeVariables.cmake" )
+if ( NOT ( DEFINED __AMREX_CMAKEVARIABLES__ ) )
+   message ( FATAL_ERROR "AMReX_CMakeVariables.cmake must be included\
+before including AMReX_Options.cmake" )
 endif ()
 
 #
