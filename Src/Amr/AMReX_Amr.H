@@ -308,7 +308,7 @@ public:
         return intersect_hiz;
     };
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
     //! Redistribute particles
     void RedistributeParticles ();
 #endif
