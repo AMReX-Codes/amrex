@@ -55,7 +55,6 @@ private :
     std::vector<int> CellsGIndex;
     std::vector<int> numCellsProc;
     std::vector<int> StartIndex;
-    std::vector<int> FaceBcOffset;
     
     HYPRE_IJMatrix A;
     HYPRE_ParCSRMatrix par_A;
