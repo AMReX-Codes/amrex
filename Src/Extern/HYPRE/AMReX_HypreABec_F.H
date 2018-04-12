@@ -97,8 +97,7 @@ extern "C" {
     void amrex_hmbc_ij(BL_FORT_FAB_ARG(bcoefs),
                     ARLIM_P(reglo), ARLIM_P(reghi),
                     const amrex::Real& beta, const amrex::Real* dx, const int& n, 
-                    HYPRE_IJMatrix &A, BL_FORT_IFAB_ARG(Index),
-                    const int& ndim, const int* bcFace);
+                    HYPRE_IJMatrix &A, BL_FORT_IFAB_ARG(Index));
     
     void amrex_hmmat(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
                      const int& cdir, const int& bct,
@@ -157,7 +156,7 @@ extern "C" {
                                 ARLIM_P(reglo), ARLIM_P(reghi),
                                 BL_FORT_IFAB_ARG(Index), const int& nDim);
     
-  void amrex_conv_Vec_Local_Global(HYPRE_IJVector &x, amrex::Real* vec,
+    void amrex_conv_Vec_Local_Global(HYPRE_IJVector &x, amrex::Real* vec,
                                    const int& nRows,
                                    ARLIM_P(reglo), ARLIM_P(reghi),
                                    BL_FORT_IFAB_ARG(Index) );

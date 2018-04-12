@@ -265,13 +265,13 @@ void HypreABecLap3::loadMatrix() {
 
     for (OrientationIter oitr; oitr; oitr++) {
       int cdir(oitr());
+      FaceBcOffset[i*BL_SPACEDIM*2+cdir] = 0;
       if (reg[oitr()] == domain[oitr()]) {
         FaceBcOffset[i*BL_SPACEDIM*2+cdir] = 1;
-      } else {
-        FaceBcOffset[i*BL_SPACEDIM*2+cdir] = 0;
       }
     }
   }
+
 
   for (MFIter mfi(acoefs); mfi.isValid(); ++mfi) {
     int i = mfi.index();
@@ -290,8 +290,7 @@ void HypreABecLap3::loadMatrix() {
     for (int idim = 0; idim < BL_SPACEDIM; idim++) {
       amrex_hmbc_ij(BL_TO_FORTRAN(bcoefs[idim][mfi]),
                     ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_b,
-                    geom.CellSize(), idim, A, BL_TO_FORTRAN(GbInd[mfi]),
-                    BL_SPACEDIM*2, &BCface[i*BL_SPACEDIM*2]);
+                    geom.CellSize(), idim, A, BL_TO_FORTRAN(GbInd[mfi]));
     }
 
     // add b.c.'s to matrix diagonal, and
