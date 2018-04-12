@@ -147,7 +147,7 @@ print_option ( ENABLE_BACKTRACE )
 option ( ENABLE_PROFPARSER "Enable profile parser" OFF)
 print_option ( ENABLE_PROFPARSER )
 
-set ( TP_PROFILE "" CACHE STRING "Third-party profiling options:<CRAYPAT,FORGE,VTUNE>")
+set ( TP_PROFILE "None" CACHE STRING "Third-party profiling options:<CRAYPAT,FORGE,VTUNE>")
 print_option ( TP_PROFILE )
 
 
@@ -167,12 +167,11 @@ if (ENABLE_BASE_PROFILE)
    set (ENABLE_TINY_PROFILE OFF)
 endif()
 
-
 # Check profile options
-if (  NOT ( ${CMAKE_CXX_COMPILER_ID} MATCHES "Intel" )  AND
-      ( ${TP_PROFILE} MATCHES "VTUNE" ) )
-   message (WARNING "Cannot use VTUNE with ${CMAKE_CXX_COMPILER_ID} compiler: ignoring TP_PROFILE")
-   set ( TP_PROFILE "" )
+if ( NOT ( ${CMAKE_C_COMPILER_ID} MATCHES "Intel" ) AND
+      ( ${TP_PROFILE} MATCHES "VTUNE") )
+   message ( WARNING "VTUNE cannot be used with ${CMAKE_C_COMPILER_ID} compiler: ignoring TP_PROFILE" )
+   set ( TP_PROFILE "")
 endif ()
 
 if (  ( ( ${TP_PROFILE} MATCHES "CRAYPAT" ) OR
@@ -181,9 +180,4 @@ if (  ( ( ${TP_PROFILE} MATCHES "CRAYPAT" ) OR
      (ENABLE_BASE_PROFILE OR ENABLE_TINY_PROFILE) )
    message (WARNING "This configuration should only be used to profile BL_PROFILE!")
 endif()
-
-# After the options are set, define the following variable
-# so that other included file can check if this file has been
-# run already
-set ( AMREX_OPTIONS_SET  "TRUE" )  
 
