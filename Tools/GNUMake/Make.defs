@@ -129,12 +129,6 @@ else
   DIMENSION_AGNOSTIC := FALSE
 endif
 
-ifdef STRICT
-  STRICT := $(strip $(STRICT))
-else
-  STRICT := FALSE
-endif
-
 ifdef USE_EB
   USE_EB := $(strip $(USE_EB))
 else
@@ -203,7 +197,7 @@ ifeq ($(MAKECMDGOALS),check_fortran)
 endif
 
 ifeq ($(DEBUG),TRUE)
-    CPPFLAGS	+= -DDEBUG
+    CPPFLAGS	+= -DAMREX_DEBUG
     DebugSuffix := .DEBUG
 else
     CPPFLAGS	+= -DNDEBUG
@@ -214,24 +208,24 @@ ifeq ($(USE_PROFPARSER),TRUE)
   PROFILE := TRUE
   TRACE_PROFILE := TRUE
 
-  CPPFLAGS += -DBL_USE_PROFPARSER
+  CPPFLAGS += -DBL_USE_PROFPARSER -DAMREX_USE_PROFPARSER
   include $(AMREX_HOME)/Src/Extern/ProfParser/Make.package
   include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
 endif
 
 ifeq ($(PROFILE),TRUE)
-    CPPFLAGS    += -DBL_PROFILING
+    CPPFLAGS    += -DBL_PROFILING -DAMREX_PROFILING
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUETRUE)
-        CPPFLAGS    += -DBL_TRACE_PROFILING
-        CPPFLAGS    += -DBL_COMM_PROFILING
+        CPPFLAGS    += -DBL_TRACE_PROFILING -DAMREX_TRACE_PROFILING
+        CPPFLAGS    += -DBL_COMM_PROFILING -DAMREX_COMM_PROFILING
         ProfSuffix	:= .COMTR_PROF
     endif
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUEFALSE)
-        CPPFLAGS    += -DBL_TRACE_PROFILING
+        CPPFLAGS    += -DBL_TRACE_PROFILING -DAMREX_TRACE_PROFILING
         ProfSuffix	:= .TRACE_PROF
     endif
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSETRUE)
-        CPPFLAGS    += -DBL_COMM_PROFILING
+        CPPFLAGS    += -DBL_COMM_PROFILING -DAMREX_COMM_PROFILING
         ProfSuffix	:= .COMM_PROF
     endif
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSEFALSE)
@@ -242,7 +236,7 @@ else
         TINY_PROFILE = FALSE
     endif
     ifeq ($(TINY_PROFILE),TRUE)
-        CPPFLAGS    += -DBL_TINY_PROFILING
+        CPPFLAGS    += -DBL_TINY_PROFILING -DAMREX_TINY_PROFILING
         ProfSuffix	:= .TPROF
     else
         ProfSuffix	:=
@@ -250,21 +244,21 @@ else
 endif
 
 ifeq ($(MEM_PROFILE),TRUE)
-  CPPFLAGS += -DBL_MEM_PROFILING
+  CPPFLAGS += -DBL_MEM_PROFILING -DAMREX_MEM_PROFILING
   MProfSuffix := .MPROF
 else
   MProfSuffix :=
 endif
 
 ifeq ($(TEST),TRUE)
-    CPPFLAGS += -DBL_TESTING
+    CPPFLAGS += -DBL_TESTING -DAMREX_TESTING
     ifneq ($(DEBUG),TRUE)
         DebugSuffix := .TEST
     endif
 endif
 
 ifeq ($(BACKTRACE),TRUE)
-    CPPFLAGS += -DBL_BACKTRACING -DBL_TESTING
+    CPPFLAGS += -DBL_BACKTRACING -DBL_TESTING -DAMREX_BACKTRACING -DAMREX_TESTING
     BTSuffix := .BT
 else
     BTSuffix :=
@@ -275,11 +269,11 @@ ifdef CRAY_CPU_TARGET
 endif
 
 ifeq ($(LAZY),TRUE)
-    CPPFLAGS += -DBL_LAZY
+    CPPFLAGS += -DBL_LAZY -DAMREX_LAZY
 endif
 
 ifeq ($(USE_ARRAYVIEW), TRUE)
-  DEFINES += -DBL_USE_ARRAYVIEW
+  DEFINES += -DBL_USE_ARRAYVIEW -DAMREX_USE_ARRAYVIEW
   ARRAYVIEWDIR ?= $(AMREX_HOME)/../ArrayView
   INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
   LIBRARY_LOCATIONS += $(ARRAYVIEWDIR)
@@ -289,34 +283,34 @@ endif
 
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI
-    CPPFLAGS	+= -DBL_USE_MPI
+    CPPFLAGS	+= -DBL_USE_MPI -DAMREX_USE_MPI
 else
     MPISuffix	:=
 endif
 
 ifeq ($(USE_MPI3),TRUE)
     MPISuffix := .MPI3
-    CPPFLAGS  += -DBL_USE_MPI3
+    CPPFLAGS  += -DBL_USE_MPI3 -DAMREX_USE_MPI3
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
     UPCXXSuffix := .UPCXX
-    CPPFLAGS    += -DBL_USE_UPCXX
+    CPPFLAGS    += -DBL_USE_UPCXX -DAMREX_USE_UPCXX
 else
     UPCXXSuffix :=
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
-    CPPFLAGS  += -DBL_USE_TEAM 
+    CPPFLAGS  += -DBL_USE_TEAM -DAMREX_USE_TEAM
 else
   ifeq ($(USE_MPI3),TRUE)
-    CPPFLAGS  += -DBL_USE_TEAM 
+    CPPFLAGS  += -DBL_USE_TEAM -DAMREX_USE_TEAM
   endif
 endif
 
 ifeq ($(USE_OMP),TRUE)
     OMPSuffix	:= .OMP
-    CPPFLAGS	+= -DBL_USE_OMP
+    CPPFLAGS	+= -DBL_USE_OMP -DAMREX_USE_OMP
 else
     OMPSuffix	:=
 endif
@@ -325,14 +319,14 @@ DEFINES += -DAMREX_LAUNCH=""
 DEFINES += -DAMREX_DEVICE=""
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
-  DEFINES += -DBL_SINGLE_PRECISION_PARTICLES
+  DEFINES += -DBL_SINGLE_PRECISION_PARTICLES -DAMREX_SINGLE_PRECISION_PARTICLES
   amrex_particle_real = float
 else
   amrex_particle_real = double
 endif
 
 ifeq ($(PRECISION),FLOAT)
-    DEFINES += -DBL_USE_FLOAT
+    DEFINES += -DBL_USE_FLOAT -DAMREX_USE_FLOAT
     PrecisionSuffix := .$(PRECISION)
     amrex_real = float
 else
@@ -376,32 +370,34 @@ fortran_fdecl_headers_cppd = $(addprefix $(tmpEXETempDir)/, $(fortran_fdecl_head
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
            -DAMREX_SPACEDIM=$(DIM)                      \
            -DBL_FORT_USE_$(FORTLINK)			\
-           -DBL_$(shell uname)
+           -DAMREX_FORT_USE_$(FORTLINK)			\
+           -DBL_$(shell uname)                          \
+           -DAMREX_$(shell uname)
 
 
 ifeq ($(DIMENSION_AGNOSTIC),TRUE)
-DEFINES += -DDIMENSION_AGNOSTIC
+DEFINES += -DAMREX_DIMENSION_AGNOSTIC
 endif
 
 ifeq ($(DEBUG),TRUE)
-  DEFINES += -DBL_USE_ASSERTION
+  DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 else
 ifeq ($(USE_ASSERTION),TRUE)
-  DEFINES += -DBL_USE_ASSERTION
+  DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 endif
 endif
 
 ifeq ($(USE_PARTICLES),TRUE)
-  DEFINES += -DUSE_PARTICLES -DPARTICLES
-endif
-
-ifeq ($(STRICT),TRUE)
-  DEFINES += -DAMREX_STRICT_MODE
+  DEFINES += -DAMREX_PARTICLES
 endif
 
 ifeq ($(USE_EB),TRUE)
     CPPFLAGS += -DAMREX_USE_EB
 endif
+
+
+DEFINES += -DAMREX_NO_STRICT_PREFIX
+
 
 includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)

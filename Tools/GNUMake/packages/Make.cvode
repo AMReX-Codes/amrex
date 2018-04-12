@@ -2,7 +2,7 @@
 # Scientific Library" system module "cray-tpsl". If the module is loaded, just
 # use that version of SUNDIALS. Otherwise, look for a home-cooked version.
 
-CPPFLAGS += -DUSE_CVODE
+CPPFLAGS += -DAMREX_USE_CVODE
 include $(AMREX_HOME)/Src/Extern/CVODE/Make.package
 
 ifeq ($(findstring CRAY_TPSL, $(PE_PRODUCT_LIST)), CRAY_TPSL)

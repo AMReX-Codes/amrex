@@ -321,7 +321,7 @@ bool BLProfStats::InTimeRange(int proc, Real calltime) {
 //    return true;
 //  }
   if(filterTimeRanges.empty()) {
-#ifdef DEBUG
+#if 0
   static int count(0);
   if(count++ < 4) {
     cout << "**** BLProfStats::InTimeRange:  init true but range empty." << endl;
