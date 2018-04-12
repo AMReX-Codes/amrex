@@ -36,7 +36,9 @@ if ( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
       "AMReX installation directory" FORCE)
 endif ()
 
+# 
 # Compiler flags
+# 
 set ( AMREX_Fortran_FLAGS )
 set ( AMREX_C_FLAGS )
 set ( AMREX_CXX_FLAGS )
@@ -57,7 +59,9 @@ if ( EXISTS ${CMAKE_SOURCE_DIR}/.git AND ${GIT_FOUND} )
 endif ()
 set ( AMREX_GIT_VERSION ${output} )
 
+# 
 # Set directory paths
+# 
 set (AMREX_SOURCE_DIR         ${CMAKE_SOURCE_DIR}/Src )
 set (AMREX_CMAKE_MODULES_DIR  ${CMAKE_CURRENT_LIST_DIR})
 set (AMREX_LIBRARY_DIR        ${CMAKE_INSTALL_PREFIX}/lib )
@@ -67,63 +71,21 @@ set (AMREX_TOOLS_DIR          ${CMAKE_INSTALL_PREFIX}/Tools )
 set (AMREX_CMAKE_DIR          ${CMAKE_INSTALL_PREFIX}/cmake )
 set (AMREX_LIBRARIES          amrex )
 
+# 
 # Config files for export
+# 
 set ( AMREX_CONFIG_INSTALL_INFILE  ${AMREX_CMAKE_MODULES_DIR}/AMReXConfig.cmake.in)
 set ( AMREX_CONFIG_INSTALL_OUTFILE ${PROJECT_BINARY_DIR}/AMReXConfig.cmake)
 
-# # GNU compiler specific flags
-# set (AMREX_GNU_FFLAGS_DEBUG "-g -O0 -ggdb -fbounds-check -fbacktrace\
-#  -Wuninitialized -Wunused -finit-real=snan  -finit-integer=2147483647")
-# set (AMREX_GNU_FFLAGS_RELEASE "-O3")
-# set (AMREX_GNU_FFLAGS_REQUIRED "-ffixed-line-length-none -ffree-line-length-none\
-#  -fno-range-check -fno-second-underscore")
-# set (AMREX_GNU_FFLAGS_FPE "-ffpe-trap=invalid,zero -ftrapv" )
 
-# set (AMREX_GNU_CXXFLAGS_DEBUG "-g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare")
-# set (AMREX_GNU_CXXFLAGS_RELEASE "-O3")
-# set (AMREX_GNU_CXXFLAGS_REQUIRED "") #-ftemplate-depth-64 -Wno-deprecated")
-# set (AMREX_GNU_CXXFLAGS_FPE "-ftrapv")
+#
+# Load host system info
+#
+include ( AMReX_Machines )
 
-# # Intel compiler specific flags
-# set (AMREX_Intel_FFLAGS_DEBUG "-g -O0 -traceback -check bounds,uninit,pointers")
-# set (AMREX_Intel_FFLAGS_RELEASE "-O2 -ip -qopt-report=5 -qopt-report-phase=vec")
-# set (AMREX_Intel_FFLAGS_REQUIRED "-extend_source")
-# set (AMREX_Intel_FFLAGS_FPE "")
-
-# set (AMREX_Intel_CXXFLAGS_DEBUG "-g -O0 -traceback -Wcheck")
-# set (AMREX_Intel_CXXFLAGS_RELEASE "-O2 -ip -qopt-report=5 -qopt-report-phase=vec")
-# set (AMREX_Intel_CXXFLAGS_REQUIRED "-std=c++11" )#-ftemplate-depth-64 -Wno-deprecated")
-# set (AMREX_Intel_CXXFLAGS_FPE "")
-
-# if (ENABLE_VTUNE)
-#    set ( AMREX_Intel_FFLAGS_REQUIRED "${AMREX_Intel_FFLAGS_REQUIRED} -debug inline-debug-info -parallel-source-info=2" )
-#    set ( AMREX_Intel_CXXFLAGS_REQUIRED "${AMREX_Intel_CXXFLAGS_REQUIRED} -debug inline-debug-info -parallel-source-info=2")
-# endif()
-
-# # PGI compiler specific flags
-# set (AMREX_PGI_FFLAGS_DEBUG "-O0 -Mbounds -Ktrap=divz,inv -Mchkptr")
-# set (AMREX_PGI_FFLAGS_RELEASE "-gopt -fast")
-# set (AMREX_PGI_FFLAGS_REQUIRED "-extend")
-# set (AMREX_PGI_FFLAGS_FPE "")
-
-# set (AMREX_PGI_CXXFLAGS_DEBUG "-O0 -Mbounds")
-# set (AMREX_PGI_CXXFLAGS_RELEASE "-gopt -fast")
-# set (AMREX_PGI_CXXFLAGS_REQUIRED "")#-ftemplate-depth-64 -Wno-deprecated")
-# set (AMREX_PGI_CXXFLAGS_FPE "")
-
-# # Cray compiler specific flags
-# set (AMREX_Cray_FFLAGS_DEBUG "-g -O0 -e i")
-# set (AMREX_Cray_FFLAGS_RELEASE "-O2")
-# set (AMREX_Cray_FFLAGS_REQUIRED "-N 255 -h list=a")
-# set (AMREX_Cray_FFLAGS_FPE "")
-
-# set (AMREX_Cray_CXXFLAGS_DEBUG "-g -O0")
-# set (AMREX_Cray_CXXFLAGS_RELEASE "-O2")
-# set (AMREX_Cray_CXXFLAGS_REQUIRED "-h std=c++11 -h list=a")#-ftemplate-depth-64 -Wno-deprecated")
-# set (AMREX_Cray_CXXFLAGS_FPE "")
-
-
+# 
 # For Fortran, always use the following preprocessor definitions
+# 
 set (AMREX_Fortran_DEFINITIONS -DBL_LANG_FORT)
 
 #
@@ -144,6 +106,3 @@ set (AMREX_EXTRA_Fortran_LINK_FLAGS)
 set (AMREX_EXTRA_C_LINK_LINE)
 set (AMREX_EXTRA_CXX_LINK_LINE)
 set (AMREX_EXTRA_Fortran_LINK_LINE)
-
-# Variable to show this file was loaded
-set ( AMREX_VARIABLES_LOADED "TRUE" )
