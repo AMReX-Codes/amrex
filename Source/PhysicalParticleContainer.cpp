@@ -706,7 +706,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
                 const int ll4symtry          = false;
-                // mthevenet
                 const int l_lower_order_in_v = warpx_l_lower_order_in_v();
                 long lvect_fieldgathe = 64;
                 BL_PROFILE_VAR_START(blp_pxr_fg);

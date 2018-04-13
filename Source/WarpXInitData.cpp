@@ -30,7 +30,6 @@ WarpX::InitData ()
 
     ComputePMLFactors();
 
-// mthevenet
     if (warpx_use_fdtd_nci_corr()) {
         InitNCICorrector();
     }
@@ -132,19 +131,16 @@ WarpX::InitNCICorrector ()
     {
         const Geometry& gm = Geom(finest_level);
         const Real* dx = gm.CellSize();
-        Real dz, cdtodz;
-//         std::cout << dx[0] << ' ' << dx[1] << ' ' << dx[2] << '\n';
-//         std::cout << dt[finest_level] << ' ' <<  dt[0] << '\n';
-//         std::cout << PhysConst::c << '\n';
-        if (BL_SPACEDIM == 3){ dz = dx[2]; }
-        else{ dz = dx[1]; }
-        cdtodz = PhysConst::c * dt[finest_level] / dz;
         const int l_lower_order_in_v = warpx_l_lower_order_in_v();
-        // std::cout << mypc.fdtd_nci_stencilz_ex()[0] << '\n';
-        // std::cout << mypc.fdtd_nci_stencilz_ex()[1] << '\n';
-    	// auto & mypc = WarpX::GetInstance().GetPartContainer();
-    	auto & mypc = WarpX::GetInstance().GetPartContainer();
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
         const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
+        amrex::Real dz, cdtodz;
+        if (BL_SPACEDIM == 3){ 
+            dz = dx[2]; 
+        }else{ 
+            dz = dx[1]; 
+        }
+        cdtodz = PhysConst::c * dt[finest_level] / dz;
         std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex;
         std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by;
         fdtd_nci_stencilz_ex = mypc.fdtd_nci_stencilz_ex;
@@ -152,18 +148,10 @@ WarpX::InitNCICorrector ()
         for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
             std::cout << fdtd_nci_stencilz_ex[i] << '\n';
         }
-//         const int nstencilz=5;
-//         amrex::Real* stencilz_ex;
-//         amrex::Real* stencilz_by;
-//         stencilz_ex = new amrex::Real [nstencilz];
-//         stencilz_by = new amrex::Real [nstencilz];
-        WRPX_PXR_NCI_CORR_INIT(mypc.fdtd_nci_stencilz_ex.data(), mypc.fdtd_nci_stencilz_by.data(), nstencilz_fdtd_nci_corr, cdtodz, l_lower_order_in_v);
-        for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
-            std::cout << fdtd_nci_stencilz_ex[i] << '\n';
-        }
-        for (int i=0; i<nstencilz_fdtd_nci_corr; i++){
-            std::cout << mypc.fdtd_nci_stencilz_ex[i] << '\n';
-        }
+        WRPX_PXR_NCI_CORR_INIT( mypc.fdtd_nci_stencilz_ex.data(), 
+                                mypc.fdtd_nci_stencilz_by.data(), 
+                                nstencilz_fdtd_nci_corr, cdtodz, 
+                                l_lower_order_in_v);
     }
 }
 

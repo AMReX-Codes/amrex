@@ -251,7 +251,6 @@ private:
 
     void InitDiagnostics ();
 
-// mthevenet
     void InitNCICorrector ();
 
     void WriteWarpXHeader(const std::string& name) const;

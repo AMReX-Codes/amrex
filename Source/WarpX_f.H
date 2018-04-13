@@ -387,17 +387,12 @@ extern "C"
     void WRPX_FILTER(const amrex_real*, const int*, const int*,
                      amrex_real*, const int*, const int*, int);
 
-    void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int, const amrex::Real, const int);
-//     void WRPX_PXR_NCI_FILTER_2D(amrex_real*, const amrex_real*, const int, const int, const int, const int, const int);
-//     void WRPX_PXR_NCI_FILTER_2D(field, stencil, nx, nz, nxguard, nzguard, nz_stencil)
+    void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int, 
+                                const amrex::Real, const int);
 
-void WRPX_PXR_NCI_FILTER_2D(amrex::Real*, const int*, const int*, const amrex::Real*, const int*, const int*, const int, const int, const int);
-
-// void WRPX_PXR_NCI_FILTER_2D(field, flo, fhi, stencil, lo, hi, nz_stencil)
-
-// void test(const int*, const int*, amrex::Real*, const amrex::Real*);
-
-// void test2(const int*, const int*, const amrex::Real*, amrex::Real*);
+    void WRPX_PXR_NCI_FILTER_2D(amrex::Real*, const int*, const int*, 
+                                const amrex::Real*, const int*, const int*, 
+                                const int, const int, const int);
 
 #ifdef __cplusplus
 }
