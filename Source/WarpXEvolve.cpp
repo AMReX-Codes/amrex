@@ -722,91 +722,90 @@ WarpX::ComputeDt ()
 
 void WarpX::ApplyNCICorrector() {
     const int nstencilz_fdtd_nci_corr = mypc->nstencilz_fdtd_nci_corr;
-    if (BL_SPACEDIM == 2) {
-        MultiFab *Ex, *Ez, *By;
-        Ex = Efield_aux[finest_level][0].get();
-        Ez = Efield_aux[finest_level][2].get();
-        By = Bfield_aux[finest_level][1].get();
-        int ngex = Ex->nGrow();
-        int ngez = Ez->nGrow();
-        int ngby = By->nGrow();
-        for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi ){
-            const Box& tex  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_2D( BL_TO_FORTRAN_3D((*Ex)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_ex.data(), 
-                                    tex.loVect(), tex.hiVect(), ngex, ngex, 
-                                    nstencilz_fdtd_nci_corr);
-        }
-        for ( MFIter mfi(*Ez,true); mfi.isValid(); ++mfi ) {
-            const Box& tez  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_2D( BL_TO_FORTRAN_3D((*Ez)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_by.data(), 
-                                    tez.loVect(), tez.hiVect(), ngez, ngez,
-                                    nstencilz_fdtd_nci_corr);
-        }
-        for ( MFIter mfi(*By,true); mfi.isValid(); ++mfi ) {
-            const Box& tby  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_2D( BL_TO_FORTRAN_3D((*By)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_by.data(), 
-                                    tby.loVect(), tby.hiVect(), ngby, ngby,
-                                    nstencilz_fdtd_nci_corr);
-        }
+#if (BL_SPACEDIM == 2)
+    MultiFab *Ex, *Ez, *By;
+    Ex = Efield_aux[finest_level][0].get();
+    Ez = Efield_aux[finest_level][2].get();
+    By = Bfield_aux[finest_level][1].get();
+    int ngex = Ex->nGrow();
+    int ngez = Ez->nGrow();
+    int ngby = By->nGrow();
+    for ( MFIter mfi(*Ex,false); mfi.isValid(); ++mfi ){
+        const Box& tex  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ex)[mfi]), 
+                                mypc->fdtd_nci_stencilz_ex.data(), 
+                                tex.loVect(), tex.hiVect(), ngex, ngex, 
+                                nstencilz_fdtd_nci_corr);
     }
-    if (BL_SPACEDIM == 3) {
-        MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
-        Ex = Efield_aux[finest_level][0].get();
-        Ey = Efield_aux[finest_level][1].get();
-        Ez = Efield_aux[finest_level][2].get();
-        Bx = Bfield_aux[finest_level][0].get();
-        By = Bfield_aux[finest_level][1].get();
-        Bz = Bfield_aux[finest_level][2].get();
-        int ngex = Ex->nGrow();
-        int ngey = Ey->nGrow();
-        int ngez = Ez->nGrow();
-        int ngbx = Bx->nGrow();
-        int ngby = By->nGrow();
-        int ngbz = Bz->nGrow();
-        for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi ){
-            const Box& tex  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_3D( BL_TO_FORTRAN_3D((*Ex)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_ex.data(), 
-                                    tex.loVect(), tex.hiVect(), ngex, ngex, ngex, 
-                                    nstencilz_fdtd_nci_corr);
-        }
-        for ( MFIter mfi(*Ey,true); mfi.isValid(); ++mfi ){
-            const Box& tey  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_3D( BL_TO_FORTRAN_3D((*Ey)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_ex.data(), 
-                                    tey.loVect(), tey.hiVect(), ngey, ngey, ngey, 
-                                    nstencilz_fdtd_nci_corr);
-        }
-        for ( MFIter mfi(*Ez,true); mfi.isValid(); ++mfi ){
-            const Box& tez  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_3D( BL_TO_FORTRAN_3D((*Ez)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_by.data(), 
-                                    tez.loVect(), tez.hiVect(), ngez, ngez, ngez, 
-                                    nstencilz_fdtd_nci_corr);
-        }
-        for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi ){
-            const Box& tbx  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_3D( BL_TO_FORTRAN_3D((*Bx)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_by.data(), 
-                                    tbx.loVect(), tbx.hiVect(), ngbx, ngbx, ngbx, 
-                                    nstencilz_fdtd_nci_corr);
-        }
-        for ( MFIter mfi(*By,true); mfi.isValid(); ++mfi ){
-            const Box& tby  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_3D( BL_TO_FORTRAN_3D((*By)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_by.data(), 
-                                    tby.loVect(), tby.hiVect(), ngby, ngby, ngby, 
-                                    nstencilz_fdtd_nci_corr);
-        }
-        for ( MFIter mfi(*Bz,true); mfi.isValid(); ++mfi ){
-            const Box& tbz  = mfi.fabbox();
-            WRPX_PXR_NCI_FILTER_3D( BL_TO_FORTRAN_3D((*Bz)[mfi]), 
-                                    mypc->fdtd_nci_stencilz_ex.data(), 
-                                    tbz.loVect(), tbz.hiVect(), ngbz, ngbz, ngbz, 
-                                    nstencilz_fdtd_nci_corr);
-        }
+    for ( MFIter mfi(*Ez,false); mfi.isValid(); ++mfi ) {
+        const Box& tez  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ez)[mfi]), 
+                                mypc->fdtd_nci_stencilz_by.data(), 
+                                tez.loVect(), tez.hiVect(), ngez, ngez,
+                                nstencilz_fdtd_nci_corr);
     }
+    for ( MFIter mfi(*By,false); mfi.isValid(); ++mfi ) {
+        const Box& tby  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*By)[mfi]), 
+                                mypc->fdtd_nci_stencilz_by.data(), 
+                                tby.loVect(), tby.hiVect(), ngby, ngby,
+                                nstencilz_fdtd_nci_corr);
+    }
+#elif (BL_SPACEDIM == 3)
+    MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
+    Ex = Efield_aux[finest_level][0].get();
+    Ey = Efield_aux[finest_level][1].get();
+    Ez = Efield_aux[finest_level][2].get();
+    Bx = Bfield_aux[finest_level][0].get();
+    By = Bfield_aux[finest_level][1].get();
+    Bz = Bfield_aux[finest_level][2].get();
+    int ngex = Ex->nGrow();
+    int ngey = Ey->nGrow();
+    int ngez = Ez->nGrow();
+    int ngbx = Bx->nGrow();
+    int ngby = By->nGrow();
+    int ngbz = Bz->nGrow();
+    for ( MFIter mfi(*Ex,false); mfi.isValid(); ++mfi ){
+        const Box& tex  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ex)[mfi]), 
+                             mypc->fdtd_nci_stencilz_ex.data(), 
+                             tex.loVect(), tex.hiVect(), ngex, ngex, ngex, 
+                             nstencilz_fdtd_nci_corr);
+    }
+    for ( MFIter mfi(*Ey,false); mfi.isValid(); ++mfi ){
+        const Box& tey  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ey)[mfi]), 
+                             mypc->fdtd_nci_stencilz_ex.data(), 
+                             tey.loVect(), tey.hiVect(), ngey, ngey, ngey, 
+                             nstencilz_fdtd_nci_corr);
+    }
+    for ( MFIter mfi(*Ez,false); mfi.isValid(); ++mfi ){
+        const Box& tez  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ez)[mfi]), 
+                             mypc->fdtd_nci_stencilz_by.data(), 
+                             tez.loVect(), tez.hiVect(), ngez, ngez, ngez, 
+                             nstencilz_fdtd_nci_corr);
+    }
+    for ( MFIter mfi(*Bx,false); mfi.isValid(); ++mfi ){
+        const Box& tbx  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Bx)[mfi]), 
+                             mypc->fdtd_nci_stencilz_by.data(), 
+                             tbx.loVect(), tbx.hiVect(), ngbx, ngbx, ngbx, 
+                             nstencilz_fdtd_nci_corr);
+    }
+    for ( MFIter mfi(*By,false); mfi.isValid(); ++mfi ){
+        const Box& tby  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*By)[mfi]), 
+                             mypc->fdtd_nci_stencilz_by.data(), 
+                             tby.loVect(), tby.hiVect(), ngby, ngby, ngby, 
+                             nstencilz_fdtd_nci_corr);
+    }
+    for ( MFIter mfi(*Bz,false); mfi.isValid(); ++mfi ){
+        const Box& tbz  = mfi.fabbox();
+        WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Bz)[mfi]), 
+                             mypc->fdtd_nci_stencilz_ex.data(), 
+                             tbz.loVect(), tbz.hiVect(), ngbz, ngbz, ngbz, 
+                             nstencilz_fdtd_nci_corr);
+    }
+#endif
 }
