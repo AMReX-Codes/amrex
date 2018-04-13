@@ -91,6 +91,15 @@ namespace amrex
 
         extern int signal_handling;
     }
+
+    inline void GccPlacater ()
+    {
+        std::allocator<char> a1;
+        std::allocator<int> a2;
+        std::allocator<float> a3;
+        std::allocator<double> a4;
+        std::allocator<std::string> a5;
+    }
 }
 
 #endif /*BL_AMREX_H*/
