@@ -123,6 +123,7 @@ public:
     void EvolveF (         amrex::Real dt, DtType typ);
     void EvolveF (int lev, amrex::Real dt, DtType typ);
 
+    void ApplyNCICorrector (); 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
 

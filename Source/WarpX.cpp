@@ -36,6 +36,7 @@ long WarpX::particle_pusher_algo = 0;
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
+int  WarpX::ngE = 1;
 
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
@@ -397,7 +398,9 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 {
     // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
     int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-    ngE = (warpx_use_fdtd_nci_corr()) ? ngE : ngE + 4
+    // ngE = (warpx_use_fdtd_nci_corr()) ? ngE : ngE + 4 // mthevenet
+    // mthevenet
+    ngE = 5;
     int ngJ = ngE;
     int ngRho = ngE;
     int ngF = (do_moving_window) ? 2 : 0;
