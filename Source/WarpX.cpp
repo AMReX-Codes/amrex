@@ -19,6 +19,7 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXConst.H>
+#include <WarpXWrappers.h>
 
 using namespace amrex;
 
@@ -36,7 +37,6 @@ long WarpX::particle_pusher_algo = 0;
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
-int  WarpX::ngE = 1;
 
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
@@ -272,6 +272,7 @@ WarpX::ReadParameters ()
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
                 "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
         }
+        pp.query("ngE", ngE);
 
         pp.query("do_electrostatic", do_electrostatic);
         pp.query("n_buffer", n_buffer);
@@ -397,10 +398,11 @@ void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
     // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-    // ngE = (warpx_use_fdtd_nci_corr()) ? ngE : ngE + 4 // mthevenet
-    // mthevenet
-    ngE = 5;
+    // Calculate ngE if not provided in input script
+    if (ngE < 0){
+        ngE = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
+        ngE = (warpx_use_fdtd_nci_corr()) ? ngE + 4 : ngE;
+    }
     int ngJ = ngE;
     int ngRho = ngE;
     int ngF = (do_moving_window) ? 2 : 0;
@@ -424,6 +426,11 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     {
         F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
+    }
+
+    // Allocate the Aux patch if the FDTD NCI corrector is used
+    if (warpx_use_fdtd_nci_corr()){
+        alloc_level_0_aux = true;
     }
 
     //

@@ -31,7 +31,7 @@ WarpX::InitData ()
     ComputePMLFactors();
 
     if (warpx_use_fdtd_nci_corr()) {
-        InitNCICorrector();
+        WarpX::InitNCICorrector();
     }
 
     InitDiagnostics();

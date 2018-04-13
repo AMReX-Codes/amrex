@@ -342,6 +342,9 @@ private:
     // div E cleaning
     int do_dive_cleaning = 0;
 
+    // Number of ghost cells
+    int ngE = -1;
+
     // PML
     int do_pml = 1;
     int pml_ncell = 10;
