@@ -61,14 +61,14 @@ elseif ( ${TP_PROFILE} MATCHES "FORGE" )
 
 elseif ( ${TP_PROFILE} MATCHES "VTUNE" )
 
-   list ( APPEND TPP_C_INCLUDE_PATH "-debug inline-debug-info -parallel-source-info=2")
-   list ( APPEND TPP_Fortran_INCLUDE_PATH "-debug inline-debug-info -parallel-source-info=2")
-   list ( APPEND TPP_CXX_INCLUDE_PATH "-debug inline-debug-info -parallel-source-info=2")
+   set ( TPP_CFLAGS "-debug inline-debug-info -parallel-source-info=2")
+   set ( TPP_FFLAGS "-debug inline-debug-info -parallel-source-info=2")
+   set ( TPP_CXXFLAGS "-debug inline-debug-info -parallel-source-info=2")
 
    if ( ${SITE} MATCHES "nersc" )
-      list ( APPEND TPP_C_INCLUDE_PATH "-dynamic")
-      list ( APPEND TPP_Fortran_INCLUDE_PATH "-dynamic")
-      list ( APPEND TPP_CXX_INCLUDE_PATH "-dynamic")
+      set ( TPP_CFLAGS "-dynamic ${TPP_CFLAGS}")
+      set ( TPP_FFLAGS "-dynamic ${TPP_FFLAGS}")
+      set ( TPP_CXXFLAGS "-dynamic ${TPP_CXXFLAGS}")
 
       list ( APPEND TPP_Fortran_INCLUDE_PATH "$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include" )
       list ( APPEND TPP_C_INCLUDE_PATH "$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include" )
