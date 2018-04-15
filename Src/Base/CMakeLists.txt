@@ -121,6 +121,7 @@ list ( APPEND ALLHEADERS AMReX_BaseFab_f.H AMReX_MultiFabUtil_F.H )
 list ( APPEND F90SRC     AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
 list ( APPEND F90SRC     AMReX_error_mod.F90 AMReX_parmparse_mod.F90 AMReX_string_mod.F90 )
 list ( APPEND F90SRC     AMReX_bc_types_mod.F90 )
+list ( APPEND F90SRC     AMReX_ParallelDescriptor_F.F90 )
 
 list ( APPEND CXXSRC     AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 
