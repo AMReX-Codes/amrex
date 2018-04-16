@@ -1,4 +1,3 @@
-
 #include <AMReX_MLMG.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
@@ -10,7 +9,7 @@
 // sol: full solution
 // rhs: rhs of the original equation L(sol) = rhs
 // res: rhs of the residual equation L(cor) = res
-//      usually res is the result of rhs-L(sol), but is the result of res-L(cor).
+// usually res is the result of rhs-L(sol), but is the result of res-L(cor).
 // cor/cor_hold: correction
 // rescor: res - L(cor)
 
@@ -78,15 +77,12 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
     const Real res_target = std::max(a_tol_abs, std::max(a_tol_rel,1.e-13)*max_norm);
 
-    if (!is_nsolve && resnorm0 <= res_target)
-    {
+    if (!is_nsolve && resnorm0 <= res_target) {
         composite_norminf = resnorm0;
         if (verbose >= 1) {
             amrex::Print() << "MLMG: No iterations needed\n";
         }
-    }
-    else
-    {
+    } else {
         Real iter_start_time = amrex::second();
         bool converged = false;
         const int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
@@ -109,12 +105,9 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             }
             bool fine_converged = (fine_norminf <= res_target);
 
-            if (namrlevs == 1 and fine_converged)
-            {
+            if (namrlevs == 1 and fine_converged) {
                 converged = true;
-            }
-            else if (fine_converged)
-            {
+            } else if (fine_converged) {
                 // finest level is converged, but we still need to test the coarse levels
                 computeMLResidual(finest_amr_lev-1);
                 Real crse_norminf = MLResNormInf(finest_amr_lev-1);
@@ -125,14 +118,11 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                 }
                 converged = (crse_norminf <= res_target);
                 composite_norminf = std::max(fine_norminf, crse_norminf);
-            }
-            else
-            {
+            } else {
                 converged = false;
             }
 
-            if (converged)
-            {
+            if (converged) {
                 if (verbose >= 1) {
                     amrex::Print() << "MLMG: Final Iter. " << iter+1
                                    << " resid, resid/" << norm_name << " = "
@@ -167,8 +157,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
 // in  : Residual (res) on the finest AMR level
 // out : sol on all AMR levels
-void
-MLMG::oneIter (int iter)
+void MLMG::oneIter (int iter)
 {
     BL_PROFILE("MLMG::oneIter()");
 
@@ -644,7 +633,8 @@ MLMG::actualBottomSolve ()
 
     if (bottom_solver == BottomSolver::smoother)
     {
-        bool skip_fillboundary = true;
+
+      bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
             linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
             skip_fillboundary = false;
@@ -656,42 +646,46 @@ MLMG::actualBottomSolve ()
         MultiFab raii_b;
         if (linop.isBottomSingular())
         {
-            raii_b.define(b.boxArray(), b.DistributionMap(), 1, b.nGrow());
-            MultiFab::Copy(raii_b,b,0,0,1,b.nGrow());
-            bottom_b = &raii_b;
 
-            Real offset;
-            if (linop.isCellCentered())
-            {
-                const bool local = true;
-                offset = bottom_b->sum(0,local)
-                    / linop.Geom(amrlev,mglev).Domain().d_numPts();
-                ParallelAllReduce::Sum(offset, linop.BottomCommunicator());
-            }
-            else
-            {
-                MultiFab one(b.boxArray(), b.DistributionMap(), 1, 0);
-                one.setVal(1.0);
-                const bool local = true;
-                Real s1 = linop.xdoty(amrlev, mglev, *bottom_b, one, local);
-                Real s2 = linop.xdoty(amrlev, mglev, one, one, local);
-                ParallelAllReduce::Sum<Real>({s1,s2}, linop.BottomCommunicator());
-                offset = s1/s2;
-            }
+          raii_b.define(b.boxArray(), b.DistributionMap(), 1, b.nGrow());
+          MultiFab::Copy(raii_b,b,0,0,1,b.nGrow());
+          bottom_b = &raii_b;
+          
+          Real offset;
+          if (linop.isCellCentered())
+          {
+            const bool local = true;
+            offset = bottom_b->sum(0,local)
+                / linop.Geom(amrlev,mglev).Domain().d_numPts();
+            ParallelAllReduce::Sum(offset, linop.BottomCommunicator());
+          }
+          else
+          {
+            MultiFab one(b.boxArray(), b.DistributionMap(), 1, 0);
+            one.setVal(1.0);
+            const bool local = true;
+            Real s1 = linop.xdoty(amrlev, mglev, *bottom_b, one, local);
+            Real s2 = linop.xdoty(amrlev, mglev, one, one, local);
+            ParallelAllReduce::Sum<Real>({s1, s2}, linop.BottomCommunicator());
+            offset = s1/s2;
+
+
+          }
 
             bottom_b->plus(-offset, 0, 1);
         }
 
         if (bottom_solver == BottomSolver::hypre)
         {
-            bottomSolveWithHypre(x, *bottom_b);
+          bottomSolveWithHypre(x, *bottom_b);
         }
         else
         {
-            MLCGSolver cg_solver(linop);
-            cg_solver.setVerbose(bottom_verbose);
-            cg_solver.setMaxIter(bottom_maxiter);
-            
+
+          MLCGSolver cg_solver(linop);
+          cg_solver.setVerbose(bottom_verbose);
+          cg_solver.setMaxIter(bottom_maxiter);
+          
             const Real cg_rtol = 1.e-4;
             const Real cg_atol = -1.0;
             int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
@@ -1038,7 +1032,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         const Geometry& geom = linop.m_geom[0].back();
         MPI_Comm comm = linop.BottomCommunicator();
 
-        hypre_solver.reset(new HypreABecLap2(ba, dm, geom, comm));
+        hypre_solver.reset(new HypreABecLap3(ba, dm, geom, comm));
         hypre_solver->setVerbose(bottom_verbose);
 
         hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());
