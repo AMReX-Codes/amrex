@@ -17,6 +17,8 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
+    signal(s, SIG_DFL);
+
     switch (s) {
     case SIGSEGV:
 	amrex::write_to_stderr_without_buffering("Segfault");
@@ -72,7 +74,6 @@ BLBackTrace::handler(int s)
 
 #endif // __linux__
 
-    signal(s, SIG_DFL);
     ParallelDescriptor::Abort(s, false);
 }
 
