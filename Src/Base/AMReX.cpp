@@ -53,6 +53,7 @@ namespace system
     std::string exename;
     int verbose;
     int signal_handling;
+    int call_addr2line;
 }
 }
 
@@ -284,6 +285,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::exename.clear();
     system::verbose = 0;
     system::signal_handling = 1;
+    system::call_addr2line = 1;
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
@@ -370,6 +372,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	pp.query("verbose", system::verbose);
 
         pp.query("signal_handling", system::signal_handling);
+        pp.query("call_addr2line", system::call_addr2line);
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
