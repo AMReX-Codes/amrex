@@ -393,10 +393,10 @@ extern "C"
                                 const amrex::Real, const int);
 
     void WRPX_PXR_NCI_FILTER(amrex::Real*, const int*, const int*, 
-                             const amrex::Real*, const int*, const int*, 
-                             const int, const int,
+                             const amrex::Real*, const int*, const int*,
+                             const int, const int, const int,
 #if (BL_SPACEDIM == 3)
-                             const int,
+                             const int, const int,
 #endif
                              const int);
 

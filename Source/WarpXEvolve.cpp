@@ -721,6 +721,7 @@ WarpX::ComputeDt ()
 }
 
 void WarpX::ApplyNCICorrector() {
+    BL_PROFILE("WarpX::ApplyNCICorrector()");
     const int nstencilz_fdtd_nci_corr = mypc->nstencilz_fdtd_nci_corr;
 #if (BL_SPACEDIM == 2)
     MultiFab *Ex, *Ez, *By;
@@ -735,21 +736,21 @@ void WarpX::ApplyNCICorrector() {
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ex)[mfi]), 
                                 mypc->fdtd_nci_stencilz_ex.data(), 
                                 tex.loVect(), tex.hiVect(), ngex, ngex, 
-                                nstencilz_fdtd_nci_corr);
+                                WarpX::nox, nstencilz_fdtd_nci_corr);
     }
     for ( MFIter mfi(*Ez,false); mfi.isValid(); ++mfi ) {
         const Box& tez  = mfi.fabbox();
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ez)[mfi]), 
                                 mypc->fdtd_nci_stencilz_by.data(), 
                                 tez.loVect(), tez.hiVect(), ngez, ngez,
-                                nstencilz_fdtd_nci_corr);
+                                WarpX::nox, nstencilz_fdtd_nci_corr);
     }
     for ( MFIter mfi(*By,false); mfi.isValid(); ++mfi ) {
         const Box& tby  = mfi.fabbox();
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*By)[mfi]), 
                                 mypc->fdtd_nci_stencilz_by.data(), 
                                 tby.loVect(), tby.hiVect(), ngby, ngby,
-                                nstencilz_fdtd_nci_corr);
+                                WarpX::nox, nstencilz_fdtd_nci_corr);
     }
 #elif (BL_SPACEDIM == 3)
     MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
@@ -769,7 +770,8 @@ void WarpX::ApplyNCICorrector() {
         const Box& tex  = mfi.fabbox();
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ex)[mfi]), 
                              mypc->fdtd_nci_stencilz_ex.data(), 
-                             tex.loVect(), tex.hiVect(), ngex, ngex, ngex, 
+                             tex.loVect(), tex.hiVect(), ngex, ngex, ngex,
+                             WarpX::nox, WarpX::noy,
                              nstencilz_fdtd_nci_corr);
     }
     for ( MFIter mfi(*Ey,false); mfi.isValid(); ++mfi ){
@@ -777,6 +779,7 @@ void WarpX::ApplyNCICorrector() {
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ey)[mfi]), 
                              mypc->fdtd_nci_stencilz_ex.data(), 
                              tey.loVect(), tey.hiVect(), ngey, ngey, ngey, 
+                             WarpX::nox, WarpX::noy,
                              nstencilz_fdtd_nci_corr);
     }
     for ( MFIter mfi(*Ez,false); mfi.isValid(); ++mfi ){
@@ -784,6 +787,7 @@ void WarpX::ApplyNCICorrector() {
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Ez)[mfi]), 
                              mypc->fdtd_nci_stencilz_by.data(), 
                              tez.loVect(), tez.hiVect(), ngez, ngez, ngez, 
+                             WarpX::nox, WarpX::noy,
                              nstencilz_fdtd_nci_corr);
     }
     for ( MFIter mfi(*Bx,false); mfi.isValid(); ++mfi ){
@@ -791,6 +795,7 @@ void WarpX::ApplyNCICorrector() {
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Bx)[mfi]), 
                              mypc->fdtd_nci_stencilz_by.data(), 
                              tbx.loVect(), tbx.hiVect(), ngbx, ngbx, ngbx, 
+                             WarpX::nox, WarpX::noy,
                              nstencilz_fdtd_nci_corr);
     }
     for ( MFIter mfi(*By,false); mfi.isValid(); ++mfi ){
@@ -798,6 +803,7 @@ void WarpX::ApplyNCICorrector() {
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*By)[mfi]), 
                              mypc->fdtd_nci_stencilz_by.data(), 
                              tby.loVect(), tby.hiVect(), ngby, ngby, ngby, 
+                             WarpX::nox, WarpX::noy,
                              nstencilz_fdtd_nci_corr);
     }
     for ( MFIter mfi(*Bz,false); mfi.isValid(); ++mfi ){
@@ -805,6 +811,7 @@ void WarpX::ApplyNCICorrector() {
         WRPX_PXR_NCI_FILTER( BL_TO_FORTRAN_3D((*Bz)[mfi]), 
                              mypc->fdtd_nci_stencilz_ex.data(), 
                              tbz.loVect(), tbz.hiVect(), ngbz, ngbz, ngbz, 
+                             WarpX::nox, WarpX::noy,
                              nstencilz_fdtd_nci_corr);
     }
 #endif
