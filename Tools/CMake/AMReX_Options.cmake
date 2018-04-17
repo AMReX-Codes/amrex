@@ -41,10 +41,26 @@ endmacro ()
 message (STATUS "Configuring AMReX with the following options: ")
 
 #
-# General options
+# This is the option to enable/disable xSDK mode
+#
+option ( USE_XSDK_DEFAULTS "Enable xSDK mode"  OFF )
+print_option ( USE_XSDK_DEFAULTS )
+
+#
+# Option to control the build type.
+# If xSDK mode is enabled, the build type is determined by
+# CMAKE_BUILD_TYPE and DEBUG is a regular variable.
+# If xSDK mode is disabled, the build type is determined by DEBUG
+# and CMAKE_BUILD_TYPE is set accordingly.
 # 
-option ( DEBUG "Build in debug mode" OFF )
-print_option (DEBUG)
+if ( USE_XSDK_DEFAULTS )
+   set ( DEBUG OFF )
+   if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
+      set ( DEBUG ON )
+   endif ()
+else ()
+   option ( DEBUG "Build in debug mode" OFF )
+endif ()
 
 if (DEBUG)
    set (CMAKE_BUILD_TYPE "Debug")
@@ -52,10 +68,18 @@ else ()
    set (CMAKE_BUILD_TYPE "Release")
 endif ()
 
+if ( USE_XSDK_DEFAULTS )
+   print_option (CMAKE_BUILD_TYPE)
+elseif ()
+   print_option (DEBUG)
+endif ()
+
 string ( TOUPPER ${CMAKE_BUILD_TYPE} AMREX_BUILD_TYPE ) 
 
-
-message ( STATUS "   CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}" )
+#
+# Print out info on install path
+# 
+print_option ( CMAKE_INSTALL_PREFIX )
 
 
 set (DIM 3 CACHE INT "Dimension of AMReX build")
@@ -63,7 +87,6 @@ if ( (${DIM} GREATER 3) OR (${DIM} LESS 1) )
    message ( FATAL_ERROR "DIM must be either 1, 2 or 3.")
 endif ()
 print_option ( DIM )
-
 
 option ( ENABLE_PIC "Build position-independent code" OFF)
 print_option ( ENABLE_PIC )
@@ -116,10 +139,14 @@ if (DEBUG)
 else ()
    option ( ENABLE_ASSERTION "Enable assertions" OFF)
 endif ()
+
 print_option ( ENABLE_ASSERTION )
 
-set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
+#
+# User-defined compiler flags
+#
+set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
 
 

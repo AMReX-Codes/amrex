@@ -85,6 +85,9 @@ endif ()
 # Git version
 list ( APPEND AMREX_DEFINES -DAMREX_GIT_VERSION=\"${AMREX_GIT_VERSION}\" )
 
+# XSDK mode
+add_define ( AMREX_XSDK IF USE_XSDK_DEFAULTS )
+
 # Debug flag
 if (DEBUG)
    add_define (AMREX_DEBUG)
