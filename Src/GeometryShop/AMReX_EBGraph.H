@@ -1,5 +1,5 @@
-#ifndef _EBGRAPH_H_
-#define _EBGRAPH_H_
+#ifndef AMREX_EBGRAPH_H_
+#define AMREX_EBGRAPH_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"

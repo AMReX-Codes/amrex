@@ -1,5 +1,5 @@
-#ifndef _BASEEBFACEFAB_H_
-#define _BASEEBFACEFAB_H_
+#ifndef AMREX_BASEEBFACEFAB_H_
+#define AMREX_BASEEBFACEFAB_H_
 
 #include <cmath>
 #include <cstdlib>

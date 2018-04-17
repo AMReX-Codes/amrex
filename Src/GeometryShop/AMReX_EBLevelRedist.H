@@ -1,5 +1,5 @@
-#ifndef _EBLEVELREDIST_H___
-#define _EBLEVELREDIST_H___
+#ifndef AMREX_EBLEVELREDIST_H_
+#define AMREX_EBLEVELREDIST_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_FArrayBox.H"
