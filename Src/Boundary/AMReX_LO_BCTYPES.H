@@ -1,5 +1,5 @@
-#ifndef _LO_BCTYPES_H_
-#define _LO_BCTYPES_H_
+#ifndef AMREX_LO_BCTYPES_H_
+#define AMREX_LO_BCTYPES_H_
 
 #define LO_DIRICHLET 101
 #define LO_NEUMANN 102

@@ -1,6 +1,6 @@
 
-#ifndef _BOUNDCOND_H_
-#define _BOUNDCOND_H_
+#ifndef AMREX_BOUNDCOND_H_
+#define AMREX_BOUNDCOND_H_
 
 #include <AMReX_BLassert.H>
 

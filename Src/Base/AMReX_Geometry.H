@@ -1,5 +1,5 @@
-#ifndef _GEOMETRY_H_
-#define _GEOMETRY_H_
+#ifndef AMREX_GEOMETRY_H_
+#define AMREX_GEOMETRY_H_
 
 #include <iosfwd>
 #include <map>
@@ -159,14 +159,6 @@ public:
     void periodicShift (const Box&      target,
                         const Box&      src, 
                         Vector<IntVect>& out) const;
-
-#ifdef BL_USE_MPI
-    //! Send Geometry to sidecar procs.
-    static void SendGeometryToSidecar (Geometry *geom, int whichSidecar);
-    //
-    static void BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm);
-    static void BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool bcastSource);
-#endif
 
 private:
     //! Helper functions.

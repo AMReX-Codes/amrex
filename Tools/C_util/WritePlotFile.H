@@ -18,11 +18,11 @@ writePlotFile (const char*                 name,
          const amrex::Vector<std::string>& names);
 
 // Write an array of multifabs pulling all the data from the AmrData
-void
-WritePlotFile(const amrex::Vector<amrex::MultiFab*> mfa,
-	            amrex::AmrData&               amrdToMimic,
-       	      const std::string&     oFile,
-	            bool                   verbose);
+void WritePlotFile(const amrex::Vector<amrex::MultiFab*>& mfa,
+		   amrex::AmrData&                        amrdToMimic,
+		   const std::string&                     oFile,
+		   bool                                   verbose = false,
+                   const amrex::Vector<std::string>&      varNames = amrex::Vector<std::string>());
 
 
 #endif

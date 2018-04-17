@@ -17,6 +17,8 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
+    signal(s, SIG_DFL);
+
     switch (s) {
     case SIGSEGV:
 	amrex::write_to_stderr_without_buffering("Segfault");
@@ -37,9 +39,7 @@ BLBackTrace::handler(int s)
     std::string errfilename;
     {
 	std::ostringstream ss;
-	// ---- rank global (rg) and rank local (rl)
-	ss << "Backtrace.rg_" << ParallelDescriptor::MyProcAll()
-	   << "_rl_" << ParallelDescriptor::MyProc();
+	ss << "Backtrace." << ParallelDescriptor::MyProc();
 #ifdef _OPENMP
  	ss << "." << omp_get_thread_num();
 #endif
@@ -74,7 +74,6 @@ BLBackTrace::handler(int s)
 
 #endif // __linux__
 
-    signal(s, SIG_DFL);
     ParallelDescriptor::Abort(s, false);
 }
 
@@ -123,7 +122,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	for (int i = 0; i < nptrs; ++i) {
 	    std::string line = strings[i];
 	    line += "\n";
-	    if (have_addr2line && !amrex::system::exename.empty()) {
+	    if (amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty()) {
 		std::size_t found1 = line.rfind('[');
 		std::size_t found2 = line.rfind(']');
 		if (found1 != std::string::npos && found2 != std::string::npos) {
@@ -156,7 +155,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
 #ifdef _OPENMP
     if (omp_in_parallel()) {
 	std::ostringstream ss0;
-	ss0 << "Proc. " << ParallelDescriptor::MyProc() 
+	ss0 << "Proc. " << ParallelDescriptor::MyProc()
 	    << ", Thread " << omp_get_thread_num()
 	    << ": \"" << s << "\"";
 	BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
@@ -165,7 +164,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
         #pragma omp parallel
 	{
 	    std::ostringstream ss0;
-	    ss0 << "Proc. " << ParallelDescriptor::MyProc() 
+	    ss0 << "Proc. " << ParallelDescriptor::MyProc()
 		<< ", Master Thread"
 		<< ": \"" << s << "\"";
 	    BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
@@ -173,7 +172,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
     }
 #else
     std::ostringstream ss0;
-    ss0 << "Proc. " << ParallelDescriptor::MyProc() 
+    ss0 << "Proc. " << ParallelDescriptor::MyProc()
 	<< ": \"" << s << "\"";
     BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
 #endif    

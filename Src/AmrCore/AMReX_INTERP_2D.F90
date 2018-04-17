@@ -1,29 +1,27 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_interp_module
 
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_BC_TYPES.H"
-#include "AMReX_INTERP_F.H"
-#include <AMReX_ArrayLim.H>
+  use amrex_fort_module
+  use amrex_constants_module
+
+  implicit none
+
+  include 'AMReX_bc_types.fi'
+
+contains
 
 #define IX_PROJ(A,B) (A+B*iabs(A))/B-iabs(A)
-#define SDIM 2
-
 
 ! ::: --------------------------------------------------------------
 ! ::: nbinterp:  node based bilinear interpolation
 ! :::
 ! ::: INPUTS/OUTPUTS
 ! ::: fine        <=>  (modify) fine grid array
-! ::: DIMS(fine)   =>  (const)  index limits of fine grid
+! ::: fine_l1,fine_l2,fine_h1,fine_h2   =>  (const)  index limits of fine grid
 ! ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
 ! :::
 ! ::: crse         =>  (const)  coarse grid data widened by 1 zone
-! ::: DIMS(crse)   =>  (const)  index limits of coarse grid
+! ::: crse_l1,crse_l2,crse_h1,crse_h2   =>  (const)  index limits of coarse grid
 ! :::
 ! ::: lratio(3)    =>  (const)  refinement ratio between levels
 ! ::: nvar         =>  (const)  number of components in array
@@ -33,24 +31,24 @@
 ! ::: sl           =>  num_slp 1-D slope arrays
 ! ::: --------------------------------------------------------------
 ! :::
-    subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb), &
-                              fine, DIMS(fine), DIMS(fb), &
+    subroutine AMREX_NBINTERP (crse, crse_l1,crse_l2,crse_h1,crse_h2, cb_l1,cb_l2,cb_h1,cb_h2, &
+                              fine, fine_l1,fine_l2,fine_h1,fine_h2, fb_l1,fb_l2,fb_h1,fb_h2, &
                               lratiox, lratioy, nvar, &
                               sl, num_slp, &
-                              actual_comp,actual_state)
+                              actual_comp,actual_state)  bind(c,name='amrex_nbinterp')
 
       implicit none
 
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
+      integer crse_l1,crse_l2,crse_h1,crse_h2
+      integer cb_l1,cb_l2,cb_h1,cb_h2
+      integer fine_l1,fine_l2,fine_h1,fine_h2
+      integer fb_l1,fb_l2,fb_h1,fb_h2
       integer lratiox, lratioy, nvar
       integer num_slp
       integer actual_comp,actual_state
-      REAL_T  fine(DIMV(fine),nvar)
-      REAL_T  crse(DIMV(crse),nvar)
-      REAL_T  sl(DIM1(cb),num_slp)
+      real(amrex_real)  fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      real(amrex_real)  crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      real(amrex_real)  sl(cb_l1:cb_h1,num_slp)
 
 #define  SLX 1
 #define  SLY 2
@@ -61,10 +59,10 @@
       integer ilo, ihi, jlo, jhi
       integer jstrtFine, jstopFine, istrtFine, istopFine
 
-      REAL_T fx, fy
-      REAL_T RX, RY, RXY
-      REAL_T dx0, d0x, dx1
-      REAL_T slope
+      real(amrex_real) fx, fy
+      real(amrex_real) RX, RY, RXY
+      real(amrex_real) dx0, d0x, dx1
+      real(amrex_real) slope
 
       slope(i,j,n,fx,fy) = crse(i,j,n) + &
                            fx*sl(i,SLX) + fy*sl(i,SLY) + fx*fy*sl(i,SLXY)
@@ -84,13 +82,13 @@
 !            as an offset from ?strtFine.
 
       do 100 n = 1, nvar
-        do 120 j = ARG_L2(cb), ARG_H2(cb)
+        do 120 j = cb_l2, cb_h2
           jstrtFine = j * lratioy
           jstopFine = jstrtFine + lratioy - 1
-          if (j .eq. ARG_H2(cb)) jstopFine = jstrtFine
+          if (j .eq. cb_h2) jstopFine = jstrtFine
 
-          jlo = max(ARG_L2(fb),jstrtFine) - jstrtFine
-          jhi = min(ARG_H2(fb),jstopFine) - jstrtFine
+          jlo = max(fb_l2,jstrtFine) - jstrtFine
+          jhi = min(fb_h2,jstopFine) - jstrtFine
 
 !         ::::: compute slopes :::::
 !
@@ -100,15 +98,15 @@
 !               slopes actually are not used since they are multiplied by
 !               zero.
 
-          do i = ARG_L1(cb), ARG_H1(cb)
+          do i = cb_l1, cb_h1
             dx0 = zero
-            if (i .NE. ARG_H1(cb)) dx0 = crse(i+1,j,n) - crse(i,j,n)
+            if (i .NE. cb_h1) dx0 = crse(i+1,j,n) - crse(i,j,n)
 
             d0x = zero
-            if (j .NE. ARG_H2(cb)) d0x = crse(i,j+1,n) - crse(i,j,n)
+            if (j .NE. cb_h2) d0x = crse(i,j+1,n) - crse(i,j,n)
 
             dx1 = zero
-            if (i .NE. ARG_H1(cb) .and. j .NE. ARG_H2(cb)) &
+            if (i .NE. cb_h1 .and. j .NE. cb_h2) &
               dx1 = crse(i+1,j+1,n) - crse(i,j+1,n)
 
             sl(i,SLX) = RX*dx0
@@ -122,13 +120,13 @@
             jfn = lratioy * j + ly
             fy = dble(ly)
 
-            do i = ARG_L1(cb), ARG_H1(cb)
+            do i = cb_l1, cb_h1
               istrtFine = i * lratiox
               istopFine = istrtFine + lratiox - 1
-              if (i .eq. ARG_H1(cb)) istopFine = istrtFine
+              if (i .eq. cb_h1) istopFine = istrtFine
 
-              ilo = max(ARG_L1(fb),istrtFine) - istrtFine
-              ihi = min(ARG_H1(fb),istopFine) - istrtFine
+              ilo = max(fb_l1,istrtFine) - istrtFine
+              ihi = min(fb_h1,istopFine) - istrtFine
 
               do lx = ilo, ihi
                 ifn = lratiox * i + lx
@@ -145,7 +143,7 @@
 #undef  SLY
 #undef  SLXY
 
-    end subroutine FORT_NBINTERP
+    end subroutine AMREX_NBINTERP
 ! ::: 
 ! ::: --------------------------------------------------------------
 ! ::: cbinterp:  cell centered bilinear interpolation
@@ -156,11 +154,11 @@
 ! ::: 
 ! ::: Inputs/Outputs
 ! ::: fine        <=>  (modify) fine grid array
-! ::: DIMS(fine)   =>  (const)  index limits of fine grid
-! ::: DIMS(fb)     =>  (const)  subregion of fine grid to get values
+! ::: fine_l1,fine_l2,fine_h1,fine_h2   =>  (const)  index limits of fine grid
+! ::: fb_l1,fb_l2,fb_h1,fb_h2     =>  (const)  subregion of fine grid to get values
 ! ::: 
 ! ::: crse         =>  (const)  coarse grid data 
-! ::: DIMS(crse)   =>  (const)  index limits of coarse grid
+! ::: crse_l1,crse_l2,crse_h1,crse_h2   =>  (const)  index limits of coarse grid
 ! ::: 
 ! ::: lratio(2)    =>  (const)  refinement ratio between levels
 ! ::: nvar         =>  (const)  number of components in array
@@ -170,33 +168,33 @@
 ! ::: strip        =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_CBINTERP (crse, DIMS(crse), DIMS(cb), &
-                              fine, DIMS(fine), DIMS(fb), &
+    subroutine AMREX_CBINTERP (crse, crse_l1,crse_l2,crse_h1,crse_h2, cb_l1,cb_l2,cb_h1,cb_h2, &
+                              fine, fine_l1,fine_l2,fine_h1,fine_h2, fb_l1,fb_l2,fb_h1,fb_h2, &
                               lratiox, lratioy, nvar, &
                               sl, num_slp, strip, strip_lo, strip_hi, &
-                              actual_comp,actual_state)
+                              actual_comp,actual_state) bind(c,name='amrex_cbinterp')
 
       implicit none
 
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
+      integer crse_l1,crse_l2,crse_h1,crse_h2
+      integer cb_l1,cb_l2,cb_h1,cb_h2
+      integer fine_l1,fine_l2,fine_h1,fine_h2
+      integer fb_l1,fb_l2,fb_h1,fb_h2
       integer lratiox, lratioy, nvar
       integer num_slp
       integer actual_comp,actual_state
       integer strip_lo, strip_hi
-      REAL_T  fine(DIMV(fine), nvar)
-      REAL_T  crse(DIMV(crse), nvar)
-      REAL_T  sl(DIM1(cb),num_slp)
-      REAL_T  strip(strip_lo:strip_hi)
+      real(amrex_real)  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
+      real(amrex_real)  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+      real(amrex_real)  sl(cb_l1:cb_h1,num_slp)
+      real(amrex_real)  strip(strip_lo:strip_hi)
 
 #define SLX 1
 #define SLY 2
 #define SLXY 3
 
       integer lx, ly, hratx, hraty, ic, jc, jfn, jfc, i, n
-      REAL_T x, y, denomx, denomy
+      real(amrex_real) x, y, denomx, denomy
 
       denomx = one/dble(2*lratiox)
       denomy = one/dble(2*lratioy)
@@ -205,8 +203,8 @@
       hraty = lratioy/2
 
       do n = 1, nvar 
-         do jc = ARG_L2(cb), ARG_H2(cb)-1 
-            do ic = ARG_L1(cb), ARG_H1(cb)-1
+         do jc = cb_l2, cb_h2-1 
+            do ic = cb_l1, cb_h1-1
                sl(ic,SLX) = crse(ic+1,jc,n)-crse(ic,jc,n)
                sl(ic,SLY) = crse(ic,jc+1,n)-crse(ic,jc,n)
                sl(ic,SLXY) = crse(ic+1,jc+1,n)-crse(ic+1,jc,n) &
@@ -215,17 +213,17 @@
             do ly = 0, lratioy-1 
                jfn = jc*lratioy + ly
                jfc = jfn + hraty
-               if (jfc .ge. ARG_L2(fb)  .and.  jfc .le. ARG_H2(fb)) then
+               if (jfc .ge. fb_l2  .and.  jfc .le. fb_h2) then
                   y = denomy*(two*ly + one)
                   do lx = 0, lratiox-1
-                     do ic = ARG_L1(cb), ARG_H1(cb)-1
+                     do ic = cb_l1, cb_h1-1
                         i = ic*lratiox + lx
                         x = denomx*(two*lx + one)
                         strip(i) = crse(ic,jc,n) + x*sl(ic,SLX) + &
                                    y*sl(ic,SLY) + x*y*sl(ic,SLXY)
                      end do
                   end do
-                  do i = ARG_L1(fb), ARG_H1(fb) 
+                  do i = fb_l1, fb_h1 
                      fine(i,jfc,n) = strip(i-hratx)
                   end do
                end if
@@ -233,7 +231,7 @@
          end do
       end do
 
-    end subroutine FORT_CBINTERP
+    end subroutine AMREX_CBINTERP
 
 #undef  SLX
 #undef  SLY
@@ -276,49 +274,49 @@
 ! :::
 ! ::: --------------------------------------------------------------
 ! ::: 
-     subroutine FORT_LINCCINTERP (fine, DIMS(fine), fblo, fbhi, &
-                                  DIMS(fvcb), &
-                                  crse, DIMS(crse), DIMS(cvcb), &
+     subroutine AMREX_LINCCINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, fblo, fbhi, &
+                                  fvcb_l1,fvcb_l2,fvcb_h1,fvcb_h2, &
+                                  crse, crse_l1,crse_l2,crse_h1,crse_h2, cvcb_l1,cvcb_l2,cvcb_h1,cvcb_h2, &
                                   uc_xslope, lc_xslope, xslope_factor, &
                                   uc_yslope, lc_yslope, yslope_factor, &
-                                  DIMS(cslope), &
+                                  cslope_l1,cslope_l2,cslope_h1,cslope_h2, &
                                   cslopelo, cslopehi, &
                                   nvar, lratiox, lratioy, &
                                   bc, lim_slope, lin_limit, &
                                   fvcx, fvcy, cvcx, cvcy, &
                                   voffx, voffy, alpha, cmax, cmin, &
-                                  actual_comp,actual_state)
+                                  actual_comp,actual_state) bind(c,name='amrex_linccinterp')
 
        implicit none
 
-       integer DIMDEC(fine)
-       integer DIMDEC(crse)
-       integer DIMDEC(fvcb)
-       integer DIMDEC(cvcb)
-       integer DIMDEC(cslope)
+       integer fine_l1,fine_l2,fine_h1,fine_h2
+       integer crse_l1,crse_l2,crse_h1,crse_h2
+       integer fvcb_l1,fvcb_l2,fvcb_h1,fvcb_h2
+       integer cvcb_l1,cvcb_l2,cvcb_h1,cvcb_h2
+       integer cslope_l1,cslope_l2,cslope_h1,cslope_h2
        integer fblo(2), fbhi(2)
        integer cslopelo(2), cslopehi(2)
        integer lratiox, lratioy, nvar
        integer lim_slope, lin_limit
        integer bc(2,2,nvar)
        integer actual_comp,actual_state
-       REAL_T fine(DIMV(fine),nvar)
-       REAL_T crse(DIMV(crse), nvar)
-       REAL_T uc_xslope(DIMV(cslope),nvar)
-       REAL_T lc_xslope(DIMV(cslope),nvar)
-       REAL_T xslope_factor(DIMV(cslope))
-       REAL_T uc_yslope(DIMV(cslope),nvar)
-       REAL_T lc_yslope(DIMV(cslope),nvar)
-       REAL_T yslope_factor(DIMV(cslope))
-       REAL_T alpha(DIMV(cslope),nvar)
-       REAL_T cmax(DIMV(cslope),nvar)
-       REAL_T cmin(DIMV(cslope),nvar)
-       REAL_T fvcx(DIM1(fvcb))
-       REAL_T fvcy(DIM2(fvcb))
-       REAL_T voffx(DIM1(fvcb))
-       REAL_T voffy(DIM2(fvcb))
-       REAL_T cvcx(DIM1(cvcb))
-       REAL_T cvcy(DIM2(cvcb))
+       real(amrex_real) fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+       real(amrex_real) crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+       real(amrex_real) uc_xslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) lc_xslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) xslope_factor(cslope_l1:cslope_h1,cslope_l2:cslope_h2)
+       real(amrex_real) uc_yslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) lc_yslope(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) yslope_factor(cslope_l1:cslope_h1,cslope_l2:cslope_h2)
+       real(amrex_real) alpha(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) cmax(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) cmin(cslope_l1:cslope_h1,cslope_l2:cslope_h2,nvar)
+       real(amrex_real) fvcx(fvcb_l1:fvcb_h1)
+       real(amrex_real) fvcy(fvcb_l2:fvcb_h2)
+       real(amrex_real) voffx(fvcb_l1:fvcb_h1)
+       real(amrex_real) voffy(fvcb_l2:fvcb_h2)
+       real(amrex_real) cvcx(cvcb_l1:cvcb_h1)
+       real(amrex_real) cvcy(cvcb_l2:cvcb_h2)
 
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)
@@ -326,11 +324,11 @@
        integer n
        integer i, ic
        integer j, jc
-       REAL_T cen, forw, back, slp
-       REAL_T factorn, denom
-       REAL_T fxcen, cxcen, fycen, cycen
-       REAL_T orig_corr_fact,corr_fact
-       REAL_T dummy_fine
+       real(amrex_real) cen, forw, back, slp
+       real(amrex_real) factorn, denom
+       real(amrex_real) fxcen, cxcen, fycen, cycen
+       real(amrex_real) orig_corr_fact,corr_fact
+       real(amrex_real) dummy_fine
        logical xok, yok
        integer ncbx, ncby
        integer ioff,joff
@@ -631,20 +629,20 @@
 
        end if
 
-     end subroutine FORT_LINCCINTERP
+     end subroutine AMREX_LINCCINTERP
 
-     subroutine FORT_CQINTERP (fine, DIMS(fine), &
+     subroutine AMREX_CQINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
                                fb_l1, fb_l2, fb_h1, fb_h2, &
                                nvar, lratiox, lratioy, crse, clo, chi, &
                                cb_l1, cb_l2, cb_h1, cb_h2, &
                                fslo, fshi, cslope, clen, fslope, fdat, &
                                flen, voff, bc, limslope, &
                                fvcx, fvcy, cvcx, cvcy, &
-                               actual_comp,actual_state)
+                               actual_comp,actual_state) bind(c,name='amrex_cqinterp')
 
       implicit none
 
-      integer DIMDEC(fine)
+      integer fine_l1,fine_l2,fine_h1,fine_h2
       integer fslo(2), fshi(2)
       integer fb_l1, fb_l2, fb_h1, fb_h2
       integer cb_l1, cb_l2, cb_h1, cb_h2
@@ -652,16 +650,16 @@
       integer lratiox, lratioy, nvar, clen, flen, limslope
       integer bc(2,2,nvar)
       integer actual_comp,actual_state
-      REAL_T fine(DIMV(fine),nvar)
-      REAL_T crse(clo:chi, nvar)
-      REAL_T cslope(clo:chi, 5)
-      REAL_T fslope(flen, 5)
-      REAL_T fdat(flen)
-      REAL_T voff(flen)
-      REAL_T fvcx(fb_l1:fb_h1+1)
-      REAL_T fvcy(fb_l2:fb_h2+1)
-      REAL_T cvcx(cb_l1:cb_h1+1)
-      REAL_T cvcy(cb_l2:cb_h2+1)
+      real(amrex_real) fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      real(amrex_real) crse(clo:chi, nvar)
+      real(amrex_real) cslope(clo:chi, 5)
+      real(amrex_real) fslope(flen, 5)
+      real(amrex_real) fdat(flen)
+      real(amrex_real) voff(flen)
+      real(amrex_real) fvcx(fb_l1:fb_h1+1)
+      real(amrex_real) fvcy(fb_l2:fb_h2+1)
+      real(amrex_real) cvcx(cb_l1:cb_h1+1)
+      real(amrex_real) cvcy(cb_l2:cb_h2+1)
 
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)
@@ -670,10 +668,10 @@
       integer i, ic, ioff
       integer j, jc, joff
       integer ist, jst
-      REAL_T cen
-      REAL_T fcen, ccen
-      REAL_T diffxy,diffxx,diffyy
-      REAL_T yoff
+      real(amrex_real) cen
+      real(amrex_real) fcen, ccen
+      real(amrex_real) diffxy,diffxx,diffyy
+      real(amrex_real) yoff
       integer ncbx, ncby
       integer ncsx
       integer jslo
@@ -799,7 +797,7 @@
 
 290   continue
 
-    end subroutine FORT_CQINTERP
+    end subroutine AMREX_CQINTERP
 ! ::: 
 ! ::: --------------------------------------------------------------
 ! ::: pcinterp:  cell centered piecewise constant interpolation
@@ -821,24 +819,24 @@
 ! ::: ftmp         =>  1-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-    subroutine FORT_PCINTERP (crse,DIMS(crse),cblo,cbhi, &
-                              fine,DIMS(fine),fblo,fbhi, &
+    subroutine AMREX_PCINTERP (crse,crse_l1,crse_l2,crse_h1,crse_h2,cblo,cbhi, &
+                              fine,fine_l1,fine_l2,fine_h1,fine_h2,fblo,fbhi, &
                               longdir,lratiox,lratioy,nvar, &
                               ftmp,ftmp_lo,ftmp_hi, &
-                              actual_comp,actual_state)
+                              actual_comp,actual_state) bind(c,name='amrex_pcinterp')
 
       implicit none
 
-      integer DIMDEC(crse)
+      integer crse_l1,crse_l2,crse_h1,crse_h2
       integer cblo(2), cbhi(2)
-      integer DIMDEC(fine)
+      integer fine_l1,fine_l2,fine_h1,fine_h2
       integer fblo(2), fbhi(2)
       integer ftmp_lo, ftmp_hi
       integer nvar, lratiox, lratioy, longdir
       integer actual_comp,actual_state
-      REAL_T  crse(DIMV(crse), nvar)
-      REAL_T  fine(DIMV(fine), nvar)
-      REAL_T  ftmp(ftmp_lo:ftmp_hi)
+      real(amrex_real)  crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+      real(amrex_real)  fine(fine_l1:fine_h1,fine_l2:fine_h2, nvar)
+      real(amrex_real)  ftmp(ftmp_lo:ftmp_hi)
 
       integer i, j, ic, jc, ioff, joff, n
 
@@ -884,7 +882,7 @@
 	 end do
       end if
 
-    end subroutine FORT_PCINTERP
+    end subroutine AMREX_PCINTERP
 
 ! ::: 
 ! ::: --------------------------------------------------------------
@@ -906,47 +904,47 @@
 ! ::: --------------------------------------------------------------
 ! ::: 
 
-    subroutine FORT_PROTECT_INTERP (fine, DIMS(fine), fblo, fbhi, &
-                                    crse, DIMS(crse), cblo, cbhi, &
+    subroutine AMREX_PROTECT_INTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, fblo, fbhi, &
+                                    crse, crse_l1,crse_l2,crse_h1,crse_h2, cblo, cbhi, &
                                     fvcx, fvcy, &
                                     fb_l1, fb_l2, fb_h1, fb_h2, &
                                     cvcx, cvcy, &
                                     cb_l1, cb_l2, cb_h1, cb_h2, &
-                                    fine_state, DIMS(state), &
-                                    nvar, lratiox, lratioy, bc)
+                                    fine_state, state_l1,state_l2,state_h1,state_h2, &
+                                    nvar, lratiox, lratioy, bc) bind(c,name='amrex_protect_interp')
 
       implicit none
 
-      integer DIMDEC(fine)
-      integer DIMDEC(crse)
-      integer DIMDEC(state)
+      integer fine_l1,fine_l2,fine_h1,fine_h2
+      integer crse_l1,crse_l2,crse_h1,crse_h2
+      integer state_l1,state_l2,state_h1,state_h2
       integer fblo(2), fbhi(2)
       integer cblo(2), cbhi(2)
       integer fb_l1, fb_l2, fb_h1, fb_h2
       integer cb_l1, cb_l2, cb_h1, cb_h2
       integer lratiox, lratioy, nvar
       integer bc(2,2,nvar)
-      REAL_T fine(DIMV(fine),nvar)
-      REAL_T crse(DIMV(crse), nvar)
-      REAL_T fine_state(DIMV(state), nvar)
-      REAL_T fvcx(fb_l1:fb_h1)
-      REAL_T fvcy(fb_l2:fb_h2)
-      REAL_T cvcx(cb_l1:cb_h1)
-      REAL_T cvcy(cb_l2:cb_h2)
+      real(amrex_real) fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      real(amrex_real) crse(crse_l1:crse_h1,crse_l2:crse_h2, nvar)
+      real(amrex_real) fine_state(state_l1:state_h1,state_l2:state_h2, nvar)
+      real(amrex_real) fvcx(fb_l1:fb_h1)
+      real(amrex_real) fvcy(fb_l2:fb_h2)
+      real(amrex_real) cvcx(cb_l1:cb_h1)
+      real(amrex_real) cvcy(cb_l2:cb_h2)
 
       integer rMAX
       parameter (rMAX = 32)
-      REAL_T alpha, sumN, sumP, negVal, posVal
-      REAL_T crseTot, crseTotnew
-      REAL_T orig_fine(0:rMAX-1,0:rMAX-1)
-      REAL_T fvol,cvol
+      real(amrex_real) alpha, sumN, sumP, negVal, posVal
+      real(amrex_real) crseTot, crseTotnew
+      real(amrex_real) orig_fine(0:rMAX-1,0:rMAX-1)
+      real(amrex_real) fvol,cvol
       integer redo_me
       integer ilo,ihi,jlo,jhi
       integer i,j,ic,jc,n
       integer icase
 
       if (MAX(lratiox,lratioy).gt.rMAX) then
-         print *,'rMAX in INTERP_2D::FORT_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy)
+         print *,'rMAX in INTERP_2D::AMREX_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy)
          call bl_abort(" ")
       endif
 
@@ -1218,7 +1216,7 @@
       enddo
       enddo
 
-    end subroutine FORT_PROTECT_INTERP
+    end subroutine AMREX_PROTECT_INTERP
 
 ! ::: 
 ! ::: --------------------------------------------------------------
@@ -1244,33 +1242,33 @@
 ! ::: ctmp         =>  2-D temp array
 ! ::: --------------------------------------------------------------
 ! ::: 
-     subroutine FORT_QUARTINTERP (fine, DIMS(fine), &
+     subroutine AMREX_QUARTINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
                                   fblo, fbhi, fb2lo, fb2hi, &
-                                  crse, DIMS(crse), &
+                                  crse, crse_l1,crse_l2,crse_h1,crse_h2, &
                                   cblo, cbhi, cb2lo, cb2hi, &
                                   nvar, &
                                   lratiox, lratioy, &
                                   ftmp, ctmp, &
-                                  bc,actual_comp,actual_state)
+                                  bc,actual_comp,actual_state) bind(c,name='amrex_quartinterp')
 
        implicit none
 
-       integer DIMDEC(fine)
-       integer DIMDEC(crse)
+       integer fine_l1,fine_l2,fine_h1,fine_h2
+       integer crse_l1,crse_l2,crse_h1,crse_h2
        integer fblo(2), fbhi(2), fb2lo(2), fb2hi(2)
        integer cblo(2), cbhi(2), cb2lo(2), cb2hi(2)
        integer nvar,lratiox,lratioy
        integer bc(2,2,nvar)
        integer actual_comp,actual_state
-       REAL_T fine(DIMV(fine),nvar)
-       REAL_T crse(DIMV(crse),nvar)
-       REAL_T ftmp(fb2lo(1):fb2hi(1))
-       REAL_T ctmp(cblo(1):cbhi(1),0:lratioy-1)
+       real(amrex_real) fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+       real(amrex_real) crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+       real(amrex_real) ftmp(fb2lo(1):fb2hi(1))
+       real(amrex_real) ctmp(cblo(1):cbhi(1),0:lratioy-1)
 
 !      Local variables
        integer i,j,ii,jj,n,iry
-       REAL_T cL(-2:2)
-!       REAL_T cR(-2:2)
+       real(amrex_real) cL(-2:2)
+!       real(amrex_real) cR(-2:2)
        data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0, &
                  0.01171875D0 /
 !       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0, &
@@ -1318,11 +1316,14 @@
           enddo
        else if (lratiox.eq.4 .and. lratioy.eq.4) then
 !      todo
-          write(6,*) 'FORT_QUARTINTERP: refinement ratio = 4 TODO'
+          write(6,*) 'AMREX_QUARTINTERP: refinement ratio = 4 TODO'
           stop
        else
-          write(6,*) 'FORT_QUARTINTERP: unsupported refinement ratio'
+          write(6,*) 'AMREX_QUARTINTERP: unsupported refinement ratio'
           stop
        endif
 
-     end subroutine FORT_QUARTINTERP
+     end subroutine AMREX_QUARTINTERP
+
+end module amrex_interp_module
+

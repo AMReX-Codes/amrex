@@ -109,7 +109,7 @@ norm_inf (const MultiFab& res, bool local = false)
       restot = std::max(restot, res[mfi].norm(mfi.tilebox(), 0, 0, res.nComp()));
     }
     if ( !local )
-        ParallelDescriptor::ReduceRealMax(restot, res.color());
+        ParallelDescriptor::ReduceRealMax(restot);
     return restot;
 }
 
@@ -519,7 +519,7 @@ MCMultiGrid::average (MultiFab&       c,
 	int              nc   = c.nComp();
         FArrayBox&       cfab = c[cmfi];
         const FArrayBox& ffab = f[cmfi];
-	FORT_AVERAGE(
+	amrex_mg_average(
 	    cfab.dataPtr(),ARLIM(cfab.loVect()),ARLIM(cfab.hiVect()),
 	    ffab.dataPtr(),ARLIM(ffab.loVect()),ARLIM(ffab.hiVect()),
 	    bx.loVect(), bx.hiVect(), &nc);
@@ -543,7 +543,7 @@ MCMultiGrid::interpolate (MultiFab&       f,
 	int              nc   = f.nComp();
         const FArrayBox& cfab = c[fmfi];
         FArrayBox&       ffab = f[fmfi];
-	FORT_INTERP(
+	amrex_mg_interp(
 	    ffab.dataPtr(),ARLIM(ffab.loVect()),ARLIM(ffab.hiVect()),
 	    cfab.dataPtr(),ARLIM(cfab.loVect()),ARLIM(cfab.hiVect()),
 	    bx.loVect(), bx.hiVect(), &nc);
