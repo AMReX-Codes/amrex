@@ -127,7 +127,7 @@ namespace amrex
   }
   void 
   EBIndexSpace::
-  fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, RealVect a_origin) const
+  fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, int ref, RealVect a_origin) const
   {
     if(!m_implicitFunction)
     {
@@ -138,6 +138,7 @@ namespace amrex
     {
       RealVect loc;
       Real dx = m_ebisLevel[0]->getDx();
+      dx = dx / ref;
       for(int idir = 0; idir < SpaceDim; idir++)
       {
         loc[idir] = a_origin[idir] + dx*bit()[idir];
