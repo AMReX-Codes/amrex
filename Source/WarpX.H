@@ -175,6 +175,8 @@ public:
     static amrex::IntVect jy_nodal_flag;
     static amrex::IntVect jz_nodal_flag;
 
+    static int do_moving_window;
+
 protected:
 
     //! Tagging cells for refinement
@@ -347,7 +349,6 @@ private:
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     // Moving window parameters
-    int do_moving_window  = 0;
     int moving_window_dir = -1;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();

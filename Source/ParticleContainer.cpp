@@ -199,8 +199,9 @@ MultiParticleContainer::Redistribute ()
 void
 MultiParticleContainer::RedistributeLocal ()
 {
+    int num_ghost = WarpX::do_moving_window ? 2 : 1;
     for (auto& pc : allcontainers) {
-	pc->Redistribute(0, 0, 0, true);
+	pc->Redistribute(0, 0, 0, num_ghost);
     }
 }
 
