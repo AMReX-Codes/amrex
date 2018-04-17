@@ -1,5 +1,5 @@
-#ifndef _REDISTSTENCIL_H_
-#define _REDISTSTENCIL_H_
+#ifndef AMREX_REDISTSTENCIL_H_
+#define AMREX_REDISTSTENCIL_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_FArrayBox.H"

@@ -1,5 +1,5 @@
-#ifndef _INDEXTM_H_
-#define _INDEXTM_H_
+#ifndef AMREX_INDEXTM_H_
+#define AMREX_INDEXTM_H_
 
 
 

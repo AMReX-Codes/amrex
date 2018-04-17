@@ -1,6 +1,6 @@
 
-#ifndef  ___amrex_ifdata_h___
-#define  ___amrex_ifdata_h___
+#ifndef AMREX_IFDATA_H_
+#define AMREX_IFDATA_H_
 
 #include <map>
 using std::map;

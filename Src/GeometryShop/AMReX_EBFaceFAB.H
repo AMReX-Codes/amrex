@@ -1,5 +1,5 @@
-#ifndef _EBFACEFAB_H_
-#define _EBFACEFAB_H_
+#ifndef AMREX_EBFACEFAB_H_
+#define AMREX_EBFACEFAB_H_
 
 #include <cmath>
 #include <cstdlib>

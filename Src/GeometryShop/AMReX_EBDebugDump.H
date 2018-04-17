@@ -1,5 +1,5 @@
-#ifndef _EBDebugDump___H_
-#define _EBDebugDump___H_
+#ifndef AMREX_EBDebugDump_H_
+#define AMREX_EBDebugDump_H_
 
 #include "AMReX_EBDebugOut.H"
 

@@ -1,5 +1,5 @@
-#ifndef _LO_F_H_
-#define _LO_F_H_
+#ifndef AMREX_LO_F_H_
+#define AMREX_LO_F_H_
 
 #include <AMReX_BLFort.H>
 

@@ -1,5 +1,5 @@
-#ifndef _STLREADER_H_
-#define _STLREADER_H_
+#ifndef AMREX_STLREADER_H_
+#define AMREX_STLREADER_H_
 
 #include <iostream>
 #include <fstream>

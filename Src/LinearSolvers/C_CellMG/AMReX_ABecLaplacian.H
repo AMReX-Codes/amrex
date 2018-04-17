@@ -1,6 +1,6 @@
 
-#ifndef _ABecLAPLACIAN_H_
-#define _ABecLAPLACIAN_H_
+#ifndef AMREX_ABecLAPLACIAN_H_
+#define AMREX_ABecLAPLACIAN_H_
 
 #include <AMReX_Tuple.H>
 #include <AMReX_LinOp.H>
