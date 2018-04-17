@@ -6,7 +6,6 @@
 #include "AMReX_parstream.H"
 namespace amrex
 {
-  using std::endl;
 // default implementations for linearization routines.
 
   template <class T>
@@ -227,7 +226,7 @@ namespace amrex
 
     //if(s_spmd_verbose)
     //{
-    //  pout() << "linearlistin: vec size = " << vecsize << endl;
+    //  pout() << "linearlistin: vec size = " << vecsize << std::endl;
     //}
 
     std::vector<int> vecOffset(vecsize);
@@ -263,7 +262,7 @@ namespace amrex
 
     //if(s_spmd_verbose)
     //{
-    //  pout() << "linearlistOut: vec size = " << vecsize << endl;
+    //  pout() << "linearlistOut: vec size = " << vecsize << std::endl;
     //}
 
     std::vector<int> vecOffset(vecsize);
