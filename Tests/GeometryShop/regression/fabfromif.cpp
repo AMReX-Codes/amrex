@@ -218,7 +218,7 @@ namespace amrex
     
     for(MFIter mfi(impfuncMF); mfi.isValid(); ++mfi)
     {
-      ebisPtr->fillNodeFarrayBoxFromImplicitFunction(impfuncMF[mfi], dx*RealVect::Unit);
+      ebisPtr->fillNodeFarrayBoxFromImplicitFunction(impfuncMF[mfi], 1, dx*RealVect::Unit);
     }
     
     VisMF::Write(impfuncMF, string("plt.mf.impfunc"));
