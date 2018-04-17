@@ -8,7 +8,7 @@
 
 extern "C"
 {
-    typedef void (*BndryFuncDefault)(amrex::Real* data, ARLIM_P(lo), ARLIM_P(hi),
+    typedef void (*BndryFuncDefault)(amrex::Real* data, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
                                      const int* dom_lo, const int* dom_hi,
                                      const amrex::Real* dx, const amrex::Real* grd_lo,
                                      const amrex::Real* time, const int* bc);
