@@ -20,24 +20,18 @@
 #define ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
-#define BCREC_3D(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
-#define BCREC_ANYD(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
 #elif   AMREX_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1]
 #define ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
-#define BCREC_3D(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
-#define BCREC_ANYD(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
 #elif   AMREX_SPACEDIM==3
 #define ARLIM_P(x)  const int&,const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1],(x)[2]
 #define ARLIM_3D(x) x
 #define ARLIM_ANYD(x) x
 #define ZFILL(x) x
-#define BCREC_3D(x) x
-#define BCREC_ANYD(x) x
 #endif
 
 #endif /* ndef AMREX_XSDK */
