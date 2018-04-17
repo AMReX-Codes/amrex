@@ -98,7 +98,7 @@ public:
   */
   int sum () const
     {
-      int retval = D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
+      int retval = AMREX_D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
       return retval;
     }
 
