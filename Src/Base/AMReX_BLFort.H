@@ -34,7 +34,12 @@
 
 #endif
 
+#ifndef AMREX_XSDK
 #define FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
 #define FORT_LAUNCHABLE(func) func
+#endif
+
+#define AMREX_FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
+#define AMREX_FORT_LAUNCHABLE(func) func
 
 #endif
