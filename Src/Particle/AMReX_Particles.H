@@ -1,5 +1,5 @@
-#ifndef _PARTICLES_H_
-#define _PARTICLES_H_ 
+#ifndef AMREX_PARTICLES_H_
+#define AMREX_PARTICLES_H_
 
 #include <cstring>
 #include <map>

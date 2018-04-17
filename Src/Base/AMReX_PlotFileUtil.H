@@ -1,5 +1,5 @@
-#ifndef PLOTFILEUTIL_H_
-#define PLOTFILEUTIL_H_
+#ifndef AMREX_PLOTFILEUTIL_H_
+#define AMREX_PLOTFILEUTIL_H_
 
 #include <string>
 

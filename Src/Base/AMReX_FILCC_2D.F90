@@ -1,14 +1,4 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
-
-#include "AMReX_REAL.H"
-#include "AMReX_BC_TYPES.H"
-
-#define SDIM 2
-
 ! ::: -----------------------------------------------------------
 ! ::: This routine is intended to be a generic fill function
 ! ::: for cell-centered data.  It knows how to extrapolate
@@ -29,15 +19,16 @@
 
 subroutine filcc(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo,bc)
 
+  use amrex_fort_module
   use amrex_filcc_module, only: filccn
 
   implicit none
 
   integer    q_l1, q_l2, q_h1, q_h2
-  integer    domlo(SDIM), domhi(SDIM)
-  integer    bc(SDIM,2)
-  REAL_T     xlo(SDIM), dx(SDIM)
-  REAL_T     q(q_l1:q_h1,q_l2:q_h2)
+  integer    domlo(2), domhi(2)
+  integer    bc(2,2)
+  real(amrex_real)     xlo(2), dx(2)
+  real(amrex_real)     q(q_l1:q_h1,q_l2:q_h2)
 
   integer :: q_lo(3), q_hi(3)
 
@@ -50,14 +41,15 @@ end subroutine filcc
 
 subroutine hoextraptocc(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo)
 
+  use amrex_fort_module
   use amrex_constants_module
 
   implicit none
 
   integer    q_l1, q_l2, q_h1, q_h2
-  integer    domlo(SDIM), domhi(SDIM)
-  REAL_T     xlo(SDIM), dx(SDIM)
-  REAL_T     q(q_l1:q_h1,q_l2:q_h2)
+  integer    domlo(2), domhi(2)
+  real(amrex_real)     xlo(2), dx(2)
+  real(amrex_real)     q(q_l1:q_h1,q_l2:q_h2)
 
   integer    nlft, nrgt, nbot, ntop
   integer    ilo, ihi, jlo, jhi

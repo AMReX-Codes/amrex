@@ -87,7 +87,7 @@ list ( APPEND AMREX_DEFINES -DAMREX_GIT_VERSION=\"${AMREX_GIT_VERSION}\" )
 
 # Debug flag
 if (DEBUG)
-   add_define (DEBUG)
+   add_define (AMREX_DEBUG)
 else ()
    add_define (NDEBUG)
 endif ()
@@ -136,8 +136,7 @@ add_define ( AMREX_${CMAKE_SYSTEM_NAME} )
 
 # Particles
 if (ENABLE_PARTICLES)
-   add_define ( USE_PARTICLES )
-   add_define ( PARTICLES )
+   add_define ( AMREX_PARTICLES )
 
    if (NOT ENABLE_DP_PARTICLES)
       add_define ( AMREX_SINGLE_PRECISION_PARTICLES )
@@ -157,6 +156,8 @@ add_define ( AMREX_USE_EB IF ENABLE_EB )
 add_define ( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES )
 
 add_define ( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS ) 
+
+add_define ( AMREX_NO_STRICT_PREFIX )
 
 # More profiling stuff
 add_define ( VTUNE IF ENABLE_VTUNE)

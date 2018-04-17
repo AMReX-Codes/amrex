@@ -1,6 +1,6 @@
 
-#ifndef _StateData_H_
-#define _StateData_H_ 
+#ifndef AMREX_StateData_H_
+#define AMREX_StateData_H_
 
 #include <memory>
 
@@ -264,12 +264,6 @@ public:
     void getData (Vector<MultiFab*>& data,
 		  Vector<Real>& datatime,
 		  Real time) const;
-
-    void AddProcsToComp(const StateDescriptor &sdPtr,
-                        int ioProcNumSCS, int ioProcNumAll,
-                        int scsMyId, MPI_Comm scsComm);
-
-    void Check() const;
 
     //
     // These facilitate prereading FabArray headers to avoid

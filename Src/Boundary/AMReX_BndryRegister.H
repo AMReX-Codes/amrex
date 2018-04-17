@@ -1,6 +1,6 @@
 
-#ifndef _BNDRYREGISTER_H_
-#define _BNDRYREGISTER_H_
+#ifndef AMREX_BNDRYREGISTER_H_
+#define AMREX_BNDRYREGISTER_H_
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_FabSet.H>
@@ -115,9 +115,6 @@ public:
     //! Return the number of grids in this domain.
     int size () const { return grids.size(); }
 
-    //! Return color
-    ParallelDescriptor::Color color() const { return bndry[0].color(); }
-
     //! Return const set of FABs bounding the domain grid boxes on a given orientation
     const FabSet& operator[] (Orientation face) const { return bndry[face]; }
 
@@ -172,10 +169,6 @@ public:
 
     //! Local copy function
     static void Copy (BndryRegister& dst, const BndryRegister& src);
-
-    //! AddProcsToComp
-    virtual void AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
-                                int scsMyId, MPI_Comm scsComm);
 
 protected:
     //! Used by the copy constructor and assignment operator.
