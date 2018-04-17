@@ -128,7 +128,8 @@ namespace amrex
     const EBISLevel& getEBISLevel (int lev) const { return *m_ebisLevel[lev]; }
 
     ///fills 0th component with value from implit function
-    void fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, RealVect a_origin= RealVect::Zero) const;
+    void fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab,
+            int refinement = 1, RealVect a_origin = RealVect::Zero) const;
 
   private:
 
