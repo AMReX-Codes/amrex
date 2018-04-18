@@ -57,11 +57,13 @@ REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
 #ifdef __cplusplus
 namespace amrex {
 
-enum physicalBndryTypes {Interior=0,Inflow,Outflow,Symmetry,
-                         SlipWall,NoSlipWall};
+namespace PhysBCType {
+enum physicalBndryTypes : int {Interior=0,Inflow,Outflow,Symmetry,
+                               SlipWall,NoSlipWall};
+}
 
 namespace BCType {
-enum mathematicalBndryTypes {
+enum mathematicalBndryTypes : int {
     bogus        = -666,
     reflect_odd  = -1,
     int_dir      =  0,
