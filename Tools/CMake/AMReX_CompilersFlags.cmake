@@ -139,7 +139,7 @@ macro ( append_required_fflags )
       
       set ( CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffixed-line-length-none" )
       set ( CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none" )
-      set ( CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fno-range-check -fno-second-underscore" )
+      set ( CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fno-range-check -fno-second-underscore")
 
       if ( ENABLE_FPE )
 	 set ( CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffpe-trap=invalid,zero -ftrapv" )
@@ -168,6 +168,9 @@ macro ( append_required_fflags )
 
    endif ()
 
+   # Add required Fortran-only definition
+   set ( CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${AMREX_Fortran_DEFINITIONS}" )
+   
 endmacro ()
 
 
