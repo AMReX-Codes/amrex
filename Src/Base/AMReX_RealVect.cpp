@@ -8,7 +8,6 @@ using std::ws;
 namespace amrex
 {
 
-  RealVect tm;
   const RealVect RealVect::Unit(AMREX_D_DECL(1.0,1.0,1.0));
 
   const RealVect RealVect::Zero(AMREX_D_DECL(0.0,0.0,0.0));
