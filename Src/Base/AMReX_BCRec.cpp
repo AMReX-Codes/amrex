@@ -6,8 +6,8 @@
 namespace amrex {
 
 BCRec::BCRec ()
-    : bc {AMREX_D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC),
-          AMREX_D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC)}
+    : bc {AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus),
+          AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}
 { }
 
 BCRec::BCRec (AMREX_D_DECL(int loX, int loY, int loZ),
