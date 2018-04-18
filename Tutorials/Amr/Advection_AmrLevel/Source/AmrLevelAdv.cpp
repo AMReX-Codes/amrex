@@ -228,7 +228,7 @@ AmrLevelAdv::advance (Real time,
     Real maxval = S_mm.max(0);
     Real minval = S_mm.min(0);
 
-    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
+    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << std::endl;
     for (int k = 0; k < NUM_STATE_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);

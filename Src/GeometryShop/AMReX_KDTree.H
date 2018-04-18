@@ -85,8 +85,8 @@ OF SUCH DAMAGE.
 */
 
 
-#ifndef _KDTREE_H_
-#define _KDTREE_H_
+#ifndef AMREX_KDTREE_H_
+#define AMREX_KDTREE_H_
 
 #ifndef USE_LIST_NODE_ALLOCATOR
 #define USE_LIST_NODE_ALLOCATOR 1

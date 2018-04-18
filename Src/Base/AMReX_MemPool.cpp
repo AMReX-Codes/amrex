@@ -12,12 +12,13 @@
 
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
+#include <AMReX_Vector.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
-#ifndef FORTRAN_BOXLIB
+#ifndef AMREX_FORTRAN_BOXLIB
 #include <AMReX_ParmParse.H>
 #endif
 
@@ -42,7 +43,7 @@ void amrex_mempool_init ()
     {
 	initialized = true;
 
-#ifndef FORTRAN_BOXLIB
+#ifndef AMREX_FORTRAN_BOXLIB
         ParmParse pp("fab");
 	pp.query("init_snan", init_snan);
 #endif

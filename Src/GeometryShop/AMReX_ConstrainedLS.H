@@ -1,5 +1,5 @@
-#ifndef _CONSTRAINEDLS_H_
-#define _CONSTRAINEDLS_H_
+#ifndef AMREX_CONSTRAINEDLS_H_
+#define AMREX_CONSTRAINEDLS_H_
 
 #include "AMReX_Vector.H"
 #include "AMReX_REAL.H"
