@@ -31,6 +31,6 @@ warpx.cfl = 1.0
 
 uniform_plasma.num_particles_per_cell = 40
 uniform_plasma.n_e = 1.e25  # number of electrons per m^3
-uniform_plasma.ux_th  = 0.01 # uth the std of the (unitless) momentum in x
-uniform_plasma.uy_th  = 0.01 # uth the std of the (unitless) momentum in y
-uniform_plasma.uz_th  = 0.01 # uth the std of the (unitless) momentum in z
+uniform_plasma.ux_th  = 0.01 # std of the (unitless) momentum in x
+uniform_plasma.uy_th  = 0.01 # std of the (unitless) momentum in y
+uniform_plasma.uz_th  = 0.01 # std of the (unitless) momentum in z
