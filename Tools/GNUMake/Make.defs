@@ -396,7 +396,7 @@ ifeq ($(USE_EB),TRUE)
 endif
 
 
-DEFINES += -DAMREX_NO_STRICT_PREFIX
+# DEFINES += -DAMREX_XSDK
 
 
 includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))

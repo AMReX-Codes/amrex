@@ -1625,7 +1625,7 @@ AmrLevel::derive (const std::string& name,
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 				 ZFILL(dx),ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1663,7 +1663,7 @@ AmrLevel::derive (const std::string& name,
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 				 ZFILL(dx),ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1761,7 +1761,7 @@ AmrLevel::derive (const std::string& name,
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 				 ZFILL(dx),ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1799,7 +1799,7 @@ AmrLevel::derive (const std::string& name,
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 				 ZFILL(dx),ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");

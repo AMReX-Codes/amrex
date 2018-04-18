@@ -1,5 +1,5 @@
 module cns_divop_module
-  use mempool_module, only : amrex_allocate, amrex_deallocate
+  use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
   use amrex_fort_module, only : rt=>amrex_real
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell, &
        get_neighbor_cells

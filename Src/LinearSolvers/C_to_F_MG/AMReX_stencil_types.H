@@ -1,5 +1,5 @@
-#ifndef _STENCIL_TYPES_H_
-#define _STENCIL_TYPES_H_
+#ifndef AMREX_STENCIL_TYPES_H_
+#define AMREX_STENCIL_TYPES_H_
 
 namespace amrex {
 

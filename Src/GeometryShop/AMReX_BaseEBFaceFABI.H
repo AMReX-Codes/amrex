@@ -1,5 +1,5 @@
-#ifndef _BASEEBFACEFABI_H_
-#define _BASEEBFACEFABI_H_
+#ifndef AMREX_BASEEBFACEFABI_H_
+#define AMREX_BASEEBFACEFABI_H_
 
 #include "AMReX_BoxIterator.H"
 

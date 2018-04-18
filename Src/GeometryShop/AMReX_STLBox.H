@@ -1,5 +1,5 @@
-#ifndef _STLBOX_H_
-#define _STLBOX_H_
+#ifndef AMREX_STLBOX_H_
+#define AMREX_STLBOX_H_
 
 #include "AMReX_Box.H"
 #include "AMReX_RealVect.H"

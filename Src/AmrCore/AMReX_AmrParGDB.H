@@ -1,5 +1,5 @@
-#ifndef _AmrParGDB_H
-#define _AmrParGDB_H
+#ifndef AMREX_AmrParGDB_H
+#define AMREX_AmrParGDB_H
 
 #include <AMReX_ParGDB.H>
 #include <AMReX_AmrCore.H>

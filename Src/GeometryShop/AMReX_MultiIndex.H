@@ -1,6 +1,6 @@
 
-#ifndef _MULTIINDEX_H_
-#define _MULTIINDEX_H_
+#ifndef AMREX_MULTIINDEX_H_
+#define AMREX_MULTIINDEX_H_
 
 
 #include <map>
