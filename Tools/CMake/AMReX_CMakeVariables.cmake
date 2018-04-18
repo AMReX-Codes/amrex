@@ -36,12 +36,6 @@ if ( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
       "AMReX installation directory" FORCE)
 endif ()
 
-# 
-# Compiler flags
-# 
-set ( AMREX_Fortran_FLAGS )
-set ( AMREX_C_FLAGS )
-set ( AMREX_CXX_FLAGS )
 
 # 
 # Set variable for AMReX versioning
@@ -88,8 +82,22 @@ include ( AMReX_Machines )
 # 
 set (AMREX_Fortran_DEFINITIONS -DBL_LANG_FORT)
 
+# 
+# Compiler flags 
+# 
+set ( AMREX_Fortran_FLAGS )
+set ( AMREX_C_FLAGS )
+set ( AMREX_CXX_FLAGS )
+
 #
-# Compile- and link-time variables 
+# Compile- and link-time variables
+#
+#    AMREX_EXTRA_<LANG>_FLAGS :
+#               list of flags needed by external packages
+#    AMREX_EXTRA_<LANG>_INCLUDE_PATH :
+#               list of include paths needed by external packages
+#    AMREX_EXTRA_<LANG>_LINK_LINE :
+#               link line to append at link time to account for external packages
 #
 set (AMREX_EXTRA_C_INCLUDE_PATH)
 set (AMREX_EXTRA_CXX_INCLUDE_PATH)
