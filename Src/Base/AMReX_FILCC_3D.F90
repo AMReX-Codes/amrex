@@ -1,4 +1,6 @@
 
+#ifndef AMREX_XSDK
+
 ! ::: -----------------------------------------------------------
 ! ::: This routine is intended to be a generic fill function
 ! ::: for cell centered data.  It knows how to exrapolate,
@@ -680,3 +682,5 @@ subroutine hoextraptocc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo)
   end if
 
 end subroutine hoextraptocc
+
+#endif
