@@ -44,8 +44,8 @@ BCRec::BCRec (const Box&   bx,
     {
         int ilo = dir;
         int ihi = dir+AMREX_SPACEDIM;
-        bc[ilo] = ( bxlo[dir]<=dlo[dir] ? bc_domain.bc[ilo] : INT_DIR );
-        bc[ihi] = ( bxhi[dir]>=dhi[dir] ? bc_domain.bc[ihi] : INT_DIR );
+        bc[ilo] = ( bxlo[dir]<=dlo[dir] ? bc_domain.bc[ilo] : BCType::int_dir );
+        bc[ihi] = ( bxhi[dir]>=dhi[dir] ? bc_domain.bc[ihi] : BCType::int_dir );
     }
 }
 
@@ -69,9 +69,9 @@ setBC (const Box&          bx,
         for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
         {
             bcr[dc].setLo(dir, ( bxlo[dir]<=dlo[dir]
-                                 ? bc_dom[sc].lo(dir) : INT_DIR ));
+                                 ? bc_dom[sc].lo(dir) : BCType::int_dir ));
             bcr[dc].setHi(dir, ( bxhi[dir]>=dhi[dir]
-                                 ? bc_dom[sc].hi(dir) : INT_DIR ));
+                                 ? bc_dom[sc].hi(dir) : BCType::int_dir ));
         }
     }
 }           
@@ -88,8 +88,8 @@ setBC (const Box&   bx,
     const int* dhi  = domain.hiVect();
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
-        bcr.setLo(dir, ( bxlo[dir]<=dlo[dir] ? bc_dom.lo(dir) : INT_DIR ));
-        bcr.setHi(dir, ( bxhi[dir]>=dhi[dir] ? bc_dom.hi(dir) : INT_DIR ));
+        bcr.setLo(dir, ( bxlo[dir]<=dlo[dir] ? bc_dom.lo(dir) : BCType::int_dir ));
+        bcr.setHi(dir, ( bxhi[dir]>=dhi[dir] ? bc_dom.hi(dir) : BCType::int_dir ));
     }
 }           
 
