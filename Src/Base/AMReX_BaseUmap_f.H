@@ -9,7 +9,7 @@ extern "C"
 {
 #endif
  
-    amrex_real fort_umap_norm (const int* lo, const int* hi,
+    amrex_real amrex_fort_umap_norm (const int* lo, const int* hi,
                               const amrex_real* src, const int* src_sz,
                               const int* kt, const int* ktlo, const int* kthi, 
                               const int* max_mv, const int* ncomp,
