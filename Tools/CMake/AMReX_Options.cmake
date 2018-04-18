@@ -55,7 +55,8 @@ print_option ( USE_XSDK_DEFAULTS )
 # 
 if ( USE_XSDK_DEFAULTS )
    set ( DEBUG OFF )
-   if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
+   if ( ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" ) OR
+	( NOT CMAKE_BUILD_TYPE ) )
       set ( DEBUG ON )
    endif ()
 else ()
@@ -70,7 +71,7 @@ endif ()
 
 if ( USE_XSDK_DEFAULTS )
    print_option (CMAKE_BUILD_TYPE)
-elseif ()
+else ()
    print_option (DEBUG)
 endif ()
 
@@ -141,13 +142,6 @@ else ()
 endif ()
 
 print_option ( ENABLE_ASSERTION )
-
-
-#
-# User-defined compiler flags
-#
-set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
-set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
 
 
 #
