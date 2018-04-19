@@ -1,6 +1,6 @@
 
-#ifndef _AmrLevel_H_
-#define _AmrLevel_H_ 
+#ifndef AMREX_AmrLevel_H_
+#define AMREX_AmrLevel_H_
 
 #include <AMReX_REAL.H>
 #include <AMReX_Geometry.H>
@@ -368,7 +368,7 @@ public:
     //! Does the AmrLevel want Amr to write a small plotfile now?
     virtual bool writeSmallPlotNow ();
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
     //! This function can be called from the parent 
     virtual void particle_redistribute (int lbase = 0, bool init = false) {;}
 #endif

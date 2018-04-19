@@ -49,7 +49,7 @@ Laplacian::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zf
                FArrayBox& yfab  = yflux[inmfi];,
                FArrayBox& zfab  = zflux[inmfi];);
 
-        FORT_FLUX(infab.dataPtr(src_comp),
+        amrex_lp_flux(infab.dataPtr(src_comp),
 		  ARLIM(infab.loVect()), ARLIM(infab.hiVect()),
 		  xbx.loVect(), xbx.hiVect(), 
 #if (BL_SPACEDIM >= 2)
@@ -135,7 +135,7 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 2)
-        FORT_GSRB(
+        amrex_lp_gsrb(
             solnfab.dataPtr(), 
             ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
             rhsfab.dataPtr(), 
@@ -161,7 +161,7 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 3)
-        FORT_GSRB(
+        amrex_lp_gsrb(
             solnfab.dataPtr(), 
             ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
             rhsfab.dataPtr(), 
@@ -234,7 +234,7 @@ Laplacian::Fapply (MultiFab&       y,
         FArrayBox&       yfab = y[ymfi];
         const FArrayBox& xfab = x[ymfi];
 
-        FORT_ADOTX(yfab.dataPtr(dst_comp), 
+        amrex_lp_adotx(yfab.dataPtr(dst_comp), 
                    ARLIM(yfab.loVect()), ARLIM(yfab.hiVect()),
                    xfab.dataPtr(src_comp), 
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),

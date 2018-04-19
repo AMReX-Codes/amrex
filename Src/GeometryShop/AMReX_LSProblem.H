@@ -1,7 +1,7 @@
 
 
-#ifndef _LSPROBLEM_H_
-#define _LSPROBLEM_H_
+#ifndef AMREX_LSPROBLEM_H_
+#define AMREX_LSPROBLEM_H_
 
 #include <map>
 using std::map;

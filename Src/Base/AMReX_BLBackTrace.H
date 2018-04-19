@@ -1,5 +1,5 @@
-#ifndef _BL_BACKTRACE_H_
-#define _BL_BACKTRACE_H_
+#ifndef AMREX_BL_BACKTRACE_H_
+#define AMREX_BL_BACKTRACE_H_
 
 #include <stack>
 #include <string>

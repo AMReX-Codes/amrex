@@ -1067,7 +1067,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
     //
     //  Note that subbox must be identical on each process!!
     //
-#ifdef DEBUG
+#ifdef AMREX_DEBUG
     {
 	BoxCommHelper bch(subbox);	
 	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0, ParallelContext::CommunicatorSub());

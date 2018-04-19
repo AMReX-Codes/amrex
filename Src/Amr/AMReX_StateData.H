@@ -1,6 +1,6 @@
 
-#ifndef _StateData_H_
-#define _StateData_H_ 
+#ifndef AMREX_StateData_H_
+#define AMREX_StateData_H_
 
 #include <memory>
 

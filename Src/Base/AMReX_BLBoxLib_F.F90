@@ -8,7 +8,7 @@
     integer :: istr(NSTR)
 
     flush(6)
-    call blstr2int(istr, NSTR, str)
+    call bl_str2int(istr, NSTR, str)
     call bl_error_cpp(istr, NSTR)
 
   end subroutine bl_error
@@ -22,7 +22,7 @@
     integer :: istr(NSTR)
 
     flush(6)
-    call blstr2int(istr, NSTR, str)
+    call bl_str2int(istr, NSTR, str)
     call bl_warning_cpp(istr, NSTR)
 
   end subroutine bl_warning
@@ -36,7 +36,7 @@
     integer :: istr(NSTR)
 
     flush(6)
-    call blstr2int(istr, NSTR, str)
+    call bl_str2int(istr, NSTR, str)
     call bl_abort_cpp(istr, NSTR)
 
   end subroutine bl_abort

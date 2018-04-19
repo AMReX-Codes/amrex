@@ -1,5 +1,5 @@
-#ifndef _MultiFabUtil_H_
-#define _MultiFabUtil_H_
+#ifndef AMREX_MultiFabUtil_H_
+#define AMREX_MultiFabUtil_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>

@@ -563,6 +563,12 @@ private:
     typedef FabArrayBase::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 };
 
+inline void GccPlacaterMF ()
+{
+    std::allocator<MultiFab*> a1;
+    std::allocator<MultiFab const*> a2;
+}
+
 }
 
 #endif /*BL_MULTIFAB_H*/

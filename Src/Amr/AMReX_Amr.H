@@ -1,6 +1,6 @@
 
-#ifndef _Amr_H_
-#define _Amr_H_ 
+#ifndef AMREX_Amr_H_
+#define AMREX_Amr_H_
 
 #include <fstream>
 #include <memory>
@@ -308,7 +308,7 @@ public:
         return intersect_hiz;
     };
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
     //! Redistribute particles
     void RedistributeParticles ();
 #endif

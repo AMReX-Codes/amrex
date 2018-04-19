@@ -1,6 +1,6 @@
 
-#ifndef _MINIMALCCCM_H_
-#define _MINIMALCCCM_H_
+#ifndef AMREX_MINIMALCCCM_H_
+#define AMREX_MINIMALCCCM_H_
 
 #include <map>
 using std::map;

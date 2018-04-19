@@ -1,14 +1,14 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_interpbndrydata_module
 
-#include "AMReX_BC_TYPES.H"
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_INTERPBNDRYDATA_F.H"
-#include "AMReX_ArrayLim.H"
+  use amrex_fort_module
+  use amrex_constants_module
+
+  implicit none
+
+  include 'AMReX_bc_types.fi'
+
+contains
 
 #define SDIM 3
 #define NUMDERIV 5
@@ -19,55 +19,57 @@
 #define XYDER  5
 
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPXLO : Interpolation on Xlo Face
+! ::  AMREX_BDINTERPXLO : Interpolation on Xlo Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPXLO (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine AMREX_BDINTERPXLO (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3, &
+                 crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order) &
+                 bind(c,name='amrex_bdinterpxlo')
 
       implicit none
 
       integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(crse)
-      REAL_T   bdry(DIMV(bdry),nvar)
-      REAL_T   derives(DIM23(cb),NUMDERIV)
-      integer  mask(DIMV(mask))
-      REAL_T   crse(DIMV(crse),nvar)
+      integer  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3
+      integer  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
+      integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
+      integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
+      real(amrex_real)   derives(cb_l2:cb_h2,cb_l3:cb_h3,NUMDERIV)
+      integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
-      REAL_T   xx, yy, xxsq, yysq
+      real(amrex_real)   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, joff, koff, n
       integer  jclo, jchi, kclo, kchi, ratioy, ratioz
 
       ratioy = ratios(2)
       ratioz = ratios(3)
 
-      kclo = ARG_L3(cb)
-      kchi = ARG_H3(cb)
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      ic   = ARG_L1(cb)-1
+      kclo = cb_l3
+      kchi = cb_h3
+      jclo = cb_l2
+      jchi = cb_h2
+      ic   = cb_l1-1
       i    = lo(1)-1
 
       if (max_order.eq.1) then
@@ -140,7 +142,7 @@
 
                      derives(jc,kc,XYDER) = zero
                   else
-                     derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n) &
+                     derives(jc,kc,XYDER) = fourth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n) &
                           + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
                   end if
                end do
@@ -169,58 +171,60 @@
 
       endif
 
-    end subroutine FORT_BDINTERPXLO
+    end subroutine AMREX_BDINTERPXLO
 
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPXHI : Interpolation on Xhi Face
+! ::  AMREX_BDINTERPXHI : Interpolation on Xhi Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPXHI (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine AMREX_BDINTERPXHI (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3, &
+                 crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order) &
+                 bind(c,name='amrex_bdinterpxhi')
 
       implicit none
 
       integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(crse)
-      REAL_T   bdry(DIMV(bdry),nvar)
-      REAL_T   derives(DIM23(cb),NUMDERIV)
-      integer  mask(DIMV(mask))
-      REAL_T   crse(DIMV(crse),nvar)
+      integer  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3
+      integer  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
+      integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
+      integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
+      real(amrex_real)   derives(cb_l2:cb_h2,cb_l3:cb_h3,NUMDERIV)
+      integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
-      REAL_T   xx, yy, xxsq, yysq
+      real(amrex_real)   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, joff, koff, n
       integer  jclo, jchi, kclo, kchi, ratioy, ratioz
 
       ratioy = ratios(2)
       ratioz = ratios(3)
 
-      kclo = ARG_L3(cb)
-      kchi = ARG_H3(cb)
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      ic   = ARG_H1(cb)+1
+      kclo = cb_l3
+      kchi = cb_h3
+      jclo = cb_l2
+      jchi = cb_h2
+      ic   = cb_h1+1
       i    = hi(1)+1
 
       if (max_order.eq.1) then
@@ -293,7 +297,7 @@
                      
                      derives(jc,kc,XYDER) = zero
                   else
-                     derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n) &
+                     derives(jc,kc,XYDER) = fourth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n) &
                           + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
                   end if
 
@@ -323,58 +327,60 @@
 
       endif
 
-    end subroutine FORT_BDINTERPXHI
+    end subroutine AMREX_BDINTERPXHI
   
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPYLO : Interpolation on Ylo Face
+! ::  AMREX_BDINTERPYLO : Interpolation on Ylo Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPYLO (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine AMREX_BDINTERPYLO (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3, &
+                 crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order) &
+                 bind(c,name='amrex_bdinterpylo')
 
       implicit none
 
       integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(crse)
-      REAL_T   bdry(DIMV(bdry),nvar)
-      REAL_T   derives(DIM13(cb),NUMDERIV)
-      integer  mask(DIMV(mask))
-      REAL_T   crse(DIMV(crse),nvar)
+      integer  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3
+      integer  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
+      integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
+      integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
+      real(amrex_real)   derives(cb_l1:cb_h1,cb_l3:cb_h3,NUMDERIV)
+      integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
-      REAL_T   xx, yy, xxsq, yysq
+      real(amrex_real)   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, ioff, koff, n
       integer  iclo, ichi, kclo, kchi, ratiox, ratioz
 
       ratiox = ratios(1)
       ratioz = ratios(3)
 
-      kclo = ARG_L3(cb)
-      kchi = ARG_H3(cb)
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      jc   = ARG_L2(cb)-1
+      kclo = cb_l3
+      kchi = cb_h3
+      iclo = cb_l1
+      ichi = cb_h1
+      jc   = cb_l2-1
       j    = lo(2)-1
 
       if (max_order.eq.1) then
@@ -447,7 +453,7 @@
                      
                      derives(ic,kc,XYDER) = zero
                   else
-                     derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n) &
+                     derives(ic,kc,XYDER) = fourth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n) &
                           + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
                   end if
 
@@ -477,58 +483,60 @@
 
       endif
 
-    end subroutine FORT_BDINTERPYLO
+    end subroutine AMREX_BDINTERPYLO
 
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPYHI : Interpolation on Yhi Face
+! ::  AMREX_BDINTERPYHI : Interpolation on Yhi Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPYHI (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine AMREX_BDINTERPYHI (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3, &
+                 crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order) &
+                 bind(c,name='amrex_bdinterpyhi')
 
       implicit none
 
       integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(crse)
-      REAL_T   bdry(DIMV(bdry),nvar)
-      REAL_T   derives(DIM13(cb),NUMDERIV)
-      integer  mask(DIMV(mask))
-      REAL_T   crse(DIMV(crse),nvar)
+      integer  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3
+      integer  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
+      integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
+      integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
+      real(amrex_real)   derives(cb_l1:cb_h1,cb_l3:cb_h3,NUMDERIV)
+      integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
-      REAL_T   xx, yy, xxsq, yysq
+      real(amrex_real)   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, ioff, koff, n
       integer  iclo, ichi, kclo, kchi, ratiox, ratioz
 
       ratiox = ratios(1)
       ratioz = ratios(3)
 
-      kclo = ARG_L3(cb)
-      kchi = ARG_H3(cb)
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      jc   = ARG_H2(cb)+1
+      kclo = cb_l3
+      kchi = cb_h3
+      iclo = cb_l1
+      ichi = cb_h1
+      jc   = cb_h2+1
       j    = hi(2)+1
 
       if (max_order.eq.1) then
@@ -601,7 +609,7 @@
 
                      derives(ic,kc,XYDER) = zero
                   else
-                     derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n) &
+                     derives(ic,kc,XYDER) = fourth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n) &
                           + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
                   end if
                end do
@@ -630,58 +638,60 @@
 
       endif
 
-    end subroutine FORT_BDINTERPYHI
+    end subroutine AMREX_BDINTERPYHI
 
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPZLO : Interpolation on Zlo Face
+! ::  AMREX_BDINTERPZLO : Interpolation on Zlo Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPZLO (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine AMREX_BDINTERPZLO (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3, &
+                 crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order) &
+                 bind(c,name='amrex_bdinterpzlo')
 
       implicit none
 
       integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(crse)
-      REAL_T   bdry(DIMV(bdry),nvar)
-      REAL_T   derives(DIM12(cb),NUMDERIV)
-      integer  mask(DIMV(mask))
-      REAL_T   crse(DIMV(crse),nvar)
+      integer  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3
+      integer  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
+      integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
+      integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
+      real(amrex_real)   derives(cb_l1:cb_h1,cb_l2:cb_h2,NUMDERIV)
+      integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
-      REAL_T   xx, yy, xxsq, yysq
+      real(amrex_real)   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, ioff, joff, n
       integer  iclo, ichi, jclo, jchi, ratiox, ratioy
 
       ratiox = ratios(1)
       ratioy = ratios(2)
 
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      kc   = ARG_L3(cb)-1
+      jclo = cb_l2
+      jchi = cb_h2
+      iclo = cb_l1
+      ichi = cb_h1
+      kc   = cb_l3-1
       k    = lo(3)-1
 
       if (max_order.eq.1) then
@@ -752,7 +762,7 @@
                      
                      derives(ic,jc,XYDER) = zero
                   else
-                     derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n) &
+                     derives(ic,jc,XYDER) = fourth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n) &
                           + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
                   end if
                end do
@@ -781,58 +791,60 @@
 
       endif
 
-    end subroutine FORT_BDINTERPZLO
+    end subroutine AMREX_BDINTERPZLO
       
 ! ---------------------------------------------------------------
-! ::  FORT_BDINTERPZHI : Interpolation on Zhi Face
+! ::  AMREX_BDINTERPZHI : Interpolation on Zhi Face
 ! ::       Quadratic Interpolation from crse data
 ! ::       in directions transverse to face of grid
 ! ::
 ! ::  Inputs/Outputs:
 ! ::  bdry       <=  fine grid bndry data strip
-! ::  DIMS(bdry)  => index limits of bdry
+! ::  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3  => index limits of bdry
 ! ::  lo,hi       => index limits of grd interior
-! ::  DIMS(cb)    => index limits of coarsened grid interior
+! ::  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3    => index limits of coarsened grid interior
 ! ::  nvar        => number of variables to interpolate
 ! ::  ratios(3)   => refinement ratios
 ! ::  not_covered => mask is set to this value if cell is not
 ! ::                 covered by another fine grid and not outside the domain.
 ! ::  mask        => fine grid mask bndry strip
-! ::  DIMS(mask)  => index limits of mask array
+! ::  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3  => index limits of mask array
 ! ::  crse        => crse grid bndry data strip
-! ::  DIMS(crse)  => index limits of crse array
+! ::  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3  => index limits of crse array
 ! ::  derives     => crse grid tmp array for derivatives
 ! ---------------------------------------------------------------
 
-    subroutine FORT_BDINTERPZHI (bdry,DIMS(bdry), &
-                 lo,hi,DIMS(cb),nvar,ratios,not_covered, &
-                 mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
+    subroutine AMREX_BDINTERPZHI (bdry,bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3, &
+                 lo,hi,cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3,nvar,ratios,not_covered, &
+                 mask,mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3, &
+                 crse,crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3,derives,max_order) &
+                 bind(c,name='amrex_bdinterpzhi')
 
       implicit none
 
       integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
-      integer  DIMDEC(bdry)
-      integer  DIMDEC(cb)
-      integer  DIMDEC(mask)
-      integer  DIMDEC(crse)
-      REAL_T   bdry(DIMV(bdry),nvar)
-      REAL_T   derives(DIM12(cb),NUMDERIV)
-      integer  mask(DIMV(mask))
-      REAL_T   crse(DIMV(crse),nvar)
+      integer  bdry_l1,bdry_l2,bdry_l3,bdry_h1,bdry_h2,bdry_h3
+      integer  cb_l1,cb_l2,cb_l3,cb_h1,cb_h2,cb_h3
+      integer  mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
+      integer  crse_l1,crse_l2,crse_l3,crse_h1,crse_h2,crse_h3
+      real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,bdry_l3:bdry_h3,nvar)
+      real(amrex_real)   derives(cb_l1:cb_h1,cb_l2:cb_h2,NUMDERIV)
+      integer  mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
+      real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,crse_l3:crse_h3,nvar)
 
-      REAL_T   xx, yy, xxsq, yysq
+      real(amrex_real)   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, ioff, joff, n
       integer  iclo, ichi, jclo, jchi, ratiox, ratioy
 
       ratiox = ratios(1)
       ratioy = ratios(2)
 
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      kc   = ARG_H3(cb)+1
+      jclo = cb_l2
+      jchi = cb_h2
+      iclo = cb_l1
+      ichi = cb_h1
+      kc   = cb_h3+1
       k    = hi(3)+1
 
       if (max_order.eq.1) then
@@ -905,7 +917,7 @@
                      
                      derives(ic,jc,XYDER) = zero
                   else
-                     derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n) &
+                     derives(ic,jc,XYDER) = fourth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n) &
                           + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
                   end if
                end do
@@ -934,7 +946,7 @@
 
       endif
 
-    end subroutine FORT_BDINTERPZHI
+    end subroutine AMREX_BDINTERPZHI
 
 #undef NUMDERIV
 #undef XDER
@@ -943,3 +955,4 @@
 #undef Y2DER
 #undef XYDER
 
+end module amrex_interpbndrydata_module

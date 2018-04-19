@@ -242,7 +242,7 @@ LinOp::applyBC (MultiFab&      inout,
             FArrayBox&       ffab  = f[mfi];
             const FArrayBox& fsfab = fs[mfi];
 
-            FORT_APPLYBC(&flagden, &flagbc, &maxorder,
+            amrex_lo_applybc(&flagden, &flagbc, &maxorder,
                          iofab.dataPtr(src_comp),
                          ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
                          &cdr, &bct, &bcl,
@@ -428,7 +428,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
             FArrayBox&       csfab = cs[csmfi];
             const FArrayBox& fnfab = fn[csmfi];
 
-            FORT_AVERAGECC(csfab.dataPtr(), ARLIM(csfab.loVect()),
+            amrex_lo_averagecc(csfab.dataPtr(), ARLIM(csfab.loVect()),
                            ARLIM(csfab.hiVect()),fnfab.dataPtr(),
                            ARLIM(fnfab.loVect()),ARLIM(fnfab.hiVect()),
                            tbx.loVect(),tbx.hiVect(), &nc);
@@ -448,7 +448,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
                 FArrayBox&       csfab = cs[csmfi];
                 const FArrayBox& fnfab = fn[csmfi];
 
-                FORT_HARMONIC_AVERAGEEC(csfab.dataPtr(),
+                amrex_lo_harmonic_averageec(csfab.dataPtr(),
                                         ARLIM(csfab.loVect()),
                                         ARLIM(csfab.hiVect()),
                                         fnfab.dataPtr(),
@@ -469,7 +469,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
                 FArrayBox&       csfab = cs[csmfi];
                 const FArrayBox& fnfab = fn[csmfi];
 
-                FORT_AVERAGEEC(csfab.dataPtr(),ARLIM(csfab.loVect()),
+                amrex_lo_averageec(csfab.dataPtr(),ARLIM(csfab.loVect()),
                                ARLIM(csfab.hiVect()),fnfab.dataPtr(), 
                                ARLIM(fnfab.loVect()),ARLIM(fnfab.hiVect()),
 	                       tbx.loVect(),tbx.hiVect(),

@@ -1,5 +1,5 @@
-#ifndef _POLYNOMIALIF_H_
-#define _POLYNOMIALIF_H_
+#ifndef AMREX_POLYNOMIALIF_H_
+#define AMREX_POLYNOMIALIF_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_IntVect.H"

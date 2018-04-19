@@ -30,6 +30,7 @@ cd ..
 
 # Clean out existing contents
 rm -rf out/docs_html/**/* || exit 0
+rm -rf out/tutorials_html/**/* || exit 0
 
 # build the Doxygen documentation
 cd Docs/Doxygen
@@ -37,17 +38,21 @@ doxygen doxygen.conf
 cd ../..
 
 mkdir -p out/docs_html
+mkdir -p out/tutorials_html
 
 # move it to the right place
 mkdir -p out/docs_html/doxygen
 mv Docs/Doxygen/html/* out/docs_html/doxygen/
 
 # now do sphinx
-cd Docs/sphinx
+cd Docs/sphinx_documentation
+make html
+cd ../sphinx_tutorials
 make html
 cd ../../
 
-mv Docs/sphinx/build/html/* out/docs_html/
+mv Docs/sphinx_documentation/build/html/* out/docs_html/
+mv Docs/sphinx_tutorials/build/html/*     out/tutorials_html/
 touch out/.nojekyll
 
 # Now let's go have some fun with the cloned repo

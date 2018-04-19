@@ -1,5 +1,5 @@
-#ifndef _UNIONIF_H_
-#define _UNIONIF_H_
+#ifndef AMREX_UNIONIF_H_
+#define AMREX_UNIONIF_H_
 
 #include "AMReX_RealVect.H"
 #include <AMReX_Array.H>

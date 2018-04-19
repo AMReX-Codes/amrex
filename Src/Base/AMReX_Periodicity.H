@@ -1,5 +1,5 @@
-#ifndef _PERIODICITY_H_
-#define _PERIODICITY_H_
+#ifndef AMREX_PERIODICITY_H_
+#define AMREX_PERIODICITY_H_
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>

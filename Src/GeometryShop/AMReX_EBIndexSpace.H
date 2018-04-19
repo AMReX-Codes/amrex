@@ -1,5 +1,5 @@
-#ifndef _EBINDEXSPACE_H_
-#define _EBINDEXSPACE_H_
+#ifndef AMREX_EBINDEXSPACE_H_
+#define AMREX_EBINDEXSPACE_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"
@@ -128,7 +128,8 @@ namespace amrex
     const EBISLevel& getEBISLevel (int lev) const { return *m_ebisLevel[lev]; }
 
     ///fills 0th component with value from implit function
-    void fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, RealVect a_origin= RealVect::Zero) const;
+    void fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab,
+            Real refinement = 1, RealVect a_origin = RealVect::Zero) const;
 
   private:
 
