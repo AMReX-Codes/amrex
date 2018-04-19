@@ -1,4 +1,3 @@
-#ifndef AMREX_XSDK
 
 !      Must be consistent with AMReX_bc_types_mod.F90
 !      See BC_TYPES.H for discussion
@@ -16,5 +15,3 @@
       PARAMETER (EXT_DIR=3)
       INTEGER HOEXTRAP
       PARAMETER (HOEXTRAP=4)
-
-#endif
