@@ -43,7 +43,7 @@ using std::ostream;
     int &operator[](int ii) { return iv[ii]; }
     int get(int ii) { return iv[ii]; }
     std::ostream &operator<<(std::ostream &os) {
-      os << '(' D_TERM(<< iv[0], << ',' << iv[1], << ',' << iv[2]) << ')';
+      os << '(' AMREX_D_TERM(<< iv[0], << ',' << iv[1], << ',' << iv[2]) << ')';
       return os;
     }
   };
