@@ -101,12 +101,12 @@ void amrex::avgDown_doit(const FArrayBox &fine_fab, FArrayBox &crse_fab,
     const int  *rr     = ratio.dataPtr();
 
 #if (BL_SPACEDIM == 2)
-    FORT_MAXVAL_AVGDOWN(c_dat, ARLIM(clo), ARLIM(chi), &ncomp,
-                    f_dat, ARLIM(flo), ARLIM(fhi),
+    FORT_MAXVAL_AVGDOWN(c_dat, AMREX_ARLIM(clo), AMREX_ARLIM(chi), &ncomp,
+                    f_dat, AMREX_ARLIM(flo), AMREX_ARLIM(fhi),
                     ovlo, ovhi, rr);
 #else
-    FORT_CV_AVGDOWN(c_dat, ARLIM(clo), ARLIM(chi), &ncomp,
-                    f_dat, ARLIM(flo), ARLIM(fhi),
+    FORT_CV_AVGDOWN(c_dat, AMREX_ARLIM(clo), AMREX_ARLIM(chi), &ncomp,
+                    f_dat, AMREX_ARLIM(flo), AMREX_ARLIM(fhi),
                     ovlo, ovhi, rr);
 #endif
 }
