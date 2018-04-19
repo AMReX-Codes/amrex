@@ -95,7 +95,6 @@ void computeE(      VectorMeshData& E,
               const Vector<Geometry>& geom) {
 
     const int num_levels = E.size();
-    const int finest_level = num_levels - 1;
 
     for (int lev = 0; lev < num_levels; ++lev) {
 
@@ -182,7 +181,6 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
                 Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) {
 
     int num_levels = rhs.size();
-    int finest_level = num_levels - 1;
 
     Vector<std::unique_ptr<MultiFab> > tmp_rhs(num_levels);    
     for (int lev = 0; lev < num_levels; ++lev) {
@@ -349,7 +347,6 @@ int main(int argc, char* argv[])
         grids[lev].maxSize(max_grid_size);
     }
     
-    int Nghost = 1;
     int Ncomp  = 1;
     
     Vector<DistributionMapping> dm(num_levels);
