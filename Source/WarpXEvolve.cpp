@@ -13,15 +13,15 @@ void
 WarpX::Evolve(int numsteps) {
     BL_PROFILE("WarpX::Evolve()");
 
-#ifdef WARPX_USE_PSATD
-    EvolvePSATD(numsteps);
-#else
     if (do_electrostatic) {
         EvolveES(numsteps);
     } else {
-        EvolveEM(numsteps);
-    }
+#ifdef WARPX_USE_PSATD
+      EvolvePSATD(numsteps);
+#else 
+      EvolveEM(numsteps);
 #endif
+    }
 }
 
 void
