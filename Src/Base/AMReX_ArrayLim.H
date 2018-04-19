@@ -62,15 +62,15 @@
 #define AMREX_BCREC_ANYD(x) x
 #endif
 
-#define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
-#define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect()), (x).nCompPtr()
-#define BL_TO_FORTRAN_BOX(x) ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
-#define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), ARLIM((x).loVect()), ARLIM((x).hiVect())
+#define BL_TO_FORTRAN(x) (x).dataPtr(), AMREX_ARLIM((x).loVect()), AMREX_ARLIM((x).hiVect())
+#define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect()), (x).nCompPtr()
+#define BL_TO_FORTRAN_BOX(x) AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), AMREX_ARLIM((x).loVect()), AMREX_ARLIM((x).hiVect())
 
-#define BL_TO_FORTRAN_3D(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
-#define BL_TO_FORTRAN_ANYD(x) (x).dataPtr(), ARLIM_ANYD((x).loVect()), ARLIM_ANYD((x).hiVect())
-#define BL_TO_FORTRAN_N_3D(x,n) (x).dataPtr(n), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
-#define BL_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), ARLIM_ANYD((x).loVect()), ARLIM_ANYD((x).hiVect())
+#define BL_TO_FORTRAN_3D(x) (x).dataPtr(), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_ANYD(x) (x).dataPtr(), AMREX_ARLIM_ANYD((x).loVect()), AMREX_ARLIM_ANYD((x).hiVect())
+#define BL_TO_FORTRAN_N_3D(x,n) (x).dataPtr(n), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), AMREX_ARLIM_ANYD((x).loVect()), AMREX_ARLIM_ANYD((x).hiVect())
 
 #else
 

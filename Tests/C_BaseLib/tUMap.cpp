@@ -48,7 +48,7 @@ main (int argc, char** argv)
     int npts = umap.nPts();
     int max_mv = umap.MaxMV();
     int ncomp = umap.nComp();
-    Real norm =  fort_umap_norm(ARLIM_3D(umap.box().loVect()), ARLIM_3D(umap.box().hiVect()),
+    Real norm =  amrex_fort_umap_norm(ARLIM_3D(umap.box().loVect()), ARLIM_3D(umap.box().hiVect()),
                                 umap.dataPtr(),&npts, 
                                 umap.keyTablePtr(), ARLIM_3D(umap.box().loVect()), ARLIM_3D(umap.box().hiVect()),
                                 &max_mv, &ncomp, 0);

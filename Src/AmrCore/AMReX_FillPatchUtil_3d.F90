@@ -2,7 +2,7 @@
 subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, &
      cx, cxlo, cxhi, cy, cylo, cyhi, cz, czlo, czhi, dx, rr, use_limiter) bind(c)
   use amrex_fort_module, only : amrex_real, amrex_coarsen_intvect
-  use mempool_module
+  use amrex_mempool_module
   implicit none
 
   integer, intent(in) :: lo(3), hi(3), bxlo(3), bxhi(3), bylo(3), byhi(3), bzlo(3), bzhi(3), &
@@ -200,7 +200,7 @@ end subroutine amrex_interp_div_free_bfield
 subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo, ezhi, &
      cx, cxlo, cxhi, cy, cylo, cyhi, cz, czlo, czhi, rr, use_limiter) bind(c)
   use amrex_fort_module, only : amrex_real, amrex_coarsen_intvect
-  use mempool_module
+  use amrex_mempool_module
   implicit none
 
   integer, intent(in) :: lo(3), hi(3), exlo(3), exhi(3), eylo(3), eyhi(3), ezlo(3), ezhi(3), &
