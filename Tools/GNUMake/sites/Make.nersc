@@ -22,3 +22,8 @@ ifeq ($(USE_MPI),TRUE)
   F90 = ftn
   LIBRARIES += -lmpichf90
 endif
+
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+  CXXFLAGS += -fPIC -dynamic
+  LIBRARIES += -ldl
+endif

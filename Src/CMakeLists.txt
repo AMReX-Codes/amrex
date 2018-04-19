@@ -77,6 +77,10 @@ if ( ENABLE_PARTICLES )
    include (Particle/CMakeLists.txt)
 endif ()
 
+if (ENABLE_SENSEI_INSITU)
+   include (Extern/SENSEI/CMakeLists.txt)
+endif ()
+
 #
 # Here we generate AMReX_BuildInfo.cpp
 # If Python < 2.7, script won't work so
