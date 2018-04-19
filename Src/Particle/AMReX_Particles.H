@@ -34,6 +34,7 @@
 #include <AMReX_NFiles.H>
 #include <AMReX_VectorIO.H>
 #include <AMReX_Particles_F.H>
+#include <AMReX_ParticleMPIUtil.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
