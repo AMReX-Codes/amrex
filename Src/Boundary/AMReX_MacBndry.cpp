@@ -66,7 +66,7 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
                 //
                 const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
 
-                bctag[face][comp] = (p_bc == PhysBCType::Outflow) ? LO_DIRICHLET : LO_NEUMANN;
+                bctag[face][comp] = (p_bc == PhysBCType::outflow) ? LO_DIRICHLET : LO_NEUMANN;
                 bloc[face]        = 0;
             }
             else

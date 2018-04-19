@@ -58,8 +58,8 @@ REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
 namespace amrex {
 
 namespace PhysBCType {
-enum physicalBndryTypes : int {Interior=0,Inflow,Outflow,Symmetry,
-                               SlipWall,NoSlipWall};
+enum physicalBndryTypes : int {interior=0,inflow,outflow,symmetry,
+                               slipwall,noslipwall};
 }
 
 namespace BCType {
