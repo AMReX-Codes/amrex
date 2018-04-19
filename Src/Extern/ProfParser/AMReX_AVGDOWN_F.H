@@ -25,27 +25,27 @@ using amrex::Real;
 
 extern "C" {
     
-    void FORT_MAXVAL_AVGDOWN (const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
+    void FORT_MAXVAL_AVGDOWN (const Real* crse, AMREX_ARLIM_P(clo),     AMREX_ARLIM_P(chi),
 			  const int* nvar,
-			  const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+			  const Real* fine, AMREX_ARLIM_P(fine_lo), AMREX_ARLIM_P(fine_hi),
 			  const int* lo, const int* hi, const int* ratio);
 
-    void FORT_CV_AVGDOWN (const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
+    void FORT_CV_AVGDOWN (const Real* crse, AMREX_ARLIM_P(clo),     AMREX_ARLIM_P(chi),
 			  const int* nvar,
-			  const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+			  const Real* fine, AMREX_ARLIM_P(fine_lo), AMREX_ARLIM_P(fine_hi),
 			  const int* lo, const int* hi, const int* ratio);
 
     void FORT_CV_AVGDOWN_STAG (const int* nodal_dir, 
-  			       const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
+  			       const Real* crse, AMREX_ARLIM_P(clo),     AMREX_ARLIM_P(chi),
     			       const int* nvar,
-			       const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+			       const Real* fine, AMREX_ARLIM_P(fine_lo), AMREX_ARLIM_P(fine_hi),
 			       const int* lo, const int* hi, const int* ratio);
     
-    void FORT_AVGDOWN (const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
+    void FORT_AVGDOWN (const Real* crse, AMREX_ARLIM_P(clo),     AMREX_ARLIM_P(chi),
                        const int* nvar,
-                       const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-                       const Real* cvol, ARLIM_P(cv_lo),   ARLIM_P(cv_hi), 
-                       const Real* fvol, ARLIM_P(fv_lo),   ARLIM_P(fv_hi),
+                       const Real* fine, AMREX_ARLIM_P(fine_lo), AMREX_ARLIM_P(fine_hi),
+                       const Real* cvol, AMREX_ARLIM_P(cv_lo),   AMREX_ARLIM_P(cv_hi), 
+                       const Real* fvol, AMREX_ARLIM_P(fv_lo),   AMREX_ARLIM_P(fv_hi),
                        const int* lo, const int* hi, const int* ratio);
     
 }
