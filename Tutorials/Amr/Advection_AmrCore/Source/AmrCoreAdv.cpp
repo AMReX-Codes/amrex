@@ -44,8 +44,8 @@ AmrCoreAdv::AmrCoreAdv ()
     phi_old.resize(nlevs_max);
 
     // periodic boundaries
-    int bc_lo[] = {INT_DIR, INT_DIR, INT_DIR};
-    int bc_hi[] = {INT_DIR, INT_DIR, INT_DIR};
+    int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+    int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
 
 /*
     // walls (Neumann)
@@ -56,28 +56,20 @@ AmrCoreAdv::AmrCoreAdv ()
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         // lo-side BCs
-        if (bc_lo[idim] == INT_DIR) {
-            bcs.setLo(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
-        }
-        else if (bc_lo[idim] == FOEXTRAP) {
-            bcs.setLo(idim, BCType::foextrap); // first-order extrapolation
-        }
-        else if (bc_lo[idim] == EXT_DIR) {
-            bcs.setLo(idim, BCType::ext_dir);  // external Dirichlet
+        if (bc_lo[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
+            bc_lo[idim] == BCType::foextrap ||  // first-order extrapolation
+            bc_lo[idim] == BCType::ext_dir ) {  // external Dirichlet
+            bcs.setLo(idim, bc_lo[idim]);
         }
         else {
             amrex::Abort("Invalid bc_lo");
         }
 
         // hi-side BCSs
-        if (bc_hi[idim] == INT_DIR) {
-            bcs.setHi(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
-        }
-        else if (bc_hi[idim] == FOEXTRAP) {
-            bcs.setHi(idim, BCType::foextrap); // first-order extrapolation
-        }
-        else if (bc_hi[idim] == EXT_DIR) {
-            bcs.setHi(idim, BCType::ext_dir);  // external Dirichlet
+        if (bc_hi[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
+            bc_hi[idim] == BCType::foextrap ||  // first-order extrapolation
+            bc_hi[idim] == BCType::ext_dir ) {  // external Dirichlet
+            bcs.setHi(idim, bc_hi[idim]);
         }
         else {
             amrex::Abort("Invalid bc_hi");
@@ -264,9 +256,9 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         const int* lo  = box.loVect();
         const int* hi  = box.hiVect();
 
-	initdata(&lev, &cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
-		 BL_TO_FORTRAN_3D(state[mfi]), ZFILL(dx),
-		 ZFILL(prob_lo));
+	initdata(&lev, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
+		 BL_TO_FORTRAN_3D(state[mfi]), AMREX_ZFILL(dx),
+		 AMREX_ZFILL(prob_lo));
     }
 }
 
@@ -328,11 +320,11 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 	    const int*  thi     = tilebox.hiVect();
 
             // tag cells for refinement
-	    state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+	    state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
 			BL_TO_FORTRAN_3D(state[mfi]),
 			&tagval, &clearval, 
-			ARLIM_3D(tilebox.loVect()), ARLIM_3D(tilebox.hiVect()), 
-			ZFILL(dx), ZFILL(prob_lo), &time, &phierr[lev]);
+			AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()), 
+			AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
 	    //
 	    // Now update the tags in the TagBox in the tilebox region
             // to be equal to itags

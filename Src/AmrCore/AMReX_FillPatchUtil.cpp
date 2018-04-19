@@ -372,23 +372,23 @@ namespace amrex
                     if (interp_type == InterpB)
                     {
                         amrex_interp_div_free_bfield(BL_TO_FORTRAN_BOX(ccbx),
-                                                     D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                            BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                            BL_TO_FORTRAN_ANYD(bfab[2])),
-                                                     D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
-                                                            BL_TO_FORTRAN_ANYD(cyfab),
-                                                            BL_TO_FORTRAN_ANYD(czfab)),
+                                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                                  BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                                  BL_TO_FORTRAN_ANYD(bfab[2])),
+                                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                                  BL_TO_FORTRAN_ANYD(cyfab),
+                                                                  BL_TO_FORTRAN_ANYD(czfab)),
                                                      dx, &ref_ratio, &use_limiter);
                     }
                     else if (interp_type == InterpE)
                     {
                         amrex_interp_efield(BL_TO_FORTRAN_BOX(ccbx),
-                                            D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                   BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                   BL_TO_FORTRAN_ANYD(bfab[2])),
-                                            D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
-                                                   BL_TO_FORTRAN_ANYD(cyfab),
-                                                   BL_TO_FORTRAN_ANYD(czfab)),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[2])),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                         BL_TO_FORTRAN_ANYD(cyfab),
+                                                         BL_TO_FORTRAN_ANYD(czfab)),
                                             &ref_ratio, &use_limiter);
                     }
                     else
