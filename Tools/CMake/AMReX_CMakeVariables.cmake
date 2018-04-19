@@ -1,9 +1,13 @@
-###############################################
-
-# Here we define all the global variable that #
-# will be used in the CMake files
-
-###############################################
+#
+# 
+#  This file contains all the global variables necessary
+#  to the build process. Some of them are only defined
+#  here and will be assigned a value someplace else.
+#  Some other variables, for example  AMREX_DEFAULT_INSTALL_DIR,
+#  are initialized with a specific value which is meant to be used
+#  unchanged.
+# 
+#  
 
 #
 # Check if project() has been called; abort if not
@@ -71,16 +75,10 @@ set (AMREX_LIBRARIES          amrex )
 set ( AMREX_CONFIG_INSTALL_INFILE  ${AMREX_CMAKE_MODULES_DIR}/AMReXConfig.cmake.in)
 set ( AMREX_CONFIG_INSTALL_OUTFILE ${PROJECT_BINARY_DIR}/AMReXConfig.cmake)
 
-
 #
 # Load host system info
 #
 include ( AMReX_Machines )
-
-# 
-# For Fortran, always use the following preprocessor definitions
-# 
-set (AMREX_Fortran_DEFINITIONS -DBL_LANG_FORT)
 
 # 
 # Compiler flags 
@@ -114,3 +112,30 @@ set (AMREX_EXTRA_Fortran_LINK_FLAGS)
 set (AMREX_EXTRA_C_LINK_LINE)
 set (AMREX_EXTRA_CXX_LINK_LINE)
 set (AMREX_EXTRA_Fortran_LINK_LINE)
+
+
+#
+# Detect Fortran name mangling scheme for C/Fortran interface and
+# set FORTLINK variable accordingly
+#
+include ( FortranCInterface )
+include ( ${FortranCInterface_BINARY_DIR}/Output.cmake )
+
+set ( FORTLINK "" )
+
+if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
+
+   set (FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
+   message (STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
+
+elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
+      ( FortranCInterface_GLOBAL_CASE STREQUAL "LOWER" ) )
+
+   set (FORTLINK "UNDERSCORE")
+   message (STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
+
+else ()
+   
+   message (AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
+   
+endif ()

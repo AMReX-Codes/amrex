@@ -29,11 +29,6 @@ if (ENABLE_PIC)
    set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 endif ()
 
-#
-# Set preprocessor flags
-#
-include ( AMReX_Defines )
-
 # 
 #  Setup MPI 
 # 
@@ -104,33 +99,56 @@ append ( TPP_CXXFLAGS AMREX_EXTRA_CXX_FLAGS )
 append_to_link_line ( TPP_Fortran_LINK_LINE AMREX_EXTRA_Fortran_LINK_LINE )
 append_to_link_line ( TPP_C_LINK_LINE AMREX_EXTRA_C_LINK_LINE )
 append_to_link_line ( TPP_CXX_LINK_LINE AMREX_EXTRA_CXX_LINK_LINE )
-   
+
+#
+# Set preprocessor flags
+#
+include ( AMReX_Defines )
+
 #
 # Setup compiler flags 
 #
-include ( AMReX_CompilersFlags )
+include ( AMReX_Compilers )
 
-# If CMAKE_CXX_FLAGS is not defined by user
-# load defaults
+# If CMAKE_<LANG>_FLAGS is not defined by user, load defaults
 if ( NOT CMAKE_CXX_FLAGS )
-   load_default_cxxflags ()
+   set ( CMAKE_CXX_FLAGS "${AMREX_CXXFLAGS_${AMREX_BUILD_TYPE}}" )
 endif ()
 
-# If CMAKE_Fortran_FLAGS is not defined by user
-# load defaults
 if ( NOT CMAKE_Fortran_FLAGS )
-   load_default_fflags ()
+   set ( CMAKE_Fortran_FLAGS "${AMREX_FFLAGS_${AMREX_BUILD_TYPE}}" )
 endif ()
 
-# Add required flags
-append_required_cxxflags ()
-append_required_fflags ()
+# Use CMAKE_<LANG>_FLAGS_<BUILD_TYPE> to store required flags
+# NOTE: this is not standard CMake way of doing things
+set ( CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}  "${AMREX_CXXFLAGS_REQUIRED}" )
+set ( CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}  "${AMREX_FFLAGS_REQUIRED}" )
+
+if ( ENABLE_FPE )
+   append ( AMREX_CXXFLAGS_FPE CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE} )
+   append ( AMREX_FFLAGS_FPE   CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} )
+endif ()
+
+      
+# Add all preprocessor definitions to compile string
+# For fortran, this goes into CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} since
+# it is a required flag
+append ( AMREX_Fortran_DEFINES CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} )
+
+#  Add definition related to specific compiler ( only GNU for now )
+if ( AMREX_COMPILER_DEFINES )
+   foreach ( item ${AMREX_COMPILER_DEFINES} )
+      add_define (${item})
+   endforeach ()
+endif ()
+
+add_definitions ( ${AMREX_DEFINES} )
 
 # Add extra flags
 append ( AMREX_EXTRA_Fortran_FLAGS CMAKE_Fortran_FLAGS )
 append ( AMREX_EXTRA_CXX_FLAGS CMAKE_CXX_FLAGS )
 
-# Accumulate all the flags into AMREX_<LANG>_FLAGS to export
+# Accumulate all the flags into AMREX_<LANG>_FLAGS: this variables will be exported
 set ( AMREX_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}}" )
 set ( AMREX_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}}" )
 
@@ -143,8 +161,8 @@ message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
 message( STATUS "   Preprocessor flags       = ${AMREX_DEFINES}")
 message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
 message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
-message( STATUS "   C++ flags                = ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}}")
-message( STATUS "   Fortran flags            = ${CMAKE_Fortran_FLAGS} ${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}}")
+message( STATUS "   C++ flags                = ${AMREX_CXX_FLAGS}")
+message( STATUS "   Fortran flags            = ${AMREX_Fortran_FLAGS}")
 message( STATUS "   C++ include paths        = ${AMREX_EXTRA_CXX_INCLUDE_PATH}") 
 message( STATUS "   Fortran include paths    = ${AMREX_EXTRA_Fortran_INCLUDE_PATH}")
 message( STATUS "   C++ external libs        = ${AMREX_EXTRA_CXX_LIBRARIES}") 
