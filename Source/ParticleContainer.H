@@ -149,6 +149,8 @@ public:
     // Parameters for the Cherenkov corrector in the FDTD solver.
     // Both stencils are calculated ar runtime.
     // 
+    // Number of coefficients for the stencil of the NCI corrector.
+    // The stencil is applied in the z direction only.
     static const int nstencilz_fdtd_nci_corr=5;
     std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex;
     std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by;

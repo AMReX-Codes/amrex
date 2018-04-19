@@ -272,7 +272,7 @@ WarpX::ReadParameters ()
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
                 "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
         }
-        pp.query("ngE", ngE);
+        pp.query("n_guard_cells", ngE);
 
         pp.query("do_electrostatic", do_electrostatic);
         pp.query("n_buffer", n_buffer);
@@ -401,7 +401,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     // Calculate ngE if not provided in input script
     if (ngE < 0){
         ngE = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-        ngE = (warpx_use_fdtd_nci_corr()) ? ngE + 4 : ngE;
+        ngE = (warpx_use_fdtd_nci_corr()) ? ngE + mypc->nstencilz_fdtd_nci_corr : ngE;
     }
     int ngJ = ngE;
     int ngRho = ngE;
