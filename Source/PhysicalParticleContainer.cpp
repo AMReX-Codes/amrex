@@ -862,8 +862,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 }
                 BL_PROFILE_VAR_STOP(blp_accumulate);
 
-                if (rho2) depositCharge(rho2);
-
                 //
                 // copy particle data back
                 //
@@ -872,16 +870,14 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
 
+            if (rho2) depositCharge(rho2);
+
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
-	}
-    }
-
-    if (do_not_push and rho and rho2) {
-        MultiFab::Add(*rho2, *rho, 0, 0, 1, rho->nGrow());
+        }
     }
 }
 
@@ -963,7 +959,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 bzfab.dataPtr(), &ngE, bzfab.length(),
                 &ll4symtry, &l_lower_order_in_v,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
-            
+
             warpx_particle_pusher_momenta(&np, xp.data(), yp.data(), zp.data(),
                                           uxp.data(), uyp.data(), uzp.data(), giv.data(),
                                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
