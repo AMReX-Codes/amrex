@@ -1,5 +1,5 @@
-#ifndef _AmrLevelAsync_H_
-#define _AmrLevelAsync_H_ 
+#ifndef AMREX_AmrLevelAsync_H_
+#define AMREX_AmrLevelAsync_H_
 
 #include "AMReX_AmrLevel.H"
 

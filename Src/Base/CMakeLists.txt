@@ -16,7 +16,7 @@ list ( APPEND CXXSRC     AMReX.cpp AMReX_error_fi.cpp )
 list ( APPEND CXXSRC     AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp )
 list ( APPEND ALLHEADERS AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H )
 
-list ( APPEND ALLHEADERS AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H AMReX_SPACE_F.H )
+list ( APPEND ALLHEADERS AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H )
 
 list ( APPEND CXXSRC     AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp )
 list ( APPEND ALLHEADERS AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H )
@@ -112,7 +112,7 @@ list ( APPEND ALLHEADERS AMReX_PlotFileUtil.H )
 list ( APPEND F90SRC     AMReX_COORDSYS_${DIM}D.F90 )
 list ( APPEND ALLHEADERS AMReX_COORDSYS_F.H AMReX_filcc_f.H )
 
-list ( APPEND F90SRC     AMReX_BLutil_F.F90 AMReX_BLParmParse_F.F90 AMReX_BLBoxLib_F.F90
+list ( APPEND F90SRC     AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
    AMReX_BLProfiler_F.F90)
 
 list ( APPEND F90SRC     AMReX_BaseFab_nd.f90 AMReX_MultiFabUtil_${DIM}d.f90 AMReX_MultiFabUtil_nd.F90 AMReX_FILCC_${DIM}D.F90 )
@@ -121,6 +121,7 @@ list ( APPEND ALLHEADERS AMReX_BaseFab_f.H AMReX_MultiFabUtil_F.H )
 list ( APPEND F90SRC     AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
 list ( APPEND F90SRC     AMReX_error_mod.F90 AMReX_parmparse_mod.F90 AMReX_string_mod.F90 )
 list ( APPEND F90SRC     AMReX_bc_types_mod.F90 )
+list ( APPEND F90SRC     AMReX_ParallelDescriptor_F.F90 )
 
 list ( APPEND CXXSRC     AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 

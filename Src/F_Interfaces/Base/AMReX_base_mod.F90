@@ -25,6 +25,6 @@ module amrex_base_module
 
   use amrex_fab_module
 
-  use mempool_module
+  use amrex_mempool_module
 
 end module amrex_base_module

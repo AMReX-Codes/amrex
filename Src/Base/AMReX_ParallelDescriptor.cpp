@@ -2174,3 +2174,20 @@ ParallelDescriptor::MPIOneSided ()
 
 
 }
+
+
+using namespace amrex;
+
+extern "C" {
+    int amrex_fi_pd_myproc () {
+        return ParallelDescriptor::MyProc();
+    }
+
+    int amrex_fi_pd_nprocs () {
+        return ParallelDescriptor::NProcs();
+    }
+
+    int amrex_fi_pd_ioprocessor () {
+        return ParallelDescriptor::IOProcessor();
+    }
+}

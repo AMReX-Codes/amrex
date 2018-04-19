@@ -1,4 +1,4 @@
-module mempool_module
+module amrex_mempool_module
 
   use iso_c_binding
 
@@ -540,4 +540,4 @@ contains
     a => Null()
   end subroutine bl_deallocate_i3
 
-end module mempool_module
+end module amrex_mempool_module

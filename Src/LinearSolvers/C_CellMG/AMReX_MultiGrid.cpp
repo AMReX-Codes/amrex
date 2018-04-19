@@ -777,7 +777,7 @@ MultiGrid::average (MultiFab&       c,
         FArrayBox&       cfab = c[cmfi];
         const FArrayBox& ffab = f[cmfi];
 
-        FORT_AVERAGE(cfab.dataPtr(),
+        amrex_mg_average(cfab.dataPtr(),
                      ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
                      ffab.dataPtr(),
                      ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
@@ -804,7 +804,7 @@ MultiGrid::interpolate (MultiFab&       f,
         const FArrayBox& cfab = c[mfi];
         FArrayBox&       ffab = f[mfi];
 
-        FORT_INTERP(ffab.dataPtr(),
+        amrex_mg_interp(ffab.dataPtr(),
                     ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
                     cfab.dataPtr(),
                     ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),

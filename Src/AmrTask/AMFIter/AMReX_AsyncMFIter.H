@@ -589,5 +589,6 @@ namespace amrex {
 		    rts.Finalize();
 		}
 	};
+#undef max_life
 } //end namespace
 #endif

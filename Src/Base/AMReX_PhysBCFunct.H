@@ -1,24 +1,24 @@
-#ifndef _PhysBCFunct_H_
-#define _PhysBCFunct_H_
+#ifndef AMREX_PhysBCFunct_H_
+#define AMREX_PhysBCFunct_H_
 
 #include <AMReX_BCRec.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
 
+namespace amrex {
+
 extern "C"
 {
-    typedef void (*BndryFuncDefault)(amrex::Real* data, ARLIM_P(lo), ARLIM_P(hi),
+    typedef void (*BndryFuncDefault)(Real* data, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
                                      const int* dom_lo, const int* dom_hi,
-                                     const amrex::Real* dx, const amrex::Real* grd_lo,
-                                     const amrex::Real* time, const int* bc);
-    typedef void (*BndryFunc3DDefault)(amrex::Real* data, const int* lo, const int* hi,
+                                     const Real* dx, const Real* grd_lo,
+                                     const Real* time, const int* bc);
+    typedef void (*BndryFunc3DDefault)(Real* data, const int* lo, const int* hi,
                                        const int* dom_lo, const int* dom_hi,
-                                       const amrex::Real* dx, const amrex::Real* grd_lo,
-                                       const amrex::Real* time, const int* bc);
+                                       const Real* dx, const Real* grd_lo,
+                                       const Real* time, const int* bc);
 }
-
-namespace amrex {
 
 class BndryFunctBase
 {

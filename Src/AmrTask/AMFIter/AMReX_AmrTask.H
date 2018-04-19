@@ -1,5 +1,5 @@
-#ifndef _AmrTask_H_
-#define _AmrTask_H_ 
+#ifndef AMREX_AmrTask_H_
+#define AMREX_AmrTask_H_
 
 #include <fstream>
 #include <memory>

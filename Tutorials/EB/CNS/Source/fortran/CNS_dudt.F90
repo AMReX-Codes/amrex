@@ -4,7 +4,7 @@ module cns_dudt_module
   use amrex_fort_module, only : rt=>amrex_real
   use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar, qvar, &
        actually_2D
-  use mempool_module, only : amrex_allocate, amrex_deallocate
+  use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
   implicit none
   private
 

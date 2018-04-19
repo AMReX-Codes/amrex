@@ -8,23 +8,13 @@
 // assured to work on all machines supported.
 //
 
-#ifndef _SPMD_H_
-#define _SPMD_H_
+#ifndef AMREX_SPMD_H_
+#define AMREX_SPMD_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_ccse-mpi.H"
 #include <vector>
 #include <string>
-
-#ifdef BL_USE_MPI
-#  ifdef BL_USE_FLOAT /* precision */
-     typedef float Real;
-#    define MPI_CH_REAL         MPI_FLOAT
-#  else   /* precision */
-     typedef double Real;
-#    define MPI_CH_REAL         MPI_DOUBLE
-#  endif  /* precision */
-#  endif  /*mpi*/
 
 namespace amrex
 {
@@ -47,8 +37,8 @@ namespace amrex
 
   inline int CHprocID()
   {
-  return procID();
-}
+      return procID();
+  }
 
 /// number of parallel processes
 /**
@@ -261,12 +251,12 @@ namespace amrex
 
   class SerialTask
   {
-public:
-  enum task
-  {
-  compute=0
-    };
-};
+  public:
+      enum task
+      {
+          compute=0
+      };
+  };
 
 
 }

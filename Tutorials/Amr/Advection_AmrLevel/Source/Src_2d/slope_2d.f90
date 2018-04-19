@@ -54,7 +54,7 @@ contains
                     q, qlo, qhi, &
                     dq, dqlo, dqhi)
 
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
     integer, intent(in) :: lo(2), hi(2), qlo(2), qhi(2), dqlo(2), dqhi(2)
     double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))

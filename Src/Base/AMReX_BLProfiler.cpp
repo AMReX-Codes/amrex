@@ -254,7 +254,7 @@ void BLProfiler::Initialize() {
     std::ostringstream fname;
     fname << "FORTFUNC_" << i;
     mFortProfsIntNames[i] = fname.str();
-#ifdef DEBUG
+#ifdef AMREX_DEBUG
     mFortProfsInt[i] = 0;
 #else
     mFortProfsInt[i] = new BLProfiler(mFortProfsIntNames[i], false);  // dont start
@@ -280,7 +280,7 @@ void BLProfiler::InitParams() {
 
 
 void BLProfiler::ChangeFortIntName(const std::string &fname, int intname) {
-#ifdef DEBUG
+#ifdef AMREX_DEBUG
     mFortProfsIntNames[intname] = fname;
 #else
     delete mFortProfsInt[intname];
@@ -431,7 +431,7 @@ void BLProfiler::RegionStart(const std::string &rname) {
   } else {
     rnameNumber = it->second;
   }
-  rStartStop.push_back(RStartStop(true, rnameNumber, rsTime));
+  rStartStop.push_back(RStartStop(rsTime, rnameNumber, true));
 }
 
 
@@ -448,7 +448,7 @@ void BLProfiler::RegionStop(const std::string &rname) {
   } else {
     rnameNumber = it->second;
   }
-  rStartStop.push_back(RStartStop(false, rnameNumber, rsTime));
+  rStartStop.push_back(RStartStop(rsTime, rnameNumber, false));
 
   if(rname != noRegionName) {
     --inNRegions;
@@ -663,7 +663,7 @@ void BLProfiler::Finalize(bool bFlushing) {
 #endif
 
   WriteFortProfErrors();
-#ifdef DEBUG
+#ifdef AMREX_DEBUG
 #else
   for(int i(0); i < mFortProfsInt.size(); ++i) {
     delete mFortProfsInt[i];
@@ -1576,7 +1576,7 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP, bl_proffortfuncstop_cpp)
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP_INT, bl_proffortfuncstart_cpp_int)
   (const int *i)
 {
-#ifdef DEBUG
+#ifdef AMREX_DEBUG
   if(BLProfiler::mFortProfsInt[*i] == 0) {  // make a new profiler
     BLProfiler::mFortProfsInt[*i] =  new BLProfiler(BLProfiler::mFortProfsIntNames[*i]);
   } else {  // error:  fname is already being profiled
@@ -1595,7 +1595,7 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP_INT, bl_proffortfuncstart_cpp_int)
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT, bl_proffortfuncstop_cpp_int)
   (const int *i)
 {
-#ifdef DEBUG
+#ifdef AMREX_DEBUG
   if(BLProfiler::mFortProfsInt[*i] == 0) {  // error:  fname not found
     std::string estring("bl_proffortfuncstop error:  mFortProfs function not started:  ");
     estring += BLProfiler::mFortProfsIntNames[*i];

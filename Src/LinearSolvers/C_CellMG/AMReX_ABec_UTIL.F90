@@ -1,9 +1,10 @@
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
 
-#include <AMReX_REAL.H>
+module amrex_abec_util_module
+
+  use amrex_fort_module
+  implicit none
+
+contains
 
 !-----------------------------------------------------------------------
 !
@@ -14,17 +15,17 @@
       integer n
       integer nmax
   
-      REAL_T a(n)
-      REAL_T b(n)
-      REAL_T c(n)
-      REAL_T r(n)
-      REAL_T u(n)
+      real(amrex_real) a(n)
+      real(amrex_real) b(n)
+      real(amrex_real) c(n)
+      real(amrex_real) r(n)
+      real(amrex_real) u(n)
 
       parameter (nmax = 4098)
 
       integer j
-      REAL_T bet
-      REAL_T gam(nmax)
+      real(amrex_real) bet
+      real(amrex_real) gam(nmax)
       if (n .gt. nmax ) call bl_error('tridiag: size exceeded')
       if (b(1) .eq. 0) call bl_error('tridiag: CANT HAVE B(1) = ZERO')
 
@@ -43,3 +44,5 @@
       end do
 
     end subroutine tridiag
+
+end module amrex_abec_util_module

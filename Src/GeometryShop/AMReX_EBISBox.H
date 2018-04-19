@@ -1,5 +1,5 @@
-#ifndef _EBISBOX_H___
-#define _EBISBOX_H___
+#ifndef AMREX_EBISBOX_H_
+#define AMREX_EBISBOX_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"

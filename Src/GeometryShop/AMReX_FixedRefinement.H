@@ -1,6 +1,6 @@
 
-#ifndef _FIXEDREFINEMENT_H_
-#define _FIXEDREFINEMENT_H_
+#ifndef AMREX_FIXEDREFINEMENT_H_
+#define AMREX_FIXEDREFINEMENT_H_
 
 #include "AMReX_RefinementCriterion.H"
 

@@ -6,6 +6,8 @@
 
 #ifdef BL_LANG_FORT
 
+#ifndef AMREX_XSDK
+
 #define bigreal BL_REAL_E(1.0,30)
 #define zero    BL_REAL(0.0)
 #define one     BL_REAL(1.0)
@@ -28,12 +30,13 @@
 #define eighth  BL_REAL(0.125)
 #define sixth   BL_REAL(0.16666666666666667)
 #define fifth   BL_REAL(0.2)
-#define forth   BL_REAL(0.25)
 #define fourth  BL_REAL(0.25)
 #define third   BL_REAL(0.33333333333333333)
 #define half    BL_REAL(0.5)
 #define two3rd  BL_REAL(0.66666666666666667)
 #define Pi      BL_REAL(3.1415926535897932)
+
+#endif /* ndef AMREX_XSDK */
 
 #endif /*BL_LANG_FORT*/
 
