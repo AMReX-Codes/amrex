@@ -117,7 +117,7 @@ AmrLevelAdv::variableSetUp ()
     int lo_bc[BL_SPACEDIM];
     int hi_bc[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
+	lo_bc[i] = hi_bc[i] = BCType::int_dir;   // periodic boundaries
     }
     
     BCRec bc(lo_bc, hi_bc);
@@ -162,9 +162,9 @@ AmrLevelAdv::initData ()
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-          initdata(&level, &cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
-		   BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
-		   ZFILL(prob_lo));
+          initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
+		   BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
+		   AMREX_ZFILL(prob_lo));
     }
 
 #ifdef AMREX_PARTICLES
@@ -649,11 +649,11 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 	    const int*  tlo     = tilebx.loVect();
 	    const int*  thi     = tilebx.hiVect();
 
-	    state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+	    state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
 			BL_TO_FORTRAN_3D(S_new[mfi]),
 			&tagval, &clearval, 
-			ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-			ZFILL(dx), ZFILL(prob_lo), &time, &level);
+			AMREX_ARLIM_3D(tilebx.loVect()), AMREX_ARLIM_3D(tilebx.hiVect()), 
+			AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &level);
 	    //
 	    // Now update the tags in the TagBox.
 	    //
