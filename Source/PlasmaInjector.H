@@ -57,6 +57,20 @@ private:
 };
 
 ///
+/// This describes a density function parsed in the input file. 
+///
+class ParseDensityProfile : public PlasmaDensityProfile
+{
+public:
+    ParseDensityProfile(const std::string _parse_density_function);
+    virtual amrex::Real getDensity(amrex::Real x,
+                                   amrex::Real y,
+                                   amrex::Real z) const override;
+private:
+    std::string _parse_density_function;
+};
+
+///
 /// PlasmaMomentumDistribution describes how the particle momenta
 /// are set. Subclasses must define a getMomentum method that fills
 /// a u with the 3 components of the particle momentum
@@ -232,6 +246,8 @@ public:
     amrex::Real z_rms;
     amrex::Real q_tot;
     long npart;
+
+    std::string str_density_function;
 
 protected:
 

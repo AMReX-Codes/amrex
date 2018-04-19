@@ -29,6 +29,9 @@
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_3d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_3d
+#define WRPX_PARSER_INIT_FUNCTION        parser_initialize_function
+#define WRPX_PARSER_EVAL_FUNCTION        parser_evaluate_function
+
 
 #elif (BL_SPACEDIM == 2)
 
@@ -58,6 +61,8 @@
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_2d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_2d
+#define WRPX_PARSER_INIT_FUNCTION        parser_initialize_function
+#define WRPX_PARSER_EVAL_FUNCTION        parser_evaluate_function
 
 #endif
 
@@ -384,6 +389,10 @@ extern "C"
     
     void WRPX_FILTER(const amrex_real*, const int*, const int*,
                      amrex_real*, const int*, const int*, int);
+
+    void WRPX_PARSER_INIT_FUNCTION(const std::string, const std::string*);
+
+    void WRPX_PARSER_EVAL_FUNCTION(const amrex::Real*, amrex::Real);
 
 #ifdef __cplusplus
 }

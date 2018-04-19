@@ -65,6 +65,30 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
     pp.getarr("custom_profile_params", params);
 }
 
+
+
+
+
+// mthevenet
+ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
+    : _parse_density_function(parse_density_function)
+{}
+
+Real ParseDensityProfile::getDensity(Real x, Real y, Real z) const
+{
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
 ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
                                                            Real uy,
                                                            Real uz)
@@ -237,6 +261,9 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         rho_prof.reset(new ConstantDensityProfile(density));
     } else if (rho_prof_s == "custom") {
         rho_prof.reset(new CustomDensityProfile(species_name));
+    } else if (rho_prof_s == "parse_density_function") {
+        pp.get("density_function(x,y,z)", str_density_function);
+        rho_prof.reset(new ParseDensityProfile(species_name));
     } else {
         StringParseAbortMessage("Density profile type", rho_prof_s);
     }
