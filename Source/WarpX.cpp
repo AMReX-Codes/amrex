@@ -655,11 +655,11 @@ void WarpX::computePhi(const Vector<std::unique_ptr<MultiFab> >& rho,
 
             NoOpPhysBC cphysbc, fphysbc;
 #if BL_SPACEDIM == 3
-            int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-            int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+            int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+            int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
 #else
-            int lo_bc[] = {INT_DIR, INT_DIR};
-            int hi_bc[] = {INT_DIR, INT_DIR};
+            int lo_bc[] = {BCType::int_dir, BCType::int_dir};
+            int hi_bc[] = {BCType::int_dir, BCType::int_dir};
 #endif
             Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
             NodeBilinear mapper;
@@ -667,7 +667,7 @@ void WarpX::computePhi(const Vector<std::unique_ptr<MultiFab> >& rho,
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
                                          0, 0, 1, geom[lev], geom[lev+1],
                                          cphysbc, fphysbc,
-                                         IntVect(D_DECL(2, 2, 2)), &mapper, bcs);
+                                         IntVect(AMREX_D_DECL(2, 2, 2)), &mapper, bcs);
         }
     }
 
