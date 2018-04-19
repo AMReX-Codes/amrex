@@ -283,7 +283,7 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt, const std::string& pml_ty
         amrex::Abort("Unknown PML type " + pml_type_s);
     }
 
-    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+    const std::array<Real,BL_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
@@ -328,10 +328,10 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_ty
         amrex::Abort("Unknown PML type " + pml_type_s);
     }
 
-    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+    const std::array<Real,BL_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
     
     const Real c2 = PhysConst::c*PhysConst::c;
-    const std::array<Real,BL_SPACEDIM> dtsdx_c2 {D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
+    const std::array<Real,BL_SPACEDIM> dtsdx_c2 {AMREX_D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
@@ -534,7 +534,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
                 for (int ii = -1; ii <= 1; ++ii) {
                     if (ii != 0 || jj != 0 || kk != 0) {
                         Box b = grid_bx;
-                        b.shift(grid_bx_sz * IntVect{D_DECL(ii,jj,kk)});
+                        b.shift(grid_bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
                         b &= bx;
                         if (b.ok()) {
                             bndryboxes.push_back(b);

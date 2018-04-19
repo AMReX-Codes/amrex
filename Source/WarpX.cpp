@@ -24,6 +24,8 @@ using namespace amrex;
 
 Vector<Real> WarpX::B_external(3, 0.0);
 
+int WarpX::do_moving_window = 0;
+
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
 Vector<Real> WarpX::boost_direction = {0,0,0};
@@ -44,6 +46,10 @@ bool WarpX::serialize_ics     = false;
 bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
+
+bool WarpX::do_dynamic_scheduling = false;
+
+bool WarpX::alloc_level_0_aux = false;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -363,6 +369,10 @@ WarpX::ReadParameters ()
         }
 
         pp.query("load_balance_int", load_balance_int);
+
+        pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
+
+        pp.query("alloc_level_0_aux", alloc_level_0_aux);
     }
 
     {
@@ -494,15 +504,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     //
     // The Aux patch (i.e., the full solution)
     //
-    if (lev == 0)
+    if (lev == 0 and not alloc_level_0_aux)
     {
-        Bfield_aux[lev][0].reset(new MultiFab(*Bfield_fp[lev][0], amrex::make_alias, 0, 1));
-        Bfield_aux[lev][1].reset(new MultiFab(*Bfield_fp[lev][1], amrex::make_alias, 0, 1));
-        Bfield_aux[lev][2].reset(new MultiFab(*Bfield_fp[lev][2], amrex::make_alias, 0, 1));
-
-        Efield_aux[lev][0].reset(new MultiFab(*Efield_fp[lev][0], amrex::make_alias, 0, 1));
-        Efield_aux[lev][1].reset(new MultiFab(*Efield_fp[lev][1], amrex::make_alias, 0, 1));
-        Efield_aux[lev][2].reset(new MultiFab(*Efield_fp[lev][2], amrex::make_alias, 0, 1));
+        for (int idir = 0; idir < 3; ++idir) {
+            Efield_aux[lev][idir].reset(new MultiFab(*Efield_fp[lev][idir], amrex::make_alias, 0, 1));
+            Bfield_aux[lev][idir].reset(new MultiFab(*Bfield_fp[lev][idir], amrex::make_alias, 0, 1));
+        }
     }
     else
     {
@@ -725,11 +732,11 @@ void WarpX::computePhi(const Vector<std::unique_ptr<MultiFab> >& rho,
 
             NoOpPhysBC cphysbc, fphysbc;
 #if BL_SPACEDIM == 3
-            int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-            int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+            int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+            int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
 #else
-            int lo_bc[] = {INT_DIR, INT_DIR};
-            int hi_bc[] = {INT_DIR, INT_DIR};
+            int lo_bc[] = {BCType::int_dir, BCType::int_dir};
+            int hi_bc[] = {BCType::int_dir, BCType::int_dir};
 #endif
             Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
             NodeBilinear mapper;
@@ -737,7 +744,7 @@ void WarpX::computePhi(const Vector<std::unique_ptr<MultiFab> >& rho,
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
                                          0, 0, 1, geom[lev], geom[lev+1],
                                          cphysbc, fphysbc,
-                                         IntVect(D_DECL(2, 2, 2)), &mapper, bcs);
+                                         IntVect(AMREX_D_DECL(2, 2, 2)), &mapper, bcs);
         }
     }
 

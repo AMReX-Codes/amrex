@@ -75,7 +75,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
 
         // Aux patch
 
-        if (lev == 0)
+        if (lev == 0 and not alloc_level_0_aux)
         {
             for (int idim = 0; idim < 3; ++idim) {
                 Bfield_aux[lev][idim].reset(new MultiFab(*Bfield_fp[lev][idim], amrex::make_alias, 0, 1));

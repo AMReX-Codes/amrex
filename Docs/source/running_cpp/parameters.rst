@@ -74,7 +74,7 @@ Distribution across MPI ranks and parallelization
     of the coarsest level, but also to any of the finer level.
 
 * ``warpx.load_balance_int`` (`integer`)
-    How often WarpX should try to redistribution the work across MPI ranks,
+    How often WarpX should try to redistribute the work across MPI ranks,
     in order to have better load balancing (expressed in number of PIC cycles
     inbetween two consecutive attempts at redistributing the work).
     Use 0 to disable load_balancing.
@@ -86,6 +86,11 @@ Distribution across MPI ranks and parallelization
     This relies on each MPI rank handling several (in fact many) subdomains
     (see ``max_grid_size``).
 
+* ``warpx.do_dynamic_scheduling`` (`0` or `1`)
+    Whether to use OpenMP dynamic scheduling
+
+* ``warpx.alloc_level_0_aux``
+    Whether to allocate memory for the level 0 auxillary data or use an alias
 
 Particle initialization
 -----------------------
@@ -112,18 +117,6 @@ Particle initialization
 
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
-
-    * ``Gaussian_Beam``:
-      
-
-Additional parameters for plasma injection (``NUniformPerCell`` and ``NRandomPerCell``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-Additional parameters for gaussian beams (``Gaussian_Beam``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 
 Laser initialization
 --------------------

@@ -86,15 +86,17 @@ CustomMomentumDistribution::CustomMomentumDistribution(const std::string& specie
 GaussianRandomMomentumDistribution::GaussianRandomMomentumDistribution(Real ux_m,
                                                                        Real uy_m,
                                                                        Real uz_m,
-                                                                       Real u_th)
-    : _ux_m(ux_m), _uy_m(uy_m), _uz_m(uz_m), _u_th(u_th)
+                                                                       Real ux_th,
+                                                                       Real uy_th,
+                                                                       Real uz_th)
+    : _ux_m(ux_m), _uy_m(uy_m), _uz_m(uz_m), _ux_th(ux_th), _uy_th(uy_th), _uz_th(uz_th)
 {
 }
 
 void GaussianRandomMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
-    Real ux_th = amrex::RandomNormal(0.0, _u_th);
-    Real uy_th = amrex::RandomNormal(0.0, _u_th);
-    Real uz_th = amrex::RandomNormal(0.0, _u_th);
+    Real ux_th = amrex::RandomNormal(0.0, _ux_th);
+    Real uy_th = amrex::RandomNormal(0.0, _uy_th);
+    Real uz_th = amrex::RandomNormal(0.0, _uz_th);
 
     u[0] = _ux_m + ux_th;
     u[1] = _uy_m + uy_th;
@@ -260,12 +262,17 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         Real ux_m = 0.;
         Real uy_m = 0.;
         Real uz_m = 0.;
-        Real u_th = 0.;
+        Real ux_th = 0.;
+        Real uy_th = 0.;
+        Real uz_th = 0.;
         pp.query("ux_m", ux_m);
         pp.query("uy_m", uy_m);
         pp.query("uz_m", uz_m);
-        pp.query("u_th", u_th);
-        mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, u_th));
+        pp.query("ux_th", ux_th);
+        pp.query("uy_th", uy_th);
+        pp.query("uz_th", uz_th);
+        mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, 
+                                                              ux_th, uy_th, uz_th));
     } else if (mom_dist_s == "radial_expansion") {
         Real u_over_r = 0.;
 	pp.query("u_over_r", u_over_r);

@@ -40,6 +40,14 @@ WarpX::UpdateAuxilaryData ()
 {
     const int use_limiter = 0;
 
+    if (alloc_level_0_aux) {        
+        for (int idir = 0; idir < 3; ++idir) {
+            const int ng = Bfield_fp[0][0]->nGrow();
+            MultiFab::Copy(*Efield_aux[0][idir], *Efield_fp[0][idir], 0, 0, 1, ng);
+            MultiFab::Copy(*Bfield_aux[0][idir], *Bfield_fp[0][idir], 0, 0, 1, ng); 
+        }
+    }
+
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& crse_period = Geom(lev-1).periodicity();

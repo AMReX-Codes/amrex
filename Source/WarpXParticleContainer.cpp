@@ -11,6 +11,11 @@ using namespace amrex;
 
 int WarpXParticleContainer::do_not_push = 0;
 
+WarpXParIter::WarpXParIter (ContainerType& pc, int level)
+    : ParIter(pc, level, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling))
+{
+}
+
 #if (BL_SPACEDIM == 2)
 void
 WarpXParIter::GetPosition (Vector<Real>& x, Vector<Real>& y, Vector<Real>& z) const
@@ -46,10 +51,6 @@ WarpXParticleContainer::ReadParameters ()
 
         do_tiling = true;  // because the default in amrex is false
 	pp.query("do_tiling",  do_tiling);
-
-//        tile_size = IntVect(D_DECL(8,8,8));
-        tile_size = IntVect(D_DECL(102400,8,8));
-
         pp.query("do_not_push", do_not_push);
         
 	initialized = true;
@@ -213,7 +214,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
         MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
         coarsened_fine_data.setVal(0.0);
         
-        IntVect ratio(D_DECL(2, 2, 2));  // FIXME
+        IntVect ratio(AMREX_D_DECL(2, 2, 2));  // FIXME
         
         for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();

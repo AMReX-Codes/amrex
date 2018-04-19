@@ -21,6 +21,8 @@ class WarpXParIter
 public:
     using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
 
+    WarpXParIter (ContainerType& pc, int level);
+
 #if (BL_SPACEDIM == 2)
     void GetPosition (amrex::Vector<amrex::Real>& x,
                       amrex::Vector<amrex::Real>& y,
