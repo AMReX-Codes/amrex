@@ -9,7 +9,8 @@
 #  AMREX_CXXFLAGS_RELEASE
 #  AMREX_CXXFLAGS_REQUIRED
 #  AMREX_CXXFLAGS_FPE
-#
+#  AMREX_COMPILER_DEFINES
+# 
 
 #
 # Check wether the compiler ID has been defined
@@ -38,13 +39,13 @@ if ( ${COMPILER} STREQUAL "GNU" )
    # GNU compiler specific flags
    set (AMREX_FFLAGS_DEBUG "-g -O0 -ggdb -fbounds-check -fbacktrace\
  -Wuninitialized -Wunused -finit-real=snan  -finit-integer=2147483647")
-   set (AMREX_FFLAGS_RELEASE "-O3 -DNDEBUG")
+   set (AMREX_FFLAGS_RELEASE "-O3")
    set (AMREX_FFLAGS_REQUIRED "-ffixed-line-length-none -ffree-line-length-none\
  -fno-range-check -fno-second-underscore")
    set (AMREX_FFLAGS_FPE "-ffpe-trap=invalid,zero -ftrapv" )
 
    set (AMREX_CXXFLAGS_DEBUG "-g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare")
-   set (AMREX_CXXFLAGS_RELEASE "-O3 -DNDEBUG")
+   set (AMREX_CXXFLAGS_RELEASE "-O3")
    set (AMREX_CXXFLAGS_REQUIRED "") #-ftemplate-depth-64 -Wno-deprecated")
    set (AMREX_CXXFLAGS_FPE "-ftrapv")
 
@@ -95,3 +96,25 @@ endif ()
 
 
 
+#
+# This part is for GNU compiler only
+#
+if ( NOT ( ${COMPILER} STREQUAL "GNU" ) )
+   return ()
+endif ()
+
+if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
+   message ( WARNING " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}.\
+ This might break during build. GCC>=4.8 is recommended. " )
+endif ()
+
+set ( AMREX_COMPILER_DEFINES "BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}" )
+
+print_option (CMAKE_CXX_COMPILER_VERSION)
+
+string ( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
+list ( GET VERSION_LIST 0 GCC_VERSION_MAJOR )
+list ( GET VERSION_LIST 1 GCC_VERSION_MINOR )
+
+list ( APPEND AMREX_COMPILER_DEFINES "BL_GCC_MAJOR_VERSION=${GCC_VERSION_MAJOR}" )
+list ( APPEND AMREX_COMPILER_DEFINES "BL_GCC_MINOR_VERSION=${GCC_VERSION_MINOR}" )
