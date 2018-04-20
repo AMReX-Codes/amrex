@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include <WarpXConst.H>
+#include <WarpX_f.H>
 #include <AMReX.H>
 
 using namespace amrex;
@@ -69,14 +70,28 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
 
 
 
+
+
+
 // mthevenet
 ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
     : _parse_density_function(parse_density_function)
-{}
+{
+    const char *str_var  = "x,y,z";
+    const char *str_func = parse_density_function.c_str();
+//     std::cout << "str_func " << str_func << std::endl;
+//     std::cout << "str_var  "  << str_var << std::endl;
+//     std::cout << " before call " << std::endl;
+    parser_instance_number = WRPX_PARSER_INIT_FUNCTION(str_func, str_var);
+//     std::cout << " after call " << std::endl;
+}
 
 Real ParseDensityProfile::getDensity(Real x, Real y, Real z) const
 {
-    return 0;
+    std::array<amrex::Real, 3> list_var = {x,y,z};
+    std::cout << parser_instance_number << std::endl;
+    return WRPX_PARSER_EVAL_FUNCTION(list_var.data(), 3, parser_instance_number);
+    std::cout << parser_instance_number << std::endl;
 }
 
 
@@ -263,10 +278,28 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         rho_prof.reset(new CustomDensityProfile(species_name));
     } else if (rho_prof_s == "parse_density_function") {
         pp.get("density_function(x,y,z)", str_density_function);
-        rho_prof.reset(new ParseDensityProfile(species_name));
+        rho_prof.reset(new ParseDensityProfile(str_density_function));
     } else {
         StringParseAbortMessage("Density profile type", rho_prof_s);
     }
+
+    // mthevenet
+//     std::string* s;
+//     s.push_back("x");
+//     s.push_back("y");
+   
+//     char *str_func = "cos(x)+y";
+//     char *str_var  = "x,y";
+//     WRPX_PARSER_INIT_FUNCTION(str_func, str_var);
+// 
+//     amrex::Real out;
+//     std::array<amrex::Real, 2> list_var = {1.,2.};
+//     std::cout << "before C call: " << out << '\n';
+//     out = WRPX_PARSER_EVAL_FUNCTION(list_var.data(), 2);
+//     std::cout << "after C call: " << out << '\n';
+
+    // WRPX_PARSER_EVAL_FUNCTION(const amrex::Real*, amrex::Real);
+
 
     // parse momentum information
     std::string mom_dist_s;

@@ -68,6 +68,7 @@ public:
                                    amrex::Real z) const override;
 private:
     std::string _parse_density_function;
+    int parser_instance_number=0;
 };
 
 ///

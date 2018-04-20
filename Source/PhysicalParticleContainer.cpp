@@ -233,7 +233,14 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                             u[2] = WarpX::gamma_boost * ( u[2] - v_boost );
                             dens = WarpX::gamma_boost * dens;
                         }
+    std::array<amrex::Real, 3> list_var = {x,y,z};
+    std::cout << "$$$$$$$$$$$$$$$$$" << dens << std::endl;
+//     std::cout << "#################" << WRPX_PARSER_EVAL_FUNCTION(list_var.data(), 3) << std::endl;
+//     std::cout << "#################" << WRPX_PARSER_EVAL_FUNCTION(list_var.data(), 3) << std::endl;
+//     std::cout << "#################" << WRPX_PARSER_EVAL_FUNCTION(list_var.data(), 3) << std::endl;
+
                         attribs[PIdx::w ] = dens * scale_fac;
+// if (y*y+z*z<dx[0]*dx[0]){std::cout<<"x "<<x<<" dens "<<dens<<std::endl;}
                         attribs[PIdx::ux] = u[0];
                         attribs[PIdx::uy] = u[1];
                         attribs[PIdx::uz] = u[2];

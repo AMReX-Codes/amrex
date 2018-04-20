@@ -390,9 +390,9 @@ extern "C"
     void WRPX_FILTER(const amrex_real*, const int*, const int*,
                      amrex_real*, const int*, const int*, int);
 
-    void WRPX_PARSER_INIT_FUNCTION(const std::string, const std::string*);
+    int WRPX_PARSER_INIT_FUNCTION(const char *str_func, const char *str_var);
 
-    void WRPX_PARSER_EVAL_FUNCTION(const amrex::Real*, amrex::Real);
+    amrex::Real WRPX_PARSER_EVAL_FUNCTION(const amrex::Real*, const int, const int);
 
 #ifdef __cplusplus
 }
