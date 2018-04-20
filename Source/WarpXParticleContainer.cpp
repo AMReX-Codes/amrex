@@ -351,6 +351,8 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
 
     long np_total = 0;
 
+    amrex::Real inv_clight_sq = 1.0/PhysConst::c/PhysConst::c;
+
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:vx_total, vy_total, vz_total, np_total)
 #endif
@@ -363,7 +365,7 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
         np_total += pti.numParticles();
 
         for (unsigned long i = 0; i < ux.size(); i++) {
-            Real usq = (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*PhysConst::c*PhysConst::c;
+            Real usq = (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_clight_sq;
             Real gaminv = 1.0/std::sqrt(1.0 + usq);
             vx_total += ux[i]*gaminv;
             vy_total += uy[i]*gaminv;
