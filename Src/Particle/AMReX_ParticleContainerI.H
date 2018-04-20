@@ -1326,7 +1326,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                       rdata.erase(rdata.begin() + first, rdata.begin() + npart);
                   }
                   for (int comp = 0; comp < NArrayInt; comp++) {
-                      RealVector& idata = soa.GetIntData(comp);
+                      IntVector& idata = soa.GetIntData(comp);
                       idata.erase(idata.begin() + first, idata.begin() + npart);
                   }
 		  //		  BL_PROFILE_VAR_STOP(blp_erase);
