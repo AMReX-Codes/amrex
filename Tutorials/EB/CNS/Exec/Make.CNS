@@ -12,7 +12,7 @@ LAZY := TRUE
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 # CNS uses a coarse grained OMP approach
-DEFINES += -DCRSEGRNDOMP
+DEFINES += -DAMREX_CRSEGRNDOMP
 
 include $(TOP)/Source/Make.package
 INCLUDE_LOCATIONS += $(TOP)/Source

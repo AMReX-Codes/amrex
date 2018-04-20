@@ -814,7 +814,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
     const Real*    dx          = geom.CellSize();
     const RealBox& prob_domain = geom.ProbDomain();
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
