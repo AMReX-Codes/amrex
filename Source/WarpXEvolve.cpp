@@ -709,9 +709,9 @@ void
 WarpX::ComputeDt ()
 {
     const Real* dx = geom[max_level].CellSize();
-    const Real deltat  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
-                                                     + 1./(dx[1]*dx[1]),
-                                                     + 1./(dx[2]*dx[2]))) * PhysConst::c );
+    const Real deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
+                                                           + 1./(dx[1]*dx[1]),
+                                                           + 1./(dx[2]*dx[2]))) * PhysConst::c );
     dt.resize(0);
     dt.resize(max_level+1,deltat);
 

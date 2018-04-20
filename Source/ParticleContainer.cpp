@@ -6,6 +6,8 @@
 
 using namespace amrex;
 
+constexpr int MultiParticleContainer::nstencilz_fdtd_nci_corr;
+
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
     ReadParameters();
@@ -200,8 +202,9 @@ MultiParticleContainer::Redistribute ()
 void
 MultiParticleContainer::RedistributeLocal ()
 {
+    int num_ghost = WarpX::do_moving_window ? 2 : 1;
     for (auto& pc : allcontainers) {
-	pc->Redistribute(0, 0, 0, true);
+	pc->Redistribute(0, 0, 0, num_ghost);
     }
 }
 

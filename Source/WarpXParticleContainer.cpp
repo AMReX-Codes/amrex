@@ -214,7 +214,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
         MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
         coarsened_fine_data.setVal(0.0);
         
-        IntVect ratio(D_DECL(2, 2, 2));  // FIXME
+        IntVect ratio(AMREX_D_DECL(2, 2, 2));  // FIXME
         
         for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
