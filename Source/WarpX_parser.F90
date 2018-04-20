@@ -23,8 +23,11 @@ INTEGER, parameter :: plus       =1, &
                       sinhyp     =15, &
                       coshyp     =16, &
                       tanhyp     =17, &
-                      logten     =18
-CHARACTER(5), DIMENSION(0:18) :: coper
+                      logten     =18, & 
+                      greaterthan=19, &
+                      lessthan   =20
+! mthevenet
+CHARACTER(5), DIMENSION(0:20) :: coper
 INTEGER, parameter :: w_parenthesis = 1, &
                       w_number      = 2, &
                       w_operator    = 3, &
@@ -136,6 +139,9 @@ coper(sinhyp     )='sinh'
 coper(coshyp     )='cosh'
 coper(tanhyp     )='tanh'
 coper(logten     )='log10'
+! mthevenet
+coper(greaterthan)='>'
+coper(lessthan   )='<'
 
 return
 end subroutine init_interpret
@@ -499,6 +505,22 @@ do j=jtot,1,-1
     END if
   END if
 end do
+! mthevenet
+do j=jtot,1,-1
+  IF(what(j)==w_operator) then
+    IF(op(j)==greaterthan.or.op(j)==lessthan) then
+      res%operation(jop)%op = op(j)
+      ja=j/2
+      do WHILE(.not.l_res(ja))
+        ja=ja-1
+      end do
+      res%operation(jop)%a = ja
+      res%operation(jop)%b = j/2+1
+      l_res(j/2+1)=.false.
+      jop = jop+1
+    END if
+  END if
+end do
 
 DEALLOCATE(l_res)
 
@@ -708,6 +730,22 @@ do j=jtot,1,-1
     END if
   END if
 end do
+! mthevenet
+do j=jtot,1,-1
+  IF(what(j)==w_operator) then
+    IF(op(j)==greaterthan.or.op(j)==lessthan) then
+      res%operation(jop)%op = op(j)
+      ja=j/2
+      do WHILE(.not.l_res(ja))
+        ja=ja-1
+      end do
+      res%operation(jop)%a = ja
+      res%operation(jop)%b = j/2+1
+      l_res(j/2+1)=.false.
+      jop = jop+1
+    END if
+  END if
+end do
 
 DEALLOCATE(l_res)
 
@@ -894,6 +932,11 @@ CHARACTER(*), INTENT(IN) :: a
       find_operator = minus
     case (47) ! '/'
       find_operator = divide
+! mthevenet
+    case (62) ! '>'
+      find_operator = greaterthan
+    case (60) ! '<'
+      find_operator = lessthan
     case default
       WRITE(*,*) 'Error, operator ',a(1:1),' does not exist'
       stop
@@ -965,6 +1008,15 @@ select case (op)
     eval=a/b
   case (power)
     eval=a**b
+! mthevenet
+  case (greaterthan)
+    eval=0.
+    if (a > b) eval=1.
+  case (lessthan)
+    eval=0.
+    if (a < b) eval=1.
+write(*,*) eval
+
   case (square_root)
     eval=SQRT(a)
   case (exponential)
@@ -1013,7 +1065,7 @@ i2 = size(bi)
 n = maxval((/i1,i2/))
 
 select case (op)
-  case (plus,minus,multiply,divide,power)
+  case (plus,minus,multiply,divide,power, greaterthan, lessthan)
 
   if (i1<n) then
 	allocate(a(n))
