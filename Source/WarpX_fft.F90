@@ -51,7 +51,8 @@ contains
          jxf, jyf, jzf, rhof, rhooldf, &
          l_spectral, l_staggered, norderx, nordery, norderz
     use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
-    USE fourier_psaotd, only: init_plans_blocks
+    USE gpstd_solver, only: init_gpstd
+    USE fourier_psaotd, only: init_plans_fourier_mpi
     use params, only : dt
 
     integer, dimension(3), intent(in) :: global_lo, global_hi, local_lo, local_hi
@@ -170,7 +171,10 @@ contains
     dz = dx_wrpx(3)
     dt = dt_wrpx
 
-    CALL init_plans_blocks()
+    ! Initialize the matrix blocks for the PSATD solver
+    CALL init_gpstd()
+    ! Initialize the plans for fftw with MPI
+    CALL init_plans_fourier_mpi(1_8)
 
   end subroutine warpx_fft_dataplan_init
 
