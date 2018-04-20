@@ -1,5 +1,5 @@
 # Maximum number of time steps
-max_step = 2000
+max_step = 1000
 
 # number of grid points
 amr.n_cell =  128 128
@@ -40,7 +40,7 @@ warpx.cfl = 1.0
 
 particles.nspecies = 2
 particles.species_names = electrons ions
-particles.use_fdtd_nci_corr = 0
+particles.use_fdtd_nci_corr = 1
 
 electrons.charge = -q_e
 electrons.mass = m_e
