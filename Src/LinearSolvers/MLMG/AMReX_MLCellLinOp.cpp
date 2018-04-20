@@ -306,9 +306,9 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         FArrayBox&       ffab    = fine[mfi];
 
         amrex_mg_interp(ffab.dataPtr(),
-                    ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                    AMREX_ARLIM(ffab.loVect()), AMREX_ARLIM(ffab.hiVect()),
                     cfab.dataPtr(),
-                    ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                    AMREX_ARLIM(cfab.loVect()), AMREX_ARLIM(cfab.hiVect()),
                     bx.loVect(), bx.hiVect(), &ncomp);
     }    
 }
