@@ -351,19 +351,41 @@ amrex::Device::device_free(void* ptr) {
 }
 
 void
-amrex::Device::device_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t sz, const int idx) {
+amrex::Device::device_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    gpu_htod_memcpy_async(p_d, p_h, &sz, &idx);
+    CudaAPICheck(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_stream));
 #endif
 
 }
 
 void
-amrex::Device::device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t sz, const int idx) {
+amrex::Device::device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    gpu_dtoh_memcpy_async(p_h, p_d, &sz, &idx);
+    CudaAPICheck(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_stream));
+#endif
+
+}
+
+void
+amrex::Device::mem_advise_set_preferred(void* p, const std::size_t sz, const int device) {
+
+#ifdef AMREX_USE_CUDA
+#ifndef NO_CUDA_8
+    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
+#endif
+#endif
+
+}
+
+void
+amrex::Device::mem_advise_set_readonly(void* p, const std::size_t sz) {
+
+#ifdef AMReX_USE_CUDA
+#ifndef NO_CUDA_8
+    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+#endif
 #endif
 
 }

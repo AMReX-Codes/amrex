@@ -542,7 +542,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
 
   // Create hash by summing smallEnd, bigEnd and type
   //   over a looped hash array of given size.
-  // For any empty boxes, skip BL_SPACEDIM inputs.
+  // For any empty boxes, skip AMREX_SPACEDIM inputs.
   // For an empty box array, hash=0, regardless of size.
   if (!ba.empty())
   {
@@ -550,7 +550,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
     {
       if (!ba[i].isEmpty())
       {
-        for (int j=0; j<BL_SPACEDIM; j++)
+        for (int j=0; j<AMREX_SPACEDIM; j++)
         {
            hashSum = ba[i].smallEnd(j) + ba[i].bigEnd(j) + ba[i].ixType()[j];
            hash[(hashCount%hashSize)] += hashSum;
@@ -559,7 +559,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
       }
       else
       {
-        hashCount+=BL_SPACEDIM;
+        hashCount+=AMREX_SPACEDIM;
       }
     }
   }
@@ -1200,8 +1200,6 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
 
 }
 
-
-
 amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &stringArray)
 {
   std::ostringstream stringStream;
@@ -1214,10 +1212,6 @@ amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &strin
 
   return charArray;
 }
-
-
-
-
 
 amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &charArray)
 {
@@ -1234,6 +1228,50 @@ amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &cha
   return stringArray;
 }
 
+void amrex::BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  int numBool;
+  if (myLocalId == rootId) {
+    numBool = bBool;
+  }
+
+  amrex::ParallelDescriptor::Bcast(&numBool, 1, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    bBool = numBool;
+  }
+}
+
+
+void amrex::BroadcastString(std::string &bStr, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  Vector<std::string> vecString(1, bStr);
+  Vector<char> serialString;
+  if(myLocalId == rootId) {
+    serialString = amrex::SerializeStringArray(vecString);
+  }
+
+  amrex::BroadcastArray(serialString, myLocalId, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    vecString = amrex::UnSerializeStringArray(serialString);
+    bStr = vecString[0];
+  }
+}
+
+void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  Vector<char> serialStringArray;
+  if(myLocalId == rootId) {
+    serialStringArray = amrex::SerializeStringArray(bSA);
+  }
+
+  amrex::BroadcastArray(serialStringArray, myLocalId, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    bSA = amrex::UnSerializeStringArray(serialStringArray);
+  }
+}
 
 void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
@@ -1313,4 +1351,18 @@ double amrex::second ()
 {
     return std::chrono::duration_cast<std::chrono::duration<double> >
         (amrex::MaxResSteadyClock::now() - clock_time_begin).count();
+}
+
+
+extern "C" {
+    void* amrex_malloc (std::size_t size)
+    {
+        return malloc(size);
+    }
+
+
+    void amrex_free (void* p)
+    {
+        std::free(p);
+    }
 }

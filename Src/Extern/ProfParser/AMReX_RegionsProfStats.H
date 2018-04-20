@@ -85,6 +85,7 @@ class RegionsProfStats : public BLProfStats {
     void FillAllCallTimes(amrex::Vector<amrex::Vector<Real> > &allCallTimes,
                           const std::string whichFuncName,
                           int whichFuncNumber, const amrex::Box &procBox);
+    void CheckRegionsData();
 
     virtual void InitCStatsDataBlock(int proc, long nrss, long ntracestats,
                                      const std::string &filename, long seekpos);
@@ -132,7 +133,7 @@ class RegionsProfStats : public BLProfStats {
     bool Include(const FuncStat &fs);
 
     amrex::Vector<DataBlock> dataBlocks;
-    static bool bInitDataBlocks;
+    static bool bInitDataBlocks, persistentStreams;
 
     void ReadBlock(DataBlock &dBlock, bool readRSS = true,
                    bool readTraces = true);  // reads whole block

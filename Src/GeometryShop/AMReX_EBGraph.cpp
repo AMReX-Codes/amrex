@@ -1,21 +1,9 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_EBGraph.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
 #include "AMReX_parstream.H"
 #include "AMReX_Print.H"
-
 
 namespace amrex
 {
@@ -322,6 +310,7 @@ namespace amrex
     else
     {
       Box bx = m_region & m_domain;
+      bx &= m_cellFlags.box();
       int ipt = 0;
       for (BoxIterator bi(bx); bi.ok(); ++bi)
       {
@@ -1371,20 +1360,12 @@ namespace amrex
           IntVectSet ivsInterIrreg = (a_source.m_irregIVS);
           ivsInterIrreg &= regionTo;
           ivsInterIrreg &= m_region;
+          (m_irregIVS) |= ivsInterIrreg;
         
-          if (!ivsInterIrreg.isEmpty())
-          {
-            for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
-            {
-              IntVect iv = it();
-              (m_irregIVS) |= iv;
-              if (numVoFs(iv) > 1) // this will be correct since we already
-                // did a m_graph copy operation
-              {
-                (m_multiIVS) |= iv;
-              }
-            }
-          }
+          IntVectSet ivsInterMulti = (a_source.m_multiIVS);
+          ivsInterMulti &= regionTo;
+          ivsInterMulti &= m_region;
+          m_multiIVS |= ivsInterMulti;
         }
       }
     }
@@ -1801,8 +1782,8 @@ namespace amrex
     //the tag
     retval += sizeof(TAG);
 
-    //region, domain, graphnode box
-    retval +=  3*Box::linearSize();
+    //region, domain, fullregion, graphnode box
+    retval +=  4*Box::linearSize();
     if(m_tag == HasIrregular)
     {
       for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
@@ -1841,6 +1822,11 @@ namespace amrex
 
     m_domain.linearOut(buf);
     incrval = m_domain.linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    m_fullRegion.linearOut(buf);
+    incrval = m_fullRegion.linearSize();
     buf    += incrval;
     retval += incrval;
 
@@ -1904,6 +1890,11 @@ namespace amrex
 
     m_domain.linearIn(buf);
     incrval = m_domain.linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    m_fullRegion.linearIn(buf);
+    incrval = m_fullRegion.linearSize();
     buf    += incrval;
     retval += incrval;
 

@@ -259,7 +259,6 @@ int main(int argc, char *argv[]) {
   threadFile.flush();
   threadFile.close();
 
-/*
 {
   std::stringstream sharedFileName;
   sharedFileName << "sompfile_mpirank_" << myproc;
@@ -273,10 +272,12 @@ int main(int argc, char *argv[]) {
     sharedThreadFile.seekp(fileOffset[myThread]);
   }
   sharedThreadFile.write((const char *) data[myThread].dataPtr(), dataItems * sizeof(unsigned long));
-  sharedThreadFile.flush();
-  sharedThreadFile.close();
+  if(myThread == 0) {
+    sharedThreadFile.flush();
+    sharedThreadFile.close();
+  }
 }
-*/
+
   std::stringstream sharedFileName;
   sharedFileName << "sompfile_mpirank_" << myproc;
 

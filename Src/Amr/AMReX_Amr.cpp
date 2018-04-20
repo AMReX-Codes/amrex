@@ -37,7 +37,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Print.H>
 
-#ifdef MG_USE_FBOXLIB
+#ifdef AMREX_USE_FBOXLIB_MG
 #include <mg_cpp_f.h>
 #endif
 
@@ -114,7 +114,7 @@ Amr::Initialize ()
     Amr::first_smallplotfile = true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
-    probinit_natonce         = 32;
+    probinit_natonce         = 512;
     plot_files_output        = true;
     checkpoint_nfiles        = 64;
     regrid_on_restart        = 0;
@@ -242,7 +242,7 @@ Amr::InitAmr ()
     bUserStopRequest       = false;
     message_int            = 10;
     
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
         isPeriodic[i] = false;
 
     ParmParse pp("amr");
@@ -447,7 +447,7 @@ Amr::InitAmr ()
                 is >> bx;
                 STRIP;
                  bx.refine(ref_ratio[lev-1]);
-                 for (int idim = 0 ; idim < BL_SPACEDIM; ++idim)
+                 for (int idim = 0 ; idim < AMREX_SPACEDIM; ++idim)
                  {
                      if (bx.length(idim) > max_grid_size[lev][idim])
                      {
@@ -810,16 +810,15 @@ Amr::writePlotFile ()
     //  it to a bad suffix if there were stream errors.
     //
 
-    if(precreateDirectories) {    // ---- make all directories at once
+    if (precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  precreating directories for " << pltfileTemp << "\n";
+      amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+	amr_level[i]->CreateLevelDirectory(pltfileTemp);
       }
-      amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
+      ParallelDescriptor::Barrier("Amr::writePlotFile:PCD");
+
     } else {
-      if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  creating directory:  " << pltfileTemp << "\n";
-      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
@@ -944,10 +943,7 @@ Amr::writeSmallPlotFile ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    if(precreateDirectories) {    // ---- make all directories at once
-      if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  Amr::writeSmallPlotFile:  precreating directories for " << pltfileTemp << "\n";
-      }
+    if (precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
@@ -955,9 +951,6 @@ Amr::writeSmallPlotFile ()
       }
       ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
     } else {
-      if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  Amr::writeSmallPlotFile:  creating directory:  " << pltfileTemp << "\n";
-      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
@@ -1033,7 +1026,7 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
             int k = blocking_factor[i][idim];
             while ( k > 0 && (k%2 == 0) )
@@ -1056,7 +1049,7 @@ Amr::checkInput ()
     //
     // Check that domain size is a multiple of blocking_factor[0].
     //
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         int len = domain.length(i);
         if (len%blocking_factor[0][i] != 0)
@@ -1067,7 +1060,7 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (max_grid_size[i][idim]%2 != 0) {
                 amrex::Error("max_grid_size is not even");
             }
@@ -1079,7 +1072,7 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
                 amrex::Error("max_grid_size not divisible by blocking_factor");
             }
@@ -1115,13 +1108,6 @@ Amr::init (Real strt_time,
 	if (small_plot_int > 0 || small_plot_per > 0)
 	    writeSmallPlotFile();
     }
-#ifdef HAS_XGRAPH
-    if (first_plotfile)
-    {
-        first_plotfile = false;
-        amr_level[0]->setPlotVariables();
-    }
-#endif
 
 #ifdef BL_COMM_PROFILING
     Vector<Box> probDomain(maxLevel()+1);
@@ -1439,7 +1425,7 @@ Amr::restart (const std::string& filename)
         spdim = atoi(first_line.c_str());
     }
 
-    if (spdim != BL_SPACEDIM)
+    if (spdim != AMREX_SPACEDIM)
     {
         std::cerr << "Amr::restart(): bad spacedim = " << spdim << '\n';
         amrex::Abort();
@@ -1698,22 +1684,17 @@ Amr::checkPoint ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
-      if (verbose > 0) {
-        amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint:  precreating directories for "
-	               << ckfileTemp << "\n";
-      }
       amrex::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
-        amrex::Print() << "IOIOIOIO:  Amr::checkPoint:  precreating directories for "
-	               << ckfileTemp << "  for level " << i << "\n";
+          if (verbose > 1) {
+              amrex::Print() << "IOIOIOIO:  Amr::checkPoint:  precreating directories for "
+                             << ckfileTemp << "  for level " << i << "\n";
+          }
         amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
     } else {
-      if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint:  creating directory:  " << ckfileTemp << "\n";
-      }
       amrex::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
     }
@@ -1743,7 +1724,7 @@ Amr::checkPoint ()
         old_prec = HeaderFile.precision(17);
 
         HeaderFile << CheckPointVersion << '\n'
-                   << BL_SPACEDIM       << '\n'
+                   << AMREX_SPACEDIM       << '\n'
                    << cumtime           << '\n'
                    << max_level         << '\n'
                    << finest_level      << '\n';
@@ -2254,16 +2235,10 @@ Amr::writePlotNow()
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-#ifdef BL_USE_NEWPLOTPER
-      Real rN(0.0);
-      Real rR = modf(cumtime/plot_per, &rN);
-      if (rR < (dt_level[0]*0.001))
-#else
       const int num_per_old = (cumtime-dt_level[0]) / plot_per;
       const int num_per_new = (cumtime            ) / plot_per;
 
       if (num_per_old != num_per_new)
-#endif
 	{
 	  plot_test = 1;
 	}
@@ -2280,16 +2255,10 @@ Amr::writeSmallPlotNow()
     int plot_test = 0;
     if (small_plot_per > 0.0)
     {
-#ifdef BL_USE_NEWPLOTPER
-      Real rN(0.0);
-      Real rR = modf(cumtime/small_plot_per, &rN);
-      if (rR < (dt_level[0]*0.001))
-#else
       const int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
       const int num_per_new = (cumtime            ) / small_plot_per;
 
       if (num_per_old != num_per_new)
-#endif
 	{
 	  plot_test = 1;
 	}
@@ -2315,7 +2284,7 @@ Amr::defBaseLevel (Real              strt_time,
     const Box& domain   = Geom(0).Domain();
     const IntVect& d_len = domain.size();
 
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+    for (int idir = 0; idir < AMREX_SPACEDIM; idir++)
         if (d_len[idir]%2 != 0)
             amrex::Error("defBaseLevel: must have even number of cells");
 
@@ -2422,7 +2391,7 @@ Amr::regrid (int  lbase,
     //
     // Flush the caches.
     //
-#ifdef MG_USE_FBOXLIB
+#ifdef AMREX_USE_FBOXLIB_MG
     mgt_flush_copyassoc_cache();
 #endif
 
@@ -2710,7 +2679,7 @@ Amr::printGridInfo (std::ostream& os,
 
             os << ' ' << lev << ": " << b << "   ";
                 
-            for (int i = 0; i < BL_SPACEDIM; i++)
+            for (int i = 0; i < AMREX_SPACEDIM; i++)
                 os << b.length(i) << ' ';
 
             os << ":: " << map[k] << '\n';
@@ -3474,7 +3443,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       if(scsMyId == ioProcNumSCS) {
         allBools.push_back(abort_on_stream_retry_failure);
         allBools.push_back(bUserStopRequest);
-        for(int i(0); i < BL_SPACEDIM; ++i)    { allBools.push_back(isPeriodic[i]); }
+        for(int i(0); i < AMREX_SPACEDIM; ++i)    { allBools.push_back(isPeriodic[i]); }
         allBools.push_back(first_plotfile);
 
         allBools.push_back(plot_files_output);
@@ -3507,7 +3476,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
         abort_on_stream_retry_failure = allBools[count++];
         bUserStopRequest              = allBools[count++];
-        for(int i(0); i < BL_SPACEDIM; ++i)    { isPeriodic[i] = allBools[count++]; }
+        for(int i(0); i < AMREX_SPACEDIM; ++i)    { isPeriodic[i] = allBools[count++]; }
         first_plotfile                = allBools[count++];
 
         plot_files_output             = allBools[count++];
@@ -3601,19 +3570,19 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       if(scsMyId == ioProcNumSCS) {
 
         for(int lev(0); lev < max_grid_size.size(); ++lev) {
-          for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(max_grid_size[lev][i]); }
+          for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(max_grid_size[lev][i]); }
         }
 
         for(int lev(0); lev < blocking_factor.size(); ++lev) {
-          for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(blocking_factor[lev][i]); }
+          for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(blocking_factor[lev][i]); }
         }
 
         for(int lev(0); lev < ref_ratio.size(); ++lev) {
-          for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(ref_ratio[lev][i]); }
+          for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(ref_ratio[lev][i]); }
 	}
 
 	allIntVectsSize = allIntVects.size();
-	BL_ASSERT(allIntVectsSize == (max_grid_size_Size+blocking_factor_Size+ref_ratio_Size)* BL_SPACEDIM);
+	BL_ASSERT(allIntVectsSize == (max_grid_size_Size+blocking_factor_Size+ref_ratio_Size)* AMREX_SPACEDIM);
       }
 
       ParallelDescriptor::Bcast(&allIntVectsSize, 1, ioProcNumAll, scsComm);
@@ -3626,19 +3595,19 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         // ---- unpack the IntVects
         if(scsMyId != ioProcNumSCS) {
 	  int count(0);
-          BL_ASSERT(allIntVectsSize == (max_grid_size_Size+blocking_factor_Size+ref_ratio_Size)* BL_SPACEDIM);
+          BL_ASSERT(allIntVectsSize == (max_grid_size_Size+blocking_factor_Size+ref_ratio_Size)* AMREX_SPACEDIM);
 
           max_grid_size.resize(max_grid_size_Size);
           blocking_factor.resize(blocking_factor_Size);
 	  ref_ratio.resize(ref_ratio_Size);
           for(int lev(0); lev < max_grid_size.size(); ++lev) {
-            for(int i(0); i < BL_SPACEDIM; ++i)    { max_grid_size[lev][i] = allIntVects[count++]; }
+            for(int i(0); i < AMREX_SPACEDIM; ++i)    { max_grid_size[lev][i] = allIntVects[count++]; }
           }
           for(int lev(0); lev < blocking_factor.size(); ++lev) {
-            for(int i(0); i < BL_SPACEDIM; ++i)    { blocking_factor[lev][i] = allIntVects[count++]; }
+            for(int i(0); i < AMREX_SPACEDIM; ++i)    { blocking_factor[lev][i] = allIntVects[count++]; }
           }
           for(int lev(0); lev < ref_ratio.size(); ++lev) {
-            for(int i(0); i < BL_SPACEDIM; ++i)    { ref_ratio[lev][i] = allIntVects[count++]; }
+            for(int i(0); i < AMREX_SPACEDIM; ++i)    { ref_ratio[lev][i] = allIntVects[count++]; }
 	  }
         }
       }

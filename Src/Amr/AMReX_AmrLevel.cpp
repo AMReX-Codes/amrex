@@ -182,14 +182,14 @@ AmrLevel::writePlotFile (const std::string& dir,
 	    os << desc_lst[typ].name(comp) << '\n';
         }
 
-        os << BL_SPACEDIM << '\n';
+        os << AMREX_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (i = 0; i < AMREX_SPACEDIM; i++)
             os << Geometry::ProbLo(i) << ' ';
         os << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (i = 0; i < AMREX_SPACEDIM; i++)
             os << Geometry::ProbHi(i) << ' ';
         os << '\n';
         for (i = 0; i < f_lev; i++)
@@ -203,7 +203,7 @@ AmrLevel::writePlotFile (const std::string& dir,
         os << '\n';
         for (i = 0; i <= f_lev; i++)
         {
-            for (int k = 0; k < BL_SPACEDIM; k++)
+            for (int k = 0; k < AMREX_SPACEDIM; k++)
                 os << parent->Geom(i).CellSize()[k] << ' ';
             os << '\n';
         }
@@ -232,7 +232,6 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     if ( ! levelDirectoryCreated) {
       if (ParallelDescriptor::IOProcessor()) {
-        amrex::Print() << "IOIOIOIO:CD  AmrLevel::writePlotFile:  " << FullPath << "\n";
         if ( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
             amrex::CreateDirectoryFailed(FullPath);
 	}
@@ -249,7 +248,7 @@ AmrLevel::writePlotFile (const std::string& dir,
         for (i = 0; i < grids.size(); ++i)
         {
             RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-            for (n = 0; n < BL_SPACEDIM; n++)
+            for (n = 0; n < AMREX_SPACEDIM; n++)
                 os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
         }
         //
@@ -557,7 +556,7 @@ AmrLevel::get_data (int  state_indx,
 const BoxArray&
 AmrLevel::getEdgeBoxArray (int dir) const
 {
-    BL_ASSERT(dir >=0 && dir < BL_SPACEDIM);
+    BL_ASSERT(dir >=0 && dir < AMREX_SPACEDIM);
     if (edge_grids[dir].empty()) {
 	edge_grids[dir] = grids;
 	edge_grids[dir].surroundingNodes(dir);
@@ -782,7 +781,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                     if (boxType.nodeCentered())
                     {
-                        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                         {
                             if (iv[dir] > 0)
                             {
@@ -860,7 +859,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                             if (boxType.nodeCentered())
                             {
-                                for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                                for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                                 {
                                     if (iv[dir] > 0)
                                     {
@@ -1108,7 +1107,7 @@ HasPhysBndry (const Box&      b,
               const Box&      dmn,
               const Geometry& geom)
 {
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         if (!geom.isPeriodic(i))
         {
@@ -1142,7 +1141,7 @@ FixUpPhysCorners (FArrayBox&      fab,
 
     Box GrownDomain = ProbDomain;
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         if (!TheGeom.isPeriodic(dir))
         {
@@ -1153,7 +1152,7 @@ FixUpPhysCorners (FArrayBox&      fab,
         }
     }
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         if (!TheGeom.isPeriodic(dir)) continue;
 
@@ -1487,7 +1486,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     const Geometry&         cgeom   = clev.geom;
 
     Box domain_g = pdomain;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (geom.isPeriodic(i)) {
 	    domain_g.grow(i,nghost);
 	}
@@ -1962,7 +1961,7 @@ AmrLevel::getBCArray (int State_Type,
                       int strt_comp,
                       int ncomp)
 {
-    Vector<int> bc(2*BL_SPACEDIM*ncomp);
+    Vector<int> bc(2*AMREX_SPACEDIM*ncomp);
 
     BCRec bcr;
 
@@ -1970,8 +1969,8 @@ AmrLevel::getBCArray (int State_Type,
     {
         bcr = state[State_Type].getBC(strt_comp+n,gridno);
         const int* b_rec = bcr.vect();
-        for (int m = 0; m < 2*BL_SPACEDIM; m++)
-            bc[2*BL_SPACEDIM*n + m] = b_rec[m];
+        for (int m = 0; m < 2*AMREX_SPACEDIM; m++)
+            bc[2*AMREX_SPACEDIM*n + m] = b_rec[m];
     }
 
     return bc;
@@ -2252,15 +2251,15 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
       // ---- IntVects
       Vector<int> allIntVects;
       if(scsMyId == ioProcNumSCS) {
-        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
-        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
+        for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
+        for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
       }
       amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
 
       if(scsMyId != ioProcNumSCS) {
         int count(0);
-        for(int i(0); i < BL_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
-        for(int i(0); i < BL_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
+        for(int i(0); i < AMREX_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
+        for(int i(0); i < AMREX_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
       }
 
 
@@ -2328,7 +2327,6 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
     LevelDirectoryNames(dir, LevelDir, FullPath);
 
     if(ParallelDescriptor::IOProcessor()) {
-      amrex::Print() << "IOIOIOIO:CD  AmrLevel::CreateLevelDirectory:  " << FullPath << "\n";
       if( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
         amrex::CreateDirectoryFailed(FullPath);
       }

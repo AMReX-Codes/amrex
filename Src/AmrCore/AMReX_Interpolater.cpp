@@ -53,7 +53,7 @@ NodeBilinear::CoarseBox (const Box& fine,
 {
     Box b = amrex::coarsen(fine,ratio);
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         if (b.length(i) < 2)
         {
@@ -73,7 +73,7 @@ NodeBilinear::CoarseBox (const Box&     fine,
 {
     Box b = amrex::coarsen(fine,ratio);
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         if (b.length(i) < 2)
         {
@@ -147,7 +147,7 @@ CellBilinear::CoarseBox (const Box&     fine,
     const int* clo = crse.loVect();
     const int* chi = crse.hiVect();
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         int iratio = ratio[i];
         int hrat   = iratio/2;
@@ -174,7 +174,7 @@ CellBilinear::interp (const FArrayBox&  crse,
                       int               actual_state)
 {
     BL_PROFILE("CellBilinear::interp()");
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     amrex::Error("interp: not implemented");
 #endif
     //
@@ -213,15 +213,15 @@ CellBilinear::interp (const FArrayBox&  crse,
 Vector<int>
 Interpolater::GetBCArray (const Vector<BCRec>& bcr)
 {
-    Vector<int> bc(2*BL_SPACEDIM*bcr.size());
+    Vector<int> bc(2*AMREX_SPACEDIM*bcr.size());
 
     for (int n = 0; n < bcr.size(); n++)
     {
         const int* b_rec = bcr[n].vect();
 
-        for (int m = 0; m < 2*BL_SPACEDIM; m++)
+        for (int m = 0; m < 2*AMREX_SPACEDIM; m++)
         {
-            bc[2*BL_SPACEDIM*n + m] = b_rec[m];
+            bc[2*AMREX_SPACEDIM*n + m] = b_rec[m];
         }
     }
 
@@ -291,10 +291,10 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
-    Vector<Real> fvc[BL_SPACEDIM];
-    Vector<Real> cvc[BL_SPACEDIM];
+    Vector<Real> fvc[AMREX_SPACEDIM];
+    Vector<Real> cvc[AMREX_SPACEDIM];
     int dir;
-    for (dir = 0; dir < BL_SPACEDIM; dir++)
+    for (dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],fine_version_of_cslope_bx,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
@@ -307,9 +307,9 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     // --> there is a slope for each component in each coordinate 
     //     direction
     //
-    FArrayBox ucc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
-    FArrayBox lcc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
-    FArrayBox slope_factors(cslope_bx,BL_SPACEDIM);
+    FArrayBox ucc_slopes(cslope_bx,ncomp*AMREX_SPACEDIM);
+    FArrayBox lcc_slopes(cslope_bx,ncomp*AMREX_SPACEDIM);
+    FArrayBox slope_factors(cslope_bx,AMREX_SPACEDIM);
 
     FArrayBox  cmax(cslope_bx,ncomp);
     FArrayBox  cmin(cslope_bx,ncomp);
@@ -320,12 +320,12 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Real* ucc_xsldat = ucc_slopes.dataPtr(0);
     Real* lcc_xsldat = lcc_slopes.dataPtr(0);
     Real* xslfac_dat = slope_factors.dataPtr(0);
-#if (BL_SPACEDIM>=2)
+#if (AMREX_SPACEDIM>=2)
     Real* ucc_ysldat = ucc_slopes.dataPtr(ncomp);
     Real* lcc_ysldat = lcc_slopes.dataPtr(ncomp);
     Real* yslfac_dat = slope_factors.dataPtr(1);
 #endif
-#if (BL_SPACEDIM==3)
+#if (AMREX_SPACEDIM==3)
     Real* ucc_zsldat = ucc_slopes.dataPtr(2*ncomp);
     Real* lcc_zsldat = lcc_slopes.dataPtr(2*ncomp);
     Real* zslfac_dat = slope_factors.dataPtr(2);
@@ -344,10 +344,10 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     const int* fvcblo = fine_version_of_cslope_bx.loVect();
     int slope_flag    = 1;
 
-    int cvcbhi[BL_SPACEDIM];
-    int fvcbhi[BL_SPACEDIM];
+    int cvcbhi[AMREX_SPACEDIM];
+    int fvcbhi[AMREX_SPACEDIM];
 
-    for (dir=0; dir<BL_SPACEDIM; dir++)
+    for (dir=0; dir<AMREX_SPACEDIM; dir++)
     {
         cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
         fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
@@ -366,10 +366,10 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                       cdat,ARLIM(clo),ARLIM(chi),
                       ARLIM(cvcblo), ARLIM(cvcbhi),
                       ucc_xsldat, lcc_xsldat, xslfac_dat,
-#if (BL_SPACEDIM>=2)
+#if (AMREX_SPACEDIM>=2)
                       ucc_ysldat, lcc_ysldat, yslfac_dat,
 #endif
-#if (BL_SPACEDIM==3)
+#if (AMREX_SPACEDIM==3)
                       ucc_zsldat, lcc_zsldat, zslfac_dat,
 #endif
                       ARLIM(csblo), ARLIM(csbhi),
@@ -439,7 +439,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     BL_ASSERT(crse.box().contains(cslope_bx));
     //
     // Alloc temp space for coarse grid slopes: here we use 5 
-    // instead of BL_SPACEDIM because of the x^2, y^2 and xy terms
+    // instead of AMREX_SPACEDIM because of the x^2, y^2 and xy terms
     //
     long t_long = cslope_bx.numPts();
     BL_ASSERT(t_long < INT_MAX);
@@ -458,7 +458,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     c_len          = hislp - loslp + 1;
     //
     // Alloc temp space for one strip of fine grid slopes: here we use 5 
-    // instead of BL_SPACEDIM because of the x^2, y^2 and xy terms.
+    // instead of AMREX_SPACEDIM because of the x^2, y^2 and xy terms.
     //
     int dir;
     int f_len = fslope_bx.longside(dir);
@@ -471,9 +471,9 @@ CellQuadratic::interp (const FArrayBox& crse,
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
-    Vector<Real> fvc[BL_SPACEDIM];
-    Vector<Real> cvc[BL_SPACEDIM];
-    for (dir = 0; dir < BL_SPACEDIM; dir++)
+    Vector<Real> fvc[AMREX_SPACEDIM];
+    Vector<Real> cvc[AMREX_SPACEDIM];
+    for (dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
@@ -495,7 +495,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 
     FORT_CQINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                    ARLIM(fblo), ARLIM(fbhi),
@@ -509,7 +509,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                    AMREX_D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
                    &actual_comp,&actual_state);
 
-#endif /*(BL_SPACEDIM > 1)*/
+#endif /*(AMREX_SPACEDIM > 1)*/
 }
 
 PCInterp::~PCInterp () {}
@@ -639,10 +639,10 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
-    Vector<Real> fvc[BL_SPACEDIM];
-    Vector<Real> cvc[BL_SPACEDIM];
+    Vector<Real> fvc[AMREX_SPACEDIM];
+    Vector<Real> cvc[AMREX_SPACEDIM];
     int dir;
-    for (dir = 0; dir < BL_SPACEDIM; dir++)
+    for (dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],fine_version_of_cslope_bx,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
@@ -655,9 +655,9 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     // --> there is a slope for each component in each coordinate 
     //     direction
     //
-    FArrayBox ucc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
-    FArrayBox lcc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
-    FArrayBox slope_factors(cslope_bx,BL_SPACEDIM);
+    FArrayBox ucc_slopes(cslope_bx,ncomp*AMREX_SPACEDIM);
+    FArrayBox lcc_slopes(cslope_bx,ncomp*AMREX_SPACEDIM);
+    FArrayBox slope_factors(cslope_bx,AMREX_SPACEDIM);
 
     FArrayBox  cmax(cslope_bx,ncomp);
     FArrayBox  cmin(cslope_bx,ncomp);
@@ -668,12 +668,12 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     Real* ucc_xsldat = ucc_slopes.dataPtr(0);
     Real* lcc_xsldat = lcc_slopes.dataPtr(0);
     Real* xslfac_dat = slope_factors.dataPtr(0);
-#if (BL_SPACEDIM>=2)
+#if (AMREX_SPACEDIM>=2)
     Real* ucc_ysldat = ucc_slopes.dataPtr(ncomp);
     Real* lcc_ysldat = lcc_slopes.dataPtr(ncomp);
     Real* yslfac_dat = slope_factors.dataPtr(1);
 #endif
-#if (BL_SPACEDIM==3)
+#if (AMREX_SPACEDIM==3)
     Real* ucc_zsldat = ucc_slopes.dataPtr(2*ncomp);
     Real* lcc_zsldat = lcc_slopes.dataPtr(2*ncomp);
     Real* zslfac_dat = slope_factors.dataPtr(2);
@@ -691,10 +691,10 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     const int* cvcblo = crse_bx.loVect();
     const int* fvcblo = fine_version_of_cslope_bx.loVect();
 
-    int cvcbhi[BL_SPACEDIM];
-    int fvcbhi[BL_SPACEDIM];
+    int cvcbhi[AMREX_SPACEDIM];
+    int fvcbhi[AMREX_SPACEDIM];
 
-    for (dir=0; dir<BL_SPACEDIM; dir++)
+    for (dir=0; dir<AMREX_SPACEDIM; dir++)
     {
         cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
         fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
@@ -708,7 +708,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     const int* ratioV = ratio.getVect();
     int slope_flag    = 1;
 
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 
     FORT_LINCCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                       fblo, fbhi,
@@ -717,7 +717,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                       ARLIM(cvcblo), ARLIM(cvcbhi),
                       ucc_xsldat, lcc_xsldat, xslfac_dat,
                       ucc_ysldat, lcc_ysldat, yslfac_dat,
-#if (BL_SPACEDIM==3)
+#if (AMREX_SPACEDIM==3)
                       ucc_zsldat, lcc_zsldat, zslfac_dat,
 #endif
                       ARLIM(csblo), ARLIM(csbhi),
@@ -732,7 +732,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
     AMREX_D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 
-#endif /*(BL_SPACEDIM > 1)*/
+#endif /*(AMREX_SPACEDIM > 1)*/
 }
 
 void
@@ -772,22 +772,22 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     // Get coarse and fine edge-centered volume coordinates.
     //
     int dir;
-    Vector<Real> fvc[BL_SPACEDIM];
-    Vector<Real> cvc[BL_SPACEDIM];
-    for (dir = 0; dir < BL_SPACEDIM; dir++)
+    Vector<Real> fvc[AMREX_SPACEDIM];
+    Vector<Real> cvc[AMREX_SPACEDIM];
+    for (dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
     }
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
     const int* cvcblo = crse_bx.loVect();
     const int* fvcblo = target_fine_region.loVect();
 
-    int cvcbhi[BL_SPACEDIM];
-    int fvcbhi[BL_SPACEDIM];
+    int cvcbhi[AMREX_SPACEDIM];
+    int fvcbhi[AMREX_SPACEDIM];
 
-    for (dir=0; dir<BL_SPACEDIM; dir++)
+    for (dir=0; dir<AMREX_SPACEDIM; dir++)
     {
         cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
         fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
@@ -812,13 +812,13 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 
     FORT_PROTECT_INTERP (fdat,ARLIM(flo),ARLIM(fhi),
                          fblo, fbhi,
                          cdat,ARLIM(clo),ARLIM(chi),
                          csblo, csbhi,
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
                          fvc[0].dataPtr(),fvc[1].dataPtr(),
                          ARLIM(fvcblo), ARLIM(fvcbhi),
                          cvc[0].dataPtr(),cvc[1].dataPtr(),
@@ -828,7 +828,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                          &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                          bc.dataPtr());
 
-#endif /*(BL_SPACEDIM > 1)*/
+#endif /*(AMREX_SPACEDIM > 1)*/
  
 }
 
@@ -869,10 +869,10 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
     BL_PROFILE("CellConservativeQuartic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(ratio[0]==2);
-#if (BL_SPACEDIM >= 2)
+#if (AMREX_SPACEDIM >= 2)
     BL_ASSERT(ratio[0] == ratio[1]);
 #endif
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     BL_ASSERT(ratio[1] == ratio[2]);
 #endif
 
@@ -911,12 +911,12 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
     int ltmp = fb2hi[0]-fb2lo[0]+1;
     Vector<Real> ftmp(ltmp);
 
-#if (BL_SPACEDIM >= 2)
+#if (AMREX_SPACEDIM >= 2)
     ltmp = (cbhi[0]-cblo[0]+1)*ratio[1];
     Vector<Real> ctmp(ltmp);    
 #endif    
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     ltmp = (cbhi[0]-cblo[0]+1)*(cbhi[1]-cblo[1]+1)*ratio[2];
     Vector<Real> ctmp2(ltmp);    
 #endif    

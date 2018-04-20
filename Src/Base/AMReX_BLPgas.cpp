@@ -102,15 +102,6 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
                  upcxx::event *done_event,
                  int *send_counter)
 {
-#ifdef UPCXX_DEBUG
-    amrex::Print(Print::AllProcs) 
-	<< "myrank " << upcxx::myrank() << " pgas_send: src " << src
-	<< " dst " << dst << " nbytes " << nbytes
-	<< " SeqNum " << SeqNum << " signal_event " << signal_event
-	<< " done_event " << done_event << " send_counter " << send_counter
-	<< "\n";
-#endif
-
   // We use dst_rank as the key for the hash table
   std::pair <pgas_send_info_map_t::iterator, pgas_send_info_map_t::iterator> ret;
   ret = pgas_send_info_map.equal_range(dst.where());
@@ -135,19 +126,11 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
         send_info.src_ptr = src;
         send_info.done_event = done_event;
         send_info.send_counter = send_counter;
-#ifdef UPCXX_DEBUG
-	amrex::Print(Print::AllProcs) << "myrank " << upcxx::myrank() << " send found SeqNum match "
-				      << SeqNum << "\n";
-#endif
       } else {
         // pgas_send request from Send came earlier
         assert(send_info.dst_ptr == NULL);
         send_info.dst_ptr = dst;
         send_info.signal_event = signal_event;
-#ifdef UPCXX_DEBUG
-	amrex::Print(Print::AllProcs) << "myrank " << upcxx::myrank() << " recv found SeqNum match "
-				      << SeqNum << "\n";
-#endif
       }
 
       send_info.check();

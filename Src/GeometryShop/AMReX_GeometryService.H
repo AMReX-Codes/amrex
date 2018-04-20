@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #ifndef _GEOMETRYSERVICE_H_
 #define _GEOMETRYSERVICE_H_
 
@@ -19,6 +8,7 @@
 #include "AMReX_LoHiSide.H"
 #include "AMReX_RealVect.H"
 #include "AMReX_Box.H"
+#include "AMReX_BaseIF.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_GeomIntersectUtils.H"
 
@@ -45,6 +35,17 @@ namespace amrex
       
     virtual ~GeometryService();
       
+    ///return true if the geometry service generates higher order moments
+    /**
+       Most of the geometry generating objects we have do *not* generate higher order
+       moments (they only generate the standard stuff (volume fractions, area fractions and centroids)).
+       WrappedGShop, does generate the higher order stuff so that one can return true;
+     */
+    virtual bool generatesHigherOrderMoments() const
+      {
+        return false; 
+      }
+
     ///
     /**
        Return true if every cell in region is regular at the
@@ -99,7 +100,23 @@ namespace amrex
 
     virtual bool pointOutside(const RealVect& a_pt) const;
 
+    ///get the implicit function.
+    /**
+       If you have a geometry sevice that does not have an implicit function, it is a runtime error.
+     */
+    virtual std::shared_ptr<const BaseIF> getImplicitFunction() const
+      {
+        BL_ASSERT(hasImplicitFunction());
+        std::shared_ptr<const BaseIF> retval;
+        return retval;
+      }
       
+    ///True if there is an underlying implicit function
+    virtual bool hasImplicitFunction() const
+      {
+        return false;
+      }
+
     ///handy functions to do rectangle intersections in real space
     static bool intersection(const RealVect& a_lo1, const RealVect& a_hi1,
                              const RealVect& a_lo2, const RealVect& a_hi2);

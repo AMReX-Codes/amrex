@@ -16,6 +16,11 @@ extern "C" {
 	dm = &(mf->DistributionMap());
     }
 
+    void amrex_fi_new_multifab_alias (MultiFab*& mf, const MultiFab* srcmf, int comp, int ncomp)
+    {
+        mf = new MultiFab(*srcmf, amrex::make_alias, comp, ncomp);
+    }
+
     void amrex_fi_delete_multifab (MultiFab* mf)
     {
 	delete mf;
@@ -208,6 +213,11 @@ extern "C" {
 	imf = new iMultiFab(amrex::convert(*ba, IntVect(nodal)), *dm, nc, ng);
 	ba = &(imf->boxArray());
 	dm = &(imf->DistributionMap());
+    }
+
+    void amrex_fi_new_imultifab_alias (iMultiFab*& mf, const iMultiFab* srcmf, int comp, int ncomp)
+    {
+        mf = new iMultiFab(*srcmf, amrex::make_alias, comp, ncomp);
     }
 
     void amrex_fi_delete_imultifab (iMultiFab* imf)

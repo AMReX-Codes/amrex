@@ -38,6 +38,8 @@ private:
     int linop_maxorder = 2;
     bool agglomeration = true;
     bool consolidation = true;
+    int max_coarsening_level = 30;
+    bool use_hypre = false;
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

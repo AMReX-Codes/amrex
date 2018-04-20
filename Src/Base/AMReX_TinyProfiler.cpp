@@ -69,16 +69,16 @@ TinyProfiler::start ()
 	ttstack.push(std::make_pair(t, 0.0));
 	global_depth = ttstack.size();
 
+#ifdef AMREX_USE_CUDA
+	nvtx_id = nvtxRangeStartA(fname.c_str());
+#endif
+
         for (auto const& region : regionstack)
         {
             Stats& st = statsmap[region][fname];
             ++st.depth;
             stats.push_back(&st);
         }
-
-#ifdef AMREX_USE_CUDA
-	nvtx_id = nvtxRangeStartA(fname.c_str());
-#endif
     }
 }
 
@@ -141,13 +141,15 @@ TinyProfiler::Initialize ()
 }
 
 void
-TinyProfiler::Finalize ()
+TinyProfiler::Finalize (bool bFlushing)
 {
     static bool finalized = false;
-    if (finalized) {
-	return;
-    } else {
-	finalized = true;
+    if (!bFlushing) {		// If flushing, don't make this the last time!
+      if (finalized) {
+        return;
+      } else {
+        finalized = true;
+      }
     }
 
     Real t_final = amrex::second();

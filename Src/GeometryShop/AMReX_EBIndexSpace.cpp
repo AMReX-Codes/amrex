@@ -1,15 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #include "AMReX_BoxIterator.H"
 #include "AMReX_Print.H"
 #include "AMReX_EBIndexSpace.H"
@@ -26,21 +14,54 @@
 #include <sstream>
 #include <algorithm>
 
-
 namespace amrex
 {
+  void 
+  EBIndexSpace::
+  getFinestLevelWithMultivaluedCells(Box& a_domain, int& a_levelNumber) const
+  {
+    bool found = false;
+    a_levelNumber = -1;
+    a_domain = Box();
+//begin debug
+//    for(int ilev = 0; ((ilev < m_nlevels)); ilev++)
+//    {
+//      bool fnerg = m_ebisLevel[ilev]->hasMultiValuedCells();      
+//      if(fnerg)
+//      {
+//        amrex::Print() << "level " << ilev << "has multi cells" << endl;
+//      }
+//      else
+//      {
+//        amrex::Print() << "level " << ilev << "has no multi cells" << endl;
+//      }
+//    }
+//end debug
+
+    for(int ilev = 0; ((ilev < m_nlevels) && !found); ilev++)
+    {
+
+      if((m_ebisLevel[ilev]->hasMultiValuedCells()) && !found)
+      {
+        a_levelNumber = ilev;
+        a_domain = m_domainLevel[ilev];
+        found = true;
+      }
+    }
+  }
+
   ///
   void 
   EBIndexSpace::
   write(const string& a_dirname) const
   {
     //this creates the directory of all the stuff
-    UtilCreateDirectoryDestructive(a_dirname, true);
+    UtilCreateCleanDirectory(a_dirname, true);
     writeHeader(a_dirname);
     for(int ilev = 0; ilev < m_nlevels; ilev++)
     {
       string levdirname = a_dirname + "/_lev_" + EBArith::convertInt(ilev);
-      UtilCreateDirectoryDestructive(levdirname, true);
+//      UtilCreateCleanDirectory(levdirname, true); done inside the function
       m_ebisLevel[ilev]->write(levdirname);
     }
   }
@@ -104,6 +125,28 @@ namespace amrex
     headerfile.close();
     
   }
+  void 
+  EBIndexSpace::
+  fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, const RealVect& a_dx, RealVect a_origin ) const
+  {
+    if(!m_implicitFunction)
+    {
+      amrex::Error("this EBIS was not defined with an implicit function");
+    }
+    BL_ASSERT(a_fab.nComp() >= 1);
+    for(BoxIterator bit(a_fab.box()); bit.ok(); ++bit)
+    {
+      RealVect loc;
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        loc[idir] = a_origin[idir] + a_dx[idir]*bit()[idir];
+      }
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        a_fab(bit(), 0) = m_implicitFunction->value(loc);
+      }
+    }
+  }
   ///
   void 
   EBIndexSpace::
@@ -120,6 +163,10 @@ namespace amrex
 
     amrex::Print() << "  Building finest level..." << endl;
 
+    if(a_geoserver.hasImplicitFunction())
+    {
+      m_implicitFunction = a_geoserver.getImplicitFunction();
+    }
     //this computes how many levels
     buildFirstLevel(a_domain, a_origin, a_dx, a_geoserver, a_nCellMax, a_maxCoarsenings);
 

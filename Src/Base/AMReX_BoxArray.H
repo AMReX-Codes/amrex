@@ -35,6 +35,9 @@ namespace amrex
     BoxArray convert (const BoxArray& ba, IndexType typ);
     BoxArray convert (const BoxArray& ba, const IntVect& typ);
 
+    BoxArray coarsen (const BoxArray& ba, int ratio);
+    BoxArray coarsen (const BoxArray& ba, const IntVect& ratio);
+
     //! Find the ghost cells of a given BoxArray.
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 
@@ -44,7 +47,7 @@ namespace amrex
     //! Create a 1D Array of cells from all boxes in a BoxArray 
     Vector<int> SerializeBoxArray(const BoxArray &ba);
 
-    //! Construct a BoxArray (in BL_SPACEDIM dimensions) from a 1D Array of cells
+    //! Construct a BoxArray (in AMREX_SPACEDIM dimensions) from a 1D Array of cells
     BoxArray UnSerializeBoxArray(const Vector<int> &serarray);
 
     //! Note that two BoxArrays that match are not necessarily equal.
@@ -110,6 +113,7 @@ struct BARef
     static long total_hash_bytes_hwm;
         
     static void Initialize ();
+    static void Finalize ();
     static bool initialized;
 };
 
@@ -471,6 +475,7 @@ public:
 #endif
 
     static void Initialize ();
+    static void Finalize ();
     static bool initialized;
 
     //! Make ourselves unique.

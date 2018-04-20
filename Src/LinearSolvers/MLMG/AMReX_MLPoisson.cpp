@@ -1,24 +1,28 @@
+
 #include <AMReX_MLPoisson.H>
 #include <AMReX_MLPoisson_F.H>
+#include <AMReX_MLALaplacian.H>
 
 namespace amrex {
 
 MLPoisson::MLPoisson (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const LPInfo& a_info)
+                      const LPInfo& a_info,
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-    define(a_geom, a_grids, a_dmap, a_info);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 void
 MLPoisson::define (const Vector<Geometry>& a_geom,
                    const Vector<BoxArray>& a_grids,
                    const Vector<DistributionMapping>& a_dmap,
-                   const LPInfo& a_info)
+                   const LPInfo& a_info,
+                   const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLPoisson::define()");
-    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 MLPoisson::~MLPoisson ()
@@ -29,7 +33,7 @@ MLPoisson::prepareForSolve ()
 {
     BL_PROFILE("MLPoisson::prepareForSolve()");
 
-    MLLinOp::prepareForSolve();
+    MLCellLinOp::prepareForSolve();
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
@@ -77,6 +81,34 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
 #endif
                               dxinv);                                         
     }
+}
+
+void
+MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+#if (AMREX_SPACEDIM != 3)
+    BL_PROFILE("MLPoisson::normalize()");
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        amrex_mlpoisson_normalize(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD(fab),
+                                  rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
+                                  dxinv);                                     
+    }
+#endif
 }
 
 void
@@ -231,14 +263,83 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
                          dxinv, face_only);
 }
 
-Real
-MLPoisson::Anorm (int amrlev, int mglev) const
+std::unique_ptr<MLLinOp>
+MLPoisson::makeNLinOp (int grid_size) const
 {
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const Geometry& geom = m_geom[0].back();
+    const BoxArray& ba = makeNGrids(grid_size);
 
-    return 4.0*(AMREX_D_TERM(dxinv[0]*dxinv[0],
-                            +dxinv[1]*dxinv[1],
-                            +dxinv[2]*dxinv[2]));
+    DistributionMapping dm;
+    {
+        const std::vector<std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
+        Vector<int> pmap(ba.size());
+        const int nprocs = ParallelDescriptor::NProcs();
+        for (int iproc = 0; iproc < nprocs; ++iproc) {
+            for (int ibox : sfc[iproc]) {
+                pmap[ibox] = iproc;
+            }
+        }
+        dm.define(pmap);
+    }
+
+    LPInfo minfo{};
+    minfo.has_metric_term = info.has_metric_term;
+
+    std::unique_ptr<MLLinOp> r{new MLALaplacian({geom}, {ba}, {dm}, minfo)};
+
+    MLALaplacian* nop = dynamic_cast<MLALaplacian*>(r.get());
+
+    nop->m_parent = this;
+
+    nop->setMaxOrder(maxorder);
+    nop->setVerbose(verbose);
+
+    nop->setDomainBC(m_lobc, m_hibc);
+
+    if (needsCoarseDataForBC())
+    {
+        const Real* dx0 = m_geom[0][0].CellSize();
+        const Real fac = 0.5*m_coarse_data_crse_ratio;
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        nop->setCoarseFineBCLocation(cbloc);
+    }
+
+    nop->setScalars(1.0, -1.0);
+
+    const BoxArray& myba = m_grids[0].back();
+
+    const Real* dxinv = geom.InvCellSize();
+    Real dxscale = dxinv[0];
+#if (AMREX_SPACEDIM >= 2)
+    dxscale = std::max(dxscale,dxinv[1]);
+#endif
+#if (AMREX_SPACEDIM == 3)
+    dxscale = std::max(dxscale,dxinv[2]);
+#endif
+
+    MultiFab alpha(ba, dm, 1, 0);
+    alpha.setVal(1.e30*dxscale*dxscale);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        
+        for (MFIter mfi(alpha, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = alpha[mfi];
+            myba.intersections(fab.box(), isects);
+            for (const auto& is : isects)
+            {
+                fab.setVal(0.0, is.second, 0, 1);
+            }
+        }
+    }
+
+    nop->setACoeffs(0, alpha);
+
+    return r;    
 }
 
 }

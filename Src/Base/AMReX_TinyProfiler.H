@@ -30,7 +30,7 @@ public:
     void stop ();
 
     static void Initialize ();
-    static void Finalize ();
+    static void Finalize (bool bFlushing = false);
 
     static void StartRegion (std::string regname);
     static void StopRegion (const std::string& regname);

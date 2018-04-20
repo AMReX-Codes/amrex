@@ -25,6 +25,14 @@ void
 EBTower::Destroy ()
 {
     delete m_instance;
+    m_instance = nullptr;
+}
+
+bool
+EBTower::validDomain (const Box& domain)
+{
+    auto bx_it = std::find(m_instance->m_domains.begin(), m_instance->m_domains.end(), domain);
+    return (bx_it != m_instance->m_domains.end());
 }
 
 EBTower::EBTower ()
@@ -34,6 +42,20 @@ EBTower::EBTower ()
     const EBIndexSpace* ebis = AMReX_EBIS::instance();
 
     m_domains = ebis->getDomains();
+
+    {
+        Box finest_mv_domain;
+        int finest_mv_level;
+        ebis->getFinestLevelWithMultivaluedCells(finest_mv_domain, finest_mv_level);
+        if (finest_mv_level > 0)
+        {
+            m_domains.erase(m_domains.begin()+finest_mv_level, m_domains.end());
+        }
+        else if (finest_mv_level == 0)
+        {
+            amrex::Abort("EBTower doesn't support multi-valued cells");
+        }
+    }
 
     const int nlevels = m_domains.size();
 
@@ -73,6 +95,7 @@ EBTower::EBTower ()
 
     m_cellflags.resize(nlevels);
     m_volfrac.resize(nlevels);
+//    m_centroid.resize(nlevels);
     m_bndrycent.resize(nlevels);
     m_areafrac.resize(nlevels);
     m_facecent.resize(nlevels);
@@ -89,7 +112,8 @@ EBTower::EBTower ()
             initCellFlags(lev, eblg);
 
             m_volfrac[lev].define(ba, dm, 1, 0, MFInfo(), FArrayBoxFactory());
-            initVolFrac(lev, eblg);
+//            m_centroid[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
+            initVolumeGeometry(lev, eblg);
 
             m_bndrycent[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
             initBndryCent(lev, eblg);
@@ -130,9 +154,10 @@ EBTower::initCellFlags (int lev, const EBLevelGrid& eblg)
 }
 
 void
-EBTower::initVolFrac (int lev, const EBLevelGrid& eblg)
+EBTower::initVolumeGeometry (int lev, const EBLevelGrid& eblg)
 {
     MultiFab& volfrac = m_volfrac[lev];
+//    MultiCutFab& centroid = m_centroid[lev];
     const auto& ebisl = eblg.getEBISL();
 
 #ifdef _OPENMP
@@ -141,8 +166,12 @@ EBTower::initVolFrac (int lev, const EBLevelGrid& eblg)
     for (MFIter mfi(volfrac,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        auto& fab = volfrac[mfi];
-        fab.setVal(1.0, bx, 0, 1);
+
+        auto& vfab = volfrac[mfi];
+        vfab.setVal(1.0, bx, 0, 1);
+
+//        auto& cfab = centroid[mfi];
+//        cfab.setVal(0.0, bx, 0, 3);
 
         const EBISBox& ebisbox = ebisl[mfi];
         
@@ -154,8 +183,12 @@ EBTower::initVolFrac (int lev, const EBLevelGrid& eblg)
             for (const auto& vi : vofs)
             {
                 vtot += ebisbox.volFrac(vi);
+//                const auto& c = ebisbox.centroid(vi);
+//                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+//                    cfab(iv,idim) = c[idim];
+//                }
             }
-            fab(iv) = vtot;
+            vfab(iv) = vtot;
         }
     }
 }
@@ -271,6 +304,109 @@ EBTower::getIndex (const Box& domain) const
     return std::distance(m_domains.begin(), bx_it);
 }
 
+Vector<Box> 
+EBTower::
+getPeriodicGhostBoxes(const Box        & a_valid, 
+                      const Box        & a_domain,
+                      const int        & a_ngrow, 
+                      const Periodicity& a_peri) 
+{
+  Vector<Box> ghostBoxes;
+
+  if(a_ngrow <= 0) return ghostBoxes;
+  //first get the flaps only in one direction
+  for(int idir = 0; idir < SpaceDim; idir++)
+  {
+    if(a_peri.isPeriodic(idir))
+    {
+      Box flapBoxLo = adjCellLo(a_valid, idir, a_ngrow);
+      Box flapBoxHi = adjCellHi(a_valid, idir, a_ngrow);
+      if(!a_domain.contains(flapBoxLo))
+      {
+        ghostBoxes.push_back(flapBoxLo);
+      }
+      if(!a_domain.contains(flapBoxHi))
+      {
+        ghostBoxes.push_back(flapBoxHi);
+      }
+    }
+  }
+  //now for the edge boxes 
+  for(int idir = 0; idir < SpaceDim; idir++)
+  {
+    for(int jdir = 0; jdir < SpaceDim; jdir++)
+    {
+      if(idir < jdir) //do not want to do 01 and 10
+      {
+        if((a_peri.isPeriodic(idir)) && (a_peri.isPeriodic(jdir)))
+        {
+          Box flapBoxLoI    = adjCellLo(a_valid   , idir, a_ngrow);
+          Box flapBoxHiI    = adjCellHi(a_valid   , idir, a_ngrow);
+
+          Box edgeBoxLoILoJ = adjCellLo(flapBoxLoI, jdir, a_ngrow);
+          Box edgeBoxHiILoJ = adjCellLo(flapBoxHiI, jdir, a_ngrow);
+          Box edgeBoxLoIHiJ = adjCellHi(flapBoxLoI, jdir, a_ngrow);
+          Box edgeBoxHiIHiJ = adjCellHi(flapBoxHiI, jdir, a_ngrow);
+
+
+          vector<Box> edgeBoxes(4);
+          edgeBoxes[0] = edgeBoxLoILoJ;
+          edgeBoxes[1] = edgeBoxHiILoJ;
+          edgeBoxes[2] = edgeBoxLoIHiJ;
+          edgeBoxes[3] = edgeBoxHiIHiJ;
+          for(int iedge = 0; iedge < 4; iedge++)
+          {
+            if(!a_domain.contains(edgeBoxes[iedge]))
+            {
+              ghostBoxes.push_back(edgeBoxes[iedge]);
+            }
+          }
+        }
+      }
+    }
+  }
+  //in 3d, there are corner boxes as well
+  if(SpaceDim==3 && a_peri.isAllPeriodic())
+  {
+    Box flapBoxLoI    = adjCellLo(a_valid   , 0, a_ngrow);
+    Box flapBoxHiI    = adjCellHi(a_valid   , 0, a_ngrow);
+
+    Box edgeBoxLoILoJ = adjCellLo(flapBoxLoI, 1, a_ngrow);
+    Box edgeBoxHiILoJ = adjCellLo(flapBoxHiI, 1, a_ngrow);
+    Box edgeBoxLoIHiJ = adjCellHi(flapBoxLoI, 1, a_ngrow);
+    Box edgeBoxHiIHiJ = adjCellHi(flapBoxHiI, 1, a_ngrow);
+
+
+    Box cornerBoxLoILoJLoK = adjCellLo(edgeBoxLoILoJ, 2, a_ngrow);
+    Box cornerBoxHiILoJLoK = adjCellLo(edgeBoxHiILoJ, 2, a_ngrow);
+    Box cornerBoxLoIHiJLoK = adjCellLo(edgeBoxLoIHiJ, 2, a_ngrow);
+    Box cornerBoxHiIHiJLoK = adjCellLo(edgeBoxHiIHiJ, 2, a_ngrow);
+    Box cornerBoxLoILoJHiK = adjCellHi(edgeBoxLoILoJ, 2, a_ngrow);
+    Box cornerBoxHiILoJHiK = adjCellHi(edgeBoxHiILoJ, 2, a_ngrow);
+    Box cornerBoxLoIHiJHiK = adjCellHi(edgeBoxLoIHiJ, 2, a_ngrow);
+    Box cornerBoxHiIHiJHiK = adjCellHi(edgeBoxHiIHiJ, 2, a_ngrow);
+
+    vector<Box> cornerBoxes(8);
+    
+    cornerBoxes[0] = cornerBoxLoILoJLoK;
+    cornerBoxes[1] = cornerBoxHiILoJLoK;
+    cornerBoxes[2] = cornerBoxLoIHiJLoK;
+    cornerBoxes[3] = cornerBoxHiIHiJLoK;
+    cornerBoxes[4] = cornerBoxLoILoJHiK;
+    cornerBoxes[5] = cornerBoxHiILoJHiK;
+    cornerBoxes[6] = cornerBoxLoIHiJHiK;
+    cornerBoxes[7] = cornerBoxHiIHiJHiK;
+
+    for(int icorner = 0; icorner < 8; icorner++)
+    {
+      if(!a_domain.contains(cornerBoxes[icorner]))
+      {
+        ghostBoxes.push_back(cornerBoxes[icorner]);
+      }
+    }
+  }
+  return ghostBoxes;
+}
 void
 EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom)
 {
@@ -281,10 +417,12 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
     int lev = m_instance->getIndex(domain);
 
     const auto& src_flag = m_instance->m_cellflags[lev];
-    a_flag.ParallelCopy(src_flag, 0, 0, 1, 0, a_flag.nGrow());
+    a_flag.ParallelCopy(src_flag, 0, 0, 1, 0, a_flag.nGrow(), a_geom.periodicity());
 
+    BoxArray bagrids = a_flag.boxArray();
     const BoxArray& cov_ba = m_instance->m_covered_ba[lev];
     auto cov_val = EBCellFlag::TheCoveredCell();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -295,12 +433,42 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             auto& fab = a_flag[mfi];
             const Box& bx = fab.box() & domain;
 
-            // covered cells
+            // covered cells -- intersect box with
+            // box array of covered boxes
             cov_ba.intersections(bx, isects);
-            for (const auto& is : isects) {
-                fab.setVal(cov_val, is.second, 0, 1);
+            for (const auto& is : isects) 
+            {
+              fab.setVal(cov_val, is.second, 0, 1);
             }
 
+            //now shift box for periodicity and do the same thing
+            if(a_geom.isAnyPeriodic())
+            {
+              Box valid = bagrids[mfi];
+              Periodicity peri = a_geom.periodicity();
+              vector<IntVect> periodicShifts = peri.shiftIntVect();
+              int ngrow = a_flag.nGrow();
+              Vector<Box> ghostBoxes = getPeriodicGhostBoxes(valid, domain, ngrow, peri);
+              for(int ibox = 0; ibox < ghostBoxes.size(); ibox++)
+              {
+                for(int ivec = 0; ivec < periodicShifts.size(); ivec++)
+                {
+                  const IntVect ivshift = periodicShifts[ivec];
+                  Box shiftbox = ghostBoxes[ibox];
+                  shiftbox.shift(ivshift);
+                  std::vector<std::pair<int,Box> > psects;
+                  cov_ba.intersections(shiftbox, psects);
+                  for(int jbox = 0; jbox < psects.size(); jbox++)
+                  {
+                    Box peribox = psects[jbox].second;
+                    //shift back to where the fab actually is
+                    peribox.shift(-ivshift);
+                    fab.setVal(cov_val, peribox, 0, 1);
+                  }
+              
+                }
+              }
+            }
             // fix type and region for each fab
             fab.setRegion(bx);
             fab.setType(FabType::undefined);
@@ -308,6 +476,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             fab.setType(typ);
         }
     }
+
 }
 
 void
@@ -322,7 +491,7 @@ EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
     const auto& src_volfrac = m_instance->m_volfrac[lev];
 
     a_volfrac.setVal(1.0);
-    a_volfrac.ParallelCopy(src_volfrac, 0, 0, 1, 0, a_volfrac.nGrow());
+    a_volfrac.ParallelCopy(src_volfrac, 0, 0, 1, 0, a_volfrac.nGrow(), a_geom.periodicity());
 
     const BoxArray& cov_ba = m_instance->m_covered_ba[lev];
     Real cov_val = 0.0;
@@ -343,7 +512,24 @@ EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
             }
         }
     }
+    a_volfrac.EnforcePeriodicity(a_geom.periodicity());
 }
+
+// void
+// EBTower::fillCentroid (MultiCutFab& a_centroid, const Geometry& a_geom)
+// {
+//     BL_PROFILE("EBTower::fillBndryCent()");
+
+//     const Box& domain = a_geom.Domain();
+
+//     int lev = m_instance->getIndex(domain);
+
+//     const auto& src_centroid = m_instance->m_centroid[lev];
+
+//     a_centroid.setVal(0.0);
+
+//     a_centroid.ParallelCopy(src_centroid, 0, 0, a_centroid.nComp(), 0, a_centroid.nGrow(), a_geom.periodicity());
+// }
 
 void
 EBTower::fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom)
@@ -358,7 +544,7 @@ EBTower::fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom)
 
     a_bndrycent.setVal(-1.0);
 
-    a_bndrycent.ParallelCopy(src_bndrycent, 0, 0, a_bndrycent.nComp(), 0, a_bndrycent.nGrow());
+    a_bndrycent.ParallelCopy(src_bndrycent, 0, 0, a_bndrycent.nComp(), 0, a_bndrycent.nGrow(), a_geom.periodicity());
 }
 
 void
@@ -379,9 +565,9 @@ EBTower::fillFaceGeometry (std::array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac,
         a_areafrac[idim]->setVal(1.0);
         a_facecent[idim]->setVal(0.0);
         a_areafrac[idim]->ParallelCopy(src_areafrac[idim], 0, 0, a_areafrac[idim]->nComp(),
-                                       0, a_areafrac[idim]->nGrow());
+                                       0, a_areafrac[idim]->nGrow(), a_geom.periodicity());
         a_facecent[idim]->ParallelCopy(src_facecent[idim], 0, 0, a_facecent[idim]->nComp(),
-                                       0, a_facecent[idim]->nGrow());
+                                       0, a_facecent[idim]->nGrow(), a_geom.periodicity());
     }
 
     // fix area fraction for covered cells.  As for face centroid, we don't care.

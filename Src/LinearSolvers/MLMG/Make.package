@@ -15,6 +15,12 @@ CEXE_headers   += AMReX_MLLinOp_F.H
 F90EXE_sources += AMReX_MLLinOp_nd.F90
 F90EXE_sources += AMReX_MLLinOp_$(DIM)d.F90
 
+CEXE_headers   += AMReX_MLCellLinOp.H
+CEXE_sources   += AMReX_MLCellLinOp.cpp
+
+CEXE_headers   += AMReX_MLNodeLinOp.H
+CEXE_sources   += AMReX_MLNodeLinOp.cpp
+
 
 CEXE_headers   += AMReX_MLCGSolver.H
 CEXE_sources   += AMReX_MLCGSolver.cpp
@@ -26,12 +32,23 @@ CEXE_headers   += AMReX_MLABecLap_F.H
 F90EXE_sources += AMReX_MLABecLap_$(DIM)d.F90
 
 
+CEXE_headers   += AMReX_MLALaplacian.H
+CEXE_sources   += AMReX_MLALaplacian.cpp
+CEXE_headers   += AMReX_MLALap_F.H
+F90EXE_sources += AMReX_MLALap_$(DIM)d.F90
+
+
 CEXE_headers   += AMReX_MLPoisson.H
 CEXE_sources   += AMReX_MLPoisson.cpp
 CEXE_headers   += AMReX_MLPoisson_F.H
 F90EXE_sources += AMReX_MLPoisson_$(DIM)d.F90
 
 
+CEXE_headers   += AMReX_MLNodeLaplacian.H
+CEXE_sources   += AMReX_MLNodeLaplacian.cpp
+CEXE_headers   += AMReX_MLNodeLap_F.H
+F90EXE_sources += AMReX_MLNodeLap_$(DIM)d.F90
+F90EXE_sources += AMReX_MLNodeLap_nd.F90
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG

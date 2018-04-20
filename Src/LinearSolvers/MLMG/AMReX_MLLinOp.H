@@ -7,22 +7,29 @@
 #include <AMReX_BndryRegister.H>
 #include <AMReX_YAFluxRegister.H>
 #include <AMReX_MLMGBndry.H>
+#include <AMReX_VisMF.H>
+
+#ifdef AMREX_USE_EB
+#include <AMReX_MultiCutFab.H>
+#endif
 
 namespace amrex {
 
 struct LPInfo
 {
-    bool do_agglomeration = 1;
-    bool do_consolidation = 1;
+    bool do_agglomeration = true;
+    bool do_consolidation = true;
     int agg_grid_size = AMREX_D_PICK(32, 16, 8);
     int con_grid_size = AMREX_D_PICK(32, 16, 8);
     bool has_metric_term = true;
+    int max_coarsening_level = 30;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
+    LPInfo& setMaxCoarseningLevel (int n) { max_coarsening_level = n; return *this; }
 };
 
 class MLLinOp
@@ -31,15 +38,13 @@ public:
 
     friend class MLMG;
     friend class MLCGSolver;
+    friend class MLPoisson;
+    friend class MLABecLaplacian;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
     using BCType = LinOpBCType;
 
-    MLLinOp () {}
-    MLLinOp (const Vector<Geometry>& a_geom,
-             const Vector<BoxArray>& a_grids,
-             const Vector<DistributionMapping>& a_dmap,
-             const LPInfo& a_info = LPInfo());
+    MLLinOp ();
     virtual ~MLLinOp ();
 
     MLLinOp (const MLLinOp&) = delete;
@@ -50,7 +55,8 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo());
+                 const LPInfo& a_info,
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory);
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.
@@ -78,13 +84,15 @@ public:
     // cell.  Only the data outside the physical domain at Dirichlet
     // boundary will be used.  It is assumed that the data in those
     // ghost cells outside the domain live exactly on the face of the
-    // phsyical domain.  Argumen `amrlev` is relative level such that
+    // phsyical domain.  Argument `amrlev` is relative level such that
     // the lowest to the solver is always 0.
-    void setLevelBC (int amrlev, const MultiFab* levelbcdata);
+    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
 
     void setVerbose (int v) { verbose = v; }
 
     void setMaxOrder (int o) { maxorder = o; }
+
+    virtual int getNComp() const { return 1;};
 
 protected:
 
@@ -101,11 +109,18 @@ protected:
     Vector<int> m_amr_ref_ratio;
 
     Vector<int> m_num_mg_levels;
+    const MLLinOp* m_parent = nullptr;
+
+    IntVect m_ixtype;
+
+    bool m_do_agglomeration = false;
+    bool m_do_consolidation = false;
 
     // first Vector is for amr level and second is mg level
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
+    Vector<Vector<std::unique_ptr<FabFactory<FArrayBox> > > > m_factory;
     Vector<int>                          m_domain_covered;
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
@@ -130,71 +145,9 @@ protected:
     std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
 
     bool m_needs_coarse_data_for_bc;
-    int m_coarse_data_crse_ratio;
+    int m_coarse_data_crse_ratio = -1;
+    RealVect m_coarse_bc_loc;
     const MultiFab* m_coarse_data_for_bc = nullptr;
-
-    Vector<std::unique_ptr<MLMGBndry> >   m_bndry_sol;
-    Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
-
-    Vector<std::unique_ptr<MLMGBndry> > m_bndry_cor;
-    Vector<std::unique_ptr<BndryRegister> > m_crse_cor_br;
-
-    // In case of agglomeration, coarse MG grids on amr level 0 are
-    // not simply coarsened from fine MG grids.  So we need to build
-    // bcond and bcloc for each MG level.
-    using RealTuple = std::array<Real,2*BL_SPACEDIM>;
-    using BCTuple   = std::array<BoundCond,2*BL_SPACEDIM>;
-    class BndryCondLoc
-    {
-    public:
-        BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm);
-        void setLOBndryConds (const Geometry& geom, const Real* dx,
-                              const std::array<BCType,AMREX_SPACEDIM>& lobc,
-                              const std::array<BCType,AMREX_SPACEDIM>& hibc,
-                              int ratio);
-        const BCTuple& bndryConds (const MFIter& mfi) const {
-            return bcond[mfi];
-        }
-        const RealTuple& bndryLocs (const MFIter& mfi) const {
-            return bcloc[mfi];
-        }
-    private:
-        LayoutData<BCTuple>   bcond;
-        LayoutData<RealTuple> bcloc;
-    };
-    Vector<Vector<std::unique_ptr<BndryCondLoc> > > m_bcondloc;
-
-    // used to save interpolation coefficients of the first interior cells
-    mutable Vector<Vector<BndryRegister> > m_undrrelxr;
-
-    // boundary cell flags for covered, not_covered, outside_domain
-    Vector<Vector<std::array<MultiMask,2*AMREX_SPACEDIM> > > m_maskvals;
-
-    mutable Vector<YAFluxRegister> m_fluxreg;
-
-#if (AMREX_SPACEDIM != 3)
-    struct MetricFactor {
-        MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
-                      const Geometry& geom, bool null_metric);
-        const Vector<Real>& cellCenters (const MFIter& mfi) const {
-            return r_cellcenter[mfi];
-        }
-        const Vector<Real>& cellEdges (const MFIter& mfi) const {
-            return r_celledge[mfi];
-        }
-        const Vector<Real>& invCellCenters (const MFIter& mfi) const {
-            return inv_r_cellcenter[mfi];
-        }
-        const Vector<Real>& invCellEdges (const MFIter& mfi) const {
-            return inv_r_celledge[mfi];
-        }
-        LayoutData<Vector<Real> > r_cellcenter;
-        LayoutData<Vector<Real> > r_celledge;
-        LayoutData<Vector<Real> > inv_r_cellcenter;
-        LayoutData<Vector<Real> > inv_r_celledge;
-    };
-    Vector<Vector<std::unique_ptr<MetricFactor> > > m_metric_factor;
-#endif
 
     //
     // functions
@@ -221,46 +174,64 @@ protected:
         }
     }
 
+    void setCoarseFineBCLocation (const RealVect& cloc) { m_coarse_bc_loc = cloc; }
+
+    bool doAgglomeration () const { return m_do_agglomeration; }
+    bool doConsolidation () const { return m_do_consolidation; }
+
+    bool isCellCentered () const { return m_ixtype == 0; }
+
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
-    void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
-    void updateCorBC (int amrlev, const MultiFab& crse_bcdata) const;
+    virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const = 0;
+    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const = 0;
+    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
+                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) = 0;
 
-    void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                           const MultiFab* crse_bcdata=nullptr);
-    void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                             BCMode bc_mode, const MultiFab* crse_bcdata=nullptr);
-    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                const MLMGBndry* bndry=nullptr) const;
-    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
-                  const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
-    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                 bool skip_fillboundary=false) const;
-    // The assumption is crse_sol's boundary has been filled, but not fine_sol.
-    void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const;
-    void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const;
-    void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const;
+    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                        const MLMGBndry* bndry=nullptr) const = 0;
+    virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                         bool skip_fillboundary=false) const = 0;
 
-    void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
-    void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
+    // Divide mf by the diagonal component of the operator. Used by bicgstab.
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const {}
 
-    void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr);
+    virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                                   const MultiFab* crse_bcdata=nullptr) = 0;
+    virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) = 0;
 
-    virtual void prepareForSolve ();
+    virtual void reflux (int crse_amrlev,
+                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
+                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const = 0;
+    virtual void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const = 0;
+    virtual void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const = 0;
+    
+    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
+    virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
+    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
+
+    virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
-                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const = 0;
-    virtual Real Anorm (int amrlev, int mglev) const = 0;
+    virtual bool isBottomSingular () const = 0;
+    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
+
+    virtual Real getAScalar () const = 0;
     virtual Real getBScalar () const = 0;
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const = 0;
+    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
+
+    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
+    virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
+
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
 
 private:
 
     void defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
-                      const Vector<DistributionMapping>& a_dmap);
+                      const Vector<DistributionMapping>& a_dmap,
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory);
     void defineAuxData ();
     void defineBC ();
     static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);

@@ -56,6 +56,36 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     return sm;
 }
 
+Real
+MultiFab::Dot (const iMultiFab& mask,
+               const MultiFab& x, int xcomp,
+	       const MultiFab& y, int ycomp,
+	       int numcomp, int nghost, bool local)
+{
+    BL_ASSERT(x.boxArray() == y.boxArray());
+    BL_ASSERT(x.boxArray() == mask.boxArray());
+    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
+    BL_ASSERT(x.DistributionMap() == mask.DistributionMap());
+    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
+    BL_ASSERT(mask.nGrow() >= nghost);
+
+    Real sm = 0.0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sm)
+#endif
+    for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        sm += x[mfi].dotmask(mask[mfi],bx,xcomp,y[mfi],bx,ycomp,numcomp);
+    }
+
+    if (!local)
+        ParallelDescriptor::ReduceRealSum(sm, x.color());
+
+    return sm;
+}
+
 void
 MultiFab::Add (MultiFab&       dst,
 	       const MultiFab& src,
@@ -562,6 +592,11 @@ MultiFab::is_nodal () const
     return boxArray().ixType().nodeCentered();
 }
 
+bool 
+MultiFab::is_cell_centered () const
+{
+    return boxArray().ixType().cellCentered();
+}
 
 Real
 MultiFab::min (int comp,
@@ -715,16 +750,16 @@ MultiFab::minIndex (int comp,
         if (ParallelDescriptor::IOProcessor())
         {
             mns.resize(NProcs);
-            locs.resize(NProcs*BL_SPACEDIM);
+            locs.resize(NProcs*AMREX_SPACEDIM);
         }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
         ParallelDescriptor::Gather(&mn, 1, mns.dataPtr(), 1, IOProc);
 
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*BL_SPACEDIM);
+        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
 
-        ParallelDescriptor::Gather(loc.getVect(), BL_SPACEDIM, locs.dataPtr(), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -737,14 +772,14 @@ MultiFab::minIndex (int comp,
                 {
                     mn = mns[i];
 
-                    const int j = BL_SPACEDIM * i;
+                    const int j = AMREX_SPACEDIM * i;
 
                     loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
             }
         }
 
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
 
     return loc;
@@ -800,16 +835,16 @@ MultiFab::maxIndex (int comp,
         if (ParallelDescriptor::IOProcessor())
         {
             mxs.resize(NProcs);
-            locs.resize(NProcs*BL_SPACEDIM);
+            locs.resize(NProcs*AMREX_SPACEDIM);
         }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
         ParallelDescriptor::Gather(&mx, 1, mxs.dataPtr(), 1, IOProc);
 
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*BL_SPACEDIM);
+        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
 
-        ParallelDescriptor::Gather(loc.getVect(), BL_SPACEDIM, locs.dataPtr(), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -822,14 +857,14 @@ MultiFab::maxIndex (int comp,
                 {
                     mx = mxs[i];
 
-                    const int j = BL_SPACEDIM * i;
+                    const int j = AMREX_SPACEDIM * i;
 
                     loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
             }
         }
 
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
 
     return loc;
@@ -1393,12 +1428,13 @@ MultiFab::OverlapMask (const Periodicity& period) const
     std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
     p->setVal(0.0);
 
+    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
-        const std::vector<IntVect>& pshifts = period.shiftIntVect();
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
@@ -1431,12 +1467,13 @@ MultiFab::OwnerMask (const Periodicity& period) const
                                                DefaultFabFactory<IArrayBox>())};
     p->setVal(owner);
 
+    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
-        const std::vector<IntVect>& pshifts = period.shiftIntVect();
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {

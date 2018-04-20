@@ -309,6 +309,9 @@ public:
     * is performed on the region of intersection.  The intersection
     * is restricted to the valid regions.
     */
+    void ParallelAdd (const FabArray<FAB>& fa,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(fa,period,FabArray::ADD); }
     void ParallelCopy (const FabArray<FAB>& fa,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY);
@@ -325,6 +328,12 @@ public:
     * in the FabArray src, with the destination components in this
     * FabArray starting at dest_comp.
     */
+    void ParallelAdd (const FabArray<FAB>& src,
+                      int                  src_comp,
+                      int                  dest_comp,
+                      int                  num_comp,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(src,src_comp,dest_comp,num_comp, period, FabArrayBase::ADD); }
     void ParallelCopy (const FabArray<FAB>& src,
                        int                  src_comp,
                        int                  dest_comp,
@@ -340,6 +349,14 @@ public:
         { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively 
+    void ParallelAdd (const FabArray<FAB>& src,
+                      int                  src_comp,
+                      int                  dest_comp,
+                      int                  num_comp,
+                      int                  src_nghost,
+                      int                  dst_nghost,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,FabArrayBase::ADD); }
     void ParallelCopy (const FabArray<FAB>& src,
                        int                  src_comp,
                        int                  dest_comp,
@@ -705,7 +722,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         else
         {
             MPI_Status status;
-            MPI_Waitany(nrecv, pre_reqs.data(), &i, &status);
+            ParallelDescriptor::Waitany(pre_reqs, i, status);
 
             for (auto x : indv_recv_size[i])
             {
@@ -866,22 +883,9 @@ FabArray<FAB>::clear ()
 
 	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
 	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-	if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-#ifdef DEBUG_AFAP
-	    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
-		std::cout << "**** In FabArray::clear():: map not found:  size = "
-			  << distributionMap.size() << std::endl;
-	    }
-#endif
-	} else {
+	if(afapIter != FabArray<FAB>::allocatedFAPointers.end()) {
 	    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
 	    faPtrCachedMap.erase(aFAPId);
-#ifdef DEBUG_AFAP
-	    if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
-		std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
-			  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
-	    }
-#endif
 	    if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
 		FabArray<FAB>::allocatedFAPointers.erase(afapIter);
 	    }
@@ -1659,8 +1663,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		while (send_counter < actual_n_snds) {
 		    MPI_Status status;
 		    int index;
-		    
-		    MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+		   
+                    ParallelDescriptor::Waitany(send_reqs, index, status); 
 		    
 		    BL_ASSERT(status.MPI_TAG == SeqNum);
 		    BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
@@ -1686,7 +1690,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     else
                     {
                         MPI_Status status;
-                        MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
+                        ParallelDescriptor::Waitany(pre_reqs, j, status);
                     }
                         
                     if (send_size[j] > 0)
@@ -1778,7 +1782,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	} else {
 	    if (actual_n_rcvs > 0) {
 		Vector<MPI_Status> stats(N_rcvs);
-		BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+                ParallelDescriptor::Waitall(recv_reqs, stats);
 		if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
                 {
                     amrex::Abort("ParallelCopy failed with wrong message size");
@@ -2309,7 +2313,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 else
                 {
                     MPI_Status status;
-                    MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
+                    ParallelDescriptor::Waitany(pre_reqs, j, status);
                 }
                 
                 if (send_size[j] > 0)
@@ -2371,7 +2375,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
             if (actual_n_rcvs > 0) {
                 stats.resize(N_rcvs);
-                BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+                ParallelDescriptor::Waitall(recv_reqs, stats);
             }
 	    
 #ifdef _OPENMP
@@ -2525,7 +2529,7 @@ void
 FabArray<FAB>::shift (const IntVect& v)
 {
     clearThisBD();  // The new boxarry will have a different ID.
-    for(int id(0); id < BL_SPACEDIM; ++id)
+    for(int id(0); id < AMREX_SPACEDIM; ++id)
     {
       boxarray.shift(id, v[id]);
     }
@@ -2755,14 +2759,14 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   // ---- IntVects
   Vector<int> allIntVects;
   if(scsMyId == ioProcNumSCS) {
-    for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
-    for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
+    for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
+    for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
   }
   amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
   if(scsMyId != ioProcNumSCS) {
     int count(0);
-    for(int i(0); i < BL_SPACEDIM; ++i)    { mfiter_tile_size[i] = allIntVects[count++]; }
-    for(int i(0); i < BL_SPACEDIM; ++i)    { comm_tile_size[i] = allIntVects[count++]; }
+    for(int i(0); i < AMREX_SPACEDIM; ++i)    { mfiter_tile_size[i] = allIntVects[count++]; }
+    for(int i(0); i < AMREX_SPACEDIM; ++i)    { comm_tile_size[i] = allIntVects[count++]; }
   }
 
   // ---- add to allocatedFAPointers
@@ -3088,12 +3092,12 @@ FabArray<FAB>::MoveFabs (const Vector<int> &newDistMapArray)
   Vector<MPI_Status>  recvStats(recvReqs.size()), sendStats(sendReqs.size());
 
   if(recvReqs.size() > 0) {
-    BL_MPI_REQUIRE( MPI_Waitall(recvReqs.size(), recvReqs.dataPtr(), recvStats.dataPtr()) );
+    ParallelDescriptor::Waitall(recvReqs, recvStats);
   }
 
   if(FabArrayBase::do_async_sends) {
     if(sendReqs.size() > 0) {
-      BL_MPI_REQUIRE( MPI_Waitall(sendReqs.size(), sendReqs.dataPtr(), sendStats.dataPtr()) );
+      ParallelDescriptor::Waitall(sendReqs, sendStats);
     }
   }
 
@@ -3501,8 +3505,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 	    while (send_counter < actual_n_snds) {
 		MPI_Status status;
 		int index;
-		
-		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+	
+                ParallelDescriptor::Waitany(send_reqs, index, status);	
 		
 		BL_ASSERT(status.MPI_TAG == SeqNum);
 		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
@@ -3528,7 +3532,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                 else
                 {
                     MPI_Status status;
-                    MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
+                    ParallelDescriptor::Waitany(pre_reqs, j, status);
                 }
                         
                 BL_ASSERT(send_size[j] > 0);
@@ -3627,7 +3631,7 @@ FabArray<FAB>::FillBoundary_finish ()
     } else {
 	if (actual_n_rcvs > 0) {
 	    Vector<MPI_Status> stats(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+            ParallelDescriptor::Waitall(fb_recv_reqs, stats);
 	    if (!CheckRcvStats(stats, fb_recv_size, MPI_CHAR, fb_tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");
@@ -3805,7 +3809,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
 
     Box domain = amrex::convert(phys_domain, boxArray().ixType());
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (period.isPeriodic(i)) {
 	    domain.grow(i, ngrow);
 	}

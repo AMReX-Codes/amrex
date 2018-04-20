@@ -15,7 +15,6 @@
 #include <AMReX_Box.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_BoxArray.H>
-#include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_AmrCore.H>
@@ -177,13 +176,13 @@ namespace amrex {
 	}
 
         void FillPatchTwoLevelsPush (Real time,
-                                 Array<MultiFab*>& cmf, const Array<Real>& ct,
-                                 Array<MultiFab*>& fmf, const Array<Real>& ft,
+                                 Vector<MultiFab*>& cmf, const Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, const Vector<Real>& ft,
                                  int scomp, int dcomp, int ncomp,
                                  const Geometry& cgeom, const Geometry& fgeom,
                                  PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
                                  const IntVect& ratio,
-                                 Interpolater* mapper, const Array<BCRec>& bcs)
+                                 Interpolater* mapper, const Vector<BCRec>& bcs)
          {
 
 
@@ -901,8 +900,8 @@ namespace amrex {
 	Real 	         dt_new;
 	Vector<Real>     dt_level;     // Timestep at this level.
 	Vector<Real>     dt_min;
-	Array<int>       level_count;
-	Array<int>       level_steps;  // Number of time steps at this level.
+	Vector<int>       level_count;
+	Vector<int>       level_steps;  // Number of time steps at this level.
 	int              which_level_being_advanced; // Only >=0 if we are in Amr::timeStep(level,...)
 	int              sub_cycle;
 

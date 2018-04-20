@@ -20,3 +20,6 @@ TAGS
 # python
 *.pyc
 
+.DS_Store
+Docs/AMReXUsersGuide/Visualization/*.pdf
+Docs/sphinx/build

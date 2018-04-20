@@ -522,13 +522,13 @@ StateData::FillBoundary (FArrayBox&     dest,
 
             int ng[3] = {0, 0, 0};
 
-            for (int n = 0; n < BL_SPACEDIM; ++n)
+            for (int n = 0; n < AMREX_SPACEDIM; ++n)
                 ng[n] = std::max(0, std::max(left[n], rght[n]));
 
             const IntVect size = bx.size();
             IntVect numThreadsMin(ng[0] + 1, ng[1] + 1, ng[2] + 1);
 
-            for (int n = 0; n < BL_SPACEDIM; ++n) {
+            for (int n = 0; n < AMREX_SPACEDIM; ++n) {
                 while (size[n] % numThreadsMin[n] != 0) {
                     ++numThreadsMin[n];
                 }
@@ -549,7 +549,6 @@ StateData::FillBoundary (FArrayBox&     dest,
             {
                 //
                 // Can do the whole group at once.
-                // Use the "group" boundary fill routine.
                 //
 		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,time,&bcrs[bcidx],groupsize);
 
@@ -881,7 +880,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 	    
 	    bool has_phys_bc = false;
 	    bool is_periodic = false;
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 		bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
 		if (geom.isPeriodic(i)) {
 		    is_periodic = is_periodic || touch;
@@ -915,7 +914,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 		{
 		    Box GrownDomain = domain;
 		    
-		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 		    {
 			if (!geom.isPeriodic(dir))
 			{
@@ -926,7 +925,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			}
 		    }
 		    
-		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 		    {
 			if (!geom.isPeriodic(dir)) continue;
 			

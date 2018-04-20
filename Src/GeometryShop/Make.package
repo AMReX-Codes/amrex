@@ -44,11 +44,26 @@ C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBNormalizeByVolumeFraction.H   AMReX_E
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBNormalizeByVolumeFraction.cpp AMReX_EBLoHiCenter.cpp AMReX_FabArrayIO.cpp
 
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H AMReX_ExtrudeIF.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp AMReX_ExtrudeIF.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_PolynomialIF.H   
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_PolynomialIF.cpp 
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_PolynomialIF.H    AMReX_EllipsoidIF.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_PolynomialIF.cpp  AMReX_EllipsoidIF.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_STLAsciiReader.H    AMReX_STLExplorer.H    AMReX_STLMesh.H   AMReX_STLBox.H	  AMReX_STLIF.H	     AMReX_STLUtil.H   AMReX_STLReader.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_STLAsciiReader.cpp  AMReX_STLExplorer.cpp  AMReX_STLMesh.cpp AMReX_STLBox.cpp	  AMReX_STLIF.cpp    AMReX_STLUtil.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_CellEdge.H   AMReX_KDTree.H   AMReX_PXStuff.H	AMReX_KDStruct.H  AMReX_ZCylinder.H AMReX_WrappedGShop.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_CellEdge.cpp AMReX_KDTree.cpp AMReX_PXStuff.cpp AMReX_ZCylinder.cpp AMReX_WrappedGShop.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_SmoothIntersection.H   AMReX_SmoothUnion.H   AMReX_SmoothAbsoluteValue.H   AMReX_MinimalCCCM.H   AMReX_MinimalCCCMImplem.H 
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_SmoothIntersection.cpp AMReX_SmoothUnion.cpp AMReX_SmoothAbsoluteValue.cpp AMReX_MinimalCCCM.cpp  AMReX_IFSlicer.cpp  AMReX_CutCellMoments.cpp 
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_CoordinateSystem.H AMReX_CoordinateSystemImplem.H AMReX_Notation.H AMReX_IFSlicer.H AMReX_IFSlicerImplem.H AMReX_CutCellMoments.H  AMReX_CutCellMomentsImplem.H AMReX_MetaPrograms.H  AMReX_Factorial.H
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_NormalDerivative.H AMReX_NormalDerivativeNew.H   AMReX_NormalDerivativeImplem.H  AMReX_LSProblem.H AMReX_LSProblemImplem.H   
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_ConstrainedLS.H AMReX_MomentIterator.H AMReX_IndeXTM.H AMReX_IFData.H AMReX_MonomialPowers.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_NormalDerivative.cpp  AMReX_LSProblem.cpp   AMReX_ConstrainedLS.cpp AMReX_IFData.cpp AMReX_BaseIFFAB.cpp
 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop

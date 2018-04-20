@@ -1,15 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #ifndef _GEOMETRYSHOP_H_
 #define _GEOMETRYSHOP_H_
 
@@ -21,6 +9,7 @@
 #include "AMReX_BaseFab.H"
 #include "AMReX_Moments.H"
 #include "AMReX_IrregNode.H"
+#include "AMReX_STLIF.H"
 #include "AMReX_GeometryService.H"
 #include <array>
 
@@ -129,13 +118,31 @@ namespace amrex
         return isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx);
       }
 
+    ///get the implicit function.
+    /**
+       If you have a geometry sevice that does not have an implicit function, it is a runtime error.
+     */
+    virtual std::shared_ptr<const BaseIF> getImplicitFunction() const
+      {
+        return m_implicitFunction;
+      }
+      
+    ///True if there is an underlying implicit function
+    virtual bool hasImplicitFunction() const
+      {
+        return true;
+      }
   private:
     int  m_verbosity;
     Real m_threshold;
     Real m_thrshdVoF; //CP, threshold to remove very small VoFs.
 
+    //for STL-based geometry descriptions
+    //this just an address.  not managed by this object (do not delete)
+    const STLIF* m_stlIF;
+    mutable bool m_STLBoxSet;
 
-    std::unique_ptr<const BaseIF> m_implicitFunction;
+    std::shared_ptr<const BaseIF> m_implicitFunction;
 
 
     void edgeData3D(edgeMo               a_edges[4],

@@ -96,8 +96,8 @@ BndryData::init (const BndryData& src)
     bcond     = src.bcond;
 
     masks.clear();
-    masks.resize(2*BL_SPACEDIM);
-    for (int i = 0; i < 2*BL_SPACEDIM; i++)
+    masks.resize(2*AMREX_SPACEDIM);
+    for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
     {
 	const MultiMask& smasks = src.masks[i];
 	masks[i].define(smasks.boxArray(), smasks.DistributionMap(), smasks.nComp());
@@ -119,9 +119,6 @@ BndryData::operator= (const BndryData& src)
     if (this != &src)
     {
         BndryRegister::operator=(src);
-	for (int i = 0; i < 2*BL_SPACEDIM; i++) {
-	    bndry[i].clear();
-	}
         init(src);
     }
     return *this;
@@ -157,7 +154,7 @@ BndryData::define (const BoxArray& _grids,
     BndryRegister::setBoxes(_grids);
 
     masks.clear();
-    masks.resize(2*BL_SPACEDIM);
+    masks.resize(2*AMREX_SPACEDIM);
 
     for (OrientationIter fi; fi; ++fi)
     {
@@ -182,7 +179,7 @@ BndryData::define (const BoxArray& _grids,
     {
         Vector< Vector<BoundCond> >& abc = bcond[bfsi];
 
-        abc.resize(2*BL_SPACEDIM);
+        abc.resize(2*AMREX_SPACEDIM);
 
         for (OrientationIter fi; fi; ++fi)
         {

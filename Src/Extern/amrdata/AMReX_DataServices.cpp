@@ -118,13 +118,11 @@ DataServices::DataServices(const string &filename, const Amrvis::FileType &filet
   bAmrDataOk = amrData.ReadData(fileName, fileType);
   profiler = (fileType == Amrvis::PROFDATA);
 
-  if( ! profiler) {
-    if(bAmrDataOk) {
-      dsArrayIndex = DataServices::dsArrayIndexCounter;
-      ++DataServices::dsArrayIndexCounter;
-      DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
-      DataServices::dsArray[dsArrayIndex] = this;
-    }
+  if((bAmrDataOk)||(profiler)) {
+    dsArrayIndex = DataServices::dsArrayIndexCounter;
+    ++DataServices::dsArrayIndexCounter;
+    DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
+    DataServices::dsArray[dsArrayIndex] = this;
   }
 
 #ifdef BL_USE_PROFPARSER
@@ -150,6 +148,9 @@ DataServices::DataServices() {
 
 // ---------------------------------------------------------------
 void DataServices::Init(const string &filename, const Amrvis::FileType &filetype) {
+
+  BL_PROFILE("DataServices::Init");
+
   fileName = filename;
   fileType = filetype;
   bAmrDataOk = false;
@@ -247,28 +248,32 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
           }
           continue;
         }
+        BL_PROFILE_VAR("DataServices::Init(), parsing data headers.", yydheaders);
         yyparse(&regOutputStats_H);
+        BL_PROFILE_VAR_STOP(yydheaders);
+
         fclose(yyin);
       }
+
       if(regOutputStats_H.TraceDataValid()) {
-        if(bIOP) {
-	  cout << "Calling InitRegionTimeRanges." << endl;
-	}
+//        if(bIOP) {
+//	  cout << "Calling InitRegionTimeRanges." << endl;
+//	}
         RegionsProfStats::OpenAllStreams(fileName);
         Box myBox(procBoxArray[myProc]);
-        bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
+//        bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
         regOutputStats_H.SyncFNamesAndNumbers();
         RegionsProfStats::CloseAllStreams();
         regOutputStats_H.SetFNames(blProfStats_H.BLPFNames());
-        if(bIOP) {
-	  cout << "Finished InitRegionTimeRanges." << endl;
-	}
+//        if(bIOP) {
+//	  cout << "Finished InitRegionTimeRanges." << endl;
+//	}
       } else {
         bTraceDataAvailable = false;
       }
 
     }
-
+/*
     bool bParseFilterFile(true);
     if(bParseFilterFile) {
       if(bIOP) cout << "Parsing filter file." << endl;
@@ -283,7 +288,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
       }
 
     }
-
+*/
     // ----------------------------------------------- comm headers
 
     // -------- parse the main header file.  everyone does this for now
@@ -304,13 +309,67 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
       fclose(yyin);
     } else {
     }
+/*
+    if(bRegionDataAvailable) {
+      commOutputStats_H.SetRegionTimeRanges(regOutputStats_H.GetRegionTimeRanges());
+      commOutputStats_H.SetFilterTimeRanges(regOutputStats_H.GetFilterTimeRanges());
+    }
+*/
+    bAmrDataOk = true;
+  } // if (profiler)
+  #endif
+#endif
+}
 
+// ---------------------------------------------------------------
+void DataServices::InitRegionTimeRanges() {
+
+  BL_PROFILE("DataServices::InitRegionTimeRanges");
+
+#ifdef BL_USE_PROFPARSER
+  #if (BL_SPACEDIM == 2)
+  if (profiler)
+  {
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    int  myProc(ParallelDescriptor::MyProc());
+
+    if(bTraceDataAvailable) {
+      if(regOutputStats_H.TraceDataValid()) {
+        if(bIOP) {
+	  cout << "Calling InitRegionTimeRanges." << endl;
+	}
+        RegionsProfStats::OpenAllStreams(fileName);
+        Box myBox(procBoxArray[myProc]);
+        bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
+        RegionsProfStats::CloseAllStreams();
+        if(bIOP) {
+	  cout << "Finished InitRegionTimeRanges." << endl;
+	}
+      } else {
+        bTraceDataAvailable = false;
+      }
+
+    }
+
+    if (dsBatchMode) {
+      if(bIOP) { cout << "Parsing filter file." << endl; }
+      ParseFilterFile();
+
+      if( ! regOutputStats_H.TimeRangeInitialized()) {
+        regOutputStats_H.InitFilterTimeRanges();
+        if(bIOP) {
+          cout << ">>>> timerangelist =" ;
+          PrintTimeRangeList(regOutputStats_H.GetFilterTimeRanges()[0]);
+        }
+
+      }
+    }
+    // ----------------------------------------------- comm headers
     if(bRegionDataAvailable) {
       commOutputStats_H.SetRegionTimeRanges(regOutputStats_H.GetRegionTimeRanges());
       commOutputStats_H.SetFilterTimeRanges(regOutputStats_H.GetFilterTimeRanges());
     }
 
-    bAmrDataOk = true;
   } // if (profiler)
   #endif
 #endif
@@ -328,7 +387,7 @@ DataServices::~DataServices() {
 
 // ---------------------------------------------------------------
 void DataServices::SetBatchMode() {
-  dsBatchMode = true;
+    dsBatchMode = true;
 }
 
 
@@ -410,6 +469,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     if( ! ParallelDescriptor::IOProcessor()) {
       ds = new DataServices();
       ds->Init(newFileName, newFileType);
+
     }
 
     ds->bAmrDataOk = ds->amrData.ReadData(ds->fileName, ds->fileType);
@@ -445,18 +505,20 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
   if(ParallelDescriptor::IOProcessor()) {
     va_start(ap, ds);
-    if (!profiler) {
+//    if (!profiler) {
       whichDSIndex = ds->dsArrayIndex;
-    }
+//    }
   }
 
-  if (!profiler) {
+//  if (!profiler) {
     ParallelDescriptor::Bcast(&whichDSIndex, 1, 0);
     if( ! ParallelDescriptor::IOProcessor()) {
       ds = DataServices::dsArray[whichDSIndex];
     }
     BL_ASSERT(ds != NULL);
-  }
+//  }
+
+  ParallelDescriptor::Barrier();
 
   switch(requestType) {
     case DeleteRequest:
@@ -925,6 +987,13 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
 // Profiler Data Requests
 #ifdef BL_USE_PROFPARSER
+    case InitTimeRanges:
+    {
+      std::cout << "Dispatch::---- InitTimeRangesDataRequest" << std::endl;
+      ds->InitRegionTimeRanges();
+    }
+    break;
+
     case CheckProfDataRequest:
     {
       std::cout << "Dispatch::---- CheckProfDataRequest" << std::endl;
@@ -976,10 +1045,23 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       int maxSmallImageLength, refRatioAll;
       bool *proxMapPtr;
 
-      plotfileNamePtr =  (std::string *) va_arg(ap, void *);
-      maxSmallImageLength = va_arg(ap, int);
-      proxMapPtr = (bool *) va_arg(ap, bool *);
-      refRatioAll = va_arg(ap, int);
+      if (ParallelDescriptor::IOProcessor()) 
+      {
+        plotfileNamePtr =  (std::string *) va_arg(ap, void *);
+        maxSmallImageLength = va_arg(ap, int);
+        proxMapPtr = (bool *) va_arg(ap, bool *);
+        refRatioAll = va_arg(ap, int);
+      }
+
+       // --- Broadcast Bools
+      amrex::BroadcastBool(*proxMapPtr, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+
+      // --- Broadcast Ints
+      ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      
+      // --- Broadcast String
+      amrex::BroadcastString(*plotfileNamePtr, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
 
       ds->RunSendsPF(*plotfileNamePtr, maxSmallImageLength, *proxMapPtr, refRatioAll);
     }
@@ -989,20 +1071,74 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     {
       if(ParallelDescriptor::IOProcessor()) { std::cout << "Dispatch::---- RunTimelinePFRequest:" << std::endl; }
 
-      std::map<int, std::string> *mpiFuncNamesPtr;
-      std::string *plotfileNamePtr;
+      std::map<int, std::string> mpiFuncNames;
+      std::string plotfileName;
+      BLProfStats::TimeRange subTimeRange;
+      Real start, stop;
       int maxSmallImageLength, refRatioAll, nTimeSlots;
-      bool *statsCollectedPtr;
+      bool statsCollected;
 
-      mpiFuncNamesPtr = (std::map<int, std::string> *) va_arg(ap, void *);
-      plotfileNamePtr =  (std::string *) va_arg(ap, void *);
-      maxSmallImageLength = va_arg(ap, int);
-      refRatioAll = va_arg(ap, int);
-      nTimeSlots = va_arg(ap, int);
-      statsCollectedPtr = (bool *) va_arg(ap, bool *);
+      // Storage of broken down map.
+      Vector<int> mapFirst;
+      Vector<std::string> fileNameAndmapSecond;
+      Vector<char> serialSecond;
 
-      ds->RunTimelinePF(*mpiFuncNamesPtr, *plotfileNamePtr, maxSmallImageLength,
-                         refRatioAll, nTimeSlots, *statsCollectedPtr);
+      if (ParallelDescriptor::IOProcessor())
+      {
+        // Get passed data
+        mpiFuncNames = *((std::map<int, std::string> *) va_arg(ap, void *));
+        plotfileName = *((std::string *) va_arg(ap, void *));
+        subTimeRange = *((BLProfStats::TimeRange *) va_arg(ap, void *)); 
+        maxSmallImageLength = va_arg(ap, int);
+        refRatioAll = va_arg(ap, int);
+        nTimeSlots = va_arg(ap, int);
+        statsCollected = *((bool *) va_arg(ap, bool *));
+
+        // Prep data for broadcast
+        start = subTimeRange.startTime;
+        stop = subTimeRange.stopTime;
+        fileNameAndmapSecond.push_back(plotfileName);
+
+        std::map<int, std::string>::iterator it;
+        for(it = mpiFuncNames.begin(); it != mpiFuncNames.end(); ++it)
+        {
+          mapFirst.push_back(it->first);
+          fileNameAndmapSecond.push_back(it->second);
+        }
+        serialSecond = amrex::SerializeStringArray(fileNameAndmapSecond);
+      }
+
+      // --- Broadcast Bools
+      amrex::BroadcastBool(statsCollected, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+
+      // --- Broadcast Ints
+      ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&nTimeSlots, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+
+      // --- Broadcast Reals
+      ParallelDescriptor::Bcast(&start, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&stop, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+
+      // --- Broadcast Map as 2 Arrays
+      amrex::BroadcastArray(mapFirst, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+      amrex::BroadcastArray(serialSecond, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+
+      if(!ParallelDescriptor::IOProcessor())
+      {
+        subTimeRange = BLProfStats::TimeRange(start, stop);
+
+        fileNameAndmapSecond = amrex::UnSerializeStringArray(serialSecond);
+        plotfileName = fileNameAndmapSecond.front();
+        for(int i(0); i<mapFirst.size(); ++i)
+        {
+          mpiFuncNames.insert(std::pair<int, std::string>(mapFirst[i+1], fileNameAndmapSecond[i])); 
+        }
+      }        
+
+      ds->RunTimelinePF(mpiFuncNames, plotfileName, subTimeRange, maxSmallImageLength,
+                         refRatioAll, nTimeSlots, statsCollected);
+
     }
     break;
 
@@ -1632,6 +1768,43 @@ void DataServices::CheckProfData()
         }
       }
     }
+
+    if(bRegionDataAvailable) {
+      if(bIOP) { cout << endl << "---------------- checking regions data." << endl; }
+
+      const Vector<string> &regionsHeaderFileNames = RegionsProfStats::GetHeaderFileNames();
+      cout << "# of RegionFiles: " << regionsHeaderFileNames.size() << endl;
+      RegionsProfStats regionsOutputStats;
+
+      string regPrefix_H("bl_call_stats_H");
+      std::string regFileName_H(fileName + '/' + regPrefix_H);
+      if((yyin = fopen(regFileName_H.c_str(), "r"))) {
+        yyparse(&regionsOutputStats);
+        fclose(yyin);
+      } 
+      else {
+        cerr << "DataServices::CheckProfData: Cannot open file  " << regPrefix_H << endl;
+      }
+
+      if(myProc < regionsHeaderFileNames.size()) {
+        for(int hfnI(0); hfnI < regionsHeaderFileNames.size(); ++hfnI) {
+          if(myProc == hfnI % nProcs) {
+            std::string regionsFileName_H_nnnn(fileName + '/' + regionsHeaderFileNames[hfnI]);
+            if( ! ( yyin = fopen(regionsFileName_H_nnnn.c_str(), "r"))) {
+              if(bIOP) {
+                cerr << "DataServices::CheckProfData:  Cannot open file:  " << regionsFileName_H_nnnn
+                     << "  continuing ...." << endl;
+                continue;
+              }
+            }
+            yyparse(&regionsOutputStats);
+            fclose(yyin);
+          }
+        }
+      }
+      cout << "Number of regions = " << regionsOutputStats.RegionNumbers().size() << endl;
+      regionsOutputStats.CheckRegionsData();
+    }
                    
     ParallelDescriptor::Barrier();
     if(bIOP) { cout << "---------------- finished checking profiling data." << endl << endl; }
@@ -2155,11 +2328,52 @@ void DataServices::RunSendsPF(std::string &plotfileName,
 #endif
 }
 
+// ----------------------------------------------------------------------
+BLProfStats::TimeRange DataServices::FindCalcTimeRange()
+{
+    BL_PROFILE("DataServices::FindCalcTimeRange()");
+
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+ 
+    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    BLProfStats::TimeRange calcTimeRange(std::numeric_limits<Real>::max(), -std::numeric_limits<Real>::max());
+
+    // find the calc's min and max times.  the user could set these, too.
+    if(myProc < commHeaderFileNames.size()) {
+      for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+        if(myProc == hfnI % nProcs) {
+          CommProfStats commOutputStats;
+          std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
+
+          if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
+            if(bIOP) {
+              cerr << "DataServices::RunTimelinePF:  1:  Cannot open file:  " << commDataHeaderFileName
+                   << " ... continuing." << endl;
+            }
+            continue;
+          }
+          yyparse(&commOutputStats);
+          fclose(yyin);
+          commOutputStats.FindTimeRange(calcTimeRange);
+        }
+      }
+    }
+    ParallelDescriptor::ReduceRealMin(calcTimeRange.startTime);
+    ParallelDescriptor::ReduceRealMax(calcTimeRange.stopTime);
+    if(bIOP) {
+      cout << "++++ calcTimeRange = " << calcTimeRange << endl;
+    }
+
+    return calcTimeRange;
+}
 
 // ----------------------------------------------------------------------
 void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
                                      std::string &plotfileName,
-                                     int  maxSmallImageLength,
+                                     BLProfStats::TimeRange &subTimeRange,
+                                     int maxSmallImageLength,
                                      int refRatioAll, int nTimeSlots,
 	                             bool &statsCollected)
 {
@@ -2169,7 +2383,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
   cout << "**** Error:  DataServices::RunTimelinePF is only supported for 2D" << endl;
 #else
     bool bIOP(ParallelDescriptor::IOProcessor());
-    int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
     int dataNProcs(BLProfStats::GetNProcs());
 
@@ -2193,37 +2406,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     }
 
     double dstart(ParallelDescriptor::second());
-
-    Real calcTimeMin( std::numeric_limits<Real>::max());
-    Real calcTimeMax(-std::numeric_limits<Real>::max());
-
-    // find the calc's min and max times.  the user could set these, too.
-    if(myProc < commHeaderFileNames.size()) {
-      for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
-        if(myProc == hfnI % nProcs) {
-          CommProfStats commOutputStats;
-          std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
-
-          if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
-            if(bIOP) {
-              cerr << "DataServices::RunTimelinePF:  1:  Cannot open file:  " << commDataHeaderFileName
-                   << " ... continuing." << endl;
-            }
-            continue;
-          }
-          yyparse(&commOutputStats);
-          fclose(yyin);
-          commOutputStats.FindTimeRange(calcTimeMin, calcTimeMax);
-        }
-      }
-    }
-    ParallelDescriptor::ReduceRealMin(calcTimeMin);
-    ParallelDescriptor::ReduceRealMax(calcTimeMax);
-    if(bIOP) {
-      cout << "++++ calcTimeMin calcTimeMax = " << calcTimeMin
-           << "  " << calcTimeMax << endl;
-    }
-
 
     int rankMin(0), rankMax(dataNProcs - 1), rankStride(1);
 
@@ -2273,6 +2455,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       if(bIOP) cout << "************ dnpBoxArray = " << dnpBoxArray << endl;
       const DistributionMapping dnpDM(dnpBoxArray);
       state[iLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
+
       MultiFab &timelineMF = state[iLevel];
       timelineMF.setVal(-1.0, 0, 1);       // Timeline initialization
       timelineMF.setVal(0.0, 1, 1);        // MPI count initialization
@@ -2284,7 +2467,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
         CommProfStats commOutputStats;
         if(bRegionDataAvailable) {
-          commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
+//          commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
           commOutputStats.SetFilterTimeRanges(commOutputStats_H.GetFilterTimeRanges());
         }
 
@@ -2300,7 +2483,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
         yyparse(&commOutputStats);
         fclose(yyin);
-
+ 
         if(hfnI_I == 0) {  // this assumes all headers have the same nametag and barrier names
           // ---- this part encodes the name tag name into the NameTag cfType value
           nameTagNames = commOutputStats.NameTagNames();
@@ -2331,10 +2514,9 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
         for(MFIter mfi(timelineMF); mfi.isValid(); ++mfi) {
           FArrayBox &timelineFAB = timelineMF[mfi.index()];
-
           commOutputStats.TimelineFAB(timelineFAB, probDomain[iLevel],
-                                  calcTimeMin, calcTimeMax,
-                                  rankMin, rankMax, rankStride * cRR[YDIR],
+                                  subTimeRange, rankMin, rankMax,
+                                  rankStride * cRR[YDIR],
                                   ntnMultiplier, ntnNumbers, bnMultiplier, bnNumbers);
         }
       }
@@ -2362,7 +2544,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     if(bIOP) { cout << "Writing plotfile:  " << plotfileName << endl; }
 
     std::string plotFileVersion("CommProfTimeline-V1.0");
-    Real time(calcTimeMax);
+    Real time(subTimeRange.stopTime);
     Vector<Real> probLo(BL_SPACEDIM, 0.0);
     Vector<Real> probHi(BL_SPACEDIM, 1.0);
     Vector<int>  refRatioPerLevel(sqState.size() - 1);
@@ -2425,6 +2607,13 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     if(bIOP) {
       string fnoutFileName(plotfileName + "/CallTrace.txt");
       WriteTextTrace(fnoutFileName);
+    }
+    if(bIOP) {
+      string fnoutFileName(plotfileName + "/TimeRange.txt");
+      std::ofstream fnout(fnoutFileName.c_str());
+      fnout << std::setprecision(16)
+            << subTimeRange.startTime << ' ' << subTimeRange.stopTime << '\n';
+      fnout.close();
     }
 
     BL_PROFILE_VAR_STOP(writeplotfile);
@@ -3027,14 +3216,15 @@ void DataServices::RunSendRecvList()
       return;
     }
 
-    int  myProc(ParallelDescriptor::MyProc());
-    int  nProcs(ParallelDescriptor::NProcs());
+//    int  myProc(ParallelDescriptor::MyProc());
+//    int  nProcs(ParallelDescriptor::NProcs());
 
+    if(ParallelDescriptor::IOProcessor()) {
     const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     std::multimap<Real, CommProfStats::SendRecvPairUnpaired> srMMap;  // [call time, sr]
-    if(myProc < commHeaderFileNames.size()) {
+//    if(myProc < commHeaderFileNames.size()) {
       for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
-        if(myProc == hfnI % nProcs) {
+//        if(myProc == hfnI % nProcs) {
           CommProfStats commOutputStats;
           std::string commFileName_H_nnnn(fileName + '/' + commHeaderFileNames[hfnI]);
           if( ! ( yyin = fopen(commFileName_H_nnnn.c_str(), "r"))) {
@@ -3051,10 +3241,10 @@ void DataServices::RunSendRecvList()
           yyparse(&commOutputStats);
           fclose(yyin);
           commOutputStats.SendRecvList(srMMap);
-        }
+//        }
       }
-    }
-    if(ParallelDescriptor::IOProcessor()) {
+//    }
+
       std::ofstream srlOut("SendRecvList.txt");
       srlOut << std::left << std::setw(16) << "#### Time" << '\t' << "Type    " << '\t'
              << "From" << '\t' << "To" << '\t' << "Size" << '\t'
@@ -3073,7 +3263,12 @@ void DataServices::RunSendRecvList()
         if(srp.fromProc < 0) {
           unpairedSR.push_back(srp);
         }
-        std::set<int> whichRegions(blProfStats_H.WhichRegions(srp.fromProc, it->first));
+        int timedProc;
+        if ( commOutputStats_H.IsSend(srp.unmatchedCFType) )
+        { timedProc = srp.fromProc; }
+        else
+        { timedProc = srp.toProc; }
+        std::set<int> whichRegions(blProfStats_H.WhichRegions(timedProc, it->first));
         if(srp.fromProc >= 0) {
           srlOut << it->first << '\t'
                  << BLProfiler::CommStats::CFTToString(srp.unmatchedCFType) << '\t'
@@ -3106,7 +3301,7 @@ void DataServices::RunSendRecvList()
         upSROut.close();
       }
     }
-    ParallelDescriptor::Barrier();
+//    ParallelDescriptor::Barrier();
 }
 
 

@@ -215,6 +215,14 @@ BARef::Initialize ()
 			 }));
 #endif
     }
+
+    amrex::ExecOnFinalize(BARef::Finalize);
+}
+
+void
+BARef::Finalize ()
+{
+    initialized = false;
 }
 
 void
@@ -224,6 +232,14 @@ BoxArray::Initialize ()
 	initialized = true;
 	BARef::Initialize();
     }
+
+    amrex::ExecOnFinalize(BoxArray::Finalize);
+}
+
+void
+BoxArray::Finalize ()
+{
+    initialized = false;
 }
 
 BoxArray::BoxArray ()
@@ -1432,14 +1448,32 @@ BoxArray
 convert (const BoxArray& ba, IndexType typ)
 {
     BoxArray ba2 = ba;
-    return ba2.convert(typ);
+    ba2.convert(typ);
+    return ba2;
 }
 
 BoxArray
 convert (const BoxArray& ba, const IntVect& typ)
 {
     BoxArray ba2 = ba;
-    return ba2.convert(IndexType(typ));
+    ba2.convert(IndexType(typ));
+    return ba2;
+}
+
+BoxArray
+coarsen (const BoxArray& ba, int ratio)
+{
+    BoxArray ba2 = ba;
+    ba2.coarsen(ratio);
+    return ba2;
+}
+
+BoxArray
+coarsen (const BoxArray& ba, const IntVect& ratio)
+{
+    BoxArray ba2 = ba;
+    ba2.coarsen(ratio);
+    return ba2;
 }
 
 BoxList
@@ -1529,7 +1563,7 @@ readBoxArray (BoxArray&     ba,
 
 Vector<int> SerializeBoxArray(const BoxArray &ba)
 {
-  int nIntsInBox(3 * BL_SPACEDIM);
+  int nIntsInBox(3 * AMREX_SPACEDIM);
   Vector<int> retArray(ba.size() * nIntsInBox, -1);
   for(int i(0); i < ba.size(); ++i) {
     Vector<int> aiBox(amrex::SerializeBox(ba[i]));
@@ -1544,7 +1578,7 @@ Vector<int> SerializeBoxArray(const BoxArray &ba)
 
 BoxArray UnSerializeBoxArray(const Vector<int> &serarray)
 {
-  int nIntsInBox(3 * BL_SPACEDIM);
+  int nIntsInBox(3 * AMREX_SPACEDIM);
   int nBoxes(serarray.size() / nIntsInBox);
   BoxArray ba(nBoxes);
   for(int i(0); i < nBoxes; ++i) {

@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e # Exit with nonzero exit code if anything fails
 
+# First we test whether we can build libamrex or not
+echo "Building libamrex... "
+./configure
+make -j4
+
+# Then we build and deploy the sphinx / doxygen documentation
 SOURCE_BRANCH="development"
 TARGET_BRANCH="gh-pages"
 
@@ -23,23 +29,25 @@ git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
 cd ..
 
 # Clean out existing contents
-rm -rf out/**/* || exit 0
+rm -rf out/docs_html/**/* || exit 0
 
 # build the Doxygen documentation
 cd Docs/Doxygen
 doxygen doxygen.conf
 cd ../..
 
+mkdir -p out/docs_html
+
 # move it to the right place
-mkdir -p out/doxygen
-mv Docs/Doxygen/html/* out/doxygen/
+mkdir -p out/docs_html/doxygen
+mv Docs/Doxygen/html/* out/docs_html/doxygen/
 
 # now do sphinx
 cd Docs/sphinx
 make html
 cd ../../
 
-mv Docs/sphinx/build/html/* out/
+mv Docs/sphinx/build/html/* out/docs_html/
 touch out/.nojekyll
 
 # Now let's go have some fun with the cloned repo
@@ -64,7 +72,3 @@ ssh-add ../id_rsa_travis
 git push $SSH_REPO $TARGET_BRANCH || true
 ssh-agent -k
 cd ..
-
-echo "Building libamrex... "
-./configure
-make -j4

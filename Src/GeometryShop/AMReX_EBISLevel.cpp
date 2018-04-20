@@ -1,16 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
-
 #include "AMReX_Print.H"
 #include "AMReX_EBISLevel.H"
 #include "AMReX_EBIndexSpace.H"
@@ -36,7 +23,25 @@ namespace amrex
   static const VolIndex  ebl_debvoflo(ebl_debivlo, 0);
   static const VolIndex  ebl_debvofhi(ebl_debivhi, 0);
   static const FaceIndex ebl_debface(ebl_debvoflo, ebl_debvofhi);
-
+/***/
+  void
+  EBISLevel::checkForMultiValuedCells() const
+  {
+    int ihasMV = 0;
+    for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
+    {
+      const Box& valid = m_grids[mfi];
+      IntVectSet ivsmulti = m_graph[mfi].getMultiCells(valid);
+      if(!ivsmulti.isEmpty())
+      {
+        ihasMV = 1;
+      }
+    }
+    ParallelDescriptor::ReduceIntMax(ihasMV);
+    m_hasMultiValuedCells = (ihasMV == 1);
+    m_alreadyCheckedForMVCells = true;
+  }
+  /***/
   void EBISLevel_checkGraph(const BoxArray          & a_grids,
                             const DistributionMapping & a_dm,
                             const FabArray<EBGraph> & a_graph,
@@ -97,12 +102,12 @@ namespace amrex
   write(const string& a_dirname) const
   {
     //this creates the directory of all the stuff
-    UtilCreateDirectoryDestructive(a_dirname, true);
+    UtilCreateCleanDirectory(a_dirname, true);
     writeHeader(a_dirname);
     string graphdirname = a_dirname + "/_graph";
     string  datadirname = a_dirname + "/_data";
-    UtilCreateDirectoryDestructive(graphdirname, true);
-    UtilCreateDirectoryDestructive( datadirname, true);
+//    UtilCreateDirectoryDestructive(graphdirname, true); done in functions below
+//    UtilCreateDirectoryDestructive( datadirname, true);done in functions below
     FabArrayIO<EBGraph>::write(m_graph, graphdirname);
     FabArrayIO<EBData >::write(m_data ,  datadirname);
   }
@@ -126,6 +131,8 @@ namespace amrex
     std::ofstream headerfile;
     string filename = a_dirname + string("/headerfile");
     headerfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
+
+    headerfile << m_hasMoments << endl;
     headerfile << m_nCellMax << endl;
     headerfile << m_domain  << endl;
     headerfile << m_origin  << endl;
@@ -148,6 +155,7 @@ namespace amrex
     std::ifstream headerfile;
     string filename = a_dirname + string("/headerfile");
     headerfile.open(filename.c_str(), std::ios::in);
+    headerfile >> m_hasMoments;
     headerfile >> m_nCellMax;
     headerfile >> m_domain;
     headerfile >> m_origin;
@@ -215,6 +223,7 @@ namespace amrex
     {
       fixRegularNextToMultiValued();
     }
+    //checkForMultiValuedCells();
   }
 
   void
@@ -537,8 +546,8 @@ namespace amrex
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     m_dm.define(m_grids);
-    int ngrowGraph =2;
-    int ngrowData =0;
+    int ngrowGraph =3;
+    int ngrowData =1;
     m_graph.define(m_grids, m_dm, 1, ngrowGraph, MFInfo(), DefaultFabFactory<EBGraph>());
 
     m_intersections.define(m_grids, m_dm);
@@ -603,10 +612,12 @@ namespace amrex
 // end debug
 
     std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
-    EBDataFactory ebdf(graphptr);
+    m_hasMoments = a_geoserver.generatesHigherOrderMoments();
+    EBDataFactory ebdf(graphptr, m_hasMoments, m_dx );
 
     m_data.define(m_grids, m_dm, 1, ngrowData, MFInfo(), ebdf);
 
+    int ibox = 0;
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       const Box& valid  = mfi.validbox();
@@ -619,15 +630,18 @@ namespace amrex
       if (ebgraph.isAllRegular() || ebgraph.isAllCovered())
       {
         
-        ebdata.define(ebgraph,  ghostRegion);
+        ebdata.define(ebgraph,  ghostRegion, m_dx, m_hasMoments);
       }
       else
       {
         const Vector<IrregNode>&   nodes = allNodes[mfi];
-        ebdata.define(ebgraph, nodes, valid, ghostRegion);
+        ebdata.define(ebgraph, nodes, valid, ghostRegion, m_dx, m_hasMoments);
       }
+      ibox++;
     }
 
+
+    m_data.FillBoundary();
 //begin debug
 //    EBISLevel_checkData(m_grids, dm, m_data, string("after initial build"));
 // end debug
@@ -656,6 +670,7 @@ namespace amrex
     //fix the regular next to the multivalued cells
     //to be full irregular cells
     fixRegularNextToMultiValued();
+//    checkForMultiValuedCells();
   }
 
   //steps to coarsen an ebislevel:
@@ -729,8 +744,9 @@ namespace amrex
     //now deal with the data
     std::shared_ptr<FabArray<EBGraph> > graphptrCoar(&    m_graph, &null_deleter_fab_ebg);
     std::shared_ptr<FabArray<EBGraph> > graphptrReCo(&ebgraphReCo, &null_deleter_fab_ebg);
-    EBDataFactory ebdfCoar(graphptrCoar);
-    EBDataFactory ebdfReCo(graphptrReCo);
+    m_hasMoments = a_fineEBIS.m_hasMoments;
+    EBDataFactory ebdfCoar(graphptrCoar, m_hasMoments, m_dx);
+    EBDataFactory ebdfReCo(graphptrReCo, m_hasMoments, m_dx);
     FabArray<EBData> ebdataReCo;
 
     //pout() << "making m_data" << endl;
@@ -797,7 +813,15 @@ namespace amrex
   
     //a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
     //return; // caching disabled for now.... ugh.  bvs
-    a_ebisLayout.define(m_domain, a_grids, a_dm, a_nghost, m_graph, m_data);
+    if(m_hasMoments)
+    {
+      pout() << "has moments in fillebisl is true" << endl;
+    }
+    else
+    {
+      pout() << "has moments in fillebisl is false" << endl;
+    }
+    a_ebisLayout.define(m_domain, a_grids, a_dm, a_nghost, m_graph, m_data, m_hasMoments, m_dx);
   }
 
 

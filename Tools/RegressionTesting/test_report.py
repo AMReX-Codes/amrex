@@ -176,6 +176,11 @@ r"""
 <CENTER><H2>@SUBTITLE@</H2></CENTER>
 """
 
+def get_particle_compare_command(diff_lines):
+    for line in diff_lines:
+        if line.find('particle_compare') > 0:
+            return line
+
 def create_css(table_height=16):
     """ write the css file for the webpages """
 
@@ -314,17 +319,18 @@ def report_single_test(suite, test, tests, failure_msg=None):
         if not test.compileTest:
             compare_successful = test.compare_successful
 
-            compare_file = "{}.compare.out".format(test.name)
-            try: cf = open(compare_file, 'r')
-            except IOError:
-                suite.log.warn("WARNING: no comparison file found")
-                diff_lines = ['']
-            else:
-                diff_lines = cf.readlines()
-                cf.close()
+            if test.doComparison:
+                compare_file = "{}.compare.out".format(test.name)
+                try: cf = open(compare_file, 'r')
+                except IOError:
+                    suite.log.warn("WARNING: no comparison file found")
+                    diff_lines = ['']
+                else:
+                    diff_lines = cf.readlines()
+                    cf.close()
 
-                # last check: did we produce any backtrace files?
-                if len(test.backtrace) > 0: compare_successful = False
+            # last check: did we produce any backtrace files?
+            if len(test.backtrace) > 0: compare_successful = False
 
         # write out the status file for this problem, with either
         # PASSED, COMPILE FAILED, or FAILED
@@ -509,7 +515,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
     ll.write_list()
 
-    if (not test.compileTest) and failure_msg is None:
+    if (not test.compileTest) and test.doComparison and failure_msg is None:
 
         # parse the compare output and make an HTML table
         ht = HTMLTable(hf, columns=3, divs=["summary", "compare"])
@@ -520,6 +526,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
         variables_error = False
         no_bench_error = False
         
+        pcomp_line = get_particle_compare_command(diff_lines)
+
         for line in diff_lines:
             if "number of boxes do not match" in line:
                 box_error = True
@@ -538,7 +546,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
             
             if not in_diff_region:
                 if line.find("fcompare") > 1:
-                    hf.write("<tt>"+line+"</tt>\n")
+                    hf.write("<tt>"+line+"</tt>\n\n")
+                    if pcomp_line:
+                        hf.write("<tt>"+pcomp_line+"</tt>\n")
 
                     ht.start_table()
                     continue
@@ -615,6 +625,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
         if variables_error:
             hf.write("<p>variables differ in files</p>\n")
 
+    if (not test.compileTest) and failure_msg is None:
         # show any visualizations
         if test.doVis:
             if not test.png_file is None:
@@ -625,7 +636,6 @@ def report_single_test(suite, test, tests, failure_msg=None):
         if not test.analysisOutputImage == "":
             hf.write("<P>&nbsp;\n")
             hf.write("<P><IMG SRC='%s' BORDER=0>" % (test.analysisOutputImage) )
-
 
     # close
     hf.write("</div></body>\n")
@@ -838,6 +848,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             if test.restartTest: continue
             if test.compileTest: continue
             if test.selfTest: continue
+            if not test.doComparison: continue
 
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.status" % (test.name)

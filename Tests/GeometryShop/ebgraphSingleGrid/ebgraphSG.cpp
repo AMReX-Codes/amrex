@@ -1,17 +1,8 @@
-/*
- *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
- *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
- *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
- *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
- *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
- * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
- *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
- *
- */
 
 #include <cmath>
 
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_RealVect.H"
@@ -93,7 +84,7 @@ namespace amrex
     return 0;
   }
 ////////////
-  int checkGraph()
+  int checkGraph(int whichgeom)
   {
     Real radius = 0.5;
     Real domlen = 1;
@@ -115,7 +106,7 @@ namespace amrex
     int verbosity = 0;
 
     pp.get("verbosity", verbosity);
-    GeometryShop gshop(sphere, verbosity);
+
     BaseFab<int> regIrregCovered;
     Vector<IrregNode> nodes;
 
@@ -132,7 +123,17 @@ namespace amrex
     Box ghostRegion = domain; //whole domain so ghosting does not matter
     RealVect origin = RealVect::Zero;
     Real dx = domlen/ncellsvec[0];
-    gshop.fillGraph(regIrregCovered, nodes, validRegion, ghostRegion, domain, origin, dx);
+    NodeMap nodemap;
+    if(whichgeom == 0)
+    {
+      GeometryShop gshop(sphere, verbosity);
+      gshop.fillGraph(regIrregCovered, nodes, nodemap, validRegion, ghostRegion, domain, origin, dx);
+    }
+    else
+    {
+      WrappedGShop gshop(sphere, verbosity);
+      gshop.fillGraph(regIrregCovered, nodes, nodemap, validRegion, ghostRegion, domain, origin, dx);
+    }
 
 
     EBGraph ebgraph(domain, 1);
@@ -197,18 +198,20 @@ main(int argc,char **argv)
   pp.Initialize(0, NULL, in_file);
 
   // check volume and surface area of approximate sphere
-  int eekflag = amrex::checkGraph();
-
-  if (eekflag != 0)
+  for(int iwhichgeom =0; iwhichgeom <= 1; iwhichgeom++)
   {
-    cout << "non zero eek detected = " << eekflag << endl;
-    cout << "sphere test failed" << endl;
-  }
-  else
-  {
-    cout << "sphere test passed" << endl;
+    int eekflag = amrex::checkGraph(iwhichgeom);
+
+    if (eekflag != 0)
+    {
+      cout << "non zero eek detected = " << eekflag << endl;
+      cout << "sphere test failed" << endl;
+      return eekflag;
+    }
   }
 
+
+  cout << "sphere test passed" << endl;
   return 0;
 }
 

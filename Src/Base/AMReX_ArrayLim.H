@@ -12,7 +12,7 @@
 ** C++ stuff ...
 */
 
-#if     BL_SPACEDIM==1
+#if     AMREX_SPACEDIM==1
 #define ARLIM_P(x)  const int&
 #define ARLIM(x)  (x)[0]
 #ifdef AMREX_USE_CUDA
@@ -28,7 +28,7 @@
 #define BCREC_3D(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
 #define BCREC_ANYD(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
 #endif
-#elif   BL_SPACEDIM==2
+#elif   AMREX_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1]
 #ifdef AMREX_USE_CUDA
@@ -44,7 +44,7 @@
 #define BCREC_3D(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
 #define BCREC_ANYD(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
 #endif
-#elif   BL_SPACEDIM==3
+#elif   AMREX_SPACEDIM==3
 #define ARLIM_P(x)  const int&,const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1],(x)[2]
 #define ARLIM_3D(x) x
@@ -55,7 +55,7 @@
 #endif
 
 #define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
-#define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect()), x.nCompPtr()
+#define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect()), (x).nCompPtr()
 #define BL_TO_FORTRAN_BOX(x) ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
 #define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), ARLIM((x).loVect()), ARLIM((x).hiVect())
 
@@ -69,9 +69,9 @@
 #if !defined(BL_LANG_FORT)
 
 /* C stuff */
-#if BL_SPACEDIM == 1
+#if AMREX_SPACEDIM == 1
 #define ARLIM_P(x) const int*
-#elif BL_SPACEDIM == 2
+#elif AMREX_SPACEDIM == 2
 #define ARLIM_P(x) const int*, const int*
 #else
 #define ARLIM_P(x) const int*, const int*, const int*
@@ -85,7 +85,7 @@
 
 #if __STDC__==1 || defined(__INTEL_COMPILER)
 
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
 #define DIMS(a) a##_l1, a##_h1
 #define DIMDEC(a) a##_l1, a##_h1
 #define DIMV(a) a##_l1:a##_h1
@@ -95,7 +95,7 @@
 #define DIMARG(a) a##(1)
 #endif
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 #define DIMS(a) a##_l1, a##_l2, a##_h1, a##_h2
 #define DIMDEC(a) a##_l1, a##_l2, a##_h1, a##_h2
 #define DIMV(a) a##_l1:a##_h1, a##_l2:a##_h2
@@ -108,7 +108,7 @@
 #define DIMARG(a) a##(1),a##(2)
 #endif
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 #define DIMS(a) a##_l1, a##_l2, a##_l3, a##_h1, a##_h2, a##_h3
 #define DIMDEC(a) a##_l1, a##_l2, a##_l3, a##_h1, a##_h2, a##_h3
 #define DIMV(a) a##_l1:a##_h1, a##_l2:a##_h2, a##_l3:a##_h3
@@ -129,7 +129,7 @@
 
 #else
 
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
 #define DIMS(a) a/**/_l1, a/**/_h1
 #define DIMDEC(a) a/**/_l1, a/**/_h1
 #define DIMV(a) a/**/_l1:a/**/_h1
@@ -139,7 +139,7 @@
 #define DIMARG(a) a/**/(1)
 #endif
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 #define DIMS(a) a/**/_l1, a/**/_l2, a/**/_h1, a/**/_h2
 #define DIMDEC(a) a/**/_l1, a/**/_l2, a/**/_h1, a/**/_h2
 #define DIMV(a) a/**/_l1:a/**/_h1, a/**/_l2:a/**/_h2
@@ -152,7 +152,7 @@
 #define DIMARG(a) a/**/(1),a/**/(2)
 #endif
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 #define DIMS(a) a/**/_l1, a/**/_l2, a/**/_l3, a/**/_h1, a/**/_h2, a/**/_h3
 #define DIMDEC(a) a/**/_l1, a/**/_l2, a/**/_l3, a/**/_h1, a/**/_h2, a/**/_h3
 #define DIMV(a) a/**/_l1:a/**/_h1, a/**/_l2:a/**/_h2, a/**/_l3:a/**/_h3

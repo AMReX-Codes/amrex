@@ -24,6 +24,9 @@ module cuda_module
 
   integer :: is_program_running = 1
 
+  ! Max block size in each direction
+  integer :: max_threads_dim(3)
+
   ! The current stream index
 
   integer :: stream_index
@@ -98,6 +101,8 @@ contains
     if (prop%major < 3) then
        call bl_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
     end if
+
+    max_threads_dim = prop%maxThreadsDim
 
     ! Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
 
@@ -275,9 +280,9 @@ contains
 
     else
 
-       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z)))
-       numThreads % y = max(numThreadsMin % y, min(tile_size(2), CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z)))
-       numThreads % z = max(numThreadsMin % z, min(tile_size(3), CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   )))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), min(max_threads_dim(1), CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z))))
+       numThreads % y = max(numThreadsMin % y, min(tile_size(2), min(max_threads_dim(2), CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z))))
+       numThreads % z = max(numThreadsMin % z, min(tile_size(3), min(max_threads_dim(3), CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   ))))
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
        numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
@@ -632,56 +637,6 @@ contains
     call cudaProfilerStop()
 
   end subroutine gpu_stop_profiler
-
-
-
-  subroutine mem_advise_set_preferred(p, sz, device) bind(c, name='mem_advise_set_preferred')
-
-    use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetPreferredLocation
-    use iso_c_binding, only: c_size_t, c_int
-
-    type(c_devptr), value :: p
-    integer(c_size_t), value :: sz
-    integer(c_int) :: device
-
-    integer :: cudaResult
-
-    ! Note: we do not error test in this subroutine because the error
-    ! code seems to be broken in PGI.
-
-#ifndef NO_CUDA_8
-    if ((.not. have_prop) .or. (have_prop .and. prop%concurrentManagedAccess == 1)) then
-       cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)
-    end if
-#endif
-
-  end subroutine mem_advise_set_preferred
-
-
-
-  subroutine mem_advise_set_readonly(p, sz) bind(c, name='mem_advise_set_readonly')
-
-    use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetReadMostly, cudaCpuDeviceId
-    use iso_c_binding, only: c_size_t
-
-    implicit none
-
-    type(c_devptr), value :: p
-    integer(c_size_t), value :: sz
-
-    integer :: cudaResult
-
-    ! Note: we do not error test in this subroutine because the error
-    ! code seems to be broken in PGI.
-
-    ! Note: the device argument in this call is ignored, so we arbitrarily pick the CPU.
-#ifndef NO_CUDA_8
-    if ((.not. have_prop) .or. (have_prop .and. prop%concurrentManagedAccess == 1)) then
-       cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)
-    end if
-#endif
-
-  end subroutine mem_advise_set_readonly
 
 
 

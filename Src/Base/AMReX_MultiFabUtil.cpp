@@ -26,7 +26,7 @@ namespace {
     static
     std::unique_ptr<MultiFab> allocateSlice(int dir, const MultiFab& cell_centered_data,
                                             int ncomp, const Geometry& geom, Real dir_coord,
-                                            Array<int>& slice_to_full_ba_map) {
+                                            Vector<int>& slice_to_full_ba_map) {
 
         // Get our slice and convert to index space
         RealBox real_slice = geom.ProbDomain();
@@ -39,8 +39,8 @@ namespace {
         const DistributionMapping& dm = cell_centered_data.DistributionMap();
         std::vector< std::pair<int, Box> > isects;
         ba.intersections(slice_box, isects, false, 0);
-        Array<Box> boxes;
-        Array<int> procs;
+        Vector<Box> boxes;
+        Vector<int> procs;
         for (int i = 0; i < isects.size(); ++i) {
             procs.push_back(dm[isects[i].first]);
             boxes.push_back(isects[i].second);
@@ -72,8 +72,8 @@ namespace amrex
 
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge)
     {
-	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
-	BL_ASSERT(edge.size() == BL_SPACEDIM);
+	BL_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+	BL_ASSERT(edge.size() == AMREX_SPACEDIM);
 	BL_ASSERT(edge[0]->nComp() == 1);
 #ifdef _OPENMP
 #pragma omp parallel
@@ -93,8 +93,8 @@ namespace amrex
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
     {
-	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
-	BL_ASSERT(fc.size() == BL_SPACEDIM);
+	BL_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
 	BL_ASSERT(fc[0]->nComp() == 1);
 
 	Real dx[3] = {1.0,1.0,1.0};
@@ -121,8 +121,8 @@ namespace amrex
     void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
 				     const Geometry& geom)
     {
-	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);
-	BL_ASSERT(fc.size() == BL_SPACEDIM);
+	BL_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
+	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
 	BL_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
@@ -151,7 +151,7 @@ namespace amrex
     {
 	BL_ASSERT(cc.nComp() == 1);
 	BL_ASSERT(cc.nGrow() >= 1);
-	BL_ASSERT(fc.size() == BL_SPACEDIM);
+	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
 	BL_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
@@ -164,19 +164,19 @@ namespace amrex
 	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
 	{
 	    const Box& xbx = mfi.nodaltilebox(0);
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 	    const Box& ybx = mfi.nodaltilebox(1);
 #endif
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	    const Box& zbx = mfi.nodaltilebox(2);
 #endif
 	    
 	    BL_FORT_PROC_CALL(BL_AVG_CC_TO_FC,bl_avg_cc_to_fc)
 		(xbx.loVect(), xbx.hiVect(),
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 		 ybx.loVect(), ybx.hiVect(),
 #endif
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 		 zbx.loVect(), zbx.hiVect(),
 #endif
 		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
@@ -209,7 +209,7 @@ namespace amrex
             amrex::Error("Can't use amrex::average_down for nodal MultiFab!");
         }
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
 	return;
 #else
@@ -303,7 +303,11 @@ namespace amrex
                        int scomp, int ncomp, const IntVect& ratio)
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
+        BL_ASSERT(S_crse.is_cell_centered() && S_fine.is_cell_centered() ||
+                  S_crse.is_nodal()         && S_fine.is_nodal());
 
+        bool is_cell_centered = S_crse.is_cell_centered();
+        
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
@@ -318,12 +322,20 @@ namespace amrex
             {
                 //  NOTE: The tilebox is defined at the coarse level.
                 const Box& tbx = mfi.tilebox();
-                
-                BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                    (tbx.loVect(), tbx.hiVect(),
-                     BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                     BL_TO_FORTRAN_N(S_crse[mfi],scomp),
-                     ratio.getVect(),&ncomp);
+
+                if (is_cell_centered) {
+                    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
+                        (tbx.loVect(), tbx.hiVect(),
+                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
+                         BL_TO_FORTRAN_N(S_crse[mfi],scomp),
+                         ratio.getVect(),&ncomp);
+                } else {
+                    BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
+                        (tbx.loVect(),tbx.hiVect(),
+                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
+                         BL_TO_FORTRAN_N(S_crse[mfi],scomp),
+                         ratio.getVect(),&ncomp);
+                }
             }
         }
         else
@@ -341,12 +353,20 @@ namespace amrex
                 //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
                 //        because the crse fab is a temporary which was made starting at comp 0, it is
                 //        not part of the actual crse multifab which came in.
-                
-                BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                    (tbx.loVect(), tbx.hiVect(),
-                     BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                     BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                     ratio.getVect(),&ncomp);
+
+                if (is_cell_centered) {
+                    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
+                        (tbx.loVect(), tbx.hiVect(),
+                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
+                         BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
+                         ratio.getVect(),&ncomp);
+                } else {
+                    BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
+                        (tbx.loVect(), tbx.hiVect(),
+                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
+                         BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
+                         ratio.getVect(),&ncomp);
+                }
             }
             
             S_crse.copy(crse_S_fine,0,scomp,ncomp);
@@ -359,8 +379,8 @@ namespace amrex
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
 			     const IntVect& ratio, int ngcrse)
     {
-	BL_ASSERT(crse.size()  == BL_SPACEDIM);
-	BL_ASSERT(fine.size()  == BL_SPACEDIM);
+	BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
+	BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
 	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
 	int ncomp = crse[0]->nComp();
@@ -370,7 +390,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (int n=0; n<BL_SPACEDIM; ++n) {
+            for (int n=0; n<AMREX_SPACEDIM; ++n) {
                 for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
                 {
                     const Box& tbx = mfi.growntilebox(ngcrse);
@@ -407,8 +427,8 @@ namespace amrex
     void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                              const IntVect& ratio, int ngcrse)
     {
-	BL_ASSERT(crse.size()  == BL_SPACEDIM);
-	BL_ASSERT(fine.size()  == BL_SPACEDIM);
+	BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
+	BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
 	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
 	int ncomp = crse[0]->nComp();
@@ -416,7 +436,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (int n=0; n<BL_SPACEDIM; ++n) {
+        for (int n=0; n<AMREX_SPACEDIM; ++n) {
             for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.growntilebox(ngcrse);
@@ -498,6 +518,19 @@ namespace amrex
       
     }
 
+    void writeFabs (const MultiFab& mf, const std::string& name)
+    {
+        writeFabs (mf, 0, mf.nComp(), name);
+    }
+
+    void writeFabs (const MultiFab& mf, int comp, int ncomp, const std::string& name)
+    {
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            std::ofstream ofs(name+"-fab-"+std::to_string(mfi.index()));
+            mf[mfi].writeOn(ofs, comp, ncomp);
+        }
+    }
+
     MultiFab ToMultiFab (const iMultiFab& imf)
     {
         MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow(),
@@ -522,7 +555,7 @@ namespace amrex
 
         BL_PROFILE("amrex::get_slice_data");
         
-        Array<int> slice_to_full_ba_map;
+        Vector<int> slice_to_full_ba_map;
         std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);
         
         int nf = cc.nComp();        

@@ -94,6 +94,9 @@ public:
     //! Return the tilebox with provided nodal flag
     Box tilebox (const IntVect& nodal) const;
 
+    //! Return the tilebox with provided nodal flag and grown cells
+    Box tilebox (const IntVect& nodal, const IntVect& ngrow) const;
+
     //! Return the dir-nodal (or all nodal if dir<0) Box at the current index.
     Box nodaltilebox (int dir=-1) const;
 

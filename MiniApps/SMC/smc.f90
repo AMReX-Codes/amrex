@@ -126,7 +126,7 @@ subroutine smc()
         end if
 
         if (parallel_IOProcessor() .and. verbose .ge. 2) then
-           call flush(6)
+           flush(6)
         end if
 
         ! have we reached the stop time?

@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #ifndef _FabArrayIO__H_
 #define _FabArrayIO__H_
 
@@ -231,7 +220,7 @@ namespace amrex
         BL_PROFILE("FabArrayIO::write");
         BL_ASSERT(a_directory_name[a_directory_name.length() - 1] != '/');
 
-        UtilCreateDirectoryDestructive(a_directory_name, true);
+        UtilCreateCleanDirectory(a_directory_name, true);
 
         //first make and write the header.  This is the only blocking bit of this
         FAIOHeader<T> header(a_data);
@@ -307,7 +296,7 @@ namespace amrex
         }
 
         a_data.define(header.m_ba, dm,  header.m_nComp, 0, MFInfo(), DefaultFabFactory<T>());
-
+        int ibox = 0;
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
           int baindex = mfi.index();
@@ -329,6 +318,7 @@ namespace amrex
           fileStream.flush();
           fileStream.close();
           delete[] inbuf;
+          ibox++;
         }
                       
       }
