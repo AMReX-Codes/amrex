@@ -43,6 +43,7 @@ public:
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
                          amrex::MultiFab* rho,
+                         amrex::MultiFab* rho2,
                          amrex::Real t,
                          amrex::Real dt) final;
 

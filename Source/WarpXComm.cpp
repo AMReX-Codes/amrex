@@ -358,51 +358,52 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
 }
 
 void
-WarpX::SyncRho ()
+WarpX::SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
+                const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc)
 {
-    if (!rho_fp[0]) return;
+    if (!rhof[0]) return;
 
     // Restrict fine patch onto the coarse patch, before fine patch SumBoundary
     for (int lev = 1; lev <= finest_level; ++lev) 
     {
-        rho_cp[lev]->setVal(0.0);      
+        rhoc[lev]->setVal(0.0);      
         const IntVect& ref_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], ref_ratio[0]);
+        SyncRho(*rhof[lev], *rhoc[lev], ref_ratio[0]);
     }
 
     // Sum up fine patch
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        rho_fp[lev]->SumBoundary(period);
+        rhof[lev]->SumBoundary(period);
     }
 
     // Add fine level's coarse patch to coarse level's fine patch
     for (int lev = 0; lev < finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        const int ngsrc = rho_cp[lev+1]->nGrow();
+        const int ngsrc = rhoc[lev+1]->nGrow();
         const int ngdst = 0;
-        rho_fp[lev]->copy(*rho_cp[lev+1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        rhof[lev]->copy(*rhoc[lev+1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
     }
 
     // Sum up coarse patch
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        rho_cp[lev]->SumBoundary(cperiod);
+        rhoc[lev]->SumBoundary(cperiod);
     }
 
     // sync shared nodal points
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        rho_fp[lev]->OverrideSync(period);
+        rhof[lev]->OverrideSync(period);
     }
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        rho_cp[lev]->OverrideSync(cperiod);
+        rhoc[lev]->OverrideSync(cperiod);
     }
 }
 

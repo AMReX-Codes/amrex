@@ -14,6 +14,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_LayoutData.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
@@ -137,7 +138,8 @@ public:
     void FillBoundaryB (int lev);
 
     void SyncCurrent ();
-    void SyncRho ();
+    void SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
+                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc);
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -408,6 +410,86 @@ private:
     amrex::RealVect fine_tag_hi;
 
     bool is_synchronized = true;
+
+#ifdef WARPX_USE_PSATD
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_fp;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_cp;
+
+    // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
+    // This includes data for the FFT guard cells (between FFT groups)
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_fp_fft;
+  
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_cp_fft;
+
+    // FFTData is a stuct containing a 22 pointers to auxiliary arrays
+    // 1-11: padded arrays in real space (required by FFTW); 12-22: arrays in spectral space
+    struct FFTData
+    {
+        static constexpr int N = 22;
+        void* data[N] = { nullptr };
+
+        ~FFTData () {
+            for (int i = 0; i < N; ++i) { // The memory is allocated by Fortran routines
+                std::free(data[i]);
+                data[i] = nullptr;
+            }
+        }
+
+        FFTData () = default;
+
+        FFTData (FFTData && rhs) noexcept {
+            for (int i = 0; i < N; ++i) {
+                data[i] = rhs.data[i];
+                rhs.data[i] = nullptr;
+            }
+        }
+
+        FFTData (FFTData const&) = delete;
+        void operator= (FFTData const&) = delete;
+        void operator= (FFTData&&) = delete;
+    };
+
+    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
+    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
+
+  // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
+    amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
+    amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
+
+    amrex::Vector<amrex::Box> domain_fp_fft;  //  "global" domain for the group this process belongs to 
+    amrex::Vector<amrex::Box> domain_cp_fft;
+
+    amrex::Vector<MPI_Comm> comm_fft;
+    amrex::Vector<int>      color_fft;
+
+    int ngroups_fft = 4;
+    int nox_fft = 16;
+    int noy_fft = 16;
+    int noz_fft = 16;
+
+    void AllocLevelDataFFT (int lev);
+    void InitLevelDataFFT (int lev, amrex::Real time);
+
+    void InitFFTComm (int lev);
+    void FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
+                                amrex::BoxArray& ba_valid, amrex::Box& domain_fft,
+                                const amrex::Box& domain);
+    void InitFFTDataPlan (int lev);
+    void FreeFFT (int lev);
+
+    void EvolvePSATD (int numsteps);
+    void PushPSATD (amrex::Real dt);
+    void PushPSATD (int lev, amrex::Real dt);
+
+#endif
 };
 
 #endif

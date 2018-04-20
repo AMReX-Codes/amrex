@@ -5,6 +5,11 @@ OPENBC_HOME ?= ../../../openbc_poisson
 USE_MPI       = TRUE
 USE_PARTICLES = TRUE
 
+ifeq ($(USE_PSATD),TRUE)
+   # because of PICSAR's spectral solver
+  USE_OMP = TRUE
+endif
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 ifndef USE_PYTHON_MAIN
@@ -38,6 +43,19 @@ DEFINES += -DPICSAR_NO_ASSUMED_ALIGNMENT
 ifeq ($(USE_OPENBC_POISSON),TRUE)
   include $(OPENBC_HOME)/Make.package
   DEFINES += -DFFT_FFTW -DMPIPARALLEL -DUSE_OPENBC_POISSON
+endif
+
+ifeq ($(USE_PSATD),TRUE)
+  FFTW_HOME ?= NOT_SET
+  ifneq ($(FFTW_HOME),NOT_SET)
+    VPATH_LOCATIONS += $(FFTW_HOME)/include
+    INCLUDE_LOCATIONS += $(FFTW_HOME)/include
+    LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+  endif
+  USERSuffix += .PSATD
+  DEFINES += -DWARPX_USE_PSATD
+  DEFINES += -DFFTW   # PICSAR uses it
+  LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_omp
 endif
 
 # job_info support
