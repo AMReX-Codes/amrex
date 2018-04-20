@@ -415,18 +415,22 @@ private:
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_fp;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_cp;
 
+    // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
+    // This includes data for the FFT guard cells (between FFT groups)
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_fp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_fp_fft;
-
+  
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_cp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_cp_fft;
 
+    // FFTData is a stuct containing a 22 pointers to auxiliary arrays
+    // 1-11: padded arrays in real space (required by FFTW); 12-22: arrays in spectral space
     struct FFTData
     {
         static constexpr int N = 22;
@@ -456,6 +460,7 @@ private:
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
 
+  // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
     amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
     amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
 

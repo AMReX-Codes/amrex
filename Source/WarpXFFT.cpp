@@ -52,7 +52,7 @@ WarpX::AllocLevelDataFFT (int lev)
 
     rho2_fp[lev].reset(new MultiFab(rho_fp[lev]->boxArray(),
                                     rho_fp[lev]->DistributionMap(),
-                                    1, ngRho+1)); 
+                                    1, ngRho+1));
     // rho2 has one extra ghost cell, so that it's safe to deposit charge density after
     // pushing particle.
 
@@ -87,7 +87,7 @@ WarpX::AllocLevelDataFFT (int lev)
         DistributionMapping dm_cp_fft;
         FFTDomainDecompsition(lev, ba_cp_fft, dm_cp_fft, ba_valid_cp_fft[lev], domain_cp_fft[lev],
                               amrex::coarsen(geom[lev].Domain(),2));
-        
+
         int ngRho = Efield_cp[lev][0]->nGrow();
         if (rho_cp[lev] == nullptr)
         {
@@ -95,7 +95,7 @@ WarpX::AllocLevelDataFFT (int lev)
             const DistributionMapping& dm = Efield_cp[lev][0]->DistributionMap();
             rho_cp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
         }
-        
+
         rho2_cp[lev].reset(new MultiFab(rho_cp[lev]->boxArray(),
                                         rho_cp[lev]->DistributionMap(),
                                         1, ngRho));
@@ -124,13 +124,19 @@ WarpX::AllocLevelDataFFT (int lev)
                                                 dm_cp_fft, 1, 0));
         rho_next_cp_fft[lev].reset(new MultiFab(amrex::convert(ba_cp_fft,IntVect::TheNodeVector()),
                                                 dm_cp_fft, 1, 0));
-        
+
         dataptr_cp_fft[lev].reset(new LayoutData<FFTData>(ba_cp_fft, dm_cp_fft));
     }
 
     InitFFTDataPlan(lev);
 }
 
+/** \brief Create MPI sub-communicators for each FFT group,
+ *         and put them in PICSAR module
+ *
+ * These communicators are passed to the parallel FFTW library, in order
+ * to perform a global FFT within each FFT group.
+ */
 void
 WarpX::InitFFTComm (int lev)
 {
@@ -148,9 +154,28 @@ WarpX::InitFFTComm (int lev)
     MPI_Comm_split(ParallelDescriptor::Communicator(), color_fft[lev], myproc, &comm_fft[lev]);
 
     int fcomm = MPI_Comm_c2f(comm_fft[lev]);
+    // Set the communicator of the PICSAR module to the one we just created
     warpx_fft_mpi_init(fcomm);
 }
 
+/** \brief Perform domain decomposition for the FFTW
+ *
+ *  Attribute one (unique) box to each proc, in such a way that:
+ *    - The global domain is divided among FFT groups,
+ *      with additional guard cells around each FFT group
+ *    - The domain associated to an FFT group (with its guard cells)
+ *      is further divided in sub-subdomains along z, so as to distribute
+ *      it among the procs within an FFT group
+ *
+ *  The attribution is done by setting (within this function):
+ *  - ba_fft: the BoxArray representing the final set of sub-domains for the FFT
+ *            (includes/covers the guard cells of the FFT groups)
+ *  - dm_fft: the mapping between these sub-domains and the corresponding proc
+ *              (imposes one unique box for each proc)
+ *  - ba_valid: the BoxArray that contains valid part of the sub-domains of ba_fft
+ *            (i.e. does not include/cover the guard cells of the FFT groups)
+ *  - domain_fft: a Box that represent the domain of the FFT group for the current proc
+ */
 void
 WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm_fft,
                               BoxArray& ba_valid, Box& domain_fft, const Box& domain)
@@ -161,14 +186,15 @@ WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm
     int np_fft;
     MPI_Comm_size(comm_fft[lev], &np_fft);
 
-    BoxList bl_fft;
+    BoxList bl_fft; // List of boxes: will be filled by the boxes attributed to each proc
     bl_fft.reserve(nprocs);
-    Vector<int> gid_fft;
+    Vector<int> gid_fft; // List of group ID: will be filled with the FFT group ID of each box
     gid_fft.reserve(nprocs);
 
     BoxList bl(domain, ngroups_fft);  // This does a multi-D domain decomposition for groups
     AMREX_ALWAYS_ASSERT(bl.size() == ngroups_fft);
     const Vector<Box>& bldata = bl.data();
+    // Fill bl_fft and gid_fft ; loop over FFT groups
     for (int igroup = 0; igroup < ngroups_fft; ++igroup)
     {
         // Within the group, 1d domain decomposition is performed.
@@ -179,6 +205,7 @@ WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm
         for (int i = 0; i < np_fft; ++i) {
             gid_fft.push_back(igroup);
         }
+        // Determine the sub-domain associated with the FFT group of the local proc
         if (igroup == color_fft[lev]) {
             domain_fft = bx;
         }
@@ -193,18 +220,19 @@ WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm
     dm_fft.define(std::move(pmap));
 
     //
-    // For communication between WarpX normal domain and FFT domain, we need to create a 
+    // For communication between WarpX normal domain and FFT domain, we need to create a
     // special BoxArray ba_valid
     //
 
     const Box foobox(-nguards_fft-2, -nguards_fft-2);
 
-    BoxList bl_valid;
+    BoxList bl_valid; // List of boxes: will be filled by the valid part of the subdomains of ba_fft
     bl_valid.reserve(ba_fft.size());
     for (int i = 0; i < ba_fft.size(); ++i)
     {
         int igroup = gid_fft[i];
-        const Box& bx = ba_fft[i] & bldata[igroup];
+        const Box& bx = ba_fft[i] & bldata[igroup]; // Intersection with the domain of
+                                                    // the FFT group *without* guard cells
         if (bx.ok())
         {
             bl_valid.push_back(bx);
@@ -218,6 +246,12 @@ WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm
     ba_valid.define(std::move(bl_valid));
 }
 
+/** /brief Set all the flags and metadata of the PICSAR FFT module.
+ *         Allocate the auxiliary arrays of `fft_data`
+ *
+ * Note: dataptr_data is a stuct containing 22 pointers to arrays
+ * 1-11: padded arrays in real space ; 12-22 arrays for the fields in Fourier space
+ */
 void
 WarpX::InitFFTDataPlan (int lev)
 {
@@ -305,4 +339,3 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
 }
-

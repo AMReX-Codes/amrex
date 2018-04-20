@@ -10,12 +10,14 @@ module warpx_fft_module
 
 contains
 
+!> @brief
+!! Set the communicator of the PICSAR module to the one that is passed in argument
   subroutine warpx_fft_mpi_init (fcomm) bind(c,name='warpx_fft_mpi_init')
     use shared_data, only : comm, rank, nproc
     integer, intent(in), value :: fcomm
 
     integer :: ierr, lnproc, lrank
-  
+
     comm = fcomm
 
     call mpi_comm_size(comm, lnproc, ierr)
@@ -25,7 +27,12 @@ contains
     rank = lrank
   end subroutine warpx_fft_mpi_init
 
-
+!> @brief
+!! Set all the flags and metadata of the PICSAR FFT module.
+!! Allocate the auxiliary arrays of `fft_data`
+!!
+!! Note: fft_data is a stuct containing 22 pointers to arrays
+!! 1-11: padded arrays in real space ; 12-22 arrays for the fields in Fourier space
   subroutine warpx_fft_dataplan_init (global_lo, global_hi, local_lo, local_hi, &
        nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx) &
        bind(c,name='warpx_fft_dataplan_init')
@@ -79,7 +86,7 @@ contains
          INT(ny_global,C_INTPTR_T), &
          INT(nx_global,C_INTPTR_T)/2+1, &
          comm, local_nz, local_z0)
-    
+
     ! For the calculation of the modified [k] vectors
     l_staggered = .TRUE.
     norderx = int(nox, idp)
@@ -96,7 +103,7 @@ contains
 
     ! Allocate padded arrays for MPI FFTW
     nx_padded = 2*(nx/2 + 1)
-    shp = [nx_padded, int(ny), int(nz)] 
+    shp = [nx_padded, int(ny), int(nz)]
     sz = c_sizeof(realfoo) * int(shp(1),c_size_t) * int(shp(2),c_size_t) * int(shp(3),c_size_t)
     fft_data(1) = amrex_malloc(sz)
     call c_f_pointer(fft_data(1), ex_r, shp)
@@ -210,12 +217,12 @@ contains
        jz_wrpx, jzlo, jzhi, &
        rhoold_wrpx, r1lo, r1hi, &
        rho_wrpx, r2lo, r2hi) &
-       bind(c,name='warpx_fft_push_eb')       
-       
+       bind(c,name='warpx_fft_push_eb')
+
     use fields, only: ex, ey, ez, bx, by, bz, jx, jy, jz
     use shared_data, only: rhoold, rho
     use constants, only: num
-    
+
     integer, dimension(3), intent(in) :: exlo, exhi, eylo, eyhi, ezlo, ezhi, bxlo, bxhi, &
          bylo, byhi, bzlo, bzhi, jxlo, jxhi, jylo, jyhi, jzlo, jzhi, r1lo, r1hi, r2lo, r2hi
     REAL(num), INTENT(INOUT), TARGET :: ex_wrpx(0:exhi(1)-exlo(1),0:exhi(2)-exlo(2),0:exhi(3)-exlo(3))
@@ -242,10 +249,10 @@ contains
     jz => jz_wrpx
     rho => rho_wrpx
     rhoold => rhoold_wrpx
-  
+
     ! Call the corresponding PICSAR function
     CALL push_psatd_ebfield_3d()
-    
+
     ex => null()
     ey => null()
     ez => null()
