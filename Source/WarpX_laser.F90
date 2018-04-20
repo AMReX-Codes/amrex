@@ -4,6 +4,7 @@ module warpx_laser_module
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
   use constants
+  use parser_wrapper
 
   implicit none
 
@@ -101,4 +102,82 @@ contains
 
   end subroutine warpx_harris_laser
 
+  ! Parse function from the input script for the laser temporal profile
+  subroutine parse_function_laser( np, Xp, Yp, t, e_max, amplitude, parser_instance_number ) bind(C, name="parse_function_laser")
+       integer(c_long), intent(in) :: np
+       real(amrex_real), intent(in)    :: Xp(np),Yp(np)
+       real(amrex_real), intent(in)    :: e_max, t
+       real(amrex_real), intent(inout) :: amplitude(np)
+       INTEGER, value, INTENT(IN) :: parser_instance_number
+       integer(c_long)  :: i
+       INTEGER, PARAMETER :: nvar_parser = 3
+       REAL(amrex_real) :: list_var(1:nvar_parser)
+    ! Loop through the macroparticle to calculate the proper amplitude
+    do i = 1, np
+      list_var = [Xp(i), Yp(i), t]
+      amplitude(i) = e_max * parser_evaluate_function(list_var, nvar_parser, parser_instance_number)
+    enddo
+  end subroutine parse_function_laser
+
 end module warpx_laser_module
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

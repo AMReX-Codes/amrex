@@ -1238,7 +1238,7 @@ FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) 
 
   nb_res = nb_res + 1
   my_index_res = nb_res
-  IF (nb_res>10)
+  IF (nb_res>10) THEN
     WRITE(*,*) 'Parser error: cannot have more than 10 parsers.'
     STOP
   ENDIF

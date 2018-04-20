@@ -5,7 +5,7 @@
 
 #include <WarpXParticleContainer.H>
 
-enum class laser_t { Null, Gaussian, Harris };
+enum class laser_t { Null, Gaussian, Harris, parse_field_function };
 
 class LaserParticleContainer
     : public WarpXParticleContainer
@@ -60,6 +60,10 @@ private:
     amrex::Real profile_duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
+
+    // parse_field_function profile
+    int parser_instance_number = 0;
+    std::string field_function;
 
     // laser particle domain
     amrex::RealBox prob_domain;
