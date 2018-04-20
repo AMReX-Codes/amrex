@@ -6,6 +6,8 @@
 
 using namespace amrex;
 
+constexpr int MultiParticleContainer::nstencilz_fdtd_nci_corr;
+
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
     ReadParameters();
