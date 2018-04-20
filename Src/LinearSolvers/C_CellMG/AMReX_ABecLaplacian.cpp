@@ -84,19 +84,19 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 #if (BL_SPACEDIM==2)
 	    amrex_abec_norma(&tres,
 		       &alpha, &beta,
-		       afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-		       bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-		       byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
+		       afab.dataPtr(),  AMREX_ARLIM(afab.loVect()), AMREX_ARLIM(afab.hiVect()),
+		       bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()), AMREX_ARLIM(bxfab.hiVect()),
+		       byfab.dataPtr(), AMREX_ARLIM(byfab.loVect()), AMREX_ARLIM(byfab.hiVect()),
 		       tbx.loVect(), tbx.hiVect(), &nc,
 		       h[level].data());
 #elif (BL_SPACEDIM==3)
 	    
 	    amrex_abec_norma(&tres,
 		       &alpha, &beta,
-		       afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-		       bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-		       byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-		       bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
+		       afab.dataPtr(),  AMREX_ARLIM(afab.loVect()), AMREX_ARLIM(afab.hiVect()),
+		       bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()), AMREX_ARLIM(bxfab.hiVect()),
+		       byfab.dataPtr(), AMREX_ARLIM(byfab.loVect()), AMREX_ARLIM(byfab.hiVect()),
+		       bzfab.dataPtr(), AMREX_ARLIM(bzfab.loVect()), AMREX_ARLIM(bzfab.hiVect()),
 		       tbx.loVect(), tbx.hiVect(), &nc,
 		       h[level].data());
 #endif
@@ -359,17 +359,17 @@ ABecLaplacian::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab
                FArrayBox& zfluxfab = zflux[inmfi];);
 
         amrex_abec_flux(infab.dataPtr(src_comp),
-		  ARLIM(infab.loVect()), ARLIM(infab.hiVect()),
+		  AMREX_ARLIM(infab.loVect()), AMREX_ARLIM(infab.hiVect()),
 		  &alpha, &beta, a[inmfi].dataPtr(), 
-		  ARLIM(a[inmfi].loVect()), ARLIM(a[inmfi].hiVect()),
+		  AMREX_ARLIM(a[inmfi].loVect()), AMREX_ARLIM(a[inmfi].hiVect()),
 		  bxfab.dataPtr(), 
-		  ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
+		  AMREX_ARLIM(bxfab.loVect()), AMREX_ARLIM(bxfab.hiVect()),
 #if (BL_SPACEDIM >= 2)
 		  byfab.dataPtr(), 
-		  ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
+		  AMREX_ARLIM(byfab.loVect()), AMREX_ARLIM(byfab.hiVect()),
 #if (BL_SPACEDIM == 3)
 		  bzfab.dataPtr(), 
-		  ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
+		  AMREX_ARLIM(bzfab.loVect()), AMREX_ARLIM(bzfab.hiVect()),
 #endif
 #endif
 		  xbx.loVect(), xbx.hiVect(), 
@@ -382,14 +382,14 @@ ABecLaplacian::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab
 		  &num_comp,
 		  h[level].data(),
 		  xfluxfab.dataPtr(dst_comp),
-		  ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect())
+		  AMREX_ARLIM(xfluxfab.loVect()), AMREX_ARLIM(xfluxfab.hiVect())
 #if (BL_SPACEDIM >= 2)
 		  ,yfluxfab.dataPtr(dst_comp),
-		  ARLIM(yfluxfab.loVect()), ARLIM(yfluxfab.hiVect())
+		  AMREX_ARLIM(yfluxfab.loVect()), AMREX_ARLIM(yfluxfab.hiVect())
 #endif
 #if (BL_SPACEDIM == 3)
 		  ,zfluxfab.dataPtr(dst_comp),
-		  ARLIM(zfluxfab.loVect()), ARLIM(zfluxfab.hiVect())
+		  AMREX_ARLIM(zfluxfab.loVect()), AMREX_ARLIM(zfluxfab.hiVect())
 #endif
 		  );
     }
@@ -472,44 +472,44 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 2)
-        amrex_abec_gsrb(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
-                  rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
+        amrex_abec_gsrb(solnfab.dataPtr(), AMREX_ARLIM(solnfab.loVect()),AMREX_ARLIM(solnfab.hiVect()),
+                  rhsfab.dataPtr(), AMREX_ARLIM(rhsfab.loVect()), AMREX_ARLIM(rhsfab.hiVect()),
                   &alpha, &beta,
-                  afab.dataPtr(), ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
-                  bxfab.dataPtr(), ARLIM(bxfab.loVect()),   ARLIM(bxfab.hiVect()),
-                  byfab.dataPtr(), ARLIM(byfab.loVect()),   ARLIM(byfab.hiVect()),
-                  f0fab.dataPtr(), ARLIM(f0fab.loVect()),   ARLIM(f0fab.hiVect()),
-                  m0.dataPtr(), ARLIM(m0.loVect()),   ARLIM(m0.hiVect()),
-                  f1fab.dataPtr(), ARLIM(f1fab.loVect()),   ARLIM(f1fab.hiVect()),
-                  m1.dataPtr(), ARLIM(m1.loVect()),   ARLIM(m1.hiVect()),
-                  f2fab.dataPtr(), ARLIM(f2fab.loVect()),   ARLIM(f2fab.hiVect()),
-                  m2.dataPtr(), ARLIM(m2.loVect()),   ARLIM(m2.hiVect()),
-                  f3fab.dataPtr(), ARLIM(f3fab.loVect()),   ARLIM(f3fab.hiVect()),
-                  m3.dataPtr(), ARLIM(m3.loVect()),   ARLIM(m3.hiVect()),
+                  afab.dataPtr(), AMREX_ARLIM(afab.loVect()),    AMREX_ARLIM(afab.hiVect()),
+                  bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()),   AMREX_ARLIM(bxfab.hiVect()),
+                  byfab.dataPtr(), AMREX_ARLIM(byfab.loVect()),   AMREX_ARLIM(byfab.hiVect()),
+                  f0fab.dataPtr(), AMREX_ARLIM(f0fab.loVect()),   AMREX_ARLIM(f0fab.hiVect()),
+                  m0.dataPtr(), AMREX_ARLIM(m0.loVect()),   AMREX_ARLIM(m0.hiVect()),
+                  f1fab.dataPtr(), AMREX_ARLIM(f1fab.loVect()),   AMREX_ARLIM(f1fab.hiVect()),
+                  m1.dataPtr(), AMREX_ARLIM(m1.loVect()),   AMREX_ARLIM(m1.hiVect()),
+                  f2fab.dataPtr(), AMREX_ARLIM(f2fab.loVect()),   AMREX_ARLIM(f2fab.hiVect()),
+                  m2.dataPtr(), AMREX_ARLIM(m2.loVect()),   AMREX_ARLIM(m2.hiVect()),
+                  f3fab.dataPtr(), AMREX_ARLIM(f3fab.loVect()),   AMREX_ARLIM(f3fab.hiVect()),
+                  m3.dataPtr(), AMREX_ARLIM(m3.loVect()),   AMREX_ARLIM(m3.hiVect()),
                   tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
                   &nc, h[level].data(), &redBlackFlag);
 #endif
 
 #if (BL_SPACEDIM == 3)
-        amrex_abec_gsrb(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
-                  rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
+        amrex_abec_gsrb(solnfab.dataPtr(), AMREX_ARLIM(solnfab.loVect()),AMREX_ARLIM(solnfab.hiVect()),
+                  rhsfab.dataPtr(), AMREX_ARLIM(rhsfab.loVect()), AMREX_ARLIM(rhsfab.hiVect()),
                   &alpha, &beta,
-                  afab.dataPtr(), ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                  bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                  byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                  bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                  f0fab.dataPtr(), ARLIM(f0fab.loVect()), ARLIM(f0fab.hiVect()),
-                  m0.dataPtr(), ARLIM(m0.loVect()), ARLIM(m0.hiVect()),
-                  f1fab.dataPtr(), ARLIM(f1fab.loVect()), ARLIM(f1fab.hiVect()),
-                  m1.dataPtr(), ARLIM(m1.loVect()), ARLIM(m1.hiVect()),
-                  f2fab.dataPtr(), ARLIM(f2fab.loVect()), ARLIM(f2fab.hiVect()),
-                  m2.dataPtr(), ARLIM(m2.loVect()), ARLIM(m2.hiVect()),
-                  f3fab.dataPtr(), ARLIM(f3fab.loVect()), ARLIM(f3fab.hiVect()),
-                  m3.dataPtr(), ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
-                  f4fab.dataPtr(), ARLIM(f4fab.loVect()), ARLIM(f4fab.hiVect()),
-                  m4.dataPtr(), ARLIM(m4.loVect()), ARLIM(m4.hiVect()),
-                  f5fab.dataPtr(), ARLIM(f5fab.loVect()), ARLIM(f5fab.hiVect()),
-                  m5.dataPtr(), ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
+                  afab.dataPtr(), AMREX_ARLIM(afab.loVect()), AMREX_ARLIM(afab.hiVect()),
+                  bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()), AMREX_ARLIM(bxfab.hiVect()),
+                  byfab.dataPtr(), AMREX_ARLIM(byfab.loVect()), AMREX_ARLIM(byfab.hiVect()),
+                  bzfab.dataPtr(), AMREX_ARLIM(bzfab.loVect()), AMREX_ARLIM(bzfab.hiVect()),
+                  f0fab.dataPtr(), AMREX_ARLIM(f0fab.loVect()), AMREX_ARLIM(f0fab.hiVect()),
+                  m0.dataPtr(), AMREX_ARLIM(m0.loVect()), AMREX_ARLIM(m0.hiVect()),
+                  f1fab.dataPtr(), AMREX_ARLIM(f1fab.loVect()), AMREX_ARLIM(f1fab.hiVect()),
+                  m1.dataPtr(), AMREX_ARLIM(m1.loVect()), AMREX_ARLIM(m1.hiVect()),
+                  f2fab.dataPtr(), AMREX_ARLIM(f2fab.loVect()), AMREX_ARLIM(f2fab.hiVect()),
+                  m2.dataPtr(), AMREX_ARLIM(m2.loVect()), AMREX_ARLIM(m2.hiVect()),
+                  f3fab.dataPtr(), AMREX_ARLIM(f3fab.loVect()), AMREX_ARLIM(f3fab.hiVect()),
+                  m3.dataPtr(), AMREX_ARLIM(m3.loVect()), AMREX_ARLIM(m3.hiVect()),
+                  f4fab.dataPtr(), AMREX_ARLIM(f4fab.loVect()), AMREX_ARLIM(f4fab.hiVect()),
+                  m4.dataPtr(), AMREX_ARLIM(m4.loVect()), AMREX_ARLIM(m4.hiVect()),
+                  f5fab.dataPtr(), AMREX_ARLIM(f5fab.loVect()), AMREX_ARLIM(f5fab.hiVect()),
+                  m5.dataPtr(), AMREX_ARLIM(m5.loVect()), AMREX_ARLIM(m5.hiVect()),
                   tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
                   &nc, h[level].data(), &redBlackFlag);
 #endif
@@ -585,44 +585,44 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 #endif
 
 #if (BL_SPACEDIM == 2)
-        amrex_abec_jacobi(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
-                    rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
+        amrex_abec_jacobi(solnfab.dataPtr(), AMREX_ARLIM(solnfab.loVect()),AMREX_ARLIM(solnfab.hiVect()),
+                    rhsfab.dataPtr(), AMREX_ARLIM(rhsfab.loVect()), AMREX_ARLIM(rhsfab.hiVect()),
                     &alpha, &beta,
-                    afab.dataPtr(), ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
-                    bxfab.dataPtr(), ARLIM(bxfab.loVect()),   ARLIM(bxfab.hiVect()),
-                    byfab.dataPtr(), ARLIM(byfab.loVect()),   ARLIM(byfab.hiVect()),
-                    f0fab.dataPtr(), ARLIM(f0fab.loVect()),   ARLIM(f0fab.hiVect()),
-                    m0.dataPtr(), ARLIM(m0.loVect()),   ARLIM(m0.hiVect()),
-                    f1fab.dataPtr(), ARLIM(f1fab.loVect()),   ARLIM(f1fab.hiVect()),
-                    m1.dataPtr(), ARLIM(m1.loVect()),   ARLIM(m1.hiVect()),
-                    f2fab.dataPtr(), ARLIM(f2fab.loVect()),   ARLIM(f2fab.hiVect()),
-                    m2.dataPtr(), ARLIM(m2.loVect()),   ARLIM(m2.hiVect()),
-                    f3fab.dataPtr(), ARLIM(f3fab.loVect()),   ARLIM(f3fab.hiVect()),
-                    m3.dataPtr(), ARLIM(m3.loVect()),   ARLIM(m3.hiVect()),
+                    afab.dataPtr(), AMREX_ARLIM(afab.loVect()),    AMREX_ARLIM(afab.hiVect()),
+                    bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()),   AMREX_ARLIM(bxfab.hiVect()),
+                    byfab.dataPtr(), AMREX_ARLIM(byfab.loVect()),   AMREX_ARLIM(byfab.hiVect()),
+                    f0fab.dataPtr(), AMREX_ARLIM(f0fab.loVect()),   AMREX_ARLIM(f0fab.hiVect()),
+                    m0.dataPtr(), AMREX_ARLIM(m0.loVect()),   AMREX_ARLIM(m0.hiVect()),
+                    f1fab.dataPtr(), AMREX_ARLIM(f1fab.loVect()),   AMREX_ARLIM(f1fab.hiVect()),
+                    m1.dataPtr(), AMREX_ARLIM(m1.loVect()),   AMREX_ARLIM(m1.hiVect()),
+                    f2fab.dataPtr(), AMREX_ARLIM(f2fab.loVect()),   AMREX_ARLIM(f2fab.hiVect()),
+                    m2.dataPtr(), AMREX_ARLIM(m2.loVect()),   AMREX_ARLIM(m2.hiVect()),
+                    f3fab.dataPtr(), AMREX_ARLIM(f3fab.loVect()),   AMREX_ARLIM(f3fab.hiVect()),
+                    m3.dataPtr(), AMREX_ARLIM(m3.loVect()),   AMREX_ARLIM(m3.hiVect()),
                     vbx.loVect(), vbx.hiVect(),
                     &nc, h[level].data());
 #endif
 
 #if (BL_SPACEDIM == 3)
-        amrex_abec_jacobi(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
-                    rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
+        amrex_abec_jacobi(solnfab.dataPtr(), AMREX_ARLIM(solnfab.loVect()),AMREX_ARLIM(solnfab.hiVect()),
+                    rhsfab.dataPtr(), AMREX_ARLIM(rhsfab.loVect()), AMREX_ARLIM(rhsfab.hiVect()),
                     &alpha, &beta,
-                    afab.dataPtr(), ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                    bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                    byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                    bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                    f0fab.dataPtr(), ARLIM(f0fab.loVect()), ARLIM(f0fab.hiVect()),
-                    m0.dataPtr(), ARLIM(m0.loVect()), ARLIM(m0.hiVect()),
-                    f1fab.dataPtr(), ARLIM(f1fab.loVect()), ARLIM(f1fab.hiVect()),
-                    m1.dataPtr(), ARLIM(m1.loVect()), ARLIM(m1.hiVect()),
-                    f2fab.dataPtr(), ARLIM(f2fab.loVect()), ARLIM(f2fab.hiVect()),
-                    m2.dataPtr(), ARLIM(m2.loVect()), ARLIM(m2.hiVect()),
-                    f3fab.dataPtr(), ARLIM(f3fab.loVect()), ARLIM(f3fab.hiVect()),
-                    m3.dataPtr(), ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
-                    f4fab.dataPtr(), ARLIM(f4fab.loVect()), ARLIM(f4fab.hiVect()),
-                    m4.dataPtr(), ARLIM(m4.loVect()), ARLIM(m4.hiVect()),
-                    f5fab.dataPtr(), ARLIM(f5fab.loVect()), ARLIM(f5fab.hiVect()),
-                    m5.dataPtr(), ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
+                    afab.dataPtr(), AMREX_ARLIM(afab.loVect()), AMREX_ARLIM(afab.hiVect()),
+                    bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()), AMREX_ARLIM(bxfab.hiVect()),
+                    byfab.dataPtr(), AMREX_ARLIM(byfab.loVect()), AMREX_ARLIM(byfab.hiVect()),
+                    bzfab.dataPtr(), AMREX_ARLIM(bzfab.loVect()), AMREX_ARLIM(bzfab.hiVect()),
+                    f0fab.dataPtr(), AMREX_ARLIM(f0fab.loVect()), AMREX_ARLIM(f0fab.hiVect()),
+                    m0.dataPtr(), AMREX_ARLIM(m0.loVect()), AMREX_ARLIM(m0.hiVect()),
+                    f1fab.dataPtr(), AMREX_ARLIM(f1fab.loVect()), AMREX_ARLIM(f1fab.hiVect()),
+                    m1.dataPtr(), AMREX_ARLIM(m1.loVect()), AMREX_ARLIM(m1.hiVect()),
+                    f2fab.dataPtr(), AMREX_ARLIM(f2fab.loVect()), AMREX_ARLIM(f2fab.hiVect()),
+                    m2.dataPtr(), AMREX_ARLIM(m2.loVect()), AMREX_ARLIM(m2.hiVect()),
+                    f3fab.dataPtr(), AMREX_ARLIM(f3fab.loVect()), AMREX_ARLIM(f3fab.hiVect()),
+                    m3.dataPtr(), AMREX_ARLIM(m3.loVect()), AMREX_ARLIM(m3.hiVect()),
+                    f4fab.dataPtr(), AMREX_ARLIM(f4fab.loVect()), AMREX_ARLIM(f4fab.hiVect()),
+                    m4.dataPtr(), AMREX_ARLIM(m4.loVect()), AMREX_ARLIM(m4.hiVect()),
+                    f5fab.dataPtr(), AMREX_ARLIM(f5fab.loVect()), AMREX_ARLIM(f5fab.hiVect()),
+                    m5.dataPtr(), AMREX_ARLIM(m5.loVect()), AMREX_ARLIM(m5.hiVect()),
                     vbx.loVect(), vbx.hiVect(),
                     &nc, h[level].data());
 #endif
@@ -678,31 +678,31 @@ ABecLaplacian::Fapply (MultiFab&       y,
 
 #if (BL_SPACEDIM == 2)
         amrex_abec_adotx(yfab.dataPtr(dst_comp),
-                   ARLIM(yfab.loVect()),ARLIM(yfab.hiVect()),
+                   AMREX_ARLIM(yfab.loVect()),AMREX_ARLIM(yfab.hiVect()),
                    xfab.dataPtr(src_comp),
-                   ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
+                   AMREX_ARLIM(xfab.loVect()), AMREX_ARLIM(xfab.hiVect()),
                    &alpha, &beta, afab.dataPtr(), 
-                   ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
+                   AMREX_ARLIM(afab.loVect()), AMREX_ARLIM(afab.hiVect()),
                    bxfab.dataPtr(), 
-                   ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
+                   AMREX_ARLIM(bxfab.loVect()), AMREX_ARLIM(bxfab.hiVect()),
                    byfab.dataPtr(), 
-                   ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
+                   AMREX_ARLIM(byfab.loVect()), AMREX_ARLIM(byfab.hiVect()),
                    tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level].data());
 #endif
 #if (BL_SPACEDIM ==3)
         amrex_abec_adotx(yfab.dataPtr(dst_comp),
-                   ARLIM(yfab.loVect()), ARLIM(yfab.hiVect()),
+                   AMREX_ARLIM(yfab.loVect()), AMREX_ARLIM(yfab.hiVect()),
                    xfab.dataPtr(src_comp),
-                   ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
+                   AMREX_ARLIM(xfab.loVect()), AMREX_ARLIM(xfab.hiVect()),
                    &alpha, &beta, afab.dataPtr(), 
-                   ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
+                   AMREX_ARLIM(afab.loVect()), AMREX_ARLIM(afab.hiVect()),
                    bxfab.dataPtr(), 
-                   ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
+                   AMREX_ARLIM(bxfab.loVect()), AMREX_ARLIM(bxfab.hiVect()),
                    byfab.dataPtr(), 
-                   ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
+                   AMREX_ARLIM(byfab.loVect()), AMREX_ARLIM(byfab.hiVect()),
                    bzfab.dataPtr(), 
-                   ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
+                   AMREX_ARLIM(bzfab.loVect()), AMREX_ARLIM(bzfab.hiVect()),
                    tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level].data());
 #endif

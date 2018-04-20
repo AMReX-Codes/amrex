@@ -1,6 +1,6 @@
 
-#ifndef _NOREFINEMENT_H_
-#define _NOREFINEMENT_H_
+#ifndef AMREX_NOREFINEMENT_H_
+#define AMREX_NOREFINEMENT_H_
 
 #include "AMReX_RefinementCriterion.H"
 

@@ -1,6 +1,6 @@
 
-#ifndef _NORMALDERIVATIVENEW_H_
-#define _NORMALDERIVATIVENEW_H_
+#ifndef AMREX_NORMALDERIVATIVENEW_H_
+#define AMREX_NORMALDERIVATIVENEW_H_
 
 #include "AMReX_Notation.H"
 #include "AMReX_BoxIterator.H"

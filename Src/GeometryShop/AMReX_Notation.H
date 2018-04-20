@@ -1,6 +1,6 @@
 
-#ifndef _NOTATION_H_
-#define _NOTATION_H_
+#ifndef AMREX_NOTATION_H_
+#define AMREX_NOTATION_H_
 
 #include <map>
 

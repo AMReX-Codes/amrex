@@ -581,6 +581,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
 // Fortran entry points for amrex::Random().
 //
 
+#ifndef AMREX_XSDK
 BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
 {
     unsigned long seed = *sd;
@@ -597,6 +598,7 @@ BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(amrex::Real* rn)
 {
     *rn = amrex::Random();
 }
+#endif
 
 //
 // Lower tail quantile for standard normal distribution function.
@@ -700,6 +702,7 @@ amrex::InvNormDist (double p)
     return x;
 }
 
+#ifndef AMREX_XSDK
 BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(amrex::Real* result)
 {
     //
@@ -712,6 +715,8 @@ BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(amrex::Real* result)
 
     *result = amrex::InvNormDist(val);
 }
+#endif
+
 
 //
 //****************************************************************************80
@@ -866,6 +871,7 @@ amrex::InvNormDistBest (double p)
   return value;
 }
 
+#ifndef AMREX_XSDK
 BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(amrex::Real* result)
 {
     //
@@ -878,8 +884,8 @@ BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(amrex::Real* result)
 
     *result = amrex::InvNormDistBest(val);
 }
+#endif
 
-
 //
 // Sugar for parsing IO
 //
@@ -1300,5 +1306,15 @@ extern "C" {
     void amrex_free (void* p)
     {
         std::free(p);
+    }
+
+    double amrex_random ()
+    {
+        return amrex::Random();
+    }
+
+    long amrex_random_int (long n)  // This is for Fortran, which doesn't have unsigned long.
+    {
+        return static_cast<long>(amrex::Random_int(static_cast<unsigned long>(n)));
     }
 }

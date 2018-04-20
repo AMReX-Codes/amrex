@@ -1,6 +1,6 @@
 
-#ifndef _REFINEMENTCRITERION_H_
-#define _REFINEMENTCRITERION_H_
+#ifndef AMREX_REFINEMENTCRITERION_H_
+#define AMREX_REFINEMENTCRITERION_H_
 
 #include "AMReX_IndexTM.H"
 #include "AMReX_CutCellMoments.H"

@@ -323,8 +323,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
     Real* lodat = loreg.dataPtr(destcomp);
-    amrex_frfineadd(lodat,ARLIM(rlo),ARLIM(rhi),
-                   flxdat,ARLIM(flo),ARLIM(fhi),
+    amrex_frfineadd(lodat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
+                   flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
                    &numcomp,&dir,ratio.getVect(),&mult);
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
@@ -335,8 +335,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
     Real* hidat = hireg.dataPtr(destcomp);
-    amrex_frfineadd(hidat,ARLIM(rlo),ARLIM(rhi),
-                   flxdat,ARLIM(flo),ARLIM(fhi),
+    amrex_frfineadd(hidat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
+                   flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
                    &numcomp,&dir,ratio.getVect(),&mult);
 }
 
@@ -370,9 +370,9 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
     Real* lodat = loreg.dataPtr(destcomp);
-    amrex_frfaadd(lodat,ARLIM(rlo),ARLIM(rhi),
-                 flxdat,ARLIM(flo),ARLIM(fhi),
-                 area_dat,ARLIM(alo),ARLIM(ahi),
+    amrex_frfaadd(lodat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
+                 flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
+                 area_dat,AMREX_ARLIM(alo),AMREX_ARLIM(ahi),
                  &numcomp,&dir,ratio.getVect(),&mult);
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
@@ -383,9 +383,9 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
     Real* hidat = hireg.dataPtr(destcomp);
-    amrex_frfaadd(hidat,ARLIM(rlo),ARLIM(rhi),
-                 flxdat,ARLIM(flo),ARLIM(fhi),
-                 area_dat,ARLIM(alo),ARLIM(ahi),
+    amrex_frfaadd(hidat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
+                 flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
+                 area_dat,AMREX_ARLIM(alo),AMREX_ARLIM(ahi),
                  &numcomp,&dir,ratio.getVect(),&mult);
 }
 
