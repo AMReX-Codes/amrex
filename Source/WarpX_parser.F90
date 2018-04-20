@@ -54,7 +54,7 @@ END TYPE res_type_array
 
 TYPE(res_type_array) :: res_array
 
-INTEGER :: index_res=0, nb_res=0
+INTEGER :: nb_res=0
 TYPE(res_type), DIMENSION(10) :: table_of_res
 
 contains
@@ -1200,9 +1200,11 @@ DO i=1, nwords
   lofstr(i)(1:word_end(i)-word_start(i)+1) = strin(word_start(i):word_end(i))
 ENDDO
 END SUBROUTINE csv2list
-
 end module mod_interpret
 
+! ---------------------
+! MODULE parser_wrapper
+! Wrappers to use the parser defined in MODULE mod_interpret.
 MODULE parser_wrapper
 USE iso_c_binding
 USE amrex_fort_module, only : amrex_real
@@ -1212,7 +1214,19 @@ IMPLICIT NONE
 
 CONTAINS
 
-FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) bind(c,name='parser_initialize_function')
+! FUNCTION parser_initialize_function RESULT my_index_res
+! Initialize a res_type and assign it a unique identifier.
+! INPUTS:
+!> instr_func   : CHAR* for a mathematical expression
+!>                e.g. instr_func = "3*cos(x)+y".
+!> instr_var    : CHAR* for a comma-separated list of variables in instr_func
+!>                e.g. instr_var = "x,y".
+! OUTPUT:
+!> my_index_res : INT parser index. Necessary if this module is used for several
+!>                parsers (e.g. one for the electron density, one for the ion
+!>                density, one for the laser profile etc.).
+FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) & 
+    bind(c,name='parser_initialize_function')
   CHARACTER(kind=c_char), DIMENSION(*), INTENT(IN) :: instr_func
   CHARACTER(kind=c_char), DIMENSION(*), INTENT(IN) :: instr_var
   INTEGER :: length_func, length_var
@@ -1221,12 +1235,15 @@ FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) 
   CHARACTER(kind=c_char, len=120) :: str_func, str_var
   REAL(amrex_real), DIMENSION(1) :: list_var
   INTEGER :: my_index_res
-  TYPE(res_type) :: my_res
-    write(*,*) 'ITS OK 0'
 
   nb_res = nb_res + 1
   my_index_res = nb_res
+  IF (nb_res>10)
+    WRITE(*,*) 'Parser error: cannot have more than 10 parsers.'
+    STOP
+  ENDIF
 
+  ! Get length and reformat both inputs before applying the parser.
   length_func=0
   DO
     IF (instr_func(length_func+1) == C_NULL_CHAR) EXIT
@@ -1245,36 +1262,33 @@ FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) 
     str_var(i:i) = instr_var(i)
   ENDDO
   str_var = str_var(1:length_var)
+
+  ! Convert variable list from csv string to list of strings.
   CALL csv2list(str_var, length_var, lofstr)
-    write(*,*) 'ITS OK 0.1'
-    write(*,*) my_index_res
-  write(*,*) my_res%a_res, my_res%a_res, my_res%a_l_res, my_res%a_l_res_do, my_res%a_operation
+  ! Initialize the res object
   CALL eval_res(table_of_res(my_index_res), str_func, list_var=lofstr)
-  write(*,*) my_res%a_res, my_res%a_res, my_res%a_l_res, my_res%a_l_res_do, my_res%a_operation
-my_res%a_res = 0
-    write(*,*) 'ITS OK 1'
-  table_of_res(my_index_res) = my_res
-    write(*,*) 'ITS OK 2'
-!   CALL eval_res(my_res, str_func, list_var=lofstr)
-!     write(*,*) 'ITS OK 1'
-!   table_of_res(my_index_res) = my_res
-!     write(*,*) 'ITS OK 2'
 
 END FUNCTION parser_initialize_function
 
-FUNCTION parser_evaluate_function(list_var, nvar, my_index_res) result(out) bind(c,name='parser_evaluate_function')
+! FUNCTION parser_evaluate_function RESULT out
+! Evaluate parsed function
+! INPUTS:
+!> list_var     : REAL* array of values for variables
+!>                e.g. list_var = (/3.14_8,2._8/).
+!> nvar         : INT number of variables
+!>                e.g. nvar = 2.
+!> my_index_res : INT index of the res_type object in table table_of_res.
+! OUTPUT:
+!> out          : REAL Result.
+FUNCTION parser_evaluate_function(list_var, nvar, my_index_res) result(out) & 
+    bind(c,name='parser_evaluate_function')
   INTEGER, VALUE, INTENT(IN) :: nvar, my_index_res
   REAL(amrex_real), INTENT(IN) :: list_var(1:nvar)
   REAL(amrex_real) :: out
-  TYPE(res_type) :: my_res
 
-  write(*,*) '--- start ', my_index_res
-  my_res = table_of_res(my_index_res)
+  ! Evaluate parsed function in table_of_res(my_index_res), of type res_type
+  out = calc_res(table_of_res(my_index_res),list_var)
 
-  write(*,*) my_res%a_res, my_res%a_res, my_res%a_l_res, my_res%a_l_res_do, my_res%a_operation
-
-  write(*,*) '---', my_index_res, ' ' , list_var
-  out = calc_res(my_res,list_var)
 END FUNCTION parser_evaluate_function
 
 END MODULE parser_wrapper
