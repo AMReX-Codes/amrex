@@ -53,6 +53,13 @@ list ( APPEND ALLHEADERS AMReX_MLNodeLap_F.H )
 list ( APPEND F90SRC     AMReX_MLNodeLap_${DIM}d.F90 )
 list ( APPEND F90SRC     AMReX_MLNodeLap_nd.F90 )
 
+if (ENABLE_EB)
+    list ( APPEND ALLHEADERS AMReX_MLEBABecLap.H )
+    list ( APPEND CXXSRC     AMReX_MLEBABecLap.cpp )
+    list ( APPEND ALLHEADERS AMReX_MLEBABecLap_F.H )
+    list ( APPEND F90SRC     AMReX_MLEBABecLap_${DIM}d.F90 )
+endif ()
+
 # 
 # Collect sources
 # 
