@@ -76,7 +76,7 @@ using std::ifstream;
 
 extern "C" {
 #if (BL_SPACEDIM != 1)
-  void FORT_CINTERP(amrex::Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
+  void FORT_CINTERP(amrex::Real *fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
                   const int *fblo, const int *fbhi,
                   const int &nvar, const int &lratio,
 		  const amrex::Real *crse, const int &clo, const int &chi,
@@ -87,15 +87,15 @@ extern "C" {
 		  amrex::Real *foff);
 #endif
 
-  void FORT_PCINTERP(amrex::Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
+  void FORT_PCINTERP(amrex::Real *fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
                    const int *fblo, const int *fbhi,
 		   const int &lrat, const int &nvar,
-		   const amrex::Real *crse, ARLIM_P(clo), ARLIM_P(chi),
+		   const amrex::Real *crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
 		   const int *cblo, const int *cbhi,
 		   amrex::Real *temp, const int &tlo, const int &thi);
 
 #if (BL_SPACEDIM != 1)
-  void FORT_CARTGRIDMINMAX (amrex::Real *data, ARLIM_P(dlo), ARLIM_P(dhi),
+  void FORT_CARTGRIDMINMAX (amrex::Real *data, AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
 		            const amrex::Real *vfrac, const amrex::Real &vfeps,
 		            amrex::Real &dmin, amrex::Real &dmax);
 #endif
@@ -1835,7 +1835,7 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 	      ++cCountMixedFort;
               valid = true;
 
-              FORT_CARTGRIDMINMAX(ddat, ARLIM(dlo), ARLIM(dhi), vdat, vfEps[level],
+              FORT_CARTGRIDMINMAX(ddat, AMREX_ARLIM(dlo), AMREX_ARLIM(dhi), vdat, vfEps[level],
                                   minVal, maxVal);
               dataMin = std::min(dataMin, minVal);
               dataMax = std::max(dataMax, maxVal);
@@ -1863,7 +1863,7 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 	    ++iCountMixedFort;
             valid = true;
 
-            FORT_CARTGRIDMINMAX(ddat, ARLIM(dlo), ARLIM(dhi), vdat, vfEps[level],
+            FORT_CARTGRIDMINMAX(ddat, AMREX_ARLIM(dlo), AMREX_ARLIM(dhi), vdat, vfEps[level],
                                 minVal, maxVal);
             dataMin = std::min(dataMin, minVal);
             dataMax = std::max(dataMax, maxVal);
@@ -1993,7 +1993,7 @@ void AmrData::Interp(FArrayBox &fine, FArrayBox &crse,
    const int *fslo = fslope_bx.loVect();
    const int *fshi = fslope_bx.hiVect();
 
-   FORT_CINTERP(fine.dataPtr(0),ARLIM(fine.loVect()),ARLIM(fine.hiVect()),
+   FORT_CINTERP(fine.dataPtr(0),AMREX_ARLIM(fine.loVect()),AMREX_ARLIM(fine.hiVect()),
                fblo,fbhi,fine.nComp(),lrat,
                crse.dataPtr(0),clo,chi,cblo,cbhi,fslo,fshi,
                cslope,cLen,fslope,fdat,fLen,foff);
@@ -2030,9 +2030,9 @@ void AmrData::PcInterp(FArrayBox &fine, const FArrayBox &crse,
         inextra = 1;
       }
       Real *tempSpace = new Real[thi-tlo+1+inextra];
-      FORT_PCINTERP(fine.dataPtr(0),ARLIM(fine.loVect()),ARLIM(fine.hiVect()),
+      FORT_PCINTERP(fine.dataPtr(0),AMREX_ARLIM(fine.loVect()),AMREX_ARLIM(fine.hiVect()),
                    fblo,fbhi, lrat,fine.nComp(),
-                   crse.dataPtr(),ARLIM(crse.loVect()),ARLIM(crse.hiVect()),
+                   crse.dataPtr(),AMREX_ARLIM(crse.loVect()),AMREX_ARLIM(crse.hiVect()),
                    cblo,cbhi, tempSpace,tlo,thi);
 
       delete [] tempSpace;

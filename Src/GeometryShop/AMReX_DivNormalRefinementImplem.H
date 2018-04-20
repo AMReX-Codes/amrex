@@ -1,6 +1,6 @@
 
-#ifndef _DIVNORMALREFINEMENTIMPLEM_H_
-#define _DIVNORMALREFINEMENTIMPLEM_H_
+#ifndef AMREX_DIVNORMALREFINEMENTIMPLEM_H_
+#define AMREX_DIVNORMALREFINEMENTIMPLEM_H_
 
 template <int dim> DivNormalRefinement<dim>::DivNormalRefinement()
 {

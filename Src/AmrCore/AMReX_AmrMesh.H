@@ -53,7 +53,7 @@ public:
     Geometry& Geom (int lev) { return geom[lev]; }
 
     void SetMaxGridSize (int new_mgs) {
-        max_grid_size.assign(max_level+1, IntVect{D_DECL(new_mgs,new_mgs,new_mgs)});
+        max_grid_size.assign(max_level+1, IntVect{AMREX_D_DECL(new_mgs,new_mgs,new_mgs)});
     }
     void SetMaxGridSize (const IntVect& new_mgs) {
         max_grid_size.assign(max_level+1, new_mgs);
@@ -61,7 +61,7 @@ public:
     void SetMaxGridSize (const Vector<int>& new_mgs) { 
         max_grid_size.resize(max_level+1);
         for (int i = 0; i <= max_level; ++i) {
-            max_grid_size[i] = IntVect{D_DECL(new_mgs[i],new_mgs[i],new_mgs[i])};
+            max_grid_size[i] = IntVect{AMREX_D_DECL(new_mgs[i],new_mgs[i],new_mgs[i])};
         }
     }
     void SetMaxGridSize (const Vector<IntVect>& new_mgs) { 
@@ -69,7 +69,7 @@ public:
     }
 
     void SetBlockingFactor (int new_bf) {
-        blocking_factor.assign(max_level+1, IntVect{D_DECL(new_bf,new_bf,new_bf)});
+        blocking_factor.assign(max_level+1, IntVect{AMREX_D_DECL(new_bf,new_bf,new_bf)});
     }
     void SetBlockingFactor (const IntVect& new_bf) {
         blocking_factor.assign(max_level+1, new_bf);
@@ -77,7 +77,7 @@ public:
     void SetBlockingFactor (const Vector<int>& new_bf) {
         blocking_factor.resize(max_level+1);
         for (int i = 0; i <= max_level; ++i) {
-            blocking_factor[i] = IntVect{D_DECL(new_bf[i],new_bf[i],new_bf[i])};
+            blocking_factor[i] = IntVect{AMREX_D_DECL(new_bf[i],new_bf[i],new_bf[i])};
         }
     }
     void SetBlockingFactor (const Vector<IntVect>& new_bf) {

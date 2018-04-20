@@ -17,6 +17,8 @@
 ! ::: NOTE: all corner as well as edge data is filled if not EXT_DIR
 ! ::: -----------------------------------------------------------
 
+#ifndef AMREX_XSDK
+
 subroutine filcc(q,q_l1,q_h1,domlo,domhi,dx,xlo,bc)
 
   use amrex_fort_module
@@ -38,3 +40,5 @@ subroutine filcc(q,q_l1,q_h1,domlo,domhi,dx,xlo,bc)
   call filccn(q_lo, q_hi, q, q_lo, q_hi, 1, domlo, domhi, dx, xlo, bc)
 
 end subroutine filcc
+
+#endif

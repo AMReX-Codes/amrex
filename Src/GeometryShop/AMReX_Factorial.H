@@ -1,6 +1,6 @@
 
-#ifndef __FACTORIAL_H_
-#define __FACTORIAL_H_
+#ifndef AMREX_FACTORIAL_H_
+#define AMREX_FACTORIAL_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_IndexTM.H"

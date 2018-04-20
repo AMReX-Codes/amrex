@@ -90,6 +90,7 @@ namespace amrex
 	extern int verbose;
 
         extern int signal_handling;
+        extern int call_addr2line;
     }
 
     inline void GccPlacater ()

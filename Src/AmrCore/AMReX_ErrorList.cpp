@@ -63,9 +63,11 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
 {
     BL_ASSERT(m_func3D != 0);
 
-    m_func3D(tag,ARLIM_3D(tlo),ARLIM_3D(thi),
-             tagval,clearval,data,ARLIM_3D(dlo),ARLIM_3D(dhi),ARLIM_3D(lo),ARLIM_3D(hi),nvar,
-             ARLIM_3D(domain_lo),ARLIM_3D(domain_hi),ZFILL(dx),ZFILL(xlo),ZFILL(prob_lo),time,level);
+    m_func3D(tag,AMREX_ARLIM_3D(tlo),AMREX_ARLIM_3D(thi),
+             tagval,clearval,data,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
+             AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),nvar,
+             AMREX_ARLIM_3D(domain_lo),AMREX_ARLIM_3D(domain_hi),
+             AMREX_ZFILL(dx),AMREX_ZFILL(xlo),AMREX_ZFILL(prob_lo),time,level);
 }  
 
 

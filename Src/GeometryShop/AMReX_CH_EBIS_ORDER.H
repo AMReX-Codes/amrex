@@ -1,7 +1,7 @@
 
 ///meant to be overridden at compile time if necessary
-#ifndef _CH_EBIS_ORDER_H_
-#define _CH_EBIS_ORDER_H_
+#ifndef AMREX_CH_EBIS_ORDER_H_
+#define AMREX_CH_EBIS_ORDER_H_
 
 
 /// maximum order of moment used in calc

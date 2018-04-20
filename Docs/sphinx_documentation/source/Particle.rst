@@ -20,7 +20,7 @@ most basic particle data structure is the particle itself:
       Particle<3, 2> p;
 
 This is a templated data type, designed to allow flexibility in the number and
-type of variables that the particles carry. The first template parameter is the
+type of components that the particles carry. The first template parameter is the
 number of extra :cpp:`Real` variables this particle will have (either single or
 double precision [1]_), while the second is the number of extra integer
 variables.  It is important to note that this is the number of *extra* real and
@@ -40,8 +40,8 @@ flags. Our particle struct would be set up like:
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be: :cpp:`x y z m vx vy vz id
-cpu flag1 flag2`.  [3]_
+and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3): 
+:cpp:`x y z m vx vy vz id cpu flag1 flag2`.  [3]_
 
 Setting Particle data
 ---------------------
@@ -581,7 +581,7 @@ format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for m
    Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
 
 .. [2]
-   Note that :cpp:`cpu` stores the number of the process the particle was *generated* on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle :cpp:`id`. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.
+   Note that :cpp:`cpu` stores the number of the process the particle was *generated* on, not the one it's currently assigned to. This number is set on initialization and never changes, just like the particle :cpp:`id`. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.
 
 .. [3]
    Note that for the extra particle components, which component refers to which

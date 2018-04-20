@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include <AMReX_CArena.H>
+#include <AMReX_BLassert.H>
 
 namespace amrex {
 

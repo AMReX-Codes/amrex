@@ -1,5 +1,5 @@
-#ifndef _MCLO_F_H_
-#define _MCLO_F_H_
+#ifndef AMREX_MCLO_F_H_
+#define AMREX_MCLO_F_H_
 
 #include <AMReX_REAL.H>
 

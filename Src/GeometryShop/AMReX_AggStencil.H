@@ -1,5 +1,5 @@
-#ifndef _AGGSTENCIL_H_
-#define _AGGSTENCIL_H_
+#ifndef AMREX_AGGSTENCIL_H_
+#define AMREX_AGGSTENCIL_H_
 
 #include "AMReX_Stencils.H"
 #include "AMReX_BaseIndex.H"

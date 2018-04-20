@@ -1,5 +1,5 @@
-#ifndef _DivVis_F_H_
-#define _DivVis_F_H_
+#ifndef AMREX_DivVis_F_H_
+#define AMREX_DivVis_F_H_
 
 #include <AMReX_REAL.H>
 
