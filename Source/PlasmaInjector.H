@@ -116,13 +116,17 @@ public:
     GaussianRandomMomentumDistribution(amrex::Real ux_m,
                                        amrex::Real uy_m,
                                        amrex::Real uz_m,
-                                       amrex::Real u_th);
+                                       amrex::Real ux_th,
+                                       amrex::Real uy_th,
+                                       amrex::Real uz_th);
     virtual void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z) override;
 private:
     amrex::Real _ux_m;
     amrex::Real _uy_m;
     amrex::Real _uz_m;
-    amrex::Real _u_th;
+    amrex::Real _ux_th;
+    amrex::Real _uy_th;
+    amrex::Real _uz_th;
 };
 
 ///

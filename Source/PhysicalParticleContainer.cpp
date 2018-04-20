@@ -312,7 +312,7 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
     const BoxArray& fine_BA = E[1][0]->boxArray();
     const DistributionMapping& fine_dm = E[1][0]->DistributionMap();
     BoxArray coarsened_fine_BA = fine_BA;
-    coarsened_fine_BA.coarsen(IntVect(D_DECL(2,2,2)));
+    coarsened_fine_BA.coarsen(IntVect(AMREX_D_DECL(2,2,2)));
 
     MultiFab coarse_Ex(coarsened_fine_BA, fine_dm, 1, 1);
     MultiFab coarse_Ey(coarsened_fine_BA, fine_dm, 1, 1);

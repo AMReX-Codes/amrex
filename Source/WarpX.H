@@ -82,7 +82,7 @@ public:
     // Back transformation diagnostic
     static bool do_boosted_frame_diagnostic;
     static int  num_snapshots_lab;
-    static Real dt_snapshots_lab;
+    static amrex::Real dt_snapshots_lab;
 
     // Boosted frame parameters
     static amrex::Real gamma_boost;
@@ -114,7 +114,7 @@ public:
 
     void ComputeDt ();
     void MoveWindow (bool move_j);
-    void UpdatePlasmaInjectionPosition (Real dt);
+    void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
     void EvolveE (         amrex::Real dt, DtType typ);
     void EvolveE (int lev, amrex::Real dt, DtType typ);
@@ -175,6 +175,8 @@ public:
     static amrex::IntVect jx_nodal_flag;
     static amrex::IntVect jy_nodal_flag;
     static amrex::IntVect jz_nodal_flag;
+
+    static int do_moving_window;
 
 protected:
 
@@ -353,12 +355,11 @@ private:
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     // Moving window parameters
-    int do_moving_window  = 0;
     int moving_window_dir = -1;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
     amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
-    Real current_injection_position = 0;
+    amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters
     int do_plasma_injection  = 0;
