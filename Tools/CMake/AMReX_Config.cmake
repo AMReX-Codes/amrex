@@ -25,7 +25,7 @@ endif ()
 #
 # Decide whether or not to use PIC 
 #
-if (ENABLE_PIC)
+if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
    set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 endif ()
 

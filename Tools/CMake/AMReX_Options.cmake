@@ -78,6 +78,16 @@ endif ()
 string ( TOUPPER ${CMAKE_BUILD_TYPE} AMREX_BUILD_TYPE ) 
 
 #
+# Option to control the type of library build: static vs shared
+#
+if ( USE_XSDK_DEFAULTS )
+   option ( BUILD_SHARED_LIBS "Build AMReX shared library" ON )
+else ()
+   option ( BUILD_SHARED_LIBS "Build AMReX shared library" OFF )
+endif ()
+print_option ( BUILD_SHARED_LIBS ) 
+
+#
 # Print out info on install path
 # 
 print_option ( CMAKE_INSTALL_PREFIX )
@@ -98,8 +108,22 @@ print_option ( ENABLE_MPI )
 option ( ENABLE_OMP  "Enable OpenMP" OFF)
 print_option ( ENABLE_OMP )
 
-option (ENABLE_DP "Enable double precision" ON)
-print_option ( ENABLE_DP )
+if ( USE_XSDK_DEFAULTS )
+   set ( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE>" )
+   if ( "${XSDK_PRECISION}" STREQUAL "DOUBLE" )
+      set ( ENABLE_DP ON )
+   elseif ( "${XSDK_PRECISION}" STREQUAL "SINGLE" )
+      set ( ENABLE_DP OFF )
+   else ()
+      message ( WARNING "Unsupported precision ${XSDK_PRECISION}: defaulting to DOUBLE" )
+      set ( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE>" )
+      set ( ENABLE_DP ON )
+   endif ()
+   print_option ( XSDK_PRECISION )
+else ()
+   option ( ENABLE_DP "Enable double precision" ON )
+   print_option ( ENABLE_DP )
+endif ()
 
 
 #
@@ -108,14 +132,25 @@ print_option ( ENABLE_DP )
 option ( ENABLE_EB "Build EB Code" OFF )
 print_option (ENABLE_EB)
 
-option ( ENABLE_FORTRAN_INTERFACES "Build Fortran API" ON )
-print_option (ENABLE_FORTRAN_INTERFACES)
+if ( USE_XSDK_DEFAULTS )
+   option ( XSDK_ENABLE_Fortran "Build Fortran API" OFF )
+   print_option (XSDK_ENABLE_Fortran)
+   set ( ENABLE_FORTRAN_INTERFACES ${XSDK_ENABLE_Fortran} )
+   print_option (ENABLE_FORTRAN_INTERFACES)
+else() 
+   option ( ENABLE_FORTRAN_INTERFACES "Build Fortran API" ON )
+   print_option (ENABLE_FORTRAN_INTERFACES)
+endif ()
 
 option ( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option ( ENABLE_LINEAR_SOLVERS )
 
-option ( ENABLE_FBASELIB "Build Fortran kernel (deprecated)" ON )
-print_option ( ENABLE_FBASELIB )
+if ( USE_XSDK_DEFAULTS )
+   set ( ENABLE_FBASELIB  OFF )
+else ()
+   option ( ENABLE_FBASELIB "Build Fortran kernel (deprecated)" ON )
+   print_option ( ENABLE_FBASELIB )
+endif ()
 
 option ( ENABLE_AMRDATA "Build data services" OFF)
 print_option ( ENABLE_AMRDATA )
@@ -124,10 +159,17 @@ option ( ENABLE_PARTICLES "Build particle classes" OFF)
 print_option ( ENABLE_PARTICLES )
 
 if ( ENABLE_PARTICLES )
-   option ( ENABLE_DP_PARTICLES "Enable double-precision particle data" ON )
-   print_option ( ENABLE_DP_PARTICLES )
+   if ( USE_XSDK_DEFAULTS )
+      if ( "${XSDK_PRECISION}" STREQUAL "DOUBLE" )
+	 set ( ENABLE_DP_PARTICLES ON )
+      elseif ( "${XSDK_PRECISION}" STREQUAL "SINGLE" )
+	 set ( ENABLE_DP_PARTICLES OFF )
+      endif ()
+   else ()
+      option ( ENABLE_DP_PARTICLES "Enable double-precision particle data" ON )
+      print_option ( ENABLE_DP_PARTICLES )
+   endif ()
 endif ()
-
 
 #
 # Compilation options
