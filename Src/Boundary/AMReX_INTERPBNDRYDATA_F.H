@@ -3,7 +3,9 @@
 
 #include <AMReX_BLFort.H>
 
-#ifndef AMREX_XSDK
+#ifdef __cplusplus
+
+#ifdef AMREX_XSDK
 namespace amrex {
 #endif
 typedef void BDInterpFunc(amrex_real* bndr, AMREX_ARLIM_P(blo), AMREX_ARLIM_P(bhi),
@@ -14,8 +16,10 @@ typedef void BDInterpFunc(amrex_real* bndr, AMREX_ARLIM_P(blo), AMREX_ARLIM_P(bh
                           const int* mask,  AMREX_ARLIM_P(mlo), AMREX_ARLIM_P(mhi),
                           const amrex_real* crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
                           amrex_real* derives, int* max_order);
-#ifndef AMREX_XSDK
+#ifdef AMREX_XSDK
 }
+#endif
+
 #endif
 
 #ifdef __cplusplus
