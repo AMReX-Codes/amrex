@@ -11,21 +11,21 @@ INTEGER, parameter :: plus       =1, &
                       multiply   =3, &
                       divide     =4, &
                       power      =5, &
-                      exponential=6, &
-                      logarithm  =7, &
-                      sine       =8, &
-                      cosine     =9, &
-                      tangent    =10, &
-                      square_root=11, &
-                      arccos     =12, &
-                      arcsin     =13, &
-                      arctan     =14, &
-                      sinhyp     =15, &
-                      coshyp     =16, &
-                      tanhyp     =17, &
-                      logten     =18, & 
-                      greaterthan=19, &
-                      lessthan   =20
+                      greaterthan=6, &
+                      lessthan   =7, &
+                      exponential=8, &
+                      logarithm  =9, &
+                      sine       =10, &
+                      cosine     =11, &
+                      tangent    =12, &
+                      square_root=13, &
+                      arccos     =14, &
+                      arcsin     =15, &
+                      arctan     =16, &
+                      sinhyp     =17, &
+                      coshyp     =18, &
+                      tanhyp     =19, &
+                      logten     =20
 ! mthevenet
 CHARACTER(5), DIMENSION(0:20) :: coper
 INTEGER, parameter :: w_parenthesis = 1, &
@@ -139,7 +139,6 @@ coper(sinhyp     )='sinh'
 coper(coshyp     )='cosh'
 coper(tanhyp     )='tanh'
 coper(logten     )='log10'
-! mthevenet
 coper(greaterthan)='>'
 coper(lessthan   )='<'
 
@@ -811,7 +810,7 @@ select case (asc)
     what = w_number
     next_r = next_l+find_number_end(expr(i:ln))
  ! operator
-  case (42,43,45,47)
+  case (42,43,45,47,60,62)
     what = w_operator
     op = find_operator(expr(i:i+1))
     IF(op==power) THEN
@@ -933,10 +932,10 @@ CHARACTER(*), INTENT(IN) :: a
     case (47) ! '/'
       find_operator = divide
 ! mthevenet
-    case (62) ! '>'
-      find_operator = greaterthan
     case (60) ! '<'
       find_operator = lessthan
+    case (62) ! '>'
+      find_operator = greaterthan
     case default
       WRITE(*,*) 'Error, operator ',a(1:1),' does not exist'
       stop
@@ -1015,8 +1014,6 @@ select case (op)
   case (lessthan)
     eval=0.
     if (a < b) eval=1.
-write(*,*) eval
-
   case (square_root)
     eval=SQRT(a)
   case (exponential)
@@ -1314,9 +1311,9 @@ FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) 
     str_var(i:i) = instr_var(i)
   ENDDO
   str_var = str_var(1:length_var)
-
   ! Convert variable list from csv string to list of strings.
   CALL csv2list(str_var, length_var, lofstr)
+
   ! Initialize the res object
   CALL eval_res(table_of_res(my_index_res), str_func, list_var=lofstr)
 
