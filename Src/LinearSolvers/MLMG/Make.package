@@ -51,7 +51,7 @@ F90EXE_sources += AMReX_MLNodeLap_$(DIM)d.F90
 F90EXE_sources += AMReX_MLNodeLap_nd.F90
 
 
-ifdef USE_EB
+ifeq ($(USE_EB),TRUE)
 CEXE_headers   += AMReX_MLEBABecLap.H
 CEXE_sources   += AMReX_MLEBABecLap.cpp
 CEXE_headers   += AMReX_MLEBABecLap_F.H
