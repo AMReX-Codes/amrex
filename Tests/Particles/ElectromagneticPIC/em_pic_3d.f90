@@ -89,6 +89,67 @@ subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt) &
 
 end subroutine push_position_boris
 
+subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
+  bind(c,name='set_gamma')
+
+  use amrex_fort_module, only : amrex_real
+  use constants, only : clight 
+  implicit none
+
+  integer,          intent(in)      :: np
+  real(amrex_real), intent(in)      :: uxp(np), uyp(np), uzp(np)
+  real(amrex_real), intent(inout)   :: gaminv(np)
+  
+  integer                           :: ip
+  real(amrex_real)                  :: clghtisq, usq
+  clghtisq = 1.d0/clight**2
+
+  do ip = 1, np
+    usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
+    gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
+  end do
+
+end subroutine set_gamma
+
+subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
+  bind(c,name='enforce_periodic')
+
+  use amrex_fort_module, only : amrex_real
+  implicit none
+
+  integer,          intent(in)      :: np
+  real(amrex_real), intent(inout)   :: xp(np), yp(np), zp(np)
+  real(amrex_real), intent(in)      :: plo(3), phi(3)
+  
+  integer                           :: ip
+  real(amrex_real)                  :: domain_size(3)
+
+  domain_size = phi - plo
+
+  do ip = 1, np
+
+     if (xp(ip) .gt. phi(1)) then
+        xp(ip) = xp(ip) - domain_size(1)
+     else if (xp(ip) .lt. plo(1)) then
+        xp(ip) = xp(ip) + domain_size(1)
+     end if
+
+     if (yp(ip) .gt. phi(2)) then
+        yp(ip) = yp(ip) - domain_size(2)
+     else if (yp(ip) .lt. plo(2)) then
+        yp(ip) = yp(ip) + domain_size(2)
+     end if
+
+     if (zp(ip) .gt. phi(3)) then
+        zp(ip) = zp(ip) - domain_size(3)
+     else if (zp(ip) .lt. plo(3)) then
+        zp(ip) = zp(ip) + domain_size(3)
+     end if
+
+  end do
+
+end subroutine enforce_periodic
+
 subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
      uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) & 
      bind(c,name="deposit_current")

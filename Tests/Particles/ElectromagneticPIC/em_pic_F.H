@@ -19,6 +19,14 @@ extern "C"
                              const amrex::Real* uxp, const amrex::Real* uyp, const amrex::Real* uzp,
                              const amrex::Real* gaminv, const amrex::Real* dt);
 
+    void set_gamma(const int* np,
+                   const amrex::Real* uxp, const amrex::Real* uyp, const amrex::Real* uzp,
+                   amrex::Real* gaminv);
+
+    void enforce_periodic(const int* np,
+                          amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
+                          const amrex::Real* plo, const amrex::Real* phi);
+
     void deposit_current(BL_FORT_FAB_ARG_3D(jx),
                          BL_FORT_FAB_ARG_3D(jy),
                          BL_FORT_FAB_ARG_3D(jz),

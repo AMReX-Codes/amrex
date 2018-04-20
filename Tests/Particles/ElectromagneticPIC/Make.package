@@ -1,4 +1,5 @@
 CEXE_sources += main.cpp
+CEXE_headers += Constants.H
 
-FEXE_headers += em_pic_F.H
+CEXE_headers += em_pic_F.H
 f90EXE_sources += em_pic_$(DIM)d.f90

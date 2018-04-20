@@ -4,4 +4,6 @@ nppc  = (4, 4, 4)
 
 max_grid_size = 128
 
+nsteps = 100
+
 verbose = true
