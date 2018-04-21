@@ -298,8 +298,12 @@ WarpX::PushPSATD (amrex::Real a_dt)
 void
 WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 {
+    BL_PROFILE_VAR_NS("WarpXFFT::CopyDualGrid", blp_copy);
+    BL_PROFILE_VAR_NS("PICSAR::FftPushEB", blp_push_eb);
+  
     auto period_fp = geom[lev].periodicity();
-
+    
+    BL_PROFILE_VAR_START(blp_copy);
     Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
     Efield_fp_fft[lev][1]->ParallelCopy(*Efield_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
     Efield_fp_fft[lev][2]->ParallelCopy(*Efield_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
@@ -311,7 +315,9 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
     rho_prev_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 1, 0, 0, period_fp);
     rho_next_fp_fft[lev]->ParallelCopy(*rho2_fp[lev], 0, 0, 1, 0, 0, period_fp);
+    BL_PROFILE_VAR_STOP(blp_copy);
 
+    BL_PROFILE_VAR_START(blp_push_eb);
     for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
     {
         warpx_fft_push_eb(BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
@@ -326,13 +332,16 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
                           BL_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
                           BL_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]));
     }
+    BL_PROFILE_VAR_STOP(blp_push_eb);
 
+    BL_PROFILE_VAR_START(blp_copy);
     CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
     CopyDataFromFFTToValid(*Efield_fp[lev][1], *Efield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
     CopyDataFromFFTToValid(*Efield_fp[lev][2], *Efield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
     CopyDataFromFFTToValid(*Bfield_fp[lev][0], *Bfield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
     CopyDataFromFFTToValid(*Bfield_fp[lev][1], *Bfield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
     CopyDataFromFFTToValid(*Bfield_fp[lev][2], *Bfield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
+    BL_PROFILE_VAR_STOP(blp_copy);
 
     if (lev > 0)
     {
