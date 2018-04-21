@@ -4,7 +4,7 @@ max_step = 1000
 # number of grid points
 amr.n_cell =  128 128
 
-amr.plot_int = 100   # How often to write plotfiles.
+amr.plot_int = 1000   # How often to write plotfiles.
 amr.plot_file = plt
 
 # Maximum allowable size of each subdomain in the problem domain;
