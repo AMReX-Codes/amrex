@@ -32,6 +32,10 @@ public:
 	return *allcontainers[ispecies];
     }
 
+    std::array<amrex::Real, 3> meanParticleVelocity(int ispecies) {
+        return allcontainers[ispecies]->meanParticleVelocity();
+    }
+
     void AllocData ();
 
     void InitData ();

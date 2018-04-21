@@ -122,6 +122,8 @@ public:
     ///
     amrex::Real sumParticleCharge(bool local = false);
 
+    std::array<amrex::Real, 3> meanParticleVelocity(bool local = false);
+
     amrex::Real maxParticleVelocity(bool local = false);
 
     void AddNParticles (int lev,
