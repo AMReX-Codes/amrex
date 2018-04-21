@@ -875,7 +875,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
     const LinOp::BC_Mode temp_bc_mode = LinOp::Homogeneous_BC;
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+#if defined(AMREX_CG_USE_OLD_CONVERGENCE_CRITERIA) || (!defined(AMREX_XSDK) && defined(CG_USE_OLD_CONVERGENCE_CRITERIA))
     Real rnorm = norm_inf(r);
 #else
     //
@@ -966,7 +966,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
                       << rnorm/(rnorm0) << '\n';
         }
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+#if defined(AMREX_CG_USE_OLD_CONVERGENCE_CRITERIA) || (!defined(AMREX_XSDK) && defined(CG_USE_OLD_CONVERGENCE_CRITERIA))
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #else
         sol_norm = norm_inf(sol);
@@ -1018,7 +1018,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
                       << rnorm/(rnorm0) << '\n';
         }
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+#if defined(AMREX_CG_USE_OLD_CONVERGENCE_CRITERIA) || (!defined(AMREX_XSDK) && defined(CG_USE_OLD_CONVERGENCE_CRITERIA))
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #else
         sol_norm = norm_inf(sol);
@@ -1040,7 +1040,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
                   << rnorm/(rnorm0) << '\n';
     }
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+#if defined(AMREX_CG_USE_OLD_CONVERGENCE_CRITERIA) || (!defined(AMREX_XSDK) && defined(CG_USE_OLD_CONVERGENCE_CRITERIA))
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
 #else
     if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0 ) && rnorm > eps_abs )
@@ -1188,7 +1188,7 @@ CGSolver::solve_cg (MultiFab&       sol,
                       << rnorm/(rnorm0) << '\n';
         }
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+#if defined(AMREX_CG_USE_OLD_CONVERGENCE_CRITERIA) || (!defined(AMREX_XSDK) && defined(CG_USE_OLD_CONVERGENCE_CRITERIA))
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #else
         if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0) || rnorm < eps_abs ) break;
@@ -1214,7 +1214,7 @@ CGSolver::solve_cg (MultiFab&       sol,
                   << rnorm/(rnorm0) << '\n';
     }
 
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+#if defined(AMREX_CG_USE_OLD_CONVERGENCE_CRITERIA) || (!defined(AMREX_XSDK) && defined(CG_USE_OLD_CONVERGENCE_CRITERIA))
     if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
 #else
     if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0) && rnorm > eps_abs )
