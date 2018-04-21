@@ -3,10 +3,9 @@ module amrex_lo_module
 
   use amrex_fort_module
   use amrex_constants_module
+  use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann, amrex_lo_reflect_odd
 
   implicit none
-
-  include 'AMReX_lo_bctypes.fi'
 
 contains
 
@@ -237,7 +236,7 @@ contains
 !     ( the coef(0) corresponding to the location x(0) )
 !
 !     Note: 
-!     The bc type = LO_REFLECT_ODD is a special type of dirichlet condition,
+!     The bc type = amrex_lo_reflect_odd is a special type of dirichlet condition,
 !     in that we want a "zeroth" order interpolant to fill the ghost cell.
 !     If this were treated in the normal way, then ALL boundaries would be
 !     low order.
@@ -271,8 +270,8 @@ contains
       real(amrex_real) xInt
       parameter(xInt = -0.5D0)
 
-      is_dirichlet(i) = ( i .eq. LO_DIRICHLET )
-      is_neumann(i) = (i .eq. LO_NEUMANN)
+      is_dirichlet(i) = ( i .eq. amrex_lo_dirichlet )
+      is_neumann(i) = (i .eq. amrex_lo_neumann)
 
       if ( maxorder .eq. -1 ) then
          Lmaxorder = maxmaxorder
@@ -359,7 +358,7 @@ contains
                   end do
                end do
             end if
-         else if ( bct .eq. LO_REFLECT_ODD ) then
+         else if ( bct .eq. amrex_lo_reflect_odd ) then
             do n = 1, nc
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
@@ -448,7 +447,7 @@ contains
                   end do
                end do
             end if
-         else if ( bct .eq. LO_REFLECT_ODD ) then
+         else if ( bct .eq. amrex_lo_reflect_odd ) then
             do n = 1, nc
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
@@ -537,7 +536,7 @@ contains
                      end do
                   end do
                end if
-            else if ( bct .eq. LO_REFLECT_ODD ) then
+            else if ( bct .eq. amrex_lo_reflect_odd ) then
                do n = 1, nc
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -626,7 +625,7 @@ contains
                      end do
                   end do
                end if
-            else if ( bct .eq. LO_REFLECT_ODD ) then
+            else if ( bct .eq. amrex_lo_reflect_odd ) then
                do n = 1, nc
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -715,7 +714,7 @@ contains
                      end do
                   end do
                end if
-            else if ( bct .eq. LO_REFLECT_ODD ) then
+            else if ( bct .eq. amrex_lo_reflect_odd ) then
                do n = 1, nc
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -804,7 +803,7 @@ contains
                      end do
                   end do
                end if
-            else if ( bct .eq. LO_REFLECT_ODD ) then
+            else if ( bct .eq. amrex_lo_reflect_odd ) then
                do n = 1, nc
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
