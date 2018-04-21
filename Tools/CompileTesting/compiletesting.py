@@ -12,6 +12,7 @@ def compiletesting(arg_string):
 
     parser = argparse.ArgumentParser(description="compile tests")
     parser.add_argument("--redo_failed", action="store_true")
+    parser.add_argument("--typecheck", action="store_true")
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--test_pgas", action="store_true",default=False)
     parser.add_argument("--test_boxlib", action="store_true",default=False)
@@ -30,23 +31,24 @@ def compiletesting(arg_string):
     elif args.full:
         test_list = ['Tutorials/Basic/HelloWorld_C',
                      'Tutorials/Basic/HelloWorld_F',
-                     'Tutorials/Basic/HeatEquation_EX1_C',
+                     'Tutorials/Basic/HeatEquation_EX1_C/Exec',
                      'Tutorials/Basic/HeatEquation_EX1_F',
                      'Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex',
                      'Tutorials/Amr/Advection_F/Exec/SingleVortex',
                      'Tutorials/Amr/Advection_octree_F/Exec/SingleVortex',
                      'Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex',
                      'Tutorials/Amr/Advection_AmrLevel/Exec/UniformVelocity',
+                     'Tutorials/EB/CNS/Exec/Combustor',
+                     'Tutorials/EB/CNS/Exec/Pulse',
+                     'Tutorials/LinearSolvers/ABecLaplacian_C',
+                     'Tutorials/LinearSolvers/ABecLaplacian_F',
+                     'Tutorials/Particles/NeighborList',
                      'OldTutorials/DataServicesTest0',
-                     'OldTutorials/GettingStarted_C',
-                     'OldTutorials/HeatEquation_EX2_C',
                      'OldTutorials/MultiColor_C',
                      'OldTutorials/MultiFabTests_C',
                      'OldTutorials/MultiGrid_C',
-#                     'OldTutorials/PIC_C',
                      'OldTutorials/Tiling_C',
                      'OldTutorials/Tiling_Heat_C',
-#                     'OldTutorials/TwoGrid_PIC_C',
                      'OldTutorials/WaveEquation_C',
                      'Tests/BBIOBenchmark',
                      'Tests/C_BaseLib',
@@ -80,8 +82,11 @@ def compiletesting(arg_string):
 
     else:
         test_list = ['Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex',
-                     'OldTutorials/AMR_Adv_CF/Exec/SingleVortex',
-#                     'OldTutorials/PIC_C',
+                     'Tutorials/Amr/Advection_F/Exec/SingleVortex',
+                     'Tutorials/EB/CNS/Exec/Pulse',
+                     'Tutorials/LinearSolvers/ABecLaplacian_C',
+                     'Tutorials/LinearSolvers/ABecLaplacian_F',
+                     'Tutorials/Particles/NeighborList',
                      'Tests/LinearSolvers/ComparisonTest']
         if (args.test_boxlib):
             test_list += ['Tutorials/Basic/HeatEquation_EX1_F',
@@ -103,15 +108,25 @@ def compiletesting(arg_string):
         run(command, outfile)
         
         command = "make -j4 " + args.make_flags
+        if args.typecheck:
+            command += " typecheck"
         outfile = "make.ou"
         run(command, outfile)        
 
         test_success = False
-        os.chdir(os.path.join(TOP,test))
-        for file in os.listdir('./'):
-            if file.endswith(".ex") or file.endswith(".exe"):
-                t = os.path.getmtime(file)
-                test_success = t > start_time
+        if args.typecheck:
+            f = open(outfile, 'r')
+            for line in f.readlines():
+                if "functions checked, 0 error" in line:
+                    test_success = True
+                    break
+        else:
+            os.chdir(os.path.join(TOP,test))
+            for file in os.listdir('./'):
+                if file.endswith(".ex") or file.endswith(".exe"):
+                    t = os.path.getmtime(file)
+                    test_success = t > start_time
+
         if test_success:
             print ("    success")
         else:
