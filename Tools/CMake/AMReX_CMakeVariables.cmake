@@ -57,6 +57,13 @@ if ( EXISTS ${CMAKE_SOURCE_DIR}/.git AND ${GIT_FOUND} )
 endif ()
 set ( AMREX_GIT_VERSION ${output} )
 
+#
+# Check for Python >= 2.7: this is needed to build AMReX_BuildInfo.cpp
+# This is not a required package. This provides PYTHONINTERP_FOUND and
+# PYTHON_VERSION_STRING, PYTHON_VERSION_MAJOR and PYTHON_VERSION_MINOR  
+#
+find_package (PythonInterp QUIET)
+
 # 
 # Set directory paths
 # 
