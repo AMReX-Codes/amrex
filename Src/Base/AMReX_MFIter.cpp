@@ -344,6 +344,22 @@ MFIter::growntilebox (int ng) const
 }
 
 Box
+MFIter::growntilebox (const IntVect& ng) const
+{
+    Box bx = tilebox();
+    const Box& vbx = validbox();
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+	    bx.growLo(d, ng[d]);
+	}
+	if (bx.bigEnd(d) == vbx.bigEnd(d)) {
+	    bx.growHi(d, ng[d]);
+	}
+    }
+    return bx;
+}
+
+Box
 MFIter::grownnodaltilebox (int dir, int ng) const
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
@@ -356,6 +372,23 @@ MFIter::grownnodaltilebox (int dir, int ng) const
 	}
 	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
 	    bx.growHi(d, ng);
+	}
+    }
+    return bx;
+}
+
+Box
+MFIter::grownnodaltilebox (int dir, const IntVect& ng) const
+{
+    BL_ASSERT(dir < AMREX_SPACEDIM);
+    Box bx = nodaltilebox(dir);
+    const Box& vbx = validbox();
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+	    bx.growLo(d, ng[d]);
+	}
+	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
+	    bx.growHi(d, ng[d]);
 	}
     }
     return bx;

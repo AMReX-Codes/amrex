@@ -976,6 +976,12 @@ BoxArray::minimalBox () const
 bool
 BoxArray::intersects (const Box& b, int ng) const
 {
+    return intersects(b, IntVect(ng));
+}
+
+bool
+BoxArray::intersects (const Box& b, const IntVect& ng) const
+{
     std::vector< std::pair<int,Box> > isects;
 
     bool first_only = true;
@@ -988,12 +994,20 @@ std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx) const
 {
     std::vector< std::pair<int,Box> > isects;
-    intersections(bx,isects,false,0);
+    intersections(bx,isects,false,IntVect::TheZeroVector());
     return isects;
 }
 
 std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx, bool first_only, int ng) const
+{
+    std::vector< std::pair<int,Box> > isects;
+    intersections(bx,isects,first_only,IntVect(ng));
+    return isects;
+}
+
+std::vector< std::pair<int,Box> >
+BoxArray::intersections (const Box& bx, bool first_only, const IntVect& ng) const
 {
     std::vector< std::pair<int,Box> > isects;
     intersections(bx,isects,first_only,ng);
@@ -1004,7 +1018,7 @@ void
 BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects) const
 {
-    intersections(bx, isects, false, 0);
+    intersections(bx, isects, false, IntVect::TheZeroVector());
 }
 
 void
@@ -1012,6 +1026,15 @@ BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects,
 			 bool                               first_only,
 			 int                                ng) const
+{
+    intersections(bx,isects,first_only,IntVect(ng));
+}
+
+void
+BoxArray::intersections (const Box&                         bx,
+                         std::vector< std::pair<int,Box> >& isects,
+			 bool                               first_only,
+			 const IntVect&                     ng) const
 {
   // This is called too many times BL_PROFILE("BoxArray::intersections()");
 
@@ -1368,6 +1391,32 @@ BoxArray
 intersect (const BoxArray& ba,
            const Box&      b,
            int   ng)
+{
+    std::vector< std::pair<int,Box> > isects;
+
+    ba.intersections(b,isects,false,IntVect(ng));
+
+    const int N = isects.size();
+
+    BoxArray r(N);
+
+    if (N > 0) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
+        {
+            r.set(i, isects[i].second);
+        }
+    }
+
+    return r;
+}
+
+BoxArray
+intersect (const BoxArray& ba,
+           const Box&      b,
+           const IntVect&  ng)
 {
     std::vector< std::pair<int,Box> > isects;
 

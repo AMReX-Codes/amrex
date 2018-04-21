@@ -87,7 +87,7 @@ public:
         int                  m_vers;  // The version of the Header.
         How                  m_how;   // How the MF was written to disk.
         int                  m_ncomp; // Number of components in MF.
-        int                  m_ngrow; // The number of ghost cells in MF.
+        IntVect              m_ngrow; // The number of ghost cells in MF.
         BoxArray             m_ba;    // The BoxArray of the MF.
         Vector< FabOnDisk >   m_fod;   // FabOnDisk info for contained FABs.
 	//
@@ -139,6 +139,7 @@ public:
     int nComp () const;
     //! The grow factor of the on-disk FabArray<FArrayBox>.
     int nGrow () const;
+    IntVect nGrowVect () const;
     //! # of FABs in the VisMF. Equal to # of Boxes in the BoxArray.
     int size () const;
     //! The BoxArray of the on-disk FabArray<FArrayBox>.

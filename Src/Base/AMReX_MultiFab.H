@@ -63,6 +63,18 @@ public:
               const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
 #endif
 
+    MultiFab (const BoxArray&            bs,
+              const DistributionMapping& dm,
+              int                        ncomp,
+              const IntVect&             ngrow,
+#ifdef AMREX_STRICT_MODE
+	      const MFInfo&              info,
+              const FabFactory<FArrayBox>& factory);
+#else
+	      const MFInfo&              info = MFInfo(),
+              const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
+#endif
+
     /**
      * \brief Make an alias MultiFab. maketype must be
      * amrex::make_alias.  scomp is the starting component of the
@@ -77,6 +89,9 @@ public:
     MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
               const Vector<Real*>& p);
 
+    MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, const IntVect& ngrow,
+              const Vector<Real*>& p);
+
     virtual ~MultiFab () override;
 
     MultiFab (MultiFab&& rhs) noexcept;
@@ -89,6 +104,18 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
+#ifdef AMREX_STRICT_MODE
+			 const MFInfo&              info,
+                         const FabFactory<FArrayBox>& factory) override;
+#else
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<FArrayBox>& factory = FArrayBoxFactory()) override;
+#endif
+
+    virtual void define (const BoxArray&            bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
 			 const MFInfo&              info,
                          const FabFactory<FArrayBox>& factory) override;
