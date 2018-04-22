@@ -9,7 +9,7 @@ namespace amrex
   SmoothIntersection(const Vector<BaseIF *>& a_impFuncs,
                      const Real            & a_delta)
   {
-    m_ivDebug = IntVect(D_DECL(39,42,0));
+    m_ivDebug = IntVect(AMREX_D_DECL(39,42,0));
     VolIndex vofDebug(m_ivDebug,0);
     m_dxDebug = 1./64.;
     m_rvDebug = EBArith::getVoFLocation(vofDebug, m_dxDebug ,RealVect::Zero);
