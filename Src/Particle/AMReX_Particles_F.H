@@ -2,7 +2,6 @@
 #define AMREX_Particles_F_H_
 
 #include <AMReX_BLFort.H>
-#include <AMReX_SPACE.H>
 
 #ifdef BL_SINGLE_PRECISION_PARTICLES
 typedef float amrex_particle_real;
