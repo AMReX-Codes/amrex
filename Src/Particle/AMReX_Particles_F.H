@@ -44,6 +44,8 @@ extern "C"
     void amrex_atomic_accumulate_fab(const amrex_real*, const int*, const int*,
                                      amrex_real*, const int*, const int*, int);
 
+#if 0
+
 BL_FORT_PROC_DECL(PART_SUMMASSDOWN,part_summassdown)
     (BL_FORT_FAB_ARG(crse_fab),
      const BL_FORT_FAB_ARG(fine_fab),
@@ -64,6 +66,8 @@ BL_FORT_PROC_DECL(PART_SUMDENSUP,part_sumdensup)
     (const amrex_real* x, const amrex_real* y, const amrex_real* fab,
      const int* lo, const int* hi,
      const amrex_real* plo, const amrex_real* phi, const amrex_real* dx, amrex_real* z);
+#endif
+
 #endif
 
 #ifdef __cplusplus
