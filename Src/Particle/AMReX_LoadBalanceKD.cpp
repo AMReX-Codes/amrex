@@ -1,6 +1,6 @@
 #include "AMReX_LoadBalanceKD.H"
 
-using namespace amrex;
+namespace amrex {
 
 int KDTree::min_box_size = 4;
 
@@ -132,4 +132,6 @@ bool KDTree::splitBox(int split, int dir,
     right.setSmall(dir, split+1);
 
     return true;
+}
+
 }
