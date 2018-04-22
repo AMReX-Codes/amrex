@@ -11,6 +11,12 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
+ifdef AMREX_XSDK
+  AMREX_XSDK := $(strip $(AMREX_XSDK))
+else
+  AMREX_XSDK := FALSE
+endif
+
 ifdef PRECISION
   PRECISION := $(strip $(PRECISION))
 else
@@ -392,12 +398,12 @@ ifeq ($(USE_PARTICLES),TRUE)
 endif
 
 ifeq ($(USE_EB),TRUE)
-    CPPFLAGS += -DAMREX_USE_EB
+    DEFINES += -DAMREX_USE_EB
 endif
 
-
-# DEFINES += -DAMREX_XSDK
-
+ifeq ($(AMREX_XSDK),TRUE)
+   DEFINES += -DAMREX_XSDK
+endif
 
 includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
