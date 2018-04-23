@@ -48,8 +48,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	pp.getarr("direction", nvec);
 	pp.getarr("polarization", p_X);
 	pp.query("pusher_algo", pusher_algo);
-	pp.get("e_max", e_max);
     pp.get("wavelength", wavelength);
+    pp.get("e_max", e_max);
 
 	if ( profile == laser_t::Gaussian ) {
 	    // Parse the properties of the Gaussian profile
@@ -446,7 +446,8 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
             if (profile == laser_t::parse_field_function) {
-		parse_function_laser( &np, plane_Xp.data(), plane_Yp.data(), &t, &e_max,
+        // mthevenet
+		parse_function_laser( &np, plane_Xp.data(), plane_Yp.data(), &t,
                               amplitude_E.data(), parser_instance_number );
 	    }
 
