@@ -429,4 +429,11 @@ amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlock
     numThreads.z = tz;
 
 }
+
+void 
+amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks) {
+    numThreads = 256;
+    numBlocks = (np + blockSize - 1) / blockSize;
+}
+
 #endif

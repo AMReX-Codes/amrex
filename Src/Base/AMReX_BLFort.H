@@ -61,10 +61,19 @@
 
 #define FORT_LAUNCHABLE(func) __global__ func
 
+#define FORT_LAUNCH_PARTICLES(num_particles, function, ...) \
+    { \
+        int numThreads; int numBlocks; \
+        Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+        function<<<numBlocks, numThreads>>>(__VA_ARGS__); \
+        CudaErrorCheck(); \
+    }
+
 #else
 
 #define FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
 #define FORT_LAUNCHABLE(func) func
+#define FORT_LAUNCH_PARTICLES(num_particles, function, ...) function(__VA_ARGS__)
 
 #endif
 

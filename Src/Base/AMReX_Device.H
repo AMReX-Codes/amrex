@@ -141,6 +141,8 @@ public:
 #if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
     static void c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
 
+    static void particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks);
+
     static cudaStream_t stream_from_index (int idx);
 
     static void initialize_cuda_c ();
