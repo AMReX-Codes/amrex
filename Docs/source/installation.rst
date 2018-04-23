@@ -2,7 +2,7 @@ Installation
 ============
 
 Downloading the code
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 You should clone the source codes of AMReX, PICSAR and WarpX into one
 single directory (e.g. ``warpx_directory``):
@@ -24,7 +24,10 @@ You should then switch to the branch ``development`` of AMReX
     cd ..
 
 Compiling WarpX as an executable
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
+
+Generic instructions
+~~~~~~~~~~~~~~~~~~~~
 
 ``cd`` into the directory ``warpx`` and type
 
@@ -56,7 +59,6 @@ This will generate an executable file in the ``Bin`` directory.
 
         make -j 4 USE_OMP=FALSE
 
-
 In order to clean a previously compiled version:
 
 ::
@@ -65,9 +67,32 @@ In order to clean a previously compiled version:
 
 In order to learn how to use the executable, see the section :doc:`running_cpp/running_cpp`.
 
+Compiling with a spectral solver
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, the code is compiled with a finite-difference (FDTD) Maxwell solver.
+In order to run the code with a spectral solver, you need to:
+
+      - Install (or load) an MPI-enabled version of FFTW.
+        For instance, for Debian, this can be done with
+        ::
+           
+           apt-get install libfftw3-dev libfftw3-mpi-dev
+           
+      - Set the environment variable ``FFTW_HOME`` to the path for FFTW.
+        For instance, for Debian, this is done with
+        ::
+           
+           export FFTW_HOME=/usr/
+           
+      - Set ``USE_PSATD=TRUE`` when compiling:
+        ::
+           
+           make -j 4 USE_PSATD=TRUE
+
 
 Compiling WarpX as a Python package
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 
 ``cd`` into the directory ``warpx/Python`` (instead of ``warpx``
 in the previous section) and type
@@ -85,7 +110,7 @@ In order to learn how to use the Python package, see the section :doc:`running_p
 
 
 Compiling WarpX for Cori
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 For the `Cori cluster
 <http://www.nersc.gov/users/computational-systems/cori/>`__ at NERSC,

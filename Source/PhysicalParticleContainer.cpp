@@ -310,7 +310,7 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
     const BoxArray& fine_BA = E[1][0]->boxArray();
     const DistributionMapping& fine_dm = E[1][0]->DistributionMap();
     BoxArray coarsened_fine_BA = fine_BA;
-    coarsened_fine_BA.coarsen(IntVect(D_DECL(2,2,2)));
+    coarsened_fine_BA.coarsen(IntVect(AMREX_D_DECL(2,2,2)));
 
     MultiFab coarse_Ex(coarsened_fine_BA, fine_dm, 1, 1);
     MultiFab coarse_Ey(coarsened_fine_BA, fine_dm, 1, 1);
@@ -550,7 +550,8 @@ PhysicalParticleContainer::Evolve (int lev,
 				   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 				   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 				   MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                   MultiFab* rho, Real t, Real dt)
+                                   MultiFab* rho, MultiFab* rho2,
+                                   Real t, Real dt)
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
@@ -565,10 +566,6 @@ PhysicalParticleContainer::Evolve (int lev,
     long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ = jx.nGrow();
-
-    long ngRho = (rho) ? rho->nGrow() : 0;
-
-    long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     BL_ASSERT(OnSameGrids(lev,Ex));
@@ -636,11 +633,14 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	    long lvect = 8;
 
-            if (rho)
+            auto depositCharge = [&] (MultiFab* rhomf)
             {
+                long ngRho = rhomf->nGrow();
+                long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
+
                 Real* data_ptr;
                 const int *rholen;
-                FArrayBox& rhofab = (*rho)[pti];
+                FArrayBox& rhofab = (*rhomf)[pti];
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
                 Box grown_box;
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
@@ -696,7 +696,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
                                                 BL_TO_FORTRAN_3D(rhofab), ncomp);
                 }
-            }
+            };
+
+            if (rho) depositCharge(rho);
 
             if (! do_not_push)
             {
@@ -868,12 +870,14 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
 
+            if (rho2) depositCharge(rho2);
+
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
-	}
+        }
     }
 }
 
@@ -955,7 +959,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 bzfab.dataPtr(), &ngE, bzfab.length(),
                 &ll4symtry, &l_lower_order_in_v,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
-            
+
             warpx_particle_pusher_momenta(&np, xp.data(), yp.data(), zp.data(),
                                           uxp.data(), uyp.data(), uzp.data(), giv.data(),
                                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),

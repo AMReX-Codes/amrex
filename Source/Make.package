@@ -30,5 +30,10 @@ ifeq ($(USE_OPENBC_POISSON),TRUE)
   F90EXE_sources += openbc_f.F90
 endif
 
+ifeq ($(USE_PSATD),TRUE)
+  CEXE_sources += WarpXFFT.cpp
+  F90EXE_sources += WarpX_fft.F90
+endif
+
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source
