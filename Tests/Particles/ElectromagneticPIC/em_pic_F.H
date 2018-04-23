@@ -8,79 +8,136 @@ extern "C"
 {
 #endif
 
-    void push_momentum_boris(const int* np, 
-                             amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp, amrex::Real* gaminv,
-                             const amrex::Real* exp, const amrex::Real* eyp, const amrex::Real* ezp,
-                             const amrex::Real* bxp, const amrex::Real* byp, const amrex::Real* bzp,
-                             const amrex::Real* q, const amrex::Real* m, const amrex::Real* dt);
+    FORT_LAUNCHABLE(void push_momentum_boris)(const int* np, 
+                                              amrex::Real* uxp,
+                                              amrex::Real* uyp,
+                                              amrex::Real* uzp, 
+                                              amrex::Real* gaminv,
+                                              const amrex::Real* exp,
+                                              const amrex::Real* eyp,
+                                              const amrex::Real* ezp,
+                                              const amrex::Real* bxp,
+                                              const amrex::Real* byp,
+                                              const amrex::Real* bzp,
+                                              const amrex::Real q,
+                                              const amrex::Real m,
+                                              const amrex::Real dt);
     
-    void push_position_boris(const int* np, 
-                             amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
-                             const amrex::Real* uxp, const amrex::Real* uyp, const amrex::Real* uzp,
-                             const amrex::Real* gaminv, const amrex::Real* dt);
-
-    void set_gamma(const int* np,
-                   const amrex::Real* uxp, const amrex::Real* uyp, const amrex::Real* uzp,
-                   amrex::Real* gaminv);
-
-    void enforce_periodic(const int* np,
-                          amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
-                          const amrex::Real* plo, const amrex::Real* phi);
-
-    void deposit_current(BL_FORT_FAB_ARG_3D(jx),
-                         BL_FORT_FAB_ARG_3D(jy),
-                         BL_FORT_FAB_ARG_3D(jz),
-                         const int* np, 
-                         const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
-                         const amrex::Real* uxp, const amrex::Real* uyp, const amrex::Real* uzp,
-                         const amrex::Real* gaminv, const amrex::Real* w, const amrex::Real* q,
-                         const amrex::Real* plo, const amrex::Real* dt, const amrex::Real* dx);
+    FORT_LAUNCHABLE(void push_position_boris)(const int* np,
+                                              amrex::Real* xp,
+                                              amrex::Real* yp,
+                                              amrex::Real* zp,
+                                              const amrex::Real* uxp,
+                                              const amrex::Real* uyp,
+                                              const amrex::Real* uzp,
+                                              const amrex::Real* gaminv,
+                                              const amrex::Real dt);
     
-    void gather_magnetic_field(const int* np, 
-                               const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp, 
-                               amrex::Real* bx, amrex::Real* by, amrex::Real* bz, 
-                               const BL_FORT_FAB_ARG_3D(bxg),
-                               const BL_FORT_FAB_ARG_3D(byg),
-                               const BL_FORT_FAB_ARG_3D(bzg),
-                               const amrex::Real* plo, const amrex::Real* dx);
-    
-    void gather_electric_field(const int* np, 
-                               const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,
-                               amrex::Real* ex, amrex::Real* ey, amrex::Real* ez, 
-                               const BL_FORT_FAB_ARG_3D(exg),
-                               const BL_FORT_FAB_ARG_3D(eyg),
-                               const BL_FORT_FAB_ARG_3D(ezg),
-                               const amrex::Real* plo, const amrex::Real* dx);
+    FORT_LAUNCHABLE(void zero_out)(const int* xlo,
+                                   const int* xhi,
+                                   BL_FORT_FAB_ARG_3D(var));
 
-    void push_electric_field(const int* xlo, const int* xhi,
-                             const int* ylo, const int* yhi,
-                             const int* zlo, const int* zhi,
-                             BL_FORT_FAB_ARG_3D(ex),
-                             BL_FORT_FAB_ARG_3D(ey),
-                             BL_FORT_FAB_ARG_3D(ez),
-                             const BL_FORT_FAB_ARG_3D(bx),
-                             const BL_FORT_FAB_ARG_3D(by),
-                             const BL_FORT_FAB_ARG_3D(bz),
-                             const BL_FORT_FAB_ARG_3D(jx),
-                             const BL_FORT_FAB_ARG_3D(jy),
-                             const BL_FORT_FAB_ARG_3D(jz),
-                             const amrex::Real* mudt,
-                             const amrex::Real* dtsdx,
-                             const amrex::Real* dtsdy,
-                             const amrex::Real* dtsdz);
+    FORT_LAUNCHABLE(void set_gamma)(const int* np,
+                                    const amrex::Real* uxp,
+                                    const amrex::Real* uyp,
+                                    const amrex::Real* uzp,
+                                    amrex::Real* gaminv);
+
+    FORT_LAUNCHABLE(void enforce_periodic)(const int* np,
+                                           amrex::Real* xp,
+                                           amrex::Real* yp,
+                                           amrex::Real* zp,
+                                           const amrex::Real* plo,
+                                           const amrex::Real* phi);
+
+    FORT_LAUNCHABLE(void deposit_current)(BL_FORT_FAB_ARG_3D(jx),
+                                          BL_FORT_FAB_ARG_3D(jy),
+                                          BL_FORT_FAB_ARG_3D(jz),
+                                          const int* np, 
+                                          const amrex::Real* x,
+                                          const amrex::Real* y,
+                                          const amrex::Real* z,
+                                          const amrex::Real* uxp,
+                                          const amrex::Real* uyp,
+                                          const amrex::Real* uzp,
+                                          const amrex::Real* gaminv,
+                                          const amrex::Real* w,
+                                          const amrex::Real q,
+                                          const amrex::Real* plo,
+                                          const amrex::Real dt,
+                                          const amrex::Real* dx);
     
-    void push_magnetic_field(const int* xlo, const int* xhi,
-                             const int* ylo, const int* yhi,
-                             const int* zlo, const int* zhi,
-                             const BL_FORT_FAB_ARG_3D(ex),
-                             const BL_FORT_FAB_ARG_3D(ey),
-                             const BL_FORT_FAB_ARG_3D(ez),
-                             BL_FORT_FAB_ARG_3D(bx),
-                             BL_FORT_FAB_ARG_3D(by),
-                             BL_FORT_FAB_ARG_3D(bz),
-                             const amrex::Real* dtsdx, 
-                             const amrex::Real* dtsdy, 
-                             const amrex::Real* dtsdz);
+    FORT_LAUNCHABLE(void gather_magnetic_field)(const int* np, 
+                                                const amrex::Real* xp,
+                                                const amrex::Real* yp,
+                                                const amrex::Real* zp, 
+                                                amrex::Real* bx,
+                                                amrex::Real* by,
+                                                amrex::Real* bz, 
+                                                const BL_FORT_FAB_ARG_3D(bxg),
+                                                const BL_FORT_FAB_ARG_3D(byg),
+                                                const BL_FORT_FAB_ARG_3D(bzg),
+                                                const amrex::Real* plo, const amrex::Real* dx);
+    
+    FORT_LAUNCHABLE(void gather_electric_field)(const int* np, 
+                                                const amrex::Real* xp,
+                                                const amrex::Real* yp,
+                                                const amrex::Real* zp,
+                                                amrex::Real* ex,
+                                                amrex::Real* ey,
+                                                amrex::Real* ez, 
+                                                const BL_FORT_FAB_ARG_3D(exg),
+                                                const BL_FORT_FAB_ARG_3D(eyg),
+                                                const BL_FORT_FAB_ARG_3D(ezg),
+                                                const amrex::Real* plo, const amrex::Real* dx);
+
+    FORT_LAUNCHABLE(void push_electric_field_x)(const int* xlo, const int* xhi,
+                                                BL_FORT_FAB_ARG_3D(ex),
+                                                const BL_FORT_FAB_ARG_3D(by),
+                                                const BL_FORT_FAB_ARG_3D(bz),
+                                                const BL_FORT_FAB_ARG_3D(jx),
+                                                const amrex::Real mudt,
+                                                const amrex::Real dtsdy,
+                                                const amrex::Real dtsdz);
+
+    FORT_LAUNCHABLE(void push_electric_field_y)(const int* ylo, const int* yhi,
+                                                BL_FORT_FAB_ARG_3D(ey),
+                                                const BL_FORT_FAB_ARG_3D(bx),
+                                                const BL_FORT_FAB_ARG_3D(bz),
+                                                const BL_FORT_FAB_ARG_3D(jy),
+                                                const amrex::Real mudt,
+                                                const amrex::Real dtsdx,
+                                                const amrex::Real dtsdz);
+    
+    FORT_LAUNCHABLE(void push_electric_field_z)(const int* zlo, const int* zhi,
+                                                BL_FORT_FAB_ARG_3D(ez),
+                                                const BL_FORT_FAB_ARG_3D(bx),
+                                                const BL_FORT_FAB_ARG_3D(by),
+                                                const BL_FORT_FAB_ARG_3D(jz),
+                                                const amrex::Real mudt,
+                                                const amrex::Real dtsdx,
+                                                const amrex::Real dtsdy);
+
+    FORT_LAUNCHABLE(void push_magnetic_field_x)(const int* xlo, const int* xhi,
+                                                BL_FORT_FAB_ARG_3D(bx),
+                                                const BL_FORT_FAB_ARG_3D(ey),
+                                                const BL_FORT_FAB_ARG_3D(ez),
+                                                const amrex::Real dtsdy,
+                                                const amrex::Real dtsdz);
+
+    FORT_LAUNCHABLE(void push_magnetic_field_y)(const int* ylo, const int* yhi,
+                                                BL_FORT_FAB_ARG_3D(by),                               
+                                                const BL_FORT_FAB_ARG_3D(ex),
+                                                const BL_FORT_FAB_ARG_3D(ez),
+                                                const amrex::Real dtsdx, 
+                                                const amrex::Real dtsdz);
+    
+    FORT_LAUNCHABLE(void push_magnetic_field_z)(const int* zlo, const int* zhi,
+                                                BL_FORT_FAB_ARG_3D(bz),                               
+                                                const BL_FORT_FAB_ARG_3D(ex),
+                                                const BL_FORT_FAB_ARG_3D(ey),
+                                                const amrex::Real dtsdx, 
+                                                const amrex::Real dtsdy);
 
 #ifdef __cplusplus
 };

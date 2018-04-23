@@ -1,9 +1,9 @@
 
 ncell = (64, 64, 64)
-nppc  = (4, 4, 4)
+nppc  = (4, 4, 2)
 
 max_grid_size = 128
 
-nsteps = 100
+nsteps = 10
 
 verbose = true

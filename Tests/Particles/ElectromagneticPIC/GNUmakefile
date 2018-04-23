@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../
+#AMREX_HOME ?= /path/to/amrex
 
 DEBUG	= TRUE
 DEBUG	= FALSE
@@ -14,7 +14,9 @@ PRECISION     = DOUBLE
 
 USE_MPI       = FALSE
 USE_OMP       = FALSE
-USE_CUDA      = FALSE
+USE_CUDA      = TRUE
+
+CUDA_VERSION = 8.0
 
 ###################################################
 
@@ -24,8 +26,5 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
-include $(AMREX_HOME)/Src/Boundary/Make.package
-include $(AMREX_HOME)/Src/AmrCore/Make.package
-include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
