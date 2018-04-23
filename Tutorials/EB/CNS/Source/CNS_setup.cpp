@@ -17,17 +17,17 @@ using BndryFunc = StateDescriptor::BndryFunc;
 //
 static int scalar_bc[] =
 {
-    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN
+    BCType::int_dir, BCType::ext_dir, BCType::foextrap, BCType::reflect_even, BCType::reflect_even, BCType::reflect_even
 };
 
 static int norm_vel_bc[] =
 {
-    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_ODD,  REFLECT_ODD,  REFLECT_ODD
+    BCType::int_dir, BCType::ext_dir, BCType::foextrap, BCType::reflect_odd,  BCType::reflect_odd,  BCType::reflect_odd
 };
 
 static int tang_vel_bc[] =
 {
-    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, REFLECT_EVEN, REFLECT_ODD
+    BCType::int_dir, BCType::ext_dir, BCType::foextrap, BCType::reflect_even, BCType::reflect_even, BCType::reflect_odd
 };
 
 static
@@ -103,7 +103,8 @@ CNS::variableSetUp ()
     read_params();
 
     cns_init_fort(phys_bc.lo(), phys_bc.hi(),
-                  Interior,Inflow,Outflow,Symmetry,SlipWall,NoSlipWall,
+                  PhysBCType::interior, PhysBCType::inflow, PhysBCType::outflow,
+                  PhysBCType::symmetry, PhysBCType::slipwall, PhysBCType::noslipwall,
                   ParallelDescriptor::MyProc(),
                   Geometry::ProbLo(), Geometry::ProbHi());
 
