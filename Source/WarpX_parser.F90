@@ -1337,37 +1337,3 @@ FUNCTION parser_evaluate_function(list_var, nvar, my_index_res) result(out) &
 END FUNCTION parser_evaluate_function
 
 END MODULE parser_wrapper
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

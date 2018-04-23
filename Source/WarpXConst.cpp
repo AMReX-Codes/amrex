@@ -33,7 +33,6 @@ std::string UserConstants::replaceStringValue(std::string math_expr){
 
 void UserConstants::ReadParameters()
 {
-//     static bool initialized = false;
     if (!initialized){
 	    amrex::ParmParse pp("constants");
         pp.query("use_my_constants", use_my_constants);
@@ -46,29 +45,3 @@ void UserConstants::ReadParameters()
 	initialized = true;
     }
 }
-
-//     std::string str, pat, pat_val;
-//     float a0 = 3.1;
-// 
-//     str = "a0+1-toto.tat a09* a0+2-a0**2";
-//     pat = "a0";
-//     pat_val = std::to_string(a0);
-
-//     std::size_t found = str.find(pat);
-// 
-//     while (found != std::string::npos){
-//         if ((found==0                && !isalnum(str[pat.length()      ])) ||
-//            (!isalnum(str[found-1])  && !isalnum(str[found+pat.length()])))
-//         { 
-//             str.replace(found,pat.length(),pat_val);
-//          }
-//         found = str.find(pat, found + pat.length());
-//     }
-//     std::cout << str << std::endl;
-//     return 0;
-// }
-
-
-// 
-//     }
-// }
