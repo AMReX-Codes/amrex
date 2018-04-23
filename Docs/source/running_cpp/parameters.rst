@@ -112,15 +112,11 @@ Particle initialization
     Determines how the particles will be injected in the simulation.
     The options are:
 
-    - ``NUniformPerCell``:
-        injection with a fixed number of particles
-        per cell, with particles being evenly-spaced in each direction within a cell.
-        This requires the additional parameter ``<species_name>.num_particles_per_cell_each_dim``.
+    * ``NUniformPerCell``: injection with a fixed number of evenly-spaced particles per cell.
+      This requires the additional parameter ``<species_name>.num_particles_per_cell_each_dim``.
 
-    - ``NRandomPerCell``:
-        injection with a fixed number of particles
-        per cell, with particles being randomly distributed within each cell.
-        This requires the additional parameter ``<species_name>.num_particles_per_cell``.
+    * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
+      This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
 Laser initialization
 --------------------
@@ -289,6 +285,15 @@ Numerics and algorithms
     The order of the shape factors for the macroparticles, for the 3 dimensions of space. Lower-order shape factors result in faster simulations, but more noisy results,
 
     Note that the implementation in WarpX is more efficient when these 3 numbers are equal, and when they are between 1 and 3.
+    
+* ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`)
+    The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
+    If this is not set, the default is ``psatd.nox = psatd.noy = psatd.noz = 16``.
+    
+* ``psatd.ngroups_fft`` (`integer`)
+    The number of MPI groups that are created for the FFT, when using the code compiled with a PSATD solver.
+    The FFTs are global with one MPI group and use guard cell exchanges inbetween MPI groups.
+    
 
 Diagnostics and output
 ----------------------

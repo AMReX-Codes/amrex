@@ -16,16 +16,16 @@ WarpX::InitData ()
 
     if (restart_chkfile.empty())
     {
-	InitFromScratch();
         ComputeDt();
+	InitFromScratch();
     }
     else
     {
 	InitFromCheckpoint();
-	PostRestart();
         if (is_synchronized) {
             ComputeDt();
         }
+	PostRestart();
     }
 
     ComputePMLFactors();
@@ -149,6 +149,9 @@ WarpX::InitNCICorrector ()
 void
 WarpX::PostRestart ()
 {
+#ifdef WARPX_USE_PSATD
+    amrex::Abort("WarpX::PostRestart: TODO for PSATD");
+#endif
     mypc->PostRestart();
 }
 

@@ -400,6 +400,28 @@ extern "C"
 #endif
                              const int);
 
+#ifdef WARPX_USE_PSATD
+    void warpx_fft_mpi_init (int fcomm);
+    void warpx_fft_dataplan_init (const int* global_lo, const int* global_hi,
+                                  const int* local_lo, const int* local_hi,
+                                  const int* nox, const int* noy, const int* noz,
+                                  void* fft_data, const int* ndata,
+                                  const amrex_real* dx_w, const amrex_real* dt_w);
+    void warpx_fft_nullify ();
+    void warpx_fft_push_eb (amrex_real* ex_w, const int* exlo, const int* exhi,
+                            amrex_real* ey_w, const int* eylo, const int* eyhi,
+                            amrex_real* ez_w, const int* ezlo, const int* ezhi,
+                            amrex_real* bx_w, const int* bxlo, const int* bxhi,
+                            amrex_real* by_w, const int* bylo, const int* byhi,
+                            amrex_real* bz_w, const int* bzlo, const int* bzhi,
+                            amrex_real* jx_w, const int* jxlo, const int* jxhi,
+                            amrex_real* jy_w, const int* jylo, const int* jyhi,
+                            amrex_real* jz_w, const int* jzlo, const int* jzhi,
+                            amrex_real* rhoold_w, const int* r1lo, const int* r1hi,
+                            amrex_real* rho_w, const int* r2lo, const int* r2hi);
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif

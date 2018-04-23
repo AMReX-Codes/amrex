@@ -16,7 +16,11 @@ WarpX::Evolve (int numsteps) {
     if (do_electrostatic) {
         EvolveES(numsteps);
     } else {
-        EvolveEM(numsteps);
+#ifdef WARPX_USE_PSATD
+      EvolvePSATD(numsteps);
+#else 
+      EvolveEM(numsteps);
+#endif
     }
 }
 
@@ -208,7 +212,7 @@ WarpX::EvolveEM (int numsteps)
         // Beyond this, we have E^{n} and B^{n}
         // Particles have p^{n-1/2} and x^{n}
 
-        // Push particle from x^{n} to x{n+1}
+        // Push particle from x^{n} to x^{n+1}
         //               from p^{n-1/2} to p^{n+1/2}
         // Deposit current j^{n+1/2}
         // Deposit charge density rho^{n}
@@ -223,7 +227,7 @@ WarpX::EvolveEM (int numsteps)
 
         SyncCurrent();
 
-        SyncRho();
+        SyncRho(rho_fp, rho_cp);
 
         EvolveF(dt[0], DtType::Full);
 
@@ -246,7 +250,7 @@ WarpX::EvolveEM (int numsteps)
             is_synchronized = true;
         }
 
-         for (int lev = 0; lev <= max_level; ++lev) {
+        for (int lev = 0; lev <= max_level; ++lev) {
             ++istep[lev];
         }
 
@@ -698,11 +702,17 @@ WarpX::PushParticlesandDepose (Real cur_time)
 void
 WarpX::PushParticlesandDepose (int lev, Real cur_time)
 {
+#ifdef WARPX_USE_PSATD
+    MultiFab* prho2 = rho2_fp[lev].get();
+#else
+    MultiFab* prho2 = nullptr;
+#endif
+
     mypc->Evolve(lev,
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
                  *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
-                 rho_fp[lev].get(), cur_time, dt[lev]);
+                 rho_fp[lev].get(), prho2, cur_time, dt[lev]);
 }
 
 void
@@ -816,3 +826,184 @@ void WarpX::ApplyNCICorrector() {
     }
 #endif
 }
+
+#ifdef WARPX_USE_PSATD
+
+void
+WarpX::EvolvePSATD (int numsteps)
+{
+    BL_PROFILE("WarpX::EvolvePSATD()");
+
+    Real cur_time = t_new[0];
+    static int last_plot_file_step = 0;
+    static int last_check_file_step = 0;
+
+    int numsteps_max;
+    if (numsteps < 0) {  // Note that the default argument is numsteps = -1
+        numsteps_max = max_step;
+    } else {
+        numsteps_max = std::min(istep[0]+numsteps, max_step);
+    }
+
+    bool max_time_reached = false;
+    for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
+    {
+        if (warpx_py_print_step) {
+            warpx_py_print_step(step);
+        }
+
+	// Start loop on time steps
+        amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
+
+        if (costs[0] != nullptr)
+        {
+            amrex::Abort("LoadBalance for PSATD: TODO"); // xxxxx
+            if (step > 0 && (step-1) % load_balance_int == 0)
+            {
+                LoadBalance();
+            }
+
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                costs[lev]->setVal(0.0);
+            }
+        }
+
+        // At the beginning, we have B^{n} and E^{n}.
+        // Particles have p^{n} and x^{n}.
+        // is_synchronized is true.
+
+        if (is_synchronized)
+        {
+            FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
+
+            // on first step, push p by -0.5*dt
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->PushP(lev, -0.5*dt[0],
+                            *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                            *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+            }
+
+            is_synchronized = false;
+        }
+        else
+        {
+            // Beyond one step, we have E^{n} and B^{n}.
+            // Particles have p^{n-1/2} and x^{n}.
+
+            FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
+        }
+
+        // Push particle from x^{n} to x^{n+1}
+        //               from p^{n-1/2} to p^{n+1/2}
+        // Deposit current j^{n+1/2}
+        // Deposit charge density rho^{n} and rho^{n+1}
+        PushParticlesandDepose(cur_time);
+
+        SyncCurrent();
+
+        SyncRho(rho_fp, rho_cp);
+        SyncRho(rho2_fp, rho2_cp);
+
+        // Push E and B from {n} to {n+1}
+        PushPSATD(dt[0]);
+
+        if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
+            // At the end of last step, push p by 0.5*dt to synchronize
+
+            FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
+
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->PushP(lev, 0.5*dt[0],
+                            *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                            *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+            }
+
+            is_synchronized = true;
+        }
+
+        for (int lev = 0; lev <= max_level; ++lev) {
+            ++istep[lev];
+        }
+
+	cur_time += dt[0];
+
+        bool move_j = false;
+	MoveWindow(move_j);
+
+        if (max_level == 0) {
+            mypc->RedistributeLocal();
+        }
+        else {
+            mypc->Redistribute();
+        }
+
+        amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
+                      << " DT = " << dt[0] << "\n";
+
+	// sync up time
+	for (int i = 0; i <= max_level; ++i) {
+	    t_new[i] = cur_time;
+	}
+
+        if (do_boosted_frame_diagnostic) {
+            std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
+            myBFD->writeLabFrameData(*cell_centered_data, geom[0], cur_time);
+        }
+
+        bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
+	if (to_make_plot)
+        {
+            FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
+
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->FieldGather(lev,
+                                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+            }
+
+	    last_plot_file_step = step+1;
+	    WritePlotFile();
+	}
+
+	if (check_int > 0 && (step+1) % check_int == 0) {
+	    last_check_file_step = step+1;
+	    WriteCheckPointFile();
+	}
+
+	if (cur_time >= stop_time - 1.e-3*dt[0]) {
+	    max_time_reached = true;
+	    break;
+	}
+
+	// End loop on time steps
+    }
+
+    if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step))
+    {
+        FillBoundaryE();
+        FillBoundaryB();
+        UpdateAuxilaryData();
+
+        for (int lev = 0; lev <= finest_level; ++lev) {
+            mypc->FieldGather(lev,
+                              *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                              *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+        }
+
+	WritePlotFile();
+    }
+
+    if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
+	WriteCheckPointFile();
+    }
+}
+
+#endif
