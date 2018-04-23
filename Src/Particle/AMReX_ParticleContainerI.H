@@ -945,29 +945,26 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtualParticles (int   level,
-                                                       AoS& virts) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtualParticles (int  level,
+                                                                                           AoS& virts) const
 {
+
   BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CreateVirtualParticles()");
   BL_ASSERT(level > 0);
   BL_ASSERT(virts.empty());
   
-  if (level >= int(m_particles.size()))
-    //
-    // This level could exist and simply have no particles.
-    //
-    return;
-  //
-  // Read these from the parm file if we haven't done so yet.
-  //
+  if (level >= static_cast<int>(m_particles.size()))
+      return;
+
   if (aggregation_type == "")
     {
       ParmParse pp("particles");
       aggregation_type = "None";
-      pp.query("aggregation_type",aggregation_type);
+      pp.query("aggregation_type", aggregation_type);
       aggregation_buffer = 2;
-      pp.query("aggregation_buffer",aggregation_buffer);
+      pp.query("aggregation_buffer", aggregation_buffer);
     }
+
   //
   // Create a buffer so that particles near the cf border are not aggregated.
   //
