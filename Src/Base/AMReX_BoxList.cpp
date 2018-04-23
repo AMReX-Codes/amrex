@@ -69,7 +69,6 @@ void
 BoxList::join (const BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
-    m_lbox.reserve(m_lbox.size() + blist.size());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
 }
 
@@ -77,7 +76,6 @@ void
 BoxList::join (const Vector<Box>& barr)
 {
     BL_ASSERT(barr.size() == 0 || ixType() == barr[0].ixType());
-    m_lbox.reserve(m_lbox.size() + barr.size());
     m_lbox.insert(std::end(m_lbox), std::begin(barr), std::end(barr));
 }
 
@@ -85,7 +83,6 @@ void
 BoxList::catenate (BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
-    m_lbox.reserve(m_lbox.size() + blist.size());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
     blist.m_lbox.clear();
 }
@@ -371,7 +368,6 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 	    newsize += vbl[i].size();
 	}
 	
-	m_lbox.reserve(size()+newsize);
 	for (int i = 0; i < N; ++i) {
 	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
 	}
