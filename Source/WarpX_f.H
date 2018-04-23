@@ -157,10 +157,7 @@ extern "C"
                                  amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
                                  amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
     
-
-// mthevenet
         void parse_function_laser( const long* np, amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* amplitude, const int parser_instance_number );
-//         void parse_function_laser( const long* np, amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* e_max, amrex::Real* amplitude, const int parser_instance_number );
 
     // Maxwell solver
     

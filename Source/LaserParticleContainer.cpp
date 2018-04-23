@@ -446,7 +446,6 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
             if (profile == laser_t::parse_field_function) {
-        // mthevenet
 		parse_function_laser( &np, plane_Xp.data(), plane_Yp.data(), &t,
                               amplitude_E.data(), parser_instance_number );
 	    }
