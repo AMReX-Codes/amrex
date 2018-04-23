@@ -68,12 +68,12 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
   if ( profile == laser_t::parse_field_function ) {
        // Parse the properties of the parse_field_function profile
-	   pp.get("field_function(x,y,t)", field_function);
+	   pp.get("field_function(X,Y,t)", field_function);
        // User-defined constants: replace names by value
        my_constants.ReadParameters();
 	   field_function = my_constants.replaceStringValue(field_function);
        // Pass math expression and list of variables to Fortran as char*
-       const char *str_var  = "x,y,t";
+       const char *str_var  = "X,Y,t";
        const char *str_func = field_function.c_str();
        parser_instance_number = WRPX_PARSER_INIT_FUNCTION(str_func, str_var);      
 	}
