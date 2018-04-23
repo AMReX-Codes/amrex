@@ -13,6 +13,7 @@ CEXE_sources += ParticleContainer.cpp WarpXParticleContainer.cpp PhysicalParticl
 CEXE_headers += WarpXWrappers.h WarpX_py.H
 
 CEXE_headers += WarpX.H WarpX_f.H WarpXConst.H WarpXBoostedFrameDiagnostic.H
+CEXE_sources += WarpXConst.cpp
 
 CEXE_headers += ParticleContainer.H WarpXParticleContainer.H PhysicalParticleContainer.H LaserParticleContainer.H
 

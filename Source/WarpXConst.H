@@ -19,4 +19,16 @@ namespace MathConst
     static constexpr amrex::Real pi = 3.14159265358979323846;
 }
 
+class UserConstants{
+public:
+    std::vector<std::string> constant_names;
+    std::vector<amrex::Real> constant_values;
+    int nb_constants=0;
+    std::string replaceStringValue(std::string);
+    void ReadParameters();
+private:
+    bool initialized = false;
+    bool use_my_constants = false;
+};
+
 #endif

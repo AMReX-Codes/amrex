@@ -4,6 +4,7 @@
 #include <limits>
 
 #include <WarpXParticleContainer.H>
+#include <WarpXConst.H>
 
 enum class laser_t { Null, Gaussian, Harris, parse_field_function };
 
@@ -35,6 +36,8 @@ public:
                         const amrex::MultiFab& ) final;
 
     virtual void PostRestart () final;
+
+    UserConstants my_constants;
 
 private:
 

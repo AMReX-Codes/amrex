@@ -69,6 +69,8 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
 ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
     : _parse_density_function(parse_density_function)
 {
+    my_constants.ReadParameters();
+    parse_density_function = my_constants.replaceStringValue(parse_density_function);   
     const char *str_var  = "x,y,z";
     const char *str_func = parse_density_function.c_str();
     parser_instance_number = WRPX_PARSER_INIT_FUNCTION(str_func, str_var);

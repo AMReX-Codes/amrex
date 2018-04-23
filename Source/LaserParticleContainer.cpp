@@ -60,18 +60,22 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	}
 
   if ( profile == laser_t::Harris ) {
-	    // Parse the properties of the Harris profile
+	   // Parse the properties of the Harris profile
 	   pp.get("profile_waist", profile_waist);
 	   pp.get("profile_duration", profile_duration);
        pp.get("profile_focal_distance", profile_focal_distance);
 	}
 
   if ( profile == laser_t::parse_field_function ) {
-	    // Parse the properties of the parse_field_function profile
+       // Parse the properties of the parse_field_function profile
 	   pp.get("field_function(x,y,t)", field_function);
-      const char *str_var  = "x,y,t";
-      const char *str_func = field_function.c_str();
-      parser_instance_number = WRPX_PARSER_INIT_FUNCTION(str_func, str_var);      
+       // User-defined constants: replace names by value
+       my_constants.ReadParameters();
+	   field_function = my_constants.replaceStringValue(field_function);
+       // Pass math expression and list of variables to Fortran as char*
+       const char *str_var  = "x,y,t";
+       const char *str_func = field_function.c_str();
+       parser_instance_number = WRPX_PARSER_INIT_FUNCTION(str_func, str_var);      
 	}
 
 	// Plane normal

@@ -359,6 +359,7 @@ WarpX::ReadParameters ()
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
     }
+
 }
 
 // This is a virtual function.

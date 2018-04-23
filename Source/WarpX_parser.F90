@@ -26,7 +26,7 @@ INTEGER, parameter :: plus       =1, &
                       coshyp     =18, &
                       tanhyp     =19, &
                       logten     =20
-! mthevenet
+
 CHARACTER(5), DIMENSION(0:20) :: coper
 INTEGER, parameter :: w_parenthesis = 1, &
                       w_number      = 2, &
@@ -504,7 +504,6 @@ do j=jtot,1,-1
     END if
   END if
 end do
-! mthevenet
 do j=jtot,1,-1
   IF(what(j)==w_operator) then
     IF(op(j)==greaterthan.or.op(j)==lessthan) then
@@ -729,7 +728,6 @@ do j=jtot,1,-1
     END if
   END if
 end do
-! mthevenet
 do j=jtot,1,-1
   IF(what(j)==w_operator) then
     IF(op(j)==greaterthan.or.op(j)==lessthan) then
@@ -931,7 +929,6 @@ CHARACTER(*), INTENT(IN) :: a
       find_operator = minus
     case (47) ! '/'
       find_operator = divide
-! mthevenet
     case (60) ! '<'
       find_operator = lessthan
     case (62) ! '>'
@@ -1007,7 +1004,6 @@ select case (op)
     eval=a/b
   case (power)
     eval=a**b
-! mthevenet
   case (greaterthan)
     eval=0.
     if (a > b) eval=1.
