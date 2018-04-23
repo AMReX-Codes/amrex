@@ -144,6 +144,8 @@ public:
 
     static void grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads);
 
+    static void particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks);
+
     static cudaStream_t stream_from_index (int idx);
 
     static void initialize_cuda_c ();

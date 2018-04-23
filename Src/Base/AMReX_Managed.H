@@ -46,6 +46,17 @@ inline bool checkManaged(const void *ptr)
       function<<<numBlocks, numThreads>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
     }
+
+#define FORT_LAUNCH_PARTICLES(num_particles, function, ...) \
+    { \
+        int numThreads; int numBlocks; \
+        Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+        function<<<numBlocks, numThreads>>>(__VA_ARGS__); \
+        CudaErrorCheck(); \
+    }
+
+
+
 /*
 Need particle_threads_and_blocks before turning this one on.
 
@@ -105,6 +116,7 @@ struct Pinned  { };
 #define AMREX_SIMPLE_LAUNCH(function, numBlocks, numThreads, ...) function(__VA_ARGS__)
 #define AMREX_BOX_LAUNCH(box, function, ...) function (__VA_ARGS__) 
 #define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) function (__VA_ARGS__)
+#define FORT_LAUNCH_PARTICLES(num_particles, function, ...) function(__VA_ARGS__)
 #define AMREX_CUDA_HOST
 #define AMREX_CUDA_DEVICE
 #define AMREX_CUDA_GLOBAL

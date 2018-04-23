@@ -501,5 +501,12 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
     numThreads.z = std::max(numThreads.z, numThreadsOverride.z);
 
 }
+
+void 
+amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks) {
+    numThreads = 256;
+    numBlocks = (np + blockSize - 1) / blockSize;
+}
+
 #endif
 
