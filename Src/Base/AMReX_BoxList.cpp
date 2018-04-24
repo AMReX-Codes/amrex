@@ -343,34 +343,37 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
     }
     else
     {
-	Box mbox = ba.minimalBox();
-	*this = amrex::boxDiff(b, mbox);
+        ba.complementIn(*this,b);
 
-	BoxList bl(mbox);
-#if (AMREX_SPACEDIM == 3)
-	bl.maxSize(64);
-#else
-	bl.maxSize(128);
-#endif
-	const int N = bl.size();
-	
-	Vector<BoxList> vbl(N);
-	
-	int newsize = 0;
-	
-#ifdef _OPENMP
-	bool start_omp_parallel = !omp_in_parallel();
-#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
-#endif
-	for (int i = 0; i < N; ++i)
-	{
-	    ba.complementIn(vbl[i], bl.m_lbox[i]);
-	    newsize += vbl[i].size();
-	}
-	
-	for (int i = 0; i < N; ++i) {
-	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
-	}
+//	Box mbox = ba.minimalBox();
+//	*this = amrex::boxDiff(b, mbox);
+//
+//	BoxList bl(mbox);
+//#if (AMREX_SPACEDIM == 3)
+//	bl.maxSize(64);
+//#else
+//	bl.maxSize(128);
+//#endif
+//	const int N = bl.size();
+//	
+//	Vector<BoxList> vbl(N);
+//	
+//	int newsize = 0;
+//	
+//#ifdef _OPENMP
+//	bool start_omp_parallel = !omp_in_parallel();
+//#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
+//#endif
+//	for (int i = 0; i < N; ++i)
+//	{
+//	    ba.complementIn(vbl[i], bl.m_lbox[i]);
+//	    newsize += vbl[i].size();
+//	}
+//	
+//	for (int i = 0; i < N; ++i) {
+//	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
+//	}
+//
     }
 
     return *this;
@@ -476,16 +479,26 @@ BoxList
 boxDiff (const Box& b1in,
          const Box& b2)
 {
-   BL_ASSERT(b1in.sameType(b2));
-  
-   BoxList b_list(b1in.ixType());
+   BL_ASSERT(b1in.sameType(b2));  
+   BoxList bl_diff(b1in.ixType());
+   boxDiff(bl_diff,b1in,b2);
+   return bl_diff;
+}
+
+void
+boxDiff (BoxList& bl_diff, const Box& b1in, const Box& b2)
+{
+   AMREX_ASSERT(b1in.sameType(b2));
+
+   bl_diff.set(b2.ixType());
+   bl_diff.clear();
 
    if ( !b2.contains(b1in) )
    {
        Box b1(b1in);
        if ( !b1.intersects(b2) )
        {
-           b_list.push_back(b1);
+           bl_diff.push_back(b1);
        }
        else
        {
@@ -502,7 +515,7 @@ boxDiff (const Box& b1in,
                    Box bn(b1);
                    bn.setSmall(i,b1lo[i]);
                    bn.setBig(i,b2lo[i]-1);
-                   b_list.push_back(bn);
+                   bl_diff.push_back(bn);
                    b1.setSmall(i,b2lo[i]);
                }
                if ((b1lo[i] <= b2hi[i]) && (b2hi[i] < b1hi[i]))
@@ -510,13 +523,12 @@ boxDiff (const Box& b1in,
                    Box bn(b1);
                    bn.setSmall(i,b2hi[i]+1);
                    bn.setBig(i,b1hi[i]);
-                   b_list.push_back(bn);
+                   bl_diff.push_back(bn);
                    b1.setBig(i,b2hi[i]);
                }
            }
        }
    }
-   return b_list;
 }
 
 int

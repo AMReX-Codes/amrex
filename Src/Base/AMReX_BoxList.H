@@ -21,6 +21,8 @@ namespace amrex
     //! Returns BoxList defining the compliment of b2 in b1in.
     BoxList boxDiff (const Box& b1in, const Box& b2);
 
+    void boxDiff (BoxList& bl_diff, const Box& b1in, const Box& b2);
+
     //! Returns a new BoxList in which each Box is refined by the given ratio.
     BoxList refine (const BoxList&  bl, int ratio);
 
