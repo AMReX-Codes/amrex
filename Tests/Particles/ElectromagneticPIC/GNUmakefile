@@ -14,7 +14,7 @@ PRECISION     = DOUBLE
 
 USE_MPI       = FALSE
 USE_OMP       = FALSE
-USE_CUDA      = FALSE
+USE_CUDA      = TRUE
 
 CUDA_VERSION = 8.0
 

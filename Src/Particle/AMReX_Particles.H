@@ -284,7 +284,7 @@ struct StructOfArrays {
 #endif
 
     std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
-    std::array< IntVector,   NInt>& GetIntData  () { return m_idata; }
+    std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
 
     const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
     const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }

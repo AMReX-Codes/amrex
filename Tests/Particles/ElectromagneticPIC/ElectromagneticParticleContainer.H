@@ -17,20 +17,21 @@ class ElectromagneticParIter
 {
 public:
     using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
+    using RealVector = amrex::StructOfArrays<PIdx::nattribs, 0>::RealVector;
 
-    const std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () const {
+    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
         return GetStructOfArrays().GetRealData();
     }
     
-    std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () {
+    std::array<RealVector, PIdx::nattribs>& GetAttribs () {
         return GetStructOfArrays().GetRealData();
     }
     
-    const amrex::Vector<amrex::Real>& GetAttribs (int comp) const {
+    const RealVector& GetAttribs (int comp) const {
         return GetStructOfArrays().GetRealData(comp);
     }
     
-    amrex::Vector<amrex::Real>& GetAttribs (int comp) {
+    RealVector& GetAttribs (int comp) {
         return GetStructOfArrays().GetRealData(comp);
     }
 };
