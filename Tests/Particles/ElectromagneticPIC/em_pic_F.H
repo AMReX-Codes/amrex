@@ -8,7 +8,7 @@ extern "C"
 {
 #endif
 
-    FORT_LAUNCHABLE(void push_momentum_boris)(const int* np, 
+    FORT_LAUNCHABLE(void push_momentum_boris)(const int np, 
                                               amrex::Real* uxp,
                                               amrex::Real* uyp,
                                               amrex::Real* uzp, 
@@ -23,10 +23,8 @@ extern "C"
                                               const amrex::Real m,
                                               const amrex::Real dt);
     
-    FORT_LAUNCHABLE(void push_position_boris)(const int* np,
-                                              amrex::Real* xp,
-                                              amrex::Real* yp,
-                                              amrex::Real* zp,
+    FORT_LAUNCHABLE(void push_position_boris)(const int np,
+                                              void* particles,
                                               const amrex::Real* uxp,
                                               const amrex::Real* uyp,
                                               const amrex::Real* uzp,
@@ -37,40 +35,34 @@ extern "C"
                                    const int* xhi,
                                    BL_FORT_FAB_ARG_3D(var));
 
-    FORT_LAUNCHABLE(void set_gamma)(const int* np,
+    FORT_LAUNCHABLE(void set_gamma)(const int np,
                                     const amrex::Real* uxp,
                                     const amrex::Real* uyp,
                                     const amrex::Real* uzp,
                                     amrex::Real* gaminv);
 
-    FORT_LAUNCHABLE(void enforce_periodic)(const int* np,
-                                           amrex::Real* xp,
-                                           amrex::Real* yp,
-                                           amrex::Real* zp,
+    FORT_LAUNCHABLE(void enforce_periodic)(const int np,
+                                           void* particles,
                                            const amrex::Real* plo,
                                            const amrex::Real* phi);
 
     FORT_LAUNCHABLE(void deposit_current)(BL_FORT_FAB_ARG_3D(jx),
                                           BL_FORT_FAB_ARG_3D(jy),
                                           BL_FORT_FAB_ARG_3D(jz),
-                                          const int* np, 
-                                          const amrex::Real* x,
-                                          const amrex::Real* y,
-                                          const amrex::Real* z,
+                                          const int np, 
+                                          const void* particles,
                                           const amrex::Real* uxp,
                                           const amrex::Real* uyp,
                                           const amrex::Real* uzp,
                                           const amrex::Real* gaminv,
                                           const amrex::Real* w,
-                                          const amrex::Real q,
+                                          const amrex::Real  q,
                                           const amrex::Real* plo,
-                                          const amrex::Real dt,
+                                          const amrex::Real  dt,
                                           const amrex::Real* dx);
     
-    FORT_LAUNCHABLE(void gather_magnetic_field)(const int* np, 
-                                                const amrex::Real* xp,
-                                                const amrex::Real* yp,
-                                                const amrex::Real* zp, 
+    FORT_LAUNCHABLE(void gather_magnetic_field)(const int np, 
+                                                const void* particles,
                                                 amrex::Real* bx,
                                                 amrex::Real* by,
                                                 amrex::Real* bz, 
@@ -79,10 +71,8 @@ extern "C"
                                                 const BL_FORT_FAB_ARG_3D(bzg),
                                                 const amrex::Real* plo, const amrex::Real* dx);
     
-    FORT_LAUNCHABLE(void gather_electric_field)(const int* np, 
-                                                const amrex::Real* xp,
-                                                const amrex::Real* yp,
-                                                const amrex::Real* zp,
+    FORT_LAUNCHABLE(void gather_electric_field)(const int np,
+                                                const void* particles,
                                                 amrex::Real* ex,
                                                 amrex::Real* ey,
                                                 amrex::Real* ez, 

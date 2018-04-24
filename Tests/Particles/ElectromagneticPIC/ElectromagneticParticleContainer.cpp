@@ -148,7 +148,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 
         FORT_LAUNCH_PARTICLES(np,
                               gather_magnetic_field,
-                              np, particles.data(),                              
+                              np, particles.data(),
                               Bxp.data(), Byp.data(), Bzp.data(),
                               BL_TO_FORTRAN_3D(Bx[mfi]),
                               BL_TO_FORTRAN_3D(By[mfi]),
@@ -169,7 +169,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 #endif
         FORT_LAUNCH_PARTICLES(np, 
                               push_momentum_boris,
-                              &np, uxp.data(), uyp.data(), uzp.data(), ginv.data(),
+                              np, uxp.data(), uyp.data(), uzp.data(), ginv.data(),
                               Exp.data(), Eyp.data(), Ezp.data(),
                               Bxp.data(), Byp.data(), Bzp.data(),
                               charge, mass, dt);
@@ -180,7 +180,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         
         FORT_LAUNCH_PARTICLES(np,
                               push_position_boris,
-                              &np, particles.data(),
+                              np, particles.data(),
                               uxp(), uyp(), uzp(),
                               ginv.data(), dt);
         
@@ -221,7 +221,7 @@ PushParticlesOnly(amrex::Real dt)
         auto& ginv = attribs[PIdx::ginv];
 
         FORT_LAUNCH_PARTICLES(np, set_gamma,
-                              &np, ux.data(), uy.data(), uz.data(), ginv.data());
+                              np, ux.data(), uy.data(), uz.data(), ginv.data());
         
 #ifdef AMREX_USE_CUDA
         cudaDeviceSynchronize();
@@ -248,6 +248,6 @@ EnforcePeriodicBCs()
         const Real* phi = geom.ProbHi();
         
         FORT_LAUNCH_PARTICLES(np, enforce_periodic,
-                              particles.data(), np, plo, phi);
+                              np, particles.data(), plo, phi);
     }
 }
