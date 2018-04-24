@@ -1,7 +1,11 @@
 
-
 #include <algorithm>
 #include <iostream>
+
+//xxxxx
+#include <fstream>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxList.H>
@@ -343,37 +347,60 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
     }
     else
     {
-        ba.complementIn(*this,b);
+        static int count = 0;
+        ++count;
 
-//	Box mbox = ba.minimalBox();
-//	*this = amrex::boxDiff(b, mbox);
-//
-//	BoxList bl(mbox);
-//#if (AMREX_SPACEDIM == 3)
-//	bl.maxSize(64);
-//#else
-//	bl.maxSize(128);
-//#endif
-//	const int N = bl.size();
-//	
-//	Vector<BoxList> vbl(N);
-//	
-//	int newsize = 0;
-//	
-//#ifdef _OPENMP
-//	bool start_omp_parallel = !omp_in_parallel();
-//#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
-//#endif
-//	for (int i = 0; i < N; ++i)
-//	{
-//	    ba.complementIn(vbl[i], bl.m_lbox[i]);
-//	    newsize += vbl[i].size();
-//	}
-//	
-//	for (int i = 0; i < N; ++i) {
-//	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
-//	}
-//
+        if (amrex::system::ci_version == 1) {
+            BL_PROFILE("complementIn.V1.No."+std::to_string(count));
+            ba.complementIn(*this,b);
+        }
+        else {
+            BL_PROFILE("complementIn.V2.No."+std::to_string(count));
+
+	Box mbox = ba.minimalBox();
+	*this = amrex::boxDiff(b, mbox);
+
+	BoxList bl(mbox);
+	bl.maxSize(128);
+
+	const int N = bl.size();
+	
+	Vector<BoxList> vbl(N);
+	
+	int newsize = m_lbox.size();
+	
+#ifdef _OPENMP
+	bool start_omp_parallel = !omp_in_parallel();
+#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
+#endif
+	for (int i = 0; i < N; ++i)
+	{
+	    ba.complementIn(vbl[i], bl.m_lbox[i]);
+	    newsize += vbl[i].size();
+	}
+	
+        m_lbox.reserve(newsize);
+	for (int i = 0; i < N; ++i) {
+	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
+	}
+
+        } // xxxxx
+
+        { // xxxxx
+            if (ParallelDescriptor::IOProcessor())
+            {
+                const std::string d = "boxes";
+                if (amrex::UtilCreateDirectory(d,0755))
+                {
+                    std::string f = "ci_v"+std::to_string(amrex::system::ci_version)
+                        + "_no"+std::to_string(count);
+                    std::string name = d+"/"+f;
+                    std::ofstream ofs(name.c_str());
+                    ofs << b << "\n";
+                    ofs << ba;
+                }
+            }
+        }
     }
 
     return *this;
