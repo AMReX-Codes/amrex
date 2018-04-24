@@ -92,7 +92,7 @@ MultiFab::Add (MultiFab&       dst,
 	       int             numcomp,
 	       int             nghost)
 {
-    Add(dst,src,srccomp,dstcomp,nghost,IntVect(nghost));
+    Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
@@ -127,7 +127,7 @@ MultiFab::Copy (MultiFab&       dst,
                 int             numcomp,
                 int             nghost)
 {
-    Copy(dst,src,srccomp,dstcomp,nghost,IntVect(nghost));
+    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
