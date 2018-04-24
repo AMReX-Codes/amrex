@@ -40,18 +40,10 @@ WarpX::UpdateAuxilaryData ()
 {
     const int use_limiter = 0;
 
-    if (alloc_level_0_aux) {        
-        for (int idir = 0; idir < 3; ++idir) {
-            const int ng = Bfield_fp[0][0]->nGrow();
-            MultiFab::Copy(*Efield_aux[0][idir], *Efield_fp[0][idir], 0, 0, 1, ng);
-            MultiFab::Copy(*Bfield_aux[0][idir], *Bfield_fp[0][idir], 0, 0, 1, ng); 
-        }
-    }
-
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& crse_period = Geom(lev-1).periodicity();
-        const int ng = Bfield_cp[lev][0]->nGrow();
+        const IntVect& ng = Bfield_cp[lev][0]->nGrowVect();
         const DistributionMapping& dm = Bfield_cp[lev][0]->DistributionMap();
 
         // B field
@@ -292,8 +284,8 @@ WarpX::SyncCurrent ()
     for (int lev = 0; lev < finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        const int ngsrc = current_cp[lev+1][0]->nGrow();
-        const int ngdst = 0;
+        const IntVect& ngsrc = current_cp[lev+1][0]->nGrowVect();
+        const IntVect ngdst = IntVect::TheZeroVector();
         current_fp[lev][0]->copy(*current_cp[lev+1][0],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
         current_fp[lev][1]->copy(*current_cp[lev+1][1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
         current_fp[lev][2]->copy(*current_cp[lev+1][2],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
@@ -331,7 +323,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                     int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    int ng = fine[0]->nGrow()/ref_ratio;
+    const IntVect& ng = fine[0]->nGrowVect()/ref_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel
@@ -382,8 +374,8 @@ WarpX::SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     for (int lev = 0; lev < finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        const int ngsrc = rhoc[lev+1]->nGrow();
-        const int ngdst = 0;
+        const IntVect& ngsrc = rhoc[lev+1]->nGrowVect();
+        const IntVect ngdst = IntVect::TheZeroVector();
         rhof[lev]->copy(*rhoc[lev+1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
     }
 
@@ -411,7 +403,7 @@ void
 WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    int ng = fine.nGrow()/ref_ratio;
+    const IntVect& ng = fine.nGrowVect()/ref_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel

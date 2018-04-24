@@ -50,8 +50,6 @@ Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 
 bool WarpX::do_dynamic_scheduling = false;
 
-bool WarpX::alloc_level_0_aux = false;
-
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
@@ -307,7 +305,6 @@ WarpX::ReadParameters ()
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
                 "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
         }
-        pp.query("n_guard_cells", ngE);
 
         pp.query("do_electrostatic", do_electrostatic);
         pp.query("n_buffer", n_buffer);
@@ -373,8 +370,6 @@ WarpX::ReadParameters ()
         pp.query("load_balance_int", load_balance_int);
 
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
-
-        pp.query("alloc_level_0_aux", alloc_level_0_aux);
     }
 
     {
@@ -476,14 +471,27 @@ WarpX::ClearLevel (int lev)
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    // Calculate ngE if not provided in input script
-    if (ngE < 0){
-        ngE = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-        ngE = (warpx_use_fdtd_nci_corr()) ? ngE + mypc->nstencilz_fdtd_nci_corr : ngE;
+    int ngx = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
+    int ngy = (WarpX::noy % 2) ? WarpX::noy+1 : WarpX::noy;  // Always even number
+    int ngz_nonci = (WarpX::noz % 2) ? WarpX::noz+1 : WarpX::noz;  // Always even number
+    int ngz;
+    if (warpx_use_fdtd_nci_corr()) {
+        int ng = WarpX::noz + (mypc->nstencilz_fdtd_nci_corr-1);
+        ngz = (ng % 2) ? ng+1 : ng;
+    } else {
+        ngz = ngz_nonci;
     }
-    int ngJ = ngE;
-    int ngRho = ngE;
+
+#if (BL_SPACEDIM == 3)
+    IntVect ngE(ngx,ngy,ngz);
+    IntVect ngJ(ngx,ngy,ngz_nonci);
+    IntVect ngRho = ngJ;
+#elif (BL_SPACEDIM == 2)
+    IntVect ngE(ngx,ngz);
+    IntVect ngJ(ngx,ngz_nonci);
+    IntVect ngRho = ngJ;
+#endif
+
     int ngF = (do_moving_window) ? 2 : 0;
     
     //
@@ -507,15 +515,10 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
     }
 
-    // Allocate the Aux patch if the FDTD NCI corrector is used
-    if (warpx_use_fdtd_nci_corr()){
-        alloc_level_0_aux = true;
-    }
-
     //
     // The Aux patch (i.e., the full solution)
     //
-    if (lev == 0 and not alloc_level_0_aux)
+    if (lev == 0)
     {
         for (int idir = 0; idir < 3; ++idir) {
             Efield_aux[lev][idir].reset(new MultiFab(*Efield_fp[lev][idir], amrex::make_alias, 0, 1));

@@ -217,10 +217,6 @@ WarpX::EvolveEM (int numsteps)
         // Deposit current j^{n+1/2}
         // Deposit charge density rho^{n}
 
-        if (warpx_use_fdtd_nci_corr()) {
-            WarpX::ApplyNCICorrector();
-        }
-
         PushParticlesandDepose(cur_time);
 
         EvolveB(0.5*dt[0], DtType::SecondHalf); // We now have B^{n+1/2}

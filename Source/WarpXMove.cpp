@@ -170,9 +170,9 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     const BoxArray& ba = mf.boxArray();
     const DistributionMapping& dm = mf.DistributionMap();
     const int nc = mf.nComp();
-    const int ng = mf.nGrow();
+    const IntVect& ng = mf.nGrowVect();
 
-    BL_ASSERT(ng >= num_shift);
+    BL_ASSERT(ng.allGE(num_shift));
 
     MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
@@ -183,9 +183,9 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     const Box& domainBox = geom.Domain();
     Box adjBox;
     if (num_shift > 0) {
-        adjBox = adjCellHi(domainBox, dir, ng);
+        adjBox = adjCellHi(domainBox, dir, ng[dir]);
     } else {
-        adjBox = adjCellLo(domainBox, dir, ng);
+        adjBox = adjCellLo(domainBox, dir, ng[dir]);
     }
     adjBox = amrex::convert(adjBox, typ);
 
@@ -197,8 +197,8 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
                 adjBox.growHi(idim, -1);
             }
         } else if (idim != dir) {
-            adjBox.growLo(idim, ng);
-            adjBox.growHi(idim, ng);
+            adjBox.growLo(idim, ng[idim]);
+            adjBox.growHi(idim, ng[idim]);
         }
     }
 

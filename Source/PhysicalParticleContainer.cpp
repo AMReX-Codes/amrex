@@ -581,6 +581,8 @@ PhysicalParticleContainer::Evolve (int lev,
 	Vector<Real> xp, yp, zp, giv;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
         FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
+        FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
+        FArrayBox filtered_Bx, filtered_By, filtered_Bz;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -604,15 +606,26 @@ PhysicalParticleContainer::Evolve (int lev,
             const long np = pti.numParticles();
 
 	    // Data on the grid
-	    const FArrayBox& exfab = Ex[pti];
-	    const FArrayBox& eyfab = Ey[pti];
-	    const FArrayBox& ezfab = Ez[pti];
-	    const FArrayBox& bxfab = Bx[pti];
-	    const FArrayBox& byfab = By[pti];
-	    const FArrayBox& bzfab = Bz[pti];
-	    FArrayBox&       jxfab = jx[pti];
-	    FArrayBox&       jyfab = jy[pti];
-	    FArrayBox&       jzfab = jz[pti];
+            FArrayBox const* exfab = &(Ex[pti]);
+            FArrayBox const* eyfab = &(Ey[pti]);
+            FArrayBox const* ezfab = &(Ez[pti]);
+            FArrayBox const* bxfab = &(Bx[pti]);
+            FArrayBox const* byfab = &(By[pti]);
+            FArrayBox const* bzfab = &(Bz[pti]);
+
+            if (warpx_use_fdtd_nci_corr())
+            {
+                exfab = &filtered_Ex;
+                eyfab = &filtered_Ey;
+                ezfab = &filtered_Ez;
+                bxfab = &filtered_Bx;
+                byfab = &filtered_By;
+                bzfab = &filtered_Bz;
+            }
+
+	    FArrayBox& jxfab = jx[pti];
+	    FArrayBox& jyfab = jy[pti];
+	    FArrayBox& jzfab = jz[pti];
 
 	    Exp.assign(np,0.0);
 	    Eyp.assign(np,0.0);
@@ -718,12 +731,12 @@ PhysicalParticleContainer::Evolve (int lev,
                     &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                     &dx[0], &dx[1], &dx[2],
                     &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                    exfab.dataPtr(), &ngE, exfab.length(),
-                    eyfab.dataPtr(), &ngE, eyfab.length(),
-                    ezfab.dataPtr(), &ngE, ezfab.length(),
-                    bxfab.dataPtr(), &ngE, bxfab.length(),
-                    byfab.dataPtr(), &ngE, byfab.length(),
-                    bzfab.dataPtr(), &ngE, bzfab.length(),
+                    exfab->dataPtr(), &ngE, exfab->length(),
+                    eyfab->dataPtr(), &ngE, eyfab->length(),
+                    ezfab->dataPtr(), &ngE, ezfab->length(),
+                    bxfab->dataPtr(), &ngE, bxfab->length(),
+                    byfab->dataPtr(), &ngE, byfab->length(),
+                    bzfab->dataPtr(), &ngE, bzfab->length(),
                     &ll4symtry, &l_lower_order_in_v,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);

@@ -23,8 +23,6 @@ geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 # Verbosity
 warpx.verbose = 1
 warpx.use_filter = 1
-# warpx.alloc_level_0_aux = 1
-# warpx.ngE = 6
 
 # Algorithms
 algo.current_deposition = 1

@@ -10,10 +10,6 @@ WarpX::InitLevelData (int lev, Real time)
 	current_fp[lev][i]->setVal(0.0);
 	Efield_fp[lev][i]->setVal(0.0);
 	Bfield_fp[lev][i]->setVal(0.0);
-        if (alloc_level_0_aux) {
-            Efield_aux[lev][i]->setVal(0.0);
-            Bfield_aux[lev][i]->setVal(0.0);            
-        }
     }
 
     if (lev > 0) {
