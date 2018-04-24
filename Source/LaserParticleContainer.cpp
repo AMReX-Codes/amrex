@@ -70,9 +70,11 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
     if (WarpX::gamma_boost > 1.) {
         // Check that the laser direction is equal to the boost direction
-        BL_ASSERT( nvec[0]*WarpX::boost_direction[0]
-                + nvec[1]*WarpX::boost_direction[1]
-                + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12 );
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
+            nvec[0]*WarpX::boost_direction[0]
+          + nvec[1]*WarpX::boost_direction[1]
+          + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12,
+          "The Lorentz boost should be in the same direction as the laser propagation");
         // Get the position of the plane, along the boost direction, in the lab frame
         // and convert the position of the antenna to the boosted frame
         Z0_lab = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
@@ -88,7 +90,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
 	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14, 
-                                         "Laser plane vector is not perpendicular to the main polarization vector");
+            "Laser plane vector is not perpendicular to the main polarization vector");
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
 
@@ -437,7 +439,8 @@ LaserParticleContainer::Evolve (int lev,
                 // Calculate the velocity according to the amplitude of E
                 Real sign_charge = std::copysign( 1.0, wp[i] );
                 Real v_over_c = sign_charge * mobility * amplitude_E[i];
-                BL_ASSERT( v_over_c < 1 );
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( v_over_c < 1,
+                    "The laser particles have to move unphysically in order to emit the laser.");
                 // The velocity is along the laser polarization p_X
                 Real vx = PhysConst::c * v_over_c * p_X[0];
                 Real vy = PhysConst::c * v_over_c * p_X[1];
@@ -450,7 +453,7 @@ LaserParticleContainer::Evolve (int lev,
                     vz -= PhysConst::c * WarpX::beta_boost * nvec[2];
                 }
                 // Get the corresponding momenta
-                giv[i] = std::sqrt( 1 - pow(WarpX::gamma_boost *  v_over_c, 2) )/WarpX::gamma_boost;
+                giv[i] = std::sqrt( 1 - pow( v_over_c, 2) )/WarpX::gamma_boost;
                 Real gamma = 1./giv[i];
                 uxp[i] = gamma * vx;
                 uyp[i] = gamma * vy;
