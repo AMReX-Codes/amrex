@@ -1153,7 +1153,7 @@ FabArray<FAB>::setFab (int  boxno,
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
     if (m_fabs_v.size() == 0) {
-	m_fabs_v.resize(indexArray.size());
+      m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
     m_fabs_v[localindex(boxno)] = elem;
@@ -1180,7 +1180,7 @@ FabArray<FAB>::setFab (const MFIter& mfi,
     }
 
     if (m_fabs_v.size() == 0) {
-        m_fabs_v.resize(indexArray.size());
+      m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
     m_fabs_v[mfi.LocalIndex()] = elem;
