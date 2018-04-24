@@ -120,7 +120,7 @@ if ( NOT CMAKE_Fortran_FLAGS )
 endif ()
 
 # Use CMAKE_<LANG>_FLAGS_<BUILD_TYPE> to store required flags
-# NOTE: this is not standard CMake way of doing things
+# NOTE: this is not the standard CMake way of doing things
 set ( CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}  "${AMREX_CXXFLAGS_REQUIRED}" )
 set ( CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}  "${AMREX_FFLAGS_REQUIRED}" )
 
@@ -136,6 +136,7 @@ endif ()
 append ( AMREX_Fortran_DEFINES CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} )
 
 #  Add definition related to specific compiler ( only GNU for now )
+#  AMREX_COMPILER_DEFINES is defined in AMReX_Compilers.cmake
 if ( AMREX_COMPILER_DEFINES )
    foreach ( item ${AMREX_COMPILER_DEFINES} )
       add_define (${item})
@@ -148,7 +149,7 @@ add_definitions ( ${AMREX_DEFINES} )
 append ( AMREX_EXTRA_Fortran_FLAGS CMAKE_Fortran_FLAGS )
 append ( AMREX_EXTRA_CXX_FLAGS CMAKE_CXX_FLAGS )
 
-# Accumulate all the flags into AMREX_<LANG>_FLAGS: this variables will be exported
+# Accumulate all the flags into AMREX_<LANG>_FLAGS: these variables will be exported
 set ( AMREX_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}}" )
 set ( AMREX_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}}" )
 
