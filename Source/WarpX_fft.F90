@@ -51,6 +51,7 @@ contains
          jxf, jyf, jzf, rhof, rhooldf, &
          l_spectral, l_staggered, norderx, nordery, norderz
     use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
+    use omp_lib, only: omp_get_max_threads
     USE gpstd_solver, only: init_gpstd
     USE fourier_psaotd, only: init_plans_fourier_mpi
     use params, only : dt
@@ -99,7 +100,7 @@ contains
     fftw_mpi_transpose = .FALSE. ! Do not transpose the data
     p3dfft_flag = .FALSE.
     l_spectral  = .TRUE.   ! Activate spectral Solver, using FFT
-#ifdef USE_OMP
+#ifdef _OPENMP
     CALL DFFTW_INIT_THREADS(iret)
     fftw_threads_ok = .TRUE.
     nopenmp = OMP_GET_MAX_THREADS()
