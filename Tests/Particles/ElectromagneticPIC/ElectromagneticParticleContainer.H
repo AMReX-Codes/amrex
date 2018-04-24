@@ -51,7 +51,22 @@ public:
                        const amrex::Real     a_thermal_momentum_std, 
                        const amrex::Real     a_thermal_momentum_mean,
                        const amrex::Real     a_density);
+
+    void PushAndDeposeParticles(const amrex::MultiFab& Ex,
+                                const amrex::MultiFab& Ey,
+                                const amrex::MultiFab& Ez,
+                                const amrex::MultiFab& Bx,
+                                const amrex::MultiFab& By,
+                                const amrex::MultiFab& Bz,
+                                      amrex::MultiFab& jx, 
+                                      amrex::MultiFab& jy, 
+                                      amrex::MultiFab& jz,
+                                      amrex::Real      dt);
     
+    void PushParticlesOnly(amrex::Real dt);
+
+    void EnforcePeriodicBCs();
+
 protected:
     
     int m_species_id;

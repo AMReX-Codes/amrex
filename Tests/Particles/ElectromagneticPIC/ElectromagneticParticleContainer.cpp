@@ -10,7 +10,7 @@
 using namespace amrex;
 
 namespace {
-
+    
     void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
         int nx = nppc[0];
@@ -49,10 +49,12 @@ ElectromagneticParticleContainer(const Geometry            & a_geom,
 {
 }
 
-ElectromagneticParticleContainer::InitParticles(const IntVect& a_num_particles_per_cell,
-                                                const Real     a_thermal_momentum_std, 
-                                                const Real     a_thermal_momentum_mean,
-                                                const Real     a_density)
+void
+ElectromagneticParticleContainer::
+InitParticles(const IntVect& a_num_particles_per_cell,
+              const Real     a_thermal_momentum_std, 
+              const Real     a_thermal_momentum_mean,
+              const Real     a_density)
 {
     BL_PROFILE("ElectromagneticParticleContainer::InitParticles");
     
@@ -101,5 +103,149 @@ ElectromagneticParticleContainer::InitParticles(const IntVect& a_num_particles_p
                 particle_tile.push_back_real(attribs);                
             }
         }
+    }
+}
+
+void
+ElectromagneticParticleContainer::
+PushAndDeposeParticles(const amrex::MultiFab& Ex,
+                       const amrex::MultiFab& Ey,
+                       const amrex::MultiFab& Ez,
+                       const amrex::MultiFab& Bx,
+                       const amrex::MultiFab& By,
+                       const amrex::MultiFab& Bz,
+                             amrex::MultiFab& jx, 
+                             amrex::MultiFab& jy, 
+                             amrex::MultiFab& jz,
+                             amrex::Real      dt)
+{   
+    BL_PROFILE("ElectromagneticParticleContainer::PushAndDeposeParticles");
+    
+    jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
+    
+    const Real* dx  = geom.CellSize();
+    const Real* plo = geom.ProbLo();
+    
+    for (ElectromagneticParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& particles = pti.GetArrayOfStructs();
+        const int np    = pti.numParticles();
+        auto& attribs   = pti.GetAttribs();
+
+        auto& uxp  = attribs[PIdx::ux  ];
+        auto& uyp  = attribs[PIdx::uy  ];
+        auto& uzp  = attribs[PIdx::uz  ];
+        auto& Exp  = attribs[PIdx::Ex  ];
+        auto& Eyp  = attribs[PIdx::Ey  ];
+        auto& Ezp  = attribs[PIdx::Ez  ];
+        auto& Bxp  = attribs[PIdx::Bx  ];
+        auto& Byp  = attribs[PIdx::By  ];
+        auto& Bzp  = attribs[PIdx::Bz  ];
+        auto& wp   = attribs[PIdx::w   ];
+        auto& ginv = attribs[PIdx::ginv];
+
+        FORT_LAUNCH_PARTICLES(np,
+                              gather_magnetic_field,
+                              np, particles.data(),                              
+                              Bxp.data(), Byp.data(), Bzp.data(),
+                              BL_TO_FORTRAN_3D(Bx[mfi]),
+                              BL_TO_FORTRAN_3D(By[mfi]),
+                              BL_TO_FORTRAN_3D(Bz[mfi]),
+                              plo, dx);
+        
+        FORT_LAUNCH_PARTICLES(np,
+                              gather_electric_field,
+                              np, particles.data(),
+                              Exp.data(), Eyp.data(), Ezp.data(), 
+                              BL_TO_FORTRAN_3D(Ex[mfi]),
+                              BL_TO_FORTRAN_3D(Ey[mfi]),
+                              BL_TO_FORTRAN_3D(Ez[mfi]),
+                              plo, dx);
+        
+#ifdef AMREX_USE_CUDA           
+        cudaDeviceSynchronize();
+#endif
+        FORT_LAUNCH_PARTICLES(np, 
+                              push_momentum_boris,
+                              np, uxp.data(), uyp.data(), uzp.data(), ginv.data(),
+                              Exp.data(), Eyp.data(), Ezp.data(),
+                              Bxp.data(), Byp.data(), Bz.data(),
+                              charge, mass, dt);
+        
+#ifdef AMREX_USE_CUDA                        
+        cudaDeviceSynchronize();
+#endif      
+        
+        FORT_LAUNCH_PARTICLES(np,
+                              push_position_boris,
+                              np, particles.data(),
+                              uxp(), uyp(), uzp(),
+                              ginv.data(), dt);
+        
+#ifdef AMREX_USE_CUDA            
+        cudaDeviceSynchronize();
+#endif
+        
+        FORT_LAUNCH_PARTICLES(np, deposit_current,
+                              BL_TO_FORTRAN_3D(jx[mfi]),
+                              BL_TO_FORTRAN_3D(jy[mfi]),
+                              BL_TO_FORTRAN_3D(jz[mfi]),
+                              np, particles.data(),
+                              uxp.data(), uyp.data(), uzp.data(),
+                              ginv.data(), w.data(),
+                              charge, plo, dt, dx);            
+    }
+    
+    jx.SumBoundary(geom.periodicity());
+    jy.SumBoundary(geom.periodicity());
+    jz.SumBoundary(geom.periodicity());
+}
+
+void 
+ElectroMagneticParticleContainer::
+PushParticlesOnly(amrex::Real dt)
+{
+    BL_PROFILE("ElectromagneticParticleContainer::PushParticlesOnly");
+    
+    for (ElectromagneticParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& particles = pti.GetArrayOfStructs();
+        const int np    = pti.numParticles();
+        auto& attribs   = pti.GetAttribs();
+
+        auto& uxp  = attribs[PIdx::ux  ];
+        auto& uyp  = attribs[PIdx::uy  ];
+        auto& uzp  = attribs[PIdx::uz  ];
+        auto& ginv = attribs[PIdx::ginv];
+
+        FORT_LAUNCH_PARTICLES(np, set_gamma,
+                              np, ux.data(), uy.data(), uz.data(), ginv.data());
+        
+#ifdef AMREX_USE_CUDA
+        cudaDeviceSynchronize();
+#endif        
+        
+        FORT_LAUNCH_PARTICLES(np, push_position_boris,
+                              np, particles.data(),
+                              ux.data(), uy.data(), uz.data(), ginv.data(), dt);
+    }
+}
+
+void
+ElectromagneticParticleContainer::
+EnforcePeriodicBCs()
+{
+    BL_PROFILE("ElectromagneticParticleContainer::EnforcePeriodicBCs");
+    
+    for (ElectromagneticParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& particles = pti.GetArrayOfStructs();
+        const int np    = pti.numParticles();
+
+        const Real* plo = geom.ProbLo();
+        const Real* phi = geom.ProbHi();
+        
+        FORT_LAUNCH_PARTICLES(np, enforce_periodic,
+                              particles.data(), np, plo, phi);
     }
 }
