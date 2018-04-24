@@ -584,29 +584,29 @@ class BLProfiler
 
 #if defined(AMREX_VTUNE)
 
-#define TP_PROFILE_REGION_START()   __itt_resume(); \
+#define BL_TP_PROFILE_REGION_START()   __itt_resume(); \
 amrex::Print() << "VTune regional recording has begun.\n";
-#define TP_PROFILE_REGION_STOP()    __itt_pause(); \
+#define BL_TP_PROFILE_REGION_STOP()    __itt_pause(); \
 amrex::Print() << "VTune regional recording has been stopped.\n";
 
 #elif defined(AMREX_CRAYPAT)
 
-#define TP_PROFILE_REGION_START()   PAT_record(PAT_STATE_ON); \
+#define BL_TP_PROFILE_REGION_START()   PAT_record(PAT_STATE_ON); \
 amrex::Print() << "CrayPat regional recording has begun.\n";
-#define TP_PROFILE_REGION_STOP()    PAT_record(PAT_STATE_OFF); \
+#define BL_TP_PROFILE_REGION_STOP()    PAT_record(PAT_STATE_OFF); \
 amrex::Print() << "CrayPat regional recording has been stopped.\n";
 
 #elif defined(AMREX_FORGE)
 
-#define TP_PROFILE_REGION_START()   allinea_start_sampling(); \
+#define BL_TP_PROFILE_REGION_START()   allinea_start_sampling(); \
 amrex::Print() << "MAP regional recording has begun.\n"; 
-#define TP_PROFILE_REGION_STOP()    allinea_stop_sampling(); \
+#define BL_TP_PROFILE_REGION_STOP()    allinea_stop_sampling(); \
 amrex::Print() << "MAP regional recording has begun.\n";
 
 #else
 
-#define TP_PROFILE_REGION_START()
-#define TP_PROFILE_REGION_STOP()
+#define BL_TP_PROFILE_REGION_START()
+#define BL_TP_PROFILE_REGION_STOP()
 
 #endif
 

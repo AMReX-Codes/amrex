@@ -1,6 +1,6 @@
 
-#ifndef _INTERPBNDRYDATA_H_
-#define _INTERPBNDRYDATA_H_
+#ifndef AMREX_INTERPBNDRYDATA_H_
+#define AMREX_INTERPBNDRYDATA_H_
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_FArrayBox.H>

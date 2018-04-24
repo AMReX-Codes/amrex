@@ -81,7 +81,7 @@ namespace amrex
     Real temp[SpaceDim+1][SpaceDim+1];
 
     // Set up a scaling vector
-    RealVect rscale(D_DECL(a_scale,a_scale,a_scale));
+    RealVect rscale(AMREX_D_DECL(a_scale,a_scale,a_scale));
 
     // Create the forward transformation matrix
     matrixScale(temp,rscale);
@@ -90,7 +90,7 @@ namespace amrex
     matrixMultiply(m_transform,temp,m_transform);
 
     // Set up an inverse scaling vector
-    RealVect invScale(D_DECL(1.0/a_scale,1.0/a_scale,1.0/a_scale));
+    RealVect invScale(AMREX_D_DECL(1.0/a_scale,1.0/a_scale,1.0/a_scale));
 
     // Create the inverse transformation matrix
     matrixScale(temp,invScale);

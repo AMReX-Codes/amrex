@@ -52,6 +52,8 @@ namespace amrex {
 
 #else
 
+#ifndef AMREX_XSDK
+
 /*
   The REAL_T macro specifies the precision of the floating-point
   calculations in Fortran code.  It will be either real*4 or
@@ -83,6 +85,8 @@ namespace amrex {
 #        define BL_REAL_E(a,b) a/**/D/**/b
 #endif
 #endif
+
+#endif /* ndef AMREX_XSDK */
 
 #endif /* !BL_LANG_FORT */
 

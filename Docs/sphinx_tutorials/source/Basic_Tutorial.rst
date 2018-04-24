@@ -41,7 +41,7 @@ main_C and main_F introduce the following:
 
         *executable inputs_file parm=value*
 
-    Here, `excutable` is the filename of the executable, `inputs_file` is the file containing
+    Here, `executable` is the filename of the executable, `inputs_file` is the file containing
     runtime parameters used to build AMReX ParmParse database, and `parm=value` is an input
     parameter that will override its value in `inputs_file`.  Both `inputs_file` and
     `parm=value` are optional.  At most one `inputs_file` is allowed. Howeer, there can be

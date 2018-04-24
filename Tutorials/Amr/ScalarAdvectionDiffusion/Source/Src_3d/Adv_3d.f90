@@ -10,7 +10,7 @@ subroutine advectDiffGodunov(time, lo, hi, &
      &            flxz, fz_lo, fz_hi, &
      &            dx,dt, nu, uselimit) bind(C, name="advectDiffGodunov")
   
-  use mempool_module, only : bl_allocate, bl_deallocate
+  use amrex_mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : godunov_flux_3d
 
   implicit none
@@ -154,7 +154,7 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
      &            flxz, fz_lo, fz_hi, &
      &            dx,dt,nu,uselimit) bind(C, name="advectDiffMOL2ndOrd")
   
-  use mempool_module, only : bl_allocate, bl_deallocate
+  use amrex_mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : mol2ndord_flux_3d
   implicit none
 
@@ -286,7 +286,7 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
                  losidedebfacelo, losidedebfacehi, printstuff, uselimit &
      ) bind(C, name="advectDiffMOL4thOrd")
   
-  use mempool_module, only : bl_allocate, bl_deallocate
+  use amrex_mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : mol4thord_flux_3d_nolimit, mol4thord_flux_3d_limited
   implicit none
 

@@ -442,7 +442,7 @@ contains
                                        hisidedebfacelo, hisidedebfacehi, &
                                        losidedebfacelo, losidedebfacehi, printstuff)
 
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
     integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), printstuff
     integer, intent(in) :: deblocell(2), debhicell(2)

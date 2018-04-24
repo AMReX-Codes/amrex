@@ -1,6 +1,6 @@
 
-#ifndef _FNERGINDEXEDMOMENTS_H_
-#define _FNERGINDEXEDMOMENTS_H_
+#ifndef AMREX_FNERGINDEXEDMOMENTS_H_
+#define AMREX_FNERGINDEXEDMOMENTS_H_
 
 #include "AMReX_IndexTM.H"
 #include "AMReX_Vector.H"
