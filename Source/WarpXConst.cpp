@@ -2,22 +2,37 @@
 #include <cmath>
 #include <algorithm>
 #include <numeric>
+#include <sstream>
 
 #include <AMReX_ParmParse.H>
-
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <ParticleContainer.H>
 
 std::string UserConstants::replaceStringValue(std::string math_expr){
+    std::string pattern, value_str;
+    std::string patternexp = "e+";
+    std::size_t found;
+    amrex::Real value;
     for (int i=0; i<nb_constants; i++){
-        std::string pattern, value_str;
-        amrex::Real value;
         pattern    = constant_names[i];
         value      = constant_values[i];
-        value_str  = std::to_string(value);
-        std::size_t found = math_expr.find(pattern);
+
+
+        // Convert value to string, with scientific notation
+        std::ostringstream streamObj;
+        streamObj << value;
+        value_str = streamObj.str();
+
+        // Replace "e+" by "e" in scientific notation for Fortran compatibility
+        found = value_str.find(patternexp);
+        if (found != std::string::npos){
+            value_str.replace(found,patternexp.length(),"e");
+        }
+
+        // Replace all occurences of variable pattern by a string with its value value_str
+        found = math_expr.find(pattern);
         while (found != std::string::npos){
             if ((found==0               
                         && !isalnum(math_expr[pattern.length()      ])) ||
