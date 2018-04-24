@@ -1,16 +1,34 @@
-module constants
+module electromagnetic_constants_module
   use amrex_fort_module, only : amrex_real
   
   real(amrex_real), parameter :: clight  = 2.99792458d8
 
 end module
 
+module electromagnetic_particle_module
+  use amrex_fort_module, only: amrex_real, amrex_particle_real
+  use iso_c_binding ,    only: c_int
+  
+  implicit none
+  private
+  
+  public  particle_t, neighbor_t
+  
+  type, bind(C) :: particle_t
+     real(amrex_particle_real) :: pos(3)     !< Position
+     integer(c_int)            :: id         !< Particle id
+     integer(c_int)            :: cpu        !< Particle cpu
+  end type particle_t
+    
+end module electromagnetic_particle_module
+
 AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
      ex, ey, ez, bx, by, bz, q, m, dt) &
      bind(c,name='push_momentum_boris')
   
   use amrex_fort_module, only : amrex_real
-  use constants, only : clight
+  use electromagnetic_constants_module, only : clight
+
   implicit none
 
   integer,          intent(in)    :: np
@@ -80,7 +98,9 @@ end subroutine push_momentum_boris
 AMREX_LAUNCH subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt) &
      bind(c,name='push_position_boris')
   
-  use amrex_fort_module, only : amrex_real  
+  use amrex_fort_module, only : amrex_real
+  use electromagnetic_particle_module, only : particle_t
+
   implicit none
 
   integer,          intent(in)      :: np
@@ -113,7 +133,8 @@ AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
      bind(c,name='set_gamma')
   
   use amrex_fort_module, only : amrex_real
-  use constants, only : clight 
+  use electromagnetic_constants_module, only : clight 
+
   implicit none
   
   integer,          intent(in)      :: np
@@ -146,6 +167,8 @@ AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
      bind(c,name='enforce_periodic')
   
   use amrex_fort_module, only : amrex_real
+  use electromagnetic_particle_module, only : particle_t
+
   implicit none
   
   integer,          intent(in)      :: np
@@ -195,7 +218,9 @@ AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo
      bind(c,name="deposit_current")
   
   use amrex_fort_module, only : amrex_real
-  use constants, only : clight
+  use electromagnetic_constants_module, only : clight
+  use electromagnetic_particle_module, only : particle_t
+
   implicit none
   
   integer,          intent(in)    :: np
@@ -361,6 +386,8 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      bind(c,name="gather_magnetic_field")
   
   use amrex_fort_module, only : amrex_real
+  use electromagnetic_particle_module, only : particle_t
+
   implicit none
   
   integer,          intent(in)    :: np
@@ -482,7 +509,9 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      bind(c,name="gather_electric_field")
   
   use amrex_fort_module, only : amrex_real
-  use constants, only : clight
+  use electromagnetic_constants_module, only : clight
+  use electromagnetic_particle_module, only : particle_t
+
   implicit none
   
   integer,          intent(in)    :: np

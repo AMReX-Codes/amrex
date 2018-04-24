@@ -1,7 +1,7 @@
 #include "Evolve.H"
 #include "NodalFlags.H"
 #include "Constants.H"
-#include "DeviceManager.H"
+
 #include "em_pic_F.H"
 
 using namespace amrex;

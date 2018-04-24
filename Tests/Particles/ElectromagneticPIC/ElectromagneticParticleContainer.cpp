@@ -7,6 +7,8 @@
 #include "Particles.H"
 #include "Constants.H"
 
+#include "em_pic_F.H"
+
 using namespace amrex;
 
 namespace {
@@ -167,9 +169,9 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 #endif
         FORT_LAUNCH_PARTICLES(np, 
                               push_momentum_boris,
-                              np, uxp.data(), uyp.data(), uzp.data(), ginv.data(),
+                              &np, uxp.data(), uyp.data(), uzp.data(), ginv.data(),
                               Exp.data(), Eyp.data(), Ezp.data(),
-                              Bxp.data(), Byp.data(), Bz.data(),
+                              Bxp.data(), Byp.data(), Bzp.data(),
                               charge, mass, dt);
         
 #ifdef AMREX_USE_CUDA                        
@@ -178,7 +180,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         
         FORT_LAUNCH_PARTICLES(np,
                               push_position_boris,
-                              np, particles.data(),
+                              &np, particles.data(),
                               uxp(), uyp(), uzp(),
                               ginv.data(), dt);
         
@@ -219,7 +221,7 @@ PushParticlesOnly(amrex::Real dt)
         auto& ginv = attribs[PIdx::ginv];
 
         FORT_LAUNCH_PARTICLES(np, set_gamma,
-                              np, ux.data(), uy.data(), uz.data(), ginv.data());
+                              &np, ux.data(), uy.data(), uz.data(), ginv.data());
         
 #ifdef AMREX_USE_CUDA
         cudaDeviceSynchronize();
