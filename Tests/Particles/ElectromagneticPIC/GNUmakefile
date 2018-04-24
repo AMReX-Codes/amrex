@@ -1,4 +1,4 @@
-#AMREX_HOME ?= /path/to/amrex
+AMREX_HOME ?= ../../../
 
 DEBUG	= TRUE
 DEBUG	= FALSE
@@ -14,7 +14,7 @@ PRECISION     = DOUBLE
 
 USE_MPI       = FALSE
 USE_OMP       = FALSE
-USE_CUDA      = TRUE
+USE_CUDA      = FALSE
 
 CUDA_VERSION = 8.0
 
