@@ -19,9 +19,9 @@
 namespace amrex
 {
 
-//  static const IntVect   gs_debiv(D_DECL(994,213,7));
-//  static const IntVect   gs_debivlo(D_DECL(190,15,0));
-//  static const IntVect   gs_debivhi(D_DECL(191,15,0));
+//  static const IntVect   gs_debiv(AMREX_D_DECL(994,213,7));
+//  static const IntVect   gs_debivlo(AMREX_D_DECL(190,15,0));
+//  static const IntVect   gs_debivhi(AMREX_D_DECL(191,15,0));
   
   bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
                                          const Box&           a_domain,
@@ -236,7 +236,7 @@ namespace amrex
       if (rev == intersects.end())
       {
 	edge.ID = intersects.size(); // Number this edge
-        Vector<Real> node = {D_DECL(intersect[0],intersect[1],intersect[2])};
+        Vector<Real> node = {AMREX_D_DECL(intersect[0],intersect[1],intersect[2])};
 	auto it = intersects.insert(make_pair(edge,node));
 	BL_ASSERT(it.second);
 	return make_pair(true,it.first);

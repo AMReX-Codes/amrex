@@ -273,7 +273,11 @@ operator<< (std::ostream        &os,
     os << hd.m_vers     << '\n';
     os << int(hd.m_how) << '\n';
     os << hd.m_ncomp    << '\n';
-    os << hd.m_ngrow    << '\n';
+    if (hd.m_ngrow == hd.m_ngrow[0]) {
+        os << hd.m_ngrow[0] << '\n';
+    } else {
+        os << hd.m_ngrow    << '\n';
+    }
 
     hd.m_ba.writeOn(os); os << '\n';
 
@@ -345,8 +349,15 @@ operator>> (std::istream  &is,
     is >> hd.m_ncomp;
     BL_ASSERT(hd.m_ncomp >= 0);
 
-    is >> hd.m_ngrow;
-    BL_ASSERT(hd.m_ngrow >= 0);
+    is >> std::ws;
+    if (is.peek() == '(') {
+        is >> hd.m_ngrow;
+    } else {
+        int ng;
+        is >> ng;
+        hd.m_ngrow = IntVect(AMREX_D_DECL(ng,ng,ng));
+    }
+    BL_ASSERT(hd.m_ngrow.min() >= 0);
 
     hd.m_ba.readFrom(is);
 
@@ -427,6 +438,12 @@ VisMF::nComp () const
 
 int
 VisMF::nGrow () const
+{
+    return m_hdr.m_ngrow[0];
+}
+
+IntVect
+VisMF::nGrowVect () const
 {
     return m_hdr.m_ngrow;
 }
@@ -1297,7 +1314,7 @@ VisMF::readFAB (int                  idx,
 {
     BL_PROFILE("VisMF::readFAB_idx");
     Box fab_box(hdr.m_ba[idx]);
-    if(hdr.m_ngrow) {
+    if(hdr.m_ngrow.max() > 0) {
         fab_box.grow(hdr.m_ngrow);
     }
 

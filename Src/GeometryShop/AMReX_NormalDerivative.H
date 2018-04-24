@@ -1,6 +1,6 @@
 
-#ifndef _NORMALDERIVATIVE_H_
-#define _NORMALDERIVATIVE_H_
+#ifndef AMREX_NORMALDERIVATIVE_H_
+#define AMREX_NORMALDERIVATIVE_H_
 
 #include "AMReX_Notation.H"
 #include "AMReX_IFSlicer.H"

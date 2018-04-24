@@ -1,6 +1,6 @@
 
-#ifndef ____MOMENTITERATOR_H_
-#define ____MOMENTITERATOR_H_
+#ifndef AMREX_MOMENTITERATOR_H_
+#define AMREX_MOMENTITERATOR_H_
 #include "AMReX_IndexTM.H"
 #include "AMReX_Vector.H"
 #include "AMReX_MonomialPowers.H"

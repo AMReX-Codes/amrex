@@ -1,8 +1,9 @@
 
-#ifndef BL_ARRAY_H
-#define BL_ARRAY_H
+#ifndef AMREX_ARRAY_H_
+#define AMREX_ARRAY_H_
 
 #include <array>
+#include <AMReX_SPACE.H>
 
 namespace amrex {
 
@@ -10,10 +11,6 @@ namespace amrex {
     using Array = std::array<T,N>;
 
 }
-
-#ifndef FORTRAN_BOXLIB
-
-#include <AMReX_SPACE.H>
 
 namespace amrex
 {
@@ -32,4 +29,3 @@ namespace amrex
 
 #endif
 
-#endif /*BL_ARRAY_H*/

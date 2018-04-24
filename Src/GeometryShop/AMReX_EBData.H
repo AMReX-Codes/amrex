@@ -1,5 +1,5 @@
-#ifndef _EBDATA_H_
-#define _EBDATA_H_
+#ifndef AMREX_EBDATA_H_
+#define AMREX_EBDATA_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_RealVect.H"

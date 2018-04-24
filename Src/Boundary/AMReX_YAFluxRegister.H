@@ -55,7 +55,7 @@ public:
         return !(m_cfp_fab[mfi.LocalIndex()].empty());
     }
 
-    enum {
+    enum CellType : int {
         crse_cell = 0, crse_fine_boundary_cell, fine_cell
     };
 

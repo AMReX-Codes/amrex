@@ -1,6 +1,6 @@
 
-#ifndef _IFDATAIMPLEM_H_
-#define _IFDATAIMPLEM_H_
+#ifndef AMREX_IFDATAIMPLEM_H_
+#define AMREX_IFDATAIMPLEM_H_
 
 
 #include <iostream>

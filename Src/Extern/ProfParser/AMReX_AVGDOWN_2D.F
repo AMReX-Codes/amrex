@@ -3,6 +3,8 @@
 #define BL_LANG_FORT
 #endif
 
+#undef AMREX_XSDK
+
 #include "AMReX_REAL.H"
 #include "AMReX_CONSTANTS.H"
 #include "AMReX_AVGDOWN_F.H"

@@ -945,131 +945,124 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtualParticles (int   level,
-                                                       AoS& virts) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtualParticles (int  level,
+                                                                                           AoS& virts) const
 {
+
   BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CreateVirtualParticles()");
   BL_ASSERT(level > 0);
   BL_ASSERT(virts.empty());
   
-  if (level >= int(m_particles.size()))
-    //
-    // This level could exist and simply have no particles.
-    //
-    return;
-  //
-  // Read these from the parm file if we haven't done so yet.
-  //
+  if (level >= static_cast<int>(m_particles.size()))
+      return;
+
   if (aggregation_type == "")
-    {
+  {
       ParmParse pp("particles");
       aggregation_type = "None";
-      pp.query("aggregation_type",aggregation_type);
+      pp.query("aggregation_type", aggregation_type);
       aggregation_buffer = 2;
-      pp.query("aggregation_buffer",aggregation_buffer);
-    }
-  //
-  // Create a buffer so that particles near the cf border are not aggregated.
-  //
-  BoxArray buffer = amrex::complementIn(Geom(level).Domain(), ParticleBoxArray(level));
-  
-  buffer.grow(aggregation_buffer);
-  
-  const auto& pmap = m_particles[level];
-  for (const auto& kv : pmap) {
-    const auto& pbox = kv.second.GetArrayOfStructs();
-    
-    //
-    // Map for use in Cell aggregation.
-    //
-    std::map<IntVect,ParticleType> agg_map;
-    
-    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
+      pp.query("aggregation_buffer", aggregation_buffer);
+  }
+
+  if (aggregation_type == "None");
+  else if (aggregation_type == "Cell");
+  else if (aggregation_type == "Flow") amrex::Abort("Flow aggregation not implemented");
+  else amrex::Abort("Unknown Particle Aggregation mode");
+
+  if (aggregation_type == "None")
+  { 
+      const auto& pmap = m_particles[level];
+      for (const auto& kv : pmap)
       {
-          IntVect cell = Index(*it, level);
-	if (buffer.contains(cell))
-	  {
-              // It's in the no-aggregation buffer.
-              // Set its id to indicate that it's a virt.
+          const auto& pbox = kv.second.GetArrayOfStructs();
+          for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
+          {
               virts.push_back(*it);
               virts.back().m_idata.id = VirtualParticleID;
 	  }
-	else
-	  {
-	    if (aggregation_type == "None")
-	      {
-		//
-		// No aggregation.  Simply clone the particle.
-		// Set its id to indicate that it's a virt.
+      }
+      return;
+  }
+
+
+  if (aggregation_type == "Cell")
+  {
+      BoxArray buffer = amrex::complementIn(Geom(level).Domain(), ParticleBoxArray(level));
+      buffer.grow(aggregation_buffer);
+  
+      const auto& pmap = m_particles[level];
+      for (const auto& kv : pmap) {
+          const auto& pbox = kv.second.GetArrayOfStructs();
+    
+          std::map<IntVect,ParticleType> agg_map;
+    
+          for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
+          {
+              IntVect cell = Index(*it, level);
+              if (buffer.contains(cell))
+              {
+                  // It's in the no-aggregation buffer.
+                  // Set its id to indicate that it's a virt.
                   virts.push_back(*it);
                   virts.back().m_idata.id = VirtualParticleID;
-	      }
-	    else if (aggregation_type == "Cell")
-	      {
-		//
-		// Note that Cell aggregation assumes that p.m_rdata.arr[AMREX_SPACEDIM] is mass and
-		// that all other components should be combined in a mass-weighted
-		// average.
-		//
-		auto agg_map_it = agg_map.find(cell);
+              }
+              else
+              {
+                  //
+                  // Note that Cell aggregation assumes that p.m_rdata.arr[AMREX_SPACEDIM] is mass and
+                  // that all other components should be combined in a mass-weighted
+                  // average.
+                  //
+                  auto agg_map_it = agg_map.find(cell);
 		
-		if (agg_map_it == agg_map.end())
+                  if (agg_map_it == agg_map.end())
 		  {
-		    //
-		    // Add the particle.
-		    //
-		    ParticleType p = *it;
-		    //
-		    // Set its id to indicate that it's a virt.
-		    //
-		    p.m_idata.id = VirtualParticleID;
-		    agg_map[cell] = p;
+                      //
+                      // Add the particle.
+                      //
+                      ParticleType p = *it;
+                      //
+                      // Set its id to indicate that it's a virt.
+                      //
+                      p.m_idata.id = VirtualParticleID;
+                      agg_map[cell] = p;
 		  }
-		else
-		  {
-		    BL_ASSERT(agg_map_it != agg_map.end());
-		    const ParticleType&  pnew       = *it;
-		    ParticleType&        pold       = agg_map_it->second;
-		    const Real           old_mass   = pold.m_rdata.arr[AMREX_SPACEDIM];
-		    const Real           new_mass   = pnew.m_rdata.arr[AMREX_SPACEDIM];
-		    const Real           total_mass = old_mass + new_mass;
-		    //
-		    // Set the position to the center of mass.
-		    //
-		    for (int i = 0; i < AMREX_SPACEDIM; i++)
-		      {
-			pold.m_rdata.pos[i] = (old_mass*pold.m_rdata.pos[i] + new_mass*pnew.m_rdata.pos[i])/total_mass;
+                  else
+                  {
+                      BL_ASSERT(agg_map_it != agg_map.end());
+                      const ParticleType&  pnew       = *it;
+                      ParticleType&        pold       = agg_map_it->second;
+                      const Real           old_mass   = pold.m_rdata.arr[AMREX_SPACEDIM];
+                      const Real           new_mass   = pnew.m_rdata.arr[AMREX_SPACEDIM];
+                      const Real           total_mass = old_mass + new_mass;
+                      //
+                      // Set the position to the center of mass.
+                      //
+                      for (int i = 0; i < AMREX_SPACEDIM; i++)
+                      {
+                          pold.m_rdata.pos[i] = (old_mass*pold.m_rdata.pos[i] + new_mass*pnew.m_rdata.pos[i])/total_mass;
 		      }
-		    BL_ASSERT(this->Index(pold, level) == cell);
-		    //
-		    // Set the metadata (presumably velocity) to the mass-weighted average.
-		    //
-		    for (int i = AMREX_SPACEDIM + 1; i < AMREX_SPACEDIM + NStructReal; i++)
+                      BL_ASSERT(this->Index(pold, level) == cell);
+                      //
+                      // Set the metadata (presumably velocity) to the mass-weighted average.
+                      //
+                      for (int i = AMREX_SPACEDIM + 1; i < AMREX_SPACEDIM + NStructReal; i++)
 		      {
-			pold.m_rdata.arr[i] = (old_mass*pold.m_rdata.arr[i] + new_mass*pnew.m_rdata.arr[i])/total_mass;
+                          pold.m_rdata.arr[i] = (old_mass*pold.m_rdata.arr[i] + new_mass*pnew.m_rdata.arr[i])/total_mass;
 		      }
-		    pold.m_rdata.arr[AMREX_SPACEDIM] = total_mass;
+                      pold.m_rdata.arr[AMREX_SPACEDIM] = total_mass;
 		  }
 	      }
-	    else if (aggregation_type == "Flow")
-	      {
-		amrex::Abort("Flow aggregation not implemented");
-	      }
-	    else 
-	      {
-		amrex::Abort("Unknown Particle Aggregation mode");
-                }
 	  }
-      }
-    if (aggregation_type == "Cell")
-      {
-	//
-	// Add the aggregated particles to the virtuals.
-	//
-	for (const auto& agg_particle : agg_map)
-	  {
-	    virts.push_back(agg_particle.second);
-	  }
+
+          //
+          // Add the aggregated particles to the virtuals.
+          //
+          for (const auto& agg_particle : agg_map)
+          {
+              virts.push_back(agg_particle.second);
+          }
       }
   }
 }
@@ -1137,7 +1130,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostPa
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Redistribute (int lev_min, int lev_max, int nGrow, bool local)
+::Redistribute (int lev_min, int lev_max, int nGrow, int local)
 {
 
   BL_PROFILE("ParticleContainer::Redistribute()");
@@ -1154,7 +1147,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = ParallelDescriptor::second();
   
-  if (local) BuildRedistributeMask(0);
+  if (local > 0) BuildRedistributeMask(0, local);
 
   // On startup there are cases where Redistribute() could be called
   // with a given finestLevel() where that AmrLevel has yet to be defined.
@@ -1465,94 +1458,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   }
 }
 
-namespace {
-
-#ifdef BL_USE_MPI    
-    long CountSnds(const std::map<int, Vector<char> >& not_ours, Vector<long>& Snds)
-    {
-        long NumSnds = 0;        
-        for (const auto& kv : not_ours)
-        {
-            NumSnds       += kv.second.size();
-            Snds[kv.first] = kv.second.size();
-        }
-        
-        ParallelDescriptor::ReduceLongMax(NumSnds);
-
-        return NumSnds;
-    }
-
-    long doHandShake(const std::map<int, Vector<char> >& not_ours,
-                     Vector<long>& Snds, Vector<long>& Rcvs)
-    {
-        long NumSnds = CountSnds(not_ours, Snds);
-        if (NumSnds == 0) return NumSnds;
-
-        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                        ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
-        
-        BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
-                                     1,
-                                     ParallelDescriptor::Mpi_typemap<long>::type(),
-                                     Rcvs.dataPtr(),
-                                     1,
-                                     ParallelDescriptor::Mpi_typemap<long>::type(),
-                                     ParallelDescriptor::Communicator()) );
-
-        BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
-        
-        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                        ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
-
-        return NumSnds;
-    }
-
-    long doHandShakeLocal(const std::map<int, Vector<char> >& not_ours,
-                          const Vector<int>& neighbor_procs, Vector<long>& Snds, Vector<long>& Rcvs)
-    {
-
-        long NumSnds = 0;        
-        for (const auto& kv : not_ours)
-        {
-            NumSnds       += kv.second.size();
-            Snds[kv.first] = kv.second.size();
-        }
-
-        const int SeqNum = ParallelDescriptor::SeqNum();
-        
-        const int num_rcvs = neighbor_procs.size();
-        Vector<MPI_Status>  stats(num_rcvs);
-        Vector<MPI_Request> rreqs(num_rcvs);
-        
-        // Post receives
-        for (int i = 0; i < num_rcvs; ++i) {
-            const int Who = neighbor_procs[i];
-            const long Cnt = 1;
-            
-            BL_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
-            
-            rreqs[i] = ParallelDescriptor::Arecv(&Rcvs[Who], Cnt, Who, SeqNum).req();
-        }
-        
-        // Send.
-        for (int i = 0; i < num_rcvs; ++i) {
-            const int Who = neighbor_procs[i];
-            const long Cnt = 1;
-            
-            BL_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
-            
-            ParallelDescriptor::Send(&Snds[Who], Cnt, Who, SeqNum);        
-        }
-        
-        if (num_rcvs > 0) {
-            ParallelDescriptor::Waitall(rreqs, stats);
-        }
-        
-        return NumSnds;
-    }
-#endif  // BL_USE_MPI
-}
-
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
@@ -1608,7 +1513,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-                 int lev_min, int lev_max, int nGrow, bool local)
+                 int lev_min, int lev_max, int nGrow, int local)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
@@ -1620,10 +1525,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
     long NumSnds = 0;
-    if (local) {
+    if (local > 0) {
         AMREX_ALWAYS_ASSERT(lev_min == 0);
         AMREX_ALWAYS_ASSERT(lev_max == 0);
-        BuildRedistributeMask(0);
+        BuildRedistributeMask(0, local);
         NumSnds = doHandShakeLocal(not_ours, neighbor_procs, Snds, Rcvs);
     }
     else {
@@ -4526,8 +4431,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     }
 
     PhysBCFunct cphysbc, fphysbc;
-    int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
-    int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir}; // periodic boundaries
+    int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
     PCInterp mapper;
     

@@ -51,8 +51,8 @@ URL:    http://raphael.mit.edu
 */
 
 
-#ifndef _KDSTRUCT_H_
-#define _KDSTRUCT_H_
+#ifndef AMREX_KDSTRUCT_H_
+#define AMREX_KDSTRUCT_H_
 
 #include "AMReX_REAL.H"
 

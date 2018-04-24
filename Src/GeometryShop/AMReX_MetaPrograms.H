@@ -1,6 +1,6 @@
 
-#ifndef _METAPROGRAMS_H_
-#define _METAPROGRAMS_H_
+#ifndef AMREX_METAPROGRAMS_H_
+#define AMREX_METAPROGRAMS_H_
 
 #include <functional>
 

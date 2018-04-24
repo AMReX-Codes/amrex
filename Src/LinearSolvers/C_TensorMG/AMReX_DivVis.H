@@ -1,5 +1,5 @@
-#ifndef _DivVis_H_
-#define _DivVis_H_
+#ifndef AMREX_DivVis_H_
+#define AMREX_DivVis_H_
 
 #include <AMReX_Tuple.H>
 #include <AMReX_MCLinOp.H>
