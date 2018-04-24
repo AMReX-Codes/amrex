@@ -433,7 +433,7 @@ amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlock
 void 
 amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks) {
     numThreads = 256;
-    numBlocks = (np + blockSize - 1) / blockSize;
+    numBlocks = (np + 256 - 1) / 256;
 }
 
 #endif
