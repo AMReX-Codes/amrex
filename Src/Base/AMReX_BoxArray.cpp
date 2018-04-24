@@ -1098,6 +1098,7 @@ BoxArray::complementIn (const Box& bx) const
 void
 BoxArray::complementIn (BoxList& bl, const Box& bx) const
 {
+    bl.set(bx.ixType());
     bl.clear();
     bl.push_back(bx);
 
@@ -1128,6 +1129,7 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
 	auto TheEnd = BoxHashMap.cend();
 
         BoxList newbl(bl.ixType());
+        BoxList newdiff(bl.ixType());
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
 	     iv <= End && bl.isNotEmpty(); 
@@ -1145,8 +1147,8 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
                     {
                         newbl.clear();
                         for (const Box& b : bl) {
-                            const BoxList& diff = amrex::boxDiff(b, isect);
-                            newbl.join(diff);
+                            amrex::boxDiff(newdiff, b, isect);
+                            newbl.join(newdiff);
                         }
                         bl.swap(newbl);
                     }
@@ -1198,6 +1200,9 @@ BoxArray::removeOverlap (bool simplify)
     m_ref->updateMemoryUsage_hash(-1);
     long total_hash_bytes_save = m_ref->total_hash_bytes;
 #endif
+
+    BoxList bl_diff;
+
     for (int i = 0; i < size(); i++)
     {
         if (m_ref->m_abox[i].ok())
@@ -1210,11 +1215,11 @@ BoxArray::removeOverlap (bool simplify)
 
                 Box& bx = m_ref->m_abox[isects[j].first];
 
-                const BoxList& bl = amrex::boxDiff(bx, isects[j].second);
+                amrex::boxDiff(bl_diff, bx, isects[j].second);
 
                 bx = EmptyBox;
 
-                for (const Box& b : bl)
+                for (const Box& b : bl_diff)
                 {
                     m_ref->m_abox.push_back(b);
                     BoxHashMap[amrex::coarsen(b.smallEnd(),m_ref->crsn)].push_back(size()-1);
@@ -1513,10 +1518,12 @@ GetBndryCells (const BoxArray& ba,
     BoxArray tba(bcells);
 
     BoxList gcells(btype);
+    BoxList bl_diff(btype);
     for (int i = 0, N = tba.size(); i < N; ++i)
     {
 	const Box& bx = tba[i];
-        gcells.join(amrex::boxDiff(amrex::grow(bx,ngrow),bx));
+        amrex::boxDiff(bl_diff, amrex::grow(bx,ngrow), bx);
+        gcells.join(bl_diff);
     }
     //
     // Now strip out intersections with original BoxArray.
