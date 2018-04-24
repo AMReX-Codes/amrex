@@ -19,7 +19,6 @@ std::string UserConstants::replaceStringValue(std::string math_expr){
         pattern    = constant_names[i];
         value      = constant_values[i];
 
-
         // Convert value to string, with scientific notation
         std::ostringstream streamObj;
         streamObj << value;
