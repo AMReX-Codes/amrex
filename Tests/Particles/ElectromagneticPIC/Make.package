@@ -1,5 +1,5 @@
-CEXE_sources += main.cpp IO.cpp Evolve.cpp NodalFlags.cpp Particles.cpp DeviceManager.cpp
-CEXE_headers += Constants.H Particles.H IO.H NodalFlags.H Evolve.H DeviceManager.H
+CEXE_sources += main.cpp IO.cpp Evolve.cpp NodalFlags.cpp ElectromagneticParticleContainer.cpp 
+CEXE_headers += Constants.H Particles.H IO.H NodalFlags.H Evolve.H ElectromagneticParticleContainer.H
 
 CEXE_headers += em_pic_F.H
 F90EXE_sources += em_pic_$(DIM)d.F90

@@ -187,7 +187,7 @@ AMREX_LAUNCH subroutine enforce_periodic(np, particles, plo, phi) &
   do ip = 1, np
 #endif
      
-     do idiim = 1, 3
+     do idim = 1, 3
         if (particles(ip)%pos(1) .gt. phi(1)) then
            particles(ip)%pos(1) = particles(ip)%pos(1) - domain_size(1)
         else if (particles(ip)%pos(1) .lt. plo(1)) then

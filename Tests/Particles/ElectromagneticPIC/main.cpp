@@ -4,11 +4,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 
-#ifdef AMREX_USE_CUDA
-#include <thrust/device_vector.h>
-#endif
-
-#include "Particles.H"
+#include "ElectromagneticParticleContainer.H"
 #include "Evolve.H"
 #include "NodalFlags.H"
 #include "Constants.H"
@@ -71,28 +67,18 @@ void test_em_pic(const TestParams& parms)
     Bx.setVal(0.0); By.setVal(0.0); Bz.setVal(0.0);
     Ex.setVal(0.0); Ey.setVal(0.0); Ez.setVal(0.0);
     
-    HostParticles electrons;
-    init_particles(electrons, geom, ba, dm, parms.nppc,
-                   0.01, 10.0, 1e25, -PhysConst::q_e, PhysConst::m_e);
+    const int num_species = 2;
 
-    HostParticles H_ions;
-    init_particles(H_ions, geom, ba, dm, parms.nppc,
-                   0.01, 10.0, 1e25, PhysConst::q_e, PhysConst::m_p);
+    ElectromagneticParticleContainer electrons(geom, dm, ba, 
+                                               0, -PhysConst::q_e, PhysConst::m_e);
+    electrons.InitParticles(parms.nppc, 0.01, 10.0, 1e25);
 
-    Vector<Particles*> particles(2);    
-#ifdef AMREX_USE_CUDA 
-    DeviceParticles device_electrons;
-    copy_particles_host_to_device(device_electrons, electrons);
+    ElectromagneticParticleContainer H_ions(geom, dm, ba, 
+                                            0, PhysConst::q_e, PhysConst::m_p);
 
-    DeviceParticles device_H_ions;
-    copy_particles_host_to_device(device_H_ions, H_ions);
-    
-    particles[0] = &device_electrons;
-    particles[1] = &device_H_ions;
-#else
+    Vector<ElectromagneticParticleContainer*> particles(2);
     particles[0] = &electrons;
     particles[1] = &H_ions;
-#endif
     
     int nsteps = parms.nsteps;
     const Real dt = compute_dt(geom);
@@ -106,26 +92,38 @@ void test_em_pic(const TestParams& parms)
         
         if (synchronized) {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
-            push_particles_only(particles, 0.5*dt);
-            enforce_periodic_bcs(particles, geom);
+            for (int i = 0; i < num_species; ++i) {
+                particles[i]->PushParticlesOnly(0.5*dt);
+                particles[i]->EnforcePeriodicBCs();
+            }
             synchronized = false;
         }
         
         evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
         
-        push_and_depose_particles(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz,
-                                  particles, geom, dt);
-        
-        enforce_periodic_bcs(particles, geom);
+        jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
+        for (int i = 0; i < num_species; ++i) {
+            particles[i]->PushAndDeposeParticles(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, dt);
+            particles[i]->EnforcePeriodicBCs();
+        }
+        jx.SumBoundary(geom.periodicity());
+        jy.SumBoundary(geom.periodicity());
+        jz.SumBoundary(geom.periodicity());
         
         evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
         
         if (step == nsteps - 1) {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
-            push_particles_only(particles, -0.5*dt);
+            for (int i = 0; i < num_species; ++i) {
+                particles[i]->PushParticlesOnly(-0.5*dt);
+                particles[i]->EnforcePeriodicBCs();
+            }
             synchronized = true;
         } else {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, dt);
+            for (int i = 0; i < num_species; ++i) {
+                particles[i]->EnforcePeriodicBCs();
+            }
         }
     }
 

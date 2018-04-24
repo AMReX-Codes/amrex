@@ -40,12 +40,12 @@ class ElectromagneticParticleContainer
 {
 public:
 
-    ElectromagneticParticleContainer (const Geometry            & a_geom,
-                                      const DistributionMapping & a_dmap,
-                                      const BoxArray            & a_ba, 
-                                      const int                   a_species_id,
-                                      const amrex::Real           a_charge,
-                                      const amrex::Real           a_mass);
+    ElectromagneticParticleContainer (const amrex::Geometry            & a_geom,
+                                      const amrex::DistributionMapping & a_dmap,
+                                      const amrex::BoxArray            & a_ba, 
+                                      const int                         a_species_id,
+                                      const amrex::Real                 a_charge,
+                                      const amrex::Real                 a_mass);
 
     void InitParticles(const amrex::IntVect& a_num_particles_per_cell,
                        const amrex::Real     a_thermal_momentum_std, 
