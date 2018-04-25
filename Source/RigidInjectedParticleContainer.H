@@ -1,0 +1,55 @@
+#ifndef WARPX_RigidInjectedParticleContainer_H_
+#define WARPX_RigidInjectedParticleContainer_H_
+
+#include <PhysicalParticleContainer.H>
+
+class RigidInjectedParticleContainer
+    : public PhysicalParticleContainer
+{
+public:
+    RigidInjectedParticleContainer (amrex::AmrCore* amr_core,
+                                    int ispecies,
+                                    const std::string& name);
+    virtual ~RigidInjectedParticleContainer () {}
+
+    virtual void InitData() override;
+
+    virtual void BoostandRemapParticles();
+
+    virtual void Evolve (int lev,
+                         const amrex::MultiFab& Ex,
+                         const amrex::MultiFab& Ey,
+                         const amrex::MultiFab& Ez,
+                         const amrex::MultiFab& Bx,
+                         const amrex::MultiFab& By,
+                         const amrex::MultiFab& Bz,
+                         amrex::MultiFab& jx,
+                         amrex::MultiFab& jy,
+                         amrex::MultiFab& jz,
+                         amrex::MultiFab* rho,
+                         amrex::MultiFab* rho2,
+                         amrex::Real t,
+                         amrex::Real dt) override;
+
+    virtual void PushP (int lev, amrex::Real dt,
+                        const amrex::MultiFab& Ex,
+                        const amrex::MultiFab& Ey,
+                        const amrex::MultiFab& Ez,
+                        const amrex::MultiFab& Bx,
+                        const amrex::MultiFab& By,
+                        const amrex::MultiFab& Bz) override;
+
+protected:
+
+    // User input quantities
+    Real zinject_plane = 0.;
+    bool projected = false;
+    bool focused = true;
+
+    Real vzbeam_ave_boosted;
+
+    bool done_injecting = false;
+
+};
+
+#endif
