@@ -69,7 +69,7 @@ install_headers: $(amrexIncludeDir)/AMReX_Config.H
 	    if test -f "$$f"; then \
 	      install -c -m 644 "$$f" $(amrexIncludeDir); \
 	      newf=$(amrexIncludeDir)/$$h; \
-	      sed -i -e '1s/^/#include <AMReX_Config.H>\'$$'\n/g' $$newf; \
+	      perl -pi -e 's/^/#include <AMReX_Config.H>\n/ if $$. == 1' $$newf; \
 	    fi; \
 	  done; \
 	done 
