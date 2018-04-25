@@ -1154,8 +1154,8 @@ BoxArray::complementIn (const Box& bx) const
 void
 BoxArray::complementIn (BoxList& bl, const Box& bx) const
 {
-    bl.set(bx.ixType());
     bl.clear();
+    bl.set(bx.ixType());
     bl.push_back(bx);
 
     if (!empty()) 
