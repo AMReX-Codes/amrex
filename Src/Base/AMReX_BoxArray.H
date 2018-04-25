@@ -212,7 +212,7 @@ struct DefaultBATransformer final
 * cannot use any of the List member functions with a BoxList.
 */
 
-  class MFIter;
+class MFIter;
 
 class BoxArray
 {
@@ -416,6 +416,7 @@ public:
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
+    Box minimalBox (int& npts_avg_box) const;
 
     /**
     * \brief True if the Box intersects with this BoxArray(+ghostcells).

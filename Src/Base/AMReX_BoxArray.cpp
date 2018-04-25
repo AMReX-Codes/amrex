@@ -973,6 +973,62 @@ BoxArray::minimalBox () const
     return minbox;
 }
 
+Box
+BoxArray::minimalBox (int& npts_avg_box) const
+{
+    BL_ASSERT(m_simple);
+    Box minbox;
+    const int N = size();
+    long npts_tot = 0;
+    if (N > 0)
+    {
+#ifdef _OPENMP
+	bool use_single_thread = omp_in_parallel();
+	const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
+#else
+	bool use_single_thread = true;
+	const int nthreads = 1;
+#endif
+	if (use_single_thread)
+	{
+	    minbox = m_ref->m_abox[0];
+            npts_tot += m_ref->m_abox[0].numPts();
+	    for (int i = 1; i < N; ++i) {
+		minbox.minBox(m_ref->m_abox[i]);
+                npts_tot += m_ref->m_abox[i].numPts();
+	    }
+	}
+	else
+	{
+	    Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:npts_tot)
+#endif
+	    {
+#ifndef _OPENMP
+		int tid = 0;
+#else
+		int tid = omp_get_thread_num();
+#pragma omp for
+#endif
+		for (int i = 0; i < N; ++i) {
+		    bxs[tid].minBox(m_ref->m_abox[i]);
+                    long npts = m_ref->m_abox[i].numPts();
+                    npts_tot += npts;
+		}
+	    }
+	    minbox = bxs[0];
+	    for (int i = 1; i < nthreads; ++i) {
+		minbox.minBox(bxs[i]);
+	    }
+	}
+    }
+    minbox.coarsen(m_crse_ratio).convert(ixType());
+    npts_tot /= AMREX_D_TERM(m_crse_ratio[0],*m_crse_ratio[1],*m_crse_ratio[2]);
+    npts_avg_box = npts_tot / N;
+    return minbox;
+}
+
 bool
 BoxArray::intersects (const Box& b, int ng) const
 {

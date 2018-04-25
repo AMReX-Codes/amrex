@@ -91,8 +91,6 @@ namespace amrex
 
         extern int signal_handling;
         extern int call_addr2line;
-
-        extern int ci_version; //xxxxx
     }
 
     inline void GccPlacater ()

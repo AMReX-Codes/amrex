@@ -1,12 +1,9 @@
 
 #include <algorithm>
 #include <iostream>
+#include <cmath>
 
-//xxxxx
-#include <fstream>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_Utility.H>
-
+#include <AMReX_Print.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_BLProfiler.H>
@@ -347,58 +344,61 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
     }
     else
     {
-        static int count = 0;
-        ++count;
+        int npts_avgbox;
+	Box mbox = ba.minimalBox(npts_avgbox);
+        *this = amrex::boxDiff(b, mbox);
+        auto mytyp = ixType();
 
-        if (amrex::system::ci_version == 1) {
-            BL_PROFILE("complementIn.V1.No."+std::to_string(count));
-            ba.complementIn(*this,b);
-        }
-        else {
-            BL_PROFILE("complementIn.V2.No."+std::to_string(count));
+	BoxList bl_mesh(mbox & b);
 
-	Box mbox = ba.minimalBox();
-	*this = amrex::boxDiff(b, mbox);
-
-	BoxList bl(mbox);
-	bl.maxSize(128);
-
-	const int N = bl.size();
-	
-	Vector<BoxList> vbl(N);
-	
-	int newsize = m_lbox.size();
-	
-#ifdef _OPENMP
-	bool start_omp_parallel = !omp_in_parallel();
-#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
+#if (AMREX_SPACEDIM == 1)
+        Real s_avgbox = npts_avgbox;
+#elif (AMREX_SPACEDIM == 2)
+        Real s_avgbox = std::sqrt(npts_avgbox);
+#elif (AMREX_SPACEDIM == 3)
+        Real s_avgbox = std::cbrt(npts_avgbox);
 #endif
-	for (int i = 0; i < N; ++i)
-	{
-	    ba.complementIn(vbl[i], bl.m_lbox[i]);
-	    newsize += vbl[i].size();
-	}
-	
-        m_lbox.reserve(newsize);
-	for (int i = 0; i < N; ++i) {
-	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
-	}
 
-        } // xxxxx
+        const int block_size = 4 * (static_cast<int>(std::ceil(s_avgbox/4.))*4);
+	bl_mesh.maxSize(block_size);
+	const int N = bl_mesh.size();
 
-        { // xxxxx
-            if (ParallelDescriptor::IOProcessor())
+#ifdef _OPENMP
+        bool start_omp_parallel = !omp_in_parallel();
+        const int nthreads = omp_get_max_threads();
+#else
+        bool start_omp_parallel = false;
+#endif
+
+        if (start_omp_parallel)
+        {
+#ifdef _OPENMP
+            Vector<BoxList> bl_priv(nthreads, BoxList(mytyp));
+#pragma omp parallel
             {
-                const std::string d = "boxes";
-                if (amrex::UtilCreateDirectory(d,0755))
+                BoxList bl_tmp(mytyp);
+                auto& vbox = bl_priv[omp_get_thread_num()].m_lbox;
+#pragma omp for
+                for (int i = 0; i < N; ++i)
                 {
-                    std::string f = "ci_v"+std::to_string(amrex::system::ci_version)
-                        + "_no"+std::to_string(count);
-                    std::string name = d+"/"+f;
-                    std::ofstream ofs(name.c_str());
-                    ofs << b << "\n";
-                    ofs << ba;
+                    ba.complementIn(bl_tmp, bl_mesh.m_lbox[i]);
+                    vbox.insert(std::end(vbox), std::begin(bl_tmp), std::end(bl_tmp));
                 }
+            }
+            for (auto& bl : bl_priv) {
+                m_lbox.insert(std::end(m_lbox), std::begin(bl), std::end(bl));
+            }
+#else
+            amrex::Abort("BoxList::complementIn: how did this happen");
+#endif
+        }
+        else
+        {
+            BoxList bl_tmp(mytyp);
+            for (int i = 0; i < N; ++i)
+            {
+                ba.complementIn(bl_tmp, bl_mesh.m_lbox[i]);
+                m_lbox.insert(std::end(m_lbox), std::begin(bl_tmp), std::end(bl_tmp));
             }
         }
     }

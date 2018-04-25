@@ -54,7 +54,6 @@ namespace system
     int verbose;
     int signal_handling;
     int call_addr2line;
-    int ci_version; // xxxxx
 }
 }
 
@@ -289,9 +288,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::verbose = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
-
-    system::ci_version = 1;  // xxxxx
-
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
 #ifdef AMREX_PMI
@@ -373,9 +369,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     {
 	ParmParse pp("amrex");
-
-        pp.query("ci_version", system::ci_version); // xxxxx
-
 	pp.query("v", system::verbose);
 	pp.query("verbose", system::verbose);
 
