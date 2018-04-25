@@ -988,7 +988,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtual
 
   if (aggregation_type == "Cell")
   {
-      BoxArray buffer = amrex::complementIn(Geom(level).Domain(), ParticleBoxArray(level));
+      BoxList bl_buffer;
+      bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
+      BoxArray buffer(std::move(bl_buffer));
       buffer.grow(aggregation_buffer);
   
       const auto& pmap = m_particles[level];
@@ -3525,7 +3527,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         // The "+1" is so we enclose the valid region together with any
         //  ghost cells that can be periodically shifted into valid.
         //
-        compfvalid = amrex::complementIn(amrex::grow(dm,dgrow+1), fvalid);
+        BoxList bl_compfvalid(dm.ixType());
+        bl_compfvalid.complementIn(amrex::grow(dm,dgrow+1), fvalid);
+        compfvalid = BoxArray(std::move(bl_compfvalid));
 
         compfvalid_grown = compfvalid;
         compfvalid_grown.grow(1);
