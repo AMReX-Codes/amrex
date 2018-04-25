@@ -1,23 +1,39 @@
-###############################################
+#
+#
+#  This file provides:
+#
+#    AMREX_DEFINES:          list of the cpp flags to be used on ALL sources
+#    AMREX_Fortran_DEFINES:  list of Fortran-specific cpp flags
+#    add_define():           function to add definitions to AMREX_DEFINES 
+#
+#  Once this file is included, AMREX_DEFINES and AMREX_Fortran_DEFINES will be
+#  populated with the preprocessor directives needed for a succesfull build.
+#  Further CPP flags can be appended manually or via add_define() after this
+#  file has been included.
+# 
+#  As per xSDK requirements, if a user set the env variable CPPFLAGS,
+#  CPPFLAGS should overwrite AMReX_DEFINES. Since this is not possible without
+#  breaking the build (most of the defines here are necessary for AMReX to compile),
+#  for the time being we will not follow this requirement.
+#  
+# 
 
-# Here we set the AMReX preprocessor flags    #
-# This file provides:                         #
-#      AMREX_DEFINES = string with macro defs #
-
-###############################################
 
 #
 #  Check if AMReX_Options.cmake has been already processed
 #
-if ( NOT AMREX_OPTIONS_SET )
+if ( NOT ( DEFINED __AMREX_OPTIONS__ ) )
    message ( FATAL_ERROR "AMReX_Options.cmake must be\
 included before AMReX_Configure.cmake" )
 endif ()
 
 #
-# Defines variable
-#
-set ( AMREX_DEFINES "" )
+# AMREX_DEFINES will contain the CPP flags for all the sources
+# For Fortran sources, use AMREX_Fortran_DEFINITIONS in addition to
+# AMREX_DEFINES
+# 
+set ( AMREX_DEFINES )
+set ( AMREX_Fortran_DEFINES  "-DBL_LANG_FORT -DAMREX_LANG_FORT" )
 
 #
 # Function to accumulate preprocessor directives
@@ -54,36 +70,15 @@ function ( add_define new_define )
    
 endfunction ()
 
-#
-# Detect Fortran name mangling scheme for C/Fortran interface 
-#
-include ( FortranCInterface )
-include ( ${FortranCInterface_BINARY_DIR}/Output.cmake )
-
-set (FORTLINK "")
-
-if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
-
-   set (FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
-   message (STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
-
-elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
-      ( FortranCInterface_GLOBAL_CASE STREQUAL "LOWER" ) )
-
-   set (FORTLINK "UNDERSCORE")
-   message (STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
-
-else ()
-   message (AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
-endif ()
-
-
 # 
 # Set preprocessor flags (trying to mimic GNUMake setup) 
 #
 
 # Git version
 list ( APPEND AMREX_DEFINES -DAMREX_GIT_VERSION=\"${AMREX_GIT_VERSION}\" )
+
+# XSDK mode
+add_define ( AMREX_XSDK IF USE_XSDK_DEFAULTS )
 
 # Debug flag
 if (DEBUG)
@@ -112,6 +107,15 @@ add_define ( AMREX_USE_PROFPARSER IF ENABLE_PROFPARSER )
 if (ENABLE_BACKTRACE)
    add_define ( AMREX_BACKTRACING )
    add_define ( AMREX_TESTING )
+endif ()
+
+# Third party profiling
+if (${TP_PROFILE} MATCHES "CRAYPAT")
+   add_define ( AMREX_CRAYPAT )
+elseif (${TP_PROFILE} MATCHES "FORGE")
+   add_define ( AMREX_FORGE )
+elseif (${TP_PROFILE} MATCHES "VTUNE")
+   add_define ( AMREX_VTUNE )
 endif ()
 
 # MPI
@@ -158,17 +162,5 @@ add_define ( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES )
 add_define ( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS ) 
 
 add_define ( AMREX_NO_STRICT_PREFIX )
-
-# More profiling stuff
-add_define ( VTUNE IF ENABLE_VTUNE)
-
-add_define ( CRAYPAT IF ENABLE_CRAYPAT )
-
-add_define ( ALLINEA IF ENABLE_ALLINEA )
-
-#
-# Add all preprocessor definitions to compile string
-# 
-add_definitions ( ${AMREX_DEFINES} )
 
 
