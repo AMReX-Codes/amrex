@@ -453,7 +453,7 @@ LaserParticleContainer::Evolve (int lev,
                     vz -= PhysConst::c * WarpX::beta_boost * nvec[2];
                 }
                 // Get the corresponding momenta
-                giv[i] = std::sqrt( 1 - pow( v_over_c, 2) )/WarpX::gamma_boost;
+                giv[i] = std::sqrt(1 - std::pow(v_over_c,2))/WarpX::gamma_boost;
                 Real gamma = 1./giv[i];
                 uxp[i] = gamma * vx;
                 uyp[i] = gamma * vy;
