@@ -517,8 +517,8 @@ boxDiff (BoxList& bl_diff, const Box& b1in, const Box& b2)
 {
    AMREX_ASSERT(b1in.sameType(b2));
 
-   bl_diff.set(b2.ixType());
    bl_diff.clear();
+   bl_diff.set(b2.ixType());
 
    if ( !b2.contains(b1in) )
    {
