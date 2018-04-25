@@ -1588,6 +1588,7 @@ GetBndryCells (const BoxArray& ba,
 
     bcells.clear();
     BoxList pieces(btype);
+    BoxList bl_tmp(btype);
 
     for (const Box& gbx : gcells)
     {
@@ -1602,7 +1603,8 @@ GetBndryCells (const BoxArray& ba,
             for (const auto& isec : isects) {
                 pieces.push_back(isec.second);
             }
-            bcells.join(amrex::complementIn(gbx,pieces));
+            bl_tmp.complementIn(gbx,pieces);
+            bcells.join(bl_tmp);
         }
     }
 
