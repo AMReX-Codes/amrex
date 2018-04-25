@@ -3,6 +3,7 @@
 #define BL_INTVECT_H
 
 #include <iosfwd>
+#include <cstdlib>
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_SPACE.H>
