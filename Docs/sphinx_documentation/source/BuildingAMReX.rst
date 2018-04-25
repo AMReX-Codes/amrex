@@ -203,7 +203,7 @@ Building with CMake
 ===================
 
 An alternative to the approach described in the section on :ref:`sec:build:lib`
-is to install AMReX as an external library busing the CMake build system.  A
+is to install AMReX as an external library by using the CMake build system.  A
 CMake build is a two-step process. First ``cmake`` is invoked to create
 configuration files and makefiles in a chosen directory (``builddir``).  This
 is roughly equivalent to running ``./configure`` (see the section on
@@ -252,7 +252,7 @@ below.
 
 .. _tab:cmakevar:
 
-.. table:: Important cmake build options
+.. table:: AMReX build options
 
    +---------------------------+-------------------------------------------------+-------------+-----------------+
    | Option Name               | Description                                     | Default     | Possible values |
@@ -299,9 +299,9 @@ below.
    +---------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_ASSERTIONS         |  Build with assertions turned on                | OFF         | ON,OFF          |
    +---------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_FFLAGS_OVERRIDES    |  User-defined Fortran flags                     | None        | user-defined    |
+   | CMAKE_Fortran_FLAGS       |  User-defined Fortran flags                     |             | user-defined    |
    +---------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_CXXFLAGS_OVERRIDES  |  User-defined C++ flags                         | None        | user-defined    |
+   | CMAKE_CXX_FLAGS           |  User-defined C++ flags                         |             | user-defined    |
    +---------------------------+-------------------------------------------------+-------------+-----------------+
 
 .. raw:: latex
@@ -316,6 +316,15 @@ well by providing the option ``ENABLE_FBASELIB=ON`` in addition to
 The option ``DEBUG=ON`` implies ``ENABLE_ASSERTION=ON``. In order to turn off
 assertions in debug mode, ``ENABLE_ASSERTION=OFF`` must be set explicitly while
 invoking CMake.
+
+The options ``CMAKE_Fortran_FLAGS`` and ``CMAKE_CXX_FLAGS`` allow the user to
+set his own compilation flags for Fortran and C++ source files respectively.
+If ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` are not set by the user,
+they will be initialized with the value of the environmental variables ``FFLAGS``/
+``CXXFLAGS``. If ``FFLAGS``/ ``CXXFLAGS`` are not defined in the environment,
+``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` will be set to the AMReX default values
+defined in  ``/path/to/amrex/Tools/CMake/AMReX_Compilers.cmake``.
+
 
 .. _sec:build:cmake:config:
 

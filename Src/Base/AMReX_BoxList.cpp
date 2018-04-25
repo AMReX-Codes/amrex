@@ -1,8 +1,9 @@
 
-
 #include <algorithm>
 #include <iostream>
+#include <cmath>
 
+#include <AMReX_Print.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_BLProfiler.H>
@@ -343,34 +344,63 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
     }
     else
     {
-	Box mbox = ba.minimalBox();
-	*this = amrex::boxDiff(b, mbox);
+        int npts_avgbox;
+	Box mbox = ba.minimalBox(npts_avgbox);
+        *this = amrex::boxDiff(b, mbox);
+        auto mytyp = ixType();
 
-	BoxList bl(mbox);
-#if (AMREX_SPACEDIM == 3)
-	bl.maxSize(64);
-#else
-	bl.maxSize(128);
+	BoxList bl_mesh(mbox & b);
+
+#if (AMREX_SPACEDIM == 1)
+        Real s_avgbox = npts_avgbox;
+#elif (AMREX_SPACEDIM == 2)
+        Real s_avgbox = std::sqrt(npts_avgbox);
+#elif (AMREX_SPACEDIM == 3)
+        Real s_avgbox = std::cbrt(npts_avgbox);
 #endif
-	const int N = bl.size();
-	
-	Vector<BoxList> vbl(N);
-	
-	int newsize = 0;
-	
+
+        const int block_size = 4 * (static_cast<int>(std::ceil(s_avgbox/4.))*4);
+	bl_mesh.maxSize(block_size);
+	const int N = bl_mesh.size();
+
 #ifdef _OPENMP
-	bool start_omp_parallel = !omp_in_parallel();
-#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
+        bool start_omp_parallel = !omp_in_parallel();
+        const int nthreads = omp_get_max_threads();
+#else
+        bool start_omp_parallel = false;
 #endif
-	for (int i = 0; i < N; ++i)
-	{
-	    ba.complementIn(vbl[i], bl.m_lbox[i]);
-	    newsize += vbl[i].size();
-	}
-	
-	for (int i = 0; i < N; ++i) {
-	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
-	}
+
+        if (start_omp_parallel)
+        {
+#ifdef _OPENMP
+            Vector<BoxList> bl_priv(nthreads, BoxList(mytyp));
+#pragma omp parallel
+            {
+                BoxList bl_tmp(mytyp);
+                auto& vbox = bl_priv[omp_get_thread_num()].m_lbox;
+#pragma omp for
+                for (int i = 0; i < N; ++i)
+                {
+                    ba.complementIn(bl_tmp, bl_mesh.m_lbox[i]);
+                    vbox.insert(std::end(vbox), std::begin(bl_tmp), std::end(bl_tmp));
+                }
+            }
+            for (auto& bl : bl_priv) {
+                m_lbox.insert(std::end(m_lbox), std::begin(bl), std::end(bl));
+            }
+#else
+            amrex::Abort("BoxList::complementIn: how did this happen");
+#endif
+        }
+        else
+        {
+            BoxList bl_tmp(mytyp);
+            for (int i = 0; i < N; ++i)
+            {
+                ba.complementIn(bl_tmp, bl_mesh.m_lbox[i]);
+                m_lbox.insert(std::end(m_lbox), std::begin(bl_tmp), std::end(bl_tmp));
+            }
+        }
     }
 
     return *this;
@@ -476,16 +506,26 @@ BoxList
 boxDiff (const Box& b1in,
          const Box& b2)
 {
-   BL_ASSERT(b1in.sameType(b2));
-  
-   BoxList b_list(b1in.ixType());
+   BL_ASSERT(b1in.sameType(b2));  
+   BoxList bl_diff(b1in.ixType());
+   boxDiff(bl_diff,b1in,b2);
+   return bl_diff;
+}
+
+void
+boxDiff (BoxList& bl_diff, const Box& b1in, const Box& b2)
+{
+   AMREX_ASSERT(b1in.sameType(b2));
+
+   bl_diff.clear();
+   bl_diff.set(b2.ixType());
 
    if ( !b2.contains(b1in) )
    {
        Box b1(b1in);
        if ( !b1.intersects(b2) )
        {
-           b_list.push_back(b1);
+           bl_diff.push_back(b1);
        }
        else
        {
@@ -502,7 +542,7 @@ boxDiff (const Box& b1in,
                    Box bn(b1);
                    bn.setSmall(i,b1lo[i]);
                    bn.setBig(i,b2lo[i]-1);
-                   b_list.push_back(bn);
+                   bl_diff.push_back(bn);
                    b1.setSmall(i,b2lo[i]);
                }
                if ((b1lo[i] <= b2hi[i]) && (b2hi[i] < b1hi[i]))
@@ -510,13 +550,12 @@ boxDiff (const Box& b1in,
                    Box bn(b1);
                    bn.setSmall(i,b2hi[i]+1);
                    bn.setBig(i,b1hi[i]);
-                   b_list.push_back(bn);
+                   bl_diff.push_back(bn);
                    b1.setBig(i,b2hi[i]);
                }
            }
        }
    }
-   return b_list;
 }
 
 int
