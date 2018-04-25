@@ -90,3 +90,8 @@ ifeq ($(findstring nrel, $(host_name)), nrel)
   which_site := nrel
   which_computer := anymachine
 endif
+
+ifeq ($(findstring daint, $(host_name)), daint)
+  which_site := cscs
+  which_computer := daint
+endif
