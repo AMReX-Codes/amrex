@@ -1122,6 +1122,9 @@ BoxArray::intersections (const Box&                         bx,
 
 	auto TheEnd = BoxHashMap.cend();
 
+        bool super_simple = m_simple && m_crse_ratio==1 && m_typ.cellCentered();
+        auto& abox = m_ref->m_abox;
+
         for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); iv <= End; cbx.next(iv))
         {
             auto it = BoxHashMap.find(iv);
@@ -1130,7 +1133,8 @@ BoxArray::intersections (const Box&                         bx,
             {
                 for (const int index : it->second)
                 {
-                    const Box& isect = bx & amrex::grow((*this)[index],ng);
+                    const Box& ibox = super_simple ? abox[index] : (*this)[index];
+                    const Box& isect = bx & amrex::grow(ibox,ng);
 
                     if (isect.ok())
                     {
@@ -1185,7 +1189,11 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
 	auto TheEnd = BoxHashMap.cend();
 
         BoxList newbl(bl.ixType());
+        newbl.reserve(bl.capacity());
         BoxList newdiff(bl.ixType());
+
+        bool super_simple = m_simple && m_crse_ratio==1 && m_typ.cellCentered();
+        auto& abox = m_ref->m_abox;
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
 	     iv <= End && bl.isNotEmpty(); 
@@ -1197,7 +1205,9 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
             {
                 for (const int index : it->second)
                 {
-                    const Box& isect = bx & (*this)[index];
+                    const Box& isect = (super_simple)
+                        ? (bx & abox[index])
+                        : (bx & (*this)[index]);
 
                     if (isect.ok())
                     {
