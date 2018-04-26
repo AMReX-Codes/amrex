@@ -66,6 +66,7 @@ void test_em_pic(const TestParams& parms)
     
     Bx.setVal(0.0); By.setVal(0.0); Bz.setVal(0.0);
     Ex.setVal(0.0); Ey.setVal(0.0); Ez.setVal(0.0);
+    jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
     
     const int num_species = 2;
 
@@ -89,11 +90,13 @@ void test_em_pic(const TestParams& parms)
     BL_PROFILE_VAR_START(blp_evolve);
 
     for (int step = 0; step < nsteps; ++step) { 
-        
+    
+        std::cout << step << std::endl;
+    
         if (synchronized) {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
             for (int i = 0; i < num_species; ++i) {
-                particles[i]->PushParticlesOnly(0.5*dt);
+                particles[i]->PushParticlesOnly(-0.5*dt);
                 particles[i]->EnforcePeriodicBCs();
             }
             synchronized = false;
@@ -115,7 +118,7 @@ void test_em_pic(const TestParams& parms)
         if (step == nsteps - 1) {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
             for (int i = 0; i < num_species; ++i) {
-                particles[i]->PushParticlesOnly(-0.5*dt);
+                particles[i]->PushParticlesOnly(0.5*dt);
                 particles[i]->EnforcePeriodicBCs();
             }
             synchronized = true;
