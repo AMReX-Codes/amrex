@@ -37,6 +37,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
     BoxArray cfba = fba;
     cfba.coarsen(ref_ratio);
+    cfba.uniqify();
 
     Box cdomain = m_crse_geom.Domain();
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
