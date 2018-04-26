@@ -74,9 +74,7 @@ public:
     //
     // Construct dimension specific Boxes.
     //
-    Box (const IntVect& small,
-         const IntVect& big,
-         IndexType      t)
+    Box (const IntVect& small, const IntVect& big, IndexType t)
         : smallend(small),
           bigend(big),
           btype(t)
@@ -184,8 +182,8 @@ public:
     bool sameSize (const Box& b) const {
         BL_ASSERT(sameType(b));
         return AMREX_D_TERM(length(0) == b.length(0),
-                            && length(1)==b.length(1),
-                            && length(2)==b.length(2));
+                         && length(1) == b.length(1),
+                         && length(2) == b.length(2));
     }
 
     //! Returns true if Boxes have same type.
