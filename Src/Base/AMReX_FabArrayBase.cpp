@@ -139,7 +139,16 @@ FabArrayBase::define (const BoxArray&            bxs,
                       int                        nvar,
                       int                        ngrow)
 {
-    BL_ASSERT(ngrow >= 0);
+    define(bxs, dm, nvar, IntVect(ngrow));
+}
+
+void
+FabArrayBase::define (const BoxArray&            bxs,
+                      const DistributionMapping& dm,
+                      int                        nvar,
+                      const IntVect&             ngrow)
+{
+    BL_ASSERT(ngrow.allGE(IntVect::TheZeroVector()));
     BL_ASSERT(boxarray.size() == 0);
     indexArray.clear();
     ownership.clear();
@@ -250,8 +259,8 @@ FabArrayBase::TileArray::bytes () const
 // Stuff used for copy() caching.
 //
 
-FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, int dstng,
-			const FabArrayBase& srcfa, int srcng,
+FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, const IntVect& dstng,
+			const FabArrayBase& srcfa, const IntVect& srcng,
 			const Periodicity& period)
     : m_srcbdk(srcfa.getBDKey()), 
       m_dstbdk(dstfa.getBDKey()), 
@@ -268,9 +277,9 @@ FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, int dstng,
 }
 
 FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm, 
-			const Vector<int>& dstidx, int dstng,
+			const Vector<int>& dstidx, const IntVect& dstng,
 			const BoxArray& srcba, const DistributionMapping& srcdm, 
-			const Vector<int>& srcidx, int srcng,
+			const Vector<int>& srcidx, const IntVect& srcng,
 			const Periodicity& period, int myproc)
     : m_srcbdk(), 
       m_dstbdk(), 
@@ -315,9 +324,9 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
     if (!(imap_dst.empty() && imap_src.empty())) 
     {
 	const int nlocal_src = imap_src.size();
-	const int ng_src = m_srcng;
+	const IntVect& ng_src = m_srcng;
 	const int nlocal_dst = imap_dst.size();
-	const int ng_dst = m_dstng;
+	const IntVect& ng_dst = m_dstng;
 
 	std::vector< std::pair<int,Box> > isects;
 
@@ -516,7 +525,7 @@ FabArrayBase::flushCPCache ()
 }
 
 const FabArrayBase::CPC&
-FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng, const Periodicity& period) const
+FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng, const Periodicity& period) const
 {
     BL_PROFILE("FabArrayBase::getCPC()");
 
@@ -568,10 +577,11 @@ FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng, const Perio
 // Some stuff for fill boundary
 //
 
-FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& period, 
-		      bool enforce_periodicity_only)
+FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
+                      bool cross, const Periodicity& period, 
+                      bool enforce_periodicity_only)
     : m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
-      m_ngrow(fa.nGrow()), m_cross(cross),
+      m_ngrow(nghost), m_cross(cross),
       m_epo(enforce_periodicity_only), m_period(period),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
       m_LocTags(new CopyComTag::CopyComTagsContainer),
@@ -599,13 +609,13 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     const int                  MyProc   = ParallelDescriptor::MyProc();
     const BoxArray&            ba       = fa.boxArray();
     const DistributionMapping& dm       = fa.DistributionMap();
-    const Vector<int>&          imap     = fa.IndexArray();
+    const Vector<int>&         imap     = fa.IndexArray();
 
     // For local copy, all workers in the same team will have the identical copy of tags
     // so that they can share work.  But for remote communication, they are all different.
     
     const int nlocal = imap.size();
-    const int ng = m_ngrow;
+    const IntVect& ng = m_ngrow;
     std::vector< std::pair<int,Box> > isects;
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
@@ -748,7 +758,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 		    {
 			Box lo = dstvbx;
-			lo.setSmall(dir, dstvbx.smallEnd(dir) - ng);
+			lo.setSmall(dir, dstvbx.smallEnd(dir) - ng[dir]);
 			lo.setBig  (dir, dstvbx.smallEnd(dir) - 1);
 			lo &= bx;
 			if (lo.ok()) {
@@ -757,7 +767,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 			    
 			Box hi = dstvbx;
 			hi.setSmall(dir, dstvbx.bigEnd(dir) + 1);
-			hi.setBig  (dir, dstvbx.bigEnd(dir) + ng);
+			hi.setBig  (dir, dstvbx.bigEnd(dir) + ng[dir]);
 			hi &= bx;
 			if (hi.ok()) {
 			    boxes.push_back(hi);
@@ -810,13 +820,13 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     const int                  MyProc   = ParallelDescriptor::MyProc();
     const BoxArray&            ba       = fa.boxArray();
     const DistributionMapping& dm       = fa.DistributionMap();
-    const Vector<int>&          imap     = fa.IndexArray();
+    const Vector<int>&         imap     = fa.IndexArray();
 
     // For local copy, all workers in the same team will have the identical copy of tags
     // so that they can share work.  But for remote communication, they are all different.
     
     const int nlocal = imap.size();
-    const int ng = m_ngrow;
+    const IntVect& ng = m_ngrow;
     const IndexType& typ = ba.ixType();
     std::vector< std::pair<int,Box> > isects;
     
@@ -1022,7 +1032,8 @@ FabArrayBase::flushFBCache ()
 }
 
 const FabArrayBase::FB&
-FabArrayBase::getFB (const Periodicity& period, bool cross, bool enforce_periodicity_only) const
+FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
+                     bool cross, bool enforce_periodicity_only) const
 {
     BL_PROFILE("FabArrayBase::getFB()");
 
@@ -1032,7 +1043,7 @@ FabArrayBase::getFB (const Periodicity& period, bool cross, bool enforce_periodi
     {
 	if (it->second->m_typ        == boxArray().ixType()      &&
             it->second->m_crse_ratio == boxArray().crseRatio()   &&
-	    it->second->m_ngrow      == nGrow()                  &&
+	    it->second->m_ngrow      == nghost                   &&
 	    it->second->m_cross      == cross                    &&
 	    it->second->m_epo        == enforce_periodicity_only &&
 	    it->second->m_period     == period              )
@@ -1044,7 +1055,7 @@ FabArrayBase::getFB (const Periodicity& period, bool cross, bool enforce_periodi
     }
 
     // Have to build a new one
-    FB* new_fb = new FB(*this, cross, period, enforce_periodicity_only);
+    FB* new_fb = new FB(*this, nghost, cross, period, enforce_periodicity_only);
 
 #ifdef BL_PROFILE
     m_FBC_stats.bytes += new_fb->bytes();
@@ -1063,7 +1074,7 @@ FabArrayBase::getFB (const Periodicity& period, bool cross, bool enforce_periodi
 FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 			      const FabArrayBase& dstfa,
 			      const Box&          dstdomain,
-			      int                 dstng,
+			      const IntVect&      dstng,
 			      const BoxConverter& coarsener,
                               const Box&          cdomain)
     : m_srcbdk   (srcfa.getBDKey()),
@@ -1082,7 +1093,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
     const IndexType& boxtype = dstba.ixType();
     BL_ASSERT(boxtype == dstdomain.ixType());
      
-    BL_ASSERT(dstng <= dstfa.nGrow());
+    BL_ASSERT(dstng.allLE(dstfa.nGrowVect()));
 
     const DistributionMapping& dstdm = dstfa.DistributionMap();
     
@@ -1143,7 +1154,7 @@ const FabArrayBase::FPinfo&
 FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
 			 const FabArrayBase& dstfa,
 			 const Box&          dstdomain,
-			 int                 dstng,
+			 const IntVect&      dstng,
 			 const BoxConverter& coarsener,
                          const Box&          cdomain)
 {
@@ -1234,7 +1245,7 @@ FabArrayBase::flushFPinfo (bool no_assertion)
 
 FabArrayBase::CFinfo::CFinfo (const FabArrayBase& finefa,
                               const Geometry&     finegm,
-                              int                 ng,
+                              const IntVect&      ng,
                               bool                include_periodic,
                               bool                include_physbndry)
     : m_fine_bdk (finefa.getBDKey()),
@@ -1278,18 +1289,18 @@ FabArrayBase::CFinfo::CFinfo (const FabArrayBase& finefa,
 }
 
 Box
-FabArrayBase::CFinfo::Domain (const Geometry& geom, int ng,
+FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
                               bool include_periodic, bool include_physbndry)
 {
     Box bx = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
             if (include_periodic) {
-                bx.grow(idim, ng);
+                bx.grow(idim, ng[idim]);
             }
         } else {
             if (include_physbndry) {
-                bx.grow(idim, ng);
+                bx.grow(idim, ng[idim]);
             }
         }
     }
@@ -1308,7 +1319,7 @@ FabArrayBase::CFinfo::bytes () const
 const FabArrayBase::CFinfo&
 FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
                          const Geometry&     finegm,
-                         int                 ng,
+                         const IntVect&      ng,
                          bool                include_periodic,
                          bool                include_physbndry)
 {

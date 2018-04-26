@@ -58,11 +58,11 @@ MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& 
             bloc[face]  = 0;
             const auto linop_bc  = face.isLow() ? lo[dir] : hi[dir];
             if (linop_bc == LinOpBCType::Dirichlet) {
-                bctag[face] = LO_DIRICHLET;
+                bctag[face] = AMREX_LO_DIRICHLET;
             } else if (linop_bc == LinOpBCType::Neumann) {
-                bctag[face] = LO_NEUMANN;
+                bctag[face] = AMREX_LO_NEUMANN;
             } else if (linop_bc == LinOpBCType::reflect_odd) {
-                bctag[face] = LO_REFLECT_ODD;
+                bctag[face] = AMREX_LO_REFLECT_ODD;
             } else {
                 amrex::Abort("MLMGBndry::setBoxBC: Unknown LinOpBCType");
             }
@@ -70,7 +70,7 @@ MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& 
         else
         {
             // Internal bndry.
-            bctag[face] = LO_DIRICHLET;
+            bctag[face] = AMREX_LO_DIRICHLET;
             bloc[face]  = ratio > 0 ? 0.5*ratio*dx[dir] : a_loc[dir];
             // If this is next to another same level box, bloc is
             // wrong.  But it doesn't matter, because we also have
