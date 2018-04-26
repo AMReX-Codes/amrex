@@ -5,6 +5,8 @@
 #include <iosfwd>
 #include <cstdlib>
 #include <cmath>
+#include <limits>
+#include <algorithm>
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_SPACE.H>
@@ -383,35 +385,51 @@ public:
     * Figuratively, it is the zero vector in AMREX_SPACEDIM-dimensional space.
     * It is provided as a convenient way to specify the zero vector.
     */
-    static const IntVect& TheZeroVector ();
+    static IntVect TheZeroVector () {
+        return IntVect(0);
+    }
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to one (1).
     * Figuratively, it is the unit vector in AMREX_SPACEDIM-dimensional space.
     * It is provided as a convenient way to specify the unit vector.
     */
-    static const IntVect& TheUnitVector ();
+    static IntVect TheUnitVector () {
+        return IntVect(1);
+    }
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to zero except that
     * the d-direction is set to one. 
     */
-    static const IntVect& TheDimensionVector (int d);
+    static IntVect TheDimensionVector (int d) {
+        IntVect r(0);
+        r[d] = 1;
+        return r;
+    }
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::NODE.
     * It is provided as a convenience to our users when defining Boxes.
     */
-    static const IntVect& TheNodeVector ();
+    static IntVect TheNodeVector () {
+        return IntVect(1);
+    }
     /** 
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::CELL.
     * It is provided as a convenience to our users when defining Boxes.
     */
-    static const IntVect& TheCellVector ();
+    static IntVect TheCellVector () {
+        return IntVect(0);
+    }
 
-    static const IntVect& TheMaxVector ();
-    static const IntVect& TheMinVector ();
+    static IntVect TheMaxVector () {
+        return IntVect(std::numeric_limits<int>::max());
+    }
+    static IntVect TheMinVector () {
+        return IntVect(std::numeric_limits<int>::min());
+    }
 
 private:
 

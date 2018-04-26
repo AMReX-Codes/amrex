@@ -503,7 +503,9 @@ public:
     * an object of type Box representing the unit box in
     * AMREX_SPACEDIM-dimensional space.
     */
-    static const Box& TheUnitBox ();
+    static Box TheUnitBox () {
+        return Box(IntVect::TheZeroVector(),IntVect::TheZeroVector());
+    }
 
     bool isSquare() const;
 

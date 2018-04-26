@@ -1,30 +1,13 @@
 
-#include <algorithm>
-#include <cstdlib>
 #include <iostream>
-#include <limits>
 
+#include <AMReX_IntVect.H>
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_IndexType.H>
 #include <AMReX_Utility.H>
+#include <AMReX_IndexType.H>
 
 namespace amrex {
-
-const IntVect&
-IntVect::TheUnitVector ()
-{
-    static const IntVect Unit(AMREX_D_DECL(1,1,1));
-    return Unit;
-}
-
-const IntVect&
-IntVect::TheZeroVector ()
-{
-    static const IntVect Zero(AMREX_D_DECL(0,0,0));
-    return Zero;
-}
 
 //
 // Static object initialization.
@@ -51,60 +34,6 @@ int IntVect::InitStatics()
 const IntVect IntVect::Zero;
 const IntVect IntVect::Unit;
 static int s_dummyForIntVectCpp( IntVect::InitStatics() );
-
-const IntVect&
-IntVect::TheDimensionVector (int d)
-{
-    switch (d) {
-    case (0) :
-    {
-	static const IntVect xdim(AMREX_D_DECL(1,0,0));
-	return xdim;
-    }
-    case (1) :
-    {
-	static const IntVect ydim(AMREX_D_DECL(0,1,0));
-	return ydim;
-    }
-    default:
-    {
-	static const IntVect zdim(AMREX_D_DECL(0,0,1));
-	return zdim;
-    }
-    };
-}
-
-const IntVect&
-IntVect::TheNodeVector ()
-{
-    static const IntVect Node(AMREX_D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
-    return Node;
-}
-
-const IntVect&
-IntVect::TheCellVector ()
-{
-    static const IntVect Cell(AMREX_D_DECL(IndexType::CELL,IndexType::CELL,IndexType::CELL));
-    return Cell;
-}
-
-const IntVect&
-IntVect::TheMaxVector ()
-{
-    static const IntVect mx(AMREX_D_DECL(std::numeric_limits<int>::max(),
-                                   std::numeric_limits<int>::max(),
-                                   std::numeric_limits<int>::max()));
-    return mx;
-}
-
-const IntVect&
-IntVect::TheMinVector ()
-{
-    static const IntVect mn(AMREX_D_DECL(std::numeric_limits<int>::min(),
-                                   std::numeric_limits<int>::min(),
-                                   std::numeric_limits<int>::min()));
-    return mn;
-}
 
 //
 // Returns IntVect which is the componentwise integer projection
