@@ -397,24 +397,6 @@ BoxArray::resize (long len)
 }
 
 long
-BoxArray::size () const
-{
-    return m_ref->m_abox.size();
-}
-
-long
-BoxArray::capacity () const
-{
-    return m_ref->m_abox.capacity();
-}
-
-bool
-BoxArray::empty () const
-{
-    return m_ref->m_abox.empty();
-}
-
-long
 BoxArray::numPts () const
 {
     long result = 0;
@@ -788,25 +770,9 @@ BoxArray::set (int        i,
 }
 
 Box
-BoxArray::operator[] (int index) const
-{
-    if (m_simple) {
-        return amrex::convert(amrex::coarsen(m_ref->m_abox[index],m_crse_ratio), m_typ);
-    } else {
-        return (*m_transformer)(m_ref->m_abox[index]); 
-    }
-}
-
-Box
 BoxArray::operator[] (const MFIter& mfi) const
 {
-  return (*this)[mfi.index()];
-}
-
-Box
-BoxArray::getCellCenteredBox (int index) const
-{
-    return amrex::coarsen(m_ref->m_abox[index],m_crse_ratio);
+    return (*this)[mfi.index()];
 }
 
 bool
