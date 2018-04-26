@@ -158,7 +158,8 @@ namespace amrex
 	    }
 	    
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
-                                                                      ngrow, coarsener, 
+                                                                      IntVect(ngrow),
+                                                                      coarsener, 
                                                                       amrex::coarsen(fgeom.Domain(),ratio));
 
 	    if ( ! fpc.ba_crse_patch.empty())
@@ -317,7 +318,7 @@ namespace amrex
 
         bool include_periodic = true;
         bool include_physbndry = false;
-        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, ngrow,
+        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, IntVect(ngrow),
                                                      include_periodic, include_physbndry);
 
         if (! cfinfo.ba_cfb.empty())

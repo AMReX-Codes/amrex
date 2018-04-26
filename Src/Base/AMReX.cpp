@@ -288,7 +288,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::verbose = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
-
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
 #ifdef AMREX_PMI

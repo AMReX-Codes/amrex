@@ -260,7 +260,7 @@ iMultiFab::min (int comp,
 		int nghost,
 		bool local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mn = std::numeric_limits<int>::max();
 
@@ -285,7 +285,7 @@ iMultiFab::min (const Box& region,
                 int        nghost,
 		bool       local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mn = std::numeric_limits<int>::max();
 
@@ -311,7 +311,7 @@ iMultiFab::max (int comp,
 		int nghost,
 		bool local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mx = -std::numeric_limits<int>::max();
 
@@ -335,7 +335,7 @@ iMultiFab::max (const Box& region,
 		int        nghost,
 		bool       local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mx = -std::numeric_limits<int>::max();
 
@@ -360,7 +360,7 @@ IntVect
 iMultiFab::minIndex (int comp,
                     int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     IntVect loc;
 
@@ -445,7 +445,7 @@ IntVect
 iMultiFab::maxIndex (int comp,
                     int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     IntVect loc;
 
@@ -625,7 +625,7 @@ iMultiFab::minus (const iMultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -648,7 +648,7 @@ iMultiFab::divide (const iMultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -667,7 +667,7 @@ iMultiFab::plus (int val,
                  int  num_comp,
                  int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -687,7 +687,7 @@ iMultiFab::plus (int       val,
                  int        num_comp,
                  int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -713,7 +713,7 @@ iMultiFab::plus (const iMultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -732,7 +732,7 @@ iMultiFab::mult (int val,
                  int  num_comp,
                  int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -752,7 +752,7 @@ iMultiFab::mult (int       val,
                  int        num_comp,
                  int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -773,7 +773,7 @@ iMultiFab::negate (int comp,
                   int num_comp,
                   int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
@@ -791,7 +791,7 @@ iMultiFab::negate (const Box& region,
                   int        num_comp,
                   int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP

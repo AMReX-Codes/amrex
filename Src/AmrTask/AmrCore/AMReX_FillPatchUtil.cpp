@@ -130,8 +130,9 @@ namespace amrex
 		}
 	    }
 
-	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g, ngrow, coarsener, 
-		    amrex::coarsen(fgeom.Domain(),ratio));
+	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
+                                                                      IntVect(ngrow), coarsener, 
+                                                                      amrex::coarsen(fgeom.Domain(),ratio));
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
