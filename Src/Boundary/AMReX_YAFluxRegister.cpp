@@ -140,9 +140,9 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     for (auto& lid : localindex_priv) {
         for (int nl : lid) {
             for (int j = 0; j < nl; ++j) {
-                m_cfp_localindex.push_back(nbase);
+                m_cfp_localindex.push_back(nlocal);
             }
-            ++nbase;
+            ++nlocal;
         }
     }
 
