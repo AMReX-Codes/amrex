@@ -6,19 +6,12 @@
 
 namespace amrex {
 
-void
-IndexType::setType (int       dir,
-                    CellIndex t)
-{
-    t == CELL ? unset(dir) : set(dir);
-}
-
 IndexType
 IndexType::TheCellType ()
 {
     static const IndexType Cell(AMREX_D_DECL(IndexType::CELL,
-                                       IndexType::CELL,
-                                       IndexType::CELL));
+                                             IndexType::CELL,
+                                             IndexType::CELL));
     return Cell;
 }
 
@@ -26,8 +19,8 @@ IndexType
 IndexType::TheNodeType ()
 {
     static const IndexType Node(AMREX_D_DECL(IndexType::NODE,
-                                       IndexType::NODE,
-                                       IndexType::NODE));
+                                             IndexType::NODE,
+                                             IndexType::NODE));
     return Node;
 }
 

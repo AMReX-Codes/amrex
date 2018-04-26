@@ -10,9 +10,7 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_Utility.H>
 
-
 namespace amrex {
-
 
 const IntVect&
 IntVect::TheUnitVector ()
@@ -106,107 +104,6 @@ IntVect::TheMinVector ()
                                    std::numeric_limits<int>::min(),
                                    std::numeric_limits<int>::min()));
     return mn;
-}
-
-IntVect::IntVect (const int *a)
-{
-    AMREX_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
-}
-
-IntVect::IntVect (const Vector<int> &a)
-{
-    BL_ASSERT(a.size() == AMREX_SPACEDIM);
-    AMREX_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
-}
-
-IntVect
-min (const IntVect& p1,
-	     const IntVect& p2)
-{
-    IntVect p(p1);
-    p.min(p2);
-    return p;
-}
-
-IntVect
-max (const IntVect& p1,
-     const IntVect& p2)
-{
-    IntVect p(p1);
-    p.max(p2);
-    return p;
-}
-
-IntVect
-BASISV (int dir)
-{
-    BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
-    IntVect tmp;
-    tmp[dir] = 1;
-    return tmp;
-}
-
-IntVect
-scale (const IntVect& p, int s)
-{
-    return IntVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
-}
-
-IntVect
-reflect (const IntVect& a,
-         int            ref_ix,
-         int            idir)
-{
-    BL_ASSERT(idir >= 0 && idir < AMREX_SPACEDIM);
-    IntVect b(a);
-    b[idir] = -b[idir] + 2*ref_ix;
-    return b;
-}
-
-IntVect
-diagShift (const IntVect& p, int s)
-{
-    return IntVect(AMREX_D_DECL(p[0] + s, p[1] + s, p[2] + s));
-}
-
-IntVect
-coarsen (const IntVect& p,
-         int            s)
-{
-    BL_ASSERT(s > 0);
-    IntVect v = p;
-    v.coarsen(IntVect(AMREX_D_DECL(s,s,s)));
-    return v;
-}
-
-IntVect
-coarsen (const IntVect& p1,
-         const IntVect& p2)
-{
-    IntVect v = p1;
-    v.coarsen(p2);
-    return v;
-}
-
-IntVect&
-IntVect::coarsen (int s)
-{
-    BL_ASSERT(s > 0);
-    return this->coarsen(IntVect(AMREX_D_DECL(s,s,s)));
-}
-
-IntVect&
-IntVect::coarsen (const IntVect& p)
-{
-    BL_ASSERT(p.allGT(IntVect::TheZeroVector()));
-    if (p != 1) {
-        for (int i = 0; i <AMREX_SPACEDIM; ++i)
-        {
-            const int s = p.vect[i];
-            vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
-        }
-    }
-    return *this;
 }
 
 //

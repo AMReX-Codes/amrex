@@ -27,23 +27,19 @@ public:
     //! The cell index type: one of CELL or NODE.
     enum CellIndex { CELL = 0, NODE = 1 };
     //! The default constructor
-    IndexType ()
-        :
-        itype(0) {}
+    IndexType () : itype(0) {}
     //! Construct an IndexType identical to an IntVect.
     explicit IndexType (const IntVect& iv)
-    {
-        itype = AMREX_D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
-    }
+        : itype(AMREX_D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2)))
+        {}
     /**
     * \brief Construct an IndexType given an explicit CellIndex for
     * each direction.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
     IndexType (AMREX_D_DECL(CellIndex i, CellIndex j, CellIndex k))
-    {
-        itype = AMREX_D_TERM(i, | (j<<1), | (k<<2));
-    }
+        : itype(AMREX_D_TERM(i, | (j<<1), | (k<<2)))
+        {}
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     //! Set IndexType to be NODE based in direction dir.
@@ -76,7 +72,7 @@ public:
     //! True if the IndexType is NODE based in dir-direction.
     bool nodeCentered (int dir) const { return (itype & mask(dir)) != 0; }
     //! Set IndexType to CellIndex type t in direction dir.
-    void setType (int dir, CellIndex t);
+    void setType (int dir, CellIndex t) { t == CELL ? unset(dir) : set(dir); }
     //! Returns  the CellIndex in direction dir.
     CellIndex ixType (int dir) const { return (CellIndex) ((itype & (1<<dir)) >> dir); }
     //! Return an integer representing the IndexType in direction dir.
