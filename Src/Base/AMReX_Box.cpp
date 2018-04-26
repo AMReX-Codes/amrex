@@ -10,13 +10,6 @@
 
 namespace amrex {
 
-const Box&
-Box::TheUnitBox ()
-{
-    static const Box Unit(IntVect::TheZeroVector(), IntVect::TheZeroVector());
-    return Unit;
-}
-
 Box&
 Box::shiftHalf (int dir,
                 int nzones)
