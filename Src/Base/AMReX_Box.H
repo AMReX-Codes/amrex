@@ -220,9 +220,10 @@ public:
     * abort()s if the number cannot be represented in a long.
     */
     long numPts () const {
-        return AMREX_D_TERM( static_cast<long>(length(0)), 
-                            *static_cast<long>(length(1)),
-                            *static_cast<long>(length(2)));
+        auto r = AMREX_D_TERM( static_cast<unsigned long>(length(0)),
+                              *static_cast<unsigned long>(length(1)),
+                              *static_cast<unsigned long>(length(2)));
+        return static_cast<long>(r);
     }
 
     /**
