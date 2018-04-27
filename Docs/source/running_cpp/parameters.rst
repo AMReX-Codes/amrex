@@ -87,7 +87,7 @@ Distribution across MPI ranks and parallelization
     (see ``max_grid_size``).
 
 * ``warpx.do_dynamic_scheduling`` (`0` or `1`)
-    Whether to use OpenMP dynamic scheduling
+    Whether to use OpenMP dynamic scheduling.
 
 Particle initialization
 -----------------------
@@ -98,6 +98,9 @@ Particle initialization
 * ``particles.species_names`` (`strings`, separated by spaces)
     The name of each species. This is then used in the rest of the input deck ;
     in this documentation we use `<species_name>` as a placeholder.
+
+* ``particles.use_fdtd_nci_corr`` (`0` or `1`)
+    Whether to activate the FDTD Numerical Cherenkov Instability corrector.
 
 * ``<species_name>.charge`` (`float`)
     The charge of one `physical` particle of this species.
