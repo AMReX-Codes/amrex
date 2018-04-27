@@ -31,6 +31,7 @@
 #define WRPX_COPY_SLICE                  warpx_copy_slice_3d
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_NCI_FILTER              apply_filter_z_3d
+#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
 
 #elif (BL_SPACEDIM == 2)
 
@@ -62,6 +63,7 @@
 #define WRPX_COPY_SLICE                  warpx_copy_slice_2d
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_NCI_FILTER              apply_filter_z_2d
+#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
 
 #endif
 
@@ -399,6 +401,11 @@ extern "C"
                              const int, const int,
 #endif
                              const int);
+
+    void WRPX_PXR_GODFREY_FILTER (const int* lo, const int* hi,
+                                  amrex_real* fou, const int* olo, const int* ohi,
+                                  const amrex_real* fin, const int* ilo, const int* ihi,
+                                  const amrex_real* stencil, const int* nsten);
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);

@@ -564,6 +564,9 @@ PhysicalParticleContainer::Evolve (int lev,
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
+    const auto& mypc = WarpX::GetInstance().GetPartContainer();
+    const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
+
     // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
     long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
@@ -615,12 +618,58 @@ PhysicalParticleContainer::Evolve (int lev,
 
             if (warpx_use_fdtd_nci_corr())
             {
+                const Box& tbox = amrex::grow(pti.tilebox(),WarpX::nox);
+
+                // both 2d and 3d
+                filtered_Ex.resize(amrex::convert(tbox,WarpX::Ex_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ex),
+                                        BL_TO_FORTRAN_ANYD(filtered_Ex),
+                                        BL_TO_FORTRAN_ANYD(Ex[pti]),
+                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        &nstencilz_fdtd_nci_corr);
                 exfab = &filtered_Ex;
-                eyfab = &filtered_Ey;
+
+                filtered_Ez.resize(amrex::convert(tbox,WarpX::Ez_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ez),
+                                        BL_TO_FORTRAN_ANYD(filtered_Ez),
+                                        BL_TO_FORTRAN_ANYD(Ez[pti]),
+                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        &nstencilz_fdtd_nci_corr);
                 ezfab = &filtered_Ez;
-                bxfab = &filtered_Bx;
+
+                filtered_By.resize(amrex::convert(tbox,WarpX::By_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_By),
+                                        BL_TO_FORTRAN_ANYD(filtered_By),
+                                        BL_TO_FORTRAN_ANYD(By[pti]),
+                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        &nstencilz_fdtd_nci_corr);
                 byfab = &filtered_By;
+
+#if (BL_SPACEDIM == 3)
+                filtered_Ey.resize(amrex::convert(tbox,WarpX::Ey_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
+                                        BL_TO_FORTRAN_ANYD(filtered_Ey),
+                                        BL_TO_FORTRAN_ANYD(Ey[pti]),
+                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        &nstencilz_fdtd_nci_corr);
+                eyfab = &filtered_Ey;
+
+                filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
+                                        BL_TO_FORTRAN_ANYD(filtered_Bx),
+                                        BL_TO_FORTRAN_ANYD(Bx[pti]),
+                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        &nstencilz_fdtd_nci_corr);
+                bxfab = &filtered_Bx;
+
+                filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
+                                        BL_TO_FORTRAN_ANYD(filtered_Bz),
+                                        BL_TO_FORTRAN_ANYD(Bz[pti]),
+                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        &nstencilz_fdtd_nci_corr);
                 bzfab = &filtered_Bz;
+#endif
             }
 
 	    FArrayBox& jxfab = jx[pti];

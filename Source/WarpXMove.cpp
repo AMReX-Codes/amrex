@@ -172,7 +172,7 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     const int nc = mf.nComp();
     const IntVect& ng = mf.nGrowVect();
 
-    BL_ASSERT(ng.allGE(num_shift));
+    BL_ASSERT(ng.min() >= num_shift);
 
     MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
