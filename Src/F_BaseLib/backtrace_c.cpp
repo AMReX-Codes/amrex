@@ -19,7 +19,7 @@
 #include <omp.h>
 #endif
 
-#ifndef FORTRAN_BOXLIB
+#ifndef AMREX_FORTRAN_BOXLIB
 #include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLBackTrace.H>
@@ -96,7 +96,7 @@ namespace
 
 extern "C"
 {
-#ifdef FORTRAN_BOXLIB
+#ifdef AMREX_FORTRAN_BOXLIB
     void backtrace_handler (int s)
     {
 	switch (s) {

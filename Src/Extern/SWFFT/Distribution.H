@@ -66,7 +66,7 @@
 ///
 
 #include "complex-type.h"
-#include "distribution.h"
+#include "distribution_c.h"
 
 namespace hacc {
 

@@ -3,10 +3,9 @@ module amrex_interp_module
 
   use amrex_fort_module
   use amrex_constants_module
+  use amrex_bc_types_module
 
   implicit none
-
-  include 'AMReX_bc_types.fi'
 
 contains
 
@@ -394,7 +393,7 @@ contains
              end do
           end do
 
-          if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
+          if (bclo(1,n) .eq. amrex_bc_ext_dir .or. bclo(1,n).eq.amrex_bc_hoextrap) then
             i = cslopelo(1)
             if (xok) then
                 do j=cslopelo(2), cslopehi(2)
@@ -418,7 +417,7 @@ contains
             end do
           end if
 
-          if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
+          if (bchi(1,n) .eq. amrex_bc_ext_dir .or. bchi(1,n).eq.amrex_bc_hoextrap) then
             i = cslopehi(1)
             if (xok) then
                 do j=cslopelo(2), cslopehi(2)
@@ -454,7 +453,7 @@ contains
              end do
           end do
 
-          if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
+          if (bclo(2,n) .eq. amrex_bc_ext_dir .or. bclo(2,n).eq.amrex_bc_hoextrap) then
              j = cslopelo(2)
              if (yok) then
                 do i=cslopelo(1), cslopehi(1)
@@ -478,7 +477,7 @@ contains
              end do
           end if
 
-          if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
+          if (bchi(2,n) .eq. amrex_bc_ext_dir .or. bchi(2,n).eq.amrex_bc_hoextrap) then
              j = cslopehi(2)
              if (yok) then
                 do i=cslopelo(1), cslopehi(1)
@@ -713,7 +712,7 @@ contains
                cslope(i,5)=diffxy
             end do
             if (xok) then
-               if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
+               if (bclo(1,n) .eq. amrex_bc_ext_dir .or. bclo(1,n).eq.amrex_bc_hoextrap) then
                   do i = 1, clen, jst 
                      cen  = -sixteen/fifteen*crse(i-ist,n) + half*crse(i,n) &
                           + two3rd*crse(i+ist,n) - tenth*crse(i+2*ist,n)
@@ -722,7 +721,7 @@ contains
                      cslope(i,5)=zero
                   end do
                end if
-               if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
+               if (bchi(1,n) .eq. amrex_bc_ext_dir .or. bchi(1,n).eq.amrex_bc_hoextrap) then
                   do i = ncbx, clen, jst 
                      cen = sixteen/fifteen*crse(i+ist,n) - half*crse(i,n) &
                           - two3rd*crse(i-ist,n) + tenth*crse(i-2*ist,n)
@@ -740,7 +739,7 @@ contains
                cslope(i,4)=diffyy
             end do
             if (yok) then
-               if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
+               if (bclo(2,n) .eq. amrex_bc_ext_dir .or. bclo(2,n).eq.amrex_bc_hoextrap) then
                   do i = 1, ncbx 
                      cen  = -sixteen/fifteen*crse(i-jst,n) + half*crse(i,n) &
                           + two3rd*crse(i+jst,n) - tenth*crse(i+2*jst,n)
@@ -749,7 +748,7 @@ contains
                      cslope(i,5)=zero
                   end do
                end if
-               if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
+               if (bchi(2,n) .eq. amrex_bc_ext_dir .or. bchi(2,n).eq.amrex_bc_hoextrap) then
                   do i = clen-ncbx,clen 
                      cen = sixteen/fifteen*crse(i+jst,n) - half*crse(i,n) &
                           - two3rd*crse(i-jst,n) + tenth*crse(i-2*jst,n)

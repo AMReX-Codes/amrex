@@ -973,7 +973,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 			}
 			std::cout << "WARNING: Grids are not properly nested.  We might have to use\n"
 				  << "         two coarse levels to do fillpatch.  Consider using\n";
-			if (new_blocking_factor < IntVect{D_DECL(128,128,128)}) {
+			if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
 			    std::cout << "         amr.blocking_factor=" << new_blocking_factor;
 			} else {
 			    std::cout << "         larger amr.blocking_factor. ";
@@ -991,8 +991,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 						  SComp,
 						  NComp,
 						  desc.interp(SComp));
-		
-#ifdef CRSEGRNDOMP
+	
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1587,7 +1587,7 @@ AmrLevel::derive (const std::string& name,
 
         mf.reset(new MultiFab(dstBA, dmap, rec->numDerive(), ngrow, MFInfo(), *m_factory));
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1614,18 +1614,18 @@ AmrLevel::derive (const std::string& name,
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
 			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
 			       &level,&grid_no);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
-				 ARLIM_3D(lo),ARLIM_3D(hi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1652,18 +1652,18 @@ AmrLevel::derive (const std::string& name,
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
 			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
 			       &level,&grid_no);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
-				 ARLIM_3D(dlo),ARLIM_3D(dhi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1723,7 +1723,7 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1750,18 +1750,18 @@ AmrLevel::derive (const std::string& name,
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
 			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
 			       &level,&idx);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
-				 ARLIM_3D(lo),ARLIM_3D(hi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1788,18 +1788,18 @@ AmrLevel::derive (const std::string& name,
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
 			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
 			       &level,&idx);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
-				 ARLIM_3D(dlo),ARLIM_3D(dhi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");

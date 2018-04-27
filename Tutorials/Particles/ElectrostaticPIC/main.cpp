@@ -95,7 +95,6 @@ void computeE(      VectorMeshData& E,
               const Vector<Geometry>& geom) {
 
     const int num_levels = E.size();
-    const int finest_level = num_levels - 1;
 
     for (int lev = 0; lev < num_levels; ++lev) {
 
@@ -182,7 +181,6 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
                 Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) {
 
     int num_levels = rhs.size();
-    int finest_level = num_levels - 1;
 
     Vector<std::unique_ptr<MultiFab> > tmp_rhs(num_levels);    
     for (int lev = 0; lev < num_levels; ++lev) {
@@ -287,7 +285,7 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
 
-    int max_level, n_cell, max_grid_size, n_buffer, max_step, is_periodic[BL_SPACEDIM];
+    int max_level, n_cell, max_grid_size, particle_output_int, n_buffer, max_step, is_periodic[BL_SPACEDIM];
     Real dt;
 
     // inputs parameters
@@ -298,6 +296,7 @@ int main(int argc, char* argv[])
         pp.get("n_buffer", n_buffer);
         pp.get("max_grid_size", max_grid_size);       
         pp.get("max_step", max_step);
+        pp.get("particle_output_int", particle_output_int);
         pp.get("dt", dt);
     }
     
@@ -349,7 +348,6 @@ int main(int argc, char* argv[])
         grids[lev].maxSize(max_grid_size);
     }
     
-    int Nghost = 1;
     int Ncomp  = 1;
     
     Vector<DistributionMapping> dm(num_levels);
@@ -394,7 +392,7 @@ int main(int argc, char* argv[])
 
         myPC.FieldGather(eField, gather_masks);
 
-        myPC.writeParticles(step);
+        if (step % particle_output_int == 0) myPC.writeParticles(step);
 
         //        WritePlotFile(rhs, phi, eField, myPC, geom, step);
         

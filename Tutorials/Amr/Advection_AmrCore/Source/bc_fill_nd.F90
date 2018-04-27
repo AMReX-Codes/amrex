@@ -13,6 +13,7 @@ contains
        bind(C, name="phifill")
 
     use amrex_fort_module, only : bl_spacedim, amrex_real
+    use amrex_filcc_module, only : amrex_filccn
 
     implicit none
 
@@ -22,13 +23,7 @@ contains
     real(amrex_real) :: delta(3), xlo(3), time
     real(amrex_real) :: phi(phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2),phi_lo(3):phi_hi(3))
 
-#if (BL_SPACEDIM == 1)
-       call filcc(phi,phi_lo(1),phi_hi(1),domlo,domhi,delta,xlo,bc)
-#elif (BL_SPACEDIM == 2)
-       call filcc(phi,phi_lo(1),phi_lo(2),phi_hi(1),phi_hi(2),domlo,domhi,delta,xlo,bc)
-#else
-       call filcc(phi,phi_lo(1),phi_lo(2),phi_lo(3),phi_hi(1),phi_hi(2),phi_hi(3),domlo,domhi,delta,xlo,bc)
-#endif
+    call amrex_filccn(phi_lo, phi_hi, phi, phi_lo, phi_hi, 1, domlo, domhi, delta, xlo, bc)
 
   end subroutine phifill
   

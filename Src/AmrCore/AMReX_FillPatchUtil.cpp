@@ -158,7 +158,8 @@ namespace amrex
 	    }
 	    
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
-                                                                      ngrow, coarsener, 
+                                                                      IntVect(ngrow),
+                                                                      coarsener, 
                                                                       amrex::coarsen(fgeom.Domain(),ratio));
 
 	    if ( ! fpc.ba_crse_patch.empty())
@@ -317,7 +318,7 @@ namespace amrex
 
         bool include_periodic = true;
         bool include_physbndry = false;
-        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, ngrow,
+        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, IntVect(ngrow),
                                                      include_periodic, include_physbndry);
 
         if (! cfinfo.ba_cfb.empty())
@@ -372,23 +373,23 @@ namespace amrex
                     if (interp_type == InterpB)
                     {
                         amrex_interp_div_free_bfield(BL_TO_FORTRAN_BOX(ccbx),
-                                                     D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                            BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                            BL_TO_FORTRAN_ANYD(bfab[2])),
-                                                     D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
-                                                            BL_TO_FORTRAN_ANYD(cyfab),
-                                                            BL_TO_FORTRAN_ANYD(czfab)),
+                                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                                  BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                                  BL_TO_FORTRAN_ANYD(bfab[2])),
+                                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                                  BL_TO_FORTRAN_ANYD(cyfab),
+                                                                  BL_TO_FORTRAN_ANYD(czfab)),
                                                      dx, &ref_ratio, &use_limiter);
                     }
                     else if (interp_type == InterpE)
                     {
                         amrex_interp_efield(BL_TO_FORTRAN_BOX(ccbx),
-                                            D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                   BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                   BL_TO_FORTRAN_ANYD(bfab[2])),
-                                            D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
-                                                   BL_TO_FORTRAN_ANYD(cyfab),
-                                                   BL_TO_FORTRAN_ANYD(czfab)),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[2])),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                         BL_TO_FORTRAN_ANYD(cyfab),
+                                                         BL_TO_FORTRAN_ANYD(czfab)),
                                             &ref_ratio, &use_limiter);
                     }
                     else

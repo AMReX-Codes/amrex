@@ -46,7 +46,7 @@ MultiGrid::Initialize ()
     MultiGrid::def_nu_f                  = 8;
     MultiGrid::def_nu_b                  = 0;
     MultiGrid::def_usecg                 = 1;
-#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+#if defined(AMREX_CG_USE_OLD_CONVERGENCE_CRITERIA) || (!defined(AMREX_XSDK) && defined(CG_USE_OLD_CONVERGENCE_CRITERIA))
     MultiGrid::def_rtol_b                = 0.01;
 #else
     MultiGrid::def_rtol_b                = 0.0001;
@@ -80,7 +80,7 @@ MultiGrid::Initialize ()
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
 
     pp.query("use_Anorm_for_convergence", use_Anorm_for_convergence);
-#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+#if !defined(AMREX_CG_USE_OLD_CONVERGENCE_CRITERIA) && (defined(AMREX_XSDK) || !defined(CG_USE_OLD_CONVERGENCE_CRITERIA))
     if ( ParallelDescriptor::IOProcessor() && def_verbose > 2 )
     {
         if ( use_Anorm_for_convergence == 0 )
@@ -778,9 +778,9 @@ MultiGrid::average (MultiFab&       c,
         const FArrayBox& ffab = f[cmfi];
 
         amrex_mg_average(cfab.dataPtr(),
-                     ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                     AMREX_ARLIM(cfab.loVect()), AMREX_ARLIM(cfab.hiVect()),
                      ffab.dataPtr(),
-                     ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                     AMREX_ARLIM(ffab.loVect()), AMREX_ARLIM(ffab.hiVect()),
                      bx.loVect(), bx.hiVect(), &nc);
     }
 }
@@ -805,9 +805,9 @@ MultiGrid::interpolate (MultiFab&       f,
         FArrayBox&       ffab = f[mfi];
 
         amrex_mg_interp(ffab.dataPtr(),
-                    ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                    AMREX_ARLIM(ffab.loVect()), AMREX_ARLIM(ffab.hiVect()),
                     cfab.dataPtr(),
-                    ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                    AMREX_ARLIM(cfab.loVect()), AMREX_ARLIM(cfab.hiVect()),
                     bx.loVect(), bx.hiVect(), &nc);
     }
 }

@@ -60,7 +60,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "distribution.h"
+#include "distribution_c.h"
 
 #ifndef USE_SLAB_WORKAROUND
 #define USE_SLAB_WORKAROUND 0

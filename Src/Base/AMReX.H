@@ -90,6 +90,16 @@ namespace amrex
 	extern int verbose;
 
         extern int signal_handling;
+        extern int call_addr2line;
+    }
+
+    inline void GccPlacater ()
+    {
+        std::allocator<char> a1;
+        std::allocator<int> a2;
+        std::allocator<float> a3;
+        std::allocator<double> a4;
+        std::allocator<std::string> a5;
     }
 }
 

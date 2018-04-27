@@ -7,23 +7,23 @@
 extern "C"
 {
 #endif
-     void amrex_setvol (ARLIM_P(rlo), ARLIM_P(rhi),
-		       amrex_real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+     void amrex_setvol (AMREX_ARLIM_P(rlo), AMREX_ARLIM_P(rhi),
+		       amrex_real* vol, AMREX_ARLIM_P(vlo), AMREX_ARLIM_P(vhi),
                        const amrex_real* offset,
                        const amrex_real* dx, const int* coord);
 
-     void amrex_setvolpt (amrex_real* vol, ARLIM_P(vollo), ARLIM_P(volhi),
-			 amrex_real* rolo, ARLIM_P(rolo), ARLIM_P(rohi),
-			 amrex_real* rilo, ARLIM_P(rilo), ARLIM_P(rihi),
+     void amrex_setvolpt (amrex_real* vol, AMREX_ARLIM_P(vollo), AMREX_ARLIM_P(volhi),
+			 amrex_real* rolo, AMREX_ARLIM_P(rolo), AMREX_ARLIM_P(rohi),
+			 amrex_real* rilo, AMREX_ARLIM_P(rilo), AMREX_ARLIM_P(rihi),
 			 const amrex_real* dx, const int* coord);
 
-     void amrex_setdloga (amrex_real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+     void amrex_setdloga (amrex_real* vol, AMREX_ARLIM_P(vlo), AMREX_ARLIM_P(vhi),
                          const amrex_real* offset,
                          const amrex_real* dx, const int* dir,
                          const int* coord);
 
-     void amrex_setarea (ARLIM_P(rlo), ARLIM_P(rhi),
-			amrex_real* area,  ARLIM_P(alo), ARLIM_P(ahi),
+     void amrex_setarea (AMREX_ARLIM_P(rlo), AMREX_ARLIM_P(rhi),
+			amrex_real* area,  AMREX_ARLIM_P(alo), AMREX_ARLIM_P(ahi),
                         const amrex_real* offset,
                         const amrex_real* dx, const int* dir,
                         const int* coord);
