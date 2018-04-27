@@ -1,6 +1,6 @@
 
-#ifndef _EB_TYPEDEFS_H_
-#define _EB_TYPEDEFS_H_
+#ifndef AMREX_EB_TYPEDEFS_H_
+#define AMREX_EB_TYPEDEFS_H_
 
 
 #include "AMReX_CH_EBIS_ORDER.H"

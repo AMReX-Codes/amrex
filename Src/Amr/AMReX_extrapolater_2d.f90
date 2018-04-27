@@ -1,4 +1,4 @@
-module bl_extrapolater
+module amrex_extrapolater
 
   use amrex_fort_module, only : amrex_real
 
@@ -10,8 +10,8 @@ module bl_extrapolater
 
 contains
 
-  subroutine first_order_extrap (u, ulo, uhi, nu, msk, mlo, mhi, lo, hi, sc, nc) &
-       bind(c,name='first_order_extrap')
+  subroutine amrex_first_order_extrap (u, ulo, uhi, nu, msk, mlo, mhi, lo, hi, sc, nc) &
+       bind(c,name='amrex_first_order_extrap')
 
     integer, intent(in) :: ulo(2), uhi(2), nu, mlo(2), mhi(2), lo(2), hi(2), sc, nc
     real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),0:nu-1)
@@ -114,6 +114,6 @@ contains
        end if
     end do
 
-  end subroutine first_order_extrap
+  end subroutine amrex_first_order_extrap
 
-end module bl_extrapolater
+end module amrex_extrapolater

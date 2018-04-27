@@ -5,6 +5,8 @@ c ::: SCCS stuff "@(#)FABUTIL_3D.F	3.1\t6/25/93"
 #define   FORT_VCINTERP  vcinterp3d
 #define   FORT_CARTGRIDMINMAX  cartgridminmax3d
 
+#undef AMREX_XSDK
+
 #include "AMReX_REAL.H"
 #include "AMReX_CONSTANTS.H"
 

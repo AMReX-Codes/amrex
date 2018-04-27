@@ -17,6 +17,8 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
+    signal(s, SIG_DFL);
+
     switch (s) {
     case SIGSEGV:
 	amrex::write_to_stderr_without_buffering("Segfault");
@@ -72,7 +74,6 @@ BLBackTrace::handler(int s)
 
 #endif // __linux__
 
-    signal(s, SIG_DFL);
     ParallelDescriptor::Abort(s, false);
 }
 
@@ -121,7 +122,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	for (int i = 0; i < nptrs; ++i) {
 	    std::string line = strings[i];
 	    line += "\n";
-	    if (have_addr2line && !amrex::system::exename.empty()) {
+	    if (amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty()) {
 		std::size_t found1 = line.rfind('[');
 		std::size_t found2 = line.rfind(']');
 		if (found1 != std::string::npos && found2 != std::string::npos) {

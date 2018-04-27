@@ -6,8 +6,6 @@ module amrex_interpbndrydata_module
 
   implicit none
 
-  include 'AMReX_bc_types.fi'
-
 contains
 
 #define SDIM 3

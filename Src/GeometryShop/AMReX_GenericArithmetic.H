@@ -11,8 +11,8 @@
 // Author: Ted
 //
 
-#ifndef _GENERICARITHMETIC_H_
-#define _GENERICARITHMETIC_H_
+#ifndef AMREX_GENERICARITHMETIC_H_
+#define AMREX_GENERICARITHMETIC_H_
 
 
 /** Class that you need to derive from, if you want the *global* operators below

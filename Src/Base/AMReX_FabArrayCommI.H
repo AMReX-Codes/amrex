@@ -2,24 +2,26 @@
 
 template <class FAB>
 void
-FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
+FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
+                            const Periodicity& period, bool cross,
 			    bool enforce_periodicity_only)
 {
     fb_cross = cross;
     fb_epo   = enforce_periodicity_only;
     fb_scomp = scomp;
     fb_ncomp = ncomp;
+    fb_nghost = nghost;
     fb_period = period;
 
     bool work_to_do;
     if (enforce_periodicity_only) {
 	work_to_do = period.isAnyPeriodic();
     } else {
-	work_to_do = n_grow > 0;
+	work_to_do = nghost.max() > 0;
     }
     if (!work_to_do) return;
 
-    const FB& TheFB = getFB(period, cross, enforce_periodicity_only);
+    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only);
 
     if (ParallelContext::NProcsSub() == 1)
     {
@@ -82,7 +84,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     Vector<int>                         send_rank;
     Vector<MPI_Request>&                send_reqs = fb_send_reqs;
     Vector<const CopyComTagsContainer*> send_cctc;
-    Vector<Vector<int> >                 indv_send_size;
+    Vector<Vector<int> >                indv_send_size;
     Vector<MPI_Request>                 pre_reqs;
 
     fb_tag = SeqNum;
@@ -357,7 +359,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
-    if ( n_grow <= 0 && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
+    if ( n_grow.allLE(IntVect::TheZeroVector()) && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
 
     if (ParallelContext::NProcsSub() == 1) return;
 
@@ -372,7 +374,7 @@ FabArray<FAB>::FillBoundary_finish ()
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 
-    const FB& TheFB = getFB(fb_period,fb_cross,fb_epo);
+    const FB& TheFB = getFB(fb_nghost,fb_period,fb_cross,fb_epo);
 
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();
@@ -487,8 +489,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                              int                  scomp,
                              int                  dcomp,
                              int                  ncomp,
-                             int                  snghost,
-                             int                  dnghost,
+                             const IntVect&       snghost,
+                             const IntVect&       dnghost,
                              const Periodicity&   period,
                              CpOp                 op)
 {
@@ -499,12 +501,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
     BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
 
-    BL_ASSERT(src.nGrow() >= snghost);
-    BL_ASSERT(    nGrow() >= dnghost);
+    BL_ASSERT(src.nGrowVect().allGE(snghost));
+    BL_ASSERT(    nGrowVect().allGE(dnghost));
 
     if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap)
-	&& snghost ==0 && dnghost == 0 && !period.isAnyPeriodic())
+	&& snghost == IntVect::TheZeroVector() && dnghost == IntVect::TheZeroVector()
+        && !period.isAnyPeriodic())
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
@@ -1047,7 +1050,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
     BL_PROFILE("FabArray::copy(fab)");
 
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
-    BL_ASSERT(nghost <= nComp());
+    BL_ASSERT(nghost <= nGrow());
 
     if (ParallelContext::NProcsSub() == 1)
     {

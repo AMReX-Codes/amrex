@@ -26,6 +26,8 @@ namespace amrex
     //! Make a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
     BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
 
+    BoxArray intersect (const BoxArray& ba, const Box& b, const IntVect& ng);
+
     //! Make a BoxArray from the intersection of two BoxArrays.
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
@@ -210,7 +212,7 @@ struct DefaultBATransformer final
 * cannot use any of the List member functions with a BoxList.
 */
 
-  class MFIter;
+class MFIter;
 
 class BoxArray
 {
@@ -264,13 +266,13 @@ public:
     void resize (long len);
 
     //! Return the number of boxes in the BoxArray.
-    long size () const;
+    long size () const { return m_ref->m_abox.size(); }
 
     //! Return the number of boxes that can be held in the current allocated storage
-    long capacity () const;
+    long capacity () const { return m_ref->m_abox.capacity(); }
 
     //! Return whether the BoxArray is empty
-    bool empty () const;
+    bool empty () const { return m_ref->m_abox.empty(); }
 
     //! Returns the total number of cells contained in all boxes in the BoxArray.
     long numPts() const;
@@ -377,16 +379,26 @@ public:
     void set (int i, const Box& ibox);
 
     //! Return element index of this BoxArray.
-    Box operator[] (int index) const;
+    Box operator[] (int index) const {
+        Box r = m_ref->m_abox[index];
+        if (m_simple) {
+            r.coarsen(m_crse_ratio).convert(m_typ);
+        } else {
+            r = (*m_transformer)(m_ref->m_abox[index]);
+        }
+        return r;
+    }
 
     //! Return element index of this BoxArray.
-    Box operator[] (const MFIter& index) const;
+    Box operator[] (const MFIter& mfi) const;
 
     //! Return element index of this BoxArray.
     Box get (int index) const { return operator[](index); }
 
     //! Return cell-centered box at element index of this BoxArray.
-    Box getCellCenteredBox (int index) const;
+    Box getCellCenteredBox (int index) const {
+        return amrex::coarsen(m_ref->m_abox[index],m_crse_ratio);
+    }
 
     /**
     * \brief Return true if Box is valid and they all have the same
@@ -414,6 +426,7 @@ public:
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
+    Box minimalBox (int& npts_avg_box) const;
 
     /**
     * \brief True if the Box intersects with this BoxArray(+ghostcells).
@@ -421,11 +434,15 @@ public:
     */
     bool intersects (const Box& b, int ng = 0) const;
 
+    bool intersects (const Box& b, const IntVect& ng) const;
+
     //! Return intersections of Box and BoxArray
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
 
     //! Return intersections of Box and BoxArray(+ghostcells).
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, int ng) const;
+
+    std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, const IntVect& ng) const;
 
     //! intersect Box and BoxArray, then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const; 
@@ -433,6 +450,9 @@ public:
     //! intersect Box and BoxArray(+ghostcells), then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
 			bool first_only, int ng) const;
+
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
+			bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;

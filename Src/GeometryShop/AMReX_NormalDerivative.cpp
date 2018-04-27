@@ -48,7 +48,7 @@ Real NormalDerivative<BL_SPACEDIM>::evaluate(const IvDim               & a_multi
 
   for (int idir = 0; idir < BL_SPACEDIM; idir++)
   {
-    Real firstPartial = a_implicitFunction->value(BASISV(idir),RealVect(D_DECL(a_point[0], a_point[1], a_point[2])));
+    Real firstPartial = a_implicitFunction->value(BASISV(idir),RealVect(AMREX_D_DECL(a_point[0], a_point[1], a_point[2])));
     m_magnitudeOfGradient += firstPartial*firstPartial;
   }
 
@@ -108,8 +108,8 @@ Real NormalDerivative<BL_SPACEDIM>::expand(const IvDim                 & a_multi
       const IvDim& curMultiIndex = it->first;
       const int&   curExponent   = it->second;
 
-      IntVect    ivind(D_DECL(curMultiIndex[0],curMultiIndex[1],curMultiIndex[2]));
-      RealVect rvpoint(D_DECL(      a_point[0],      a_point[1],      a_point[2]));
+      IntVect    ivind(AMREX_D_DECL(curMultiIndex[0],curMultiIndex[1],curMultiIndex[2]));
+      RealVect rvpoint(AMREX_D_DECL(      a_point[0],      a_point[1],      a_point[2]));
       // Evaluate a single partial derivative to its power
       Real curValue = pow(a_implicitFunction->value(ivind, rvpoint), curExponent);
 
