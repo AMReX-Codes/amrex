@@ -172,6 +172,7 @@ class BLProfiler
     static void InitParams();
     static void Finalize(bool bFlushing = false);
 
+    static void WriteBaseProfile(bool bFlushing = false);
     static void WriteCallTrace(bool bFlushing = false);
     static void WriteCommStats(bool bFlushing = false);
     static void WriteFortProfErrors();
@@ -216,6 +217,8 @@ class BLProfiler
     static void SetBlProfDirName(const std::string &name) { blProfDirName = name; }
     static void SetNoOutput() { bNoOutput = true; }
 
+    static int GetBaseFlushSize() { return baseFlushSize; }
+    static void SetBaseFlushSize(int fsize) { baseFlushSize = fsize; }
     static int GetCSFlushSize() { return csFlushSize; }
     static void SetCSFlushSize(int fsize) { csFlushSize = fsize; }
     static int GetTraceFlushSize() { return traceFlushSize; }
@@ -237,9 +240,10 @@ class BLProfiler
     static bool bWriteAll, bWriteFabs, groupSets;
     static bool bFirstCommWrite;
     static bool bInitialized, bNoOutput;
+    static bool bFlushPrint;
     static int  currentStep, nProfFiles;
-    static int  csFlushSize, traceFlushSize;
-    static int  csFlushCount, traceFlushCount, flushInterval;
+    static int  baseFlushSize, csFlushSize, traceFlushSize;
+    static int  baseFlushCount, csFlushCount, traceFlushCount, flushInterval;
     static int  finestLevel, maxLevel;
     static Real pctTimeLimit;
     static Real calcRunTime;
