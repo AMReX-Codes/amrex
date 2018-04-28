@@ -170,11 +170,11 @@ class BLProfiler
 
     static void Initialize();
     static void InitParams();
-    static void Finalize(bool bFlushing = false);
+    static void Finalize(bool bFlushing = false, bool memCheck = false);
 
-    static void WriteBaseProfile(bool bFlushing = false);
-    static void WriteCallTrace(bool bFlushing = false);
-    static void WriteCommStats(bool bFlushing = false);
+    static void WriteBaseProfile(bool bFlushing = false, bool memCheck = false);
+    static void WriteCallTrace(bool bFlushing = false, bool memCheck  = false);
+    static void WriteCommStats(bool bFlushing = false, bool memCheck = false);
     static void WriteFortProfErrors();
 
     static void AddCommStat(const CommFuncType cft, const int size,
@@ -429,7 +429,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_TINY_FLUSH()
 #define BL_PROFILE_FLUSH() { amrex::BLProfiler::Finalize(true); }
 
-#define BL_TRACE_PROFILE_FLUSH() { amrex::BLProfiler::WriteCallTrace(true); }
+#define BL_TRACE_PROFILE_FLUSH() { amrex::BLProfiler::WriteCallTrace(true, true); }
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize) { amrex::BLProfiler::SetTraceFlushSize(fsize); }
 
 #define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname) { amrex::BLProfiler::ChangeFortIntName(fname, intname); }
@@ -452,7 +452,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_NAMETAG(message) { amrex::BLProfiler::AddNameTag(message); }
 #define BL_COMM_PROFILE_FILTER(cft) { amrex::BLProfiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { amrex::BLProfiler::CommStats::UnFilter(cft); }
-#define BL_COMM_PROFILE_FLUSH() { amrex::BLProfiler::WriteCommStats(true); }
+#define BL_COMM_PROFILE_FLUSH() { amrex::BLProfiler::WriteCommStats(true, true); }
 #define BL_COMM_PROFILE_SETFLUSHSIZE(fsize) { amrex::BLProfiler::SetCSFlushSize(fsize); }
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax) {  \
         amrex::BLProfiler::TagRange(tagmin, tagmax); }
