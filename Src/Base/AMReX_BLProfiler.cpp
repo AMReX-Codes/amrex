@@ -467,7 +467,7 @@ void BLProfiler::RegionStop(const std::string &rname) {
 }
 
 
-void BLProfiler::Finalize(bool bFlushing) {
+void BLProfiler::Finalize(bool bFlushing, bool memCheck) {
   if( ! bInitialized) {
     return;
   }
@@ -481,14 +481,14 @@ void BLProfiler::Finalize(bool bFlushing) {
   BL_PROFILE_REGION_STOP(noRegionName);
 
 #ifdef BL_TRACE_PROFILING
-  WriteCallTrace(bFlushing);
+  WriteCallTrace(bFlushing, memCheck);
 #endif
 
 #ifdef BL_COMM_PROFILING
   // filter out profiler communications.
   CommStats::cftExclude.insert(AllCFTypes);
 
-  WriteCommStats(bFlushing);
+  WriteCommStats(bFlushing, memCheck);
 #endif
 
   WriteFortProfErrors();
@@ -767,7 +767,7 @@ void WriteStats(std::ostream &ios,
 
 }  // end namespace BLProfilerUtils
 
-void BLProfiler::WriteBaseProfile(bool bFlushing) {   // ---- write basic profiling data
+void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- write basic profiling data
 
   // --------------------------------------- gather global stats
   Real baseProfStart(ParallelDescriptor::second());  // time the timer
@@ -960,9 +960,9 @@ void BLProfiler::WriteBaseProfile(bool bFlushing) {   // ---- write basic profil
 }
 
 
-void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace data
-/*
-    if(bFlushing) {
+void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write call trace data
+
+    if(memCheck) {
       int nCT(vCallTrace.size());
       ParallelDescriptor::ReduceIntMax(nCT);
       bool doFlush(nCT > traceFlushSize);
@@ -975,7 +975,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
 	  return;
       }
     }
-*/
+
     Real wctStart(ParallelDescriptor::second());  // time the timer
     std::string cdir(blProfDirName);
     const int   myProc    = ParallelDescriptor::MyProc();
@@ -1160,15 +1160,15 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
 
 
 
-void BLProfiler::WriteCommStats(bool bFlushing) {
+void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
 
   Real wcsStart(ParallelDescriptor::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
   if( ! bAllCFTypesExcluded) {
     CommStats::cftExclude.insert(AllCFTypes);  // temporarily
   }
-/*
-  if(bFlushing) {
+
+  if(memCheck) {
     int nCS(vCommStats.size());
     ParallelDescriptor::ReduceIntMax(nCS);
     if(nCS < csFlushSize) {
@@ -1183,7 +1183,7 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
 		     << "  " << csFlushSize << "\n";
     }
   }
-*/
+
   std::string cdir(blProfDirName);
   std::string commprofPrefix("bl_comm_prof");
   if( ! blProfDirCreated) {
