@@ -30,6 +30,7 @@
 #define WRPX_FILTER                      warpx_filter_3d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_3d
 
+
 #elif (BL_SPACEDIM == 2)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
@@ -152,6 +153,8 @@ extern "C"
                                  amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
                                  amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
     
+        void parse_function_laser( const long* np, amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* amplitude, const int parser_instance_number );
+
     // Maxwell solver
     
         void WRPX_PXR_PUSH_EVEC(
@@ -384,6 +387,10 @@ extern "C"
     
     void WRPX_FILTER(const amrex_real*, const int*, const int*,
                      amrex_real*, const int*, const int*, int);
+
+    int parser_initialize_function(const char *str_func, const char *str_var);
+
+    amrex::Real parser_evaluate_function(const amrex::Real*, const int, const int);
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);

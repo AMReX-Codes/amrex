@@ -5,6 +5,7 @@
 
 #include "AMReX_REAL.H"
 #include <AMReX_Vector.H>
+#include <WarpXConst.H>
 #include "AMReX_ParmParse.H"
 #include "AMReX_Utility.H"
 
@@ -54,6 +55,22 @@ public:
                                    amrex::Real z) const override;
 private:
     amrex::Vector<amrex::Real> params;
+};
+
+///
+/// This describes a density function parsed in the input file. 
+///
+class ParseDensityProfile : public PlasmaDensityProfile
+{
+public:
+    ParseDensityProfile(const std::string _parse_density_function);
+    virtual amrex::Real getDensity(amrex::Real x,
+                                   amrex::Real y,
+                                   amrex::Real z) const override;
+    UserConstants my_constants;
+private:
+    std::string _parse_density_function;
+    int parser_instance_number=0;
 };
 
 ///
@@ -232,6 +249,8 @@ public:
     amrex::Real z_rms;
     amrex::Real q_tot;
     long npart;
+
+    std::string str_density_function;
 
 protected:
 

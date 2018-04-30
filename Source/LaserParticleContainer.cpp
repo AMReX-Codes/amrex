@@ -37,6 +37,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	    profile = laser_t::Gaussian;
   } else if(laser_type_s == "harris") {
       profile = laser_t::Harris;
+  } else if(laser_type_s == "parse_field_function") {
+      profile = laser_t::parse_field_function;
 	} else {
 	    amrex::Abort("Unknown laser type");
 	}
@@ -46,8 +48,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	pp.getarr("direction", nvec);
 	pp.getarr("polarization", p_X);
 	pp.query("pusher_algo", pusher_algo);
-	pp.get("e_max", e_max);
 	pp.get("wavelength", wavelength);
+	pp.get("e_max", e_max);
 
 	if ( profile == laser_t::Gaussian ) {
 	    // Parse the properties of the Gaussian profile
@@ -58,11 +60,23 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	}
 
   if ( profile == laser_t::Harris ) {
-	    // Parse the properties of the Harris profile
-	   pp.get("profile_waist", profile_waist);
-	   pp.get("profile_duration", profile_duration);
-           pp.get("profile_focal_distance", profile_focal_distance);
-	}
+    // Parse the properties of the Harris profile
+    pp.get("profile_waist", profile_waist);
+    pp.get("profile_duration", profile_duration);
+    pp.get("profile_focal_distance", profile_focal_distance);
+  }
+
+  if ( profile == laser_t::parse_field_function ) {
+    // Parse the properties of the parse_field_function profile
+    pp.get("field_function(X,Y,t)", field_function);
+    // User-defined constants: replace names by value
+    my_constants.ReadParameters();
+    field_function = my_constants.replaceStringValue(field_function);
+    // Pass math expression and list of variables to Fortran as char*
+    const char *str_var  = "X,Y,t";
+    const char *str_func = field_function.c_str();
+    parser_instance_number = parser_initialize_function(str_func, str_var);      
+  }
 
 	// Plane normal
 	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
@@ -431,6 +445,11 @@ LaserParticleContainer::Evolve (int lev,
 		warpx_harris_laser( &np, plane_Xp.data(), plane_Yp.data(),
                                     &t, &wavelength, &e_max, &profile_waist, &profile_duration,
                                     &profile_focal_distance, amplitude_E.data() );
+	    }
+
+            if (profile == laser_t::parse_field_function) {
+		parse_function_laser( &np, plane_Xp.data(), plane_Yp.data(), &t,
+				      amplitude_E.data(), parser_instance_number );
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
