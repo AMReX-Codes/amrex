@@ -464,6 +464,7 @@ PhysicalParticleContainer::FieldGather (int lev,
             pti.GetPosition(xp, yp, zp);
 
             const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
+            const int* ixyzmin = box.loVect();
 
 	    //
 	    // Field Gather
@@ -475,15 +476,16 @@ PhysicalParticleContainer::FieldGather (int lev,
 	       &np, xp.data(), yp.data(), zp.data(),
 	       Exp.data(),Eyp.data(),Ezp.data(),
 	       Bxp.data(),Byp.data(),Bzp.data(),
-	       &xyzmin[0], &xyzmin[1], &xyzmin[2],
-	       &dx[0], &dx[1], &dx[2],
+               ixyzmin,
+               &xyzmin[0], &xyzmin[1], &xyzmin[2],
+               &dx[0], &dx[1], &dx[2],
 	       &WarpX::nox, &WarpX::noy, &WarpX::noz,
-	       exfab.dataPtr(), &ng, exfab.length(),
-	       eyfab.dataPtr(), &ng, eyfab.length(),
-	       ezfab.dataPtr(), &ng, ezfab.length(),
-               bxfab.dataPtr(), &ng, bxfab.length(),
-	       byfab.dataPtr(), &ng, byfab.length(),
-	       bzfab.dataPtr(), &ng, bzfab.length(),
+               BL_TO_FORTRAN_ANYD(exfab),
+	       BL_TO_FORTRAN_ANYD(eyfab),
+	       BL_TO_FORTRAN_ANYD(ezfab),
+               BL_TO_FORTRAN_ANYD(bxfab),
+	       BL_TO_FORTRAN_ANYD(byfab),
+	       BL_TO_FORTRAN_ANYD(bzfab),
 	       &ll4symtry, &l_lower_order_in_v,
 	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
@@ -694,6 +696,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+            const int* ixyzmin_grid = box.loVect();
 
 	    long lvect = 8;
 
@@ -773,19 +776,21 @@ PhysicalParticleContainer::Evolve (int lev,
                 const int l_lower_order_in_v = warpx_l_lower_order_in_v();
                 long lvect_fieldgathe = 64;
                 BL_PROFILE_VAR_START(blp_pxr_fg);
+
                 warpx_geteb_energy_conserving(
                     &np, xp.data(), yp.data(), zp.data(),
                     Exp.data(),Eyp.data(),Ezp.data(),
                     Bxp.data(),Byp.data(),Bzp.data(),
+                    ixyzmin_grid,
                     &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                     &dx[0], &dx[1], &dx[2],
                     &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                    exfab->dataPtr(), &ngE, exfab->length(),
-                    eyfab->dataPtr(), &ngE, eyfab->length(),
-                    ezfab->dataPtr(), &ngE, ezfab->length(),
-                    bxfab->dataPtr(), &ngE, bxfab->length(),
-                    byfab->dataPtr(), &ngE, byfab->length(),
-                    bzfab->dataPtr(), &ngE, bzfab->length(),
+                    BL_TO_FORTRAN_ANYD(*exfab),
+                    BL_TO_FORTRAN_ANYD(*eyfab),
+                    BL_TO_FORTRAN_ANYD(*ezfab),
+                    BL_TO_FORTRAN_ANYD(*bxfab),
+                    BL_TO_FORTRAN_ANYD(*byfab),
+                    BL_TO_FORTRAN_ANYD(*bzfab),
                     &ll4symtry, &l_lower_order_in_v,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
@@ -1004,6 +1009,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             pti.GetPosition(xp, yp, zp);
 
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+            const int* ixyzmin_grid = box.loVect();
 
             const int ll4symtry          = false;
             const int l_lower_order_in_v = true;
@@ -1012,15 +1018,16 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 &np, xp.data(), yp.data(), zp.data(),
                 Exp.data(),Eyp.data(),Ezp.data(),
                 Bxp.data(),Byp.data(),Bzp.data(),
+                ixyzmin_grid,
                 &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                 &dx[0], &dx[1], &dx[2],
                 &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                exfab.dataPtr(), &ngE, exfab.length(),
-                eyfab.dataPtr(), &ngE, eyfab.length(),
-                ezfab.dataPtr(), &ngE, ezfab.length(),
-                bxfab.dataPtr(), &ngE, bxfab.length(),
-                byfab.dataPtr(), &ngE, byfab.length(),
-                bzfab.dataPtr(), &ngE, bzfab.length(),
+                BL_TO_FORTRAN_ANYD(exfab),
+                BL_TO_FORTRAN_ANYD(eyfab),
+                BL_TO_FORTRAN_ANYD(ezfab),
+                BL_TO_FORTRAN_ANYD(bxfab),
+                BL_TO_FORTRAN_ANYD(byfab),
+                BL_TO_FORTRAN_ANYD(bzfab),
                 &ll4symtry, &l_lower_order_in_v,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 

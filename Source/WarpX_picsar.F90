@@ -52,31 +52,36 @@ contains
   !> @param[in] xp,yp,zp particle position arrays
   !> @param[in] ex,ey,ez particle electric fields in each direction
   !> @param[in] bx,by,bz particle magnetic fields in each direction
+  !> @param[in] ixyzmin tile grid minimum index
   !> @param[in] xmin,ymin,zmin tile grid minimum position
   !> @param[in] dx,dy,dz space discretization steps
+  !> @param[in] xyzmin grid minimum position
+  !> @param[in] dxyz space discretization steps
   !> @param[in] nox,noy,noz interpolation order
   !> @param[in] exg,eyg,ezg electric field grid arrays
   !> @param[in] bxg,byg,bzg electric field grid arrays
   !> @param[in] lvect vector length
   !>
   subroutine warpx_geteb_energy_conserving(np,xp,yp,zp, &
-       ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
-       exg,exg_ng,exg_ntot,eyg,eyg_ng,eyg_ntot,ezg,ezg_ng,ezg_ntot, &
-       bxg,bxg_ng,bxg_ntot,byg,byg_ng,byg_ntot,bzg,bzg_ng,bzg_ntot, &
+       ex,ey,ez,bx,by,bz,ixyzmin,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
+       exg,exg_lo,exg_hi,eyg,eyg_lo,eyg_hi,ezg,ezg_lo,ezg_hi, &
+       bxg,bxg_lo,bxg_hi,byg,byg_lo,byg_hi,bzg,bzg_lo,bzg_hi, &
        ll4symtry,l_lower_order_in_v, &
        lvect,field_gathe_algo) &
        bind(C, name="warpx_geteb_energy_conserving")
 
-    integer, intent(in) :: exg_ntot(BL_SPACEDIM), eyg_ntot(BL_SPACEDIM), ezg_ntot(BL_SPACEDIM), &
-                           bxg_ntot(BL_SPACEDIM), byg_ntot(BL_SPACEDIM), bzg_ntot(BL_SPACEDIM)
-    integer(c_long), intent(in) :: exg_ng, eyg_ng, ezg_ng, bxg_ng, byg_ng, bzg_ng
+    integer, intent(in) :: exg_lo(BL_SPACEDIM), eyg_lo(BL_SPACEDIM), ezg_lo(BL_SPACEDIM), &
+                           bxg_lo(BL_SPACEDIM), byg_lo(BL_SPACEDIM), bzg_lo(BL_SPACEDIM)
+    integer, intent(in) :: exg_hi(BL_SPACEDIM), eyg_hi(BL_SPACEDIM), ezg_hi(BL_SPACEDIM), &
+                           bxg_hi(BL_SPACEDIM), byg_hi(BL_SPACEDIM), bzg_hi(BL_SPACEDIM)
+    integer, intent(in) :: ixyzmin(BL_SPACEDIM)
+    real(amrex_real), intent(in) :: xmin,ymin,zmin,dx,dy,dz
     integer(c_long), intent(in) :: field_gathe_algo
     integer(c_long), intent(in) :: np,nox,noy,noz
     integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v
     integer(c_long),intent(in)   :: lvect
     real(amrex_real), intent(in), dimension(np) :: xp,yp,zp
     real(amrex_real), intent(out), dimension(np) :: ex,ey,ez,bx,by,bz
-    real(amrex_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
     real(amrex_real),intent(in):: exg(*), eyg(*), ezg(*), bxg(*), byg(*), bzg(*)
     logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v
 
@@ -85,21 +90,22 @@ contains
                        bxg_nvalid(BL_SPACEDIM), byg_nvalid(BL_SPACEDIM), bzg_nvalid(BL_SPACEDIM),    &
                        exg_nguards(BL_SPACEDIM), eyg_nguards(BL_SPACEDIM), ezg_nguards(BL_SPACEDIM), &
                        bxg_nguards(BL_SPACEDIM), byg_nguards(BL_SPACEDIM), bzg_nguards(BL_SPACEDIM)
+
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
 
-    exg_nvalid = exg_ntot - 2*exg_ng
-    eyg_nvalid = eyg_ntot - 2*eyg_ng
-    ezg_nvalid = ezg_ntot - 2*ezg_ng
-    bxg_nvalid = bxg_ntot - 2*bxg_ng
-    byg_nvalid = byg_ntot - 2*byg_ng
-    bzg_nvalid = bzg_ntot - 2*bzg_ng
-    exg_nguards = exg_ng
-    eyg_nguards = eyg_ng
-    ezg_nguards = ezg_ng
-    bxg_nguards = bxg_ng
-    byg_nguards = byg_ng
-    bzg_nguards = bzg_ng
+    exg_nguards = ixyzmin - exg_lo
+    eyg_nguards = ixyzmin - eyg_lo
+    ezg_nguards = ixyzmin - ezg_lo
+    bxg_nguards = ixyzmin - bxg_lo
+    byg_nguards = ixyzmin - byg_lo
+    bzg_nguards = ixyzmin - bzg_lo
+    exg_nvalid = exg_lo + exg_hi - 2_c_long*ixyzmin + 1_c_long
+    eyg_nvalid = eyg_lo + eyg_hi - 2_c_long*ixyzmin + 1_c_long
+    ezg_nvalid = ezg_lo + ezg_hi - 2_c_long*ixyzmin + 1_c_long
+    bxg_nvalid = bxg_lo + bxg_hi - 2_c_long*ixyzmin + 1_c_long
+    byg_nvalid = byg_lo + byg_hi - 2_c_long*ixyzmin + 1_c_long
+    bzg_nvalid = bzg_lo + bzg_hi - 2_c_long*ixyzmin + 1_c_long
 
     CALL WRPX_PXR_GETEB_ENERGY_CONSERVING(np,xp,yp,zp, &
          ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
