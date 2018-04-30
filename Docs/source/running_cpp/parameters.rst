@@ -386,3 +386,15 @@ Diagnostics and output
 * ``warpx.plot_crsepatch`` (`0` or `1`)
     Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
     Whether to output the data of the coarse patch, in the plot files.
+
+Checkpoints and restart
+-----------------------
+WarpX supports checkpoints/restart via AMReX. 
+
+* ``amr.check_int`` (`integer`)
+    The number of iterations between two consecutive checkpoints. Use a
+    negative number to disable checkpoints.
+    
+* ``amr.restart`` (`string`)
+    Name of the checkpoint file to restart from. Returns an error if the folder does not exist 
+    or if it is not properly formatted. 
