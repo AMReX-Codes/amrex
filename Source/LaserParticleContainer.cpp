@@ -75,7 +75,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     // Pass math expression and list of variables to Fortran as char*
     const char *str_var  = "X,Y,t";
     const char *str_func = field_function.c_str();
-    parser_instance_number = WRPX_PARSER_INIT_FUNCTION(str_func, str_var);      
+    parser_instance_number = parser_initialize_function(str_func, str_var);      
   }
 
 	// Plane normal

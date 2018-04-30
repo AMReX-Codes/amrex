@@ -2,7 +2,7 @@
 #include <cmath>
 #include <algorithm>
 #include <numeric>
-#include <sstream>
+// #include <sstream>
 
 #include <AMReX_ParmParse.H>
 #include <WarpX.H>
@@ -14,15 +14,9 @@ std::string UserConstants::replaceStringValue(std::string math_expr){
     std::string pattern, value_str;
     std::string patternexp = "e+";
     std::size_t found;
-    amrex::Real value;
     for (int i=0; i<nb_constants; i++){
         pattern    = constant_names[i];
-        value      = constant_values[i];
-
-        // Convert value to string, with scientific notation
-        std::ostringstream streamObj;
-        streamObj << value;
-        value_str = streamObj.str();
+        value_str = constant_values[i];
 
         // Replace "e+" by "e" in scientific notation for Fortran compatibility
         found = value_str.find(patternexp);

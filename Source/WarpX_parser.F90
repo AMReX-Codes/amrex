@@ -1,6 +1,5 @@
-!     Last change:  JLV  15 May 2001    6:31 pm
-!   @(#)amber_utils.f90	1.1   04/23/99  
-!..routines mainly for use with particles
+! MODULE mod_interpret
+! Parser to read and evaluate math expressions
 
 module mod_interpret
 use iso_c_binding
@@ -178,10 +177,12 @@ do j = 1, res%nb_op
       else
         b = calc_res(res=res%res(ib),root=.false.)
       END if
+      ! This might prevent OMP threading
       res%l_res_do(ib)=.false.
     else
       b = res%res(ib)%value
     END if
+    ! This might prevent OMP threading
     res%res(ia)%value=eval(a,b,op)
   END if
 end do

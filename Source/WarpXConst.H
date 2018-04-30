@@ -22,7 +22,8 @@ namespace MathConst
 class UserConstants{
 public:
     std::vector<std::string> constant_names;
-    std::vector<amrex::Real> constant_values;
+    std::vector<std::string> constant_values;
+
     int nb_constants=0;
     std::string replaceStringValue(std::string);
     void ReadParameters();

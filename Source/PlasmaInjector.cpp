@@ -5,6 +5,7 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <AMReX.H>
+#include <WarpX.H>
 
 using namespace amrex;
 
@@ -73,13 +74,13 @@ ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
     parse_density_function = my_constants.replaceStringValue(parse_density_function);   
     const char *str_var  = "x,y,z";
     const char *str_func = parse_density_function.c_str();
-    parser_instance_number = WRPX_PARSER_INIT_FUNCTION(str_func, str_var);
+    parser_instance_number = parser_initialize_function(str_func, str_var);
 }
 
 Real ParseDensityProfile::getDensity(Real x, Real y, Real z) const
 {
     std::array<amrex::Real, 3> list_var = {x,y,z};
-    return WRPX_PARSER_EVAL_FUNCTION(list_var.data(), 3, parser_instance_number);
+    return parser_evaluate_function(list_var.data(), 3, parser_instance_number);
 }
 
 ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
@@ -255,6 +256,8 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     } else if (rho_prof_s == "custom") {
         rho_prof.reset(new CustomDensityProfile(species_name));
     } else if (rho_prof_s == "parse_density_function") {
+        // Serialize particle initialization
+        WarpX::serialize_ics = true;
         pp.get("density_function(x,y,z)", str_density_function);
         rho_prof.reset(new ParseDensityProfile(str_density_function));
     } else {
