@@ -5,6 +5,8 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
+#include <WarpXWrappers.h>
+
 
 using namespace amrex;
 
@@ -462,26 +464,28 @@ PhysicalParticleContainer::FieldGather (int lev,
             pti.GetPosition(xp, yp, zp);
 
             const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
+            const int* ixyzmin = box.loVect();
 
 	    //
 	    // Field Gather
 	    //
 	    const int ll4symtry          = false;
-	    const int l_lower_order_in_v = true;
+	    const int l_lower_order_in_v = warpx_l_lower_order_in_v();
             long lvect_fieldgathe = 64;
 	    warpx_geteb_energy_conserving(
 	       &np, xp.data(), yp.data(), zp.data(),
 	       Exp.data(),Eyp.data(),Ezp.data(),
 	       Bxp.data(),Byp.data(),Bzp.data(),
-	       &xyzmin[0], &xyzmin[1], &xyzmin[2],
-	       &dx[0], &dx[1], &dx[2],
+               ixyzmin,
+               &xyzmin[0], &xyzmin[1], &xyzmin[2],
+               &dx[0], &dx[1], &dx[2],
 	       &WarpX::nox, &WarpX::noy, &WarpX::noz,
-	       exfab.dataPtr(), &ng, exfab.length(),
-	       eyfab.dataPtr(), &ng, eyfab.length(),
-	       ezfab.dataPtr(), &ng, ezfab.length(),
-               bxfab.dataPtr(), &ng, bxfab.length(),
-	       byfab.dataPtr(), &ng, byfab.length(),
-	       bzfab.dataPtr(), &ng, bzfab.length(),
+               BL_TO_FORTRAN_ANYD(exfab),
+	       BL_TO_FORTRAN_ANYD(eyfab),
+	       BL_TO_FORTRAN_ANYD(ezfab),
+               BL_TO_FORTRAN_ANYD(bxfab),
+	       BL_TO_FORTRAN_ANYD(byfab),
+	       BL_TO_FORTRAN_ANYD(bzfab),
 	       &ll4symtry, &l_lower_order_in_v,
 	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
@@ -562,6 +566,9 @@ PhysicalParticleContainer::Evolve (int lev,
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
+    const auto& mypc = WarpX::GetInstance().GetPartContainer();
+    const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
+
     // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
     long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
@@ -579,6 +586,8 @@ PhysicalParticleContainer::Evolve (int lev,
 	Vector<Real> xp, yp, zp, giv;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
         FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
+        FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
+        FArrayBox filtered_Bx, filtered_By, filtered_Bz;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -602,15 +611,76 @@ PhysicalParticleContainer::Evolve (int lev,
             const long np = pti.numParticles();
 
 	    // Data on the grid
-	    const FArrayBox& exfab = Ex[pti];
-	    const FArrayBox& eyfab = Ey[pti];
-	    const FArrayBox& ezfab = Ez[pti];
-	    const FArrayBox& bxfab = Bx[pti];
-	    const FArrayBox& byfab = By[pti];
-	    const FArrayBox& bzfab = Bz[pti];
-	    FArrayBox&       jxfab = jx[pti];
-	    FArrayBox&       jyfab = jy[pti];
-	    FArrayBox&       jzfab = jz[pti];
+            FArrayBox const* exfab = &(Ex[pti]);
+            FArrayBox const* eyfab = &(Ey[pti]);
+            FArrayBox const* ezfab = &(Ez[pti]);
+            FArrayBox const* bxfab = &(Bx[pti]);
+            FArrayBox const* byfab = &(By[pti]);
+            FArrayBox const* bzfab = &(Bz[pti]);
+
+            if (warpx_use_fdtd_nci_corr())
+            {
+#if (BL_SPACEDIM == 2)
+                const Box& tbox = amrex::grow(pti.tilebox(),{WarpX::nox,WarpX::noz});
+#else
+                const Box& tbox = amrex::grow(pti.tilebox(),{WarpX::nox,WarpX::noy,WarpX::noz});
+#endif
+
+                // both 2d and 3d
+                filtered_Ex.resize(amrex::convert(tbox,WarpX::Ex_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ex),
+                                        BL_TO_FORTRAN_ANYD(filtered_Ex),
+                                        BL_TO_FORTRAN_ANYD(Ex[pti]),
+                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        &nstencilz_fdtd_nci_corr);
+                exfab = &filtered_Ex;
+
+                filtered_Ez.resize(amrex::convert(tbox,WarpX::Ez_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ez),
+                                        BL_TO_FORTRAN_ANYD(filtered_Ez),
+                                        BL_TO_FORTRAN_ANYD(Ez[pti]),
+                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        &nstencilz_fdtd_nci_corr);
+                ezfab = &filtered_Ez;
+
+                filtered_By.resize(amrex::convert(tbox,WarpX::By_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_By),
+                                        BL_TO_FORTRAN_ANYD(filtered_By),
+                                        BL_TO_FORTRAN_ANYD(By[pti]),
+                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        &nstencilz_fdtd_nci_corr);
+                byfab = &filtered_By;
+
+#if (BL_SPACEDIM == 3)
+                filtered_Ey.resize(amrex::convert(tbox,WarpX::Ey_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
+                                        BL_TO_FORTRAN_ANYD(filtered_Ey),
+                                        BL_TO_FORTRAN_ANYD(Ey[pti]),
+                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        &nstencilz_fdtd_nci_corr);
+                eyfab = &filtered_Ey;
+
+                filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
+                                        BL_TO_FORTRAN_ANYD(filtered_Bx),
+                                        BL_TO_FORTRAN_ANYD(Bx[pti]),
+                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        &nstencilz_fdtd_nci_corr);
+                bxfab = &filtered_Bx;
+
+                filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
+                WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
+                                        BL_TO_FORTRAN_ANYD(filtered_Bz),
+                                        BL_TO_FORTRAN_ANYD(Bz[pti]),
+                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        &nstencilz_fdtd_nci_corr);
+                bzfab = &filtered_Bz;
+#endif
+            }
+
+	    FArrayBox& jxfab = jx[pti];
+	    FArrayBox& jyfab = jy[pti];
+	    FArrayBox& jzfab = jz[pti];
 
 	    Exp.assign(np,0.0);
 	    Eyp.assign(np,0.0);
@@ -630,6 +700,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+            const int* ixyzmin_grid = box.loVect();
 
 	    long lvect = 8;
 
@@ -706,22 +777,24 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
                 const int ll4symtry          = false;
-                const int l_lower_order_in_v = true;
+                const int l_lower_order_in_v = warpx_l_lower_order_in_v();
                 long lvect_fieldgathe = 64;
                 BL_PROFILE_VAR_START(blp_pxr_fg);
+
                 warpx_geteb_energy_conserving(
                     &np, xp.data(), yp.data(), zp.data(),
                     Exp.data(),Eyp.data(),Ezp.data(),
                     Bxp.data(),Byp.data(),Bzp.data(),
+                    ixyzmin_grid,
                     &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                     &dx[0], &dx[1], &dx[2],
                     &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                    exfab.dataPtr(), &ngE, exfab.length(),
-                    eyfab.dataPtr(), &ngE, eyfab.length(),
-                    ezfab.dataPtr(), &ngE, ezfab.length(),
-                    bxfab.dataPtr(), &ngE, bxfab.length(),
-                    byfab.dataPtr(), &ngE, byfab.length(),
-                    bzfab.dataPtr(), &ngE, bzfab.length(),
+                    BL_TO_FORTRAN_ANYD(*exfab),
+                    BL_TO_FORTRAN_ANYD(*eyfab),
+                    BL_TO_FORTRAN_ANYD(*ezfab),
+                    BL_TO_FORTRAN_ANYD(*bxfab),
+                    BL_TO_FORTRAN_ANYD(*byfab),
+                    BL_TO_FORTRAN_ANYD(*bzfab),
                     &ll4symtry, &l_lower_order_in_v,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
@@ -940,6 +1013,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             pti.GetPosition(xp, yp, zp);
 
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+            const int* ixyzmin_grid = box.loVect();
 
             const int ll4symtry          = false;
             const int l_lower_order_in_v = true;
@@ -948,15 +1022,16 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 &np, xp.data(), yp.data(), zp.data(),
                 Exp.data(),Eyp.data(),Ezp.data(),
                 Bxp.data(),Byp.data(),Bzp.data(),
+                ixyzmin_grid,
                 &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                 &dx[0], &dx[1], &dx[2],
                 &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                exfab.dataPtr(), &ngE, exfab.length(),
-                eyfab.dataPtr(), &ngE, eyfab.length(),
-                ezfab.dataPtr(), &ngE, ezfab.length(),
-                bxfab.dataPtr(), &ngE, bxfab.length(),
-                byfab.dataPtr(), &ngE, byfab.length(),
-                bzfab.dataPtr(), &ngE, bzfab.length(),
+                BL_TO_FORTRAN_ANYD(exfab),
+                BL_TO_FORTRAN_ANYD(eyfab),
+                BL_TO_FORTRAN_ANYD(ezfab),
+                BL_TO_FORTRAN_ANYD(bxfab),
+                BL_TO_FORTRAN_ANYD(byfab),
+                BL_TO_FORTRAN_ANYD(bzfab),
                 &ll4symtry, &l_lower_order_in_v,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 

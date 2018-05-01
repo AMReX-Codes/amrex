@@ -29,6 +29,8 @@
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_3d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_3d
+#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
+#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
 
 
 #elif (BL_SPACEDIM == 2)
@@ -59,6 +61,8 @@
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_2d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_2d
+#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
+#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
 
 #endif
 
@@ -103,15 +107,16 @@ extern "C"
 			const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,
 			amrex::Real* exp, amrex::Real* eyp, amrex::Real* ezp,
                         amrex::Real* bxp, amrex::Real* byp, amrex::Real* bzp,
-			const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
-			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
+                        const int* ixyzmin,
+                        const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
+                        const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
 			const long* nox, const long* noy, const long* noz,
-			const amrex::Real* exg, const long* exg_ng, const int* exg_ntot,
-			const amrex::Real* eyg, const long* eyg_ng, const int* eyg_ntot,
-			const amrex::Real* ezg, const long* ezg_ng, const int* ezg_ntot,
-			const amrex::Real* bxg, const long* bxg_ng, const int* bxg_ntot,
-			const amrex::Real* byg, const long* byg_ng, const int* byg_ntot,
-			const amrex::Real* bzg, const long* bzg_ng, const int* bzg_ntot,
+			const amrex::Real* exg, const int* exg_lo, const int* exg_hi,
+			const amrex::Real* eyg, const int* eyg_lo, const int* eyg_hi,
+			const amrex::Real* ezg, const int* ezg_lo, const int* ezg_hi,
+			const amrex::Real* bxg, const int* bxg_lo, const int* bxg_hi,
+			const amrex::Real* byg, const int* byg_lo, const int* byg_hi,
+			const amrex::Real* bzg, const int* bzg_lo, const int* bzg_hi,
 			const int* ll4symtry, const int* l_lower_order_in_v,
 			const long* lvect,
 			const long* field_gathe_algo);
@@ -387,6 +392,14 @@ extern "C"
     
     void WRPX_FILTER(const amrex_real*, const int*, const int*,
                      amrex_real*, const int*, const int*, int);
+
+    void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int, 
+                                const amrex::Real, const int);
+
+    void WRPX_PXR_GODFREY_FILTER (const int* lo, const int* hi,
+                                  amrex_real* fou, const int* olo, const int* ohi,
+                                  const amrex_real* fin, const int* ilo, const int* ihi,
+                                  const amrex_real* stencil, const int* nsten);
 
     int parser_initialize_function(const char *str_func, const char *str_var);
 

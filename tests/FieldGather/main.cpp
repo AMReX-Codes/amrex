@@ -42,6 +42,7 @@ int main(int argc, char* argv[])
 	long np = nx*ny*nz;
 
 	Real xyzmin[3] = {0.5, 1.4, 0.3};
+        int ixyzmin[3] = {0, 0, 0};
 
 	Vector<Real> xp, yp, zp, Exp, Eyp, Ezp, Bxp, Byp, Bzp;
 	Real dx[3] = {1.0/nx, 1.0/ny, 1.0/nz};
@@ -151,15 +152,16 @@ int main(int argc, char* argv[])
 	warpx_geteb_energy_conserving(&np, xp.data(), yp.data(), zp.data(),
 				      Exp.data(),Eyp.data(),Ezp.data(),
 				      Bxp.data(),Byp.data(),Bzp.data(),
-				      &xyzmin[0], &xyzmin[1], &xyzmin[2],
-				      &dx[0], &dx[1], &dx[2],
+                                      ixyzmin,
+                                      &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                                      &dx[0], &dx[1], &dx[2],
 				      &nox, &noy, &noz, 
-                                      exfab.dataPtr(), &ngx, exfab.length(),
-                                      eyfab.dataPtr(), &ngy, eyfab.length(),
-                                      ezfab.dataPtr(), &ngz, ezfab.length(),
-                                      bxfab.dataPtr(), &ngx, bxfab.length(),
-                                      byfab.dataPtr(), &ngy, byfab.length(),
-                                      bzfab.dataPtr(), &ngz, bzfab.length(),
+                                      BL_TO_FORTRAN_ANYD(exfab),
+                                      BL_TO_FORTRAN_ANYD(eyfab),
+                                      BL_TO_FORTRAN_ANYD(ezfab),
+                                      BL_TO_FORTRAN_ANYD(bxfab),
+                                      BL_TO_FORTRAN_ANYD(byfab),
+                                      BL_TO_FORTRAN_ANYD(bzfab),
 				      &ll4symtry, &l_lower_order_in_v,
 				      &lvect_fieldgathe,
 				      &field_gathering_algo);

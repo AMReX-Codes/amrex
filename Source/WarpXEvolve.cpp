@@ -216,6 +216,7 @@ WarpX::EvolveEM (int numsteps)
         //               from p^{n-1/2} to p^{n+1/2}
         // Deposit current j^{n+1/2}
         // Deposit charge density rho^{n}
+
         PushParticlesandDepose(cur_time);
 
         EvolveB(0.5*dt[0], DtType::SecondHalf); // We now have B^{n+1/2}

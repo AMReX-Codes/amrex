@@ -19,6 +19,7 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXConst.H>
+#include <WarpXWrappers.h>
 
 using namespace amrex;
 
@@ -48,8 +49,6 @@ int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 
 bool WarpX::do_dynamic_scheduling = false;
-
-bool WarpX::alloc_level_0_aux = false;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -371,8 +370,6 @@ WarpX::ReadParameters ()
         pp.query("load_balance_int", load_balance_int);
 
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
-
-        pp.query("alloc_level_0_aux", alloc_level_0_aux);
     }
 
     {
@@ -474,10 +471,31 @@ WarpX::ClearLevel (int lev)
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-    int ngJ = ngE;
-    int ngRho = ngE;
+    // Ex, Ey, Ez, Bx, By, and Bz have the same number of ghost cells.
+    // jx, jy, jz and rho have the same number of ghost cells.
+    // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
+    // but different number of ghost cells in z-direction if NCI filter is used.
+    int ngx = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
+    int ngy = (WarpX::noy % 2) ? WarpX::noy+1 : WarpX::noy;  // Always even number
+    int ngz_nonci = (WarpX::noz % 2) ? WarpX::noz+1 : WarpX::noz;  // Always even number
+    int ngz;
+    if (warpx_use_fdtd_nci_corr()) {
+        int ng = WarpX::noz + (mypc->nstencilz_fdtd_nci_corr-1);
+        ngz = (ng % 2) ? ng+1 : ng;
+    } else {
+        ngz = ngz_nonci;
+    }
+
+#if (BL_SPACEDIM == 3)
+    IntVect ngE(ngx,ngy,ngz);
+    IntVect ngJ(ngx,ngy,ngz_nonci);
+    IntVect ngRho = ngJ;
+#elif (BL_SPACEDIM == 2)
+    IntVect ngE(ngx,ngz);
+    IntVect ngJ(ngx,ngz_nonci);
+    IntVect ngRho = ngJ;
+#endif
+
     int ngF = (do_moving_window) ? 2 : 0;
     
     //
@@ -504,7 +522,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     //
     // The Aux patch (i.e., the full solution)
     //
-    if (lev == 0 and not alloc_level_0_aux)
+    if (lev == 0)
     {
         for (int idir = 0; idir < 3; ++idir) {
             Efield_aux[lev][idir].reset(new MultiFab(*Efield_fp[lev][idir], amrex::make_alias, 0, 1));
