@@ -1,6 +1,8 @@
 Helmholtz problem using AMReX as third party lib with auto generation of makefile.
 
-See FullyFortran/doc/HelmholtzMultiGrid.pdf for details on how to run.
+To run - sh run_Helmholtz.sh
+
+See FullyFortran/doc/HelmholtzMultiGrid/HelmholtzMultiGrid.pdf for details on how to run.
 
 This tutorial demonstrates how to solve the linear system in a
 canonical ABecLaplacian form 
