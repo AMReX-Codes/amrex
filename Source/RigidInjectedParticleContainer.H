@@ -39,14 +39,14 @@ public:
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
 
-protected:
+private:
 
     // User input quantities
-    Real zinject_plane = 0.;
+    amrex::Real zinject_plane = 0.;
     bool projected = false;
     bool focused = true;
 
-    Real vzbeam_ave_boosted;
+    amrex::Real vzbeam_ave_boosted;
 
     bool done_injecting = false;
 

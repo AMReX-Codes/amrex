@@ -1,4 +1,5 @@
 #include <limits>
+#include <algorithm>
 
 #include <ParticleContainer.H>
 #include <WarpX_f.H>
@@ -48,7 +49,7 @@ MultiParticleContainer::ReadParameters ()
             if (!rigid_injected_species.empty()) {
                 for (auto const& name : rigid_injected_species) {
                     auto it = std::find(species_names.begin(), species_names.end(), name);
-                    BL_ASSERT(it != species_names.end());
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
                     int i = std::distance(species_names.begin(), it);
                     species_types[i] = PCTypes::RigidInjected;
                 }

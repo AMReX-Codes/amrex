@@ -65,6 +65,8 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
                 const Real vz_lab = uzp[i]/gamma_lab;
 
                 // t_lab is the time in the lab frame that the particles reaches z=0
+                // The location and time (z=0, t=0) is a synchronization point between the
+                // lab and boosted frames.
                 const Real t_lab = -zp[i]/vz_lab;
 
                 if (!projected) {
@@ -108,12 +110,12 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                         MultiFab* rho, MultiFab* rho2,
                                         Real t, Real dt)
 {
-    BL_PROFILE("PPC::Evolve()");
-    BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
+    BL_PROFILE("RigidPC::Evolve()");
+    BL_PROFILE_VAR_NS("RigidPC::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
-    BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
+    BL_PROFILE_VAR_NS("RigidPC::Evolve::Accumulate", blp_accumulate);
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
