@@ -471,6 +471,10 @@ WarpX::ClearLevel (int lev)
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
+    // Ex, Ey, Ez, Bx, By, and Bz have the same number of ghost cells.
+    // jx, jy, jz and rho have the same number of ghost cells.
+    // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
+    // but different number of ghost cells in z-direction if NCI filter is used.
     int ngx = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
     int ngy = (WarpX::noy % 2) ? WarpX::noy+1 : WarpX::noy;  // Always even number
     int ngz_nonci = (WarpX::noz % 2) ? WarpX::noz+1 : WarpX::noz;  // Always even number
