@@ -1,0 +1,12 @@
+Examples written fully in Fortran90 (modifying the existing examples) with documentation to run the code in /doc using AMReX as third party lib.
+
+Running is simple. Just execute the following scripts - has all the compile and run commands.
+
+1. In Advection3d - sh run_Advection3d.sh
+2. In Helmholtz_F - sh run_Helmholtz.sh
+The details of the compiling and linking are in the pdfs in doc/
+
+Makefile for compiling and linking generated automatically (using mkmf - no separate installation needed - just a perl script to auto generate makefile with dependency - will run out of the box - detailed explanation in /doc.)
+
+1. Helmholtz problem in 3D with a given rhs - added documentation.
+2. Advection problem in 3D in Fortran90 (Advection_F had a 2d example. Merged 3d routines from Advection_AmrCore - which was combination of cpp and F90).
