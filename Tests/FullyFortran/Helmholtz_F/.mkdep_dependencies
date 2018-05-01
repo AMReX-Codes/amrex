@@ -1,0 +1,7 @@
+# This is the file with dependencies to be included in a Makefile
+# If there is a change in a file on the right hand side of a colon, it will
+# cause the file on the left hand side of the colon to be rebuilt.
+
+build/main.o: solve_helmholtz.o init_helmholtz.o
+build/solve_helmholtz.o: build/helmholtz.o
+build/init_helmholtz.o: build/helmholtz.o rhs_helmholtz.o

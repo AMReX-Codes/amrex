@@ -1,0 +1,1 @@
+F90EXE_sources += main.F90 solve_helmholtz.F90 rhs_helmholtz.F90 helmholtz.F90 init_helmholtz.F90

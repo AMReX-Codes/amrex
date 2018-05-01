@@ -1,0 +1,12 @@
+
+
+OPT= \
+build/helmholtz.o \
+build/rhs_helmholtz.o \
+build/solve_helmholtz.o \
+build/init_helmholtz.o
+
+MAIN= \
+build/main.o
+
+OBJS=$(OPT) $(MAIN) 
