@@ -1,0 +1,23 @@
+Advectiion problem in 3d using AMReX as third party lib with auto generation of makefile.
+
+To run - sh run_Advection3d.sh
+
+
+See FullyFortran/doc/Advection3d/Advection3d.pdf for details.
+
+This code advects a single scalar field with a velocity
+field that is specified on faces in 3d.
+
+
+The code in Tutorials/Amr/Advection\_F is modified to do a 3d case in Fortran90. The Fortran routines contained in the Src\_3d directory from Tutorials/Amr/Advection\_AmrCore/Source is used and routines from\\
+Tutorials/Amr/Advection\_AmrCore/Exec/SingleVortex is used. The detailed documentation is given in the AMReX website (https://amrex-codes.github.io/amrex/docs\_html/AmrCore.html), and the changes in 3d are self explanatory.
+
+This example builds the code as a third party by just linking to the amrex library in tmp\_install\_dir/lib. It is done using an automated makefile generation procedure using mkmf (https://github.com/NOAA-GFDL/mkmf) which contains a perl script that creates a makefile taking care of all dependencies (see the git repo for more details). Currently the makefile is already built. If changes are made, then do the following in the Source directory.
+
+It is a AMReX based code designed to run in parallel using MPI/OMP.
+It uses the Fortran interfaces of AMReX.
+
+The directory Exec/SingleVortex includes a makefile and a sample inputs file.  
+Plotfiles are generated that can be viewed with amrvis2d / amrvis3d. 
+(CCSE's native vis / spreadsheet tool, downloadable separately from ccse.lbl.gov)
+or with Visit.

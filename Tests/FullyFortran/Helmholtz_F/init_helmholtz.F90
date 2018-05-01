@@ -1,0 +1,170 @@
+module init_helmholtz
+
+use helmholtz
+
+contains
+
+  subroutine init ()
+    call init_parameters()
+    call init_data()
+  end subroutine init
+
+  subroutine init_parameters()
+    type(amrex_parmparse) pp
+
+    call amrex_parmparse_build(pp)
+
+    call pp % query("max_level", max_level)
+    call pp % query("ref_ratio", ref_ratio)
+    call pp % query("n_cell", n_cell);
+    call pp % query("max_grid_size", max_grid_size)
+
+    call pp % query("composite_solve", composite_solve)
+
+    call pp % query("prob_type", prob_type)
+
+    call pp % query("verbose", verbose)
+    call pp % query("cg_verbose", cg_verbose)
+    call pp % query("max_iter", max_iter)
+    call pp % query("max_fmg_iter", max_fmg_iter)
+    call pp % query("linop_maxorder", linop_maxorder)
+    call pp % query("agglomeration", agglomeration)
+    call pp % query("consolidation", consolidation)
+
+    call amrex_parmparse_destroy(pp)
+  end subroutine init_parameters
+
+  subroutine init_data ()
+    use rhs_helmholtz 
+    allocate(geom(0:max_level))
+    allocate(ba(0:max_level))
+    allocate(dm(0:max_level))
+    allocate(solution(0:max_level))
+    allocate(rhs(0:max_level))
+    allocate(exact_solution(0:max_level))
+    if (prob_type .eq. 2) then
+       allocate(acoef(0:max_level))
+       allocate(bcoef(0:max_level))
+    end if
+
+    call init_geom()
+    call init_grids()
+    call init_mf()
+    if (prob_type .eq. 1) then
+       call init_prob_poisson(geom,solution, rhs, exact_solution)
+    else
+       call init_prob_abeclaplacian(geom,solution, rhs, exact_solution, acoef, bcoef, ascalar, bscalar)
+    end if
+  end subroutine init_data
+
+
+  subroutine init_geom ()
+    integer :: ilev
+    type(amrex_box) :: domain
+    call amrex_geometry_set_coord_sys(0)  ! Cartesian
+    call amrex_geometry_set_prob_domain([0._amrex_real,0._amrex_real,0._amrex_real], &
+         &                              [1._amrex_real,1._amrex_real,1._amrex_real])
+    call amrex_geometry_set_periodic([.false., .false., .false.])
+    domain = amrex_box([0,0,0], [n_cell-1,n_cell-1,n_cell-1])
+    !domain = amrex_box([0,0,0], [63,63,63])
+    do ilev = 0, max_level
+       call amrex_geometry_build(geom(ilev), domain)
+       call domain % refine(ref_ratio)
+    end do
+  end subroutine init_geom
+
+    subroutine init_grids ()
+    integer :: ilev
+    type(amrex_box) :: dom
+    dom = geom(0) % domain
+    do ilev = 0, max_level
+       call amrex_boxarray_build(ba(ilev), dom)
+       call ba(ilev) % maxSize(max_grid_size)
+       !call dom % grow([-5,-10,-10],[-8,-4,-2])     ! fine level cover the middle of the coarse domain
+       !call amrex_print(dom)
+       call dom % grow(-n_cell/4)     ! fine level cover the middle of the coarse domain
+       call dom % refine(ref_ratio)
+    end do
+  end subroutine init_grids
+
+
+  subroutine init_mf ()
+    integer :: ilev
+    do ilev = 0, max_level
+       call amrex_distromap_build(dm(ilev),ba(ilev))
+       ! one ghost cell to store boundary conditions
+       call amrex_multifab_build(solution(ilev), ba(ilev), dm(ilev), nc=1, ng=1)
+       call amrex_multifab_build(rhs(ilev), ba(ilev), dm(ilev), nc=1, ng=0)
+       call amrex_multifab_build(exact_solution(ilev), ba(ilev), dm(ilev), nc=1, ng=0)
+       if (allocated(acoef)) then
+          call amrex_multifab_build(acoef(ilev), ba(ilev), dm(ilev), nc=1, ng=0)
+          ! 1 ghost cell for averaging from cell centers to faces
+          call amrex_multifab_build(bcoef(ilev), ba(ilev), dm(ilev), nc=1, ng=1)
+       end if
+    end do
+  end subroutine init_mf
+ 
+  subroutine finalize ()
+    integer :: ilev, idim
+    do ilev = 0, max_level
+       call amrex_geometry_destroy(geom(ilev))
+       call amrex_boxarray_destroy(ba(ilev))
+       call amrex_distromap_destroy(dm(ilev))
+       call amrex_multifab_destroy(solution(ilev))
+       call amrex_multifab_destroy(rhs(ilev))
+       call amrex_multifab_destroy(exact_solution(ilev))
+       if (allocated(acoef)) then
+          call amrex_multifab_destroy(acoef(ilev))
+          call amrex_multifab_destroy(bcoef(ilev))
+       end if
+    end do
+  end subroutine finalize
+
+  subroutine write_plotfile ()
+    type(amrex_multifab) :: plotmf(0:max_level)
+    type(amrex_string), allocatable :: varname(:)
+    integer, dimension(0:max_level) :: steps, rr
+    integer :: ilev, nc
+
+    if (allocated(acoef)) then
+       nc = 6
+    else
+       nc = 4
+    end if
+    allocate(varname(nc))
+
+    call amrex_string_build(varname(1), "solution")
+    call amrex_string_build(varname(2), "rhs")
+    call amrex_string_build(varname(3), "exact_solution")
+    call amrex_string_build(varname(4), "error")
+    if (allocated(acoef)) then
+       call amrex_string_build(varname(5), "acoef")
+       call amrex_string_build(varname(6), "bcoef")
+    end if
+
+    do ilev = 0, max_level
+       call amrex_multifab_build(plotmf(ilev), ba(ilev), dm(ilev), nc, 0)
+       call plotmf(ilev) % copy(      solution(ilev), 1, 1, 1, 0)
+       call plotmf(ilev) % copy(           rhs(ilev), 1, 2, 1, 0)
+       call plotmf(ilev) % copy(exact_solution(ilev), 1, 3, 1, 0)
+       call plotmf(ilev) % copy(      solution(ilev), 1, 4, 1, 0)
+       call plotmf(ilev) % subtract(exact_solution(ilev),1,4,1,0)
+       if (allocated(acoef)) then
+          call plotmf(ilev) % copy(acoef(ilev), 1, 5, 1, 0)
+          call plotmf(ilev) % copy(bcoef(ilev), 1, 6, 1, 0)
+       end if
+    end do
+
+    steps = 1
+    rr = ref_ratio
+
+    call amrex_write_plotfile("plt", max_level+1, plotmf, varname, geom, 0._amrex_real, steps, rr)
+
+    ! let's not realy on finalizer, which is feature not all compilers support properly.
+    do ilev = 0, max_level
+       call amrex_multifab_destroy(plotmf(ilev))
+    end do
+  end subroutine write_plotfile
+
+
+end module init_helmholtz

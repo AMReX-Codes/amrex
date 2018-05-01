@@ -1,0 +1,7 @@
+latex HelmholtzMultiGrid
+bibtex HelmholtzMultiGrid
+latex HelmholtzMultiGrid
+latex HelmholtzMultiGrid
+dvips HelmholtzMultiGrid.dvi
+pstopdf HelmholtzMultiGrid.ps
+open HelmholtzMultiGrid.pdf

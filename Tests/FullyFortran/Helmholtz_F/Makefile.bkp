@@ -1,0 +1,37 @@
+# Makefile created by mkmf 19.3.0
+
+
+MK_TEMPLATE = template.mk
+include $(MK_TEMPLATE)
+
+
+.DEFAULT:
+	-echo $@ does not exist.
+all: main3d.gnu.MPI.ex
+helmholtz.o: ./helmholtz.F90
+	$(FC) $(CPPDEFS) $(FPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(OTHER_FFLAGS) -c	./helmholtz.F90
+init_helmholtz.o: ./init_helmholtz.F90 helmholtz.o rhs_helmholtz.o
+	$(FC) $(CPPDEFS) $(FPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(OTHER_FFLAGS) -c	./init_helmholtz.F90
+main.o: ./main.F90 solve_helmholtz.o init_helmholtz.o
+	$(FC) $(CPPDEFS) $(FPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(OTHER_FFLAGS) -c	./main.F90
+rhs_helmholtz.o: ./rhs_helmholtz.F90
+	$(FC) $(CPPDEFS) $(FPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(OTHER_FFLAGS) -c	./rhs_helmholtz.F90
+solve_helmholtz.o: ./solve_helmholtz.F90 helmholtz.o
+	$(FC) $(CPPDEFS) $(FPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(OTHER_FFLAGS) -c	./solve_helmholtz.F90
+SRC = ./main.F90 ./rhs_helmholtz.F90 ./solve_helmholtz.F90 ./helmholtz.F90 ./init_helmholtz.F90
+OBJ = main.o rhs_helmholtz.o solve_helmholtz.o helmholtz.o init_helmholtz.o
+clean: neat
+	-rm -f .main3d.gnu.MPI.ex.cppdefs $(OBJ) main3d.gnu.MPI.ex *.mod
+
+neat:
+	-rm -f $(TMPFILES)
+
+TAGS: $(SRC)
+	etags $(SRC)
+
+tags: $(SRC)
+	ctags $(SRC)
+
+main3d.gnu.MPI.ex: $(OBJ)
+	$(LD) $(OBJ) -o main3d.gnu.MPI.ex  $(LDFLAGS)
+
