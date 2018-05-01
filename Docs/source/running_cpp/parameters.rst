@@ -89,6 +89,30 @@ Distribution across MPI ranks and parallelization
 * ``warpx.do_dynamic_scheduling`` (`0` or `1`)
     Whether to use OpenMP dynamic scheduling.
 
+Math parser and user-defined constants
+--------------------------------------
+
+WarpX provides a math parser that reads expressions in the input file. 
+It can be used to define the plasma density profile or the laser field 
+(see below `Particle initialization` and `Laser initialization`). 
+
+The parser reads python-style expressions between double quotes, for instance 
+``"a0*x**2 * (1-y*1.e2) * (x>0)"`` is a valid expression where ``a0`` is a 
+user-defined constant and ``x`` and ``y`` are variables. The factor 
+``(x>0)`` is `1` where `x>0` and `0` where `x<=0`. It allows the user to
+ define functions by intervals. User-defined constants can be used in parsed
+ functions only (i.e., ``density_function(x,y,z)`` and ``field_function(x,y,t)``, 
+see below). They are specified with:
+
+* ``constants.use_my_constants`` (`bool`)
+    Whether to use user-defined constants.
+
+* ``constants.constant_names`` (`strings, separated by spaces`)
+    A list of variables the user wants to define, e.g., ``constants.constant_names = a0 n0``.
+
+* ``constants.constant_values`` (`floats, sepatated by spaces`)
+    Values for the user-defined constants., e.g., ``constants.constant_values = 3. 1.e24``.
+
 Particle initialization
 -----------------------
 
@@ -118,33 +142,28 @@ Particle initialization
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
+* ``<species_name>.profile`` (`string`)
+    Density profile for this species. The options are:
+
+    * ``constant``: Constant density profile within the box, or between ``<species_name>.xmin`` 
+      and ``<species_name>.xmax`` (and same in all directions). This requires additional 
+      parameter ``<species_name>.density``. i.e., the plasma density in :math:`m^{-3}`.
+
+    * ``parse_density_function``: the density is given by a function in the input file. 
+      It requires additional argument ``<species_name>.density_function(x,y,z)``, which is a 
+      mathematical expression for the density of the species, e.g. 
+      ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a 
+      user-defined constant, see above. Note that using this density profile will turn 
+      ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
+      
+* ``warpx.serialize_ics`` (`0 or 1`)
+    Whether or not to use OpenMP threading for particle initialization. 
+
 Laser initialization
 --------------------
 
 * ``warpx.use_laser`` (`0 or 1`)
     Whether to activate the injection of a laser pulse in the simulation
-
-* ``laser.profile`` (`string`)
-    The spatio-temporal shape of the laser. The options that are currently
-    implemented are:
-
-    - ``"Gaussian"``: The transverse and longitudinal profiles are Gaussian.
-    - ``"Harris"``: The transverse profile is Gaussian, but the longitudinal profile is given by the Harris function (see ``laser.profile_duration`` for more details)
-
-* ``laser.e_max`` (`float` ; in V/m)
-    Peak amplitude of the laser field.
-
-    For a laser with a wavelength :math:`\lambda = 0.8\,\mu m`, the peak amplitude
-    is related to :math:`a_0` by:
-
-    .. math::
-
-        E_{max} = a_0 \frac{2 \pi m_e c}{e\lambda} = a_0 \times (4.0 \cdot 10^{12} \;V.m^{-1})
-
-    When running a **boosted-frame simulation**, provide the value of ``laser.e_max``
-    in the laboratory frame, and use ``warpx.gamma_boost`` to automatically
-    perform the conversion to the boosted frame.
-
 
 * ``laser.position`` (`3 floats in 3D and 2D` ; in meters)
     The coordinates of one of the point of the antenna that will emit the laser.
@@ -163,6 +182,65 @@ Laser initialization
     ``laser.position`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame. Note that,
     in this case, the laser antenna will be moving, in the boosted frame.
+
+* ``laser.polarization`` (`3 floats in 3D and 2D`)
+    The coordinates of a vector that points in the direction of polarization of
+    the laser. The norm of this vector is unimportant, only its direction matters.
+
+    .. note::
+        Even in 2D, all the 3 components of this vectors are important (i.e.
+        the polarization can be orthogonal to the plane of the simulation).
+
+*  ``laser.direction`` (`3 floats in 3D`)
+    The coordinates of a vector that points in the propagation direction of
+    the laser. The norm of this vector is unimportant, only its direction matters.
+
+    The plane of the antenna that will emit the laser is orthogonal to this vector.
+
+    .. warning::
+
+        When running **boosted-frame simulations**, ``laser.direction`` should
+        be parallel to ``warpx.boost_direction``, for now.
+
+* ``laser.e_max`` (`float` ; in V/m)
+    Peak amplitude of the laser field.
+
+    For a laser with a wavelength :math:`\lambda = 0.8\,\mu m`, the peak amplitude
+    is related to :math:`a_0` by:
+
+    .. math::
+
+        E_{max} = a_0 \frac{2 \pi m_e c}{e\lambda} = a_0 \times (4.0 \cdot 10^{12} \;V.m^{-1})
+
+    When running a **boosted-frame simulation**, provide the value of ``laser.e_max``
+    in the laboratory frame, and use ``warpx.gamma_boost`` to automatically
+    perform the conversion to the boosted frame.
+
+* ``laser.wavelength`` (`float`; in meters)
+    The wavelength of the laser in vacuum.
+
+    When running a **boosted-frame simulation**, provide the value of
+    ``laser.wavelength`` in the laboratory frame, and use ``warpx.gamma_boost``
+    to automatically perform the conversion to the boosted frame.
+
+* ``laser.profile`` (`string`)
+    The spatio-temporal shape of the laser. The options that are currently
+    implemented are:
+
+    - ``"Gaussian"``: The transverse and longitudinal profiles are Gaussian.
+    - ``"Harris"``: The transverse profile is Gaussian, but the longitudinal profile 
+      is given by the Harris function (see ``laser.profile_duration`` for more details)
+    - ``"parse_field_function"``: the laser electric field is given by a function in the 
+      input file. It requires additional argument ``laser.field_function(X,Y,t)``, which 
+      is a mathematical expression , e.g. 
+      ``laser.field_function(X,Y,t) = "a0*X**2 * (X>0) * cos(omega0*t)"`` where 
+      ``a0`` and ``omega0`` are a user-defined constant, see above. The profile passed 
+      here is the full profile, not only the laser envelope. ``t`` is time and ``X`` 
+      and ``Y`` are coordinates orthogonal to ``laser.direction`` (not necessarily the 
+      x and y coordinates of the simulation). All parameters above are required, but 
+      none of the parameters below are used when ``laser.parse_field_function=1``. Even 
+      though ``laser.wavelength`` and ``laser.e_max`` should be included in the laser 
+      function, they still have to be specified as they are used for numerical purposes.
 
 *  ``laser.profile_t_peak`` (`float`; in seconds)
     The time at which the laser reaches its peak intensity, at the position
@@ -198,32 +276,6 @@ Laser initialization
     .. math::
 
         E(\boldsymbol{x},t) \propto \exp\left( -\frac{\boldsymbol{x}_\perp^2}{w_0^2} \right)
-
-* ``laser.wavelength`` (`float`; in meters)
-    The wavelength of the laser in vacuum.
-
-    When running a **boosted-frame simulation**, provide the value of
-    ``laser.wavelength`` in the laboratory frame, and use ``warpx.gamma_boost``
-    to automatically perform the conversion to the boosted frame.
-
-* ``laser.polarization`` (`3 floats in 3D and 2D`)
-    The coordinates of a vector that points in the direction of polarization of
-    the laser. The norm of this vector is unimportant, only its direction matters.
-
-    .. note::
-        Even in 2D, all the 3 components of this vectors are important (i.e.
-        the polarization can be orthogonal to the plane of the simulation).
-
-*  ``laser.direction`` (`3 floats in 3D`)
-    The coordinates of a vector that points in the propagation direction of
-    the laser. The norm of this vector is unimportant, only its direction matters.
-
-    The plane of the antenna that will emit the laser is orthogonal to this vector.
-
-    .. warning::
-
-        When running **boosted-frame simulations**, ``laser.direction`` should
-        be parallel to ``warpx.boost_direction``, for now.
 
 * ``laser.profile_focal_distance`` (`float`; in meters)
     The distance from ``laser_position`` to the focal plane.
@@ -282,9 +334,11 @@ Numerics and algorithms
      - ``1``: Vay pusher
 
 * ``interpolation.nox``, ``interpolation.noy``, ``interpolation.noz`` (`integer`)
-    The order of the shape factors for the macroparticles, for the 3 dimensions of space. Lower-order shape factors result in faster simulations, but more noisy results,
+    The order of the shape factors for the macroparticles, for the 3 dimensions of space. 
+    Lower-order shape factors result in faster simulations, but more noisy results,
 
-    Note that the implementation in WarpX is more efficient when these 3 numbers are equal, and when they are between 1 and 3.
+    Note that the implementation in WarpX is more efficient when these 3 numbers are equal, 
+    and when they are between 1 and 3.
     
 * ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`)
     The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
@@ -332,3 +386,15 @@ Diagnostics and output
 * ``warpx.plot_crsepatch`` (`0` or `1`)
     Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
     Whether to output the data of the coarse patch, in the plot files.
+
+Checkpoints and restart
+-----------------------
+WarpX supports checkpoints/restart via AMReX. 
+
+* ``amr.check_int`` (`integer`)
+    The number of iterations between two consecutive checkpoints. Use a
+    negative number to disable checkpoints.
+    
+* ``amr.restart`` (`string`)
+    Name of the checkpoint file to restart from. Returns an error if the folder does not exist 
+    or if it is not properly formatted. 
