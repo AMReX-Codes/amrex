@@ -1,12 +1,13 @@
 #! /usr/bin/env python
 
+import sys
 import yt
 import numpy as np
 import scipy.constants as scc
 yt.funcs.mylog.setLevel(0)
 
 # Check EB energy after 1000 timesteps
-filename = 'plt01000'
+filename = sys.argv[1]
 ds = yt.load( filename )
 ad = ds.all_data()
 ex = np.reshape(ad['boxlib', 'Ex'].v,(128,128))
