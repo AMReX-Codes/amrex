@@ -1,5 +1,9 @@
+Helmholtz problem using AMReX as third party lib with auto generation of makefile.
+
+See FullyFortran/doc/HelmholtzMultiGrid.pdf for details on how to run.
+
 This tutorial demonstrates how to solve the linear system in a
-canonical ABecLaplacian form
+canonical ABecLaplacian form 
 
     alpha * a * phi - beta * del dot (b grad phi) = rhs.
 
