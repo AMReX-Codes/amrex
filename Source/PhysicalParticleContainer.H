@@ -47,6 +47,13 @@ public:
                          amrex::Real t,
                          amrex::Real dt) override;
 
+    virtual void PushPX(WarpXParIter& pti,
+	                amrex::Vector<amrex::Real>& xp,
+                        amrex::Vector<amrex::Real>& yp,
+                        amrex::Vector<amrex::Real>& zp,
+                        amrex::Vector<amrex::Real>& giv,
+                        amrex::Real dt);
+
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& Ex,
                         const amrex::MultiFab& Ey,

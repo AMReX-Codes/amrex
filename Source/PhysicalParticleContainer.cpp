@@ -730,12 +730,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Particle Push
                 //
                 BL_PROFILE_VAR_START(blp_pxr_pp);
-                warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
-                                      uxp.data(), uyp.data(), uzp.data(), giv.data(),
-                                      Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                                      Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                                      &this->charge, &this->mass, &dt,
-                                      &WarpX::particle_pusher_algo);
+                PushPX(pti, xp, yp, zp, giv, dt);
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
                 //
@@ -879,6 +874,36 @@ PhysicalParticleContainer::Evolve (int lev,
             }
         }
     }
+    // std::cout << "JJ2 " << jx.norm2(0) << " " << jy.norm2(0) << " " << jz.norm2(0) << "\n";
+}
+
+void
+PhysicalParticleContainer::PushPX(WarpXParIter& pti,
+	                          Vector<Real>& xp, Vector<Real>& yp, Vector<Real>& zp,
+                                  Vector<Real>& giv,
+                                  Real dt)
+{
+
+    // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
+    auto& attribs = pti.GetAttribs();
+    auto& uxp = attribs[PIdx::ux];
+    auto& uyp = attribs[PIdx::uy];
+    auto& uzp = attribs[PIdx::uz];
+    auto& Exp = attribs[PIdx::Ex];
+    auto& Eyp = attribs[PIdx::Ey];
+    auto& Ezp = attribs[PIdx::Ez];
+    auto& Bxp = attribs[PIdx::Bx];
+    auto& Byp = attribs[PIdx::By];
+    auto& Bzp = attribs[PIdx::Bz];
+    const long np  = pti.numParticles();
+
+    warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
+                          uxp.data(), uyp.data(), uzp.data(), giv.data(),
+                          Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
+                          Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
+                          &this->charge, &this->mass, &dt,
+                          &WarpX::particle_pusher_algo);
+
 }
 
 void
