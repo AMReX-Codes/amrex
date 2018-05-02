@@ -93,7 +93,7 @@ contains
     end do
 
     allocate(dt(0:amrex_max_level))
-    dt = 1.e100
+    dt = 1.d100
 
     call amr_data_init()
   end subroutine my_amr_init
