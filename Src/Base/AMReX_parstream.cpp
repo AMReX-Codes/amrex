@@ -1,7 +1,8 @@
 #include <cstdio>
 #include <fstream>
-#include "AMReX_parstream.H"
-#include "AMReX_SPMD.H"
+#include <AMReX_parstream.H>
+#include <AMReX_SPMD.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex
 {
@@ -55,14 +56,9 @@ namespace amrex
   static void setFileName()
   {
     int outInterv = 1;
-
-    char* charInterv = getenv("CH_OUTPUT_INTERVAL");
-    if (charInterv != NULL)
-    {
-      outInterv =  atoi(charInterv);
-      // If zero specified, change it to numProc() which should give pout.0 only
-      if (outInterv == 0) outInterv=numProc();
-    }
+    ParmParse pp("amrex");
+    pp.query("pout_int", outInterv);
+    if (outInterv == 0) outInterv=numProc();
 
     int thisProc = procID();
     if ((thisProc % outInterv) != 0)
@@ -125,7 +121,7 @@ namespace amrex
       // app hasn't set a basename yet, so set the default
       if ( ! s_pout_init )
       {
-        s_pout_basename = "pout" ;
+        s_pout_basename = "amrex_pout" ;
         s_pout_init = true ;
       }
       // if MPI not initialized, we cant open the file so return cout
@@ -190,7 +186,7 @@ namespace amrex
       {
         if ( ! s_pout_init )
         {
-          s_pout_basename = "pout" ;
+          s_pout_basename = "amrex_pout" ;
           s_pout_init = true ;
         }
         setFileName() ;
