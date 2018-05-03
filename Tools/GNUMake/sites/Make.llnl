@@ -10,7 +10,7 @@ endif
 
 ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
 
-  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2017.04.03
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.04.27
 
   ifeq ($(USE_MPI),TRUE)
     CC  = $(MPIROOT)/bin/mpicc
@@ -43,7 +43,7 @@ endif
 
 ifeq ($(which_computer),$(filter $(which_computer),sierra))
 
-  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2017.11.10
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.04.27
 
   ifeq ($(USE_MPI),TRUE)
     CC  = $(MPIROOT)/bin/mpicc
