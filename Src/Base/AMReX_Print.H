@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iomanip>
 
+#include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
 
 namespace amrex
@@ -20,7 +21,7 @@ namespace amrex
     * \brief Print on I/O Processor of the default communicator
     * Example: Print() << " x = " << x << std::endl;  
     */
-	Print (std::ostream& os_ = std::cout) 
+	Print (std::ostream& os_ = amrex::OutStream())
 	    : rank(ParallelDescriptor::IOProcessorNumber())
 	    , comm(ParallelDescriptor::Communicator())
 	    , os(os_)
@@ -30,7 +31,7 @@ namespace amrex
     * \brief Print on all processors of the default communicator
     * Example: Print(Print::AllProcs) << " x = " << x << std::endl;
     */
-	Print (int rank_, std::ostream& os_ = std::cout) 
+	Print (int rank_, std::ostream& os_ = amrex::OutStream())
 	    : rank(rank_)
 	    , comm(ParallelDescriptor::Communicator())
 	    , os(os_)
@@ -40,7 +41,7 @@ namespace amrex
     * \brief Print on process rank_ of communicator comm_
     * Example: Print(rank_, comm_) << " x = " << x << std::endl;
     */
-	Print (int rank_, MPI_Comm comm_, std::ostream& os_ = std::cout)
+	Print (int rank_, MPI_Comm comm_, std::ostream& os_ = amrex::OutStream())
 	    : rank(rank_)
 	    , comm(comm_)
 	    , os(os_)
@@ -85,7 +86,7 @@ namespace amrex
     {
     public:
         //! Example: AllPrint() << " x = " << x << std::endl;
-	AllPrint (std::ostream& os_ = std::cout)
+	AllPrint (std::ostream& os_ = amrex::OutStream())
 	    : Print(Print::AllProcs, os_) 
 	    {}
 
