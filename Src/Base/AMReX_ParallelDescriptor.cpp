@@ -293,7 +293,7 @@ ParallelDescriptor::Message::count () const
 void
 ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv,
-                                   MPI_Comm mpi_comm)
+                                   MPI_Comm a_mpi_comm)
 {
     int sflag(0);
 
@@ -304,7 +304,7 @@ ParallelDescriptor::StartParallel (int*    argc,
         m_comm = MPI_COMM_WORLD;
         call_mpi_finalize = 1;
     } else {
-        BL_MPI_REQUIRE( MPI_Comm_dup(mpi_comm, &m_comm) );
+        BL_MPI_REQUIRE( MPI_Comm_dup(a_mpi_comm, &m_comm) );
         call_mpi_finalize = 0;
     }
 

@@ -54,6 +54,7 @@ namespace system
     int verbose;
     int signal_handling;
     int call_addr2line;
+    std::ostream* os = &std::cout;
 }
 }
 
@@ -273,21 +274,23 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 }
 
 void
-amrex::Initialize (MPI_Comm mpi_comm)
+amrex::Initialize (MPI_Comm mpi_comm, std::ostream& os)
 {
     int argc = 0;
     char** argv = 0;
-    Initialize(argc, argv, false, mpi_comm);
+    Initialize(argc, argv, false, mpi_comm, {}, os);
 }
 
 void
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
-                   MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse)
+                   MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
+                   std::ostream& os)
 {
     system::exename.clear();
     system::verbose = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
+    system::os = &os;
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
 #ifdef AMREX_PMI
@@ -554,3 +557,8 @@ amrex::Finalize (bool finalize_parallel)
     }
 }
 
+std::ostream&
+amrex::OutStream ()
+{
+    return *system::os;
+}
