@@ -8,14 +8,14 @@ CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp WarpXIO.cpp WarpXPro
 CEXE_sources += WarpXTagging.cpp WarpXComm.cpp WarpXMove.cpp WarpXBoostedFrameDiagnostic.cpp
 
 CEXE_sources += ParticleIO.cpp
-CEXE_sources += ParticleContainer.cpp WarpXParticleContainer.cpp PhysicalParticleContainer.cpp LaserParticleContainer.cpp
+CEXE_sources += ParticleContainer.cpp WarpXParticleContainer.cpp PhysicalParticleContainer.cpp LaserParticleContainer.cpp RigidInjectedParticleContainer.cpp
 
 CEXE_headers += WarpXWrappers.h WarpX_py.H
 
 CEXE_headers += WarpX.H WarpX_f.H WarpXConst.H WarpXBoostedFrameDiagnostic.H
 CEXE_sources += WarpXConst.cpp
 
-CEXE_headers += ParticleContainer.H WarpXParticleContainer.H PhysicalParticleContainer.H LaserParticleContainer.H
+CEXE_headers += ParticleContainer.H WarpXParticleContainer.H PhysicalParticleContainer.H LaserParticleContainer.H RigidInjectedParticleContainer.H
 
 CEXE_headers += PlasmaInjector.H
 CEXE_sources += PlasmaInjector.cpp CustomDensityProb.cpp CustomMomentumProb.cpp

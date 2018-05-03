@@ -9,6 +9,7 @@
 
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
+#include <RigidInjectedParticleContainer.H>
 #include <LaserParticleContainer.H>
 
 //
@@ -161,7 +162,12 @@ public:
 
 protected:
 
+    // Particle container types
+    enum struct PCTypes {Physical, RigidInjected};
+
     std::vector<std::string> species_names;
+
+    std::vector<PCTypes> species_types;
 
 private:
 
