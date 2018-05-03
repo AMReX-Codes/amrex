@@ -7,6 +7,8 @@
 
 using namespace amrex;
 
+constexpr int MultiParticleContainer::nstencilz_fdtd_nci_corr;
+
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
     ReadParameters();
@@ -55,7 +57,8 @@ MultiParticleContainer::ReadParameters ()
                 }
             }
         }
-
+	pp.query("use_fdtd_nci_corr", use_fdtd_nci_corr);
+	pp.query("l_lower_order_in_v", l_lower_order_in_v);
 	initialized = true;
     }
 }

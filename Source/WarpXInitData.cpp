@@ -5,6 +5,7 @@
 
 #include <WarpX.H>
 #include <WarpX_f.H>
+#include <WarpXWrappers.h>
 
 using namespace amrex;
 
@@ -28,6 +29,10 @@ WarpX::InitData ()
     }
 
     ComputePMLFactors();
+
+    if (warpx_use_fdtd_nci_corr()) {
+        WarpX::InitNCICorrector();
+    }
 
     InitDiagnostics();
 
@@ -116,6 +121,28 @@ WarpX::ComputePMLFactors ()
         {
             pml[lev]->ComputePMLFactors(dt[lev],pml_type);
         }
+    }
+}
+
+void
+WarpX::InitNCICorrector ()
+{
+    if (warpx_use_fdtd_nci_corr())
+    {
+        const Geometry& gm = Geom(finest_level);
+        const Real* dx = gm.CellSize();
+        const int l_lower_order_in_v = warpx_l_lower_order_in_v();
+        amrex::Real dz, cdtodz;
+        if (BL_SPACEDIM == 3){ 
+            dz = dx[2]; 
+        }else{ 
+            dz = dx[1]; 
+        }
+        cdtodz = PhysConst::c * dt[finest_level] / dz;
+        WRPX_PXR_NCI_CORR_INIT( mypc->fdtd_nci_stencilz_ex.data(), 
+                                mypc->fdtd_nci_stencilz_by.data(), 
+                                mypc->nstencilz_fdtd_nci_corr, cdtodz, 
+                                l_lower_order_in_v);
     }
 }
 

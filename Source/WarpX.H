@@ -91,7 +91,6 @@ public:
     static amrex::Vector<amrex::Real> boost_direction;
 
     static bool do_dynamic_scheduling;
-    static bool alloc_level_0_aux;
 
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
@@ -254,6 +253,8 @@ private:
     void ComputePMLFactors ();
 
     void InitDiagnostics ();
+
+    void InitNCICorrector ();
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
