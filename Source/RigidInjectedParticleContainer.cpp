@@ -230,9 +230,6 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    long ngE = Ex.nGrow();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -280,6 +277,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             pti.GetPosition(xp, yp, zp);
 
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+            const int* ixyzmin_grid = box.loVect();
 
             const int ll4symtry          = false;
             const int l_lower_order_in_v = true;
@@ -288,15 +286,16 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
                 &np, xp.data(), yp.data(), zp.data(),
                 Exp.data(),Eyp.data(),Ezp.data(),
                 Bxp.data(),Byp.data(),Bzp.data(),
+                ixyzmin_grid,
                 &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                 &dx[0], &dx[1], &dx[2],
                 &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                exfab.dataPtr(), &ngE, exfab.length(),
-                eyfab.dataPtr(), &ngE, eyfab.length(),
-                ezfab.dataPtr(), &ngE, ezfab.length(),
-                bxfab.dataPtr(), &ngE, bxfab.length(),
-                byfab.dataPtr(), &ngE, byfab.length(),
-                bzfab.dataPtr(), &ngE, bzfab.length(),
+                BL_TO_FORTRAN_ANYD(exfab),
+                BL_TO_FORTRAN_ANYD(eyfab),
+                BL_TO_FORTRAN_ANYD(ezfab),
+                BL_TO_FORTRAN_ANYD(bxfab),
+                BL_TO_FORTRAN_ANYD(byfab),
+                BL_TO_FORTRAN_ANYD(bzfab),
                 &ll4symtry, &l_lower_order_in_v,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 

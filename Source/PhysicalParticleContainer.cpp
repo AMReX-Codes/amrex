@@ -569,8 +569,6 @@ PhysicalParticleContainer::Evolve (int lev,
     const auto& mypc = WarpX::GetInstance().GetPartContainer();
     const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
 
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ = jx.nGrow();
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
@@ -986,9 +984,6 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     if (do_not_push) return;
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
-
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    long ngE = Ex.nGrow();
 
 #ifdef _OPENMP
 #pragma omp parallel
