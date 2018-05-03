@@ -721,7 +721,7 @@ public:
     /**
     * \brief This static member function returns a constant reference to 
     * an object of type Box representing the unit box in
-    * BL_SPACEDIM-dimensional space.
+    * AMREX_SPACEDIM-dimensional space.
     */
     static const Box& TheUnitBox ();
 
@@ -745,7 +745,7 @@ public:
 
     void normalize ()
     {
-        for (int idim=0; idim < BL_SPACEDIM; ++idim) {
+        for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
             if (this->length(idim) == 0) {
                 this->growHi(idim,1);
             }
@@ -768,9 +768,9 @@ long
 Box::index (const IntVect& v) const
 {
     long result = v[0]-smallend[0];
-#if   BL_SPACEDIM==2
+#if   AMREX_SPACEDIM==2
     result += length(0)*(v[1]-smallend[1]);
-#elif BL_SPACEDIM==3
+#elif AMREX_SPACEDIM==3
     result += length(0)*(v[1]-smallend[1]
                          +(v[2]-smallend[2])*length(1));
 #endif
@@ -787,10 +787,10 @@ public:
     int* data () && = delete;
 
     Box make_box () const {
-	return Box(IntVect(p), IntVect(p+BL_SPACEDIM), IntVect(p+2*BL_SPACEDIM));
+	return Box(IntVect(p), IntVect(p+AMREX_SPACEDIM), IntVect(p+2*AMREX_SPACEDIM));
     }
 
-    static int size () { return 3*BL_SPACEDIM; }
+    static int size () { return 3*AMREX_SPACEDIM; }
 
 private:
     int* p;

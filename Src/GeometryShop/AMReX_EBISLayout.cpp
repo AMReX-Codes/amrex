@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_EBISLayout.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_VoFIterator.H"
@@ -82,7 +71,8 @@ namespace amrex
                            const DistributionMapping & a_dm,
                            const int               & a_nghost,
                            const FabArray<EBGraph> & a_graph,
-                           const FabArray<EBData>  & a_data)
+                           const FabArray<EBData>  & a_data,
+                           bool a_hasMoments, Real a_dx)
   {
     BL_PROFILE("EBISLayoutImplem::define");
     //pout() << "in ebislayoutimplem::define with nghost = " << a_nghost << endl;
@@ -112,12 +102,14 @@ namespace amrex
     
     m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhostGraph);
 
-    EBDataFactory ebdatafact(m_ebGraph);
+    EBDataFactory ebdatafact(m_ebGraph, a_hasMoments, a_dx);
     m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, a_dm, 1, m_nghost, MFInfo(), ebdatafact));
-      
+
+//    pout() << "before ebdata copyine ebisl::define"  << endl;
     BL_PROFILE_VAR("EBISLayout_copy_ebdata",copy_data);
     m_ebData ->copy(a_data , 0, 0, 1, srcGhost, dstGhostData);
     BL_PROFILE_VAR_STOP(copy_data);
+//    pout() << "after ebdata copyine ebisl::define"  << endl;
 
 //begin debug
 //    EBISL_checkGraph(a_grids, a_dm, *m_ebGraph, string(" my graph after copy"));

@@ -29,9 +29,9 @@ int     FabArrayBase::use_cuda_aware_mpi;
 
 #ifdef AMREX_USE_CUDA
 
-#if BL_SPACEDIM == 1
+#if AMREX_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
-#elif BL_SPACEDIM == 2
+#elif AMREX_SPACEDIM == 2
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000,1024000);
@@ -39,9 +39,9 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,1024000,1024000);
 
 #else
 
-#if BL_SPACEDIM == 1
+#if AMREX_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
-#elif BL_SPACEDIM == 2
+#elif AMREX_SPACEDIM == 2
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
@@ -159,21 +159,21 @@ FabArrayBase::Initialize ()
 
     ParmParse pp("fabarray");
 
-    Vector<int> tilesize(BL_SPACEDIM);
+    Vector<int> tilesize(AMREX_SPACEDIM);
 
-    if (pp.queryarr("mfiter_tile_size", tilesize, 0, BL_SPACEDIM))
+    if (pp.queryarr("mfiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
-	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
+	for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
     }
 
-    if (pp.queryarr("mfghostiter_tile_size", tilesize, 0, BL_SPACEDIM))
+    if (pp.queryarr("mfghostiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
-	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfghostiter_tile_size[i] = tilesize[i];
+	for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfghostiter_tile_size[i] = tilesize[i];
     }
 
-    if (pp.queryarr("comm_tile_size", tilesize, 0, BL_SPACEDIM))
+    if (pp.queryarr("comm_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
-        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
+        for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
 
     pp.query("maxcomp",             FabArrayBase::MaxComp);
@@ -835,7 +835,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		std::vector<Box> boxes;
 		if (m_cross) {
 		    const Box& dstvbx = ba[tag.dstIndex];
-		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 		    {
 			Box lo = dstvbx;
 			lo.setSmall(dir, dstvbx.smallEnd(dir) - ng);
@@ -1372,7 +1372,7 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, int ng,
                               bool include_periodic, bool include_physbndry)
 {
     Box bx = geom.Domain();
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
             if (include_periodic) {
                 bx.grow(idim, ng);
@@ -1456,9 +1456,10 @@ FabArrayBase::flushCFinfo (bool no_assertion)
 void
 FabArrayBase::Finalize ()
 {
+    nFabArrays = 0;
+
     FabArrayBase::flushFBCache();
     FabArrayBase::flushCPCache();
-
     FabArrayBase::flushTileArrayCache();
 
     if (ParallelDescriptor::IOProcessor() && amrex::system::verbose) {
@@ -1469,6 +1470,16 @@ FabArrayBase::Finalize ()
 	m_FPinfo_stats.print();
 	m_CFinfo_stats.print();
     }
+
+    m_TAC_stats = CacheStats("TileArrayCache");
+    m_FBC_stats = CacheStats("FBCache");
+    m_CPC_stats = CacheStats("CopyCache");
+    m_FPinfo_stats = CacheStats("FillPatchCache");
+    m_CFinfo_stats = CacheStats("CrseFineCache");
+
+    m_BD_count.clear();
+    
+    m_FA_stats = FabArrayStats();
 
     initialized = false;
 }
@@ -1557,7 +1568,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 	    
 	    IntVect nt_in_fab, tsize, nleft;
 	    int ntiles = 1;
-	    for (int d=0; d<BL_SPACEDIM; d++) {
+	    for (int d=0; d<AMREX_SPACEDIM; d++) {
 		int ncells = bx.length(d);
 		nt_in_fab[d] = std::max(ncells/tileSize[d], 1);
 		tsize    [d] = ncells/nt_in_fab[d];
@@ -1573,7 +1584,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 		ta.localTileIndexMap.push_back(t);
 		ta.numLocalTiles.push_back(ntiles);
 
-		for (int d=0; d<BL_SPACEDIM; d++) {
+		for (int d=0; d<AMREX_SPACEDIM; d++) {
 		    if (ijk[d]<nt_in_fab[d]-1) {
 			ijk[d]++;
 			break;
@@ -1582,7 +1593,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 		    }
 		}
 		
-		for (int d=0; d<BL_SPACEDIM; d++) {
+		for (int d=0; d<AMREX_SPACEDIM; d++) {
 		    if (ijk[d] < nleft[d]) {
 			small[d] = ijk[d]*(tsize[d]+1);
 			big[d] = small[d] + tsize[d];
@@ -1720,11 +1731,8 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_data.size() == N_snds);
 
     Vector<int> indx;
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
 
-    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
+    ParallelDescriptor::Waitall(send_reqs, stats);
 
     for (int i = 0; i < N_snds; i++) {
         if (send_data[i]) {

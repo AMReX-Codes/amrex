@@ -1,24 +1,12 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #ifndef _EBArith_H___
 #define _EBArith_H___
 #include "AMReX_VolIndex.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_Stencils.H"
 #include "AMReX_IntVectSet.H"
+#include "AMReX_IndexTM.H"
 #include "AMReX_EBLevelGrid.H"
 #include <sstream>
-
 
 namespace amrex
 {
@@ -33,6 +21,20 @@ namespace amrex
   class EBArith
   {
   public:
+  ///
+  static void convertToITM(IndexTM<Real, SpaceDim>& a_diffrv,  const RealVect& a_rv);
+
+
+  ///
+  static void convertToITM(IndexTM<int, SpaceDim>& a_diffrv,  const IntVect& a_rv);
+
+  ///
+  static void convertToITM(IndexTM<Real, SpaceDim-1>& a_diffrv,  const RealVect& a_rv, const int& a_ignoreIndex);
+
+  ///
+  static void convertToITM(IndexTM<int, SpaceDim-1>& a_diffrv,  const IntVect& a_rv, const int& a_ignoreIndex);
+
+
     EBArith()
       {   }
     ~EBArith()

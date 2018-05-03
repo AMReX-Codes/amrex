@@ -1,16 +1,3 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #ifndef _EBISBOX_H___
 #define _EBISBOX_H___
 
@@ -347,6 +334,44 @@ namespace amrex
     bool operator==(const EBISBox& ebiin);
 
     EBISBox (EBISBox&& rhs) noexcept = default;
+
+
+
+    /// get the moment at  the VoF associated with the  monomial with the input exponents
+    /**
+       Given VoF variables x, y, z,   p = mono(0), q = mono(1), r = mono(2),
+       returns integral_over_VoF(x^p y^q z^r dV) for all p q
+    **/
+    IndMomSpaceDim getVolumeMoments(const VolIndex& a_vof) const
+      {
+        return m_data.getVolumeMoments(a_vof);
+      }
+
+    /// get the normal the irregular face associated with the  monomial with the input exponents 
+    /**
+       Given VoF variables x, y, z,   p = mono(0), q = mono(1), r = mono(2),
+       returns integral_over_VoF((x^p y^q z^r) dV) for p q r
+    **/
+    IndMomSpaceDim getEBMoments(const VolIndex& a_vof) const
+      {
+        return m_data.getEBMoments(a_vof);
+      }
+
+    /// get the moment at  the face associated with the  monomial with the input exponents
+    /**
+       Given face variables x, y,  p = mono(0), q = mono(1)),
+       returns integral_over_face(x^p y^q dA) for all p q
+    **/
+    IndMomSDMinOne getFaceMoments(const FaceIndex& a_face) const
+      {
+        return m_data.getFaceMoments(a_face);
+      }
+
+    /// I am sick of guessing this name wrong
+    IndMomSDMinOne getAreaMoments(const FaceIndex& a_face) const
+      {
+        return getFaceMoments(a_face);
+      }
 
   private:
 

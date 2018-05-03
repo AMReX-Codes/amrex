@@ -309,7 +309,7 @@ MFIter::tilebox () const
 	bx.convert(typ);
 	const Box& vbx = validbox();
 	const IntVect& Big = vbx.bigEnd();
-	for (int d=0; d<BL_SPACEDIM; ++d) {
+	for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	    if (typ.nodeCentered(d)) { // validbox should also be nodal in d-direction.
 		if (bx.bigEnd(d) < Big[d]) {
 		    bx.growHi(d,-1);
@@ -332,7 +332,7 @@ MFIter::tilebox (const IntVect& nodal) const
 	bx.setType(new_typ);
 	const Box& valid_cc_box = amrex::enclosedCells(validbox());
 	const IntVect& Big = valid_cc_box.bigEnd();
-	for (int d=0; d<BL_SPACEDIM; ++d) {
+	for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	    if (new_typ.nodeCentered(d)) { // validbox should also be nodal in d-direction.
 		if (bx.bigEnd(d) == Big[d]) {
 		    bx.growHi(d,1);
@@ -349,7 +349,7 @@ MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const
 {
     Box bx = tilebox(nodal);
     const Box& vbx = validbox();
-    for (int d=0; d<BL_SPACEDIM; ++d) {
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
 	    bx.growLo(d, ngrow[d]);
 	}
@@ -363,7 +363,7 @@ MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
-    BL_ASSERT(dir < BL_SPACEDIM);
+    BL_ASSERT(dir < AMREX_SPACEDIM);
     BL_ASSERT(tile_array != 0);
     Box bx((*tile_array)[currentIndex]);
     bx.convert(typ);
@@ -372,7 +372,7 @@ MFIter::nodaltilebox (int dir) const
     int d0, d1;
     if (dir < 0) {
 	d0 = 0;
-	d1 = BL_SPACEDIM-1;
+	d1 = AMREX_SPACEDIM-1;
     } else {
 	d0 = d1 = dir;
     }
@@ -395,7 +395,7 @@ MFIter::growntilebox (int ng) const
     Box bx = tilebox();
     if (ng < -100) ng = fabArray.nGrow();
     const Box& vbx = validbox();
-    for (int d=0; d<BL_SPACEDIM; ++d) {
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
 	    bx.growLo(d, ng);
 	}
@@ -410,11 +410,11 @@ MFIter::growntilebox (int ng) const
 Box
 MFIter::grownnodaltilebox (int dir, int ng) const
 {
-    BL_ASSERT(dir < BL_SPACEDIM);
+    BL_ASSERT(dir < AMREX_SPACEDIM);
     Box bx = nodaltilebox(dir);
     if (ng < -100) ng = fabArray.nGrow();
     const Box& vbx = validbox();
-    for (int d=0; d<BL_SPACEDIM; ++d) {
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
 	    bx.growLo(d, ng);
 	}

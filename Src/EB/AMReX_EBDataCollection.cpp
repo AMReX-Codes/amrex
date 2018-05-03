@@ -29,6 +29,9 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
         {
             m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
             EBTower::fillVolFrac(*m_volfrac, m_geom);
+
+//            m_centroid = new MultiCutFab(a_ba, a_dm, 3, m_ngrow[1], *m_cellflags);
+//            EBTower::fillCentroid(*m_centroid, m_geom);
         }
 
         if (m_support == EBSupport::full)
@@ -50,6 +53,7 @@ EBDataCollection::~EBDataCollection ()
 {
     delete m_cellflags;
     delete m_volfrac;
+//    delete m_centroid;
     delete m_bndrycent;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         delete m_areafrac[idim];
@@ -70,6 +74,13 @@ EBDataCollection::getVolFrac () const
     AMREX_ASSERT(m_volfrac != nullptr);
     return *m_volfrac;
 }
+
+// const MultiCutFab&
+// EBDataCollection::getCentroid () const
+// {
+//     AMREX_ASSERT(m_centroid != nullptr);
+//     return *m_centroid;
+// }
 
 const MultiCutFab&
 EBDataCollection::getBndryCent () const

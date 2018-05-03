@@ -1,15 +1,3 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #ifndef _EBFLUXFAB_H_
 #define _EBFLUXFAB_H_
 
@@ -208,7 +196,7 @@ namespace amrex
     bool m_isDefined;
 
     /// CH_SPACEDIM EBFaceFABes which hold fluxes
-    EBFaceFAB m_fluxes[BL_SPACEDIM];
+    EBFaceFAB m_fluxes[AMREX_SPACEDIM];
     IrregFAB  m_irrFlux;
 
 

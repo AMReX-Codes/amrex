@@ -8,19 +8,21 @@ namespace amrex {
 MLPoisson::MLPoisson (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const LPInfo& a_info)
+                      const LPInfo& a_info,
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-    define(a_geom, a_grids, a_dmap, a_info);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 void
 MLPoisson::define (const Vector<Geometry>& a_geom,
                    const Vector<BoxArray>& a_grids,
                    const Vector<DistributionMapping>& a_dmap,
-                   const LPInfo& a_info)
+                   const LPInfo& a_info,
+                   const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLPoisson::define()");
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 MLPoisson::~MLPoisson ()
@@ -79,6 +81,34 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
 #endif
                               dxinv);                                         
     }
+}
+
+void
+MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+#if (AMREX_SPACEDIM != 3)
+    BL_PROFILE("MLPoisson::normalize()");
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        amrex_mlpoisson_normalize(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD(fab),
+                                  rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
+                                  dxinv);                                     
+    }
+#endif
 }
 
 void
