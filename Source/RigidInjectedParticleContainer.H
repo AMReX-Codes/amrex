@@ -2,6 +2,7 @@
 #define WARPX_RigidInjectedParticleContainer_H_
 
 #include <PhysicalParticleContainer.H>
+#include <AMReX_Vector.H>
 
 class RigidInjectedParticleContainer
     : public PhysicalParticleContainer
@@ -58,8 +59,8 @@ private:
     bool done_injecting = false;
 
     // Temporary quantites
-    Real zinject_plane_previous;
-    bool done_injecting_temp;
+    amrex::Real zinject_plane_previous;
+    amrex::Vector<int> done_injecting_temp;
 
 };
 

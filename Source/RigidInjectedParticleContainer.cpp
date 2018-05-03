@@ -1,7 +1,12 @@
 #include <limits>
 #include <sstream>
+#include <algorithm>
 
-#include <ParticleContainer.H>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include <RigidInjectedParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
@@ -123,14 +128,15 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     const long np  = pti.numParticles();
 
     // Save the position and momenta, making copies
-    auto xp_save = xp;
-    auto yp_save = yp;
-    auto zp_save = zp;
-    auto uxp_save = uxp;
-    auto uyp_save = uyp;
-    auto uzp_save = uzp;
+    Vector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
 
     if (!done_injecting) {
+        xp_save = xp;
+        yp_save = yp;
+        zp_save = zp;
+        uxp_save = uxp;
+        uyp_save = uyp;
+        uzp_save = uzp;
         // Scale the fields of particles about to cross the injection plane.
         // This only approximates what should be happening. The particles
         // should by advanced a fraction of a time step instead.
@@ -158,6 +164,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     if (!done_injecting) {
         // Undo the push for particles not injected yet.
         // The zp are advanced a fixed amount.
+        bool done = true;
         for (int i=0 ; i < zp.size() ; i++) {
             if (zp[i] <= zinject_plane) {
                 xp[i] = xp_save[i];
@@ -167,9 +174,16 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                 uyp[i] = uyp_save[i];
                 uzp[i] = uzp_save[i];
                 giv[i] = 1./std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
-                done_injecting_temp = false;
+                done = false;
             }
         }
+
+#ifdef _OPENMP
+        const int tid = omp_get_thread_num();
+#else
+        const int tid = 0;
+#endif
+        done_injecting_temp[tid] = done;
     }
 
 }
@@ -188,9 +202,12 @@ RigidInjectedParticleContainer::Evolve (int lev,
     zinject_plane -= dt*WarpX::beta_boost*PhysConst::c;
 
     // Setup check of whether more particles need to be injected
-    // This is not thread safe. Is there a way to fix beside adding
-    // a separate check if all particles have z > zinject_plane?
-    done_injecting_temp = true;
+#ifdef _OPENMP
+    const int nthreads = omp_get_max_threads();
+#else
+    const int nthreads = 1;
+#endif
+    done_injecting_temp.assign(nthreads, 1); // We do not use bool because vector<bool> is special.
 
     PhysicalParticleContainer::Evolve (lev,
 				       Ex, Ey, Ez,
@@ -199,8 +216,9 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                        rho, rho2,
                                        t, dt);
 
-    done_injecting = done_injecting_temp;
-
+    // Check if all done_injecting_temp are still true.
+    done_injecting = std::all_of(done_injecting_temp.begin(), done_injecting_temp.end(),
+                                 [](int i) -> bool { return i; });
 }
 
 void

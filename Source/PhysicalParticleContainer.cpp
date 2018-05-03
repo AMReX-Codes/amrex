@@ -874,7 +874,6 @@ PhysicalParticleContainer::Evolve (int lev,
             }
         }
     }
-    // std::cout << "JJ2 " << jx.norm2(0) << " " << jy.norm2(0) << " " << jz.norm2(0) << "\n";
 }
 
 void
