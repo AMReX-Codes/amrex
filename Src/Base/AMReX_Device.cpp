@@ -372,7 +372,9 @@ void
 amrex::Device::mem_advise_set_preferred(void* p, const std::size_t sz, const int device) {
 
 #ifdef AMREX_USE_CUDA
+#ifndef NO_CUDA_8
     CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
+#endif
 #endif
 
 }
@@ -381,7 +383,9 @@ void
 amrex::Device::mem_advise_set_readonly(void* p, const std::size_t sz) {
 
 #ifdef AMReX_USE_CUDA
+#ifndef NO_CUDA_8
     CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+#endif
 #endif
 
 }

@@ -72,8 +72,8 @@ namespace amrex
 
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge)
     {
-	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
-	BL_ASSERT(edge.size() == BL_SPACEDIM);
+	BL_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+	BL_ASSERT(edge.size() == AMREX_SPACEDIM);
 	BL_ASSERT(edge[0]->nComp() == 1);
 #ifdef _OPENMP
 #pragma omp parallel
@@ -93,8 +93,8 @@ namespace amrex
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
     {
-	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
-	BL_ASSERT(fc.size() == BL_SPACEDIM);
+	BL_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
 	BL_ASSERT(fc[0]->nComp() == 1);
 
 	Real dx[3] = {1.0,1.0,1.0};
@@ -121,8 +121,8 @@ namespace amrex
     void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
 				     const Geometry& geom)
     {
-	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);
-	BL_ASSERT(fc.size() == BL_SPACEDIM);
+	BL_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
+	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
 	BL_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
@@ -151,7 +151,7 @@ namespace amrex
     {
 	BL_ASSERT(cc.nComp() == 1);
 	BL_ASSERT(cc.nGrow() >= 1);
-	BL_ASSERT(fc.size() == BL_SPACEDIM);
+	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
 	BL_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
@@ -164,19 +164,19 @@ namespace amrex
 	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
 	{
 	    const Box& xbx = mfi.nodaltilebox(0);
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 	    const Box& ybx = mfi.nodaltilebox(1);
 #endif
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	    const Box& zbx = mfi.nodaltilebox(2);
 #endif
 	    
 	    BL_FORT_PROC_CALL(BL_AVG_CC_TO_FC,bl_avg_cc_to_fc)
 		(xbx.loVect(), xbx.hiVect(),
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 		 ybx.loVect(), ybx.hiVect(),
 #endif
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 		 zbx.loVect(), zbx.hiVect(),
 #endif
 		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
@@ -209,7 +209,7 @@ namespace amrex
             amrex::Error("Can't use amrex::average_down for nodal MultiFab!");
         }
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
 	return;
 #else
@@ -379,8 +379,8 @@ namespace amrex
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
 			     const IntVect& ratio, int ngcrse)
     {
-	BL_ASSERT(crse.size()  == BL_SPACEDIM);
-	BL_ASSERT(fine.size()  == BL_SPACEDIM);
+	BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
+	BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
 	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
 	int ncomp = crse[0]->nComp();
@@ -390,7 +390,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (int n=0; n<BL_SPACEDIM; ++n) {
+            for (int n=0; n<AMREX_SPACEDIM; ++n) {
                 for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
                 {
                     const Box& tbx = mfi.growntilebox(ngcrse);
@@ -427,8 +427,8 @@ namespace amrex
     void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                              const IntVect& ratio, int ngcrse)
     {
-	BL_ASSERT(crse.size()  == BL_SPACEDIM);
-	BL_ASSERT(fine.size()  == BL_SPACEDIM);
+	BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
+	BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
 	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
 	int ncomp = crse[0]->nComp();
@@ -436,7 +436,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (int n=0; n<BL_SPACEDIM; ++n) {
+        for (int n=0; n<AMREX_SPACEDIM; ++n) {
             for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.growntilebox(ngcrse);

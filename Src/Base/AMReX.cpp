@@ -55,9 +55,18 @@ namespace amrex {
 namespace system
 {
     std::string exename;
-    int verbose = 0;
-    int signal_handling = 1;
+    int verbose;
+    int signal_handling;
 }
+}
+
+namespace {
+    std::new_handler prev_new_handler;
+    typedef void (*SignalHandler)(int);
+    SignalHandler prev_handler_sigsegv;
+    SignalHandler prev_handler_sigint;
+    SignalHandler prev_handler_sigabrt;
+    SignalHandler prev_handler_sigfpe;
 }
 
 std::string amrex::Version ()
@@ -265,9 +274,21 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 }
 
 void
+amrex::Initialize (MPI_Comm mpi_comm)
+{
+    int argc = 0;
+    char** argv = 0;
+    Initialize(argc, argv, false, mpi_comm);
+}
+
+void
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse)
 {
+    system::exename.clear();
+    system::verbose = 0;
+    system::signal_handling = 1;
+
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
 #ifdef AMREX_PMI
@@ -277,19 +298,22 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     //
     // Make sure to catch new failures.
     //
-    std::set_new_handler(amrex::OutOfMemory);
+    prev_new_handler = std::set_new_handler(amrex::OutOfMemory);
 
-    if (argv[0][0] != '/') {
-	constexpr int bufSize = 1024;
-	char temp[bufSize];
-	char *rCheck = getcwd(temp, bufSize);
-	if(rCheck == 0) {
-	  amrex::Abort("**** Error:  getcwd buffer too small.");
-	}
-	system::exename = temp;
-	system::exename += "/";
+    if (argc > 0)
+    {
+        if (argv[0][0] != '/') {
+            constexpr int bufSize = 1024;
+            char temp[bufSize];
+            char *rCheck = getcwd(temp, bufSize);
+            if(rCheck == 0) {
+                amrex::Abort("**** Error:  getcwd buffer too small.");
+            }
+            system::exename = temp;
+            system::exename += "/";
+        }
+        system::exename += argv[0];
     }
-    system::exename += argv[0];
 
 #ifdef BL_USE_UPCXX
     upcxx::init(&argc, &argv);
@@ -298,8 +322,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 
 #ifdef BL_USE_MPI3
-    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::cp_win) );
-    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fb_win) );
+    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, ParallelDescriptor::Communicator(),
+                                           &ParallelDescriptor::cp_win) );
+    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, ParallelDescriptor::Communicator(),
+                                           &ParallelDescriptor::fb_win) );
 #endif
 
 #ifdef BL_USE_MPI
@@ -336,7 +362,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         {
             ParmParse::Initialize(0,0,0);
         }
-        else
+        else if (argc > 1)
         {
             if (strchr(argv[1],'='))
             {
@@ -347,6 +373,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 ParmParse::Initialize(argc-2,argv+2,argv[1]);
             }
         }
+    } else {
+        ParmParse::Initialize(0,0,0);
     }
 
     if (func_parm_parse) {
@@ -367,9 +395,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
-            signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
-            signal(SIGINT,  BLBackTrace::handler);
-            signal(SIGABRT, BLBackTrace::handler);
+            prev_handler_sigsegv = signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+            prev_handler_sigint = signal(SIGINT,  BLBackTrace::handler);
+            prev_handler_sigabrt = signal(SIGABRT, BLBackTrace::handler);
+
+            prev_handler_sigfpe = SIG_ERR;
 
             int invalid = 0, divbyzero=0, overflow=0;
             pp.query("fpe_trap_invalid", invalid);
@@ -383,7 +413,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #if !defined(__PGI) || (__PGIC__ >= 16)
             if (flags != 0) {
                 feenableexcept(flags);  // trap floating point exceptions
-                signal(SIGFPE,  BLBackTrace::handler);
+                prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
             }
 #endif
 #endif
@@ -430,6 +460,22 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #if defined(BL_MEM_PROFILING) && defined(BL_USE_F_BASELIB)
     MemProfiler_f::initialize();
 #endif
+
+    if (system::verbose > 0)
+    {
+#ifdef BL_USE_MPI
+        amrex::Print() << "MPI initialized with "
+                       << ParallelDescriptor::NProcs()
+                       << " MPI processes\n";
+#endif
+        
+#ifdef _OPENMP
+//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
+        amrex::Print() << "OMP initialized with "
+                       << omp_get_max_threads()
+                       << " OMP threads\n";
+#endif
+    }
 }
 
 void
@@ -487,17 +533,32 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
+    amrex_mempool_finalize();
+
 #ifdef BL_MEM_PROFILING
     MemProfiler::report("Final");
+    MemProfiler::Finalize();
 #endif
-    
+
     ParallelDescriptor::EndTeams();
 
     ParallelDescriptor::EndSubCommunicator();
 
+#ifndef BL_AMRPROF
+    if (system::signal_handling)
+    {
+        if (prev_handler_sigsegv != SIG_ERR) signal(SIGSEGV, prev_handler_sigsegv);
+        if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
+        if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
+        if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
+    }
+#endif
+
 #ifdef BL_USE_UPCXX
     upcxx::finalize();
 #endif
+
+    std::set_new_handler(prev_new_handler);
 
     if (finalize_parallel) {
 #if defined(BL_USE_FORTRAN_MPI)

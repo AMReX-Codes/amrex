@@ -123,7 +123,7 @@ program main
      if (i .eq. parallel_myproc()) then
         print *, parallel_myproc(), bl_rng_get(ur,eng1), bl_rng_get(nm,eng2), &
              bl_rng_get(ps,eng2), bl_rng_get(bi,eng1) 
-        call flush(6)
+        flush(6)
      end if
      call parallel_barrier()
   end do

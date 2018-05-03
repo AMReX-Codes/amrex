@@ -40,10 +40,10 @@ BL_FORT_PROC_DECL(BL_AVG_FC_TO_CC, bl_avg_fc_to_cc)
 
 BL_FORT_PROC_DECL(BL_AVG_CC_TO_FC, bl_avg_cc_to_fc)
   (const int* xlo, const int* xhi,
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
    const int* ylo, const int* yhi,
 #endif
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
    const int* zlo, const int* zhi,
 #endif
    AMREX_D_DECL(BL_FORT_FAB_ARG(fx),

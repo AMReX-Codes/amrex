@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_EllipsoidIF.H"
 
 namespace amrex
@@ -65,6 +54,53 @@ namespace amrex
 
     // Change the sign to change inside to outside
     if (!m_inside)
+    {
+      retval = -retval;
+    }
+
+    return retval;
+  }
+
+  Real 
+  EllipsoidIF::
+  derivative(const  IntVect& a_deriv,
+             const RealVect& a_point) const
+  {
+    //negative derivs make no sense
+    BL_ASSERT(a_deriv.min() >= 0);
+    Real retval = 0;
+    int maxDir = a_deriv.maxDir(false);
+    int derivativeOrder = a_deriv.sum();
+
+    if (derivativeOrder == 0)
+    {
+      retval = value(a_point);
+    }
+    else if (derivativeOrder == 1)
+    {
+      retval = 2.0*(a_point[maxDir] - m_center[maxDir])/m_radii2[maxDir];
+    }
+    else if (derivativeOrder == 2)
+    {
+      if (a_deriv[maxDir] == 2)
+      {
+        // unmixed second partial = 2.0
+        retval = 2.0/m_radii2[maxDir];
+      }
+      else
+      {
+        // mixed partials = 0.0
+        retval = 0.0;
+      }
+    }
+    else
+    {
+      // higher partials = 0.0
+      retval = 0.0;
+    }
+
+    // Change the sign to change inside to outside
+    if (!m_inside && derivativeOrder > 0)
     {
       retval = -retval;
     }

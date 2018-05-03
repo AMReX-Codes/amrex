@@ -19,10 +19,26 @@ namespace {
 MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
-                                  const LPInfo& a_info)
+                                  const LPInfo& a_info,
+                                  const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-    define(a_geom, a_grids, a_dmap, a_info);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
+
+#ifdef AMREX_USE_EB
+MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
+                                  const Vector<BoxArray>& a_grids,
+                                  const Vector<DistributionMapping>& a_dmap,
+                                  const LPInfo& a_info,
+                                  const Vector<EBFArrayBoxFactory const*>& a_factory)
+{
+    Vector<FabFactory<FArrayBox> const*> _factory;
+    for (auto x : a_factory) {
+        _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
+    }
+    define(a_geom, a_grids, a_dmap, a_info, _factory);
+}
+#endif
 
 MLNodeLaplacian::~MLNodeLaplacian ()
 {}
@@ -31,7 +47,8 @@ void
 MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
-                         const LPInfo& a_info)
+                         const LPInfo& a_info,
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLNodeLaplacian::define()");
 
@@ -41,19 +58,35 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         ba.enclosedCells();
     }
 
-    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info);
+    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, a_factory);
 
     m_sigma.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_sigma[amrlev].resize(m_num_mg_levels[amrlev]);
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
-        {
-            int idim = 0;
-            m_sigma[amrlev][mglev][idim].reset
-                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
-        }
+        const int mglev = 0;
+        const int idim = 0;
+        m_sigma[amrlev][mglev][idim].reset
+            (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
+        m_sigma[amrlev][mglev][idim]->setVal(0.0);
     }
+
+#ifdef AMREX_USE_EB
+    const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 24;
+    const int ncomp_i = AMREX_SPACEDIM;
+    m_connection.resize(m_num_amr_levels);
+    m_integral.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_integral[amrlev].reset
+            (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1));
+        m_integral[amrlev]->setVal(0.0);
+
+        m_connection[amrlev].reset
+            (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_c, 1));
+        m_connection[amrlev]->setVal(1.0);
+    }
+#endif
 
 #if (AMREX_SPACEDIM == 2)
     m_is_rz = Geometry::IsRZ();
@@ -74,6 +107,10 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     BL_PROFILE("MLNodeLaplacian::compRHS()");
 
     if (!m_masks_built) buildMasks();
+
+#if AMREX_USE_EB
+    if (!m_connection_built) buildConnection();
+#endif
 
     Vector<std::unique_ptr<MultiFab> > rhcc(m_num_amr_levels);
     Vector<std::unique_ptr<MultiFab> > rhs_cc(m_num_amr_levels);
@@ -102,23 +139,62 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
         const iMultiFab& dmsk = *m_dirichlet_mask[ilev][0];
 
+#ifdef AMREX_USE_EB
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[ilev][0].get());
+        const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+        const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+        const MultiFab* intg = m_integral[ilev].get();
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(*rhs[ilev], true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*rhs[ilev], MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
 
-            amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
-                               BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
-                               BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
-                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                               dxinv);
+#ifdef AMREX_USE_EB
+            bool regular = !factory;
+            if (factory)
+            {
+                const auto& flag = (*flags)[mfi];
+                const auto& ccbx = amrex::grow(amrex::enclosedCells(bx),1);
+                const auto& typ = flag.getType(ccbx);
+                if (typ == FabType::covered)
+                {
+                    (*rhs[ilev])[mfi].setVal(0.0, bx);
+                }
+                else if (typ == FabType::singlevalued)
+                {
+                    amrex_mlndlap_divu_eb(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*intg)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                          dxinv);
+                }
+                else
+                {
+                    regular = true;
+                }
+            }
+            if (regular)
+#endif
+            {
+                amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
+                                   BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                   BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
+                                   BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                   dxinv);
+            }
 
-            amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
-                                            BL_TO_FORTRAN_BOX(nddom),
-                                            m_lobc.data(), m_hibc.data());
+            if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+                amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
+                                                BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                                BL_TO_FORTRAN_BOX(nddom),
+                                                m_lobc.data(), m_hibc.data());
+            }
 
             if (rhcc[ilev])
             {
@@ -127,10 +203,12 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                    BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]));
 
-                amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
-                                                BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
-                                                BL_TO_FORTRAN_BOX(nddom),
-                                                m_lobc.data(), m_hibc.data());
+                if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+                    amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
+                                                    BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
+                                                    BL_TO_FORTRAN_BOX(nddom),
+                                                    m_lobc.data(), m_hibc.data());
+                }
             }
         }
     }
@@ -294,14 +372,49 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
     {
         const auto& sigma = *m_sigma[amrlev][0][0];
         const Real* dxinv = m_geom[amrlev][0].InvCellSize();
+#ifdef AMREX_USE_EB
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+        const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+        const MultiFab* intg = m_integral[amrlev].get();
+#endif
         for (MFIter mfi(*vel[amrlev], true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_mlndlap_mknewu(BL_TO_FORTRAN_BOX(bx),
-                                 BL_TO_FORTRAN_ANYD((*vel[amrlev])[mfi]),
-                                 BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
-                                 BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                 dxinv);
+            auto& vfab = (*vel[amrlev])[mfi];
+#ifdef AMREX_USE_EB
+            bool regular = !factory;
+            if (factory)
+            {
+                auto type = (*flags)[mfi].getType(bx);
+                if (type == FabType::covered)
+                {
+                    vfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+                }
+                else if (type == FabType::singlevalued)
+                {
+                    amrex_mlndlap_mknewu_eb(BL_TO_FORTRAN_BOX(bx),
+                                            BL_TO_FORTRAN_ANYD(vfab),
+                                            BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
+                                            BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*intg)[mfi]),
+                                            dxinv);
+                }
+                else
+                {
+                    regular = true;
+                }
+            }
+            if (regular)
+#endif
+            {
+                amrex_mlndlap_mknewu(BL_TO_FORTRAN_BOX(bx),
+                                     BL_TO_FORTRAN_ANYD(vfab),
+                                     BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
+                                     BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                     dxinv);
+            }
         }
     }
 }
@@ -311,13 +424,14 @@ MLNodeLaplacian::averageDownCoeffs ()
 {
     BL_PROFILE("MLNodeLaplacian::averageDownCoeffs()");
 
-    if (m_use_harmonic_average)
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
     {
         for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
         {
             for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
             {
-                for (int idim = 1; idim < AMREX_SPACEDIM; ++idim)
+                int ndims = (m_use_harmonic_average) ? AMREX_SPACEDIM : 1;
+                for (int idim = 0; idim < ndims; ++idim)
                 {
                     if (m_sigma[amrlev][mglev][idim] == nullptr) {
                         if (mglev == 0) {
@@ -326,6 +440,7 @@ MLNodeLaplacian::averageDownCoeffs ()
                         } else {
                             m_sigma[amrlev][mglev][idim].reset
                                 (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
+                            m_sigma[amrlev][mglev][idim]->setVal(0.0);
                         }
                     }
                 }
@@ -349,14 +464,18 @@ MLNodeLaplacian::averageDownCoeffs ()
             for (mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
             {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    FillBoundaryCoeff(*m_sigma[amrlev][mglev][idim], m_geom[amrlev][mglev]);
+                    if (m_sigma[amrlev][mglev][idim]) {
+                        FillBoundaryCoeff(*m_sigma[amrlev][mglev][idim], m_geom[amrlev][mglev]);
+                    }
                 }
             }
         } else {
             int idim = 0;
             for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
             {
-                FillBoundaryCoeff(*m_sigma[amrlev][mglev][idim], m_geom[amrlev][mglev]);
+                if (m_sigma[amrlev][mglev][idim]) {
+                    FillBoundaryCoeff(*m_sigma[amrlev][mglev][idim], m_geom[amrlev][mglev]);
+                }
             }
         }
     }
@@ -374,6 +493,8 @@ MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 void
 MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 {
+    if (m_coarsening_strategy != CoarseningStrategy::Sigma) return;
+
     const int nsigma = (m_use_harmonic_average) ? AMREX_SPACEDIM : 1;
 
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
@@ -417,18 +538,21 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 
     sigma.FillBoundary(geom.periodicity());
 
-    const Box& domain = geom.Domain();
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+    {
+        const Box& domain = geom.Domain();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(sigma, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-    {
-        if (!domain.contains(mfi.fabbox()))
+        for (MFIter mfi(sigma, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
-            amrex_mlndlap_fillbc_cc(BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                    BL_TO_FORTRAN_BOX(domain),
-                                    m_lobc.data(), m_hibc.data());
+            if (!domain.contains(mfi.fabbox()))
+            {
+                amrex_mlndlap_fillbc_cc(BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                        BL_TO_FORTRAN_BOX(domain),
+                                        m_lobc.data(), m_hibc.data());
+            }
         }
     }
 }
@@ -441,6 +565,14 @@ MLNodeLaplacian::buildMasks ()
     BL_PROFILE("MLNodeLaplacian::buildMasks()");
 
     m_masks_built = true;
+
+    m_is_bottom_singular = false;
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    {  // No Dirichlet
+        m_is_bottom_singular = m_domain_covered[0];
+    }
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -571,7 +703,11 @@ MLNodeLaplacian::buildMasks ()
         m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
 
         const Geometry& geom = m_geom[amrlev][mglev];
-        const Box& nddomain = amrex::surroundingNodes(geom.Domain());
+        Box nddomain = amrex::surroundingNodes(geom.Domain());
+
+        if (m_coarsening_strategy != CoarseningStrategy::Sigma) {
+            nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+        }
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -579,11 +715,221 @@ MLNodeLaplacian::buildMasks ()
         for (MFIter mfi(m_bottom_dot_mask,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
+            auto& dfab = m_bottom_dot_mask[mfi];
+            const auto& sfab = omask[mfi];
             amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(m_bottom_dot_mask[mfi]),
-                                       BL_TO_FORTRAN_ANYD(omask[mfi]),
+                                       BL_TO_FORTRAN_ANYD(dfab),
+                                       BL_TO_FORTRAN_ANYD(sfab),
                                        BL_TO_FORTRAN_BOX(nddomain),
                                        m_lobc.data(), m_hibc.data());
+        }
+    }
+
+    if (m_is_bottom_singular)
+    {
+        int amrlev = 0;
+        int mglev = 0;
+        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+
+        const Geometry& geom = m_geom[amrlev][mglev];
+        Box nddomain = amrex::surroundingNodes(geom.Domain());
+
+        if (m_coarsening_strategy != CoarseningStrategy::Sigma) {
+            nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+        }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(m_coarse_dot_mask,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            auto& dfab = m_coarse_dot_mask[mfi];
+            const auto& sfab = omask[mfi];
+            amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(dfab),
+                                       BL_TO_FORTRAN_ANYD(sfab),
+                                       BL_TO_FORTRAN_BOX(nddomain),
+                                       m_lobc.data(), m_hibc.data());
+        }
+    }
+}
+
+void
+MLNodeLaplacian::buildStencil ()
+{
+    m_stencil.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_stencil[amrlev].resize(m_num_mg_levels[amrlev]);
+    }
+    
+    if (m_coarsening_strategy != CoarseningStrategy::RAP) return;
+
+    const int ncomp = (AMREX_SPACEDIM == 2) ? 5 : 15;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
+                                     "MLNodeLaplacian::buildStencil: 1d not supported");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Geometry::IsRZ(),
+                                     "MLNodeLaplacian::buildStencil: cylindrical not supported for RAP");
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_stencil[amrlev][mglev].reset
+                (new MultiFab(amrex::convert(m_grids[amrlev][mglev],
+                                             IntVect::TheNodeVector()),
+                              m_dmap[amrlev][mglev], ncomp, 4));
+            m_stencil[amrlev][mglev]->setVal(0.0);
+        }
+
+        {
+            const Geometry& geom = m_geom[amrlev][0];
+            const Real* dxinv = geom.InvCellSize();
+
+#ifdef AMREX_USE_EB
+            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+            const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+            const MultiFab* conn = (factory) ? m_connection[amrlev].get() : nullptr;
+#endif
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            {
+                FArrayBox sgfab;
+                FArrayBox cnfab;
+                for (MFIter mfi(*m_stencil[amrlev][0], MFItInfo().EnableTiling().SetDynamic(true));
+                     mfi.isValid(); ++mfi)
+                {
+                    Box vbx = mfi.validbox();
+                    AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
+                    Box bx = mfi.growntilebox(1);
+                    bx &= vbx;
+                    const Box& ccbx = amrex::enclosedCells(bx);
+                    FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
+                    const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
+                    
+#ifdef AMREX_USE_EB
+                    bool regular = !factory;
+                    if (factory)
+                    {
+                        const auto& flag = (*flags)[mfi];
+                        const auto& ccbxg1 = amrex::grow(ccbx,1);
+                        const auto& typ = flag.getType(ccbxg1);
+                        if (typ == FabType::covered)
+                        {
+                            stfab.setVal(0.0, bx, 0, ncomp);
+                        }
+                        else if (typ == FabType::singlevalued)
+                        {
+                            const Box& bx2 = amrex::grow(ccbx,1);
+                            sgfab.resize(bx2);
+                            const FArrayBox& cnfab_orig = (*conn)[mfi];
+                            cnfab.resize(bx2,cnfab_orig.nComp());
+
+                            sgfab.setVal(0.0);
+                            cnfab.setVal(0.0);
+
+                            Box btmp = bx2 & sgfab_orig.box();
+                            sgfab.copy(sgfab_orig, btmp, 0, btmp, 0, 1);
+
+                            btmp = bx2 & cnfab_orig.box();
+                            cnfab.copy(cnfab_orig, btmp, 0, btmp, 0, cnfab.nComp());
+
+                            amrex_mlndlap_set_stencil_eb(BL_TO_FORTRAN_BOX(bx),
+                                                         BL_TO_FORTRAN_ANYD(stfab),
+                                                         BL_TO_FORTRAN_ANYD(sgfab),
+                                                         BL_TO_FORTRAN_ANYD(cnfab),
+                                                         dxinv);
+                        }
+                        else
+                        {
+                            regular = true;
+                        }
+                    }
+                    if (regular)
+#endif
+                    {
+                        Box bx2 = amrex::grow(ccbx,1);
+                        sgfab.resize(bx2);
+                        sgfab.setVal(0.0);
+                        bx2 &= sgfab_orig.box();
+                        sgfab.copy(sgfab_orig, bx2, 0, bx2, 0, 1);
+                        amrex_mlndlap_set_stencil(BL_TO_FORTRAN_BOX(bx),
+                                                  BL_TO_FORTRAN_ANYD(stfab),
+                                                  BL_TO_FORTRAN_ANYD(sgfab),
+                                                  dxinv);
+                    }
+                }
+
+                for (MFIter mfi(*m_stencil[amrlev][0],true); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
+                    
+                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                                 BL_TO_FORTRAN_ANYD(stfab));
+                }
+            }
+
+            m_stencil[amrlev][0]->FillBoundary(geom.periodicity());
+        }
+
+        for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            const MultiFab& fine = *m_stencil[amrlev][mglev-1];
+            MultiFab& crse = *m_stencil[amrlev][mglev];
+            bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
+            MultiFab cfine;
+            if (need_parallel_copy) {
+                const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+                cfine.define(ba, fine.DistributionMap(), fine.nComp(), 1);
+                cfine.setVal(0.0);
+            }
+
+            MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            {
+                for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
+                {
+                    Box vbx = mfi.validbox();
+                    AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
+                    Box bx = mfi.growntilebox(1);
+                    bx &= vbx;
+                    if (m_use_simple_interp)
+                    {
+                        amrex_mlndlap_stencil_rap_sp(BL_TO_FORTRAN_BOX(bx),
+                                                     BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                                     BL_TO_FORTRAN_ANYD(fine[mfi]));
+                    }
+                    else
+                    {
+                        amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
+                                                  BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                                  BL_TO_FORTRAN_ANYD(fine[mfi]));
+                    }
+                }
+
+                for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    FArrayBox& stfab = (*pcrse)[mfi];
+                    
+                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                                 BL_TO_FORTRAN_ANYD(stfab));
+                }
+            }
+
+            if (need_parallel_copy) {
+                crse.ParallelCopy(cfine);
+            }
+
+            m_stencil[amrlev][mglev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
         }
     }
 }
@@ -614,21 +960,19 @@ MLNodeLaplacian::prepareForSolve ()
 
     MLNodeLinOp::prepareForSolve();
 
-    averageDownCoeffs();
-
     buildMasks();
 
-    m_is_bottom_singular = false;
-    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
-    if (itlo == m_lobc.end() && ithi == m_hibc.end())
-    {  // No Dirichlet
-        m_is_bottom_singular = m_domain_covered[0];
-    }
+    averageDownCoeffs();
 
 #if (AMREX_SPACEDIM == 2)
     amrex_mlndlap_set_rz(&m_is_rz);
 #endif
+
+#ifdef AMREX_USE_EB
+    buildConnection();
+#endif
+
+    buildStencil();
 }
 
 void
@@ -650,18 +994,31 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
 
+    const auto& stencil = m_stencil[amrlev][cmglev-1];
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                  BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                  BL_TO_FORTRAN_BOX(nd_domain),
-                                  m_lobc.data(), m_hibc.data());
+        if (m_coarsening_strategy == CoarseningStrategy::Sigma || m_use_simple_interp)
+        {
+            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                      BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                      BL_TO_FORTRAN_BOX(nd_domain),
+                                      m_lobc.data(), m_hibc.data());
+        }
+        else
+        {
+            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+        }
     }
 
     if (need_parallel_copy) {
@@ -675,6 +1032,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     BL_PROFILE("MLNodeLaplacian::interpolation()");
 
     const auto& sigma = m_sigma[amrlev][fmglev];
+    const auto& stencil = m_stencil[amrlev][fmglev];
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
@@ -701,7 +1059,27 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             const Box& cbx = amrex::coarsen(fbx,2);
             const Box& tmpbx = amrex::refine(cbx,2);
             tmpfab.resize(tmpbx);
-            if (m_use_harmonic_average && fmglev > 0)
+
+            if (m_coarsening_strategy == CoarseningStrategy::RAP)
+            {
+                if (m_use_simple_interp)
+                {
+                    amrex_mlndlap_interpolation_rap_sp(BL_TO_FORTRAN_BOX(cbx),
+                                                       BL_TO_FORTRAN_ANYD(tmpfab),
+                                                       BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+                                                       BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                }
+                else
+                {
+                    amrex_mlndlap_interpolation_rap(BL_TO_FORTRAN_BOX(cbx),
+                                                    BL_TO_FORTRAN_ANYD(tmpfab),
+                                                    BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+                                                    BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                }
+            }
+            else if (m_use_harmonic_average && fmglev > 0)
             {
                 AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                              const FArrayBox& syfab = (*sigma[1])[mfi];,
@@ -738,6 +1116,83 @@ MLNodeLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiF
 {
     const auto& amrrr = AMRRefRatio(camrlev);
     amrex::average_down(fine_sol, crse_sol, 0, 1, amrrr);
+
+    if (isSingular(0))
+    {
+        MultiFab frhs(fine_rhs.boxArray(), fine_rhs.DistributionMap(), 1, 1);
+        MultiFab::Copy(frhs, fine_rhs, 0, 0, 1, 0);
+        restrictInteriorNodes(camrlev, crse_rhs, frhs);
+    }
+}
+
+void
+MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a_frhs) const
+{
+    const BoxArray& fba = a_frhs.boxArray();
+    const DistributionMapping& fdm = a_frhs.DistributionMap();
+
+    MultiFab* frhs = nullptr;
+    std::unique_ptr<MultiFab> mf;
+    if (a_frhs.nGrow() == 1)
+    {
+        frhs = &a_frhs;
+    }
+    else
+    {
+        mf.reset(new MultiFab(fba, fdm, 1, 1));
+        frhs = mf.get();
+        MultiFab::Copy(*frhs, a_frhs, 0, 0, 1, 0);
+    }
+
+    const Geometry& cgeom = m_geom[camrlev  ][0];
+    const Box& c_cc_domain = cgeom.Domain();
+    const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
+
+    const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
+
+    MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
+
+    applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(cfine, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                  BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
+                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
+                                  BL_TO_FORTRAN_BOX(c_nd_domain),
+                                  m_lobc.data(), m_hibc.data());
+    }
+
+    MultiFab tmp_crhs(crhs.boxArray(), crhs.DistributionMap(), 1, 0);
+    tmp_crhs.setVal(0.0);
+    tmp_crhs.ParallelCopy(cfine, cgeom.periodicity());
+
+    const iMultiFab& c_nd_mask = *m_nd_fine_mask[camrlev];
+    const auto& has_fine_bndry = *m_has_fine_bndry[camrlev];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(crhs, MFItInfo().EnableTiling().SetDynamic(true));
+         mfi.isValid(); ++mfi)
+    {
+        if (has_fine_bndry[mfi])
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& mfab = c_nd_mask[mfi];
+            auto& dfab = crhs[mfi];
+            const auto& sfab = tmp_crhs[mfi];
+            amrex_mlndlap_copy_fine_node(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(dfab),
+                                         BL_TO_FORTRAN_ANYD(sfab),
+                                         BL_TO_FORTRAN_ANYD(mfab));
+        }
+    }
 }
 
 void
@@ -755,16 +1210,19 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode
 
 //    int inhom = (bc_mode == BCMode::Inhomogeneous);
 
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(phi); mfi.isValid(); ++mfi)
-    {
-        if (!nd_domain.strictly_contains(mfi.fabbox()))
+        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
-            amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                  BL_TO_FORTRAN_BOX(nd_domain),
-                                  m_lobc.data(), m_hibc.data());
+            if (!nd_domain.strictly_contains(mfi.fabbox()))
+            {
+                amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                      BL_TO_FORTRAN_BOX(nd_domain),
+                                      m_lobc.data(), m_hibc.data());
+            }
         }
     }
 }
@@ -775,6 +1233,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
     BL_PROFILE("MLNodeLaplacian::Fapply()");
 
     const auto& sigma = m_sigma[amrlev][mglev];
+    const auto& stencil = m_stencil[amrlev][mglev];
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
     const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
@@ -788,11 +1247,21 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         const Box& bx = mfi.tilebox();
         const FArrayBox& xfab = in[mfi];
         FArrayBox& yfab = out[mfi];
-        if (m_use_harmonic_average && mglev > 0)
+
+        if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        {
+            amrex_mlndlap_adotx_sten(BL_TO_FORTRAN_BOX(bx),
+                                     BL_TO_FORTRAN_ANYD(yfab),
+                                     BL_TO_FORTRAN_ANYD(xfab),
+                                     BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                     BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+        }
+        else if (m_use_harmonic_average && mglev > 0)
         {
             AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                          const FArrayBox& syfab = (*sigma[1])[mfi];,
                          const FArrayBox& szfab = (*sigma[2])[mfi];);
+
             amrex_mlndlap_adotx_ha(BL_TO_FORTRAN_BOX(bx),
                                    BL_TO_FORTRAN_ANYD(yfab),
                                    BL_TO_FORTRAN_ANYD(xfab),
@@ -806,6 +1275,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         else
         {
             const FArrayBox& sfab = (*sigma[0])[mfi];
+
             amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
                                    BL_TO_FORTRAN_ANYD(yfab),
                                    BL_TO_FORTRAN_ANYD(xfab),
@@ -827,11 +1297,27 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     if (m_use_gauss_seidel)
     {
         const auto& sigma = m_sigma[amrlev][mglev];
+        const auto& stencil = m_stencil[amrlev][mglev];
         const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
         const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 
-        if (m_use_harmonic_average && mglev > 0)
+        if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.validbox();
+                amrex_mlndlap_gauss_seidel_sten(BL_TO_FORTRAN_BOX(bx),
+                                                BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                                BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                                BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                                BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+            }
+        }
+        else if (m_use_harmonic_average && mglev > 0)
         {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -842,6 +1328,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                              const FArrayBox& syfab = (*sigma[1])[mfi];,
                              const FArrayBox& szfab = (*sigma[2])[mfi];);
+
                 amrex_mlndlap_gauss_seidel_ha(BL_TO_FORTRAN_BOX(bx),
                                               BL_TO_FORTRAN_ANYD(sol[mfi]),
                                               BL_TO_FORTRAN_ANYD(rhs[mfi]),
@@ -862,6 +1349,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             {
                 const Box& bx = mfi.validbox();
                 const FArrayBox& sfab = (*sigma[0])[mfi];
+
                 amrex_mlndlap_gauss_seidel_aa(BL_TO_FORTRAN_BOX(bx),
                                               BL_TO_FORTRAN_ANYD(sol[mfi]),
                                               BL_TO_FORTRAN_ANYD(rhs[mfi]),
@@ -880,11 +1368,28 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         Fapply(amrlev, mglev, Ax, sol);
 
         const auto& sigma = m_sigma[amrlev][mglev];
+        const auto& stencil = m_stencil[amrlev][mglev];
         const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
         const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 
-        if (m_use_harmonic_average && mglev > 0)
+        if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.validbox();
+                amrex_mlndlap_jacobi_sten(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                          BL_TO_FORTRAN_ANYD(Ax[mfi]),
+                                          BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+            }
+        }
+        else if (m_use_harmonic_average && mglev > 0)
         {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -895,6 +1400,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                              const FArrayBox& syfab = (*sigma[1])[mfi];,
                              const FArrayBox& szfab = (*sigma[2])[mfi];);
+
                 amrex_mlndlap_jacobi_ha(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(sol[mfi]),
                                         BL_TO_FORTRAN_ANYD(Ax[mfi]),
@@ -916,6 +1422,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             {
                 const Box& bx = mfi.tilebox();
                 const FArrayBox& sfab = (*sigma[0])[mfi];
+
                 amrex_mlndlap_jacobi_aa(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(sol[mfi]),
                                         BL_TO_FORTRAN_ANYD(Ax[mfi]),
@@ -925,6 +1432,57 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                         dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                         m_lobc.data(), m_hibc.data());
             }
+        }
+    }
+}
+
+void
+MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+    BL_PROFILE("MLNodeLaplacian::normalize()");
+
+    const auto& sigma = m_sigma[amrlev][mglev];
+    const auto& stencil = m_stencil[amrlev][mglev];
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+        if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        {
+            amrex_mlndlap_normalize_sten(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(fab),
+                                         BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+        }
+        else if (m_use_harmonic_average && mglev > 0)
+        {
+            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                         const FArrayBox& syfab = (*sigma[1])[mfi];,
+                         const FArrayBox& szfab = (*sigma[2])[mfi];);
+
+            amrex_mlndlap_normalize_ha(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(fab),
+                                       AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                    BL_TO_FORTRAN_ANYD(syfab),
+                                                    BL_TO_FORTRAN_ANYD(szfab)),
+                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                       dxinv);
+        }
+        else
+        {
+            const FArrayBox& sfab = (*sigma[0])[mfi];
+
+            amrex_mlndlap_normalize_aa(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(fab),
+                                       BL_TO_FORTRAN_ANYD(sfab),
+                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                       dxinv);
         }
     }
 }
@@ -999,16 +1557,19 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
     const auto& nddom = amrex::surroundingNodes(ccdom);
 
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(phi); mfi.isValid(); ++mfi)
-    {
-        if (!nddom.strictly_contains(mfi.fabbox()))
+        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
-            amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                  BL_TO_FORTRAN_BOX(nddom),
-                                  m_lobc.data(), m_hibc.data());
+            if (!nddom.strictly_contains(mfi.fabbox()))
+            {
+                amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                      BL_TO_FORTRAN_BOX(nddom),
+                                      m_lobc.data(), m_hibc.data());
+            }
         }
     }
 
@@ -1334,5 +1895,62 @@ MLNodeLaplacian::reflux (int crse_amrlev,
         }
     }
 }
+
+#ifdef AMREX_USE_EB
+
+void
+MLNodeLaplacian::buildConnection ()
+{
+    if (m_connection_built) return;
+
+    BL_PROFILE("MLNodeLaplacian::buildConnection()");
+
+    m_connection_built = true;
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        auto& conn = *m_connection[amrlev];
+        MultiFab* intg = m_integral[amrlev].get();
+        const int ncomp = conn.nComp();
+
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        if (factory)
+        {
+            const auto& flags = factory->getMultiEBCellFlagFab();
+            const auto& vfrac = factory->getVolFrac();
+            const auto& area = factory->getAreaFrac();
+            const auto& bcent = factory->getBndryCent();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(conn, MFItInfo().EnableTiling().SetDynamic(true));
+                 mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox();
+                auto& cfab = conn[mfi];
+                auto& gfab = (*intg)[mfi];                    
+                const auto& flag = flags[mfi];
+                auto typ = flag.getType(bx);
+                
+                if (typ == FabType::covered) {
+                    cfab.setVal(0.0, bx, 0, ncomp);
+                    gfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+                } else if (typ == FabType::singlevalued) {
+                    amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(bx),
+                                                 BL_TO_FORTRAN_ANYD(cfab),
+                                                 BL_TO_FORTRAN_ANYD(gfab),
+                                                 BL_TO_FORTRAN_ANYD(flag),
+                                                 BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                              BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                              BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                                 BL_TO_FORTRAN_ANYD(bcent[mfi]));
+                }
+            }
+        }
+    }
+}
+
+#endif
 
 }

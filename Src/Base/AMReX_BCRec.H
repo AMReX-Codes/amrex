@@ -44,7 +44,7 @@ public:
     /**
     * \brief Explicitly set hi bndry value.
     */
-    void setHi (int dir, int bc_val) { bc[BL_SPACEDIM+dir] = bc_val; }
+    void setHi (int dir, int bc_val) { bc[AMREX_SPACEDIM+dir] = bc_val; }
     /**
     * \brief  Return bndry values (used in calls to FORTRAN).
     */
@@ -54,7 +54,7 @@ public:
     const int* data () const& { return bc; }
     const int* data () && = delete;
 
-    int vectSize () const { return (2 * BL_SPACEDIM); }
+    int vectSize () const { return (2 * AMREX_SPACEDIM); }
     void setVect (const int *bcvect) { for(int i(0); i < vectSize(); ++i) { bc[i] = bcvect[i]; } }
     /**
     * \brief Return low-end boundary data.
@@ -64,7 +64,7 @@ public:
     /**
     * \brief Return high-end boundary data.
     */
-    const int* hi () const& { return bc+BL_SPACEDIM; }
+    const int* hi () const& { return bc+AMREX_SPACEDIM; }
     const int* hi () && = delete;
     /**
     * \brief Return low-end boundary data in direction <dir>.
@@ -73,7 +73,7 @@ public:
     /**
     * \brief Return high-end boundary data in direction <dir>.
     */
-    int hi (int dir) const { return bc[BL_SPACEDIM+dir]; }
+    int hi (int dir) const { return bc[AMREX_SPACEDIM+dir]; }
     /**
     * \brief ASCII write to ostream.
     */
@@ -83,7 +83,7 @@ private:
     /**
     * \brief Array of integer values describing boundary conditions.
     */
-    int bc[2*BL_SPACEDIM];
+    int bc[2*AMREX_SPACEDIM];
 };
 
     /**

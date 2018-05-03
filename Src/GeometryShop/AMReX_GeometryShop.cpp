@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -271,6 +260,8 @@ namespace amrex
                           const RealVect      & a_origin,
                           const Real          & a_dx) const
   {
+      BL_PROFILE("GeometryShop::fillGraph");
+
     AMREX_ASSERT(a_domain.contains(a_ghostRegion));
     a_nodes.resize(0);
     a_regIrregCovered.resize(a_ghostRegion, 1);
@@ -366,6 +357,7 @@ namespace amrex
         else
           {
             IrregNode newNode;
+            newNode.m_hasMoments = false;
             newNode.m_cell          = iv;
             newNode.m_volFrac       = volFrac;
             newNode.m_cellIndex     = 0;
@@ -439,8 +431,8 @@ namespace amrex
       }//ivsdrop
     if(m_verbosity > 2)
     {
-      amrex::AllPrint() << "numIrreg  = " << numIrreg << "\n";
-      amrex::AllPrint() << "number of nodes  = " << a_nodes.size() << "\n";
+      amrex::AllPrint() << "GeometryShop:num irreg vofs   = " << numIrreg << "\n";
+      amrex::AllPrint() << "GeometryShop:number of nodes  = " << a_nodes.size() << "\n";
     }
   }
   /*************/

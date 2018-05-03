@@ -1,13 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
 
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_EBIndexSpace.H"
@@ -15,6 +5,7 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
@@ -40,7 +31,8 @@ namespace amrex
 {
 /***************/
   int makeGeometry(Box& a_domain,
-                   Real& a_dx)
+                   Real& a_dx,
+                   int igeom)
   {
     int eekflag =  0;
     //parse input file
@@ -101,11 +93,22 @@ namespace amrex
 
       PlaneIF ramp(normal,point,normalInside);
 
-
-      GeometryShop workshop(ramp,0, a_dx);
-      //this generates the new EBIS
-      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop" << endl;
+        GeometryShop workshop(ramp);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedGShop" << endl;
+        WrappedGShop workshop(ramp);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop);
+      }
     }
     else
     {
@@ -320,13 +323,13 @@ namespace amrex
     return 0;
   }
   /***************/
-  int testIO()
+  int testIO(int igeom)
   {
     pout() << "starting I/O test for fabs" << endl;
     Box domain;
     Real dx;
     pout() << "defining the geometry" << endl;
-    makeGeometry(domain, dx);
+    makeGeometry(domain, dx, igeom);
     int maxboxsize;
     ParmParse pp;
     pp.get("maxboxsize", maxboxsize);
@@ -407,15 +410,18 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::testIO();
-  if(retval != 0)
+  for(int igeom = 1; igeom >= 0; igeom--)
   {
-    amrex::Print() << "simple io test failed with code " << retval << "\n";
+    retval = amrex::testIO(igeom);
+    if(retval != 0)
+    {
+      amrex::Print() << argv[0] << " test failed with code " << retval << "\n";
+      return retval;
+    }
   }
-  else
-  {
-    amrex::Print() << "simple io test passed \n";
-  }
+
+  amrex::Print() << argv[0] << " test passed \n";
+
   amrex::Finalize();
   return retval;
 }

@@ -1,15 +1,3 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_STLAsciiReader.H"
 #include "AMReX_STLExplorer.H"
 #include "AMReX_STLMesh.H"
@@ -17,7 +5,6 @@
 #include "AMReX_CellEdge.H"
 #include "AMReX_STLIF.H"
 #include "AMReX_BLProfiler.H"
-
 
 namespace amrex
 {

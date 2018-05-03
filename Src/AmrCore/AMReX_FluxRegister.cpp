@@ -73,7 +73,7 @@ FluxRegister::define (const BoxArray&            fine_boxes,
     grids = fine_boxes;
     grids.coarsen(ratio);
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         const Orientation lo_face(dir,Orientation::low);
         const Orientation hi_face(dir,Orientation::high);
@@ -100,7 +100,7 @@ FluxRegister::SumReg (int comp) const
 {
     Real sum = 0.0;
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         const FabSet& lofabs = bndry[Orientation(dir,Orientation::low) ];
         const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
@@ -462,7 +462,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
     int nc = this->nComp();
     const Box& domain = geom.Domain();
     
-    for (int dir = 0; dir < BL_SPACEDIM; dir++) {
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++) {
 	Orientation lo(dir, Orientation::low);
 	Orientation hi(dir, Orientation::high);
 	
@@ -564,13 +564,13 @@ FluxRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
   ParallelDescriptor::Bcast(&ncomp, 1, ioProcNumSCS, scsComm);
 
   // ---- IntVects
-  Vector<int> iv(BL_SPACEDIM, -1);
+  Vector<int> iv(AMREX_SPACEDIM, -1);
   if(scsMyId == ioProcNumSCS) {
-    for(int i(0); i < BL_SPACEDIM; ++i) { iv[i] = ratio[i]; }
+    for(int i(0); i < AMREX_SPACEDIM; ++i) { iv[i] = ratio[i]; }
   }
   ParallelDescriptor::Bcast(iv.dataPtr(), iv.size(), ioProcNumSCS, scsComm);
   if(scsMyId != ioProcNumSCS) {
-    for(int i(0); i < BL_SPACEDIM; ++i) { ratio[i] = iv[i]; }
+    for(int i(0); i < AMREX_SPACEDIM; ++i) { ratio[i] = iv[i]; }
   }
   BndryRegister::AddProcsToComp(ioProcNumSCS, ioProcNumAll,
                                 scsMyId, scsComm);

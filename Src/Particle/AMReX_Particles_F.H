@@ -60,7 +60,7 @@ BL_FORT_PROC_DECL(PART_SUMDENSUP,part_sumdensup)
      BL_FORT_FAB_ARG(fine_fab),
      const int* ovlo, const int* ovhi, const int* rat);
 
-#if (BL_SPACEDIM==2)
+#if (AMREX_SPACEDIM==2)
     BL_FORT_PROC_DECL(BICUBICINTERP,bicubicinterp)
     (const amrex_real* x, const amrex_real* y, const amrex_real* fab,
      const int* lo, const int* hi,

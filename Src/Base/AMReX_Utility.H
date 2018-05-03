@@ -2,7 +2,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
-
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <map>
@@ -412,6 +412,12 @@ long
 amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
+}
+
+
+extern "C" {
+    void* amrex_malloc (std::size_t size);
+    void amrex_free (void* p);
 }
 
 #endif /*BL_UTILITY_H*/

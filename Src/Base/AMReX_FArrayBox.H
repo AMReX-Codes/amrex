@@ -185,7 +185,7 @@ public:
 *  read by init. If the FABio::Format is not set explicitly by either
 *  of these two methods, then it defaults to NATIVE.
 *
-*  The C pre-processor macro BL_SPACEDIM must be defined to use
+*  The C pre-processor macro AMREX_SPACEDIM must be defined to use
 *  this class.  The internal precision of FARRAYBOX objects is
 *  set by defining either BL_USE_FLOAT or BL_USE_DOUBLE
 *

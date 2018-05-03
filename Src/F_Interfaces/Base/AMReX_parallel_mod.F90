@@ -34,7 +34,7 @@ module amrex_parallel_module
   integer, public :: amrex_mpi_real = MPI_DATATYPE_NULL
   integer :: m_nprocs = -1
   integer :: m_myproc = -1
-  integer :: m_comm   = -1
+  integer :: m_comm   = MPI_COMM_NULL
 #else
   integer :: m_nprocs = 0
   integer :: m_myproc = 0
@@ -74,12 +74,16 @@ contains
     call MPI_Initialized(flag, ierr)
 
     if (present(comm) .and. .not.flag) then
-       stop "MPI has not been initialized.  How come we are given a communciator?"
+       if (comm .ne. MPI_COMM_WORLD) then
+          stop "MPI has not been initialized.  How come we are given a communciator?"
+       endif
     end if
 
     if (.not.flag) then
        call MPI_Init(ierr)
        call_mpi_finalize = .true.
+    else
+       call_mpi_finalize = .false.
     end if
 
     if (present(comm)) then
@@ -87,6 +91,7 @@ contains
     else
        call MPI_Comm_Dup(MPI_COMM_WORLD, m_comm, ierr)
     end if
+
     call MPI_Comm_Size(m_comm, m_nprocs, ierr)
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
     if (amrex_real == c_double) then
@@ -103,6 +108,7 @@ contains
 #ifdef BL_USE_MPI
     integer :: ierr
     call MPI_Comm_Free(m_comm, ierr)
+    m_comm = MPI_COMM_NULL
     if (call_mpi_finalize) then
        call MPI_Finalize(ierr)
        call_mpi_finalize = .false.
