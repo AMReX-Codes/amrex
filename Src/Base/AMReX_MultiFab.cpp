@@ -642,6 +642,12 @@ MultiFab::is_nodal () const
 }
 
 bool 
+MultiFab::is_nodal (int dir) const
+{
+    return boxArray().ixType().nodeCentered(dir);
+}
+
+bool 
 MultiFab::is_cell_centered () const
 {
     return boxArray().ixType().cellCentered();
