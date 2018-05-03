@@ -58,9 +58,9 @@ namespace amrex
     int outInterv = 1;
     ParmParse pp("amrex");
     pp.query("pout_int", outInterv);
-    if (outInterv == 0) outInterv=numProc();
+    if (outInterv == 0) outInterv=ParallelDescriptor::NProcs();
 
-    int thisProc = procID();
+    int thisProc = ParallelDescriptor::MyProc();
     if ((thisProc % outInterv) != 0)
     {
       s_pout_filename = std::string("/dev/null");
@@ -69,7 +69,7 @@ namespace amrex
     {
       static const size_t ProcnumSize = 1 + 10 + 1 ;  //'.' + 10digits + '\0'
       char procnum[ProcnumSize] ;
-      snprintf( procnum ,ProcnumSize ,".%d" ,procID() );
+      snprintf( procnum ,ProcnumSize ,".%d" ,ParallelDescriptor::MyProc() );
       s_pout_filename = s_pout_basename + procnum ;
     }
   }
