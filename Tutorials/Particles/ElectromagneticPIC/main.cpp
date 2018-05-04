@@ -68,6 +68,8 @@ void test_em_pic(const TestParams& parms)
     Ex.setVal(0.0); Ey.setVal(0.0); Ez.setVal(0.0);
     jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
     
+    std::cout << "Initializing particles... ";
+
     const int num_species = 2;
 
     ElectromagneticParticleContainer electrons(geom, dm, ba, 
@@ -76,11 +78,17 @@ void test_em_pic(const TestParams& parms)
 
     ElectromagneticParticleContainer H_ions(geom, dm, ba, 
                                             0, PhysConst::q_e, PhysConst::m_p);
+    H_ions.InitParticles(parms.nppc, 0.01, 10.0, 1e25);
 
     Vector<ElectromagneticParticleContainer*> particles(2);
     particles[0] = &electrons;
     particles[1] = &H_ions;
     
+    std::cout << "Done. " << std::endl;
+
+
+    std::cout << "Starting main PIC loop... " << std::endl;
+
     int nsteps = parms.nsteps;
     const Real dt = compute_dt(geom);
     bool synchronized = true;
@@ -91,7 +99,7 @@ void test_em_pic(const TestParams& parms)
 
     for (int step = 0; step < nsteps; ++step) { 
     
-        std::cout << step << std::endl;
+        std::cout << "    Time step: " <<  step << std::endl;
     
         if (synchronized) {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
@@ -129,6 +137,8 @@ void test_em_pic(const TestParams& parms)
             }
         }
     }
+
+    std::cout << "Done. " << std::endl;
 
     BL_PROFILE_VAR_STOP(blp_evolve);
 
