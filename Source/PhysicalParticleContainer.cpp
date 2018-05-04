@@ -569,8 +569,6 @@ PhysicalParticleContainer::Evolve (int lev,
     const auto& mypc = WarpX::GetInstance().GetPartContainer();
     const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
 
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ = jx.nGrow();
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
@@ -803,12 +801,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Particle Push
                 //
                 BL_PROFILE_VAR_START(blp_pxr_pp);
-                warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
-                                      uxp.data(), uyp.data(), uzp.data(), giv.data(),
-                                      Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                                      Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                                      &this->charge, &this->mass, &dt,
-                                      &WarpX::particle_pusher_algo);
+                PushPX(pti, xp, yp, zp, giv, dt);
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
                 //
@@ -955,6 +948,35 @@ PhysicalParticleContainer::Evolve (int lev,
 }
 
 void
+PhysicalParticleContainer::PushPX(WarpXParIter& pti,
+	                          Vector<Real>& xp, Vector<Real>& yp, Vector<Real>& zp,
+                                  Vector<Real>& giv,
+                                  Real dt)
+{
+
+    // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
+    auto& attribs = pti.GetAttribs();
+    auto& uxp = attribs[PIdx::ux];
+    auto& uyp = attribs[PIdx::uy];
+    auto& uzp = attribs[PIdx::uz];
+    auto& Exp = attribs[PIdx::Ex];
+    auto& Eyp = attribs[PIdx::Ey];
+    auto& Ezp = attribs[PIdx::Ez];
+    auto& Bxp = attribs[PIdx::Bx];
+    auto& Byp = attribs[PIdx::By];
+    auto& Bzp = attribs[PIdx::Bz];
+    const long np  = pti.numParticles();
+
+    warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
+                          uxp.data(), uyp.data(), uzp.data(), giv.data(),
+                          Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
+                          Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
+                          &this->charge, &this->mass, &dt,
+                          &WarpX::particle_pusher_algo);
+
+}
+
+void
 PhysicalParticleContainer::PushP (int lev, Real dt,
                                   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
@@ -962,9 +984,6 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     if (do_not_push) return;
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
-
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    long ngE = Ex.nGrow();
 
 #ifdef _OPENMP
 #pragma omp parallel

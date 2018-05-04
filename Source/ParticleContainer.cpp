@@ -1,4 +1,5 @@
 #include <limits>
+#include <algorithm>
 
 #include <ParticleContainer.H>
 #include <WarpX_f.H>
@@ -15,7 +16,12 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     int n = WarpX::use_laser ? nspecies+1 : nspecies;
     allcontainers.resize(n);
     for (int i = 0; i < nspecies; ++i) {
-	allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i, species_names[i]));
+        if (species_types[i] == PCTypes::Physical) {
+            allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i, species_names[i]));
+        }
+        else if (species_types[i] == PCTypes::RigidInjected) {
+            allcontainers[i].reset(new RigidInjectedParticleContainer(amr_core, i, species_names[i]));
+        }
     }
     if (WarpX::use_laser) {
 	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
@@ -36,6 +42,20 @@ MultiParticleContainer::ReadParameters ()
         if (nspecies > 0) {
             pp.getarr("species_names", species_names);
             BL_ASSERT(species_names.size() == nspecies);
+
+            species_types.resize(nspecies, PCTypes::Physical);
+
+            std::vector<std::string> rigid_injected_species;
+            pp.queryarr("rigid_injected_species", rigid_injected_species);
+
+            if (!rigid_injected_species.empty()) {
+                for (auto const& name : rigid_injected_species) {
+                    auto it = std::find(species_names.begin(), species_names.end(), name);
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
+                    int i = std::distance(species_names.begin(), it);
+                    species_types[i] = PCTypes::RigidInjected;
+                }
+            }
         }
 	pp.query("use_fdtd_nci_corr", use_fdtd_nci_corr);
 	pp.query("l_lower_order_in_v", l_lower_order_in_v);

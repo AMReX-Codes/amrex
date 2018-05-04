@@ -15,7 +15,7 @@ public:
                                const std::string& name);
     virtual ~PhysicalParticleContainer () {}
 
-    virtual void InitData () final;
+    virtual void InitData () override;
 
     virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                                const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
@@ -45,7 +45,14 @@ public:
                          amrex::MultiFab* rho,
                          amrex::MultiFab* rho2,
                          amrex::Real t,
-                         amrex::Real dt) final;
+                         amrex::Real dt) override;
+
+    virtual void PushPX(WarpXParIter& pti,
+	                amrex::Vector<amrex::Real>& xp,
+                        amrex::Vector<amrex::Real>& yp,
+                        amrex::Vector<amrex::Real>& zp,
+                        amrex::Vector<amrex::Real>& giv,
+                        amrex::Real dt);
 
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& Ex,
@@ -53,7 +60,7 @@ public:
                         const amrex::MultiFab& Ez,
                         const amrex::MultiFab& Bx,
                         const amrex::MultiFab& By,
-                        const amrex::MultiFab& Bz) final;
+                        const amrex::MultiFab& Bz) override;
 
     virtual void PostRestart () final {}
 
