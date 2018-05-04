@@ -73,7 +73,7 @@ SYSTEM_CUDA_PATH=$(CUDAPATH)
 
 SYSTEM_NVML_PATH=/usr/lib64/nvidia
 
-# Specify that we want to build for Pascal on Summit
+# Specify that we want to build for Pascal
 
 CUDA_VERSION = cc60
 COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
@@ -110,7 +110,7 @@ endif
 
 SYSTEM_CUDA_PATH=$(CUDAPATH)
 
-# Specify that we want to build for Volta on Summit
+# Specify that we want to build for Volta
 
 CUDA_VERSION = cc70
 COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
