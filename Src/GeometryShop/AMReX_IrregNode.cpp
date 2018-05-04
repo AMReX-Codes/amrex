@@ -105,8 +105,8 @@ namespace amrex
 
       }
       ///boundary centroid
-      Real area = m_EBMoments[IvSpaceDim::Zero];
-      if(area > 0.) //can be zero if not really cut.
+      Real area = (m_EBMoments[IvSpaceDim::Zero]);
+      if(std::abs(area) > 0.) //can be zero if not really cut.
       {
         m_bndryCentroid[idir] = m_EBMoments[BASISV_TM<int,SpaceDim>(idir)];
 
@@ -123,13 +123,13 @@ namespace amrex
       {
         //areafrac
         int iilist = this->index(ifacedir, sit());
-        Real area = m_faceMoments[iilist][IvSDMinOne::Zero];
+        Real area = std::abs(m_faceMoments[iilist][IvSDMinOne::Zero]);
         m_areaFrac[iilist].resize(1);
         m_areaFrac[iilist][0] = area*areaScaleFactor;
 
         m_faceCentroid[iilist].resize(1);
         m_faceCentroid[iilist][0] = RealVect::Zero;
-        if(area > 0.) //can be zero if there is not really a face
+        if(std::abs(area) > 0.) //can be zero if there is not really a face
         {
           //face centroids
           int iindex = 0;
