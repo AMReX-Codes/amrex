@@ -345,8 +345,6 @@ void
 amrex::InitRandom (unsigned long seed, int nprocs)
 {
 
-    if (nprocs < 1) nprocs = ParallelDescriptor::NProcs();
-
 #ifdef _OPENMP
     nthreads = omp_get_max_threads();
 #else
