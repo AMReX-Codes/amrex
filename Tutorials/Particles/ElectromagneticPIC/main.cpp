@@ -104,7 +104,7 @@ void test_em_pic(const TestParams& parms)
         if (synchronized) {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
             for (int i = 0; i < num_species; ++i) {
-                particles[i]->PushParticlesOnly(-0.5*dt);
+                particles[i]->PushParticlesOnly(0.5*dt);
                 particles[i]->EnforcePeriodicBCs();
             }
             synchronized = false;
@@ -132,9 +132,6 @@ void test_em_pic(const TestParams& parms)
             synchronized = true;
         } else {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, dt);
-            for (int i = 0; i < num_species; ++i) {
-                particles[i]->EnforcePeriodicBCs();
-            }
         }
     }
 
