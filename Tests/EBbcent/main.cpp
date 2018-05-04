@@ -100,6 +100,16 @@ int main (int argc, char* argv[])
                         amrex::AllPrint().SetPrecision(17)
                             << "bndryCentroid = " << ebisbox.bndryCentroid(vi) << "\n";
                     }
+                    for (const auto& vi : vofs)
+                    {
+                      const auto& ebmom = ebisbox.getEBMoments(vi);
+                      for(MomItSpaceDim momit; momit.ok(); ++ momit)
+                      {
+                        amrex::AllPrint().SetPrecision(17)
+                          << "EBMoment" << momit() << " = " << ebmom[momit()] << "\n";
+                      }
+                    }
+
                 }
             }
         }
