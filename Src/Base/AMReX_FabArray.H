@@ -437,7 +437,8 @@ public:
                        const IntVect&       src_nghost,
                        const IntVect&       dst_nghost,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
-                       CpOp                 op = FabArrayBase::COPY);
+                       CpOp                 op = FabArrayBase::COPY,
+                       const FabArrayBase::CPC* a_cpc = nullptr);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -456,6 +457,14 @@ public:
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,op); }
+
+    // Copy from src to this.  this and src have the same BoxArray, but different DistributionMapping
+    void Redistribute (const FabArray<FAB>& src,
+                       int                  src_comp,
+                       int                  dest_comp,
+                       int                  num_comp,
+                       const IntVect&       nghost);
+
     //
     // In the following copyTo functions, the destination FAB is identical on each process!!
     //

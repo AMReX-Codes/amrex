@@ -500,6 +500,8 @@ protected:
 	     const BoxArray& srcba, const DistributionMapping& srcdm, 
 	     const Vector<int>& srcidx, const IntVect& srcng,
 	     const Periodicity& period, int myproc);
+        CPC (const BoxArray& ba, const IntVect& ng,
+             const DistributionMapping& dstdm, const DistributionMapping& srcdm);
         ~CPC ();
 
         long bytes () const;	
