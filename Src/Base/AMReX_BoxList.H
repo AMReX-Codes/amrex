@@ -107,6 +107,8 @@ public:
     //! The number of Boxes in this BoxList.
     int size () const { return m_lbox.size(); }
 
+    std::size_t capacity () const { return m_lbox.capacity(); }
+
     iterator begin () { return m_lbox.begin(); }
     const_iterator begin () const { return m_lbox.begin(); }
 

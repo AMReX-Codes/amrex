@@ -1,0 +1,5 @@
+nsteps = 5 
+plot_int = 5
+n_cell = 256
+max_grid_size = 64
+blprofiler.prof_flushprint = false
