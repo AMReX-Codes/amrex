@@ -117,7 +117,7 @@ namespace amrex
           int boxid   = mfi.index();
           //writes one file per proc
           //anything more flexible requires a bunch of communication
-          int filenum = procID();
+          int filenum = ParallelDescriptor::MyProc();
           long numBytesThisBox = a_data[mfi].nBytesFull();
           localElements[ielem] = FAIOElement(filenum, offset, boxid, numBytesThisBox);
           ielem++;
@@ -127,7 +127,7 @@ namespace amrex
         Vector<FAIOElementVec> allVecs;
         gather(allVecs, localVec, 0);
         FAIOElementVec globalVec;
-        if(procID() == 0)
+        if(ParallelDescriptor::MyProc() == 0)
         {
           m_vecElem.resize(0);
           for(int ivec = 0; ivec < allVecs.size();  ivec++)
@@ -243,7 +243,7 @@ namespace amrex
           totallength += boxlen;
         }
         char* outbuf = new char[totallength];
-        string datafilename = a_directory_name + string("/") + FAIOElement::getFilename(procID());
+        string datafilename = a_directory_name + string("/") + FAIOElement::getFilename(ParallelDescriptor::MyProc());
 
         //now do the actual write.  Again, since every proc as its own file,
         //I can do a simple open and close of the file

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cstring>
-#include <unistd.h>
+//#include <unistd.h>
 
 #include "AMReX_Print.H"
 #include "AMReX_SPMD.H"
@@ -8,72 +8,6 @@
 
 namespace amrex
 {
-// try a 30 Mbyte max message size and see if that helps.
-
-  unsigned long long CH_MAX_MPI_MESSAGE_SIZE = 30*1024*1024;
-  unsigned long long CH_MaxMPISendSize = 0;
-  unsigned long long CH_MaxMPIRecvSize  = 0;
-
-  int reportMPIStats()
-  {
-    amrex::Print()<<"AMReX message size limit:"<< CH_MAX_MPI_MESSAGE_SIZE<<"\n"
-             <<"Max send message size:"<<CH_MaxMPISendSize<<"\n"
-             <<"Max recv message size:"<<CH_MaxMPIRecvSize<<"\n";
-    return 0;
-  }
-
-  std::vector<int> pids;
-
-#ifndef BL_USE_MPI
-
-  int procID()
-  {
-    return 0;
-  }
-
-// reset this to fool serial code into thinking its parallel
-  int num_procs = 1 ;
-
-  unsigned int numProc()
-  {
-    return num_procs;
-  }
-
-#else // BL_USE_MPI version
-
-
-// this is a global variable which indicates whether
-// or not an MPI command should be used to deduce rank.
-// needed for applications which switch communicators.
-// set g_resetProcID=true to force next procID() call to 
-// querry MPI_Comm_rank
-  bool g_resetProcID;
-
-  int procID()
-  {
-    static bool firstCall = true;
-    static int lastProcID = 0;
-    if (firstCall || g_resetProcID )
-    {
-      g_resetProcID = false;
-      firstCall = false;
-
-      MPI_Comm_rank(MPI_COMM_WORLD, &lastProcID);
-    }
-    return lastProcID;
-  }
-
-  unsigned int numProc()
-  {
-    static int ret = -1;
-    if (ret == -1)
-    {
-      MPI_Comm_size(MPI_COMM_WORLD, &ret);
-    }
-    return ret;
-  }
-
-#endif // BL_USE_MPI
 
 /// these should work independent of MPI's existence
   template < >

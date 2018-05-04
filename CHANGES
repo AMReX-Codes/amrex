@@ -1,3 +1,22 @@
+# 18.05
+
+  -- FillBoundary and ParallelCopy functions can now take IntVect
+     arguments as the number of ghost cells.  That is the number of
+     ghost cells could be different for different directions.
+
+  -- MultiFab, iMultiFab and FabArray can have different number of
+     ghost cells in different directions.
+
+  -- Fortran module mempool_module has been renamed amrex_mempool_module.
+
+  -- Many macros have been renamed.
+     * USE_PARTICLES and PARTICLES have been renamed AMREX_PARTICLES
+     * DIMENSION_AGNOSTIC has been renamed AMREX_DIMENSION_AGNOSTIC
+     * USE_CVODE has been renamed AMREX_USE_CVODE
+     * DEBUG has been renamed AMREX_DEBUG
+
+ -- amrex::Array is now an alias to std::array in stead of amrex::Vector.
+
 # 18.04
 
   -- New BoxList constructors making a given number of Boxes from a

@@ -397,24 +397,6 @@ BoxArray::resize (long len)
 }
 
 long
-BoxArray::size () const
-{
-    return m_ref->m_abox.size();
-}
-
-long
-BoxArray::capacity () const
-{
-    return m_ref->m_abox.capacity();
-}
-
-bool
-BoxArray::empty () const
-{
-    return m_ref->m_abox.empty();
-}
-
-long
 BoxArray::numPts () const
 {
     long result = 0;
@@ -788,25 +770,9 @@ BoxArray::set (int        i,
 }
 
 Box
-BoxArray::operator[] (int index) const
-{
-    if (m_simple) {
-        return amrex::convert(amrex::coarsen(m_ref->m_abox[index],m_crse_ratio), m_typ);
-    } else {
-        return (*m_transformer)(m_ref->m_abox[index]); 
-    }
-}
-
-Box
 BoxArray::operator[] (const MFIter& mfi) const
 {
-  return (*this)[mfi.index()];
-}
-
-Box
-BoxArray::getCellCenteredBox (int index) const
-{
-    return amrex::coarsen(m_ref->m_abox[index],m_crse_ratio);
+    return (*this)[mfi.index()];
 }
 
 bool
@@ -1122,6 +1088,9 @@ BoxArray::intersections (const Box&                         bx,
 
 	auto TheEnd = BoxHashMap.cend();
 
+        bool super_simple = m_simple && m_crse_ratio==1 && m_typ.cellCentered();
+        auto& abox = m_ref->m_abox;
+
         for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); iv <= End; cbx.next(iv))
         {
             auto it = BoxHashMap.find(iv);
@@ -1130,7 +1099,8 @@ BoxArray::intersections (const Box&                         bx,
             {
                 for (const int index : it->second)
                 {
-                    const Box& isect = bx & amrex::grow((*this)[index],ng);
+                    const Box& ibox = super_simple ? abox[index] : (*this)[index];
+                    const Box& isect = bx & amrex::grow(ibox,ng);
 
                     if (isect.ok())
                     {
@@ -1185,7 +1155,11 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
 	auto TheEnd = BoxHashMap.cend();
 
         BoxList newbl(bl.ixType());
+        newbl.reserve(bl.capacity());
         BoxList newdiff(bl.ixType());
+
+        bool super_simple = m_simple && m_crse_ratio==1 && m_typ.cellCentered();
+        auto& abox = m_ref->m_abox;
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
 	     iv <= End && bl.isNotEmpty(); 
@@ -1197,7 +1171,9 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
             {
                 for (const int index : it->second)
                 {
-                    const Box& isect = bx & (*this)[index];
+                    const Box& isect = (super_simple)
+                        ? (bx & abox[index])
+                        : (bx & (*this)[index]);
 
                     if (isect.ok())
                     {

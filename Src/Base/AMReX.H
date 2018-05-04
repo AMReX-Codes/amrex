@@ -4,6 +4,7 @@
 
 #include <AMReX_ccse-mpi.H>
 
+#include <iostream>
 #include <functional>
 #include <string>
 #include <cstdio>
@@ -24,11 +25,12 @@ namespace amrex
 
     std::string Version ();
 
-    void Initialize (MPI_Comm mpi_comm);
+    void Initialize (MPI_Comm mpi_comm, std::ostream& os = std::cout);
 
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
-                     const std::function<void()>& func_parm_parse = {});
+                     const std::function<void()>& func_parm_parse = {},
+                     std::ostream& os = std::cout);
 
     void Finalize(bool finalize_parallel = true);
     /**
@@ -77,6 +79,8 @@ namespace amrex
     */
     void write_to_stderr_without_buffering (const char* str);
 
+    std::ostream& OutStream ();
+
     namespace system
     {
 #ifdef NDEBUG
@@ -91,6 +95,8 @@ namespace amrex
 
         extern int signal_handling;
         extern int call_addr2line;
+
+        extern std::ostream* os;
     }
 
     inline void GccPlacater ()

@@ -25,17 +25,23 @@
 
 namespace amrex {
 
+
+
 bool BLProfiler::bWriteAll = true;
 bool BLProfiler::bNoOutput = false;
 bool BLProfiler::bWriteFabs = true;
 bool BLProfiler::groupSets = false;
 bool BLProfiler::bFirstCommWrite = true;  // header
 bool BLProfiler::bInitialized = false;
+bool BLProfiler::bFlushPrint = true;
 
-int BLProfiler::currentStep = 0;
 const int defaultFlushSize = 8192000;
+const int defaultReserveSize = 8192000;
+int BLProfiler::currentStep = 0;
+int BLProfiler::baseFlushSize = defaultFlushSize;
 int BLProfiler::csFlushSize = defaultFlushSize;
 int BLProfiler::traceFlushSize = defaultFlushSize;
+int BLProfiler::baseFlushCount = 0;
 int BLProfiler::csFlushCount = 0;
 int BLProfiler::traceFlushCount = 0;
 int BLProfiler::flushInterval = -1;
@@ -164,11 +170,11 @@ void BLProfiler::Initialize() {
   timerTime /= static_cast<Real> (nTimerTimes);
 
 #ifdef BL_COMM_PROFILING
-  vCommStats.reserve(std::max(csFlushSize, defaultFlushSize));
+  vCommStats.reserve(std::max(csFlushSize, defaultReserveSize));
 #endif
 
 #ifdef BL_TRACE_PROFILING
-  vCallTrace.reserve(std::max(traceFlushSize, defaultFlushSize));
+  vCallTrace.reserve(std::max(traceFlushSize, defaultReserveSize));
   // ---- make sure there is always at least one so we dont need to check in start()
   CallStats unusedCS(-1, -1, -1, -1.1, -1.2, -1.3);
   vCallTrace.push_back(unusedCS);
@@ -271,11 +277,13 @@ void BLProfiler::InitParams() {
   pParse.query("prof_traceflushsize", traceFlushSize);
   pParse.query("prof_flushinterval", flushInterval);
   pParse.query("prof_flushtimeinterval", flushTimeInterval);
+  pParse.query("prof_flushprint", bFlushPrint);
   amrex::Print() << "PPPPPPPP::  nProfFiles         = " << nProfFiles << '\n';
   amrex::Print() << "PPPPPPPP::  csFlushSize        = " << csFlushSize << '\n';
   amrex::Print() << "PPPPPPPP::  traceFlushSize     = " << traceFlushSize << '\n';
   amrex::Print() << "PPPPPPPP::  flushInterval      = " << flushInterval << '\n';
   amrex::Print() << "PPPPPPPP::  flushTimeInterval  = " << flushTimeInterval << " s." << '\n';
+  amrex::Print() << "PPPPPPPP::  flushPrint         = " << bFlushPrint << '\n';
 }
 
 
@@ -459,7 +467,7 @@ void BLProfiler::RegionStop(const std::string &rname) {
 }
 
 
-void BLProfiler::Finalize(bool bFlushing) {
+void BLProfiler::Finalize(bool bFlushing, bool memCheck) {
   if( ! bInitialized) {
     return;
   }
@@ -468,209 +476,33 @@ void BLProfiler::Finalize(bool bFlushing) {
     return;
   }
 
-  // --------------------------------------- gather global stats
-  Real finalizeStart(ParallelDescriptor::second());  // time the timer
-  const int nProcs(ParallelDescriptor::NProcs());
-  //const int myProc(ParallelDescriptor::MyProc());
-  const int iopNum(ParallelDescriptor::IOProcessorNumber());
+  WriteBaseProfile(bFlushing); 
 
+  BL_PROFILE_REGION_STOP(noRegionName);
+
+#ifdef BL_TRACE_PROFILING
+  WriteCallTrace(bFlushing, memCheck);
+#endif
+
+#ifdef BL_COMM_PROFILING
   // filter out profiler communications.
   CommStats::cftExclude.insert(AllCFTypes);
 
-
-  // -------- make sure the set of profiled functions is the same on all processors
-  Vector<std::string> localStrings, syncedStrings;
-  bool alreadySynced;
-
-  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
-      it != mProfStats.end(); ++it)
-  {
-    localStrings.push_back(it->first);
-  }
-  amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
-
-  if( ! alreadySynced) {  // ---- add the new name
-    for(int i(0); i < syncedStrings.size(); ++i) {
-      std::map<std::string, ProfStats>::const_iterator it =
-                                          mProfStats.find(syncedStrings[i]);
-      if(it == mProfStats.end()) {
-        ProfStats ps;
-        mProfStats.insert(std::pair<std::string, ProfStats>(syncedStrings[i], ps));
-      }
-    }
-  }
-
-  // ---- add the following names if they have not been called already
-  // ---- they will be called below to write the database and the names
-  // ---- need to be in the database before it is written
-  Vector<std::string> addNames;
-  addNames.push_back("ParallelDescriptor::Send(Tsii)i");
-  addNames.push_back("ParallelDescriptor::Recv(Tsii)i");
-  addNames.push_back("ParallelDescriptor::Gather(TsT1si)d");
-  addNames.push_back("ParallelDescriptor::Gather(TsT1si)l");
-  for(int iname(0); iname < addNames.size(); ++iname) {
-    std::map<std::string, ProfStats>::iterator it = mProfStats.find(addNames[iname]);
-    if(it == mProfStats.end()) {
-      amrex::Print() << "BLProfiler::Finalize:  adding name:  " << addNames[iname] << "\n";
-      ProfStats ps;
-      mProfStats.insert(std::pair<std::string, ProfStats>(addNames[iname], ps));
-    }
-  }
-
-  // ---------------------------------- now collect global data onto the ioproc
-  int maxlen(0);
-  Vector<Real> gtimes(1);
-  Vector<long> ncalls(1);
-  if(ParallelDescriptor::IOProcessor()) {
-    gtimes.resize(nProcs);
-    ncalls.resize(nProcs);
-  }
-
-  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
-      it != mProfStats.end(); ++it)
-  {
-    std::string profName(it->first);
-    int pnLen(profName.size());
-    maxlen = std::max(maxlen, pnLen);
-
-    ProfStats &pstats = mProfStats[profName];
-    if(nProcs == 1) {
-      gtimes[0] = pstats.totalTime;
-      ncalls[0] = pstats.nCalls;
-    } else {
-      ParallelDescriptor::Gather(&pstats.totalTime, 1, gtimes.dataPtr(), 1, iopNum);
-      ParallelDescriptor::Gather(&pstats.nCalls, 1, ncalls.dataPtr(), 1, iopNum);
-    }
-    Real tsum(0.0), tmin(gtimes[0]), tmax(gtimes[0]), tavg(0.0), variance(0.0);
-    long ncsum(0);
-    if(ParallelDescriptor::IOProcessor()) {
-      for(int i(0); i < gtimes.size(); ++i) {
-        tsum += gtimes[i];
-        tmin = std::min(tmin, gtimes[i]);
-        tmax = std::max(tmax, gtimes[i]);
-      }
-      tavg = tsum / static_cast<Real> (gtimes.size());
-      for(int i(0); i < gtimes.size(); ++i) {
-        variance += (gtimes[i] - tavg) * (gtimes[i] - tavg);
-      }
-      pstats.minTime = tmin;
-      pstats.maxTime = tmax;
-      pstats.avgTime = tavg;
-      pstats.variance = variance / static_cast<Real> (gtimes.size());  // n - 1 for sample
-
-      for(int i(0); i < ncalls.size(); ++i) {
-        ncsum += ncalls[i];
-      }
-      // uncomment for reporting total calls summed over all procs
-      //pstats.nCalls = ncsum;
-    }
-  }
-
-  // --------------------------------------- print global stats to cout
-  if(ParallelDescriptor::IOProcessor()) {
-    bool bWriteAvg(true);
-    if(nProcs == 1) {
-      bWriteAvg = false;
-    }
-    BLProfilerUtils::WriteStats(std::cout, mProfStats, mFNameNumbers, vCallTrace, bWriteAvg);
-  }
-
-
-  // --------------------------------------- print all procs stats to a file
-  if(bWriteAll) {
-    // ----
-    // ---- if we use an unordered_map for mProfStats, copy to a sorted container
-    // ----
-    ParallelDescriptor::Barrier();  // ---- wait for everyone (remove after adding filters)
-    Vector<long> nCallsOut(mProfStats.size(), 0);
-    Vector<Real> totalTimesOut(mProfStats.size(), 0.0);
-    int count(0);
-    for(std::map<std::string, ProfStats>::const_iterator phit = mProfStats.begin();
-        phit != mProfStats.end(); ++phit)
-    {
-      nCallsOut[count] = phit->second.nCalls;
-      totalTimesOut[count] = phit->second.totalTime;
-      ++count;
-    }
-
-
-    std::string cdir(blProfDirName);
-    if( ! blProfDirCreated) {
-      amrex::UtilCreateCleanDirectory(cdir);
-      blProfDirCreated = true;
-    }
-
-    const int nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
-    std::string phFilePrefix("bl_prof");
-    std::string cFileName(cdir + '/' + phFilePrefix + "_D_");
-    long seekPos(0);
-    bool setBuf(true);
-    NFilesIter nfi(nOutFiles, cFileName, groupSets, setBuf);
-    for( ; nfi.ReadyToWrite(); ++nfi) {
-      seekPos = nfi.SeekPos();
-      if(nCallsOut.size() > 0) {
-        nfi.Stream().write((char *) nCallsOut.dataPtr(),
-        nCallsOut.size() * sizeof(long));
-      }
-      if(totalTimesOut.size() > 0) {
-        nfi.Stream().write((char *) totalTimesOut.dataPtr(),
-        totalTimesOut.size() * sizeof(Real));
-      }
-    }
-
-
-    Vector<long> seekPosOut(1);
-    if(ParallelDescriptor::IOProcessor()) {
-      seekPosOut.resize(nProcs, 0);
-    }
-    ParallelDescriptor::Gather(&seekPos, 1, seekPosOut.dataPtr(), 1, iopNum);
-
-    if(ParallelDescriptor::IOProcessor()) {
-      std::string phFileName(cdir + '/' + phFilePrefix + "_H");
-      std::ofstream phHeaderFile;
-      phHeaderFile.open(phFileName.c_str(), std::ios::out | std::ios::trunc);
-      phHeaderFile << "BLProfVersion " << BLProfVersion << '\n';
-      phHeaderFile << "NProcs  " << nProcs << '\n';
-      phHeaderFile << "NOutFiles  " << nOutFiles << '\n';
-      for(std::map<std::string, ProfStats>::const_iterator phit = mProfStats.begin();
-          phit != mProfStats.end(); ++phit)
-      {
-        phHeaderFile << "phFName " << '"' << phit->first << '"' << '\n';
-      }
-
-      std::string dFileName(phFilePrefix + "_D_");
-      for(int p(0); p < nProcs; ++p) {
-        std::string dFullName(NFilesIter::FileName(nOutFiles, dFileName, p, groupSets));
-	phHeaderFile << "BLProfProc " << p << " datafile " << dFullName
-	             << " seekpos " << seekPosOut[p] << '\n';
-      }
-      phHeaderFile << "calcEndTime " << std::setprecision(16)
-                   << ParallelDescriptor::second() - startTime << '\n';
-      phHeaderFile.close();
-    }
-
-    BL_PROFILE_REGION_STOP(noRegionName);
-
-    WriteCallTrace(bFlushing);
-
-    ParallelDescriptor::Barrier("BLProfiler::Finalize");
-  }
-  amrex::Print() << "BLProfiler::Finalize():  time:  "   // time the timer
-                 << ParallelDescriptor::second() - finalizeStart << "\n";
-
-#ifdef BL_COMM_PROFILING
-  WriteCommStats(bFlushing);
+  WriteCommStats(bFlushing, memCheck);
 #endif
 
   WriteFortProfErrors();
 #ifdef AMREX_DEBUG
 #else
-  for(int i(0); i < mFortProfsInt.size(); ++i) {
-    delete mFortProfsInt[i];
+  if (!bFlushing)
+  {
+    for(int i(0); i < mFortProfsInt.size(); ++i) {
+      delete mFortProfsInt[i];
+    }
+    bInitialized = false;
   }
 #endif
 
-  bInitialized = false;
 }
 
 
@@ -935,9 +767,202 @@ void WriteStats(std::ostream &ios,
 
 }  // end namespace BLProfilerUtils
 
+void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- write basic profiling data
 
-void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace data
-    if(bFlushing) {
+  // --------------------------------------- gather global stats
+  Real baseProfStart(ParallelDescriptor::second());  // time the timer
+  const int nProcs(ParallelDescriptor::NProcs());
+  //const int myProc(ParallelDescriptor::MyProc());
+  const int iopNum(ParallelDescriptor::IOProcessorNumber());
+
+  // -------- make sure the set of profiled functions is the same on all processors
+  Vector<std::string> localStrings, syncedStrings;
+  bool alreadySynced;
+
+  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
+      it != mProfStats.end(); ++it)
+  {
+    localStrings.push_back(it->first);
+  }
+  amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
+
+  if( ! alreadySynced) {  // ---- add the new name
+    for(int i(0); i < syncedStrings.size(); ++i) {
+      std::map<std::string, ProfStats>::const_iterator it =
+                                          mProfStats.find(syncedStrings[i]);
+      if(it == mProfStats.end()) {
+        ProfStats ps;
+        mProfStats.insert(std::pair<std::string, ProfStats>(syncedStrings[i], ps));
+      }
+    }
+  }
+
+  // ---- add the following names if they have not been called already
+  // ---- they will be called below to write the database and the names
+  // ---- need to be in the database before it is written
+  Vector<std::string> addNames;
+  addNames.push_back("ParallelDescriptor::Send(Tsii)i");
+  addNames.push_back("ParallelDescriptor::Recv(Tsii)i");
+  addNames.push_back("ParallelDescriptor::Gather(TsT1si)d");
+  addNames.push_back("ParallelDescriptor::Gather(TsT1si)l");
+  for(int iname(0); iname < addNames.size(); ++iname) {
+    std::map<std::string, ProfStats>::iterator it = mProfStats.find(addNames[iname]);
+    if(it == mProfStats.end()) {
+      amrex::Print() << "BLProfiler::Finalize:  adding name:  " << addNames[iname] << "\n";
+      ProfStats ps;
+      mProfStats.insert(std::pair<std::string, ProfStats>(addNames[iname], ps));
+    }
+  }
+
+  // Print to std::out if this is a Finalize call
+  //    or if user sets print on flushes.
+  // Should generally be turned off as this requires syncronization.
+  if ((!bFlushing) || (bFlushPrint)) {
+    // ---------------------------------- now collect global data onto the ioproc
+    int maxlen(0);
+    Vector<Real> gtimes(1);
+    Vector<long> ncalls(1);
+    if(ParallelDescriptor::IOProcessor()) {
+      gtimes.resize(nProcs);
+      ncalls.resize(nProcs);
+    }
+
+    for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
+        it != mProfStats.end(); ++it)
+    {
+      std::string profName(it->first);
+      int pnLen(profName.size());
+      maxlen = std::max(maxlen, pnLen);
+
+      ProfStats &pstats = mProfStats[profName];
+      if(nProcs == 1) {
+        gtimes[0] = pstats.totalTime;
+        ncalls[0] = pstats.nCalls;
+      } else {
+        ParallelDescriptor::Gather(&pstats.totalTime, 1, gtimes.dataPtr(), 1, iopNum);
+        ParallelDescriptor::Gather(&pstats.nCalls, 1, ncalls.dataPtr(), 1, iopNum);
+      }
+      Real tsum(0.0), tmin(gtimes[0]), tmax(gtimes[0]), tavg(0.0), variance(0.0);
+      long ncsum(0);
+      if(ParallelDescriptor::IOProcessor()) {
+        for(int i(0); i < gtimes.size(); ++i) {
+          tsum += gtimes[i];
+          tmin = std::min(tmin, gtimes[i]);
+          tmax = std::max(tmax, gtimes[i]);
+        }
+        tavg = tsum / static_cast<Real> (gtimes.size());
+        for(int i(0); i < gtimes.size(); ++i) {
+          variance += (gtimes[i] - tavg) * (gtimes[i] - tavg);
+        }
+        pstats.minTime = tmin;
+        pstats.maxTime = tmax;
+        pstats.avgTime = tavg;
+        pstats.variance = variance / static_cast<Real> (gtimes.size());  // n - 1 for sample
+
+        for(int i(0); i < ncalls.size(); ++i) {
+          ncsum += ncalls[i];
+        }
+        // uncomment for reporting total calls summed over all procs
+        //pstats.nCalls = ncsum;
+      }
+    }
+
+    // --------------------------------------- print global stats to cout
+    if(ParallelDescriptor::IOProcessor()) {
+      bool bWriteAvg(true);
+      if(nProcs == 1) {
+        bWriteAvg = false;
+      }
+      BLProfilerUtils::WriteStats(std::cout, mProfStats, mFNameNumbers, vCallTrace, bWriteAvg);
+    }
+  }
+
+  // --------------------------------------- print all procs stats to a file
+  if(bWriteAll) {
+    // ----
+    // ---- if we use an unordered_map for mProfStats, copy to a sorted container
+    // ----
+    ParallelDescriptor::Barrier();  // ---- wait for everyone (remove after adding filters)
+    Vector<long> nCallsOut(mProfStats.size(), 0);
+    Vector<Real> totalTimesOut(mProfStats.size(), 0.0);
+    int count(0);
+    for(std::map<std::string, ProfStats>::const_iterator phit = mProfStats.begin();
+        phit != mProfStats.end(); ++phit)
+    {
+      nCallsOut[count] = phit->second.nCalls;
+      totalTimesOut[count] = phit->second.totalTime;
+      ++count;
+    }
+
+
+    std::string cdir(blProfDirName);
+    if( ! blProfDirCreated) {
+      amrex::UtilCreateCleanDirectory(cdir);
+      blProfDirCreated = true;
+    }
+
+    const int nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
+    std::string phFilePrefix("bl_prof");
+    std::string cFileName(cdir + '/' + phFilePrefix + "_D_");
+    long seekPos(0);
+    bool setBuf(true);
+    NFilesIter nfi(nOutFiles, cFileName, groupSets, setBuf);
+    for( ; nfi.ReadyToWrite(); ++nfi) {
+      seekPos = nfi.SeekPos();
+      if(nCallsOut.size() > 0) {
+        nfi.Stream().write((char *) nCallsOut.dataPtr(),
+        nCallsOut.size() * sizeof(long));
+      }
+      if(totalTimesOut.size() > 0) {
+        nfi.Stream().write((char *) totalTimesOut.dataPtr(),
+        totalTimesOut.size() * sizeof(Real));
+      }
+    }
+
+
+    Vector<long> seekPosOut(1);
+    if(ParallelDescriptor::IOProcessor()) {
+      seekPosOut.resize(nProcs, 0);
+    }
+    ParallelDescriptor::Gather(&seekPos, 1, seekPosOut.dataPtr(), 1, iopNum);
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::string phFileName(cdir + '/' + phFilePrefix + "_H");
+      std::ofstream phHeaderFile;
+      phHeaderFile.open(phFileName.c_str(), std::ios::out | std::ios::trunc);
+      phHeaderFile << "BLProfVersion " << BLProfVersion << '\n';
+      phHeaderFile << "NProcs  " << nProcs << '\n';
+      phHeaderFile << "NOutFiles  " << nOutFiles << '\n';
+      for(std::map<std::string, ProfStats>::const_iterator phit = mProfStats.begin();
+          phit != mProfStats.end(); ++phit)
+      {
+        phHeaderFile << "phFName " << '"' << phit->first << '"' << '\n';
+      }
+
+      std::string dFileName(phFilePrefix + "_D_");
+      for(int p(0); p < nProcs; ++p) {
+        std::string dFullName(NFilesIter::FileName(nOutFiles, dFileName, p, groupSets));
+	phHeaderFile << "BLProfProc " << p << " datafile " << dFullName
+	             << " seekpos " << seekPosOut[p] << '\n';
+      }
+      phHeaderFile << "calcEndTime " << std::setprecision(16)
+                   << ParallelDescriptor::second() - startTime << '\n';
+      phHeaderFile.close();
+    }
+
+    BL_PROFILE_REGION_STOP(noRegionName);
+
+    ParallelDescriptor::Barrier("BLProfiler::Finalize");
+  }
+  amrex::Print() << "BLProfiler::Finalize():  time:  "   // time the timer
+                 << ParallelDescriptor::second() - baseProfStart << "\n";
+
+}
+
+
+void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write call trace data
+
+    if(memCheck) {
       int nCT(vCallTrace.size());
       ParallelDescriptor::ReduceIntMax(nCT);
       bool doFlush(nCT > traceFlushSize);
@@ -951,6 +976,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
       }
     }
 
+    Real wctStart(ParallelDescriptor::second());  // time the timer
     std::string cdir(blProfDirName);
     const int   myProc    = ParallelDescriptor::MyProc();
     const int   nProcs    = ParallelDescriptor::NProcs();
@@ -1127,11 +1153,14 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
     vCallTrace.clear();
     CallStats unusedCS(-1, -1, -1, -1.1, -1.2, -1.3);
     vCallTrace.push_back(unusedCS);
+
+    amrex::Print() << "BLProfiler::WriteCallTrace():  time:  "
+                   << ParallelDescriptor::second() - wctStart << "\n";
 }
 
 
 
-void BLProfiler::WriteCommStats(bool bFlushing) {
+void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
 
   Real wcsStart(ParallelDescriptor::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
@@ -1139,7 +1168,7 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
     CommStats::cftExclude.insert(AllCFTypes);  // temporarily
   }
 
-  if(bFlushing) {
+  if(memCheck) {
     int nCS(vCommStats.size());
     ParallelDescriptor::ReduceIntMax(nCS);
     if(nCS < csFlushSize) {
