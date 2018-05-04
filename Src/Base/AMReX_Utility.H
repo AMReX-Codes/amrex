@@ -204,8 +204,7 @@ namespace amrex
     *  INTEGER seed
     *  call blinitrand(seed)
     */
-    void InitRandom (unsigned long seed);
-    void InitRandom (unsigned long seed, int nprocs);
+    void InitRandom (unsigned long seed, int nprocs=0);
 
     void ResetRandomSeed(unsigned long seed);
     /**
