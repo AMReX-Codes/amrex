@@ -251,7 +251,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 {
     BL_PROFILE_REGION("MLCGSolver::cg");
 
-    const int nghost = sol.nGrow(), ncomp = 1;
+    const int nghost = sol.nGrow(), ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
