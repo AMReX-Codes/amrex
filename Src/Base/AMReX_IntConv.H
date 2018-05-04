@@ -10,8 +10,14 @@
 
 namespace amrex {
 
-    template<typename T> T swapBytes(T value);
-    
+    template<int N> std::int16_t swapBytes(std::int16_t value);
+    template<int N> std::int32_t swapBytes(std::int32_t value);
+    template<int N> std::int64_t swapBytes(std::int64_t value);
+
+    template<int N> std::uint16_t swapBytes(std::uint16_t value);
+    template<int N> std::uint32_t swapBytes(std::uint32_t value);
+    template<int N> std::uint64_t swapBytes(std::uint64_t value);
+
     template <typename To, typename From>
     void writeIntData(const From* data, std::size_t size, std::ostream& os,
                       const amrex::IntDescriptor& id)
@@ -20,7 +26,7 @@ namespace amrex {
         bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
         for (std::size_t j = 0; j < size; ++j) {
             value = data[j];
-            if (swapEndian) value = swapBytes<To>(value);
+            if (swapEndian) value = swapBytes<sizeof(To)>(value);
             os.write((char*) &value, sizeof(To));
         }
     }
@@ -33,7 +39,7 @@ namespace amrex {
         bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
         for (std::size_t j = 0; j < size; ++j) {
             is.read((char*) &value, sizeof(From));
-            if (swapEndian) value = swapBytes<From>(value);
+            if (swapEndian) value = swapBytes<sizeof(From)>(value);
             data[j] = value;
         }
     }   
