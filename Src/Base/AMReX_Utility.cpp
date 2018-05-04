@@ -342,16 +342,11 @@ namespace
 }
 
 void
-amrex::InitRandom (unsigned long seed)
-{
-    for (int i =0; i < nthreads; i++) {
-        generators[i].seed(seed);
-    }
-}
-
-void
 amrex::InitRandom (unsigned long seed, int nprocs)
 {
+
+    if (nprocs < 1) nprocs = ParallelDescriptor::NProcs();
+
 #ifdef _OPENMP
     nthreads = omp_get_max_threads();
 #else
