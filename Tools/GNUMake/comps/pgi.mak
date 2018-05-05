@@ -80,8 +80,8 @@ ifeq ($(USE_CUDA),TRUE)
 
   DEFINES := $(DEFINES)
 
-  CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
-  CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
+  CXXFLAGS := -Wno-deprecated-gpu-targets -dc -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
+  CFLAGS := -Wno-deprecated-gpu-targets -dc -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 
   HOST_CXX := $(CXX)
   HOST_CC := $(CC)
