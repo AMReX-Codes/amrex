@@ -60,8 +60,8 @@ ifeq ($(USE_CUDA),TRUE)
 
   DEFINES := $(DEFINES)
 
-  CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
-  CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
+  CXXFLAGS := -Wno-deprecated-gpu-targets -dc -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
+  CFLAGS := -Wno-deprecated-gpu-targets -dc -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 
   HOST_CXX := $(CXX)
   HOST_CC := $(CC)
@@ -128,4 +128,8 @@ ifeq ($(USE_CUDA),TRUE)
     F90FLAGS += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
     FFLAGS   += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
   endif
+
+  LINK_WITH_FORTRAN_COMPILER = TRUE
 endif
+
+LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
