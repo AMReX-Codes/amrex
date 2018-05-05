@@ -52,22 +52,7 @@ CFLAGS   += $(GENERIC_IBM_FLAGS)
 CPP_PREFIX = -WF,
 
 ifeq ($(USE_CUDA),TRUE)
-  include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
-
-  # Force immediate expansion of the GCC defines,
-  # since after this point GCC will no longer be
-  # the actual compiler defined in CXX.
-
-  DEFINES := $(DEFINES)
-
-  CXXFLAGS := -Wno-deprecated-gpu-targets -dc -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
-  CFLAGS := -Wno-deprecated-gpu-targets -dc -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
-
-  HOST_CXX := $(CXX)
-  HOST_CC := $(CC)
-
-  CXX := nvcc
-  CC := nvcc
+  include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
 endif
 
 
