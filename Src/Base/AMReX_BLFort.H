@@ -71,7 +71,13 @@
 
 #endif
 
-// Define null macros for now.
+// This macro "deletes" a function when we're using CUDA,
+// so that a script can replace it.
 
+#ifdef AMREX_USE_CUDA
+#define DEVICE_LAUNCHABLE(func) null##func
+#else
 #define DEVICE_LAUNCHABLE(func) func
+#endif
+
 
