@@ -46,6 +46,11 @@ ifeq ($(findstring summitdev, $(host_name)), summitdev)
   which_computer := summitdev
 endif
 
+ifeq ($(findstring sierra, $(host_name)), sierra)
+  which_site := llnl
+  which_computer := sierra
+endif
+
 ifeq ($(findstring ray, $(host_name)), ray)
   which_site := llnl
   which_computer := ray
