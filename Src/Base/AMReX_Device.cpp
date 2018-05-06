@@ -429,4 +429,40 @@ amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlock
     numThreads.z = tz;
 
 }
+
+void
+amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads) {
+
+    int num_SMs;
+
+    int SM_mult_factor = 1;
+
+    get_num_SMs(&num_SMs);
+
+    if (num_SMs > 0) {
+
+        numBlocks.x = SM_mult_factor * num_SMs;
+        numBlocks.y = 1;
+        numBlocks.z = 1;
+
+    } else {
+
+        // Arbitrarily set this to a somewhat large number.
+
+        numBlocks.x = 1000;
+        numBlocks.y = 1;
+        numBlocks.z = 1;
+
+    }
+
+    // Set an 8x8x8 threadblock so that we are always
+    // safe with ghost zone fills. This could be generalized
+    // later to use (say) a 512x1x1 block in other cases
+    // where we do not have synchronizations in the kernel.
+
+    numThreads.x = 8;
+    numThreads.y = 8;
+    numThreads.z = 8;
+
+}
 #endif
