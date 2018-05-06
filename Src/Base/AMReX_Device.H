@@ -66,6 +66,7 @@ extern "C" {
     void gpu_synchronize();
     void gpu_start_profiler();
     void gpu_stop_profiler();
+    void get_num_SMs(int* num);
     void set_threads_and_blocks(const int* lo, const int* hi,
                                 const int* txmin, const int* tymin, const int* tzmin);
     void get_threads_and_blocks(const int* lo, const int* hi,
