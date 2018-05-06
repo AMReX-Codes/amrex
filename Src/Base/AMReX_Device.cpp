@@ -435,15 +435,16 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
     int num_SMs;
 
-    int SM_mult_factor = 1;
+    int SM_mult_factor = 8;
 
     get_num_SMs(&num_SMs);
 
     if (num_SMs > 0) {
 
-        numBlocks.x = SM_mult_factor * num_SMs;
+
+        numBlocks.x = 1;
         numBlocks.y = 1;
-        numBlocks.z = 1;
+        numBlocks.z = SM_mult_factor * num_SMs;
 
     } else {
 
