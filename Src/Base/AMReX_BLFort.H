@@ -86,23 +86,14 @@
 
 #ifdef AMREX_USE_CUDA
 
-#define DEVICE_LAUNCH(box, function, ...)  \
-    { \
-      dim3 numBlocks, numThreads; \
-      Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
-      cuda_##function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
-      CudaErrorCheck(); \
-    }
-
-#define DEVICE_LAUNCH_STRIDED(function)  \
+#define DEVICE_LAUNCH(function)  \
       dim3 function_##numBlocks, function_##numThreads; \
       Device::grid_stride_threads_and_blocks(function_##numBlocks, function_##numThreads); \
       cuda_##function<<<function_##numBlocks, function_##numThreads, 0, Device::cudaStream()>>> \
 
 #else
 
-#define DEVICE_LAUNCH(box, function, ...) function(__VA_ARGS__)
-#define DEVICE_LAUNCH_STRIDED(function) function(__VA_ARGS__)
+#define DEVICE_LAUNCH(function) function(__VA_ARGS__)
 
 #endif
 
