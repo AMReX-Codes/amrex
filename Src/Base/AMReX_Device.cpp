@@ -435,7 +435,7 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
     int num_SMs;
 
-    int SM_mult_factor = 8;
+    int SM_mult_factor = 32;
 
     get_num_SMs(&num_SMs);
 
@@ -443,8 +443,8 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
 
         numBlocks.x = 1;
-        numBlocks.y = 1;
-        numBlocks.z = SM_mult_factor * num_SMs;
+        numBlocks.y = SM_mult_factor;
+        numBlocks.z = num_SMs;
 
     } else {
 
@@ -456,14 +456,9 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
     }
 
-    // Set an 8x8x8 threadblock so that we are always
-    // safe with ghost zone fills. This could be generalized
-    // later to use (say) a 512x1x1 block in other cases
-    // where we do not have synchronizations in the kernel.
-
-    numThreads.x = 8;
-    numThreads.y = 8;
-    numThreads.z = 8;
+    numThreads.x = std::max(numThreadsMin.x, CUDA_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
+    numThreads.y = std::max(numThreadsMin.y, CUDA_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
+    numThreads.z = std::max(numThreadsMin.z, CUDA_MAX_THREADS / (numThreads.x    * numThreads.y   ));
 
 }
 #endif
