@@ -76,8 +76,10 @@
 
 #ifdef AMREX_USE_CUDA
 #define DEVICE_LAUNCHABLE(func) null##func
+#define DEVICE_LAUNCHABLE_STRIDED(func) null##func
 #else
 #define DEVICE_LAUNCHABLE(func) func
+#define DEVICE_LAUNCHABLE_STRIDED(func) func
 #endif
 
 // Decorate the calls to the GPU.
@@ -92,9 +94,15 @@
       CudaErrorCheck(); \
     }
 
+#define DEVICE_LAUNCH_STRIDED(function)  \
+      dim3 function_##numBlocks, function_##numThreads; \
+      Device::grid_stride_threads_and_blocks(function_##numBlocks, function_##numThreads); \
+      cuda_##function<<<function_##numBlocks, function_##numThreads, 0, Device::cudaStream()>>> \
+
 #else
 
 #define DEVICE_LAUNCH(box, function, ...) function(__VA_ARGS__)
+#define DEVICE_LAUNCH_STRIDED(function) function(__VA_ARGS__)
 
 #endif
 
