@@ -367,6 +367,23 @@ contains
 
 
 
+  subroutine get_num_SMs(num) bind(c, name='get_num_SMs')
+
+    implicit none
+
+    integer, intent(inout) :: num
+
+    if (have_prop) then
+       num = prop % multiProcessorCount
+    else
+       ! Return an invalid number if we have no data.
+       num = -1
+    end if
+
+  end subroutine get_num_SMs
+
+
+
   subroutine gpu_malloc(x, sz) bind(c, name='gpu_malloc')
 
     use cudafor, only: cudaMalloc, c_devptr
