@@ -80,4 +80,22 @@
 #define DEVICE_LAUNCHABLE(func) func
 #endif
 
+// Decorate the calls to the GPU.
+
+#ifdef AMREX_USE_CUDA
+
+#define DEVICE_LAUNCH(box, function, ...)  \
+    { \
+      dim3 numBlocks, numThreads; \
+      Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
+      cuda_##function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+      CudaErrorCheck(); \
+    }
+
+#else
+
+#define DEVICE_LAUNCH(box, function, ...) function(__VA_ARGS__)
+
+#endif
+
 
