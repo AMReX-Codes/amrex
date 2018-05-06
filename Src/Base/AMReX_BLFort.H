@@ -84,12 +84,24 @@
 
 // Decorate the calls to the GPU.
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
-#define DEVICE_LAUNCH(function)  \
+#if __CUDACC_VER_MAJOR__ >= 9
+
+#define DEVICE_LAUNCH(function)                         \
+      dim3 function_##numBlocks, function_##numThreads; \
+      Device::grid_stride_threads_and_blocks(function_##numBlocks, function_##numThreads); \
+      CudaAPICheck(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
+      cuda_##function<<<function_##numBlocks, function_##numThreads, 0, Device::cudaStream()>>> \
+
+#else
+
+#define DEVICE_LAUNCH(function)                         \
       dim3 function_##numBlocks, function_##numThreads; \
       Device::grid_stride_threads_and_blocks(function_##numBlocks, function_##numThreads); \
       cuda_##function<<<function_##numBlocks, function_##numThreads, 0, Device::cudaStream()>>> \
+
+#endif
 
 #else
 
