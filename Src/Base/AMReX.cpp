@@ -54,7 +54,8 @@ namespace system
     int verbose;
     int signal_handling;
     int call_addr2line;
-    std::ostream* os = &std::cout;
+    std::ostream* osout = &std::cout;
+    std::ostream* oserr = &std::cerr;
 }
 }
 
@@ -213,7 +214,7 @@ amrex::Warning (const char* msg)
 {
     if (msg)
     {
-	amrex::Print(Print::AllProcs,std::cerr) << msg << '!' << '\n';
+	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
 }
 
@@ -274,23 +275,24 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 }
 
 void
-amrex::Initialize (MPI_Comm mpi_comm, std::ostream& os)
+amrex::Initialize (MPI_Comm mpi_comm, std::ostream& a_osout, std::ostream& a_oserr)
 {
     int argc = 0;
     char** argv = 0;
-    Initialize(argc, argv, false, mpi_comm, {}, os);
+    Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr);
 }
 
 void
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
-                   std::ostream& os)
+                   std::ostream& a_osout, std::ostream& a_oserr)
 {
     system::exename.clear();
     system::verbose = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
-    system::os = &os;
+    system::osout = &a_osout;
+    system::oserr = &a_oserr;
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
 #ifdef AMREX_PMI
@@ -560,5 +562,11 @@ amrex::Finalize (bool finalize_parallel)
 std::ostream&
 amrex::OutStream ()
 {
-    return *system::os;
+    return *system::osout;
+}
+
+std::ostream&
+amrex::ErrorStream ()
+{
+    return *system::oserr;
 }
