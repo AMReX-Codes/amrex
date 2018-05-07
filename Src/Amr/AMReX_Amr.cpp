@@ -369,7 +369,7 @@ Amr::InitAmr ()
        }
        else if (numvals == 0)
        {
-	   amrex::Print(std::cerr) << "Using default regrid_int = 1 at all levels!\n";
+	   amrex::Print(amrex::ErrorStream()) << "Using default regrid_int = 1 at all levels!\n";
        }
        else if (numvals < max_level)
        {
@@ -1305,13 +1305,13 @@ Amr::FinalizeInit (Real              strt_time,
     {
        if (verbose > 1)
        {
-           std::cout << "INITIAL GRIDS \n";
-           printGridInfo(std::cout,0,finest_level);
+           amrex::Print() << "INITIAL GRIDS \n";
+           printGridInfo(amrex::OutStream(),0,finest_level);
        }
        else if (verbose > 0)
        { 
-           std::cout << "INITIAL GRIDS \n";
-           printGridSummary(std::cout,0,finest_level);
+           amrex::Print() << "INITIAL GRIDS \n";
+           printGridSummary(amrex::OutStream(),0,finest_level);
        }
     }
 
@@ -1419,7 +1419,7 @@ Amr::restart (const std::string& filename)
 
     if (spdim != AMREX_SPACEDIM)
     {
-        std::cerr << "Amr::restart(): bad spacedim = " << spdim << '\n';
+        amrex::ErrorStream() << "Amr::restart(): bad spacedim = " << spdim << '\n';
         amrex::Abort();
     }
 
@@ -2202,11 +2202,11 @@ Amr::coarseTimeStep (Real stop_time)
         if(ParallelDescriptor::IOProcessor()) {
           if (to_checkpoint)
           {
-            std::cerr << "Stopped by user w/ checkpoint" << std::endl;
+            amrex::ErrorStream() << "Stopped by user w/ checkpoint" << std::endl;
           }
           else
           {
-            std::cerr << "Stopped by user w/o checkpoint" << std::endl;
+            amrex::ErrorStream() << "Stopped by user w/o checkpoint" << std::endl;
           }
 	}
     }
@@ -2465,22 +2465,23 @@ Amr::regrid (int  lbase,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-        if (lbase == 0)
-            std::cout << "STEP = " << level_steps[0] << ' ';
+        if (lbase == 0) {
+            amrex::Print() << "STEP = " << level_steps[0] << ' ';
+        }
 
-        std::cout << "TIME = "
-                  << time
-                  << " : REGRID  with lbase = "
-                  << lbase
-                  << std::endl;
+        amrex::Print() << "TIME = "
+                       << time
+                       << " : REGRID  with lbase = "
+                       << lbase
+                       << std::endl;
 
         if (verbose > 1)
         {
-           printGridInfo(std::cout,start,finest_level);
+            printGridInfo(amrex::OutStream(),start,finest_level);
         }
         else
         {
-           printGridSummary(std::cout,start,finest_level);
+            printGridSummary(amrex::OutStream(),start,finest_level);
         }
     }
 }
@@ -2589,11 +2590,11 @@ Amr::regrid_level_0_on_restart()
 	{
 	    if (verbose > 1)
 	    {
-		printGridInfo(std::cout,0,finest_level);
+		printGridInfo(amrex::OutStream(),0,finest_level);
 	    }
 	    else if (verbose > 0)
 	    {
-		printGridSummary(std::cout,0,finest_level);
+		printGridSummary(amrex::OutStream(),0,finest_level);
 	    }
 	}
 	
