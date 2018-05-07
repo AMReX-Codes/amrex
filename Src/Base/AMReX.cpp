@@ -60,6 +60,8 @@ namespace system
 }
 
 namespace {
+    std::streamsize  prev_out_precision;
+    std::streamsize  prev_err_precision;
     std::new_handler prev_new_handler;
     typedef void (*SignalHandler)(int);
     SignalHandler prev_handler_sigsegv;
@@ -295,6 +297,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::oserr = &a_oserr;
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
+    prev_out_precision = system::osout->precision(10);
+    prev_err_precision = system::oserr->precision(10);
+
 #ifdef AMREX_PMI
     ParallelDescriptor::PMI_Initialize();
 #endif
@@ -429,8 +434,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_PROFILE_INITPARAMS();
 #endif
 
-    std::cout << std::setprecision(10);
-
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
 	amrex::Print() << "!\n! WARNING: Maximum of long int, "
@@ -494,12 +497,12 @@ amrex::Finalize (bool finalize_parallel)
 	amrex_mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
 	if (ParallelDescriptor::NProcs() == 1) {
 	    if (mp_tot > 0) {
-		std::cout << "MemPool: " 
+                amrex::Print() << "MemPool: " 
 #ifdef _OPENMP
-			  << "min used in a thread: " << mp_min << " MB, "
-			  << "max used in a thread: " << mp_max << " MB, "
+                               << "min used in a thread: " << mp_min << " MB, "
+                               << "max used in a thread: " << mp_max << " MB, "
 #endif
-			  << "tot used: " << mp_tot << " MB." << std::endl;
+                               << "tot used: " << mp_tot << " MB." << std::endl;
 	    }
 	} else {
 	    int global_max = mp_tot;
@@ -547,6 +550,9 @@ amrex::Finalize (bool finalize_parallel)
 #endif
 
     std::set_new_handler(prev_new_handler);
+
+    amrex::OutStream().precision(prev_out_precision);
+    amrex::ErrorStream().precision(prev_err_precision);
 
     if (finalize_parallel) {
 #if defined(BL_USE_FORTRAN_MPI)

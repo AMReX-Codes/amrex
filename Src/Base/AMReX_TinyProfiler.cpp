@@ -163,11 +163,11 @@ TinyProfiler::Finalize (bool bFlushing)
 	amrex::SyncStrings(local_imp, sync_imp, synced);
 
 	if (ParallelDescriptor::IOProcessor()) {
-	    std::cout << "\nWARNING: TinyProfilers not properly nested!!!\n";
+	    amrex::Print() << "\nWARNING: TinyProfilers not properly nested!!!\n";
 	    for (int i = 0; i < sync_imp.size(); ++i) {
-		std::cout << "     " << sync_imp[i] << "\n";
+		amrex::Print() << "     " << sync_imp[i] << "\n";
 	    }
-	    std::cout << std::endl;
+	    amrex::Print() << std::endl;
 	}
     }
 
@@ -184,8 +184,8 @@ TinyProfiler::Finalize (bool bFlushing)
 
     if  (ParallelDescriptor::IOProcessor())
     {
-	std::cout << "\n\n";
-	std::cout << std::setprecision(4) 
+	amrex::Print() << "\n\n";
+	amrex::Print() << std::setprecision(4) 
                   <<"TinyProfiler total time across processes [min...avg...max]: " 
 		  << dt_min << " ... " << dt_avg << " ... " << dt_max << "\n";
     }
@@ -213,13 +213,9 @@ TinyProfiler::Finalize (bool bFlushing)
     PrintStats(lstatsmap[mainregion], dt_max);
     for (auto& kv : lstatsmap) {
         if (kv.first != mainregion) {
-            if (ParallelDescriptor::IOProcessor()) {
-                std::cout << "\n\nBEGIN REGION " << kv.first << "\n";
-            }
+            amrex::Print() << "\n\nBEGIN REGION " << kv.first << "\n";
             PrintStats(kv.second, dt_max);
-            if (ParallelDescriptor::IOProcessor()) {
-                std::cout << "END REGION " << kv.first << "\n";
-            }
+            amrex::Print() << "END REGION " << kv.first << "\n";
         }
     }
 }
@@ -300,7 +296,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 
     if (ParallelDescriptor::IOProcessor()) {
 
-	std::cout << std::setfill(' ') << std::setprecision(4);
+	amrex::Print() << std::setfill(' ') << std::setprecision(4);
 	int wt = 9;
 
 	int wnc = (int) std::log10 ((double) maxncalls) + 1;
@@ -313,8 +309,8 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 
 	// Exclusive time
 	std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compex);
-	std::cout << "\n" << hline << "\n";
-	std::cout << std::left
+	amrex::Print() << "\n" << hline << "\n";
+	amrex::Print() << std::left
 		  << std::setw(maxfnamelen) << "Name"
 		  << std::right
 		  << std::setw(wnc+2) << "NCalls"
@@ -325,7 +321,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 		  << "\n" << hline << "\n";
 	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
 	{
-	    std::cout << std::setprecision(4) << std::left
+	    amrex::Print() << std::setprecision(4) << std::left
 		      << std::setw(maxfnamelen) << it->fname
 		      << std::right
 		      << std::setw(wnc+2) << it->navg
@@ -334,15 +330,15 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 		      << std::setw(wt+2) << it->dtexmax
 		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
 		      << it->dtexmax*(100.0/dt_max) << "%";
-	    std::cout.unsetf(std::ios_base::fixed);
-	    std::cout << "\n";
+	    amrex::Print().unsetf(std::ios_base::fixed);
+	    amrex::Print() << "\n";
 	}
-	std::cout << hline << "\n";
+	amrex::Print() << hline << "\n";
 
 	// Inclusive time
 	std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
-	std::cout << "\n" << hline << "\n";
-	std::cout << std::left
+	amrex::Print() << "\n" << hline << "\n";
+	amrex::Print() << std::left
 		  << std::setw(maxfnamelen) << "Name"
 		  << std::right
 		  << std::setw(wnc+2) << "NCalls"
@@ -353,7 +349,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 		  << "\n" << hline << "\n";
 	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
 	{
-	    std::cout << std::setprecision(4) << std::left
+	    amrex::Print() << std::setprecision(4) << std::left
 		      << std::setw(maxfnamelen) << it->fname
 		      << std::right
 		      << std::setw(wnc+2) << it->navg
@@ -362,12 +358,12 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 		      << std::setw(wt+2) << it->dtinmax
 		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
 		      << it->dtinmax*(100.0/dt_max) << "%";
-	    std::cout.unsetf(std::ios_base::fixed);
-	    std::cout << "\n";
+	    amrex::Print().unsetf(std::ios_base::fixed);
+	    amrex::Print() << "\n";
 	}
-	std::cout << hline << "\n";
+	amrex::Print() << hline << "\n";
 
-	std::cout << std::endl;
+	amrex::Print() << std::endl;
     }
 }
 
