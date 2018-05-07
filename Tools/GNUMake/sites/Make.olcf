@@ -10,108 +10,112 @@ endif
 
 ifeq ($(which_computer),$(filter $(which_computer),titan))
 
-ifdef PE_ENV
-  lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
-  ifneq ($(lowercase_peenv),$(lowercase_comp))
-    has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+  ifdef PE_ENV
+    lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
+    ifneq ($(lowercase_peenv),$(lowercase_comp))
+      has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+    endif
   endif
+
+  ifeq ($(USE_MPI),TRUE)
+    CC  = cc
+    CXX = CC
+    FC  = ftn
+    F90 = ftn
+    LIBRARIES += -lmpichf90
+  endif
+
+  # If the cudatoolkit module is loaded, CRAY_CUDATOOLKIT_DIR is set as the toolkit location.
+
+  SYSTEM_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
+  COMPILE_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
+
+  # Signal no support for CUDA 8.
+
+  NO_CUDA_8_SUPPORT = TRUE
+
+  # Specify support for the Kepler GPUs.
+
+  CUDA_VERSION=cuda7.5
+
 endif
 
-ifeq ($(USE_MPI),TRUE)
-  CC  = cc
-  CXX = CC
-  FC  = ftn
-  F90 = ftn
-  LIBRARIES += -lmpichf90
-endif
 
-# If the cudatoolkit module is loaded, CRAY_CUDATOOLKIT_DIR is set as the toolkit location.
-
-SYSTEM_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
-COMPILE_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
-
-# Signal no support for CUDA 8.
-
-NO_CUDA_8_SUPPORT = TRUE
-
-# Specify support for the Kepler GPUs.
-
-CUDA_VERSION=cuda7.5
-
-endif
 
 ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 
-ifeq ($(USE_MPI),TRUE)
+  ifeq ($(USE_MPI),TRUE)
 
-  CC  := mpicc
-  CXX := mpicxx
-  FC  := mpifort
-  F90 := mpifort
+    CC  := mpicc
+    CXX := mpicxx
+    FC  := mpifort
+    F90 := mpifort
 
-  # If we're using CUDA, make sure that the C/C++ MPI
-  # wrappers are calling nvcc to compile the code.
-  # This is OpenMPI/Spectrum MPI specific.
+    # If we're using CUDA, make sure that the C/C++ MPI
+    # wrappers are calling nvcc to compile the code.
+    # This is OpenMPI/Spectrum MPI specific.
 
-  ifeq ($(USE_CUDA),TRUE)
-    OMPI_CC := nvcc
-    OMPI_CXX := nvcc
+    ifeq ($(USE_CUDA),TRUE)
+      OMPI_CC := nvcc
+      OMPI_CXX := nvcc
+    endif
+
+    LIBRARIES += -lmpi_ibm_mpifh
+
   endif
 
-  LIBRARIES += -lmpi_ibm_mpifh
+  ifeq ($(lowercase_comp),gnu)
+    override XTRALIBS := -lgfortran
+  endif
+
+  # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
+
+  SYSTEM_CUDA_PATH=$(CUDAPATH)
+
+  SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
+  # Specify that we want to build for Pascal
+
+  CUDA_VERSION = cc60
+  COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
 endif
 
-ifeq ($(lowercase_comp),gnu)
-  override XTRALIBS := -lgfortran
-endif
 
-# If the cuda module is loaded, CUDAPATH is set as the toolkit location.
-
-SYSTEM_CUDA_PATH=$(CUDAPATH)
-
-SYSTEM_NVML_PATH=/usr/lib64/nvidia
-
-# Specify that we want to build for Pascal
-
-CUDA_VERSION = cc60
-COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
-
-endif
 
 ifeq ($(which_computer),$(filter $(which_computer),summit))
 
-ifeq ($(USE_MPI),TRUE)
+  ifeq ($(USE_MPI),TRUE)
 
-  CC  := mpicc
-  CXX := mpicxx
-  FC  := mpif90
-  F90 := mpif90
+    CC  := mpicc
+    CXX := mpicxx
+    FC  := mpif90
+    F90 := mpif90
 
-  # If we're using CUDA, make sure that the C/C++ MPI
-  # wrappers are calling nvcc to compile the code.
-  # This is OpenMPI/Spectrum MPI specific.
+    # If we're using CUDA, make sure that the C/C++ MPI
+    # wrappers are calling nvcc to compile the code.
+    # This is OpenMPI/Spectrum MPI specific.
 
-  ifeq ($(USE_CUDA),TRUE)
-    OMPI_CC := nvcc
-    OMPI_CXX := nvcc
+    ifeq ($(USE_CUDA),TRUE)
+      OMPI_CC := nvcc
+      OMPI_CXX := nvcc
+    endif
+
+    LIBRARIES += -lmpi_ibm_mpifh
+
   endif
 
-  LIBRARIES += -lmpi_ibm_mpifh
+  ifeq ($(lowercase_comp),gnu)
+    override XTRALIBS := -lgfortran
+  endif
 
-endif
+  # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
 
-ifeq ($(lowercase_comp),gnu)
-  override XTRALIBS := -lgfortran
-endif
+  SYSTEM_CUDA_PATH=$(CUDAPATH)
 
-# If the cuda module is loaded, CUDAPATH is set as the toolkit location.
+  # Specify that we want to build for Volta
 
-SYSTEM_CUDA_PATH=$(CUDAPATH)
-
-# Specify that we want to build for Volta
-
-CUDA_VERSION = cc70
-COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+  CUDA_VERSION = cc70
+  COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
 endif
