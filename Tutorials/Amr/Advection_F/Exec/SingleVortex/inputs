@@ -6,7 +6,7 @@ geometry.is_periodic =  1  1  1
 geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0.0  0.0  0.0 
 geometry.prob_hi     =  1.0  1.0  1.0
-amr.n_cell           =  64   64   64
+amr.n_cell           =  64 64 64
 
 # VERBOSITY
 amr.v              = 1       # verbosity in Amr
