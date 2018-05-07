@@ -402,8 +402,9 @@ namespace amrex
                          ratio.getVect(),n,ncomp);
                 }
             }
-        }
-        else
+        } else if (AMREX_D_TERM(fine[0]->boxArray().coarsenable(ratio),
+                            &&  fine[1]->boxArray().coarsenable(ratio),
+                            &&  fine[2]->boxArray().coarsenable(ratio) ) ) 
         {
             std::array<MultiFab,AMREX_SPACEDIM> ctmp;
             Vector<MultiFab*> vctmp(AMREX_SPACEDIM);
@@ -419,6 +420,21 @@ namespace amrex
             {
                 crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);
             }
+
+        } else if (ngcrse == 0) {
+            std::array<MultiFab,AMREX_SPACEDIM> ftmp;
+            Vector<const MultiFab*> vftmp(AMREX_SPACEDIM);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                BoxArray fba = crse[idim]->boxArray();
+                fba.refine(ratio);
+                ftmp[idim].define(fba, crse[idim]->DistributionMap(), ncomp, 0, MFInfo(), FArrayBoxFactory());
+                vftmp[idim] = &ftmp[idim];
+                ftmp[idim].ParallelCopy(*fine[idim],0,0,ncomp,0,0);
+            }
+            average_down_faces(vftmp, crse, ratio, 0);
+        } else {
+          amrex::Abort("avgdown_faces: Only works with ngcrse = 0");
         }
     }
 
@@ -437,6 +453,7 @@ namespace amrex
 #pragma omp parallel
 #endif
         for (int n=0; n<AMREX_SPACEDIM; ++n) {
+
             for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.growntilebox(ngcrse);
