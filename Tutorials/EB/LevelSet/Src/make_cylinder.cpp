@@ -7,9 +7,9 @@
 
 using namespace amrex;
 
-std::unique_ptr<BaseIF> make_cylinder_geom(int dir, Real radius, Real length, const RealVect & translation,
-                                           int lev, bool water_tight, Geometry& geom, DistributionMapping& dmap, 
-                                           std::unique_ptr<LSFactory> level_set) 
+std::unique_ptr<BaseIF>
+make_cylinder_geom(int dir, Real radius, Real length, const RealVect & translation,
+                   int lev, const Geometry & geom, const DistributionMapping & dmap, LSFactory * level_set)
 {
     // Construct a cylinder implicit function with finite radius and axis
     // offset (translation). The cylinder can be oriented along any cartesian
@@ -74,14 +74,6 @@ std::unique_ptr<BaseIF> make_cylinder_geom(int dir, Real radius, Real length, co
 
     cylinder_IF.reset(cylinder_trans.newImplicitFunction());
 
-    // IF we are not using the water-tight mode, return now:
-
-    if(! water_tight)
-        return cylinder_IF;
-
-    // ELSE construct the level-set by unioning each cylinder (intersected
-    // component) of the CLR using the level-set
-    //   => corners are much more cleanly resolved, but is much slower.
 
     int max_level = 0;
     int grid_size = 16;
@@ -110,8 +102,6 @@ std::unique_ptr<BaseIF> make_cylinder_geom(int dir, Real radius, Real length, co
     Geometry geom_eb = LSUtility::make_eb_geometry(ls_cylinder, geom);
 
     // Define the EBIS first using only the walls...
-    // Note GeometryShop's behaviour wrt anisotropic cells: * use x-component of dx as reference length-scale
-    //                                                      * rescale y, z- components wrt to dx[0] (dx(1))
     AMReX_EBIS::instance()->define(geom_eb.Domain(),
                                    RealVect::Zero,  // ......... origin of EBIndexSpace
                                    geom_eb.CellSize()[0],  // .. reference cell size of EBIndexSpace [1]
@@ -128,8 +118,6 @@ std::unique_ptr<BaseIF> make_cylinder_geom(int dir, Real radius, Real length, co
     EBTower::Destroy();
 
     // Define the EBIS using only the poly (after deleting the walls-only EBTower)...
-    // Note GeometryShop's behaviour wrt anisotropic cells: * use x-component of dx as reference length-scale
-    //                                                      * rescale y, z- components wrt to dx[0] (dx(1))
     AMReX_EBIS::instance()->define(geom_eb.Domain(),
                                    RealVect::Zero,  // ......... origin of EBIndexSpace
                                    geom_eb.CellSize()[0],  // .. reference cell size of EBIndexSpace [1, above]

@@ -13,9 +13,7 @@
 
 std::unique_ptr<amrex::BaseIF> 
 make_cylinder_geom(int dir, amrex::Real radius, amrex::Real length, const amrex::RealVect & translation, 
-                   int lev, bool water_tight, 
-                   amrex::Geometry& geom, amrex::DistributionMapping& dm, 
-                   std::unique_ptr<LSFactory> level_set);
+                   int lev, const amrex::Geometry & geom, const amrex::DistributionMapping & dm, LSFactory * level_set);
 
 std::unique_ptr<BaseIF> 
 make_poly_geom(int lev, int max_order, std::string field_prefix);
