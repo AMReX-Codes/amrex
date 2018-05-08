@@ -1,4 +1,4 @@
-#include "eb_levelset.H"
+#include "AMReX_EB_levelset.H"
 
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
@@ -10,7 +10,7 @@
 #include <AMReX_MultiCutFab.H>
 #include "AMReX_BoxIterator.H"
 #include <AMReX_EBCellFlag.H>
-#include <eb_F.H>
+#include <AMReX_EB_F.H>
 
 LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
                      const BoxArray& ba, const Geometry& geom, const DistributionMapping& dm)
