@@ -1727,13 +1727,13 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::AddParticlesAtLevel()");
     if (int(m_particles.size()) < level+1)
         {
-            if (ParallelDescriptor::IOProcessor())
-                {
-                    std::cout << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtLevel resizing m_particles from "
-                              << m_particles.size()
-                              << " to "
-                              << level+1 << '\n';
-                }
+            if (Verbose())
+            {
+                amrex::Print() << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtLevel resizing m_particles from "
+                               << m_particles.size()
+                               << " to "
+                               << level+1 << '\n';
+            }
             m_particles.resize(level + 1);
             m_dummy_mf.resize(level+1);
             for (int lev = 0; lev < level+1; ++lev) {
@@ -2958,10 +2958,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
     }
 }
 

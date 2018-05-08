@@ -24,6 +24,7 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxArray.H>
+#include <AMReX_Print.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -214,10 +215,10 @@ amrex::UtilCreateDirectory (const std::string& path,
 
     if(retVal == false  || verbose == true) {
       for(int i(0); i < pathError.size(); ++i) {
-        std::cout << "amrex::UtilCreateDirectory:: path errno:  " 
-                  << pathError[i].first << " :: "
-                  << strerror(pathError[i].second)
-                  << std::endl;
+          amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  " 
+                           << pathError[i].first << " :: "
+                           << strerror(pathError[i].second)
+                           << std::endl;
       }
     }
 
@@ -268,8 +269,8 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
   if(ParallelDescriptor::IOProcessor()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
-      std::cout << "amrex::UtilCreateCleanDirectory():  " << path
-                << " exists.  Renaming to:  " << newoldname << std::endl;
+      amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
+                     << " exists.  Renaming to:  " << newoldname << std::endl;
       std::rename(path.c_str(), newoldname.c_str());
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) {
@@ -290,8 +291,8 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
   {
     if(amrex::FileExists(path)) 
     {
-      std::cout << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
-                << " exists.  I am destroying it.  " << std::endl;
+      amrex::Print() << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
+                     << " exists.  I am destroying it.  " << std::endl;
       char command[2000];
       sprintf(command, "\\rm -rf %s", path.c_str());;
       int retVal = std::system(command);
@@ -317,8 +318,8 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
   if(ParallelDescriptor::IOProcessor()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
-      std::cout << "amrex::UtilRenameDirectoryToOld():  " << path
-                << " exists.  Renaming to:  " << newoldname << std::endl;
+      amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
+                     << " exists.  Renaming to:  " << newoldname << std::endl;
       std::rename(path.c_str(), newoldname.c_str());
     }
   }
@@ -452,7 +453,7 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   uSet = uSetTemp;
   if(printSet) {
     for(int i(0); i < uSet.size(); ++i) {
-      std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+        amrex::AllPrint() << "uSet[" << i << "]  = " << uSet[i] << std::endl;
     }
   }
 }
@@ -466,9 +467,9 @@ amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
   bool verbose(false);
   int countForAll(totalItems / binCounts.size());
   int remainder(totalItems % binCounts.size());
-  if(ParallelDescriptor::IOProcessor() && verbose) {
-    std::cout << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
-              << "  " << remainder << std::endl;
+  if(verbose) {
+      amrex::Print() << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
+                     << "  " << remainder << std::endl;
   }
   for(int i(0); i < binCounts.size(); ++i) {
     binCounts[i] = countForAll;
@@ -477,8 +478,8 @@ amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
     ++binCounts[i];
   }
   for(int i(0); i < binCounts.size(); ++i) {
-    if(ParallelDescriptor::IOProcessor() && verbose) {
-      std::cout << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
+    if(verbose) {
+        amrex::Print() << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
     }
   }
 }
@@ -948,7 +949,7 @@ amrex::StreamRetry::StreamRetry(const std::string &filename,
     : tries(0), maxTries(maxtries),
       abortOnRetryFailure(abortonretryfailure),
       fileName(filename),
-      sros(std::cerr)    // unused here, just to make the compiler happy
+      sros(amrex::ErrorStream())    // unused here, just to make the compiler happy
 {
   nStreamErrors = 0;
 }
@@ -963,7 +964,7 @@ bool amrex::StreamRetry::TryOutput()
       ++nStreamErrors;
       int myProc(ParallelDescriptor::MyProc());
       if(tries <= maxTries) {
-        std::cout << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
+          amrex::AllPrint() << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
                   << tries << " :: gbfe:  "
                   << sros.good() << sros.bad() << sros.fail() << sros.eof()
                   << " :: sec = " << ParallelDescriptor::second()
@@ -971,13 +972,13 @@ bool amrex::StreamRetry::TryOutput()
                   << " :: rewind spos = " << spos
                   << std::endl;
         sros.clear();  // clear the bad bits
-        std::cout << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
+        amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
 	          << sros.fail() << sros.eof() << std::endl;
         sros.seekp(spos, std::ios::beg);  // reset stream position
         ++tries;
         return true;
       } else {
-        std::cout << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
+          amrex::AllPrint() << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
                   << tries << " :: File may be corrupt.  :: gbfe:  "
                   << sros.good() << sros.bad() << sros.fail() << sros.eof()
                   << " :: sec = " << ParallelDescriptor::second()
@@ -985,7 +986,7 @@ bool amrex::StreamRetry::TryOutput()
                   << " :: rewind spos = " << spos
                   << std::endl;
         sros.clear();  // clear the bad bits
-        std::cout << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
+        amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
 	          << sros.fail() << sros.eof() << std::endl;
         return false;
       }
@@ -1013,8 +1014,8 @@ bool amrex::StreamRetry::TryFileOutput()
         if(ParallelDescriptor::IOProcessor()) {
           const std::string& badFileName = amrex::Concatenate(fileName + ".bad",
                                                                tries - 1, 2);
-          std::cout << nWriteErrors << " STREAMERRORS : Renaming file from "
-                    << fileName << "  to  " << badFileName << std::endl;
+          amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
+                         << fileName << "  to  " << badFileName << std::endl;
           std::rename(fileName.c_str(), badFileName.c_str());
         }
         ParallelDescriptor::Barrier("StreamRetry::TryFileOutput");  // wait for file rename

@@ -25,12 +25,15 @@ namespace amrex
 
     std::string Version ();
 
-    void Initialize (MPI_Comm mpi_comm, std::ostream& os = std::cout);
+    void Initialize (MPI_Comm mpi_comm,
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
 
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
                      const std::function<void()>& func_parm_parse = {},
-                     std::ostream& os = std::cout);
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
 
     void Finalize(bool finalize_parallel = true);
     /**
@@ -80,6 +83,7 @@ namespace amrex
     void write_to_stderr_without_buffering (const char* str);
 
     std::ostream& OutStream ();
+    std::ostream& ErrorStream ();
 
     namespace system
     {
@@ -96,7 +100,8 @@ namespace amrex
         extern int signal_handling;
         extern int call_addr2line;
 
-        extern std::ostream* os;
+        extern std::ostream* osout;
+        extern std::ostream* oserr;
     }
 
     inline void GccPlacater ()
