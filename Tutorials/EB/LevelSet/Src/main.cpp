@@ -44,8 +44,8 @@ int main (int argc, char* argv[])
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size;
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // non-periodic in all direction by default
-    Vector<Real> prob_lo(AMREX_SPACEDIM,0);  
-    Vector<Real> prob_hi(AMREX_SPACEDIM,0);  
+    Vector<Real> prob_lo(AMREX_SPACEDIM,0);
+    Vector<Real> prob_hi(AMREX_SPACEDIM,0);
 
     // inputs parameters
     {
@@ -54,15 +54,15 @@ int main (int argc, char* argv[])
 
         // We need to get n_cell from the inputs file - this is the number of cells on each side of
         //   a square (or cubic) domain.
-        pp.get("n_cell",n_cell);
+        pp.get("n_cell", n_cell);
 
         // The domain is broken into boxes of size max_grid_size
-        pp.get("max_grid_size",max_grid_size);
+        pp.get("max_grid_size", max_grid_size);
 
         pp.getarr("is_periodic", is_periodic);
 
-        pp.getarr("prob_lo",prob_lo);
-        pp.getarr("prob_hi",prob_hi);
+        pp.getarr("prob_lo", prob_lo);
+        pp.getarr("prob_hi", prob_hi);
     }
 
     // make BoxArray and Geometry
@@ -84,21 +84,24 @@ int main (int argc, char* argv[])
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
- 
+
     DistributionMapping dmap(grids, ParallelDescriptor::NProcs());
 
     // Level-Set: initialize container for level set
     // level-set MultiFab is defined here, and set to (fortran) huge(amrex_real)
     //            -> use min to intersect new eb boundaries (in update)
+    // If you plant to use untions (max), then use level_set->invert() here
+    // first...
 
     int lev = 0;
     std::unique_ptr<LSFactory> level_set = std::unique_ptr<LSFactory>(
                     new LSFactory(lev, levelset__refinement, levelset__eb_refinement,
                                   levelset__pad, levelset__eb_pad, grids, geom, dmap) );
 
+    // Constructs EB, followed level-set
     make_my_eb(lev, grids, dmap, geom, level_set.get());
 
-    // Make sure that at (at least) an initial MultiFab ist stored in ls[lev].
+    // Make sure that at (at least) an initial MultiFab is stored in ls[lev].
     std::unique_ptr<MultiFab> ls_data = level_set->coarsen_data();
 
     VisMF::Write(*ls_data, "LevelSet");

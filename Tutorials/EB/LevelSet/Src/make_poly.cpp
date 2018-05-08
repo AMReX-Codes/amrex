@@ -8,8 +8,8 @@
 
 using namespace amrex;
 
-std::unique_ptr<BaseIF> 
-make_poly_geom(int lev, int max_order, std::string field_prefix) 
+std::unique_ptr<BaseIF>
+make_poly_geom(int lev, int max_order, std::string field_prefix)
 {
     // Construct the ParamParse database field names based on the
     // `field_prefix` string:
@@ -26,7 +26,7 @@ make_poly_geom(int lev, int max_order, std::string field_prefix)
         field_names[i] = field_name.str();
     }
 
-    // There are two more fields assoicated with the PolynomialIF:
+    // There are two more fields associated with the PolynomialIF:
     //      <field_prefix>_mirror    (true if fluid is inside the PolynomialIF)
     //      <field_prefix>_translate (vector representing center-axis position)
     std::stringstream mirror_field, translate_field;
@@ -59,7 +59,7 @@ make_poly_geom(int lev, int max_order, std::string field_prefix)
      * Construct PolynomialIF (and apply translation)                          *
      ***************************************************************************/
 
-    bool flip = false;
+    bool flip = true;
     pp.query(mirror_field.str().c_str(), flip);
 
     PolynomialIF mirror(poly, flip);

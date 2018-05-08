@@ -27,7 +27,7 @@ poly.poly2_translate =   1.6e-3   1.6e-3   0.00
 # This is the cylinder geometry
 #########################################################################
 
-eb.make_cylinder    = true
+eb.make_cylinder  = true
 
 cyl.cyl_dir       = 2
 cyl.cyl_radius    = .0016

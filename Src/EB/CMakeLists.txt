@@ -9,11 +9,13 @@ list ( APPEND ALLHEADERS AMReX_EBInterp_F.H      AMReX_EBMultiFabUtil.H    AMReX
 list ( APPEND ALLHEADERS AMReX_EBAmrUtil.H       AMReX_EBDataCollection.H  AMReX_EBFluxRegister_F.H )
 list ( APPEND ALLHEADERS AMReX_EBInterpolater.H  AMReX_EBSupport.H         AMReX_EBCellFlag_F.H )
 list ( APPEND ALLHEADERS AMReX_EBFabFactory.H    AMReX_EBFluxRegister.H    AMReX_EBMultiFabUtil_F.H  AMReX_EBTower.H )
+list ( APPEND ALLHEADERS AMReX_EB_F.H            AMReX_EB_levelset.H )
 
 list ( APPEND CXXSRC AMReX_EBAmrUtil.cpp       AMReX_EBDataCollection.cpp  AMReX_EBFArrayBox.cpp )
 list ( APPEND CXXSRC AMReX_EBInterpolater.cpp  AMReX_EBTower.cpp )
 list ( APPEND CXXSRC AMReX_EBCellFlag.cpp      AMReX_EBFabFactory.cpp      AMReX_EBFluxRegister.cpp   )
 list ( APPEND CXXSRC AMReX_EBMultiFabUtil.cpp  AMReX_MultiCutFab.cpp )
+list ( APPEND CXXSRC AMReX_EB_levelset.cpp )
 
 list ( APPEND F90SRC AMReX_EBFluxRegister_${DIM}d.F90 )
 list ( APPEND F90SRC AMReX_EBFluxRegister_nd.F90 )
@@ -22,6 +24,8 @@ list ( APPEND F90SRC AMReX_EBMultiFabUtil_nd.F90 )
 list ( APPEND F90SRC AMReX_EBAmrUtil_nd.F90      )
 list ( APPEND F90SRC AMReX_ebinterp_${DIM}d.F90   )
 list ( APPEND F90SRC AMReX_ebcellflag_mod.F90    )
+list ( APPEND F90SRC AMReX_compute_normals.F90 AMReX_EB_geometry.F90 AMReX_EB_levelset_F.F90 )
+
 #
 # This is an option to display arrays in GDB. It is for debugging
 # AMReX and currently not supported by cmake.# 
