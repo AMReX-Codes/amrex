@@ -2,14 +2,13 @@ CEXE_sources += main.cpp
 CEXE_sources += make_cylinder.cpp
 CEXE_sources += make_poly.cpp
 CEXE_sources += make_eb.cpp
-CEXE_sources += eb_levelset.cpp
+#CEXE_sources += eb_levelset.cpp
 
 CEXE_headers += make_shapes.H
-CEXE_headers += eb_levelset.H
+#CEXE_headers += eb_levelset.H
 
-FEXE_headers += eb_F.H
+#FEXE_headers += eb_F.H
 
-f90EXE_sources += compute_normals.f90
-f90EXE_sources += eb_geometry.f90
-f90EXE_sources += eb_levelset_f.f90
-
+#f90EXE_sources += compute_normals.f90
+#f90EXE_sources += eb_geometry.f90
+#f90EXE_sources += eb_levelset_f.f90

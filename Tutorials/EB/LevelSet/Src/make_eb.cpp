@@ -24,7 +24,7 @@
 #include <AMReX_EBTower.H>
 
 #include <algorithm>
-#include <eb_levelset.H>
+#include <AMReX_EB_levelset.H>
 
 #include <make_shapes.H>
 

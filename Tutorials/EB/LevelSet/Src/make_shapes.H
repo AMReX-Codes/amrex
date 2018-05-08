@@ -8,14 +8,14 @@
 #include <AMReX_EBTower.H>
 #include <AMReX_EBFArrayBox.H>
 
-#include <AMReX_BaseIF.H> 
-#include <eb_levelset.H> 
+#include <AMReX_BaseIF.H>
+#include <AMReX_EB_levelset.H>
 
-std::unique_ptr<amrex::BaseIF> 
-make_cylinder_geom(int dir, amrex::Real radius, amrex::Real length, const amrex::RealVect & translation, 
+std::unique_ptr<amrex::BaseIF>
+make_cylinder_geom(int dir, amrex::Real radius, amrex::Real length, const amrex::RealVect & translation,
                    int lev, const amrex::Geometry & geom, const amrex::DistributionMapping & dm, LSFactory * level_set);
 
-std::unique_ptr<BaseIF> 
+std::unique_ptr<BaseIF>
 make_poly_geom(int lev, int max_order, std::string field_prefix);
 
 void
