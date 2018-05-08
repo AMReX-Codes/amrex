@@ -267,6 +267,19 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             m_factory[amrlev].emplace_back(new FArrayBoxFactory());
         }
     }
+
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        AMREX_ASSERT_WITH_MESSAGE(m_grids[amrlev][0].coarsenable(m_amr_ref_ratio[amrlev-1]),
+                                  "MLLinOp: grids not coarsenable between AMR levels");
+    }
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        if (m_num_mg_levels[amrlev] > 1) {
+            AMREX_ASSERT_WITH_MESSAGE(m_grids[amrlev][0].coarsenable(mg_coarsen_ratio),
+                                      "MLLinOp: grids not coarsenable for MG");
+        }
+    }
 }
 
 void
