@@ -7,9 +7,11 @@ module amrex_parmparse_module
 
   implicit none
 
+  character(len=:), allocatable, public :: amrex_namelist
+
   private
 
-  public :: amrex_parmparse_build, amrex_parmparse_destroy
+  public :: amrex_parmparse_build, amrex_parmparse_destroy, amrex_init_namelist, amrex_finalize_namelist
 
   type, public :: amrex_parmparse
      logical     :: owner = .false.
@@ -528,5 +530,24 @@ contains
     end do
     call amrex_parmparse_add_stringarr(this%p, amrex_string_f_to_c(name), cs, n)
   end subroutine add_stringarr
+
+  subroutine amrex_init_namelist (cstr) bind(c,name='amrex_init_namelist')
+    character(kind=c_char), intent(in) :: cstr(*)
+    integer :: i, n
+    n = 1
+    do while (cstr(n) .ne. c_null_char)
+       n = n+1
+    end do
+    if (n > 1) then
+       allocate(character(len=n-1)::amrex_namelist)
+       do i = 1, n-1
+          amrex_namelist(i:i) = cstr(i)
+       end do
+    end if
+  end subroutine amrex_init_namelist
+
+  subroutine amrex_finalize_namelist () bind(c,name='amrex_finalize_namelist')
+    if (allocated(amrex_namelist)) deallocate(amrex_namelist)
+  end subroutine amrex_finalize_namelist
 
 end module amrex_parmparse_module

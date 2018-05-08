@@ -1,4 +1,6 @@
 
+#include <algorithm>
+#include <iterator>
 #include <typeinfo>
 #include <cstdlib>
 #include <iostream>
@@ -19,6 +21,9 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Print.H>
+
+extern "C" void amrex_init_namelist (const char*);
+extern "C" void amrex_finalize_namelist ();
 
 namespace amrex {
 
@@ -463,8 +468,33 @@ read_file (const char*                     fname,
 	Vector<char> fileCharPtr;
 	std::string filename = fname;
 	ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
-	const char* b = fileCharPtr.dataPtr();
+
+        std::istringstream is(fileCharPtr.data());
+        std::ostringstream os_cxx(std::ios_base::out);
+        std::ostringstream os_fortran(std::ios_base::out);
+        bool fortran_namelist = false;
+        for (std::string line; std::getline(is, line); ) {
+            auto r = std::find_if(std::begin(line), std::end(line),
+                                  [](int c) -> bool { return !std::isspace(c); });
+            if (fortran_namelist) { // already inside fortran namelist
+                os_fortran << line << "\n";
+                if (r != std::end(line) && *r == '/') {
+                    fortran_namelist = false; // end of Fortran namelist
+                }
+            } else if (r != std::end(line) && *r == '&') {
+                os_fortran << line << "\n";
+                fortran_namelist = true;  // begin of Fortran namelist
+            } else {
+                os_cxx << line << "\n";
+            }
+        }
+
+        std::string filestring_cxx = os_cxx.str();
+        const char* b = filestring_cxx.c_str();
         bldTable(b, tab);
+
+        std::string filestring_fortran = os_fortran.str();
+        amrex_init_namelist(filestring_fortran.c_str());
     }
 }
 
@@ -1053,6 +1083,8 @@ ParmParse::Finalize ()
 	//
     }
     g_table.clear();
+
+    amrex_finalize_namelist();
 
     initialized = false;
 }
