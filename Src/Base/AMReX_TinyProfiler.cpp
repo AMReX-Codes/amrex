@@ -10,6 +10,7 @@
 #include <AMReX_TinyProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Print.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -185,9 +186,9 @@ TinyProfiler::Finalize (bool bFlushing)
     if  (ParallelDescriptor::IOProcessor())
     {
 	amrex::Print() << "\n\n";
-	amrex::Print() << std::setprecision(4) 
-                  <<"TinyProfiler total time across processes [min...avg...max]: " 
-		  << dt_min << " ... " << dt_avg << " ... " << dt_max << "\n";
+	amrex::Print().SetPrecision(4)
+            <<"TinyProfiler total time across processes [min...avg...max]: " 
+            << dt_min << " ... " << dt_avg << " ... " << dt_max << "\n";
     }
 
     // make sure the set of regions is the same on all processes.
@@ -294,9 +295,9 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 	}
     }
 
-    if (ParallelDescriptor::IOProcessor()) {
-
-	amrex::Print() << std::setfill(' ') << std::setprecision(4);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        amrex::OutStream() << std::setfill(' ') << std::setprecision(4);
 	int wt = 9;
 
 	int wnc = (int) std::log10 ((double) maxncalls) + 1;
@@ -309,8 +310,8 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 
 	// Exclusive time
 	std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compex);
-	amrex::Print() << "\n" << hline << "\n";
-	amrex::Print() << std::left
+	amrex::OutStream() << "\n" << hline << "\n";
+	amrex::OutStream() << std::left
 		  << std::setw(maxfnamelen) << "Name"
 		  << std::right
 		  << std::setw(wnc+2) << "NCalls"
@@ -321,7 +322,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 		  << "\n" << hline << "\n";
 	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
 	{
-	    amrex::Print() << std::setprecision(4) << std::left
+	    amrex::OutStream() << std::setprecision(4) << std::left
 		      << std::setw(maxfnamelen) << it->fname
 		      << std::right
 		      << std::setw(wnc+2) << it->navg
@@ -330,15 +331,15 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 		      << std::setw(wt+2) << it->dtexmax
 		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
 		      << it->dtexmax*(100.0/dt_max) << "%";
-	    amrex::Print().unsetf(std::ios_base::fixed);
-	    amrex::Print() << "\n";
+	    amrex::OutStream().unsetf(std::ios_base::fixed);
+	    amrex::OutStream() << "\n";
 	}
-	amrex::Print() << hline << "\n";
+	amrex::OutStream() << hline << "\n";
 
 	// Inclusive time
 	std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
-	amrex::Print() << "\n" << hline << "\n";
-	amrex::Print() << std::left
+	amrex::OutStream() << "\n" << hline << "\n";
+	amrex::OutStream() << std::left
 		  << std::setw(maxfnamelen) << "Name"
 		  << std::right
 		  << std::setw(wnc+2) << "NCalls"
@@ -349,7 +350,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 		  << "\n" << hline << "\n";
 	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
 	{
-	    amrex::Print() << std::setprecision(4) << std::left
+	    amrex::OutStream() << std::setprecision(4) << std::left
 		      << std::setw(maxfnamelen) << it->fname
 		      << std::right
 		      << std::setw(wnc+2) << it->navg
@@ -358,12 +359,12 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
 		      << std::setw(wt+2) << it->dtinmax
 		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
 		      << it->dtinmax*(100.0/dt_max) << "%";
-	    amrex::Print().unsetf(std::ios_base::fixed);
-	    amrex::Print() << "\n";
+	    amrex::OutStream().unsetf(std::ios_base::fixed);
+	    amrex::OutStream() << "\n";
 	}
-	amrex::Print() << hline << "\n";
+	amrex::OutStream() << hline << "\n";
 
-	amrex::Print() << std::endl;
+	amrex::OutStream() << std::endl;
     }
 }
 
