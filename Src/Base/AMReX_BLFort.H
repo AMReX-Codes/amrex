@@ -105,7 +105,7 @@
 
 #else
 
-#define DEVICE_LAUNCH(function) function(__VA_ARGS__)
+#define DEVICE_LAUNCH(function) function
 
 #endif
 
