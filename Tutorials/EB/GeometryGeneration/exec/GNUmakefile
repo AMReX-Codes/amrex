@@ -30,6 +30,7 @@ _progs  += sphere
 _progs  += interiorBox
 _progs  += surfaceOfRevolution
 _progs  += parabolaWithSphere
+_progs  += coveredSlabs
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
