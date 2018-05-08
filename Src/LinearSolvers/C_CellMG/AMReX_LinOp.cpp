@@ -47,8 +47,8 @@ LinOp::Initialize ()
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-        std::cout << "def_harmavg = "  << def_harmavg  << '\n';
-        std::cout << "def_maxorder = " << def_maxorder << '\n';
+        amrex::Print() << "def_harmavg = "  << def_harmavg  << '\n'
+                       << "def_maxorder = " << def_maxorder << '\n';
     }
 
     amrex::ExecOnFinalize(LinOp::Finalize);
