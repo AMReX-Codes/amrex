@@ -1,4 +1,4 @@
-module eb_geometry
+module amrex_eb_geometry_module
     
     use amrex_fort_module, only: c_real => amrex_real
 
@@ -375,4 +375,4 @@ contains
 
     end function facets_nearest_pt
 
-end module eb_geometry
+end module amrex_eb_geometry_module

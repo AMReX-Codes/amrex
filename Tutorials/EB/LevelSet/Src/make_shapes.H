@@ -13,11 +13,11 @@
 
 std::unique_ptr<amrex::BaseIF>
 make_cylinder_geom(int dir, amrex::Real radius, amrex::Real length, const amrex::RealVect & translation,
-                   int lev, const amrex::Geometry & geom, const amrex::DistributionMapping & dm, LSFactory * level_set);
+                   int lev, const amrex::Geometry & geom, const amrex::DistributionMapping & dm, amrex::LSFactory * level_set);
 
-std::unique_ptr<BaseIF>
+std::unique_ptr<amrex::BaseIF>
 make_poly_geom(int lev, int max_order, std::string field_prefix);
 
 void
 make_my_eb(int lev, const amrex::BoxArray& grids, const amrex::DistributionMapping& dmap,
-           const amrex::Geometry& geom, LSFactory * level_set);
+           const amrex::Geometry& geom, amrex::LSFactory * level_set);

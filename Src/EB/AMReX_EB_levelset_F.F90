@@ -1,4 +1,4 @@
-module eb_levelset
+module amrex_eb_levelset
     use amrex_fort_module, only: c_real => amrex_real
     use iso_c_binding,     only: c_int
 
@@ -20,9 +20,9 @@ contains
     !                                                                                                                 !
     !-----------------------------------------------------------------------------------------------------------------!
 
-    pure subroutine init_levelset(lo,  hi,          &
+    pure subroutine amrex_eb_init_levelset(lo,  hi,    &
                                   phi, phlo, phhi ) &
-                    bind(C, name="init_levelset")
+                    bind(C, name="amrex_eb_init_levelset")
 
         implicit none
 
@@ -42,7 +42,7 @@ contains
             end do
         end do
 
-    end subroutine init_levelset
+      end subroutine amrex_eb_init_levelset
 
 
 
@@ -60,12 +60,12 @@ contains
     !                                                                                                                !
     !----------------------------------------------------------------------------------------------------------------!
 
-    pure subroutine fill_levelset_eb(lo,      hi,          &
+    pure subroutine amrex_eb_fill_levelset(lo,      hi,          &
                                      eb_list, l_eb,        &
                                      valid,   vlo,  vhi,   &
                                      phi,     phlo, phhi,  &
                                      dx,      dx_eb      ) &
-                     bind(C, name="fill_levelset_eb")
+                     bind(C, name="amrex_eb_fill_levelset")
 
         implicit none
 
@@ -127,7 +127,7 @@ contains
                                      eb_data,  l_eb, dx_eb, &
                                      pos                   )
 
-            use eb_geometry, only: facets_nearest_pt
+            use amrex_eb_geometry_module, only: facets_nearest_pt
 
             implicit none
 
@@ -201,7 +201,7 @@ contains
 
         end subroutine closest_dist
 
-    end subroutine fill_levelset_eb
+      end subroutine amrex_eb_fill_levelset
 
 
 
@@ -218,11 +218,11 @@ contains
     !                                                                                                                !
     !----------------------------------------------------------------------------------------------------------------!
 
-    pure subroutine validate_levelset(lo,    hi,   n_pad, &
+    pure subroutine amrex_eb_validate_levelset(lo,    hi,   n_pad, &
                                       impf,  imlo, imhi,  &
                                       valid, vlo,  vhi,   &
                                       phi,   phlo, phhi  )&
-                    bind(C, name="validate_levelset")
+                    bind(C, name="amrex_eb_validate_levelset")
 
         implicit none
 
@@ -250,7 +250,7 @@ contains
             end do
         end do
 
-    end subroutine validate_levelset
+      end subroutine amrex_eb_validate_levelset
 
 
 
@@ -265,13 +265,13 @@ contains
     !                                                                                                                !
     !----------------------------------------------------------------------------------------------------------------!
 
-    pure subroutine update_levelset_intersection(lo,    hi,           &
+    pure subroutine amrex_eb_update_levelset_intersection(lo,    hi,           &
                                                  v_in,  vilo, vihi,   &
                                                  ls_in, lslo, lshi,   &
                                                  valid, vlo,  vhi,    &
                                                  phi,   phlo, phhi,   &
                                                  dx,    n_pad       ) &
-                    bind(C, name="update_levelset_intersection")
+                    bind(C, name="amrex_eb_update_levelset_intersection")
 
         implicit none
 
@@ -318,7 +318,7 @@ contains
             end do
         end do
 
-    end subroutine update_levelset_intersection
+      end subroutine amrex_eb_update_levelset_intersection
 
 
 
@@ -333,13 +333,13 @@ contains
     !                                                                                                                !
     !----------------------------------------------------------------------------------------------------------------!
 
-    pure subroutine update_levelset_union(lo,    hi,           &
+    pure subroutine amrex_eb_update_levelset_union(lo,    hi,           &
                                           v_in,  vilo, vihi,   &
                                           ls_in, lslo, lshi,   &
                                           valid, vlo,  vhi,    &
                                           phi,   phlo, phhi,   &
                                           dx,    n_pad       ) &
-                    bind(C, name="update_levelset_union")
+                    bind(C, name="amrex_eb_update_levelset_union")
 
         implicit none
 
@@ -386,7 +386,7 @@ contains
             end do
         end do
 
-    end subroutine update_levelset_union
+      end subroutine amrex_eb_update_levelset_union
 
 
 
@@ -470,8 +470,8 @@ contains
 
 
 
-    pure subroutine count_eb_facets(lo, hi, flag, flo, fhi, n_facets) &
-                    bind(C, name="count_eb_facets")
+    pure subroutine amrex_eb_count_facets(lo, hi, flag, flo, fhi, n_facets) &
+                    bind(C, name="amrex_eb_count_facets")
 
         implicit none
 
@@ -491,17 +491,17 @@ contains
             end do
         end do
 
-    end subroutine count_eb_facets
+      end subroutine amrex_eb_count_facets
+    
 
 
-
-    pure subroutine eb_as_list(lo,       hi,   c_facets,  &
+    pure subroutine amrex_eb_as_list(lo,       hi,   c_facets,  &
                                flag,     flo,  fhi,       &
                                norm,     nlo,  nhi,       &
                                bcent,    blo,  bhi,       &
                                list_out, lsize,           &
                                dx                       ) &
-                    bind(C, name="eb_as_list")
+                    bind(C, name="amrex_eb_as_list")
 
         implicit none
 
@@ -540,14 +540,14 @@ contains
             end do
         end do
 
-    end subroutine eb_as_list
+      end subroutine amrex_eb_as_list
 
 
 
-    pure subroutine interp_levelset(pos, plo,  n_refine, &
+    pure subroutine amrex_eb_interp_levelset(pos, plo,  n_refine, &
                                     phi, phlo, phhi,     &
                                     dx,  phi_interp    ) &
-                    bind(C, name="interp_levelset")
+                    bind(C, name="amrex_eb_interp_levelset")
 
 
         implicit none
@@ -594,14 +594,14 @@ contains
                    + phi(i+1, j,   k+1) * wx_hi * wy_lo * wz_hi &
                    + phi(i+1, j+1, k+1) * wx_hi * wy_hi * wz_hi
 
-    end subroutine interp_levelset
+      end subroutine amrex_eb_interp_levelset
 
 
 
-    pure subroutine normal_levelset(pos, plo,   n_refine, &
+    pure subroutine amrex_eb_normal_levelset(pos, plo,   n_refine, &
                                     phi, phlo,  phhi,     &
                                     dx,  normal         ) &
-                    bind(C, name="normal_levelset")
+                    bind(C, name="amrex_eb_normal_levelset")
 
         implicit none
 
@@ -671,6 +671,6 @@ contains
         inv_norm = 1.0d0 / sqrt(normal(1)**2 + normal(2)**2 + normal(3)**2)
         normal(:) = normal(:) * inv_norm
 
-    end subroutine normal_levelset
+      end subroutine amrex_eb_normal_levelset
 
-end module eb_levelset
+end module amrex_eb_levelset

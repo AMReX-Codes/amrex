@@ -1,5 +1,5 @@
-#ifndef _EB_LEVELSET_H_
-#define _EB_LEVELSET_H_
+#ifndef AMREX_EB_LEVELSET_H_
+#define AMREX_EB_LEVELSET_H_
 
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
@@ -12,7 +12,7 @@
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBCellFlag.H>
 
-using namespace amrex;
+namespace amrex {
 
 class LSFactory {
     private:
@@ -176,5 +176,7 @@ class PolynomialDF : public PolynomialIF {
         virtual BaseIF * newImplicitFunction() const;
 
 };
+
+}
 
 #endif
