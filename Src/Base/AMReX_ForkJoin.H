@@ -97,7 +97,7 @@ class ForkJoin
 
     struct MFFork
     {
-        MultiFab *orig;
+        MultiFab *orig = nullptr;
         Strategy strategy;
         Intent intent;
         int owner_task; // only used if strategy == single or duplicate
@@ -111,6 +111,8 @@ class ForkJoin
         MFFork (MultiFab *omf, Strategy s = Strategy::duplicate,
                 Intent i = Intent::inout, int own = -1)
             : orig(omf), strategy(s), intent(i), owner_task(own) {}
+
+        bool empty() const { return orig == nullptr; }
     };
 
     Vector<int> task_rank_n; // number of ranks in each forked task
@@ -119,6 +121,8 @@ class ForkJoin
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
     const static bool flag_verbose = false; // for debugging
+
+    void init();
 
     // multiple MultiFabs may share the same box array
     // only compute the DM once per unique (box array, task) pair and cache it
