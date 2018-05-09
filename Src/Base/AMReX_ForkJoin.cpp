@@ -6,18 +6,13 @@ namespace amrex {
 ForkJoin::ForkJoin (Vector<int> trn)
     : task_rank_n(std::move(trn))
 {
-    auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
-    AMREX_ASSERT(NTasks() >= 2);
-    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
-
-    compute_split_bounds();
+    init();
 }
 
 ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
 {
     auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     auto ntasks = task_rank_pct.size();
-    AMREX_ASSERT(ntasks >= 2);
     task_rank_n.resize(ntasks);
     int prev = 0;
     double accum = 0;
@@ -27,8 +22,24 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
         task_rank_n[i] = cur - prev;
         prev = cur;
     }
-    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
 
+    init();
+}
+
+void
+ForkJoin::init()
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NTasks() > 0,
+                                     "ForkJoin must have at least 1 task");
+    int min_task_rank_n = task_rank_n[0];
+    for (int i = 1; i < NTasks(); ++i) {
+      min_task_rank_n = std::min(min_task_rank_n, task_rank_n[i]);
+    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(min_task_rank_n > 0,
+                                     "All tasks must have non-negative ranks");
+    auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n,
+                                     "Sum of ranks assigned to tasks must sum to parent number of ranks");
     compute_split_bounds();
 }
 
@@ -39,6 +50,8 @@ ForkJoin::reg_mf (MultiFab &mf, const std::string &name, int idx,
     if (idx >= data[name].size()) {
         data[name].resize(idx + 1);
     }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data[name][idx].empty(),
+                                     "Can only register to a (name, index) pair once");
     data[name][idx] = MFFork(&mf, strategy, intent, owner);
 }
 
@@ -56,6 +69,11 @@ ForkJoin::copy_data_to_tasks (MPI_Comm /*task_comm*/)
             const auto &ba = orig.boxArray();
             Vector<MultiFab> &forked = mff.forked;
             int comp_n = orig.nComp(); // number of components in original
+
+            if (mff.strategy == Strategy::split) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NTasks() <= comp_n,
+                                                 "Number of tasks cannot be larger than number of components!");
+            }
 
             forked.reserve(NTasks()); // does nothing if forked MFs already created
             for (int i = 0; i < NTasks(); ++i) {

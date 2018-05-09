@@ -60,6 +60,9 @@ int main(int argc, char* argv[])
 
 	int n_cell, max_grid_size;
 	pp.get("n_cell", n_cell);
+        if (pp.contains("ncomp")) {
+            pp.get("ncomp", ncomp);
+        }
 	pp.get("max_grid_size", max_grid_size);
 
 	Box domain(IntVect(AMREX_D_DECL(       0,       0,       0)),
