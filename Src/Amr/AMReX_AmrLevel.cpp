@@ -971,14 +971,13 @@ FillPatchIterator::Initialize (int  boxGrow,
 				new_blocking_factor *= 2;
 			    }
 			}
-			std::cout << "WARNING: Grids are not properly nested.  We might have to use\n"
-				  << "         two coarse levels to do fillpatch.  Consider using\n";
+			amrex::Print() << "WARNING: Grids are not properly nested.  We might have to use\n"
+                                       << "         two coarse levels to do fillpatch.  Consider using\n";
 			if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
-			    std::cout << "         amr.blocking_factor=" << new_blocking_factor;
+			    amrex::Print() << "         amr.blocking_factor=" << new_blocking_factor << "\n";
 			} else {
-			    std::cout << "         larger amr.blocking_factor. ";
+			    amrex::Print() << "         larger amr.blocking_factor.\n";
 			}
-			std::cout << std::endl;
 		    }
 		}
 

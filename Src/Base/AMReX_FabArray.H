@@ -156,6 +156,18 @@ public:
               const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
+    FabArray (const BoxArray&            bxs,
+              const DistributionMapping& dm,
+              int                        nvar,
+              const IntVect&             ngrow,
+#ifdef AMREX_STRICT_MODE
+	      const MFInfo&              info,
+              const FabFactory<FAB>&     factory);
+#else
+	      const MFInfo&              info = MFInfo(),
+              const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
+#endif
+
     FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp);
 
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
@@ -163,7 +175,14 @@ public:
               const DistributionMapping& dm,
               int                        nvar,
               int                        ngrow,
-              const Vector<value_type*>&  pval);
+              const Vector<value_type*>& pval);
+
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    FabArray (const BoxArray&            bxs,
+              const DistributionMapping& dm,
+              int                        nvar,
+              const IntVect&             ngrow,
+              const Vector<value_type*>& pval);
 
     //! The destructor -- deletes all FABs in the array.
     virtual ~FabArray ();
@@ -184,6 +203,18 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
+#ifdef AMREX_STRICT_MODE
+			 const MFInfo&              info,
+                         const FabFactory<FAB>&     factory);
+#else
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
+#endif
+
+    virtual void define (const BoxArray& bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
 			 const MFInfo&              info,
                          const FabFactory<FAB>&     factory);
@@ -256,6 +287,12 @@ public:
                  int        num_comp,
                  int        nghost = 0);
 
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void setVal (value_type val,
+                 int        comp,
+                 int        num_comp,
+                 const IntVect& nghost);
+
     /**
     * \brief Set the value of num_comp components in the valid region of
     * each FAB in the FabArray, starting at component comp, as well
@@ -268,6 +305,13 @@ public:
                  int        comp,
                  int        num_comp,
                  int        nghost = 0);
+
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void setVal (value_type val,
+                 const Box& region,
+                 int        comp,
+                 int        num_comp,
+                 const IntVect& nghost);
     /**
     * \brief Set all components in the valid region of each FAB in the
     * FabArray to val, including nghost boundary cells.
@@ -275,6 +319,10 @@ public:
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setVal (value_type val,
                  int        nghost);
+
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void setVal (value_type val,
+                 const IntVect& nghost);
 
     /**
     * \brief Set all components in the valid region of each FAB in the
@@ -285,6 +333,11 @@ public:
     void setVal (value_type val,
                  const Box& region,
                  int        nghost);
+
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void setVal (value_type val,
+                 const Box& region,
+                 const IntVect& nghost);
 
     //! Set all values in the boundary region to val.
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
@@ -314,7 +367,8 @@ public:
        { ParallelCopy(fa,period,FabArray::ADD); }
     void ParallelCopy (const FabArray<FAB>& fa,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
-                       CpOp                 op = FabArrayBase::COPY);
+                       CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy(fa,0,0,nComp(),0,0,period,op); }
     void copy (const FabArray<FAB>& fa,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
@@ -339,7 +393,8 @@ public:
                        int                  dest_comp,
                        int                  num_comp,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
-                       CpOp                 op = FabArrayBase::COPY);
+                       CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy(src,src_comp,dest_comp,num_comp,0,0,period,op); }
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -356,6 +411,15 @@ public:
                       int                  src_nghost,
                       int                  dst_nghost,
                       const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,
+                      FabArrayBase::ADD); }
+    void ParallelAdd (const FabArray<FAB>& src,
+                      int                  src_comp,
+                      int                  dest_comp,
+                      int                  num_comp,
+                      const IntVect&       src_nghost,
+                      const IntVect&       dst_nghost,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
        { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,FabArrayBase::ADD); }
     void ParallelCopy (const FabArray<FAB>& src,
                        int                  src_comp,
@@ -364,7 +428,17 @@ public:
                        int                  src_nghost,
                        int                  dst_nghost,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
-                       CpOp                 op = FabArrayBase::COPY);
+                       CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,op); }
+    void ParallelCopy (const FabArray<FAB>& src,
+                       int                  src_comp,
+                       int                  dest_comp,
+                       int                  num_comp,
+                       const IntVect&       src_nghost,
+                       const IntVect&       dst_nghost,
+                       const Periodicity&   period = Periodicity::NonPeriodic(),
+                       CpOp                 op = FabArrayBase::COPY,
+                       const FabArrayBase::CPC* a_cpc = nullptr);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -373,7 +447,23 @@ public:
 	       int                  dst_nghost,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
+       { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,op); }
+    void copy (const FabArray<FAB>& src,
+               int                  src_comp,
+               int                  dest_comp,
+               int                  num_comp,
+	       const IntVect&       src_nghost,
+	       const IntVect&       dst_nghost,
+	       const Periodicity&   period = Periodicity::NonPeriodic(),
+               CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,op); }
+
+    // Copy from src to this.  this and src have the same BoxArray, but different DistributionMapping
+    void Redistribute (const FabArray<FAB>& src,
+                       int                  src_comp,
+                       int                  dest_comp,
+                       int                  num_comp,
+                       const IntVect&       nghost);
 
     //
     // In the following copyTo functions, the destination FAB is identical on each process!!
@@ -392,7 +482,7 @@ public:
     * subbox into that subregion of dest.
     */
     void copyTo (FAB&       dest,
-                const Box& subbox,
+                 const Box& subbox,
 		 int        nghost = 0) const;
 
     /**
@@ -444,11 +534,13 @@ public:
     //! Same as FillBoundary(), but only copies ncomp components starting at scomp.
     void FillBoundary (int scomp, int ncomp, bool cross = false);
     void FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
 
     void FillBoundary_nowait (bool cross = false);
     void FillBoundary_nowait (const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
     void FillBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
@@ -457,6 +549,8 @@ public:
     */
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
+    void EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
+                             const Periodicity& period);
 
     // covered   : ghost cells covered by valid cells of this FabArray
     //             (including periodically shifted valid cells)
@@ -552,7 +646,8 @@ private:
 
     void AllocFabs (const FabFactory<FAB>& factory);
 
-    void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
+    void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
+                      const Periodicity& period, bool cross,
 		      bool enforce_periodicity_only = false);
 
 #ifdef BL_USE_MPI
@@ -599,6 +694,7 @@ public:
     // Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
     int fb_scomp, fb_ncomp;
+    IntVect fb_nghost;
     Periodicity fb_period;
 
     //
@@ -708,7 +804,26 @@ void
 FabArray<FAB>::setVal (value_type val,
                        int        nghost)
 {
+    setVal(val,0,n_comp,IntVect(nghost));
+}
+
+template <class FAB>
+template <class>
+void
+FabArray<FAB>::setVal (value_type val,
+                       const IntVect& nghost)
+{
     setVal(val,0,n_comp,nghost);
+}
+
+template <class FAB>
+template <class>
+void
+FabArray<FAB>::setVal (value_type val,
+                       const Box& region,
+                       int        nghost)
+{
+    setVal(val,region,0,n_comp,IntVect(nghost));
 }
 
 template <class FAB>
@@ -716,7 +831,7 @@ template <class>
 void
 FabArray<FAB>::setVal (value_type   val,
                        const Box& region,
-                       int        nghost)
+                       const IntVect& nghost)
 {
     setVal(val,region,0,n_comp,nghost);
 }
@@ -735,6 +850,16 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        ngrow,
 			 const MFInfo&              info,
                          const FabFactory<FAB>&     factory)
+    : FabArray<FAB>(bxs,dm,nvar,IntVect(ngrow),info,factory)
+{}
+
+template <class FAB>
+FabArray<FAB>::FabArray (const BoxArray&            bxs,
+                         const DistributionMapping& dm,
+                         int                        nvar,
+                         const IntVect&             ngrow,
+			 const MFInfo&              info,
+                         const FabFactory<FAB>&     factory)
     : m_factory(factory.clone()),
       shmem()
 {
@@ -748,7 +873,7 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
       shmem()
 {
     m_FA_stats.recordBuild();
-    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(),
+    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrowVect(),
            MFInfo().SetAlloc(false), *m_factory);
 
     if (maketype == amrex::make_alias)
@@ -769,7 +894,17 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          const DistributionMapping& dm,
                          int                        nvar,
                          int                        ngrow,
-                         const Vector<value_type*>&  pval)
+                         const Vector<value_type*>& pval)
+    : FabArray<FAB>::FabArray(bxs,dm,nvar,IntVect(ngrow),pval)
+{}
+
+template <class FAB>
+template <class>
+FabArray<FAB>::FabArray (const BoxArray&            bxs,
+                         const DistributionMapping& dm,
+                         int                        nvar,
+                         const IntVect&             ngrow,
+                         const Vector<value_type*>& pval)
     : m_factory(new DefaultFabFactory<FAB>()),
       shmem()
 {
@@ -860,6 +995,18 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 		       const MFInfo&              info,
                        const FabFactory<FAB>&     a_factory)
 {
+    define(bxs,dm,nvar,IntVect(ngrow),info,a_factory);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::define (const BoxArray&            bxs,
+		       const DistributionMapping& dm,
+		       int                        nvar,
+		       const IntVect&             ngrow,
+		       const MFInfo&              info,
+                       const FabFactory<FAB>&     a_factory)
+{
     std::unique_ptr<FabFactory<FAB> > factory(a_factory.clone());
 
     clear();
@@ -868,7 +1015,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     define_function_called = true;
 
-    BL_ASSERT(ngrow >= 0);
+    BL_ASSERT(ngrow.allGE(IntVect::TheZeroVector()));
     BL_ASSERT(boxarray.size() == 0);
     FabArrayBase::define(bxs, dm, nvar, ngrow);
 
@@ -1015,7 +1162,7 @@ FabArray<FAB>::setFab (int  boxno,
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
     if (m_fabs_v.size() == 0) {
-	m_fabs_v.resize(indexArray.size());
+      m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
     m_fabs_v[localindex(boxno)] = elem;
@@ -1042,7 +1189,7 @@ FabArray<FAB>::setFab (const MFIter& mfi,
     }
 
     if (m_fabs_v.size() == 0) {
-        m_fabs_v.resize(indexArray.size());
+      m_fabs_v.resize(indexArray.size(),nullptr);
     }
 
     m_fabs_v[mfi.LocalIndex()] = elem;
@@ -1063,7 +1210,7 @@ FabArray<FAB>::setBndry (value_type val,
                          int        strt_comp,
                          int        ncomp)
 {
-    if (n_grow > 0)
+    if (n_grow.max() > 0)
     {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1105,25 +1252,6 @@ FabArray<FAB>::setDomainBndry (value_type val,
     {
         get(fai).setComplement(val, domain_box, strt_comp, ncomp);
     }
-}
-
-template <class FAB>
-void
-FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
-                             int                  scomp,
-                             int                  dcomp,
-                             int                  ncomp,
-                             const Periodicity&   period,
-                             CpOp                 op)
-{
-    ParallelCopy(src,scomp,dcomp,ncomp,0,0,period,op);
-}
-
-template <class FAB>
-void
-FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src, const Periodicity& period, CpOp op)
-{
-    copy(src,0,0,nComp(),0,0,period,op);
 }
 
 //
@@ -1189,7 +1317,18 @@ FabArray<FAB>::setVal (value_type val,
                        int        ncomp,
                        int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    setVal(val,comp,ncomp,IntVect(nghost));
+}
+
+template <class FAB>
+template <class>
+void
+FabArray<FAB>::setVal (value_type val,
+                       int        comp,
+                       int        ncomp,
+                       const IntVect& nghost)
+{
+    BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
 
 #ifdef _OPENMP
@@ -1211,7 +1350,19 @@ FabArray<FAB>::setVal (value_type val,
                        int        ncomp,
                        int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    setVal(val,region,comp,ncomp,IntVect(nghost));
+}
+
+template <class FAB>
+template <class>
+void
+FabArray<FAB>::setVal (value_type val,
+                       const Box& region,
+                       int        comp,
+                       int        ncomp,
+                       const IntVect& nghost)
+{
+    BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
 
 #ifdef _OPENMP
@@ -1250,8 +1401,8 @@ void
 FabArray<FAB>::FillBoundary (bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    if ( n_grow > 0 ) {
-	FillBoundary_nowait(0, nComp(), Periodicity::NonPeriodic(), cross);
+    if ( n_grow.max() > 0 ) {
+	FillBoundary_nowait(0, nComp(), n_grow, Periodicity::NonPeriodic(), cross);
 	FillBoundary_finish();
     }
 }
@@ -1261,8 +1412,8 @@ void
 FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    if ( n_grow > 0 ) {
-	FillBoundary_nowait(0, nComp(), period, cross);
+    if ( n_grow.max() > 0 ) {
+	FillBoundary_nowait(0, nComp(), n_grow, period, cross);
 	FillBoundary_finish();
     }
 }
@@ -1272,8 +1423,8 @@ void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    if ( n_grow > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, Periodicity::NonPeriodic(), cross);
+    if ( n_grow.max() > 0 ) {
+	FillBoundary_nowait(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), cross);
 	FillBoundary_finish();
     }
 }
@@ -1283,8 +1434,22 @@ void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    if ( n_grow > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, period, cross);
+    if ( n_grow.max() > 0 ) {
+	FillBoundary_nowait(scomp, ncomp, n_grow, period, cross);
+	FillBoundary_finish();
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, const IntVect& nghost,
+                             const Periodicity& period, bool cross)
+{
+    BL_PROFILE("FabArray::FillBoundary()");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
+                                     "FillBoundary: asked to fill more ghost cells than we have");
+    if ( nghost.max() > 0 ) {
+	FillBoundary_nowait(scomp, ncomp, nghost, period, cross);
 	FillBoundary_finish();
     }
 }
@@ -1293,21 +1458,21 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
 {
-    FillBoundary_nowait(0, nComp(), Periodicity::NonPeriodic(), cross);
+    FillBoundary_nowait(0, nComp(), nGrowVect(), Periodicity::NonPeriodic(), cross);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, bool cross)
 {
-    FillBoundary_nowait(0, nComp(), period, cross);
+    FillBoundary_nowait(0, nComp(), nGrowVect(), period, cross);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
-    FillBoundary_nowait(scomp, ncomp, Periodicity::NonPeriodic(), cross);
+    FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), cross);
 }
 
 template <class FAB>
@@ -1316,7 +1481,7 @@ FabArray<FAB>::EnforcePeriodicity (const Periodicity& period)
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
-	FBEP_nowait(0, nComp(), period, false, true);
+	FBEP_nowait(0, nComp(), nGrowVect(), period, false, true);
 	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
 }
@@ -1327,7 +1492,19 @@ FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& peri
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
-	FBEP_nowait(scomp, ncomp, period, false, true);
+	FBEP_nowait(scomp, ncomp, nGrowVect(), period, false, true);
+	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
+                                   const Periodicity& period)
+{
+    BL_PROFILE("FabArray::EnforcePeriodicity");
+    if (period.isAnyPeriodic()) {
+	FBEP_nowait(scomp, ncomp, nghost, period, false, true);
 	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
 }
@@ -1336,7 +1513,15 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
-    FBEP_nowait(scomp, ncomp, period, cross);
+    FBEP_nowait(scomp, ncomp, nGrowVect(), period, cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
+                                    const Periodicity& period, bool cross)
+{
+    FBEP_nowait(scomp, ncomp, nghost, period, cross);
 }
 
 template <class FAB>
@@ -1347,9 +1532,9 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 			  value_type physbnd, value_type interior)
 {
     int ncomp = this->nComp();
-    int ngrow = this->nGrow();
+    const IntVect& ngrow = this->nGrowVect();
 
-    const FabArrayBase::FB& TheFB = this->getFB(period);
+    const FabArrayBase::FB& TheFB = this->getFB(ngrow,period);
 
     const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
     const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
@@ -1357,7 +1542,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     Box domain = amrex::convert(phys_domain, boxArray().ixType());
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (period.isPeriodic(i)) {
-	    domain.grow(i, ngrow);
+	    domain.grow(i, ngrow[i]);
 	}
     }
 

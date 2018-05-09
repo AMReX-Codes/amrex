@@ -3,6 +3,10 @@
 #define BL_INTVECT_H
 
 #include <iosfwd>
+#include <cstdlib>
+#include <cmath>
+#include <limits>
+#include <algorithm>
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_SPACE.H>
@@ -66,96 +70,70 @@ public:
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
-    IntVect () { AMREX_D_EXPR(vect[0] = 0, vect[1] = 0, vect[2] = 0); }
+    IntVect () : vect{AMREX_D_DECL(0,0,0)} {}
 
     /**
     * \brief Construct an IntVect given the specific values for its
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
-    IntVect (AMREX_D_DECL(int i, int j, int k)) { AMREX_D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
+    IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
 
 #if (AMREX_SPACEDIM > 1)
-    explicit IntVect (int i) { AMREX_D_EXPR(vect[0] = i, vect[1] = i, vect[2] = i); }
+    explicit IntVect (int i) : vect{AMREX_D_DECL(i,i,i)} {}
 #endif
 
     /**
     * \brief Construct an IntVect setting the coordinates to the
     * corresponding values in the integer array a.
     */
-    explicit IntVect (const int* a);
+    explicit IntVect (const int* a) : vect{AMREX_D_DECL(a[0],a[1],a[2])} {}
 
     /**
     * \brief Construct an IntVect from an Vector<int>.  It is an error if
     * the Vector<int> doesn' t have the same dimension as this
     * IntVect.
     */
-    explicit IntVect (const Vector<int>& a);
+    explicit IntVect (const Vector<int>& a) : vect{AMREX_D_DECL(a[0],a[1],a[2])} {
+        BL_ASSERT(a.size() == AMREX_SPACEDIM);
+    }
 
   ///
   /**
      Sum of all components of this IntVect.
   */
-  int sum () const
+    int sum () const
     {
-      int retval = AMREX_D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
-      return retval;
+        int retval = AMREX_D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
+        return retval;
     }
 
-  /// maximum (no absolute values) value
-  int max() const
+    /// maximum (no absolute values) value
+    int max() const
     {
-      int retval = (*this)[0];
-      for(int idir = 1; idir < SpaceDim; idir++)
-      {
-        retval = std::max(retval, (*this)[idir]);
-      }
-      return retval;
+#if (AMREX_SPACEDIM == 1)
+        return vect[0];
+#elif (AMREX_SPACEDIM == 2)
+        return std::max(vect[0],vect[1]);
+#else
+        return std::max(vect[0],std::max(vect[1],vect[2]));
+#endif
     }
 
-  /// minimum (no absolute values) value
-  int min() const
+    /// minimum (no absolute values) value
+    int min() const
     {
-      int retval = (*this)[0];
-      for(int idir = 1; idir < SpaceDim; idir++)
-      {
-        retval = std::min(retval, (*this)[idir]);
-      }
-      return retval;
+#if (AMREX_SPACEDIM == 1)
+        return vect[0];
+#elif (AMREX_SPACEDIM == 2)
+        return std::min(vect[0],vect[1]);
+#else
+        return std::min(vect[0],std::min(vect[1],vect[2]));
+#endif
     }
 
-  //return coordinate with largest value
-  int maxDir(bool a_doAbsValue) const
-    {
-      int retval = 0;
-      if(a_doAbsValue)
-      {
-        int maxval = std::abs((*this)[0]);
-        for(int idir = 1; idir < SpaceDim; idir++)
-        {
-          int curval = std::abs((*this)[idir]);
-          if(curval > maxval)
-          {
-            maxval = curval;
-            retval = idir;
-          }
-        }
-      }
-      else
-      {
-        int maxval = (*this)[0];
-        for(int idir = 1; idir < SpaceDim; idir++)
-        {
-          int curval = (*this)[idir];
-          if(curval > maxval)
-          {
-            maxval = curval;
-            retval = idir;
-          }
-        }
-      }
-      return retval;
-    }
+    //return coordinate with largest value
+    int maxDir(bool a_doAbsValue) const;
 
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
@@ -205,12 +183,12 @@ public:
     bool operator< (const IntVect& rhs) const
     {
 #if (AMREX_SPACEDIM == 1)
-    return vect[0] < rhs[0];
+        return vect[0] < rhs[0];
 #elif (AMREX_SPACEDIM == 2)
-    return (vect[1] < rhs[1]) || ((vect[1] == rhs[1]) && (vect[0] < rhs[0]));
+        return (vect[1] < rhs[1]) || ((vect[1] == rhs[1]) && (vect[0] < rhs[0]));
 #else
-    return (vect[2] < rhs[2]) || ((vect[2] == rhs[2]) &&
-	(  (vect[1] < rhs[1]) || ((vect[1] == rhs[1]) && (vect[0] < rhs[0])) ));
+        return (vect[2] < rhs[2]) || ((vect[2] == rhs[2]) &&
+            (  (vect[1] < rhs[1]) || ((vect[1] == rhs[1]) && (vect[0] < rhs[0])) ));
 #endif
     }
     //! Return true if this is lexicographically less than or equal to rhs.
@@ -348,16 +326,16 @@ public:
     IntVect& min (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
-               vect[1] = std::min(vect[1], p.vect[1]),
-               vect[2] = std::min(vect[2], p.vect[2]));
+                     vect[1] = std::min(vect[1], p.vect[1]),
+                     vect[2] = std::min(vect[2], p.vect[2]));
         return *this;
     }
     //! Modifies IntVect by taking component-wise max with argument.
     IntVect& max (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
-               vect[1] = std::max(vect[1], p.vect[1]),
-               vect[2] = std::max(vect[2], p.vect[2]));
+                     vect[1] = std::max(vect[1], p.vect[1]),
+                     vect[2] = std::max(vect[2], p.vect[2]));
         return *this;
     }
     //! Modify IntVect by multiplying each coordinate by s.
@@ -393,35 +371,13 @@ public:
     static size_t 
     linearSize()
     {
-      size_t retval = SpaceDim*sizeof(int);
-      return retval;
+        size_t retval = AMREX_SPACEDIM*sizeof(int);
+        return retval;
     }
 
     /// for serialization
-    void 
-    linearOut(void* a_buffer ) const
-    {
-      int* intbuf = (int *) a_buffer;
-      const IntVect& iv = *this;
-      for(int idir = 0; idir < SpaceDim; idir++)
-      {
-        *intbuf = iv[idir];
-        intbuf++;
-      }
-    }
-
-    /// for serialization
-    void 
-    linearIn(void* a_buffer )
-    {
-      int* intbuf = (int *) a_buffer;
-      IntVect& iv = *this;
-      for(int idir = 0; idir < SpaceDim; idir++)
-      {
-        iv[idir] = *intbuf;
-        intbuf++;
-      }
-    }
+    void linearOut(void* a_buffer ) const;
+    void linearIn(void* a_buffer );
 
     /**
     * \brief This static member function returns a reference to a constant IntVect
@@ -429,35 +385,51 @@ public:
     * Figuratively, it is the zero vector in AMREX_SPACEDIM-dimensional space.
     * It is provided as a convenient way to specify the zero vector.
     */
-    static const IntVect& TheZeroVector ();
+    static IntVect TheZeroVector () {
+        return IntVect(0);
+    }
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to one (1).
     * Figuratively, it is the unit vector in AMREX_SPACEDIM-dimensional space.
     * It is provided as a convenient way to specify the unit vector.
     */
-    static const IntVect& TheUnitVector ();
+    static IntVect TheUnitVector () {
+        return IntVect(1);
+    }
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to zero except that
     * the d-direction is set to one. 
     */
-    static const IntVect& TheDimensionVector (int d);
+    static IntVect TheDimensionVector (int d) {
+        IntVect r(0);
+        r[d] = 1;
+        return r;
+    }
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::NODE.
     * It is provided as a convenience to our users when defining Boxes.
     */
-    static const IntVect& TheNodeVector ();
+    static IntVect TheNodeVector () {
+        return IntVect(1);
+    }
     /** 
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::CELL.
     * It is provided as a convenience to our users when defining Boxes.
     */
-    static const IntVect& TheCellVector ();
+    static IntVect TheCellVector () {
+        return IntVect(0);
+    }
 
-    static const IntVect& TheMaxVector ();
-    static const IntVect& TheMinVector ();
+    static IntVect TheMaxVector () {
+        return IntVect(std::numeric_limits<int>::max());
+    }
+    static IntVect TheMinVector () {
+        return IntVect(std::numeric_limits<int>::min());
+    }
 
 private:
 
@@ -467,6 +439,89 @@ private:
     int vect[AMREX_SPACEDIM];
 };
 
+inline
+IntVect&
+IntVect::coarsen (int s)
+{
+    BL_ASSERT(s > 0);
+    return this->coarsen(IntVect(AMREX_D_DECL(s,s,s)));
+}
+
+inline
+IntVect&
+IntVect::coarsen (const IntVect& p)
+{
+    BL_ASSERT(p.allGT(IntVect::TheZeroVector()));
+    if (p != 1) {
+        for (int i = 0; i <AMREX_SPACEDIM; ++i)
+        {
+            const int s = p.vect[i];
+            vect[i] = ((vect[i]<0) ? -std::abs(vect[i]+1)/s-1 : vect[i]/s);
+        }
+    }
+    return *this;
+}
+
+inline
+int
+IntVect::maxDir(bool a_doAbsValue) const
+{
+    int retval = 0;
+    if(a_doAbsValue)
+    {
+        int maxval = std::abs((*this)[0]);
+        for(int idir = 1; idir < SpaceDim; idir++)
+        {
+            int curval = std::abs((*this)[idir]);
+            if(curval > maxval)
+            {
+                maxval = curval;
+                retval = idir;
+            }
+        }
+    }
+    else
+    {
+        int maxval = (*this)[0];
+        for(int idir = 1; idir < SpaceDim; idir++)
+        {
+            int curval = (*this)[idir];
+            if(curval > maxval)
+            {
+                maxval = curval;
+                retval = idir;
+            }
+        }
+    }
+    return retval;
+}
+
+inline
+void 
+IntVect::linearOut(void* a_buffer ) const
+{
+    int* intbuf = (int *) a_buffer;
+    const IntVect& iv = *this;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+        *intbuf = iv[idir];
+        intbuf++;
+    }
+}
+
+inline
+void 
+IntVect::linearIn(void* a_buffer )
+{
+    int* intbuf = (int *) a_buffer;
+    IntVect& iv = *this;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+        iv[idir] = *intbuf;
+        intbuf++;
+    }
+}
+
 //
 // Static initialization.  Gotta make sure there are no static object
 // definitions above here (except possibly stuff in headers).  Otherwise,
@@ -475,49 +530,6 @@ private:
 // initialize.
 //
 static int s_dummyForIntVectH = IntVect::InitStatics();
-
-    /**
-    * \brief Returns a basis vector in the given coordinate direction;
-    * eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
-    * directions are zero based.
-    */
-    IntVect BASISV (int dir);
-    /**
-    * \brief Returns the IntVect that is the component-wise minimum of two
-    * argument IntVects.
-    */
-    IntVect min (const IntVect& p1, const IntVect& p2);
-    /**
-    * \brief Returns the IntVect that is the component-wise maximum of two
-    * argument IntVects.
-    */
-    IntVect max (const IntVect& p1, const IntVect& p2);
-    /**
-    * \brief Returns a IntVect obtained by multiplying each of the
-    * components of this IntVect by s.
-    */
-    IntVect scale (const IntVect& p, int s);
-    /**
-    * \brief Returns an IntVect that is the reflection of input in the
-    * plane which passes through ref_ix and normal to the
-    * coordinate direction idir.
-    */
-    IntVect reflect(const IntVect& a, int ref_ix, int idir);
-    /**
-    * \brief Returns IntVect obtained by adding s to each of the
-    * components of this IntVect.
-    */
-    IntVect diagShift (const IntVect& p, int s);
-    /**
-    * \brief Returns an IntVect that is the component-wise integer
-    * projection of p by s.
-    */
-    IntVect coarsen (const IntVect& p, int s);
-    /**
-    * \brief Returns an IntVect which is the component-wise integer
-    * projection of IntVect p1 by IntVect p2.
-    */
-    IntVect coarsen (const IntVect& p1, const IntVect& p2);
 
 
 //! Returns p + s.
@@ -537,6 +549,117 @@ inline
 IntVect operator* (int s, const IntVect& p)
 {
     return IntVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
+}
+
+    /**
+    * \brief Returns the IntVect that is the component-wise minimum of two
+    * argument IntVects.
+    */
+inline
+IntVect
+min (const IntVect& p1,
+     const IntVect& p2)
+{
+    IntVect p(p1);
+    p.min(p2);
+    return p;
+}
+
+    /**
+    * \brief Returns the IntVect that is the component-wise maximum of two
+    * argument IntVects.
+    */
+inline
+IntVect
+max (const IntVect& p1,
+     const IntVect& p2)
+{
+    IntVect p(p1);
+    p.max(p2);
+    return p;
+}
+
+    /**
+    * \brief Returns a basis vector in the given coordinate direction;
+    * eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
+    * directions are zero based.
+    */
+inline
+IntVect
+BASISV (int dir)
+{
+    BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
+    IntVect tmp;
+    tmp[dir] = 1;
+    return tmp;
+}
+
+    /**
+    * \brief Returns a IntVect obtained by multiplying each of the
+    * components of this IntVect by s.
+    */
+inline
+IntVect
+scale (const IntVect& p, int s)
+{
+    return IntVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
+}
+
+    /**
+    * \brief Returns an IntVect that is the reflection of input in the
+    * plane which passes through ref_ix and normal to the
+    * coordinate direction idir.
+    */
+inline
+IntVect
+reflect (const IntVect& a,
+         int            ref_ix,
+         int            idir)
+{
+    BL_ASSERT(idir >= 0 && idir < AMREX_SPACEDIM);
+    IntVect b(a);
+    b[idir] = -b[idir] + 2*ref_ix;
+    return b;
+}
+
+    /**
+    * \brief Returns IntVect obtained by adding s to each of the
+    * components of this IntVect.
+    */
+inline
+IntVect
+diagShift (const IntVect& p, int s)
+{
+    return IntVect(AMREX_D_DECL(p[0] + s, p[1] + s, p[2] + s));
+}
+
+    /**
+    * \brief Returns an IntVect that is the component-wise integer
+    * projection of p by s.
+    */
+inline
+IntVect
+coarsen (const IntVect& p,
+         int            s)
+{
+    BL_ASSERT(s > 0);
+    IntVect v = p;
+    v.coarsen(IntVect(AMREX_D_DECL(s,s,s)));
+    return v;
+}
+
+    /**
+    * \brief Returns an IntVect which is the component-wise integer
+    * projection of IntVect p1 by IntVect p2.
+    */
+inline
+IntVect
+coarsen (const IntVect& p1,
+         const IntVect& p2)
+{
+    IntVect v = p1;
+    v.coarsen(p2);
+    return v;
 }
 
 }

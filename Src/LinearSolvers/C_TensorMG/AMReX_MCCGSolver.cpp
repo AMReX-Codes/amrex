@@ -39,9 +39,9 @@ MCCGSolver::Initialize ()
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-	std::cout << "def_maxiter            = " << def_maxiter            << '\n';
-	std::cout << "def_unstable_criterion = " << def_unstable_criterion << '\n';
-        std::cout << "def_isExpert           = " << def_isExpert           << '\n';
+        amrex::OutStream() << "def_maxiter            = " << def_maxiter            << '\n'
+                           << "def_unstable_criterion = " << def_unstable_criterion << '\n'
+                           << "def_isExpert           = " << def_isExpert           << '\n';
     }
 
     amrex::ExecOnFinalize(MCCGSolver::Finalize);
@@ -187,8 +187,8 @@ MCCGSolver::solve (MultiFab&       sol,
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         for (int k = 0; k < lev; k++)
-            std::cout << "   ";
-        std::cout << "MCCGsolver: Initial error (error0) =  " << rnorm0 << '\n';
+            amrex::OutStream() << "   ";
+        amrex::OutStream() << "MCCGsolver: Initial error (error0) =  " << rnorm0 << '\n';
     }
 
     Real beta = 0, rho = 0, rhoold = 0;
@@ -254,16 +254,16 @@ MCCGSolver::solve (MultiFab&       sol,
 	if (verbose > 2 && ParallelDescriptor::IOProcessor())
         {
             for (int k = 0; k < lev; k++)
-                std::cout << "   ";
-            std::cout << "MCCGSolver:"
-                      << " nit " << nit
-                      << " pw "  << pw 
-                      << " rho " << rho
-                      << " alpha " << alpha;
+                amrex::OutStream() << "   ";
+            amrex::OutStream() << "MCCGSolver:"
+                               << " nit " << nit
+                               << " pw "  << pw 
+                               << " rho " << rho
+                               << " alpha " << alpha;
             if (nit == 0)
-                std::cout << " beta undefined ...";
+                amrex::OutStream() << " beta undefined ...";
             else
-                std::cout << " beta " << beta << " ...";
+                amrex::OutStream() << " beta " << beta << " ...";
 	}
         //
 	// x += alpha p  and  r -= alpha w
@@ -287,12 +287,13 @@ MCCGSolver::solve (MultiFab&       sol,
 	{
 	    if (ParallelDescriptor::IOProcessor())
 	    {
-		for (int k = 0; k < lev; k++)
-                    std::cout << "   ";
-		std::cout << "MCCGSolver: Iteration "
-                          << nit
-                          << " error/error0 "
-                          << rnorm/rnorm0 << '\n';
+		for (int k = 0; k < lev; k++) {
+                    amrex::OutStream() << "   ";
+                }
+		amrex::OutStream() << "MCCGSolver: Iteration "
+                                   << nit
+                                   << " error/error0 "
+                                   << rnorm/rnorm0 << '\n';
 	    }
 	}
     }

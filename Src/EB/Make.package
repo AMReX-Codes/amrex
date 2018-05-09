@@ -39,6 +39,11 @@ CEXE_headers += AMReX_EBAmrUtil.H AMReX_EBAmrUtil_F.H
 CEXE_sources += AMReX_EBAmrUtil.cpp
 F90EXE_sources += AMReX_EBAmrUtil_nd.F90
 
+CEXE_headers += AMReX_EB_F.H AMReX_EB_levelset.H
+CEXE_sources += AMReX_EB_levelset.cpp
+
+F90EXE_sources += AMReX_compute_normals.F90 AMReX_EB_geometry.F90
+F90EXE_sources += AMReX_EB_levelset_F.F90
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/EB
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/EB

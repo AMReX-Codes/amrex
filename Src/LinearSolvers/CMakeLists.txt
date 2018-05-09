@@ -1,4 +1,3 @@
-#-------------------------------------------------------------------------------make 
 #
 # Sources in folder MGML
 # 
@@ -148,7 +147,7 @@ list ( APPEND F90SRC     AMReX_ABec2_${DIM}D.F90 AMReX_ABec4_${DIM}D.F90 )
 # 
 # Collect sources
 # 
-set ( ALLSRC   ${CXXSRC} ${F77SRC} )
+set ( ALLSRC   ${CXXSRC} ${F90SRC} )
 
 #
 # Add absolute path (needed by target_sources)
@@ -200,7 +199,7 @@ list ( APPEND F90SRC  amrex_tmg_util.F90 )
 # 
 # Collect sources
 # 
-set ( ALLSRC   ${CXXSRC} ${F77SRC} )
+set ( ALLSRC   ${CXXSRC} ${F77SRC} ${F90SRC} )
 
 #
 # Add absolute path (needed by target_sources)

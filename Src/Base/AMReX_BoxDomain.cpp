@@ -70,7 +70,7 @@ BoxDomain::complementIn (const Box&       b,
 
 BoxDomain
 complementIn (const Box&       b,
-		      const BoxDomain& bl)
+              const BoxDomain& bl)
 {
     BoxDomain result;
     result.complementIn(b,bl);
