@@ -7,7 +7,7 @@
 
 namespace amrex
 {
-  static const IntVect ebg_debiv(D_DECL(0, 0, 0));
+  static const IntVect ebg_debiv(AMREX_D_DECL(0, 0, 0));
   bool EBGraphImplem::s_verbose = false;
   /*******************************/
   Vector<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
@@ -1840,7 +1840,7 @@ namespace amrex
     {
       for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
       {
-        //IntVect ivdeb(D_DECL(10, 7, 0));
+        //IntVect ivdeb(AMREX_D_DECL(10, 7, 0));
         //int ideb = 0;
         //if(bit() == ivdeb)
         //{
@@ -1909,7 +1909,7 @@ namespace amrex
       m_graph.resize(graphbox, 1);
       for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
       {
-        //IntVect ivdeb(D_DECL(10, 7, 0));
+        //IntVect ivdeb(AMREX_D_DECL(10, 7, 0));
         //int ideb = 0;
         //if(bit() == ivdeb)
         //{
