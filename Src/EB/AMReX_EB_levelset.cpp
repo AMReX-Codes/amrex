@@ -12,6 +12,8 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_EB_F.H>
 
+namespace amrex {
+
 LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
                      const BoxArray& ba, const Geometry& geom, const DistributionMapping& dm)
     : amr_lev(lev), ls_grid_ref(ls_ref), eb_grid_ref(eb_ref), ls_grid_pad(ls_pad), eb_grid_pad(eb_pad),
@@ -55,7 +57,7 @@ LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
         auto & ls_tile = (* ls_grid)[mfi];
 
         // Initialize in fortran land
-        init_levelset(tile_box.loVect(), tile_box.hiVect(),
+        amrex_eb_init_levelset(tile_box.loVect(), tile_box.hiVect(),
                       ls_tile.dataPtr(), ls_tile.loVect(),  ls_tile.hiVect());
     }
 }
@@ -166,14 +168,14 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
             const auto & af_y_tile = (* areafrac[1])[mfi];
             const auto & af_z_tile = (* areafrac[2])[mfi];
 
-            BL_PROFILE_VAR("compute_normals()", compute_normals);
-            compute_normals(lo,                  hi,
+//            BL_PROFILE_VAR("compute_normals()", compute_normals);
+            amrex_eb_compute_normals(lo,                  hi,
                             flag.dataPtr(),      flag.loVect(),      flag.hiVect(),
                             norm_tile.dataPtr(), norm_tile.loVect(), norm_tile.hiVect(),
                             af_x_tile.dataPtr(), af_x_tile.loVect(), af_x_tile.hiVect(),
                             af_y_tile.dataPtr(), af_y_tile.loVect(), af_y_tile.hiVect(),
                             af_z_tile.dataPtr(), af_z_tile.loVect(), af_z_tile.hiVect());
-            BL_PROFILE_VAR_STOP(compute_normals);
+//            BL_PROFILE_VAR_STOP(compute_normals);
         }
     }
 
@@ -197,7 +199,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
         const auto & flag = sfab.getEBCellFlagFab();
 
         // Need to count number of eb-facets (in order to allocate facet_list)
-        count_eb_facets(lo, hi, flag.dataPtr(), flag.loVect(), flag.hiVect(), & n_facets);
+        amrex_eb_count_facets(lo, hi, flag.dataPtr(), flag.loVect(), flag.hiVect(), & n_facets);
     }
 
     facet_list = std::unique_ptr<Vector<Real>>(new Vector<Real>(6 * n_facets));
@@ -216,7 +218,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
 
             int facet_list_size = facet_list->size();
 
-            eb_as_list(tile_box.loVect(),     tile_box.hiVect(),    & c_facets,
+            amrex_eb_as_list(tile_box.loVect(),     tile_box.hiVect(),    & c_facets,
                        flag.dataPtr(),        flag.loVect(),        flag.hiVect(),
                        norm_tile.dataPtr(),   norm_tile.loVect(),   norm_tile.hiVect(),
                        bcent_tile.dataPtr(),  bcent_tile.loVect(),  bcent_tile.hiVect(),
@@ -262,7 +264,7 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
         auto & v_tile = (* ls_valid)[mfi];
         auto & ls_tile = (* ls_grid)[mfi];
 
-        update_levelset_intersection(tile_box.loVect(),    tile_box.hiVect(),
+        amrex_eb_update_levelset_intersection(tile_box.loVect(),    tile_box.hiVect(),
                                      valid_in_tile.dataPtr(), valid_in_tile.loVect(), valid_in_tile.hiVect(),
                                      ls_in_tile.dataPtr(),    ls_in_tile.loVect(),    ls_in_tile.hiVect(),
                                      v_tile.dataPtr(),        v_tile.loVect(),        v_tile.hiVect(),
@@ -288,7 +290,7 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
         auto & v_tile = (* ls_valid)[mfi];
         auto & ls_tile = (* ls_grid)[mfi];
 
-        update_levelset_union(tile_box.loVect(),    tile_box.hiVect(),
+        amrex_eb_update_levelset_union(tile_box.loVect(),    tile_box.hiVect(),
                               valid_in_tile.dataPtr(), valid_in_tile.loVect(), valid_in_tile.hiVect(),
                               ls_in_tile.dataPtr(),    ls_in_tile.loVect(),    ls_in_tile.hiVect(),
                               v_tile.dataPtr(),        v_tile.loVect(),        v_tile.hiVect(),
@@ -420,13 +422,13 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
         auto & ls_tile = eb_ls[mfi];
         const auto & if_tile = (* impfunct)[mfi];
         if(len_facets > 0) {
-            fill_levelset_eb(lo,                hi,
+            amrex_eb_fill_levelset(lo,                hi,
                              facets->dataPtr(), & len_facets,
                              v_tile.dataPtr(),  v_tile.loVect(),  v_tile.hiVect(),
                              ls_tile.dataPtr(), ls_tile.loVect(), ls_tile.hiVect(),
                              dx_vect.dataPtr(), dx_eb_vect.dataPtr());
 
-            validate_levelset(lo,                hi,               & ls_grid_ref,
+            amrex_eb_validate_levelset(lo,                hi,               & ls_grid_ref,
                               if_tile.dataPtr(), if_tile.loVect(), if_tile.hiVect(),
                               v_tile.dataPtr(),  v_tile.loVect(),  v_tile.hiVect(),
                               ls_tile.dataPtr(), ls_tile.loVect(), ls_tile.hiVect());
@@ -480,13 +482,13 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
         const auto & if_tile = (* impfunct)[mfi];
 
         if(len_facets > 0) {
-            fill_levelset_eb(lo,                hi,
+            amrex_eb_fill_levelset(lo,                hi,
                              facets->dataPtr(), & len_facets,
                              v_tile.dataPtr(),  v_tile.loVect(),  v_tile.hiVect(),
                              ls_tile.dataPtr(), ls_tile.loVect(), ls_tile.hiVect(),
                              dx_vect.dataPtr(), dx_eb_vect.dataPtr());
 
-            validate_levelset(lo,                hi,               & ls_grid_ref,
+            amrex_eb_validate_levelset(lo,                hi,               & ls_grid_ref,
                               if_tile.dataPtr(), if_tile.loVect(), if_tile.hiVect(),
                               v_tile.dataPtr(),  v_tile.loVect(),  v_tile.hiVect(),
                               ls_tile.dataPtr(), ls_tile.loVect(), ls_tile.hiVect());
@@ -616,4 +618,6 @@ BaseIF * PolynomialDF::newImplicitFunction() const {
                                                     m_inside);
 
     return static_cast<BaseIF*>(polynomialPtr);
+}
+
 }

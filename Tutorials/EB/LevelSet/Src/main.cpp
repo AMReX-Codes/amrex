@@ -8,6 +8,8 @@
 
 #include "make_shapes.H"
 
+using namespace amrex;
+
 int main (int argc, char* argv[])
 {
 

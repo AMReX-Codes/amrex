@@ -28,6 +28,8 @@
 
 #include <make_shapes.H>
 
+using namespace amrex;
+
 void
 make_my_eb(int lev, const BoxArray & grids, const DistributionMapping & dmap,
            const Geometry & geom, LSFactory * level_set)

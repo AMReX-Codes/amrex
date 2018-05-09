@@ -1,11 +1,11 @@
 
-  subroutine compute_normals ( lo, hi,           &
+  subroutine amrex_eb_compute_normals ( lo, hi,           &
                                flag, fglo, fghi, &
                                normal, nlo, nhi, &
                                apx, axlo, axhi,  &
                                apy, aylo, ayhi,  &
                                apz, azlo, azhi ) &
-             bind(C, name="compute_normals")
+             bind(C, name="amrex_eb_compute_normals")
 
     use amrex_fort_module, only: c_real => amrex_real
     use iso_c_binding,     only: c_int
@@ -56,4 +56,4 @@
         end do
     end do
 
-  end subroutine compute_normals
+  end subroutine amrex_eb_compute_normals
