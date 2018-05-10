@@ -54,7 +54,7 @@ def read_lab_snapshot(snapshot):
 
     '''
 
-    hdrs = glob(snapshot + "/Level_0/buffer??????_H")
+    hdrs = glob(snapshot + "/Level_0/buffer*_H")
     hdrs.sort()
 
     boxes, file_names, offsets, header = _read_header(hdrs[0])
@@ -165,7 +165,7 @@ def _read_field(raw_file, field_name):
         shape = hi - lo + 1
         with open(raw_file + fn, "rb") as f:
             f.seek(offset)
-            f.readline()  # always skip the first line
+#            f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
             arr = arr.reshape(shape, order='F')
             data[[slice(l,h+1) for l, h in zip(lo, hi)]] = arr
@@ -192,7 +192,7 @@ def _read_buffer(snapshot, header_fn):
         size = np.product(shape)
         with open(snapshot + "/Level_0/" + fn, "rb") as f:
             f.seek(offset)
-            f.readline()  # always skip the first line
+#            f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', header.ncomp*size)
             for i in range(header.ncomp):
                 comp_data = arr[i*size:(i+1)*size].reshape(shape, order='F')
@@ -203,23 +203,4 @@ def _read_buffer(snapshot, header_fn):
 
 
 if __name__ == "__main__":
-    import matplotlib
-    matplotlib.use('Agg')
-    from matplotlib import pyplot as plt
-
-    data = read_data("plt00040")
-
-    # print the shapes of all the fields
-    for level in range(2):
-        for name, vals in data[level].items():
-            print(level, name, vals.shape, vals.min(), vals.max())
-
-    # make a projection along the z-axis of the 'jx' field for level 0
-    level = 0
-    plt.pcolormesh(data[level]['jx'].sum(axis=2))
-    plt.savefig('jx')
-
-    # make a projection along the x-axis of the 'Bx_cp' field for level 1
-    level = 1
-    plt.pcolormesh(data[level]['Bx_cp'].sum(axis=0))
-    plt.savefig('Bx_cp')
+    data = read_lab_snapshot("lab_frame_data/snapshot00012");
