@@ -1,4 +1,6 @@
 
+#include <algorithm>
+#include <iterator>
 #include <typeinfo>
 #include <cstdlib>
 #include <iostream>
@@ -18,10 +20,18 @@
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BLFort.H>
+#include <AMReX_Print.H>
+
+extern "C" void amrex_init_namelist (const char*);
+extern "C" void amrex_finalize_namelist ();
 
 namespace amrex {
 
+#ifdef AMREX_XSDK
+static bool finalize_verbose = false;
+#else
 static bool finalize_verbose = true;
+#endif
 
 //
 // Used by constructor to build table.
@@ -238,10 +248,10 @@ getToken (const char*& str,
 	  std::string& ostr)
 {
 #define ERROR_MESS 							    \
-   std::cerr << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
-   std::cerr << "STATE = " << state_name[state]				    \
-             << ", next char = " << ch << '\n';				    \
-   std::cerr << ", rest of input = \n" << str << '\n';		            \
+   amrex::ErrorStream() << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
+   amrex::ErrorStream() << "STATE = " << state_name[state]              \
+                        << ", next char = " << ch << '\n';              \
+   amrex::ErrorStream() << ", rest of input = \n" << str << '\n';       \
    amrex::Abort()
    //
    // Eat white space and comments.
@@ -458,8 +468,33 @@ read_file (const char*                     fname,
 	Vector<char> fileCharPtr;
 	std::string filename = fname;
 	ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
-	const char* b = fileCharPtr.dataPtr();
+
+        std::istringstream is(fileCharPtr.data());
+        std::ostringstream os_cxx(std::ios_base::out);
+        std::ostringstream os_fortran(std::ios_base::out);
+        bool fortran_namelist = false;
+        for (std::string line; std::getline(is, line); ) {
+            auto r = std::find_if(std::begin(line), std::end(line),
+                                  [](int c) -> bool { return !std::isspace(c); });
+            if (fortran_namelist) { // already inside fortran namelist
+                os_fortran << line << "\n";
+                if (r != std::end(line) && *r == '/') {
+                    fortran_namelist = false; // end of Fortran namelist
+                }
+            } else if (r != std::end(line) && *r == '&') {
+                os_fortran << line << "\n";
+                fortran_namelist = true;  // begin of Fortran namelist
+            } else {
+                os_cxx << line << "\n";
+            }
+        }
+
+        std::string filestring_cxx = os_cxx.str();
+        const char* b = filestring_cxx.c_str();
         bldTable(b, tab);
+
+        std::string filestring_fortran = os_fortran.str();
+        amrex_init_namelist(filestring_fortran.c_str());
     }
 }
 
@@ -482,7 +517,7 @@ addDefn (std::string&         def,
     //
     if ( val.empty() )
     {
-        std::cerr << "ParmParse::addDefn(): no values for definition " << def << "\n";
+        amrex::ErrorStream() << "ParmParse::addDefn(): no values for definition " << def << "\n";
         amrex::Abort();
     }
     //
@@ -519,7 +554,7 @@ addTable (std::string& def,
     //
     if ( val.empty() )
     {
-        std::cerr << "ParmParse::addTable(): no values for Table " << def << "\n";
+        amrex::ErrorStream() << "ParmParse::addTable(): no values for Table " << def << "\n";
 	amrex::Abort();
     }
     tab.push_back(ParmParse::PP_entry(def, val));
@@ -628,17 +663,17 @@ squeryval (const ParmParse::Table& table,
     //
     if ( ival >= def->m_vals.size() )
     {
-        std::cerr << "ParmParse::queryval no value number"
+        amrex::ErrorStream() << "ParmParse::queryval no value number"
                   << ival << " for ";
         if ( occurence ==  ParmParse::LAST )
 	{
-            std::cerr << "last occurence of ";
+            amrex::ErrorStream() << "last occurence of ";
 	}
         else
 	{
-            std::cerr << " occurence " << occurence << " of ";
+            amrex::ErrorStream() << " occurence " << occurence << " of ";
 	}
-        std::cerr << def->m_name << '\n' << *def << '\n';
+        amrex::ErrorStream() << def->m_name << '\n' << *def << '\n';
         amrex::Abort();
     }
 
@@ -647,18 +682,18 @@ squeryval (const ParmParse::Table& table,
     bool ok = is(valname, ptr);
     if ( !ok )
     {
-        std::cerr << "ParmParse::queryval type mismatch on value number "
+        amrex::ErrorStream() << "ParmParse::queryval type mismatch on value number "
                   << ival << " of " << '\n';
         if ( occurence == ParmParse::LAST )
 	{
-            std::cerr << " last occurence of ";
+            amrex::ErrorStream() << " last occurence of ";
 	}
         else
 	{
-            std::cerr << " occurence number " << occurence << " of ";
+            amrex::ErrorStream() << " occurence number " << occurence << " of ";
 	}
-        std::cerr << def->m_name << '\n';
-        std::cerr << " Expected an \""
+        amrex::ErrorStream() << def->m_name << '\n';
+        amrex::ErrorStream() << " Expected an \""
                   << tok_name(ptr)
                   << "\" type  which can't be parsed from the string \""
                   << valname << "\"\n"
@@ -678,19 +713,19 @@ sgetval (const ParmParse::Table& table,
 {
     if ( squeryval(table, name,ptr,ival,occurence) == 0 )
     {
-        std::cerr << "ParmParse::getval ";
+        amrex::ErrorStream() << "ParmParse::getval ";
         if ( occurence >= 0 )
 	{
-            std::cerr << "occurence number "
+            amrex::ErrorStream() << "occurence number "
                       << occurence
                       << " of ";
 	}
 
-        std::cerr << "ParmParse::getval(): "
+        amrex::ErrorStream() << "ParmParse::getval(): "
                   << name
                   << " not found in table"
                   << '\n';
-        ParmParse::dumpTable(std::cerr);
+        ParmParse::dumpTable(amrex::ErrorStream());
         amrex::Abort();
     }
 }
@@ -730,16 +765,16 @@ squeryarr (const ParmParse::Table& table,
     }
     if ( stop_ix >= def->m_vals.size() )
     {
-        std::cerr << "ParmParse::queryarr too many values requested for";
+        amrex::ErrorStream() << "ParmParse::queryarr too many values requested for";
         if ( occurence == ParmParse::LAST )
 	{
-            std::cerr << " last occurence of ";
+            amrex::ErrorStream() << " last occurence of ";
 	}
         else
 	{
-            std::cerr << " occurence " << occurence << " of ";
+            amrex::ErrorStream() << " occurence " << occurence << " of ";
 	}
-        std::cerr << def->m_name << '\n' << *def << '\n';
+        amrex::ErrorStream() << def->m_name << '\n' << *def << '\n';
         amrex::Abort();
     }
     for ( int n = start_ix; n <= stop_ix; n++ )
@@ -748,18 +783,18 @@ squeryarr (const ParmParse::Table& table,
 	bool ok = is(valname, ptr[n]);
 	if ( !ok )
 	{
-	    std::cerr << "ParmParse::queryarr type mismatch on value number "
+	    amrex::ErrorStream() << "ParmParse::queryarr type mismatch on value number "
 		      <<  n << " of ";
 	    if ( occurence == ParmParse::LAST )
 	    {
-		std::cerr << " last occurence of ";
+		amrex::ErrorStream() << " last occurence of ";
 	    }
 	    else
 	    {
-		std::cerr << " occurence number " << occurence << " of ";
+		amrex::ErrorStream() << " occurence number " << occurence << " of ";
 	    }
-	    std::cerr << def->m_name << '\n';
-	    std::cerr << " Expected an \""
+	    amrex::ErrorStream() << def->m_name << '\n';
+	    amrex::ErrorStream() << " Expected an \""
 		      << tok_name(ptr)
 		      << "\" type which can't be parsed from the string \""
 		      << valname << "\"\n"
@@ -781,16 +816,16 @@ sgetarr (const ParmParse::Table& table,
 {
     if ( squeryarr(table,name,ptr,start_ix,num_val,occurence) == 0 )
     {
-        std::cerr << "ParmParse::sgetarr ";
+        amrex::ErrorStream() << "ParmParse::sgetarr ";
         if ( occurence >= 0 )
 	{
-            std::cerr << "occurence number " << occurence << " of ";
+            amrex::ErrorStream() << "occurence number " << occurence << " of ";
 	}
-        std::cerr << "ParmParse::sgetarr(): "
+        amrex::ErrorStream() << "ParmParse::sgetarr(): "
                   << name
                   << " not found in table"
                   << '\n';
-        ParmParse::dumpTable(std::cerr);
+        ParmParse::dumpTable(amrex::ErrorStream());
         amrex::Abort();
     }
 }
@@ -1001,7 +1036,9 @@ finalize_table (const std::string& pfx, const ParmParse::Table& table)
 	{
 	    if ( !li->m_queried )
 	    {
-		std::cout << "Record " << li->m_name << std::endl;
+                if (finalize_verbose) {
+                    amrex::AllPrint() << "Record " << li->m_name << std::endl;
+                }
 	    }
 	    else
 	    {
@@ -1010,8 +1047,9 @@ finalize_table (const std::string& pfx, const ParmParse::Table& table)
 	}
 	else if ( !li->m_queried )
 	{
-          if (finalize_verbose)
-	    std::cout << pfx << "::" << *li << std::endl;
+            if (finalize_verbose) {
+                amrex::AllPrint() << pfx << "::" << *li << std::endl;
+            }
 	}
     }
 }
@@ -1036,6 +1074,7 @@ ParmParse::Finalize ()
 {
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
+      finalize_verbose = amrex::system::verbose;
       if (finalize_verbose) std::cout << "Unused ParmParse Variables:\n";
       finalize_table("[TOP]", g_table);
       if (finalize_verbose) std::cout << "done.\n";
@@ -1044,6 +1083,8 @@ ParmParse::Finalize ()
 	//
     }
     g_table.clear();
+
+    amrex_finalize_namelist();
 
     initialized = false;
 }
@@ -1799,7 +1840,7 @@ ParmParse::getRecord (const std::string& name, int n) const
     const PP_entry* pe = ppindex(m_table, n, prefixedName(name), true);
     if ( pe == 0 )
     {
-	std::cerr << "ParmParse::getRecord: record " << name << " not found" << std::endl;
+	amrex::ErrorStream() << "ParmParse::getRecord: record " << name << " not found" << std::endl;
 	amrex::Abort();
     }
     return Record(ParmParse(*pe->m_table));

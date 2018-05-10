@@ -37,7 +37,7 @@ namespace amrex
   gather(std::vector<T>& a_outVec, const T& a_input, int a_dest)
   {
     assert(a_dest >= 0);
-    assert(a_dest <  numProc());
+    assert(a_dest <  ParallelDescriptor::NProcs());
     //now THIS size lives on THIS processor
     int isize = linearSize(a_input);
 
@@ -49,7 +49,7 @@ namespace amrex
     //put linearized T into its proper buffer
     linearOut(loclBuf, a_input);
 
-    int nProcess = numProc();
+    int nProcess = ParallelDescriptor::NProcs();
     int sendCount = 1;
     int recdCount = 1;
 
@@ -58,7 +58,7 @@ namespace amrex
     int* vectDisp = NULL;
     void* sendBuf = static_cast<void*>(&isize);
     //allocate received buffer
-    if (procID() == a_dest)
+    if (ParallelDescriptor::MyProc() == a_dest)
     {
       vectSize = new int[nProcess];
       vectDisp = new int[nProcess];
@@ -66,14 +66,14 @@ namespace amrex
 
     int result1 = MPI_Gather(sendBuf, sendCount, MPI_INT,
                              vectSize,recdCount, MPI_INT,
-                             a_dest,  MPI_COMM_WORLD);
+                             a_dest,  ParallelDescriptor::Communicator());
 
     if (result1 != MPI_SUCCESS)
       amrex::Abort("Gather<T> failed in MPI_Gather 1");
 
     //make memory for gather, linearin
     void* recdBuf = NULL;
-    if (procID() == a_dest)
+    if (ParallelDescriptor::MyProc() == a_dest)
     {
       size_t itotsize=0;
       for (int iproc = 0; iproc < nProcess; iproc++)
@@ -91,11 +91,11 @@ namespace amrex
     //gather data
     int result2 = MPI_Gatherv(loclBuf, isize, MPI_BYTE,
                               recdBuf, vectSize, vectDisp, MPI_BYTE,
-                              a_dest, MPI_COMM_WORLD);
+                              a_dest, ParallelDescriptor::Communicator());
     if (result2 != MPI_SUCCESS)
       amrex::Abort("Gather<T> failed in MPI_Gather 2");
 
-    if (procID() == a_dest)
+    if (ParallelDescriptor::MyProc() == a_dest)
     {
       //calculate offset into array for current processor
       int ioffset = 0;
@@ -127,14 +127,14 @@ namespace amrex
   broadcast(T& a_inAndOut,  int a_src)
   {
     assert (a_src >= 0);
-    assert(a_src <  numProc());
+    assert(a_src <  ParallelDescriptor::NProcs());
     int isize;
-    if (procID() == a_src)
+    if (ParallelDescriptor::MyProc() == a_src)
     {
       isize = linearSize(a_inAndOut);
     }
 
-    MPI_Bcast(&isize, 1, MPI_INT, a_src, MPI_COMM_WORLD);
+    MPI_Bcast(&isize, 1, MPI_INT, a_src, ParallelDescriptor::Communicator());
 
     void* broadBuf = malloc(isize);
 
@@ -144,25 +144,16 @@ namespace amrex
     }
 
     //take inAndOut from src and put it into broadBuf
-    if (procID() == a_src)
+    if (ParallelDescriptor::MyProc() == a_src)
     {
       linearOut(broadBuf, a_inAndOut);
     }
 
     //broadcast broadBuf to all procs
-    MPI_Bcast(broadBuf, isize, MPI_BYTE, a_src, MPI_COMM_WORLD);
+    MPI_Bcast(broadBuf, isize, MPI_BYTE, a_src, ParallelDescriptor::Communicator());
 
-    unsigned long long llsize = isize;
-    if (procID()==a_src)
-    {
-      CH_MaxMPISendSize = std::max(CH_MaxMPISendSize, llsize);
-    }
-    else
-    {
-      CH_MaxMPIRecvSize = std::max(CH_MaxMPIRecvSize, llsize);
-    }
     //take broadBuf and put back into inAndOut if not src
-    if (procID() != a_src)
+    if (ParallelDescriptor::MyProc() != a_src)
     {
       linearIn(a_inAndOut, broadBuf);
     }
@@ -177,7 +168,7 @@ namespace amrex
   inline void
   barrier(void)
   {
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(ParallelDescriptor::Communicator());
   }
 
 #else
