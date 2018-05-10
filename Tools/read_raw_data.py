@@ -88,7 +88,32 @@ def read_lab_snapshot(snapshot):
                 elif space_dim == 2:
                     data[k][:,buffer_size*i:buffer_size*(i+1)] = v[:,:]
 
-    return data
+    local_info = _read_local_Header(snapshot + "/Header")
+    info = {'t_snapshot' : local_info['t_snapshot']}
+    z = np.linspace(local_info['zmin'], local_info['zmax'], data['Bx'].shape[-1])
+    info.update({ 'zmin' : local_info['zmin'], 'zmax' : local_info['zmax'], 'z' : z })
+    return data, info
+## -----------------------------------------------------------
+## USE THIS INSTEAD OF THE 5 PREVIOUS LINES IF Header contains
+## (x,y,z) min and max vectors instead of zmin and zmax
+## -----------------------------------------------------------
+#     local_info = _read_local_Header(snapshot + "/Header")
+#     info = {'t_snapshot' : local_info['t_snapshot']}
+#     print('info', info)
+#     xmin = local_info['axes_lo'][0]
+#     xmax = local_info['axes_hi'][0]
+#     x = np.linspace(xmin, xmax, data['Bx'].shape[0])
+#     info.update({ 'xmin' : xmin, 'xmax' : xmax, 'x' : x })    
+#     zmin = local_info['axes_lo'][-1]
+#     zmax = local_info['axes_hi'][-1]
+#     z = np.linspace(zmin, zmax, data['Bx'].shape[-1])
+#     info.update({ 'zmin' : zmin, 'zmax' : zmax, 'z' : z })
+#     if len(local_info['axes_lo']) == 3:
+#         ymin = local_info['axes_lo'][1]
+#         ymax = local_info['axes_hi'][1]
+#         y = np.linspace(ymin, ymax, data['Bx'].shape[1])
+#         info.update({ 'ymin' : ymin, 'ymax' : ymax, 'y' : y })
+#     return data, info
 
 
 def _get_field_names(raw_file):
@@ -105,6 +130,56 @@ def _line_to_numpy_arrays(line):
     hi_corner = _string_to_numpy_array(line[1][:])
     node_type = _string_to_numpy_array(line[2][:-1])
     return lo_corner, hi_corner, node_type
+
+
+def _read_local_Header(header_file):
+    with open(header_file, "r") as f:
+        t_snapshot = float(f.readline())
+        zmin = float(f.readline())
+        zmax = float(f.readline())
+    local_info = {
+        't_snapshot' : t_snapshot,
+        'zmin' : zmin,
+        'zmax' : zmax
+        }
+    return local_info
+## ------------------------------------------------------------
+## USE THIS INSTEAD OF THE PREVIOUS FUNCTION IF Header contains
+## (x,y,z) min and max vectors instead of zmin and zmax
+## ------------------------------------------------------------
+# def _read_local_Header(header_file):
+#     with open(header_file, "r") as f:
+#         t_snapshot = float(f.readline())
+#         axes_lo = [float(x) for x in f.readline().split()]
+#         axes_hi = [float(x) for x in f.readline().split()]
+#     local_info = {
+#         't_snapshot' : t_snapshot,
+#         'axes_lo' : axes_lo,
+#         'axes_hi' : axes_hi
+#         }
+#     return local_info
+
+
+def _read_global_Header(header_file):
+    with open(header_file, "r") as f:
+
+        nshapshots = int(f.readline())
+        dt_between_snapshots = float(f.readline())
+        gamma_boost = float(f.readline())
+        beta_boost = float(f.readline())
+        dz_snapshot = float(f.readline())
+        nz_snapshot = float(f.readline())
+
+    global_info = {
+        'nshapshots' : nshapshots,
+        'dt_between_snapshots' : dt_between_snapshots,
+        'gamma_boost' : gamma_boost,
+        'beta_boost' : beta_boost,
+        'dz_snapshot' : dz_snapshot,
+        'nz_snapshot' : nz_snapshot
+        }
+
+    return global_info
 
 
 def _read_header(header_file):
