@@ -578,8 +578,7 @@ namespace amrex
 
     iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio)
     {
-        iMultiFab mask(amrex::convert(cmf.boxArray(),IntVect::TheCellVector()),
-                       cmf.DistributionMap(), 1, 0);
+        iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, 0);
         const BoxArray& cfba = amrex::coarsen(fba,ratio);
 
 #ifdef _OPENMP
