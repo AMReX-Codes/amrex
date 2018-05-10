@@ -70,7 +70,7 @@ namespace amrex
             && BoxArray::SameRefs(x.boxArray(), y.boxArray());
     }
 
-    // Return cell-centered iMultiFab that has the same BoxArray and
+    // Return an iMultiFab that has the same BoxArray and
     // DistributionMapping as the coarse MultiFab cmf.  Cells covered
     // by the coarsened fine grids are set to one, whereas other cells
     // are set to zero.
