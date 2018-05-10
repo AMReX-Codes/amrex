@@ -17,6 +17,15 @@ class ForkJoin
     };
     enum class Intent { in, out, inout };
 
+    // if strategy == split, use this to specify how to split components across tasks
+    struct ComponentSet {
+        // for now, just support contiguous range of components
+        // only requires a single MultiFab::Copy() per task this way
+        // in the future, consider changing this to a true set for arbitrary components
+        int lo; // inclusive bound
+        int hi; // exclusive bound
+    };
+
     ForkJoin (Vector<int> trn);
 
     ForkJoin (const Vector<double> &task_rank_pct);
@@ -61,6 +70,9 @@ class ForkJoin
         }
     }
 
+    // modify how the multifab is split along components across the tasks
+    void modify_split (const std::string &name, int idx, Vector<ComponentSet> comp_split);
+
     // TODO: may want to de-register MFs if they change across invocations
 
     MultiFab &get_mf (const std::string &name, int idx = 0) {
@@ -99,6 +111,7 @@ class ForkJoin
     {
         MultiFab *orig = nullptr;
         Strategy strategy;
+        Vector<ComponentSet> comp_split; // if strategy == split, how to split components to tasks
         Intent intent;
         int owner_task; // only used if strategy == single or duplicate
         Vector<MultiFab> forked; // holds new multifab for each task in fork

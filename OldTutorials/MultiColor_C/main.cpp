@@ -151,6 +151,15 @@ void solve(MultiFab& soln, const MultiFab& rhs,
     fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in);
     fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out);
 
+//  Vector<ForkJoin::ComponentSet> comp_split {{0,5}, {5,8}, {8,12}, {12,16}};
+
+//  fj.modify_split("rhs", 0, comp_split);
+//  fj.modify_split("alpha", 0, comp_split);
+//  for (int i = 0; i < beta.size(); ++i) {
+//      fj.modify_split("beta", i, comp_split);
+//  }
+//  fj.modify_split("soln", 0, comp_split);
+
     // can reuse ForkJoin object for multiple fork-join invocations
     // creates forked multifabs only first time around, reuses them thereafter
     for (int i = 0; i < 2; ++i) {

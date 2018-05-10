@@ -53,6 +53,40 @@ ForkJoin::reg_mf (MultiFab &mf, const std::string &name, int idx,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data[name][idx].empty(),
                                      "Can only register to a (name, index) pair once");
     data[name][idx] = MFFork(&mf, strategy, intent, owner);
+
+    // compute how components are copied to tasks
+    int comp_n = mf.nComp(); // number of components in original
+    auto &comp_split = data[name][idx].comp_split;
+    comp_split.resize(NTasks());
+    for (int i = 0; i < NTasks(); ++i) {
+        if (strategy == Strategy::split) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NTasks() <= comp_n,
+                                             "Number of tasks cannot be larger than number of components!");
+            // split components across tasks
+            comp_split[i].lo = comp_n *  i    / NTasks();
+            comp_split[i].hi = comp_n * (i+1) / NTasks();
+        } else {
+            // copy all components to task
+            comp_split[i].lo = 0;
+            comp_split[i].hi = comp_n;
+        }
+    }
+}
+
+void
+ForkJoin::modify_split (const std::string &name, int idx, Vector<ComponentSet> comp_split)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data.count(name) > 0 && data[name].size() > idx,
+                                     "(name, index) pair doesn't exist");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data[name][idx].forked.size() == 0,
+                                     "Can only specify custom split before first forkjoin() invocation");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(comp_split.size() == NTasks(),
+                                     "comp_split must be same length as number of tasks");
+    for (int i = 0; i < NTasks(); ++i) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(comp_split[i].hi - comp_split[i].lo > 0,
+                                         "comp_split[i] must have positive number of components");
+    }
+    data[name][idx].comp_split = std::move(comp_split);
 }
 
 void
@@ -65,32 +99,16 @@ ForkJoin::copy_data_to_tasks (MPI_Comm /*task_comm*/)
         const auto &mf_name = p.first;
         for (int idx = 0; idx < p.second.size(); ++idx) { // for each index
             auto &mff = p.second[idx];
-            const MultiFab &orig = *mff.orig;
+            const auto &orig = *mff.orig;
             const auto &ba = orig.boxArray();
-            Vector<MultiFab> &forked = mff.forked;
-            int comp_n = orig.nComp(); // number of components in original
-
-            if (mff.strategy == Strategy::split) {
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NTasks() <= comp_n,
-                                                 "Number of tasks cannot be larger than number of components!");
-            }
+            const auto &comp_split = mff.comp_split;
+            auto &forked = mff.forked;
 
             forked.reserve(NTasks()); // does nothing if forked MFs already created
             for (int i = 0; i < NTasks(); ++i) {
                 // check if this task needs this MF
                 if (mff.strategy != Strategy::single || i == mff.owner_task) {
-
-                    // compute task's component lower and upper bound
-                    int comp_lo, comp_hi;
-                    if (mff.strategy == Strategy::split) {
-                        // split components across tasks
-                        comp_lo = comp_n *  i    / NTasks();
-                        comp_hi = comp_n * (i+1) / NTasks();
-                    } else {
-                        // copy all components to task
-                        comp_lo = 0;
-                        comp_hi = comp_n;
-                    }
+                    int task_comp_n = comp_split[i].hi - comp_split[i].lo;
 
                     // create task's MF if first time through
                     if (forked.size() <= i) {
@@ -100,7 +118,7 @@ ForkJoin::copy_data_to_tasks (MPI_Comm /*task_comm*/)
                         }
                         // look up the distribution mapping for this (box array, task) pair
                         const DistributionMapping &dm = get_dm(ba, i, orig.DistributionMap());
-                        forked.emplace_back(ba, dm, comp_hi - comp_lo, 0);
+                        forked.emplace_back(ba, dm, task_comp_n, 0);
                     } else if (flag_verbose) {
                         amrex::Print() << "  Forked " << mf_name << "[" << idx << "] for task " << i
                                        << " already created" << std::endl;
@@ -110,10 +128,11 @@ ForkJoin::copy_data_to_tasks (MPI_Comm /*task_comm*/)
                     // copy data if needed
                     if (mff.intent == Intent::in || mff.intent == Intent::inout) {
                         if (flag_verbose) {
-                            amrex::Print() << "    Copying " << mf_name << "[" << idx << "] into to task " << i << std::endl;
+                            amrex::Print() << "    Copying " << mf_name << "[" << idx << "] components ["
+                                           << comp_split[i].lo << ", " << comp_split[i].hi << ") into to task " << i << std::endl;
                         }
                         // parallel copy data into forked MF
-                        forked[i].copy(orig, comp_lo, 0, comp_hi - comp_lo);
+                        forked[i].copy(orig, comp_split[i].lo, 0, task_comp_n);
                     }
 
                 } else {
@@ -143,24 +162,26 @@ ForkJoin::copy_data_from_tasks ()
             auto &mff = p.second[idx];
             if (mff.intent == Intent::out || mff.intent == Intent::inout) {
                 MultiFab &orig = *mff.orig;
-                int comp_n = orig.nComp(); // number of components in original
+                const auto &comp_split = mff.comp_split;
                 const Vector<MultiFab> &forked = mff.forked;
                 if (mff.strategy == Strategy::split) {
                     // gather components from across tasks
                     for (int i = 0; i < NTasks(); ++i) {
                         if (flag_verbose) {
-                            amrex::Print() << "  Copying " << mf_name << "[" << idx << "] out from task " << i << "  (unsplit)" << std::endl;
+                            amrex::Print() << "  Copying " << mf_name << "[" << idx << "] components ["
+                                           << comp_split[i].lo << ", " << comp_split[i].hi << ") out from task " << i << " (unsplit)" << std::endl;
                         }
-                        int comp_lo = comp_n *  i    / NTasks();
-                        int comp_hi = comp_n * (i+1) / NTasks();
-                        orig.copy(forked[i], 0, comp_lo, comp_hi - comp_lo);
+                        int task_comp_n = comp_split[i].hi - comp_split[i].lo;
+                        AMREX_ASSERT(forked[i].nComp() == task_comp_n);
+                        orig.copy(forked[i], 0, comp_split[i].lo, task_comp_n);
                     }
                 } else { // mff.strategy == single or duplicate
                     // copy all components from owner_task
                     if (flag_verbose) {
-                        amrex::Print() << "Copying " << mf_name << " out from task " << mff.owner_task << "  (whole)" << std::endl;
+                        amrex::Print() << "Copying " << mf_name << " out from task " << mff.owner_task << " (whole)" << std::endl;
                     }
-                    orig.copy(forked[mff.owner_task], 0, 0, comp_n);
+                    AMREX_ASSERT(forked[mff.owner_task].nComp() == orig.nComp());
+                    orig.copy(forked[mff.owner_task], 0, 0, orig.nComp());
                 }
             }
         }
