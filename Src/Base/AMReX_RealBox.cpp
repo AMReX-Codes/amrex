@@ -81,6 +81,14 @@ RealBox::contains (const Real* point, Real eps) const
                    && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
 }
 
+bool
+RealBox::intersects (const RealBox& bx) const
+{
+    return  ! (AMREX_D_TERM((xlo[0] > bx.xhi[0]) || (xhi[0] < bx.xlo[0]),
+                         || (xlo[1] > bx.xhi[1]) || (xhi[1] < bx.xlo[1]),
+                         || (xlo[2] > bx.xhi[2]) || (xhi[2] < bx.xlo[2])));
+}
+    
 std::ostream&
 operator << (std::ostream &os, const RealBox& b)
 {
