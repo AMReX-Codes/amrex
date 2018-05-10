@@ -464,6 +464,59 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
     }
 }
 
+FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
+                        const DistributionMapping& dstdm, const DistributionMapping& srcdm)
+    : m_srcbdk(), 
+      m_dstbdk(), 
+      m_srcng(ng), 
+      m_dstng(ng), 
+      m_period(),
+      m_srcba(ba), 
+      m_dstba(ba),
+      m_threadsafe_loc(true), m_threadsafe_rcv(true),
+      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), m_nuse(0)
+{
+    BL_ASSERT(ba.size() > 0);
+
+    m_LocTags = new CopyComTag::CopyComTagsContainer;
+    m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
+    m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
+    m_SndVols = new CopyComTag::MapOfCopyComTagContainers;
+    m_RcvVols = new CopyComTag::MapOfCopyComTagContainers;
+
+    const int myproc = ParallelDescriptor::MyProc();
+
+    for (int i = 0, N = ba.size(); i < N; ++i)
+    {
+        const int src_owner = srcdm[i];
+        const int dst_owner = dstdm[i];
+        if (src_owner == myproc || dst_owner == myproc)
+        {
+            const Box& bx = amrex::grow(ba[i], ng);
+            const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
+            if (src_owner == myproc && dst_owner == myproc)
+            {
+                for (const Box& tbx : tilelist)
+                {
+                    m_LocTags->push_back(CopyComTag(tbx, tbx, i, i));
+                }
+            }
+            else
+            {
+                auto& Vols = (src_owner == myproc) ? (*m_SndVols)[dst_owner] : (*m_RcvVols)[src_owner];
+                auto& Tags = (src_owner == myproc) ? (*m_SndTags)[dst_owner] : (*m_RcvTags)[src_owner];
+
+                Vols.push_back(CopyComTag(bx, bx, i, i));
+
+                for (const Box& tbx :tilelist)
+                {
+                    Tags.push_back(CopyComTag(tbx, tbx, i, i));
+                }
+            }
+        }
+    }
+}
+
 void
 FabArrayBase::flushCPC (bool no_assertion) const
 {

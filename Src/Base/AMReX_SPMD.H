@@ -1,50 +1,14 @@
-//
-// These are the inevitable functions that people
-// can't avoid using when writing a SPMD program.
-// It is a minimal set from which more elaborate
-// functionality can be generated.  As always, a
-// user is free to utilize the entire MPI programming
-// on their own platform.  The functions are
-// assured to work on all machines supported.
-//
-
 #ifndef AMREX_SPMD_H_
 #define AMREX_SPMD_H_
 
-#include "AMReX_REAL.H"
-#include "AMReX_ccse-mpi.H"
+#include <AMReX_REAL.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <vector>
 #include <string>
 
 namespace amrex
 {
-//  static MPI_Comm comm;
 
-  //static bool s_spmd_verbose = false;
-  extern unsigned long long CH_MAX_MPI_MESSAGE_SIZE;
-
-  extern unsigned long long CH_MaxMPISendSize;
-  extern unsigned long long CH_MaxMPIRecvSize;
-
-  int reportMPIStats();
-
-/// local process ID
-/**
-   Returns the ID of the locally running process in the range 0 <=
-   procID() < numProc().  This has no relation to the operating system
-   pid.  There is always a procID() == 0.  */
-  int procID();
-
-  inline int CHprocID()
-  {
-      return procID();
-  }
-
-/// number of parallel processes
-/**
-   Returns the number of parallel processes running.
-   Always returns at least 1. */
-  unsigned int numProc();
 
 ///all ranks wait here to sync-up
 /**
@@ -64,8 +28,8 @@ namespace amrex
 ///gather from multiple processes
 /**
    Gathers a_input of every process onto std::vector<T> a_outVec on process
-   number a_dest.  It is an error if a_dest < 0 or a_dest >= numProc().
-   a_outVec is numProc() long with the value of a_input on every
+   number a_dest.  It is an error if a_dest < 0 or a_dest >= nprocs.
+   a_outVec is nprocs long with the value of a_input on every
    process in its elements.\\
 
    T must have have the following functions:
@@ -83,7 +47,7 @@ namespace amrex
 ///broadcast to every process
 /**
    Broadcasts a_inAndOut to every process from process number a_src.
-   It is an error if a_src < 0 or a_src >= numProc().  \\
+   It is an error if a_src < 0 or a_src >= nprocs.  \\
 
    T must have have the following functions: \\
 

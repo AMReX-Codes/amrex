@@ -74,9 +74,7 @@ public:
     //
     // Construct dimension specific Boxes.
     //
-    Box (const IntVect& small,
-         const IntVect& big,
-         IndexType      t)
+    Box (const IntVect& small, const IntVect& big, IndexType t)
         : smallend(small),
           bigend(big),
           btype(t)
@@ -184,8 +182,8 @@ public:
     bool sameSize (const Box& b) const {
         BL_ASSERT(sameType(b));
         return AMREX_D_TERM(length(0) == b.length(0),
-                            && length(1)==b.length(1),
-                            && length(2)==b.length(2));
+                         && length(1) == b.length(1),
+                         && length(2) == b.length(2));
     }
 
     //! Returns true if Boxes have same type.
@@ -222,9 +220,10 @@ public:
     * abort()s if the number cannot be represented in a long.
     */
     long numPts () const {
-        return AMREX_D_TERM( static_cast<long>(length(0)), 
-                            *static_cast<long>(length(1)),
-                            *static_cast<long>(length(2)));
+        auto r = AMREX_D_TERM( static_cast<unsigned long>(length(0)),
+                              *static_cast<unsigned long>(length(1)),
+                              *static_cast<unsigned long>(length(2)));
+        return static_cast<long>(r);
     }
 
     /**
@@ -505,7 +504,9 @@ public:
     * an object of type Box representing the unit box in
     * AMREX_SPACEDIM-dimensional space.
     */
-    static const Box& TheUnitBox ();
+    static Box TheUnitBox () {
+        return Box(IntVect::TheZeroVector(),IntVect::TheZeroVector());
+    }
 
     bool isSquare() const;
 

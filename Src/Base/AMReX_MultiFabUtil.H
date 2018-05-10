@@ -69,6 +69,12 @@ namespace amrex
         return x.DistributionMap() == y.DistributionMap()
             && BoxArray::SameRefs(x.boxArray(), y.boxArray());
     }
+
+    // Return an iMultiFab that has the same BoxArray and
+    // DistributionMapping as the coarse MultiFab cmf.  Cells covered
+    // by the coarsened fine grids are set to one, whereas other cells
+    // are set to zero.
+    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio);
 }
 
 

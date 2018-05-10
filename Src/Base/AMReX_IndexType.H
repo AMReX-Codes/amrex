@@ -85,14 +85,22 @@ public:
     * when defining a Box all of whose faces should be of type
     * IndexType::CELL.
     */
-    static IndexType TheCellType ();
+    static IndexType TheCellType () {
+        return IndexType(AMREX_D_DECL(IndexType::CELL,
+                                      IndexType::CELL,
+                                      IndexType::CELL));
+    }
     /**
     * \brief This static member function returns an IndexType object of value
     * IndexType::NODE.  It is provided as a convenience to our users
     * when defining a Box all of whose faces should be of type
     * IndexType::NODE.
     */
-    static IndexType TheNodeType ();
+    static IndexType TheNodeType () {
+        return IndexType(AMREX_D_DECL(IndexType::NODE,
+                                      IndexType::NODE,
+                                      IndexType::NODE));
+    }
 
 private:
     //! Returns 1<<k.
