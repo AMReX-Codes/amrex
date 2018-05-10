@@ -1144,13 +1144,13 @@ FabArrayCopyDescriptor<FAB>::PrintStats () const
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
-    std::cout << "----- "
+    amrex::AllPrint() << "----- "
          << MyProc
          << ":  Parallel stats for FabArrayCopyDescriptor:" << '\n';
 
     for (int fa = 0; fa < fabArrays.size(); ++fa)
     {
-      std::cout << "fabArrays["
+      amrex::AllPrint() << "fabArrays["
              << fa
              << "]->boxArray() = "
              << fabArrays[fa]->boxArray()

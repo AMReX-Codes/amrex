@@ -575,4 +575,32 @@ namespace amrex
         
         return slice;
     }
+
+    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio)
+    {
+        iMultiFab mask(amrex::convert(cmf.boxArray(),IntVect::TheCellVector()),
+                       cmf.DistributionMap(), 1, 0);
+        const BoxArray& cfba = amrex::coarsen(fba,ratio);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            std::vector< std::pair<int,Box> > isects;
+
+            for (MFIter mfi(mask); mfi.isValid(); ++mfi)
+            {
+                IArrayBox& fab = mask[mfi];
+                const Box& bx = fab.box();
+                fab.setVal(0);
+                cfba.intersections(bx, isects);
+                for (auto const& is : isects)
+                {
+                    fab.setVal(1, is.second, 0, 1);
+                }
+            }
+        }
+
+        return mask;
+    }
 }

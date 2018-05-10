@@ -492,7 +492,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                              const IntVect&       snghost,
                              const IntVect&       dnghost,
                              const Periodicity&   period,
-                             CpOp                 op)
+                             CpOp                 op,
+                             const FabArrayBase::CPC * a_cpc)
 {
     BL_PROFILE("FabArray::ParallelCopy()");
 
@@ -534,7 +535,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         return;
     }
 
-    const CPC& thecpc = getCPC(dnghost, src, snghost, period);
+    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period);
 
     if (ParallelContext::NProcsSub() == 1)
     {
@@ -1335,3 +1336,38 @@ FabArray<FAB>::PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
     }
 }
 #endif /* BL_USE_UPCXX */
+
+template <class FAB>
+void
+FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
+                             int                  scomp,
+                             int                  dcomp,
+                             int                  ncomp,
+                             const IntVect&       nghost)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(boxArray() == src.boxArray(),
+                                     "FabArray::Redistribute: must have the same BoxArray");
+
+    if (ParallelContext::NProcsSub() == 1)
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter fai(*this,true); fai.isValid(); ++fai)
+        {
+            const Box& bx = fai.growntilebox(nghost);
+            get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
+        }
+
+        return;
+    }
+
+#ifdef BL_USE_MPI
+
+    FabArrayBase::CPC cpc(boxArray(), nghost, DistributionMap(), src.DistributionMap());
+
+    ParallelCopy(src, scomp, dcomp, ncomp, nghost, nghost, Periodicity::NonPeriodic(),
+                 FabArrayBase::COPY, &cpc);
+
+#endif
+}
