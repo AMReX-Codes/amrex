@@ -2,7 +2,7 @@
 ncell = (64, 64, 64)
 nppc  = (4, 4, 2)
 
-max_grid_size = 128
+max_grid_size = 64
 
 nsteps = 10
 

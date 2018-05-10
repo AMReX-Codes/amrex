@@ -1,37 +1,19 @@
-module electromagnetic_constants_module
+module constants
   use amrex_fort_module, only : amrex_real
   
   real(amrex_real), parameter :: clight  = 2.99792458d8
 
 end module
 
-module electromagnetic_particle_module
-  use amrex_fort_module, only: amrex_real, amrex_particle_real
-  use iso_c_binding ,    only: c_int
-  
-  implicit none
-  private
-  
-  public  particle_t
-  
-  type, bind(C) :: particle_t
-     real(amrex_particle_real) :: pos(3)     !< Position
-     integer(c_int)            :: id         !< Particle id
-     integer(c_int)            :: cpu        !< Particle cpu
-  end type particle_t
-    
-end module electromagnetic_particle_module
-
 AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
      ex, ey, ez, bx, by, bz, q, m, dt) &
      bind(c,name='push_momentum_boris')
   
   use amrex_fort_module, only : amrex_real
-  use electromagnetic_constants_module, only : clight
-
+  use constants, only : clight
   implicit none
 
-  integer,      intent(in), value :: np
+  integer,          intent(in), value    :: np
   real(amrex_real), intent(inout) :: uxp(np), uyp(np), uzp(np), gaminv(np)
   real(amrex_real), intent(in)    :: ex(np), ey(np), ez(np)
   real(amrex_real), intent(in)    :: bx(np), by(np), bz(np)
@@ -95,16 +77,14 @@ AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
   
 end subroutine push_momentum_boris
 
-AMREX_LAUNCH subroutine push_position_boris(np, particles, uxp, uyp, uzp, gaminv, dt) &
+AMREX_LAUNCH subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt) &
      bind(c,name='push_position_boris')
   
-  use amrex_fort_module, only : amrex_real
-  use electromagnetic_particle_module, only : particle_t
-
+  use amrex_fort_module, only : amrex_real  
   implicit none
 
-  integer,   intent(in), value      :: np
-  type(particle_t), intent(inout)   :: particles(np)
+  integer,          intent(in), value      :: np
+  real(amrex_real), intent(inout)   :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(in)      :: uxp(np), uyp(np), uzp(np), gaminv(np)
   real(amrex_real), value           :: dt
   
@@ -117,9 +97,9 @@ AMREX_LAUNCH subroutine push_position_boris(np, particles, uxp, uyp, uzp, gaminv
   do ip = 1, np
 #endif
 
-    particles(ip)%pos(1) = particles(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
-    particles(ip)%pos(2) = particles(ip)%pos(2) + uyp(ip)*gaminv(ip)*dt
-    particles(ip)%pos(3) = particles(ip)%pos(3) + uzp(ip)*gaminv(ip)*dt
+    xp(ip) = xp(ip) + uxp(ip)*gaminv(ip)*dt
+    yp(ip) = yp(ip) + uyp(ip)*gaminv(ip)*dt
+    zp(ip) = zp(ip) + uzp(ip)*gaminv(ip)*dt
 
 #ifdef AMREX_USE_CUDA
   end if
@@ -133,11 +113,10 @@ AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
      bind(c,name='set_gamma')
   
   use amrex_fort_module, only : amrex_real
-  use electromagnetic_constants_module, only : clight 
-
+  use constants, only : clight 
   implicit none
   
-  integer,   intent(in), value      :: np
+  integer,          intent(in), value      :: np
   real(amrex_real), intent(in)      :: uxp(np), uyp(np), uzp(np)
   real(amrex_real), intent(inout)   :: gaminv(np)
   
@@ -163,19 +142,17 @@ AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
 
 end subroutine set_gamma
 
-AMREX_LAUNCH subroutine enforce_periodic(np, particles, plo, phi) &
+AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
      bind(c,name='enforce_periodic')
   
   use amrex_fort_module, only : amrex_real
-  use electromagnetic_particle_module, only : particle_t
-
   implicit none
   
-  integer,   intent(in), value      :: np
-  type(particle_t), intent(inout)   :: particles(np)
+  integer,          intent(in), value      :: np
+  real(amrex_real), intent(inout)   :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(in)      :: plo(3), phi(3)
   
-  integer                           :: ip, idim
+  integer                           :: ip
   real(amrex_real)                  :: domain_size(3)
 
   domain_size = phi - plo
@@ -187,13 +164,23 @@ AMREX_LAUNCH subroutine enforce_periodic(np, particles, plo, phi) &
   do ip = 1, np
 #endif
      
-     do idim = 1, 3
-        if (particles(ip)%pos(idim) .gt. phi(idim)) then
-           particles(ip)%pos(idim) = particles(ip)%pos(idim) - domain_size(idim)
-        else if (particles(ip)%pos(idim) .lt. plo(idim)) then
-           particles(ip)%pos(idim) = particles(ip)%pos(idim) + domain_size(idim)
-        end if
-     end do
+     if (xp(ip) .gt. phi(1)) then
+        xp(ip) = xp(ip) - domain_size(1)
+     else if (xp(ip) .lt. plo(1)) then
+        xp(ip) = xp(ip) + domain_size(1)
+     end if
+
+     if (yp(ip) .gt. phi(2)) then
+        yp(ip) = yp(ip) - domain_size(2)
+     else if (yp(ip) .lt. plo(2)) then
+        yp(ip) = yp(ip) + domain_size(2)
+     end if
+
+     if (zp(ip) .gt. phi(3)) then
+        zp(ip) = zp(ip) - domain_size(3)
+     else if (zp(ip) .lt. plo(3)) then
+        zp(ip) = zp(ip) + domain_size(3)
+     end if
 
 #ifdef AMREX_USE_CUDA
   end if
@@ -203,25 +190,23 @@ AMREX_LAUNCH subroutine enforce_periodic(np, particles, plo, phi) &
 
 end subroutine enforce_periodic
 
-AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
-     np, particles, uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) & 
+AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
+     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) & 
      bind(c,name="deposit_current")
   
   use amrex_fort_module, only : amrex_real
-  use electromagnetic_constants_module, only : clight
-  use electromagnetic_particle_module, only : particle_t
-
+  use constants, only : clight
   implicit none
   
-  integer,   intent(in), value    :: np
-  type(particle_t), intent(in)    :: particles(np)
+  integer,          intent(in), value    :: np
   integer,          intent(in)    :: jxlo(3), jxhi(3)
   integer,          intent(in)    :: jylo(3), jyhi(3)
   integer,          intent(in)    :: jzlo(3), jzhi(3)
   real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1), jxlo(2):jxhi(2), jxlo(3):jxhi(3))
   real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1), jylo(2):jyhi(2), jylo(3):jyhi(3))
   real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1), jzlo(2):jzhi(2), jzlo(3):jzhi(3))
-  real(amrex_real), intent(in)    :: uxp(np), uyp(np), uzp(np), w(np), gaminv(np)
+  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np), uxp(np), uyp(np), uzp(np)
+  real(amrex_real), intent(in)    :: w(np), gaminv(np)
   real(amrex_real), value         :: q, dt  
   real(amrex_real), intent(in)    :: dx(3), plo(3)
   
@@ -252,9 +237,9 @@ AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo
 #endif
 
     ! --- computes position in grid units at (n+1)
-    x = (particles(ip)%pos(1)-plo(1))*dxi
-    y = (particles(ip)%pos(2)-plo(2))*dyi
-    z = (particles(ip)%pos(3)-plo(3))*dzi
+    x = (xp(ip)-plo(1))*dxi
+    y = (yp(ip)-plo(2))*dyi
+    z = (zp(ip)-plo(3))*dzi
 
     ! Computes velocity
     vx = uxp(ip)*gaminv(ip)
@@ -371,23 +356,21 @@ AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo
 
 end subroutine deposit_current
 
-AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
+AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx) & 
      bind(c,name="gather_magnetic_field")
   
   use amrex_fort_module, only : amrex_real
-  use electromagnetic_particle_module, only : particle_t
-
   implicit none
   
-  integer,   intent(in), value    :: np
-  type(particle_t), intent(in)    :: particles(np)
+  integer,          intent(in), value    :: np
   integer,          intent(in)    :: bxglo(3), bxghi(3)
   integer,          intent(in)    :: byglo(3), byghi(3)
   integer,          intent(in)    :: bzglo(3), bzghi(3)
   real(amrex_real), intent(in)    :: bxg(bxglo(1):bxghi(1), bxglo(2):bxghi(2), bxglo(3):bxghi(3))
   real(amrex_real), intent(in)    :: byg(byglo(1):byghi(1), byglo(2):byghi(2), byglo(3):byghi(3))
   real(amrex_real), intent(in)    :: bzg(bzglo(1):bzghi(1), bzglo(2):bzghi(2), bzglo(3):bzghi(3))
+  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(inout) :: bx(np), by(np), bz(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
   
@@ -430,9 +413,9 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
   do ip = 1, np
 #endif
      
-     x = (particles(ip)%pos(1)-plo(1))*dxi
-     y = (particles(ip)%pos(2)-plo(2))*dyi
-     z = (particles(ip)%pos(3)-plo(3))*dzi
+     x = (xp(ip)-plo(1))*dxi
+     y = (yp(ip)-plo(2))*dyi
+     z = (zp(ip)-plo(3))*dzi
      
      ! Compute index of particle
      j  = floor(x)
@@ -494,24 +477,22 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
 
 end subroutine gather_magnetic_field
 
-AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
+AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx) & 
      bind(c,name="gather_electric_field")
   
   use amrex_fort_module, only : amrex_real
-  use electromagnetic_constants_module, only : clight
-  use electromagnetic_particle_module, only : particle_t
-
+  use constants, only : clight
   implicit none
   
-  integer,   intent(in), value    :: np
-  type(particle_t), intent(in)    :: particles(np)
+  integer,          intent(in), value    :: np
   integer,          intent(in)    :: exglo(3), exghi(3)
   integer,          intent(in)    :: eyglo(3), eyghi(3)
   integer,          intent(in)    :: ezglo(3), ezghi(3)
   real(amrex_real), intent(in)    :: exg(exglo(1):exghi(1), exglo(2):exghi(2), exglo(3):exghi(3))
   real(amrex_real), intent(in)    :: eyg(eyglo(1):eyghi(1), eyglo(2):eyghi(2), eyglo(3):eyghi(3))
   real(amrex_real), intent(in)    :: ezg(ezglo(1):ezghi(1), ezglo(2):ezghi(2), ezglo(3):ezghi(3))
+  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(inout) :: ex(np), ey(np), ez(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
   
@@ -554,9 +535,9 @@ AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
   do ip = 1, np
 #endif
      
-     x = (particles(ip)%pos(1)-plo(1))*dxi
-     y = (particles(ip)%pos(2)-plo(2))*dyi
-     z = (particles(ip)%pos(3)-plo(3))*dzi
+     x = (xp(ip)-plo(1))*dxi
+     y = (yp(ip)-plo(2))*dyi
+     z = (zp(ip)-plo(3))*dzi
      
      ! Compute index of particle     
      j  = floor(x)

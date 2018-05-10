@@ -12,7 +12,8 @@
 
 using namespace amrex;
 
-struct TestParams {
+struct TestParams
+{
     IntVect ncell;      // num cells in domain
     IntVect nppc;       // number of particles per cell in each dim
     int max_grid_size;
@@ -22,15 +23,15 @@ struct TestParams {
 
 void test_em_pic(const TestParams& parms)
 {
-
     BL_PROFILE("test_em_pic");
     BL_PROFILE_VAR_NS("evolve_time", blp_evolve);
     BL_PROFILE_VAR_NS("init_time", blp_init);
-
+    
     BL_PROFILE_VAR_START(blp_init);
-
+    
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
         real_box.setLo(n, -20e-6);
         real_box.setHi(n,  20e-6);
     }
@@ -46,8 +47,7 @@ void test_em_pic(const TestParams& parms)
     Geometry geom(domain, &real_box, coord, is_per);
     
     BoxArray ba(domain);
-    //  note - no domain decomposition right now
-    //  ba.maxSize(parms.max_grid_size);
+    ba.maxSize(parms.max_grid_size);
     DistributionMapping dm(ba);
     
     const int ng = 1;
@@ -66,7 +66,7 @@ void test_em_pic(const TestParams& parms)
     
     Bx.setVal(0.0); By.setVal(0.0); Bz.setVal(0.0);
     Ex.setVal(0.0); Ey.setVal(0.0); Ez.setVal(0.0);
-    jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
+    jx.setVal(0.0); jy.setVal(0.0); jz.setVal(0.0);
     
     std::cout << "Initializing particles... ";
 
@@ -75,9 +75,9 @@ void test_em_pic(const TestParams& parms)
     ElectromagneticParticleContainer electrons(geom, dm, ba, 
                                                0, -PhysConst::q_e, PhysConst::m_e);
     electrons.InitParticles(parms.nppc, 0.01, 10.0, 1e25);
-
+    
     ElectromagneticParticleContainer H_ions(geom, dm, ba, 
-                                            0, PhysConst::q_e, PhysConst::m_p);
+                                            1, PhysConst::q_e, PhysConst::m_p);
     H_ions.InitParticles(parms.nppc, 0.01, 10.0, 1e25);
 
     Vector<ElectromagneticParticleContainer*> particles(2);
@@ -85,10 +85,11 @@ void test_em_pic(const TestParams& parms)
     particles[1] = &H_ions;
     
     std::cout << "Done. " << std::endl;
-
-
+    
+    for (int i = 0; i < num_species; ++i) particles[i]->OK();
+    
     std::cout << "Starting main PIC loop... " << std::endl;
-
+    
     int nsteps = parms.nsteps;
     const Real dt = compute_dt(geom);
     bool synchronized = true;
@@ -96,45 +97,53 @@ void test_em_pic(const TestParams& parms)
     BL_PROFILE_VAR_STOP(blp_init);
     
     BL_PROFILE_VAR_START(blp_evolve);
-
-    for (int step = 0; step < nsteps; ++step) { 
     
+    for (int step = 0; step < nsteps; ++step)
+    {         
         std::cout << "    Time step: " <<  step << std::endl;
-    
-        if (synchronized) {
+        
+        if (synchronized)
+        {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
-            for (int i = 0; i < num_species; ++i) {
+            for (int i = 0; i < num_species; ++i)
+            {
                 particles[i]->PushParticlesOnly(0.5*dt);
-                particles[i]->EnforcePeriodicBCs();
             }
             synchronized = false;
         }
-        
+
+        fill_boundary_electric_field(Ex, Ey, Ez, geom);        
         evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
+        fill_boundary_magnetic_field(Bx, By, Bz, geom);        
         
         jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
         for (int i = 0; i < num_species; ++i) {
             particles[i]->PushAndDeposeParticles(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, dt);
-            particles[i]->EnforcePeriodicBCs();
         }
         jx.SumBoundary(geom.periodicity());
         jy.SumBoundary(geom.periodicity());
         jz.SumBoundary(geom.periodicity());
         
         evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
+        fill_boundary_magnetic_field(Bx, By, Bz, geom);        
         
-        if (step == nsteps - 1) {
+        if (step == nsteps - 1) {            
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
             for (int i = 0; i < num_species; ++i) {
                 particles[i]->PushParticlesOnly(0.5*dt);
-                particles[i]->EnforcePeriodicBCs();
             }
             synchronized = true;
         } else {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, dt);
         }
+        
+        for (int i = 0; i < num_species; ++i) {
+            particles[i]->Redistribute();
+            particles[i]->EnforcePeriodicBCs();
+            particles[i]->OK();            
+        }
     }
-
+    
     std::cout << "Done. " << std::endl;
 
     BL_PROFILE_VAR_STOP(blp_evolve);

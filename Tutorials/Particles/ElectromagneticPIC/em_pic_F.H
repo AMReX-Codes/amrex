@@ -24,17 +24,15 @@ extern "C"
                                               const amrex::Real dt);
     
     FORT_LAUNCHABLE(void push_position_boris)(const int np,
-                                              void* particles,
+                                              amrex::Real* xp,
+                                              amrex::Real* yp,
+                                              amrex::Real* zp,
                                               const amrex::Real* uxp,
                                               const amrex::Real* uyp,
                                               const amrex::Real* uzp,
                                               const amrex::Real* gaminv,
                                               const amrex::Real dt);
     
-    FORT_LAUNCHABLE(void zero_out)(const int* xlo,
-                                   const int* xhi,
-                                   BL_FORT_FAB_ARG_3D(var));
-
     FORT_LAUNCHABLE(void set_gamma)(const int np,
                                     const amrex::Real* uxp,
                                     const amrex::Real* uyp,
@@ -42,7 +40,9 @@ extern "C"
                                     amrex::Real* gaminv);
 
     FORT_LAUNCHABLE(void enforce_periodic)(const int np,
-                                           void* particles,
+                                           amrex::Real* xp,
+                                           amrex::Real* yp,
+                                           amrex::Real* zp,
                                            const amrex::Real* plo,
                                            const amrex::Real* phi);
 
@@ -50,19 +50,23 @@ extern "C"
                                           BL_FORT_FAB_ARG_3D(jy),
                                           BL_FORT_FAB_ARG_3D(jz),
                                           const int np, 
-                                          const void* particles,
+                                          const amrex::Real* x,
+                                          const amrex::Real* y,
+                                          const amrex::Real* z,
                                           const amrex::Real* uxp,
                                           const amrex::Real* uyp,
                                           const amrex::Real* uzp,
                                           const amrex::Real* gaminv,
                                           const amrex::Real* w,
-                                          const amrex::Real  q,
+                                          const amrex::Real q,
                                           const amrex::Real* plo,
-                                          const amrex::Real  dt,
+                                          const amrex::Real dt,
                                           const amrex::Real* dx);
     
     FORT_LAUNCHABLE(void gather_magnetic_field)(const int np, 
-                                                const void* particles,
+                                                const amrex::Real* xp,
+                                                const amrex::Real* yp,
+                                                const amrex::Real* zp, 
                                                 amrex::Real* bx,
                                                 amrex::Real* by,
                                                 amrex::Real* bz, 
@@ -71,8 +75,10 @@ extern "C"
                                                 const BL_FORT_FAB_ARG_3D(bzg),
                                                 const amrex::Real* plo, const amrex::Real* dx);
     
-    FORT_LAUNCHABLE(void gather_electric_field)(const int np,
-                                                const void* particles,
+    FORT_LAUNCHABLE(void gather_electric_field)(const int np, 
+                                                const amrex::Real* xp,
+                                                const amrex::Real* yp,
+                                                const amrex::Real* zp,
                                                 amrex::Real* ex,
                                                 amrex::Real* ey,
                                                 amrex::Real* ez, 
