@@ -15,8 +15,6 @@
 #include <omp.h>
 #endif
 
-#define CG_USE_OLD_CONVERGENCE_CRITERIA 1
-
 namespace amrex {
 
 namespace {
@@ -165,10 +163,10 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
-            std::cout << "MLCGSolver_BiCGStab: Half Iter "
-                      << std::setw(11) << nit
-                      << " rel. err. "
-                      << rnorm/(rnorm0) << '\n';
+            amrex::Print() << "MLCGSolver_BiCGStab: Half Iter "
+                           << std::setw(11) << nit
+                           << " rel. err. "
+                           << rnorm/(rnorm0) << '\n';
         }
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
@@ -251,7 +249,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 {
     BL_PROFILE_REGION("MLCGSolver::cg");
 
-    const int nghost = sol.nGrow(), ncomp = 1;
+    const int nghost = sol.nGrow(), ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
@@ -275,7 +273,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     if ( verbose > 0 )
     {
-        std::cout << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
+        amrex::Print() << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
     }
 
     Real rho_1         = 0;

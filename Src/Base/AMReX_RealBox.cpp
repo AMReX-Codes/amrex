@@ -115,7 +115,7 @@ operator >> (std::istream &is, RealBox& b)
 
     if (s != "RealBox")
     {
-        std::cerr << "unexpected token in RealBox: " << s << '\n';
+        amrex::ErrorStream() << "unexpected token in RealBox: " << s << '\n';
         amrex::Abort();
     }
 

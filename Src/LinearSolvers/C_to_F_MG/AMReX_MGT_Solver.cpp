@@ -1,6 +1,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MGT_Solver.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Print.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -848,8 +849,7 @@ MGT_Solver::nodal_project(const Vector<MultiFab*>& p, const Vector<MultiFab*>& v
 
   if (verbose > 0) {
       ParallelDescriptor::ReduceRealMax(rhmax,ParallelDescriptor::IOProcessorNumber());
-      if (ParallelDescriptor::IOProcessor())
-	  std::cout << " F90: Source norm after adding nodal RHS is " << rhmax << std::endl;
+      amrex::Print() << " F90: Source norm after adding nodal RHS is " << rhmax << std::endl;
   }
 
   if (have_rhcc) {
