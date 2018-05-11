@@ -1289,10 +1289,6 @@ FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) 
     STOP
   ENDIF
   
-  DO
-    IF (instr_func(length_func+1) == C_NULL_CHAR) EXIT
-    length_func = length_func + 1
-  ENDDO
   ! Get length and reformat both inputs before applying the parser.
   length_func=0
   DO
