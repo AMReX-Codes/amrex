@@ -309,6 +309,7 @@ INTEGER, OPTIONAL, INTENT(IN) :: int_op
 CHARACTER(*), DIMENSION(:),INTENT(IN), OPTIONAL :: list_var
 LOGICAL, OPTIONAL :: l_root
 
+CHARACTER(LEN=LEN(exprin)) :: expr_old
 CHARACTER(LEN=LEN(exprin)+2) :: expr
 INTEGER, parameter :: nop_tot=25
 INTEGER :: ln, i, j,ja
@@ -326,12 +327,11 @@ res%a_operation=.false.
 op=0
 what=0
 
-expr = TRIM(ADJUSTL(C_replace(exprin,' ','')))
-
+expr_old = TRIM(ADJUSTL(C_replace(exprin,' ','')))
 IF(expr(1:1)=='-') then
-  expr='0'//expr
+  expr='0'//expr_old
 else
-  expr='0+'//expr
+  expr='0+'//expr_old
 END if
 ln = LEN(TRIM(ADJUSTL(expr)))
 next_r(0) = 0
@@ -534,6 +534,7 @@ INTEGER, OPTIONAL, INTENT(IN) :: int_op
 CHARACTER(*), DIMENSION(:),INTENT(IN), OPTIONAL :: list_var
 LOGICAL, OPTIONAL :: l_root
 
+CHARACTER(LEN=LEN(exprin)) :: expr_old
 CHARACTER(LEN=LEN(exprin)+2) :: expr
 INTEGER, parameter :: nop_tot=25
 INTEGER :: ln, i, j,ja
@@ -551,12 +552,11 @@ res%a_operation=.false.
 op=0
 what=0
 
-expr = TRIM(ADJUSTL(C_replace(exprin,' ','')))
-
+expr_old = TRIM(ADJUSTL(C_replace(exprin,' ','')))
 IF(expr(1:1)=='-') then
-  expr='0'//expr
+  expr='0'//expr_old
 else
-  expr='0+'//expr
+  expr='0+'//expr_old
 END if
 ln = LEN(TRIM(ADJUSTL(expr)))
 next_r(0) = 0
@@ -1288,7 +1288,11 @@ FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) 
     WRITE(*,*) 'Parser error: cannot have more than 10 parsers.'
     STOP
   ENDIF
-
+  
+  DO
+    IF (instr_func(length_func+1) == C_NULL_CHAR) EXIT
+    length_func = length_func + 1
+  ENDDO
   ! Get length and reformat both inputs before applying the parser.
   length_func=0
   DO
@@ -1331,7 +1335,6 @@ FUNCTION parser_evaluate_function(list_var, nvar, my_index_res) result(out) &
   INTEGER, VALUE, INTENT(IN) :: nvar, my_index_res
   REAL(amrex_real), INTENT(IN) :: list_var(1:nvar)
   REAL(amrex_real) :: out
-
   ! Evaluate parsed function in table_of_res(my_index_res), of type res_type
   out = calc_res(table_of_res(my_index_res),list_var)
 
