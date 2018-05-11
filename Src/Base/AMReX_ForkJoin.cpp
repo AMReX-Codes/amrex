@@ -41,6 +41,12 @@ ForkJoin::init()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n,
                                      "Sum of ranks assigned to tasks must sum to parent number of ranks");
     compute_split_bounds();
+    if (flag_verbose) {
+        amrex::Print() << "Initialized ForkJoin:\n";
+        for (int i = 0; i < NTasks(); ++i) {
+            amrex::Print() << "  Task " << i << " Ranks: [" << split_bounds[i] << ", " << split_bounds[i+1] << ")\n";
+        }
+    }
 }
 
 void

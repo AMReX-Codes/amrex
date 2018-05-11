@@ -11,7 +11,7 @@
 using namespace amrex;
 
 namespace {
-    int ncolors = 2;
+    int ntasks = 2;
     
     int ncomp  = 8;
     Real a     = 1.e-3;
@@ -38,9 +38,9 @@ void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry
 void solve(MultiFab& soln, const MultiFab& rhs, 
 	   const MultiFab& alpha, const Vector<MultiFab*>& beta,
 	   const Geometry& geom);
-void colored_solve(MultiFab& soln, const MultiFab& rhs, 
-		   const MultiFab& alpha, const Vector<MultiFab*>& beta, 
-		   const Geometry& geom);
+void solve_all(MultiFab& soln, const MultiFab& rhs, 
+               const MultiFab& alpha, const Vector<MultiFab*>& beta, 
+               const Geometry& geom);
 void single_component_solve(MultiFab& soln, const MultiFab& rhs, 
 			    const MultiFab& alpha, const Vector<MultiFab*>& beta, 
 			    const Geometry& geom);
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
     {
 	ParmParse pp;
 	
-        pp.query("ncolors", ncolors);
+        pp.query("ntasks", ntasks);
 
 	pp.query("verbose", verbose);
 
@@ -142,8 +142,8 @@ void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry
 void solve(MultiFab& soln, const MultiFab& rhs, 
 	   const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
 {
-    // evenly split ranks among ncolors tasks
-    ForkJoin fj(ncolors);
+    // evenly split ranks among ntasks tasks
+    ForkJoin fj(ntasks);
 
     // register how to copy multifabs to/from tasks
     fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::split, ForkJoin::Intent::in);
@@ -151,14 +151,24 @@ void solve(MultiFab& soln, const MultiFab& rhs,
     fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in);
     fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out);
 
-    Vector<ForkJoin::ComponentSet> comp_split {{0,5}, {5,8}, {8,12}, {12,16}};
+    auto comp_n = soln.nComp();
+    if (comp_n > ntasks) {
+        amrex::Print() << "Doing a custom split where first component is ignored\n";
+        // test custom split, skip the first component
+        Vector<ForkJoin::ComponentSet> comp_split(ntasks);
+        for (int i = 0; i < ntasks; ++i) {
+            // split components across tasks
+            comp_split[i].lo = 1 + (comp_n-1) *  i    / ntasks;
+            comp_split[i].hi = 1 + (comp_n-1) * (i+1) / ntasks;
+        }
 
-    fj.modify_split("rhs", 0, comp_split);
-    fj.modify_split("alpha", 0, comp_split);
-    for (int i = 0; i < beta.size(); ++i) {
-        fj.modify_split("beta", i, comp_split);
+        fj.modify_split("rhs", 0, comp_split);
+        fj.modify_split("alpha", 0, comp_split);
+        for (int i = 0; i < beta.size(); ++i) {
+            fj.modify_split("beta", i, comp_split);
+        }
+        fj.modify_split("soln", 0, comp_split);
     }
-    fj.modify_split("soln", 0, comp_split);
 
     // can reuse ForkJoin object for multiple fork-join invocations
     // creates forked multifabs only first time around, reuses them thereafter
@@ -166,16 +176,16 @@ void solve(MultiFab& soln, const MultiFab& rhs,
         // issue fork-join
         fj.fork_join(
             [&geom] (ForkJoin &f) {
-                colored_solve(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
-                              f.get_mf_vec("beta"), geom);
+                solve_all(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
+                          f.get_mf_vec("beta"), geom);
             }
         );
     }
 }
 
-void colored_solve(MultiFab& soln, const MultiFab& rhs, 
-		   const MultiFab& alpha, const Vector<MultiFab*>& beta, 
-		   const Geometry& geom)
+void solve_all(MultiFab& soln, const MultiFab& rhs, 
+               const MultiFab& alpha, const Vector<MultiFab*>& beta, 
+               const Geometry& geom)
 {
     const BoxArray& ba = soln.boxArray();
     const DistributionMapping& dm = soln.DistributionMap();

@@ -1,5 +1,5 @@
-ncolors = 4
-ncomp = 16
+ntasks = 3
+ncomp = 12
 
 verbose = 1
 
