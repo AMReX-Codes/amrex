@@ -36,7 +36,7 @@ interpolation.noz = 3
 # Constants
 constants.use_my_constants = 1
 constants.constant_names  = zc     zp           lgrad  nc     
-constants.constant_values = 20.e-6 20.47931e-6  .08e06 1.74e27
+constants.constant_values = 20.e-6 20.47931e-6  .08e-6 1.74e27
 
 # NUMERICS
 warpx.cfl = 1.0
@@ -49,17 +49,17 @@ particles.species_names = electrons ions
 electrons.charge = -q_e
 electrons.mass = m_e
 electrons.injection_style = NUniformPerCell
-electrons.num_particles_per_cell_each_dim = 2 2
+electrons.num_particles_per_cell_each_dim = 1 1
 electrons.momentum_distribution_type = "gaussian"
 electrons.zmin = 19.520e-6
 electrons.zmax = 25.47931e-6
 electrons.profile                 = parse_density_function
 electrons.density_function(x,y,z) = "(z<zp)*nc*exp(-(z-zc)/lgrad)+(z>zp)*400*nc"
 
-ions.charge = -q_e
+ions.charge = q_e
 ions.mass = m_p
 ions.injection_style = NUniformPerCell
-ions.num_particles_per_cell_each_dim = 2 2
+ions.num_particles_per_cell_each_dim = 1 1
 ions.momentum_distribution_type = "gaussian"
 ions.zmin = 19.520e-6
 ions.zmax = 25.47931e-6
