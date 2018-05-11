@@ -141,6 +141,12 @@ else
   USE_EB := FALSE
 endif
 
+ifdef USE_EB2
+  USE_EB2 := $(strip $(USE_EB2))
+else
+  USE_EB2 := FALSE
+endif
+
 ifdef EBASE
   EBASE := $(strip $(EBASE))
 else
@@ -399,6 +405,10 @@ endif
 
 ifeq ($(USE_EB),TRUE)
     DEFINES += -DAMREX_USE_EB
+endif
+
+ifeq ($(USE_EB2),TRUE)
+    DEFINES += -DAMREX_USE_EB2
 endif
 
 ifeq ($(AMREX_XSDK),TRUE)
