@@ -385,11 +385,7 @@ namespace ParallelDescriptor
 	}
     }
     extern MPI_Comm m_comm;
-    //! Returns the "local" communicator
-    inline MPI_Comm Communicator ()         
-    {
-        return m_comm;
-    }
+    inline MPI_Comm Communicator () { return m_comm; }
 
     void Barrier (const std::string& message = Unnamed);
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);

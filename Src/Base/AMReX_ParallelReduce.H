@@ -8,7 +8,7 @@
 
 namespace amrex {
 
-namespace ParallelAllReduce {
+namespace util {
 
 #ifdef BL_USE_MPI
 
@@ -19,215 +19,189 @@ namespace ParallelAllReduce {
     }
 
     template<typename T>
-    void Max (T& v, MPI_Comm comm)
-    {
-        T tmp = v;
-        MPI_Allreduce(&tmp, &v, 1, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_MAX, comm);
-    }
-
-    template<typename T>
-    void Max (T* v, int cnt, MPI_Comm comm)
+    inline void Reduce (MPI_Op op, T* v, int cnt, int root, MPI_Comm comm)
     {
         Vector<T> tmp(v, v+cnt);
-        MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_MAX, comm);
-    }
-
-    template<typename T>
-    void Max (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm)
-    {
-        Vector<T> snd(std::begin(v), std::end(v));
-        const int cnt = v.size();
-        Vector<T> rcv(cnt);
-        MPI_Allreduce(snd.data(), rcv.data(), cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_MAX, comm);
-        for (int i = 0; i < cnt; ++i) {
-            v[i].get() = rcv[i];
+        if (root == -1) {
+            MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
+                          op, comm);
+        } else {
+            MPI_Reduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
+                       op, root, comm);
         }
     }
 
     template<typename T>
-    void Min (T& v, MPI_Comm comm)
-    {
-        T tmp = v;
-        MPI_Allreduce(&tmp, &v, 1, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_MIN, comm);
+    inline void Reduce (MPI_Op op, T& v, int root, MPI_Comm comm) {
+        Reduce(op, &v, 1, root, comm);
     }
 
     template<typename T>
-    void Min (T* v, int cnt, MPI_Comm comm)
+    inline void Reduce (MPI_Op op, Vector<std::reference_wrapper<T> >&& v,
+                        int root, MPI_Comm comm)
     {
-        Vector<T> tmp(v, v+cnt);
-        MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_MIN, comm);
-    }
-
-    template<typename T>
-    void Min (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm)
-    {
-        Vector<T> snd(std::begin(v), std::end(v));
-        const int cnt = v.size();
-        Vector<T> rcv(cnt);
-        MPI_Allreduce(snd.data(), rcv.data(), cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_MIN, comm);
-        for (int i = 0; i < cnt; ++i) {
-            v[i].get() = rcv[i];
+        Vector<T> sndrcv(std::begin(v), std::end(v));
+        Reduce(op, sndrcv.data(), v.size(), root, comm);
+        for (int i = 0; i < v.size(); ++i) {
+            v[i].get() = sndrcv[i];
         }
     }
 
     template<typename T>
-    void Sum (T& v, MPI_Comm comm)
+    inline void Gather (const T* v, int cnt, T* vs, int root, MPI_Comm comm)
     {
-        T tmp = v;
-        MPI_Allreduce(&tmp, &v, 1, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_SUM, comm);
-    }
-
-    template<typename T>
-    void Sum (T* v, int cnt, MPI_Comm comm)
-    {
-        Vector<T> tmp(v, v+cnt);
-        MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_SUM, comm);
-    }
-
-    template<typename T>
-    void Sum (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm)
-    {
-        Vector<T> snd(std::begin(v), std::end(v));
-        const int cnt = v.size();
-        Vector<T> rcv(cnt);
-        MPI_Allreduce(snd.data(), rcv.data(), cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                      MPI_SUM, comm);
-        for (int i = 0; i < cnt; ++i) {
-            v[i].get() = rcv[i];
+        auto mpi_type = ParallelDescriptor::Mpi_typemap<T>::type();
+        if (root == -1) {
+            MPI_Allgather(v, cnt, mpi_type, vs, cnt, mpi_type, comm);
+        } else {
+            MPI_Gather(v, cnt, mpi_type, vs, cnt, mpi_type, root, comm);
         }
+    }
+
+    template<typename T>
+    inline void Gather (const T& v, T * vs, int root, MPI_Comm comm) {
+        Gather(&v, 1, vs, root, comm);
     }
 
 #else
 
-    template<typename T> void Max (T& rvar, MPI_Comm comm) {}
-    template<typename T> void Max (T* rvar, int cnt, MPI_Comm comm) {}
-    template<typename T> void Max (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {}
+    template<typename T> void Reduce (MPI_Op op, T* v, int cnt, int root, MPI_Comm comm) {}
+    template<typename T> void Reduce (MPI_Op op, T& v, int root, MPI_Comm comm) {}
+    template<typename T> void Reduce (MPI_Op op, Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {}
 
-    template<typename T> void Min (T& rvar, MPI_Comm comm) {}
-    template<typename T> void Min (T* rvar, int cnt, MPI_Comm comm) {}
-    template<typename T> void Min (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {}
-
-    template<typename T> void Sum (T& rvar, MPI_Comm comm) {}
-    template<typename T> void Sum (T* rvar, int cnt, MPI_Comm comm) {}
-    template<typename T> void Sum (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {}
-
+    template<typename T> void Gather (const T* v, int cnt, T* vs, int root, MPI_Comm comm) {}
+    template<typename T> void Gather (const T& v, T * vs, int root, MPI_Comm comm) {}
 #endif
+}
+
+namespace ParallelAllGather {
+    template<typename T>
+    void AllGather (const T* v, int cnt, T* vs, MPI_Comm comm) {
+        util::Gather(v, cnt, vs, -1, comm);
+    }
+    template<typename T>
+    void AllGather (const T& v, T* vs, MPI_Comm comm) {
+        util::Gather(v, vs, -1, comm);
+    }
+}
+
+namespace ParallelGather {
+    template<typename T>
+    void Gather (const T* v, int cnt, T* vs, int root, MPI_Comm comm) {
+        util::Gather(v, cnt, vs, root, comm);
+    }
+    template<typename T>
+    void Gather (const T& v, T* vs, int root, MPI_Comm comm) {
+        util::Gather(v, vs, root, comm);
+    }
+}
+
+namespace ParallelAllReduce {
+
+    template<typename T>
+    void Max (T& v, MPI_Comm comm) {
+        util::Reduce(MPI_MAX, v, -1, comm);
+    }
+    template<typename T>
+    void Max (T* v, int cnt, MPI_Comm comm) {
+        util::Reduce(MPI_MAX, v, cnt, -1, comm);
+    }
+    template<typename T>
+    void Max (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
+        util::Reduce(MPI_MAX, std::move(v), -1, comm);
+    }
+
+    template<typename T>
+    void Min (T& v, MPI_Comm comm) {
+        util::Reduce(MPI_MIN, v, -1, comm);
+    }
+    template<typename T>
+    void Min (T* v, int cnt, MPI_Comm comm) {
+        util::Reduce(MPI_MIN, v, cnt, -1, comm);
+    }
+    template<typename T>
+    void Min (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
+        util::Reduce(MPI_MIN, std::move(v), -1, comm);
+    }
+
+    template<typename T>
+    void Sum (T& v, MPI_Comm comm) {
+        util::Reduce(MPI_SUM, v, -1, comm);
+    }
+    template<typename T>
+    void Sum (T* v, int cnt, MPI_Comm comm) {
+        util::Reduce(MPI_SUM, v, cnt, -1, comm);
+    }
+    template<typename T>
+    void Sum (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
+        util::Reduce(MPI_SUM, std::move(v), -1, comm);
+    }
+
+    inline void Or (bool & v, MPI_Comm comm) {
+        auto iv = static_cast<int>(v);
+        util::Reduce(MPI_LOR, iv, -1, comm);
+        v = static_cast<bool>(iv);
+    }
+
+    inline void And (bool & v, MPI_Comm comm) {
+        auto iv = static_cast<int>(v);
+        util::Reduce(MPI_LAND, iv, -1, comm);
+        v = static_cast<bool>(iv);
+    }
 }
 
 namespace ParallelReduce {
 
-#ifdef BL_USE_MPI
-
     template<typename T>
-    void Max (T& v, int root, MPI_Comm comm)
-    {
-        T tmp = v;
-        MPI_Reduce(&tmp, &v, 1, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_MAX, root, comm);
+    void Max (T& v, int root, MPI_Comm comm) {
+        util::Reduce(MPI_MAX, v, root, comm);
+    }
+    template<typename T>
+    void Max (T* v, int cnt, int root, MPI_Comm comm) {
+        util::Reduce(MPI_MAX, v, cnt, root, comm);
+    }
+    template<typename T>
+    void Max (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
+        util::Reduce(MPI_MAX, std::move(v), root, comm);
     }
 
     template<typename T>
-    void Max (T* v, int cnt, int root, MPI_Comm comm)
-    {
-        Vector<T> tmp(v, v+cnt);
-        MPI_Reduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_MAX, root, comm);
+    void Min (T& v, int root, MPI_Comm comm) {
+        util::Reduce(MPI_MIN, v, root, comm);
+    }
+    template<typename T>
+    void Min (T* v, int cnt, int root, MPI_Comm comm) {
+        util::Reduce(MPI_MIN, v, cnt, root, comm);
+    }
+    template<typename T>
+    void Min (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
+        util::Reduce(MPI_MIN, std::move(v), root, comm);
     }
 
     template<typename T>
-    void Max (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm)
-    {
-        Vector<T> snd(std::begin(v), std::end(v));
-        const int cnt = v.size();
-        Vector<T> rcv(cnt);
-        MPI_Reduce(snd.data(), rcv.data(), cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_MAX, root, comm);
-        for (int i = 0; i < cnt; ++i) {
-            v[i].get() = rcv[i];
-        }
+    void Sum (T& v, int root, MPI_Comm comm) {
+        util::Reduce(MPI_SUM, v, root, comm);
     }
-
     template<typename T>
-    void Min (T& v, int root, MPI_Comm comm)
-    {
-        T tmp = v;
-        MPI_Reduce(&tmp, &v, 1, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_MIN, root, comm);
+    void Sum (T* v, int cnt, int root, MPI_Comm comm) {
+        util::Reduce(MPI_SUM, v, cnt, root, comm);
     }
-
     template<typename T>
-    void Min (T* v, int cnt, int root, MPI_Comm comm)
-    {
-        Vector<T> tmp(v, v+cnt);
-        MPI_Reduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_MIN, root, comm);
+    void Sum (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
+        util::Reduce(MPI_SUM, std::move(v), root, comm);
     }
 
-    template<typename T>
-    void Min (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm)
-    {
-        Vector<T> snd(std::begin(v), std::end(v));
-        const int cnt = v.size();
-        Vector<T> rcv(cnt);
-        MPI_Reduce(snd.data(), rcv.data(), cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_MIN, root, comm);
-        for (int i = 0; i < cnt; ++i) {
-            v[i].get() = rcv[i];
-        }
+    inline void Or (bool & v, int root, MPI_Comm comm) {
+        auto iv = static_cast<int>(v);
+        util::Reduce(MPI_LOR, iv, root, comm);
+        v = static_cast<bool>(iv);
     }
 
-    template<typename T>
-    void Sum (T& v, int root, MPI_Comm comm)
-    {
-        T tmp = v;
-        MPI_Reduce(&tmp, &v, 1, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_SUM, root, comm);
+    inline void And (bool & v, int root, MPI_Comm comm) {
+        auto iv = static_cast<int>(v);
+        util::Reduce(MPI_LAND, iv, root, comm);
+        v = static_cast<bool>(iv);
     }
-
-    template<typename T>
-    void Sum (T* v, int cnt, int root, MPI_Comm comm)
-    {
-        Vector<T> tmp(v, v+cnt);
-        MPI_Reduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_SUM, root, comm);
-    }
-
-    template<typename T>
-    void Sum (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm)
-    {
-        Vector<T> snd(std::begin(v), std::end(v));
-        const int cnt = v.size();
-        Vector<T> rcv(cnt);
-        MPI_Reduce(snd.data(), rcv.data(), cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                   MPI_SUM, root, comm);
-        for (int i = 0; i < cnt; ++i) {
-            v[i].get() = rcv[i];
-        }
-    }
-
-#else
-
-    template<typename T> void Max (T& rvar, int root, MPI_Comm comm) {}
-    template<typename T> void Max (T* rvar, int cnt, int root, MPI_Comm comm) {}
-    template<typename T> void Max (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {}
-
-    template<typename T> void Min (T& rvar, int root, MPI_Comm comm) {}
-    template<typename T> void Min (T* rvar, int cnt, int root, MPI_Comm comm) {}
-    template<typename T> void Min (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {}
-
-    template<typename T> void Sum (T& rvar, int root, MPI_Comm comm) {}
-    template<typename T> void Sum (T* rvar, int cnt, int root, MPI_Comm comm) {}
-    template<typename T> void Sum (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {}
-
-#endif
 }
 
 }
