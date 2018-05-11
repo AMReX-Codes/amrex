@@ -55,10 +55,11 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
     const Real zhi_boost = domain_z_boost.hi(boost_direction_);
 
     for (int i = 0; i < N_snapshots_; ++i) {
+        const Real old_z_boost = snapshots_[i].current_z_boost;
         snapshots_[i].updateCurrentZPositions(t_boost,
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
-
+        
         if ( (snapshots_[i].current_z_boost < zlo_boost) or
              (snapshots_[i].current_z_boost > zhi_boost) or
              (snapshots_[i].current_z_lab < snapshots_[i].zmin_lab) or

@@ -1064,17 +1064,36 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     }
 }
 
-void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real z, const Real dt,
+void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real z_old,
+                                                 const Real z_new, const Real dt,
                                                  DiagnosticParticles& diagnostic_particles)
 {
+
+    BL_PROFILE("PC::PushX()");
+    BL_PROFILE_VAR_NS("PC::PushX::Copy", blp_copy);
+    BL_PROFILE_VAR_NS("PC:PushX::Push", blp_pxr_pp);
+
+    // Assume always z
+#if (AMREX_SPACEDIM == 2)
+    AMREX_ALWAYS_ASSERT(direction == 1);
+#else
+    AMREX_ALWAYS_ASSERT(direction == 2);
+#endif
+    
+    // Note the the slice should always move in the negative boost direction.
+    AMREX_ALWAYS_ASSERT(z_new < z_old);
     
     const int base_level = 0;    
     const int nlevs = std::max(0, finestLevel()+1);
 
+    // we figure out a box for coarse-grained rejection. If the RealBox corresponding to a
+    // given tile doesn't intersect with this, there is no need to check any particles.
     const std::array<Real,3>& base_dx = WarpX::CellSize(base_level);
-    const Real z_min = z - base_dx[direction];
-    const Real z_max = z + base_dx[direction];
+    const Real z_min = z_new - base_dx[direction];
+    const Real z_max = z_old + base_dx[direction];
 
+    const Real minus_dt = -dt;
+    
     RealBox slice_box = Geom(base_level).ProbDomain();
     slice_box.setLo(direction, z_min);
     slice_box.setHi(direction, z_max);
@@ -1095,7 +1114,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #pragma omp parallel
 #endif
         {
-            Vector<Real> xp, yp, zp;
+            Vector<Real> xp_new, yp_new, zp_new, xp_old, yp_old, zp_old, giv;
             
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
@@ -1107,8 +1126,12 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 if ( !slice_box.intersects(tile_real_box) ) continue;
 
-                pti.GetPosition(xp, yp, zp);
-                
+                BL_PROFILE_VAR_START(blp_copy);
+                pti.GetPosition(xp_new, yp_new, zp_new);
+                pti.GetPosition(xp_old, yp_old, zp_old);
+                BL_PROFILE_VAR_STOP(blp_copy);
+
+                auto& structs = pti.GetArrayOfStructs();
                 auto& attribs = pti.GetAttribs();
                 auto& uxp = attribs[PIdx::ux];
                 auto& uyp = attribs[PIdx::uy];
@@ -1116,17 +1139,28 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 auto&  wp = attribs[PIdx::w ];
                 
                 const long np = pti.numParticles();
+                
+                BL_PROFILE_VAR_START(blp_pxr_pp);
+                warpx_particle_pusher_positions(&np, xp_old.data(), yp_old.data(), zp_old.data(),
+                                                uxp.data(), uyp.data(), uzp.data(), giv.data(),
+                                                &minus_dt);
+                BL_PROFILE_VAR_STOP(blp_pxr_pp);
+                
                 for (long i = 0; i < np; ++i) {
-                    diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i] );
 
-                    diagnostic_particles[index].GetRealData(DiagIdx::x).push_back(xp[i] );
-                    diagnostic_particles[index].GetRealData(DiagIdx::y).push_back(yp[i] );
-                    diagnostic_particles[index].GetRealData(DiagIdx::z).push_back(zp[i] );
+                    if ( ((zp_new[i] >= z_new) && (zp_old[i] <= z_old)) ||
+                         ((zp_new[i] <= z_new) && (zp_old[i] >= z_old)) ) continue;
+                    
+                    diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i] );
+                    
+                    diagnostic_particles[index].GetRealData(DiagIdx::x).push_back(xp_new[i] );
+                    diagnostic_particles[index].GetRealData(DiagIdx::y).push_back(yp_new[i] );
+                    diagnostic_particles[index].GetRealData(DiagIdx::z).push_back(zp_new[i] );
 
                     diagnostic_particles[index].GetRealData(DiagIdx::ux).push_back(uxp[i]);
                     diagnostic_particles[index].GetRealData(DiagIdx::uy).push_back(uyp[i]);
                     diagnostic_particles[index].GetRealData(DiagIdx::uz).push_back(uzp[i]);
-                }                
+                }
             }
         }
     }
