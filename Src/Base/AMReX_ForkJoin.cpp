@@ -1,19 +1,19 @@
 #include <AMReX_ForkJoin.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
 namespace amrex {
 
-ForkJoin::ForkJoin (Vector<int> trn)
-    : task_rank_n(std::move(trn))
+ForkJoin::ForkJoin (const Vector<int> &task_rank_n)
 {
-    init();
+    init(task_rank_n);
 }
 
 ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
 {
     auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     auto ntasks = task_rank_pct.size();
-    task_rank_n.resize(ntasks);
+    Vector<int> task_rank_n(ntasks);
     int prev = 0;
     double accum = 0;
     for (int i = 0; i < ntasks; ++i) {
@@ -23,28 +23,40 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
         prev = cur;
     }
 
-    init();
+    init(task_rank_n);
 }
 
 void
-ForkJoin::init()
+ForkJoin::init(const Vector<int> &task_rank_n)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NTasks() > 0,
+    ParmParse pp("forkjoin");
+    pp.query("verbose", flag_verbose);
+
+    const auto task_n = task_rank_n.size();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(task_n > 0,
                                      "ForkJoin must have at least 1 task");
     int min_task_rank_n = task_rank_n[0];
-    for (int i = 1; i < NTasks(); ++i) {
+    for (int i = 1; i < task_n; ++i) {
       min_task_rank_n = std::min(min_task_rank_n, task_rank_n[i]);
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(min_task_rank_n > 0,
-                                     "All tasks must have non-negative ranks");
+                                     "All tasks must have at least one rank");
     auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n,
                                      "Sum of ranks assigned to tasks must sum to parent number of ranks");
-    compute_split_bounds();
+
+    // split ranks into contiguous chunks
+    // task i has ranks over the interval [split_bounds[i], split_bounds[i+1])
+    split_bounds.resize(task_n + 1);
+    split_bounds[0] = 0;
+    for (int i = 0; i < task_n; ++i) {
+        split_bounds[i + 1] = split_bounds[i] + task_rank_n[i];
+    }
+
     if (flag_verbose) {
         amrex::Print() << "Initialized ForkJoin:\n";
-        for (int i = 0; i < NTasks(); ++i) {
-            amrex::Print() << "  Task " << i << " Ranks: [" << split_bounds[i] << ", " << split_bounds[i+1] << ")\n";
+        for (int i = 0; i < task_n; ++i) {
+            amrex::Print() << "  Task " << i << " has " << NProcsTask(i) << " Ranks: [" << split_bounds[i] << ", " << split_bounds[i+1] << ")\n";
         }
     }
 }
@@ -200,18 +212,19 @@ ForkJoin::copy_data_from_tasks ()
 const DistributionMapping &
 ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& dm_orig)
 {
-    auto &dm_vec = dms[ba.getRefID()];
+    AMREX_ASSERT(task_idx < NTasks());
 
+    auto &dm_vec = dms[ba.getRefID()];
     if (dm_vec.size() == 0) {
         // new entry
         dm_vec.resize(NTasks());
     }
-    AMREX_ASSERT(task_idx < dm_vec.size());
+    AMREX_ASSERT(dm_vec.size() == NTasks());
 
     if (dm_vec[task_idx] == nullptr) {
         // create DM of current box array over current task's ranks
         int rank_lo = split_bounds[task_idx];  // note that these ranks are not necessarily global
-        int nprocs_task = task_rank_n[task_idx];
+        int nprocs_task = NProcsTask(task_idx);
 
         Vector<int> pmap = dm_orig.ProcessorMap(); // DistributionMapping stores global ranks
         for (auto& r : pmap) {
@@ -241,36 +254,20 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& d
     return *dm_vec[task_idx];
 }
 
-// split ranks in current frame into contiguous chunks
-// task i has ranks over the interval [result[i], result[i+1])
-void
-ForkJoin::compute_split_bounds ()
-{
-    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == ParallelContext::NProcsSub());
-
-    const auto ntasks = task_rank_n.size();
-    split_bounds.resize(ntasks + 1);
-    split_bounds[0] = 0;
-    for (int i = 0; i < ntasks; ++i) {
-        split_bounds[i + 1] = split_bounds[i] + task_rank_n[i];
-    }
-}
-
 // split top frame of stack
 // TODO: write version that takes cached comm object as argument in case of repeated identical split calls
 MPI_Comm
 ForkJoin::split_tasks ()
 {
-    const auto ntasks = task_rank_n.size();
     int myproc = ParallelContext::MyProcSub();
-    for (task_me = 0; task_me < ntasks; ++task_me) {
+    for (task_me = 0; task_me < NTasks(); ++task_me) {
         int lo = split_bounds[task_me];
         int hi = split_bounds[task_me + 1];
         if (myproc >= lo && myproc < hi) {
             break;
         }
     }
-    AMREX_ASSERT(task_me < ntasks);
+    AMREX_ASSERT(task_me < NTasks());
 
 #ifdef BL_USE_MPI
     MPI_Comm new_comm;

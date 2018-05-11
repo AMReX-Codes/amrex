@@ -1,7 +1,8 @@
-ntasks = 3
+ntasks = 4
 ncomp = 12
 
 verbose = 1
+forkjoin.verbose = 1
 
 n_cell = 64
 max_grid_size = 32
