@@ -1063,3 +1063,71 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
         }
     }
 }
+
+void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real z, const Real dt,
+                                                 DiagnosticParticles& diagnostic_particles)
+{
+    
+    const int base_level = 0;    
+    const int nlevs = std::max(0, finestLevel()+1);
+
+    const std::array<Real,3>& base_dx = WarpX::CellSize(base_level);
+    const Real z_min = z - base_dx[direction];
+    const Real z_max = z + base_dx[direction];
+
+    RealBox slice_box = Geom(base_level).ProbDomain();
+    slice_box.setLo(direction, z_min);
+    slice_box.setHi(direction, z_max);
+
+    for (int lev = 0; lev < nlevs; ++lev) {
+
+        const Real* dx  = Geom(lev).CellSize();
+        const Real* plo = Geom(lev).ProbLo(); 
+
+        // first we touch each map entry in serial
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
+            diagnostic_particles[index];
+        }
+        
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            Vector<Real> xp, yp, zp;
+            
+            for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+            {
+                const Box& box = pti.validbox();
+
+                auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
+                
+                const RealBox tile_real_box(box, dx, plo);
+
+                if ( !slice_box.intersects(tile_real_box) ) continue;
+
+                pti.GetPosition(xp, yp, zp);
+                
+                auto& attribs = pti.GetAttribs();
+                auto& uxp = attribs[PIdx::ux];
+                auto& uyp = attribs[PIdx::uy];
+                auto& uzp = attribs[PIdx::uz];
+                auto&  wp = attribs[PIdx::w ];
+                
+                const long np = pti.numParticles();
+                for (long i = 0; i < np; ++i) {
+                    diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i] );
+
+                    diagnostic_particles[index].GetRealData(DiagIdx::x).push_back(xp[i] );
+                    diagnostic_particles[index].GetRealData(DiagIdx::y).push_back(yp[i] );
+                    diagnostic_particles[index].GetRealData(DiagIdx::z).push_back(zp[i] );
+
+                    diagnostic_particles[index].GetRealData(DiagIdx::ux).push_back(uxp[i]);
+                    diagnostic_particles[index].GetRealData(DiagIdx::uy).push_back(uyp[i]);
+                    diagnostic_particles[index].GetRealData(DiagIdx::uz).push_back(uzp[i]);
+                }                
+            }
+        }
+    }
+}

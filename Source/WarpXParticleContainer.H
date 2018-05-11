@@ -15,6 +15,17 @@ struct PIdx
     };
 };
 
+struct DiagIdx
+{
+    enum {
+        w = 0,
+        x, y, z, ux, uy, uz,
+        nattribs
+    };
+};
+
+using DiagnosticParticles = std::map<std::pair<int, int>, amrex::StructOfArrays<DiagIdx::nattribs, 0> >;
+
 class WarpXParIter
     : public amrex::ParIter<0,0,PIdx::nattribs>
 {
@@ -82,6 +93,9 @@ public:
 
     virtual void PostRestart () = 0;
 
+    virtual void GetParticleSlice(const int direction, const amrex::Real z, const amrex::Real dt,
+                                  DiagnosticParticles& diagnostic_particles) {}
+    
     void AllocData ();
 
     ///
