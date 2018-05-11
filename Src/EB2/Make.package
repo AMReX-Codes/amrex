@@ -1,0 +1,12 @@
+
+EB2_BASE=EXE
+
+
+C$(EB2_BASE)_headers += AMReX_EB2_SphereIF.H
+
+C$(EB2_BASE)_headers += AMReX_EB2_GeometryShop.H AMReX_EB2.H AMReX_EB2_IndexSpaceI.H AMReX_EB2_ISLevel.H
+
+C$(EB2_BASE)_sources += AMReX_EB2.cpp
+
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/EB2
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/EB2
