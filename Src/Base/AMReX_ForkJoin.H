@@ -26,11 +26,20 @@ class ForkJoin
         int hi; // exclusive bound
     };
 
-    ForkJoin (Vector<int> trn);
+    ForkJoin (const Vector<int> &task_rank_n);
 
     ForkJoin (const Vector<double> &task_rank_pct);
 
     ForkJoin (int ntasks) : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
+
+    int NTasks () const { return split_bounds.size() - 1; }
+
+    int MyTask () const { return task_me; }
+
+    int NProcsTask (int task) const {
+        AMREX_ASSERT(task + 1 < split_bounds.size());
+        return split_bounds[task + 1] - split_bounds[task];
+    }
 
     void reg_mf (MultiFab &mf, const std::string &name, int idx,
                  Strategy strategy, Intent intent, int owner = -1);
@@ -128,14 +137,13 @@ class ForkJoin
         bool empty() const { return orig == nullptr; }
     };
 
-    Vector<int> task_rank_n; // number of ranks in each forked task
     Vector<int> split_bounds; // task i has ranks over the interval [result[i], result[i+1])
     int task_me = -1; // task the current rank belongs to
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
-    const static bool flag_verbose = false; // for debugging
+    bool flag_verbose = false; // for debugging
 
-    void init();
+    void init(const Vector<int> &task_rank_n);
 
     // multiple MultiFabs may share the same box array
     // only compute the DM once per unique (box array, task) pair and cache it
@@ -151,13 +159,6 @@ class ForkJoin
     // the parent task is the top frame in ParallelContext's stack
     void copy_data_from_tasks ();
 
-    int NTasks () const { return task_rank_n.size(); }
-
-    int MyTask () const { return task_me; }
-
-    // split ranks in current frame into contiguous chunks
-    // task i has ranks over the interval [result[i], result[i+1])
-    void compute_split_bounds ();
     // split top frame of stack
     MPI_Comm split_tasks ();
 };
