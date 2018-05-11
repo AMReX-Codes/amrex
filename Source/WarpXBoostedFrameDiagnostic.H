@@ -7,6 +7,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 
+#include "ParticleContainer.H"
 #include "WarpXConst.H"
 
 ///
@@ -81,7 +82,9 @@ public:
                            amrex::Real dt_boost, int boost_direction);
     
     void writeLabFrameData(const amrex::MultiFab& cell_centered_data,
-                           const amrex::Geometry& geom, amrex::Real t_boost);
+                           const MultiParticleContainer& mypc,
+                           const amrex::Geometry& geom,
+                           const amrex::Real t_boost, const amrex::Real dt);
     
     void writeMetaData();
 };

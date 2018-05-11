@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <map>
+#include <string>
 
 #include <AMReX_Particles.H>
 
@@ -144,12 +145,17 @@ public:
     void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
     void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
 
-    int nSpecies() {return nspecies;}
+    int nSpecies() const {return nspecies;}
 
     int L_lower_order_in_v() {return l_lower_order_in_v;}
 
     bool Use_fdtd_nci_corr() {return use_fdtd_nci_corr;}
 
+    void WriteLabFrameData(const std::string& snapshot_name,
+                           const int i_lab, const int direction,
+                           const amrex::Real z_old, const amrex::Real z_new,
+                           const amrex::Real dt) const;
+    
     // 
     // Parameters for the Cherenkov corrector in the FDTD solver.
     // Both stencils are calculated ar runtime.

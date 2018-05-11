@@ -1,5 +1,6 @@
 #include <limits>
 #include <algorithm>
+#include <string>
 
 #include <ParticleContainer.H>
 #include <WarpX_f.H>
@@ -273,5 +274,15 @@ MultiParticleContainer::PostRestart ()
 {
     for (auto& pc : allcontainers) {
 	pc->PostRestart();
+    }
+}
+
+void
+MultiParticleContainer::WriteLabFrameData(const std::string& snapshot_name, const int i_lab, const int direction,
+                                          const amrex::Real z_old, const amrex::Real z_new, const amrex::Real dt) const
+{
+    for (auto& pc : allcontainers) {
+        WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
+        pc->GetParticleSlice(direction, z_old, z_new, dt, diagnostic_particles);
     }
 }

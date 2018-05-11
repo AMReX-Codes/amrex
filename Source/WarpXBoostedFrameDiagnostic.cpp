@@ -43,7 +43,9 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
 void
 BoostedFrameDiagnostic::
-writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {
+writeLabFrameData(const MultiFab& cell_centered_data,
+                  const MultiParticleContainer& mypc,
+                  const Geometry& geom, const Real t_boost, const Real dt) {
 
     BL_PROFILE("BoostedFrameDiagnostic::writeLabFrameData");
 
@@ -122,9 +124,12 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
             VisMF::Write(*data_buffer_[i], ss.str());
             buff_counter_[i] = 0;
         }
+
+        mypc.WriteLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
+                               old_z_boost, snapshots_[i].current_z_boost, dt);
     }
 
-    VisMF::SetHeaderVersion(current_version);
+    VisMF::SetHeaderVersion(current_version);    
 }
 
 void

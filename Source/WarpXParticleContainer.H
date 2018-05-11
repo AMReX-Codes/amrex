@@ -24,8 +24,6 @@ struct DiagIdx
     };
 };
 
-using DiagnosticParticles = std::map<std::pair<int, int>, amrex::StructOfArrays<DiagIdx::nattribs, 0> >;
-
 class WarpXParIter
     : public amrex::ParIter<0,0,PIdx::nattribs>
 {
@@ -68,6 +66,8 @@ class WarpXParticleContainer
 public:
     friend MultiParticleContainer;
 
+    using DiagnosticParticles = std::map<std::pair<int, int>, amrex::StructOfArrays<DiagIdx::nattribs, 0> >;
+    
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
