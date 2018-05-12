@@ -40,7 +40,7 @@ class IndexSpaceImp
 {
 public:
 
-    void define (G&& gshop, Geometry const& geom, Info const& info);
+    void define (G&& gshop, const Geometry& geom, const Info& info);
 
     bool isDefined () const { return m_impfunc != nullptr; }
 
@@ -81,7 +81,7 @@ template <typename G> std::unique_ptr<IndexSpaceImp<G> > IndexSpaceImp<G>::m_ins
 
 template <typename G>
 void
-Initialize (G&& gshop, Geometry const& geom, Info const& info)
+Initialize (G&& gshop, const Geometry& geom, const Info& info)
 {
     auto& ispace = IndexSpaceImp<G>::GetInstance();
     if (!ispace.isDefined()) {
