@@ -1139,6 +1139,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 auto&  wp = attribs[PIdx::w ];
                 
                 const long np = pti.numParticles();
+
+                giv.resize(np);
                 
                 BL_PROFILE_VAR_START(blp_pxr_pp);
                 warpx_particle_pusher_positions(&np, xp_old.data(), yp_old.data(), zp_old.data(),

@@ -284,5 +284,11 @@ MultiParticleContainer::WriteLabFrameData(const std::string& snapshot_name, cons
     for (auto& pc : allcontainers) {
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, dt, diagnostic_particles);
+
+        long total_np = 0;
+        for (auto it = diagnostic_particles.begin(); it != diagnostic_particles.end(); ++it) {
+            total_np += it->second.numParticles();
+        }
+        amrex::Print() << "Diagnostics selected " << total_np << " particles." << std::endl;
     }
 }
