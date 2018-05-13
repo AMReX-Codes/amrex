@@ -46,6 +46,7 @@ public:
 
     int getBoxType (const Box& bx, const Geometry& geom) const;
     void fillFab (BaseFab<int>& inout, const Geometry& geom) const;
+    void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const;
 
 private:
 
@@ -102,6 +103,20 @@ GeometryShop<F>::fillFab (BaseFab<int>& inout, const Geometry& geom) const
             Real v = m_f(xyz);
             d = (v == 0.0) ? on_boundary :
                 ( (v > 0.0) ? in_body : in_fluid);
+        });
+}
+
+template <class F>
+void
+GeometryShop<F>::fillFab (BaseFab<Real>& levelset, const Geometry& geom) const
+{
+    const Real* problo = geom.ProbLo();
+    const Real* dx = geom.CellSize();
+    levelset.ForEachIV (levelset.box(), 0, 1, [=] (Real& d, const IntVect& iv) {
+            RealArray xyz {AMREX_D_DECL(problo[0]+iv[0]*dx[0],
+                                        problo[1]+iv[1]*dx[1],
+                                        problo[2]+iv[2]*dx[2])};
+            d = m_f(xyz);
         });
 }
 

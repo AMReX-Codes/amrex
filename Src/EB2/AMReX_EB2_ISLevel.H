@@ -4,7 +4,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_LayoutData.H>
-#include <AMReX_EB2_Graph.H>
+#include <AMReX_EB2_MultiGFab.H>
 
 namespace amrex { namespace EB2 {
 
@@ -21,9 +21,7 @@ private:
     Geometry m_geom;    
     BoxArray m_grids;
     DistributionMapping m_dmap;
-    FabArray<BaseFab<Type_t> > m_cell_type;
-    Array<FabArray<BaseFab<Type_t> >, AMREX_SPACEDIM> m_face_type;
-    LayoutData<Graph> m_graph;
+    MultiGFab m_mgf;
 };
 
 template <typename G>
@@ -65,23 +63,18 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     m_grids = BoxArray(BoxList(std::move(cut_boxes)));
     m_dmap = DistributionMapping(m_grids);
 
-    m_cell_type.define(m_grids, m_dmap, 1, 1);
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        m_face_type[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                 m_dmap, 1, 1);
-    }
-    m_graph.define(m_grids, m_dmap);
+    m_mgf.define(m_grids, m_dmap);
     
     BaseFab<int> inout;
-    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
     {
-        const Box& vbx = mfi.validbox();
-        const Box& bxg1 = amrex::grow(vbx,1);
-        
-        inout.resize(amrex::surroundingNodes(bxg1));
-        gshop.fillFab(inout, geom);
+        auto& gfab = m_mgf[mfi];
 
-        // compute nodes
+        auto& levelset = gfab.getLevelSet();
+        gshop.fillFab(levelset, geom);
+
+        gfab.buildTypes();
+
         // set cell_type on +1 region
         // set face_type
         // need to fix regular right next to covered cells. on +1 region

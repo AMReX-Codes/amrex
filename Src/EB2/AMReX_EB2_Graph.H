@@ -4,7 +4,6 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
-#include <AMReX_FabFactory.H>
 
 #include <unordered_map>
 #include <utility>
@@ -82,23 +81,7 @@ struct Vertex
     Vector<Edge> m_edges;
 };
 
-
-class Graph
-{
-public:
-
-    Graph () = default;
-//    Graph (const Box& box, int, bool, bool)
-//        : m_box(box)
-//        {}
-
-private:
-
-//    Box m_box;
-    std::unordered_map<IntVect, Vector<Vertex>, IntVect::shift_hasher> m_data;
-};
-
-//template
+using Graph = std::unordered_map<IntVect, Vector<Vertex>, IntVect::shift_hasher>;
 
 }}
 
