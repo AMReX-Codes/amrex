@@ -1,8 +1,8 @@
-#ifndef AMREX_LayoutData__H_
-#define AMREX_LayoutData__H_
+#ifndef AMREX_LayoutData_H_
+#define AMREX_LayoutData_H_
 
-#include "AMReX_FabArrayBase.H"
-#include "AMReX_MFIter.H"
+#include <AMReX_FabArrayBase.H>
+#include <AMReX_MFIter.H>
 
 namespace amrex
 {
