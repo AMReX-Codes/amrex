@@ -4,6 +4,7 @@
 #include <AMReX_EB2_Graph.H>
 #include <AMReX_Array.H>
 #include <AMReX_LayoutData.H>
+#include <AMReX_MultiFab.H>
 
 namespace amrex { namespace EB2 {
 
@@ -13,11 +14,16 @@ public:
 
     GFab () = default;
 
+    static constexpr int ngrow_levelset = 2;
+    static constexpr int ngrow_celltype = 2;
+    static constexpr int ngrow_facetype = 1;
+    
     void define(const Box& vbx) {
         m_validbox = vbx;
         const Box& bxg1 = amrex::grow(vbx,1);
-        m_levelset.resize(amrex::surroundingNodes(bxg1));
-        m_celltype.resize(bxg1,1);
+        const Box& bxg2 = amrex::grow(vbx,2);
+        m_levelset.resize(amrex::surroundingNodes(bxg2));
+        m_celltype.resize(bxg2,1);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             m_facetype[idim].resize(amrex::convert(bxg1,IntVect::TheDimensionVector(idim)));
         }
@@ -67,6 +73,8 @@ public:
             gfab.define(bx);
         }
     }
+
+    MultiFab getLevelSet ();
 };
 
 }}

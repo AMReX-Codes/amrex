@@ -4,6 +4,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_LayoutData.H>
+#include <AMReX_VisMF.H>
 #include <AMReX_EB2_MultiGFab.H>
 
 namespace amrex { namespace EB2 {
@@ -17,9 +18,9 @@ public:
 
 private:
 
-    bool m_allregular = false;
     Geometry m_geom;    
     BoxArray m_grids;
+    BoxArray m_covered_grids;
     DistributionMapping m_dmap;
     MultiGFab m_mgf;
 };
@@ -40,21 +41,28 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     }
 
     Vector<Box> cut_boxes;
+    Vector<Box> covered_boxes;
 
     for (MFIter mfi(m_grids, m_dmap); mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
         const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1) & pdom);
         int box_type = gshop.getBoxType(gbx, geom);
-        if (box_type > 0) { // contains irregular cells
+        if (box_type == gshop.allcovered) {
+            covered_boxes.push_back(vbx);
+        } else if (box_type == gshop.mixedcells) {
             cut_boxes.push_back(vbx);
         }
     }
 
     amrex::AllGatherBoxes(cut_boxes);
+    amrex::AllGatherBoxes(covered_boxes);
+
+    if (!covered_boxes.empty()) {
+        m_covered_grids = BoxArray(BoxList(std::move(covered_boxes)));
+    }
 
     if (cut_boxes.empty()) {
-        m_allregular = true;
         m_grids = BoxArray();
         m_dmap = DistributionMapping();
         return;
@@ -75,10 +83,6 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
 
         gfab.buildTypes();
 
-        // set cell_type on +1 region
-        // set face_type
-        // need to fix regular right next to covered cells. on +1 region
-        
         // compute volume stuff in irregular cells
         // compute 
         
@@ -88,6 +92,7 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
         // 
     }
 
+    VisMF::Write(m_mgf.getLevelSet(), "levelset");
 }
 
 
