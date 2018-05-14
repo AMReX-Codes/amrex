@@ -4,6 +4,11 @@ module amrex_eb2_2d_moudle
   use amrex_fort_module
   implicit none
 
+  integer, parameter :: regular = 0
+  integer, parameter :: covered = 1
+  integer, parameter :: irregular = 2
+  integer, parameter :: unknown = 3
+
   private
   public :: amrex_eb2_gfab_build_types
 
@@ -17,7 +22,55 @@ contains
     integer(c_int)  , intent(inout) ::   fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2))
     integer(c_int)  , intent(inout) ::   fy(fylo(1):fyhi(1),fylo(2):fyhi(2))
 
-    
+    integer :: i,j
+
+    do    j = lo(2)-2, hi(2)+2
+       do i = lo(1)-2, hi(1)+2
+          if (s(i,j).ge.0.d0 .and. s(i+1,j).ge.0.d0 .and. s(i,j+1).ge.0.d0 &
+               .and. s(i+1,j+1).ge.0.d0) then
+             cell(i,j) = covered
+          else if (s(i,j).lt.0.d0 .and. s(i+1,j).lt.0.d0 .and. s(i,j+1).lt.0.d0 &
+               .and. s(i+1,j+1).lt.0.d0) then
+             cell(i,j) = regular
+          else
+             cell(i,j) = irregular
+          end if
+       end do
+    end do
+
+    do    j = lo(2)-1, hi(2)+1
+       do i = lo(1)-1, hi(1)+2
+          if (cell(i-1,j) .eq. covered .or. cell(i,j) .eq. covered) then
+             fx(i,j) = covered
+          else if (cell(i-1,j) .eq. regular .or. cell(i,j) .eq. regular) then
+             fx(i,j) = regular
+          else
+             fx(i,j) = unknown
+          end if
+       end do
+    end do
+
+    do    j = lo(2)-1, hi(2)+2
+       do i = lo(1)-1, hi(1)+1
+          if (cell(i,j-1) .eq. covered .or. cell(i,j) .eq. covered) then
+             fy(i,j) = covered
+          else if (cell(i,j-1) .eq. regular .or. cell(i,j) .eq. regular) then
+             fy(i,j) = regular
+          else
+             fy(i,j) = unknown
+          end if
+       end do
+    end do
+
+!    do    j = lo(2)-1, hi(2)+1
+!       do i = lo(1)-1, hi(1)+1
+!          if (fx(i,j) .eq. covered .or. fx(i+1,j) .eq. covered &
+!               .or. fy(i,j) .eq. covered  .or. fy(i,j+1) .eq. covered) then
+!             cell(i,j) = irregular
+!          end if
+!       end do
+!    end do
+
   end subroutine amrex_eb2_gfab_build_types
 
 end module amrex_eb2_2d_moudle

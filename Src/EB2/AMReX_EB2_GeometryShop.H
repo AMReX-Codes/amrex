@@ -4,6 +4,7 @@
 #include <AMReX_EB2_Graph.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_BaseFab.H>
+#include <AMReX_Print.H>
 #include <memory>
 #include <type_traits>
 
@@ -17,6 +18,10 @@ public:
     static constexpr int in_fluid = -1;
     static constexpr int on_boundary = 0;
     static constexpr int in_body = 1;
+    //
+    static constexpr int allregular = -1;
+    static constexpr int mixedcells = 0;
+    static constexpr int allcovered = 1;
 
     using FunctionType = F;
     
@@ -45,7 +50,6 @@ public:
     F&& GetImpFunc () && { return std::move(m_f); }
 
     int getBoxType (const Box& bx, const Geometry& geom) const;
-    void fillFab (BaseFab<int>& inout, const Geometry& geom) const;
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const;
 
 private:
@@ -77,33 +81,18 @@ GeometryShop<F>::getBoxType (const Box& bx, const Geometry& geom) const
                 } else {
                     ++nfluid;
                 }
+                if (nbody > 0 && nfluid > 0) return mixedcells;
             }
         }
     }
 
     if (nbody == 0) {
-        return in_fluid;
+        return allregular;
     } else if (nfluid == 0) {
-        return in_body;
+        return allcovered;
     } else {
-        return on_boundary;
+        return mixedcells;
     }
-}
-
-template <class F>
-void
-GeometryShop<F>::fillFab (BaseFab<int>& inout, const Geometry& geom) const
-{
-    const Real* problo = geom.ProbLo();
-    const Real* dx = geom.CellSize();
-    inout.ForEachIV (inout.box(), 0, 1, [=] (int& d, const IntVect& iv) {
-            RealArray xyz {AMREX_D_DECL(problo[0]+iv[0]*dx[0],
-                                        problo[1]+iv[1]*dx[1],
-                                        problo[2]+iv[2]*dx[2])};
-            Real v = m_f(xyz);
-            d = (v == 0.0) ? on_boundary :
-                ( (v > 0.0) ? in_body : in_fluid);
-        });
 }
 
 template <class F>

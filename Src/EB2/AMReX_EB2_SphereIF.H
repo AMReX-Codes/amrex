@@ -3,6 +3,7 @@
 
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
+#include <AMReX_Print.H>
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
@@ -28,8 +29,8 @@ public:
 
     Real operator() (const RealArray& p) const {
         Real d2 = AMREX_D_TERM(  (p[0]-m_center[0])*(p[0]-m_center[0]),
-                               * (p[1]-m_center[1])*(p[1]-m_center[1]),
-                               * (p[2]-m_center[2])*(p[2]-m_center[2]));
+                               + (p[1]-m_center[1])*(p[1]-m_center[1]),
+                               + (p[2]-m_center[2])*(p[2]-m_center[2]));
         return m_sign*(d2-m_radius2);
     }
 

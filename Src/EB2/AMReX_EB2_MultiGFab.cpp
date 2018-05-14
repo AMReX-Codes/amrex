@@ -17,4 +17,16 @@ GFab::buildTypes ()
                                              BL_TO_FORTRAN_ANYD(m_facetype[2])));
 }
 
+MultiFab
+MultiGFab::getLevelSet ()
+{
+    Vector<Real*> p;
+    p.reserve(local_size());
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+        p.push_back((*this)[mfi].getLevelSet().dataPtr());
+    }
+    return MultiFab(amrex::convert(boxArray(),IntVect::TheNodeVector()),
+                    DistributionMap(), 1, IntVect(GFab::ngrow_levelset), p);
+}
+
 }}
