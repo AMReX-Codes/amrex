@@ -103,9 +103,11 @@ class ForkJoin
     template <class F>
     void fork_join (const F &fn)
     {
+        const int io_rank = 0; // team's sub-rank 0 does IO
         MPI_Comm task_comm = split_tasks();
-        copy_data_to_tasks(task_comm); // move data to local tasks
-        ParallelContext::push(task_comm);
+        copy_data_to_tasks(); // move data to local tasks
+        ParallelContext::push(task_comm, task_me, io_rank);
+        ParallelContext::set_last_frame_ofs(get_fresh_io_filename());
         fn(*this);
         ParallelContext::pop();
 #ifdef BL_USE_MPI
@@ -138,7 +140,7 @@ class ForkJoin
     };
 
     Vector<int> split_bounds; // task i has ranks over the interval [result[i], result[i+1])
-    int task_me = -1; // task the current rank belongs to
+    int task_me = -1; // which forked task the rank belongs to
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
     bool flag_verbose = false; // for debugging
@@ -153,7 +155,7 @@ class ForkJoin
 
     // this is called before ParallelContext::split
     // the parent task is the top frame in ParallelContext's stack
-    void copy_data_to_tasks (MPI_Comm task_comm);
+    void copy_data_to_tasks ();
 
     // this is called after ParallelContext::unsplit
     // the parent task is the top frame in ParallelContext's stack
@@ -161,6 +163,9 @@ class ForkJoin
 
     // split top frame of stack
     MPI_Comm split_tasks ();
+
+    // unique output file for this sub-task
+    std::string get_fresh_io_filename ();
 };
 
 }

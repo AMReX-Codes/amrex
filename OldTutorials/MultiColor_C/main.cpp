@@ -35,9 +35,12 @@ extern "C"
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom);
 void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom);
-void solve(MultiFab& soln, const MultiFab& rhs, 
-	   const MultiFab& alpha, const Vector<MultiFab*>& beta,
-	   const Geometry& geom);
+void top_fork(MultiFab& soln, const MultiFab& rhs, 
+              const MultiFab& alpha, const Vector<MultiFab*>& beta,
+              const Geometry& geom);
+void fork_solve(MultiFab& soln, const MultiFab& rhs, 
+                const MultiFab& alpha, const Vector<MultiFab*>& beta,
+                const Geometry& geom);
 void solve_all(MultiFab& soln, const MultiFab& rhs, 
                const MultiFab& alpha, const Vector<MultiFab*>& beta, 
                const Geometry& geom);
@@ -95,7 +98,7 @@ int main(int argc, char* argv[])
 
     MultiFab soln(ba, dm, ncomp, 0);
 
-    solve(soln, rhs, alpha, amrex::GetVecOfPtrs(beta), geom);
+    top_fork(soln, rhs, alpha, amrex::GetVecOfPtrs(beta), geom);
 
     VisMF::Write(soln, "soln");
 
@@ -137,8 +140,35 @@ void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry
     }
 }
 
-void solve(MultiFab& soln, const MultiFab& rhs, 
-	   const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
+void top_fork(MultiFab& soln, const MultiFab& rhs, 
+              const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
+{
+    // evenly split ranks among 2 tasks
+    ForkJoin fj(2);
+
+    // these multifabs go to task 0 only
+    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::single, ForkJoin::Intent::out, 1);
+
+    // issue top-level fork-join
+    fj.fork_join(
+        [&geom] (ForkJoin &f) {
+            if (f.MyTask() == 1) {
+                // Do some MLMG solves
+                fork_solve(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
+                           f.get_mf_vec("beta"), geom);
+            } else {
+                // Do some chemistry
+                amrex::Print() << "Doing some chemistry ...\n";
+            }
+        }
+    );
+}
+
+void fork_solve(MultiFab& soln, const MultiFab& rhs, 
+	        const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
 {
     // evenly split ranks among ntasks tasks
     ForkJoin fj(ntasks);
