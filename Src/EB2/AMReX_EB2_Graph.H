@@ -36,8 +36,8 @@ using Type_t = uint32_t;
 namespace Type {
     static constexpr Type_t regular=0x0;
     static constexpr Type_t covered=0x1;
-    static constexpr Type_t irregular=0x10;
-    static constexpr Type_t unknown=0x11;
+    static constexpr Type_t irregular=0x2;
+    static constexpr Type_t unknown=0x3;
 }
 
 struct Neighbor
