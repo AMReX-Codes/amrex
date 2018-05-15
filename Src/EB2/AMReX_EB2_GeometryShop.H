@@ -5,8 +5,10 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_Print.H>
+#include <AMReX_Array.H>
 #include <memory>
 #include <type_traits>
+#include <cmath>
 
 namespace amrex { namespace EB2 {
 
@@ -51,6 +53,11 @@ public:
 
     int getBoxType (const Box& bx, const Geometry& geom) const;
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const;
+
+    Array<Real,AMREX_SPACEDIM-1>
+    getFaceIntercept (int facedir, const IntVect& iv, const Geometry& geom) const;
+
+    Real BrentRootFinder (const RealArray& lo, const RealArray& hi, int rangedir) const;
 
 private:
 
@@ -107,6 +114,166 @@ GeometryShop<F>::fillFab (BaseFab<Real>& levelset, const Geometry& geom) const
                                         problo[2]+iv[2]*dx[2])};
             d = m_f(xyz);
         });
+}
+
+template <class F>
+Array<Real,AMREX_SPACEDIM-1>
+GeometryShop<F>::getFaceIntercept (int facedir, const IntVect& iv, const Geometry& geom) const
+{
+    const Real* problo = geom.ProbLo();
+    const Real* dx = geom.CellSize();
+
+#if (AMREX_SPACEDIM == 1)
+
+    amrex::Abort("GeometryShop: 1d not supported");
+    return Array<Real,0>{};
+
+#elif (AMREX_SPACEDIM == 2)
+
+    const int rangedir = 1-facedir;
+    IntVect ivlo = iv;
+    IntVect ivhi = iv;  ivhi[rangedir] += 1;
+    Real r = this->BrentRootFinder(RealArray{problo[0]+ivlo[0]*dx[0],
+                                             problo[1]+ivlo[1]*dx[1]},
+                                   RealArray{problo[0]+ivhi[0]*dx[0],
+                                             problo[1]+ivhi[1]*dx[1]},
+                                   rangedir);
+    return Array<Real,1>{r};
+
+#else
+
+    amrex::Abort("GeometryShop::getFaceIntercept: 3d todo");
+    return Array<Real,2>{};    
+
+#endif
+}
+
+template <class F>
+Real
+GeometryShop<F>::BrentRootFinder (const RealArray& lo, const RealArray& hi, int rangedir) const
+{
+    const Real tol = 1.e-12;
+    const int MAXITER = 100;
+    const Real EPS = 3.0e-15;
+
+    Real p, q, r, s;
+
+    RealArray aPt = lo;
+    RealArray bPt = hi;
+
+    Real fa = m_f(aPt);
+    Real fb = m_f(bPt);
+    Real c = bPt[rangedir];
+    Real fc = fb;
+
+    if (fb*fa > 0.0) {
+        amrex::AllPrint() << "fa " << fa << " fb " << fb << "\n";
+        amrex::Error("GeometryShop::BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
+        return 0.0;
+    } else if (fa == 0.0) {
+        return aPt[rangedir];
+    } else if (fb == 0.0) {
+        return bPt[rangedir];
+    }
+
+    Real d = 0.0, e = 0.0;    
+    int i;
+    for (i = 0; i < MAXITER; ++i)
+    {
+        if (fb*fc > 0)
+        {
+            //  Rename a, b, c and adjust bounding interval d
+            c = aPt[rangedir];
+            fc  = fa;
+            d = bPt[rangedir] - aPt[rangedir];
+            e = d;
+        }
+
+        if (std::abs(fc) < std::abs(fb))
+        {
+            aPt[rangedir] = bPt[rangedir];
+            bPt[rangedir] = c;
+            c = aPt[rangedir];
+            fa  = fb;
+            fb  = fc;
+            fc  = fa;
+        }
+        
+        //  Convergence check
+        Real tol1  = 2.0 * EPS * std::abs(bPt[rangedir]) + 0.5 * tol;
+        Real xm    = 0.5 * (c - bPt[rangedir]);
+        
+        if (std::abs(xm) <= tol1 || fb == 0.0)
+        {
+            break;
+        }
+
+        if (std::abs(e) >= tol1 && std::abs(fa) > std::abs(fb))
+        {
+            //  Attempt inverse quadratic interpolation
+            s = fb / fa;
+            if (aPt[rangedir] == c)
+            {
+                p = 2.0 * xm * s;
+                q = 1.0 - s;
+            }
+            else
+            {
+                q = fa / fc;
+                r = fb / fc;
+                p = s * (2.0 * xm * q * (q-r) - (bPt[rangedir]-aPt[rangedir]) * (r-1.0));
+                q = (q-1.0) * (r-1.0) * (s-1.0);
+            }
+            
+            //  Check whether in bounds
+            if (p > 0) q = -q;
+            
+            p = std::abs(p);
+            
+            if (2.0 * p < std::min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
+            {
+                //  Accept interpolation
+                e = d;
+                d = p / q;
+            }
+            else
+            {
+                //  Interpolation failed, use bisection
+                d = xm;
+                e = d;
+            }
+        }
+        else
+        {
+            //  Bounds decreasing too slowly, use bisection
+            d = xm;
+            e = d;
+        }
+        
+        //  Move last best guess to a
+        aPt[rangedir] = bPt[rangedir];
+        fa  = fb;
+        
+        //  Evaluate new trial root
+        if (std::abs(d) > tol1)
+        {
+            bPt[rangedir] = bPt[rangedir] + d;
+        }
+        else
+        {
+            if (xm < 0) bPt[rangedir] = bPt[rangedir] - tol1;
+            else        bPt[rangedir] = bPt[rangedir] + tol1;
+        }
+        
+        fb = m_f(bPt);
+    }
+
+    if (i >= MAXITER)
+    {
+        amrex::Error("BrentRootFinder: exceeding maximum iterations.");
+    }
+
+    return bPt[rangedir];
 }
 
 }}
