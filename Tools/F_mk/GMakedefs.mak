@@ -89,8 +89,8 @@ else
   CPPFLAGS += -DBL_$(ARCH)
 endif
 
-CPPFLAGS += -DFORTRAN_BOXLIB -DAMREX_FORTRAN_BOXLIB
-FPPFLAGS += -DFORTRAN_BOXLIB -DAMREX_FORTRAN_BOXLIB
+CPPFLAGS += -DFORTRAN_BOXLIB
+FPPFLAGS += -DFORTRAN_BOXLIB
 
 ifdef TEST
   CPPFLAGS += -DBL_TESTING
@@ -105,7 +105,7 @@ ifdef CUDA
   FPPFLAGS += -DCUDA
 
   ifndef CUDA_VERSION
-    CUDA_VERSION := 8.0
+    CUDA_VERSION = cuda9.0
   endif
 endif
 
@@ -180,7 +180,9 @@ ifeq ($(ARCH),Linux)
     include $(AMREX_HOME)/Tools/F_mk/comps/Linux_lahey.mak
   endif
 
-  ifeq ($(findstring summitdev, $(HOST)), summitdev)
+  # Deal with cpp issues on both summit and summitdev
+
+  ifeq ($(findstring summit, $(HOSTNAMEF)), summit)
     override CPP_ARGS := -E
   endif
 endif

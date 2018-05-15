@@ -2,7 +2,7 @@
 # For ray and rzmanta at LLNL
 #
 
-LLNL_MACHINES := ray rzmanta
+LLNL_MACHINES := ray rzmanta sierra
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(LLNL_MACHINES)))
   $(error Unknown LLNL computer, $(which_computer))
@@ -10,11 +10,18 @@ endif
 
 ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
 
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.04.27
+
   ifeq ($(USE_MPI),TRUE)
-    CC  = mpicc
-    CXX = mpicxx
-    FC  = mpif90
-    F90 = mpif90
+    CC  = $(MPIROOT)/bin/mpicc
+    CXX = $(MPIROOT)/bin/mpicxx
+    FC  = $(MPIROOT)/bin/mpif90
+    F90 = $(MPIROOT)/bin/mpif90
+
+    export OMPI_CC  := $(CXX)
+    export OMPI_CXX := $(CC)
+    export OMPI_FC  := $(F90)
+    export OMPI_F77 := $(FC)
   endif
 
   # If the cuda module is loaded, CUDA_HOME is set as the toolkit location.
@@ -26,5 +33,41 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
   endif
 
   SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
+  # Specify that we want to build for Pascal
+
+  CUDA_VERSION = cc60
+  COMPILE_CUDA_PATH = $(CUDA_HOME)
+
+endif
+
+ifeq ($(which_computer),$(filter $(which_computer),sierra))
+
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.04.27
+
+  ifeq ($(USE_MPI),TRUE)
+    CC  = $(MPIROOT)/bin/mpicc
+    CXX = $(MPIROOT)/bin/mpicxx
+    FC  = $(MPIROOT)/bin/mpif90
+    F90 = $(MPIROOT)/bin/mpif90
+
+    export OMPI_CC  := $(CXX)
+    export OMPI_CXX := $(CC)
+    export OMPI_FC  := $(F90)
+    export OMPI_F77 := $(FC)
+  endif
+
+  # If the cuda module is loaded, CUDA_HOME is set as the toolkit location.
+
+  SYSTEM_CUDA_PATH=$(CUDA_HOME)
+
+  ifeq ($(lowercase_comp),gnu)
+       override XTRALIBS := -lgfortran
+  endif
+
+  # Specify that we want to build for Volta
+
+  CUDA_VERSION = cc70
+  COMPILE_CUDA_PATH = $(CUDA_HOME)
 
 endif
