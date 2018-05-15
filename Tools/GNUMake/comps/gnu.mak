@@ -81,29 +81,23 @@ F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(
 
 ########################################################################
 
-GENERIC_COMP_FLAGS =
-
-gcc_major_gt_8 = $(shell expr $(gcc_major_version) \>= 8)
+GENERIC_GNU_FLAGS =
 
 ifeq ($(THREAD_SANITIZER),TRUE)
-  GENERIC_COMP_FLAGS += -fsanitize=thread
+  GENERIC_GNU_FLAGS += -fsanitize=thread
 endif
 ifeq ($(FSANITIZER),TRUE)
-  GENERIC_COMP_FLAGS += -fsanitize=address -fsanitize=undefined
-  ifeq ($(gcc_major_gt_8),1)
-    GENERIC_COMP_FLAGS += -fsanitize=pointer-compare -fsanitize=pointer-subtract
-    GENERIC_COMP_FLAGS += -fsanitize=builtin -fsanitize=pointer-overflow
-  endif
+  GENERIC_GNU_FLAGS += -fsanitize=address -fsanitize=undefined
 endif
 
 ifeq ($(USE_OMP),TRUE)
-  GENERIC_COMP_FLAGS += -fopenmp
+  GENERIC_GNU_FLAGS += -fopenmp
 endif
 
-CXXFLAGS += $(GENERIC_COMP_FLAGS)
-CFLAGS   += $(GENERIC_COMP_FLAGS)
-FFLAGS   += $(GENERIC_COMP_FLAGS)
-F90FLAGS += $(GENERIC_COMP_FLAGS)
+CXXFLAGS += $(GENERIC_GNU_FLAGS)
+CFLAGS   += $(GENERIC_GNU_FLAGS)
+FFLAGS   += $(GENERIC_GNU_FLAGS)
+F90FLAGS += $(GENERIC_GNU_FLAGS)
 
 ########################################################################
 
