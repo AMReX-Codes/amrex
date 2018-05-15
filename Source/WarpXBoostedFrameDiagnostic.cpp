@@ -69,10 +69,11 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
 
         const int ncomp = cell_centered_data.nComp();
         const int start_comp = 0;
+        const bool interpolate = true;
         std::unique_ptr<MultiFab> slice = amrex::get_slice_data(boost_direction_,
                                                                 snapshots_[i].current_z_boost,
                                                                 cell_centered_data, geom,
-                                                                start_comp, ncomp);
+                                                                start_comp, ncomp, interpolate);
 
         // transform it to the lab frame
         for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
