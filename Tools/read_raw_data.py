@@ -54,7 +54,7 @@ def read_lab_snapshot(snapshot):
 
     '''
 
-    hdrs = glob(snapshot + "/Level_0/buffer??????_H")
+    hdrs = glob(snapshot + "/Level_0/buffer*_H")
     hdrs.sort()
 
     boxes, file_names, offsets, header = _read_header(hdrs[0])
@@ -88,7 +88,32 @@ def read_lab_snapshot(snapshot):
                 elif space_dim == 2:
                     data[k][:,buffer_size*i:buffer_size*(i+1)] = v[:,:]
 
-    return data
+    local_info = _read_local_Header(snapshot + "/Header")
+    info = {'t_snapshot' : local_info['t_snapshot']}
+    z = np.linspace(local_info['zmin'], local_info['zmax'], data['Bx'].shape[-1])
+    info.update({ 'zmin' : local_info['zmin'], 'zmax' : local_info['zmax'], 'z' : z })
+    return data, info
+## -----------------------------------------------------------
+## USE THIS INSTEAD OF THE 5 PREVIOUS LINES IF Header contains
+## (x,y,z) min and max vectors instead of zmin and zmax
+## -----------------------------------------------------------
+#     local_info = _read_local_Header(snapshot + "/Header")
+#     info = {'t_snapshot' : local_info['t_snapshot']}
+#     print('info', info)
+#     xmin = local_info['axes_lo'][0]
+#     xmax = local_info['axes_hi'][0]
+#     x = np.linspace(xmin, xmax, data['Bx'].shape[0])
+#     info.update({ 'xmin' : xmin, 'xmax' : xmax, 'x' : x })    
+#     zmin = local_info['axes_lo'][-1]
+#     zmax = local_info['axes_hi'][-1]
+#     z = np.linspace(zmin, zmax, data['Bx'].shape[-1])
+#     info.update({ 'zmin' : zmin, 'zmax' : zmax, 'z' : z })
+#     if len(local_info['axes_lo']) == 3:
+#         ymin = local_info['axes_lo'][1]
+#         ymax = local_info['axes_hi'][1]
+#         y = np.linspace(ymin, ymax, data['Bx'].shape[1])
+#         info.update({ 'ymin' : ymin, 'ymax' : ymax, 'y' : y })
+#     return data, info
 
 
 def _get_field_names(raw_file):
@@ -105,6 +130,56 @@ def _line_to_numpy_arrays(line):
     hi_corner = _string_to_numpy_array(line[1][:])
     node_type = _string_to_numpy_array(line[2][:-1])
     return lo_corner, hi_corner, node_type
+
+
+def _read_local_Header(header_file):
+    with open(header_file, "r") as f:
+        t_snapshot = float(f.readline())
+        zmin = float(f.readline())
+        zmax = float(f.readline())
+    local_info = {
+        't_snapshot' : t_snapshot,
+        'zmin' : zmin,
+        'zmax' : zmax
+        }
+    return local_info
+## ------------------------------------------------------------
+## USE THIS INSTEAD OF THE PREVIOUS FUNCTION IF Header contains
+## (x,y,z) min and max vectors instead of zmin and zmax
+## ------------------------------------------------------------
+# def _read_local_Header(header_file):
+#     with open(header_file, "r") as f:
+#         t_snapshot = float(f.readline())
+#         axes_lo = [float(x) for x in f.readline().split()]
+#         axes_hi = [float(x) for x in f.readline().split()]
+#     local_info = {
+#         't_snapshot' : t_snapshot,
+#         'axes_lo' : axes_lo,
+#         'axes_hi' : axes_hi
+#         }
+#     return local_info
+
+
+def _read_global_Header(header_file):
+    with open(header_file, "r") as f:
+
+        nshapshots = int(f.readline())
+        dt_between_snapshots = float(f.readline())
+        gamma_boost = float(f.readline())
+        beta_boost = float(f.readline())
+        dz_snapshot = float(f.readline())
+        nz_snapshot = float(f.readline())
+
+    global_info = {
+        'nshapshots' : nshapshots,
+        'dt_between_snapshots' : dt_between_snapshots,
+        'gamma_boost' : gamma_boost,
+        'beta_boost' : beta_boost,
+        'dz_snapshot' : dz_snapshot,
+        'nz_snapshot' : nz_snapshot
+        }
+
+    return global_info
 
 
 def _read_header(header_file):
@@ -165,7 +240,7 @@ def _read_field(raw_file, field_name):
         shape = hi - lo + 1
         with open(raw_file + fn, "rb") as f:
             f.seek(offset)
-            f.readline()  # always skip the first line
+#            f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
             arr = arr.reshape(shape, order='F')
             data[[slice(l,h+1) for l, h in zip(lo, hi)]] = arr
@@ -192,7 +267,7 @@ def _read_buffer(snapshot, header_fn):
         size = np.product(shape)
         with open(snapshot + "/Level_0/" + fn, "rb") as f:
             f.seek(offset)
-            f.readline()  # always skip the first line
+#            f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', header.ncomp*size)
             for i in range(header.ncomp):
                 comp_data = arr[i*size:(i+1)*size].reshape(shape, order='F')
@@ -203,23 +278,4 @@ def _read_buffer(snapshot, header_fn):
 
 
 if __name__ == "__main__":
-    import matplotlib
-    matplotlib.use('Agg')
-    from matplotlib import pyplot as plt
-
-    data = read_data("plt00040")
-
-    # print the shapes of all the fields
-    for level in range(2):
-        for name, vals in data[level].items():
-            print(level, name, vals.shape, vals.min(), vals.max())
-
-    # make a projection along the z-axis of the 'jx' field for level 0
-    level = 0
-    plt.pcolormesh(data[level]['jx'].sum(axis=2))
-    plt.savefig('jx')
-
-    # make a projection along the x-axis of the 'Bx_cp' field for level 1
-    level = 1
-    plt.pcolormesh(data[level]['Bx_cp'].sum(axis=0))
-    plt.savefig('Bx_cp')
+    data = read_lab_snapshot("lab_frame_data/snapshot00012");
