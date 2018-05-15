@@ -813,14 +813,6 @@ namespace amrex
   
     //a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
     //return; // caching disabled for now.... ugh.  bvs
-    if(m_hasMoments)
-    {
-      pout() << "has moments in fillebisl is true" << endl;
-    }
-    else
-    {
-      pout() << "has moments in fillebisl is false" << endl;
-    }
     a_ebisLayout.define(m_domain, a_grids, a_dm, a_nghost, m_graph, m_data, m_hasMoments, m_dx);
   }
 
