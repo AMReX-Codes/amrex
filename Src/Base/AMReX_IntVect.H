@@ -13,6 +13,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_Managed.H>
 
 namespace amrex {
 
@@ -26,7 +27,7 @@ namespace amrex {
 * to implement scaling and translation operations.
 */
 	
-class IntVect
+class IntVect : public Managed
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
 public:
@@ -70,6 +71,7 @@ public:
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
+    DEVICE_CLASS_FUNCTION
     IntVect () : vect{AMREX_D_DECL(0,0,0)} {}
 
     /**
@@ -77,9 +79,11 @@ public:
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
+    DEVICE_CLASS_FUNCTION 
     IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
 
 #if (AMREX_SPACEDIM > 1)
+    DEVICE_CLASS_FUNCTION
     explicit IntVect (int i) : vect{AMREX_D_DECL(i,i,i)} {}
 #endif
 
@@ -87,6 +91,7 @@ public:
     * \brief Construct an IntVect setting the coordinates to the
     * corresponding values in the integer array a.
     */
+    DEVICE_CLASS_FUNCTION
     explicit IntVect (const int* a) : vect{AMREX_D_DECL(a[0],a[1],a[2])} {}
 
     /**
@@ -94,6 +99,7 @@ public:
     * the Vector<int> doesn' t have the same dimension as this
     * IntVect.
     */
+    DEVICE_CLASS_FUNCTION
     explicit IntVect (const Vector<int>& a) : vect{AMREX_D_DECL(a[0],a[1],a[2])} {
         BL_ASSERT(a.size() == AMREX_SPACEDIM);
     }
@@ -102,6 +108,7 @@ public:
   /**
      Sum of all components of this IntVect.
   */
+    DEVICE_CLASS_FUNCTION
     int sum () const
     {
         int retval = AMREX_D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
@@ -137,10 +144,11 @@ public:
 
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-
+    DEVICE_CLASS_FUNCTION 
     int& operator[] (int i) { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
+    DEVICE_CLASS_FUNCTION
     const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
@@ -283,6 +291,7 @@ public:
         AMREX_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]); return *this;
     }
     //! Returns component-wise sum of IntVect and argument.
+    DEVICE_CLASS_FUNCTION
     IntVect operator+ (const IntVect& p) const
     {
         return IntVect(AMREX_D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
