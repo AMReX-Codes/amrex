@@ -41,6 +41,8 @@ C$(AMREX_BASE)_sources += AMReX_SPMD.cpp
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
+C$(AMREX_BASE)_headers += AMReX_Managed.H
+
 #
 # I/O stuff.
 #
