@@ -51,7 +51,9 @@ contains
          jxf, jyf, jzf, rhof, rhooldf, &
          l_spectral, l_staggered, norderx, nordery, norderz
     use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
-    USE fourier_psaotd, only: init_plans_blocks
+    use omp_lib, only: omp_get_max_threads
+    USE gpstd_solver, only: init_gpstd
+    USE fourier_psaotd, only: init_plans_fourier_mpi
     use params, only : dt
 
     integer, dimension(3), intent(in) :: global_lo, global_hi, local_lo, local_hi
@@ -59,14 +61,13 @@ contains
     type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
+    integer :: iret
+    integer(idp) :: nopenmp
     integer :: nx_padded
     integer, dimension(3) :: shp
     integer(kind=c_size_t) :: sz
     real(c_double) :: realfoo
     complex(c_double_complex) :: complexfoo
-
-    !    CALL DFFTW_INIT_THREADS(iret)
-    !    fftw_threads_ok = .TRUE.
 
     ! Define size of domains: necessary for the initialization of the global FFT
     nx_global = INT(global_hi(1)-global_lo(1)+1,idp)
@@ -97,10 +98,17 @@ contains
     fftw_with_mpi = .TRUE. ! Activate MPI FFTW
     fftw_hybrid = .FALSE.   ! FFT per MPI subgroup (instead of global)
     fftw_mpi_transpose = .FALSE. ! Do not transpose the data
-    fftw_threads_ok = .FALSE.   ! Do not use threads for FFTW
     p3dfft_flag = .FALSE.
     l_spectral  = .TRUE.   ! Activate spectral Solver, using FFT
-
+#ifdef _OPENMP
+    CALL DFFTW_INIT_THREADS(iret)
+    fftw_threads_ok = .TRUE.
+    nopenmp = OMP_GET_MAX_THREADS()
+#else
+    fftw_threads_ok = .FALSE.
+    nopenmp = 1
+#endif
+    
     ! Allocate padded arrays for MPI FFTW
     nx_padded = 2*(nx/2 + 1)
     shp = [nx_padded, int(ny), int(nz)]
@@ -170,7 +178,10 @@ contains
     dz = dx_wrpx(3)
     dt = dt_wrpx
 
-    CALL init_plans_blocks()
+    ! Initialize the matrix blocks for the PSATD solver
+    CALL init_gpstd()
+    ! Initialize the plans for fftw with MPI
+    CALL init_plans_fourier_mpi(nopenmp)
 
   end subroutine warpx_fft_dataplan_init
 
