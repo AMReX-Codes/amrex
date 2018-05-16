@@ -300,11 +300,11 @@ contains
        call bl_error("Too many CUDA threads per block in x-dimension.")
     end if
 
-    if (numThreads % y > max_threads_dim(1)) then
+    if (numThreads % y > max_threads_dim(2)) then
        call bl_error("Too many CUDA threads per block in y-dimension.")
     end if
 
-    if (numThreads % z > max_threads_dim(1)) then
+    if (numThreads % z > max_threads_dim(3)) then
        call bl_error("Too many CUDA threads per block in z-dimension.")
     end if
 
