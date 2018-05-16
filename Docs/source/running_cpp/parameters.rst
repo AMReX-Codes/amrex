@@ -92,16 +92,16 @@ Distribution across MPI ranks and parallelization
 Math parser and user-defined constants
 --------------------------------------
 
-WarpX provides a math parser that reads expressions in the input file. 
-It can be used to define the plasma density profile or the laser field 
-(see below `Particle initialization` and `Laser initialization`). 
+WarpX provides a math parser that reads expressions in the input file.
+It can be used to define the plasma density profile or the laser field
+(see below `Particle initialization` and `Laser initialization`).
 
-The parser reads python-style expressions between double quotes, for instance 
-``"a0*x**2 * (1-y*1.e2) * (x>0)"`` is a valid expression where ``a0`` is a 
-user-defined constant and ``x`` and ``y`` are variables. The factor 
+The parser reads python-style expressions between double quotes, for instance
+``"a0*x**2 * (1-y*1.e2) * (x>0)"`` is a valid expression where ``a0`` is a
+user-defined constant and ``x`` and ``y`` are variables. The factor
 ``(x>0)`` is `1` where `x>0` and `0` where `x<=0`. It allows the user to
  define functions by intervals. User-defined constants can be used in parsed
- functions only (i.e., ``density_function(x,y,z)`` and ``field_function(x,y,t)``, 
+ functions only (i.e., ``density_function(x,y,z)`` and ``field_function(x,y,t)``,
 see below). They are specified with:
 
 * ``constants.use_my_constants`` (`bool`)
@@ -145,19 +145,19 @@ Particle initialization
 * ``<species_name>.profile`` (`string`)
     Density profile for this species. The options are:
 
-    * ``constant``: Constant density profile within the box, or between ``<species_name>.xmin`` 
-      and ``<species_name>.xmax`` (and same in all directions). This requires additional 
+    * ``constant``: Constant density profile within the box, or between ``<species_name>.xmin``
+      and ``<species_name>.xmax`` (and same in all directions). This requires additional
       parameter ``<species_name>.density``. i.e., the plasma density in :math:`m^{-3}`.
 
-    * ``parse_density_function``: the density is given by a function in the input file. 
-      It requires additional argument ``<species_name>.density_function(x,y,z)``, which is a 
-      mathematical expression for the density of the species, e.g. 
-      ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a 
-      user-defined constant, see above. Note that using this density profile will turn 
+    * ``parse_density_function``: the density is given by a function in the input file.
+      It requires additional argument ``<species_name>.density_function(x,y,z)``, which is a
+      mathematical expression for the density of the species, e.g.
+      ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
+      user-defined constant, see above. Note that using this density profile will turn
       ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
-      
+
 * ``warpx.serialize_ics`` (`0 or 1`)
-    Whether or not to use OpenMP threading for particle initialization. 
+    Whether or not to use OpenMP threading for particle initialization.
 
 Laser initialization
 --------------------
@@ -228,18 +228,18 @@ Laser initialization
     implemented are:
 
     - ``"Gaussian"``: The transverse and longitudinal profiles are Gaussian.
-    - ``"Harris"``: The transverse profile is Gaussian, but the longitudinal profile 
+    - ``"Harris"``: The transverse profile is Gaussian, but the longitudinal profile
       is given by the Harris function (see ``laser.profile_duration`` for more details)
-    - ``"parse_field_function"``: the laser electric field is given by a function in the 
-      input file. It requires additional argument ``laser.field_function(X,Y,t)``, which 
-      is a mathematical expression , e.g. 
-      ``laser.field_function(X,Y,t) = "a0*X**2 * (X>0) * cos(omega0*t)"`` where 
-      ``a0`` and ``omega0`` are a user-defined constant, see above. The profile passed 
-      here is the full profile, not only the laser envelope. ``t`` is time and ``X`` 
-      and ``Y`` are coordinates orthogonal to ``laser.direction`` (not necessarily the 
-      x and y coordinates of the simulation). All parameters above are required, but 
-      none of the parameters below are used when ``laser.parse_field_function=1``. Even 
-      though ``laser.wavelength`` and ``laser.e_max`` should be included in the laser 
+    - ``"parse_field_function"``: the laser electric field is given by a function in the
+      input file. It requires additional argument ``laser.field_function(X,Y,t)``, which
+      is a mathematical expression , e.g.
+      ``laser.field_function(X,Y,t) = "a0*X**2 * (X>0) * cos(omega0*t)"`` where
+      ``a0`` and ``omega0`` are a user-defined constant, see above. The profile passed
+      here is the full profile, not only the laser envelope. ``t`` is time and ``X``
+      and ``Y`` are coordinates orthogonal to ``laser.direction`` (not necessarily the
+      x and y coordinates of the simulation). All parameters above are required, but
+      none of the parameters below are used when ``laser.parse_field_function=1``. Even
+      though ``laser.wavelength`` and ``laser.e_max`` should be included in the laser
       function, they still have to be specified as they are used for numerical purposes.
 
 *  ``laser.profile_t_peak`` (`float`; in seconds)
@@ -334,20 +334,30 @@ Numerics and algorithms
      - ``1``: Vay pusher
 
 * ``interpolation.nox``, ``interpolation.noy``, ``interpolation.noz`` (`integer`)
-    The order of the shape factors for the macroparticles, for the 3 dimensions of space. 
+    The order of the shape factors for the macroparticles, for the 3 dimensions of space.
     Lower-order shape factors result in faster simulations, but more noisy results,
 
-    Note that the implementation in WarpX is more efficient when these 3 numbers are equal, 
+    Note that the implementation in WarpX is more efficient when these 3 numbers are equal,
     and when they are between 1 and 3.
-    
+
 * ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`)
     The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
     If this is not set, the default is ``psatd.nox = psatd.noy = psatd.noz = 16``.
-    
+
 * ``psatd.ngroups_fft`` (`integer`)
     The number of MPI groups that are created for the FFT, when using the code compiled with a PSATD solver.
-    The FFTs are global with one MPI group and use guard cell exchanges inbetween MPI groups.
-    
+    The FFTs are global within one MPI group and use guard cell exchanges in between MPI groups.
+    (If ``ngroups_fft`` is larger than the number of MPI ranks used,
+    than the actual number of MPI ranks is used instead.)
+
+* ``psatd.fftw_plan_measure`` (`0` or `1`)
+    Defines whether the parameters of FFTW plans will be initialized by
+    measuring and optimizing performance (``FFTW_MEASURE`` mode; activated by default here).
+    If ``psatd.fftw_plan_measure`` is set to ``0``, then the best parameters of FFTW
+    plans will simply be estimated (``FFTW_ESTIMATE`` mode).
+    See `this section of the FFTW documentation <http://www.fftw.org/fftw3_doc/Planner-Flags.html>`__
+    for more information.
+
 
 Diagnostics and output
 ----------------------
@@ -389,12 +399,12 @@ Diagnostics and output
 
 Checkpoints and restart
 -----------------------
-WarpX supports checkpoints/restart via AMReX. 
+WarpX supports checkpoints/restart via AMReX.
 
 * ``amr.check_int`` (`integer`)
     The number of iterations between two consecutive checkpoints. Use a
     negative number to disable checkpoints.
-    
+
 * ``amr.restart`` (`string`)
-    Name of the checkpoint file to restart from. Returns an error if the folder does not exist 
-    or if it is not properly formatted. 
+    Name of the checkpoint file to restart from. Returns an error if the folder does not exist
+    or if it is not properly formatted.
