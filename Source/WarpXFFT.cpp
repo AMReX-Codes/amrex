@@ -180,39 +180,31 @@ void
 WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm_fft,
                               BoxArray& ba_valid, Box& domain_fft, const Box& domain)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3, "PSATD only works in 3D");
+
     IntVect nguards_fft(AMREX_D_DECL(nox_fft/2,noy_fft/2,noz_fft/2));
 
     int nprocs = ParallelDescriptor::NProcs();
-    int np_fft;
-    MPI_Comm_size(comm_fft[lev], &np_fft);
-
-    BoxList bl_fft; // List of boxes: will be filled by the boxes attributed to each proc
-    bl_fft.reserve(nprocs);
-    Vector<int> gid_fft; // List of group ID: will be filled with the FFT group ID of each box
-    gid_fft.reserve(nprocs);
 
     BoxList bl(domain, ngroups_fft);  // This does a multi-D domain decomposition for groups
     AMREX_ALWAYS_ASSERT(bl.size() == ngroups_fft);
     const Vector<Box>& bldata = bl.data();
-    // Fill bl_fft and gid_fft ; loop over FFT groups
-    for (int igroup = 0; igroup < ngroups_fft; ++igroup)
-    {
-        // Within the group, 1d domain decomposition is performed.
-        const Box& bx = amrex::grow(bldata[igroup], nguards_fft);
-        // chop in z-direction into np_fft for FFTW
-        BoxList tbl(bx, np_fft, Direction::z);
-        bl_fft.join(tbl);
-        for (int i = 0; i < np_fft; ++i) {
-            gid_fft.push_back(igroup);
-        }
-        // Determine the sub-domain associated with the FFT group of the local proc
-        if (igroup == color_fft[lev]) {
-            domain_fft = bx;
-        }
-    }
 
-    // This BoxArray contains local FFT domains for each process
-    ba_fft.define(std::move(bl_fft));
+    // This is the domain for the group.
+    domain_fft = amrex::grow(bldata[color_fft[lev]], nguards_fft);
+    // Ask FFTW to chop in z-direction into pieces
+    int nz_fft, z0_fft;
+    warpx_fft_domain_decomp(&nz_fft, &z0_fft, BL_TO_FORTRAN_BOX(domain_fft));
+
+    Vector<Box> bx_fft;
+    if (nz_fft > 0) {
+        Box b = domain_fft;
+        b.setRange(2, z0_fft+domain_fft.smallEnd(2), nz_fft);
+        bx_fft.push_back(b);
+    }
+    amrex::AllGatherBoxes(bx_fft);
+
+    ba_fft.define(BoxList(std::move(bx_fft)));
     AMREX_ALWAYS_ASSERT(ba_fft.size() == ParallelDescriptor::NProcs());
 
     Vector<int> pmap(ba_fft.size());
@@ -228,9 +220,10 @@ WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm
 
     BoxList bl_valid; // List of boxes: will be filled by the valid part of the subdomains of ba_fft
     bl_valid.reserve(ba_fft.size());
+    int np_fft = nprocs / ngroups_fft;
     for (int i = 0; i < ba_fft.size(); ++i)
     {
-        int igroup = gid_fft[i];
+        int igroup = dm_fft[i] / np_fft; // This should be consistent with InitFFTComm
         const Box& bx = ba_fft[i] & bldata[igroup]; // Intersection with the domain of
                                                     // the FFT group *without* guard cells
         if (bx.ok())
@@ -262,9 +255,7 @@ WarpX::InitFFTDataPlan (int lev)
     for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
     {
         const Box& local_domain = amrex::enclosedCells(mfi.fabbox());
-        warpx_fft_dataplan_init(BL_TO_FORTRAN_BOX(domain_fp_fft[lev]),
-                                BL_TO_FORTRAN_BOX(local_domain),
-                                &nox_fft, &noy_fft, &noz_fft,
+        warpx_fft_dataplan_init(&nox_fft, &noy_fft, &noz_fft,
                                 (*dataptr_fp_fft[lev])[mfi].data, &FFTData::N,
                                 dx_fp.data(), &dt[lev]);
     }

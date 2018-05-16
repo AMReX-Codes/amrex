@@ -5,8 +5,11 @@ module warpx_fft_module
   use iso_c_binding
   implicit none
 
+  include 'fftw3-mpi.f03'
+
   private
-  public :: warpx_fft_mpi_init, warpx_fft_dataplan_init, warpx_fft_nullify, warpx_fft_push_eb
+  public :: warpx_fft_mpi_init, warpx_fft_domain_decomp, warpx_fft_dataplan_init, warpx_fft_nullify, &
+       warpx_fft_push_eb
 
 contains
 
@@ -25,7 +28,45 @@ contains
 
     call mpi_comm_rank(comm, lrank, ierr)
     rank = lrank
+
+#ifdef _OPENMP
+    ierr = fftw_init_threads()
+    if (ierr.eq.0) call amrex_error("fftw_init_threads failed")
+#endif
+    call fftw_mpi_init()
   end subroutine warpx_fft_mpi_init
+
+!> @brief
+!! Ask FFTW to do domain decomposition.
+  subroutine warpx_fft_domain_decomp (warpx_local_nz, warpx_local_z0, global_lo, global_hi) &
+       bind(c,name='warpx_fft_domain_decomp')
+    use picsar_precision, only : idp
+    use shared_data, only : comm, &
+         nx_global, ny_global, nz_global, & ! size of global FFT
+         nx, ny, nz ! size of local subdomains
+    use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
+
+    integer, intent(out) :: warpx_local_nz, warpx_local_z0
+    integer, dimension(3), intent(in) :: global_lo, global_hi
+
+    nx_global = INT(global_hi(1)-global_lo(1)+1,idp)
+    ny_global = INT(global_hi(2)-global_lo(2)+1,idp)
+    nz_global = INT(global_hi(3)-global_lo(3)+1,idp)
+
+    alloc_local = fftw_mpi_local_size_3d( &
+         INT(nz_global,C_INTPTR_T), &
+         INT(ny_global,C_INTPTR_T), &
+         INT(nx_global,C_INTPTR_T)/2+1, &
+         comm, local_nz, local_z0)
+
+    nx = nx_global
+    ny = ny_global
+    nz = local_nz
+
+    warpx_local_nz = local_nz
+    warpx_local_z0 = local_z0
+  end subroutine warpx_fft_domain_decomp
+
 
 !> @brief
 !! Set all the flags and metadata of the PICSAR FFT module.
@@ -33,13 +74,11 @@ contains
 !!
 !! Note: fft_data is a stuct containing 22 pointers to arrays
 !! 1-11: padded arrays in real space ; 12-22 arrays for the fields in Fourier space
-  subroutine warpx_fft_dataplan_init (global_lo, global_hi, local_lo, local_hi, &
-       nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx) &
+  subroutine warpx_fft_dataplan_init (nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx) &
        bind(c,name='warpx_fft_dataplan_init')
     USE picsar_precision, only: idp
-    use shared_data, only : comm, c_dim,  p3dfft_flag, &
+    use shared_data, only : c_dim,  p3dfft_flag, &
          fftw_with_mpi, fftw_threads_ok, fftw_hybrid, fftw_mpi_transpose, &
-         nx_global, ny_global, nz_global, & ! size of global FFT
          nx, ny, nz, & ! size of local subdomains
          nkx, nky, nkz, & ! size of local ffts
          iz_min_r, iz_max_r, iy_min_r, iy_max_r, ix_min_r, ix_max_r, & ! loop bounds
@@ -50,13 +89,11 @@ contains
          exf, eyf, ezf, bxf, byf, bzf, &
          jxf, jyf, jzf, rhof, rhooldf, &
          l_spectral, l_staggered, norderx, nordery, norderz
-    use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
     use omp_lib, only: omp_get_max_threads
     USE gpstd_solver, only: init_gpstd
     USE fourier_psaotd, only: init_plans_fourier_mpi
     use params, only : dt
 
-    integer, dimension(3), intent(in) :: global_lo, global_hi, local_lo, local_hi
     integer, intent(in) :: nox, noy, noz, ndata
     type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
@@ -69,24 +106,11 @@ contains
     real(c_double) :: realfoo
     complex(c_double_complex) :: complexfoo
 
-    ! Define size of domains: necessary for the initialization of the global FFT
-    nx_global = INT(global_hi(1)-global_lo(1)+1,idp)
-    ny_global = INT(global_hi(2)-global_lo(2)+1,idp)
-    nz_global = INT(global_hi(3)-global_lo(3)+1,idp)
-    nx = INT(local_hi(1)-local_lo(1)+1,idp)
-    ny = INT(local_hi(2)-local_lo(2)+1,idp)
-    nz = INT(local_hi(3)-local_lo(3)+1,idp)
     ! No need to distinguish physical and guard cells for the global FFT;
     ! only nx+2*nxguards counts. Thus we declare 0 guard cells for simplicity
     nxguards = 0_idp
     nyguards = 0_idp
     nzguards = 0_idp
-    ! Find the decomposition that FFTW imposes in kspace
-    alloc_local = fftw_mpi_local_size_3d( &
-         INT(nz_global,C_INTPTR_T), &
-         INT(ny_global,C_INTPTR_T), &
-         INT(nx_global,C_INTPTR_T)/2+1, &
-         comm, local_nz, local_z0)
 
     ! For the calculation of the modified [k] vectors
     l_staggered = .TRUE.
@@ -108,7 +132,7 @@ contains
     fftw_threads_ok = .FALSE.
     nopenmp = 1
 #endif
-    
+
     ! Allocate padded arrays for MPI FFTW
     nx_padded = 2*(nx/2 + 1)
     shp = [nx_padded, int(ny), int(nz)]

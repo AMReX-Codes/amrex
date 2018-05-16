@@ -407,9 +407,9 @@ extern "C"
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);
-    void warpx_fft_dataplan_init (const int* global_lo, const int* global_hi,
-                                  const int* local_lo, const int* local_hi,
-                                  const int* nox, const int* noy, const int* noz,
+    void warpx_fft_domain_decomp (int* warpx_local_nz, int* warpx_local_z0,
+                                  const int* global_lo, const int* global_hi);
+    void warpx_fft_dataplan_init (const int* nox, const int* noy, const int* noz,
                                   void* fft_data, const int* ndata,
                                   const amrex_real* dx_w, const amrex_real* dt_w);
     void warpx_fft_nullify ();
