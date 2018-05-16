@@ -86,7 +86,7 @@
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
-#if __CUDACC_VER_MAJOR__ >= 9
+#if __CUDACC_VER_MAJOR__ >= 9 && __CUDACC_VER_MINOR__ >= 1
 
 #define DEVICE_LAUNCH(function)                         \
       dim3 function_##numBlocks, function_##numThreads; \
