@@ -394,6 +394,7 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("psatd");
         pp.query("ngroups_fft", ngroups_fft);
+        pp.query("fftw_measure", fftw_measure);
         pp.query("nox", nox_fft);
         pp.query("noy", noy_fft);
         pp.query("noz", noz_fft);
@@ -497,7 +498,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 #endif
 
     int ngF = (do_moving_window) ? 2 : 0;
-    
+
     //
     // The fine patch
     //
