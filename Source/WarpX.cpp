@@ -394,7 +394,7 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("psatd");
         pp.query("ngroups_fft", ngroups_fft);
-        pp.query("fftw_measure", fftw_measure);
+        pp.query("fftw_plan_measure", fftw_plan_measure);
         pp.query("nox", nox_fft);
         pp.query("noy", noy_fft);
         pp.query("noz", noz_fft);
