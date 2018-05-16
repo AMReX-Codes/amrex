@@ -294,10 +294,18 @@ contains
 
     numThreadsTotal = numThreads % x * numThreads % y * numThreads % z
 
-    ! Should not exceed CUDA_MAX_THREADS or maximum allowable threads per block.
+    ! Should not exceed maximum allowable threads per block.
 
-    if (numThreadsTotal > CUDA_MAX_THREADS) then
-       call bl_error("Too many CUDA threads per block requested compared to CUDA_MAX_THREADS.")
+    if (numThreads % x > max_threads_dim(1)) then
+       call bl_error("Too many CUDA threads per block in x-dimension.")
+    end if
+
+    if (numThreads % y > max_threads_dim(1)) then
+       call bl_error("Too many CUDA threads per block in y-dimension.")
+    end if
+
+    if (numThreads % z > max_threads_dim(1)) then
+       call bl_error("Too many CUDA threads per block in z-dimension.")
     end if
 
     if (numThreadsTotal > prop % maxThreadsPerBlock) then
