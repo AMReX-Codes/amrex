@@ -142,6 +142,10 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_nd.F90
 
   F90$(AMREX_BASE)_sources += AMReX_filcc_mod.F90
+  ifeq ($(USE_CUDA),TRUE)
+    CUDA_MAXREGCOUNT_AMReX_filcc_mod.F90 := 128
+  endif
+
   F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90
