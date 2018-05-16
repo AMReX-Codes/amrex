@@ -164,7 +164,11 @@ $(objEXETempDir)/%.o: %.f90
 $(objEXETempDir)/%.o: %.F90
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(CPP_PREFIX)-DBL_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+	@if [ "$(CUDA_MAXREGCOUNT_$(<F))" != "" ]; then \
+	  $(SILENT) $(F90CACHE) $(F90) $(patsubst -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT), -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT_$(<F)), $(F90FLAGS)) $(CPP_PREFIX)-DBL_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION); \
+	else \
+	  $(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(CPP_PREFIX)-DBL_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION); \
+	fi
 
 #
 # Rules for dependencies in bare object files.
