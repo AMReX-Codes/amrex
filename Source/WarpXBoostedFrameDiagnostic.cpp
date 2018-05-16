@@ -35,15 +35,13 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                              zmax_lab + v_window_lab * t_lab, i);
         snapshots_.push_back(snapshot);
         buff_counter_.push_back(0);
-        file_counter_.push_back(0);
         data_buffer_[i].reset( nullptr );
     }
 
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 }
 
-BoostedFrameDiagnostic::
-~BoostedFrameDiagnostic()
+void BoostedFrameDiagnostic::Flush(const Real t_boost)
 {
     BL_PROFILE("BoostedFrameDiagnostic::~BoostedFrameDiagnostic");
     
@@ -51,9 +49,16 @@ BoostedFrameDiagnostic::
     VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
 
     for (int i = 0; i < N_snapshots_; ++i) {
+
+        snapshots_[i].updateCurrentZPositions(t_boost,
+                                              inv_gamma_boost_,
+                                              inv_beta_boost_);
+
+        int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
+        
         if (buff_counter_[i] != 0) {
             std::stringstream ss;
-            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", ++file_counter_[i], 5);
+            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
             VisMF::Write(*data_buffer_[i], ss.str());
             buff_counter_[i] = 0;
         }
@@ -139,7 +144,7 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
 
         if (buff_counter_[i] == num_buffer_) {
             std::stringstream ss;
-            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", ++file_counter_[i], 5);
+            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
             VisMF::Write(*data_buffer_[i], ss.str());
             buff_counter_[i] = 0;
         }

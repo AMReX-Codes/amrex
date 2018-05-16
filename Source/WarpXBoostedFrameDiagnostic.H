@@ -70,7 +70,6 @@ class BoostedFrameDiagnostic {
     int num_buffer_ = 256;
     int max_box_size_ = 256;
     amrex::Vector<int> buff_counter_;
-    amrex::Vector<int> file_counter_;
 
     amrex::Vector<LabSnapShot> snapshots_;
 
@@ -81,7 +80,7 @@ public:
                            int N_snapshots, amrex::Real gamma_boost,
                            amrex::Real dt_boost, int boost_direction);
 
-    ~BoostedFrameDiagnostic();
+    void Flush(const amrex::Real t_boost);
     
     void writeLabFrameData(const amrex::MultiFab& cell_centered_data,
                            const amrex::Geometry& geom, amrex::Real t_boost);
