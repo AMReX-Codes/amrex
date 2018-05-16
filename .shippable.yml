@@ -1,0 +1,26 @@
+build:
+
+  pre_ci:
+    docker build -t warpx:tip .
+
+  pre_ci_boot:
+    image_name: warpx
+    image_tag: tip
+
+  ci:
+    # Run the standard warp tests
+    - cd /home/warp_user/warp/warp_test/
+    - python runalltests.py
+    # Check that the example scripts run (with MPI and restart)
+    - cd /home/warp_user/run/
+    - cp ../warp/scripts/examples/plasma_acceleration/* ./
+    - mpirun -np 4 python lpa_script.py -p 2 1 2
+    - mpirun -np 4 python restart_after_lpa_script.py -p 2 1 2
+    - rm -rf ./diags
+    - mpirun -np 2 python lpa_boostedframe_script.py
+    - rm -rf ./diags
+    - mpirun -np 4 python test_antenna.py -p 2 1 2
+
+    # Finally, check that warp can be imported by itself, without
+    # depending on scipy or h5py
+    - conda uninstall --yes scipy h5py ; python -c 'import warp'
