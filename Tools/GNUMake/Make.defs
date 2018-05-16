@@ -134,7 +134,7 @@ ifeq ($(USE_CUDA),TRUE)
   CUDA_MAX_THREADS ?= 256
 
   # Limit the maximum number of registers available.
-  CUDA_MAXREGCOUNT ?= 128
+  CUDA_MAXREGCOUNT ?= 255
 endif
 
 ifdef DIMENSION_AGNOSTIC
