@@ -15,6 +15,8 @@
 #if     AMREX_SPACEDIM==1
 #define ARLIM_P(x)  const int&
 #define ARLIM(x)  (x)[0]
+#define ARLIM_ARG(x) x[0]
+#define ARLIM_VAL(x) const int x##_1
 #ifdef AMREX_USE_CUDA
 #define ARLIM_3D(x) x
 #define ARLIM_ANYD(x) x
@@ -31,6 +33,8 @@
 #elif   AMREX_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1]
+#define ARLIM_ARG(x) x[0], x[1]
+#define ARLIM_VAL(x) const int x##_1, const int x##_2
 #ifdef AMREX_USE_CUDA
 #define ARLIM_3D(x) x
 #define ARLIM_ANYD(x) x
@@ -52,7 +56,11 @@
 #define ZFILL(x) x
 #define BCREC_3D(x) x
 #define BCREC_ANYD(x) x
+#define ARLIM_ARG(x) x[0], x[1], x[2]
+#define ARLIM_VAL(x) const int x##_1, const int x##_2, const int x##_3
 #endif
+
+#define ARLIM_REP(x) const int* x
 
 #define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
 #define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect()), (x).nCompPtr()
