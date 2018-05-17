@@ -22,7 +22,7 @@ contains
     real(amrex_real) :: pi, fpi, tpi, fac
 
     Lx = probhi(1)-problo(1)
-    Ly = probhi(1)-problo(2)
+    Ly = probhi(2)-problo(2)
     Lz = probhi(3)-problo(3)
 
     pi = 4.d0 * atan(1.d0)
@@ -31,16 +31,16 @@ contains
     fac = 3.0d0 * tpi**2 / (Lx**2 * Ly**2 * Lz**2)
 
     do k = lo(3), hi(3)
-       z = (dble(k)+0.5d0)*dx(3)
+       z = (dble(k)+0.5d0)*dx(3)/Lz
        
        do j = lo(2), hi(2)
-          y = (dble(j)+0.5d0)*dx(2)
+          y = (dble(j)+0.5d0)*dx(2)/Ly
           
           do i = lo(1), hi(1)
-             x = (dble(i)+0.5d0)*dx(1)
+             x = (dble(i)+0.5d0)*dx(1)/Lx
              
-             rhs(i,j,k) = -fac * (sin(tpi*x/Lx) * sin(tpi*y/Ly) * sin(tpi*z/Lz))  &
-                  &       -fac * (sin(fpi*x/Lx) * sin(fpi*y/Ly) * sin(fpi*z/Lz))
+             rhs(i,j,k) = -fac * (sin(tpi*x) * sin(tpi*y) * sin(tpi*z))  &
+                  &       -fac * (sin(fpi*x) * sin(fpi*y) * sin(fpi*z))
           end do
        end do
     end do
