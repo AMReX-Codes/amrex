@@ -20,7 +20,7 @@ Frame::Frame (MPI_Comm c)
 #endif
 }
 
-Frame::Frame (Frame && rhs)
+Frame::Frame (Frame && rhs) noexcept
     : comm     (rhs.comm),
       group    (rhs.group),
       m_rank_me(rhs.m_rank_me),
@@ -48,7 +48,7 @@ Frame::local_to_global_rank (int lrank) const
 }
 
 void
-Frame::local_to_global_rank (int* global, const int* local, int n) const
+Frame::local_to_global_rank (int* global, const int* local, std::size_t n) const
 {
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
@@ -57,10 +57,10 @@ Frame::local_to_global_rank (int* global, const int* local, int n) const
     }
     else
     {
-        for (int i = 0; i < n; ++i) global[i] = local[i];
+        for (std::size_t i = 0; i < n; ++i) global[i] = local[i];
     }
 #else
-    for (int i = 0; i < n; ++i) global[i] = 0;
+    for (std::size_t i = 0; i < n; ++i) global[i] = 0;
 #endif
 }
 
@@ -73,7 +73,7 @@ Frame::global_to_local_rank (int grank) const
 }
 
 void
-Frame::global_to_local_rank (int* local, const int* global, int n) const
+Frame::global_to_local_rank (int* local, const int* global, std::size_t n) const
 {
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
@@ -82,10 +82,10 @@ Frame::global_to_local_rank (int* local, const int* global, int n) const
     }
     else
     {
-        for (int i = 0; i < n; ++i) local[i] = global[i];
+        for (std::size_t i = 0; i < n; ++i) local[i] = global[i];
     }
 #else
-    for (int i = 0; i < n; ++i) local[i] = 0;
+    for (std::size_t i = 0; i < n; ++i) local[i] = 0;
 #endif    
 }
 
