@@ -1,5 +1,5 @@
-#ifndef BASEUMAP_F_H_
-#define BASEUMAP_F_H_
+#ifndef AMREX_BASEUMAP_F_H_
+#define AMREX_BASEUMAP_F_H_
 
 #include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>

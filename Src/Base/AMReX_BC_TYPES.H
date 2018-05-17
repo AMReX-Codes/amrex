@@ -1,5 +1,5 @@
-#ifndef _BC_TYPES_H_
-#define _BC_TYPES_H_ 
+#ifndef AMREX_BC_TYPES_H_
+#define AMREX_BC_TYPES_H_
 
 #if 0
 ---------------------------------------------------------------------

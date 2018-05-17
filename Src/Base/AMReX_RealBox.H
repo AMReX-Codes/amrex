@@ -1,6 +1,6 @@
 
-#ifndef _RealBox_H_
-#define _RealBox_H_ 
+#ifndef AMREX_RealBox_H_
+#define AMREX_RealBox_H_
 
 #include <iosfwd>
 #include <array>

@@ -1,5 +1,5 @@
-#ifndef _INTERP_NAMES_H
-#define _INTERP_NAMES_H
+#ifndef AMREX_INTERP_NAMES_H
+#define AMREX_INTERP_NAMES_H
 
 #ifdef BL_LANG_FORT
 #    define FORT_NBINTERP    nbinterp

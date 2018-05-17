@@ -1,5 +1,5 @@
-#ifndef _COORDSYS_F_H_
-#define _COORDSYS_F_H_
+#ifndef AMREX_COORDSYS_F_H_
+#define AMREX_COORDSYS_F_H_
 
 #ifdef BL_LANG_FORT
 #    define FORT_SETVOL      setvol

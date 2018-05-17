@@ -1,2 +1,14 @@
-CEXE_sources += particle_compare.cpp
+CEXE_sources += ${EBASE}.cpp
 
+ifneq ($(EBASE), particle_compare)
+
+  include $(AMREX_HOME)/Src/Base/Make.package
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
+  include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
+
+  ifeq ($(NEEDS_F90_SRC)), TRUE)
+    F90EXE_sources += ${EBASE}_F.F90
+  endif
+endif

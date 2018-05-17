@@ -1,5 +1,5 @@
-#ifndef _BL_BLFORT_H_
-#define _BL_BLFORT_H_ 
+#ifndef AMREX_BLFORT_H_
+#define AMREX_BLFORT_H_
 
 #include <AMReX_ArrayLim.H>
 #include <AMReX_REAL.H>

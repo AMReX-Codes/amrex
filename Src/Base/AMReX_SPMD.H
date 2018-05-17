@@ -8,8 +8,8 @@
 // assured to work on all machines supported.
 //
 
-#ifndef _SPMD_H_
-#define _SPMD_H_
+#ifndef AMREX_SPMD_H_
+#define AMREX_SPMD_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_ccse-mpi.H"
