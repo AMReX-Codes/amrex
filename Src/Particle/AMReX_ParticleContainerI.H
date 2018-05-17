@@ -1910,8 +1910,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     //
     // Make the particle directories if they don't already exist.
     //
-    amrex::Print() << "Particle::Checkpoint: pdir levelDirectoriesCreated = "
-                   << pdir << "  " << levelDirectoriesCreated << '\n';
     if ( ! levelDirectoriesCreated) {
       if (ParallelDescriptor::IOProcessor()) 
         if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
@@ -3343,7 +3341,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity (int rho_index, bool sub_cycle,
 					      Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
-					      int lev_min, int ncomp, int finest_level) const
+					      int lev_min, int ncomp, int finest_level, int ngrow) const
 {
     if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
 
@@ -3369,9 +3367,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     for (int lev = lev_min; lev <= finest_level; lev++)
     { 
         const int lev_index = lev - lev_min;
-        mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
-						      m_gdb->DistributionMap(lev),
-						      ncomp, 1));
+        if (lev == lev_min)
+        {
+           mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
+	   					         m_gdb->DistributionMap(lev),
+	   					         ncomp, ngrow));
+        } else {
+           mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
+	   					         m_gdb->DistributionMap(lev),
+	   					         ncomp, 1));
+        }
 	mf_to_be_filled[lev_index]->setVal(0.0);
     }
 
@@ -3383,8 +3388,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 	    all_grids_the_same = false;
 	    break;
 	}
-    }
-
+    } 
     Vector<std::unique_ptr<MultiFab> > mf_part;
     if (!all_grids_the_same)
     { 
