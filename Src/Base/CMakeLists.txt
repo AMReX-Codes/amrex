@@ -83,7 +83,7 @@ list ( APPEND CXXSRC     AMReX_iMultiFab.cpp )
 list ( APPEND ALLHEADERS AMReX_iMultiFab.H )
 
 list ( APPEND CXXSRC     AMReX_FabArrayBase.cpp AMReX_MFIter.cpp )
-list ( APPEND ALLHEADERS AMReX_FabArray.H AMReX_FACopyDescriptor.H )
+list ( APPEND ALLHEADERS AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayCommI.H )
 list ( APPEND ALLHEADERS AMReX_FabArrayBase.H AMReX_MFIter.H AMReX_LayoutData.H)
 
 #
