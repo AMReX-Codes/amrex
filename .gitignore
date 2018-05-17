@@ -23,3 +23,5 @@ TAGS
 .DS_Store
 Docs/AMReXUsersGuide/Visualization/*.pdf
 Docs/sphinx/build
+
+.nfs*
