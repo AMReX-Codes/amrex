@@ -11,7 +11,8 @@ RUN apt-get update \
     gcc \
     gfortran \
     g++ \
-    python
+    python \
+    python-numpy
 
 WORKDIR /home/
 
@@ -47,4 +48,3 @@ RUN mkdir -p rt-WarpX \
     && sed -i 's\regtester/\\g' rt-WarpX/WarpX-tests.ini \
     && sed -i 's/sendEmailWhenFail = 1/sendEmailWhenFail = 0/g' rt-WarpX/WarpX-tests.ini \
     && sed -i 's\AMReX_RegTesting/\\g' rt-WarpX/WarpX-tests.ini
-
