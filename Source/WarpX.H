@@ -427,7 +427,7 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_fp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_fp_fft;
-  
+
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
@@ -469,13 +469,14 @@ private:
     amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
     amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
 
-    amrex::Vector<amrex::Box> domain_fp_fft;  //  "global" domain for the group this process belongs to 
+    amrex::Vector<amrex::Box> domain_fp_fft;  //  "global" domain for the group this process belongs to
     amrex::Vector<amrex::Box> domain_cp_fft;
 
     amrex::Vector<MPI_Comm> comm_fft;
     amrex::Vector<int>      color_fft;
 
     int ngroups_fft = 4;
+    int fftw_plan_measure = 1;
     int nox_fft = 16;
     int noy_fft = 16;
     int noz_fft = 16;

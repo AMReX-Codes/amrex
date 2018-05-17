@@ -257,7 +257,7 @@ WarpX::InitFFTDataPlan (int lev)
         const Box& local_domain = amrex::enclosedCells(mfi.fabbox());
         warpx_fft_dataplan_init(&nox_fft, &noy_fft, &noz_fft,
                                 (*dataptr_fp_fft[lev])[mfi].data, &FFTData::N,
-                                dx_fp.data(), &dt[lev]);
+                                dx_fp.data(), &dt[lev], &fftw_plan_measure );
     }
 
     if (lev > 0)
@@ -291,9 +291,9 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 {
     BL_PROFILE_VAR_NS("WarpXFFT::CopyDualGrid", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FftPushEB", blp_push_eb);
-  
+
     auto period_fp = geom[lev].periodicity();
-    
+
     BL_PROFILE_VAR_START(blp_copy);
     Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
     Efield_fp_fft[lev][1]->ParallelCopy(*Efield_fp[lev][1], 0, 0, 1, 0, 0, period_fp);

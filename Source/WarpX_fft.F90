@@ -78,10 +78,10 @@ contains
 !!
 !! Note: fft_data is a stuct containing 22 pointers to arrays
 !! 1-11: padded arrays in real space ; 12-22 arrays for the fields in Fourier space
-  subroutine warpx_fft_dataplan_init (nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx) &
+  subroutine warpx_fft_dataplan_init (nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx, fftw_measure) &
        bind(c,name='warpx_fft_dataplan_init')
     USE picsar_precision, only: idp
-    use shared_data, only : c_dim,  p3dfft_flag, &
+    use shared_data, only : c_dim,  p3dfft_flag, fftw_plan_measure, &
          fftw_with_mpi, fftw_threads_ok, fftw_hybrid, fftw_mpi_transpose, &
          nx, ny, nz, & ! size of local subdomains
          nkx, nky, nkz, & ! size of local ffts
@@ -100,6 +100,7 @@ contains
     use params, only : dt
 
     integer, intent(in) :: nox, noy, noz, ndata
+    integer, intent(in) :: fftw_measure
     type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
@@ -125,6 +126,7 @@ contains
     fftw_with_mpi = .TRUE. ! Activate MPI FFTW
     fftw_hybrid = .FALSE.   ! FFT per MPI subgroup (instead of global)
     fftw_mpi_transpose = .FALSE. ! Do not transpose the data
+    fftw_plan_measure = (fftw_measure .ne. 0)
     p3dfft_flag = .FALSE.
     l_spectral  = .TRUE.   ! Activate spectral Solver, using FFT
 #ifdef _OPENMP
