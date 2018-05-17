@@ -337,7 +337,14 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
     
-    MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+    if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
+        MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+    } else {
+        Vector<int> local_newgrp_ranks(newgrp_ranks.size());
+        ParallelContext::global_to_local_rank(local_newgrp_ranks.data(),
+                                              newgrp_ranks.data(), newgrp_ranks.size());
+        MPI_Group_incl(defgrp, local_newgrp_ranks.size(), local_newgrp_ranks.data(), &newgrp);
+    }
 
     MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
     m_raii_comm.reset(new CommContainer(newcomm));
@@ -363,16 +370,17 @@ MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
         {
             const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
             
-            const int nprocs = ParallelDescriptor::NProcs();
+            const int nprocs = ParallelContext::NProcsSub();
             AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
             
             Vector<int> pmap(ba[i].size());
             for (int iproc = 0; iproc < nprocs; ++iproc) {
+                int grank = ParallelContext::local_to_global_rank(iproc);
                 for (int ibox : sfc[iproc]) {
-                    pmap[ibox] = iproc;
+                    pmap[ibox] = grank;
                 }
             }
-            dm[i].define(pmap);
+            dm[i].define(std::move(pmap));
         }
     }
 }
@@ -392,8 +400,10 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
         {
             factor *= ratio;
 
-            const int nprocs = ParallelDescriptor::NProcs();
-            Vector<int> pmap = dm[i-1].ProcessorMap();
+            const int nprocs = ParallelContext::NProcsSub();
+            const auto& pmap_fine = dm[i-1].ProcessorMap();
+            Vector<int> pmap(pmap_fine.size());
+            ParallelContext::global_to_local_rank(pmap.data(), pmap_fine.data(), pmap.size()); 
             if (strategy == 1) {
                 for (auto& x: pmap) {
                     x /= ratio;
@@ -418,7 +428,14 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
                     x /= ratio;
                 }
             }
-            dm[i].define(pmap);
+
+            if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
+                dm[i].define(std::move(pmap));
+            } else {
+                Vector<int> pmap_g(pmap.size());
+                ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
+                dm[i].define(std::move(pmap_g));
+            }
         }
     }
 }

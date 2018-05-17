@@ -13,14 +13,14 @@ public:
 
     explicit Frame (MPI_Comm c);
     Frame (Frame const&) = delete;
-    Frame (Frame && rhs);
+    Frame (Frame && rhs) noexcept;
     ~Frame ();
 
     int MyProc () const { return m_rank_me; }
     int NProcs () const { return m_nranks; }
     int local_to_global_rank (int lrank) const;
-    void local_to_global_rank (int* global, const int* local, int n) const;
-    void global_to_local_rank (int* local, const int* global, int n) const;
+    void local_to_global_rank (int* global, const int* local, std::size_t n) const;
+    void global_to_local_rank (int* local, const int* global, std::size_t n) const;
     int global_to_local_rank (int grank) const;
     int get_inc_mpi_tag ();
 
