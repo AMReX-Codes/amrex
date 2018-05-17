@@ -62,9 +62,7 @@ public :
     void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
     void setSimpleInterpolation (bool flag) { m_use_simple_interp = flag; } // for P in RAP
 
-#ifndef AMREX_USE_EB
     void setCoarseningStrategy (CoarseningStrategy cs) { m_coarsening_strategy = cs; }
-#endif
 
 protected:
 
