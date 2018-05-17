@@ -11,7 +11,15 @@ using namespace amrex;
 
 int main(int argc, char* argv[])
 {
-    amrex::Initialize(argc,argv);
+#if defined(_OPENMP) && defined(WARPX_USE_PSATD)
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    assert(provided >= MPI_THREAD_FUNNELED);
+#else
+    MPI_Init(&argc, &argv);
+#endif
+
+    amrex::Initialize(argc,argv,MPI_COMM_WORLD);
 
     BL_PROFILE_VAR("main()", pmain);
 
@@ -35,4 +43,5 @@ int main(int argc, char* argv[])
     BL_PROFILE_VAR_STOP(pmain);
 
     amrex::Finalize();
+    MPI_Finalize();
 }
