@@ -2009,15 +2009,6 @@ Amr::coarseTimeStep (Real stop_time)
 
     amr_level[0]->postCoarseTimeStep(cumtime);
 
-#ifdef BL_PROFILING
-#ifdef DEBUG
-    std::stringstream dfss;
-    dfss << "BytesPerProc.STEP_" << std::setw(5) << std::setfill('0')
-         << level_steps[0] - 1 << ".xgr";
-    DistributionMapping::PrintDiagnostics(dfss.str());
-#endif
-#endif
-
     if (verbose > 0)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();

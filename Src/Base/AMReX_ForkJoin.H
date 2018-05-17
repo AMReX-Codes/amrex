@@ -86,10 +86,10 @@ class ForkJoin
         copy_data_to_tasks(task_comm); // move data to local tasks
         ParallelContext::push(task_comm);
         fn(*this);
+        ParallelContext::pop();
 #ifdef BL_USE_MPI
         MPI_Comm_free(&task_comm);
 #endif
-        ParallelContext::pop();
         copy_data_from_tasks(); // move local data back
     }
 
@@ -123,7 +123,8 @@ class ForkJoin
     // multiple MultiFabs may share the same box array
     // only compute the DM once per unique (box array, task) pair and cache it
     // create map from box array RefID to vector of DistributionMapping indexed by task ID
-    const DistributionMapping &get_dm (const BoxArray& ba, int task_idx);
+    const DistributionMapping &get_dm (const BoxArray& ba, int task_idx,
+                                       const DistributionMapping& dm_orig);
 
     // this is called before ParallelContext::split
     // the parent task is the top frame in ParallelContext's stack

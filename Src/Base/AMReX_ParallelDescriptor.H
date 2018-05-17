@@ -134,7 +134,7 @@ namespace ParallelDescriptor
     inline int
     MyProc ()
     {
-        return ParallelContext::MyProc();
+        return ParallelContext::MyProcAll();
     }
     inline int
     MyProc (MPI_Comm comm)
@@ -234,7 +234,7 @@ namespace ParallelDescriptor
     inline int
     NProcs ()
     {
-        return ParallelContext::NProcs();
+        return ParallelContext::NProcsAll();
     }
     /**
     * \brief The MPI rank number of the I/O Processor (probably rank 0).
@@ -388,7 +388,7 @@ namespace ParallelDescriptor
     //! Returns the "local" communicator
     inline MPI_Comm Communicator ()         
     {
-        return ParallelContext::Communicator();
+        return m_comm;
     }
 
     void Barrier (const std::string& message = Unnamed);
@@ -514,15 +514,9 @@ namespace ParallelDescriptor
                  int   root);
     /**
     * \brief Returns sequential message sequence numbers, usually used as
-    * tags for send/recv.  getsetinc has these values:
-    * 0:  return the current sequence number and increment
-    * 1:  return the current sequence number
-    * 2:  set the current sequence number to newvalue
-    * 3:  jump the current sequence number and return the sequence number before the call.
+    * tags for send/recv.
     */
-    int SeqNum (int getsetinc = 0, int newvalue = 0);
-
-    int TagNum ();
+    inline int SeqNum () { return ParallelContext::get_inc_mpi_tag(); }
 
     template <class T> Message Asend(const T*, size_t n, int pid, int tag);
     template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);

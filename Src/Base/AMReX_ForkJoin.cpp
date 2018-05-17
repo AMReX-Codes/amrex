@@ -6,7 +6,7 @@ namespace amrex {
 ForkJoin::ForkJoin (Vector<int> trn)
     : task_rank_n(std::move(trn))
 {
-    auto rank_n = ParallelContext::NProcs(); // number of ranks in current frame
+    auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     AMREX_ASSERT(NTasks() >= 2);
     AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == rank_n);
 
@@ -15,7 +15,7 @@ ForkJoin::ForkJoin (Vector<int> trn)
 
 ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
 {
-    auto rank_n = ParallelContext::NProcs(); // number of ranks in current frame
+    auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     auto ntasks = task_rank_pct.size();
     AMREX_ASSERT(ntasks >= 2);
     task_rank_n.resize(ntasks);
@@ -81,7 +81,7 @@ ForkJoin::copy_data_to_tasks (MPI_Comm /*task_comm*/)
                                            << (mff.strategy == Strategy::split ? " (split)" : " (whole)") << std::endl;
                         }
                         // look up the distribution mapping for this (box array, task) pair
-                        const DistributionMapping &dm = get_dm(ba, i);
+                        const DistributionMapping &dm = get_dm(ba, i, orig.DistributionMap());
                         forked.emplace_back(ba, dm, comp_hi - comp_lo, 0);
                     } else if (flag_verbose) {
                         amrex::Print() << "  Forked " << mf_name << "[" << idx << "] for task " << i
@@ -153,7 +153,7 @@ ForkJoin::copy_data_from_tasks ()
 // only compute the DM once per unique (box array, task) pair and cache it
 // create map from box array RefID to vector of DistributionMapping indexed by task ID
 const DistributionMapping &
-ForkJoin::get_dm (const BoxArray& ba, int task_idx)
+ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& dm_orig)
 {
     auto &dm_vec = dms[ba.getRefID()];
 
@@ -165,18 +165,18 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx)
 
     if (dm_vec[task_idx] == nullptr) {
         // create DM of current box array over current task's ranks
-#if 0
-        auto task_bounds = ParallelContext::compute_split_bounds(task_rank_n);
-        auto task_glo_rank_lo = ParallelContext::local_to_global_rank(task_bounds[task_idx].first);
-        auto task_glo_rank_hi = ParallelContext::local_to_global_rank(task_bounds[task_idx].second);
-        dm_vec[task_idx].reset(new DistributionMapping(ba, task_glo_rank_lo, task_glo_rank_hi));
-#else
-// xxxxx        // hard coded colors only right now
-//        AMREX_ASSERT(task_rank_n.size() == ParallelDescriptor::NColors());
-//        ParallelDescriptor::Color color = ParallelDescriptor::Color(task_idx);
-        int nprocs = ParallelDescriptor::NProcs();
-        dm_vec[task_idx].reset(new DistributionMapping(ba, nprocs));
-#endif
+        int rank_lo = split_bounds[task_idx];  // note that these ranks are not necessarily global
+        int nprocs_task = task_rank_n[task_idx];
+
+        Vector<int> pmap = dm_orig.ProcessorMap(); // DistributionMapping stores global ranks
+        for (auto& r : pmap) {
+            int lr = ParallelContext::global_to_local_rank(r);
+            lr = lr%nprocs_task + rank_lo;
+            r = ParallelContext::local_to_global_rank(lr);
+        }
+
+        dm_vec[task_idx].reset(new DistributionMapping(pmap));
+
         if (flag_verbose) {
             amrex::Print() << "    Creating DM for (box array, task id) = ("
                       << ba.getRefID() << ", " << task_idx << ")" << std::endl;
@@ -201,7 +201,7 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx)
 void
 ForkJoin::compute_split_bounds ()
 {
-    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == ParallelContext::NProcs());
+    AMREX_ASSERT(std::accumulate(task_rank_n.begin(),task_rank_n.end(),0) == ParallelContext::NProcsSub());
 
     const auto ntasks = task_rank_n.size();
     split_bounds.resize(ntasks + 1);
@@ -217,7 +217,7 @@ MPI_Comm
 ForkJoin::split_tasks ()
 {
     const auto ntasks = task_rank_n.size();
-    int myproc = ParallelContext::MyProc();
+    int myproc = ParallelContext::MyProcSub();
     for (task_me = 0; task_me < ntasks; ++task_me) {
         int lo = split_bounds[task_me];
         int hi = split_bounds[task_me + 1];
@@ -229,9 +229,9 @@ ForkJoin::split_tasks ()
 
 #ifdef BL_USE_MPI
     MPI_Comm new_comm;
-    MPI_Comm_split(ParallelContext::Communicator(), task_me, myproc, &new_comm);
+    MPI_Comm_split(ParallelContext::CommunicatorSub(), task_me, myproc, &new_comm);
 #else
-    MPI_Comm new_comm = ParallelContext::Communicator();
+    MPI_Comm new_comm = ParallelContext::CommunicatorSub();
 #endif
 
     return new_comm;

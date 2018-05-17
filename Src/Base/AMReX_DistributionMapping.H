@@ -41,7 +41,7 @@ class DistributionMapping
     template <typename T> friend class FabArray;
 
     //! The distribution strategies
-    enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
+    enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, RRSFC };
 
     //! The default constructor.
     DistributionMapping ();
@@ -120,8 +120,6 @@ class DistributionMapping
 
     void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
                          int nprocs);
-    void PFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
-                         int nprocs);
     void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
                               Real* efficiency = 0,
 			      bool do_full_knapsack = true,
@@ -136,7 +134,6 @@ class DistributionMapping
     *   DistributionMapping.strategy = ROUNDROBIN
     *   DistributionMapping.strategy = KNAPSACK
     *   DistributionMapping.strategy = SFC
-    *   DistributionMapping.strategy = PFC
     *   DistributionMapping.strategy = RRFC
     */
     static void Initialize ();
@@ -146,53 +143,6 @@ class DistributionMapping
     static bool SameRefs (const DistributionMapping& lhs,
                           const DistributionMapping& rhs)
 		  { return lhs.m_ref == rhs.m_ref; }
-
-    static void PrintDiagnostics(const std::string &filename);
-
-    //! Initialize the topological proximity map
-    static void InitProximityMap(bool makeMap = false, bool reinit = false);
-    static int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
-    static int ProcNumberFromRank(const int rank);
-    static std::vector<int> RanksFromProcNumber(const int procnum);
-    static IntVect TopIVFromProcNumber(const int procnum);
-    static std::vector<int> ProcNumbersFromTopIV(const IntVect &iv);
-    static IntVect TopIVFromRank(const int rank);
-    static std::vector<int> RanksFromTopIV(const IntVect &iv);
-    static std::string GetProcName();
-    static int GetProcNumber();
-    static int ProximityMap(const int rank)   { return proximityMap[rank];   }
-    static int ProximityOrder(const int rank) { return proximityOrder[rank]; }
-
-#if !defined(BL_NO_FORT)
-    static void ReadCheckPointHeader(const std::string &filename,
-				     Vector<IntVect>  &refRatio,
-                                     Vector<BoxArray> &allBoxes);
-#endif
-    /* The proximity mapping options (PFC) were designed for Hopper. It
-       needs to be reconfigured before it can be applied to other systems.
-       Will currently see undefined behavior on any system. */
-    static void PFCMultiLevelMap(const Vector<IntVect>  &refRatio,
-                                 const Vector<BoxArray> &allBoxes);
-
-    static Vector<Vector<int> > MultiLevelMapPFC(const Vector<IntVect>  &refRatio,
-                                               const Vector<BoxArray> &allBoxes,
-					       int maxgrid);
-    static Vector<Vector<int> > MultiLevelMapRandom(const Vector<IntVect>  &refRatio,
-                                                  const Vector<BoxArray> &allBoxes,
-						  int maxgrid,
-						  int maxRank = -1, int minRank = 0);
-    static Vector<Vector<int> > MultiLevelMapKnapSack(const Vector<IntVect>  &refRatio,
-                                                    const Vector<BoxArray> &allBoxes,
-						    int maxgrid);
-
-    static int NDistMaps() { return nDistMaps; }
-    static void SetNDistMaps(int ndm) { nDistMaps = ndm; }
-    int DistMapID() const { return dmID; }
-    void SetDistMapID(int dmid) { dmID = dmid; }
-
-#ifdef BL_USE_MPI
-    static Vector<int> TranslateProcMap(const Vector<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
-#endif
 
     static DistributionMapping makeKnapSack   (const MultiFab& weight,
                                                int nmax=std::numeric_limits<int>::max());
@@ -209,7 +159,6 @@ private:
     void RoundRobinProcessorMap (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
-    void PFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void RRSFCProcessorMap      (const BoxArray& boxes, int nprocs);
 
     using LIpair = std::pair<long,int>;
@@ -248,16 +197,8 @@ private:
                               const std::vector<long>& wgts,
                               int                      nprocs);
 
-    void PFCProcessorMapDoIt (const BoxArray&          boxes,
-                              const std::vector<long>& wgts,
-                              int                      nprocs);
-
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
-
-    //! Current # of bytes of FAB data.
-    static void CurrentBytesUsed (int nprocs, Vector<long>& result);
-    static void CurrentCellsUsed (int nprocs, Vector<long>& result);
 
     //! Least used ordering of CPUs (by # of bytes of FAB data).
     void LeastUsedCPUs (int nprocs, Vector<int>& result);
@@ -298,16 +239,6 @@ private:
     // The data -- a reference-counted pointer to a Ref.
     //
     std::shared_ptr<Ref> m_ref;
-    int dmID;
-
-    //! Topological proximity map
-    static long totalCells;
-    static Real bytesPerCell;
-    static Vector<int> proximityMap;    // i == rank, pMap[i]   == proximity mapped rank
-    static Vector<int> proximityOrder;  // i == rank, pOrder[i] == proximity mapped order
-    static Vector<long> totalBoxPoints;  // i == rank
-
-    static int nDistMaps;
 
 public:
     struct RefID {
