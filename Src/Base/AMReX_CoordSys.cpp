@@ -282,7 +282,7 @@ CoordSys::GetVolume (FArrayBox& vol,
     int coord = (int) c_sys;
     const int* rlo = region.loVect();
     const int* rhi = region.hiVect();
-    FORT_SETVOL(ARLIM(rlo),ARLIM(rhi),vol_dat,ARLIM(vlo),ARLIM(vhi),offset,dx,&coord);
+    amrex_setvol(ARLIM(rlo),ARLIM(rhi),vol_dat,ARLIM(vlo),ARLIM(vhi),offset,dx,&coord);
 }
 
 void
@@ -295,7 +295,7 @@ CoordSys::SetVolume (FArrayBox& vol,
     int coord = (int) c_sys;
     const int* rlo = region.loVect();
     const int* rhi = region.hiVect();
-    FORT_SETVOL(ARLIM(rlo),ARLIM(rhi),vol_dat,ARLIM(vlo),ARLIM(vhi),offset,dx,&coord);
+    amrex_setvol(ARLIM(rlo),ARLIM(rhi),vol_dat,ARLIM(vlo),ARLIM(vhi),offset,dx,&coord);
 }
 
 void
@@ -308,7 +308,7 @@ CoordSys::GetDLogA (FArrayBox& dloga,
     dloga.resize(region,1);
     DEF_LIMITS(dloga,dloga_dat,dlo,dhi);
     int coord = (int) c_sys;
-    FORT_SETDLOGA(dloga_dat,ARLIM(dlo),ARLIM(dhi),offset,dx,&dir,&coord);
+    amrex_setdloga(dloga_dat,ARLIM(dlo),ARLIM(dhi),offset,dx,&dir,&coord);
 }
 
 FArrayBox*
@@ -329,7 +329,7 @@ CoordSys::SetDLogA (FArrayBox& dloga,
     BL_ASSERT(region.cellCentered());
     DEF_LIMITS(dloga,dloga_dat,dlo,dhi);
     int coord = (int) c_sys;
-    FORT_SETDLOGA(dloga_dat,ARLIM(dlo),ARLIM(dhi),offset,dx,&dir,&coord);
+    amrex_setdloga(dloga_dat,ARLIM(dlo),ARLIM(dhi),offset,dx,&dir,&coord);
 }
 
 FArrayBox*
@@ -355,7 +355,7 @@ CoordSys::GetFaceArea (FArrayBox& area,
     int coord = (int) c_sys;
     const int* rlo = reg.loVect();
     const int* rhi = reg.hiVect();
-    FORT_SETAREA(ARLIM(rlo),ARLIM(rhi),area_dat,ARLIM(lo),ARLIM(hi),offset,dx,&dir,&coord);
+    amrex_setarea(ARLIM(rlo),ARLIM(rhi),area_dat,ARLIM(lo),ARLIM(hi),offset,dx,&dir,&coord);
 }
 
 void
@@ -368,7 +368,7 @@ CoordSys::SetFaceArea (FArrayBox& area,
     int coord = (int) c_sys;
     const int* rlo = region.loVect();
     const int* rhi = region.hiVect();
-    FORT_SETAREA(ARLIM(rlo),ARLIM(rhi),area_dat,ARLIM(lo),ARLIM(hi),offset,dx,&dir,&coord);
+    amrex_setarea(ARLIM(rlo),ARLIM(rhi),area_dat,ARLIM(lo),ARLIM(hi),offset,dx,&dir,&coord);
 }
 
 void
