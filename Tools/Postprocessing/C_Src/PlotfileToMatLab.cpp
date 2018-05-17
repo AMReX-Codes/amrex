@@ -9,21 +9,13 @@
 #include <iomanip>
 #include <fstream>
 
-//#include <REAL.H>
 #include <AMReX_REAL.H>
-//#include <Box.H>
 #include <AMReX_Box.H>
-//#include <FArrayBox.H>
 #include <AMReX_FArrayBox.H>
-//#include <ParmParse.H>
 #include "AMReX_ParmParse.H"
-//#include <ParallelDescriptor.H>
 #include <AMReX_ParallelDescriptor.H>
-//#include <DataServices.H>
 #include <AMReX_DataServices.H>
-//#include <Utility.H>
 #include "AMReX_Utility.H"
-//#include <VisMF.H>
 #include <AMReX_VisMF.H>
 
 using namespace amrex;
@@ -36,16 +28,13 @@ using namespace amrex;
 #endif
 
 std::list<std::string> plot_vars;
-//typedef std::list<std::string> plot_vars;
 
 static
 bool
 isPlotVar (const std::string& name)
 {
     for (std::list<std::string>::const_iterator li = plot_vars.begin();
-//    for (std::list<std::string>::const_iterator li = plot_vars->begin();
          li != plot_vars.end();
-//         li != plot_vars->end();
          ++li)
     {
         if (*li == name)
@@ -185,9 +174,9 @@ Write (AmrData&       amrData,
 
         os.open(file.c_str(), std::ios::out|std::ios::binary);
 
-        if (os.fail())
-//            BoxLib::FileOpenFailed(file);
-            amrex::FileOpenFailed(file);
+        if (os.fail()) {
+          amrex::FileOpenFailed(file);
+        }
 
         int dim = BL_SPACEDIM;
         os.write((char*)&dim,sizeof(int));
@@ -257,9 +246,9 @@ Write (AmrData&       amrData,
 
         os.close();
 
-        if (os.fail())
-//            BoxLib::FileOpenFailed(file);
-            amrex::FileOpenFailed(file);
+        if (os.fail()) {
+          amrex::FileOpenFailed(file);
+        }
       }
     }
 }
@@ -268,15 +257,14 @@ int
 main (int   argc,
       char* argv[])
 {
-//    BoxLib::Initialize(argc,argv);
     amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
 
-    if (ParallelDescriptor::NProcs() > 1)
-//        BoxLib::Error("This is an inherently serial program");
-        amrex::Error("This is an inherently serial program");
+    if (ParallelDescriptor::NProcs() > 1) {
+      amrex::Error("This is an inherently serial program");
+    }
 
     ParmParse pp;
 
@@ -291,9 +279,9 @@ main (int   argc,
     //
     std::string iFile;
     pp.query("infile", iFile);
-    if (iFile.empty())
-//        BoxLib::Abort("You must specify `infile'");
+    if (iFile.empty()) {
         amrex::Abort("You must specify `infile'");
+    }
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -318,7 +306,6 @@ main (int   argc,
       for (int i = 0; i < amrData.PlotVarNames().size(); i++)
       {
         plot_vars.push_back(amrData.PlotVarNames()[i]);
-//        plot_vars->push_back(amrData.PlotVarNames()[i]);
       }
 
     } else {
@@ -327,14 +314,12 @@ main (int   argc,
       {
         pp.get("plot_vars", plot_var, i);
         plot_vars.push_back(plot_var);
-//        plot_vars->push_back(plot_var);
       }
 
     }
 
     Write(amrData, iFile, plot_vars);
 
-//    BoxLib::Finalize();
     Finalize();
 }
 
