@@ -60,7 +60,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     Real resnorm0 = MLResNormInf(finest_amr_lev, local); 
     Real rhsnorm0 = MLRhsNormInf(local); 
     if (!is_nsolve) {
-        ParallelDescriptor::ReduceRealMax({resnorm0, rhsnorm0});
+        ParallelAllReduce::Max<Real>({resnorm0, rhsnorm0}, ParallelContext::CommunicatorSub());
 
         if (verbose >= 1)
         {
@@ -166,10 +166,14 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
     timer[solve_time] = amrex::second() - solve_start_time;
     if (verbose >= 1) {
-        ParallelDescriptor::ReduceRealMax(timer.data(), timer.size());
-        amrex::Print() << "MLMG: Timers: Solve = " << timer[solve_time]
-                       << " Iter = " << timer[iter_time]
-                       << " Bottom = " << timer[bottom_time] << "\n";
+        ParallelReduce::Max<Real>(timer.data(), timer.size(), 0,
+                                  ParallelContext::CommunicatorSub());
+        if (ParallelContext::MyProcSub() == 0)
+        {
+            amrex::AllPrint() << "MLMG: Timers: Solve = " << timer[solve_time]
+                              << " Iter = " << timer[iter_time]
+                              << " Bottom = " << timer[bottom_time] << "\n";
+        }
     }
 
     return composite_norminf;
@@ -210,7 +214,7 @@ MLMG::oneIter (int iter)
                 for (int c = 0; c < ncomp; ++c) {
                     offset[c] = res[0][0].sum(c, true) * npinv;
                 }
-                ParallelDescriptor::ReduceRealSum(offset.data(), ncomp);
+                ParallelAllReduce::Sum(offset.data(), ncomp, ParallelContext::CommunicatorSub());
                 for (int c = 0; c < ncomp; ++c) {
                     res[0][0].plus(-offset[c], c, 1);
                 }
@@ -708,8 +712,8 @@ MLMG::actualBottomSolve ()
 
     Real bottom_start_time = amrex::second();
 
-    int old_sn = ParallelDescriptor::SeqNum(3);
-    
+    ParallelContext::push(linop.BottomCommunicator());
+
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
     MultiFab& x = *cor[amrlev][mglev];
@@ -778,7 +782,7 @@ MLMG::actualBottomSolve ()
         }
     }
 
-    ParallelDescriptor::SeqNum(2, old_sn);
+    ParallelContext::pop();
 
     timer[bottom_time] += amrex::second() - bottom_start_time;
 }
@@ -813,7 +817,7 @@ MLMG::MLResNormInf (int alevmax, bool local)
     {
         r = std::max(r, ResNormInf(alev,true));
     }
-    if (!local) ParallelDescriptor::ReduceRealMax(r);
+    if (!local) ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
     return r;
 }
 
@@ -934,7 +938,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
             for (int c = 0; c < ncomp; ++c) {
                 offset[c] = rhs[0].sum(c,true) * npinv;
             }
-            ParallelDescriptor::ReduceRealSum(offset.data(), ncomp);
+            ParallelAllReduce::Sum(offset.data(), ncomp, ParallelContext::CommunicatorSub());
             if (verbose >= 4) {
                 for (int c = 0; c < ncomp; ++c) {
                     amrex::Print() << "MLMG: Subtracting " << offset[c] 

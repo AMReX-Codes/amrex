@@ -1772,7 +1772,7 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
 
 	    if (count != recv_size[i]) {
 		r = false;
-		amrex::AllPrint() << "ERROR: Proc. " << ParallelDescriptor::MyProc()
+		amrex::AllPrint() << "ERROR: Proc. " << ParallelContext::MyProcSub()
 				  << " received " << count << " counts of data from Proc. "
 				  << recv_stats[i].MPI_SOURCE
 				  << " with tag " << recv_stats[i].MPI_TAG

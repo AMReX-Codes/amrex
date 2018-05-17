@@ -109,7 +109,7 @@ namespace amrex {
 		_fab->copyToMem(l_con.scpy[i].sbx, 0, _mf->nComp(), msg->GetBuffer()); //pack box to the message
 		_outputs.push(msg);//let the runtime know that the output is available
 	    }
-	    int np = ParallelContext::NProcsAll();
+	    int np = ParallelDescriptor::NProcs();
 	    if (np==1) return;
 	    for(int i=0; i<r_con.nsnd; i++)
 	    {

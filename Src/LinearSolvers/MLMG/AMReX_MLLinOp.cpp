@@ -62,7 +62,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_dmap.resize(m_num_amr_levels);
     m_factory.resize(m_num_amr_levels);
 
-    m_default_comm = ParallelDescriptor::Communicator();
+    m_default_comm = ParallelContext::CommunicatorSub();
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -203,7 +203,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         int rr = mg_coarsen_ratio;
         Real avg_npts, threshold_npts;
         if (info.do_consolidation) {
-            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
+            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
             threshold_npts = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
                                                             *info.con_grid_size,
                                                             *info.con_grid_size));

@@ -281,7 +281,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
 	if(remoteProc >= ParallelDescriptor::NProcs()) {
-	    amrex::Print(Print::AllProcs) << ParallelContext::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
+	    amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
 					  << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
 	    amrex::Abort("Bad remoteProc");
 	}

@@ -12,6 +12,9 @@ class Frame
 public:
 
     explicit Frame (MPI_Comm c);
+    Frame (Frame const&) = delete;
+    Frame (Frame && rhs);
+    ~Frame ();
 
     int MyProc () const { return m_rank_me; }
     int NProcs () const { return m_nranks; }
@@ -23,6 +26,7 @@ public:
 
     // sub-communicator associated with frame
     MPI_Comm comm = MPI_COMM_NULL;
+    MPI_Group group = MPI_GROUP_NULL; // to avoid repeatedly creating groups in rank translation
 
 private:
     int m_rank_me = -1; // local rank
@@ -34,17 +38,21 @@ extern Vector<Frame> frames; // stack of communicator frames
 
 // world communicator
 inline MPI_Comm CommunicatorAll () { return frames[0].comm; }
+// world group
+inline MPI_Comm GroupAll () { return frames[0].group; }
 // number of ranks in world communicator
 inline int NProcsAll () { return frames[0].NProcs(); }
 // my rank in world communicator
 inline int MyProcAll () { return frames[0].MyProc(); }
 
 // sub-communicator for current frame
-inline MPI_Comm Communicator () { return frames.back().comm; }
+inline MPI_Comm CommunicatorSub () { return frames.back().comm; }
+// sub-group for current frame
+inline MPI_Group GroupSub () { return frames.back().group; }
 // number of ranks in current frame
-inline int NProcs () { return frames.back().NProcs(); }
+inline int NProcsSub () { return frames.back().NProcs(); }
 // my sub-rank in current frame
-inline int MyProc () { return frames.back().MyProc(); }
+inline int MyProcSub () { return frames.back().MyProc(); }
 
 // get and increment mpi tag in current frame
 inline int get_inc_mpi_tag () { return frames.back().get_inc_mpi_tag(); }
