@@ -99,11 +99,7 @@ contains
     fftw_with_mpi = .TRUE. ! Activate MPI FFTW
     fftw_hybrid = .FALSE.   ! FFT per MPI subgroup (instead of global)
     fftw_mpi_transpose = .FALSE. ! Do not transpose the data
-    IF (fftw_measure==1) THEN
-        fftw_plan_measure = .TRUE.
-    ELSE
-	fftw_plan_measure = .FALSE.
-    ENDIF
+    fftw_plan_measure = (fftw_measure .ne. 0)
     p3dfft_flag = .FALSE.
     l_spectral  = .TRUE.   ! Activate spectral Solver, using FFT
 #ifdef _OPENMP
