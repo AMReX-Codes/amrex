@@ -34,6 +34,10 @@ contains
     if (ierr.eq.0) call amrex_error("fftw_init_threads failed")
 #endif
     call fftw_mpi_init()
+#ifdef _OPENMP
+    call dfftw_init_threads(ierr)
+    if (ierr.eq.0) call amrex_error("dfftw_init_threads failed")
+#endif
   end subroutine warpx_fft_mpi_init
 
 !> @brief
@@ -125,7 +129,6 @@ contains
     p3dfft_flag = .FALSE.
     l_spectral  = .TRUE.   ! Activate spectral Solver, using FFT
 #ifdef _OPENMP
-    CALL DFFTW_INIT_THREADS(iret)
     fftw_threads_ok = .TRUE.
     nopenmp = OMP_GET_MAX_THREADS()
 #else
