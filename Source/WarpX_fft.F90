@@ -217,6 +217,7 @@ contains
          jx_r, jy_r, jz_r, rho_r, rhoold_r, &
          exf, eyf, ezf, bxf, byf, bzf, &
          jxf, jyf, jzf, rhof, rhooldf
+    use mpi_fftw3
     nullify(ex_r)
     nullify(ey_r)
     nullify(ez_r)
@@ -239,6 +240,9 @@ contains
     nullify(jzf)
     nullify(rhof)
     nullify(rhooldf)
+    call fftw_destroy_plan(plan_r2c_mpi)
+    call fftw_destroy_plan(plan_c2r_mpi)
+    call fftw_mpi_cleanup()
   end subroutine warpx_fft_nullify
 
 
