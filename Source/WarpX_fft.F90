@@ -93,6 +93,7 @@ contains
          exf, eyf, ezf, bxf, byf, bzf, &
          jxf, jyf, jzf, rhof, rhooldf, &
          l_spectral, l_staggered, norderx, nordery, norderz
+    use mpi_fftw3, only : alloc_local
     use omp_lib, only: omp_get_max_threads
     USE gpstd_solver, only: init_gpstd
     USE fourier_psaotd, only: init_plans_fourier_mpi
@@ -107,8 +108,6 @@ contains
     integer :: nx_padded
     integer, dimension(3) :: shp
     integer(kind=c_size_t) :: sz
-    real(c_double) :: realfoo
-    complex(c_double_complex) :: complexfoo
 
     ! No need to distinguish physical and guard cells for the global FFT;
     ! only nx+2*nxguards counts. Thus we declare 0 guard cells for simplicity
@@ -139,28 +138,28 @@ contains
     ! Allocate padded arrays for MPI FFTW
     nx_padded = 2*(nx/2 + 1)
     shp = [nx_padded, int(ny), int(nz)]
-    sz = c_sizeof(realfoo) * int(shp(1),c_size_t) * int(shp(2),c_size_t) * int(shp(3),c_size_t)
-    fft_data(1) = amrex_malloc(sz)
+    sz = 2*alloc_local
+    fft_data(1) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(1), ex_r, shp)
-    fft_data(2) = amrex_malloc(sz)
+    fft_data(2) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(2), ey_r, shp)
-    fft_data(3) = amrex_malloc(sz)
+    fft_data(3) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(3), ez_r, shp)
-    fft_data(4) = amrex_malloc(sz)
+    fft_data(4) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(4), bx_r, shp)
-    fft_data(5) = amrex_malloc(sz)
+    fft_data(5) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(5), by_r, shp)
-    fft_data(6) = amrex_malloc(sz)
+    fft_data(6) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(6), bz_r, shp)
-    fft_data(7) = amrex_malloc(sz)
+    fft_data(7) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(7), jx_r, shp)
-    fft_data(8) = amrex_malloc(sz)
+    fft_data(8) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(8), jy_r, shp)
-    fft_data(9) = amrex_malloc(sz)
+    fft_data(9) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(9), jz_r, shp)
-    fft_data(10) = amrex_malloc(sz)
+    fft_data(10) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(10), rho_r, shp)
-    fft_data(11) = amrex_malloc(sz)
+    fft_data(11) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(11), rhoold_r, shp)
 
     ! Set array bounds when copying ex to ex_r in PICSAR
@@ -172,28 +171,28 @@ contains
     nky = ny
     nkz = nz
     shp = [int(nkx), int(nky), int(nkz)]
-    sz = c_sizeof(complexfoo) * int(shp(1),c_size_t) * int(shp(2),c_size_t) * int(shp(3),c_size_t)
-    fft_data(12) = amrex_malloc(sz)
+    sz = alloc_local
+    fft_data(12) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(12), exf, shp)
-    fft_data(13) = amrex_malloc(sz)
+    fft_data(13) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(13), eyf, shp)
-    fft_data(14) = amrex_malloc(sz)
+    fft_data(14) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(14), ezf, shp)
-    fft_data(15) = amrex_malloc(sz)
+    fft_data(15) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(15), bxf, shp)
-    fft_data(16) = amrex_malloc(sz)
+    fft_data(16) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(16), byf, shp)
-    fft_data(17) = amrex_malloc(sz)
+    fft_data(17) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(17), bzf, shp)
-    fft_data(18) = amrex_malloc(sz)
+    fft_data(18) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(18), jxf, shp)
-    fft_data(19) = amrex_malloc(sz)
+    fft_data(19) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(19), jyf, shp)
-    fft_data(20) = amrex_malloc(sz)
+    fft_data(20) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(20), jzf, shp)
-    fft_data(21) = amrex_malloc(sz)
+    fft_data(21) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(21), rhof, shp)
-    fft_data(22) = amrex_malloc(sz)
+    fft_data(22) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(22), rhooldf, shp)
 
     if (ndata < 22) then
