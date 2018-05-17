@@ -368,7 +368,7 @@ public:
     //! Does the AmrLevel want Amr to write a small plotfile now?
     virtual bool writeSmallPlotNow ();
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
     //! This function can be called from the parent 
     virtual void particle_redistribute (int lbase = 0, bool init = false) {;}
 #endif

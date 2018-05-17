@@ -52,6 +52,7 @@ contains
            nc,h,redblack &
            ) bind(c,name='amrex_abec_gsrb')
 
+      use amrex_abec_util_module, only : tridiag
       implicit none
 
       real(amrex_real) alpha, beta

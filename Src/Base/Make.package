@@ -12,7 +12,7 @@ C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 
-C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H AMReX_SPACE_F.H
+C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H
 
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
@@ -131,7 +131,6 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
   F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90
-  F90$(AMREX_BASE)_sources += AMReX_BLParmParse_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLBoxLib_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90
 

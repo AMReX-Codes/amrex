@@ -154,6 +154,7 @@ contains
            h &
            ) bind(c,name='amrex_lo_applybc')
 
+      use amrex_lo_util_module, only : polyInterpCoeff
       implicit none
 
 !     If the boundary is of Neumann type, set the ghost cell value to

@@ -92,11 +92,7 @@ void NFilesIter::SetDynamic(int deciderproc)
     currentDeciderIndex = 0;
   }
   if(myProc == deciderProc) {
-    int wsp(NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets));
-#ifdef DEBUG
-    std::cout << myProc << "::DDDDDDDD:  idecide:  currentDeciderIndex setpos nSets = " << currentDeciderIndex
-              << "  " << wsp << "  " << nSets  << std::endl;
-#endif
+    int wsp = NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   }
 
   deciderTag = ParallelDescriptor::SeqNum();
@@ -287,9 +283,6 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
       BL_PROFILE("NFI::ReadyToWrite:decider");
       // ---- the first message received is the coordinator
       ParallelDescriptor::Recv(&coordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
-#ifdef DEBUG
-      std::cout << myProc << ":: coordinatorProc = " << coordinatorProc << std::endl;
-#endif
       for(int i(0); i < setZeroProcs.size(); ++i) {  // ---- tell the set zero ranks  who is coordinating
         ParallelDescriptor::Send(&coordinatorProc, 1, setZeroProcs[i], coordinatorTag);
       }
@@ -530,7 +523,7 @@ Vector<int> NFilesIter::FileNumbersWritten()
 
   if(myProc == coordinatorProc) {
 
-#ifdef DEBUG
+#if 0
     int total(0);
     std::set<int> procSet;
     for(int f(0); f < fileNumbersWriteOrder.size(); ++f) {
@@ -565,7 +558,7 @@ void NFilesIter::CleanUpMessages() {
   for(int i(0); i < unreadMessages.size(); ++i) {
     std::pair<int, int> & pii = unreadMessages[i];
     int fromProc, tag(pii.first), nMessages(pii.second);
-#ifdef DEBUG
+#if 0
     std::cout << ParallelDescriptor::MyProc() << ":: cleaning up " << nMessages
               << " messages for tag " << tag << std::endl;
 #endif

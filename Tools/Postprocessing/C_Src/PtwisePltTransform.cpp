@@ -1,6 +1,6 @@
 /*
   A very simple example of reading a plotfile and calling a function to perform a pointwise transformation
-  based on a set of components that are specified by name on the command line.  Thr transformation is done
+  based on a set of components that are specified by name on the command line.  The transformation is done
   in the accompanying fortran routine.  No grow cells are used, so the transformation cannot involve a 
   stencil operation.
 
@@ -21,7 +21,7 @@
 extern "C" {
   void transform (const int* lo, const int* hi,
                   const amrex_real* sIn, const int* sInlo, const int* sInhi, const int* ncIn,
-                  const amrex_real* sOut, const int* sOutlo, const int* sOuthi, const int* ncOut);
+                  amrex_real* sOut, const int* sOutlo, const int* sOuthi, const int* ncOut);
 }
 
 using namespace amrex;
@@ -104,7 +104,7 @@ main (int   argc,
     // Compute transformation
     for (MFIter mfi(stateIn); mfi.isValid(); ++mfi) {
       const FArrayBox& sIn = stateIn[mfi];
-      const FArrayBox& sOut = (*stateOut[lev])[mfi];
+      FArrayBox& sOut = (*stateOut[lev])[mfi];
       const Box& box = mfi.validbox();
 
       transform(BL_TO_FORTRAN_BOX(box),
