@@ -232,6 +232,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     if ( ! levelDirectoryCreated) {
       if (ParallelDescriptor::IOProcessor()) {
+          // amrex::Print() << "IOIOIOIO:CD  AmrLevel::writePlotFile:  " << FullPath << "\n";
         if ( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
             amrex::CreateDirectoryFailed(FullPath);
 	}
@@ -2233,74 +2234,6 @@ AmrLevel::FillPatchAdd(AmrLevel& amrlevel,
     MultiFab::Add(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
 
-
-
-void
-AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
-                         int ioProcNumSCS, int ioProcNumAll, int scsMyId,
-			 MPI_Comm scsComm)
-{
-#if BL_USE_MPI
-      if(scsMyId != ioProcNumSCS) {
-        parent = aptr;
-      }
-
-      // ---- ints
-      ParallelDescriptor::Bcast(&level, 1, ioProcNumAll, scsComm);
-
-      // ---- IntVects
-      Vector<int> allIntVects;
-      if(scsMyId == ioProcNumSCS) {
-        for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
-        for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
-      }
-      amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
-
-      if(scsMyId != ioProcNumSCS) {
-        int count(0);
-        for(int i(0); i < AMREX_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
-        for(int i(0); i < AMREX_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
-      }
-
-
-      // ---- Boxes
-      amrex::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);
-      
-      // ---- Geometry
-      Geometry::BroadcastGeometry(geom, ioProcNumSCS, scsComm);
-      
-      // ---- BoxArrays
-      amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
-      amrex::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
-
-      // ---- state
-      int stateSize(state.size());
-      ParallelDescriptor::Bcast(&stateSize, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        state.resize(stateSize);
-      }
-      for(int i(0); i < state.size(); ++i) {
-        state[i].AddProcsToComp(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-      }
-
-      // ---- bools
-      int ldc(levelDirectoryCreated);
-      ParallelDescriptor::Bcast(&ldc, 1, ioProcNumAll, scsComm);
-      levelDirectoryCreated = ldc;
-#endif
-}
-
-
-
-void
-AmrLevel::Check() const
-{
-    for(int i(0); i < state.size(); ++i) {
-      state[i].Check();
-    }
-}
-
-
 void
 AmrLevel::LevelDirectoryNames(const std::string &dir,
                               std::string &LevelDir,
@@ -2327,6 +2260,7 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
     LevelDirectoryNames(dir, LevelDir, FullPath);
 
     if(ParallelDescriptor::IOProcessor()) {
+//      amrex::Print() << "IOIOIOIO:CD  AmrLevel::CreateLevelDirectory:  " << FullPath << "\n";
       if( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
         amrex::CreateDirectoryFailed(FullPath);
       }

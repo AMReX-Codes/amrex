@@ -109,7 +109,7 @@ norm_inf (const MultiFab& res, bool local = false)
       restot = std::max(restot, res[mfi].norm(mfi.tilebox(), 0, 0, res.nComp()));
     }
     if ( !local )
-        ParallelDescriptor::ReduceRealMax(restot, res.color());
+        ParallelDescriptor::ReduceRealMax(restot);
     return restot;
 }
 

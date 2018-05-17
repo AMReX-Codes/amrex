@@ -47,7 +47,6 @@
 extern "C" {
     void bl_fortran_mpi_comm_init (int fcomm);
     void bl_fortran_mpi_comm_free ();
-    void bl_fortran_sidecar_mpi_comm_free (int fcomm);
 }
 #endif
 
@@ -95,7 +94,7 @@ amrex::write_to_stderr_without_buffering (const char* str)
     if (str)
     {
 	std::ostringstream procall;
-	procall << ParallelDescriptor::MyProcAll() << "::";
+	procall << ParallelContext::MyProcAll() << "::";
 	const char *cprocall = procall.str().c_str();
         const char * const end = " !!!\n";
 	fwrite(cprocall, strlen(cprocall), 1, stderr);
@@ -427,8 +426,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::StartTeams();
 
-    ParallelDescriptor::StartSubCommunicator();
-
     amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
@@ -541,8 +538,6 @@ amrex::Finalize (bool finalize_parallel)
 #endif
 
     ParallelDescriptor::EndTeams();
-
-    ParallelDescriptor::EndSubCommunicator();
 
 #ifndef BL_AMRPROF
     if (system::signal_handling)

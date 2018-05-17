@@ -51,7 +51,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealSum(sm, x.color());
+        ParallelDescriptor::ReduceRealSum(sm);
 
     return sm;
 }
@@ -81,7 +81,7 @@ MultiFab::Dot (const iMultiFab& mask,
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealSum(sm, x.color());
+        ParallelDescriptor::ReduceRealSum(sm);
 
     return sm;
 }
@@ -539,7 +539,7 @@ MultiFab::contains_nan (int scomp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceBoolOr(r,this->color());
+	ParallelDescriptor::ReduceBoolOr(r);
 
     return r;
 }
@@ -575,7 +575,7 @@ MultiFab::contains_inf (int scomp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceBoolOr(r,this->color());
+	ParallelDescriptor::ReduceBoolOr(r);
 
     return r;
 }
@@ -617,7 +617,7 @@ MultiFab::min (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMin(mn,this->color());
+	ParallelDescriptor::ReduceRealMin(mn);
 
     return mn;
 }
@@ -644,7 +644,7 @@ MultiFab::min (const Box& region,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMin(mn,this->color());
+	ParallelDescriptor::ReduceRealMin(mn);
 
     return mn;
 }
@@ -668,7 +668,7 @@ MultiFab::max (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(mx,this->color());
+	ParallelDescriptor::ReduceRealMax(mx);
 
     return mx;
 }
@@ -695,7 +695,7 @@ MultiFab::max (const Box& region,
     }
 	
     if (!local)
-	ParallelDescriptor::ReduceRealMax(mx,this->color());
+	ParallelDescriptor::ReduceRealMax(mx);
 
     return mx;
 }
@@ -705,7 +705,6 @@ MultiFab::minIndex (int comp,
                     int nghost) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
-    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 
     IntVect loc;
 
@@ -790,7 +789,6 @@ MultiFab::maxIndex (int comp,
                     int nghost) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
-    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 
     IntVect loc;
 
@@ -883,7 +881,7 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 	nm0 = std::max(nm0, get(mfi).norminfmask(mfi.growntilebox(nghost), mask[mfi], comp, 1));
     }
 
-    if (!local)	ParallelDescriptor::ReduceRealMax(nm0,this->color());
+    if (!local)	ParallelDescriptor::ReduceRealMax(nm0);
 
     return nm0;
 }
@@ -911,7 +909,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
     }
  
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0,this->color());
+	ParallelDescriptor::ReduceRealMax(nm0);
  
     return nm0;
 }
@@ -930,7 +928,7 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0,this->color());
+	ParallelDescriptor::ReduceRealMax(nm0);
 
     return nm0;
 }
@@ -977,7 +975,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n, this->color());
+	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
 
     return nm0;
 }
@@ -1054,7 +1052,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealSum(&priv_nm2[0][0], n, this->color());
+    ParallelDescriptor::ReduceRealSum(&priv_nm2[0][0], n);
 
     for (int i=0; i<n; i++) {
 	nm2[i] = std::sqrt(priv_nm2[0][i]);
@@ -1090,7 +1088,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealSum(nm1,this->color());
+	ParallelDescriptor::ReduceRealSum(nm1);
 
     return nm1;
 }
@@ -1138,7 +1136,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n, this->color());
+	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
 
     return nm1;
 }
@@ -1157,7 +1155,7 @@ MultiFab::sum (int comp, bool local) const
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealSum(sm, this->color());
+        ParallelDescriptor::ReduceRealSum(sm);
 
     return sm;
 }
@@ -1559,18 +1557,6 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
 
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
-}
-
-void
-MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                          int scsMyId, MPI_Comm scsComm)
-{
-  // ---- bools
-  int bInit(initialized);
-  if(scsMyId != ioProcNumSCS) {
-    initialized   = bInit;
-  }
-  FabArray<FArrayBox>::AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
 }
 
 }

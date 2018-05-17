@@ -1230,32 +1230,6 @@ BoxArray::removeOverlap (bool simplify)
     BL_ASSERT(isDisjoint());
 }
 
-#ifdef BL_USE_MPI
-void
-BoxArray::SendBoxArray(const BoxArray &ba, int whichSidecar)
-{
-    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-    Vector<int> ba_serial = amrex::SerializeBoxArray(ba);
-    int ba_serial_size = ba_serial.size();
-    ParallelDescriptor::Bcast(&ba_serial_size, 1, MPI_IntraGroup_Broadcast_Rank,
-                              ParallelDescriptor::CommunicatorInter(whichSidecar));
-    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, MPI_IntraGroup_Broadcast_Rank,
-                              ParallelDescriptor::CommunicatorInter(whichSidecar));
-}
-
-void
-BoxArray::RecvBoxArray(BoxArray &ba, int whichSidecar)
-{
-    int ba_serial_size;
-    ParallelDescriptor::Bcast(&ba_serial_size, 1, 0,
-                              ParallelDescriptor::CommunicatorInter(whichSidecar));
-    Vector<int> ba_serial(ba_serial_size);
-    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, 0,
-                              ParallelDescriptor::CommunicatorInter(whichSidecar));
-    ba = amrex::UnSerializeBoxArray(ba_serial);
-}
-#endif
-
 void
 BoxArray::type_update ()
 {

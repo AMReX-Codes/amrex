@@ -60,7 +60,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     Real resnorm0 = MLResNormInf(finest_amr_lev, local); 
     Real rhsnorm0 = MLRhsNormInf(local); 
     if (!is_nsolve) {
-        ParallelDescriptor::ReduceRealMax({resnorm0, rhsnorm0}, rhs[0].color());
+        ParallelDescriptor::ReduceRealMax({resnorm0, rhsnorm0});
 
         if (verbose >= 1)
         {
@@ -813,7 +813,7 @@ MLMG::MLResNormInf (int alevmax, bool local)
     {
         r = std::max(r, ResNormInf(alev,true));
     }
-    if (!local) ParallelDescriptor::ReduceRealMax(r, rhs[0].color());
+    if (!local) ParallelDescriptor::ReduceRealMax(r);
     return r;
 }
 

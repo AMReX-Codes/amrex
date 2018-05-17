@@ -49,12 +49,10 @@ class DistributionMapping
     /**
     * \brief Create an object with the specified mapping.
     */
-    explicit DistributionMapping (const Vector<int>& pmap,
-				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    explicit DistributionMapping (const Vector<int>& pmap);
     //! Build mapping out of BoxArray over nprocs processors.
     explicit DistributionMapping (const BoxArray& boxes,
-				  int nprocs = ParallelDescriptor::NProcs(), 
-				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+				  int nprocs = ParallelDescriptor::NProcs());
     /**
     * \brief This is a very specialized distribution map.
     * Do NOT use it unless you really understand what it does.
@@ -79,19 +77,12 @@ class DistributionMapping
     * You need to call this if you built your DistributionMapping
     * with the default constructor.
     */
-    void define (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs(),
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    void define (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs());
     /**
     * \brief Build mapping out of an Array of ints. You need to call this if you
     * built your DistributionMapping with the default constructor.
     */
     void define (const Vector<int>& pmap);
-    /**
-    * \brief Build mapping out of an Array of ints. You need to call this if you
-    * built your DistributionMapping with the default constructor.
-    */
-    void define (const Vector<int>& pmap,
-                 ParallelDescriptor::Color a_color);
     /**
     * \brief Returns a constant reference to the mapping of boxes in the
     * underlying BoxArray to the CPU that holds the FAB on that Box.
@@ -99,8 +90,6 @@ class DistributionMapping
     * NCPU is the number of CPUs being used.
     */
     const Vector<int>& ProcessorMap () const;
-    //
-    ParallelDescriptor::Color color() const { return m_color; }
 
     //! Length of the underlying processor map.
     long size () const { return m_ref->m_pmap.size(); }
@@ -112,11 +101,6 @@ class DistributionMapping
 
     //! Equivalent to ProcessorMap()[index].
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
-
-    // Replace the cached processor map.  This is to support FabArray::MoveAllFabs
-    //   All FabArrays using the cached map must move their fabs before
-    //   calling this function.
-    void ReplaceCachedProcessorMap(const Vector<int> &newProcMap);
 
     //! Set/get the distribution strategy.
     static void strategy (Strategy how);
@@ -205,8 +189,6 @@ class DistributionMapping
     static void SetNDistMaps(int ndm) { nDistMaps = ndm; }
     int DistMapID() const { return dmID; }
     void SetDistMapID(int dmid) { dmID = dmid; }
-
-    bool Check() const;
 
 #ifdef BL_USE_MPI
     static Vector<int> TranslateProcMap(const Vector<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
@@ -316,7 +298,6 @@ private:
     // The data -- a reference-counted pointer to a Ref.
     //
     std::shared_ptr<Ref> m_ref;
-    ParallelDescriptor::Color m_color;
     int dmID;
 
     //! Topological proximity map

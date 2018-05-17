@@ -57,8 +57,6 @@ IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
 #endif
 
-int FabArrayBase::nFabArrays(0);
-
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
 FabArrayBase::CPCache              FabArrayBase::m_TheCPCache;
@@ -182,8 +180,6 @@ FabArrayBase::Initialize ()
     if (MaxComp < 1)
         MaxComp = 1;
 
-    FabArrayBase::nFabArrays = 0;
-
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
 #ifdef BL_MEM_PROFILING
@@ -217,8 +213,6 @@ FabArrayBase::Initialize ()
 
 FabArrayBase::FabArrayBase ()
 {
-    aFAPId = nFabArrays++;
-    aFAPIdLock = 0;  // ---- not locked
 }
 
 FabArrayBase::~FabArrayBase () {}
@@ -1456,8 +1450,6 @@ FabArrayBase::flushCFinfo (bool no_assertion)
 void
 FabArrayBase::Finalize ()
 {
-    nFabArrays = 0;
-
     FabArrayBase::flushFBCache();
     FabArrayBase::flushCPCache();
     FabArrayBase::flushTileArrayCache();

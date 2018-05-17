@@ -104,8 +104,6 @@ public:
     //
     LinOp& linOp () { return Lp; }
     //
-    ParallelDescriptor::Color color() const { return Lp.color(); }
-    //
     // set the maximum permitted multigrid iterations
     //
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }

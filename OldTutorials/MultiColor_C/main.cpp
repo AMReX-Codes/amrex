@@ -6,10 +6,14 @@
 #include <AMReX_BndryData.H>
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_MultiGrid.H>
+#include <AMReX_ParallelContext.H>
+#include <AMReX_ForkJoin.H>
 
 using namespace amrex;
 
 namespace {
+    int ncolors = 2;
+    
     int ncomp  = 8;
     Real a     = 1.e-3;
     Real b     = 1.0;
@@ -52,6 +56,8 @@ int main(int argc, char* argv[])
     {
 	ParmParse pp;
 	
+        pp.query("ncolors", ncolors);
+
 	pp.query("verbose", verbose);
 
 	int n_cell, max_grid_size;
@@ -191,47 +197,25 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 void solve(MultiFab& soln, const MultiFab& rhs, 
 	   const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
 {
-    int nprocs  = ParallelDescriptor::NProcs();
-    int ncolors = ParallelDescriptor::NColors();
-    int cncomp = ncomp / ncolors;
-    BL_ASSERT(cncomp*ncolors == ncomp);
+    // evenly split ranks among ncolors tasks
+    ForkJoin fj(ncolors);
 
-    const BoxArray& ba = rhs.boxArray();
+    // register how to copy multifabs to/from tasks
+    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out);
 
-    Vector<std::unique_ptr<MultiFab> > csoln(ncolors);
-    Vector<std::unique_ptr<MultiFab> > crhs(ncolors);
-    Vector<std::unique_ptr<MultiFab> > calpha(ncolors);
-    Vector<Vector<std::unique_ptr<MultiFab> > > cbeta(ncolors);
-
-    for (int i = 0; i < ncolors; ++i) {
-	ParallelDescriptor::Color color = ParallelDescriptor::Color(i);
-
-	DistributionMapping dm {ba, nprocs, color};
-
-	// Build colored MFs.
-	csoln [i].reset(new MultiFab(ba, dm, cncomp, 0));
-	crhs  [i].reset(new MultiFab(ba, dm, cncomp, 0));
-	calpha[i].reset(new MultiFab(ba, dm, cncomp, 0));
-	cbeta[i].resize(BL_SPACEDIM);
-	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    cbeta[i][j].reset(new MultiFab(beta[j]->boxArray(), dm, cncomp, 0));
-	}
-
-	// Parallel copy data into colored MFs.
-	crhs[i]->copy(rhs, cncomp*i, 0, cncomp);
-	calpha[i]->copy(alpha, cncomp*i, 0, cncomp);
-	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    cbeta[i][j]->copy(*beta[j], cncomp*i, 0, cncomp);
-	}
-    }
-
-    int icolor = ParallelDescriptor::SubCommColor().to_int();
-    colored_solve(*csoln[icolor], *crhs[icolor], *calpha[icolor],
-		  amrex::GetVecOfPtrs(cbeta[icolor]), geom);
-
-    // Copy solution back from colored MFs.
-    for (int i = 0; i < ncolors; ++i) {
-	soln.copy(*csoln[i], 0, cncomp*i, cncomp);
+    // can reuse ForkJoin object for multiple fork-join invocations
+    // creates forked multifabs only first time around, reuses them thereafter
+    for (int i = 0; i < 2; ++i) {
+        // issue fork-join
+        fj.fork_join(
+            [&geom] (ForkJoin &f) {
+                colored_solve(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
+                              f.get_mf_vec("beta"), geom);
+            }
+        );
     }
 }
 

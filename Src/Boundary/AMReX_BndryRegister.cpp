@@ -297,7 +297,7 @@ BndryRegister::plusFrom (const MultiFab& src,
 void
 BndryRegister::write (const std::string& name, std::ostream& os) const
 {
-    if (ParallelDescriptor::IOProcessor(color()))
+    if (ParallelDescriptor::IOProcessor())
     {
         grids.writeOn(os);
         os << '\n';
@@ -354,19 +354,6 @@ BndryRegister::Copy (BndryRegister& dst, const BndryRegister& src)
     {
 	FabSet::Copy(dst[face()], src[face()]);
     }
-}
-
-void
-BndryRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
-                              int scsMyId, MPI_Comm scsComm)
-{
-  // ---- BoxArrays
-  amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
-
-  // ---- FabSet
-  for(int i(0); i < (2 * AMREX_SPACEDIM); ++i) {
-    bndry[i].AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-  }
 }
 
 }
