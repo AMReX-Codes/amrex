@@ -58,7 +58,7 @@ contains
 
     integer, dimension(3), intent(in) :: global_lo, global_hi, local_lo, local_hi
     integer, intent(in) :: nox, noy, noz, ndata
-    logical :: fftw_measure
+    integer, intent(in) :: fftw_measure
     type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
@@ -99,7 +99,11 @@ contains
     fftw_with_mpi = .TRUE. ! Activate MPI FFTW
     fftw_hybrid = .FALSE.   ! FFT per MPI subgroup (instead of global)
     fftw_mpi_transpose = .FALSE. ! Do not transpose the data
-    fftw_plan_measure = fftw_measure ! Set the picsar flag to the WarpX parsed flag
+    IF (fftw_measure==1) THEN
+        fftw_plan_measure = .TRUE.
+    ELSE
+	fftw_plan_measure = .FALSE.
+    ENDIF
     p3dfft_flag = .FALSE.
     l_spectral  = .TRUE.   ! Activate spectral Solver, using FFT
 #ifdef _OPENMP

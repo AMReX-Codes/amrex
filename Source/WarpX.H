@@ -472,7 +472,7 @@ private:
     amrex::Vector<int>      color_fft;
 
     int ngroups_fft = 4;
-    bool fftw_plan_measure = true;
+    int fftw_plan_measure = 1;
     int nox_fft = 16;
     int noy_fft = 16;
     int noz_fft = 16;
