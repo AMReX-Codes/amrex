@@ -1,6 +1,6 @@
 
-#ifndef _COORDSYS_H_
-#define _COORDSYS_H_ 
+#ifndef AMREX_COORDSYS_H_
+#define AMREX_COORDSYS_H_
 
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>

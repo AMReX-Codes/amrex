@@ -1,5 +1,5 @@
-#ifndef _FLUXREG_F_H_
-#define _FLUXREG_F_H_  "%W% %G%"
+#ifndef AMREX_FLUXREG_F_H_
+#define AMREX_FLUXREG_F_H_
 
 #ifdef BL_LANG_FORT
 #    define FORT_FRFINEADD   frfineadd

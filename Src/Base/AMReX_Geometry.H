@@ -1,5 +1,5 @@
-#ifndef _GEOMETRY_H_
-#define _GEOMETRY_H_
+#ifndef AMREX_GEOMETRY_H_
+#define AMREX_GEOMETRY_H_
 
 #include <iosfwd>
 #include <map>
