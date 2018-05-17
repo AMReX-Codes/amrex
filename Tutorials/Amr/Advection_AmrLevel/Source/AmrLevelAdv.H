@@ -1,7 +1,7 @@
 #ifndef _AmrLevelAdv_H_
 #define _AmrLevelAdv_H_
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 #include <AMReX_AmrParticles.H>
 #endif
 
@@ -143,7 +143,7 @@ public:
                            amrex::Real         time,
 			   int          n_error_buf = 0, int ngrow = 0) override;
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
 #endif
 
@@ -176,7 +176,7 @@ protected:
     static amrex::Real  cfl;
     static int          do_reflux;
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     void init_particles ();
     static int       do_tracers;
     static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;

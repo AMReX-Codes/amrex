@@ -5,6 +5,7 @@ module amrex_mllinop_nd_module
 
   use amrex_error_module
   use amrex_fort_module, only : amrex_real, amrex_spacedim
+  use amrex_lo_util_module, only : polyInterpCoeff
   implicit none
 
 #if (AMREX_SPACEDIM == 1)

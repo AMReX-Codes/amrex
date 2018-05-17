@@ -15,13 +15,14 @@ USE_OMP   = FALSE
 
 ###################################################
 
-#EBASE     = particle_compare
+EBASE     = particle_compare
 #EBASE     = PlotfileToMatLab
-EBASE     = PtwisePltTransform
+#EBASE     = PtwisePltTransform
+#EBASE     = PlotfileGradient
 
 # If NEEDS_f90_SRC=TRUE, look for ${EBASE}_nd.f90
 NEEDS_f90_SRC = FALSE
-NEEDS_f90_SRC = TRUE
+#NEEDS_f90_SRC = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 

@@ -1,4 +1,4 @@
-! print out the extrema of each variable in the plotfiles 
+! print out the extrema of each variable in the plotfiles
 
 
 program fextrema
@@ -25,7 +25,10 @@ program fextrema
 
   logical :: single
 
-  integer :: ivar
+  integer :: ivar, i
+
+  real(kind=dp_t) :: vmin, vmax
+  real(kind=dp_t), allocatable :: vvmin(:), vvmax(:)
 
   single = .FALSE.
 
@@ -34,7 +37,7 @@ program fextrema
 
   narg = command_argument_count()
 
- 
+
   farg = 1
 
   varname = ''
@@ -58,7 +61,7 @@ program fextrema
      end select
 
      farg = farg + 1
-     
+
   enddo
 
   if ( farg > narg ) then
@@ -103,24 +106,50 @@ program fextrema
         write (*,*) 'time = ', pf%tm
         write (*,200) "variable", "minimum value", "maximum value"
         do n = 1, numvars
-           write (*,201) pf%names(n), plotfile_minval(pf,n,max_level), plotfile_maxval(pf,n,max_level)
+           vmin = 1.e30
+           vmax = -1.e30
+           do i = 1, max_level
+              vmin = min(vmin, plotfile_minval(pf,n,i))
+              vmax = max(vmax, plotfile_maxval(pf,n,i))
+           enddo
+
+           write (*,201) pf%names(n), vmin, vmax
         enddo
         write (*,*) " "
      else
         if (ivar == -1) then
            if (f == 1) then
+              allocate(vvmin(numvars))
+              allocate(vvmax(numvars))
               write (*,100) "time", (pf%names(n), n =1,numvars)
               write (*,101) (minname(n), maxname(n), n=1,numvars)
            endif
 
-           write (*,102) pf%tm, (plotfile_minval(pf,n,max_level), plotfile_maxval(pf,n,max_level), n=1,numvars)
+           do n = 1, numvars
+              vvmin(n) = 1.e30
+              vvmax(n) = -1.e30
+
+              do i = 1, max_level
+                 vvmin(n) = min(vvmin(n), plotfile_minval(pf,n,i))
+                 vvmax(n) = max(vvmax(n), plotfile_maxval(pf,n,i))
+              enddo
+           enddo
+
+           write (*,102) pf%tm, (vvmin(n), vvmax(n), n=1,numvars)
         else
            if (f == 1) then
               write (*,100) "time", pf%names(ivar)
               write (*,101) minname(ivar), maxname(ivar)
            endif
-           
-           write (*,102) pf%tm, plotfile_minval(pf,ivar,max_level), plotfile_maxval(pf,ivar,max_level)
+
+           vmin = 1.e30
+           vmax = -1.e30
+           do i = 1, max_level
+              vmin = min(vmin, plotfile_minval(pf,ivar,i))
+              vmax = max(vmax, plotfile_maxval(pf,ivar,i))
+           enddo
+
+           write (*,102) pf%tm, vmin, vmax
         endif
 
      endif

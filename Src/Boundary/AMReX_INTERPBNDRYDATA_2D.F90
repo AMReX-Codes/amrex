@@ -42,6 +42,7 @@ contains
                  mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
                  bind(c,name='amrex_bdinterpxlo')
 
+      use amrex_lo_util_module, only : polyInterpCoeff
       implicit none
 
       integer  nvar, ratios(2), not_covered,max_order
@@ -151,6 +152,7 @@ contains
                  mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
                  bind(c,name='amrex_bdinterpxhi')
 
+      use amrex_lo_util_module, only : polyInterpCoeff
       implicit none
 
       integer  nvar, ratios(2), not_covered,max_order
@@ -261,6 +263,7 @@ contains
                  mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
                  bind(c,name='amrex_bdinterpylo')
 
+      use amrex_lo_util_module, only : polyInterpCoeff
       implicit none
 
       integer  nvar, ratios(2), not_covered,max_order
@@ -371,6 +374,7 @@ contains
                  mask,mask_l1,mask_l2,mask_h1,mask_h2,crse,crse_l1,crse_l2,crse_h1,crse_h2,derives,max_order) &
                  bind(c,name='amrex_bdinterpyhi')
 
+      use amrex_lo_util_module, only : polyInterpCoeff
       implicit none
 
       integer  nvar, ratios(2), not_covered,max_order

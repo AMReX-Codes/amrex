@@ -17,5 +17,7 @@ else
   F$(MCMG_BASE)_sources += AMReX_DV_3D1.F AMReX_DV_3D2.F AMReX_DV_3D3.F
 endif
 
+F90$(MCMG_BASE)_sources += amrex_tmg_util.F90
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_TensorMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_TensorMG

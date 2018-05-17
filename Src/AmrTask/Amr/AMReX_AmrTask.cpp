@@ -1133,7 +1133,7 @@ Amr::readProbinFile (int& a_init)
             //
             piStart = ParallelDescriptor::second();
 
-#ifdef DIMENSION_AGNOSTIC
+#ifdef AMREX_DIMENSION_AGNOSTIC
 
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
@@ -3053,7 +3053,7 @@ const Vector<BoxArray>& Amr::getInitialBA()
   return initial_ba;
 }
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
 void 
 Amr::RedistributeParticles ()
 {
