@@ -252,8 +252,7 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 
     for (int i(0); i < nprocs; ++i)
     {
-	int globalrank = ParallelDescriptor::Translate(i,m_color);
-        LIpairV.push_back(LIpair(bytes[globalrank],i));
+        LIpairV.push_back(LIpair(bytes[i],i));
     }
 
     bytes.clear();
@@ -314,7 +313,7 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 	int offset = i*nworkers;
 	for (int j = 0; j < nworkers; ++j)
 	{
-	    int globalrank = ParallelDescriptor::Translate(offset+j,m_color);
+	    int globalrank = offset+j;
 	    long b = bytes[globalrank];
 	    teambytes += b;
 	    LIworker[j] = LIpair(b,j);
@@ -346,31 +345,16 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 #endif
 }
 
-void
-DistributionMapping::ReplaceCachedProcessorMap (const Vector<int>& newProcmapArray)
-{
-    const int N(newProcmapArray.size());
-    BL_ASSERT(m_ref->m_pmap.size() == N);
-    BL_ASSERT(newProcmapArray.size() == N);
-
-    for(int iA(0); iA < N; ++iA) {
-      m_ref->m_pmap[iA] = newProcmapArray[iA];
-    }
-
-}
-
 DistributionMapping::DistributionMapping ()
     :
-    m_ref(std::make_shared<Ref>()),
-    m_color(ParallelDescriptor::DefaultColor())
+    m_ref(std::make_shared<Ref>())
 {
   dmID = nDistMaps++;
 }
 
 DistributionMapping::DistributionMapping (const DistributionMapping& rhs)
     :
-    m_ref(rhs.m_ref),
-    m_color(rhs.m_color)
+    m_ref(rhs.m_ref)
 {
   dmID = nDistMaps++;
 }
@@ -379,45 +363,37 @@ DistributionMapping&
 DistributionMapping::operator= (const DistributionMapping& rhs)
 {
     m_ref = rhs.m_ref;
-    m_color = rhs.m_color;
-
     return *this;
 }
 
 DistributionMapping::DistributionMapping (DistributionMapping&& rhs) noexcept
     :
     m_ref(std::move(rhs.m_ref)),
-    m_color(rhs.m_color),
     dmID(rhs.dmID)
 {
 }
 
 
-DistributionMapping::DistributionMapping (const Vector<int>& pmap, 
-					  ParallelDescriptor::Color a_color)
+DistributionMapping::DistributionMapping (const Vector<int>& pmap)
     :
-    m_ref(std::make_shared<Ref>(pmap)),
-    m_color(a_color)
+    m_ref(std::make_shared<Ref>(pmap))
 {
     dmID = nDistMaps++;
 }
 
 DistributionMapping::DistributionMapping (const BoxArray& boxes,
-					  int nprocs,
-					  ParallelDescriptor::Color a_color)
+					  int nprocs)
     :
-    m_ref(std::make_shared<Ref>(boxes.size())),
-    m_color(a_color)
+    m_ref(std::make_shared<Ref>(boxes.size()))
 {
     dmID = nDistMaps++;
-    define(boxes,nprocs,a_color);
+    define(boxes,nprocs);
 }
 
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
     :
-    m_ref(std::make_shared<Ref>()),
-    m_color(ParallelDescriptor::DefaultColor())
+    m_ref(std::make_shared<Ref>())
 {
     dmID = nDistMaps++;
     m_ref->m_pmap = d1.ProcessorMap();
@@ -427,10 +403,8 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 
 void
 DistributionMapping::define (const BoxArray& boxes,
-			     int nprocs,
-			     ParallelDescriptor::Color a_color)
+			     int nprocs)
 {
-    m_color = a_color;
     m_ref->m_pmap.resize(boxes.size());
 
     BL_ASSERT(m_BuildMap != 0);
@@ -444,14 +418,6 @@ DistributionMapping::define (const Vector<int>& pmap)
     m_ref->m_pmap = pmap;
 }
 
-void
-DistributionMapping::define (const Vector<int>& pmap,
-                             ParallelDescriptor::Color a_color)
-{
-    m_color = a_color;
-    m_ref->m_pmap = pmap;
-}
-
 DistributionMapping::~DistributionMapping () { }
 
 void
@@ -459,7 +425,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                 /* nprocs */,
                                      std::vector<LIpair>* LIpairV)
 {
-    int nprocs = ParallelDescriptor::NProcs(m_color);
+    int nprocs = ParallelDescriptor::NProcs();
 
     // If team is not use, we are going to treat it as a special case in which
     // the number of teams is nprocs and the number of workers is 1.
@@ -469,8 +435,6 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 #if defined(BL_USE_TEAM)
     nteams = ParallelDescriptor::NTeams();
     nworkers = ParallelDescriptor::TeamSize();
-    if (ParallelDescriptor::NColors() > 1) 
-	amrex::Abort("Team and color together are not supported yet");
 #endif
 
     Vector<int> ord;
@@ -498,7 +462,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 	    int tid = ord[i%nteams];
 	    int wid = (w[tid]++) % nworkers;
 	    int rank = tid*nworkers + wrkerord[tid][wid];
-	    m_ref->m_pmap[(*LIpairV)[i].second] = ParallelDescriptor::Translate(rank,m_color);
+	    m_ref->m_pmap[(*LIpairV)[i].second] = rank;
 	}
     }
     else
@@ -508,7 +472,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 	    int tid = ord[i%nteams];
 	    int wid = (w[tid]++) % nworkers;
 	    int rank = tid*nworkers + wrkerord[tid][wid];
-	    m_ref->m_pmap[i] = ParallelDescriptor::Translate(rank,m_color);
+	    m_ref->m_pmap[i] = rank;
 	}
     }
 }
@@ -802,7 +766,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 {
     BL_PROFILE("DistributionMapping::KnapSackDoIt()");
 
-    int nprocs = ParallelDescriptor::NProcs(m_color);
+    int nprocs = ParallelDescriptor::NProcs();
 
     // If team is not use, we are going to treat it as a special case in which
     // the number of teams is nprocs and the number of workers is 1.
@@ -812,8 +776,6 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 #if defined(BL_USE_TEAM)
     nteams = ParallelDescriptor::NTeams();
     nworkers = ParallelDescriptor::TeamSize();
-    if (ParallelDescriptor::NColors() > 1) 
-	amrex::Abort("Team and color together are not supported yet");
 #endif
 
     std::vector< std::vector<int> > vec;
@@ -867,7 +829,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 	if (nteams == nprocs) {
 	    for (int j = 0; j < N; ++j)
 	    {
-		m_ref->m_pmap[vi[j]] = ParallelDescriptor::Translate(tid,m_color);
+		m_ref->m_pmap[vi[j]] = tid;
 	    }
 	} else {
 #ifdef BL_USE_TEAM
@@ -875,7 +837,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 	    for (int w = 0; w < nworkers; ++w)
 	    {
 	        ParallelDescriptor::team_for(0, N, w, [&] (int j) {
-		    m_ref->m_pmap[vi[j]] = ParallelDescriptor::Translate(leadrank + wrkerord[i][w], m_color);
+                        m_ref->m_pmap[vi[j]] = leadrank + wrkerord[i][w];
                 });
 	    }
 #endif
@@ -1043,15 +1005,13 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 {
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
-    int nprocs = ParallelDescriptor::NProcs(m_color);
+    int nprocs = ParallelDescriptor::NProcs();
 
     int nteams = nprocs;
     int nworkers = 1;
 #if defined(BL_USE_TEAM)
     nteams = ParallelDescriptor::NTeams();
     nworkers = ParallelDescriptor::TeamSize();
-    if (ParallelDescriptor::NColors() > 1) 
-	amrex::Abort("Team and color together are not supported yet");
 #else
     if (node_size > 0) {
 	nteams = nprocs/node_size;
@@ -1153,7 +1113,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 	if (nteams == nprocs) { // In this case, team id is process id.
 	    for (int j = 0; j < Nbx; ++j)
 	    {
-		m_ref->m_pmap[vi[j]] = ParallelDescriptor::Translate(tid,m_color);  
+		m_ref->m_pmap[vi[j]] = tid;
 	    }
 	} 
 	else   // We would like to do knapsack within the team workers
@@ -1191,7 +1151,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
 	    for (int w = 0; w < nworkers; ++w)
 	    {
-		const int cpu = ParallelDescriptor::Translate(leadrank + sorted_workers[w], m_color);
+		const int cpu = leadrank + sorted_workers[w];
 		int ikp = ww[w].second;
 		const std::vector<int>& js = kpres[ikp];
 		for (std::vector<int>::const_iterator it = js.begin(); it!=js.end(); ++it)
@@ -1271,9 +1231,6 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
 #if defined (BL_USE_TEAM)
     amrex::Abort("Team support is not implemented yet in RRSFC");
 #endif
-
-    if (ParallelDescriptor::NColors() > 1) 
-	amrex::Abort("RRSFCMap does not support multi colors");
 
     std::vector<SFCToken> tokens;
 
@@ -1446,9 +1403,6 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
 #if defined (BL_USE_TEAM)
     amrex::Abort("Team support is not implemented yet in PFC");
 #endif
-
-    if (ParallelDescriptor::NColors() > 1) 
-	amrex::Abort("PFCProcessorMap does not support multi colors");
 
     std::vector< std::vector<int> > vec(nprocs);
     std::vector<PFCToken> tokens;
@@ -2574,22 +2528,6 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 
 }
 #endif
-
-bool 
-DistributionMapping::Check () const
-{
-   bool ok(true);
-   for(int i(0); i < m_ref->m_pmap.size(); ++i) {
-     if(m_ref->m_pmap[i] >= ParallelDescriptor::NProcs()) {
-       ok = false;
-       std::cout << ParallelDescriptor::MyProc() << ":: **** error 1 in DistributionMapping::Check() "
-                 << "bad rank:  nProcs dmrank = " << ParallelDescriptor::NProcs() << "  "
-		 << m_ref->m_pmap[i] << std::endl;
-       amrex::Abort("Bad DistributionMapping::Check");
-     }
-   }
-   return ok;
-}
 
 #ifdef BL_USE_MPI
 Vector<int>

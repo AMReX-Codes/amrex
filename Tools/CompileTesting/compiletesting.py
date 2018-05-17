@@ -44,7 +44,6 @@ def compiletesting(arg_string):
                      'OldTutorials/MultiFabTests_C',
                      'OldTutorials/MultiGrid_C',
 #                     'OldTutorials/PIC_C',
-                     'OldTutorials/Sidecar_EX1',
                      'OldTutorials/Tiling_C',
                      'OldTutorials/Tiling_Heat_C',
 #                     'OldTutorials/TwoGrid_PIC_C',
