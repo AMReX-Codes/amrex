@@ -9,4 +9,5 @@ build:
 
   ci:
     - cd /home/regression_testing
+    - export FFTW_HOME=/usr/
     - python regtest.py ../rt-WarpX/WarpX-tests.ini --no_update all --make_benchmarks 'Benchmarking'

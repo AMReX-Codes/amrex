@@ -1,3 +1,5 @@
+# This Dockerfile is used for automated testing of WarpX
+
 FROM ubuntu:14.04
 
 # Install a few packages, as root
@@ -46,6 +48,3 @@ RUN mkdir -p rt-WarpX \
     && sed -i 's/sendEmailWhenFail = 1/sendEmailWhenFail = 0/g' rt-WarpX/WarpX-tests.ini \
     && sed -i 's\AMReX_RegTesting/\\g' rt-WarpX/WarpX-tests.ini
 
-RUN cd regression_testing \
-    && python regtest.py ../rt-WarpX/WarpX-tests.ini --no_update all --make_benchmarks 'Benchmarking'
-    
