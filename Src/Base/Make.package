@@ -92,6 +92,7 @@ C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
 C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
+C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H
 C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 
 #
