@@ -83,11 +83,17 @@ F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(
 
 GENERIC_COMP_FLAGS =
 
+gcc_major_gt_8 = $(shell expr $(gcc_major_version) \>= 8)
+
 ifeq ($(THREAD_SANITIZER),TRUE)
   GENERIC_COMP_FLAGS += -fsanitize=thread
 endif
 ifeq ($(FSANITIZER),TRUE)
   GENERIC_COMP_FLAGS += -fsanitize=address -fsanitize=undefined
+  ifeq ($(gcc_major_gt_8),1)
+    GENERIC_COMP_FLAGS += -fsanitize=pointer-compare -fsanitize=pointer-subtract
+    GENERIC_COMP_FLAGS += -fsanitize=builtin -fsanitize=pointer-overflow
+  endif
 endif
 
 ifeq ($(USE_OMP),TRUE)

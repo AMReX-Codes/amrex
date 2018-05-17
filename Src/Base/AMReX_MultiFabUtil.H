@@ -61,7 +61,7 @@ namespace amrex
     MultiFab ToMultiFab (const iMultiFab& imf);
 
     //! Extract a slice from the given cell-centered MultiFab at coordinate "coord" along direction "dir". 
-    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int fstart, int ncomp);
+    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int fstart, int ncomp, bool interpolate=false);
 
     // Is it safe to have these two MultiFabs in the same MFiter?
     // Ture means safe; false means maybe.
