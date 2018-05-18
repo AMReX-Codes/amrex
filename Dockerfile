@@ -1,6 +1,8 @@
 # This Dockerfile is used for automated testing of WarpX on Shippable
 
-FROM ubuntu:14.04
+FROM continuumio/miniconda
+
+WORKDIR /home/
 
 # Install a few packages, as root
 RUN apt-get update \
@@ -10,21 +12,23 @@ RUN apt-get update \
     git \
     gcc \
     gfortran \
-    g++ \
-    python \
-    python-numpy
-
-WORKDIR /home/
+    g++
 
 # Install MPI
 RUN apt-get install -y \
     openmpi-bin \
-libopenmpi-dev
+    libopenmpi-dev
 
 # Install FFTW
 RUN apt-get install -y \
     libfftw3-dev \
     libfftw3-mpi-dev
+
+# Install required python packages
+RUN conda install -c conda-forge \
+    numpy \
+    matplotlib \
+    yt
 
 # Clone amrex
 RUN git clone https://github.com/AMReX-Codes/amrex.git \
