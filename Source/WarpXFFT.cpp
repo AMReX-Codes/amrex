@@ -16,13 +16,20 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
     for (MFIter mfi(mftmp,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        if (mf_fft[mfi].box().contains(bx))
+        FArrayBox& dstfab = mftmp[mfi];
+        dstfab.setVal(0.0, bx);
+        const FArrayBox& srcfab = mf_fft[mfi];
+        if (srcfab.box().contains(bx))
         {
-            mftmp[mfi].copy(mf_fft[mfi], bx, 0, bx, 0, 1);
+            Box tbx = amrex::enclosedCells(srcfab.box());
+            tbx.setType(idx_type);
+            tbx &= bx;
+            dstfab.copy(srcfab, tbx, 0, tbx, 0, 1);
         }
     }
 
-    mf.ParallelCopy(mftmp);
+    mf.setVal(0.0, 0);
+    mf.ParallelAdd(mftmp);
 }
 
 }
