@@ -1,4 +1,4 @@
-# This Dockerfile is used for automated testing of WarpX
+# This Dockerfile is used for automated testing of WarpX on Shippable
 
 FROM ubuntu:14.04
 
@@ -43,8 +43,7 @@ RUN mkdir -p /home/warpx/
 COPY ./ /home/warpx/
 
 # Prepare regression tests
-RUN mkdir -p rt-WarpX \
-    && cp warpx/Regression/WarpX-tests.ini rt-WarpX \
-    && sed -i 's\regtester/\\g' rt-WarpX/WarpX-tests.ini \
-    && sed -i 's/sendEmailWhenFail = 1/sendEmailWhenFail = 0/g' rt-WarpX/WarpX-tests.ini \
-    && sed -i 's\AMReX_RegTesting/\\g' rt-WarpX/WarpX-tests.ini
+RUN mkdir -p rt-WarpX/WarpX-benchmarks \
+    && cd warpx/Regression \
+    && python prepare_file_shippable.py \
+    && cp shippable-tests.ini ../../rt-WarpX
