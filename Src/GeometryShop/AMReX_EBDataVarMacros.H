@@ -1,5 +1,5 @@
-#ifndef _AMReX_EBDataVarMacros_H_
-#define _AMReX_EBDataVarMacros_H_
+#ifndef AMREX_EBDATAVARMACROS_H_
+#define AMREX_EBDATAVARMACROS_H_
 
 namespace amrex {
 

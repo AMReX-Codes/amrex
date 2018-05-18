@@ -1,5 +1,5 @@
-#ifndef _EBCELLFAB_H_
-#define _EBCELLFAB_H_
+#ifndef AMREX_EBCELLFAB_H_
+#define AMREX_EBCELLFAB_H_
 
 #include <cmath>
 #include <cstdlib>

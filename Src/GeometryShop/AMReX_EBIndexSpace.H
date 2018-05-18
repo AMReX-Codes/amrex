@@ -1,5 +1,5 @@
-#ifndef _EBINDEXSPACE_H_
-#define _EBINDEXSPACE_H_
+#ifndef AMREX_EBINDEXSPACE_H_
+#define AMREX_EBINDEXSPACE_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"
@@ -129,7 +129,7 @@ namespace amrex
 
     ///fills 0th component with value from implit function
     void fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab,
-            int refinement = 1, RealVect a_origin = RealVect::Zero) const;
+            Real refinement = 1, RealVect a_origin = RealVect::Zero) const;
 
   private:
 

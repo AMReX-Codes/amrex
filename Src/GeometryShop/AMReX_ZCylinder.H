@@ -1,5 +1,5 @@
-#ifndef _ZCYLINDER_H_
-#define _ZCYLINDER_H_
+#ifndef AMREX_ZCYLINDER_H_
+#define AMREX_ZCYLINDER_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"

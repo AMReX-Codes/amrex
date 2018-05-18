@@ -1,5 +1,5 @@
-#ifndef _SMOOTHUNION_H_
-#define _SMOOTHUNION_H_
+#ifndef AMREX_SMOOTHUNION_H_
+#define AMREX_SMOOTHUNION_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_Vector.H"

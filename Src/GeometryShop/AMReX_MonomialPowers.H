@@ -1,7 +1,8 @@
+#ifndef AMREX_MonomialPowers_H_
+#define AMREX_MonomialPowers_H_
+
 #include "AMReX_IndexTM.H"
 #include "AMReX_Vector.H"
-#ifndef _MonomialPowers_H_
-#define _MonomialPowers_H_
 
 #define CH_IM_MAX_POWER  8
 using amrex::Vector;

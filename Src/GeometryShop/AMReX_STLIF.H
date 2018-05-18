@@ -1,5 +1,5 @@
-#ifndef _STLIF_H_
-#define _STLIF_H_
+#ifndef AMREX_STLIF_H_
+#define AMREX_STLIF_H_
 
 #include <iostream>
 #include <fstream>

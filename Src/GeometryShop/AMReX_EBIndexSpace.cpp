@@ -127,7 +127,7 @@ namespace amrex
   }
   void 
   EBIndexSpace::
-  fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, int ref, RealVect a_origin) const
+  fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab, Real ref, RealVect a_origin) const
   {
     if(!m_implicitFunction)
     {
