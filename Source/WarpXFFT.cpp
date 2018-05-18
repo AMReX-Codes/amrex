@@ -24,7 +24,7 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
             Box tbx = amrex::enclosedCells(srcfab.box());
             tbx.setType(idx_type);
             tbx &= bx;
-            dstfab.copy(srcfab, tbx, 0, tbx, 0, 1);
+            if (tbx.ok()) dstfab.copy(srcfab, tbx, 0, tbx, 0, 1);
         }
     }
 
