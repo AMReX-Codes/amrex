@@ -40,11 +40,11 @@ namespace amrex
 
             if (! grown_domain_box.contains(fab_box))
             {
-                FORT_LAUNCH(fab_box, amrex_fab_filcc,
-                            BL_TO_FORTRAN_FAB(fab),
-                            BL_TO_FORTRAN_BOX(domain_box),
-                            dx, prob_lo,
-                            bcrs_d);
+                AMREX_FORT_LAUNCH(fab_box, amrex_fab_filcc,
+                                  BL_TO_FORTRAN_FAB(fab),
+                                  BL_TO_FORTRAN_BOX(domain_box),
+                                  dx, prob_lo,
+                                  bcrs_d);
             }
         }
     }
