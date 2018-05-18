@@ -8,6 +8,5 @@ build:
     image_tag: tip
 
   ci:
-    - cd /home/regression_testing
-    - export FFTW_HOME=/usr/
-    - python regtest.py ../rt-WarpX/shippable-tests.ini --no_update all
+    - cd /home/regression_testing ; export FFTW_HOME=/usr/
+    - python regtest.py ../rt-WarpX/shippable-tests.ini --no_update all --source_git_hash=$COMMIT

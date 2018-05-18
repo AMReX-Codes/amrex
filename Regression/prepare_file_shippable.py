@@ -1,12 +1,14 @@
-# TODO: This file prepares the .ini file for tests on shippable
+# This script modifies `WarpX-test.ini` (which is used for nightly builds)
+# and creates the file `shippable-test.ini` (which is used for continous
+# integration on Shippable (https://app.shippable.com/))
 import re
 
 with open('WarpX-tests.ini') as f:
     text = f.read()
 
-# Add doCompare=0 for each test
+# Add doComparison = 0 for each test
 text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
-               '[\g<name>]\ndoCompare=0\nbuildDir = ', text )
+               '[\g<name>]\ndoComparison = 0\nbuildDir = ', text )
 
 # Remove Python test (does not compile in the Docker container)
 text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
