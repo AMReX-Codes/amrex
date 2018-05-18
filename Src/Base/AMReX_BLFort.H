@@ -45,14 +45,14 @@
 // as bounds of the box to launch the kernel on.
 
 // The form of the function launch MUST be:
-// FORT_LAUNCH(box, function, ...)
+// AMREX_FORT_LAUNCH(box, function, ...)
 // where everything after the function name (represented here by ...)
 // are the actual function arguments, as defined in the Fortran subroutine.
 // box is the current Box for this MFIter iteration.
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
-#define FORT_LAUNCH(box, function, ...)  \
+#define AMREX_FORT_LAUNCH(box, function, ...)  \
     { \
       dim3 numBlocks, numThreads; \
       Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
@@ -60,12 +60,12 @@
       CudaErrorCheck(); \
     }
 
-#define FORT_LAUNCHABLE(func) __global__ func
+#define AMREX_FORT_LAUNCHABLE(func) __global__ func
 
 #else
 
-#define FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
-#define FORT_LAUNCHABLE(func) func
+#define AMREX_FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
+#define AMREX_FORT_LAUNCHABLE(func) func
 
 #endif
 
@@ -75,11 +75,11 @@
 // so that a script can replace it.
 
 #ifdef AMREX_USE_CUDA
-#define DEVICE_LAUNCHABLE(func) null##func
-#define DEVICE_LAUNCHABLE_STRIDED(func) null##func
+#define AMREX_DEVICE_LAUNCHABLE(func) null##func
+#define AMREX_DEVICE_LAUNCHABLE_STRIDED(func) null##func
 #else
-#define DEVICE_LAUNCHABLE(func) func
-#define DEVICE_LAUNCHABLE_STRIDED(func) func
+#define AMREX_DEVICE_LAUNCHABLE(func) func
+#define AMREX_DEVICE_LAUNCHABLE_STRIDED(func) func
 #endif
 
 // Decorate the calls to the GPU.
@@ -88,7 +88,7 @@
 
 #if __CUDACC_VER_MAJOR__ >= 9 && __CUDACC_VER_MINOR__ >= 1
 
-#define DEVICE_LAUNCH(function)                         \
+#define AMREX_DEVICE_LAUNCH(function)                         \
       dim3 function_##numBlocks, function_##numThreads; \
       Device::grid_stride_threads_and_blocks(function_##numBlocks, function_##numThreads); \
       CudaAPICheck(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
@@ -96,7 +96,7 @@
 
 #else
 
-#define DEVICE_LAUNCH(function)                         \
+#define AMREX_DEVICE_LAUNCH(function)                         \
       dim3 function_##numBlocks, function_##numThreads; \
       Device::grid_stride_threads_and_blocks(function_##numBlocks, function_##numThreads); \
       cuda_##function<<<function_##numBlocks, function_##numThreads, 0, Device::cudaStream()>>> \
@@ -105,7 +105,7 @@
 
 #else
 
-#define DEVICE_LAUNCH(function) function
+#define AMREX_DEVICE_LAUNCH(function) function
 
 #endif
 
