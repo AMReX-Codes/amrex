@@ -3,7 +3,7 @@ module warpx_boosted_frame_module
 
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
-  use constants
+  use constants, only : clight
 
   implicit none
 
@@ -62,8 +62,6 @@ contains
                               i_boost, i_lab) &
        bind(C, name="warpx_copy_slice_3d")
 
-    use amrex_fort_module, only : amrex_real
-    
     integer       ,   intent(in)    :: ncomp, i_boost, i_lab
     integer       ,   intent(in)    :: lo(3), hi(3)
     integer       ,   intent(in)    :: tlo(3), thi(3)
@@ -88,8 +86,6 @@ contains
                                  i_boost, i_lab) &
        bind(C, name="warpx_copy_slice_2d")
 
-    use amrex_fort_module, only : amrex_real
-    
     integer       ,   intent(in)    :: ncomp, i_boost, i_lab
     integer       ,   intent(in)    :: lo(2),   hi(2)
     integer       ,   intent(in)    :: tlo(2), thi(2)

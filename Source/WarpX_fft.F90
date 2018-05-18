@@ -1,7 +1,7 @@
 
 module warpx_fft_module
-  use amrex_error_module
-  use amrex_fort_module
+  use amrex_error_module, only : amrex_error, amrex_abort
+  use amrex_fort_module, only : amrex_real
   use iso_c_binding
   implicit none
 
@@ -219,7 +219,7 @@ contains
          jx_r, jy_r, jz_r, rho_r, rhoold_r, &
          exf, eyf, ezf, bxf, byf, bzf, &
          jxf, jyf, jzf, rhof, rhooldf
-    use mpi_fftw3
+    use mpi_fftw3, only : plan_r2c_mpi, plan_c2r_mpi
     nullify(ex_r)
     nullify(ey_r)
     nullify(ez_r)

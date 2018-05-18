@@ -35,7 +35,6 @@ module warpx_to_pxr_module
 
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
-  use constants
 
   implicit none
 
@@ -147,8 +146,6 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
    nxguard,nyguard,nzguard,nox,noy,noz,lvect,charge_depo_algo) &
   bind(C, name="warpx_charge_deposition")
 
-  use amrex_error_module
-  
   integer(c_long), intent(IN)                   :: np
   integer(c_long), intent(IN)                   :: nx,ny,nz
   integer(c_long), intent(IN)                   :: nxguard,nyguard,nzguard
