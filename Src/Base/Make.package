@@ -154,6 +154,8 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90
 
   F90$(AMREX_BASE)_sources += AMReX_bc_types_mod.F90
+
+  F90$(AMREX_BASE)_sources += AMReX_ParallelDescriptor_F.F90
 endif
 
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
