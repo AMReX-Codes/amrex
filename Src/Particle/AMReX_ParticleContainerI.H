@@ -1137,7 +1137,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostPa
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Redistribute (int lev_min, int lev_max, int nGrow, bool local)
+::Redistribute (int lev_min, int lev_max, int nGrow, int local)
 {
 
   BL_PROFILE("ParticleContainer::Redistribute()");
@@ -1154,7 +1154,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = ParallelDescriptor::second();
   
-  if (local) BuildRedistributeMask(0);
+  if (local > 0) BuildRedistributeMask(0, local);
 
   // On startup there are cases where Redistribute() could be called
   // with a given finestLevel() where that AmrLevel has yet to be defined.
@@ -1608,7 +1608,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-                 int lev_min, int lev_max, int nGrow, bool local)
+                 int lev_min, int lev_max, int nGrow, int local)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
@@ -1620,10 +1620,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
     long NumSnds = 0;
-    if (local) {
+    if (local > 0) {
         AMREX_ALWAYS_ASSERT(lev_min == 0);
         AMREX_ALWAYS_ASSERT(lev_max == 0);
-        BuildRedistributeMask(0);
+        BuildRedistributeMask(0, local);
         NumSnds = doHandShakeLocal(not_ours, neighbor_procs, Snds, Rcvs);
     }
     else {

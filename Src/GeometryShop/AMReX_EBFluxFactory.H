@@ -1,5 +1,5 @@
-#ifndef _EBFLUXFACTORY_H___
-#define _EBFLUXFACTORY_H___
+#ifndef AMREX_EBFLUXFACTORY_H_
+#define AMREX_EBFLUXFACTORY_H_
 
 #include <cmath>
 #include <cstdlib>

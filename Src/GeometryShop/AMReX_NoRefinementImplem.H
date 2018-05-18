@@ -1,5 +1,5 @@
-#ifndef _NOREFINEMENTIMPLEM_H_
-#define _NOREFINEMENTIMPLEM_H_
+#ifndef AMREX_NOREFINEMENTIMPLEM_H_
+#define AMREX_NOREFINEMENTIMPLEM_H_
 
 template <int dim> NoRefinement<dim>::NoRefinement()
 {
