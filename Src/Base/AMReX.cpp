@@ -56,6 +56,7 @@ namespace system
     std::string exename;
     int verbose;
     int signal_handling;
+    int call_addr2line;
 }
 }
 
@@ -66,6 +67,8 @@ namespace {
     SignalHandler prev_handler_sigint;
     SignalHandler prev_handler_sigabrt;
     SignalHandler prev_handler_sigfpe;
+    int           prev_fpe_excepts;
+    int           curr_fpe_excepts;
 }
 
 std::string amrex::Version ()
@@ -287,6 +290,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::exename.clear();
     system::verbose = 0;
     system::signal_handling = 1;
+    system::call_addr2line = 1;
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
@@ -391,6 +395,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	pp.query("verbose", system::verbose);
 
         pp.query("signal_handling", system::signal_handling);
+        pp.query("call_addr2line", system::call_addr2line);
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
@@ -404,14 +409,15 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.query("fpe_trap_invalid", invalid);
             pp.query("fpe_trap_zero", divbyzero);
             pp.query("fpe_trap_overflow", overflow);
-            int flags = 0;
-            if (invalid)   flags |= FE_INVALID;
-            if (divbyzero) flags |= FE_DIVBYZERO;
-            if (overflow)  flags |= FE_OVERFLOW;
+            curr_fpe_excepts = 0;
+            if (invalid)   curr_fpe_excepts |= FE_INVALID;
+            if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
+            if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
 #if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
-            if (flags != 0) {
-                feenableexcept(flags);  // trap floating point exceptions
+            prev_fpe_excepts = fegetexcept();
+            if (curr_fpe_excepts != 0) {
+                feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
                 prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
             }
 #endif
@@ -546,6 +552,14 @@ amrex::Finalize (bool finalize_parallel)
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
+#if defined(__linux__)
+#if !defined(__PGI) || (__PGIC__ >= 16)
+        if (curr_fpe_excepts != 0) {
+            fedisableexcept(curr_fpe_excepts);
+            feenableexcept(prev_fpe_excepts);
+        }
+#endif
+#endif
     }
 #endif
 
