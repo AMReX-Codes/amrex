@@ -1,6 +1,8 @@
 
 #include <WarpX.H>
 #include <WarpX_f.H>
+#include <AMReX_BaseFab_f.H>
+#include <AMReX_iMultiFab.H>
 
 using namespace amrex;
 
@@ -8,23 +10,73 @@ constexpr int WarpX::FFTData::N;
 
 namespace {
 
+static iMultiFab
+BuildFFTOwnerMask (const MultiFab& mf)
+{
+    const BoxArray& ba = mf.boxArray();
+    const DistributionMapping& dm = mf.DistributionMap();
+    iMultiFab mask(ba, dm, 1, 0);
+    const int owner = 1;
+    const int nonowner = 0;
+    mask.setVal(owner);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        for (MFIter mfi(mask); mfi.isValid(); ++mfi)
+        {
+            IArrayBox& fab = mask[mfi];
+            const Box& bx = fab.box();
+            ba.intersections(bx, isects);
+            for (const auto& is : isects)
+            {
+                const Box& ibx = is.second;
+                bool on_high_end = false;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    const Box& bhi = amrex::bdryHi(bx, idim);
+                    if (bhi.contains(ibx)) {
+                        on_high_end = true;
+                        break;
+                    }
+                }
+                if (on_high_end) {
+                    fab.setVal(nonowner, ibx, 0, 1);
+                }
+            }
+        }
+    }
+
+    return mask;
+}
+
 static void
 CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba_valid_fft)
 {
     auto idx_type = mf_fft.ixType();
     MultiFab mftmp(amrex::convert(ba_valid_fft,idx_type), mf_fft.DistributionMap(), 1, 0);
+
+    const iMultiFab& mask = BuildFFTOwnerMask(mftmp);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(mftmp,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         FArrayBox& dstfab = mftmp[mfi];
-        dstfab.setVal(0.0, bx);
+
         const FArrayBox& srcfab = mf_fft[mfi];
-        if (srcfab.box().contains(bx))
+        const Box& srcbox = srcfab.box();
+
+        if (srcbox.contains(bx))
         {
-            Box tbx = amrex::enclosedCells(srcfab.box());
-            tbx.setType(idx_type);
-            tbx &= bx;
-            if (tbx.ok()) dstfab.copy(srcfab, tbx, 0, tbx, 0, 1);
+            dstfab.copy(srcfab, bx, 0, bx, 0, 1);
+            amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_FAB(dstfab),
+                                    BL_TO_FORTRAN_ANYD(mask[mfi]),
+                                    0.0); // if mask == 0, set value to zero
         }
     }
 
