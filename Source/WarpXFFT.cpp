@@ -29,20 +29,24 @@ BuildFFTOwnerMask (const MultiFab& mf)
         {
             IArrayBox& fab = mask[mfi];
             const Box& bx = fab.box();
+            const int igrid = mfi.index();
             ba.intersections(bx, isects);
             for (const auto& is : isects)
             {
-                const Box& ibx = is.second;
-                bool on_high_end = false;
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    const Box& bhi = amrex::bdryHi(bx, idim);
-                    if (bhi.contains(ibx)) {
-                        on_high_end = true;
-                        break;
+                if (is.first != igrid)
+                {
+                    const Box& ibx = is.second;
+                    bool on_high_end = false;
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                        const Box& bhi = amrex::bdryHi(bx, idim);
+                        if (bhi.contains(ibx)) {
+                            on_high_end = true;
+                            break;
+                        }
                     }
-                }
-                if (on_high_end) {
-                    fab.setVal(nonowner, ibx, 0, 1);
+                    if (on_high_end) {
+                        fab.setVal(nonowner, ibx, 0, 1);
+                    }
                 }
             }
         }
