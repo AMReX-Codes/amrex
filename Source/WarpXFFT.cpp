@@ -39,7 +39,7 @@ BuildFFTOwnerMask (const MultiFab& mf)
                     bool on_high_end = false;
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                         Box bhi = bx;
-                        bhi.setBig(idim, bx.smallEnd(idim));
+                        bhi.setSmall(idim, bx.bigEnd(idim));
                         if (bhi.contains(ibx)) {
                             on_high_end = true;
                             break;
