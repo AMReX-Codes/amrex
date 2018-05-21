@@ -43,7 +43,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
 void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 {
-    BL_PROFILE("BoostedFrameDiagnostic::~BoostedFrameDiagnostic");
+    BL_PROFILE("BoostedFrameDiagnostic::Flush");
     
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
