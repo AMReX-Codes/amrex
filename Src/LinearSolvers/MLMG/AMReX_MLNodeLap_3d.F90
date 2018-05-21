@@ -180,37 +180,37 @@ contains
 
     if (lo(1) .eq. domlo(1)) then
        if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
-          dmsk(lo(1),:,:) = 0.5d0*dmsk(lo(1),:,:)
+          dmsk(lo(1),lo(2):hi(2),lo(3):hi(3)) = 0.5d0*dmsk(lo(1),lo(2):hi(2),lo(3):hi(3))
        end if
     end if
 
     if (hi(1) .eq. domhi(1)) then
        if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          dmsk(hi(1),:,:) = 0.5d0*dmsk(hi(1),:,:)
+          dmsk(hi(1),lo(2):hi(2),lo(3):hi(3)) = 0.5d0*dmsk(hi(1),lo(2):hi(2),lo(3):hi(3))
        end if
     end if
 
     if (lo(2) .eq. domlo(2)) then
        if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          dmsk(:,lo(2),:) = 0.5d0*dmsk(:,lo(2),:)
+          dmsk(lo(1):hi(1),lo(2),lo(3):hi(3)) = 0.5d0*dmsk(lo(1):hi(1),lo(2),lo(3):hi(3))
        end if
     end if
 
     if (hi(2) .eq. domhi(2)) then
        if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          dmsk(:,hi(2),:) = 0.5d0*dmsk(:,hi(2),:)
+          dmsk(lo(1):hi(1),hi(2),lo(3):hi(3)) = 0.5d0*dmsk(lo(1):hi(1),hi(2),lo(3):hi(3))
        end if
     end if
 
     if (lo(3) .eq. domlo(3)) then
        if (bclo(3) .eq. amrex_lo_neumann .or. bclo(3) .eq. amrex_lo_inflow) then
-          dmsk(:,:,lo(3)) = 0.5d0*dmsk(:,:,lo(3))
+          dmsk(lo(1):hi(1),lo(2):hi(2),lo(3)) = 0.5d0*dmsk(lo(1):hi(1),lo(2):hi(2),lo(3))
        end if
     end if
 
     if (hi(3) .eq. domhi(3)) then
        if (bchi(3) .eq. amrex_lo_neumann .or. bchi(3) .eq. amrex_lo_inflow) then
-          dmsk(:,:,hi(3)) = 0.5d0*dmsk(:,:,hi(3))
+          dmsk(lo(1):hi(1),lo(2):hi(2),hi(3)) = 0.5d0*dmsk(lo(1):hi(1),lo(2):hi(2),hi(3))
        end if
     end if
 
