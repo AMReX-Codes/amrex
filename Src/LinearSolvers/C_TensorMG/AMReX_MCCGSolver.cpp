@@ -36,6 +36,7 @@ MCCGSolver::Initialize ()
     pp.query("maxiter",  def_maxiter);
     pp.query("v",        def_verbose);
     pp.query("isExpert", def_isExpert);
+    pp.query("unstable_criterion", def_unstable_criterion);
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
