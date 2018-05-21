@@ -13,15 +13,17 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
   MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.04.27
 
   ifeq ($(USE_MPI),TRUE)
+    export OMPI_CC  := $(CC)
+    export OMPI_CXX := $(CXX)
+    export OMPI_FC  := $(F90)
+    export OMPI_F77 := $(FC)
+
     CC  = $(MPIROOT)/bin/mpicc
     CXX = $(MPIROOT)/bin/mpicxx
     FC  = $(MPIROOT)/bin/mpif90
     F90 = $(MPIROOT)/bin/mpif90
 
-    export OMPI_CC  := $(CXX)
-    export OMPI_CXX := $(CC)
-    export OMPI_FC  := $(F90)
-    export OMPI_F77 := $(FC)
+    LINK_WITH_FORTRAN_COMPILER=TRUE
   endif
 
   # If the cuda module is loaded, CUDA_HOME is set as the toolkit location.
@@ -46,15 +48,17 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra))
   MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.04.27
 
   ifeq ($(USE_MPI),TRUE)
+    export OMPI_CC  := $(CC)
+    export OMPI_CXX := $(CXX)
+    export OMPI_FC  := $(F90)
+    export OMPI_F77 := $(FC)
+
     CC  = $(MPIROOT)/bin/mpicc
     CXX = $(MPIROOT)/bin/mpicxx
     FC  = $(MPIROOT)/bin/mpif90
     F90 = $(MPIROOT)/bin/mpif90
 
-    export OMPI_CC  := $(CXX)
-    export OMPI_CXX := $(CC)
-    export OMPI_FC  := $(F90)
-    export OMPI_F77 := $(FC)
+    LINK_WITH_FORTRAN_COMPILER=TRUE
   endif
 
   # If the cuda module is loaded, CUDA_HOME is set as the toolkit location.
