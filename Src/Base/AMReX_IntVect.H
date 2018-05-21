@@ -99,7 +99,6 @@ public:
     * the Vector<int> doesn' t have the same dimension as this
     * IntVect.
     */
-    DEVICE_CLASS_FUNCTION
     explicit IntVect (const Vector<int>& a) : vect{AMREX_D_DECL(a[0],a[1],a[2])} {
         BL_ASSERT(a.size() == AMREX_SPACEDIM);
     }
@@ -108,7 +107,6 @@ public:
   /**
      Sum of all components of this IntVect.
   */
-    DEVICE_CLASS_FUNCTION
     int sum () const
     {
         int retval = AMREX_D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
@@ -161,8 +159,11 @@ public:
     * \brief Returns a const pointer to an array of coordinates of the
     * IntVect.  Useful for arguments to FORTRAN calls.
     */
+    DEVICE_CLASS_FUNCTION
     const int* getVect () const& { return vect; }
+    DEVICE_CLASS_FUNCTION
     int*       getVect () &      { return vect; }
+    DEVICE_CLASS_FUNCTION
     int*       getVect () && = delete;
 
     //! Returns true if all components are equal to the argument val.
@@ -178,6 +179,7 @@ public:
     }
 
     //! Returns true if this is equivalent to rhs.
+    DEVICE_CLASS_FUNCTION
     bool operator== (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);

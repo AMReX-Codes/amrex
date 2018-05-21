@@ -20,6 +20,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
+#include <AMReX_Managed.H>
 
 namespace amrex
 {
@@ -87,7 +88,7 @@ namespace amrex
 */
 
 template <class T>
-class BaseFab
+class BaseFab : public Managed
 {
 public:
 
@@ -189,6 +190,7 @@ public:
     long size () const { return nvar*numpts; }
 
     //! Returns the domain (box) where the array is defined
+    DEVICE_CLASS_FUNCTION
     const Box& box () const { return domain; }
 
     /**
@@ -214,6 +216,7 @@ public:
     * constant integers.  This is useful when interfacing to
     * Fortran subroutines.
     */
+    DEVICE_CLASS_FUNCTION
     const int* loVect () const { return domain.loVect(); }
 
     /**
@@ -224,6 +227,7 @@ public:
     * constant integers.  This is useful when interfacing to
     * Fortran subroutines.
     */
+    DEVICE_CLASS_FUNCTION
     const int* hiVect () const { return domain.hiVect(); }
 
     /**
@@ -250,12 +254,16 @@ public:
     * order, with the component index coming last.   In other words,
     * dataPtr returns a pointer to all the Nth components.
     */
+    DEVICE_CLASS_FUNCTION
     T* dataPtr (int n = 0) { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
     //! Same as above except works on const FABs.
+    DEVICE_CLASS_FUNCTION
     const T* dataPtr (int n = 0) const { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
+    DEVICE_CLASS_FUNCTION
     T* dataPtr (const IntVect& iv, int n = 0);
+    DEVICE_CLASS_FUNCTION
     const T* dataPtr (const IntVect& iv, int n = 0) const;
     
     void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
@@ -298,17 +306,21 @@ public:
     * the starting component number, and the number of components
     * to be set.
     */
+    DEVICE_CLASS_FUNCTION
     void setVal (T          x,
                  const Box& bx,
                  int        nstart,
                  int        ncomp);
     //! Same as above, except the number of modified components is one. N is the component to be modified.
+    DEVICE_CLASS_FUNCTION
     void setVal (T          x,
                  const Box& bx,
                  int        N = 0);
+    DEVICE_CLASS_FUNCTION
     //! Same as above, except the sub-box defaults to the entire domain.
     void setVal (T   x,
                  int N);
+    DEVICE_CLASS_FUNCTION
     //! Same as above, except all components are set.
     void setVal (T x);
 
@@ -909,6 +921,7 @@ protected:
                       int               numcomp);
 
     //! This function is called by the BaseFab setVal operations.
+    DEVICE_CLASS_FUNCTION
     void performSetVal (T          x,
                         const Box& bx,
                         int        nstart,
@@ -1669,6 +1682,7 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
                             int         numcomp,
                             const void* src);
 template <>
+DEVICE_CLASS_FUNCTION
 void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,

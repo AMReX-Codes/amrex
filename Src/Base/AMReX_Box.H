@@ -11,6 +11,7 @@
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Managed.H>
 
 namespace amrex
 {
@@ -28,7 +29,7 @@ class BoxCommHelper;
 * Box is a dimension dependent class, so SPACEDIM must be 
 * defined as either 1, 2, or 3 when compiling.
 */
-class Box
+class Box : public Managed
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
     friend class BoxCommHelper;
@@ -39,6 +40,7 @@ public:
     * invalid and may be tested for validity with ok(). 
     * DO NOT CHANGE THIS BEHAVIOR!
     */
+    DEVICE_CLASS_FUNCTION
     Box ()
         : smallend(1),
           bigend(0),
@@ -46,12 +48,14 @@ public:
         {}
 
     //! Construct cell-centered type Box.
+    DEVICE_CLASS_FUNCTION
     Box (const IntVect& small, const IntVect& big)
         : smallend(small),
           bigend(big)
         {}
 
     //! Construct box with specified lengths.
+    DEVICE_CLASS_FUNCTION
     Box (const IntVect& small, const int* vec_len)
         : smallend(small),
           bigend(AMREX_D_DECL(small[0]+vec_len[0]-1,
@@ -74,6 +78,7 @@ public:
     //
     // Construct dimension specific Boxes.
     //
+    DEVICE_CLASS_FUNCTION
     Box (const IntVect& small, const IntVect& big, IndexType t)
         : smallend(small),
           bigend(big),
@@ -106,6 +111,7 @@ public:
     IndexType::CellIndex type (int dir) const { return btype.ixType(dir); }
 
     //! Return the length of the Box.
+    DEVICE_CLASS_FUNCTION
     IntVect size () const
     {
         return IntVect(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
@@ -114,8 +120,10 @@ public:
     }
 
     //! Return the length of the Box in given direction.
+    DEVICE_CLASS_FUNCTION
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
+    DEVICE_CLASS_FUNCTION
     std::array<int,3> length3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {bigend[0]-smallend[0]+1, 1, 1};
@@ -127,10 +135,14 @@ public:
     }
 
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
+    DEVICE_CLASS_FUNCTION
     const int* loVect () const& { return smallend.getVect(); }
+    DEVICE_CLASS_FUNCTION
     const int* loVect () && = delete;
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
+    DEVICE_CLASS_FUNCTION
     const int* hiVect () const& { return bigend.getVect(); }
+    DEVICE_CLASS_FUNCTION
     const int* hiVect () && = delete;
 
     //! Returns the coordinate normal to given face.
@@ -190,6 +202,7 @@ public:
     bool sameType (const Box &b) const { return btype == b.btype; }
 
     //! Returns true if Boxes are identical (including type).
+    DEVICE_CLASS_FUNCTION
     bool operator== (const Box& b) const { return smallend == b.smallend && bigend == b.bigend && b.btype == btype; }
 
     //! Returns true if Boxes differ (including type).
@@ -219,6 +232,7 @@ public:
     * \brief Returns the number of points contained in the Box, else
     * abort()s if the number cannot be represented in a long.
     */
+    DEVICE_CLASS_FUNCTION
     long numPts () const {
         auto r = AMREX_D_TERM( static_cast<unsigned long>(length(0)),
                               *static_cast<unsigned long>(length(1)),
@@ -270,6 +284,7 @@ public:
     * index(smallend) -> 0, bigend would return numPts()-1.
     * Is used in accessing FArrayBox.
     */
+    DEVICE_CLASS_FUNCTION
     long index (const IntVect& v) const;
 
     //! Redefine the small end of the Box.

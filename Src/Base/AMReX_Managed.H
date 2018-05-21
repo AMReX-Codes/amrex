@@ -1,3 +1,5 @@
+#include <AMReX.H>
+
 #ifndef AMREX_MANAGED
 #define AMREX_MANAGED
 
@@ -41,6 +43,8 @@ inline void CudaErrorCheck() {
 #define DEVICE_FUNCTION __global__ 
 #define DEVICE_CLASS_FUNCTION __host__ __device__
 #define MANAGED public Managed
+
+// ************************************************
 
 #else
 
