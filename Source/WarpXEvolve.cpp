@@ -300,10 +300,6 @@ WarpX::EvolveEM (int numsteps)
 	    WriteCheckPointFile();
 	}
 
-        if (do_boosted_frame_diagnostic) {
-            myBFD->Flush(cur_time);
-        }
-        
 	if (cur_time >= stop_time - 1.e-3*dt[0]) {
 	    max_time_reached = true;
 	    break;
@@ -329,6 +325,10 @@ WarpX::EvolveEM (int numsteps)
 
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
 	WriteCheckPointFile();
+    }
+
+    if (do_boosted_frame_diagnostic) {
+        myBFD->Flush(cur_time);
     }
 }
 
