@@ -1,5 +1,6 @@
-AMR_Adv_CF: This code advects a single scalar field with a velocity
-field that is specified on faces.
+AMR_Adv_CF: This code advects a specified number of scalar fields with a velocity
+field that is specified on faces. The number of components is taken as an input - ncomp
+from the input file
 
 It is a AMReX based code designed to run in parallel using MPI/OMP.
 It uses the Fortran interfaces of AMReX.
