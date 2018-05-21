@@ -41,7 +41,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 }
 
-void BoostedFrameDiagnostic::Flush(const Real t_boost)
+void BoostedFrameDiagnostic::Flush(const Real t_boost, const Geometry& geom)
 {
     BL_PROFILE("BoostedFrameDiagnostic::~BoostedFrameDiagnostic");
     
@@ -57,9 +57,24 @@ void BoostedFrameDiagnostic::Flush(const Real t_boost)
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
         
         if (buff_counter_[i] != 0) {
+            Box buff_box = geom.Domain();
+            int lo = i_lab - num_buffer_ + 1;
+            buff_box.setSmall(boost_direction_, lo);
+            buff_box.setBig(boost_direction_, lo + buff_counter_[i]);
+
+            BoxArray buff_ba(buff_box);
+            buff_ba.maxSize(max_box_size_);
+            DistributionMapping buff_dm(buff_ba);
+
+            const int ncomp = data_buffer_[i]->nComp();
+            
+            MultiFab tmp(buff_ba, buff_dm, ncomp, 0);
+
+            tmp.copy(*data_buffer_[i], 0, 0, ncomp);
+            
             std::stringstream ss;
             ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
-            VisMF::Write(*data_buffer_[i], ss.str());
+            VisMF::Write(tmp, ss.str());
             buff_counter_[i] = 0;
         }
     }
