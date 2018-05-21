@@ -1240,8 +1240,8 @@ DO WHILE(isep_rel > 0)
 ENDDO
 ALLOCATE( CHARACTER(1) :: lofstr(nwords) )
 word_end(nwords) = strinlen
-word_start = word_start(:nwords)
-word_end = word_end(:nwords)
+! word_start = word_start(:nwords)
+! word_end = word_end(:nwords)
 DO i=1, nwords
   lofstr(i)(1:word_end(i)-word_start(i)+1) = strin(word_start(i):word_end(i))
 ENDDO
