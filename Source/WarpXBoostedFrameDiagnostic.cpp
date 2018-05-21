@@ -71,8 +71,6 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 
             tmp.copy(*data_buffer_[i], 0, 0, ncomp);
 
-            amrex::Print() << "max of flushed buffer is " << tmp.max(0) << std::endl;
-            
             std::stringstream ss;
             ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
             VisMF::Write(tmp, ss.str());
