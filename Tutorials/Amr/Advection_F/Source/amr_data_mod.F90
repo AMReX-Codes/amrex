@@ -4,11 +4,12 @@ module amr_data_module
   use iso_c_binding
   use amrex_amr_module
   use amrex_fort_module, only : rt => amrex_real
-
+  use amrex_base_module
+ 
   implicit none
 
   private
-  public :: t_new, t_old, phi_new, phi_old, flux_reg
+  public :: t_new, t_old, phi_new, phi_old, flux_reg, ba_new, dm_new, ncomp
   public :: amr_data_init, amr_data_finalize
 
   real(rt), allocatable :: t_new(:)
@@ -16,12 +17,18 @@ module amr_data_module
 
   type(amrex_multifab), allocatable :: phi_new(:)
   type(amrex_multifab), allocatable :: phi_old(:)
-
+  
   type(amrex_fluxregister), allocatable :: flux_reg(:)
+
+  type(amrex_boxarray), allocatable, save :: ba_new(:)
+  type(amrex_distromap), allocatable, save :: dm_new(:)
+
+  integer :: ncomp
 
 contains
 
   subroutine amr_data_init ()
+
     allocate(t_new(0:amrex_max_level))
     t_new = 0.0_rt
 
@@ -32,6 +39,10 @@ contains
     allocate(phi_old(0:amrex_max_level))
 
     allocate(flux_reg(0:amrex_max_level))
+    
+    allocate(ba_new(0:amrex_max_level))
+    allocate(dm_new(0:amrex_max_level))
+
   end subroutine amr_data_init
 
   subroutine amr_data_finalize

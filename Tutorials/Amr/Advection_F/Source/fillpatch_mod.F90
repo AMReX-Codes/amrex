@@ -2,6 +2,7 @@ module fillpatch_module
 
   use iso_c_binding
   use amrex_amr_module
+  use amr_data_module
 
   implicit none
 
@@ -19,7 +20,12 @@ contains
     real(amrex_real), intent(in) :: time
     type(amrex_multifab), intent(inout) :: phi
     
-    integer, parameter :: src_comp=1, dst_comp=1, num_comp=1  ! for this test code
+    !integer, parameter :: src_comp=2, dst_comp=2, num_comp=1  ! for this test code
+    integer, parameter :: num_comp=1  ! for this test code
+    integer :: src_comp, dst_comp
+
+    do src_comp=1,ncomp
+       dst_comp=src_comp       
 
     if (lev .eq. 0) then
        call amrex_fillpatch(phi, t_old(lev), phi_old(lev), &
@@ -38,6 +44,8 @@ contains
             &               lo_bc, hi_bc)
        ! see amrex_interpolater_module for a list of interpolaters
     end if
+
+    enddo
   end subroutine fillpatch
 
   subroutine fillcoarsepatch (lev, time, phi)
@@ -47,8 +55,13 @@ contains
     real(amrex_real), intent(in) :: time
     type(amrex_multifab), intent(inout) :: phi
 
-    integer, parameter :: src_comp=1, dst_comp=1, num_comp=1  ! for this test code
-    
+    !integer, parameter :: src_comp=2, dst_comp=2, num_comp=1  ! for this test code
+    integer, parameter :: num_comp=1  ! for this test code
+    integer :: src_comp, dst_comp
+
+    do src_comp=1,ncomp
+       dst_comp=src_comp       
+
     call amrex_fillcoarsepatch(phi, t_old(lev-1), phi_old(lev-1),  &
          &                          t_new(lev-1), phi_new(lev-1),  &
          &                     amrex_geom(lev-1),    fill_physbc,  &
@@ -57,6 +70,9 @@ contains
          &                     amrex_ref_ratio(lev-1), amrex_interp_cell_cons, &
          &                     lo_bc, hi_bc)
        ! see amrex_interpolater_module for a list of interpolaters
+
+     enddo
+
   end subroutine fillcoarsepatch
 
   subroutine fill_physbc (pmf, scomp, ncomp, time, pgeom) bind(c)
@@ -74,6 +90,7 @@ contains
     integer :: plo(4), phi(4)
 
     if (.not. amrex_is_all_periodic()) then
+
        geom = pgeom
        mf = pmf
 

@@ -1,4 +1,4 @@
-max_step  = 1000000
+max_step  = 100000
 stop_time = 2.0
 
 # PROBLEM SIZE & GEOMETRY
@@ -6,10 +6,13 @@ geometry.is_periodic =  1  1  1
 geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0.0  0.0  0.0 
 geometry.prob_hi     =  1.0  1.0  1.0
-amr.n_cell           =  64   64   64
+amr.n_cell           =  64  64  64
 
 # VERBOSITY
 amr.v              = 1       # verbosity in Amr
+
+# NO. OF COMPONENTS
+amr.ncomp          = 5
 
 # REFINEMENT
 amr.max_level       = 2       # maximum level number allowed
@@ -23,7 +26,7 @@ amr.regrid_int      = 2       # how often to regrid
 amr.plot_file  = plt    # root name of plot file
 amr.plot_int   = 10     # number of timesteps between plot files
 
-myamr.verbose   = 1
+myamr.verbose   = 2
 myamr.cfl       = 0.7
 myamr.do_reflux = 1
 
