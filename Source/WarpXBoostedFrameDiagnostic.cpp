@@ -41,7 +41,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 }
 
-void BoostedFrameDiagnostic::Flush(const Real t_boost, const Geometry& geom)
+void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 {
     BL_PROFILE("BoostedFrameDiagnostic::~BoostedFrameDiagnostic");
     

@@ -328,7 +328,7 @@ WarpX::EvolveEM (int numsteps)
     }
 
     if (do_boosted_frame_diagnostic) {
-        myBFD->Flush(cur_time, geom[0]);
+        myBFD->Flush(geom[0]);
     }
 }
 

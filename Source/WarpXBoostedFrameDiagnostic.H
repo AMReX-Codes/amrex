@@ -80,7 +80,7 @@ public:
                            int N_snapshots, amrex::Real gamma_boost,
                            amrex::Real dt_boost, int boost_direction);
 
-    void Flush(const amrex::Real t_boost, const amrex::Geometry& geom);
+    void Flush(const amrex::Geometry& geom);
     
     void writeLabFrameData(const amrex::MultiFab& cell_centered_data,
                            const amrex::Geometry& geom, amrex::Real t_boost);
