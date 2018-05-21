@@ -50,17 +50,16 @@ void BoostedFrameDiagnostic::Flush(const Real t_boost, const Geometry& geom)
 
     for (int i = 0; i < N_snapshots_; ++i) {
 
-        snapshots_[i].updateCurrentZPositions(t_boost,
-                                              inv_gamma_boost_,
-                                              inv_beta_boost_);
-
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
         
         if (buff_counter_[i] != 0) {
+            const BoxArray& ba = data_buffer_[i]->boxArray();
+            const int hi = ba[0].bigEnd(boost_direction_);
+            const int lo = hi - buff_counter_[i] + 1;
+
             Box buff_box = geom.Domain();
-            int lo = i_lab - num_buffer_ + 1;
             buff_box.setSmall(boost_direction_, lo);
-            buff_box.setBig(boost_direction_, lo + buff_counter_[i]);
+            buff_box.setBig(boost_direction_, hi);
 
             BoxArray buff_ba(buff_box);
             buff_ba.maxSize(max_box_size_);
@@ -71,6 +70,8 @@ void BoostedFrameDiagnostic::Flush(const Real t_boost, const Geometry& geom)
             MultiFab tmp(buff_ba, buff_dm, ncomp, 0);
 
             tmp.copy(*data_buffer_[i], 0, 0, ncomp);
+
+            amrex::Print() << "max of flushed buffer is " << tmp.max(0) << std::endl;
             
             std::stringstream ss;
             ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
