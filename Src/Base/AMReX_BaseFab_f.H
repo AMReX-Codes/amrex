@@ -22,6 +22,7 @@ extern "C"
                                const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
                                const amrex_real* src);
 
+    DEVICE_CLASS_FUNCTION
     void amrex_fort_fab_setval (const int* lo, const int* hi, 
 			  const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
 			  const amrex_real* val);
@@ -114,7 +115,8 @@ extern "C"
     long amrex_fort_ifab_copyfrommem (const int* lo, const int* hi,
                                 const int* dst, const int* dlo, const int* dhi, const int* ncomp,
                                 const int* src);
-    
+   
+    DEVICE_CLASS_FUNCTION 
     void amrex_fort_ifab_setval (const int* lo, const int* hi, 
                            const int* dst, const int* dlo, const int* dhi, const int* ncomp,
                            const int* val);
