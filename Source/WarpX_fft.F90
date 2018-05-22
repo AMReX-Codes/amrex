@@ -34,10 +34,10 @@ contains
 !! Note: fft_data is a stuct containing 22 pointers to arrays
 !! 1-11: padded arrays in real space ; 12-22 arrays for the fields in Fourier space
   subroutine warpx_fft_dataplan_init (global_lo, global_hi, local_lo, local_hi, &
-       nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx) &
+       nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx, fftw_measure) &
        bind(c,name='warpx_fft_dataplan_init')
     USE picsar_precision, only: idp
-    use shared_data, only : comm, c_dim,  p3dfft_flag, &
+    use shared_data, only : comm, c_dim,  p3dfft_flag, fftw_plan_measure, &
          fftw_with_mpi, fftw_threads_ok, fftw_hybrid, fftw_mpi_transpose, &
          nx_global, ny_global, nz_global, & ! size of global FFT
          nx, ny, nz, & ! size of local subdomains
@@ -51,22 +51,24 @@ contains
          jxf, jyf, jzf, rhof, rhooldf, &
          l_spectral, l_staggered, norderx, nordery, norderz
     use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
-    USE fourier_psaotd, only: init_plans_blocks
+    use omp_lib, only: omp_get_max_threads
+    USE gpstd_solver, only: init_gpstd
+    USE fourier_psaotd, only: init_plans_fourier_mpi
     use params, only : dt
 
     integer, dimension(3), intent(in) :: global_lo, global_hi, local_lo, local_hi
     integer, intent(in) :: nox, noy, noz, ndata
+    integer, intent(in) :: fftw_measure
     type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
+    integer :: iret
+    integer(idp) :: nopenmp
     integer :: nx_padded
     integer, dimension(3) :: shp
     integer(kind=c_size_t) :: sz
     real(c_double) :: realfoo
     complex(c_double_complex) :: complexfoo
-
-    !    CALL DFFTW_INIT_THREADS(iret)
-    !    fftw_threads_ok = .TRUE.
 
     ! Define size of domains: necessary for the initialization of the global FFT
     nx_global = INT(global_hi(1)-global_lo(1)+1,idp)
@@ -97,9 +99,17 @@ contains
     fftw_with_mpi = .TRUE. ! Activate MPI FFTW
     fftw_hybrid = .FALSE.   ! FFT per MPI subgroup (instead of global)
     fftw_mpi_transpose = .FALSE. ! Do not transpose the data
-    fftw_threads_ok = .FALSE.   ! Do not use threads for FFTW
+    fftw_plan_measure = (fftw_measure .ne. 0)
     p3dfft_flag = .FALSE.
     l_spectral  = .TRUE.   ! Activate spectral Solver, using FFT
+#ifdef _OPENMP
+    CALL DFFTW_INIT_THREADS(iret)
+    fftw_threads_ok = .TRUE.
+    nopenmp = OMP_GET_MAX_THREADS()
+#else
+    fftw_threads_ok = .FALSE.
+    nopenmp = 1
+#endif
 
     ! Allocate padded arrays for MPI FFTW
     nx_padded = 2*(nx/2 + 1)
@@ -170,7 +180,10 @@ contains
     dz = dx_wrpx(3)
     dt = dt_wrpx
 
-    CALL init_plans_blocks()
+    ! Initialize the matrix blocks for the PSATD solver
+    CALL init_gpstd()
+    ! Initialize the plans for fftw with MPI
+    CALL init_plans_fourier_mpi(nopenmp)
 
   end subroutine warpx_fft_dataplan_init
 

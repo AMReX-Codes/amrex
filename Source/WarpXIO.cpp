@@ -436,7 +436,9 @@ WarpX::GetCellCenteredData() {
 
     const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
     amrex::average_node_to_cellcenter(*cc, dcomp, *charge_density, 0, 1);
-        
+
+    cc->FillBoundary(geom[lev].periodicity());
+    
     return cc;
 }
 
