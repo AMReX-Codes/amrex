@@ -1275,14 +1275,15 @@ CONTAINS
 !> my_index_res : INT parser index. Necessary if this module is used for several
 !>                parsers (e.g. one for the electron density, one for the ion
 !>                density, one for the laser profile etc.).
-FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) & 
+FUNCTION parser_initialize_function(instr_func, length_func, instr_var, length_var) RESULT(my_index_res) & 
     bind(c,name='parser_initialize_function')
-  CHARACTER(kind=c_char), DIMENSION(*), INTENT(IN) :: instr_func
-  CHARACTER(kind=c_char), DIMENSION(*), INTENT(IN) :: instr_var
-  INTEGER :: length_func, length_var
+  INTEGER(c_int), INTENT(IN), VALUE :: length_func, length_var
+  CHARACTER(kind=c_char), INTENT(IN) :: instr_func(length_func)
+  CHARACTER(kind=c_char), INTENT(IN) :: instr_var(length_var)
   INTEGER :: i
   CHARACTER(len=10), DIMENSION(:), allocatable :: lofstr
-  CHARACTER(len=120) :: str_func, str_var
+  CHARACTER(len=length_func) :: str_func
+  CHARACTER(len=length_var) :: str_var
   REAL(amrex_real), DIMENSION(1) :: list_var
   INTEGER :: my_index_res
 
@@ -1292,28 +1293,11 @@ FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) 
      call amrex_error('Parser error: cannot have more than 10 parsers.')
   ENDIF
   
-  ! Get length and reformat both inputs before applying the parser.
-  length_func=0
-  DO
-    IF (instr_func(length_func+1) == C_NULL_CHAR) EXIT
-    length_func = length_func + 1
-  ENDDO
-  IF (length_func > 120) THEN
-     call amrex_error("Parser error: function string cannot be longer than 120 characters")
-  END IF
   str_func = ""
   DO i=1, length_func
     str_func(i:i) = instr_func(i)
   ENDDO
 
-  length_var=0
-  DO
-    IF (instr_var(length_var+1) == C_NULL_CHAR) EXIT
-    length_var = length_var + 1
-  ENDDO
-  IF (length_var > 120) THEN
-     call amrex_error("Parser error: var string cannot be longer than 120 characters")
-  END IF
   str_var = ""
   DO i=1, length_var
     str_var(i:i) = instr_var(i)

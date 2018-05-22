@@ -73,9 +73,11 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     my_constants.ReadParameters();
     field_function = my_constants.replaceStringValue(field_function);
     // Pass math expression and list of variables to Fortran as char*
-    const char *str_var  = "X,Y,t";
-    const char *str_func = field_function.c_str();
-    parser_instance_number = parser_initialize_function(str_func, str_var);      
+    const std::string s_var = "X,Y,t";
+    parser_instance_number = parser_initialize_function(field_function.c_str(),
+                                                        field_function.length(),
+                                                        s_var.c_str(),
+                                                        s_var.length());
   }
 
 	// Plane normal
