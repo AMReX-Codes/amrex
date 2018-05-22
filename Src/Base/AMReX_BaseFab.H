@@ -544,16 +544,20 @@ public:
     BaseFab<T>& invert (T v);
 
     //! Negate BaseFab, most general.
+    DEVICE_CLASS_FUNCTION
     BaseFab<T>& negate (const Box& subbox,
                         int        comp=0,
                         int        numcomp=1);
     //! As above, except on entire domain.
+    DEVICE_CLASS_FUNCTION
     BaseFab<T>& negate (int comp,
                         int numcomp=1);
     //! As above, except on entire domain and all components.
+    DEVICE_CLASS_FUNCTION
     BaseFab<T>& negate ();
 
     //! Scalar addition (a[i] <- a[i] + r), most general.
+    DEVICE_CLASS_FUNCTION
     BaseFab<T>& plus (T          r,
                       const Box& b,
                       int        comp=0,
@@ -684,6 +688,7 @@ public:
     /**
     * \brief As above, except specify sub-box.
     */
+    DEVICE_CLASS_FUNCTION
     BaseFab<T>& mult (T          r,
                       const Box& b,
                       int        comp=0,
@@ -888,10 +893,10 @@ public:
     //! Change the Box type without change the length
     void SetBoxType (const IndexType& typ) { domain.setType(typ); }
 
-    template <class F> void ForEach (const Box& b, int c, int nc, F f) {
+    template <class F> DEVICE_CLASS_FUNCTION void ForEach (const Box& b, int c, int nc, F f) {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> void ForEach (const Box& b, int c, int nc, F f) const {
+    template <class F> DEVICE_CLASS_FUNCTION void ForEach (const Box& b, int c, int nc, F f) const {
         ForEachImpl(*this, b, c, nc, f);
     }
     template <class F> void ForEachIV (const Box& b, int c, int nc, F f) {
@@ -939,6 +944,7 @@ protected:
 };
 
 template <class B, class F>
+DEVICE_CLASS_FUNCTION
 inline
 void
 ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
