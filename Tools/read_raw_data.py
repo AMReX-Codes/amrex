@@ -76,7 +76,6 @@ def read_lab_snapshot(snapshot, global_header):
         buffer_data = _read_buffer(snapshot, hdr)
         buffer_fullsize += buffer_data['Bx'].shape[direction]
         buffer_allsizes.append(buffer_data['Bx'].shape[direction])
-        print(buffer_data['Bx'].shape[direction])
     buffer_allstarts = np.cumsum(buffer_allsizes)
     
     data = {}
