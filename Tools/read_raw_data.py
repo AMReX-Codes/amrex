@@ -95,9 +95,6 @@ def read_lab_snapshot(snapshot, global_header):
                 data[k][..., buffer_allstarts[i]:buffer_allstarts[i+1]] = v[...]
             
 
-    for k,v in buffer_data.items():
-        data[k] = data[k][..., -ncellz_snapshots:]
-
     local_info = _read_local_Header(snapshot + "/Header")
     info = {'t_snapshot' : local_info['t_snapshot']}
     z = np.linspace(local_info['zmin'], local_info['zmax'], data['Bx'].shape[-1])
