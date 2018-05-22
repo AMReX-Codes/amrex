@@ -11,6 +11,9 @@ struct PIdx
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
 	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+        xold, yold, zold, uxold, uyold, uzold,
+#endif        
 	nattribs
     };
 };
