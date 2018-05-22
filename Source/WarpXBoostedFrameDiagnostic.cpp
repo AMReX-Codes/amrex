@@ -41,6 +41,46 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 }
 
+void BoostedFrameDiagnostic::Flush(const Geometry& geom)
+{
+    BL_PROFILE("BoostedFrameDiagnostic::Flush");
+    
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
+
+    for (int i = 0; i < N_snapshots_; ++i) {
+
+        int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
+        
+        if (buff_counter_[i] != 0) {
+            const BoxArray& ba = data_buffer_[i]->boxArray();
+            const int hi = ba[0].bigEnd(boost_direction_);
+            const int lo = hi - buff_counter_[i] + 1;
+
+            Box buff_box = geom.Domain();
+            buff_box.setSmall(boost_direction_, lo);
+            buff_box.setBig(boost_direction_, hi);
+
+            BoxArray buff_ba(buff_box);
+            buff_ba.maxSize(max_box_size_);
+            DistributionMapping buff_dm(buff_ba);
+
+            const int ncomp = data_buffer_[i]->nComp();
+            
+            MultiFab tmp(buff_ba, buff_dm, ncomp, 0);
+
+            tmp.copy(*data_buffer_[i], 0, 0, ncomp);
+
+            std::stringstream ss;
+            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
+            VisMF::Write(tmp, ss.str());
+            buff_counter_[i] = 0;
+        }
+    }
+
+    VisMF::SetHeaderVersion(current_version);
+}
+
 void
 BoostedFrameDiagnostic::
 writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {

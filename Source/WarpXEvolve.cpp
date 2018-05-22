@@ -326,6 +326,10 @@ WarpX::EvolveEM (int numsteps)
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
 	WriteCheckPointFile();
     }
+
+    if (do_boosted_frame_diagnostic) {
+        myBFD->Flush(geom[0]);
+    }
 }
 
 void
