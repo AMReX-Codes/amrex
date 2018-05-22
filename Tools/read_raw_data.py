@@ -44,7 +44,7 @@ def read_data(plt_file):
     return all_data
 
 
-def read_lab_snapshot(snapshot):
+def read_lab_snapshot(snapshot, global_header):
     '''
 
     This reads the data from one of the lab frame snapshots generated when
@@ -53,6 +53,9 @@ def read_lab_snapshot(snapshot):
     data fields ("Ex", "By,", etc... ). These values are cell-centered.
 
     '''
+    global_info = _read_global_Header(global_header)
+    ncellz_snapshots = global_info['nz_snapshot']
+    dzcell_snapshots = global_info['dz_snapshot']
 
     hdrs = glob(snapshot + "/Level_0/buffer*_H")
     hdrs.sort()
@@ -66,16 +69,22 @@ def read_lab_snapshot(snapshot):
         direction = 1
     else:
         direction = 2
-
-    buffer_data = _read_buffer(snapshot, hdrs[0])
-    buffer_size = buffer_data['Bx'].shape[direction]
-
+    
+    buffer_fullsize = 0
+    buffer_allsizes = [0]
+    for i, hdr in enumerate(hdrs):
+        buffer_data = _read_buffer(snapshot, hdr)
+        buffer_fullsize += buffer_data['Bx'].shape[direction]
+        buffer_allsizes.append(buffer_data['Bx'].shape[direction])
+        print(buffer_data['Bx'].shape[direction])
+    buffer_allstarts = np.cumsum(buffer_allsizes)
+    
     data = {}
     for i in range(header.ncomp):
         if space_dim == 3:
-            data[_component_names[i]] = np.zeros((domain_size[0], domain_size[1], buffer_size*len(hdrs)))
+            data[_component_names[i]] = np.zeros((domain_size[0], domain_size[1], buffer_fullsize))
         elif space_dim == 2:
-            data[_component_names[i]] = np.zeros((domain_size[0], buffer_size*len(hdrs)))
+            data[_component_names[i]] = np.zeros((domain_size[0], buffer_fullsize))
 
     for i, hdr in enumerate(hdrs):
         buffer_data = _read_buffer(snapshot, hdr)
@@ -83,16 +92,18 @@ def read_lab_snapshot(snapshot):
             data = buffer_data
         else:
             for k,v in buffer_data.items():
-                if space_dim == 3:
-                    data[k][:,:,buffer_size*i:buffer_size*(i+1)] = v[:,:,:]
-                elif space_dim == 2:
-                    data[k][:,buffer_size*i:buffer_size*(i+1)] = v[:,:]
+                data[k][..., buffer_allstarts[i]:buffer_allstarts[i+1]] = v[...]
+            
+
+    for k,v in buffer_data.items():
+        data[k] = data[k][..., -ncellz_snapshots:]
 
     local_info = _read_local_Header(snapshot + "/Header")
     info = {'t_snapshot' : local_info['t_snapshot']}
     z = np.linspace(local_info['zmin'], local_info['zmax'], data['Bx'].shape[-1])
     info.update({ 'zmin' : local_info['zmin'], 'zmax' : local_info['zmax'], 'z' : z })
     return data, info
+
 ## -----------------------------------------------------------
 ## USE THIS INSTEAD OF THE 5 PREVIOUS LINES IF Header contains
 ## (x,y,z) min and max vectors instead of zmin and zmax
@@ -168,7 +179,7 @@ def _read_global_Header(header_file):
         gamma_boost = float(f.readline())
         beta_boost = float(f.readline())
         dz_snapshot = float(f.readline())
-        nz_snapshot = float(f.readline())
+        nz_snapshot = int(f.readline())
 
     global_info = {
         'nshapshots' : nshapshots,
