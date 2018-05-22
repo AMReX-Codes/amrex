@@ -8,6 +8,39 @@ module warpx_module
 
 contains
 
+  subroutine warpx_copy_attribs(np, xp, yp, zp, uxp, uyp, uzp, &
+       xpold, ypold, zpold, uxpold, uypold, uzpold) &
+       bind(c,name='warpx_copy_attribs')
+    integer(c_long),  intent(in) :: np
+    real(amrex_real), intent(in) :: xp(np)
+    real(amrex_real), intent(in) :: yp(np)
+    real(amrex_real), intent(in) :: zp(np)
+    real(amrex_real), intent(in) :: uxp(np)
+    real(amrex_real), intent(in) :: uyp(np)
+    real(amrex_real), intent(in) :: uzp(np)
+    real(amrex_real), intent(inout) :: xpold(np)
+    real(amrex_real), intent(inout) :: ypold(np)
+    real(amrex_real), intent(inout) :: zpold(np)
+    real(amrex_real), intent(inout) :: uxpold(np)
+    real(amrex_real), intent(inout) :: uypold(np)
+    real(amrex_real), intent(inout) :: uzpold(np)
+
+    integer n
+
+    do n = 1, np
+
+       xpold(n) = xp(n)
+       ypold(n) = yp(n)
+       zpold(n) = zp(n)
+
+       uxpold(n) = uxp(n)
+       uypold(n) = uyp(n)
+       uzpold(n) = uzp(n)
+
+    end do
+    
+  end subroutine warpx_copy_attribs
+    
   subroutine warpx_compute_E (lo, hi, &
        phi, phlo, phhi, &
        Ex,  Exlo, Exhi, &

@@ -53,6 +53,10 @@ ifeq ($(USE_PSATD),TRUE)
   LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_omp
 endif
 
+ifeq ($(STORE_OLD_PARTICLE_ATTRIBS),TRUE)
+     DEFINES += -DWARPX_STORE_OLD_PARTICLE_ATTRIBS
+endif
+
 # job_info support
 CEXE_sources += AMReX_buildInfo.cpp
 CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/AMReX_buildInfo.H

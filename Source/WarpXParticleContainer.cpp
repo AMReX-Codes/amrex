@@ -35,7 +35,7 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     : ParticleContainer<0,0,PIdx::nattribs>(amr_core->GetParGDB())
     , species_id(ispecies)
 {
-    for (unsigned int i = PIdx::Ex; i < PIdx::nattribs; ++i) {
+    for (unsigned int i = PIdx::Ex; i <= PIdx::Bz; ++i) {
         communicate_real_comp[i] = false; // Don't need to communicate E and B.
     }
     ReadParameters();

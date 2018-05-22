@@ -967,6 +967,20 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
 
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+    auto& xpold = attribs[PIdx::xold];
+    auto& ypold = attribs[PIdx::yold];
+    auto& zpold = attribs[PIdx::zold];
+    auto& uxpold = attribs[PIdx::uxold];
+    auto& uypold = attribs[PIdx::uyold];
+    auto& uzpold = attribs[PIdx::uzold];
+
+    warpx_copy_attribs(&np, xp.data(), yp.data(), zp.data(),
+                       uxp.data(), uyp.data(), uzp.data(),
+                       xpold.data(), ypold.data(), zpold.data(),
+                       uxpold.data(), uypold.data(), uzpold.data());                           
+#endif
+                           
     warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
                           uxp.data(), uyp.data(), uzp.data(), giv.data(),
                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
