@@ -1,5 +1,7 @@
 module prob_module
 
+use amr_data_module
+
   implicit none
 
   private
@@ -30,7 +32,7 @@ subroutine init_prob_data(level, time, lo, hi, &
   double precision, intent(in) :: time
   double precision, intent(inout) :: phi(phi_lo(1):phi_hi(1), &
        &                                 phi_lo(2):phi_hi(2), &
-       &                                 phi_lo(3):phi_hi(3))
+       &                                 phi_lo(3):phi_hi(3),ncomp)
   double precision, intent(in) :: dx(3), prob_lo(3)
 
   integer          :: dm
@@ -53,10 +55,10 @@ subroutine init_prob_data(level, time, lo, hi, &
            
            if ( dm.eq. 2) then
               r2 = ((x-0.5d0)**2 + (y-0.75d0)**2) / 0.01d0
-              phi(i,j,k) = 1.d0 + exp(-r2)
+              phi(i,j,k,:) = 1.d0 + exp(-r2)
            else
               r2 = ((x-0.5d0)**2 + (y-0.75d0)**2 + (z-0.5d0)**2) / 0.01d0
-              phi(i,j,k) = 1.d0 + exp(-r2)
+              phi(i,j,k,:) = 1.d0 + exp(-r2)
            end if
         end do
      end do

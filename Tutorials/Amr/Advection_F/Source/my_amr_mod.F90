@@ -4,7 +4,9 @@ module my_amr_module
   use amrex_amr_module
   use amrex_fort_module, only : rt => amrex_real
 
+  use amrex_base_module
   use amr_data_module
+  use bc_module
 
   implicit none
 
@@ -30,8 +32,8 @@ module my_amr_module
 
   real(rt), allocatable, save :: dt(:)
 
-  integer, private, parameter :: ncomp = 1, nghost = 0
-  
+  integer, private, parameter :: nghost = 0
+ 
 contains
 
   subroutine my_amr_init ()
@@ -63,6 +65,7 @@ contains
     ! Parameters amr.*
     call amrex_parmparse_build(pp, "amr")
     call pp%query("regrid_int", regrid_int)
+    call pp%query("ncomp", ncomp)
     call pp%query("check_int", check_int)
     call pp%query("plot_int", plot_int)
     call pp%query("check_file", check_file)
@@ -78,11 +81,14 @@ contains
     call pp%query("do_reflux", do_reflux)
     call amrex_parmparse_destroy(pp)
 
+    allocate(lo_bc(amrex_spacedim,ncomp))
+    allocate(hi_bc(amrex_spacedim,ncomp))
+
     if (.not. amrex_is_all_periodic()) then
        lo_bc = amrex_bc_foextrap
        hi_bc = amrex_bc_foextrap
     end if
-
+    
     allocate(stepno(0:amrex_max_level))
     stepno = 0
 
@@ -96,6 +102,7 @@ contains
     dt = 1.e100
 
     call amr_data_init()
+    
   end subroutine my_amr_init
 
 
@@ -128,9 +135,9 @@ contains
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
 
-   if (lev > 0 .and. do_reflux) then
+    if (lev > 0 .and. do_reflux) then
       call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
-   end if
+    end if
 
     call amrex_mfiter_build(mfi, phi_new(lev))
 
@@ -155,8 +162,15 @@ contains
     type(amrex_boxarray) :: ba
     type(amrex_distromap) :: dm
 
+    type(amrex_multifab) :: new_phi_new
+    integer :: icomp
+
     ba = pba
     dm = pdm
+
+    call amrex_multifab_build(new_phi_new, ba, dm, ncomp, 0)
+
+    call fillcoarsepatch(lev, time, new_phi_new)
 
     call my_clear_level(lev)
 
@@ -165,11 +179,16 @@ contains
 
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
+
     if (lev > 0 .and. do_reflux) then
        call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
     end if
 
-    call fillcoarsepatch(lev, time, phi_new(lev))
+    do icomp=1,ncomp
+       call phi_new(lev)%copy(new_phi_new, icomp, icomp, 1, 0)
+    enddo
+
+    call amrex_multifab_destroy(new_phi_new)   
   end subroutine my_make_new_level_from_coarse
 
   ! Remake a level from current and coarse elvels and put the data in phi_new.
@@ -184,10 +203,13 @@ contains
     type(amrex_distromap) :: dm
     type(amrex_multifab) :: new_phi_new
 
+    integer :: icomp
+
     ba = pba
     dm = pdm
 
     call amrex_multifab_build(new_phi_new, ba, dm, ncomp, 0)
+
     call fillpatch(lev, time, new_phi_new)
 
     call my_clear_level(lev)
@@ -197,11 +219,14 @@ contains
 
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
+
     if (lev > 0 .and. do_reflux) then
        call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
     end if
 
-    call phi_new(lev)%copy(new_phi_new, 1, 1, ncomp, 0)
+    do icomp=1,ncomp
+       call phi_new(lev)%copy(new_phi_new, icomp, icomp, 1, 0)
+    enddo
 
     call amrex_multifab_destroy(new_phi_new)
   end subroutine my_remake_level

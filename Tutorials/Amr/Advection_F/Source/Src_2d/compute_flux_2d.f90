@@ -1,6 +1,7 @@
 module compute_flux_module
 
   use amrex_base_module
+  use amr_data_module
 
   implicit none
 
@@ -16,7 +17,7 @@ contains
                              vmac,  v_lo,  v_hi, &
                              flxx, fx_lo, fx_hi, &
                              flxy, fy_lo, fy_hi, &
-                             phix_1d, phiy_1d, phix, phiy, slope, glo, ghi)
+                             phix_1d, phiy_1d, phix, phiy, slope, glo, ghi,icomp)
 
     use slope_module, only: slopex, slopey
 
@@ -30,13 +31,15 @@ contains
     real(amrex_real), intent(in   ) :: phi (ph_lo(1):ph_hi(1),ph_lo(2):ph_hi(2))
     real(amrex_real), intent(in   ) :: umac( u_lo(1): u_hi(1), u_lo(2): u_hi(2))
     real(amrex_real), intent(in   ) :: vmac( v_lo(1): v_hi(1), v_lo(2): v_hi(2))
-    real(amrex_real), intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
-    real(amrex_real), intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
+    real(amrex_real), intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),ncomp)
+    real(amrex_real), intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),ncomp)
     real(amrex_real), dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          phix_1d, phiy_1d, phix, phiy, slope
          
     integer :: i, j, k
     real(amrex_real) :: hdtdx(2)
+    integer :: icomp
+
 
     hdtdx = 0.5_amrex_real*(dt/dx)
 
@@ -87,7 +90,7 @@ contains
           end if
 
           ! compute final x-fluxes
-          flxx(i,j) = phix(i,j)*umac(i,j)
+          flxx(i,j,icomp) = phix(i,j)*umac(i,j)
 
        end do
     end do
@@ -105,7 +108,7 @@ contains
           end if
 
           ! compute final y-fluxes
-          flxy(i,j) = phiy(i,j)*vmac(i,j)
+          flxy(i,j,icomp) = phiy(i,j)*vmac(i,j)
 
        end do
     end do
