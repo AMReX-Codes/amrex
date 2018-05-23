@@ -1038,6 +1038,402 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #endif /*BL_USE_MPI*/
 }
 
+template <class FAB>
+typename FabArray<FAB>::CopierHandle
+FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
+                                    int                  scomp,
+                                    int                  dcomp,
+                                    int                  ncomp,
+                                    const IntVect&       snghost,
+                                    const IntVect&       dnghost,
+                                    const Periodicity&   period,
+                                    CpOp                 op,
+                                    const FabArrayBase::CPC * a_cpc)
+{
+    BL_PROFILE("FabArray::ParallelCopy_nowait()");
+
+    if (size() == 0 || src.size() == 0) return CopierHandle();
+
+    BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
+    BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
+
+    BL_ASSERT(src.nGrowVect().allGE(snghost));
+    BL_ASSERT(    nGrowVect().allGE(dnghost));
+
+    if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
+        (boxarray == src.boxarray && distributionMap == src.distributionMap)
+	&& snghost == IntVect::TheZeroVector() && dnghost == IntVect::TheZeroVector()
+        && !period.isAnyPeriodic())
+    {
+        //
+        // Short-circuit full intersection code if we're doing copy()s or if
+        // we're doing plus()s on cell-centered data.  Don't do plus()s on
+        // non-cell-centered data this simplistic way.
+        //
+#ifdef _OPENMP
+#pragma omp parallel if (FAB::isCopyOMPSafe())
+#endif
+        for (MFIter fai(*this,true); fai.isValid(); ++fai)
+        {
+            const Box& bx = fai.tilebox();
+
+	    if (this != &src) {
+		// avoid self copy or plus
+		if (op == FabArrayBase::COPY) {
+		    get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
+		} else {
+		    get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
+		}
+	    }
+        }
+
+        return CopierHandle();
+    }
+
+    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period);
+
+    if (ParallelContext::NProcsSub() == 1)
+    {
+        //
+        // There can only be local work to do.
+        //
+	int N_loc = (*thecpc.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc)
+#endif
+	for (int i=0; i<N_loc; ++i)
+        {
+            const CopyComTag& tag = (*thecpc.m_LocTags)[i];
+
+	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+		// avoid self copy or plus
+		if (op == FabArrayBase::COPY) {
+		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
+		} else {
+		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
+		}
+	    }
+        }
+
+        return CopierHandle();
+    }
+
+#ifdef BL_USE_MPI
+
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    int preSeqNum;
+    if (!FAB::preAllocatable()) {
+        preSeqNum = ParallelDescriptor::SeqNum();
+    }
+    const int SeqNum  = ParallelDescriptor::SeqNum();
+
+    const int N_snds = thecpc.m_SndTags->size();
+    const int N_rcvs = thecpc.m_RcvTags->size();
+    const int N_locs = thecpc.m_LocTags->size();
+
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) {
+        // No work to do.
+        return CopierHandle();
+    }
+
+    CopierHandle return_handle(*this, thecpc);
+    CopierHandleImpl& handle = *(return_handle.m_impl);
+
+    handle.op = op;
+    handle.dcomp = dcomp;
+    handle.ncomp = ncomp;
+    handle.N_snds = N_snds;
+    handle.N_rcvs = N_rcvs;
+    handle.SeqNum = SeqNum;
+
+    Vector<int>                         send_size;
+    Vector<int>                         send_rank;
+    Vector<const CopyComTagsContainer*> send_cctc;
+    Vector<Vector<int> >                indv_send_size;
+    Vector<MPI_Request>                 pre_reqs;
+
+    Vector<MPI_Request>& send_reqs = handle.send_reqs;
+    Vector<char*>      & send_data = handle.send_data;
+    Vector<int>        & recv_from = handle.recv_from;
+    Vector<char*>      & recv_data = handle.recv_data;
+    Vector<int>        & recv_size = handle.recv_size;
+    Vector<MPI_Request>& recv_reqs = handle.recv_reqs;
+
+    //
+    // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
+    //
+    if (N_snds > 0)
+    {
+        send_data.reserve(N_snds);
+        send_size.reserve(N_snds);
+        send_rank.reserve(N_snds);
+        send_reqs.reserve(N_snds);
+        send_cctc.reserve(N_snds);
+        indv_send_size.reserve(N_snds);
+        
+        for (auto const& kv : *thecpc.m_SndVols)
+        {
+            Vector<int> iss;                
+            auto const& cctc = thecpc.m_SndTags->at(kv.first);
+            
+            std::size_t nbytes = 0;
+            if (FAB::preAllocatable())
+            {
+                for (auto const& cct : kv.second)
+                {
+                    nbytes += src[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
+                }
+            }
+            else
+            {
+                for (auto const& tag : cctc)
+                {
+                    std::size_t b = src[tag.srcIndex].nBytes(tag.sbox,scomp,ncomp);
+                    nbytes += b;
+                    iss.push_back(static_cast<int>(b));
+                }
+            }
+		
+            BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+
+            char* data = nullptr;
+            if (nbytes > 0)
+            {
+                data = static_cast<char*>(amrex::The_Arena()->alloc(nbytes));
+            }
+                    
+            send_data.push_back(data);
+            send_size.push_back(static_cast<int>(nbytes));
+            send_rank.push_back(kv.first);
+            send_reqs.push_back(MPI_REQUEST_NULL);
+            send_cctc.push_back(&cctc);
+            indv_send_size.push_back(std::move(iss));
+        }
+    }
+
+    if (!FAB::preAllocatable())
+    {
+        pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
+        for (int j=0; j<N_snds; ++j)
+        {
+            pre_reqs[j] = ParallelDescriptor::Asend
+                (indv_send_size[j].data(), indv_send_size[j].size(),
+                 ParallelContext::global_to_local_rank(send_rank[j]),
+                 preSeqNum,
+                 ParallelContext::CommunicatorSub()).req();
+        }
+    }
+
+    //
+    // Post rcvs
+    //
+    handle.actual_n_rcvs = 0;
+    if (N_rcvs > 0) {
+        PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
+                 recv_data, recv_size, recv_from, recv_reqs, scomp, ncomp, SeqNum, preSeqNum);
+        handle.actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
+    }
+
+    //
+    // Post send's
+    // 
+    if (N_snds > 0)
+    {
+#ifdef _OPENMP
+#pragma omp parallel for if (FAB::isCopyOMPSafe())
+#endif
+        for (int j=0; j<N_snds; ++j)
+        {
+            char* dptr = send_data[j];
+            if (dptr != nullptr)
+            {
+                auto const& cctc = *send_cctc[j];
+                for (auto const& tag : cctc)
+                {
+                    const Box& bx = tag.sbox;
+                    auto n = src[tag.srcIndex].copyToMem(bx,scomp,ncomp,dptr);
+                    dptr += n;
+                }
+                BL_ASSERT(dptr == send_data[j] + send_size[j]);
+            }
+        }
+        
+        int send_counter = 0;
+        while (send_counter < N_snds)
+        {
+            int j;
+            
+            if (FAB::preAllocatable())
+            {
+                j = send_counter;
+            }
+            else
+            {
+                MPI_Status status;
+                ParallelDescriptor::Waitany(pre_reqs, j, status);
+            }
+            
+            if (send_size[j] > 0)
+            {
+                if (FabArrayBase::do_async_sends)
+                {
+                    send_reqs[j] = ParallelDescriptor::Asend
+                        (send_data[j], send_size[j],
+                         ParallelContext::global_to_local_rank(send_rank[j]),
+                         SeqNum,
+                         ParallelContext::CommunicatorSub()).req();
+                }
+                else
+                {
+                    ParallelDescriptor::Send
+                        (send_data[j], send_size[j],
+                         ParallelContext::global_to_local_rank(send_rank[j]),
+                         SeqNum,
+                         ParallelContext::CommunicatorSub());
+                    amrex::The_Arena()->free(send_data[j]);
+                }
+            }
+            
+            ++send_counter;
+        }
+    }
+
+    //
+    // Do the local work.  Hope for a bit of communication/computation overlap.
+    //
+    if (ParallelDescriptor::TeamSize() > 1 && thecpc.m_threadsafe_loc)
+    {
+#ifdef BL_USE_TEAM
+#ifdef _OPENMP
+#pragma omp parallel if (FAB::isCopyOMPSafe())
+#endif
+        ParallelDescriptor::team_for(0, N_locs, [&] (int j) 
+            {
+		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
+		
+		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+		    // avoid self copy or plus
+		    if (op == FabArrayBase::COPY) {
+			get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
+		    } else {
+			get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
+		    }
+		}
+	    });
+#endif	    
+    }
+    else 
+    {
+#ifdef _OPENMP
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc)
+#endif
+        for (int j=0; j<N_locs; ++j)
+        {
+            const CopyComTag& tag = (*thecpc.m_LocTags)[j];
+            
+            if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+                // avoid self copy or plus
+                if (op == FabArrayBase::COPY) {
+                    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
+                } else {
+                    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
+                }
+            }
+        }
+    }
+
+    return return_handle;
+
+#endif /*BL_USE_MPI*/
+}
+
+template <class FAB>
+void
+FabArray<FAB>::CopierHandleImpl::finish ()
+{
+    BL_PROFILE("FabArray::ParallelCopy_finish()");
+
+    //
+    //  wait and unpack
+    //
+    if (actual_n_rcvs > 0) {
+        Vector<MPI_Status> stats(N_rcvs);
+        ParallelDescriptor::Waitall(recv_reqs, stats);
+        if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
+        {
+            amrex::Abort("ParallelCopy failed with wrong message size");
+        }
+    }
+    
+    if (N_rcvs > 0)
+    {
+        Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
+        
+        for (int k = 0; k < N_rcvs; ++k)
+        {
+            if (recv_size[k] > 0)
+            {
+                auto const& cctc = thecpc.m_RcvTags->at(recv_from[k]);
+                recv_cctc[k] = &cctc;
+            }
+        }
+	
+#ifdef _OPENMP
+#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv)
+#endif
+        {
+            FAB fab;
+            
+#ifdef _OPENMP
+#pragma omp for
+#endif
+            for (int k = 0; k < N_rcvs; ++k)
+            {
+                const char* dptr = recv_data[k];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *recv_cctc[k];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx  = tag.dbox;
+                        std::size_t n;
+                        if (op == FabArrayBase::COPY)
+                        {
+                            n = dstfa[tag.dstIndex].copyFromMem(bx,dcomp,ncomp,dptr);
+                        }
+                        else
+                        {
+                            fab.resize(bx,ncomp);
+                            n = fab.copyFromMem(bx,0,ncomp,dptr);
+                            dstfa[tag.dstIndex].plus(fab,bx,bx,0,dcomp,ncomp);
+                        }
+                        dptr += n;
+                    }
+                    BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                }
+            }
+        }
+        
+        for (auto p : recv_data) {
+            amrex::The_Arena()->free(p);
+        }
+    }
+	
+    if (N_snds > 0) {
+        if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
+            Vector<MPI_Status> stats;
+            FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
+        }
+    }
+
+#ifdef BL_USE_TEAM
+    ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
+}
+
 
 template <class FAB>
 void
