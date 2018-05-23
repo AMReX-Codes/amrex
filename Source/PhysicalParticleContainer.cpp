@@ -1210,7 +1210,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     Real uyp = uyp_old[i]*weight_old + uyp_new[i]*weight_new;
                     Real uzp = uzp_old[i]*weight_old + uzp_new[i]*weight_new;
 
-                    diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i] );
+                    diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i]);
                     
                     diagnostic_particles[index].GetRealData(DiagIdx::x).push_back(xp);
                     diagnostic_particles[index].GetRealData(DiagIdx::y).push_back(yp);
