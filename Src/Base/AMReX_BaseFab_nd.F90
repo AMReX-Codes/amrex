@@ -88,7 +88,7 @@ contains
   
 
 
-  subroutine amrex_fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
+  attributes(host, device) subroutine amrex_fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
        bind(c,name='amrex_fort_fab_setval')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
     real(amrex_real), intent(in) :: val
