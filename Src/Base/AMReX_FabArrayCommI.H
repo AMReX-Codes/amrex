@@ -1354,6 +1354,7 @@ template <class FAB>
 void
 FabArray<FAB>::CopierHandleImpl::finish ()
 {
+#ifdef BL_USE_MPI
     BL_PROFILE("FabArray::ParallelCopy_finish()");
 
     //
@@ -1431,6 +1432,8 @@ FabArray<FAB>::CopierHandleImpl::finish ()
 
 #ifdef BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
+
 #endif
 }
 
