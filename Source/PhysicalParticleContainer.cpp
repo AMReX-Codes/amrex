@@ -620,11 +620,11 @@ PhysicalParticleContainer::Evolve (int lev,
             {
 #if (BL_SPACEDIM == 2)
                 const Box& tbox = amrex::grow(pti.tilebox(),{static_cast<int>(WarpX::nox),
-                                                             static_cast<int>(WarpX::noz)});
+                            static_cast<int>(WarpX::noz)});
 #else
                 const Box& tbox = amrex::grow(pti.tilebox(),{static_cast<int>(WarpX::nox),
-                                                             static_cast<int>(WarpX::noy),
-                                                             static_cast<int>(WarpX::noz}));
+                            static_cast<int>(WarpX::noy),
+                            static_cast<int>(WarpX::noz)});
 #endif
 
                 // both 2d and 3d
