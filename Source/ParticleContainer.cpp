@@ -278,12 +278,14 @@ MultiParticleContainer::PostRestart ()
 }
 
 void
-MultiParticleContainer::WriteLabFrameData(const std::string& snapshot_name, const int i_lab, const int direction,
-                                          const amrex::Real z_old, const amrex::Real z_new, const amrex::Real dt) const
+MultiParticleContainer::WriteLabFrameData(const std::string& snapshot_name,
+                                          const int i_lab, const int direction,
+                                          const amrex::Real z_old, const amrex::Real z_new,
+                                          const amrex::Real t_boost, const amrex::Real dt) const
 {
     for (auto& pc : allcontainers) {
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
-        pc->GetParticleSlice(direction, z_old, z_new, dt, diagnostic_particles);
+        pc->GetParticleSlice(direction, z_old, z_new, t_boost, dt, diagnostic_particles);
 
         long total_np = 0;
         for (auto it = diagnostic_particles.begin(); it != diagnostic_particles.end(); ++it) {

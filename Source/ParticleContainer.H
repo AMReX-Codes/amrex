@@ -154,7 +154,7 @@ public:
     void WriteLabFrameData(const std::string& snapshot_name,
                            const int i_lab, const int direction,
                            const amrex::Real z_old, const amrex::Real z_new,
-                           const amrex::Real dt) const;
+                           const amrex::Real t_boost, const amrex::Real dt) const;
     
     // 
     // Parameters for the Cherenkov corrector in the FDTD solver.

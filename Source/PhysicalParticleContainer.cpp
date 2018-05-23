@@ -620,11 +620,11 @@ PhysicalParticleContainer::Evolve (int lev,
             {
 #if (BL_SPACEDIM == 2)
                 const Box& tbox = amrex::grow(pti.tilebox(),{static_cast<int>(WarpX::nox),
-                                                             static_cast<int>(WarpX::noz)});
+                            static_cast<int>(WarpX::noz)});
 #else
                 const Box& tbox = amrex::grow(pti.tilebox(),{static_cast<int>(WarpX::nox),
-                                                             static_cast<int>(WarpX::noy),
-                                                             static_cast<int>(WarpX::noz}));
+                            static_cast<int>(WarpX::noy),
+                            static_cast<int>(WarpX::noz)});
 #endif
 
                 // both 2d and 3d
@@ -1082,7 +1082,8 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 }
 
 void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real z_old,
-                                                 const Real z_new, const Real dt,
+                                                 const Real z_new, const Real t_boost,
+                                                 const Real dt,
                                                  DiagnosticParticles& diagnostic_particles)
 {
 
@@ -1131,7 +1132,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #pragma omp parallel
 #endif
         {
-            Vector<Real> xp_new, yp_new, zp_new, xp_old, yp_old, zp_old, giv;
+            Vector<Real> xp_new, yp_new, zp_new, xp_old, yp_old, zp_old, giv, t_new, t_old;
+            Vector<Real> gamma_new, gamma_old;
             
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
@@ -1150,21 +1152,47 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 auto& structs = pti.GetArrayOfStructs();
                 auto& attribs = pti.GetAttribs();
-                auto& uxp = attribs[PIdx::ux];
-                auto& uyp = attribs[PIdx::uy];
-                auto& uzp = attribs[PIdx::uz];
-                auto&  wp = attribs[PIdx::w ];
+
+                auto& wp = attribs[PIdx::w ];
+
+                auto& uxp_new = attribs[PIdx::ux];
+                auto& uyp_new = attribs[PIdx::uy];
+                auto& uzp_new = attribs[PIdx::uz];
+                auto& uxp_old = attribs[PIdx::uxold];
+                auto& uyp_old = attribs[PIdx::uyold];
+                auto& uzp_old = attribs[PIdx::uzold];
                 
                 const long np = pti.numParticles();
 
                 giv.resize(np);
+                gamma_new.resize(np);
+                gamma_old.resize(np);
+                t_new.resize(np);
+                t_old.resize(np);
                 
                 BL_PROFILE_VAR_START(blp_pxr_pp);
                 warpx_particle_pusher_positions(&np, xp_old.data(), yp_old.data(), zp_old.data(),
-                                                uxp.data(), uyp.data(), uzp.data(), giv.data(),
+                                                uxp_new.data(), uyp_new.data(), uzp_new.data(), giv.data(),
                                                 &minus_dt);
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
                 
+                // Lorentz transform particles to lab frame
+                Real uzfrm = -WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
+                Real inv_c2 = 1.0/PhysConst::c/PhysConst::c;
+                for (long i = 0; i < np; ++i) {
+                    gamma_new[i] = std::sqrt(1.0 + inv_c2*(uxp_new[i]*uxp_new[i] + uyp_new[i]*uyp_new[i] + uzp_new[i]*uzp_new[i]));
+                    gamma_old[i] = std::sqrt(1.0 + inv_c2*(uxp_old[i]*uxp_old[i] + uyp_old[i]*uyp_old[i] + uzp_old[i]*uzp_old[i]));
+
+                    t_new[i]   = WarpX::gamma_boost*t_boost - uzfrm*xp_new[i]*inv_c2;
+                    t_old[i]   = WarpX::gamma_boost*(t_boost - dt) - uzfrm*xp_new[i]*inv_c2;
+
+                    zp_new[i]  = WarpX::gamma_boost*(zp_new[i] + WarpX::beta_boost*PhysConst::c*t_boost);
+                    zp_old[i]  = WarpX::gamma_boost*(zp_old[i] + WarpX::beta_boost*PhysConst::c*(t_boost-dt));
+
+                    uzp_new[i] = WarpX::gamma_boost*uzp_new[i] - gamma_new[i]*uzfrm;
+                    uzp_old[i] = WarpX::gamma_boost*uzp_old[i] - gamma_old[i]*uzfrm;
+                }
+
                 for (long i = 0; i < np; ++i) {
 
                     if ( ((zp_new[i] >= z_new) && (zp_old[i] <= z_old)) ||
@@ -1176,9 +1204,9 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     diagnostic_particles[index].GetRealData(DiagIdx::y).push_back(yp_new[i] );
                     diagnostic_particles[index].GetRealData(DiagIdx::z).push_back(zp_new[i] );
 
-                    diagnostic_particles[index].GetRealData(DiagIdx::ux).push_back(uxp[i]);
-                    diagnostic_particles[index].GetRealData(DiagIdx::uy).push_back(uyp[i]);
-                    diagnostic_particles[index].GetRealData(DiagIdx::uz).push_back(uzp[i]);
+                    diagnostic_particles[index].GetRealData(DiagIdx::ux).push_back(uxp_new[i]);
+                    diagnostic_particles[index].GetRealData(DiagIdx::uy).push_back(uyp_new[i]);
+                    diagnostic_particles[index].GetRealData(DiagIdx::uz).push_back(uzp_new[i]);
                 }
             }
         }
