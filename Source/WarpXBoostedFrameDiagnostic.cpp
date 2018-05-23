@@ -168,7 +168,7 @@ writeLabFrameData(const MultiFab& cell_centered_data,
 
         mypc.WriteLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
                                old_z_boost, snapshots_[i].current_z_boost, 
-                               t_boost, dt);
+                               t_boost, snapshots_[i].t_lab, dt);
     }
 
     VisMF::SetHeaderVersion(current_version);    
