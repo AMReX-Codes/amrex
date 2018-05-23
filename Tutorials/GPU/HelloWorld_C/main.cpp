@@ -38,8 +38,9 @@ void kernel_BaseFab(amrex::BaseFab<amrex::Real> *bf1, int *val)
 {
    amrex::Real value = 20.0;
    int ncomp = 1;
+   val[0] = 14;
 // bf1->getVal(&val[0],amrex::IntVect(0,0,0) ,0,1);
-   amrex::Box bx(amrex::IntVect(0,0,0), amrex::IntVect(13,13,13));
+//   amrex::Box bx(amrex::IntVect(0,0,0), amrex::IntVect(13,13,13));
 //   bf1->performSetVal(value, bx, 0, 1);
  
 //   amrex_fort_fab_setval(bx.loVect(), bx.hiVect(), bf1->dataPtr(0), bx.loVect(), bx.hiVect(), &ncomp, &value);

@@ -5,7 +5,7 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = pgi
+COMP    = pgi 
 
 USE_MPI   = TRUE 
 USE_OMP   = FALSE
