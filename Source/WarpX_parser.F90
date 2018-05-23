@@ -4,6 +4,7 @@
 module mod_interpret
 use iso_c_binding
 use amrex_fort_module, only : amrex_real
+use amrex_error_module, only : amrex_error
 implicit none
 INTEGER, parameter :: plus       =1, &
                       minus      =2, &
@@ -1224,7 +1225,7 @@ INTEGER, INTENT(IN) :: strinlen
 INTEGER :: isep, isep_rel, nwords, i, j
 INTEGER, DIMENSION(strinlen) :: word_start, word_end
 CHARACTER(strinlen) :: str
-CHARACTER(len=:), DIMENSION(:), POINTER, INTENT(inout) :: lofstr(:)
+CHARACTER(len=10), DIMENSION(:), allocatable, INTENT(inout) :: lofstr
 nwords = 1
 str = strin
 isep_rel = INDEX(str, ',')
@@ -1238,12 +1239,15 @@ DO WHILE(isep_rel > 0)
   isep_rel = INDEX(str, ',')
   isep = isep_rel + isep
 ENDDO
-ALLOCATE( CHARACTER(1) :: lofstr(nwords) )
 word_end(nwords) = strinlen
-! word_start = word_start(:nwords)
-! word_end = word_end(:nwords)
+
+ALLOCATE( lofstr(nwords) )
+
 DO i=1, nwords
-  lofstr(i)(1:word_end(i)-word_start(i)+1) = strin(word_start(i):word_end(i))
+   lofstr(i) = ""
+   DO j = 1, word_end(i)-word_start(i)+1
+      lofstr(i)(j:j) = strin(word_start(i)+j-1:word_start(i)+j-1)
+   end DO
 ENDDO
 END SUBROUTINE csv2list
 end module mod_interpret
@@ -1271,45 +1275,36 @@ CONTAINS
 !> my_index_res : INT parser index. Necessary if this module is used for several
 !>                parsers (e.g. one for the electron density, one for the ion
 !>                density, one for the laser profile etc.).
-FUNCTION parser_initialize_function(instr_func, instr_var) RESULT(my_index_res) & 
+FUNCTION parser_initialize_function(instr_func, length_func, instr_var, length_var) RESULT(my_index_res) & 
     bind(c,name='parser_initialize_function')
-  CHARACTER(kind=c_char), DIMENSION(*), INTENT(IN) :: instr_func
-  CHARACTER(kind=c_char), DIMENSION(*), INTENT(IN) :: instr_var
-  INTEGER :: length_func, length_var
+  INTEGER(c_int), INTENT(IN), VALUE :: length_func, length_var
+  CHARACTER(kind=c_char), INTENT(IN) :: instr_func(length_func)
+  CHARACTER(kind=c_char), INTENT(IN) :: instr_var(length_var)
   INTEGER :: i
-  CHARACTER(kind=c_char, len=:), DIMENSION(:), POINTER :: lofstr(:)
-  CHARACTER(kind=c_char, len=120) :: str_func, str_var
+  CHARACTER(len=10), DIMENSION(:), allocatable :: lofstr
+  CHARACTER(len=length_func) :: str_func
+  CHARACTER(len=length_var) :: str_var
   REAL(amrex_real), DIMENSION(1) :: list_var
   INTEGER :: my_index_res
 
   nb_res = nb_res + 1
   my_index_res = nb_res
   IF (nb_res>10) THEN
-    WRITE(*,*) 'Parser error: cannot have more than 10 parsers.'
-    STOP
+     call amrex_error('Parser error: cannot have more than 10 parsers.')
   ENDIF
   
-  ! Get length and reformat both inputs before applying the parser.
-  length_func=0
-  DO
-    IF (instr_func(length_func+1) == C_NULL_CHAR) EXIT
-    length_func = length_func + 1
-  ENDDO
+  str_func = ""
   DO i=1, length_func
     str_func(i:i) = instr_func(i)
   ENDDO
-  str_func = str_func(1:length_func)
-  length_var=0
-  DO
-    IF (instr_var(length_var+1) == C_NULL_CHAR) EXIT
-    length_var = length_var + 1
-  ENDDO
+
+  str_var = ""
   DO i=1, length_var
     str_var(i:i) = instr_var(i)
   ENDDO
-  str_var = str_var(1:length_var)
+
   ! Convert variable list from csv string to list of strings.
-  CALL csv2list(str_var, length_var, lofstr)
+  CALL csv2list(str_var, len_trim(str_var), lofstr)
 
   ! Initialize the res object
   CALL eval_res(table_of_res(my_index_res), str_func, list_var=lofstr)

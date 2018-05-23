@@ -71,10 +71,12 @@ ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
     : _parse_density_function(parse_density_function)
 {
     my_constants.ReadParameters();
-    parse_density_function = my_constants.replaceStringValue(parse_density_function);   
-    const char *str_var  = "x,y,z";
-    const char *str_func = parse_density_function.c_str();
-    parser_instance_number = parser_initialize_function(str_func, str_var);
+    parse_density_function = my_constants.replaceStringValue(parse_density_function);
+    const std::string s_var = "x,y,z";
+    parser_instance_number = parser_initialize_function(parse_density_function.c_str(),
+                                                        parse_density_function.length(),
+                                                        s_var.c_str(),
+                                                        s_var.length());
 }
 
 Real ParseDensityProfile::getDensity(Real x, Real y, Real z) const

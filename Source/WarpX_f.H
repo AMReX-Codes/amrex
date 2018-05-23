@@ -408,7 +408,8 @@ extern "C"
                                   const amrex_real* fin, const int* ilo, const int* ihi,
                                   const amrex_real* stencil, const int* nsten);
 
-    int parser_initialize_function(const char *str_func, const char *str_var);
+    int parser_initialize_function(const char *str_func, const int len_func,
+                                   const char *str_var, const int len_var);
 
     amrex::Real parser_evaluate_function(const amrex::Real*, const int, const int);
 
