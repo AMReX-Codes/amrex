@@ -293,6 +293,7 @@ public:
     * component N, from position pos in the domain into array data,
     * that must be allocated by the user.
     */
+//    DEVICE_CLASS_FUNCTION
     void getVal (T*             data,
                  const IntVect& pos,
                  int            N,
@@ -306,21 +307,21 @@ public:
     * the starting component number, and the number of components
     * to be set.
     */
-    DEVICE_CLASS_FUNCTION
+//    DEVICE_CLASS_FUNCTION
     void setVal (T          x,
                  const Box& bx,
                  int        nstart,
                  int        ncomp);
     //! Same as above, except the number of modified components is one. N is the component to be modified.
-    DEVICE_CLASS_FUNCTION
+//    DEVICE_CLASS_FUNCTION
     void setVal (T          x,
                  const Box& bx,
                  int        N = 0);
-    DEVICE_CLASS_FUNCTION
+//    DEVICE_CLASS_FUNCTION
     //! Same as above, except the sub-box defaults to the entire domain.
     void setVal (T   x,
                  int N);
-    DEVICE_CLASS_FUNCTION
+//    DEVICE_CLASS_FUNCTION
     //! Same as above, except all components are set.
     void setVal (T x);
 
@@ -925,6 +926,8 @@ protected:
                       int               destcomp,
                       int               numcomp);
 
+
+public:
     //! This function is called by the BaseFab setVal operations.
     DEVICE_CLASS_FUNCTION
     void performSetVal (T          x,
