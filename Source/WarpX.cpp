@@ -368,6 +368,8 @@ WarpX::ReadParameters ()
         }
 
         pp.query("load_balance_int", load_balance_int);
+        pp.query("load_balance_with_sfc", load_balance_with_sfc);
+        pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
 
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
     }
