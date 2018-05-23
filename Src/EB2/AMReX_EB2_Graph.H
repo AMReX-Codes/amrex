@@ -81,7 +81,7 @@ struct Vertex
     Vector<Edge> m_edges;
 };
 
-using Graph = std::unordered_map<IntVect, Vector<Vertex>, IntVect::shift_hasher>;
+using Graph = std::unordered_map<IntVect, Vector<Vertex>, IntVect::hasher>;
 
 }}
 

@@ -131,7 +131,7 @@ public:
         return {smallend[0], 0, 0};
 #elif (AMREX_SPACEDIM == 2)
         return {smallend[0], smallend[1], 0};
-#elif (AMREX_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 3)
         return {smallend[0], smallend[1], smallend[2]};
 #endif
     }
