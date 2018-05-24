@@ -8,7 +8,7 @@ using namespace amrex;
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots, 
-                       Real gamma_boost, Real dt_boost, 
+                       Real gamma_boost, Real t_boost, Real dt_boost, 
                        int boost_direction)
     : gamma_boost_(gamma_boost),
       dt_snapshots_lab_(dt_snapshots_lab),
@@ -35,6 +35,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         Real t_lab = i * dt_snapshots_lab_;
         LabSnapShot snapshot(t_lab, zmin_lab + v_window_lab * t_lab,
                              zmax_lab + v_window_lab * t_lab, i);
+        snapshot.updateCurrentZPositions(t_boost, inv_gamma_boost_, inv_beta_boost_);
         snapshots_.push_back(snapshot);
         buff_counter_.push_back(0);
         data_buffer_[i].reset( nullptr );
