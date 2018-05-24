@@ -174,9 +174,9 @@ writeLabFrameData(const MultiFab& cell_centered_data,
         ++buff_counter_[i];
 
         if (do_particles) {
-            mypc.WriteLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
-                                   old_z_boost, snapshots_[i].current_z_boost,
-                                   t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
+            mypc.GetLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
+                                 old_z_boost, snapshots_[i].current_z_boost,
+                                 t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
         }
         
         if (buff_counter_[i] == num_buffer_) {

@@ -151,11 +151,11 @@ public:
 
     bool Use_fdtd_nci_corr() {return use_fdtd_nci_corr;}
 
-    void WriteLabFrameData(const std::string& snapshot_name,
-                           const int i_lab, const int direction,
-                           const amrex::Real z_old, const amrex::Real z_new,
-                           const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
-                           amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
+    void GetLabFrameData(const std::string& snapshot_name,
+                         const int i_lab, const int direction,
+                         const amrex::Real z_old, const amrex::Real z_new,
+                         const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
+                         amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
     
     // 
     // Parameters for the Cherenkov corrector in the FDTD solver.

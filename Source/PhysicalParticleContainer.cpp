@@ -1086,10 +1086,9 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                                                  const Real t_lab, const Real dt,
                                                  DiagnosticParticles& diagnostic_particles)
 {
+    BL_PROFILE("PhysicalParticleContainer::GetParticleSlice");
+    
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-    BL_PROFILE("PC::PushX()");
-    BL_PROFILE_VAR_NS("PC::PushX::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PC:PushX::Push", blp_pxr_pp);
 
     // Assume always z
 #if (AMREX_SPACEDIM == 2)
@@ -1144,11 +1143,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 if ( !slice_box.intersects(tile_real_box) ) continue;
 
-                BL_PROFILE_VAR_START(blp_copy);
                 pti.GetPosition(xp_new, yp_new, zp_new);
-                BL_PROFILE_VAR_STOP(blp_copy);
 
-                auto& structs = pti.GetArrayOfStructs();
                 auto& attribs = pti.GetAttribs();
 
                 auto& wp = attribs[PIdx::w ];
@@ -1171,8 +1167,10 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 
                 for (long i = 0; i < np; ++i) {
 
-                    if ( ((zp_new[i] >= z_new) && (zp_old[i] <= z_old)) ||
-                         ((zp_new[i] <= z_new) && (zp_old[i] >= z_old)) ) continue;
+                    // if the particle did not cross the plane of z_boost in the last
+                    // timestep, skip it.
+                    if ( not (((zp_new[i] >= z_new) && (zp_old[i] <= z_old)) ||
+                              ((zp_new[i] <= z_new) && (zp_old[i] >= z_old))) ) continue;
 
                     // Lorentz transform particles to lab frame
                     Real gamma_new_p = std::sqrt(1.0 + inv_c2*(uxp_new[i]*uxp_new[i] + uyp_new[i]*uyp_new[i] + uzp_new[i]*uzp_new[i]));
