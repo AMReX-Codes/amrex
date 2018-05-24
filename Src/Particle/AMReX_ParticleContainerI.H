@@ -370,9 +370,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummyMF (int lev) 
 {
-
-  BL_PROFILE("ParticleContainer::RedefineDummyMF");
-
     if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
     
     if (m_dummy_mf[lev] == nullptr || 
