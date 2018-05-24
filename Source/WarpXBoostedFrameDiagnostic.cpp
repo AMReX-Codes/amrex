@@ -76,6 +76,16 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             std::stringstream ss;
             ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
             VisMF::Write(tmp, ss.str());
+
+            auto & mypc = WarpX::GetInstance().GetPartContainer();
+            for (int j = 0; j < mypc.nSpecies(); ++j) {
+                std::stringstream part_ss;
+                std::string species_name = "/particle" + std::to_string(j) + "/";
+                part_ss << snapshots_[i].file_name + species_name;
+                writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+            }
+            
+            particles_buffer_[i].clear();            
             buff_counter_[i] = 0;
         }
     }
