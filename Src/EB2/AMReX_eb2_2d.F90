@@ -26,11 +26,11 @@ contains
 
     do    j = lo(2)-2, hi(2)+2
        do i = lo(1)-2, hi(1)+2
-          if (s(i,j).ge.0.d0 .and. s(i+1,j).ge.0.d0 .and. s(i,j+1).ge.0.d0 &
-               .and. s(i+1,j+1).ge.0.d0) then
+          if (       s(i,j  ).ge.0.d0 .and. s(i+1,j  ).ge.0.d0 &
+               .and. s(i,j+1).ge.0.d0 .and. s(i+1,j+1).ge.0.d0) then
              cell(i,j) = covered
-          else if (s(i,j).lt.0.d0 .and. s(i+1,j).lt.0.d0 .and. s(i,j+1).lt.0.d0 &
-               .and. s(i+1,j+1).lt.0.d0) then
+          else if (  s(i,j  ).lt.0.d0 .and. s(i+1,j  ).lt.0.d0 &
+               .and. s(i,j+1).lt.0.d0 .and. s(i+1,j+1).lt.0.d0) then
              cell(i,j) = regular
           else
              cell(i,j) = irregular

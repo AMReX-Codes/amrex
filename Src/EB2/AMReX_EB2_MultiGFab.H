@@ -17,6 +17,7 @@ public:
     static constexpr int ngrow_levelset = 2;
     static constexpr int ngrow_celltype = 2;
     static constexpr int ngrow_facetype = 1;
+    static constexpr int ngrow_edgetype = 1;
     
     void define(const Box& vbx) {
         m_validbox = vbx;
@@ -26,6 +27,8 @@ public:
         m_celltype.resize(bxg2,1);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             m_facetype[idim].resize(amrex::convert(bxg1,IntVect::TheDimensionVector(idim)));
+            m_edgetype[idim].resize(amrex::convert(bxg1,IntVect::TheNodeVector()
+                                                       -IntVect::TheDimensionVector(idim)));
         }
     }
 
@@ -40,6 +43,9 @@ public:
     const Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getFaceType () const { return m_facetype; }
     Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getFaceType () { return m_facetype; }
 
+    const Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getEdgeType () const { return m_edgetype; }
+    Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getEdgeType () { return m_edgetype; }
+
     const Graph& getGraph () const { return m_graph; }
     Graph& getGraph () { return m_graph; }
 
@@ -51,6 +57,7 @@ private:
     BaseFab<Real> m_levelset;
     BaseFab<Type_t> m_celltype;
     Array<BaseFab<Type_t>, AMREX_SPACEDIM> m_facetype;
+    Array<BaseFab<Type_t>, AMREX_SPACEDIM> m_edgetype;
     Graph m_graph;
 };
 
