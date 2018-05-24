@@ -328,7 +328,7 @@ op=0
 what=0
 
 expr_old = TRIM(ADJUSTL(C_replace(exprin,' ','')))
-IF(expr(1:1)=='-') then
+IF(expr_old(1:1)=='-') then
   expr='0'//expr_old
 else
   expr='0+'//expr_old
@@ -553,7 +553,7 @@ op=0
 what=0
 
 expr_old = TRIM(ADJUSTL(C_replace(exprin,' ','')))
-IF(expr(1:1)=='-') then
+IF(expr_old(1:1)=='-') then
   expr='0'//expr_old
 else
   expr='0+'//expr_old
