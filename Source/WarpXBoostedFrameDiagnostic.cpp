@@ -30,7 +30,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     writeMetaData();
 
     data_buffer_.resize(N_snapshots);
-    particles_buffer_.resize(N_snapshots);
+    if (do_particles) particles_buffer_.resize(N_snapshots);
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
         LabSnapShot snapshot(t_lab, zmin_lab + v_window_lab * t_lab,
@@ -77,15 +77,16 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
             VisMF::Write(tmp, ss.str());
 
-            auto & mypc = WarpX::GetInstance().GetPartContainer();
-            for (int j = 0; j < mypc.nSpecies(); ++j) {
-                std::stringstream part_ss;
-                std::string species_name = "/particle" + std::to_string(j) + "/";
-                part_ss << snapshots_[i].file_name + species_name;
-                writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+            if (do_particles) {
+                auto & mypc = WarpX::GetInstance().GetPartContainer();
+                for (int j = 0; j < mypc.nSpecies(); ++j) {
+                    std::stringstream part_ss;
+                    std::string species_name = "/particle" + std::to_string(j) + "/";
+                    part_ss << snapshots_[i].file_name + species_name;
+                    writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+                }
+                particles_buffer_[i].clear();
             }
-            
-            particles_buffer_[i].clear();            
             buff_counter_[i] = 0;
         }
     }
@@ -146,7 +147,7 @@ writeLabFrameData(const MultiFab& cell_centered_data,
             buff_ba.maxSize(max_box_size_);
             DistributionMapping buff_dm(buff_ba);
             data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
-            particles_buffer_[i].resize(mypc.nSpecies());
+            if (do_particles) particles_buffer_[i].resize(mypc.nSpecies());
         }
         
         Real dx = geom.CellSize(boost_direction_);
@@ -172,23 +173,26 @@ writeLabFrameData(const MultiFab& cell_centered_data,
 
         ++buff_counter_[i];
 
-        mypc.WriteLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
-                               old_z_boost, snapshots_[i].current_z_boost,
-                               t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
+        if (do_particles) {
+            mypc.WriteLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
+                                   old_z_boost, snapshots_[i].current_z_boost,
+                                   t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
+        }
         
         if (buff_counter_[i] == num_buffer_) {
             std::stringstream mesh_ss;
             mesh_ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
             VisMF::Write(*data_buffer_[i], mesh_ss.str());
 
-            for (int j = 0; j < mypc.nSpecies(); ++j) {
-                std::stringstream part_ss;
-                std::string species_name = "/particle" + std::to_string(j) + "/";
-                part_ss << snapshots_[i].file_name + species_name;
-                writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+            if (do_particles) {
+                for (int j = 0; j < mypc.nSpecies(); ++j) {
+                    std::stringstream part_ss;
+                    std::string species_name = "/particle" + std::to_string(j) + "/";
+                    part_ss << snapshots_[i].file_name + species_name;
+                    writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+                }            
+                particles_buffer_[i].clear();
             }
-            
-            particles_buffer_[i].clear();
             buff_counter_[i] = 0;
         }
     }

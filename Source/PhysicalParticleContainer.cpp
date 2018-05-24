@@ -1086,7 +1086,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                                                  const Real t_lab, const Real dt,
                                                  DiagnosticParticles& diagnostic_particles)
 {
-
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
     BL_PROFILE("PC::PushX()");
     BL_PROFILE_VAR_NS("PC::PushX::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PC:PushX::Push", blp_pxr_pp);
@@ -1153,12 +1153,13 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 auto& wp = attribs[PIdx::w ];
 
-                auto&  xp_old = attribs[PIdx::xold ];
-                auto&  yp_old = attribs[PIdx::yold ];
-                auto&  zp_old = attribs[PIdx::zold ];
                 auto& uxp_new = attribs[PIdx::ux   ];
                 auto& uyp_new = attribs[PIdx::uy   ];
                 auto& uzp_new = attribs[PIdx::uz   ];
+
+                auto&  xp_old = attribs[PIdx::xold ];
+                auto&  yp_old = attribs[PIdx::yold ];
+                auto&  zp_old = attribs[PIdx::zold ];
                 auto& uxp_old = attribs[PIdx::uxold];
                 auto& uyp_old = attribs[PIdx::uyold];
                 auto& uzp_old = attribs[PIdx::uzold];
@@ -1175,17 +1176,15 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                     // Lorentz transform particles to lab frame
                     Real gamma_new_p = std::sqrt(1.0 + inv_c2*(uxp_new[i]*uxp_new[i] + uyp_new[i]*uyp_new[i] + uzp_new[i]*uzp_new[i]));
-                    Real gamma_old_p = std::sqrt(1.0 + inv_c2*(uxp_old[i]*uxp_old[i] + uyp_old[i]*uyp_old[i] + uzp_old[i]*uzp_old[i]));
-
                     Real t_new_p = WarpX::gamma_boost*t_boost - uzfrm*xp_new[i]*inv_c2;
-                    Real t_old_p = WarpX::gamma_boost*(t_boost - dt) - uzfrm*xp_new[i]*inv_c2;
-
                     Real z_new_p = WarpX::gamma_boost*(zp_new[i] + WarpX::beta_boost*PhysConst::c*t_boost);
-                    Real z_old_p = WarpX::gamma_boost*(zp_old[i] + WarpX::beta_boost*PhysConst::c*(t_boost-dt));
-
                     Real uz_new_p = WarpX::gamma_boost*uzp_new[i] - gamma_new_p*uzfrm;
+
+                    Real gamma_old_p = std::sqrt(1.0 + inv_c2*(uxp_old[i]*uxp_old[i] + uyp_old[i]*uyp_old[i] + uzp_old[i]*uzp_old[i]));
+                    Real t_old_p = WarpX::gamma_boost*(t_boost - dt) - uzfrm*xp_new[i]*inv_c2;
+                    Real z_old_p = WarpX::gamma_boost*(zp_old[i] + WarpX::beta_boost*PhysConst::c*(t_boost-dt));
                     Real uz_old_p = WarpX::gamma_boost*uzp_old[i] - gamma_old_p*uzfrm;
-                                        
+
                     // interpolate in time to t_lab
                     Real weight_old = (t_new_p - t_lab) / (t_new_p - t_old_p);
                     Real weight_new = (t_lab - t_old_p) / (t_new_p - t_old_p);
@@ -1211,4 +1210,5 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
             }
         }
     }
+#endif
 }
