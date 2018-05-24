@@ -1465,7 +1465,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 BuildRedistributeMask(int lev, int nghost) {
     
-    BL_PROFILE("NeighborParticleContainer::BuildRedistributeMask");
+    BL_PROFILE("ParticleContainer::BuildRedistributeMask");
     BL_ASSERT(lev == 0);
 
     if (redistribute_mask_ptr == nullptr ||
