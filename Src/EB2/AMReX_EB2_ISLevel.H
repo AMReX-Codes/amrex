@@ -7,6 +7,8 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_EB2_MultiGFab.H>
 
+#include <unordered_map>
+
 namespace amrex { namespace EB2 {
 
 template <typename G>
@@ -23,6 +25,12 @@ private:
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
     MultiGFab m_mgf;
+    MultiFab m_volfrac;
+    MultiFab m_centroid;
+    MultiFab m_bndrycent;
+    MultiFab m_bndrynorm;
+    Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
+    Array<MultiFab,AMREX_SPACEDIM> m_facecent;
 };
 
 template <typename G>
@@ -72,37 +80,56 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     m_dmap = DistributionMapping(m_grids);
 
     m_mgf.define(m_grids, m_dmap);
+    m_volfrac.define(m_grids, m_dmap, 1, 0);
+    m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, 0);
+    m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, 0);
+    m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, 0);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_areafrac[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
+                                m_dmap, 1, 0);
+        m_facecent[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
+                                m_dmap, AMREX_SPACEDIM, 0);
+    }
 
-    using faces_t = Array<Vector<std::pair<IntVect,
-                                           Array<Real,AMREX_SPACEDIM-1> > >,
-                          AMREX_SPACEDIM>;
-    faces_t irreg_faces;
     for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
     {
         auto& gfab = m_mgf[mfi];
+        const Box& vbx = gfab.validbox();
 
         auto& levelset = gfab.getLevelSet();
         gshop.fillFab(levelset, geom);
 
         gfab.buildTypes();
 
-        auto& facetype = gfab.getFaceType();
+//        auto& facetype = gfab.getFaceType();
         
+#if 0
+        Array<std::unordered_map<IntVect,Array<Real,AMREX_SPACEDIM-1>,IntVect::hasher>,
+              AMREX_SPACEDIM> irreg_faces;
+
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            auto& irreg_face_vec = irreg_faces[idim];
-            irreg_face_vec.clear();
+            auto& irreg_face_map = irreg_faces[idim];
             const auto& facetype_fab = facetype[idim];
             const Box& b = facetype_fab.box();
             facetype_fab.ForEachIV(b, 0, 1,
-                [&irreg_face_vec, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
-                       if (t == Type::irregular) {
-                           Array<Real,AMREX_SPACEDIM-1> intercept = gshop.getFaceIntercept(idim, iv, geom);
-                           irreg_face_vec.emplace_back(std::make_pair(iv,intercept));
-                       }
+                [&irreg_face_map, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
+                    if (t == Type::irregular) {
+                        const auto& intercept = gshop.getFaceIntercept(idim, iv, geom);
+//                        irreg_face_map[iv] = 
+                    }
                 });
         }
 
+        auto& celltype_fab = gfab.getCellType();
+        auto& graph_fab = gfab.getGraph();
+        celltype_fab.ForEachIV(vbx, 0, 1,
+            [] (const Type_t& t, const IntVect& iv) {
+                if (t == Type::irregular) {
+                    amrex::Print() << "irreg cell " << iv << "\n";
+                    
+                }
+            });
 
         // compute volume stuff in irregular cells
         // compute 
@@ -111,6 +138,7 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
         // information is incomplete.
         
         // 
+#endif
     }
 
     VisMF::Write(m_mgf.getLevelSet(), "levelset");
