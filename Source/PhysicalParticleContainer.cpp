@@ -1179,7 +1179,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     Real uz_new_p = WarpX::gamma_boost*uzp_new[i] - gamma_new_p*uzfrm;
 
                     Real gamma_old_p = std::sqrt(1.0 + inv_c2*(uxp_old[i]*uxp_old[i] + uyp_old[i]*uyp_old[i] + uzp_old[i]*uzp_old[i]));
-                    Real t_old_p = WarpX::gamma_boost*(t_boost - dt) - uzfrm*zp_new[i]*inv_c2;
+                    Real t_old_p = WarpX::gamma_boost*(t_boost - dt) - uzfrm*zp_old[i]*inv_c2;
                     Real z_old_p = WarpX::gamma_boost*(zp_old[i] + WarpX::beta_boost*PhysConst::c*(t_boost-dt));
                     Real uz_old_p = WarpX::gamma_boost*uzp_old[i] - gamma_old_p*uzfrm;
 
