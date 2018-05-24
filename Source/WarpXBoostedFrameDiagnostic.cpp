@@ -183,7 +183,7 @@ writeLabFrameData(const MultiFab& cell_centered_data,
             std::stringstream mesh_ss;
             mesh_ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
             VisMF::Write(*data_buffer_[i], mesh_ss.str());
-
+            
             if (do_particles) {
                 for (int j = 0; j < mypc.nSpecies(); ++j) {
                     std::stringstream part_ss;
@@ -211,39 +211,44 @@ writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata, c
     std::string field_name;
     std::ofstream ofs;
 
-    field_name = name + Concatenate("w_", i_lab, 5); 
+    const int MyProc = ParallelDescriptor::MyProc();
+    auto np = pdata.GetRealData(DiagIdx::w).size();
+
+    if (np == 0) return;
+    
+    field_name = name + Concatenate("w_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::w).data(), pdata.GetRealData(DiagIdx::w).size(), ofs);
+    writeRealData(pdata.GetRealData(DiagIdx::w).data(), np, ofs);
     ofs.close();
 
-    field_name = name + Concatenate("x_", i_lab, 5); 
+    field_name = name + Concatenate("x_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::x).data(), pdata.GetRealData(DiagIdx::x).size(), ofs);
+    writeRealData(pdata.GetRealData(DiagIdx::x).data(), np, ofs);
     ofs.close();    
 
-    field_name = name + Concatenate("y_", i_lab, 5); 
+    field_name = name + Concatenate("y_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::y).data(), pdata.GetRealData(DiagIdx::y).size(), ofs);
+    writeRealData(pdata.GetRealData(DiagIdx::y).data(), np, ofs);
     ofs.close();    
 
-    field_name = name + Concatenate("z_", i_lab, 5); 
+    field_name = name + Concatenate("z_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::z).data(), pdata.GetRealData(DiagIdx::z).size(), ofs);
+    writeRealData(pdata.GetRealData(DiagIdx::z).data(), np, ofs);
     ofs.close();    
     
-    field_name = name + Concatenate("ux_", i_lab, 5); 
+    field_name = name + Concatenate("ux_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::ux).data(), pdata.GetRealData(DiagIdx::ux).size(), ofs);
+    writeRealData(pdata.GetRealData(DiagIdx::ux).data(), np, ofs);
     ofs.close();    
 
-    field_name = name + Concatenate("uy_", i_lab, 5); 
+    field_name = name + Concatenate("uy_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::uy).data(), pdata.GetRealData(DiagIdx::uy).size(), ofs);
+    writeRealData(pdata.GetRealData(DiagIdx::uy).data(), np, ofs);
     ofs.close();    
 
-    field_name = name + Concatenate("uz_", i_lab, 5); 
+    field_name = name + Concatenate("uz_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::uz).data(), pdata.GetRealData(DiagIdx::uz).size(), ofs);
+    writeRealData(pdata.GetRealData(DiagIdx::uz).data(), np, ofs);
     ofs.close();    
 }
 
