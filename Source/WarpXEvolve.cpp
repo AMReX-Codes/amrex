@@ -11,7 +11,7 @@ using namespace amrex;
 
 void
 WarpX::Evolve (int numsteps) {
-    BL_PROFILE("WarpX::Evolve()");
+    BL_PROFILE_REGION("WarpX::Evolve()");
 
     if (do_electrostatic) {
         EvolveES(numsteps);
