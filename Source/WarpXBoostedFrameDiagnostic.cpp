@@ -201,6 +201,9 @@ BoostedFrameDiagnostic::
 writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata, const std::string& name,
                   const int i_lab)
 {
+
+    BL_PROFILE("BoostedFrameDiagnostic::writeParticleData");
+    
     std::string field_name;
     std::ofstream ofs;
 
