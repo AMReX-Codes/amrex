@@ -278,19 +278,48 @@ MultiParticleContainer::PostRestart ()
 }
 
 void
-MultiParticleContainer::WriteLabFrameData(const std::string& snapshot_name,
-                                          const int i_lab, const int direction,
-                                          const Real z_old, const Real z_new,
-                                          const Real t_boost, const Real t_lab, const Real dt) const
+MultiParticleContainer
+::WriteLabFrameData(const std::string& snapshot_name,
+                    const int i_lab, const int direction,
+                    const Real z_old, const Real z_new,
+                    const Real t_boost, const Real t_lab, const Real dt,
+                    Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const
 {
-    for (auto& pc : allcontainers) {
+    for (int i = 0; i < nspecies; ++i)
+    {
+        WarpXParticleContainer* pc = allcontainers[i].get();
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
+        
+        for (auto it = diagnostic_particles.begin(); it != diagnostic_particles.end(); ++it)
+        {
+            parts[i].GetRealData(DiagIdx::w).insert(  parts[i].GetRealData(DiagIdx::w  ).end(),
+                                                    it->second.GetRealData(DiagIdx::w  ).begin(),
+                                                    it->second.GetRealData(DiagIdx::w  ).end());
 
-        long total_np = 0;
-        for (auto it = diagnostic_particles.begin(); it != diagnostic_particles.end(); ++it) {
-            total_np += it->second.numParticles();
+            parts[i].GetRealData(DiagIdx::x).insert(  parts[i].GetRealData(DiagIdx::x  ).end(),
+                                                    it->second.GetRealData(DiagIdx::x  ).begin(),
+                                                    it->second.GetRealData(DiagIdx::x  ).end());
+
+            parts[i].GetRealData(DiagIdx::y).insert(  parts[i].GetRealData(DiagIdx::y  ).end(),
+                                                    it->second.GetRealData(DiagIdx::y  ).begin(),
+                                                    it->second.GetRealData(DiagIdx::y  ).end());
+
+            parts[i].GetRealData(DiagIdx::z).insert(  parts[i].GetRealData(DiagIdx::z  ).end(),
+                                                    it->second.GetRealData(DiagIdx::z  ).begin(),
+                                                    it->second.GetRealData(DiagIdx::z  ).end());
+
+            parts[i].GetRealData(DiagIdx::ux).insert(  parts[i].GetRealData(DiagIdx::ux).end(),
+                                                     it->second.GetRealData(DiagIdx::ux).begin(),
+                                                     it->second.GetRealData(DiagIdx::ux).end());
+
+            parts[i].GetRealData(DiagIdx::uy).insert(  parts[i].GetRealData(DiagIdx::uy).end(),
+                                                     it->second.GetRealData(DiagIdx::uy).begin(),
+                                                     it->second.GetRealData(DiagIdx::uy).end());
+
+            parts[i].GetRealData(DiagIdx::uz).insert(  parts[i].GetRealData(DiagIdx::uz).end(),
+                                                     it->second.GetRealData(DiagIdx::uz).begin(),
+                                                     it->second.GetRealData(DiagIdx::uz).end());
         }
-        amrex::Print() << "Diagnostics selected " << total_np << " particles." << std::endl;
     }
 }

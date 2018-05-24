@@ -68,19 +68,23 @@ class BoostedFrameDiagnostic {
     int boost_direction_;
 
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > data_buffer_;
+    amrex::Vector<amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> > particles_buffer_; 
     int num_buffer_ = 256;
     int max_box_size_ = 256;
     amrex::Vector<int> buff_counter_;
 
     amrex::Vector<LabSnapShot> snapshots_;
-
+    
+    void writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
+                           const std::string& name, const int i_lab);
+    
 public:
 
     BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab, 
                            amrex::Real v_window_lab, amrex::Real dt_snapshots_lab,
                            int N_snapshots, amrex::Real gamma_boost,
                            amrex::Real dt_boost, int boost_direction);
-
+    
     void Flush(const amrex::Geometry& geom);
     
     void writeLabFrameData(const amrex::MultiFab& cell_centered_data,

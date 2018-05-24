@@ -1,6 +1,7 @@
 #include "WarpXBoostedFrameDiagnostic.H"
 #include <AMReX_MultiFabUtil.H>
 #include "WarpX_f.H"
+#include "WarpX.H"
 
 using namespace amrex;
 
@@ -29,6 +30,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     writeMetaData();
 
     data_buffer_.resize(N_snapshots);
+    particles_buffer_.resize(N_snapshots);
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
         LabSnapShot snapshot(t_lab, zmin_lab + v_window_lab * t_lab,
@@ -134,6 +136,7 @@ writeLabFrameData(const MultiFab& cell_centered_data,
             buff_ba.maxSize(max_box_size_);
             DistributionMapping buff_dm(buff_ba);
             data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
+            particles_buffer_[i].resize(mypc.nSpecies());
         }
         
         Real dx = geom.CellSize(boost_direction_);
@@ -159,26 +162,78 @@ writeLabFrameData(const MultiFab& cell_centered_data,
 
         ++buff_counter_[i];
 
+        mypc.WriteLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
+                               old_z_boost, snapshots_[i].current_z_boost,
+                               t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
+        
         if (buff_counter_[i] == num_buffer_) {
-            std::stringstream ss;
-            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
-            VisMF::Write(*data_buffer_[i], ss.str());
+            std::stringstream mesh_ss;
+            mesh_ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
+            VisMF::Write(*data_buffer_[i], mesh_ss.str());
+
+            for (int j = 0; j < mypc.nSpecies(); ++j) {
+                std::stringstream part_ss;
+                std::string species_name = "/particle" + std::to_string(j) + "/";
+                part_ss << snapshots_[i].file_name + species_name;
+                writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+            }
+            
+            particles_buffer_[i].clear();
             buff_counter_[i] = 0;
         }
-
-        mypc.WriteLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
-                               old_z_boost, snapshots_[i].current_z_boost, 
-                               t_boost, snapshots_[i].t_lab, dt);
     }
-
+        
     VisMF::SetHeaderVersion(current_version);    
+}
+
+void
+BoostedFrameDiagnostic::
+writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata, const std::string& name,
+                  const int i_lab)
+{
+    std::string field_name;
+    std::ofstream ofs;
+
+    field_name = name + Concatenate("w_", i_lab, 5); 
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::w).data(), pdata.GetRealData(DiagIdx::w).size(), ofs);
+    ofs.close();
+
+    field_name = name + Concatenate("x_", i_lab, 5); 
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::x).data(), pdata.GetRealData(DiagIdx::x).size(), ofs);
+    ofs.close();    
+
+    field_name = name + Concatenate("y_", i_lab, 5); 
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::y).data(), pdata.GetRealData(DiagIdx::y).size(), ofs);
+    ofs.close();    
+
+    field_name = name + Concatenate("z_", i_lab, 5); 
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::z).data(), pdata.GetRealData(DiagIdx::z).size(), ofs);
+    ofs.close();    
+    
+    field_name = name + Concatenate("ux_", i_lab, 5); 
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::ux).data(), pdata.GetRealData(DiagIdx::ux).size(), ofs);
+    ofs.close();    
+
+    field_name = name + Concatenate("uy_", i_lab, 5); 
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::uy).data(), pdata.GetRealData(DiagIdx::uy).size(), ofs);
+    ofs.close();    
+
+    field_name = name + Concatenate("uz_", i_lab, 5); 
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::uz).data(), pdata.GetRealData(DiagIdx::uz).size(), ofs);
+    ofs.close();    
 }
 
 void
 BoostedFrameDiagnostic::
 writeMetaData() 
 {
-
     BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -222,13 +277,22 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
     
     if (ParallelDescriptor::IOProcessor()) {
 
-        const int nlevels = 1;
-        const std::string level_prefix = "Level_";
-        
         if (!UtilCreateDirectory(file_name, 0755))
             CreateDirectoryFailed(file_name);
-        for(int i(0); i < nlevels; ++i) {
+
+        const int nlevels = 1;
+        for(int i = 0; i < nlevels; ++i) {
             const std::string &fullpath = LevelFullPath(i, file_name);
+            if (!UtilCreateDirectory(fullpath, 0755))
+                CreateDirectoryFailed(fullpath);
+        }
+
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
+        int nspecies = mypc.nSpecies();
+        
+        const std::string particles_prefix = "particle";
+        for(int i = 0; i < nspecies; ++i) {
+            const std::string fullpath = file_name + "/" + particles_prefix + std::to_string(i);
             if (!UtilCreateDirectory(fullpath, 0755))
                 CreateDirectoryFailed(fullpath);
         }

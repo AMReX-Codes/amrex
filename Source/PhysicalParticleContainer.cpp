@@ -1132,8 +1132,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #pragma omp parallel
 #endif
         {
-            Vector<Real> xp_new, yp_new, zp_new, xp_old, yp_old, zp_old, giv, t_new, t_old;
-            Vector<Real> gamma_new, gamma_old;
+            Vector<Real> xp_new, yp_new, zp_new;
             
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
@@ -1147,7 +1146,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 BL_PROFILE_VAR_START(blp_copy);
                 pti.GetPosition(xp_new, yp_new, zp_new);
-                pti.GetPosition(xp_old, yp_old, zp_old);
                 BL_PROFILE_VAR_STOP(blp_copy);
 
                 auto& structs = pti.GetArrayOfStructs();
@@ -1155,60 +1153,50 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 auto& wp = attribs[PIdx::w ];
 
-                auto& uxp_new = attribs[PIdx::ux];
-                auto& uyp_new = attribs[PIdx::uy];
-                auto& uzp_new = attribs[PIdx::uz];
+                auto&  xp_old = attribs[PIdx::xold ];
+                auto&  yp_old = attribs[PIdx::yold ];
+                auto&  zp_old = attribs[PIdx::zold ];
+                auto& uxp_new = attribs[PIdx::ux   ];
+                auto& uyp_new = attribs[PIdx::uy   ];
+                auto& uzp_new = attribs[PIdx::uz   ];
                 auto& uxp_old = attribs[PIdx::uxold];
                 auto& uyp_old = attribs[PIdx::uyold];
                 auto& uzp_old = attribs[PIdx::uzold];
                 
                 const long np = pti.numParticles();
 
-                giv.resize(np);
-                gamma_new.resize(np);
-                gamma_old.resize(np);
-                t_new.resize(np);
-                t_old.resize(np);
-                
-                BL_PROFILE_VAR_START(blp_pxr_pp);
-                warpx_particle_pusher_positions(&np, xp_old.data(), yp_old.data(), zp_old.data(),
-                                                uxp_new.data(), uyp_new.data(), uzp_new.data(), giv.data(),
-                                                &minus_dt);
-                BL_PROFILE_VAR_STOP(blp_pxr_pp);
-                
-                // Lorentz transform particles to lab frame
                 Real uzfrm = -WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
                 Real inv_c2 = 1.0/PhysConst::c/PhysConst::c;
-                for (long i = 0; i < np; ++i) {
-                    gamma_new[i] = std::sqrt(1.0 + inv_c2*(uxp_new[i]*uxp_new[i] + uyp_new[i]*uyp_new[i] + uzp_new[i]*uzp_new[i]));
-                    gamma_old[i] = std::sqrt(1.0 + inv_c2*(uxp_old[i]*uxp_old[i] + uyp_old[i]*uyp_old[i] + uzp_old[i]*uzp_old[i]));
-
-                    t_new[i]   = WarpX::gamma_boost*t_boost - uzfrm*xp_new[i]*inv_c2;
-                    t_old[i]   = WarpX::gamma_boost*(t_boost - dt) - uzfrm*xp_new[i]*inv_c2;
-
-                    zp_new[i]  = WarpX::gamma_boost*(zp_new[i] + WarpX::beta_boost*PhysConst::c*t_boost);
-                    zp_old[i]  = WarpX::gamma_boost*(zp_old[i] + WarpX::beta_boost*PhysConst::c*(t_boost-dt));
-
-                    uzp_new[i] = WarpX::gamma_boost*uzp_new[i] - gamma_new[i]*uzfrm;
-                    uzp_old[i] = WarpX::gamma_boost*uzp_old[i] - gamma_old[i]*uzfrm;
-                }
-
+                
                 for (long i = 0; i < np; ++i) {
 
                     if ( ((zp_new[i] >= z_new) && (zp_old[i] <= z_old)) ||
                          ((zp_new[i] <= z_new) && (zp_old[i] >= z_old)) ) continue;
-                    
+
+                    // Lorentz transform particles to lab frame
+                    Real gamma_new_p = std::sqrt(1.0 + inv_c2*(uxp_new[i]*uxp_new[i] + uyp_new[i]*uyp_new[i] + uzp_new[i]*uzp_new[i]));
+                    Real gamma_old_p = std::sqrt(1.0 + inv_c2*(uxp_old[i]*uxp_old[i] + uyp_old[i]*uyp_old[i] + uzp_old[i]*uzp_old[i]));
+
+                    Real t_new_p = WarpX::gamma_boost*t_boost - uzfrm*xp_new[i]*inv_c2;
+                    Real t_old_p = WarpX::gamma_boost*(t_boost - dt) - uzfrm*xp_new[i]*inv_c2;
+
+                    Real z_new_p = WarpX::gamma_boost*(zp_new[i] + WarpX::beta_boost*PhysConst::c*t_boost);
+                    Real z_old_p = WarpX::gamma_boost*(zp_old[i] + WarpX::beta_boost*PhysConst::c*(t_boost-dt));
+
+                    Real uz_new_p = WarpX::gamma_boost*uzp_new[i] - gamma_new_p*uzfrm;
+                    Real uz_old_p = WarpX::gamma_boost*uzp_old[i] - gamma_old_p*uzfrm;
+                                        
                     // interpolate in time to t_lab
-                    Real weight_old = (t_new[i] - t_lab) / (t_new[i] - t_old[i]);
-                    Real weight_new = (t_lab - t_old[i]) / (t_new[i] - t_old[i]);
+                    Real weight_old = (t_new_p - t_lab) / (t_new_p - t_old_p);
+                    Real weight_new = (t_lab - t_old_p) / (t_new_p - t_old_p);
 
                     Real xp = xp_old[i]*weight_old + xp_new[i]*weight_new;
                     Real yp = yp_old[i]*weight_old + yp_new[i]*weight_new;
-                    Real zp = zp_old[i]*weight_old + zp_new[i]*weight_new;
+                    Real zp = z_old_p  *weight_old + z_new_p  *weight_new;
 
                     Real uxp = uxp_old[i]*weight_old + uxp_new[i]*weight_new;
                     Real uyp = uyp_old[i]*weight_old + uyp_new[i]*weight_new;
-                    Real uzp = uzp_old[i]*weight_old + uzp_new[i]*weight_new;
+                    Real uzp = uz_old_p  *weight_old + uz_new_p  *weight_new;
 
                     diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i]);
                     
