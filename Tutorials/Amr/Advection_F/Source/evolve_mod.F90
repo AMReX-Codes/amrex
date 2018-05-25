@@ -2,6 +2,8 @@ module evolve_module
 
   use amrex_amr_module
 
+  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute
+  
   implicit none
   private
 
@@ -89,8 +91,10 @@ contains
              end do
 
              do k = old_finest_level+1, finest_level
-                dt(k) = dt(k-1) / amrex_ref_ratio(k-1)             
+                dt(k) = dt(k-1) / amrex_ref_ratio(k-1)
              end do
+
+             call amrex_particle_redistribute(lev)
           end if
        end if
     end if
