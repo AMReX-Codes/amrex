@@ -9,7 +9,8 @@ module amrex_amrtracerparticlecontainer_module
 
   ! public routines
   public :: amrex_amrtracerparticlecontainer_init, &
-       amrex_amrtracerparticlecontainer_finalize
+       amrex_amrtracerparticlecontainer_finalize, &
+       amrex_init_particles_one_per_cell
 
   interface
      subroutine amrex_fi_new_amrtracerparticlecontainer (tracerpc,amrcore) bind(c)
@@ -24,6 +25,12 @@ module amrex_amrtracerparticlecontainer_module
        implicit none
        type(c_ptr), value :: tracerpc
      end subroutine amrex_fi_delete_amrtracerparticlecontainer
+
+     subroutine amrex_fi_init_particles_one_per_cell (tracerpc) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: tracerpc
+     end subroutine amrex_fi_init_particles_one_per_cell     
   end interface
 
   type(c_ptr) :: amrtracerparticlecontainer = c_null_ptr
@@ -40,5 +47,9 @@ contains
     amrtracerparticlecontainer = c_null_ptr
   end subroutine amrex_amrtracerparticlecontainer_finalize
 
+  subroutine amrex_init_particles_one_per_cell ()
+    call amrex_fi_init_particles_one_per_cell(amrtracerparticlecontainer)
+  end subroutine amrex_init_particles_one_per_cell
+  
 end module amrex_amrtracerparticlecontainer_module
 

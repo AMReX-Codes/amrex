@@ -16,4 +16,10 @@ extern "C" {
     {
 	delete amrtracerparticlecontainer;
     }
+
+    void amrex_fi_init_particles_one_per_cell (AmrTracerParticleContainer* amrtracerparticlecontainer)
+    {
+        AmrTracerParticleContainer::ParticleInitData pdata = {1.0};
+	amrtracerparticlecontainer->InitOnePerCell(0.5, 0.5, 0.5, pdata);
+    }
 }
