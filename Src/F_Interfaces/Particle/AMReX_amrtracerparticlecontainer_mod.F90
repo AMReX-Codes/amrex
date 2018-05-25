@@ -43,10 +43,11 @@ module amrex_amrtracerparticlecontainer_module
        logical, intent(in)                :: is_checkpoint
      end subroutine amrex_fi_write_particles
 
-     subroutine amrex_fi_particle_redistribute (tracerpc) bind(c)
+     subroutine amrex_fi_particle_redistribute (tracerpc,lev_min,lev_max,ng) bind(c)
        import
        implicit none
        type(c_ptr), value :: tracerpc
+       integer, intent(in) :: lev_min, lev_max, ng
      end subroutine amrex_fi_particle_redistribute
      
   end interface
@@ -77,8 +78,16 @@ contains
          amrex_string_f_to_c(dirname), amrex_string_f_to_c(pname), is_checkpoint)
   end subroutine amrex_write_particles
 
-  subroutine amrex_particle_redistribute ()
-    call amrex_fi_particle_redistribute(amrtracerparticlecontainer)
+  subroutine amrex_particle_redistribute (lev_min,lev_max,nghost)
+    integer, optional, intent(in) :: lev_min, lev_max, nghost
+    integer :: min, max, ng
+    min = 0
+    max = -1
+    ng  = 0
+    if(present(lev_min)) min = lev_min
+    if(present(lev_max)) max = lev_max
+    if(present(nghost )) ng = nghost    
+    call amrex_fi_particle_redistribute(amrtracerparticlecontainer, lev_min, lev_max, nghost)
   end subroutine amrex_particle_redistribute
   
 end module amrex_amrtracerparticlecontainer_module
