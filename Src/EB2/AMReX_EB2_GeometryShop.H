@@ -54,8 +54,7 @@ public:
     int getBoxType (const Box& bx, const Geometry& geom) const;
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const;
 
-    Array<Real,AMREX_SPACEDIM-1>
-    getFaceIntercept (int facedir, const IntVect& iv, const Geometry& geom) const;
+    Real getIntercept (int edgedir, const IntVect& iv, const Geometry& geom) const;
 
     Real BrentRootFinder (const RealArray& lo, const RealArray& hi, int rangedir) const;
 
@@ -117,8 +116,8 @@ GeometryShop<F>::fillFab (BaseFab<Real>& levelset, const Geometry& geom) const
 }
 
 template <class F>
-Array<Real,AMREX_SPACEDIM-1>
-GeometryShop<F>::getFaceIntercept (int facedir, const IntVect& iv, const Geometry& geom) const
+Real
+GeometryShop<F>::getIntercept (int edgedir, const IntVect& iv, const Geometry& geom) const
 {
     const Real* problo = geom.ProbLo();
     const Real* dx = geom.CellSize();
@@ -126,10 +125,11 @@ GeometryShop<F>::getFaceIntercept (int facedir, const IntVect& iv, const Geometr
 #if (AMREX_SPACEDIM == 1)
 
     amrex::Abort("GeometryShop: 1d not supported");
-    return Array<Real,0>{};
+    return 0;
 
 #elif (AMREX_SPACEDIM == 2)
 
+#if 0
     const int rangedir = 1-facedir;
     IntVect ivlo = iv;
     IntVect ivhi = iv;  ivhi[rangedir] += 1;
@@ -139,11 +139,21 @@ GeometryShop<F>::getFaceIntercept (int facedir, const IntVect& iv, const Geometr
                                              problo[1]+ivhi[1]*dx[1]},
                                    rangedir);
     return Array<Real,1>{r};
+#endif
+    return 0;
 
 #else
 
-    amrex::Abort("GeometryShop::getFaceIntercept: 3d todo");
-    return Array<Real,2>{};    
+    IntVect ivlo = iv;
+    IntVect ivhi = iv;  ivhi[edgedir] += 1;
+    Real r = this->BrentRootFinder(RealArray{problo[0]+ivlo[0]*dx[0],
+                                             problo[1]+ivlo[1]*dx[1],
+                                             problo[2]+ivlo[2]*dx[2]},
+                                   RealArray{problo[0]+ivhi[0]*dx[0],
+                                             problo[1]+ivhi[1]*dx[1],
+                                             problo[2]+ivhi[2]*dx[2]},
+                                   edgedir);
+    return r;
 
 #endif
 }
