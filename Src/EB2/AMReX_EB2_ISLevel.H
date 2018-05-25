@@ -6,8 +6,10 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_EB2_MultiGFab.H>
+#include <AMReX_EB2_F.H>
 
 #include <unordered_map>
+#include <limits>
 
 namespace amrex { namespace EB2 {
 
@@ -80,16 +82,21 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     m_dmap = DistributionMapping(m_grids);
 
     m_mgf.define(m_grids, m_dmap);
-    m_volfrac.define(m_grids, m_dmap, 1, 0);
-    m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, 0);
-    m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, 0);
-    m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, 0);
+    m_volfrac.define(m_grids, m_dmap, 1, 1);
+    m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
+    m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
+    m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_areafrac[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, 1, 0);
+                                m_dmap, 1, 1);
         m_facecent[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, AMREX_SPACEDIM, 0);
+                                m_dmap, AMREX_SPACEDIM, 1);
     }
+
+    Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
+    const Real* dx = geom.CellSize();
+    const Real* dxinv = geom.InvCellSize();
+    const Real* problo = geom.ProbLo();
 
     for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
     {
@@ -101,46 +108,51 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
 
         gfab.buildTypes();
 
-//        auto& facetype = gfab.getFaceType();
-        
-#if 0
-        Array<std::unordered_map<IntVect,Array<Real,AMREX_SPACEDIM-1>,IntVect::hasher>,
-              AMREX_SPACEDIM> irreg_faces;
-
+#if (AMREX_SPACEDIM == 3)
+        auto& celltype = gfab.getCellType();
+        auto& facetype = gfab.getFaceType();
+        auto& edgetype = gfab.getEdgeType();
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            auto& irreg_face_map = irreg_faces[idim];
-            const auto& facetype_fab = facetype[idim];
-            const Box& b = facetype_fab.box();
-            facetype_fab.ForEachIV(b, 0, 1,
-                [&irreg_face_map, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
+            const auto& edgetype_fab = edgetype[idim];
+            const Box& b = edgetype_fab.box();
+            auto& inter = intercept[idim];
+            inter.resize(b);
+            inter.setVal(std::numeric_limits<Real>::quiet_NaN());
+            edgetype_fab.ForEachIV(b, 0, 1,
+                [&inter, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
                     if (t == Type::irregular) {
-                        const auto& intercept = gshop.getFaceIntercept(idim, iv, geom);
-//                        irreg_face_map[iv] = 
+                        inter(iv) = gshop.getIntercept(idim, iv, geom);
                     }
                 });
         }
 
-        auto& celltype_fab = gfab.getCellType();
-        auto& graph_fab = gfab.getGraph();
-        celltype_fab.ForEachIV(vbx, 0, 1,
-            [] (const Type_t& t, const IntVect& iv) {
-                if (t == Type::irregular) {
-                    amrex::Print() << "irreg cell " << iv << "\n";
-                    
-                }
-            });
-
-        // compute volume stuff in irregular cells
-        // compute 
-        
-        // add cutcells in +1 region to the graph and note that in ghost region
-        // information is incomplete.
-        
-        // 
+        amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
+                              BL_TO_FORTRAN_ANYD(celltype),
+                              BL_TO_FORTRAN_ANYD(facetype[0]),
+                              BL_TO_FORTRAN_ANYD(facetype[1]),
+                              BL_TO_FORTRAN_ANYD(facetype[2]),
+                              BL_TO_FORTRAN_ANYD(edgetype[0]),
+                              BL_TO_FORTRAN_ANYD(edgetype[1]),
+                              BL_TO_FORTRAN_ANYD(edgetype[2]),
+                              BL_TO_FORTRAN_ANYD(levelset),
+                              BL_TO_FORTRAN_ANYD(intercept[0]),
+                              BL_TO_FORTRAN_ANYD(intercept[1]),
+                              BL_TO_FORTRAN_ANYD(intercept[2]),
+                              BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
+                              dx, dxinv, problo);
+                              
 #endif
+
     }
 
+    VisMF::Write(m_areafrac[0], "apx");
+    VisMF::Write(m_facecent[0], "fcx");
     VisMF::Write(m_mgf.getLevelSet(), "levelset");
 }
 
