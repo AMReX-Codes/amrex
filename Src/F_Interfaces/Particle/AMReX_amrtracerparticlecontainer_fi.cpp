@@ -29,8 +29,9 @@ extern "C" {
         amrtracerparticlecontainer->Checkpoint(dirname, pname, is_checkpoint);
     }
 
-    void amrex_fi_particle_redistribute (AmrTracerParticleContainer* amrtracerparticlecontainer)
+    void amrex_fi_particle_redistribute (AmrTracerParticleContainer* amrtracerparticlecontainer,
+                                         int lev_min, int lev_max, int ng)
     {
-	amrtracerparticlecontainer->Redistribute();
+	amrtracerparticlecontainer->Redistribute(lev_min, lev_max, ng);
     }
 }
