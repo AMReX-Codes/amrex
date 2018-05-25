@@ -22,4 +22,15 @@ extern "C" {
         AmrTracerParticleContainer::ParticleInitData pdata = {1.0};
 	amrtracerparticlecontainer->InitOnePerCell(0.5, 0.5, 0.5, pdata);
     }
+
+    void amrex_fi_write_particles(AmrTracerParticleContainer* amrtracerparticlecontainer,
+                                  const char* dirname, const char* pname, bool is_checkpoint)
+    {
+        amrtracerparticlecontainer->Checkpoint(dirname, pname, is_checkpoint);
+    }
+
+    void amrex_fi_particle_redistribute (AmrTracerParticleContainer* amrtracerparticlecontainer)
+    {
+	amrtracerparticlecontainer->Redistribute();
+    }
 }

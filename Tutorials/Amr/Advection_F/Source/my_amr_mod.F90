@@ -4,6 +4,7 @@ module my_amr_module
   use amrex_amr_module
   use amrex_fort_module, only : rt => amrex_real
 
+  use amrex_amrtracerparticlecontainer_module, only: amrex_amrtracerparticlecontainer_finalize
   use amr_data_module
 
   implicit none
@@ -100,6 +101,7 @@ contains
 
 
   subroutine my_amr_finalize ()
+    call amrex_amrtracerparticlecontainer_finalize()
     call amr_data_finalize()
   end subroutine my_amr_finalize
 

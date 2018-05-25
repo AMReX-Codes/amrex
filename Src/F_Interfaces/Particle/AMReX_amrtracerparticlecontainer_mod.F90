@@ -2,7 +2,8 @@ module amrex_amrtracerparticlecontainer_module
 
   use iso_c_binding
   use amrex_base_module
- 
+  use amrex_string_module
+  
   implicit none
 
   private
@@ -10,7 +11,8 @@ module amrex_amrtracerparticlecontainer_module
   ! public routines
   public :: amrex_amrtracerparticlecontainer_init, &
        amrex_amrtracerparticlecontainer_finalize, &
-       amrex_init_particles_one_per_cell
+       amrex_init_particles_one_per_cell, &
+       amrex_write_particles
 
   interface
      subroutine amrex_fi_new_amrtracerparticlecontainer (tracerpc,amrcore) bind(c)
@@ -30,7 +32,23 @@ module amrex_amrtracerparticlecontainer_module
        import
        implicit none
        type(c_ptr), value :: tracerpc
-     end subroutine amrex_fi_init_particles_one_per_cell     
+     end subroutine amrex_fi_init_particles_one_per_cell
+
+     subroutine amrex_fi_write_particles (tracerpc, dirname, pname, is_checkpoint) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: tracerpc
+       character(kind=c_char), intent(in) :: dirname(*)
+       character(kind=c_char), intent(in) :: pname(*)
+       logical, intent(in)                :: is_checkpoint
+     end subroutine amrex_fi_write_particles
+
+     subroutine amrex_fi_particle_redistribute (tracerpc) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: tracerpc
+     end subroutine amrex_fi_particle_redistribute
+     
   end interface
 
   type(c_ptr) :: amrtracerparticlecontainer = c_null_ptr
@@ -50,6 +68,18 @@ contains
   subroutine amrex_init_particles_one_per_cell ()
     call amrex_fi_init_particles_one_per_cell(amrtracerparticlecontainer)
   end subroutine amrex_init_particles_one_per_cell
+
+  subroutine amrex_write_particles (dirname, pname, is_checkpoint)
+    character(len=*), intent(in) :: dirname
+    character(len=*), intent(in) :: pname
+    logical, intent(in)          :: is_checkpoint    
+    call amrex_fi_write_particles(amrtracerparticlecontainer, &
+         amrex_string_f_to_c(dirname), amrex_string_f_to_c(pname), is_checkpoint)
+  end subroutine amrex_write_particles
+
+  subroutine amrex_particle_redistribute ()
+    call amrex_fi_particle_redistribute(amrtracerparticlecontainer)
+  end subroutine amrex_particle_redistribute
   
 end module amrex_amrtracerparticlecontainer_module
 
