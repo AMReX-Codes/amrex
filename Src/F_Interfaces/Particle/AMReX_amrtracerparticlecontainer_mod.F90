@@ -15,7 +15,8 @@ module amrex_amrtracerparticlecontainer_module
      subroutine amrex_fi_new_amrtracerparticlecontainer (tracerpc,amrcore) bind(c)
        import
        implicit none
-       type(c_ptr) :: tracerpc, amrcore
+       type(c_ptr) :: tracerpc
+       type(c_ptr), value :: amrcore
      end subroutine amrex_fi_new_amrtracerparticlecontainer
 
      subroutine amrex_fi_delete_amrtracerparticlecontainer (tracerpc) bind(c)
