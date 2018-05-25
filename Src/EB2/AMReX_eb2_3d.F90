@@ -198,7 +198,7 @@ contains
                 fcx(i,j,k,:) = 0.d0
              else if (fx(i,j,k) .eq. covered) then
                 apx(i,j,k) = 0.d0
-                fcx(i,j,k,:) = -1.d0
+                fcx(i,j,k,:) = 0.d0
              else
                 ncuts = 0
                 bcy = 0.d0
@@ -284,6 +284,206 @@ contains
                    bcy = 0.5d0*bcy - 0.5d0
                    bcz = 0.5d0*bcz - 0.5d0
                    call cut_face_2d(apx(i,j,k),fcx(i,j,k,2),fcx(i,j,k,3),lzm,lzp,lym,lyp,bcy,bcz)
+                end if
+             end if
+          end do
+       end do
+    end do
+
+    ! y-face
+    do       k = lo(3)-1, hi(3)+1
+       do    j = lo(2)-1, hi(2)+2
+          do i = lo(1)-1, hi(1)+1
+             if (fy(i,j,k) .eq. regular) then
+                apy(i,j,k) = 1.d0
+                fcy(i,j,k,:) = 0.d0
+             else if (fy(i,j,k) .eq. covered) then
+                apy(i,j,k) = 0.d0
+                fcy(i,j,k,:) = 0.d0
+             else
+                ncuts = 0
+                bcx = 0.d0
+                bcz = 0.d0
+
+                if (ex(i,j,k) .eq. regular) then
+                   lxm = 1.d0
+                else if (ex(i,j,k) .eq. covered) then
+                   lxm = 0.d0
+                else
+                   ncuts = ncuts+1
+                   cut = (interx(i,j,k)-(problo(1)+i*dx(1)))*dxinv(1)
+                   bcx = bcx + cut
+                   if (levset(i,j,k) .lt. 0.d0) then
+                      lxm = cut
+                   else
+                      lxm = 1.d0-cut
+                   end if
+                   lxm = min(max(0.d0,lxm),1.d0)
+                end if
+
+                if (ex(i,j,k+1) .eq. regular) then
+                   lxp = 1.d0
+                else if (ex(i,j,k+1) .eq. covered) then
+                   lxp = 0.d0
+                else
+                   ncuts = ncuts+1
+                   cut = (interx(i,j,k+1)-(problo(1)+i*dx(1)))*dxinv(1)
+                   bcx = bcx + cut
+                   bcz = bcz + 1.d0
+                   if (levset(i,j,k+1) .lt. 0.d0) then
+                      lxp = cut
+                   else
+                      lxp = 1.d0-cut
+                   end if
+                   lxp = min(max(0.d0,lxp),1.d0)
+                end if
+
+                if (ez(i,j,k) .eq. regular) then
+                   lzm = 1.d0
+                else if (ez(i,j,k) .eq. covered) then
+                   lzm = 0.d0
+                else
+                   ncuts = ncuts+1
+                   cut = (interz(i,j,k)-(problo(3)+k*dx(3)))*dxinv(3)
+                   bcz = bcz + cut
+                   if (levset(i,j,k) .lt. 0.d0) then
+                      lzm = cut
+                   else
+                      lzm = 1.d0-cut
+                   end if
+                end if
+
+                if (ez(i+1,j,k) .eq. regular) then
+                   lzp = 1.d0
+                else if (ez(i+1,j,k) .eq. covered) then
+                   lzp = 0.d0
+                else
+                   ncuts = ncuts+1
+                   cut = (interz(i+1,j,k)-(problo(3)+k*dx(3)))*dxinv(3)
+                   bcx = bcx + 1.d0
+                   bcz = bcz + cut
+                   if (levset(i+1,j,k) .lt. 0.d0) then
+                      lzp = cut
+                   else
+                      lzp = 1.d0-cut
+                   end if
+                end if
+
+                if (ncuts .gt. 2) then
+                   call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
+                else if (ncuts .lt. 2) then
+                   print *, "ncuts = ", i,j,k,ncuts
+                   call amrex_error("amrex_eb2_build_faces: irregular face with less than 2 cuts???")
+                end if
+
+                if (lxm.eq.lxp .and. lzm.eq.lzp) then
+                   apy(i,j,k) = 1.d0
+                   fcy(i,j,k,:) = 0.d0
+                else
+                   fcy(i,j,k,2) = 0.d0
+                   bcx = 0.5d0*bcx - 0.5d0
+                   bcz = 0.5d0*bcz - 0.5d0
+                   call cut_face_2d(apy(i,j,k),fcy(i,j,k,1),fcy(i,j,k,3),lzm,lzp,lxm,lxp,bcx,bcz)
+                end if
+             end if
+          end do
+       end do
+    end do
+
+    ! z-face
+    do       k = lo(3)-1, hi(3)+2
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+             if (fz(i,j,k) .eq. regular) then
+                apz(i,j,k) = 1.d0
+                fcz(i,j,k,:) = 0.d0
+             else if (fz(i,j,k) .eq. covered) then
+                apz(i,j,k) = 0.d0
+                fcz(i,j,k,:) = 0.d0
+             else
+                ncuts = 0
+                bcx = 0.d0
+                bcy = 0.d0
+
+                if (ex(i,j,k) .eq. regular) then
+                   lxm = 1.d0
+                else if (ex(i,j,k) .eq. covered) then
+                   lxm = 0.d0
+                else
+                   ncuts = ncuts+1
+                   cut = (interx(i,j,k)-(problo(1)+i*dx(1)))*dxinv(1)
+                   bcx = bcx + cut
+                   if (levset(i,j,k) .lt. 0.d0) then
+                      lxm = cut
+                   else
+                      lxm = 1.d0-cut
+                   end if
+                   lxm = min(max(0.d0,lxm),1.d0)
+                end if
+
+                if (ex(i,j+1,k) .eq. regular) then
+                   lxp = 1.d0
+                else if (ex(i,j+1,k) .eq. covered) then
+                   lxp = 0.d0
+                else
+                   ncuts = ncuts+1
+                   cut = (interx(i,j+1,k)-(problo(1)+i*dx(1)))*dxinv(1)
+                   bcx = bcx + cut
+                   bcy = bcy + 1.d0
+                   if (levset(i,j+1,k) .lt. 0.d0) then
+                      lxp = cut
+                   else
+                      lxp = 1.d0-cut
+                   end if
+                   lxp = min(max(0.d0,lxp),1.d0)
+                end if
+
+                if (ey(i,j,k) .eq. regular) then
+                   lym = 1.d0
+                else if (ey(i,j,k) .eq. covered) then
+                   lym = 0.d0
+                else
+                   ncuts = ncuts+1
+                   cut = (intery(i,j,k)-(problo(2)+j*dx(2)))*dxinv(2)
+                   bcy = bcy + cut
+                   if (levset(i,j,k) .lt. 0.d0) then
+                      lym = cut
+                   else
+                      lym = 1.d0-cut
+                   end if
+                end if
+
+                if (ey(i+1,j,k) .eq. regular) then
+                   lyp = 1.d0
+                else if (ey(i+1,j,k) .eq. covered) then
+                   lyp = 0.d0
+                else
+                   ncuts = ncuts+1
+                   cut = (intery(i+1,j,k)-(problo(2)+j*dx(2)))*dxinv(2)
+                   bcx = bcx + 1.d0
+                   bcy = bcy + cut
+                   if (levset(i+1,j,k) .lt. 0.d0) then
+                      lyp = cut
+                   else
+                      lyp = 1.d0-cut
+                   end if
+                end if
+
+                if (ncuts .gt. 2) then
+                   call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
+                else if (ncuts .lt. 2) then
+                   print *, "ncuts = ", i,j,k,ncuts
+                   call amrex_error("amrex_eb2_build_faces: irregular face with less than 2 cuts???")
+                end if
+
+                if (lxm.eq.lxp .and. lym.eq.lyp) then
+                   apz(i,j,k) = 1.d0
+                   fcz(i,j,k,:) = 0.d0
+                else
+                   fcz(i,j,k,3) = 0.d0
+                   bcx = 0.5d0*bcx - 0.5d0
+                   bcy = 0.5d0*bcy - 0.5d0
+                   call cut_face_2d(apz(i,j,k),fcz(i,j,k,1),fcz(i,j,k,2),lym,lyp,lxm,lxp,bcx,bcy)
                 end if
              end if
           end do
