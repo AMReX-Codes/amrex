@@ -12,7 +12,7 @@ module amrex_amrtracerparticlecontainer_module
   public :: amrex_amrtracerparticlecontainer_init, &
        amrex_amrtracerparticlecontainer_finalize, &
        amrex_init_particles_one_per_cell, &
-       amrex_write_particles
+       amrex_write_particles, amrex_particle_redistribute
 
   interface
      subroutine amrex_fi_new_amrtracerparticlecontainer (tracerpc,amrcore) bind(c)
@@ -47,7 +47,7 @@ module amrex_amrtracerparticlecontainer_module
        import
        implicit none
        type(c_ptr), value :: tracerpc
-       integer, intent(in) :: lev_min, lev_max, ng
+       integer(c_int), value :: lev_min, lev_max, ng
      end subroutine amrex_fi_particle_redistribute
      
   end interface
@@ -80,14 +80,14 @@ contains
 
   subroutine amrex_particle_redistribute (lev_min,lev_max,nghost)
     integer, optional, intent(in) :: lev_min, lev_max, nghost
-    integer :: min, max, ng
+    integer(c_int) :: min, max, ng
     min = 0
     max = -1
     ng  = 0
     if(present(lev_min)) min = lev_min
     if(present(lev_max)) max = lev_max
-    if(present(nghost )) ng = nghost    
-    call amrex_fi_particle_redistribute(amrtracerparticlecontainer, lev_min, lev_max, nghost)
+    if(present(nghost )) ng = nghost
+    call amrex_fi_particle_redistribute(amrtracerparticlecontainer, min, max, ng)
   end subroutine amrex_particle_redistribute
   
 end module amrex_amrtracerparticlecontainer_module
