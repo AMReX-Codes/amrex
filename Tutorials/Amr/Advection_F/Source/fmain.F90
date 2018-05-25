@@ -21,6 +21,7 @@ program main
 
   amrcore = amrex_get_amrcore()
   call amrex_amrtracerparticlecontainer_init(amrcore)
+  call amrex_init_particles_one_per_cell()
   
   call evolve()
 
