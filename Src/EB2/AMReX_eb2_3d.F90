@@ -10,6 +10,8 @@ module amrex_eb2_3d_module
   integer, parameter :: irregular = 2
   integer, parameter :: unknown = 3
 
+  real(amrex_real), private, parameter :: small = 1.d-14
+
   private
   public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces
 
@@ -171,9 +173,9 @@ contains
     integer(c_int)  , intent(inout) ::     fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
     integer(c_int)  , intent(inout) ::     fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
     integer(c_int)  , intent(inout) ::     fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
-    integer(c_int)  , intent(inout) ::     ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
-    integer(c_int)  , intent(inout) ::     ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
-    integer(c_int)  , intent(inout) ::     ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),ezlo(3):ezhi(3))
+    integer(c_int)  , intent(in   ) ::     ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
+    integer(c_int)  , intent(in   ) ::     ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
+    integer(c_int)  , intent(in   ) ::     ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),ezlo(3):ezhi(3))
     real(amrex_real), intent(in   ) :: levset( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))
     real(amrex_real), intent(in   ) :: interx(ixlo(1):ixhi(1),ixlo(2):ixhi(2),ixlo(3):ixhi(3))
     real(amrex_real), intent(in   ) :: intery(iylo(1):iyhi(1),iylo(2):iyhi(2),iylo(3):iyhi(3))
@@ -489,7 +491,37 @@ contains
           end do
        end do
     end do
-          
+
+    do       k = lo(3)-1, hi(3)+1
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+             if (cell(i,j,k) .eq. irregular) then
+                if  (apx(i,j,k).eq.0.d0 .and. apx(i+1,j,k).eq.0.d0 .and. &
+                     apy(i,j,k).eq.0.d0 .and. apy(i,j+1,k).eq.0.d0 .and. &
+                     apz(i,j,k).eq.0.d0 .and. apz(i,j,k+1).eq.0.d0) then
+                   cell(i,j,k) = covered
+                   fx(i,j,k) = covered
+                   fx(i+1,j,k) = covered
+                   fy(i,j,k) = covered
+                   fy(i,j+1,k) = covered
+                   fz(i,j,k) = covered
+                   fz(i,j,k+1) = covered
+                else if (apx(i,j,k).eq.1.d0 .and. apx(i+1,j,k).eq.1.d0 .and. &
+                     &   apy(i,j,k).eq.1.d0 .and. apy(i,j+1,k).eq.1.d0 .and. &
+                     &   apz(i,j,k).eq.1.d0 .and. apz(i,j,k+1).eq.1.d0) then
+                   cell(i,j,k) = regular
+                   fx(i,j,k) = regular
+                   fx(i+1,j,k) = regular
+                   fy(i,j,k) = regular
+                   fy(i,j+1,k) = regular
+                   fz(i,j,k) = regular
+                   fz(i,j,k+1) = regular
+                end if
+             end if
+          end do
+       end do
+    end do
+
   contains
 
     subroutine cut_face_2d (areafrac, centx, centy, axm, axp, aym, ayp, bcx, bcy)
@@ -535,13 +567,22 @@ contains
          centy = 0.125d0*(ayp-aym) + aa*(1.d0/6.d0)*(y_xm**3-y_xp**3)
 
          areafrac = 0.5d0*(af1+af2)
-         centx = centx*(1.d0/areafrac)
-         centy = centy*(1.d0/areafrac)
+         if (areafrac .gt. 1.d0-small) then
+            areafrac = 1.d0
+            centx = 0.d0
+            centy = 0.d0
+         else if (areafrac .lt. small) then
+            areafrac = 0.d0
+            centx = 0.d0
+            centy = 0.d0
+         else
+            centx = centx*(1.d0/areafrac)
+            centy = centy*(1.d0/areafrac)
+            centx = min(max(centx,-0.5d0),0.5d0)
+            centy = min(max(centy,-0.5d0),0.5d0)
+         end if
       end if
 
-      !      areafrac = min(max(areafrac,0.d0),1.d0)
-      !      centx = min(max(centx,-0.5d0),0.5d0)
-      !      centy = min(max(centy,-0.5d0),0.5d0)
     end subroutine cut_face_2d
 
   end subroutine amrex_eb2_build_faces
