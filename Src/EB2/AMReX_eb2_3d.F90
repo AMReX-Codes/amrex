@@ -13,7 +13,7 @@ module amrex_eb2_3d_module
   real(amrex_real), private, parameter :: small = 1.d-14
 
   private
-  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces
+  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells
 
 contains
 
@@ -586,5 +586,105 @@ contains
     end subroutine cut_face_2d
 
   end subroutine amrex_eb2_build_faces
+
+
+  subroutine amrex_eb2_build_cells (lo, hi, cell, clo, chi, &
+       fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi, &
+       apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, &
+       fcx, cxlo, cxhi, fcy, cylo, cyhi, fcz, czlo, czhi, &
+       vfrac, vlo, vhi, vcent, tlo, thi, barea, alo, ahi, &
+       bcent, blo, bhi, bnorm, mlo, mhi) &
+       bind(c,name='amrex_eb2_build_cells')
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, &
+         fxlo, fxhi, fylo, fyhi, fzlo, fzhi, axlo, axhi, aylo, ayhi, azlo, azhi, &
+         cxlo, cxhi, cylo, cyhi, czlo, czhi, vlo, vhi, tlo, thi, alo, ahi, blo, bhi, mlo, mhi
+    integer(c_int)  , intent(inout) ::  cell( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))
+    integer(c_int)  , intent(inout) ::    fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
+    integer(c_int)  , intent(inout) ::    fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
+    integer(c_int)  , intent(inout) ::    fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
+    real(amrex_real), intent(inout) ::   apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
+    real(amrex_real), intent(inout) ::   apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
+    real(amrex_real), intent(inout) ::   apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
+    real(amrex_real), intent(in   ) ::   fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),3)
+    real(amrex_real), intent(in   ) ::   fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),3)
+    real(amrex_real), intent(in   ) ::   fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),3)
+    real(amrex_real), intent(inout) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
+    real(amrex_real), intent(inout) :: vcent( tlo(1): thi(1), tlo(2): thi(2), tlo(3): thi(3),3)
+    real(amrex_real), intent(inout) :: barea( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3))
+    real(amrex_real), intent(inout) :: bcent( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3),3)
+    real(amrex_real), intent(inout) :: bnorm( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3),3)
+
+    integer :: i,j,k
+    real(amrex_real) :: axm, axp, aym, ayp, azm, azp, aax, aay, aaz, B0, Bx, By, Bz
+    real(amrex_real) :: dapx, dapy, dapz, apnorm, apnorminv, nx, ny, nz, bainv
+
+    do       k = lo(3)-1, hi(3)+1
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+             if (cell(i,j,k) .eq. regular) then
+                vfrac(i,j,k) = 1.d0
+                vcent(i,j,k,:) = 0.d0
+                bcent(i,j,k,:) = 0.d0
+                bnorm(i,j,k,:) = 0.d0
+             else if (cell(i,j,k) .eq. covered) then
+                vfrac(i,j,k) = 0.d0
+                vcent(i,j,k,:) = 0.d0
+                bcent(i,j,k,:) = 0.d0
+                bnorm(i,j,k,:) = 0.d0
+             else
+                axm = apx(i,j,k)
+                axp = apx(i+1,j,k)
+                aym = apy(i,j,k)
+                ayp = apy(i,j+1,k)
+                azm = apz(i,j,k)
+                azp = apz(i,j,k+1)
+                dapx = axm - axp
+                dapy = aym - ayp
+                dapz = azm - azp
+                apnorm = sqrt(dapx**2 + dapy**2 + dapz**2)
+                apnorminv = 1.d0/apnorm
+                nx = dapx * apnorminv
+                ny = dapy * apnorminv
+                nz = dapz * apnorminv
+                bnorm(i,j,k,1) = nx
+                bnorm(i,j,k,2) = ny
+                bnorm(i,j,k,3) = nz
+                barea(i,j,k) = nx*dapx + ny*dapy + nz*dapz
+
+                aax = 0.5d0*(axm+axp)
+                aay = 0.5d0*(aym+ayp)
+                aaz = 0.5d0*(azm+azp)
+                B0 = aax + aay + aaz
+                Bx = -nx*aax + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1)) &
+                     &       + nz*(azm*fcz(i,j,k,1)-azp*fcz(i,j,k+1,1))
+                By = -ny*aay + nx*(axm*fcx(i,j,k,2)-axp*fcx(i+1,j,k,2)) &
+                     &       + nz*(azm*fcz(i,j,k,2)-azp*fcz(i,j,k+1,2))
+                Bz = -nz*aaz + nx*(axm*fcx(i,j,k,3)-axp*fcx(i+1,j,k,3)) &
+                     &       + ny*(aym*fcy(i,j,k,3)-ayp*fcy(i,j+1,k,3))
+
+                vfrac(i,j,k) = 0.5d0*(B0 + nx*Bx + ny*By + nz*Bz)
+
+                bainv = 1.d0 / barea(i,j,k)
+                bcent(i,j,k,1) = bainv * (Bx + nx*vfrac(i,j,k))
+                bcent(i,j,k,2) = bainv * (By + ny*vfrac(i,j,k))
+                bcent(i,j,k,3) = bainv * (Bz + nz*vfrac(i,j,k))
+               
+!                print *, i,j,k,vfrac(i,j,k), barea(i,j,k), bcent(i,j,k,:)
+
+                ! xxxxx to do: vcent
+
+
+                ! xxxxx clamp
+
+                ! should we remove small cells? probably not safe to do it here
+                ! because it affects face area
+
+             end if
+          end do
+       end do
+    end do
+
+  end subroutine amrex_eb2_build_cells
+    
 
 end module amrex_eb2_3d_module

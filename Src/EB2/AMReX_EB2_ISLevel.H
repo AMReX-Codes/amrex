@@ -29,6 +29,7 @@ private:
     MultiGFab m_mgf;
     MultiFab m_volfrac;
     MultiFab m_centroid;
+    MultiFab m_bndryarea;
     MultiFab m_bndrycent;
     MultiFab m_bndrynorm;
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
@@ -84,6 +85,7 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     m_mgf.define(m_grids, m_dmap);
     m_volfrac.define(m_grids, m_dmap, 1, 1);
     m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
+    m_bndryarea.define(m_grids, m_dmap, 1, 1);
     m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
     m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -146,7 +148,23 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
                               BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
                               BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
                               dx, dxinv, problo);
-                              
+
+        amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
+                              BL_TO_FORTRAN_ANYD(celltype),
+                              BL_TO_FORTRAN_ANYD(facetype[0]),
+                              BL_TO_FORTRAN_ANYD(facetype[1]),
+                              BL_TO_FORTRAN_ANYD(facetype[2]),
+                              BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
+                              BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
+                              BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
+                              BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
+                              BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
 #endif
 
     }
