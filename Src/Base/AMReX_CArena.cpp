@@ -1,7 +1,8 @@
-
+#include <iostream>
 #include <utility>
 #include <cstring>
 
+#include <AMReX_Print.H>
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 
@@ -28,6 +29,8 @@ CArena::~CArena ()
 void*
 CArena::alloc (size_t nbytes)
 {
+    amrex::Print() << "CArena::alloc()" << std::endl;
+
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
@@ -95,9 +98,18 @@ CArena::alloc (size_t nbytes)
     return vp;
 }
 
+void*
+CArena::alloc (void* parent_ptr, size_t nbytes)
+{
+  amrex::Abort("CArena::alloc(parent_ptr, nbytes) is not yet setup.");
+  return ::operator new(nbytes);
+}
+
 void
 CArena::free (void* vp)
 {
+    amrex::Print() << "CArena::free()" << std::endl;
+
     if (vp == 0)
         //
         // Allow calls with NULL as allowed by C++ delete.
