@@ -44,6 +44,9 @@ extern "C" {
                                 amrex_real* fcx, const int* cxlo, const int* cxhi,
                                 amrex_real* fcy, const int* cylo, const int* cyhi,
                                 amrex_real* fcz, const int* czlo, const int* czhi,
+                                amrex_real* M2x, const int* mxlo, const int* mxhi,
+                                amrex_real* M2y, const int* mylo, const int* myhi,
+                                amrex_real* M2z, const int* mzlo, const int* mzhi,
                                 const amrex_real* dx, const amrex_real* dxinv, const amrex_real* problo);
 
     void amrex_eb2_build_cells (const int* lo, const int* hi,
