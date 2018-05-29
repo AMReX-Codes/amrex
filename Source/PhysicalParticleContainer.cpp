@@ -1218,5 +1218,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
             }
         }
     }
+#else
+    AMREX_ALWAYS_ASSERT(false);
 #endif
 }
