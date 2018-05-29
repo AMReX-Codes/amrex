@@ -22,8 +22,13 @@ extern "C"
                                const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
                                const amrex_real* src);
 
-    DEVICE_CLASS_FUNCTION
+    __host__ 
     void amrex_fort_fab_setval (const int* lo, const int* hi, 
+			  const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
+			  const amrex_real* val);
+
+    __device__
+    void amrex_fort_fab_setval_device (const int* lo, const int* hi, 
 			  const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
 			  const amrex_real* val);
 

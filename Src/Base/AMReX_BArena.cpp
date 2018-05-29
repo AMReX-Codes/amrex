@@ -40,7 +40,6 @@ amrex::BArena::alloc (void* parent_ptr, std::size_t _sz)
 #else  // No CUDA
    return ::operator new(_sz);
 #endif
-
 }
 
 void

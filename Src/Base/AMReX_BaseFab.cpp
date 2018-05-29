@@ -241,9 +241,15 @@ BaseFab<Real>::performSetVal (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
+#ifdef __CUDA_ARCH__
+    amrex_fort_fab_setval_device(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+		    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+		    &val);
+#else
     amrex_fort_fab_setval(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
 		    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
 		    &val);
+#endif
 }
 
 template<>

@@ -64,6 +64,15 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 
   endif
 
+  ifeq ($(USE_CUDA),TRUE)
+    OMPI_CC := nvcc
+    OMPI_CXX := nvcc
+
+    ifeq ($(USE_OMP),TRUE)
+      GENERIC_COMP_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_60
+    endif
+  endif
+
   ifeq ($(lowercase_comp),gnu)
     override XTRALIBS := -lgfortran
   endif
@@ -103,6 +112,15 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
     LIBRARIES += -lmpi_ibm_mpifh
 
+  endif
+
+  ifeq ($(USE_CUDA),TRUE)
+    OMPI_CC := nvcc
+    OMPI_CXX := nvcc
+
+    ifeq ($(USE_OMP),TRUE)
+      GENERIC_COMP_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_70
+    endif
   endif
 
   ifeq ($(lowercase_comp),gnu)
