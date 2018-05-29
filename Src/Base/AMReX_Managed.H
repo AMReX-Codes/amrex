@@ -42,26 +42,12 @@ inline void CudaErrorCheck() {
 
 #define DEVICE_FUNCTION __global__ 
 #define DEVICE_CLASS_FUNCTION __host__ __device__
-#define MANAGED public Managed
 
 // ************************************************
 
 #else
 
-struct Managed {
-
-  void *operator new(size_t len)
-  {
-    void *ptr;
-    return ptr;
-  }
-
-  void operator delete(void *ptr)
-  {
-    delete ptr;
-  }
-
-};
+struct Managed { };
 
 #define SIMPLE_LAUNCH(numBlocks, numThreads, function, ...) function(__VA_ARGS__)
 #define DEVICE_FUNCTION

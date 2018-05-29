@@ -178,6 +178,7 @@ public:
         { return bx.numPts() * sizeof(T) * ncomps; }
 
     //! Returns the number of components
+    DEVICE_CLASS_FUNCTION
     int nComp () const { return nvar; }
 
     //! for calls to fortran.  
@@ -1403,7 +1404,7 @@ BaseFab<T>::define ()
     AMREX_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
     truesize  = nvar*numpts;
-    dptr      = static_cast<T*>(amrex::The_Arena()->alloc(truesize*sizeof(T)));
+    dptr      = static_cast<T*>(amrex::The_Arena()->alloc(this, truesize*sizeof(T)));
     ptr_owner = true;
     //
     // Now call T::T() on the raw memory so we have valid Ts.

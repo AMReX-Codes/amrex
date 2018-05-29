@@ -361,7 +361,7 @@ ifeq ($(USE_CUDA),TRUE)
     ifeq ($(USE_CUDA_UM),TRUE)
         DEFINES += -DCUDA_UM
         DEFINES += -DAMREX_USE_CUDA_UM
-	DEFINES += -DBL_COALESCE_FABS
+#	DEFINES += -DBL_COALESCE_FABS
     endif
 
     CUDASuffix := .CUDA

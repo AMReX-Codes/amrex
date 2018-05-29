@@ -28,6 +28,14 @@ public:
     */
     virtual void* alloc (std::size_t sz) = 0;
     /**
+    * \brief Version for managed CUDA memory. 
+    * Allocates a dynamic memory arena of size sz.
+    * Memory is allocated based on attributes of parent object.
+    * Returns a pointer to this memory.
+    */
+    virtual void* alloc (void* parent_ptr, std::size_t sz) = 0;
+
+    /**
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
     virtual void free (void* pt) = 0;

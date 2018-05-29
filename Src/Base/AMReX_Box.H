@@ -88,6 +88,7 @@ public:
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     //! Get the smallend of the box.
+    DEVICE_CLASS_FUNCTION
     const IntVect& smallEnd () const& { return smallend; }
     const IntVect& smallEnd () && = delete;
 
@@ -95,6 +96,7 @@ public:
     int smallEnd (int dir) const& { return smallend[dir]; }
 
     //! Get the bigend.
+    DEVICE_CLASS_FUNCTION
     const IntVect& bigEnd () const& { return bigend; }
     const IntVect& bigEnd () && = delete;
 
