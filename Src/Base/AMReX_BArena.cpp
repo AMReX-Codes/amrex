@@ -5,14 +5,12 @@
 void*
 amrex::BArena::alloc (std::size_t _sz)
 {
-    amrex::Print() << "BArena::alloc(_sz)" << std::endl;
     return ::operator new(_sz);
 }
 
 void*
 amrex::BArena::alloc (void* parent_ptr, std::size_t _sz)
 {
-  amrex::Print() << "BArena::alloc(ptr, _sz)" << std::endl;
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)  // Using CUDA
 
@@ -45,8 +43,6 @@ amrex::BArena::alloc (void* parent_ptr, std::size_t _sz)
 void
 amrex::BArena::free (void* ptr)
 {
-    amrex::Print() << "BArena::free()" << std::endl;
-
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)  // Using CUDA
 
 #ifdef __CUDA_ARCH__  // On Device
