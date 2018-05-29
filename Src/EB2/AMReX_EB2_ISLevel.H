@@ -175,6 +175,10 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     VisMF::Write(m_facecent[1], "fcy");
     VisMF::Write(m_areafrac[2], "apz");
     VisMF::Write(m_facecent[2], "fcz");
+    VisMF::Write(m_volfrac, "vfrc");
+    VisMF::Write(m_bndryarea, "barea");
+    VisMF::Write(m_bndrycent, "bcent");
+    VisMF::Write(m_bndrynorm, "bnorm");
     VisMF::Write(m_mgf.getLevelSet(), "levelset");
 }
 
