@@ -239,6 +239,16 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                         attribs[PIdx::ux] = u[0];
                         attribs[PIdx::uy] = u[1];
                         attribs[PIdx::uz] = u[2];
+
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+                        attribs[PIdx::xold] = x;
+                        attribs[PIdx::yold] = y;
+                        attribs[PIdx::zold] = z;
+
+                        attribs[PIdx::uxold] = u[0];
+                        attribs[PIdx::uyold] = u[1];
+                        attribs[PIdx::uzold] = u[2];
+#endif
                         AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                     }
                 }
@@ -971,9 +981,9 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const long np  = pti.numParticles();
 
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-    auto& xpold = attribs[PIdx::xold];
-    auto& ypold = attribs[PIdx::yold];
-    auto& zpold = attribs[PIdx::zold];
+    auto& xpold  = attribs[PIdx::xold];
+    auto& ypold  = attribs[PIdx::yold];
+    auto& zpold  = attribs[PIdx::zold];
     auto& uxpold = attribs[PIdx::uxold];
     auto& uypold = attribs[PIdx::uyold];
     auto& uzpold = attribs[PIdx::uzold];
@@ -981,7 +991,8 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     warpx_copy_attribs(&np, xp.data(), yp.data(), zp.data(),
                        uxp.data(), uyp.data(), uzp.data(),
                        xpold.data(), ypold.data(), zpold.data(),
-                       uxpold.data(), uypold.data(), uzpold.data());                           
+                       uxpold.data(), uypold.data(), uzpold.data());                       
+
 #endif
                            
     warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
@@ -1089,7 +1100,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     BL_PROFILE("PhysicalParticleContainer::GetParticleSlice");
     
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-
     // Assume always z
 #if (AMREX_SPACEDIM == 2)
     AMREX_ALWAYS_ASSERT(direction == 1);
@@ -1159,7 +1169,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 auto& uxp_old = attribs[PIdx::uxold];
                 auto& uyp_old = attribs[PIdx::uyold];
                 auto& uzp_old = attribs[PIdx::uzold];
-                
+        
                 const long np = pti.numParticles();
 
                 Real uzfrm = -WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;

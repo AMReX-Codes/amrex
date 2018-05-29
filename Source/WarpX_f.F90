@@ -11,13 +11,13 @@ contains
   subroutine warpx_copy_attribs(np, xp, yp, zp, uxp, uyp, uzp, &
        xpold, ypold, zpold, uxpold, uypold, uzpold) &
        bind(c,name='warpx_copy_attribs')
-    integer(c_long),  intent(in) :: np
-    real(amrex_real), intent(in) :: xp(np)
-    real(amrex_real), intent(in) :: yp(np)
-    real(amrex_real), intent(in) :: zp(np)
-    real(amrex_real), intent(in) :: uxp(np)
-    real(amrex_real), intent(in) :: uyp(np)
-    real(amrex_real), intent(in) :: uzp(np)
+    integer(c_long),  intent(in)    :: np
+    real(amrex_real), intent(in)    :: xp(np)
+    real(amrex_real), intent(in)    :: yp(np)
+    real(amrex_real), intent(in)    :: zp(np)
+    real(amrex_real), intent(in)    :: uxp(np)
+    real(amrex_real), intent(in)    :: uyp(np)
+    real(amrex_real), intent(in)    :: uzp(np)
     real(amrex_real), intent(inout) :: xpold(np)
     real(amrex_real), intent(inout) :: ypold(np)
     real(amrex_real), intent(inout) :: zpold(np)
