@@ -18,10 +18,14 @@ void kernel_IntVect(amrex::IntVect *iv1, amrex::IntVect *iv2)
 }
 
 DEVICE_FUNCTION
-void kernel_BaseFab(amrex::BaseFab<amrex::Real> *bf1, int *val, amrex::IntVect *iv)
+void kernel_BaseFab(amrex::BaseFab<amrex::Real> *bf1, amrex::Real *val, amrex::IntVect *iv)
 {
-  *iv = bf1->box().bigEnd();
+  amrex::Box bx(bf1->box());
+  *iv = bx.bigEnd();
   *val = bf1->nComp();
+
+  bf1->setVal(17.499, bx, 0, 1);
+  bf1->getVal(val, amrex::IntVect(7,7,7));
 }
 
 int main (int argc, char* argv[])
@@ -59,21 +63,21 @@ int main (int argc, char* argv[])
     }
 
     // ===================================
-    // BaseFab
+    // BaseFab<Real>
     {
-      int val_gpu = 101;
-      int *d_val_gpu;
-      cudaMalloc(&d_val_gpu, size_t(sizeof(int)));
-      cudaMemcpy(d_val_gpu, &val_gpu, sizeof(int), cudaMemcpyHostToDevice);
+      amrex::Real val_gpu = 101;
+      amrex::Real *d_val_gpu;
+      cudaMalloc(&d_val_gpu, size_t(sizeof(amrex::Real)));
+      cudaMemcpy(d_val_gpu, &val_gpu, sizeof(amrex::Real), cudaMemcpyHostToDevice);
 
-      amrex::IntVect *big = new amrex::IntVect(1,1,1);
       amrex::Real val_old = 10, val_new = 11;
+      amrex::IntVect *bigEnd = new amrex::IntVect(0,0,0);
       amrex::Box baseBox(amrex::IntVect(0,0,0), amrex::IntVect(14,14,14));
       amrex::BaseFab<amrex::Real> *d_bf1 = new amrex::BaseFab<amrex::Real>(baseBox);
 //      amrex::BaseFab<amrex::Real> d_bf1(baseBox);
+//      amrex::BaseFab<int> *d_bf2 = new amrex::BaseFab<int>(baseBox);
 
-      amrex::BaseFab<int> *d_bf2 = new amrex::BaseFab<int>(baseBox);
-      d_bf1->setVal(11, baseBox, 0, 1);
+      d_bf1->setVal(77.017, baseBox, 0, 1);
       d_bf1->getVal(&val_old,amrex::IntVect(1,1,1));
 
       amrex::Print() << "Box = " << baseBox << std::endl;
@@ -89,13 +93,13 @@ int main (int argc, char* argv[])
 
       int blockSize = 1;
       int numBlocks = 1;
-      kernel_BaseFab<<<numBlocks,blockSize>>>(d_bf1, d_val_gpu, big);
+      kernel_BaseFab<<<numBlocks,blockSize>>>(d_bf1, d_val_gpu, bigEnd);
       cudaDeviceSynchronize();
-      cudaMemcpy(&val_gpu, d_val_gpu, sizeof(int), cudaMemcpyDeviceToHost); 
+      cudaMemcpy(&val_gpu, d_val_gpu, sizeof(amrex::Real), cudaMemcpyDeviceToHost); 
 
- //     d_bf1->getVal(&val_new,amrex::IntVect(0,0,0));
+      d_bf1->getVal(&val_new,amrex::IntVect(0,0,0));
       amrex::Print() << "BaseFab Test "  << std::endl <<
-                        "Box::bigEnd = " << *big << std::endl <<
+                        "bigEnd = "      << *bigEnd  << std::endl << 
                         "pre setVal = "  << val_old << std::endl << 
                         "gpu Val = "     << val_gpu << std::endl <<
                         "post setVal = " << val_new << std::endl <<

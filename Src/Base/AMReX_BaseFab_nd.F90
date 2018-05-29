@@ -85,10 +85,9 @@ contains
 
     nelems = offset - (1-lo(1))
   end function amrex_fort_fab_copyfrommem
-  
 
 
-  attributes(host, device) subroutine amrex_fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
+  attributes(host) subroutine amrex_fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
        bind(c,name='amrex_fort_fab_setval')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
     real(amrex_real), intent(in) :: val
@@ -106,6 +105,28 @@ contains
        end do
     end do
   end subroutine amrex_fort_fab_setval
+
+
+  attributes(device) subroutine amrex_fort_fab_setval_device(lo, hi, dst, dlo, dhi, ncomp, val) &
+       bind(c,name='amrex_fort_fab_setval_device')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
+    real(amrex_real), intent(in) :: val
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+    integer :: i, j, k, n
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = val
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_setval_device
+
+
 
 
   function amrex_fort_fab_norminfmask (lo, hi, msk, mlo, mhi, src, slo, shi, ncomp) result(nrm) &
