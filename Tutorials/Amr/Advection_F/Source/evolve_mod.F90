@@ -2,7 +2,7 @@ module evolve_module
 
   use amrex_amr_module
 
-  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute
+  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute, amrex_get_particles
   
   implicit none
   private
@@ -143,7 +143,8 @@ contains
     type(amrex_fab) :: uface(amrex_spacedim)
     type(amrex_fab) ::  flux(amrex_spacedim)
     type(amrex_multifab) :: fluxes(amrex_spacedim)
-
+    type(c_ptr), pointer :: particles
+    
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, 1X, A, 1X, I0, A, 1X, G0)') &
             "[Level", lev, "step", step, "] ADVANCE with dt =", dt
@@ -163,7 +164,7 @@ contains
 
     call fillpatch(lev, time, phiborder)
 
-    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux)
+    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux,particles)
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
     do while(mfi%next())
        bx = mfi%tilebox()
@@ -222,6 +223,7 @@ contains
        end if
 
 !   advance particles on this tile
+       particles => amrex_get_particles(lev, mfi)
        
     end do
     call amrex_mfiter_destroy(mfi)

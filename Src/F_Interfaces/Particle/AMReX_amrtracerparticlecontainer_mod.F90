@@ -12,7 +12,8 @@ module amrex_amrtracerparticlecontainer_module
   ! public routines
   public :: amrex_amrtracerparticlecontainer_init, amrex_amrtracerparticlecontainer_finalize
   public :: amrex_init_particles_one_per_cell, amrex_write_particles, amrex_particle_redistribute
-
+  public :: amrex_get_particles
+  
   type, bind(C), public :: amrex_tracerparticle
      real(amrex_particle_real)    :: pos(3)     !< Position
      real(amrex_particle_real)    :: vel(3)     !< Particle velocity
@@ -63,6 +64,14 @@ module amrex_amrtracerparticlecontainer_module
        type(c_ptr),    value :: tracerpc, mfi
        type(c_ptr)           :: dp
      end subroutine amrex_fi_get_particles
+
+     subroutine amrex_fi_num_particles(tracerpc, lev, mfi, np) bind(c)
+       import
+       implicit none
+       integer(c_int), value :: lev
+       type(c_ptr),    value :: tracerpc, mfi
+       integer(c_long)       :: np
+     end subroutine amrex_fi_num_particles
      
   end interface
 
@@ -107,9 +116,18 @@ contains
   function amrex_get_particles(lev, mfi) result(dp)
     integer(c_int), intent(in)     :: lev
     type(amrex_mfiter), intent(in) :: mfi
-    type(c_ptr) :: dp
-    call amrex_fi_get_particles(amrtracerparticlecontainer, lev, mfi%p, dp)
+    type(c_ptr), pointer :: dp
+    type(c_ptr), target  :: data
+    call amrex_fi_get_particles(amrtracerparticlecontainer, lev, mfi%p, data)
+    dp => data
   end function amrex_get_particles
+
+  function amrex_num_particles(lev, mfi) result(np)
+    integer(c_int), intent(in)     :: lev
+    type(amrex_mfiter), intent(in) :: mfi
+    integer(c_long) :: np
+    call amrex_fi_num_particles(amrtracerparticlecontainer, lev, mfi%p, np)
+  end function amrex_num_particles
   
 end module amrex_amrtracerparticlecontainer_module
 
