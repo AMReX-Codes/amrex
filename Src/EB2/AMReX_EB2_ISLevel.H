@@ -96,6 +96,7 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     }
 
     Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
+    Array<BaseFab<Real>, AMREX_SPACEDIM> M2;
     const Real* dx = geom.CellSize();
     const Real* dxinv = geom.InvCellSize();
     const Real* problo = geom.ProbLo();
@@ -129,6 +130,11 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
                 });
         }
 
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            const Box& b = facetype[idim].box();
+            M2[idim].resize(b,3);
+        }
+
         amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
                               BL_TO_FORTRAN_ANYD(celltype),
                               BL_TO_FORTRAN_ANYD(facetype[0]),
@@ -147,6 +153,9 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
                               BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
                               BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
                               BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
+                              BL_TO_FORTRAN_ANYD(M2[0]),
+                              BL_TO_FORTRAN_ANYD(M2[1]),
+                              BL_TO_FORTRAN_ANYD(M2[2]),
                               dx, dxinv, problo);
 
         amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
