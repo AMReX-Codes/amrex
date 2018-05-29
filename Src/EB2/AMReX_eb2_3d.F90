@@ -626,11 +626,13 @@ contains
                 vcent(i,j,k,:) = 0.d0
                 bcent(i,j,k,:) = 0.d0
                 bnorm(i,j,k,:) = 0.d0
+                barea(i,j,k) = 0.d0
              else if (cell(i,j,k) .eq. covered) then
                 vfrac(i,j,k) = 0.d0
                 vcent(i,j,k,:) = 0.d0
                 bcent(i,j,k,:) = 0.d0
                 bnorm(i,j,k,:) = 0.d0
+                barea(i,j,k) = 0.d0
              else
                 axm = apx(i,j,k)
                 axp = apx(i+1,j,k)

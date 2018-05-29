@@ -3,7 +3,6 @@
 
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
-#include <AMReX_Print.H>
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
@@ -39,6 +38,7 @@ protected:
     Real      m_radius;
     RealArray m_center;
     bool      m_inside;
+    //
     Real      m_radius2;  // precomputed radius squared
     Real      m_sign;
 };
