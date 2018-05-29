@@ -3,17 +3,23 @@ module amrex_amrtracerparticlecontainer_module
   use iso_c_binding
   use amrex_base_module
   use amrex_string_module
+  use amrex_fort_module, only: amrex_particle_real
   
   implicit none
 
   private
 
   ! public routines
-  public :: amrex_amrtracerparticlecontainer_init, &
-       amrex_amrtracerparticlecontainer_finalize, &
-       amrex_init_particles_one_per_cell, &
-       amrex_write_particles, amrex_particle_redistribute
+  public :: amrex_amrtracerparticlecontainer_init, amrex_amrtracerparticlecontainer_finalize
+  public :: amrex_init_particles_one_per_cell, amrex_write_particles, amrex_particle_redistribute
 
+  type, bind(C), public :: amrex_tracerparticle
+     real(amrex_particle_real)    :: pos(3)     !< Position
+     real(amrex_particle_real)    :: vel(3)     !< Particle velocity
+     integer(c_int)               :: id
+     integer(c_int)               :: cpu
+  end type amrex_tracerparticle
+     
   interface
      subroutine amrex_fi_new_amrtracerparticlecontainer (tracerpc,amrcore) bind(c)
        import
@@ -49,6 +55,14 @@ module amrex_amrtracerparticlecontainer_module
        type(c_ptr), value :: tracerpc
        integer(c_int), value :: lev_min, lev_max, ng
      end subroutine amrex_fi_particle_redistribute
+
+     subroutine amrex_fi_get_particles(tracerpc, lev, mfi, dp) bind(c)
+       import
+       implicit none
+       integer(c_int), value :: lev
+       type(c_ptr),    value :: tracerpc, mfi
+       type(c_ptr)           :: dp
+     end subroutine amrex_fi_get_particles
      
   end interface
 
@@ -89,6 +103,13 @@ contains
     if(present(nghost )) ng = nghost
     call amrex_fi_particle_redistribute(amrtracerparticlecontainer, min, max, ng)
   end subroutine amrex_particle_redistribute
+
+  function amrex_get_particles(lev, mfi) result(dp)
+    integer(c_int), intent(in)     :: lev
+    type(amrex_mfiter), intent(in) :: mfi
+    type(c_ptr) :: dp
+    call amrex_fi_get_particles(amrtracerparticlecontainer, lev, mfi%p, dp)
+  end function amrex_get_particles
   
 end module amrex_amrtracerparticlecontainer_module
 

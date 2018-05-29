@@ -34,4 +34,14 @@ extern "C" {
     {
 	amrtracerparticlecontainer->Redistribute(lev_min, lev_max, ng);
     }
+
+    void amrex_fi_get_particles(AmrTracerParticleContainer* amrtracerparticlecontainer,
+                                int lev, MFIter* mfi, Real*& dp)
+    {
+        const int grid = mfi->index();
+        const int tile = mfi->LocalTileIndex();
+        auto& particles = amrtracerparticlecontainer->ParticlesAt(lev, grid, tile);
+        auto& aos = particles.GetArrayOfStructs();
+        dp = aos.data();
+    }
 }
