@@ -177,8 +177,6 @@ main (int argc, char* argv[])
             newCompNames
             );
     auto velComps = findVelocityComponents(amrDataIn);
-    for (int i = 0; i < 3; i++)
-        std::cout << std::to_string(velComps[i]) << '\n';
     Vector<int> divuComps = {nOldComps};
     Vector<int> vortComps = {nOldComps + 1, nOldComps + 2, nOldComps + 3};
 
@@ -328,72 +326,6 @@ main (int argc, char* argv[])
             std::cout << "Level:  " << iLevel << std::endl;
 
 
-#ifdef BL_USE_MPI
-        MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type();
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            Vector<Real> atmp(nComps);
-            Vector<Real> rtmp(nComps);
-            for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
-            {
-                if (proc != ParallelDescriptor::IOProcessorNumber())
-                {
-                    MPI_Status stat;
-                    int rc = MPI_Recv(atmp.dataPtr(), nComps, datatype, 
-                            MPI_ANY_SOURCE, 
-                            proc, 
-                            ParallelDescriptor::Communicator(), 
-                            &stat);
-
-                    if (rc != MPI_SUCCESS)
-                        ParallelDescriptor::Abort(rc);
-
-                    rc = MPI_Recv(rtmp.dataPtr(), nComps, datatype, 
-                            MPI_ANY_SOURCE, 
-                            ParallelDescriptor::NProcs() + proc, 
-                            ParallelDescriptor::Communicator(), 
-                            &stat);
-
-                    if (rc != MPI_SUCCESS)
-                        ParallelDescriptor::Abort(rc);
-
-
-                    for (int iComp = 0; iComp < nComps; iComp++)
-                    {
-                        if (norm != 0) {
-                            anorms[iComp] = anorms[iComp] + atmp[iComp];
-                            rnorms[iComp] = rnorms[iComp] + rtmp[iComp];
-                        }
-                        else {
-                            anorms[iComp] = std::max(anorms[iComp], atmp[iComp]);
-                            rnorms[iComp] = std::max(rnorms[iComp], rtmp[iComp]);
-                        }
-
-                    }
-                }
-            }
-        }
-        else
-        {
-            int rc = MPI_Send(anorms.dataPtr(), nComps, datatype, 
-                    ParallelDescriptor::IOProcessorNumber(),
-                    ParallelDescriptor::MyProc(),
-                    ParallelDescriptor::Communicator());
-
-            if (rc != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-
-
-            rc = MPI_Send(rnorms.dataPtr(), nComps, datatype, 
-                    ParallelDescriptor::IOProcessorNumber(),
-                    ParallelDescriptor::NProcs() + ParallelDescriptor::MyProc(),
-                    ParallelDescriptor::Communicator());
-
-            if (rc != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-        }
-#endif
 
     }
 

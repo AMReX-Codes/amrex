@@ -6,11 +6,9 @@ USE_EB = FALSE
 #
 PRECISION     = DOUBLE
 DEBUG	      = TRUE
-#DEBUG	      = FALSE
 DIM	          = 3
 COMP          = g++
-#USE_MPI       = TRUE 
-USE_MPI       = FALSE
+USE_MPI       = TRUE 
 
 #
 # Base name of the executable.
