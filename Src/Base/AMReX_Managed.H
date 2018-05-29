@@ -34,14 +34,15 @@ inline void CudaErrorCheck() {
     }
 }
 
-#define SIMPLE_LAUNCH(numBlocks, numThreads, function, ...)  \
+#define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...)  \
     { \
       function<<<numBlocks, numThreads>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
     }
 
-#define DEVICE_FUNCTION __global__ 
-#define DEVICE_CLASS_FUNCTION __host__ __device__
+#define AMREX_CUDA_HOST __host__
+#define AMREX_CUDA_DEVICE __device__
+#define AMREX_CUDA_GLOBAL __global__
 
 // ************************************************
 
@@ -49,9 +50,10 @@ inline void CudaErrorCheck() {
 
 struct Managed { };
 
-#define SIMPLE_LAUNCH(numBlocks, numThreads, function, ...) function(__VA_ARGS__)
-#define DEVICE_FUNCTION
-#define DEVICE_CLASS_FUNCTION 
+#define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...) function(__VA_ARGS__)
+#define AMREX_CUDA_HOST
+#define AMREX_CUDA_DEVICE
+#define AMREX_CUDA_GLOBAL
 
 #endif
 

@@ -22,12 +22,12 @@ extern "C"
                                const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
                                const amrex_real* src);
 
-    __host__ 
+    AMREX_CUDA_HOST
     void amrex_fort_fab_setval (const int* lo, const int* hi, 
 			  const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
 			  const amrex_real* val);
 
-    __device__
+    AMREX_CUDA_DEVICE 
     void amrex_fort_fab_setval_device (const int* lo, const int* hi, 
 			  const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
 			  const amrex_real* val);
@@ -121,7 +121,7 @@ extern "C"
                                 const int* dst, const int* dlo, const int* dhi, const int* ncomp,
                                 const int* src);
    
-    DEVICE_CLASS_FUNCTION 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     void amrex_fort_ifab_setval (const int* lo, const int* hi, 
                            const int* dst, const int* dlo, const int* dhi, const int* ncomp,
                            const int* val);

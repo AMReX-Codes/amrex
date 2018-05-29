@@ -71,7 +71,7 @@ public:
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect () : vect{AMREX_D_DECL(0,0,0)} {}
 
     /**
@@ -79,11 +79,11 @@ public:
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
-    DEVICE_CLASS_FUNCTION 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
 
 #if (AMREX_SPACEDIM > 1)
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     explicit IntVect (int i) : vect{AMREX_D_DECL(i,i,i)} {}
 #endif
 
@@ -91,7 +91,7 @@ public:
     * \brief Construct an IntVect setting the coordinates to the
     * corresponding values in the integer array a.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     explicit IntVect (const int* a) : vect{AMREX_D_DECL(a[0],a[1],a[2])} {}
 
     /**
@@ -142,11 +142,11 @@ public:
 
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-    DEVICE_CLASS_FUNCTION 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     int& operator[] (int i) { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
@@ -159,11 +159,11 @@ public:
     * \brief Returns a const pointer to an array of coordinates of the
     * IntVect.  Useful for arguments to FORTRAN calls.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const int* getVect () const& { return vect; }
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     int*       getVect () &      { return vect; }
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     int*       getVect () && = delete;
 
     //! Returns true if all components are equal to the argument val.
@@ -179,7 +179,7 @@ public:
     }
 
     //! Returns true if this is equivalent to rhs.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool operator== (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);
@@ -293,7 +293,7 @@ public:
         AMREX_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]); return *this;
     }
     //! Returns component-wise sum of IntVect and argument.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect operator+ (const IntVect& p) const
     {
         return IntVect(AMREX_D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));

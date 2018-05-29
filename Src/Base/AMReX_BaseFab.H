@@ -178,7 +178,7 @@ public:
         { return bx.numPts() * sizeof(T) * ncomps; }
 
     //! Returns the number of components
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     int nComp () const { return nvar; }
 
     //! for calls to fortran.  
@@ -191,7 +191,7 @@ public:
     long size () const { return nvar*numpts; }
 
     //! Returns the domain (box) where the array is defined
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Box& box () const { return domain; }
 
     /**
@@ -217,7 +217,7 @@ public:
     * constant integers.  This is useful when interfacing to
     * Fortran subroutines.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const int* loVect () const { return domain.loVect(); }
 
     /**
@@ -228,7 +228,7 @@ public:
     * constant integers.  This is useful when interfacing to
     * Fortran subroutines.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const int* hiVect () const { return domain.hiVect(); }
 
     /**
@@ -255,16 +255,16 @@ public:
     * order, with the component index coming last.   In other words,
     * dataPtr returns a pointer to all the Nth components.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     T* dataPtr (int n = 0) { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
     //! Same as above except works on const FABs.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const T* dataPtr (int n = 0) const { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     T* dataPtr (const IntVect& iv, int n = 0);
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const T* dataPtr (const IntVect& iv, int n = 0) const;
     
     void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
@@ -294,13 +294,13 @@ public:
     * component N, from position pos in the domain into array data,
     * that must be allocated by the user.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void getVal (T*             data,
                  const IntVect& pos,
                  int            N,
                  int            numcomp) const;
     //! Same as above, except that starts at component 0 and copies all comps.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void getVal (T*             data,
                  const IntVect& pos) const;
     /**
@@ -309,21 +309,21 @@ public:
     * the starting component number, and the number of components
     * to be set.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void setVal (T          x,
                  const Box& bx,
                  int        nstart,
                  int        ncomp);
     //! Same as above, except the number of modified components is one. N is the component to be modified.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void setVal (T          x,
                  const Box& bx,
                  int        N = 0);
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     //! Same as above, except the sub-box defaults to the entire domain.
     void setVal (T   x,
                  int N);
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     //! Same as above, except all components are set.
     void setVal (T x);
 
@@ -547,20 +547,20 @@ public:
     BaseFab<T>& invert (T v);
 
     //! Negate BaseFab, most general.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& negate (const Box& subbox,
                         int        comp=0,
                         int        numcomp=1);
     //! As above, except on entire domain.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& negate (int comp,
                         int numcomp=1);
     //! As above, except on entire domain and all components.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& negate ();
 
     //! Scalar addition (a[i] <- a[i] + r), most general.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& plus (T          r,
                       const Box& b,
                       int        comp=0,
@@ -691,7 +691,7 @@ public:
     /**
     * \brief As above, except specify sub-box.
     */
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& mult (T          r,
                       const Box& b,
                       int        comp=0,
@@ -896,10 +896,10 @@ public:
     //! Change the Box type without change the length
     void SetBoxType (const IndexType& typ) { domain.setType(typ); }
 
-    template <class F> DEVICE_CLASS_FUNCTION void ForEach (const Box& b, int c, int nc, F f) {
+    template <class F> AMREX_CUDA_HOST AMREX_CUDA_DEVICE void ForEach (const Box& b, int c, int nc, F f) {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> DEVICE_CLASS_FUNCTION void ForEach (const Box& b, int c, int nc, F f) const {
+    template <class F> AMREX_CUDA_HOST AMREX_CUDA_DEVICE void ForEach (const Box& b, int c, int nc, F f) const {
         ForEachImpl(*this, b, c, nc, f);
     }
     template <class F> void ForEachIV (const Box& b, int c, int nc, F f) {
@@ -929,7 +929,7 @@ protected:
                       int               numcomp);
 
     //! This function is called by the BaseFab setVal operations.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void performSetVal (T          x,
                         const Box& bx,
                         int        nstart,
@@ -947,7 +947,7 @@ protected:
 };
 
 template <class B, class F>
-DEVICE_CLASS_FUNCTION
+AMREX_CUDA_HOST AMREX_CUDA_DEVICE
 inline
 void
 ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
@@ -1691,7 +1691,7 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
                             int         numcomp,
                             const void* src);
 template <>
-DEVICE_CLASS_FUNCTION
+AMREX_CUDA_HOST AMREX_CUDA_DEVICE
 void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
