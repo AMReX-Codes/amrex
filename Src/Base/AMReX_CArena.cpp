@@ -29,8 +29,6 @@ CArena::~CArena ()
 void*
 CArena::alloc (size_t nbytes)
 {
-    amrex::Print() << "CArena::alloc()" << std::endl;
-
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
@@ -108,8 +106,6 @@ CArena::alloc (void* parent_ptr, size_t nbytes)
 void
 CArena::free (void* vp)
 {
-    amrex::Print() << "CArena::free()" << std::endl;
-
     if (vp == 0)
         //
         // Allow calls with NULL as allowed by C++ delete.
