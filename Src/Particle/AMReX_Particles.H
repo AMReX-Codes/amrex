@@ -849,7 +849,6 @@ public:
       return doUnlink;
     }
 
-
 protected:
 
     //
@@ -887,6 +886,8 @@ protected:
 			bool           is_checkpoint,
 			std::ifstream& ifs);
 
+
+    void SetParticleSize ();
     
     void BuildRedistributeMask(int lev, int nghost=1);
     std::unique_ptr<iMultiFab> redistribute_mask_ptr;
