@@ -40,8 +40,33 @@ extern "C" {
     {
         const int grid = mfi->index();
         const int tile = mfi->LocalTileIndex();
-        auto& particles = amrtracerparticlecontainer->ParticlesAt(lev, grid, tile);
-        auto& aos = particles.GetArrayOfStructs();
-        dp = aos.data();
+        auto& particle_level = amrtracerparticlecontainer->GetParticles(lev);
+        auto search = particle_level.find(std::make_pair(grid, tile));
+        if (search != particle_level.end()) {
+            auto& particle_tile = search->second;
+            if (particle_tile.numParticles() > 0) {
+                auto& aos = particle_tile.GetArrayOfStructs();
+                dp = aos.data();
+            } else {
+                dp = NULL;
+            }            
+        } else {
+            dp = NULL;
+        }
+    }
+
+    void amrex_fi_num_particles(AmrTracerParticleContainer* amrtracerparticlecontainer,
+                                int lev, MFIter* mfi, long& np)
+    {
+        const int grid = mfi->index();
+        const int tile = mfi->LocalTileIndex();
+        auto& particle_level = amrtracerparticlecontainer->GetParticles(lev);
+        auto search = particle_level.find(std::make_pair(grid, tile));
+        if (search != particle_level.end()) {            
+            auto& particle_tile = search->second;
+            np = particle_tile.numParticles();
+        } else {
+            np = 0;
+        }
     }
 }
