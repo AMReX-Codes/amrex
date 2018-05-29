@@ -8,7 +8,7 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_BaseFab_f.H>
 
-DEVICE_FUNCTION
+AMREX_CUDA_GLOBAL
 void kernel_IntVect(amrex::IntVect *iv1, amrex::IntVect *iv2)
 {
    *iv2 = *iv1 + *iv2;
@@ -17,7 +17,7 @@ void kernel_IntVect(amrex::IntVect *iv1, amrex::IntVect *iv2)
    *iv1 = *iv1 + local; 
 }
 
-DEVICE_FUNCTION
+AMREX_CUDA_GLOBAL
 void kernel_BaseFab(amrex::BaseFab<amrex::Real> *bf1, amrex::Real *val, amrex::IntVect *iv)
 {
   amrex::Box bx(bf1->box());

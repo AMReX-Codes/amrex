@@ -27,10 +27,10 @@ public:
     //! The cell index type: one of CELL or NODE.
     enum CellIndex { CELL = 0, NODE = 1 };
     //! The default constructor
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IndexType () : itype(0) {}
     //! Construct an IndexType identical to an IntVect.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     explicit IndexType (const IntVect& iv)
         : itype(AMREX_D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2)))
         {}
@@ -61,7 +61,7 @@ public:
     //! Change from CELL to NODE or NODE to CELL in direction dir.
     void flip (int i) { itype ^= mask(i); }
     //! True if IndexTypes are identical.
-    DEVICE_CLASS_FUNCTION
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool operator== (const IndexType& t) const { return t.itype == itype; }
     //! True if IndexTypes are not identical.
     bool operator!= (const IndexType& t) const { return t.itype != itype; }
