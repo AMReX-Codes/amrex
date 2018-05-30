@@ -8,7 +8,14 @@
 extern "C"
 {
 #endif
+    AMREX_CUDA_HOST
     void amrex_fort_fab_copy (const int* lo, const int* hi,
+			amrex_real* dst, const int* dlo, const int* dhi,
+			const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+			const int* ncomp);
+
+    AMREX_CUDA_DEVICE
+    void amrex_fort_fab_copy_device (const int* lo, const int* hi,
 			amrex_real* dst, const int* dlo, const int* dhi,
 			const amrex_real* src, const int* slo, const int* shi, const int* sblo,
 			const int* ncomp);
@@ -107,6 +114,10 @@ extern "C"
 		       const int* m, const int* mlo, const int* mhi,
 		       const int* ncomp);
 
+    //Note: This doesn't work, but shuts up the compiler for testing.
+    //Need to make 2 separate versions of the function.
+    //See "fab" versions of the function above.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void amrex_fort_ifab_copy (const int* lo, const int* hi,
                          int* dst, const int* dlo, const int* dhi,
                          const int* src, const int* slo, const int* shi, const int* sblo,
@@ -120,22 +131,37 @@ extern "C"
     long amrex_fort_ifab_copyfrommem (const int* lo, const int* hi,
                                 const int* dst, const int* dlo, const int* dhi, const int* ncomp,
                                 const int* src);
-   
+
+    //Note: This doesn't work, but shuts up the compiler for testing.
+    //Need to make 2 separate versions of the function.
+    //See "fab" versions of the function above.
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     void amrex_fort_ifab_setval (const int* lo, const int* hi, 
                            const int* dst, const int* dlo, const int* dhi, const int* ncomp,
                            const int* val);
 
+     //Note: This doesn't work, but shuts up the compiler for testing.
+    //Need to make 2 separate versions of the function.
+    //See "fab" versions of the function above.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     void amrex_fort_ifab_plus (const int* lo, const int* hi,
                          int* dst, const int* dlo, const int* dhi,
                          const int* src, const int* slo, const int* shi, const int* sblo,
                          const int* ncomp);    
 
+    //Note: This doesn't work, but shuts up the compiler for testing.
+    //Need to make 2 separate versions of the function.
+    //See "fab" versions of the function above.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     void amrex_fort_ifab_minus (const int* lo, const int* hi,
                           int* dst, const int* dlo, const int* dhi,
                           const int* src, const int* slo, const int* shi, const int* sblo,
                           const int* ncomp);    
 
+    //Note: This doesn't work, but shuts up the compiler for testing.
+    //Need to make 2 separate versions of the function.
+    //See "fab" versions of the function above.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     void amrex_fab_setval_ifnot (const int* lo, const int* hi,
                                  amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
                                  const int* msk, const int* mlo, const int* mhi,

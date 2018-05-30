@@ -354,6 +354,7 @@ public:
     * UNDEFINED if the src and dest are the same and the srcbox and
     * destbox overlap.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        srcbox,
                       int               srccomp,
@@ -376,6 +377,7 @@ public:
     * copy is made by the function performCopy() of this
     * class.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       int               srccomp,
                       int               destcomp,
@@ -387,6 +389,7 @@ public:
     * copied.  Note that the actual copy is made by the
     * function performCopy of this class.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        destbox);
 
@@ -396,6 +399,7 @@ public:
     * Note that the actual copy is made by the function
     * performCopy() of this class.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src);
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
@@ -605,6 +609,7 @@ public:
     * \brief Add srcbox region of src FAB to destbox region of this FAB.
     * The srcbox and destbox must be same size.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& plus (const BaseFab<T>& src,
                       const Box&        srcbox,
                       const Box&        destbox,
@@ -672,6 +677,7 @@ public:
     * \brief Subtract srcbox region of src FAB from destbox region
     * of this FAB. srcbox and destbox must be same size.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& minus (const BaseFab<T>& src,
                        const Box&        srcbox,
                        const Box&        destbox,
@@ -728,6 +734,7 @@ public:
     * \brief Multiply srcbox region of src FAB with destbox region
     * of this FAB. The srcbox and destbox must be same size.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& mult (const BaseFab<T>& src,
                       const Box&        srcbox,
                       const Box&        destbox,
@@ -781,6 +788,7 @@ public:
     * \brief destbox region of this FAB is numerator. srcbox regions of
     * src FAB is denominator. srcbox and destbox must be same size.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& divide (const BaseFab<T>& src,
                         const Box&        srcbox,
                         const Box&        destbox,
@@ -838,6 +846,7 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& linInterp (const BaseFab<T>& f1,
                            const Box&        b1,
                            int               comp1,
@@ -851,6 +860,7 @@ public:
                            int               comp,
                            int               numcomp = 1);
 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     //! Version of linInterp() in which b, b1, & b2 are the same.
     BaseFab<T>& linInterp (const BaseFab<T>& f1,
                            int               comp1,
@@ -872,6 +882,7 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab<T>& linComb (const BaseFab<T>& f1,
                          const Box&        b1,
                          int               comp1,
@@ -910,7 +921,8 @@ public:
     }
     template <class F> void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                                      const BaseFab<T>& src, int srccomp, F f);
-    template <class F> void ForEach (const Box& dstbox, int dstcomp, int numcomp,
+    template <class F> void AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+                            ForEach (const Box& dstbox, int dstcomp, int numcomp,
                                      const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
     template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
     template <class F> void Transform (T* dst, const Box& b, int c, int nc, F f) const;
@@ -921,6 +933,7 @@ protected:
     void define ();
 
     //! The function called by BaseFab copy operations.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void performCopy (const BaseFab<T>& src,
                       const Box&        srcbox,
                       int               srccomp,

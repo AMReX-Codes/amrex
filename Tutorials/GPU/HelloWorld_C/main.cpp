@@ -39,11 +39,18 @@ void kernel_BaseFabInt(amrex::BaseFab<int> *bf1, int *val, amrex::IntVect *iv)
   bf1->getVal(val, amrex::IntVect(7,7,7));
 }
 
+AMREX_CUDA_GLOBAL
+void kernel_BaseFabCopy(amrex::BaseFab<amrex::Real> *bf1, amrex::BaseFab<amrex::Real> *bf2)
+{
+  amrex::Box bx1 = bf1->box(); 
+  amrex::Box bx2 = bx1;
+  for (int i=0; i<3; ++i)
+  {
+    bx2.setBig(i,(bx2.bigEnd(i))/2);
+  }
 
-
-
-
-
+  bf1->copy(*bf2, bx1, 0, bx2, 0, 1);
+}
 
 int main (int argc, char* argv[])
 {
@@ -152,7 +159,21 @@ int main (int argc, char* argv[])
                         "post setVal = " << int_new << std::endl <<
                         "**********************************" << std::endl << std::endl;
 
+      amrex::BaseFab<amrex::Real> *d_bf3 = new amrex::BaseFab<amrex::Real>(baseBox);
+      d_bf1->setVal(-0.017, baseBox, 0, 1);
+     
+
+      kernel_BaseFabCopy<<<numBlocks,blockSize>>>(d_bf1, d_bf3);
+      cudaDeviceSynchronize();
+      d_bf1->getVal(&val_old,d_bf1->smallEnd());
+      d_bf1->getVal(&val_new,d_bf1->bigEnd());
+
+      amrex::Print() << "BaseFab Copy Test " << std::endl <<
+                        "........................." << std::endl <<
+                        "Min Val = "  << val_old << std::endl << 
+                        "Max Val = "  << val_new << std::endl; 
     }
+
 
     amrex::Finalize();
 }

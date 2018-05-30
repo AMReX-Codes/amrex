@@ -114,6 +114,7 @@ public:
     }
 
     /// maximum (no absolute values) value
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     int max() const
     {
 #if (AMREX_SPACEDIM == 1)
@@ -126,6 +127,7 @@ public:
     }
 
     /// minimum (no absolute values) value
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     int min() const
     {
 #if (AMREX_SPACEDIM == 1)
@@ -150,6 +152,7 @@ public:
     const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& setVal (int i, int val)
     {
         BL_ASSERT(i >=0 && i < AMREX_SPACEDIM); vect[i] = val; return *this;
@@ -244,6 +247,7 @@ public:
     * \brief Returns true if this is greater than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool allGE (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
@@ -334,6 +338,7 @@ public:
         return IntVect(AMREX_D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
     }
     //! Modifies IntVect by taking component-wise min with argument.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& min (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
@@ -342,6 +347,7 @@ public:
         return *this;
     }
     //! Modifies IntVect by taking component-wise max with argument.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& max (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),

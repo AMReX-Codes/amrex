@@ -7,7 +7,7 @@ module basefab_nd_module
 contains
 
   ! dst = src
-  subroutine amrex_fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+  attributes(host) subroutine amrex_fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
        bind(c,name='amrex_fort_fab_copy')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -27,6 +27,27 @@ contains
        end do
     end do
   end subroutine amrex_fort_fab_copy
+
+  attributes(device) subroutine amrex_fort_fab_copy_device(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='amrex_fort_fab_copy')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = sblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_copy_device
     
   
   ! copy from multi-d array to 1d array
