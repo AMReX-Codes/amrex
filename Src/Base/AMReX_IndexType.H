@@ -57,6 +57,7 @@ public:
     //! True if this IndexType is NODE based in any direction.
     bool any () const { return itype != 0; }
     //! True if IndexType is valid.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool ok () const { return itype < (1 << AMREX_SPACEDIM); }
     //! Change from CELL to NODE or NODE to CELL in direction dir.
     void flip (int i) { itype ^= mask(i); }

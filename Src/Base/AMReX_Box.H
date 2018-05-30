@@ -101,6 +101,7 @@ public:
     const IntVect& bigEnd () && = delete;
 
     //! Returns the coordinate of the high end in the given direction.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     int bigEnd (int dir) const { return bigend[dir]; }
 
     //! Returns the indexing type.
@@ -157,6 +158,7 @@ public:
     bool isEmpty () const { return !ok(); }
 
     //! Checks if it is a proper Box (including a valid type).
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool ok () const { return bigend.allGE(smallend) && btype.ok(); }
 
     //! Returns true if argument is contained within Box.
@@ -299,6 +301,7 @@ public:
     Box& setBig (const IntVect& bg) { bigend = bg; return *this; }
 
     //! Redefine the big end of the Box.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& setBig (int dir, int bg_index) { bigend.setVal(dir,bg_index); return *this; }
 
     /**
@@ -370,6 +373,7 @@ public:
     Box operator& (const Box& rhs) const { Box lhs(*this); lhs &= rhs; return lhs; }
 
     //! Intersect this Box with its argument. The Boxes MUST be of the same type.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& operator&= (const Box& rhs)
     {
         BL_ASSERT(sameType(rhs));
