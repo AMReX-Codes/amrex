@@ -12,11 +12,11 @@ module amrex_amrtracerparticlecontainer_module
   ! public routines
   public :: amrex_amrtracerparticlecontainer_init, amrex_amrtracerparticlecontainer_finalize
   public :: amrex_init_particles_one_per_cell, amrex_write_particles, amrex_particle_redistribute
-  public :: amrex_get_particles
+  public :: amrex_get_particles, amrex_num_particles
   
   type, bind(C), public :: amrex_tracerparticle
-     real(amrex_particle_real)    :: pos(3)     !< Position
-     real(amrex_particle_real)    :: vel(3)     !< Particle velocity
+     real(amrex_particle_real)    :: pos(AMREX_SPACEDIM) !< Position
+     real(amrex_particle_real)    :: vel(AMREX_SPACEDIM) !< Particle velocity
      integer(c_int)               :: id
      integer(c_int)               :: cpu
   end type amrex_tracerparticle
