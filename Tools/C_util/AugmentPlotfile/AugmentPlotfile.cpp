@@ -26,6 +26,7 @@
 
 using namespace amrex;
 
+
 static void PrintUsage (const char* progName)
 {
     std::cout << "\nThis utility adds the requested components to the plotfile " << std::endl;
@@ -41,6 +42,15 @@ static void PrintUsage (const char* progName)
     std::cout << "    [verbose=t|f]" << '\n';
     std::cout << '\n';
     exit(1);
+}
+
+static Vector<int> findComponents(const AmrData& amrd, const Vector<std::string>& names)
+{
+    const int n = names.size();
+    Vector<int> comps(n);
+    for (int i = 0; i < n; i++)
+        comps[i] = amrd.StateNumber(names[i]);
+    return comps;
 }
 
 static Vector<int> findVelocityComponents(const AmrData& amrd)
@@ -66,12 +76,10 @@ static Vector<T> concatVectors(const Vector<T>& a, const Vector<T>& b)
 template <class T>
 static Vector<T> concatVectorsDestructive(Vector<T>& a, const Vector<T>& b)
 {
-    std::cout << "begin dest concat" << '\n';
     int oldSize = a.size();
     a.resize(oldSize + b.size());
     for (int i = 0; i < b.size(); i++)
         a[i + oldSize] = b[i];
-    std::cout << "end dest concat" << '\n';
     return a;
 }
 
@@ -103,10 +111,22 @@ main (int argc, char* argv[])
     pp.query("infile", infile);
     if (infile.empty())
         amrex::Abort("You must specify `infile'");
+    if (verbose && ParallelDescriptor::IOProcessor())
+        std::cout << "infile:\t" << infile << '\n';
 
     pp.query("outfile", outfile);
     if (outfile.empty())
         amrex::Abort("You must specify `outfile'");
+    if (verbose && ParallelDescriptor::IOProcessor())
+        std::cout << "outfile:\t" << outfile << '\n';
+
+    bool add_vort = true;
+    if (!pp.contains("add_vorticity"))
+        add_vort = false;
+
+    bool add_divu = true;
+    if (!pp.contains("add_divergence"))
+        add_divu = false;
 
     //// Set Up Data Services
     DataServices::SetBatchMode();
@@ -130,7 +150,7 @@ main (int argc, char* argv[])
             ref_ratio[i] = IntVect(AMREX_D_DECL(trr[i], trr[i], trr[i]));
             //ref_ratio[i] = AMREX_D_DECL(trr[i], trr[i], trr[i]);
     }
-    const Vector<std::string>& oldComps = amrDataIn.PlotVarNames();
+    const Vector<std::string>& oldCompNames = amrDataIn.PlotVarNames();
     Vector<Geometry> geoms(finestLevel + 1);
     {
         Vector<Box> domains = amrDataIn.ProbDomain();
@@ -152,35 +172,60 @@ main (int argc, char* argv[])
                     );
     }
 
-
-
-
-
-
-
+    //// Construct information for new plotfile
     int nGhost = 1;
-
-
-    // Construct information for new plotfile
-    Vector<std::string> divuCompNames = {"testdivu"};
-    Vector<std::string> vortCompNames = {"testvortx", "testvorty", "testvortz"};
-    Vector<std::string> newCompNames = concatVectors(
-            divuCompNames,
-            vortCompNames
-            );
-
-
+    Vector<std::string> divuCompNames = {"divu"};
+    Vector<std::string> vortCompNames = {"x_vort", "y_vort", "z_vort"};
+    // Check if already in file
+    if (add_divu)
+        for (auto it = oldCompNames.begin(); it != oldCompNames.end(); ++it)
+            for (auto jt = divuCompNames.begin(); jt != divuCompNames.end(); ++jt)
+                if (*it == *jt)
+                {
+                    add_divu = false;
+                    if (ParallelDescriptor::IOProcessor())
+                        std::cout << "Divergence found in plotfile, skipping." << '\n';
+                }
+    if (add_vort)
+        for (auto it = oldCompNames.begin(); it != oldCompNames.end(); ++it)
+            for (auto jt = vortCompNames.begin(); jt != vortCompNames.end(); ++jt)
+                if (*it == *jt)
+                {
+                    add_vort = false;
+                    if (ParallelDescriptor::IOProcessor())
+                        std::cout << "Vorticity found in plotfile, skipping." << '\n';
+                }
+    Vector<std::string> newCompNames = {};
+    if (add_divu)
+        newCompNames = concatVectorsDestructive(newCompNames, divuCompNames);
+    if(add_vort)
+        newCompNames = concatVectorsDestructive(newCompNames, vortCompNames);
+    if (verbose)
+        for (auto it = newCompNames.begin(); it != newCompNames.end(); ++it)
+            std::cout << "Adding component \"" << *it << "\"" << '\n';
 
     int nComps = nOldComps + newCompNames.size();
     const Vector<std::string>& allCompNames = concatVectors(
             amrDataIn.PlotVarNames(),
             newCompNames
             );
-    auto velComps = findVelocityComponents(amrDataIn);
-    Vector<int> divuComps = {nOldComps};
-    Vector<int> vortComps = {nOldComps + 1, nOldComps + 2, nOldComps + 3};
-
-    // Utility arrays with numbers of components
+    auto velCompNums = findVelocityComponents(amrDataIn);
+    Vector<int> divuCompNums;
+    Vector<int> vortCompNums;
+    {
+        int offset = nOldComps;
+        if (add_divu)
+        {
+            divuCompNums = {offset};
+            offset += 1;
+        }
+        if (add_vort)
+        {
+            vortCompNums = {offset, offset + 1, offset + 2};
+            offset += 3;
+        }
+    }
+    Vector<int> newComps = concatVectors(divuCompNums, vortCompNums);
     Vector<int> oldCompNums(nOldComps);
     for (int i = 0; i < nOldComps; i++) 
         oldCompNums[i] = i;
@@ -188,22 +233,8 @@ main (int argc, char* argv[])
     for (int i = 0; i < nComps; i++) 
         allCompNums[i] = i;
 
-
-
-
-
     // Make list of output multifabs
     Vector<MultiFab*> dataOut(finestLevel + 1);
-
-
-
-    //// Print IO Info
-    //if (ParallelDescriptor::IOProcessor())
-    //    std::cout << "L"<< norm << " norm of Absolute and Relative Error in Each Component" << std::endl
-    //        << std::setfill('-') << std::setw(80) << "-" << std::setfill(' ') << std::endl;
-
-
-
 
     //// Iterate through levels
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
@@ -217,18 +248,11 @@ main (int argc, char* argv[])
 
         // Copy data from read file with interpolated ghosts
         MultiFab dataIn(ba, dm, nComps, nGhost);
-        amrDataIn.FillVar(dataIn, iLevel, oldComps, oldCompNums);
+        amrDataIn.FillVar(dataIn, iLevel, oldCompNames, oldCompNums);
 
         // Allocate space for new arrays
         dataOut[iLevel] = new MultiFab(ba, dm, nComps, 1);
         dataOut[iLevel]->setVal(GARBAGE); // TODO do we need this?
-
-
-
-
-
-
-
 
         // TODO
         // this part needs to be checked -- it appears that
@@ -238,27 +262,6 @@ main (int argc, char* argv[])
         {
             amrDataIn.FlushGrids(oldCompNums[i]);
         }
-
-
-
-
-
-
-
-//        for (auto comp = oldCompNums.begin(); comp != oldCompNums.end(); comp++)
-//            MultiFab::Copy(*dataOut[iLevel],
-//                           dataIn,
-//                           nOldComps,
-//                           nComps,
-//                           *comp,
-//                           nGhost);
-
-
-
-
-
-
-
 
         // Copy Old Data
         {
@@ -299,39 +302,29 @@ main (int argc, char* argv[])
             FArrayBox& fab = (*dataOut[iLevel])[mfi];
             const Box& abox = fab.box();
 
-            FORT_DIVU_3D (
-                    box.loVect(), box.hiVect(),
-                    fab.dataPtr(), &nComps,
-                    abox.loVect(), abox.hiVect(),
-                    &velComps[0],
-                    &divuComps[0],
-                    &delta[0]);
+            if (add_divu)
+                FORT_DIVU_3D(
+                        box.loVect(), box.hiVect(),
+                        fab.dataPtr(), &nComps,
+                        abox.loVect(), abox.hiVect(),
+                        &velCompNums[0],
+                        &divuCompNums[0],
+                        &delta[0]);
 
-            FORT_VORT_3D (
-                    box.loVect(), box.hiVect(),
-                    fab.dataPtr(), &nComps,
-                    abox.loVect(), abox.hiVect(),
-                    &velComps[0],
-                    &vortComps[0],
-                    &delta[0]);
+            if (add_vort)
+                FORT_VORT_3D(
+                        box.loVect(), box.hiVect(),
+                        fab.dataPtr(), &nComps,
+                        abox.loVect(), abox.hiVect(),
+                        &velCompNums[0],
+                        &vortCompNums[0],
+                        &delta[0]);
         }
-
-
-
-
-
 
         // Output Progress
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "Level:  " << iLevel << std::endl;
-
-
-
+            std::cout << "Added Component on Level:  " << iLevel << std::endl;
     }
-
-
-
-
 
     // Write out a plotfile
     WriteMultiLevelPlotfile(
@@ -345,14 +338,8 @@ main (int argc, char* argv[])
             ref_ratio
             );
 
-
-
-
-
-
-
-
-
+    // Release Memory
+    // TODO: check we got all of it
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel) {
         delete dataOut[iLevel];
     }
