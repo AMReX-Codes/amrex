@@ -2,7 +2,7 @@ module evolve_module
 
   use amrex_amr_module
 
-  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute, amrex_get_particles
+  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute, amrex_get_particles, amrex_num_particles
   
   implicit none
   private
@@ -11,6 +11,57 @@ module evolve_module
 
 contains
 
+  subroutine timestep_particles(particles_c_ptr, np, dt, dx, plo) bind(c)
+    use iso_c_binding
+    use amrex_fort_module, only : amrex_real
+    use amrex_amrtracerparticlecontainer_module, only : amrex_tracerparticle
+
+    integer,                    intent(in   )         :: np
+    type(c_ptr), value,         intent(in   )         :: particles_c_ptr 
+    real(amrex_real),           intent(in   )         :: dt
+    real(amrex_real),           intent(in   )         :: plo(AMREX_SPACEDIM)
+    real(amrex_real),           intent(in   )         :: dx(AMREX_SPACEDIM)
+
+    integer i, j, k, n, ipass
+    real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
+    real(amrex_real) lx, ly, lz
+    real(amrex_real) inv_dx(AMREX_SPACEDIM)
+    type(amrex_tracerparticle), pointer :: particles(:)
+    type(amrex_tracerparticle), pointer :: p
+
+    inv_dx = 1.0d0/dx
+    call c_f_pointer(particles_c_ptr, particles, [np])
+
+    do ipass = 1, 2
+       do n = 1, np
+          p => particles(n)
+
+          lx = (p%pos(1) - plo(1))*inv_dx(1) + 0.5d0
+          ly = (p%pos(2) - plo(2))*inv_dx(2) + 0.5d0
+          lz = (p%pos(3) - plo(3))*inv_dx(3) + 0.5d0
+          
+          i = floor(lx)
+          j = floor(ly)
+          k = floor(lz)
+          
+          wx_hi = lx - i
+          wy_hi = ly - j
+          wz_hi = lz - k
+          
+          wx_lo = 1.0d0 - wx_hi
+          wy_lo = 1.0d0 - wy_hi
+          wz_lo = 1.0d0 - wz_hi
+          
+          ! update the particle positions / velocities
+          p%vel(1) = p%vel(1)
+          p%vel(2) = p%vel(2)
+          
+          p%pos(1) = p%pos(1)
+          p%pos(2) = p%pos(2)
+       end do
+    end do
+  end subroutine timestep_particles
+  
   subroutine evolve ()
     use my_amr_module, only : stepno, max_step, stop_time, dt, plot_int
     use amr_data_module, only : phi_old, phi_new, t_new
@@ -144,6 +195,7 @@ contains
     type(amrex_fab) ::  flux(amrex_spacedim)
     type(amrex_multifab) :: fluxes(amrex_spacedim)
     type(c_ptr), pointer :: particles
+    integer :: np
     
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, 1X, A, 1X, I0, A, 1X, G0)') &
@@ -164,7 +216,7 @@ contains
 
     call fillpatch(lev, time, phiborder)
 
-    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux,particles)
+    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux,particles,np)
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
     do while(mfi%next())
        bx = mfi%tilebox()
@@ -223,7 +275,12 @@ contains
        end if
 
 !   advance particles on this tile
-       particles => amrex_get_particles(lev, mfi)
+       np = amrex_num_particles(lev, mfi)
+       if (np .gt. 0) then
+          particles => amrex_get_particles(lev, mfi)
+          call timestep_particles(particles, np, dt, &
+               amrex_geom(lev)%dx, amrex_problo)
+       end if
        
     end do
     call amrex_mfiter_destroy(mfi)
