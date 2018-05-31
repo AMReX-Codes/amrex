@@ -5,7 +5,7 @@ module advect_module
   implicit none
   private
 
-  public :: advect
+  public :: advect, advect_particles
 
 contains
 
@@ -149,5 +149,57 @@ subroutine advect(time, lo, hi, &
   call bl_deallocate(slope)
 
 end subroutine advect
+
+subroutine advect_particles(particles, np, &
+     ux, uxlo, uxhi, uy, uylo, uyhi, uz, uzlo, uzhi, dt, dx, plo) bind(c)
+  use iso_c_binding
+  use amrex_fort_module, only : amrex_real
+  use amrex_amrtracerparticlecontainer_module, only : amrex_tracerparticle
+  
+  integer,                    intent(in)            :: np
+  type(amrex_tracerparticle), target, intent(inout) :: particles(np)
+  integer,                    intent(in)            :: uxlo(3), uxhi(3)
+  integer,                    intent(in)            :: uylo(3), uyhi(3)
+  integer,                    intent(in)            :: uzlo(3), uzhi(3)
+  real(amrex_real),           intent(in)            :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2),uxlo(3):uxhi(3))
+  real(amrex_real),           intent(in)            :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2),uxlo(3):uxhi(3))
+  real(amrex_real),           intent(in)            :: uz(uzlo(1):uzhi(1),uzlo(2):uzhi(2),uxlo(3):uxhi(3))
+  real(amrex_real),           intent(in)            :: dt
+  real(amrex_real),           intent(in)            :: plo(3)
+  real(amrex_real),           intent(in)            :: dx(3)
+  
+  integer i, j, k, n, ipass
+  real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
+  real(amrex_real) lx, ly, lz
+  real(amrex_real) inv_dx(AMREX_SPACEDIM)
+  type(amrex_tracerparticle), pointer :: p
+  
+  inv_dx = 1.0d0/dx
+  
+  do ipass = 1, 2
+     do n = 1, np
+        p => particles(n)
+        
+        lx = (p%pos(1) - plo(1))*inv_dx(1) + 0.5d0
+        ly = (p%pos(2) - plo(2))*inv_dx(2) + 0.5d0
+        
+        i = floor(lx)
+        j = floor(ly)
+        
+        wx_hi = lx - i
+        wy_hi = ly - j
+        
+        wx_lo = 1.0d0 - wx_hi
+        wy_lo = 1.0d0 - wy_hi
+        
+        ! update the particle positions / velocities
+        p%vel(1) = p%vel(1)
+        p%vel(2) = p%vel(2)
+        
+        p%pos(1) = p%pos(1)
+        p%pos(2) = p%pos(2)
+     end do
+  end do
+end subroutine advect_particles
 
 end module advect_module
