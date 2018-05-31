@@ -169,6 +169,9 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
                               BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
                               BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
                               BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
+                              BL_TO_FORTRAN_ANYD(M2[0]),
+                              BL_TO_FORTRAN_ANYD(M2[1]),
+                              BL_TO_FORTRAN_ANYD(M2[2]),
                               BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
                               BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
                               BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
@@ -185,6 +188,7 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     VisMF::Write(m_areafrac[2], "apz");
     VisMF::Write(m_facecent[2], "fcz");
     VisMF::Write(m_volfrac, "vfrc");
+    VisMF::Write(m_centroid, "vcent");
     VisMF::Write(m_bndryarea, "barea");
     VisMF::Write(m_bndrycent, "bcent");
     VisMF::Write(m_bndrynorm, "bnorm");

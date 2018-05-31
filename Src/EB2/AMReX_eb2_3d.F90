@@ -3,8 +3,8 @@ module amrex_eb2_3d_module
 
   use amrex_error_module
   use amrex_fort_module
-  use amrex_constants_module, only : zero, one, two, three, four, six, seven, eight, nine, ten, &
-       half, third, fourth, sixth, eighth, twelfth
+  use amrex_constants_module, only : zero, one, two, three, four, five, six, seven, eight,&
+       nine, ten, eleven, fifteen, sixteen, half, third, fourth, sixth, eighth, twelfth
   implicit none
 
   integer, parameter :: regular = 0
@@ -430,6 +430,7 @@ contains
                 fcz(i,j,k,:) = zero
                 m2z(i,j,k,:) = zero
              else
+
                 ncuts = 0
                 bcx = zero
                 bcy = zero
@@ -518,6 +519,7 @@ contains
                    call cut_face_2d(apz(i,j,k),fcz(i,j,k,1),fcz(i,j,k,2), &
                         m2z(i,j,k,1),m2z(i,j,k,2),m2z(i,j,k,3),lym,lyp,lxm,lxp,bcx,bcy)
                 end if
+
              end if
           end do
        end do
@@ -613,9 +615,9 @@ contains
          rhs(3) = signx*eighth*(x_ym**2-x_yp**2)
          rhs(4) = -eighth*(aym+ayp)
          rhs(5) = eighth*(axm+axp)
-         rhs(6) = -signx*eighth*(y_xm**2-y_xp**2)
-         rhs(7) = twentyfourth + signx*sixth*(y_xm**3+y_xp**3)
-         rhs(8) = -signx*fourth*(y_xm**4-y_xp**4)
+         rhs(6) = -signy*eighth*(y_xm**2-y_xp**2)
+         rhs(7) = twentyfourth + signy*sixth*(y_xm**3+y_xp**3)
+         rhs(8) = -signy*fourth*(y_xm**4-y_xp**4)
 
          b(1) = -rhs(2) + three*rhs(5)
          b(2) = -three*rhs(4) + rhs(7)
@@ -652,7 +654,7 @@ contains
               three*b(4)*(nine - 17.d0*ny2 + eight*ny4) + &
               anrmx*(b(1)*(-nine + eight*ny2) - &
               (b(2) + three*b(7)*anrmy)*(one + eight*ny2))))
-         
+
          den = one / (18.d0*(-one - six*ny2 + six*ny4))
          Sx2 = Sx2 * den
          Sy2 = Sy2 * den
@@ -690,12 +692,14 @@ contains
        fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi, &
        apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, &
        fcx, cxlo, cxhi, fcy, cylo, cyhi, fcz, czlo, czhi, &
+       m2x, mxlo, mxhi, m2y, mylo, myhi, m2z, mzlo, mzhi, &
        vfrac, vlo, vhi, vcent, tlo, thi, barea, alo, ahi, &
        bcent, blo, bhi, bnorm, mlo, mhi) &
        bind(c,name='amrex_eb2_build_cells')
     integer, dimension(3), intent(in) :: lo, hi, clo, chi, &
          fxlo, fxhi, fylo, fyhi, fzlo, fzhi, axlo, axhi, aylo, ayhi, azlo, azhi, &
-         cxlo, cxhi, cylo, cyhi, czlo, czhi, vlo, vhi, tlo, thi, alo, ahi, blo, bhi, mlo, mhi
+         cxlo, cxhi, cylo, cyhi, czlo, czhi, mxlo, mxhi, mylo, myhi, mzlo, mzhi, &
+         vlo, vhi, tlo, thi, alo, ahi, blo, bhi, mlo, mhi
     integer(c_int)  , intent(inout) ::  cell( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))
     integer(c_int)  , intent(inout) ::    fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
     integer(c_int)  , intent(inout) ::    fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
@@ -706,6 +710,9 @@ contains
     real(amrex_real), intent(in   ) ::   fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),3)
     real(amrex_real), intent(in   ) ::   fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),3)
     real(amrex_real), intent(in   ) ::   fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),3)
+    real(amrex_real), intent(in   ) ::   m2x(mxlo(1):mxhi(1),mxlo(2):mxhi(2),mxlo(3):mxhi(3),3)
+    real(amrex_real), intent(in   ) ::   m2y(mylo(1):myhi(1),mylo(2):myhi(2),mylo(3):myhi(3),3)
+    real(amrex_real), intent(in   ) ::   m2z(mzlo(1):mzhi(1),mzlo(2):mzhi(2),mzlo(3):mzhi(3),3)
     real(amrex_real), intent(inout) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
     real(amrex_real), intent(inout) :: vcent( tlo(1): thi(1), tlo(2): thi(2), tlo(3): thi(3),3)
     real(amrex_real), intent(inout) :: barea( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3))
@@ -715,6 +722,8 @@ contains
     integer :: i,j,k
     real(amrex_real) :: axm, axp, aym, ayp, azm, azp, aax, aay, aaz, B0, Bx, By, Bz
     real(amrex_real) :: dapx, dapy, dapz, apnorm, apnorminv, nx, ny, nz, bainv
+    real(amrex_real) :: ny2, ny3, ny4, nz2, nz3, nz4, nz5, Sx, Sy, Sz, den
+    real(amrex_real) :: rhs(18), b(9)
 
     do       k = lo(3)-1, hi(3)+1
        do    j = lo(2)-1, hi(2)+1
@@ -732,12 +741,28 @@ contains
                 bnorm(i,j,k,:) = zero
                 barea(i,j,k) = zero
              else
+
                 axm = apx(i,j,k)
                 axp = apx(i+1,j,k)
                 aym = apy(i,j,k)
                 ayp = apy(i,j+1,k)
                 azm = apz(i,j,k)
                 azp = apz(i,j,k+1)
+
+                ! Check for multple cuts
+                ! We know there are no multiple cuts on faces by now.
+                ! So we only need to check the case that there are two cuts
+                ! at the opposite corners.
+                if ( axm .ge. half .and. axm .lt. one .and. &
+                     axp .ge. half .and. axp .lt. one .and. &
+                     aym .ge. half .and. aym .lt. one .and. &
+                     ayp .ge. half .and. ayp .lt. one .and. &
+                     azm .ge. half .and. azm .lt. one .and. &
+                     azp .ge. half .and. azp .lt. one ) then
+                   print *, "amrex_eb2_build_cells: multiple cuts in cell ", i,j,k
+                   call amrex_error("amrex_eb2_build_cells: multiple cuts")
+                end if
+
                 dapx = axm - axp
                 dapy = aym - ayp
                 dapz = azm - azp
@@ -768,13 +793,84 @@ contains
                 bcent(i,j,k,1) = bainv * (Bx + nx*vfrac(i,j,k))
                 bcent(i,j,k,2) = bainv * (By + ny*vfrac(i,j,k))
                 bcent(i,j,k,3) = bainv * (Bz + nz*vfrac(i,j,k))
-               
-!                print *, i,j,k,vfrac(i,j,k), barea(i,j,k), bcent(i,j,k,:)
 
-                ! xxxxx to do: vcent
+                rhs(1) = fourth*(axp-axm)
+                rhs(2) = m2x(i+1,j,k,1) - m2x(i,j,k,1)
+                rhs(3) = m2x(i+1,j,k,2) - m2x(i,j,k,2)
+                rhs(4) = half*(axp*fcx(i+1,j,k,2) + axm*fcx(i,j,k,2))
+                rhs(5) = half*(axp*fcx(i+1,j,k,3) + axm*fcx(i,j,k,3))
+                rhs(6) = m2x(i+1,j,k,3) - m2x(i,j,k,3)
+                !
+                rhs(7) = m2y(i,j+1,k,1) - m2y(i,j,k,1)
+                rhs(8) = fourth*(ayp-aym)
+                rhs(9) = m2y(i,j+1,k,2) - m2y(i,j,k,2)
+                rhs(10) = half*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))
+                rhs(11) = m2y(i,j+1,k,3) - m2y(i,j,k,3)
+                rhs(12) = half*(ayp*fcy(i,j+1,k,3) + aym*fcy(i,j,k,3))
+                !
+                rhs(13) = m2z(i,j,k+1,1) - m2z(i,j,k,1)
+                rhs(14) = m2z(i,j,k+1,2) - m2z(i,j,k,2)
+                rhs(15) = fourth*(azp-azm)
+                rhs(16) = m2z(i,j,k+1,3) - m2z(i,j,k,3)
+                rhs(17) = half*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))
+                rhs(18) = half*(azp*fcz(i,j,k+1,2) + azm*fcz(i,j,k,2))
 
+                b(1) = two*rhs(1) + rhs(10) + rhs(17)
+                b(2) = rhs(4) + two*rhs(8) + rhs(18)
+                b(3) = rhs(5) + rhs(12) + two*rhs(15)
+                b(4) = -nx*rhs(1) - ny*rhs(7) - nz*rhs(13)
+                b(5) = -nx*rhs(2) - ny*rhs(8) - nz*rhs(14)
+                b(6) = -nx*rhs(3) - ny*rhs(9) - nz*rhs(15)
+                b(7) = -nx*rhs(4) - ny*rhs(10) - nz*rhs(16)
+                b(8) = -nx*rhs(5) - ny*rhs(11) - nz*rhs(17)
+                b(9) = -nx*rhs(6) - ny*rhs(12) - nz*rhs(18)
 
-                ! xxxxx clamp
+                ny2 = ny*ny
+                ny3 = ny2*ny
+                ny4 = ny3*ny
+                nz2 = nz*nz
+                nz3 = nz2*nz
+                nz4 = nz3*nz
+                nz5 = nz4*nz
+
+                Sx = (five*(b(1)*(five - three*ny2) + two*b(4)*nx*(five - three*ny2) + &
+                     ny*(nx*(b(2) + two*b(5)*ny) + b(7)*(six - four*ny2))) + &
+                     (two*b(8)*(fifteen - eleven*ny2 + ny4) + &
+                     nx*(b(3)*(five - two*ny2) - two*b(9)*ny*(-five + ny2)))*nz + &
+                     (-22.d0*b(7)*ny - two*nx*(fifteen*b(4) - five*b(6) + b(2)*ny) + &
+                     ny2*((sixteen*b(4) - four*(b(5) + b(6)))*nx + ten*b(7)*ny) + &
+                     b(1)*(-fifteen + eight*ny2))*nz2 + &
+                     two*(-(b(9)*nx*ny) + five*b(8)*(-two + ny2))*nz3 + &
+                     two*b(7)*ny*nz4)
+
+                Sy = (five*(two*b(7)*nx*(one + two*ny2) + b(2)*(two + three*ny2) + &
+                     ny*(b(1)*nx - two*b(4)*(-one + ny2) + b(5)*(four + six*ny2))) + &
+                     (two*b(9)*(five + nine*ny2 + ny4) + &
+                     ny*(two*b(8)*nx*(four + ny2) + b(3)*(three + two*ny2)))*nz + &
+                     (two*b(7)*nx*(four - five*ny2) - eight*b(2)*(-one + ny2) + &
+                     two*ny*(-seven*b(4) + eight*b(5) + three*b(6) - b(1)*nx + &
+                     two*(b(4) - four*b(5) + b(6))*ny2))*nz2 + &
+                     two*(b(3)*ny + b(9)*(four - three*ny2))*nz3 + &
+                     (-eight*(b(2) + b(7)*nx) + four*(b(4) - four*b(5) + b(6))*ny)*nz4 - &
+                     eight*b(9)*nz5)
+
+                Sz = (-two*(b(3) + b(8)*nx + b(9)*ny)*(-five - four*ny2 + four*ny4) + &
+                     (five*(two*b(4) + four*b(6) + b(1)*nx) + (three*b(2) + eight*b(7)*nx)*ny - &
+                     two*(seven*b(4) - three*b(5) - eight*b(6) + b(1)*nx)*ny2 + &
+                     two*b(2)*ny3 + four*(b(4) + b(5) - four*b(6))*ny4)*nz + &
+                     (b(3)*(fifteen - eight*ny2) - six*b(9)*ny*(-three + ny2) - &
+                     ten*b(8)*nx*(-two + ny2))*nz2 + &
+                     two*(-five*b(4) + fifteen*b(6) + (b(2) + b(7)*nx)*ny + &
+                     two*(b(4) + b(5) - four*b(6))*ny2)*nz3 + two*b(9)*ny*nz4)
+
+                den = one / (ten*(five + four*nz2 - four*nz4 + two*ny4*(-two + nz2) + &
+                     two*ny2*(two - three*nz2 + nz4)) * (vfrac(i,j,k)+1.d-50) )
+
+                vcent(i,j,k,1) = sx * den
+                vcent(i,j,k,2) = Sy * den
+                vcent(i,j,k,3) = Sz * den
+
+                ! clamp?
 
                 ! should we remove small cells? probably not safe to do it here
                 ! because it affects face area
