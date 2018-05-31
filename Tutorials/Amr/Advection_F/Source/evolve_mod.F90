@@ -2,7 +2,7 @@ module evolve_module
 
   use amrex_amr_module
 
-  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute, amrex_get_particles, amrex_num_particles, amrex_tracerparticle
+  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute, amrex_get_particles, amrex_tracerparticle
   
   implicit none
   private
@@ -11,56 +11,6 @@ module evolve_module
 
 contains
 
-  subroutine advect_particles(particles, np, &
-       ux, uxlo, uxhi, uy, uylo, uyhi, dt, dx, plo) bind(c)
-    use iso_c_binding
-    use amrex_fort_module, only : amrex_real
-    use amrex_amrtracerparticlecontainer_module, only : amrex_tracerparticle
-
-    integer,                    intent(in)         :: np
-    type(amrex_tracerparticle), target, intent(inout)      :: particles(np)
-    integer,                    intent(in)         :: uxlo(2), uxhi(2)
-    integer,                    intent(in)         :: uylo(2), uyhi(2)
-    real(amrex_real),           intent(in)         :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2))
-    real(amrex_real),           intent(in)         :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2))
-    real(amrex_real),           intent(in)         :: dt
-    real(amrex_real),           intent(in)         :: plo(AMREX_SPACEDIM)
-    real(amrex_real),           intent(in)         :: dx(AMREX_SPACEDIM)
-
-    integer i, j, k, n, ipass
-    real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
-    real(amrex_real) lx, ly, lz
-    real(amrex_real) inv_dx(AMREX_SPACEDIM)
-    type(amrex_tracerparticle), pointer :: p
-
-    inv_dx = 1.0d0/dx
-
-    do ipass = 1, 2
-       do n = 1, np
-          p => particles(n)
-
-          lx = (p%pos(1) - plo(1))*inv_dx(1) + 0.5d0
-          ly = (p%pos(2) - plo(2))*inv_dx(2) + 0.5d0
-          
-          i = floor(lx)
-          j = floor(ly)
-          
-          wx_hi = lx - i
-          wy_hi = ly - j
-          
-          wx_lo = 1.0d0 - wx_hi
-          wy_lo = 1.0d0 - wy_hi
-          
-          ! update the particle positions / velocities
-          p%vel(1) = p%vel(1)
-          p%vel(2) = p%vel(2)
-          
-          p%pos(1) = p%pos(1)
-          p%pos(2) = p%pos(2)
-       end do
-    end do
-  end subroutine advect_particles
-  
   subroutine evolve ()
     use my_amr_module, only : stepno, max_step, stop_time, dt, plot_int
     use amr_data_module, only : phi_old, phi_new, t_new
@@ -177,7 +127,7 @@ contains
     use my_amr_module, only : verbose, do_reflux
     use amr_data_module, only : phi_new, flux_reg
     use face_velocity_module, only : get_face_velocity
-    use advect_module, only : advect
+    use advect_module, only : advect, advect_particles
     use fillpatch_module, only : fillpatch
     integer, intent(in) :: lev, step, substep, nsub
     real(amrex_real), intent(in) :: time, dt
@@ -273,12 +223,15 @@ contains
           end do
        end if
 
-!   advance particles on this tile
+       ! advance particles on this tile
        particles => amrex_get_particles(lev, mfi)
        if (size(particles) .gt. 0) then
           call advect_particles(particles, size(particles), &
                pux, lbound(pux), ubound(pux), &
                puy, lbound(puy), ubound(puy), &
+#if BL_SPACEDIM == 3
+               puz, lbound(puz), ubound(puz), &
+#endif
                dt, amrex_geom(lev)%dx, amrex_problo)
        end if
        
