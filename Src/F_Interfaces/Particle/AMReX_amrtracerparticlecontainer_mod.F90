@@ -20,7 +20,7 @@ module amrex_amrtracerparticlecontainer_module
      integer(c_int)               :: id
      integer(c_int)               :: cpu
   end type amrex_tracerparticle
-     
+
   interface
      subroutine amrex_fi_new_amrtracerparticlecontainer (tracerpc,amrcore) bind(c)
        import
@@ -57,12 +57,13 @@ module amrex_amrtracerparticlecontainer_module
        integer(c_int), value :: lev_min, lev_max, ng
      end subroutine amrex_fi_particle_redistribute
 
-     subroutine amrex_fi_get_particles(tracerpc, lev, mfi, dp) bind(c)
+     subroutine amrex_fi_get_particles(tracerpc, lev, mfi, dp, np) bind(c)
        import
        implicit none
        integer(c_int), value :: lev
        type(c_ptr),    value :: tracerpc, mfi
        type(c_ptr)           :: dp
+       integer(c_long)       :: np
      end subroutine amrex_fi_get_particles
 
      subroutine amrex_fi_num_particles(tracerpc, lev, mfi, np) bind(c)
@@ -113,13 +114,14 @@ contains
     call amrex_fi_particle_redistribute(amrtracerparticlecontainer, min, max, ng)
   end subroutine amrex_particle_redistribute
 
-  function amrex_get_particles(lev, mfi) result(dp)
-    integer(c_int), intent(in)     :: lev
+  function amrex_get_particles(lev, mfi) result(particles)
+    integer(c_int),     intent(in) :: lev
     type(amrex_mfiter), intent(in) :: mfi
-    type(c_ptr), pointer :: dp
-    type(c_ptr), target  :: data
-    call amrex_fi_get_particles(amrtracerparticlecontainer, lev, mfi%p, data)
-    dp => data
+    type(amrex_tracerparticle), pointer :: particles(:)
+    type(c_ptr), target            :: data
+    integer(c_long)                :: np
+    call amrex_fi_get_particles(amrtracerparticlecontainer, lev, mfi%p, data, np)
+    call c_f_pointer(data, particles, [np])
   end function amrex_get_particles
 
   function amrex_num_particles(lev, mfi) result(np)
