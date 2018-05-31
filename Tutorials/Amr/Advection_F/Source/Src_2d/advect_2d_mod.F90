@@ -173,7 +173,6 @@ contains
           w_hi = length + 0.5d0 - cell          
           w_lo = 1.d0 - w_hi
 
-          ! x direction
           do d = 1, 2
              e_cell = cell
              e_cell(d) = cc_cell(d) + 1
