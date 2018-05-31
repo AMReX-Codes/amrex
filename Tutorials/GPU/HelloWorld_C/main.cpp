@@ -1,3 +1,5 @@
+#include <cuda_device_runtime_api.h>
+
 #include <iostream>
 #include <AMReX.H>
 #include <AMReX_Print.H>
@@ -42,6 +44,9 @@ void kernel_BaseFabInt(amrex::BaseFab<int> *bf1, int *val, amrex::IntVect *iv)
 AMREX_CUDA_GLOBAL
 void kernel_BaseFabCopy(amrex::BaseFab<amrex::Real> *bf1, amrex::BaseFab<amrex::Real> *bf2)
 {
+  
+  void* mem = new int(1000);
+//  cudaMalloc(&mem, 1000);
   amrex::Box bx1 = bf1->box(); 
   amrex::Box bx2 = bx1;
   for (int i=0; i<3; ++i)
@@ -50,7 +55,14 @@ void kernel_BaseFabCopy(amrex::BaseFab<amrex::Real> *bf1, amrex::BaseFab<amrex::
   }
 
   bf1->copy(*bf2, bx1, 0, bx2, 0, 1);
+
+  bf1->copyToMem(bx1, 0, 1, mem);
+  bf2->copyFromMem(bx1, 0, 1, mem);
+  delete(mem);
+//  cudaFree(mem);
 }
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 int main (int argc, char* argv[])
 {
@@ -128,9 +140,6 @@ int main (int argc, char* argv[])
       cudaPointerGetAttributes(&ptr_attr, d_bf2->dataPtr());
       amrex::Print() << "d_bf2.dataPtr().isManaged = " << ptr_attr.isManaged << std::endl;
 
-//  amrex::Real value_new = 20.0;
-//  amrex_fort_fab_setval(baseBox.loVect(), baseBox.hiVect(), d_bf1->dataPtr(0), baseBox.loVect(), baseBox.hiVect(), 0, &value_new);
-
       int blockSize = 1;
       int numBlocks = 1;
       kernel_BaseFabReal<<<numBlocks,blockSize>>>(d_bf1, d_val_gpu, bigEnd);
@@ -160,7 +169,7 @@ int main (int argc, char* argv[])
                         "**********************************" << std::endl << std::endl;
 
       amrex::BaseFab<amrex::Real> *d_bf3 = new amrex::BaseFab<amrex::Real>(baseBox);
-      d_bf1->setVal(-0.017, baseBox, 0, 1);
+      d_bf3->setVal(-0.017, baseBox, 0, 1);
      
 
       kernel_BaseFabCopy<<<numBlocks,blockSize>>>(d_bf1, d_bf3);
@@ -170,8 +179,15 @@ int main (int argc, char* argv[])
 
       amrex::Print() << "BaseFab Copy Test " << std::endl <<
                         "........................." << std::endl <<
-                        "Min Val = "  << val_old << std::endl << 
-                        "Max Val = "  << val_new << std::endl; 
+                        "bf1 Min Val = "  << val_old << std::endl << 
+                        "bf1 Max Val = "  << val_new << std::endl; 
+
+      d_bf3->getVal(&val_old,d_bf3->smallEnd());
+      d_bf3->getVal(&val_new,d_bf3->bigEnd());
+
+      amrex::Print() << "bf2 Min Val = "  << val_old << std::endl << 
+                        "bf2 Max Val = "  << val_new << std::endl; 
+
     }
 
 

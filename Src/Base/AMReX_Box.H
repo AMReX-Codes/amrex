@@ -246,7 +246,7 @@ public:
 
     /**
     * \brief Returns the number of points contained in the Box.
-    * This is inteded for use only in diagnostic messages.
+    * This is intended for use only in diagnostic messages.
     */
     double d_numPts () const {
         BL_ASSERT(ok());

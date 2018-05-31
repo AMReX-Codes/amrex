@@ -28,30 +28,8 @@ contains
     end do
   end subroutine amrex_fort_fab_copy
 
-  attributes(device) subroutine amrex_fort_fab_copy_device(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
-       bind(c,name='amrex_fort_fab_copy_device')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
-    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
-    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
-    integer :: i,j,k,n,off(3)
-
-    off = sblo - lo
-
-    do n = 1, ncomp
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                dst(i,j,k,n) = src(i+off(1),j+off(2),k+off(3),n)
-             end do
-          end do
-       end do
-    end do
-  end subroutine amrex_fort_fab_copy_device
-    
-  
   ! copy from multi-d array to 1d array
-  function amrex_fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) result(nelems) &
+  attributes(host) function amrex_fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) result(nelems) &
        bind(c,name='amrex_fort_fab_copytomem')
     use iso_c_binding, only : c_long
     integer(c_long) :: nelems
@@ -80,7 +58,7 @@ contains
 
 
   ! copy from 1d array to multi-d array
-  function amrex_fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) result(nelems) &
+  attributes(host) function amrex_fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) result(nelems) &
        bind(c,name='amrex_fort_fab_copyfrommem')
     use iso_c_binding, only : c_long
     integer(c_long) :: nelems
@@ -126,28 +104,6 @@ contains
        end do
     end do
   end subroutine amrex_fort_fab_setval
-
-
-  attributes(device) subroutine amrex_fort_fab_setval_device(lo, hi, dst, dlo, dhi, ncomp, val) &
-       bind(c,name='amrex_fort_fab_setval_device')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
-    real(amrex_real), intent(in) :: val
-    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-
-    integer :: i, j, k, n
-
-    do n = 1, ncomp
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                dst(i,j,k,n) = val
-             end do
-          end do
-       end do
-    end do
-  end subroutine amrex_fort_fab_setval_device
-
-
 
 
   function amrex_fort_fab_norminfmask (lo, hi, msk, mlo, mhi, src, slo, shi, ncomp) result(nrm) &
@@ -228,7 +184,7 @@ contains
   end function amrex_fort_fab_sum
 
 
-  subroutine amrex_fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+  attributes(host) subroutine amrex_fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
        bind(c,name='amrex_fort_fab_plus')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -250,7 +206,7 @@ contains
   end subroutine amrex_fort_fab_plus
 
 
-  subroutine amrex_fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+  attributes(host) subroutine amrex_fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
        bind(c,name='amrex_fort_fab_minus')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -272,7 +228,7 @@ contains
   end subroutine amrex_fort_fab_minus
 
 
-  subroutine amrex_fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+  attributes(host) subroutine amrex_fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
        bind(c,name='amrex_fort_fab_mult')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -294,7 +250,7 @@ contains
   end subroutine amrex_fort_fab_mult
 
 
-  subroutine amrex_fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+  attributes(host) subroutine amrex_fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
        bind(c,name='amrex_fort_fab_divide')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -674,4 +630,217 @@ contains
     
   end subroutine amrex_fab_setval_ifnot
     
+! ===============================================================================
+
+  attributes(device) subroutine amrex_fort_fab_copy_device(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='amrex_fort_fab_copy_device')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = sblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_copy_device
+
+
+  attributes(device) function amrex_fort_fab_copytomem_device (lo, hi, dst, src, slo, shi, ncomp) result(nelems) &
+       bind(c,name='amrex_fort_fab_copytomem_device')
+    use iso_c_binding, only : c_long
+    integer(c_long) :: nelems
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
+    real(amrex_real)             :: dst(*)
+    real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+
+    integer :: i, j, k, n, nx
+    integer(c_long) :: offset
+
+    nx = hi(1)-lo(1)+1
+    offset = 1-lo(1)
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(offset+i) = src(i,j,k,n) 
+             end do
+             offset = offset + nx
+          end do
+       end do
+    end do    
+
+    nelems = offset - (1-lo(1))
+  end function amrex_fort_fab_copytomem_device
+
+
+  attributes(device) function amrex_fort_fab_copyfrommem_device (lo, hi, dst, dlo, dhi, ncomp, src) result(nelems) &
+       bind(c,name='amrex_fort_fab_copyfrommem_device')
+    use iso_c_binding, only : c_long
+    integer(c_long) :: nelems
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
+    real(amrex_real), intent(in   ) :: src(*)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+    integer :: i, j, k, n, nx
+    integer(c_long) :: offset
+
+    nx = hi(1)-lo(1)+1
+    offset = 1-lo(1)
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n)  = src(offset+i)
+             end do
+             offset = offset + nx
+          end do
+       end do
+    end do    
+
+    nelems = offset - (1-lo(1))
+  end function amrex_fort_fab_copyfrommem_device
+
+
+  attributes(device) subroutine amrex_fort_fab_setval_device(lo, hi, dst, dlo, dhi, ncomp, val) &
+       bind(c,name='amrex_fort_fab_setval_device')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
+    real(amrex_real), intent(in) :: val
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+    integer :: i, j, k, n
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = val
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_setval_device
+
+  attributes(device) subroutine amrex_fort_fab_plus_device(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='amrex_fort_fab_plus_device')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = sblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = dst(i,j,k,n) + src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_plus_device
+
+
+  attributes(device) subroutine amrex_fort_fab_minus_device(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='amrex_fort_fab_minus_device')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = sblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = dst(i,j,k,n) - src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_minus_device
+
+
+  attributes(device) subroutine amrex_fort_fab_mult_device(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='amrex_fort_fab_mult_device')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = sblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = dst(i,j,k,n) * src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_mult_device
+
+
+  attributes(device) subroutine amrex_fort_fab_divide_device(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='amrex_fort_fab_divide_device')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = sblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = dst(i,j,k,n) / src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_divide_device
+
+  ! dst = a*x + b*y
+  attributes(device) subroutine amrex_fort_fab_lincomb_device(lo, hi, dst, dlo, dhi, a, x, xlo, xhi, xblo, &
+       b, y, ylo, yhi, yblo, ncomp) bind(c,name='amrex_fort_fab_lincomb_device')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), xlo(3), xhi(3), xblo(3), &
+         ylo(3), yhi(3), yblo(3), ncomp
+    real(amrex_real), intent(in   ) :: a, b
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
+    real(amrex_real), intent(in   ) ::   y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
+    
+    integer :: i,j,k,n,xoff(3),yoff(3)
+
+    xoff = xblo - lo
+    yoff = yblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = a * x(i+xoff(1),j+xoff(2),k+xoff(3),n) &
+                     +         b * y(i+yoff(1),j+yoff(2),k+yoff(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine amrex_fort_fab_lincomb_device
+
 end module basefab_nd_module
