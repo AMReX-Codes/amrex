@@ -120,9 +120,9 @@ public:
 #if (AMREX_SPACEDIM == 1)
         return vect[0];
 #elif (AMREX_SPACEDIM == 2)
-        return std::max(vect[0],vect[1]);
+        return (vect[0] > vect[1] ? vect[0] : vect[1]);
 #else
-        return std::max(vect[0],std::max(vect[1],vect[2]));
+        return (vect[0] > vect[1] ? (vect[0] > vect[2] ? vect[0] : vect[2]) : (vect[1] > vect[2] ? vect[1] : vect[2]));
 #endif
     }
 
@@ -133,9 +133,9 @@ public:
 #if (AMREX_SPACEDIM == 1)
         return vect[0];
 #elif (AMREX_SPACEDIM == 2)
-        return std::min(vect[0],vect[1]);
+        return (vect[0] < vect[1] ? vect[0] : vect[1]);
 #else
-        return std::min(vect[0],std::min(vect[1],vect[2]));
+        return (vect[0] < vect[1] ? (vect[0] < vect[2] ? vect[0] : vect[2]) : (vect[1] < vect[2] ? vect[1] : vect[2]));
 #endif
     }
 
@@ -341,18 +341,18 @@ public:
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& min (const IntVect& p)
     {
-        AMREX_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
-                     vect[1] = std::min(vect[1], p.vect[1]),
-                     vect[2] = std::min(vect[2], p.vect[2]));
+        AMREX_D_EXPR(vect[0] = (vect[0] < p.vect[0] ? vect[0] : p.vect[0]),
+                     vect[1] = (vect[1] < p.vect[1] ? vect[1] : p.vect[1]),
+                     vect[2] = (vect[2] < p.vect[2] ? vect[2] : p.vect[2]));
         return *this;
     }
     //! Modifies IntVect by taking component-wise max with argument.
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& max (const IntVect& p)
     {
-        AMREX_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
-                     vect[1] = std::max(vect[1], p.vect[1]),
-                     vect[2] = std::max(vect[2], p.vect[2]));
+        AMREX_D_EXPR(vect[0] = (vect[0] > p.vect[0] ? vect[0] : p.vect[0]),
+                     vect[1] = (vect[1] > p.vect[1] ? vect[1] : p.vect[1]),
+                     vect[2] = (vect[2] > p.vect[2] ? vect[2] : p.vect[2]));
         return *this;
     }
     //! Modify IntVect by multiplying each coordinate by s.

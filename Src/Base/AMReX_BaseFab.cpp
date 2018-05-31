@@ -203,10 +203,19 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
+#ifdef __CUDA_ARCH__
+	long nreal =  amrex_fort_fab_copytomem_device(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
+                                         static_cast<Real*>(dst),
+                                         BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                         &numcomp);
+#else
 	long nreal =  amrex_fort_fab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
                                          static_cast<Real*>(dst),
                                          BL_TO_FORTRAN_N_3D(*this,srccomp),
                                          &numcomp);
+#endif
+
+
         return sizeof(Real) * nreal;
     }
     else
@@ -227,9 +236,15 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok()) 
     {
+#ifdef __CUDA_ARCH__
+	long nreal = amrex_fort_fab_copyfrommem_device(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
+                                          BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                          static_cast<const Real*>(src));
+#else
 	long nreal = amrex_fort_fab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
                                           BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
                                           static_cast<const Real*>(src));
+#endif
         return sizeof(Real) * nreal;
     }
     else
@@ -342,10 +357,17 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef __CUDA_ARCH__
+    amrex_fort_fab_plus_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+		  BL_TO_FORTRAN_N_3D(*this,destcomp),
+		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+		  &numcomp);
+#else
     amrex_fort_fab_plus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
 		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
 		  &numcomp);
+#endif
 
     return *this;
 }
@@ -366,10 +388,17 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef __CUDA_ARCH__
+    amrex_fort_fab_mult_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+		  BL_TO_FORTRAN_N_3D(*this,destcomp),
+		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+		  &numcomp);
+#else
     amrex_fort_fab_mult(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
 		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
 		  &numcomp);
+#endif
     return *this;
 }
 
@@ -463,10 +492,18 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef __CUDA_ARCH__
+    amrex_fort_fab_minus_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+		   BL_TO_FORTRAN_N_3D(*this,destcomp),
+		   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+		   &numcomp);
+#else
     amrex_fort_fab_minus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
 		   BL_TO_FORTRAN_N_3D(*this,destcomp),
 		   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
 		   &numcomp);
+#endif
+
     return *this;
 }
 
@@ -486,10 +523,18 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef __CUDA_ARCH__
+    amrex_fort_fab_divide_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+		    BL_TO_FORTRAN_N_3D(*this,destcomp),
+		    BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+		    &numcomp);
+#else
     amrex_fort_fab_divide(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
 		    BL_TO_FORTRAN_N_3D(*this,destcomp),
 		    BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
 		    &numcomp);
+#endif
+
     return *this;
 }
 
@@ -542,11 +587,20 @@ BaseFab<Real>::linComb (const BaseFab<Real>& f1,
     BL_ASSERT(comp2 >= 0 && comp2+numcomp <= f2.nComp());
     BL_ASSERT(comp  >= 0 && comp +numcomp <=    nComp());
 
+#ifdef __CUDA_ARCH__
+    amrex_fort_fab_lincomb_device(AMREX_ARLIM_3D(b.loVect()), AMREX_ARLIM_3D(b.hiVect()),
+		     BL_TO_FORTRAN_N_3D(*this,comp),
+		     &alpha, BL_TO_FORTRAN_N_3D(f1,comp1), AMREX_ARLIM_3D(b1.loVect()),
+		     &beta,  BL_TO_FORTRAN_N_3D(f2,comp2), AMREX_ARLIM_3D(b2.loVect()),
+		     &numcomp);
+#else
     amrex_fort_fab_lincomb(AMREX_ARLIM_3D(b.loVect()), AMREX_ARLIM_3D(b.hiVect()),
 		     BL_TO_FORTRAN_N_3D(*this,comp),
 		     &alpha, BL_TO_FORTRAN_N_3D(f1,comp1), AMREX_ARLIM_3D(b1.loVect()),
 		     &beta,  BL_TO_FORTRAN_N_3D(f2,comp2), AMREX_ARLIM_3D(b2.loVect()),
 		     &numcomp);
+#endif
+
     return *this;
 }
 

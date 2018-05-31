@@ -403,10 +403,13 @@ public:
     BaseFab<T>& copy (const BaseFab<T>& src);
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     std::size_t copyToMem (const Box& srcbox,
                            int        srccomp,
                            int        numcomp,
                            void*      dst) const;
+
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     //! Copy from raw memory to the dstbox of this Fab and return the number of bytes copied
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
