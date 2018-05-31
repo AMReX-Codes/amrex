@@ -130,46 +130,102 @@ contains
     use amrex_fort_module, only : amrex_real
     use amrex_amrtracerparticlecontainer_module, only : amrex_tracerparticle
 
-    integer,                    intent(in)         :: np
-    type(amrex_tracerparticle), target, intent(inout)      :: particles(np)
-    integer,                    intent(in)         :: uxlo(2), uxhi(2)
-    integer,                    intent(in)         :: uylo(2), uyhi(2)
-    real(amrex_real),           intent(in)         :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2))
-    real(amrex_real),           intent(in)         :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2))
-    real(amrex_real),           intent(in)         :: dt
-    real(amrex_real),           intent(in)         :: plo(2)
-    real(amrex_real),           intent(in)         :: dx(2)
+    integer,                    intent(in)            :: np
+    type(amrex_tracerparticle), intent(inout)         :: particles(np)
+    integer,                    intent(in)            :: uxlo(2), uxhi(2)
+    integer,                    intent(in)            :: uylo(2), uyhi(2)
+    real(amrex_real),           intent(in)            :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2))
+    real(amrex_real),           intent(in)            :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2))
+    real(amrex_real),           intent(in)            :: dt
+    real(amrex_real),           intent(in)            :: plo(2)
+    real(amrex_real),           intent(in)            :: dx(2)
 
-    integer i, j, k, n, ipass
-    real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
-    real(amrex_real) lx, ly, lz
-    real(amrex_real) inv_dx(AMREX_SPACEDIM)
-    type(amrex_tracerparticle), pointer :: p
+    integer cell(2)
+    integer cc_cell(2)
+    integer e_cell(2)
+    
+    integer ipass, n, d, j
+    real(amrex_real) w_lo(2), w_hi(2)
+    real(amrex_real) e_lo(2), e_hi(2)
+    real(amrex_real) length(2)
+    real(amrex_real) inv_dx(2)
+    real(amrex_real) vel
 
     inv_dx = 1.0d0/dx
 
     do ipass = 1, 2
        do n = 1, np
-          p => particles(n)
 
-          lx = (p%pos(1) - plo(1))*inv_dx(1) + 0.5d0
-          ly = (p%pos(2) - plo(2))*inv_dx(2) + 0.5d0
+          length = (particles(n)%pos - plo)*inv_dx          
+
+          cc_cell = floor(length)
+          cell    = floor(length + 0.5d0)
           
-          i = floor(lx)
-          j = floor(ly)
-          
-          wx_hi = lx - i
-          wy_hi = ly - j
-          
-          wx_lo = 1.0d0 - wx_hi
-          wy_lo = 1.0d0 - wy_hi
-          
-          ! update the particle positions / velocities
-          p%vel(1) = p%vel(1)
-          p%vel(2) = p%vel(2)
-          
-          p%pos(1) = p%pos(1)
-          p%pos(2) = p%pos(2)
+          w_hi = length - cell          
+          w_lo = 1.d0 - w_hi
+
+          ! x direction
+          e_cell = cell
+          e_cell(1) = cc_cell(1) + 1
+
+          e_lo = w_lo
+          e_hi = w_hi
+
+          e_hi(1) = length(1) - cc_cell(1)
+          do j = 1, 2
+             if (e_hi(j) > 1.d0) then
+                e_hi(j) = 1.d0
+             end if
+             if (e_hi(j) < 0.d0) then
+                e_hi(j) = 0.d0
+             end if
+          end do
+          e_lo(1) = 1.d0 - e_hi(1)
+
+          vel = e_lo(1)*e_lo(2)*ux(e_cell(1)-1, e_cell(2)-1) + &
+                e_lo(1)*e_hi(2)*ux(e_cell(1)-1, e_cell(2)  ) + &
+                e_hi(1)*e_lo(2)*ux(e_cell(1)  , e_cell(2)-1) + &
+                e_hi(1)*e_hi(2)*ux(e_cell(1)  , e_cell(2)  )
+
+          if (ipass == 0) then
+             particles(n)%vel(1) = particles(n)%pos(1)
+             particles(n)%pos(1) = 0.5d0*dt*vel
+          else
+             particles(n)%pos(1) = particles(n)%vel(1) + dt*vel
+             particles(n)%vel(1) = vel
+          end if
+
+          ! y direction
+          e_cell = cell
+          e_cell(2) = cc_cell(2) + 1
+
+          e_lo = w_lo
+          e_hi = w_hi
+
+          e_hi(2) = length(2) - cc_cell(2)
+          do j = 1, 2
+             if (e_hi(j) > 1.d0) then
+                e_hi(j) = 1.d0
+             end if
+             if (e_hi(j) < 0.d0) then
+                e_hi(j) = 0.d0
+             end if
+          end do
+          e_lo(2) = 1.d0 - e_hi(2)
+
+          vel = e_lo(1)*e_lo(2)*uy(e_cell(1)-1, e_cell(2)-1) + &
+                e_lo(1)*e_hi(2)*uy(e_cell(1)-1, e_cell(2)  ) + &
+                e_hi(1)*e_lo(2)*uy(e_cell(1)  , e_cell(2)-1) + &
+                e_hi(1)*e_hi(2)*uy(e_cell(1)  , e_cell(2)  )
+
+          if (ipass == 0) then
+             particles(n)%vel(2) = particles(n)%pos(2)
+             particles(n)%pos(2) = 0.5d0*dt*vel
+          else
+             particles(n)%pos(2) = particles(n)%vel(2) + dt*vel
+             particles(n)%vel(2) = vel
+          end if
+                    
        end do
     end do
   end subroutine advect_particles
