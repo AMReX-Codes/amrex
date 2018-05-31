@@ -2,7 +2,7 @@ module initdata_module
 
   use amrex_amr_module
 
-  use amrex_amrtracerparticlecontainer_module, only: amrex_amrtracerparticlecontainer_init, &
+  use amrex_particlecontainer_module, only: amrex_particlecontainer_init, &
        amrex_init_particles_one_per_cell, amrex_particle_redistribute
   use my_amr_module, only : restart, plot_int
   use plotfile_module, only : writeplotfile
@@ -23,7 +23,7 @@ contains
        call averagedown()
 
        amrcore = amrex_get_amrcore()
-       call amrex_amrtracerparticlecontainer_init(amrcore)
+       call amrex_particlecontainer_init(amrcore)
        call amrex_init_particles_one_per_cell()
        call amrex_particle_redistribute()
        

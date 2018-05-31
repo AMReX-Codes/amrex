@@ -154,10 +154,10 @@ subroutine advect_particles(particles, np, &
      ux, uxlo, uxhi, uy, uylo, uyhi, uz, uzlo, uzhi, dt, dx, plo) bind(c)
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
-  use amrex_amrtracerparticlecontainer_module, only : amrex_tracerparticle
+  use amrex_particlecontainer_module, only : amrex_particle
   
   integer,                    intent(in)            :: np
-  type(amrex_tracerparticle), target, intent(inout) :: particles(np)
+  type(amrex_particle),       target, intent(inout) :: particles(np)
   integer,                    intent(in)            :: uxlo(3), uxhi(3)
   integer,                    intent(in)            :: uylo(3), uyhi(3)
   integer,                    intent(in)            :: uzlo(3), uzhi(3)

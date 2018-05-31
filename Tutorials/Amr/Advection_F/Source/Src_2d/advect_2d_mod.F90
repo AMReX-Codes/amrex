@@ -128,10 +128,10 @@ contains
        ux, uxlo, uxhi, uy, uylo, uyhi, dt, dx, plo) bind(c)
     use iso_c_binding
     use amrex_fort_module, only : amrex_real
-    use amrex_amrtracerparticlecontainer_module, only : amrex_tracerparticle
+    use amrex_particlecontainer_module, only : amrex_particle
 
     integer,                    intent(in)            :: np
-    type(amrex_tracerparticle), intent(inout)         :: particles(np)
+    type(amrex_particle),       intent(inout)         :: particles(np)
     integer,                    intent(in)            :: uxlo(2), uxhi(2)
     integer,                    intent(in)            :: uylo(2), uyhi(2)
     real(amrex_real), target,   intent(in)            :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2))
