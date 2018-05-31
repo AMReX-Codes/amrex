@@ -3,6 +3,7 @@
 #define AMREX_ARRAY_H_
 
 #include <array>
+#include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_REAL.H>
 
