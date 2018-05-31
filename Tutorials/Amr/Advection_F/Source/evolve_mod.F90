@@ -11,16 +11,21 @@ module evolve_module
 
 contains
 
-  subroutine timestep_particles(particles_c_ptr, np, dt, dx, plo) bind(c)
+  subroutine advect_particles(particles_c_ptr, np, &
+       ux, uxlo, uxhi, uy, uylo, uyhi, dt, dx, plo) bind(c)
     use iso_c_binding
     use amrex_fort_module, only : amrex_real
     use amrex_amrtracerparticlecontainer_module, only : amrex_tracerparticle
 
-    integer,                    intent(in   )         :: np
-    type(c_ptr), value,         intent(in   )         :: particles_c_ptr 
-    real(amrex_real),           intent(in   )         :: dt
-    real(amrex_real),           intent(in   )         :: plo(AMREX_SPACEDIM)
-    real(amrex_real),           intent(in   )         :: dx(AMREX_SPACEDIM)
+    integer,                    intent(in)         :: np
+    type(c_ptr), value,         intent(in)         :: particles_c_ptr
+    integer,                    intent(in)         :: uxlo(2), uxhi(2)
+    integer,                    intent(in)         :: uylo(2), uyhi(2)
+    real(amrex_real),           intent(in)         :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2))
+    real(amrex_real),           intent(in)         :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2))
+    real(amrex_real),           intent(in)         :: dt
+    real(amrex_real),           intent(in)         :: plo(AMREX_SPACEDIM)
+    real(amrex_real),           intent(in)         :: dx(AMREX_SPACEDIM)
 
     integer i, j, k, n, ipass
     real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
@@ -30,6 +35,7 @@ contains
     type(amrex_tracerparticle), pointer :: p
 
     inv_dx = 1.0d0/dx
+
     call c_f_pointer(particles_c_ptr, particles, [np])
 
     do ipass = 1, 2
@@ -38,19 +44,15 @@ contains
 
           lx = (p%pos(1) - plo(1))*inv_dx(1) + 0.5d0
           ly = (p%pos(2) - plo(2))*inv_dx(2) + 0.5d0
-          lz = (p%pos(3) - plo(3))*inv_dx(3) + 0.5d0
           
           i = floor(lx)
           j = floor(ly)
-          k = floor(lz)
           
           wx_hi = lx - i
           wy_hi = ly - j
-          wz_hi = lz - k
           
           wx_lo = 1.0d0 - wx_hi
           wy_lo = 1.0d0 - wy_hi
-          wz_lo = 1.0d0 - wz_hi
           
           ! update the particle positions / velocities
           p%vel(1) = p%vel(1)
@@ -60,7 +62,7 @@ contains
           p%pos(2) = p%pos(2)
        end do
     end do
-  end subroutine timestep_particles
+  end subroutine advect_particles
   
   subroutine evolve ()
     use my_amr_module, only : stepno, max_step, stop_time, dt, plot_int
@@ -278,8 +280,10 @@ contains
        np = amrex_num_particles(lev, mfi)
        if (np .gt. 0) then
           particles => amrex_get_particles(lev, mfi)
-          call timestep_particles(particles, np, dt, &
-               amrex_geom(lev)%dx, amrex_problo)
+          call advect_particles(particles, np, &
+               pux, lbound(pux), ubound(pux), &
+               puy, lbound(puy), ubound(puy), &
+               dt, amrex_geom(lev)%dx, amrex_problo)
        end if
        
     end do
