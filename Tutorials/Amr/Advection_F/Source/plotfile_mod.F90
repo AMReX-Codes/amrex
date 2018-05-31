@@ -1,7 +1,7 @@
 module plotfile_module
 
   use amrex_amr_module
-  use amrex_amrtracerparticlecontainer_module, only: amrex_write_particles
+  use amrex_particlecontainer_module, only: amrex_write_particles
   use my_amr_module, only : plot_file, phi_new, t_new, stepno
 
   implicit none

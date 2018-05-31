@@ -2,8 +2,8 @@ module evolve_module
 
   use amrex_amr_module
 
-  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute, &
-       amrex_get_particles, amrex_tracerparticle
+  use amrex_particlecontainer_module, only: amrex_particle_redistribute, &
+       amrex_get_particles, amrex_particle
   
   implicit none
   private
@@ -155,7 +155,7 @@ contains
     type(amrex_fab) :: uface(amrex_spacedim)
     type(amrex_fab) ::  flux(amrex_spacedim)
     type(amrex_multifab) :: fluxes(amrex_spacedim)
-    type(amrex_tracerparticle), pointer :: particles(:)
+    type(amrex_particle), pointer :: particles(:)
     
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, 1X, A, 1X, I0, A, 1X, G0)') &
