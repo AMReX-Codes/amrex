@@ -161,16 +161,15 @@ contains
           cc_cell = floor(length)
           cell    = floor(length + 0.5d0)
           
-          w_hi = length - cell          
+          w_hi = length + 0.5d0 - cell          
           w_lo = 1.d0 - w_hi
 
           ! x direction
           e_cell = cell
           e_cell(1) = cc_cell(1) + 1
 
-          e_lo = w_lo
           e_hi = w_hi
-
+          e_lo = w_lo
           e_hi(1) = length(1) - cc_cell(1)
           do j = 1, 2
              if (e_hi(j) > 1.d0) then
@@ -199,9 +198,8 @@ contains
           e_cell = cell
           e_cell(2) = cc_cell(2) + 1
 
-          e_lo = w_lo
           e_hi = w_hi
-          
+          e_lo = w_lo
           e_hi(2) = length(2) - cc_cell(2)
           do j = 1, 2
              if (e_hi(j) > 1.d0) then
