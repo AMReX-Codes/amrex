@@ -157,6 +157,10 @@ contains
 
     type(dataptr), dimension(2) :: velocity
 
+    if (np == 0) then
+       return
+    end if
+    
     velocity(1)%p => ux
     velocity(2)%p => uy
     

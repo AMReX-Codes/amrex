@@ -236,15 +236,13 @@ contains
 
        ! advance particles on this tile
        particles => amrex_get_particles(lev, mfi)
-       if (size(particles) .gt. 0) then
-          call advect_particles(particles, size(particles), &
-               pux, lbound(pux), ubound(pux), &
-               puy, lbound(puy), ubound(puy), &
+       call advect_particles(particles, size(particles), &
+            pux, lbound(pux), ubound(pux), &
+            puy, lbound(puy), ubound(puy), &
 #if BL_SPACEDIM == 3
-               puz, lbound(puz), ubound(puz), &
+            puz, lbound(puz), ubound(puz), &
 #endif
-               dt, amrex_geom(lev)%dx, amrex_problo)
-       end if
+            dt, amrex_geom(lev)%dx, amrex_problo)
        
     end do
     call amrex_mfiter_destroy(mfi)
