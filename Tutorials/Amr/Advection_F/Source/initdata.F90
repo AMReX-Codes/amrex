@@ -3,7 +3,7 @@ module initdata_module
   use amrex_amr_module
 
   use amrex_amrtracerparticlecontainer_module, only: amrex_amrtracerparticlecontainer_init, &
-       amrex_init_particles_one_per_cell
+       amrex_init_particles_one_per_cell, amrex_particle_redistribute
   use my_amr_module, only : restart, plot_int
   use plotfile_module, only : writeplotfile
   use averagedown_module, only : averagedown
@@ -25,7 +25,8 @@ contains
        amrcore = amrex_get_amrcore()
        call amrex_amrtracerparticlecontainer_init(amrcore)
        call amrex_init_particles_one_per_cell()
-
+       call amrex_particle_redistribute()
+       
        if (plot_int .gt. 0) call writeplotfile
     else
        call amrex_abort("init from checkpoint not implemented yet")
