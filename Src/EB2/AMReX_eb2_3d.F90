@@ -196,6 +196,7 @@ contains
     integer :: i,j,k, ncuts
     real(amrex_real) :: cut
     real(amrex_real) :: lxm, lxp, lym, lyp, lzm, lzp, bcx, bcy, bcz
+    real(amrex_real), parameter :: sixteenth = 1.d0/16.d0
     real(amrex_real), parameter :: twentyfourth = 1.d0/24.d0
 
     ! x-face
@@ -561,30 +562,35 @@ contains
       real(amrex_real), intent(out) :: areafrac, centx, centy, Sx2, Sy2, Sxy
       real(amrex_real), intent(in) :: axm, axp, aym, ayp, bcx, bcy
 
-      real(amrex_real) :: apnorm, apnorminv, anrmx, anrmy, x_ym, x_yp, y_xm, y_xp, aa, af1, af2
-      real(amrex_real) :: rhs(8), b(7), signx, signy, den, ny2, ny3, ny4, ny5
+      real(amrex_real) :: apnorm, apnorminv, nx, ny, x_ym, x_yp, y_xm, y_xp, aa, af1, af2
+      real(amrex_real) :: dx, dx2, dx3, dx4, dy, dy2, dy3, dy4, nxabs, nyabs, S_b, signx, signy
+      real(amrex_real), parameter :: tiny = 1.d-15
+      real(amrex_real), parameter :: almostone = 1.d0-1.d-15
 
       apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2)
       apnorminv = one/apnorm
-      anrmx = (axm-axp) * apnorminv  ! pointing to the wall
-      anrmy = (aym-ayp) * apnorminv
+      nx = (axm-axp) * apnorminv  ! pointing to the wall
+      ny = (aym-ayp) * apnorminv
 
-      if (anrmx .eq. zero) then
+      nxabs = abs(nx)
+      nyabs = abs(ny)
+
+      if (nxabs .lt. tiny .or. nyabs .gt. almostone) then
          areafrac = axm
          centx = zero
-         centy = (eighth*(ayp-aym) + anrmy*half*bcy**2)/areafrac
+         centy = (eighth*(ayp-aym) + ny*half*bcy**2)/areafrac
          Sx2 = twentyfourth*(axm+axp)
-         Sy2 = twentyfourth*(ayp+aym) + anrmy*third*bcy**3
+         Sy2 = twentyfourth*(ayp+aym) + ny*third*bcy**3
          Sxy = zero
-      else if (anrmy .eq. zero) then
+      else if (nyabs .lt. tiny .or. nxabs .gt. almostone) then
          areafrac = aym
-         centx = (eighth*(axp-axm) + anrmx*half*bcx**2)/areafrac
+         centx = (eighth*(axp-axm) + nx*half*bcx**2)/areafrac
          centy = zero
-         Sx2 = twentyfourth*(axp+axm) + anrmx*third*bcx**3
+         Sx2 = twentyfourth*(axp+axm) + nx*third*bcx**3
          Sy2 = twentyfourth*(ayp+aym)
          Sxy = zero
       else
-         if (anrmx .gt. zero) then
+         if (nx .gt. zero) then
             x_ym = -half + aym
             x_yp = -half + ayp
             signx = one
@@ -593,11 +599,16 @@ contains
             x_yp = half - ayp
             signx = -one
          end if
-         aa = abs(anrmx)/anrmy
-         af1 = half*(axm+axp) + aa*half*(x_ym**2-x_yp**2)
-         centx = eighth*(axp-axm) + aa*sixth*(x_ym**3-x_yp**3)
+         aa = nxabs/ny
+         dx  = x_ym - x_yp
+         dx2 = dx * (x_ym + x_yp)
+         dx3 = dx * (x_ym**2 + x_ym*x_yp + x_yp**2)
+         dx4 = dx * (x_ym + x_yp) * (x_ym**2 + x_yp**2)
+         af1 = half*(axm+axp) + aa*half*dx2
+         centx = eighth*(axp-axm) + aa*sixth*dx3
+         Sx2 = twentyfourth*(axm+axp) + aa*twelfth*dx4
 
-         if (anrmy .gt. zero) then
+         if (ny .gt. zero) then
             y_xm = -half + axm
             y_xp = -half + axp
             signy = one
@@ -606,59 +617,22 @@ contains
             y_xp = half - axp
             signy = -one
          end if
-         aa = abs(anrmy)/anrmx
-         af2 = half*(aym+ayp) + aa*half*(y_xm**2-y_xp**2)
-         centy = eighth*(ayp-aym) + aa*sixth*(y_xm**3-y_xp**3)
+         aa = nyabs/nx
+         dy = y_xm - y_xp
+         dy2 = dy * (y_xm + y_xp)
+         dy3 = dy * (y_xm**2 + y_xm*y_xp + y_xp**2)
+         dy4 = dy * (y_xm + y_xp) * (y_xm**2 + y_xp**2)
+         af2 = half*(aym+ayp) + aa*half*dy2
+         centy = eighth*(ayp-aym) + aa*sixth*dy3
+         Sy2 = twentyfourth*(aym+ayp) + aa*twelfth*dy4
 
-         rhs(1) = signx*fourth*(x_ym**4-x_yp**4)
-         rhs(2) = -twentyfourth - signx*sixth*(x_ym**3+x_yp**3)
-         rhs(3) = signx*eighth*(x_ym**2-x_yp**2)
-         rhs(4) = -eighth*(aym+ayp)
-         rhs(5) = eighth*(axm+axp)
-         rhs(6) = -signy*eighth*(y_xm**2-y_xp**2)
-         rhs(7) = twentyfourth + signy*sixth*(y_xm**3+y_xp**3)
-         rhs(8) = -signy*fourth*(y_xm**4-y_xp**4)
-
-         b(1) = -rhs(2) + three*rhs(5)
-         b(2) = -three*rhs(4) + rhs(7)
-         b(3) = two*(-rhs(3) + rhs(6))
-         b(4) = anrmy*rhs(1) - anrmx*rhs(5)
-         b(5) = anrmy*rhs(2) - anrmx*rhs(6)
-         b(6) = anrmy*rhs(3) - anrmx*rhs(7)
-         b(7) = anrmy*rhs(4) - anrmx*rhs(8)
-
-         ny2 = anrmy**2
-         ny3 = ny2*anrmy
-         ny4 = ny3*anrmy
-         ny5 = ny4*anrmy
-
-         Sx2 = (-two*b(1)*(nine - nine*ny2 + ny4) - &
-              six*b(4)*anrmx*(nine - nine*ny2 + ny4) + &
-              anrmy*(b(3)*anrmx*(-nine + eight*ny2) - &
-              two*b(5)*(18.d0 - 26.d0*ny2 + nine*ny4) + &
-              two*anrmy*(b(2)*(-one + ny2) + &
-              three*b(7)*anrmy*(-one + ny2) + & 
-              b(6)*anrmx*(-ten + nine*ny2))))
-         
-         Sy2 = -(two*(b(2) + b(6)*anrmx) + &
-              (two*b(5) + six*b(7) + b(3)*anrmx)*anrmy + &
-              two*(b(1) + seven*b(2) + (three*b(4) + eight*b(6))*anrmx)* &
-              ny2 + two*(eight*b(5) + 21.d0*b(7) + four*b(3)*anrmx)* &
-              ny3 - two*(b(1) - b(2) + &
-              three*(b(4) - three*b(6))*anrmx)*ny4 + &
-              six*(-three*b(5) + b(7))*ny5)
-
-         Sxy = (b(3)*(-nine + eight*ny2)*(one + eight*ny2) + &
-              two*b(5)*anrmx*(-nine + eight*ny2)*(one + nine*ny2) + &
-              two*anrmy*(b(6)*(one + eight*ny2)*(-ten + nine*ny2) - &
-              three*b(4)*(nine - 17.d0*ny2 + eight*ny4) + &
-              anrmx*(b(1)*(-nine + eight*ny2) - &
-              (b(2) + three*b(7)*anrmy)*(one + eight*ny2))))
-
-         den = one / (18.d0*(-one - six*ny2 + six*ny4))
-         Sx2 = Sx2 * den
-         Sy2 = Sy2 * den
-         Sxy = Sxy * half * den
+         if (nxabs .lt. nyabs) then
+            S_b = (Sx2 - twentyfourth - signx*sixth*(x_ym**3+x_yp**3)) / ny
+            Sxy = -signy*sixteenth*dy2 + half*nx*S_b
+         else
+            S_b = (Sy2 - twentyfourth - signy*sixth*(y_xm**3+y_xp**3)) / nx
+            Sxy = -signx*sixteenth*dx2 + half*ny*S_b
+         end if
 
          areafrac = half*(af1+af2)
          if (areafrac .gt. one-small) then
