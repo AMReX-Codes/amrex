@@ -94,6 +94,8 @@ inline void Finalize ()
     IndexSpace::Reset();
 }
 
+void Initialize (const Geometry& geom, const Info& info);
+
 }}
 
 #endif
