@@ -187,9 +187,9 @@ contains
                 e_hi(1)*e_lo(2)*ux(e_cell(1)  , e_cell(2)-1) + &
                 e_hi(1)*e_hi(2)*ux(e_cell(1)  , e_cell(2)  )
 
-          if (ipass == 0) then
+          if (ipass == 1) then
              particles(n)%vel(1) = particles(n)%pos(1)
-             particles(n)%pos(1) = 0.5d0*dt*vel
+             particles(n)%pos(1) = particles(n)%pos(1) + 0.5d0*dt*vel
           else
              particles(n)%pos(1) = particles(n)%vel(1) + dt*vel
              particles(n)%vel(1) = vel
@@ -201,7 +201,7 @@ contains
 
           e_lo = w_lo
           e_hi = w_hi
-
+          
           e_hi(2) = length(2) - cc_cell(2)
           do j = 1, 2
              if (e_hi(j) > 1.d0) then
@@ -218,9 +218,9 @@ contains
                 e_hi(1)*e_lo(2)*uy(e_cell(1)  , e_cell(2)-1) + &
                 e_hi(1)*e_hi(2)*uy(e_cell(1)  , e_cell(2)  )
 
-          if (ipass == 0) then
+          if (ipass == 1) then
              particles(n)%vel(2) = particles(n)%pos(2)
-             particles(n)%pos(2) = 0.5d0*dt*vel
+             particles(n)%pos(2) = particles(n)%pos(2) + 0.5d0*dt*vel
           else
              particles(n)%pos(2) = particles(n)%vel(2) + dt*vel
              particles(n)%vel(2) = vel
