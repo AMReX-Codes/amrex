@@ -185,12 +185,16 @@ subroutine advect_particles(particles, np, &
 
   type(dataptr), dimension(3) :: velocity
 
+  if (np == 0) then
+     return
+  end if
+  
   velocity(1)%p => ux
   velocity(2)%p => uy
   velocity(3)%p => uy
     
   inv_dx = 1.0d0/dx
-  
+   
   do ipass = 1, 2
      do n = 1, np
 
