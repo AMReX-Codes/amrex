@@ -2,7 +2,7 @@ module evolve_module
 
   use amrex_amr_module
 
-  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute, amrex_get_particles, amrex_num_particles
+  use amrex_amrtracerparticlecontainer_module, only: amrex_particle_redistribute, amrex_get_particles, amrex_num_particles, amrex_tracerparticle
   
   implicit none
   private
@@ -11,14 +11,14 @@ module evolve_module
 
 contains
 
-  subroutine advect_particles(particles_c_ptr, np, &
+  subroutine advect_particles(particles, np, &
        ux, uxlo, uxhi, uy, uylo, uyhi, dt, dx, plo) bind(c)
     use iso_c_binding
     use amrex_fort_module, only : amrex_real
     use amrex_amrtracerparticlecontainer_module, only : amrex_tracerparticle
 
     integer,                    intent(in)         :: np
-    type(c_ptr), value,         intent(in)         :: particles_c_ptr
+    type(amrex_tracerparticle), target, intent(inout)      :: particles(np)
     integer,                    intent(in)         :: uxlo(2), uxhi(2)
     integer,                    intent(in)         :: uylo(2), uyhi(2)
     real(amrex_real),           intent(in)         :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2))
@@ -31,12 +31,9 @@ contains
     real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
     real(amrex_real) lx, ly, lz
     real(amrex_real) inv_dx(AMREX_SPACEDIM)
-    type(amrex_tracerparticle), pointer :: particles(:)
     type(amrex_tracerparticle), pointer :: p
 
     inv_dx = 1.0d0/dx
-
-    call c_f_pointer(particles_c_ptr, particles, [np])
 
     do ipass = 1, 2
        do n = 1, np
@@ -196,7 +193,7 @@ contains
     type(amrex_fab) :: uface(amrex_spacedim)
     type(amrex_fab) ::  flux(amrex_spacedim)
     type(amrex_multifab) :: fluxes(amrex_spacedim)
-    type(c_ptr), pointer :: particles
+    type(amrex_tracerparticle), pointer :: particles(:)
     integer :: np
     
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
@@ -277,10 +274,9 @@ contains
        end if
 
 !   advance particles on this tile
-       np = amrex_num_particles(lev, mfi)
-       if (np .gt. 0) then
-          particles => amrex_get_particles(lev, mfi)
-          call advect_particles(particles, np, &
+       particles => amrex_get_particles(lev, mfi)
+       if (size(particles) .gt. 0) then
+          call advect_particles(particles, size(particles), &
                pux, lbound(pux), ubound(pux), &
                puy, lbound(puy), ubound(puy), &
                dt, amrex_geom(lev)%dx, amrex_problo)

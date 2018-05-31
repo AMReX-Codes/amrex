@@ -36,7 +36,7 @@ extern "C" {
     }
 
     void amrex_fi_get_particles(AmrTracerParticleContainer* amrtracerparticlecontainer,
-                                int lev, MFIter* mfi, Real*& dp)
+                                int lev, MFIter* mfi, Real*& dp, long& np)
     {
         const int grid = mfi->index();
         const int tile = mfi->LocalTileIndex();
@@ -44,13 +44,15 @@ extern "C" {
         auto search = particle_level.find(std::make_pair(grid, tile));
         if (search != particle_level.end()) {
             auto& particle_tile = search->second;
-            if (particle_tile.numParticles() > 0) {
+            np = particle_tile.numParticles();
+            if (np > 0) {
                 auto& aos = particle_tile.GetArrayOfStructs();
                 dp = aos.data();
             } else {
                 dp = NULL;
             }            
         } else {
+            np = 0;
             dp = NULL;
         }
     }
