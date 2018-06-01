@@ -91,7 +91,7 @@ contains
     real(amrex_real), intent(inout) ::    fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),2)
     real(amrex_real), intent(inout) ::    fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),2)
 
-    integer :: i,j
+    integer :: i,j, ncuts
 
     ! x-face
     do    j = lo(2)-1, hi(2)+1
@@ -168,6 +168,15 @@ contains
              else if ( fx(i,j).eq.covered .and. fx(i+1,j).eq.covered .and. &
                   &    fy(i,j).eq.covered .and. fy(i,j+1).eq.covered ) then
                 cell(i,j) = covered
+             else
+                ncuts = 0
+                if (fx(i,j).eq.irregular) ncuts = ncuts+1
+                if (fx(i+1,j).eq.irregular) ncuts = ncuts+1
+                if (fy(i,j).eq.irregular) ncuts = ncuts+1
+                if (fy(i,j+1).eq.irregular) ncuts = ncuts+1
+                if (ncuts .ne. 2) then
+                   call amrex_error("amrex_eb2_build_faces: wrong number of cuts")
+                end if
              end if
           end if
        end do
