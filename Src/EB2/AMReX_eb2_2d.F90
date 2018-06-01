@@ -3,7 +3,7 @@ module amrex_eb2_2d_moudle
 
   use amrex_error_module
   use amrex_fort_module
-  use amrex_constants_module, only : zero, one, half
+  use amrex_constants_module, only : zero, one, half, sixth, eighth
   implicit none
 
   integer, parameter :: regular = 0
@@ -14,7 +14,7 @@ module amrex_eb2_2d_moudle
   real(amrex_real), private, parameter :: small = 1.d-14
 
   private
-  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces
+  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells
 
 contains
 
@@ -183,5 +183,142 @@ contains
     end do
 
   end subroutine amrex_eb2_build_faces
+
+
+  subroutine amrex_eb2_build_cells (lo, hi, cell, clo, chi, &
+       fx, fxlo, fxhi, fy, fylo, fyhi, &
+       apx, axlo, axhi, apy, aylo, ayhi, &
+       vfrac, vlo, vhi, vcent, tlo, thi, barea, alo, ahi, &
+       bcent, blo, bhi, bnorm, mlo, mhi) &
+       bind(c,name='amrex_eb2_build_cells')
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, &
+         fxlo, fxhi, fylo, fyhi, axlo, axhi, aylo, ayhi, &
+         vlo, vhi, tlo, thi, alo, ahi, blo, bhi, mlo, mhi
+    integer(c_int)  , intent(inout) ::  cell( clo(1): chi(1), clo(2): chi(2))
+    integer(c_int)  , intent(inout) ::    fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2))
+    integer(c_int)  , intent(inout) ::    fy(fylo(1):fyhi(1),fylo(2):fyhi(2))
+    real(amrex_real), intent(inout) ::   apx(axlo(1):axhi(1),axlo(2):axhi(2))
+    real(amrex_real), intent(inout) ::   apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
+    real(amrex_real), intent(inout) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2))
+    real(amrex_real), intent(inout) :: vcent( tlo(1): thi(1), tlo(2): thi(2),2)
+    real(amrex_real), intent(inout) :: barea( alo(1): ahi(1), alo(2): ahi(2))
+    real(amrex_real), intent(inout) :: bcent( blo(1): bhi(1), blo(2): bhi(2),2)
+    real(amrex_real), intent(inout) :: bnorm( mlo(1): mhi(1), mlo(2): mhi(2),2)
+
+    integer :: i,j
+    real(amrex_real) :: axm, axp, aym, ayp, apnorm, apnorminv
+    real(amrex_real) :: nx, ny, x_ym, x_yp, y_xm, y_xp, aa, af1, af2
+    real(amrex_real) :: dx, dx2, dx3, dx4, dy, dy2, dy3, dy4, nxabs, nyabs, signx, signy
+    real(amrex_real), parameter :: tiny = 1.d-15
+    real(amrex_real), parameter :: almostone = 1.d0-1.d-15
+
+    ! xxxx clean up local variables
+
+    do    j = lo(2)-1, hi(2)+1
+       do i = lo(1)-1, hi(1)+1
+          if (cell(i,j) .eq. regular) then
+             vfrac(i,j) = one
+             vcent(i,j,:) = zero
+             barea(i,j) = zero
+             bcent(i,j,:) = zero
+             bnorm(i,j,:) = zero
+          else if (cell(i,j) .eq. covered) then
+             vfrac(i,j) = zero
+             vcent(i,j,:) = zero
+             barea(i,j) = zero
+             bcent(i,j,:) = zero
+             bnorm(i,j,:) = zero
+          else
+             axm = apx(i,j)
+             axp = apx(i+1,j)
+             aym = apy(i,j)
+             ayp = apy(i,j+1)
+             apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2)
+             apnorminv = one/apnorm
+             nx = (axm-axp) * apnorminv  ! pointing to the wall
+             ny = (aym-ayp) * apnorminv
+
+             nxabs = abs(nx)
+             nyabs = abs(ny)
+
+             if (nx .gt. zero) then
+                x_ym = -half + aym
+                x_yp = -half + ayp
+                signx = one
+             else
+                x_ym = half - aym
+                x_yp = half - ayp
+                signx = -one
+             end if
+
+             if (ny .gt. zero) then
+                y_xm = -half + axm
+                y_xp = -half + axp
+                signy = one
+             else
+                y_xm = half - axm
+                y_xp = half - axp
+                signy = -one
+             end if
+
+             barea(i,j) = nx*(axm-axp) + ny*(aym-ayp)
+             bcent(i,j,1) = half*(x_ym+x_yp)
+             bcent(i,j,2) = half*(y_xm+y_xp)
+             bnorm(i,j,1) = nx
+             bnorm(i,j,2) = ny
+
+             if (nxabs .lt. tiny .or. nyabs .gt. almostone) then
+                barea(i,j) = one
+                bcent(i,j,1) = zero
+                bnorm(i,j,1) = zero
+                bnorm(i,j,2) = signy
+                vfrac(i,j) = half*(axm+axp)
+                vcent(i,j,1) = zero
+                vcent(i,j,2) = (eighth*(ayp-aym) + ny*half*bcent(i,j,2)**2)/vfrac(i,j)
+             else if (nyabs .lt. tiny .or. nxabs .gt. almostone) then
+                barea(i,j) = one
+                bcent(i,j,2) = zero
+                bnorm(i,j,1) = signx
+                bnorm(i,j,2) = zero
+                vfrac(i,j) = half*(aym+ayp)
+                vcent(i,j,1) = (eighth*(axp-axm) + nx*half*bcent(i,j,1)**2)/vfrac(i,j)
+                vcent(i,j,2) = zero
+             else
+                aa = nxabs/ny
+                dx  = x_ym - x_yp
+                dx2 = dx * (x_ym + x_yp)
+                dx3 = dx * (x_ym**2 + x_ym*x_yp + x_yp**2)
+                dx4 = dx * (x_ym + x_yp) * (x_ym**2 + x_yp**2)
+                af1 = half*(axm+axp) + aa*half*dx2
+                vcent(i,j,1) = eighth*(axp-axm) + aa*sixth*dx3
+
+                aa = nyabs/nx
+                dy = y_xm - y_xp
+                dy2 = dy * (y_xm + y_xp)
+                dy3 = dy * (y_xm**2 + y_xm*y_xp + y_xp**2)
+                dy4 = dy * (y_xm + y_xp) * (y_xm**2 + y_xp**2)
+                af2 = half*(aym+ayp) + aa*half*dy2
+                vcent(i,j,2) = eighth*(ayp-aym) + aa*sixth*dy3
+
+                vfrac(i,j) = half*(af1+af2)
+                if (vfrac(i,j) .gt. one-small) then
+                   vfrac(i,j) = one
+                   vcent(i,j,1) = zero
+                   vcent(i,j,2) = zero
+                else if (vfrac(i,j) .lt. small) then
+                   vfrac(i,j) = zero
+                   vcent(i,j,1) = zero
+                   vcent(i,j,2) = zero
+                else
+                   vcent(i,j,1) = vcent(i,j,1)*(one/vfrac(i,j))
+                   vcent(i,j,2) = vcent(i,j,2)*(one/vfrac(i,j))
+                   vcent(i,j,1) = min(max(vcent(i,j,1),-half),half)
+                   vcent(i,j,2) = min(max(vcent(i,j,2),-half),half)
+                end if
+             end if
+          end if
+       end do
+    end do
+  end subroutine amrex_eb2_build_cells
 
 end module amrex_eb2_2d_moudle
