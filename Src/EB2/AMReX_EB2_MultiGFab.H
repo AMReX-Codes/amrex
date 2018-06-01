@@ -27,8 +27,10 @@ public:
         m_celltype.resize(bxg2,1);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             m_facetype[idim].resize(amrex::convert(bxg1,IntVect::TheDimensionVector(idim)));
+#if (AMREX_SPACEDIM == 3)
             m_edgetype[idim].resize(amrex::convert(bxg1,IntVect::TheNodeVector()
                                                        -IntVect::TheDimensionVector(idim)));
+#endif
         }
     }
 
@@ -43,8 +45,10 @@ public:
     const Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getFaceType () const { return m_facetype; }
     Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getFaceType () { return m_facetype; }
 
+#if (AMREX_SPACEDIM == 3)
     const Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getEdgeType () const { return m_edgetype; }
     Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getEdgeType () { return m_edgetype; }
+#endif
 
     const Graph& getGraph () const { return m_graph; }
     Graph& getGraph () { return m_graph; }
@@ -57,7 +61,9 @@ private:
     BaseFab<Real> m_levelset;
     BaseFab<Type_t> m_celltype;
     Array<BaseFab<Type_t>, AMREX_SPACEDIM> m_facetype;
+#if (AMREX_SPACEDIM == 3)
     Array<BaseFab<Type_t>, AMREX_SPACEDIM> m_edgetype;
+#endif
     Graph m_graph;
 };
 

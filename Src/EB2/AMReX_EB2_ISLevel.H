@@ -177,21 +177,54 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
                               BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
                               BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
                               BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
-#endif
 
+#elif (AMREX_SPACEDIM == 2)
+        auto& celltype = gfab.getCellType();
+        auto& facetype = gfab.getFaceType();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            const auto& facetype_fab = facetype[idim];
+            const Box& b = facetype_fab.box();
+            auto& inter = intercept[idim];
+            inter.resize(b);
+            inter.setVal(std::numeric_limits<Real>::quiet_NaN());
+            facetype_fab.ForEachIV(b, 0, 1,
+                [&inter, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
+                    if (t == Type::irregular) {
+                        inter(iv) = gshop.getIntercept(1-idim, iv, geom);
+                    }
+                });
+        }
+
+        amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
+                              BL_TO_FORTRAN_ANYD(celltype),
+                              BL_TO_FORTRAN_ANYD(facetype[0]),
+                              BL_TO_FORTRAN_ANYD(facetype[1]),
+                              BL_TO_FORTRAN_ANYD(levelset),
+                              BL_TO_FORTRAN_ANYD(intercept[0]),
+                              BL_TO_FORTRAN_ANYD(intercept[1]),
+                              BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
+                              BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
+                              dx, dxinv, problo);
+
+#endif
     }
 
     VisMF::Write(m_areafrac[0], "apx");
     VisMF::Write(m_facecent[0], "fcx");
     VisMF::Write(m_areafrac[1], "apy");
     VisMF::Write(m_facecent[1], "fcy");
+#if (AMREX_SPACEDIM == 3)
     VisMF::Write(m_areafrac[2], "apz");
     VisMF::Write(m_facecent[2], "fcz");
-    VisMF::Write(m_volfrac, "vfrc");
-    VisMF::Write(m_centroid, "vcent");
-    VisMF::Write(m_bndryarea, "barea");
-    VisMF::Write(m_bndrycent, "bcent");
-    VisMF::Write(m_bndrynorm, "bnorm");
+#endif
+//    VisMF::Write(m_volfrac, "vfrc");
+//    VisMF::Write(m_centroid, "vcent");
+//    VisMF::Write(m_bndryarea, "barea");
+//    VisMF::Write(m_bndrycent, "bcent");
+//    VisMF::Write(m_bndrynorm, "bnorm");
     VisMF::Write(m_mgf.getLevelSet(), "levelset");
 }
 
