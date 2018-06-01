@@ -303,6 +303,13 @@ contains
                    call cut_face_2d(apx(i,j,k),fcx(i,j,k,2),fcx(i,j,k,3), &
                         m2x(i,j,k,1),m2x(i,j,k,2),m2x(i,j,k,3),lzm,lzp,lym,lyp,bcy,bcz)
                 end if
+
+                if (apx(i,j,k) .eq. zero) then
+                   fx(i,j,k) = covered
+                else if (apx(i,j,k) .eq. one) then
+                   fx(i,j,k) = regular
+                end if
+
              end if
           end do
        end do
@@ -411,6 +418,13 @@ contains
                    call cut_face_2d(apy(i,j,k),fcy(i,j,k,1),fcy(i,j,k,3),&
                         m2y(i,j,k,1),m2y(i,j,k,2),m2y(i,j,k,3),lzm,lzp,lxm,lxp,bcx,bcz)
                 end if
+
+                if (apy(i,j,k) .eq. zero) then
+                   fy(i,j,k) = covered
+                else if (apy(i,j,k) .eq. one) then
+                   fy(i,j,k) = regular
+                end if
+
              end if
           end do
        end do
@@ -521,6 +535,12 @@ contains
                         m2z(i,j,k,1),m2z(i,j,k,2),m2z(i,j,k,3),lym,lyp,lxm,lxp,bcx,bcy)
                 end if
 
+                if (apz(i,j,k) .eq. zero) then
+                   fz(i,j,k) = covered
+                else if (apz(i,j,k) .eq. one) then
+                   fz(i,j,k) = regular
+                end if
+
              end if
           end do
        end do
@@ -530,26 +550,14 @@ contains
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
              if (cell(i,j,k) .eq. irregular) then
-                if  (apx(i,j,k).eq.zero .and. apx(i+1,j,k).eq.zero .and. &
-                     apy(i,j,k).eq.zero .and. apy(i,j+1,k).eq.zero .and. &
-                     apz(i,j,k).eq.zero .and. apz(i,j,k+1).eq.zero) then
+                if  (fx(i,j,k) .eq. covered .and. fx(i+1,j,k) .eq. covered .and. &
+                     fy(i,j,k) .eq. covered .and. fy(i,j+1,k) .eq. covered .and. &
+                     fz(i,j,k) .eq. covered .and. fz(i,j,k+1) .eq. covered ) then
                    cell(i,j,k) = covered
-                   fx(i,j,k) = covered
-                   fx(i+1,j,k) = covered
-                   fy(i,j,k) = covered
-                   fy(i,j+1,k) = covered
-                   fz(i,j,k) = covered
-                   fz(i,j,k+1) = covered
-                else if (apx(i,j,k).eq.one .and. apx(i+1,j,k).eq.one .and. &
-                     &   apy(i,j,k).eq.one .and. apy(i,j+1,k).eq.one .and. &
-                     &   apz(i,j,k).eq.one .and. apz(i,j,k+1).eq.one) then
+                else if (fx(i,j,k) .eq. regular .and. fx(i+1,j,k) .eq. regular .and. &
+                     &   fy(i,j,k) .eq. regular .and. fy(i,j+1,k) .eq. regular .and. &
+                     &   fz(i,j,k) .eq. regular .and. fz(i,j,k+1) .eq. regular ) then
                    cell(i,j,k) = regular
-                   fx(i,j,k) = regular
-                   fx(i+1,j,k) = regular
-                   fy(i,j,k) = regular
-                   fy(i,j+1,k) = regular
-                   fz(i,j,k) = regular
-                   fz(i,j,k+1) = regular
                 end if
              end if
           end do

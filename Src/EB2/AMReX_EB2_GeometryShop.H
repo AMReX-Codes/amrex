@@ -129,18 +129,14 @@ GeometryShop<F>::getIntercept (int edgedir, const IntVect& iv, const Geometry& g
 
 #elif (AMREX_SPACEDIM == 2)
 
-#if 0
-    const int rangedir = 1-facedir;
     IntVect ivlo = iv;
-    IntVect ivhi = iv;  ivhi[rangedir] += 1;
+    IntVect ivhi = iv;  ivhi[edgedir] += 1;
     Real r = this->BrentRootFinder(RealArray{problo[0]+ivlo[0]*dx[0],
                                              problo[1]+ivlo[1]*dx[1]},
                                    RealArray{problo[0]+ivhi[0]*dx[0],
                                              problo[1]+ivhi[1]*dx[1]},
-                                   rangedir);
-    return Array<Real,1>{r};
-#endif
-    return 0;
+                                   edgedir);
+    return r;
 
 #else
 
