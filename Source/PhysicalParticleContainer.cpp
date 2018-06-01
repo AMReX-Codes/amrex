@@ -1110,18 +1110,15 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     // Note the the slice should always move in the negative boost direction.
     AMREX_ALWAYS_ASSERT(z_new < z_old);
     
-    const int base_level = 0;    
     const int nlevs = std::max(0, finestLevel()+1);
 
     // we figure out a box for coarse-grained rejection. If the RealBox corresponding to a
     // given tile doesn't intersect with this, there is no need to check any particles.
-    const std::array<Real,3>& base_dx = WarpX::CellSize(base_level);
+    const Real* base_dx = Geom(0).CellSize();
     const Real z_min = z_new - base_dx[direction];
     const Real z_max = z_old + base_dx[direction];
 
-    const Real minus_dt = -dt;
-    
-    RealBox slice_box = Geom(base_level).ProbDomain();
+    RealBox slice_box = Geom(0).ProbDomain();
     slice_box.setLo(direction, z_min);
     slice_box.setHi(direction, z_max);
 
