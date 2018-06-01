@@ -9,12 +9,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size   {
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
-    levelDirectoriesCreated = false;
-    usePrePost = false;
-    doUnlink = true;
-
     num_real_comm_comps = 0;
     for (int i = 0; i < NArrayReal; ++i) {
         if (communicate_real_comp[i]) ++num_real_comm_comps;
@@ -27,7 +23,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
 
     particle_size = sizeof(ParticleType);
     superparticle_size = particle_size + 
-        num_real_comm_comps*sizeof(Real) + num_int_comm_comps*sizeof(int);
+        num_real_comm_comps*sizeof(Real) + num_int_comm_comps*sizeof(int);    
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
+{
+    levelDirectoriesCreated = false;
+    usePrePost = false;
+    doUnlink = true;
+
+    SetParticleSize();
 
     static bool initialized = false;
     if ( ! initialized)
@@ -1462,7 +1469,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 BuildRedistributeMask(int lev, int nghost) {
     
-    BL_PROFILE("NeighborParticleContainer::BuildRedistributeMask");
+    BL_PROFILE("ParticleContainer::BuildRedistributeMask");
     BL_ASSERT(lev == 0);
 
     if (redistribute_mask_ptr == nullptr ||
