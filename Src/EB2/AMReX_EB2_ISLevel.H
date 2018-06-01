@@ -44,20 +44,13 @@ ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     m_grids.maxSize(max_grid_size);
     m_dmap.define(m_grids);
 
-    Box pdom = geom.Domain();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (geom.isPeriodic(idim)) {
-            pdom.grow(idim,2);
-        }
-    }
-
     Vector<Box> cut_boxes;
     Vector<Box> covered_boxes;
 
     for (MFIter mfi(m_grids, m_dmap); mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
-        const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1) & pdom);
+        const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
         int box_type = gshop.getBoxType(gbx, geom);
         if (box_type == gshop.allcovered) {
             covered_boxes.push_back(vbx);
