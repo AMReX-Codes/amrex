@@ -94,9 +94,11 @@ public:
 
     typedef T value_type;
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab ();
 
     //!  Make BaseFab with desired domain (box) and number of components.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     explicit BaseFab (const Box& bx,
                       int        n = 1,
 		      bool       alloc = true,
@@ -109,10 +111,13 @@ public:
      * responsible for memory management.  And it's caller's responsibility that
      * p points to a chunk of memory large enough.
      */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     BaseFab (const Box& bx, int ncomp, T* p);
 
     //! The destructor deletes the array memory.
-    virtual ~BaseFab ();
+//    virtual ~BaseFab ();
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    ~BaseFab ();
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
@@ -164,6 +169,7 @@ public:
      * \brief The function returns the BaseFab to the invalid state.
      * The memory is freed.
      */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void clear ();
 
     //! Returns how many bytes used
@@ -933,6 +939,7 @@ public:
 
 protected:
     //! Allocates memory for the BaseFab<T>.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void define ();
 
     //! The function called by BaseFab copy operations.
@@ -1419,8 +1426,12 @@ BaseFab<T>::define ()
     AMREX_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
     truesize  = nvar*numpts;
-    dptr      = static_cast<T*>(amrex::The_Arena()->alloc(this, truesize*sizeof(T)));
     ptr_owner = true;
+#ifndef __CUDA_ARCH__
+    dptr      = static_cast<T*>(amrex::The_Arena()->alloc(this, truesize*sizeof(T)));
+#else
+    dptr      = (::new T(truesize*sizeof(T)));
+#endif
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
@@ -1432,8 +1443,9 @@ BaseFab<T>::define ()
     {
         new (ptr) T;
     }
-
+#ifndef __CUDA_ARCH__
     amrex::update_fab_stats(numpts, truesize, sizeof(T));
+#endif
 }
 
 template <class T>
@@ -1574,24 +1586,29 @@ BaseFab<T>::clear ()
         //
 	if (ptr_owner)
 	{
+#ifndef __CUDA_ARCH__
 	    if (shared_memory)
 	    {
 		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
-
+#endif
 	    T* ptr = dptr;
 
 	    for (long i = 0; i < truesize; i++, ptr++)
 	    {
 		ptr->~T();
 	    }
+#ifdef __CUDA_ARCH__
+            ::delete(dptr);
+#else
 	    amrex::The_Arena()->free(dptr);
-	    
+
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
 	    } else {
 		amrex::update_fab_stats(0, -truesize, sizeof(T));
 	    }
+#endif
 	}
 
 	dptr = 0;
