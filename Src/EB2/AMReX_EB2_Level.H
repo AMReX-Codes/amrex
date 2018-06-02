@@ -1,5 +1,5 @@
-#ifndef AMREX_EB2_ISLEVEL_H_
-#define AMREX_EB2_ISLEVEL_H_
+#ifndef AMREX_EB2_LEVEL_H_
+#define AMREX_EB2_LEVEL_H_
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
@@ -13,14 +13,15 @@
 
 namespace amrex { namespace EB2 {
 
-template <typename G>
-class ISLevel
+class Level
 {
 public:
 
-    ISLevel (G const& gshop, const Geometry& geom, int max_grid_size);
+    void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
 
-private:
+protected:
+
+    Level (const Geometry& geom) : m_geom(geom) {}
 
     Geometry m_geom;    
     BoxArray m_grids;
@@ -37,10 +38,18 @@ private:
 };
 
 template <typename G>
-ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
-    : m_geom(geom)
+class GShopLevel
+    : public Level
 {
-    BL_PROFILE("EB2::ISLevel()");
+public:
+    GShopLevel (G const& gshop, const Geometry& geom, int max_grid_size);
+};
+
+template <typename G>
+GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_size)
+    : Level(geom)
+{
+    BL_PROFILE("EB2::GShopLevel()");
 
     m_grids.define(geom.Domain());
     m_grids.maxSize(max_grid_size);
