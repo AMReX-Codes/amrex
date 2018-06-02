@@ -7,7 +7,6 @@
 #include <AMReX_EB2_Level.H>
 
 #include <memory>
-#include <functional>
 #include <type_traits>
 
 namespace amrex { namespace EB2 {
@@ -26,12 +25,15 @@ class IndexSpace
 public:
     virtual ~IndexSpace() {}
 
-    static IndexSpace& Get() { AMREX_ASSERT(m_pinstance);  return *m_pinstance; }
-    static void Reset () { m_finalizer(); }
+    static void push (IndexSpace* ispace) { m_instance.emplace_back(ispace); }
+    static void pop () { m_instance.pop_back(); }
+    static void clear () { m_instance.clear(); }
+    static const IndexSpace& top () { return *(m_instance.back()); }
+    static bool empty () { return m_instance.empty(); }
+    static int size () { return m_instance.size(); }
 
 protected:
-    static IndexSpace* m_pinstance;
-    static std::function<void()> m_finalizer;
+    static Vector<std::unique_ptr<IndexSpace> > m_instance;
 };
 
 template <typename G>
@@ -40,42 +42,22 @@ class IndexSpaceImp
 {
 public:
 
-    void define (G&& gshop, const Geometry& geom, const Info& info);
-
-    bool isDefined () const { return m_impfunc != nullptr; }
-
-    virtual ~IndexSpaceImp () {}
+    IndexSpaceImp (G&& gshop, const Geometry& geom, const Info& info);
 
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
-    IndexSpaceImp<G>& operator= (IndexSpaceImp<G> const&) = delete;
+    IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
+    void operator= (IndexSpaceImp<G> const&) = delete;
+    void operator= (IndexSpaceImp<G> &&) = delete;
 
-    static IndexSpaceImp<G>& GetInstance () {
-        if (!m_instance) {
-            m_instance.reset(new IndexSpaceImp<G>());
-            AMREX_ALWAYS_ASSERT(m_pinstance==nullptr);
-            m_pinstance = m_instance.get();
-            m_finalizer = IndexSpaceImp<G>::ResetInstance;
-        }
-        return *m_instance;
-    }
-
-    static void ResetInstance () {
-        m_instance.reset();
-        m_pinstance = nullptr;
-    }
+    virtual ~IndexSpaceImp () {}
 
     using F = typename std::remove_reference<G>::type::FunctionType;
 
 private:
 
-    static std::unique_ptr<IndexSpaceImp<G> > m_instance;
-    IndexSpaceImp () {}
-
     Vector<GShopLevel<G> > m_gslevel;
     std::unique_ptr<F> m_impfunc;
 };
-
-template <typename G> std::unique_ptr<IndexSpaceImp<G> > IndexSpaceImp<G>::m_instance;
 
 #include <AMReX_EB2_IndexSpaceI.H>
 
@@ -84,15 +66,12 @@ void
 Initialize (G&& gshop, const Geometry& geom, const Info& info)
 {
     BL_PROFILE("EB2::Initialize()");
-    auto& ispace = IndexSpaceImp<G>::GetInstance();
-    if (!ispace.isDefined()) {
-        ispace.define(std::forward<G>(gshop), geom, info);
-    }
+    IndexSpace::push(new IndexSpaceImp<G>(std::forward<G>(gshop), geom, info));
 }
 
 inline void Finalize ()
 {
-    IndexSpace::Reset();
+    IndexSpace::clear();
 }
 
 void Initialize (const Geometry& geom, const Info& info);
