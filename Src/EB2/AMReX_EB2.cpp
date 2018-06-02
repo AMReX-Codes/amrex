@@ -8,8 +8,7 @@
 
 namespace amrex { namespace EB2 {
 
-IndexSpace* IndexSpace::m_pinstance = nullptr;
-std::function<void()> IndexSpace::m_finalizer;
+Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
 void
 Initialize (const Geometry& geom, const Info& info)
