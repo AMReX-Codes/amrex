@@ -78,6 +78,8 @@ MyTest::initializeEB2 ()
     MultiFab vfrc(grids, dmap, 1, 1);
     const EB2::Level& eb2_level = EB2::getLevel(geom);
     eb2_level.fillVolFrac(vfrc, geom);
+
+    VisMF::Write(vfrc, "vfrc-new");
 }
 
 void
