@@ -1,6 +1,6 @@
 
-#include <AMReX_EB2_SphereIF.H>
-#include <AMReX_EB2_CylinderIF.H>
+#include <AMReX_EB2_IF_Sphere.H>
+#include <AMReX_EB2_IF_Cylinder.H>
 
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>

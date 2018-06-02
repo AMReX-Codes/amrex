@@ -1,5 +1,5 @@
-#ifndef AMREX_EB2_CYLINDER_IF_H_
-#define AMREX_EB2_CYLINDER_IF_H_
+#ifndef AMREX_EB2_IF_CYLINDER_H_
+#define AMREX_EB2_IF_CYLINDER_H_
 
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
