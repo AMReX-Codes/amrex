@@ -1,5 +1,5 @@
-#ifndef AMREX_EB2_SPHERE_IF_H_
-#define AMREX_EB2_SPHERE_IF_H_
+#ifndef AMREX_EB2_IF_SPHERE_H_
+#define AMREX_EB2_IF_SPHERE_H_
 
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
