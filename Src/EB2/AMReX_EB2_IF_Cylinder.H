@@ -66,10 +66,19 @@ public:
             break;
         }
         }
-        d2 = m_sign*(d2 - m_radius2);
-        Real rtop = m_sign*( pos[m_direction] - m_halfheight);
-        Real rbot = m_sign*(-pos[m_direction] - m_halfheight);
-        return std::max(d2,std::max(rtop,rbot));
+
+        d2 -= m_radius2;
+        Real rtop = ( pos[m_direction] - m_halfheight);
+        Real rbot = (-pos[m_direction] - m_halfheight);
+
+        if (m_inside)
+        {
+            return std::max(d2,std::max(rtop,rbot));
+        }
+        else
+        {
+            return std::min(-d2,std::min(-rtop,-rbot));
+        }
     }
 
 
