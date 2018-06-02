@@ -6,6 +6,7 @@
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2_Level.H>
 
+#include <algorithm>
 #include <memory>
 #include <type_traits>
 
@@ -32,6 +33,8 @@ public:
     static bool empty () { return m_instance.empty(); }
     static int size () { return m_instance.size(); }
 
+    virtual const Level& getLevel (const Geometry&) const = 0;
+
 protected:
     static Vector<std::unique_ptr<IndexSpace> > m_instance;
 };
@@ -51,11 +54,15 @@ public:
 
     virtual ~IndexSpaceImp () {}
 
+    virtual const Level& getLevel (const Geometry& geom) const final;
+
     using F = typename std::remove_reference<G>::type::FunctionType;
 
 private:
 
     Vector<GShopLevel<G> > m_gslevel;
+    Vector<Geometry> m_geom;
+    Vector<Box> m_domain;
     std::unique_ptr<F> m_impfunc;
 };
 
@@ -75,6 +82,9 @@ inline void Finalize ()
 }
 
 void Initialize (const Geometry& geom, const Info& info);
+
+const Level& getLevel (const Geometry& geom);
+
 
 }}
 

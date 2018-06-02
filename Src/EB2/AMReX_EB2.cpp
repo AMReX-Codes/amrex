@@ -69,4 +69,10 @@ Initialize (const Geometry& geom, const Info& info)
     }
 }
 
+const Level&
+getLevel (const Geometry& geom)
+{
+    IndexSpace::top().getLevel(geom);
+}
+
 }}
