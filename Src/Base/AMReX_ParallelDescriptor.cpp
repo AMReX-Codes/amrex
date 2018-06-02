@@ -2190,4 +2190,9 @@ extern "C" {
     int amrex_fi_pd_ioprocessor () {
         return ParallelDescriptor::IOProcessor();
     }
+
+    void amrex_fi_pd_bcast_r (Real* x, int n, int root)
+    {
+        ParallelDescriptor::Bcast(x, n, root);
+    }
 }
