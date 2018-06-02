@@ -4,7 +4,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Vector.H>
 #include <AMReX_EB2_GeometryShop.H>
-#include <AMReX_EB2_ISLevel.H>
+#include <AMReX_EB2_Level.H>
 
 #include <memory>
 #include <functional>
@@ -71,7 +71,7 @@ private:
     static std::unique_ptr<IndexSpaceImp<G> > m_instance;
     IndexSpaceImp () {}
 
-    Vector<ISLevel<G> > m_islevel;
+    Vector<GShopLevel<G> > m_gslevel;
     std::unique_ptr<F> m_impfunc;
 };
 

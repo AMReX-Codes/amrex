@@ -4,10 +4,10 @@ EB2_BASE=EXE
 
 C$(EB2_BASE)_headers += AMReX_EB2_SphereIF.H AMReX_EB2_CylinderIF.H
 
-C$(EB2_BASE)_headers += AMReX_EB2_GeometryShop.H AMReX_EB2.H AMReX_EB2_IndexSpaceI.H AMReX_EB2_ISLevel.H
+C$(EB2_BASE)_headers += AMReX_EB2_GeometryShop.H AMReX_EB2.H AMReX_EB2_IndexSpaceI.H AMReX_EB2_Level.H
 C$(EB2_BASE)_headers += AMReX_EB2_Graph.H AMReX_EB2_MultiGFab.H
 
-C$(EB2_BASE)_sources += AMReX_EB2.cpp AMReX_EB2_MultiGFab.cpp
+C$(EB2_BASE)_sources += AMReX_EB2.cpp AMReX_EB2_Level.cpp AMReX_EB2_MultiGFab.cpp
 
 C$(EB2_BASE)_headers += AMReX_EB2_F.H
 F90$(EB2_BASE)_sources += AMReX_eb2_$(DIM)d.F90
