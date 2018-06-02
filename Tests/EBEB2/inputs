@@ -1,0 +1,15 @@
+amrex.fpe_trap_invalid=1
+
+eb2.geom_type = sphere
+
+# sphere
+eb2.sphere_center           = 0.5   0.5   0.5
+eb2.sphere_radius           = 0.15
+eb2.sphere_has_fluid_inside = 0
+
+# cylinder
+eb2.cylinder_center           = 0.5   0.5   0.5
+eb2.cylinder_radius           = 0.3
+eb2.cylinder_height           = 0.7
+eb2.cylinder_has_fluid_inside = 1
+eb2.cylinder_direction        = 2

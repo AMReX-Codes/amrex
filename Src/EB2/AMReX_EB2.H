@@ -83,6 +83,7 @@ template <typename G>
 void
 Initialize (G&& gshop, const Geometry& geom, const Info& info)
 {
+    BL_PROFILE("EB2::Initialize()");
     auto& ispace = IndexSpaceImp<G>::GetInstance();
     if (!ispace.isDefined()) {
         ispace.define(std::forward<G>(gshop), geom, info);

@@ -40,6 +40,8 @@ template <typename G>
 ISLevel<G>::ISLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     : m_geom(geom)
 {
+    BL_PROFILE("EB2::ISLevel()");
+
     m_grids.define(geom.Domain());
     m_grids.maxSize(max_grid_size);
     m_dmap.define(m_grids);
