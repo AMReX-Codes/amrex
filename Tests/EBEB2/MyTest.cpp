@@ -75,8 +75,9 @@ MyTest::initializeEB2 ()
     BL_PROFILE("initializeEB2");
     EB2::Initialize(geom, EB2::Info().setMaxCoarseningLevel(0).setMaxGridSize(max_grid_size));
 
-    //    MultiFab vfrc(grids, dmap, 1, 1);
-    //    EB2::fillVolFrac(vfrc, geom);
+    MultiFab vfrc(grids, dmap, 1, 1);
+    const EB2::Level& eb2_level = EB2::getLevel(geom);
+    eb2_level.fillVolFrac(vfrc, geom);
 }
 
 void
