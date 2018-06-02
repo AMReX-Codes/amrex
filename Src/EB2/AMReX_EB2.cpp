@@ -1,6 +1,7 @@
 
 #include <AMReX_EB2_IF_Sphere.H>
 #include <AMReX_EB2_IF_Cylinder.H>
+#include <AMReX_EB2_IF_Box.H>
 
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
@@ -61,6 +62,24 @@ Initialize (const Geometry& geom, const Info& info)
         EB2::CylinderIF cf(radius, height, direction, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::CylinderIF> gshop(cf);
+        EB2::Initialize(gshop, geom, info);
+    }
+    else if (geom_type == "box")
+    {
+        std::vector<Real> vlo;
+        pp.getarr("box_lo", vlo);
+        RealArray lo{AMREX_D_DECL(vlo[0],vlo[1],vlo[2])};
+
+        std::vector<Real> vhi;
+        pp.getarr("box_hi", vhi);
+        RealArray hi{AMREX_D_DECL(vhi[0],vhi[1],vhi[2])};
+
+        bool has_fluid_inside;
+        pp.get("box_has_fluid_inside", has_fluid_inside);
+        
+        EB2::BoxIF bf(lo, hi, has_fluid_inside);
+
+        EB2::GeometryShop<EB2::BoxIF> gshop(bf);
         EB2::Initialize(gshop, geom, info);
     }
     else
