@@ -28,6 +28,10 @@ void kernel_BaseFabReal(amrex::BaseFab<amrex::Real> *bf1, amrex::Real *val, amre
 
   bf1->setVal(17.499, bx, 0, 1);
   bf1->getVal(val, amrex::IntVect(7,7,7));
+
+  amrex::BaseFab<amrex::Real> local(bx);
+  local.setVal(43.001, bx, 0, 1);
+  local.getVal(val, amrex::IntVect(7,7,7));
 }
 
 AMREX_CUDA_GLOBAL
@@ -45,7 +49,7 @@ AMREX_CUDA_GLOBAL
 void kernel_BaseFabCopy(amrex::BaseFab<amrex::Real> *bf1, amrex::BaseFab<amrex::Real> *bf2)
 {
   
-  void* mem = new int(1000);
+  amrex::Real* mem = (new amrex::Real(1000));
 //  cudaMalloc(&mem, 1000);
   amrex::Box bx1 = bf1->box(); 
   amrex::Box bx2 = bx1;

@@ -15,9 +15,9 @@ amrex::BArena::alloc (void* parent_ptr, std::size_t _sz)
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)  // Using CUDA
 
 #ifdef __CUDA_ARCH__  // On Device
-   void *ptr;
-   cudaMalloc(&ptr, _sz);
-   return ptr;
+// Currently, not implemented. Done locally at allocations.
+// Placeholder to avoid compiler complaints.
+   return NULL; 
 
 #else  // On Host
    cudaPointerAttributes ptr_attr;
@@ -46,7 +46,8 @@ amrex::BArena::free (void* ptr)
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)  // Using CUDA
 
 #ifdef __CUDA_ARCH__  // On Device
-   cudaFree(ptr);
+// Currently, not implemented. Done locally at allocations.
+// Placeholder to avoid compiler complaints.
 
 #else  // On Host
    cudaPointerAttributes ptr_attr;
