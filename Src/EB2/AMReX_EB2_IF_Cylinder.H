@@ -70,15 +70,8 @@ public:
         d2 -= m_radius2;
         Real rtop = ( pos[m_direction] - m_halfheight);
         Real rbot = (-pos[m_direction] - m_halfheight);
-
-        if (m_inside)
-        {
-            return std::max(d2,std::max(rtop,rbot));
-        }
-        else
-        {
-            return std::min(-d2,std::min(-rtop,-rbot));
-        }
+        Real r = std::max(d2,std::max(rtop,rbot));
+        return r*m_sign;
     }
 
 

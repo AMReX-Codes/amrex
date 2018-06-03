@@ -2,6 +2,7 @@
 #include <AMReX_EB2_IF_Sphere.H>
 #include <AMReX_EB2_IF_Cylinder.H>
 #include <AMReX_EB2_IF_Box.H>
+#include <AMReX_EB2_IF_Plane.H>
 
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
@@ -80,6 +81,21 @@ Initialize (const Geometry& geom, const Info& info)
         EB2::BoxIF bf(lo, hi, has_fluid_inside);
 
         EB2::GeometryShop<EB2::BoxIF> gshop(bf);
+        EB2::Initialize(gshop, geom, info);
+    }
+    else if (geom_type == "plane")
+    {
+        std::vector<Real> vpoint;
+        pp.getarr("plane_point", vpoint);
+        RealArray point{AMREX_D_DECL(vpoint[0],vpoint[1],vpoint[2])};
+
+        std::vector<Real> vnormal;
+        pp.getarr("plane_normal", vnormal);
+        RealArray normal{AMREX_D_DECL(vnormal[0],vnormal[1],vnormal[2])};
+
+        EB2::PlaneIF pf(point, normal);
+
+        EB2::GeometryShop<EB2::PlaneIF> gshop(pf);
         EB2::Initialize(gshop, geom, info);
     }
     else

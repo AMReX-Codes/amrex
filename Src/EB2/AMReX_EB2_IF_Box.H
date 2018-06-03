@@ -17,7 +17,8 @@ public:
 
     // inside: is the fluid inside the cylinder?
     BoxIF (const RealArray& a_lo, const RealArray& a_hi, bool a_inside)
-        : m_lo(a_lo), m_hi(a_hi), m_inside(a_inside)
+        : m_lo(a_lo), m_hi(a_hi), m_inside(a_inside),
+          m_sign( a_inside ? 1.0 : -1.0 )
         {}
           
     ~BoxIF () {}
@@ -29,24 +30,12 @@ public:
 
     Real operator() (const RealArray& p) const
     {
-        Real r;
-        if (m_inside)
-        {
-            r = std::numeric_limits<Real>::lowest();
-            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-                r = std::max(r,   p[i] - m_hi[i]);
-                r = std::max(r, -(p[i] - m_lo[i]));
-            }
+        Real r = std::numeric_limits<Real>::lowest();
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+            r = std::max(r,   p[i] - m_hi[i]);
+            r = std::max(r, -(p[i] - m_lo[i]));
         }
-        else
-        {
-            r = std::numeric_limits<Real>::max();
-            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-                r = std::min(r,  -(p[i] - m_hi[i]));
-                r = std::min(r,   (p[i] - m_lo[i]));
-            }
-        }
-        return r;
+        return r*m_sign;
     }
 
 
@@ -55,6 +44,8 @@ protected:
     RealArray m_lo;
     RealArray m_hi;
     bool      m_inside;
+    //
+    Real      m_sign;
 };
 
 }}
