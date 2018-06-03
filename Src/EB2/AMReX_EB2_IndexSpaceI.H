@@ -1,6 +1,6 @@
 
 template <typename G>
-IndexSpaceImp<G>::IndexSpaceImp (G&& gshop, const Geometry& geom, const Info& info)
+IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom, const Info& info)
 {
     // build finest level (i.e., level 0) first
     m_geom.push_back(geom);

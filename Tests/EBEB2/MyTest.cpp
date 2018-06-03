@@ -6,6 +6,11 @@
 #include <AMReX_EBTower.H>
 
 #include <AMReX_EB2.H>
+#include <AMReX_EB2_IF_Union.H>
+#include <AMReX_EB2_IF_Box.H>
+#include <AMReX_EB2_IF_Cylinder.H>
+#include <AMReX_EB2_IF_Sphere.H>
+#include <AMReX_EB2_IF_Plane.H>
 
 #include "MyTest.H"
 #include <AMReX_ParmParse.H>
@@ -73,7 +78,31 @@ void
 MyTest::initializeEB2 ()
 {
     BL_PROFILE("initializeEB2");
-    EB2::Initialize(geom, EB2::Info().setMaxCoarseningLevel(0).setMaxGridSize(max_grid_size));
+
+    ParmParse pp("eb2");
+    std::string geom_type;
+    pp.get("geom_type", geom_type);
+    
+    EB2::Info info;
+    info.setMaxCoarseningLevel(0)
+        .setMaxGridSize(max_grid_size);
+
+    if (geom_type == "combustor")
+    {
+        EB2::PlaneIF pf1({0.0,0.0,0.0}, {1.0, 0.0, 0.0});
+        EB2::PlaneIF pf2({0.0,0.0,0.0}, {0.5, 0.5, 0.0});
+
+        EB2::SphereIF bf(0.2, {0.0,0.0,0.0}, true);
+
+        auto uf = EB2::makeUnion(pf1, pf2, bf);
+
+        auto gshop = EB2::makeShop(uf);
+        EB2::Initialize(gshop, geom, info);
+    }
+    else
+    {
+        EB2::Initialize(geom, info);
+    }
 
     MultiFab vfrc(grids, dmap, 1, 1);
     const EB2::Level& eb2_level = EB2::getLevel(geom);
