@@ -3,6 +3,7 @@ EB2_BASE=EXE
 
 
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Sphere.H AMReX_EB2_IF_Cylinder.H AMReX_EB2_IF_Box.H AMReX_EB2_IF_Plane.H
+C$(EB2_BASE)_headers += AMReX_EB2_IF_Union.H AMReX_EB2_IF_Intersection.H
 
 C$(EB2_BASE)_headers += AMReX_EB2_GeometryShop.H AMReX_EB2.H AMReX_EB2_IndexSpaceI.H AMReX_EB2_Level.H
 C$(EB2_BASE)_headers += AMReX_EB2_Graph.H AMReX_EB2_MultiGFab.H

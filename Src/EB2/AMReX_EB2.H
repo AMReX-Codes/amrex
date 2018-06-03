@@ -45,7 +45,7 @@ class IndexSpaceImp
 {
 public:
 
-    IndexSpaceImp (G&& gshop, const Geometry& geom, const Info& info);
+    IndexSpaceImp (const G& gshop, const Geometry& geom, const Info& info);
 
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
     IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
@@ -56,7 +56,7 @@ public:
 
     virtual const Level& getLevel (const Geometry& geom) const final;
 
-    using F = typename std::remove_reference<G>::type::FunctionType;
+    using F = typename G::FunctionType;
 
 private:
 
@@ -70,10 +70,10 @@ private:
 
 template <typename G>
 void
-Initialize (G&& gshop, const Geometry& geom, const Info& info)
+Initialize (const G& gshop, const Geometry& geom, const Info& info)
 {
     BL_PROFILE("EB2::Initialize()");
-    IndexSpace::push(new IndexSpaceImp<G>(std::forward<G>(gshop), geom, info));
+    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom, info));
 }
 
 inline void Finalize ()

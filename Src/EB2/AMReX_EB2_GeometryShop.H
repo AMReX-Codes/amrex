@@ -65,6 +65,13 @@ private:
 };
 
 template <class F>
+GeometryShop<typename std::decay<F>::type>
+makeShop (F&& f)
+{
+    return GeometryShop<typename std::decay<F>::type>(std::forward<F>(f));
+}
+
+template <class F>
 int
 GeometryShop<F>::getBoxType (const Box& bx, const Geometry& geom) const
 {
