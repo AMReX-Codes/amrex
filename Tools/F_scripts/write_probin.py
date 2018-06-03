@@ -215,7 +215,7 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     type = pm[n].type
 
                     if type == "real":
-                        fout.write("{}real (kind=dp_t), save, public :: {} = {}\n".format(
+                        fout.write("{}real (rt), save, public :: {} = {}\n".format(
                             indent, pm[n].var, pm[n].value))
                         fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
