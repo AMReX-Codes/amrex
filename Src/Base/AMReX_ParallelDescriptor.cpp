@@ -2195,4 +2195,9 @@ extern "C" {
     {
         ParallelDescriptor::Bcast(x, n, root);
     }
+
+    Real amrex_fi_pd_wtime ()
+    {
+        return ParallelDescriptor::second();
+    }
 }
