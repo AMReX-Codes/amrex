@@ -148,8 +148,6 @@ void test_em_pic(const TestParams& parms)
         
         jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
 
-        amrex::Print() << jx.max(0) << std::endl;
-
         for (int i = 0; i < num_species; ++i) {
             particles[i]->PushAndDeposeParticles(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, dt);
         }
@@ -191,7 +189,7 @@ void test_em_pic(const TestParams& parms)
 void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
 {
     BL_PROFILE("ElectromagneticParticleContainer::check_solution");
-    
+
     const Real* dx = geom.CellSize();
 
     Box test_box = geom.Domain();
@@ -207,7 +205,7 @@ void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
                                 BL_TO_FORTRAN_3D(jx[mfi]), time, &max_error);
     }
 
-    amrex::Print() << "Max error is: " << max_error << std::endl;
+    std::cout << "Max error is: " << max_error << std::endl;
 }
 
 int main(int argc, char* argv[])

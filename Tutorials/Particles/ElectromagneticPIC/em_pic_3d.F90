@@ -835,7 +835,9 @@ subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi,
   do l       = lo(3), hi(3)
      do k    = lo(2), hi(2)
         do j = lo(1), hi(1)
-           error = max(error, abs(jx(j,k,l) - exact))
+           if (abs(jx(j,k,l)) > 0.d0) then
+               error = max(error, abs(jx(j,k,l) - exact) / abs(jx(j,k,l)))
+           end if
         end do
      end do
   end do
