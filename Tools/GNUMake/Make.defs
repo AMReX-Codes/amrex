@@ -368,8 +368,6 @@ ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_LAUNCH='attributes(global)'
     DEFINES += -DAMREX_DEVICE='attributes(device)'
 
-    INCLUDE_LOCATIONS += header_temp_dir
-
 else
     DEFINES += -DAMREX_LAUNCH=""
     DEFINES += -DAMREX_DEVICE=""
@@ -581,6 +579,10 @@ ifeq ($(USE_CUDA),TRUE)
             LIBRARIES += -lnvToolsExt
         endif
     endif
+
+    # Include the headers with the CUDA kernels.
+
+    INCLUDE_LOCATIONS += $(TmpBuildDir)/header_temp_dir
 
     # Bring in NVML support. This is not required,
     # but is recommended if you do not have a solution
