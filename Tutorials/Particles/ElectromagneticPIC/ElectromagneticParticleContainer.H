@@ -31,7 +31,9 @@ public:
     void InitParticles(const amrex::IntVect& a_num_particles_per_cell,
                        const amrex::Real     a_thermal_momentum_std, 
                        const amrex::Real     a_thermal_momentum_mean,
-                       const amrex::Real     a_density);
+                       const amrex::Real     a_density,
+                       const amrex::RealBox& a_bounds, 
+                       const int             a_problem);
     
     void PushAndDeposeParticles(const amrex::MultiFab& Ex,
                                 const amrex::MultiFab& Ey,

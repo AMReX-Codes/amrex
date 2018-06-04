@@ -70,20 +70,44 @@ void test_em_pic(const TestParams& parms)
     
     std::cout << "Initializing particles... ";
 
-    const int num_species = 2;
-
-    ElectromagneticParticleContainer electrons(geom, dm, ba, 
-                                               0, -PhysConst::q_e, PhysConst::m_e);
-    electrons.InitParticles(parms.nppc, 0.01, 10.0, 1e25);
-    
-    ElectromagneticParticleContainer H_ions(geom, dm, ba, 
-                                            1, PhysConst::q_e, PhysConst::m_p);
-    H_ions.InitParticles(parms.nppc, 0.01, 10.0, 1e25);
-
+    int num_species;
     Vector<ElectromagneticParticleContainer*> particles(2);
-    particles[0] = &electrons;
-    particles[1] = &H_ions;
+    int problem = 2;
+
+    if (problem == 1) {
+        num_species = 2;
     
+        RealBox electron_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
+                                          AMREX_D_DECL( 20e-6, 20e-6, 20e-6));
+        ElectromagneticParticleContainer* electrons;
+        electrons = new ElectromagneticParticleContainer(geom, dm, ba, 
+                                                   0, -PhysConst::q_e, PhysConst::m_e);
+        electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, real_box, problem);
+
+        RealBox H_ions_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
+                                        AMREX_D_DECL( 20e-6,  20e-6,  20e-6));        
+        ElectromagneticParticleContainer* H_ions;
+        H_ions = new ElectromagneticParticleContainer(geom, dm, ba, 
+                                                      1, PhysConst::q_e, PhysConst::m_p);
+        H_ions->InitParticles(parms.nppc, 0.01, 10.0, 1e25, H_ions_bounds, problem);
+
+        particles[0] = electrons;
+        particles[1] = H_ions;
+    }
+
+    else if (problem == 2) {
+        num_species = 1;
+
+        RealBox electron_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
+                                          AMREX_D_DECL( 0.0,    20e-6,  20e-6));
+        ElectromagneticParticleContainer* electrons;
+        electrons = new ElectromagneticParticleContainer(geom, dm, ba,
+                                                         0, -PhysConst::q_e, PhysConst::m_e);
+        electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, electron_bounds, problem);
+        
+        particles[0] = electrons;
+    }
+
     std::cout << "Done. " << std::endl;
     
     for (int i = 0; i < num_species; ++i) particles[i]->OK();
@@ -98,6 +122,7 @@ void test_em_pic(const TestParams& parms)
     
     BL_PROFILE_VAR_START(blp_evolve);
     
+    Real time = 0.0;
     for (int step = 0; step < nsteps; ++step)
     {         
         std::cout << "    Time step: " <<  step << std::endl;
@@ -127,7 +152,7 @@ void test_em_pic(const TestParams& parms)
         evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
         fill_boundary_magnetic_field(Bx, By, Bz, geom);        
         
-        if (step == nsteps - 1) {            
+        if (step == nsteps - 1) {
             evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
             for (int i = 0; i < num_species; ++i) {
                 particles[i]->PushParticlesOnly(0.5*dt);
@@ -142,13 +167,15 @@ void test_em_pic(const TestParams& parms)
             particles[i]->EnforcePeriodicBCs();
             particles[i]->OK();            
         }
+
+        time += dt;
     }
     
     std::cout << "Done. " << std::endl;
 
     BL_PROFILE_VAR_STOP(blp_evolve);
 
-    WritePlotFile(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.0, 10);   
+    WritePlotFile(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, time, nsteps);
 }
 
 int main(int argc, char* argv[])

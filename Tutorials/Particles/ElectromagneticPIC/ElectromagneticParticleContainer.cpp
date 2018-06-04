@@ -177,7 +177,9 @@ ElectromagneticParticleContainer::
 InitParticles(const IntVect& a_num_particles_per_cell,
               const Real     a_thermal_momentum_std, 
               const Real     a_thermal_momentum_mean,
-              const Real     a_density)
+              const Real     a_density, 
+              const RealBox& a_bounds, 
+              const int      a_problem)
 {
     BL_PROFILE("ElectromagneticParticleContainer::InitParticles");
     
@@ -200,12 +202,26 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 Real u[3];
                 
                 get_position_unit_cell(r, a_num_particles_per_cell, i_part);
-                get_gaussian_random_momentum(u, a_thermal_momentum_mean, a_thermal_momentum_std);
-                
+
+                if (a_problem == 1) {
+                    get_gaussian_random_momentum(u, a_thermal_momentum_mean, a_thermal_momentum_std);
+                }
+                else if (a_problem == 2 ) {
+                    u[0] = 0.01;
+                    u[1] = 0.0;
+                    u[2] = 0.0;
+                } else {
+                    amrex::Abort("problem type not valid");
+                }
+
                 Real x = plo[0] + (iv[0] + r[0])*dx[0];
                 Real y = plo[1] + (iv[1] + r[1])*dx[1];
                 Real z = plo[2] + (iv[2] + r[2])*dx[2];
                 
+                if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
+                    y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
+                    z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
+
                 RealBox rb(tile_box, dx, plo);
 
                 Real point[3];
