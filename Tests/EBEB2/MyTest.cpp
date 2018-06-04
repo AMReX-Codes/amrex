@@ -9,6 +9,7 @@
 #include <AMReX_EB2_IF_Union.H>
 #include <AMReX_EB2_IF_Intersection.H>
 #include <AMReX_EB2_IF_Complement.H>
+#include <AMReX_EB2_IF_Translation.H>
 #include <AMReX_EB2_IF_Box.H>
 #include <AMReX_EB2_IF_Cylinder.H>
 #include <AMReX_EB2_IF_Sphere.H>
@@ -96,7 +97,8 @@ MyTest::initializeEB2 ()
 
         EB2::SphereIF bf(0.2, {0.0,0.0,0.0}, true);
 
-        auto uf = EB2::makeUnion(pf1, pf2, EB2::makeComplement(bf), EB2::makeIntersection(pf1,pf2));
+        auto uf = EB2::makeUnion(pf1, EB2::translate(pf2,{0.2,0.2,0.2}),
+                                 EB2::makeComplement(bf), EB2::makeIntersection(pf1,pf2));
 
         auto gshop = EB2::makeShop(uf);
         EB2::Initialize(gshop, geom, info);

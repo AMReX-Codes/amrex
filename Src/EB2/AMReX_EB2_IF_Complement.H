@@ -14,7 +14,6 @@ class ComplementIF
 {
 public:
 
-    // inside: is the fluid inside the cylinder?
     ComplementIF (F&& a_f) : m_f(std::move(a_f)) {}
     ComplementIF (F const& a_f) : m_f(a_f) {}
           
@@ -29,7 +28,6 @@ public:
     {
         return -m_f(p);
     }
-
 
 protected:
 
