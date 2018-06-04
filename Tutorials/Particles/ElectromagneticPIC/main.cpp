@@ -72,7 +72,7 @@ void test_em_pic(const TestParams& parms)
 
     int num_species;
     Vector<ElectromagneticParticleContainer*> particles(2);
-    int problem = 2;
+    int problem = 1;
 
     if (problem == 1) {
         num_species = 2;
