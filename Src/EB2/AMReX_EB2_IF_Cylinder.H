@@ -1,7 +1,6 @@
 #ifndef AMREX_EB2_IF_CYLINDER_H_
 #define AMREX_EB2_IF_CYLINDER_H_
 
-#include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
 
 #include <algorithm>

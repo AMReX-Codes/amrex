@@ -1,7 +1,6 @@
 #ifndef AMREX_EB2_IF_PLANE_H_
 #define AMREX_EB2_IF_PLANE_H_
 
-#include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
 
 namespace amrex { namespace EB2 {
