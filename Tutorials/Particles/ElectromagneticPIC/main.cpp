@@ -20,8 +20,11 @@ struct TestParams
     IntVect nppc;       // number of particles per cell in each dim
     int max_grid_size;
     int nsteps;
-    bool verbose;
+    int problem_type;
+    bool write_plot;
 };
+
+enum ProblemType {UniformPlasma = 0, Langmuir};
 
 void check_solution(const MultiFab& jx, const Geometry& geom, const Real time);
 
@@ -76,9 +79,8 @@ void test_em_pic(const TestParams& parms)
 
     int num_species;
     Vector<ElectromagneticParticleContainer*> particles(2);
-    int problem = 2;
 
-    if (problem == 1) {
+    if (parms.problem_type == UniformPlasma) {
         num_species = 2;
     
         RealBox electron_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
@@ -86,20 +88,20 @@ void test_em_pic(const TestParams& parms)
         ElectromagneticParticleContainer* electrons;
         electrons = new ElectromagneticParticleContainer(geom, dm, ba, 
                                                    0, -PhysConst::q_e, PhysConst::m_e);
-        electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, real_box, problem);
+        electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, real_box, parms.problem_type);
 
         RealBox H_ions_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
                                         AMREX_D_DECL( 20e-6,  20e-6,  20e-6));        
         ElectromagneticParticleContainer* H_ions;
         H_ions = new ElectromagneticParticleContainer(geom, dm, ba, 
                                                       1, PhysConst::q_e, PhysConst::m_p);
-        H_ions->InitParticles(parms.nppc, 0.01, 10.0, 1e25, H_ions_bounds, problem);
+        H_ions->InitParticles(parms.nppc, 0.01, 10.0, 1e25, H_ions_bounds, parms.problem_type);
 
         particles[0] = electrons;
         particles[1] = H_ions;
     }
 
-    else if (problem == 2) {
+    else if (parms.problem_type == Langmuir) {
         num_species = 1;
 
         RealBox electron_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
@@ -107,7 +109,7 @@ void test_em_pic(const TestParams& parms)
         ElectromagneticParticleContainer* electrons;
         electrons = new ElectromagneticParticleContainer(geom, dm, ba,
                                                          0, -PhysConst::q_e, PhysConst::m_e);
-        electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, electron_bounds, problem);
+        electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, electron_bounds, parms.problem_type);
         
         particles[0] = electrons;
     }
@@ -181,9 +183,18 @@ void test_em_pic(const TestParams& parms)
 
     BL_PROFILE_VAR_STOP(blp_evolve);
 
-    if (problem == 2) check_solution(jx, geom, time);
+    if (parms.problem_type == Langmuir)
+    {
+        check_solution(jx, geom, time);
+    } else 
+    {
+        std::cout << "Not computing error - no exact solution" << std::endl;
+    }
 
-    WritePlotFile(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, time, nsteps);
+    if (parms.write_plot) 
+    {
+        WritePlotFile(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, time, nsteps);
+    }
 }
 
 void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
@@ -214,18 +225,29 @@ int main(int argc, char* argv[])
     
     amrex::InitRandom(451);
 
-    ParmParse pp;
-    
-    TestParams parms;
-    
+    ParmParse pp;    
+    TestParams parms;    
     pp.get("ncell", parms.ncell);
     pp.get("nppc",  parms.nppc);
     pp.get("max_grid_size", parms.max_grid_size);
     pp.get("nsteps", parms.nsteps);
+    pp.get("write_plot", parms.write_plot);
 
-    parms.verbose = false;
-    pp.query("verbose", parms.verbose);
-    
+    std::string problem_name;
+    pp.get("problem_type", problem_name);
+    if (problem_name == "UniformPlasma")
+    {
+        parms.problem_type = UniformPlasma;
+    }
+    else if (problem_name == "Langmuir")
+    {
+        parms.problem_type = Langmuir;
+    }
+    else
+    {
+        amrex::Abort("Problem not recognized");
+    }
+
     test_em_pic(parms);
     
     amrex::Finalize();

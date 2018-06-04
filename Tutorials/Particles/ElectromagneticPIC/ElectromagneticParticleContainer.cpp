@@ -203,10 +203,10 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 
                 get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
-                if (a_problem == 1) {
+                if (a_problem == 0) {
                     get_gaussian_random_momentum(u, a_thermal_momentum_mean, a_thermal_momentum_std);
                 }
-                else if (a_problem == 2 ) {
+                else if (a_problem == 1 ) {
                     u[0] = 0.01;
                     u[1] = 0.0;
                     u[2] = 0.0;

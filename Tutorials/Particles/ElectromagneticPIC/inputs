@@ -4,6 +4,8 @@ nppc  = (4, 4, 2)
 
 max_grid_size = 64
 
+problem_type = Langmuir
+
 nsteps = 1
 
-verbose = true
+write_plot = false
