@@ -222,14 +222,6 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                     y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
                     z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
 
-                RealBox rb(tile_box, dx, plo);
-
-                Real point[3];
-                point[0] = x;
-                point[1] = y;
-                point[2] = z;
-                AMREX_ALWAYS_ASSERT(rb.contains(point));
-
                 particles.x().push_back(x);
                 particles.y().push_back(y);
                 particles.z().push_back(z);
@@ -318,7 +310,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
                               particles.ginv().data(), dt);
         
-#ifdef AMREX_USE_CUDA            
+#ifdef AMREX_USE_CUDA
         cudaDeviceSynchronize();
 #endif
 
@@ -326,11 +318,11 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                               BL_TO_FORTRAN_3D(jx[mfi]),
                               BL_TO_FORTRAN_3D(jy[mfi]),
                               BL_TO_FORTRAN_3D(jz[mfi]),
-                              np, 
+                              np,
                               particles.x().data(),  particles.y().data(),  particles.z().data(),
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
                               particles.ginv().data(), particles.w().data(),
-                              m_charge, plo, dt, dx);            
+                              m_charge, plo, dt, dx);
     }
 }
 

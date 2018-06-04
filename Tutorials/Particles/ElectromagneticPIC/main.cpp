@@ -10,6 +10,8 @@
 #include "Constants.H"
 #include "IO.H"
 
+#include "em_pic_F.H"
+
 using namespace amrex;
 
 struct TestParams
@@ -20,6 +22,8 @@ struct TestParams
     int nsteps;
     bool verbose;
 };
+
+void check_solution(const MultiFab& jx, const Geometry& geom, const Real time);
 
 void test_em_pic(const TestParams& parms)
 {
@@ -37,7 +41,7 @@ void test_em_pic(const TestParams& parms)
     }
     
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0)); 
-    IntVect domain_hi(AMREX_D_DECL(parms.ncell[0]-1,parms.ncell[1]-1,parms.ncell[2]-1)); 
+    IntVect domain_hi(AMREX_D_DECL(parms.ncell[0]-1,parms.ncell[1]-1,parms.ncell[2]-1));
     const Box domain(domain_lo, domain_hi);
     
     int coord = 0;
@@ -72,7 +76,7 @@ void test_em_pic(const TestParams& parms)
 
     int num_species;
     Vector<ElectromagneticParticleContainer*> particles(2);
-    int problem = 1;
+    int problem = 2;
 
     if (problem == 1) {
         num_species = 2;
@@ -129,19 +133,23 @@ void test_em_pic(const TestParams& parms)
         
         if (synchronized)
         {
-            evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
             for (int i = 0; i < num_species; ++i)
             {
-                particles[i]->PushParticlesOnly(0.5*dt);
+                particles[i]->PushParticlesOnly(-0.5*dt);
             }
             synchronized = false;
         }
-
-        fill_boundary_electric_field(Ex, Ey, Ez, geom);        
-        evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
-        fill_boundary_magnetic_field(Bx, By, Bz, geom);        
+        else
+        {
+            fill_boundary_electric_field(Ex, Ey, Ez, geom);
+            evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
+            fill_boundary_magnetic_field(Bx, By, Bz, geom);
+        }
         
         jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
+
+        amrex::Print() << jx.max(0) << std::endl;
+
         for (int i = 0; i < num_species; ++i) {
             particles[i]->PushAndDeposeParticles(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, dt);
         }
@@ -150,16 +158,16 @@ void test_em_pic(const TestParams& parms)
         jz.SumBoundary(geom.periodicity());
         
         evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
-        fill_boundary_magnetic_field(Bx, By, Bz, geom);        
+        fill_boundary_magnetic_field(Bx, By, Bz, geom);
+
+        evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, dt);
         
         if (step == nsteps - 1) {
-            evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, 0.5*dt);
+            evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
             for (int i = 0; i < num_species; ++i) {
                 particles[i]->PushParticlesOnly(0.5*dt);
             }
             synchronized = true;
-        } else {
-            evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, dt);
         }
         
         for (int i = 0; i < num_species; ++i) {
@@ -175,7 +183,31 @@ void test_em_pic(const TestParams& parms)
 
     BL_PROFILE_VAR_STOP(blp_evolve);
 
+    if (problem == 2) check_solution(jx, geom, time);
+
     WritePlotFile(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, time, nsteps);
+}
+
+void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
+{
+    BL_PROFILE("ElectromagneticParticleContainer::check_solution");
+    
+    const Real* dx = geom.CellSize();
+
+    Box test_box = geom.Domain();
+    test_box.setSmall(IntVect(AMREX_D_DECL(2, 2, 2)));
+    test_box.setBig(IntVect(AMREX_D_DECL(30, 30, 30)));
+
+    Real max_error;
+    for(MFIter mfi(jx); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx  = mfi.tilebox();
+        check_langmuir_solution(BL_TO_FORTRAN_BOX(tbx),
+                                BL_TO_FORTRAN_BOX(test_box),
+                                BL_TO_FORTRAN_3D(jx[mfi]), time, &max_error);
+    }
+
+    amrex::Print() << "Max error is: " << max_error << std::endl;
 }
 
 int main(int argc, char* argv[])

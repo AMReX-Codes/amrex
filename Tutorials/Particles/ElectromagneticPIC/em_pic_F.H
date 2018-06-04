@@ -135,6 +135,11 @@ extern "C"
                                                 const amrex::Real dtsdx, 
                                                 const amrex::Real dtsdy);
 
+    void check_langmuir_solution(const int* boxlo,  const int* boxhi,
+                                 const int* testlo, const int* testhi,
+                                 const BL_FORT_FAB_ARG_3D(jx), const amrex::Real time,
+                                 amrex::Real* max_error);
+
 #ifdef __cplusplus
 };
 #endif
