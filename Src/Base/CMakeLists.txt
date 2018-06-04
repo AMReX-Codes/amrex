@@ -125,6 +125,8 @@ list ( APPEND F90SRC     AMReX_error_mod.F90 AMReX_parmparse_mod.F90 AMReX_strin
 list ( APPEND F90SRC     AMReX_bc_types_mod.F90 )
 list ( APPEND F90SRC     AMReX_ParallelDescriptor_F.F90 )
 
+list ( APPEND F90SRC     AMReX_io_mod.F90 )
+
 list ( APPEND CXXSRC     AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 
 
