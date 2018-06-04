@@ -1917,7 +1917,7 @@ AmrLevel::derive (const std::string& name,
 				 ZFILL(dx),ZFILL(xlo),
 				 time_f,dt_f,
 				 BCREC_3D(bcr_f),
-				 level,idx_f);
+				 level_f,idx_f);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
