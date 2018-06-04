@@ -1103,6 +1103,9 @@ FabArray<FAB>::setDomainBndry (value_type val,
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).setComplement(val, domain_box, strt_comp, ncomp);
+#ifdef AMREX_USE_CUDA
+        CudaAPICheck(cudaDeviceSynchronize());
+#endif
     }
 }
 
