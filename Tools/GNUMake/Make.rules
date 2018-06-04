@@ -23,7 +23,7 @@ endif
 #
 # Rules for building executable.
 #
-$(executable):	$(objForExecs)
+$(executable): $(objForExecs)
 	@echo Linking $@ ...
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	$(SILENT) $(F90) $(F90FLAGS) $(FINAL_CPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
@@ -35,6 +35,10 @@ endif
 ifdef CRAY_CPU_TARGET
 	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="
 endif
+
+header_temp_dir/cuda_headers: $(CEXE_headers)
+	@if [ ! -d header_temp_dir ]; then mkdir header_temp_dir; fi
+	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py --output_dir header_temp_dir --vpath "$(VPATH_LOCATIONS)" --headers "$(FEXE_headers)" --fortran "$(ca_F90EXE_sources)"
 
 ifeq ($(USE_PROFPARSER),TRUE)
 BLProfParser.tab.H BLProfParser.tab.cpp: $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y
@@ -129,7 +133,7 @@ clang-tidy: $(CEXE_sources)
 
 FORCE:
 
-.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules
+.PHONY:	all clean realclean file_locations header_temp_dir/cuda_headers tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules
 
 #
 # Rules for objects.
