@@ -368,6 +368,8 @@ ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DAMREX_LAUNCH='attributes(global)'
     DEFINES += -DAMREX_DEVICE='attributes(device)'
 
+    INCLUDE_LOCATIONS += header_temp_dir
+
 else
     DEFINES += -DAMREX_LAUNCH=""
     DEFINES += -DAMREX_DEVICE=""
