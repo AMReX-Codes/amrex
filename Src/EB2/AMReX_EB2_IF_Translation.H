@@ -32,9 +32,9 @@ public:
 
     Real operator() (const RealArray& p) const
     {
-        return m_f({AMREX_D_DECL(p[0]+m_offset[0],
-                                 p[1]+m_offset[1],
-                                 p[2]+m_offset[2])});
+        return m_f({AMREX_D_DECL(p[0]-m_offset[0],
+                                 p[1]-m_offset[1],
+                                 p[2]-m_offset[2])});
     }
 
 protected:

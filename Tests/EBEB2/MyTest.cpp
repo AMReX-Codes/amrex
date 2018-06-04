@@ -10,6 +10,7 @@
 #include <AMReX_EB2_IF_Intersection.H>
 #include <AMReX_EB2_IF_Complement.H>
 #include <AMReX_EB2_IF_Translation.H>
+#include <AMReX_EB2_IF_Lathe.H>
 #include <AMReX_EB2_IF_Box.H>
 #include <AMReX_EB2_IF_Cylinder.H>
 #include <AMReX_EB2_IF_Sphere.H>
@@ -92,15 +93,13 @@ MyTest::initializeEB2 ()
 
     if (geom_type == "combustor")
     {
-        EB2::PlaneIF pf1({0.0,0.0,0.0}, {1.0, 0.0, 0.0});
-        EB2::PlaneIF pf2({0.0,0.0,0.0}, {0.5, 0.5, 0.0});
+        EB2::PlaneIF farwall({0.45,0.,0.}, {1.,0.,0.});
+        EB2::BoxIF pipe({0.06, -1.0, -100.0}, {0.08, 0.5, 100.0}, false);
+        auto polys = EB2::makeIntersection(farwall, pipe);
+        auto pr = EB2::translate(EB2::lathe(polys), {0.5,0.5,0.});
 
-        EB2::SphereIF bf(0.2, {0.0,0.0,0.0}, true);
-
-        auto uf = EB2::makeUnion(pf1, EB2::translate(pf2,{0.2,0.2,0.2}),
-                                 EB2::makeComplement(bf), EB2::makeIntersection(pf1,pf2));
-
-        auto gshop = EB2::makeShop(uf);
+//        auto gshop = EB2::makeShop(pr);
+        auto gshop = EB2::makeShop(polys);
         EB2::Initialize(gshop, geom, info);
     }
     else
@@ -145,6 +144,7 @@ MyTest::initializeEB ()
     }
     else
     {
+        return;
         amrex::Abort("geom_type "+geom_type+ " not supported in Mytest::initializeEB");
     }
 
