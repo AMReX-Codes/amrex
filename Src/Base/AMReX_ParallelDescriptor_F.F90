@@ -26,6 +26,11 @@ module amrex_paralleldescriptor_module
        real(amrex_real) :: x(*)
        integer(c_int), intent(in), value :: n, root
      end subroutine amrex_fi_pd_bcast_r
+
+     real(amrex_real) function amrex_fi_pd_wtime () bind(c)
+       import
+       implicit none
+     end function amrex_fi_pd_wtime
   end interface
 
   interface amrex_pd_bcast
@@ -36,7 +41,7 @@ module amrex_paralleldescriptor_module
   end interface amrex_pd_bcast
 
   private
-  public :: amrex_pd_myproc, amrex_pd_nprocs, amrex_pd_ioprocessor, amrex_pd_bcast
+  public :: amrex_pd_myproc, amrex_pd_nprocs, amrex_pd_ioprocessor, amrex_pd_bcast, amrex_pd_wtime
 
 contains
 
@@ -108,5 +113,10 @@ contains
     end if
     call amrex_fi_pd_bcast_r(x, size(x), root)
   end subroutine amrex_pd_bcast_r3v
+
+  function amrex_pd_wtime () result(r)
+    real(amrex_real) :: r
+    r = amrex_fi_pd_wtime()
+  end function amrex_pd_wtime
 
 end module amrex_paralleldescriptor_module
