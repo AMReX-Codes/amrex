@@ -45,8 +45,16 @@ public:
                                       amrex::MultiFab& jy, 
                                       amrex::MultiFab& jz,
                                       amrex::Real      dt);
+
+    void PushParticleMomenta(const amrex::MultiFab& Ex,
+                             const amrex::MultiFab& Ey,
+                             const amrex::MultiFab& Ez,
+                             const amrex::MultiFab& Bx,
+                             const amrex::MultiFab& By,
+                             const amrex::MultiFab& Bz,
+                                   amrex::Real      dt);
     
-    void PushParticlesOnly(amrex::Real dt);
+    void PushParticlePositions(amrex::Real dt);
 
     void EnforcePeriodicBCs();
 

@@ -267,6 +267,13 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         auto& particles = m_particles[mfi.index()];
         const int np    = particles.size();
 
+        particles.ex().assign(np, 0.0);
+        particles.ey().assign(np, 0.0);
+        particles.ez().assign(np, 0.0);
+        particles.bx().assign(np, 0.0);
+        particles.by().assign(np, 0.0);
+        particles.bz().assign(np, 0.0);
+
         FORT_LAUNCH_PARTICLES(np,
                               gather_magnetic_field,
                               np, 
@@ -290,6 +297,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 #ifdef AMREX_USE_CUDA           
         cudaDeviceSynchronize();
 #endif
+
         FORT_LAUNCH_PARTICLES(np, 
                               push_momentum_boris,
                               np,
@@ -326,11 +334,73 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
     }
 }
 
+void
+ElectromagneticParticleContainer::
+PushParticleMomenta(const amrex::MultiFab& Ex,
+                    const amrex::MultiFab& Ey,
+                    const amrex::MultiFab& Ez,
+                    const amrex::MultiFab& Bx,
+                    const amrex::MultiFab& By,
+                    const amrex::MultiFab& Bz,
+                          amrex::Real      dt)
+{   
+    BL_PROFILE("ElectromagneticParticleContainer::PushParticleMomenta");
+    
+    const Real* dx  = m_geom.CellSize();
+    const Real* plo = m_geom.ProbLo();
+    
+    for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
+    {
+        auto& particles = m_particles[mfi.index()];
+        const int np    = particles.size();
+
+        particles.ex().assign(np, 0.0);
+        particles.ey().assign(np, 0.0);
+        particles.ez().assign(np, 0.0);
+        particles.bx().assign(np, 0.0);
+        particles.by().assign(np, 0.0);
+        particles.bz().assign(np, 0.0);
+
+        FORT_LAUNCH_PARTICLES(np,
+                              gather_magnetic_field,
+                              np, 
+                              particles.x().data(),  particles.y().data(),  particles.z().data(),
+                              particles.bx().data(), particles.by().data(), particles.bz().data(),
+                              BL_TO_FORTRAN_3D(Bx[mfi]),
+                              BL_TO_FORTRAN_3D(By[mfi]),
+                              BL_TO_FORTRAN_3D(Bz[mfi]),
+                              plo, dx);
+        
+        FORT_LAUNCH_PARTICLES(np,
+                              gather_electric_field,
+                              np, 
+                              particles.x().data(),  particles.y().data(),  particles.z().data(),
+                              particles.ex().data(), particles.ey().data(), particles.ez().data(),
+                              BL_TO_FORTRAN_3D(Ex[mfi]),
+                              BL_TO_FORTRAN_3D(Ey[mfi]),
+                              BL_TO_FORTRAN_3D(Ez[mfi]),
+                              plo, dx);
+        
+#ifdef AMREX_USE_CUDA           
+        cudaDeviceSynchronize();
+#endif
+
+        FORT_LAUNCH_PARTICLES(np, 
+                              push_momentum_boris,
+                              np,
+                              particles.ux().data(), particles.uy().data(), particles.uz().data(),
+                              particles.ginv().data(),
+                              particles.ex().data(), particles.ey().data(), particles.ez().data(),
+                              particles.bx().data(), particles.by().data(), particles.bz().data(),
+                              m_charge, m_mass, dt);
+    }
+}
+
 void 
 ElectromagneticParticleContainer::
-PushParticlesOnly(amrex::Real dt)
+PushParticlePositions(amrex::Real dt)
 {
-    BL_PROFILE("ElectromagneticParticleContainer::PushParticlesOnly");
+    BL_PROFILE("ElectromagneticParticleContainer::PushParticlePositions");
     
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
