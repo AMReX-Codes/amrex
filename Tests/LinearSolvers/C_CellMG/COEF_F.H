@@ -49,13 +49,13 @@ extern "C"
 {
 #endif
     void FORT_SET_CC_COEF (
-        amrex_real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
+        amrex_real* coef     , AMREX_ARLIM_P(coef_lo), AMREX_ARLIM_P(coef_hi),
         const int* lo, const int* hi, const amrex_real* dx,
         const amrex_real* prob_lo, const amrex_real* prob_hi);
 
     void FORT_COEF_TO_EDGES (int * dir, 
-        amrex_real* edge     , ARLIM_P(edge_lo), ARLIM_P(edge_hi),
-        amrex_real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
+        amrex_real* edge     , AMREX_ARLIM_P(edge_lo), AMREX_ARLIM_P(edge_hi),
+        amrex_real* coef     , AMREX_ARLIM_P(coef_lo), AMREX_ARLIM_P(coef_hi),
         const int* lo, const int* hi);
 
 #ifdef __cplusplus

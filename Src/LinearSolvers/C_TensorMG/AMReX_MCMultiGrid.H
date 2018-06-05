@@ -1,6 +1,6 @@
 
-#ifndef _MCMULTIGRID_H_
-#define _MCMULTIGRID_H_
+#ifndef AMREX_MCMULTIGRID_H_
+#define AMREX_MCMULTIGRID_H_
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>

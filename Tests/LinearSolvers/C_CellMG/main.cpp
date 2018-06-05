@@ -395,7 +395,7 @@ main (int argc, char* argv[])
           const int* chi = cc_coef[mfi].hiVect();
           const Box& bx = mfi.validbox();
   
-          FORT_SET_CC_COEF(cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),bx.loVect(),bx.hiVect(),dx,geom.ProbLo(),geom.ProbHi());
+          FORT_SET_CC_COEF(cc_coef[mfi].dataPtr(),AMREX_ARLIM(clo),AMREX_ARLIM(chi),bx.loVect(),bx.hiVect(),dx,geom.ProbLo(),geom.ProbHi());
         }
 
         VisMF::Write(cc_coef,"COEF");
@@ -412,8 +412,8 @@ main (int argc, char* argv[])
             const int* edgelo = bcoefs[n][mfi].loVect();
             const int* edgehi = bcoefs[n][mfi].hiVect();
 
-            FORT_COEF_TO_EDGES(&n,bcoefs[n][mfi].dataPtr(),ARLIM(edgelo),ARLIM(edgehi),
-                               cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
+            FORT_COEF_TO_EDGES(&n,bcoefs[n][mfi].dataPtr(),AMREX_ARLIM(edgelo),AMREX_ARLIM(edgehi),
+                               cc_coef[mfi].dataPtr(),AMREX_ARLIM(clo),AMREX_ARLIM(chi),
                                bx.loVect(),bx.hiVect());
           }
         }

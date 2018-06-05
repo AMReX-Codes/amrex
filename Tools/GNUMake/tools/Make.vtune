@@ -1,7 +1,7 @@
 
 ifeq ($(lowercase_comp),intel)
 
-  DEFINES += -DVTUNE
+  DEFINES += -DAMREX_VTUNE
   
   # Add more debugging output if we want to profile with Intel VTune. These flags
   # probably do not slow down code execution, but we don't need this much
@@ -29,7 +29,7 @@ ifeq ($(lowercase_comp),intel)
     # library directories. Unfortunately the names of the defined environment
     # variables change with VTune versions so these will need to be updated
     # periodically.
-    DEFINES += -DITTNOTIFY
+    # DEFINES += -DAMREX_ITTNOTIFY
     INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2018_DIR)/include
     LIBRARY_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2018_DIR)/lib64
     LIBRARIES +=  -littnotify
@@ -38,7 +38,7 @@ ifeq ($(lowercase_comp),intel)
     # FLOPS in software, since Intel chips have not had working hardware
     # FLOP counters since Sandy Bridge. One can manually instrument code
     # regions with SDE, similarly to the way one does with VTune/ittnotify.
-    DEFINES += -DSDE
+    # DEFINES += -DAMREX_SDE
 
   endif
 

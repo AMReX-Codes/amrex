@@ -84,9 +84,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
 
     for (int i = 0; i < nlev; ++i) {
 	n_error_buf[i] = 1;
-        blocking_factor[i] = IntVect{D_DECL(8,8,8)};
-        max_grid_size[i] = (AMREX_SPACEDIM == 2) ? IntVect{D_DECL(128,128,128)} 
-                                              : IntVect{D_DECL(32,32,32)};
+        blocking_factor[i] = IntVect{AMREX_D_DECL(8,8,8)};
+        max_grid_size[i] = (AMREX_SPACEDIM == 2) ? IntVect{AMREX_D_DECL(128,128,128)} 
+                                              : IntVect{AMREX_D_DECL(32,32,32)};
     }
 
 

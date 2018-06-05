@@ -1,6 +1,6 @@
 
-#ifndef _RealBox_H_
-#define _RealBox_H_ 
+#ifndef AMREX_RealBox_H_
+#define AMREX_RealBox_H_
 
 #include <iosfwd>
 #include <array>
@@ -73,6 +73,9 @@ public:
     //! Is the specified RealBox contained in this RealBox?
     bool contains (const RealBox& bx, Real eps=0.0) const;
 
+    //! Does the specified RealBox intersect with this RealBox?
+    bool intersects (const RealBox& bx) const;
+    
 private:
     //
     // The data.

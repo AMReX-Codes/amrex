@@ -1,62 +1,34 @@
-#ifndef _COORDSYS_F_H_
-#define _COORDSYS_F_H_
+#ifndef AMREX_COORDSYS_F_H_
+#define AMREX_COORDSYS_F_H_
 
-#ifdef BL_LANG_FORT
-#    define FORT_SETVOL      setvol
-#    define FORT_SETVOLPT      setvolpt
-#    define FORT_SETAREA     setarea
-#    define FORT_SETDLOGA    setdloga
-#else
-#  ifdef BL_FORT_USE_UPPERCASE
-#    define FORT_SETVOL      SETVOL
-#    define FORT_SETVOLPT      SETVOLPT
-#    define FORT_SETAREA     SETAREA
-#    define FORT_SETDLOGA    SETDLOGA
-#  else
-#  ifdef BL_FORT_USE_LOWERCASE
-#    define FORT_SETVOL      setvol
-#    define FORT_SETVOLPT      setvolpt
-#    define FORT_SETAREA     setarea
-#    define FORT_SETDLOGA    setdloga
-#  else
-#    define FORT_SETVOL      setvol_
-#    define FORT_SETVOLPT      setvolpt_
-#    define FORT_SETAREA     setarea_
-#    define FORT_SETDLOGA    setdloga_
-#  endif
-#  endif
-
-#include <AMReX_ArrayLim.H>
-#include <AMReX_REAL.H>
+#include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-     void FORT_SETVOL (ARLIM_P(rlo), ARLIM_P(rhi),
-		       amrex_real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+     void amrex_setvol (AMREX_ARLIM_P(rlo), AMREX_ARLIM_P(rhi),
+		       amrex_real* vol, AMREX_ARLIM_P(vlo), AMREX_ARLIM_P(vhi),
                        const amrex_real* offset,
                        const amrex_real* dx, const int* coord);
 
-     void FORT_SETVOLPT (amrex_real* vol, ARLIM_P(vollo), ARLIM_P(volhi),
-			 amrex_real* rolo, ARLIM_P(rolo), ARLIM_P(rohi),
-			 amrex_real* rilo, ARLIM_P(rilo), ARLIM_P(rihi),
+     void amrex_setvolpt (amrex_real* vol, AMREX_ARLIM_P(vollo), AMREX_ARLIM_P(volhi),
+			 amrex_real* rolo, AMREX_ARLIM_P(rolo), AMREX_ARLIM_P(rohi),
+			 amrex_real* rilo, AMREX_ARLIM_P(rilo), AMREX_ARLIM_P(rihi),
 			 const amrex_real* dx, const int* coord);
 
-     void FORT_SETDLOGA (amrex_real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+     void amrex_setdloga (amrex_real* vol, AMREX_ARLIM_P(vlo), AMREX_ARLIM_P(vhi),
                          const amrex_real* offset,
                          const amrex_real* dx, const int* dir,
                          const int* coord);
 
-     void FORT_SETAREA (ARLIM_P(rlo), ARLIM_P(rhi),
-			amrex_real* area,  ARLIM_P(alo), ARLIM_P(ahi),
+     void amrex_setarea (AMREX_ARLIM_P(rlo), AMREX_ARLIM_P(rhi),
+			amrex_real* area,  AMREX_ARLIM_P(alo), AMREX_ARLIM_P(ahi),
                         const amrex_real* offset,
                         const amrex_real* dx, const int* dir,
                         const int* coord);
 #ifdef __cplusplus
 }
-#endif
-
 #endif
 
 #endif /*_COORDSYS_F_H_*/

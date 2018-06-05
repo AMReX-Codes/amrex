@@ -160,7 +160,9 @@ class AmrData {
   int NIntersectingGrids(int level, const Box &b) const;
   MultiFab &GetGrids(int level, int componentIndex);
   MultiFab &GetGrids(int level, int componentIndex, const Box &onBox);
-  void FlushGrids(int componentIndex);
+
+  void FlushGrids(); // Clear all internal field data
+  void FlushGrids(int componentIndex); // Clear all internal field data associated with this component
   
   // calculate the min and max values of derived on onBox at level
   // return false if onBox did not intersect any grids

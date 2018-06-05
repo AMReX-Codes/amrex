@@ -45,21 +45,21 @@ bdfunc_init ()
     const Orientation xloface(0,Orientation::low);
     const Orientation xhiface(0,Orientation::high);
 
-    bdfunc[xloface] = FORT_BDINTERPXLO;
-    bdfunc[xhiface] = FORT_BDINTERPXHI;
+    bdfunc[xloface] = amrex_bdinterpxlo;
+    bdfunc[xhiface] = amrex_bdinterpxhi;
 
 #if (AMREX_SPACEDIM > 1)
     const Orientation yloface(1,Orientation::low);
     const Orientation yhiface(1,Orientation::high);
-    bdfunc[yloface] = FORT_BDINTERPYLO;
-    bdfunc[yhiface] = FORT_BDINTERPYHI;
+    bdfunc[yloface] = amrex_bdinterpylo;
+    bdfunc[yhiface] = amrex_bdinterpyhi;
 #endif
 
 #if (AMREX_SPACEDIM > 2)
     const Orientation zloface(2,Orientation::low);
     const Orientation zhiface(2,Orientation::high);
-    bdfunc[zloface] = FORT_BDINTERPZLO;
-    bdfunc[zhiface] = FORT_BDINTERPZHI;
+    bdfunc[zloface] = amrex_bdinterpzlo;
+    bdfunc[zhiface] = amrex_bdinterpzhi;
 #endif
 }
 
@@ -289,11 +289,11 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         BL_ASSERT(crse_fab.box().contains(crsebnd));
                     }
 
-                    bdfunc[face](bdat,ARLIM(blo),ARLIM(bhi),
-                                 lo,hi,ARLIM(cblo),ARLIM(cbhi),
+                    bdfunc[face](bdat,AMREX_ARLIM(blo),AMREX_ARLIM(bhi),
+                                 lo,hi,AMREX_ARLIM(cblo),AMREX_ARLIM(cbhi),
                                  &num_comp,ratio.getVect(),&is_not_covered,
-                                 mdat,ARLIM(mlo),ARLIM(mhi),
-                                 cdat,ARLIM(clo),ARLIM(chi),derives.dataPtr(),&max_order);
+                                 mdat,AMREX_ARLIM(mlo),AMREX_ARLIM(mhi),
+                                 cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),derives.dataPtr(),&max_order);
                 }
                 else if (fine != nullptr)
                 {

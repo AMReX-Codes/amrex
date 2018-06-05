@@ -1,5 +1,6 @@
-#ifndef _EBArith_H___
-#define _EBArith_H___
+#ifndef AMREX_EBArith_H_
+#define AMREX_EBArith_H_
+
 #include "AMReX_VolIndex.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_Stencils.H"

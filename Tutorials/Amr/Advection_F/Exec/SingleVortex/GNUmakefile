@@ -1,5 +1,6 @@
 
 DEBUG     = TRUE
+DEBUG     = FALSE
 
 USE_MPI   = TRUE
 USE_OMP   = FALSE

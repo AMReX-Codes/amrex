@@ -1,5 +1,4 @@
 #include "AMReX_LO_BCTYPES.H"
-#include "AMReX_ArrayLim.H"
 
 
 module amrex_habec_module
@@ -14,25 +13,25 @@ module amrex_habec_module
 
 contains
 
-subroutine hbvec(vec, &
-                 DIMS(reg), &
+subroutine amrex_hbvec(vec, &
+                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
-                 bcval, DIMS(bcv), &
-                 mask, DIMS(msk), &
-                 b, DIMS(bbox), &
+                 bcval, bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3, &
+                 mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                 b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                  beta, dx) bind(C, name="amrex_hbvec")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(bcv)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bct, bho
   real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: vec(DIMV(reg))
-  real(rt)         :: bcval(DIMV(bcv))
-  integer :: mask(DIMV(msk))
-  real(rt)         :: b(DIMV(bbox))
+  real(rt)         :: vec(reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
+  real(rt)         :: bcval(bcv_l1:bcv_h1,bcv_l2:bcv_h2,bcv_l3:bcv_h3)
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)         :: h, bfv
   real(rt)         :: h2, th2
   integer :: i, j, k
@@ -120,27 +119,27 @@ subroutine hbvec(vec, &
   else
      print *, "hbvec: impossible face orientation"
   endif
-end subroutine hbvec
+end subroutine amrex_hbvec
 
-subroutine hbvec3(vec, &
-                  DIMS(reg), &
+subroutine amrex_hbvec3(vec, &
+                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                   cdir, bctype, bho, bcl, &
-                  bcval, DIMS(bcv), &
-                  mask, DIMS(msk), &
-                  b, DIMS(bbox), &
+                  bcval, bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3, &
+                  mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                   beta, dx) bind(C, name="amrex_hbvec3")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(bcv)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bctype, bho
   real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: vec(DIMV(reg))
-  real(rt)         :: bcval(DIMV(bcv))
-  integer :: mask(DIMV(msk))
-  real(rt)         :: b(DIMV(bbox))
+  real(rt)         :: vec(reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
+  real(rt)         :: bcval(bcv_l1:bcv_h1,bcv_l2:bcv_h2,bcv_l3:bcv_h3)
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)         :: h, bfv
   real(rt)         :: h2, th2
   integer :: i, j, k, bct
@@ -299,19 +298,19 @@ subroutine hbvec3(vec, &
   else
      print *, "hbvec3: impossible face orientation"
   endif
-end subroutine hbvec3
+end subroutine amrex_hbvec3
 
 
-subroutine hmac(mat, a, &
-                DIMS(abox), &
-                DIMS(reg), &
+subroutine amrex_hmac(mat, a, &
+                abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3, &
+                reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                 alpha) bind(C, name="amrex_hmac")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(abox)
-  integer :: DIMDEC(reg)
-  real(rt)         :: a(DIMV(abox))
-  real(rt)         :: mat(0:6, DIMV(reg))
+  integer :: abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  real(rt)         :: a(abox_l1:abox_h1,abox_l2:abox_h2,abox_l3:abox_h3)
+  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
   real(rt)         :: alpha
   integer :: i, j, k
   if (alpha == 0.e0_rt) then
@@ -331,19 +330,19 @@ subroutine hmac(mat, a, &
         enddo
      enddo
   endif
-end subroutine hmac
+end subroutine amrex_hmac
 
-subroutine hmbc(mat, b, &
-                DIMS(bbox), &
-                DIMS(reg), &
+subroutine amrex_hmbc(mat, b, &
+                bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
+                reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                 beta, dx, n) bind(C, name="amrex_hmbc")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(bbox)
-  integer :: DIMDEC(reg)
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: n
-  real(rt)         :: b(DIMV(bbox))
-  real(rt)         :: mat(0:6, DIMV(reg))
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
+  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
   real(rt)         :: beta, dx(3)
   real(rt)         :: fac
   integer :: i, j, k
@@ -381,25 +380,25 @@ subroutine hmbc(mat, b, &
         enddo
      enddo
   endif
-end subroutine hmbc
+end subroutine amrex_hmbc
 
 
-subroutine hmmat(mat, &
-                 DIMS(reg), &
+subroutine amrex_hmmat(mat, &
+                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
-                 mask, DIMS(msk), &
-                 b, DIMS(bbox), &
+                 mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                 b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                  beta, dx) bind(C, name="amrex_hmmat")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bct, bho
   real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: mat(0:6, DIMV(reg))
-  integer :: mask(DIMV(msk))
-  real(rt)         :: b(DIMV(bbox))
+  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)         :: h, fac, bfm, bfv
   real(rt)         :: bfm2, h2, th2
   integer :: i, j, k
@@ -509,24 +508,24 @@ subroutine hmmat(mat, &
   else
      print *, "hmmat: impossible face orientation"
   endif
-end subroutine hmmat
+end subroutine amrex_hmmat
 
-subroutine hmmat3(mat, &
-                  DIMS(reg), &
+subroutine amrex_hmmat3(mat, &
+                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                   cdir, bctype, bho, bcl, &
-                  mask, DIMS(msk), &
-                  b, DIMS(bbox), &
+                  mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                   beta, dx) bind(C, name="amrex_hmmat3")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bctype, bho
   real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: mat(0:6, DIMV(reg))
-  integer :: mask(DIMV(msk))
-  real(rt)         :: b(DIMV(bbox))
+  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)         :: h, fac, bfm, bfv
   real(rt)         :: bfm2, h2, th2
   integer :: i, j, k, bct
@@ -724,6 +723,6 @@ subroutine hmmat3(mat, &
   else
      print *, "hmmat3: impossible face orientation"
   endif
-end subroutine hmmat3
+end subroutine amrex_hmmat3
 
 end module amrex_habec_module

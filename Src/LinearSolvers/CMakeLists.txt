@@ -1,4 +1,3 @@
-#-------------------------------------------------------------------------------make 
 #
 # Sources in folder MGML
 # 
@@ -121,6 +120,20 @@ accumulate_headers (ALLHEADERS)
 accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/C_CellMG)
 
 
+
+#########################################################################
+#
+#  The sources in all folders other than MLMG and C_CellMG are legacy,
+#  and will be included in the build only if ENABLE_LINEAR_SOLVERS_LEGACY
+#  is ON 
+# 
+#########################################################################
+if ( NOT ENABLE_LINEAR_SOLVERS_LEGACY )
+   return ()
+endif ()
+
+
+
 #-------------------------------------------------------------------------------
 #
 # Source in folder C_CellMG4
@@ -135,13 +148,13 @@ list ( APPEND ALLHEADERS AMReX_ABec2.H   AMReX_ABec4.H )
 list ( APPEND CXXSRC     AMReX_ABec2.cpp AMReX_ABec4.cpp )
 
 list ( APPEND ALLHEADERS AMReX_ABec2_F.H AMReX_ABec4_F.H )
-list ( APPEND F77SRC     AMReX_ABec2_${DIM}D.F AMReX_ABec4_${DIM}D.F )
+list ( APPEND F90SRC     AMReX_ABec2_${DIM}D.F90 AMReX_ABec4_${DIM}D.F90 )
 
 
 # 
 # Collect sources
 # 
-set ( ALLSRC   ${CXXSRC} ${F77SRC} )
+set ( ALLSRC   ${CXXSRC} ${F90SRC} )
 
 #
 # Add absolute path (needed by target_sources)
@@ -188,11 +201,12 @@ else ()
    message ( AUTHOR_WARNING  "No specific source file for case DIM=1 in Src/LinearSolvers/C_TensorMG" )
 endif ()
 
+list ( APPEND F90SRC  amrex_tmg_util.F90 )
 
 # 
 # Collect sources
 # 
-set ( ALLSRC   ${CXXSRC} ${F77SRC} )
+set ( ALLSRC   ${CXXSRC} ${F77SRC} ${F90SRC} )
 
 #
 # Add absolute path (needed by target_sources)

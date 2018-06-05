@@ -6,6 +6,7 @@
 
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Print.H>
 #include <AMReX.H>
 
 namespace amrex {
@@ -17,6 +18,8 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
+    signal(s, SIG_DFL);
+
     switch (s) {
     case SIGSEGV:
 	amrex::write_to_stderr_without_buffering("Segfault");
@@ -49,7 +52,7 @@ BLBackTrace::handler(int s)
 	fclose(p);
     }
     
-    std::cerr << "See " << errfilename << " file for details" << std::endl;
+    amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
 
 #ifdef BL_BACKTRACING
     if (!bt_stack.empty()) {
@@ -72,7 +75,6 @@ BLBackTrace::handler(int s)
 
 #endif // __linux__
 
-    signal(s, SIG_DFL);
     ParallelDescriptor::Abort(s, false);
 }
 
@@ -87,9 +89,9 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
     }
     else
     {
-      std::cout << "Warning @ BLBackTrace::print_backtrace_info: " 
-                << filename << " is not a valid output file."
-                << std::endl;
+        amrex::Print() << "Warning @ BLBackTrace::print_backtrace_info: " 
+                       << filename << " is not a valid output file."
+                       << std::endl;
     }
 }
 
@@ -121,7 +123,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	for (int i = 0; i < nptrs; ++i) {
 	    std::string line = strings[i];
 	    line += "\n";
-	    if (have_addr2line && !amrex::system::exename.empty()) {
+	    if (amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty()) {
 		std::size_t found1 = line.rfind('[');
 		std::size_t found2 = line.rfind(']');
 		if (found1 != std::string::npos && found2 != std::string::npos) {

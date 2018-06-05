@@ -117,7 +117,8 @@ namespace amrex
   makeGeometry(const Box&       a_domain,
                const RealVect&  a_dx,
                RealVect&        a_sphereCenter,
-               Real&            a_sphereRadius)
+               Real&            a_sphereRadius,
+               int igeom)
   {
     //parse input file.  single level
     ParmParse pp;
@@ -134,11 +135,27 @@ namespace amrex
 
     amrex::Print() << "using a sphere implicit function" << "\n";
     bool negativeInside = true;
-    SphereIF lalaBall(a_sphereRadius, a_sphereCenter, negativeInside);
-    GeometryShop workshop(lalaBall);
-    int ebmaxcoarsen = 0;
-    RealVect origin = RealVect::Zero;
-    ebisPtr->define(a_domain, origin, a_dx[0], workshop, biggridsize, ebmaxcoarsen);
+    if(igeom == 0)
+    {
+      amrex::Print() << "using GeometryShop " << "\n";
+      
+      SphereIF lalaBall(a_sphereRadius, a_sphereCenter, negativeInside);
+      GeometryShop workshop(lalaBall);
+      int ebmaxcoarsen = 0;
+      RealVect origin = RealVect::Zero;
+      ebisPtr->define(a_domain, origin, a_dx[0], workshop, biggridsize, ebmaxcoarsen);
+    }
+    else
+    {
+      amrex::Print() << "using WrappedGShop " << "\n";
+      
+      SphereIF lalaBall(a_sphereRadius, a_sphereCenter, negativeInside);
+      WrappedGShop workshop(lalaBall);
+      int ebmaxcoarsen = 0;
+      RealVect origin = RealVect::Zero;
+      ebisPtr->define(a_domain, origin, a_dx[0], workshop, biggridsize, ebmaxcoarsen);
+    }
+
   }
   /************/
   bool
@@ -311,7 +328,7 @@ namespace amrex
   }
 /************/
   void
-  sphereConvTest()
+  sphereConvTest(int igeom)
   {
     //make layouts == domain
     Box domainBoxFine, domainBoxCoar;
@@ -331,12 +348,12 @@ namespace amrex
     RealVect  sphereCenter;
     Real      sphereRadius;
 
-    makeGeometry(domainBoxFine,  dxFine, sphereCenter, sphereRadius);
+    makeGeometry(domainBoxFine,  dxFine, sphereCenter, sphereRadius, igeom);
     EBISLayout ebislFine, ebislCoar;
     const EBIndexSpace* const ebisPtr = AMReX_EBIS::instance();
     ebisPtr->fillEBISLayout(ebislFine, dblFine, dmfine, domainBoxFine, 0);
 
-    makeGeometry(domainBoxCoar,  dxCoar, sphereCenter, sphereRadius);
+    makeGeometry(domainBoxCoar,  dxCoar, sphereCenter, sphereRadius, igeom);
     ebisPtr->fillEBISLayout(ebislCoar, dblCoar, dmcoar,  domainBoxCoar, 0);
 
     //do the whole convergence test thing.
@@ -395,7 +412,10 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  amrex::sphereConvTest();
+  for(int igeom = 0; igeom <= 1; igeom++)
+  {
+    amrex::sphereConvTest(igeom);
+  }
 
   amrex::Finalize();
   return retval;

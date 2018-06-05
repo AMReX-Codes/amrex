@@ -1,5 +1,5 @@
-#ifndef _MINIMALCCCMIMPLEM_H_
-#define _MINIMALCCCMIMPLEM_H_
+#ifndef AMREX_MINIMALCCCMIMPLEM_H_
+#define AMREX_MINIMALCCCMIMPLEM_H_
 
 #include "AMReX_NoRefinement.H"
 #include "AMReX_LSProblem.H"

@@ -1,6 +1,6 @@
 
-#ifndef _MCLINOP_H_
-#define _MCLINOP_H_
+#ifndef AMREX_MCLINOP_H_
+#define AMREX_MCLINOP_H_
 
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>

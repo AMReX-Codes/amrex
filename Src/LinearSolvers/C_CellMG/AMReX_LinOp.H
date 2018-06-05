@@ -1,6 +1,6 @@
 
-#ifndef _LINOP_H_
-#define _LINOP_H_
+#ifndef AMREX_LINOP_H_
+#define AMREX_LINOP_H_
 
 #include <memory>
 

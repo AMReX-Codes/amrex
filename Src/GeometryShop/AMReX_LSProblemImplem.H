@@ -1,5 +1,5 @@
-#ifndef _LSPROBLEMIMPLEM_H_
-#define _LSPROBLEMIMPLEM_H_
+#ifndef AMREX_LSPROBLEMIMPLEM_H_
+#define AMREX_LSPROBLEMIMPLEM_H_
 
 #include <limits>
 

@@ -9,9 +9,6 @@
 #if !defined(BL_SPACEDIM)
 #define BL_SPACEDIM AMREX_SPACEDIM
 #endif
-#if !defined(SPACEDIM)
-#define SPACEDIM AMREX_SPACEDIM
-#endif
 
 /*
   The AMREX_SPACEDIM macro specifies the dimension of the AMReX library
@@ -155,6 +152,8 @@ namespace amrex
 #  define AMREX_D_PICK(a,b,c) c
 #endif
 
+#ifndef AMREX_XSDK
+
 /* for backward compatibility */
 #if (AMREX_SPACEDIM == 1)
 #  define D_DECL(a,b,c) a
@@ -171,6 +170,8 @@ namespace amrex
 #  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
 #  define D_PICK(a,b,c) c
 #  define D_TERM(a,b,c) a b c
+#endif
+
 #endif
 
 #endif /*BL_SPACE_H*/

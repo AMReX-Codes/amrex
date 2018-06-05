@@ -1,5 +1,5 @@
-#ifndef _MGT_SOLVER_
-#define _MGT_SOLVER_
+#ifndef AMREX_MGT_SOLVER_
+#define AMREX_MGT_SOLVER_
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>

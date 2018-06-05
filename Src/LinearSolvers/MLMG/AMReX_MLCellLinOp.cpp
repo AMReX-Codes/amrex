@@ -28,6 +28,8 @@ MLCellLinOp::define (const Vector<Geometry>& a_geom,
 void
 MLCellLinOp::defineAuxData ()
 {
+    BL_PROFILE("MLCellLinOp::defineAuxData()");
+
     m_undrrelxr.resize(m_num_amr_levels);
     m_maskvals.resize(m_num_amr_levels);
     m_fluxreg.resize(m_num_amr_levels-1);
@@ -92,6 +94,8 @@ MLCellLinOp::defineAuxData ()
 void
 MLCellLinOp::defineBC ()
 {
+    BL_PROFILE("MLCellLinOp::defineBC()");
+
     const int ncomp = getNComp();
 
     m_bndry_sol.resize(m_num_amr_levels);
@@ -305,10 +309,10 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         const FArrayBox& cfab    = crse[mfi];
         FArrayBox&       ffab    = fine[mfi];
 
-        FORT_INTERP(ffab.dataPtr(),
-                    ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+        amrex_mg_interp(ffab.dataPtr(),
+                    AMREX_ARLIM(ffab.loVect()), AMREX_ARLIM(ffab.hiVect()),
                     cfab.dataPtr(),
-                    ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                    AMREX_ARLIM(cfab.loVect()), AMREX_ARLIM(cfab.hiVect()),
                     bx.loVect(), bx.hiVect(), &ncomp);
     }    
 }

@@ -1,6 +1,6 @@
 
-#ifndef _TagBox_H_
-#define _TagBox_H_
+#ifndef AMREX_TagBox_H_
+#define AMREX_TagBox_H_
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>

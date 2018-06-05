@@ -1,5 +1,5 @@
-#ifndef _POLYGEOM_H_
-#define _POLYGEOM_H_
+#ifndef AMREX_POLYGEOM_H_
+#define AMREX_POLYGEOM_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_RealVect.H"

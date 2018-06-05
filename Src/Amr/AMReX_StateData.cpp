@@ -16,10 +16,10 @@
 
 namespace amrex {
 
-const Real INVALID_TIME = -1.0e200;
+static constexpr Real INVALID_TIME = -1.0e200;
 
-const int MFNEWDATA = 0;
-const int MFOLDDATA = 1;
+static constexpr int MFNEWDATA = 0;
+static constexpr int MFOLDDATA = 1;
 
 Vector<std::string> StateData::fabArrayHeaderNames;
 std::map<std::string, Vector<char> > *StateData::faHeaderMap;
@@ -814,7 +814,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
     const Real*    dx          = geom.CellSize();
     const RealBox& prob_domain = geom.ProbDomain();
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif

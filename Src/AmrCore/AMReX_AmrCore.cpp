@@ -5,7 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
 #include <AMReX_AmrParGDB.H>
 #endif
 
@@ -59,7 +59,7 @@ AmrCore::InitAmrCore ()
     ParmParse pp("amr");
     pp.query("v",verbose);
     
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
     m_gdb.reset(new AmrParGDB(this));
 #endif
 }

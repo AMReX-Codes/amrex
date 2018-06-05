@@ -1,15 +1,12 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_coordsys_module
 
-#include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
-#include "AMReX_COORDSYS_F.H"
-#include "AMReX_ArrayLim.H"
+  use amrex_fort_module
+  use amrex_constants_module
 
-#define SDIM 3
+  implicit none
+
+contains
 
 ! :: ----------------------------------------------------------
 ! :: SETVOL
@@ -23,27 +20,29 @@
 ! ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETVOL(DIMS(reg),vol,DIMS(vol),offset,dx,coord)
+  subroutine AMREX_SETVOL(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
+       vol,vol_l1,vol_l2,vol_l3,vol_h1,vol_h2,vol_h3,offset,dx,coord) &
+       bind(c,name='amrex_setvol')
 
     implicit none
 
-    integer    DIMDEC(reg)
-    integer    DIMDEC(vol)
+    integer    reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+    integer    vol_l1,vol_l2,vol_l3,vol_h1,vol_h2,vol_h3
     integer    coord
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     vol(DIMV(vol))
+    real(amrex_real)     dx(3), offset(3)
+    real(amrex_real)     vol(vol_l1:vol_h1,vol_l2:vol_h2,vol_l3:vol_h3)
        
     integer    i, j, k
-    REAL_T     v
+    real(amrex_real)     v
        
     if (coord .eq. 0) then
 
        ! cartesian
 
        v = dx(1)*dx(2)*dx(3)
-       do k = ARG_L3(reg), ARG_H3(reg)
-          do j = ARG_L2(reg), ARG_H2(reg)
-             do i = ARG_L1(reg), ARG_H1(reg)
+       do k = reg_l3, reg_h3
+          do j = reg_l2, reg_h2
+             do i = reg_l1, reg_h1
                 vol(i,j,k) = v
              end do
           end do
@@ -51,13 +50,13 @@
 
     else
 
-       write(6,*) "FORT_SETVOLUME not define for coord = ",coord
+       write(6,*) "AMREX_SETVOLUME not define for coord = ",coord
 
        call bl_abort(" ")
 
     end if
        
-  end subroutine FORT_SETVOL
+  end subroutine AMREX_SETVOL
 
 ! :: ----------------------------------------------------------
 ! :: SETAREA
@@ -71,18 +70,20 @@
 ! ::  coord        => coordinate flag (0 =cartesian, 1 = RZ)
 ! :: ----------------------------------------------------------
 
-  subroutine FORT_SETAREA(DIMS(reg),area,DIMS(area),offset,dx,dir,coord)
+  subroutine AMREX_SETAREA(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
+       area,area_l1,area_l2,area_l3,area_h1,area_h2,area_h3,offset,dx,dir,coord) &
+       bind(c,name='amrex_setarea')
 
     implicit none
 
-    integer    DIMDEC(reg)
-    integer    DIMDEC(area)
+    integer    reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+    integer    area_l1,area_l2,area_l3,area_h1,area_h2,area_h3
     integer    coord, dir
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     area(DIMV(area))
+    real(amrex_real)     dx(3), offset(3)
+    real(amrex_real)     area(area_l1:area_h1,area_l2:area_h2,area_l3:area_h3)
        
     integer    i, j, k
-    REAL_T     fa
+    real(amrex_real)     fa
 
     fa = 1.d0
        
@@ -95,13 +96,13 @@
        else if (dir .eq. 2) then
           fa = dx(1)*dx(2)
        else
-          write(6,*) "FORT_SETAREA: invalid dir = ",dir
+          write(6,*) "AMREX_SETAREA: invalid dir = ",dir
           call bl_abort(" ")
        end if
 
-       do k = ARG_L3(reg), ARG_H3(reg)
-          do j = ARG_L2(reg), ARG_H2(reg)
-             do i = ARG_L1(reg), ARG_H1(reg)
+       do k = reg_l3, reg_h3
+          do j = reg_l2, reg_h2
+             do i = reg_l1, reg_h1
                 area(i,j,k) = fa
              end do
           end do
@@ -109,12 +110,12 @@
 
     else
 
-       write(6,*) "FORT_SETAREA not define for coord = ",coord
+       write(6,*) "AMREX_SETAREA not define for coord = ",coord
        call bl_abort(" ")
 
     end if
        
-  end subroutine FORT_SETAREA
+  end subroutine AMREX_SETAREA
 
 ! :: SETDLOGA
 ! ::             Compute  d(log(A))/dr in each cell
@@ -128,14 +129,15 @@
 ! :: ----------------------------------------------------------
 
 
-  subroutine FORT_SETDLOGA(dloga,DIMS(dloga),offset,dx,dir,coord)
+  subroutine AMREX_SETDLOGA(dloga,dloga_l1,dloga_l2,dloga_l3,dloga_h1,dloga_h2,dloga_h3,offset,dx,dir,coord) &
+       bind(c,name='amrex_setdloga')
 
     implicit none
 
-    integer    DIMDEC(dloga)
+    integer    dloga_l1,dloga_l2,dloga_l3,dloga_h1,dloga_h2,dloga_h3
     integer    coord
-    REAL_T     dx(SDIM), offset(SDIM)
-    REAL_T     dloga(DIMV(dloga))
+    real(amrex_real)     dx(3), offset(3)
+    real(amrex_real)     dloga(dloga_l1:dloga_h1,dloga_l2:dloga_h2,dloga_l3:dloga_h3)
     integer dir
        
     integer    i, j, k
@@ -144,9 +146,9 @@
 
        ! cartesian
 
-       do k = ARG_L3(dloga), ARG_H3(dloga)
-          do j = ARG_L2(dloga), ARG_H2(dloga)
-             do i = ARG_L1(dloga), ARG_H1(dloga)
+       do k = dloga_l3, dloga_h3
+          do j = dloga_l2, dloga_h2
+             do i = dloga_l1, dloga_h1
                 dloga(i,j,k) = zero
              end do
           end do
@@ -159,4 +161,6 @@
 
     endif
 
-  end subroutine FORT_SETDLOGA
+  end subroutine AMREX_SETDLOGA
+
+end module amrex_coordsys_module

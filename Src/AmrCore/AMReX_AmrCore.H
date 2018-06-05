@@ -8,7 +8,7 @@
 
 namespace amrex {
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
 class AmrParGDB;
 #endif
 
@@ -33,7 +33,7 @@ public:
 
     virtual ~AmrCore ();
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
     AmrParGDB* GetParGDB () const { return m_gdb.get(); }
 #endif
 
@@ -73,7 +73,7 @@ protected:
 
     int              verbose;
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
     std::unique_ptr<AmrParGDB> m_gdb;
 #endif
 

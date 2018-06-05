@@ -1,6 +1,6 @@
 
-#ifndef _FNERGINDEXEDMOMENTS_H_
-#define _FNERGINDEXEDMOMENTS_H_
+#ifndef AMREX_FNERGINDEXEDMOMENTS_H_
+#define AMREX_FNERGINDEXEDMOMENTS_H_
 
 #include "AMReX_IndexTM.H"
 #include "AMReX_Vector.H"
@@ -475,6 +475,14 @@ checkMoments(IndexedMoments<Dim, ORDER> & a_moments,
 {
   MomentIterator<Dim, ORDER> momit;
   a_bogusPowers.resize(0);
+//eb moments can mysteriously get the wrong signs
+  if(a_ebMoment && a_bindMoments)
+  {
+    if(a_moments[IndexTM<int,Dim>::Zero] < 0.)
+    {
+      a_moments *= -1.0;
+    }
+  }
   Real cellvol = 1;
   for(int idir = 0; idir < Dim; idir++)
   {

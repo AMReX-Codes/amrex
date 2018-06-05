@@ -1,5 +1,5 @@
-#ifndef _BASEIVFABI_H_
-#define _BASEIVFABI_H_
+#ifndef AMREX_BASEIVFABI_H_
+#define AMREX_BASEIVFABI_H_
 
 #include "AMReX_IntVectSet.H"
 #include "AMReX_VoFIterator.H"

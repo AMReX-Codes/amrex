@@ -99,8 +99,12 @@ public:
     //! Return the tile box at the current index grown to include ghost cells.
     Box growntilebox (int ng=-1000000) const;
 
+    Box growntilebox (const IntVect& ng) const;
+
     //! Return the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
     Box grownnodaltilebox (int dir=-1, int ng=-1000000) const;
+
+    Box grownnodaltilebox (int dir, const IntVect& ng) const;
 
     //! Return the valid Box in which the current tile resides.
     Box validbox () const { return fabArray.box((*index_map)[currentIndex]); }

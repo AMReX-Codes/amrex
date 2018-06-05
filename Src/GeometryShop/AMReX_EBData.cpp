@@ -17,10 +17,10 @@ namespace amrex
 
   bool EBDataImplem::s_verbose = false;
 
-  static const IntVect   ebd_debiv(D_DECL(15, 6, 0));
+  static const IntVect   ebd_debiv(AMREX_D_DECL(15, 6, 0));
   static const VolIndex  ebd_debvof(ebd_debiv, 0);
-  static const IntVect   ebd_debivlo(D_DECL(190,15,0));
-  static const IntVect   ebd_debivhi(D_DECL(191,15,0));
+  static const IntVect   ebd_debivlo(AMREX_D_DECL(190,15,0));
+  static const IntVect   ebd_debivhi(AMREX_D_DECL(191,15,0));
   static const VolIndex  ebd_debvoflo(ebd_debivlo, 0);
   static const VolIndex  ebd_debvofhi(ebd_debivhi, 0);
   static const FaceIndex ebd_debface(ebd_debvoflo, ebd_debvofhi);
