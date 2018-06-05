@@ -625,6 +625,8 @@ Redistribute()
             const size_t new_size = old_size + num_to_add;
             not_ours[dest_proc].resize(new_size);
             thrust::copy(begin, end, not_ours[dest_proc].begin() + old_size);
+            remote_grids_start[dest_proc].push_back(old_size);
+            remote_grids_stop[dest_proc].push_back(new_size);
         }
     }
 }
