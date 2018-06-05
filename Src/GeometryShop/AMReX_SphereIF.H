@@ -1,5 +1,5 @@
-#ifndef _SPHEREIF_H_
-#define _SPHEREIF_H_
+#ifndef AMREX_SPHEREIF_H_
+#define AMREX_SPHEREIF_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"

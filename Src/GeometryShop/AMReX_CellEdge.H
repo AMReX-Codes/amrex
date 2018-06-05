@@ -1,5 +1,5 @@
-#ifndef _CELLEDGE_H_
-#define _CELLEDGE_H_
+#ifndef AMREX_CELLEDGE_H_
+#define AMREX_CELLEDGE_H_
 
 #include "AMReX_IntVect.H"
 

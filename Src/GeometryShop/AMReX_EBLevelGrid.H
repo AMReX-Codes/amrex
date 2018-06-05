@@ -1,5 +1,5 @@
-#ifndef _EBLEVELGRID_H_
-#define _EBLEVELGRID_H_
+#ifndef AMREX_EBLEVELGRID_H_
+#define AMREX_EBLEVELGRID_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_FArrayBox.H"

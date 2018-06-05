@@ -1,5 +1,5 @@
-#ifndef _STENCILS_H_
-#define _STENCILS_H_
+#ifndef AMREX_STENCILS_H_
+#define AMREX_STENCILS_H_
 
 #include "AMReX_VolIndex.H"
 #include "AMReX_BaseIndex.H"

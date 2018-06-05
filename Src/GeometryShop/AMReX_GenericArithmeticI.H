@@ -1,5 +1,5 @@
-#ifndef _GENERICARITHMETICI_H_
-#define _GENERICARITHMETICI_H_
+#ifndef AMREX_GENERICARITHMETICI_H_
+#define AMREX_GENERICARITHMETICI_H_
 
 #include <functional>
 

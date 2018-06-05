@@ -1,5 +1,5 @@
-#ifndef _PXSTUFF_H_
-#define _PXSTUFF_H_
+#ifndef AMREX_PXSTUFF_H_
+#define AMREX_PXSTUFF_H_
 
 namespace amrex
 {

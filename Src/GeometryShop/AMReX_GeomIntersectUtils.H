@@ -1,5 +1,5 @@
-#ifndef _GeomIntersectUtils_H_
-#define _GeomIntersectUtils_H_
+#ifndef AMREX_GeomIntersectUtils_H_
+#define AMREX_GeomIntersectUtils_H_
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Print.H>

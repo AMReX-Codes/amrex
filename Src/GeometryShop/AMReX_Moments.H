@@ -1,5 +1,5 @@
-#ifndef _MOMENTS_H_
-#define _MOMENTS_H_
+#ifndef AMREX_MOMENTS_H_
+#define AMREX_MOMENTS_H_
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
