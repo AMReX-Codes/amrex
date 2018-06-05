@@ -1,6 +1,7 @@
 #include "AMReX_EBConductivityOp.H"
 #include "AMReX_EBEllipticFort_F.H"
 #include "AMReX_IrregFABFactory.H"
+#include <AMReX_ParallelDescriptor.H>
 namespace amrex
 {
 
@@ -780,7 +781,8 @@ namespace amrex
 
 #ifdef BL_USE_MPI
     Real tmp = 1.;
-    int result = MPI_Allreduce(&maxNorm, &tmp, 1, MPI_CH_REAL,
+    int result = MPI_Allreduce(&maxNorm, &tmp, 1,
+                               ParallelDescriptor::Mpi_typemap<Real>::type(),
                                MPI_MAX, MPI_COMM_WORLD);
     if (result != MPI_SUCCESS)
     { //bark!!!

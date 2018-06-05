@@ -9,7 +9,7 @@ contains
   subroutine hyp_mol_gam_3d(q, qd_lo, qd_hi, &
                      lo, hi, dx, flux1, flux2, flux3)
 
-    use mempool_module, only : amrex_allocate, amrex_deallocate
+    use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
     use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar, &
          qrho,qu,qv,qw,qp,qc,qeint,qtemp,qvar, smallp, smallr
     use cns_physics_module, only : gamma

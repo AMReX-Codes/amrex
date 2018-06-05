@@ -219,7 +219,10 @@ namespace amrex {
 		BoxArray crse_S_fine_BA = fine_BA;
 		crse_S_fine_BA.coarsen(_amr->refRatio(1));
 		MultiFab *crse_S_fine = new MultiFab(crse_S_fine_BA, mfDst.DistributionMap(), mfDst.nComp(),0);
-		TheCPC_sendup= (amrex::FabArrayBase::CPC*)&(crse_S_fine->getCPC(0, mfSrc, 0, Periodicity::NonPeriodic()));
+		TheCPC_sendup= (amrex::FabArrayBase::CPC*)&(crse_S_fine->getCPC(IntVect::TheZeroVector(),,
+                                                                                mfSrc,
+                                                                                IntVect::TheZeroVector(),
+                                                                                Periodicity::NonPeriodic()));
 	    }
 	    if(name[0]>0){
 		MultiFab& mfSrc1 = _amr->amr_level[name[0]-1]->get_new_data(0);
@@ -228,7 +231,10 @@ namespace amrex {
 		BoxArray crse_S_fine_BA = fine_BA;
 		crse_S_fine_BA.coarsen(_amr->refRatio(1));
 		MultiFab *crse_S_fine = new MultiFab(crse_S_fine_BA, mfDst1.DistributionMap(), mfDst1.nComp(),0);
-		TheCPC_pullup= (amrex::FabArrayBase::CPC*)&(crse_S_fine->getCPC(0, mfSrc1, 0, Periodicity::NonPeriodic()));
+		TheCPC_pullup= (amrex::FabArrayBase::CPC*)&(crse_S_fine->getCPC(IntVect::TheZeroVector(),
+                                                                                mfSrc1,
+                                                                                IntVect::TheZeroVector(),
+                                                                                Periodicity::NonPeriodic()));
 	    }
 	}
 	void CreateLevelTask(int level){

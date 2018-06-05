@@ -9,6 +9,7 @@
 #include "AMReX_Box.H"
 #include "AMReX_SPMD.H"
 #include "AMReX_BLProfiler.H"
+#include <AMReX_ParallelDescriptor.H>
 
 #include <iomanip>
 using std::vector;
@@ -545,7 +546,8 @@ namespace amrex
     {
       BL_PROFILE("MPI_Allreduce");
       Real recv;
-      int result = MPI_Allreduce(&rnorm, &recv, 1, MPI_CH_REAL,
+      int result = MPI_Allreduce(&rnorm, &recv, 1,
+                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
                                  MPI_MAX, MPI_COMM_WORLD);
       if (result != MPI_SUCCESS)
       {

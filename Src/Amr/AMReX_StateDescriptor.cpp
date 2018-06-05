@@ -65,7 +65,7 @@ StateDescriptor::bf_thread_safety (const int* lo,const int* hi,
     if (!bf_ext_dir_threadsafe) {
 	bool has_ext_dir = false;
 	for (int i=0; i<2*AMREX_SPACEDIM*ng && !has_ext_dir; ++i) {
-	    has_ext_dir = bc[i]==EXT_DIR;
+	    has_ext_dir = bc[i]==BCType::ext_dir;
 	}
 	if (has_ext_dir) thread_safe = false;
     }
@@ -83,17 +83,19 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
     bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, bc, 1);
     if (thread_safe) {
       if (m_func != 0)
-	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
       else
-	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
+	m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                 AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,bc);
     } else {
 #ifdef _OPENMP
 #pragma omp critical (bndryfunc)
 #endif
       if (m_func != 0)
-	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
       else
-	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
+	m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                 AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,bc);
     }
 }
 
@@ -108,17 +110,19 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
     bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, bc, ng);
     if (thread_safe) {
         if (m_gfunc != 0)
-	  m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+	  m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
 	else
-	  m_gfunc3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
+	  m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                    AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,bc);
     } else {
 #ifdef _OPENMP
 #pragma omp critical (bndryfunc)
 #endif
         if (m_gfunc != 0)
-	  m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+	  m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
 	else
-	  m_gfunc3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
+	  m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                    AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,bc);
     }
 }
 

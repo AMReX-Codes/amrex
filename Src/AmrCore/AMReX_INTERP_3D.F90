@@ -3,10 +3,9 @@ module amrex_interp_module
 
   use amrex_fort_module
   use amrex_constants_module
+  use amrex_bc_types_module
 
   implicit none
-
-  include 'AMReX_bc_types.fi'
 
 contains
 
@@ -372,7 +371,7 @@ contains
             end do
           end do
 
-          if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
+          if (bclo(1,n) .eq. amrex_bc_ext_dir .or. bclo(1,n).eq.amrex_bc_hoextrap) then
             i = cslopelo(1)
             if (xok) then
               do k=cslopelo(3), cslopehi(3)
@@ -402,7 +401,7 @@ contains
             end do
           end if
 
-          if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
+          if (bchi(1,n) .eq. amrex_bc_ext_dir .or. bchi(1,n).eq.amrex_bc_hoextrap) then
             i = cslopehi(1)
             if (xok) then
               do k=cslopelo(3), cslopehi(3)
@@ -446,7 +445,7 @@ contains
             end do
           end do
 
-          if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
+          if (bclo(2,n) .eq. amrex_bc_ext_dir .or. bclo(2,n).eq.amrex_bc_hoextrap) then
             j = cslopelo(2)
             if (yok) then
               do k=cslopelo(3), cslopehi(3)
@@ -476,7 +475,7 @@ contains
             end do
           end if
 
-          if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
+          if (bchi(2,n) .eq. amrex_bc_ext_dir .or. bchi(2,n).eq.amrex_bc_hoextrap) then
             j = cslopehi(2)
             if (yok) then
               do k=cslopelo(3), cslopehi(3)
@@ -520,7 +519,7 @@ contains
             end do
           end do
 
-          if (bclo(3,n) .eq. EXT_DIR .or. bclo(3,n).eq.HOEXTRAP) then
+          if (bclo(3,n) .eq. amrex_bc_ext_dir .or. bclo(3,n).eq.amrex_bc_hoextrap) then
             k = cslopelo(3)
             if (zok) then
               do j=cslopelo(2), cslopehi(2)
@@ -550,7 +549,7 @@ contains
             end do
           end if
 
-          if (bchi(3,n) .eq. EXT_DIR .or. bchi(3,n).eq.HOEXTRAP) then
+          if (bchi(3,n) .eq. amrex_bc_ext_dir .or. bchi(3,n).eq.amrex_bc_hoextrap) then
             k = cslopehi(3)
             if (zok) then
               do j=cslopelo(2), cslopehi(2)
@@ -869,24 +868,24 @@ contains
 	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cx   = sgn*min(slp,abs(cen))
-            if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. EXT_DIR &
-      	        .or. bclo(1,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. amrex_bc_ext_dir &
+      	        .or. bclo(1,n).eq.amrex_bc_hoextrap)) then
 	        cen  = slplox(ic,jc,kc,n)
                 cx   = sgn*min(slp,abs(cen))
             end if
-            if (ic.eq.cb_h1 .and. (bchi(1,n) .eq. EXT_DIR &
-                .or. bchi(1,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_h1 .and. (bchi(1,n) .eq. amrex_bc_ext_dir &
+                .or. bchi(1,n).eq.amrex_bc_hoextrap)) then
                 cen  = slphix(ic,jc,kc,n)
                 cx   = sgn*min(slp,abs(cen))
             end if
 	 else
 	    cx = half*(crse(ic+1,jc,kc,n)-crse(ic-1,jc,kc,n))
-            if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. EXT_DIR &
-     	        .or. bclo(1,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. amrex_bc_ext_dir &
+     	        .or. bclo(1,n).eq.amrex_bc_hoextrap)) then
 	        cx  = slplox(ic,jc,kc,n)
             end if
-            if (ic.eq.cb_h1 .and. (bchi(1,n) .eq. EXT_DIR &
-                .or. bchi(1,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_h1 .and. (bchi(1,n) .eq. amrex_bc_ext_dir &
+                .or. bchi(1,n).eq.amrex_bc_hoextrap)) then
                 cx  = slphix(ic,jc,kc,n)
             end if
 	 end if
@@ -900,24 +899,24 @@ contains
 	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cy   = sgn*min(slp,abs(cen))
-            if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. EXT_DIR &
-      	        .or. bclo(2,n).eq.HOEXTRAP)) then
+            if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. amrex_bc_ext_dir &
+      	        .or. bclo(2,n).eq.amrex_bc_hoextrap)) then
 	        cen  = slploy(ic,jc,kc,n)
                 cy   = sgn*min(slp,abs(cen))
             end if
-            if (jc.eq.cb_h2 .and. (bchi(2,n) .eq. EXT_DIR &
-                .or. bchi(2,n).eq.HOEXTRAP)) then
+            if (jc.eq.cb_h2 .and. (bchi(2,n) .eq. amrex_bc_ext_dir &
+                .or. bchi(2,n).eq.amrex_bc_hoextrap)) then
                 cen  = slphiy(ic,jc,kc,n)
                 cy   = sgn*min(slp,abs(cen))
             end if
 	 else
 	    cy = half*(crse(ic,jc+1,kc,n)-crse(ic,jc-1,kc,n))
-            if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. EXT_DIR &
-      	        .or. bclo(2,n).eq.HOEXTRAP)) then
+            if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. amrex_bc_ext_dir &
+      	        .or. bclo(2,n).eq.amrex_bc_hoextrap)) then
 	        cy   = slploy(ic,jc,kc,n)
             end if
-            if (ic.eq.cb_h2 .and. (bchi(2,n) .eq. EXT_DIR &
-                .or. bchi(2,n).eq.HOEXTRAP)) then
+            if (ic.eq.cb_h2 .and. (bchi(2,n) .eq. amrex_bc_ext_dir &
+                .or. bchi(2,n).eq.amrex_bc_hoextrap)) then
                 cy   = slphiy(ic,jc,kc,n)
             end if
 	 end if
@@ -931,24 +930,24 @@ contains
 	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cz   = sgn*min(slp,abs(cen))
-            if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. EXT_DIR &
-      	        .or. bclo(3,n).eq.HOEXTRAP)) then
+            if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. amrex_bc_ext_dir &
+      	        .or. bclo(3,n).eq.amrex_bc_hoextrap)) then
 	        cen  = slploz(ic,jc,kc,n)
                 cz   = sgn*min(slp,abs(cen))
             end if
-            if (kc.eq.cb_h3 .and. (bchi(3,n) .eq. EXT_DIR &
-                .or. bchi(3,n).eq.HOEXTRAP)) then
+            if (kc.eq.cb_h3 .and. (bchi(3,n) .eq. amrex_bc_ext_dir &
+                .or. bchi(3,n).eq.amrex_bc_hoextrap)) then
                 cen  = slphiz(ic,jc,kc,n)
                 cz   = sgn*min(slp,abs(cen))
             end if
 	 else
 	    cz = half*(crse(ic,jc,kc+1,n)-crse(ic,jc,kc-1,n))
-            if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. EXT_DIR &
-      	        .or. bclo(3,n).eq.HOEXTRAP)) then
+            if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. amrex_bc_ext_dir &
+      	        .or. bclo(3,n).eq.amrex_bc_hoextrap)) then
 	        cz   = slploz(ic,jc,kc,n)
             end if
-            if (kc.eq.cb_h3 .and. (bchi(3,n) .eq. EXT_DIR &
-                .or. bchi(3,n).eq.HOEXTRAP)) then
+            if (kc.eq.cb_h3 .and. (bchi(3,n) .eq. amrex_bc_ext_dir &
+                .or. bchi(3,n).eq.amrex_bc_hoextrap)) then
                 cz   = slphiz(ic,jc,kc,n)
             end if
 	 end if

@@ -28,60 +28,14 @@
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_SphereIF.H"
 #include "AMReX_RealVect.H"
+#include "AMReX_EBCellFAB.H"
+#include "AMReX_EBArith.H"
+#include "AMReX_EBCellFactory.H"
+#include "AMReX_EBLevelDataOps.H"
 #include "AMReX_WrappedGShop.H"
 
 namespace amrex
 {
-/***************/
-  void 
-  irregNorm(Real& a_ebIrregNorm,
-            const BaseIVFAB<Real>& a_ebiError,
-            const IntVectSet& a_ivsIrreg,
-            const EBISBox& a_ebisBox,
-            const int& a_comp,
-            const int& a_normtype)
-  {
-    BL_PROFILE("EBArith::irregNorm");
-    BL_ASSERT(a_normtype >= 0);
-    BL_ASSERT(a_normtype <= 2);
-    a_ebIrregNorm = 0.0;
-    if (a_normtype == 0)
-    {
-      for (VoFIterator vofit(a_ivsIrreg, a_ebisBox.getEBGraph()); vofit.ok(); ++vofit)
-      {
-        const VolIndex& vof = vofit();
-        Real bdarea = a_ebisBox.bndryArea(vof);
-        if (bdarea > 0)
-        {
-          Real valVoF = a_ebiError(vof, a_comp);
-          a_ebIrregNorm = std::max(std::abs(valVoF), a_ebIrregNorm);
-        }
-      }
-    }
-    else
-    {
-      //integral norm
-      Real areaTot = 0.0;
-      Real normTot = 0.0;
-      for (VoFIterator vofit(a_ivsIrreg, a_ebisBox.getEBGraph()); vofit.ok(); ++vofit)
-      {
-        const VolIndex& vof = vofit();
-        Real valVoF = a_ebiError(vof, a_comp); 
-        Real bdarea = a_ebisBox.bndryArea(vof);
-        areaTot += bdarea;
-        if (a_normtype == 1)
-          normTot += std::abs(valVoF)*bdarea;
-        else
-          normTot += valVoF*valVoF*bdarea;
-      }
-      if (areaTot > 1.0e-8)
-        normTot /= areaTot;
-      if (a_normtype == 2)
-        normTot = sqrt(normTot);
-      a_ebIrregNorm = normTot;
-    }
-
-  }
   /***************/
   void
   getFinestDomain(Box&       a_domain,
@@ -117,8 +71,7 @@ namespace amrex
   makeGeometry(const Box&       a_domain,
                const RealVect&  a_dx,
                RealVect&        a_sphereCenter,
-               Real&            a_sphereRadius,
-               int igeom)
+               Real&            a_sphereRadius)
   {
     //parse input file.  single level
     ParmParse pp;
@@ -135,271 +88,172 @@ namespace amrex
 
     amrex::Print() << "using a sphere implicit function" << "\n";
     bool negativeInside = true;
-    if(igeom == 0)
-    {
-      amrex::Print() << "using GeometryShop " << "\n";
+
+    amrex::Print() << "using WrappedGShop " << "\n";
       
-      SphereIF lalaBall(a_sphereRadius, a_sphereCenter, negativeInside);
-      GeometryShop workshop(lalaBall);
-      int ebmaxcoarsen = 0;
-      RealVect origin = RealVect::Zero;
-      ebisPtr->define(a_domain, origin, a_dx[0], workshop, biggridsize, ebmaxcoarsen);
-    }
-    else
-    {
-      amrex::Print() << "using WrappedGShop " << "\n";
-      
-      SphereIF lalaBall(a_sphereRadius, a_sphereCenter, negativeInside);
-      WrappedGShop workshop(lalaBall);
-      int ebmaxcoarsen = 0;
-      RealVect origin = RealVect::Zero;
-      ebisPtr->define(a_domain, origin, a_dx[0], workshop, biggridsize, ebmaxcoarsen);
-    }
+    SphereIF lalaBall(a_sphereRadius, a_sphereCenter, negativeInside);
+    WrappedGShop workshop(lalaBall);
+    int ebmaxcoarsen = 0;
+    RealVect origin = RealVect::Zero;
+    ebisPtr->define(a_domain, origin, a_dx[0], workshop, biggridsize, ebmaxcoarsen);
 
   }
-  /************/
-  bool
-  compareError(const BaseIVFAB<Real>& a_errorFine,
-               const BaseIVFAB<Real>& a_errorCoar,
-               const IntVectSet&      a_ivsIrregFine,
-               const IntVectSet&      a_ivsIrregCoar,
-               const EBISBox&         a_ebisBoxFine,
-               const EBISBox&         a_ebisBoxCoar,
-               const char* const a_varname)
+/************/
+  void
+  sumFineValues(Vector<Real>           & a_fineSum, 
+                const EBCellFAB        & a_solutFine,
+                const Vector<VolIndex> & a_fineVoFs)
   {
-    bool failedTest = false;
-    string varstring(a_varname);
-    amrex::Print() << "===============================================" << "\n";
-    amrex::Print() <<  varstring << " at embedded boundary test " << "\n";
-    for (int inorm = 0; inorm <= 2; inorm++)
+    BL_ASSERT(a_fineSum.size() == a_solutFine.nComp());
+    for(int ivar = 0; ivar < a_solutFine.nComp(); ivar++)
     {
-      if (inorm == 0)
+      Real value = 0;
+      for(int ivof = 0; ivof < a_fineVoFs.size(); ivof++)
       {
-        amrex::Print()  << "Using max norm." << "\n";
+        value += a_solutFine(a_fineVoFs[ivof], ivar);
       }
-      else
+      a_fineSum[ivar] = value;
+    }
+  }
+/************/
+  void
+  fillMomentNames(Vector<string> & a_momentNames)
+  {
+    int ncomp = IndMomSpaceDim::size();
+    a_momentNames.resize(ncomp);
+    for(int ivec = 0; ivec < ncomp; ivec++)
+    {
+      IvSpaceDim iv = IndMomSpaceDim::getIndex(ivec);
+      string xint = string("x^") + EBArith::convertInt(iv[0]);
+      string yint = string("y^") + EBArith::convertInt(iv[1]);
+#if BL_SPACEDIM==3
+      string zint = string("z^") + EBArith::convertInt(iv[2]);
+#endif
+      string integrand = D_TERM(xint, +yint, +zint);
+      string name = string("int_cell") + integrand + string(" dV") ;
+      a_momentNames[ivec] = name;
+    }
+  }
+  void
+  fillVolumeMoments(FabArray<EBCellFAB>& a_moments, 
+                    const EBLevelGrid& a_eblg)
+  {
+    const BoxArray            & dbl   = a_eblg.getDBL();
+    const EBISLayout          & ebisl = a_eblg.getEBISL();
+    const DistributionMapping & dm    = a_eblg.getDM();
+    for (MFIter mfi(dbl, dm); mfi.isValid(); ++mfi)
+    {
+      a_moments[mfi].setVal(0.);
+      const EBISBox& ebisBox = ebisl[mfi];
+      Box               grid =   dbl[mfi];
+      IntVectSet ivs(grid);
+      VoFIterator vofit(ivs, ebisBox.getEBGraph());
+      Vector<VolIndex> vofs = vofit.getVector();
+      for(int ivof = 0 ; ivof < vofs.size(); ivof++)
       {
-        amrex::Print()  << "Using L-" << inorm << " norm." << "\n";
-      }
-
-      Real ebIrregNormCoar, ebIrregNormFine;
-
-      int comp = 0;
-      irregNorm(ebIrregNormCoar,
-                a_errorCoar,
-                a_ivsIrregCoar,
-                a_ebisBoxCoar,
-                comp,  inorm);
-
-      irregNorm(ebIrregNormFine,
-                a_errorFine,
-                a_ivsIrregFine,
-                a_ebisBoxFine,
-                comp,  inorm);
-
-      if (a_ivsIrregCoar.isEmpty())
-      {
-        amrex::Print() << "no irregular fine vofs" << "\n";
-      }
-      else
-      {
-        amrex::Print() << varstring << " Error Norm Coar = " << ebIrregNormCoar << "\n";
-      }
-      if (a_ivsIrregFine.isEmpty())
-      {
-        amrex::Print() << "no irregular fine vofs" << "\n";
-      }
-      else
-      {
-        amrex::Print() <<  varstring << " Error Norm Fine = " << ebIrregNormFine << "\n";
-      }
-
-      Real eps   = 1.0e-9;
-
-      if ((std::abs(ebIrregNormCoar) > eps) && (std::abs(ebIrregNormFine) > eps))
-      {
-        Real order = log(ebIrregNormCoar/ebIrregNormFine)/log(2.0);
-        amrex::Print() << "Order of " << varstring  <<" = " << order << "\n" << "\n";
-        if (order < 0.5)
+        IndMomSpaceDim volmom = ebisBox.getEBData().getVolumeMoments(vofs[ivof]);
+        for(MomItSpaceDim momit; momit.ok(); ++momit)
         {
-          failedTest = true;
+          int ivar = IndMomSpaceDim::indexOf(momit());
+          a_moments[mfi](vofs[ivof], ivar) = volmom[momit()];
         }
       }
     }
-    return failedTest;
   }
 /************/
   void
-  getNormalDotTrueNormM1(BaseIVFAB<Real>&  a_error,
-                         const IntVectSet& a_ivsIrreg,
-                         const EBISBox&    a_ebisBox,
-                         const RealVect&   a_sphereCenter,
-                         const RealVect&   a_dx)
+  sumFineMinusCoarse(FabArray<EBCellFAB>       & a_errorCoar, 
+                     const FabArray<EBCellFAB> & a_momentsMedi, 
+                     const FabArray<EBCellFAB> & a_momentsCoar, 
+                     const EBLevelGrid         & a_eblgMedi,
+                     const EBLevelGrid         & a_eblgCoar)
   {
-    //dot normal with truenormal.  right answer == 1 so we subtract 1
-    for (VoFIterator vofit(a_ivsIrreg, a_ebisBox.getEBGraph()); vofit.ok(); ++vofit)
+    const BoxArray            & dbl   = a_eblgCoar.getDBL();
+    const DistributionMapping & dm    = a_eblgCoar.getDM();
+    const EBISLayout          & ebisl = a_eblgCoar.getEBISL();
+    int ncomp = IndMomSpaceDim::size();
+    for (MFIter mfi(dbl, dm); mfi.isValid(); ++mfi)
     {
-      const VolIndex& vof = vofit();
-      RealVect centroid = a_ebisBox.bndryCentroid(vof);
-      const IntVect&   iv = vof.gridIndex();
-      RealVect centroidPt;
-      for (int idir = 0; idir < SpaceDim; idir++)
+      a_errorCoar[mfi].setVal(0.);
+      const EBISBox& ebisBoxCoar = ebisl[mfi];
+      Box               gridCoar =   dbl[mfi];
+      IntVectSet ivs(gridCoar);
+      VoFIterator vofit(ivs, ebisBoxCoar.getEBGraph());
+      Vector<VolIndex> vofs = vofit.getVector();
+      for(int ivof = 0 ; ivof < vofs.size(); ivof++)
       {
-        centroidPt[idir] = a_dx[idir]*(Real(iv[idir]) + 0.5 + centroid[idir]);
+        VolIndex vofCoar = vofs[ivof];
+        Vector<VolIndex> vofsFine = ebisBoxCoar.refine(vofCoar);
+        Vector<Real> fineSum(ncomp, 0.0);
+        sumFineValues(fineSum, a_momentsMedi[mfi], vofsFine);
+        for(int ivar = 0; ivar < ncomp; ivar++)
+        {
+          a_errorCoar[mfi](vofCoar, ivar) = fineSum[ivar] - a_momentsCoar[mfi](vofCoar, ivar);
+        }
       }
-      //true normal points at the center
-      RealVect trueNorm = a_sphereCenter;
-      trueNorm -= centroidPt;
-      Real sum;
-      PolyGeom::unifyVector(trueNorm, sum);
-
-      RealVect normal = a_ebisBox.normal(vof);
-      Real dotProd = PolyGeom::dot(trueNorm, normal);
-      Real error = std::abs(dotProd) - 1;
-
-      a_error(vof, 0) = error ;
-    }
-  }
-
-  /************/
-  void
-  getNormalMinuTrueNorm(BaseIVFAB<Real>&  a_error,
-                        const IntVectSet& a_ivsIrreg,
-                        const EBISBox&    a_ebisBox,
-                        const RealVect&   a_sphereCenter,
-                        const RealVect&   a_dx)
-  {
-    //dot normal with truenormal.  right answer == 1 so we subtract 1
-    for (VoFIterator vofit(a_ivsIrreg, a_ebisBox.getEBGraph()); vofit.ok(); ++vofit)
-    {
-      const VolIndex& vof = vofit();
-      RealVect centroid = a_ebisBox.bndryCentroid(vof);
-      const IntVect&   iv = vof.gridIndex();
-      RealVect centroidPt;
-      for (int idir = 0; idir < SpaceDim; idir++)
-      {
-        centroidPt[idir] = a_dx[idir]*(Real(iv[idir]) + 0.5 + centroid[idir]);
-      }
-      //true normal points at the center
-      RealVect trueNorm = a_sphereCenter;
-      trueNorm -= centroidPt;
-      Real sum;
-      PolyGeom::unifyVector(trueNorm, sum);
-
-      RealVect normal = a_ebisBox.normal(vof);
-      RealVect errorVect = normal;
-      errorVect -= trueNorm;
-      Real dotProd = PolyGeom::dot(errorVect, errorVect);
-      Real error = sqrt(dotProd);
-
-      a_error(vof, 0) = error ;
-    }
-  }
-  /************/
-  void
-  getCentroidDistError(BaseIVFAB<Real>&  a_error,
-                       const IntVectSet& a_ivsIrreg,
-                       const EBISBox&    a_ebisBox,
-                       const RealVect&   a_sphereCenter,
-                       const RealVect&   a_dx,
-                       const Real&       a_sphereRadius)
-  {
-    //dot normal with axis cross truenormal.  right answer == 0
-    for (VoFIterator vofit(a_ivsIrreg, a_ebisBox.getEBGraph()); vofit.ok(); ++vofit)
-    {
-      const VolIndex& vof = vofit();
-      RealVect centroid = a_ebisBox.bndryCentroid(vof);
-      const IntVect&   iv = vof.gridIndex();
-      RealVect centroidPt;
-      for (int idir = 0; idir < SpaceDim; idir++)
-      {
-        centroidPt[idir] = a_dx[idir]*(Real(iv[idir]) + 0.5 + centroid[idir]);
-      }
-
-      RealVect ebRadVec = a_sphereCenter;
-      ebRadVec -= centroidPt;
-
-      Real ebRadius = PolyGeom::dot(ebRadVec, ebRadVec);
-      ebRadius = sqrt(ebRadius);
-
-      Real error = ebRadius - a_sphereRadius;
-      a_error(vof, 0) = error;
     }
   }
 /************/
   void
-  sphereConvTest(int igeom)
+  sphereConvTest()
   {
     //make layouts == domain
-    Box domainBoxFine, domainBoxCoar;
-    RealVect dxFine, dxCoar;
+    Box domainBoxFine, domainBoxMedi, domainBoxCoar;
+    RealVect dxFine, dxMedi, dxCoar;
     getFinestDomain(domainBoxFine, dxFine);
-    dxCoar = 2.0*dxFine;
-    domainBoxCoar = coarsen(domainBoxFine, 2);
+    dxMedi = 2.0*dxFine;
+    dxCoar = 2.0*dxMedi;
+    domainBoxMedi = coarsen(domainBoxFine, 2);
+    domainBoxCoar = coarsen(domainBoxMedi, 2);
 
     BoxArray dblFine(domainBoxFine);
-    BoxArray dblCoar = dblFine;
-    dblCoar.coarsen(2);
-    DistributionMapping dmfine(dblFine);
-    DistributionMapping dmcoar(dblCoar);
+    BoxArray dblMedi(domainBoxMedi);
+    BoxArray dblCoar(domainBoxCoar);
+
+    DistributionMapping dmFine(dblFine);
+    DistributionMapping dmMedi(dblMedi);
+    DistributionMapping dmCoar(dblCoar);
 
 
-    amrex::Print() << "==============================================" << "\n";
+    amrex::Print() << "=====================================================" << "\n";
+    amrex::Print() << "=== Richardson Convergence Test of Volume Moments ===" << "\n";
+    amrex::Print() << "=====================================================" << "\n";
     RealVect  sphereCenter;
     Real      sphereRadius;
+    //doing a geometry convergence test so we have to make the geometry three times
+    //this sort of test only works (because of multivalued issues) if the shape is concave.
+    //since we know we are on the inside of a sphere, all is good
+    makeGeometry(domainBoxFine,  dxFine, sphereCenter, sphereRadius);
+    EBLevelGrid eblgFine(dblFine, dmFine, domainBoxFine, 1);
+    makeGeometry(domainBoxMedi,  dxMedi, sphereCenter, sphereRadius);
+    EBLevelGrid eblgMedi(dblMedi, dmMedi, domainBoxMedi, 1);
+    makeGeometry(domainBoxCoar,  dxCoar, sphereCenter, sphereRadius);
+    EBLevelGrid eblgCoar(dblCoar, dmCoar, domainBoxCoar, 1);
 
-    makeGeometry(domainBoxFine,  dxFine, sphereCenter, sphereRadius, igeom);
-    EBISLayout ebislFine, ebislCoar;
-    const EBIndexSpace* const ebisPtr = AMReX_EBIS::instance();
-    ebisPtr->fillEBISLayout(ebislFine, dblFine, dmfine, domainBoxFine, 0);
+    EBCellFactory factFine(eblgFine.getEBISL());
+    EBCellFactory factMedi(eblgMedi.getEBISL());
+    EBCellFactory factCoar(eblgCoar.getEBISL());
+    int ncomp = IndMomSpaceDim::size();
+    int nghost = 0;
+    //fill data holders with all the volume moments
+    FabArray<EBCellFAB> momentsFine(dblFine, dmFine, ncomp, nghost, MFInfo(), factFine);
+    FabArray<EBCellFAB> momentsMedi(dblMedi, dmMedi, ncomp, nghost, MFInfo(), factMedi);
+    FabArray<EBCellFAB> momentsCoar(dblCoar, dmCoar, ncomp, nghost, MFInfo(), factCoar);
+    fillVolumeMoments(momentsFine, eblgFine);
+    fillVolumeMoments(momentsMedi, eblgMedi);
+    fillVolumeMoments(momentsCoar, eblgCoar);
 
-    makeGeometry(domainBoxCoar,  dxCoar, sphereCenter, sphereRadius, igeom);
-    ebisPtr->fillEBISLayout(ebislCoar, dblCoar, dmcoar,  domainBoxCoar, 0);
+    //error = sum(fine) - coar (exact in this context)
+    FabArray<EBCellFAB> errorMedi(dblMedi, dmMedi, ncomp, nghost, MFInfo(), factMedi);
+    FabArray<EBCellFAB> errorCoar(dblCoar, dmCoar, ncomp, nghost, MFInfo(), factCoar);
 
-    //do the whole convergence test thing.
-    bool failedTest = false;
+    sumFineMinusCoarse(errorMedi, momentsFine, momentsMedi, eblgFine, eblgMedi);
+    sumFineMinusCoarse(errorCoar, momentsMedi, momentsCoar, eblgMedi, eblgCoar);
+    Vector<string> momentNames;
+    fillMomentNames(momentNames);
 
-    BaseIVFactory<Real> factFine(ebislFine);
-    BaseIVFactory<Real> factCoar(ebislCoar);
-    DistributionMapping dmFine(dblFine);
-    DistributionMapping dmCoar(dblFine);
-    FabArray<BaseIVFAB<Real> >  errFine(dblFine, dmFine, 1, 0, MFInfo(), factFine);
-    FabArray<BaseIVFAB<Real> >  errCoar(dblCoar, dmCoar, 1, 0, MFInfo(), factCoar);
-
-    for (MFIter mfi(errFine); mfi.isValid(); ++mfi)
-    {
-      const EBISBox& ebisBoxFine = ebislFine[mfi];
-      const EBISBox& ebisBoxCoar = ebislCoar[mfi];
-      IntVectSet ivsIrregFine = ebisBoxFine.getIrregIVS(domainBoxFine);
-      IntVectSet ivsIrregCoar = ebisBoxCoar.getIrregIVS(domainBoxCoar);
-
-      BaseIVFAB<Real> errorFine = errFine[mfi];
-      BaseIVFAB<Real> errorCoar = errCoar[mfi];
-
-      getNormalDotTrueNormM1(errorFine, ivsIrregFine, ebisBoxFine, sphereCenter, dxFine);
-      getNormalDotTrueNormM1(errorCoar, ivsIrregCoar, ebisBoxCoar, sphereCenter, dxCoar);
-
-      failedTest |= compareError(errorFine, errorCoar,
-                                 ivsIrregFine, ivsIrregCoar,
-                                 ebisBoxFine, ebisBoxCoar, "Normal dotted with  true normal");
-
-
-      getNormalMinuTrueNorm(errorFine, ivsIrregFine, ebisBoxFine, sphereCenter, dxFine);
-      getNormalMinuTrueNorm(errorCoar, ivsIrregCoar, ebisBoxCoar, sphereCenter, dxCoar);
-
-      failedTest |= compareError(errorFine, errorCoar,
-                                 ivsIrregFine, ivsIrregCoar,
-                                 ebisBoxFine, ebisBoxCoar, "mag(Normal minus with  true normal)");
-
-      getCentroidDistError(errorFine, ivsIrregFine, ebisBoxFine, sphereCenter, dxFine, sphereRadius);
-      getCentroidDistError(errorCoar, ivsIrregCoar, ebisBoxCoar, sphereCenter, dxCoar, sphereRadius);
-
-      failedTest |= compareError(errorFine, errorCoar,
-                                 ivsIrregFine, ivsIrregCoar,
-                                 ebisBoxFine, ebisBoxCoar, "Centroid Dist. from Axis - rad");
-
-    }
-    amrex::Print() << "sphereConvTest passed \n";
+    //compare the two errors.
+    EBLevelDataOps::compareError(errorMedi, errorCoar, eblgMedi, eblgCoar, momentNames);
 
     amrex::Print() << "==============================================" << "\n" ;
   }
@@ -412,10 +266,7 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  for(int igeom = 0; igeom <= 1; igeom++)
-  {
-    amrex::sphereConvTest(igeom);
-  }
+  amrex::sphereConvTest();
 
   amrex::Finalize();
   return retval;

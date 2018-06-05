@@ -98,30 +98,32 @@ public:
   */
   int sum () const
     {
-      int retval = D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
+      int retval = AMREX_D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
       return retval;
     }
 
   /// maximum (no absolute values) value
   int max() const
     {
-      int retval = (*this)[0];
-      for(int idir = 1; idir < SpaceDim; idir++)
-      {
-        retval = std::max(retval, (*this)[idir]);
-      }
-      return retval;
+#if (AMREX_SPACEDIM == 1)
+        return vect[0];
+#elif (AMREX_SPACEDIM == 2)
+        return std::max(vect[0],vect[1]);
+#else
+        return std::max(vect[0],std::max(vect[1],vect[2]));
+#endif
     }
 
   /// minimum (no absolute values) value
   int min() const
     {
-      int retval = (*this)[0];
-      for(int idir = 1; idir < SpaceDim; idir++)
-      {
-        retval = std::min(retval, (*this)[idir]);
-      }
-      return retval;
+#if (AMREX_SPACEDIM == 1)
+        return vect[0];
+#elif (AMREX_SPACEDIM == 2)
+        return std::min(vect[0],vect[1]);
+#else
+        return std::min(vect[0],std::min(vect[1],vect[2]));
+#endif
     }
 
   //return coordinate with largest value

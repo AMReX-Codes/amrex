@@ -1,6 +1,0 @@
-CEXE_headers += ShortRangeParticleContainer.H
-CEXE_sources += main.cpp ShortRangeParticleContainer.cpp
-
-FEXE_headers += short_range_F.H
-f90EXE_sources += short_range_$(DIM)d.f90
-

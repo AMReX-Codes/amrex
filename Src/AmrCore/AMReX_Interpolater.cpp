@@ -121,8 +121,8 @@ NodeBilinear::interp (const FArrayBox&  crse,
     Real*       fdat  = fine.dataPtr(fine_comp);
     const int* ratioV = ratio.getVect();
 
-    amrex_nbinterp (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
-                   fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
+    amrex_nbinterp (cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_ARLIM(clo),AMREX_ARLIM(chi),
+                   fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),AMREX_ARLIM(lo),AMREX_ARLIM(hi),
                    AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
                    strip.dataPtr(),&num_slope,&actual_comp,&actual_state);
 }
@@ -203,8 +203,8 @@ CellBilinear::interp (const FArrayBox&  crse,
     Real*       fdat  = fine.dataPtr(fine_comp);
     const int* ratioV = ratio.getVect();
 
-    amrex_cbinterp (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
-                   fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
+    amrex_cbinterp (cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_ARLIM(clo),AMREX_ARLIM(chi),
+                   fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),AMREX_ARLIM(lo),AMREX_ARLIM(hi),
                    AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
                    slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi,
                    &actual_comp,&actual_state);
@@ -360,11 +360,11 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
-    amrex_linccinterp (fdat,ARLIM(flo),ARLIM(fhi),
+    amrex_linccinterp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
                       fblo, fbhi,
-                      ARLIM(fvcblo), ARLIM(fvcbhi),
-                      cdat,ARLIM(clo),ARLIM(chi),
-                      ARLIM(cvcblo), ARLIM(cvcbhi),
+                      AMREX_ARLIM(fvcblo), AMREX_ARLIM(fvcbhi),
+                      cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),
+                      AMREX_ARLIM(cvcblo), AMREX_ARLIM(cvcbhi),
                       ucc_xsldat, lcc_xsldat, xslfac_dat,
 #if (AMREX_SPACEDIM>=2)
                       ucc_ysldat, lcc_ysldat, yslfac_dat,
@@ -372,7 +372,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 #if (AMREX_SPACEDIM==3)
                       ucc_zsldat, lcc_zsldat, zslfac_dat,
 #endif
-                      ARLIM(csblo), ARLIM(csbhi),
+                      AMREX_ARLIM(csblo), AMREX_ARLIM(csbhi),
                       csblo, csbhi,
                       &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                       bc.dataPtr(), &slope_flag, &lin_limit,
@@ -497,11 +497,11 @@ CellQuadratic::interp (const FArrayBox& crse,
 
 #if (AMREX_SPACEDIM > 1)
 
-    amrex_cqinterp (fdat,ARLIM(flo),ARLIM(fhi),
-                   ARLIM(fblo), ARLIM(fbhi),
+    amrex_cqinterp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
+                   AMREX_ARLIM(fblo), AMREX_ARLIM(fbhi),
                    &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                    cdat,&clo,&chi,
-                   ARLIM(cblo), ARLIM(cbhi),
+                   AMREX_ARLIM(cblo), AMREX_ARLIM(cbhi),
                    fslo,fshi,
                    cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
                    bc.dataPtr(), &slope_flag,
@@ -574,8 +574,8 @@ PCInterp::interp (const FArrayBox& crse,
     Real*       fdat  = fine.dataPtr(fine_comp);
     const int* ratioV = ratio.getVect();
 
-    amrex_pcinterp (cdat,ARLIM(clo),ARLIM(chi),cblo,cbhi,
-                   fdat,ARLIM(flo),ARLIM(fhi),fblo,fbhi,
+    amrex_pcinterp (cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),cblo,cbhi,
+                   fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),fblo,fbhi,
                    &long_dir,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                    &ncomp,strip.dataPtr(),&strip_lo,&strip_hi,
                    &actual_comp,&actual_state);
@@ -710,17 +710,17 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
 #if (AMREX_SPACEDIM > 1)
 
-    amrex_linccinterp (fdat,ARLIM(flo),ARLIM(fhi),
+    amrex_linccinterp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
                       fblo, fbhi,
-                      ARLIM(fvcblo), ARLIM(fvcbhi),
-                      cdat,ARLIM(clo),ARLIM(chi),
-                      ARLIM(cvcblo), ARLIM(cvcbhi),
+                      AMREX_ARLIM(fvcblo), AMREX_ARLIM(fvcbhi),
+                      cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),
+                      AMREX_ARLIM(cvcblo), AMREX_ARLIM(cvcbhi),
                       ucc_xsldat, lcc_xsldat, xslfac_dat,
                       ucc_ysldat, lcc_ysldat, yslfac_dat,
 #if (AMREX_SPACEDIM==3)
                       ucc_zsldat, lcc_zsldat, zslfac_dat,
 #endif
-                      ARLIM(csblo), ARLIM(csbhi),
+                      AMREX_ARLIM(csblo), AMREX_ARLIM(csbhi),
                       csblo, csbhi,
                       &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                       bc.dataPtr(), &slope_flag, &lin_limit,
@@ -814,17 +814,17 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
 #if (AMREX_SPACEDIM > 1)
 
-    amrex_protect_interp (fdat,ARLIM(flo),ARLIM(fhi),
+    amrex_protect_interp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
                          fblo, fbhi,
-                         cdat,ARLIM(clo),ARLIM(chi),
+                         cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),
                          csblo, csbhi,
 #if (AMREX_SPACEDIM == 2)
                          fvc[0].dataPtr(),fvc[1].dataPtr(),
-                         ARLIM(fvcblo), ARLIM(fvcbhi),
+                         AMREX_ARLIM(fvcblo), AMREX_ARLIM(fvcbhi),
                          cvc[0].dataPtr(),cvc[1].dataPtr(),
-                         ARLIM(cvcblo), ARLIM(cvcbhi),
+                         AMREX_ARLIM(cvcblo), AMREX_ARLIM(cvcbhi),
 #endif
-                         state_dat, ARLIM(slo), ARLIM(shi),
+                         state_dat, AMREX_ARLIM(slo), AMREX_ARLIM(shi),
                          &ncomp,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                          bc.dataPtr());
 
@@ -921,9 +921,9 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
     Vector<Real> ctmp2(ltmp);    
 #endif    
 
-    amrex_quartinterp (fdat,ARLIM(flo),ARLIM(fhi),
+    amrex_quartinterp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
 		      fblo, fbhi, fb2lo, fb2hi,
-		      cdat,ARLIM(clo),ARLIM(chi),
+		      cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),
 		      cblo, cbhi, cb2lo, cb2hi,
 		      &ncomp,
 		      AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
