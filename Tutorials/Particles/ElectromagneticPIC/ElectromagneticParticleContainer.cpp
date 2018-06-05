@@ -598,30 +598,30 @@ Redistribute()
     for (int i = 0; i < num_grids; ++i) proc_map[i] = m_dmap[i];
  
     StructOfArrays<PIdx::nattribs, 0> not_ours;
-
     for (int i = 0; i < num_grids; ++i)
     {
+        auto begin = particles_to_redistribute.begin();
+        thrust::advance(begin, start[i]);
+        
+        auto end = particles_to_redistribute.begin();
+        thrust::advance(end, stop[i]);
+        
+        const size_t num_to_add = stop[i] - start[i];
+        
         if (proc_map[i] == ParallelDescriptor::MyProc())
         {
-            auto begin = particles_to_redistribute.begin();
-            thrust::advance(begin, start[i]);
-            
-            auto end = particles_to_redistribute.begin();
-            thrust::advance(end, stop[i]);
-            
-            const size_t num_to_add = stop[i] - start[i];
             const size_t old_size = m_particles[i].attribs.size();
             const size_t new_size = old_size + num_to_add;
-            
             m_particles[i].attribs.resize(new_size);
-            
             thrust::copy(begin, end, m_particles[i].attribs.begin() + old_size);
-            
             m_particles[i].temp.resize(m_particles[i].attribs.size());
         }
         else
         {
-            continue;
+            const size_t old_size = not_ours.size();
+            const size_t new_size = old_size + num_to_add;
+            not_ours.resize(new_size);
+            thrust::copy(begin, end, not_ours.begin() + old_size);
         }
     }
 }
