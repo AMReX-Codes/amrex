@@ -13,7 +13,7 @@ namespace amrex { namespace EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-// Intersection of fluid domains
+// Intersection of bodies
 
 namespace IIF_detail {
     template <typename F>

@@ -284,9 +284,12 @@ contains
                 end if
 
                 if (ncuts .gt. 2) then
+                   print *, "ncuts = ", i,j,k,ncuts
+                   flush(6)
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not suported")
                 else if (ncuts .lt. 2) then
                    print *, "ncuts = ", i,j,k,ncuts
+                   flush(6)
                    call amrex_error("amrex_eb2_build_faces: irregular face with less than 2 cuts???")
                 end if
 
@@ -399,9 +402,12 @@ contains
                 end if
 
                 if (ncuts .gt. 2) then
+                   print *, "ncuts = ", i,j,k,ncuts
+                   flush(6)
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 else if (ncuts .lt. 2) then
                    print *, "ncuts = ", i,j,k,ncuts
+                   flush(6)
                    call amrex_error("amrex_eb2_build_faces: irregular face with less than 2 cuts???")
                 end if
 
@@ -515,9 +521,12 @@ contains
                 end if
 
                 if (ncuts .gt. 2) then
+                   print *, "ncuts = ", i,j,k,ncuts
+                   flush(6)
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 else if (ncuts .lt. 2) then
                    print *, "ncuts = ", i,j,k,ncuts
+                   flush(6)
                    call amrex_error("amrex_eb2_build_faces: irregular face with less than 2 cuts???")
                 end if
 

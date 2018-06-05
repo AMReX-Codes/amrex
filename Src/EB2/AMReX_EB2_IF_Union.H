@@ -13,7 +13,7 @@ namespace amrex { namespace EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
-// Union of fluid domains
+// Union of bodies
 
 namespace UIF_detail {
     template <typename F>
