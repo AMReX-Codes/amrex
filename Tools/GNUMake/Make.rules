@@ -30,6 +30,9 @@ ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 else
 	$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
 endif
+ifeq ($(USE_CUDA),TRUE)
+	$(SILENT) $(RM) $(TmpBuildDir)/header_temp
+endif
 #	@echo SUCCESS
 
 ifdef CRAY_CPU_TARGET
