@@ -254,7 +254,7 @@ ifeq ($(USE_CUDA),TRUE)
 $(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources)
 	@if [ ! -d $(TmpBuildDir)/header_temp_dir ]; then mkdir -p $(TmpBuildDir)/header_temp_dir; fi
 	@$(SHELL) -ec 'touch $(TmpBuildDir)/header_temp' # So that the rule always gets updated
-	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py --output_dir $(TmpBuildDir)/header_temp_dir --vpath "$(VPATH_LOCATIONS)" --headers "$(FEXE_headers)" --fortran "$^"
+	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py --output_dir $(TmpBuildDir)/header_temp_dir --vpath "$(VPATH_LOCATIONS)" --headers "$(FEXE_headers) $(F90EXE_headers)" --fortran "$^"
 endif
 
 #
