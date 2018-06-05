@@ -197,11 +197,11 @@ def doit(outdir, fortran_targets, header_files):
                 var = var.replace("BL_FORT_FAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
                 var = var.replace("BL_FORT_IFAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
 
-                if var == "ARLIM_VAL(lo)" or "AMREX_ARLIM_VAL(lo)":
+                if var == "ARLIM_VAL(lo)" or var == "AMREX_ARLIM_VAL(lo)":
                     var = "blo"
                     has_lo = True
 
-                if var == "ARLIM_VAL(hi)" or "AMREX_ARLIM_VAL(hi)":
+                if var == "ARLIM_VAL(hi)" or var == "AMREX_ARLIM_VAL(hi)":
                     var = "bhi"
                     has_hi = True
 
