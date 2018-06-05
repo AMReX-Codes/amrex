@@ -195,6 +195,7 @@ def doit(outdir, fortran_targets, header_files):
 
                 # Replace AMReX Fortran macros
                 var = var.replace("BL_FORT_FAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
+                var = var.replace("BL_FORT_IFAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
 
                 if var == "ARLIM_VAL(lo)":
                     var = "blo"
