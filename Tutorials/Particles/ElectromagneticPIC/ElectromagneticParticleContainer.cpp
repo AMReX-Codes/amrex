@@ -594,22 +594,34 @@ Redistribute()
     thrust::host_vector<int> start(grid_begin);
     thrust::host_vector<int> stop(grid_end);
 
+    thrust::host_vector<int> proc_map(num_grids);
+    for (int i = 0; i < num_grids; ++i) proc_map[i] = m_dmap[i];
+ 
+    StructOfArrays<PIdx::nattribs, 0> not_ours;
+
     for (int i = 0; i < num_grids; ++i)
     {
-        auto begin = particles_to_redistribute.begin();
-        thrust::advance(begin, start[i]);
-
-        auto end = particles_to_redistribute.begin();
-        thrust::advance(end, stop[i]);
-     
-        const size_t num_to_add = stop[i] - start[i];
-        const size_t old_size = m_particles[i].attribs.size();
-        const size_t new_size = old_size + num_to_add;
-
-        m_particles[i].attribs.resize(new_size);
-
-        thrust::copy(begin, end, m_particles[i].attribs.begin() + old_size);
-
-        m_particles[i].temp.resize(m_particles[i].attribs.size());
+        if (proc_map[i] == ParallelDescriptor::MyProc())
+        {
+            auto begin = particles_to_redistribute.begin();
+            thrust::advance(begin, start[i]);
+            
+            auto end = particles_to_redistribute.begin();
+            thrust::advance(end, stop[i]);
+            
+            const size_t num_to_add = stop[i] - start[i];
+            const size_t old_size = m_particles[i].attribs.size();
+            const size_t new_size = old_size + num_to_add;
+            
+            m_particles[i].attribs.resize(new_size);
+            
+            thrust::copy(begin, end, m_particles[i].attribs.begin() + old_size);
+            
+            m_particles[i].temp.resize(m_particles[i].attribs.size());
+        }
+        else
+        {
+            continue;
+        }
     }
 }
