@@ -47,6 +47,10 @@ def configure(argv):
                         help="Enable AMReX linear solvers [default=yes]",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-xsdk-defaults",
+                        help="Enable XSDK mode [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--allow-different-compiler",
                         help="Allow an application to use a different compiler than the one used to build libamrex [default=no]",
                         choices=["yes","no"],
@@ -81,6 +85,10 @@ def configure(argv):
         f.write("USE_LINEAR_SOLVERS = FALSE\n")
     else:
         f.write("USE_LINEAR_SOLVERS = TRUE\n")
+    if args.enable_xsdk_defaults == "yes":
+        f.write("AMREX_XSDK = TRUE\n")
+    else:
+        f.write("AMREX_XSDK = FALSE\n")
     if args.allow_different_compiler == "no":
         f.write("ALLOW_DIFFERENT_COMP = FALSE\n")
     else:

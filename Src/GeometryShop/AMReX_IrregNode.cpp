@@ -80,8 +80,8 @@ namespace amrex
   IrregNode::
   setNormalizedStuff(const Real& a_dx)
   {
-    Real fullCellVolume = D_TERM(a_dx, *a_dx, *a_dx);
-    Real fullFaceArea   = D_TERM(1.0,  *a_dx, *a_dx);
+    Real fullCellVolume = AMREX_D_TERM(a_dx, *a_dx, *a_dx);
+    Real fullFaceArea   = AMREX_D_TERM(1.0,  *a_dx, *a_dx);
     Real volScaleFactor  = 1./fullCellVolume;
     Real areaScaleFactor = 1./fullFaceArea;
 

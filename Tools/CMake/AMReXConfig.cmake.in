@@ -33,7 +33,7 @@ set (AMREX_CMAKE_DIR     @AMREX_CMAKE_DIR@)
 #
 set (AMREX_DEFINES             @AMREX_DEFINES@ )
 set (AMREX_Fortran_FLAGS       "@AMREX_Fortran_FLAGS@")
-set (AMREX_Fortran_DEFINITIONS "@AMREX_Fortran_DEFINITIONS@")
+set (AMREX_Fortran_DEFINES     "@AMREX_Fortran_DEFINES@")
 set (AMREX_CXX_FLAGS           "@AMREX_CXX_FLAGS@")
 set (AMREX_C_FLAGS             "@AMREX_C_FLAGS@")
 set (AMREX_EXTRA_Fortran_FLAGS "@AMREX_EXTRA_Fortran_FLAGS@")
