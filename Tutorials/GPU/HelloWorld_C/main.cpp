@@ -107,7 +107,6 @@ int main (int argc, char* argv[])
     {
       amrex::Print() << "BaseFab Tests"  << std::endl <<
                         "........................." << std::endl;
- 
 
       amrex::Real val_gpu = 101;
       amrex::Real *d_val_gpu;

@@ -1,0 +1,6 @@
+nsteps = 10
+plot_int = 1
+#n_cell = 128
+n_cell = 3 
+max_grid_size = 32
+

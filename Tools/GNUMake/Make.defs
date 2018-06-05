@@ -365,12 +365,14 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     CUDASuffix := .CUDA
-    DEFINES += -DAMREX_LAUNCH='attributes(global)'
-    DEFINES += -DAMREX_DEVICE='attributes(device)'
+    DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
+    DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
+    DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
 
 else
-    DEFINES += -DAMREX_LAUNCH=""
-    DEFINES += -DAMREX_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+    DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_HOST=""
     CUDASuffix :=
 endif
 
