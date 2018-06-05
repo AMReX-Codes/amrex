@@ -251,10 +251,10 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
             --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends
 
 ifeq ($(USE_CUDA),TRUE)
-$(TmpBuildDir)/header_temp: $(CEXE_headers)
+$(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources)
 	@if [ ! -d $(TmpBuildDir)/header_temp_dir ]; then mkdir -p $(TmpBuildDir)/header_temp_dir; fi
 	@$(SHELL) -ec 'touch $(TmpBuildDir)/header_temp' # So that the rule always gets updated
-	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py --output_dir $(TmpBuildDir)/header_temp_dir --vpath "$(VPATH_LOCATIONS)" --headers "$(FEXE_headers)" --fortran "$(ca_F90EXE_sources)"
+	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py --output_dir $(TmpBuildDir)/header_temp_dir --vpath "$(VPATH_LOCATIONS)" --headers "$(FEXE_headers)" --fortran "$^"
 endif
 
 #
