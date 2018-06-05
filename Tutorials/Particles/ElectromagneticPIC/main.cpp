@@ -71,8 +71,8 @@ void test_em_pic(const TestParams& parms)
     MultiFab jy(amrex::convert(ba, YeeGrid::jy_nodal_flag), dm, 1, ng);
     MultiFab jz(amrex::convert(ba, YeeGrid::jz_nodal_flag), dm, 1, ng);
     
-    Bx.setVal(0.0); By.setVal(0.0); Bz.setVal(0.0);
     Ex.setVal(0.0); Ey.setVal(0.0); Ez.setVal(0.0);
+    Bx.setVal(0.0); By.setVal(0.0); Bz.setVal(0.0);
     jx.setVal(0.0); jy.setVal(0.0); jz.setVal(0.0);
     
     std::cout << "Initializing particles... ";
@@ -132,12 +132,12 @@ void test_em_pic(const TestParams& parms)
     for (int step = 0; step < nsteps; ++step)
     {         
         std::cout << "    Time step: " <<  step << std::endl;
-        
+
         if (synchronized)
         {
             for (int i = 0; i < num_species; ++i)
             {
-                particles[i]->PushParticlesOnly(-0.5*dt);
+                particles[i]->PushParticleMomenta(Ex, Ey, Ez, Bx, By, Bz, -0.5*dt);
             }
             synchronized = false;
         }
@@ -149,7 +149,6 @@ void test_em_pic(const TestParams& parms)
         }
         
         jx.setVal(0.0); jy.setVal(0.0), jz.setVal(0.0);
-
         for (int i = 0; i < num_species; ++i) {
             particles[i]->PushAndDeposeParticles(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, dt);
         }
@@ -165,7 +164,7 @@ void test_em_pic(const TestParams& parms)
         if (step == nsteps - 1) {
             evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
             for (int i = 0; i < num_species; ++i) {
-                particles[i]->PushParticlesOnly(0.5*dt);
+                particles[i]->PushParticleMomenta(Ex, Ey, Ez, Bx, By, Bz, 0.5*dt);
             }
             synchronized = true;
         }
@@ -207,13 +206,15 @@ void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
     test_box.setSmall(IntVect(AMREX_D_DECL(2, 2, 2)));
     test_box.setBig(IntVect(AMREX_D_DECL(30, 30, 30)));
 
-    Real max_error;
+    Real max_error = 0.0;
     for(MFIter mfi(jx); mfi.isValid(); ++mfi)
     {
+        Real fab_max_error;
         const Box& tbx  = mfi.tilebox();
         check_langmuir_solution(BL_TO_FORTRAN_BOX(tbx),
                                 BL_TO_FORTRAN_BOX(test_box),
-                                BL_TO_FORTRAN_3D(jx[mfi]), time, &max_error);
+                                BL_TO_FORTRAN_3D(jx[mfi]), time, &fab_max_error);
+        max_error += fab_max_error;
     }
 
     std::cout << "Max error is: " << max_error << std::endl;
