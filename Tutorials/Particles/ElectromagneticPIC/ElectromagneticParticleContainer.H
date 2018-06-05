@@ -63,6 +63,10 @@ public:
     void Redistribute();
 
 protected:
+
+    void RedistributeMPI(std::map<int, StructOfArrays<PIdx::nattribs, 0> >& not_ours,
+                         std::map<int, std::vector<int> >& remote_grids_start,
+                         std::map<int, std::vector<int> >& remote_grids_stop);
     
     int m_species_id;
     

@@ -629,4 +629,15 @@ Redistribute()
             remote_grids_stop[dest_proc].push_back(new_size);
         }
     }
+
+    RedistributeMPI(not_ours, remote_grids_start, remote_grids_stop);
+}
+
+void
+ElectromagneticParticleContainer::
+RedistributeMPI(std::map<int, StructOfArrays<PIdx::nattribs, 0> >& not_ours,
+                std::map<int, std::vector<int> >& remote_grids_start,
+                std::map<int, std::vector<int> >& remote_grids_stop) 
+{
+    
 }
