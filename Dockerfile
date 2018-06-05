@@ -1,8 +1,5 @@
 # This Dockerfile is used for automated testing of WarpX on Shippable
-
-FROM continuumio/miniconda
-
-WORKDIR /home/
+FROM ubuntu:14.04
 
 # Install a few packages, as root
 RUN apt-get update \
@@ -12,23 +9,33 @@ RUN apt-get update \
     git \
     gcc \
     gfortran \
-    g++
-
-# Install MPI
-RUN apt-get install -y \
+    g++ \
     openmpi-bin \
-    libopenmpi-dev
-
-# Install FFTW
-RUN apt-get install -y \
+    libopenmpi-dev \
     libfftw3-dev \
-    libfftw3-mpi-dev
+    libfftw3-mpi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create new user
+RUN useradd --create-home regtester
+RUN mkdir -p /home/regtester/AMReX_RegTesting/warpx/
+COPY ./ /home/regtester/AMReX_RegTesting/warpx/
+RUN chown -R regtester /home/regtester/
+# Grant sudo access without password
+RUN echo 'regtester ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+USER regtester
+WORKDIR /home/regtester/AMReX_RegTesting/
+
+# Install miniconda
+RUN cd /home/regtester \
+    && wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh \
+    && bash Miniconda-latest-Linux-x86_64.sh -b
+ENV PATH /home/regtester/miniconda2/bin:$PATH
 
 # Install required python packages
-RUN conda install -c conda-forge \
-    numpy \
-    matplotlib \
-    yt
+RUN pip install --upgrade pip \
+    && pip install numpy scipy matplotlib yt
 
 # Clone amrex
 RUN git clone https://github.com/AMReX-Codes/amrex.git \
@@ -41,10 +48,6 @@ RUN git clone https://github.com/AMReX-Codes/regression_testing.git
 
 # Clone picsar
 RUN git clone https://bitbucket.org/berkeleylab/picsar.git
-
-# Copy warpx
-RUN mkdir -p /home/warpx/
-COPY ./ /home/warpx/
 
 # Prepare regression tests
 RUN mkdir -p rt-WarpX/WarpX-benchmarks \

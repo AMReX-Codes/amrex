@@ -16,8 +16,5 @@ text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
 # Prevent emails from being sent
 text = re.sub( 'sendEmailWhenFail = 1', 'sendEmailWhenFail = 0', text )
 
-# Modify paths (which are customized for the test server at CRD)
-text = re.sub( 'regtester/AMReX_RegTesting/', '', text )
-
 with open('shippable-tests.ini', 'w') as f:
     f.write(text)

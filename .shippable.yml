@@ -6,7 +6,10 @@ build:
   pre_ci_boot:
     image_name: warpx
     image_tag: tip
+    pull: false
 
   ci:
-    - cd /home/regression_testing ; export FFTW_HOME=/usr/
+    - cd /home/regtester/AMReX_RegTesting/regression_testing
+    - export FFTW_HOME=/usr/
+    - export OMP_NUM_THREADS=2
     - python regtest.py ../rt-WarpX/shippable-tests.ini --no_update all --source_git_hash=$COMMIT
