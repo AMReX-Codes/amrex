@@ -89,17 +89,17 @@
 #if __CUDACC_VER_MAJOR__ >= 9 && __CUDACC_VER_MINOR__ >= 1
 
 #define AMREX_DEVICE_LAUNCH(function)                         \
-      dim3 function_##numBlocks, function_##numThreads; \
-      Device::grid_stride_threads_and_blocks(function_##numBlocks, function_##numThreads); \
+      dim3 function##numBlocks, function##numThreads; \
+      Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
       CudaAPICheck(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
-      cuda_##function<<<function_##numBlocks, function_##numThreads, 0, Device::cudaStream()>>> \
+      cuda_##function<<<function##numBlocks, function##numThreads, 0, Device::cudaStream()>>> \
 
 #else
 
 #define AMREX_DEVICE_LAUNCH(function)                         \
-      dim3 function_##numBlocks, function_##numThreads; \
-      Device::grid_stride_threads_and_blocks(function_##numBlocks, function_##numThreads); \
-      cuda_##function<<<function_##numBlocks, function_##numThreads, 0, Device::cudaStream()>>> \
+      dim3 function##numBlocks, function##numThreads; \
+      Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
+      cuda_##function<<<function##numBlocks, function##numThreads, 0, Device::cudaStream()>>> \
 
 #endif
 
