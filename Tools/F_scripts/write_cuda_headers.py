@@ -49,6 +49,9 @@ decls_re = re.compile("(.*?)(\\()(.*)(\\))", re.IGNORECASE|re.DOTALL)
 fortran_re = re.compile("(AMREX_DEVICE)(\\s+)(subroutine)(\\s+)((?:[a-z][a-z_]+))",
                         re.IGNORECASE|re.DOTALL)
 
+# for finding a header entry for a function binding to a fortran subroutine
+fortran_binding_re = re.compile("(void)(\\s+)((?:[a-z][a-z_]+))",
+                                re.IGNORECASE|re.DOTALL)
 
 def find_fortran_targets(fortran_names):
     """read through the Fortran files and look for those marked up with
@@ -81,6 +84,9 @@ def find_fortran_targets(fortran_names):
 
 def doit(outdir, fortran_targets, header_files):
     """rewrite the headers"""
+
+    print('looking for targets: {}'.format(fortran_targets))
+    print('looking in header files: {}'.format(header_files))
 
     for h in header_files:
         hdr = "/".join([h[1], h[0]])
@@ -117,10 +123,11 @@ def doit(outdir, fortran_targets, header_files):
             tline = line[:idx]
 
             for target in fortran_targets:
-                fort_target_match = fortran_re.search(tline.lower())
+                fort_target_match = fortran_binding_re.search(tline.lower())
                 if fort_target_match:
-                    if target == fort_target_match.group(5):
+                    if target == fort_target_match.group(3):
                         found = target
+                        print('found target {} in header {}'.format(target, h))
                         break
 
             if found is not None:
@@ -143,6 +150,8 @@ def doit(outdir, fortran_targets, header_files):
         # we've now finished going through the header.  All the normal
         # signatures have simply been copied over.  Now we need to
         # make the versions of the signatures for the device
+
+        print('signatures: {}'.format(signatures))
 
         hout.write("\n")
         hout.write("#include <AMReX_ArrayLim.H>\n")
@@ -246,7 +255,6 @@ if __name__ == "__main__":
 
     # find the names of the Fortran subroutines that are marked as device
     targets = find_fortran_targets(fortran)
-    print("targets = ", targets)
 
     # find the location of the headers
     headers, _ = ffv.find_files(args.vpath, args.headers)
