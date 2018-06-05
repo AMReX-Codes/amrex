@@ -10,6 +10,10 @@ with open('WarpX-tests.ini') as f:
 text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
                '[\g<name>]\ndoComparison = 0\nbuildDir = ', text )
 
+# Use ccache in order to save compilation time
+text = re.sub( 'addToCompileString = (?P<strings>.*)',
+               'addToCompileString = USE_CCACHE=TRUE \g<strings>', text )
+
 # Use only 2 cores for compiling
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
 
