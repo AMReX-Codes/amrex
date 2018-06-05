@@ -14,10 +14,9 @@ contains
 
     use cns_module, only: NVAR
     use amrex_fort_module, only: dim=>amrex_spacedim
+    use amrex_filcc_module
 
     implicit none
-
-    include 'AMReX_bc_types.fi'
 
     integer          :: adv_lo(3),adv_hi(3)
     integer          :: bc(dim,2,*)
@@ -28,7 +27,7 @@ contains
     integer          :: n
 
     do n = 1,NVAR
-       call filcc(adv(:,:,:,n),adv_lo(1),adv_lo(2),adv_lo(3),adv_hi(1),adv_hi(2),adv_hi(3),domlo,domhi,delta,xlo,bc(:,:,n))
+       call amrex_filcc(adv(:,:,:,n),adv_lo(1),adv_lo(2),adv_lo(3),adv_hi(1),adv_hi(2),adv_hi(3),domlo,domhi,delta,xlo,bc(:,:,n))
     enddo
 
   end subroutine cns_hypfill
@@ -39,18 +38,19 @@ contains
        bind(C, name="cns_denfill")
 
     use amrex_fort_module, only: dim=>amrex_spacedim
+    use amrex_filcc_module
 
     implicit none
 
     include 'AMReX_bc_types.fi'
 
     integer          :: adv_lo(3),adv_hi(3)
-    integer          :: bc(dim,2,*)
+    integer          :: bc(dim,2)
     integer          :: domlo(3), domhi(3)
     double precision :: delta(3), xlo(3), time
     double precision :: adv(adv_lo(1):adv_hi(1),adv_lo(2):adv_hi(2),adv_lo(3):adv_hi(3))
 
-    call filcc(adv,adv_lo(1),adv_lo(2),adv_lo(3),adv_hi(1),adv_hi(2),adv_hi(3),domlo,domhi,delta,xlo,bc)
+    call amrex_filcc(adv,adv_lo(1),adv_lo(2),adv_lo(3),adv_hi(1),adv_hi(2),adv_hi(3),domlo,domhi,delta,xlo,bc)
 
   end subroutine cns_denfill
 

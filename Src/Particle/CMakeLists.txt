@@ -13,7 +13,7 @@ list ( APPEND ALLHEADERS  AMReX_ParticleI.H AMReX_ParticleInit.H AMReX_ParticleC
 list ( APPEND ALLHEADERS  AMReX_LoadBalanceKD.H AMReX_KDTree_F.H )
 list ( APPEND ALLHEADERS  AMReX_ParIterI.H AMReX_Particles_F.H AMReX_ParticleMPIUtil.H)
 
-list ( APPEND F77SRC      AMReX_Particles_${DIM}D.F )
+##### list ( APPEND F77SRC      AMReX_Particles_${DIM}D.F )
 list ( APPEND F90SRC      AMReX_Particle_mod_${DIM}d.F90 AMReX_KDTree_${DIM}d.F90)
 list ( APPEND F90SRC      AMReX_OMPDepositionHelper_nd.F90 )
 

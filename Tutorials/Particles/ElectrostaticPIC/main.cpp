@@ -285,7 +285,7 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
 
-    int max_level, n_cell, max_grid_size, n_buffer, max_step, is_periodic[BL_SPACEDIM];
+    int max_level, n_cell, max_grid_size, particle_output_int, n_buffer, max_step, is_periodic[BL_SPACEDIM];
     Real dt;
 
     // inputs parameters
@@ -296,6 +296,7 @@ int main(int argc, char* argv[])
         pp.get("n_buffer", n_buffer);
         pp.get("max_grid_size", max_grid_size);       
         pp.get("max_step", max_step);
+        pp.get("particle_output_int", particle_output_int);
         pp.get("dt", dt);
     }
     
@@ -391,7 +392,7 @@ int main(int argc, char* argv[])
 
         myPC.FieldGather(eField, gather_masks);
 
-        myPC.writeParticles(step);
+        if (step % particle_output_int == 0) myPC.writeParticles(step);
 
         //        WritePlotFile(rhs, phi, eField, myPC, geom, step);
         
