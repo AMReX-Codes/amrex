@@ -90,12 +90,15 @@ void main_main ()
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
-    // From geometry
-    Box *bx = new Box();
+    // =======================================
+
+//    Box *bx = new Box();
+    Box* bx;
     Real* gCellSize; 
     Real* gLo;
     Real* gHi;
 
+    cudaMallocHost(&bx, size_t(sizeof(Box)));
     cudaMallocHost(&gLo, size_t(AMREX_SPACEDIM*sizeof(Real)));
     cudaMallocHost(&gHi, size_t(AMREX_SPACEDIM*sizeof(Real)));
     cudaMallocHost(&gCellSize, size_t(AMREX_SPACEDIM*sizeof(Real)));
@@ -118,7 +121,14 @@ void main_main ()
                  gCellSize, gLo, gHi);
     }
 
+    cudaFree(bx);
+    cudaFree(gCellSize);
+    cudaFree(gLo);
+    cudaFree(gHi);
+
     cudaDeviceSynchronize();
+
+    // ========================================
 
     // compute the time step
     const Real* dx = geom.CellSize();
