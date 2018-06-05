@@ -1,5 +1,5 @@
-#ifndef _EBDebugOut_H_
-#define _EBDebugOut_H_
+#ifndef AMREX_EBDebugOut_H_
+#define AMREX_EBDebugOut_H_
 
 #include "AMReX_Box.H"
 #include "AMReX_IntVectSet.H"

@@ -1,5 +1,5 @@
-#ifndef _BASEEBCELLFACTORY_H___
-#define _BASEEBCELLFACTORY_H___
+#ifndef AMREX_BASEEBCELLFACTORY_H_
+#define AMREX_BASEEBCELLFACTORY_H_
 
 #include <cmath>
 #include <cstdlib>

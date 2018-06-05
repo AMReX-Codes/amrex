@@ -1,5 +1,5 @@
-#ifndef _INTERSECTIONIF_H_
-#define _INTERSECTIONIF_H_
+#ifndef AMREX_INTERSECTIONIF_H_
+#define AMREX_INTERSECTIONIF_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"
@@ -39,6 +39,8 @@ namespace amrex
 
     virtual BaseIF* newImplicitFunction() const;
 
+    virtual Real derivative(const  IntVect& a_deriv,
+                            const RealVect& a_point) const;
 
   protected:
     int             m_numFuncs; // number of implicit functions

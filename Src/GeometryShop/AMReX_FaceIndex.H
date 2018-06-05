@@ -1,5 +1,5 @@
-#ifndef _FACEINDEX_H_
-#define _FACEINDEX_H_
+#ifndef AMREX_FACEINDEX_H_
+#define AMREX_FACEINDEX_H_
 
 #include "AMReX_LoHiSide.H"
 #include "AMReX_VolIndex.H"

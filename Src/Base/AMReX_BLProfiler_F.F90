@@ -7,7 +7,7 @@
     integer, parameter :: NSTR = 128
     integer :: istr(NSTR)
 
-    call blstr2int(istr, NSTR, str)
+    call bl_str2int(istr, NSTR, str)
     call bl_proffortfuncstart_cpp(istr, NSTR)
 
   end subroutine bl_proffortfuncstart
@@ -20,7 +20,7 @@
     integer, parameter :: NSTR = 128
     integer :: istr(NSTR)
 
-    call blstr2int(istr, NSTR, str)
+    call bl_str2int(istr, NSTR, str)
     call bl_proffortfuncstop_cpp(istr, NSTR)
 
   end subroutine bl_proffortfuncstop

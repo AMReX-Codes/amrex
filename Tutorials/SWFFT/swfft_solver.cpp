@@ -48,8 +48,6 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 
     DistributionMapping dmap = rhs.DistributionMap();
 
-    if (verbose)
-       amrex::Print() << "NBX NBY NBZ " << nbx << " " << nby << " "<< nbz  << std::endl;
     for (int ib = 0; ib < nboxes; ++ib)
     {
         int i = ba[ib].smallEnd(0) / nx;

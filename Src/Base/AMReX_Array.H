@@ -1,51 +1,16 @@
 
-#ifndef BL_ARRAY_H
-#define BL_ARRAY_H
+#ifndef AMREX_ARRAY_H_
+#define AMREX_ARRAY_H_
 
 #include <array>
-#include <AMReX_Vector.H>
+#include <AMReX_SPACE.H>
 
 namespace amrex {
 
-    template <class T> using Array = Vector<T>;
+    template <class T, std::size_t N>
+    using Array = std::array<T,N>;
+
 }
-
-namespace amrex
-{
-    template <class T>
-    Vector<T*> GetArrOfPtrs (const Vector<std::unique_ptr<T> >& a)
-    {
-	Vector<T*> r;
-	for (const auto& x : a)  r.push_back(x.get());
-	return r;
-    }
-
-    template <class T>
-    Vector<const T*> GetArrOfConstPtrs (const Vector<std::unique_ptr<T> >& a)
-    {
-	Vector<const T*> r;
-	for (const auto& x : a)  r.push_back(x.get());
-	return r;
-    }
-
-    template <class T>
-    Vector<const T*> GetArrOfConstPtrs (const Vector<T*>& a)
-    {
-	return {a.begin(), a.end()};
-    }
-
-    template <class T>
-    Vector<Vector<T*> > GetArrOfArrOfPtrs (const Vector<Vector<std::unique_ptr<T> > >& a)
-    {
-	Vector<Vector<T*> > r;
-	for (const auto& x : a)  r.push_back(GetArrOfPtrs(x));
-	return r;
-    }
-}
-
-#ifndef FORTRAN_BOXLIB
-
-#include <AMReX_SPACE.H>
 
 namespace amrex
 {
@@ -64,4 +29,3 @@ namespace amrex
 
 #endif
 
-#endif /*BL_ARRAY_H*/

@@ -5,7 +5,7 @@ subroutine get_face_velocity(level, time, &
      vz, vz_l1, vz_l2, vz_l3, vz_h1, vz_h2, vz_h3, &
      dx, prob_lo) bind(C, name="get_face_velocity")
 
-  use mempool_module, only : bl_allocate, bl_deallocate
+  use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
   implicit none
 

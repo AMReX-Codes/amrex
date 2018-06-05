@@ -1,6 +1,7 @@
 #ifndef AMREX_PARALLEL_REDUCE_H_
 #define AMREX_PARALLEL_REDUCE_H_
 
+#include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
@@ -11,12 +12,6 @@ namespace amrex {
 namespace util {
 
 #ifdef BL_USE_MPI
-
-    inline void GccPlacater ()
-    {
-        std::allocator<int> foo;
-        std::allocator<Real> bar;
-    }
 
     template<typename T>
     inline void Reduce (MPI_Op op, T* v, int cnt, int root, MPI_Comm comm)

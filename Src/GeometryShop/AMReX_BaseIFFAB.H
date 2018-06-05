@@ -1,5 +1,5 @@
-#ifndef _BASEIFFAB_H_
-#define _BASEIFFAB_H_
+#ifndef AMREX_BASEIFFAB_H_
+#define AMREX_BASEIFFAB_H_
 
 #include <cmath>
 #include <cstdlib>

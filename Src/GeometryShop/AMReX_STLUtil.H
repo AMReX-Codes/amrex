@@ -1,5 +1,5 @@
-#ifndef _STLUTIL_H_
-#define _STLUTIL_H_
+#ifndef AMREX_STLUTIL_H_
+#define AMREX_STLUTIL_H_
 
 /**********************************************************************/
 // to switch between ordered/sorted maps and unordered hash tables,
@@ -91,6 +91,8 @@ namespace STLUtil
 
 #ifdef STL_UNORDERED_MAP
   // for combining hashes, stolen from Boost
+  // Distributed under the Boost Software License, Version 1.0.
+  // (https://www.boost.org/LICENSE_1_0.txt)
   template <class T>
   inline void hash_combine(std::size_t& seed, const T& v)
   {

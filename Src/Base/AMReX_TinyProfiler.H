@@ -1,5 +1,5 @@
-#ifndef _TINY_PROFILER_H_
-#define _TINY_PROFILER_H_
+#ifndef AMREX_TINY_PROFILER_H_
+#define AMREX_TINY_PROFILER_H_
 
 #include <string>
 #include <stack>

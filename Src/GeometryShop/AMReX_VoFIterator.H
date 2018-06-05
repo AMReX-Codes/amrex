@@ -1,5 +1,5 @@
-#ifndef _VOFITERATOR_H_
-#define _VOFITERATOR_H_
+#ifndef AMREX_VOFITERATOR_H_
+#define AMREX_VOFITERATOR_H_
 
 #include "AMReX_IntVect.H"
 #include "AMReX_VolIndex.H"

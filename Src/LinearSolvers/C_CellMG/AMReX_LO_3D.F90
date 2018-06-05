@@ -1,21 +1,21 @@
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
 
-#include <AMReX_REAL.H>
-#include <AMReX_CONSTANTS.H>
-#include "AMReX_LO_BCTYPES.H"
-#include "AMReX_LO_F.H"
-#include "AMReX_ArrayLim.H"
+module amrex_lo_module
+
+  use amrex_fort_module
+  use amrex_constants_module
+  use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann, amrex_lo_reflect_odd
+
+  implicit none
+
+contains
 
 !-----------------------------------------------------------------------
-    subroutine FORT_HARMONIC_AVERAGEEC ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
+    subroutine amrex_lo_harmonic_averageec ( &
+           c, c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &
+           f, f_l1,f_l2,f_l3,f_h1,f_h2,f_h3, &
            lo, hi, nc, &
            cdir &
-           )
+           ) bind(c,name='amrex_lo_harmonic_averageec')
 
       implicit none
 
@@ -23,10 +23,10 @@
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       integer cdir
-      integer DIMDEC(f)
-      REAL_T f(DIMV(f),nc)
-      integer DIMDEC(c)
-      REAL_T c(DIMV(c),nc)
+      integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3
+      real(amrex_real) f(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,nc)
+      integer c_l1,c_l2,c_l3,c_h1,c_h2,c_h3
+      real(amrex_real) c(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,nc)
 
       integer n, i, j, k
 
@@ -84,14 +84,14 @@
 
       end select
 
-    end subroutine FORT_HARMONIC_AVERAGEEC
+    end subroutine amrex_lo_harmonic_averageec
 !-----------------------------------------------------------------------
-    subroutine FORT_AVERAGEEC ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
+    subroutine amrex_lo_averageec ( &
+           c, c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &
+           f, f_l1,f_l2,f_l3,f_h1,f_h2,f_h3, &
            lo, hi, nc, &
            cdir &
-           )
+           ) bind(c,name='amrex_lo_averageec')
 
       implicit none
 
@@ -99,10 +99,10 @@
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       integer cdir
-      integer DIMDEC(f)
-      REAL_T f(DIMV(f),nc)
-      integer DIMDEC(c)
-      REAL_T c(DIMV(c),nc)
+      integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3
+      real(amrex_real) f(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,nc)
+      integer c_l1,c_l2,c_l3,c_h1,c_h2,c_h3
+      real(amrex_real) c(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,nc)
 
       integer n, i, j, k
 
@@ -161,23 +161,23 @@
 
       end select
 
-    end subroutine FORT_AVERAGEEC
+    end subroutine amrex_lo_averageec
 !-----------------------------------------------------------------------
-    subroutine FORT_AVERAGECC ( &
-           c, DIMS(c), &
-           f, DIMS(f), &
+    subroutine amrex_lo_averagecc ( &
+           c, c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &
+           f, f_l1,f_l2,f_l3,f_h1,f_h2,f_h3, &
            lo, hi, nc &
-           )
+           ) bind(c,name='amrex_lo_averagecc')
 
       implicit none
 
       integer nc
-      integer DIMDEC(f)
-      integer DIMDEC(c)
+      integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3
+      integer c_l1,c_l2,c_l3,c_h1,c_h2,c_h3
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      REAL_T f(DIMV(f),nc)
-      REAL_T c(DIMV(c),nc)
+      real(amrex_real) f(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,nc)
+      real(amrex_real) c(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,nc)
 
       integer i, j, k, n
 
@@ -201,22 +201,23 @@
          end do
       end do
 
-    end subroutine FORT_AVERAGECC
+    end subroutine amrex_lo_averagecc
 !-----------------------------------------------------------------------
 !
 ! Don't thread this.  We instead thread LinOp::applyBC() across faces.
 !
-    subroutine FORT_APPLYBC ( &
+    subroutine amrex_lo_applybc ( &
            flagden, flagbc, maxorder, &
-           phi, DIMS(phi), &
+           phi, phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3, &
            cdir, bct, bcl, &
-           bcval, DIMS(bcval), &
-           mask, DIMS(mask), &
-           den, DIMS(den), &
+           bcval, bcval_l1,bcval_l2,bcval_l3,bcval_h1,bcval_h2,bcval_h3, &
+           mask, mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3, &
+           den, den_l1,den_l2,den_l3,den_h1,den_h2,den_h3, &
            lo, hi, nc, &
            h &
-           )
+           ) bind(c,name='amrex_lo_applybc')
 
+      use amrex_lo_util_module, only : polyInterpCoeff
       implicit none
 
 !     If the boundary is of Neumann type, set the ghost cell value to
@@ -235,7 +236,7 @@
 !     ( the coef(0) corresponding to the location x(0) )
 !
 !     Note: 
-!     The bc type = LO_REFLECT_ODD is a special type of dirichlet condition,
+!     The bc type = amrex_lo_reflect_odd is a special type of dirichlet condition,
 !     in that we want a "zeroth" order interpolant to fill the ghost cell.
 !     If this were treated in the normal way, then ALL boundaries would be
 !     low order.
@@ -244,17 +245,17 @@
       integer nc, cdir, flagden, flagbc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      integer DIMDEC(phi)
-      REAL_T phi(DIMV(phi),nc)
-      integer DIMDEC(den)
-      REAL_T den(DIMV(den))
-      integer DIMDEC(bcval)
-      REAL_T bcval(DIMV(bcval),nc)
-      integer DIMDEC(mask)
-      integer mask(DIMV(mask))
+      integer phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
+      real(amrex_real) phi(phi_l1:phi_h1,phi_l2:phi_h2,phi_l3:phi_h3,nc)
+      integer den_l1,den_l2,den_l3,den_h1,den_h2,den_h3
+      real(amrex_real) den(den_l1:den_h1,den_l2:den_h2,den_l3:den_h3)
+      integer bcval_l1,bcval_l2,bcval_l3,bcval_h1,bcval_h2,bcval_h3
+      real(amrex_real) bcval(bcval_l1:bcval_h1,bcval_l2:bcval_h2,bcval_l3:bcval_h3,nc)
+      integer mask_l1,mask_l2,mask_l3,mask_h1,mask_h2,mask_h3
+      integer mask(mask_l1:mask_h1,mask_l2:mask_h2,mask_l3:mask_h3)
       integer bct
-      REAL_T bcl
-      REAL_T h(BL_SPACEDIM)
+      real(amrex_real) bcl
+      real(amrex_real) h(BL_SPACEDIM)
 
       integer i, j, k, n
       logical is_dirichlet, is_neumann
@@ -264,13 +265,13 @@
       integer Lmaxorder
       integer maxmaxorder
       parameter(maxmaxorder=4)
-      REAL_T x(-1:maxmaxorder-2)
-      REAL_T coef(-1:maxmaxorder-2)
-      REAL_T xInt
+      real(amrex_real) x(-1:maxmaxorder-2)
+      real(amrex_real) coef(-1:maxmaxorder-2)
+      real(amrex_real) xInt
       parameter(xInt = -0.5D0)
 
-      is_dirichlet(i) = ( i .eq. LO_DIRICHLET )
-      is_neumann(i) = (i .eq. LO_NEUMANN)
+      is_dirichlet(i) = ( i .eq. amrex_lo_dirichlet )
+      is_neumann(i) = (i .eq. amrex_lo_neumann)
 
       if ( maxorder .eq. -1 ) then
          Lmaxorder = maxmaxorder
@@ -357,7 +358,7 @@
                   end do
                end do
             end if
-         else if ( bct .eq. LO_REFLECT_ODD ) then
+         else if ( bct .eq. amrex_lo_reflect_odd ) then
             do n = 1, nc
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
@@ -446,7 +447,7 @@
                   end do
                end do
             end if
-         else if ( bct .eq. LO_REFLECT_ODD ) then
+         else if ( bct .eq. amrex_lo_reflect_odd ) then
             do n = 1, nc
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
@@ -535,7 +536,7 @@
                      end do
                   end do
                end if
-            else if ( bct .eq. LO_REFLECT_ODD ) then
+            else if ( bct .eq. amrex_lo_reflect_odd ) then
                do n = 1, nc
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -624,7 +625,7 @@
                      end do
                   end do
                end if
-            else if ( bct .eq. LO_REFLECT_ODD ) then
+            else if ( bct .eq. amrex_lo_reflect_odd ) then
                do n = 1, nc
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
@@ -713,7 +714,7 @@
                      end do
                   end do
                end if
-            else if ( bct .eq. LO_REFLECT_ODD ) then
+            else if ( bct .eq. amrex_lo_reflect_odd ) then
                do n = 1, nc
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -802,7 +803,7 @@
                      end do
                   end do
                end if
-            else if ( bct .eq. LO_REFLECT_ODD ) then
+            else if ( bct .eq. amrex_lo_reflect_odd ) then
                do n = 1, nc
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -827,4 +828,6 @@
             end if
          end select
 
-       end subroutine FORT_APPLYBC
+       end subroutine amrex_lo_applybc
+
+end module amrex_lo_module

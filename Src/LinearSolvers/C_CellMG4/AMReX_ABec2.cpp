@@ -56,7 +56,7 @@ ABec2::altApplyBC (int  level,
             BL_ASSERT(f.size()>gn);
             FArrayBox&       ffab  = f[gn];
 
-            BL_FORT_PROC_CALL(AB2_BNDRYRLX, ab2_bndryrlx)
+            amrex_ab2_bndryrlx
               ( vbx.loVect(), vbx.hiVect(),
                 BL_TO_FORTRAN(ffab),
                 BL_TO_FORTRAN(m),
@@ -139,7 +139,7 @@ ABec2::Fsmooth (MultiFab&       solnL,
     const FArrayBox& f5fab = f5[solnLmfi];
 #endif
 
-    BL_FORT_PROC_CALL(AB2_GSRB, ab2_gsrb)
+    amrex_ab2_gsrb
       ( tbx.loVect(), tbx.hiVect(),
         vbx.loVect(), vbx.hiVect(),
         BL_TO_FORTRAN(solnfab),
@@ -232,7 +232,7 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
     const FArrayBox& f5fab = f5[solnLmfi];
 #endif
 
-    BL_FORT_PROC_CALL(AB2_JACOBI, ab2_jacobi)
+    amrex_ab2_jacobi
       ( vbx.loVect(), vbx.hiVect(),
         BL_TO_FORTRAN(solnfab),
         BL_TO_FORTRAN(resfab),

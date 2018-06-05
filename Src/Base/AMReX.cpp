@@ -53,16 +53,23 @@ namespace system
     std::string exename;
     int verbose;
     int signal_handling;
+    int call_addr2line;
+    std::ostream* osout = &std::cout;
+    std::ostream* oserr = &std::cerr;
 }
 }
 
 namespace {
+    std::streamsize  prev_out_precision;
+    std::streamsize  prev_err_precision;
     std::new_handler prev_new_handler;
     typedef void (*SignalHandler)(int);
     SignalHandler prev_handler_sigsegv;
     SignalHandler prev_handler_sigint;
     SignalHandler prev_handler_sigabrt;
     SignalHandler prev_handler_sigfpe;
+    int           prev_fpe_excepts;
+    int           curr_fpe_excepts;
 }
 
 std::string amrex::Version ()
@@ -209,7 +216,7 @@ amrex::Warning (const char* msg)
 {
     if (msg)
     {
-	amrex::Print(Print::AllProcs,std::cerr) << msg << '!' << '\n';
+	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
 }
 
@@ -270,22 +277,28 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 }
 
 void
-amrex::Initialize (MPI_Comm mpi_comm)
+amrex::Initialize (MPI_Comm mpi_comm, std::ostream& a_osout, std::ostream& a_oserr)
 {
     int argc = 0;
     char** argv = 0;
-    Initialize(argc, argv, false, mpi_comm);
+    Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr);
 }
 
 void
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
-                   MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse)
+                   MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
+                   std::ostream& a_osout, std::ostream& a_oserr)
 {
     system::exename.clear();
     system::verbose = 0;
     system::signal_handling = 1;
-
+    system::call_addr2line = 1;
+    system::osout = &a_osout;
+    system::oserr = &a_oserr;
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+
+    prev_out_precision = system::osout->precision(10);
+    prev_err_precision = system::oserr->precision(10);
 
 #ifdef AMREX_PMI
     ParallelDescriptor::PMI_Initialize();
@@ -370,6 +383,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	pp.query("verbose", system::verbose);
 
         pp.query("signal_handling", system::signal_handling);
+        pp.query("call_addr2line", system::call_addr2line);
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
@@ -383,14 +397,15 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.query("fpe_trap_invalid", invalid);
             pp.query("fpe_trap_zero", divbyzero);
             pp.query("fpe_trap_overflow", overflow);
-            int flags = 0;
-            if (invalid)   flags |= FE_INVALID;
-            if (divbyzero) flags |= FE_DIVBYZERO;
-            if (overflow)  flags |= FE_OVERFLOW;
+            curr_fpe_excepts = 0;
+            if (invalid)   curr_fpe_excepts |= FE_INVALID;
+            if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
+            if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
 #if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
-            if (flags != 0) {
-                feenableexcept(flags);  // trap floating point exceptions
+            prev_fpe_excepts = fegetexcept();
+            if (curr_fpe_excepts != 0) {
+                feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
                 prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
             }
 #endif
@@ -418,8 +433,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     VisMF::Initialize();
     BL_PROFILE_INITPARAMS();
 #endif
-
-    std::cout << std::setprecision(10);
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
@@ -484,12 +497,12 @@ amrex::Finalize (bool finalize_parallel)
 	amrex_mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
 	if (ParallelDescriptor::NProcs() == 1) {
 	    if (mp_tot > 0) {
-		std::cout << "MemPool: " 
+                amrex::Print() << "MemPool: " 
 #ifdef _OPENMP
-			  << "min used in a thread: " << mp_min << " MB, "
-			  << "max used in a thread: " << mp_max << " MB, "
+                               << "min used in a thread: " << mp_min << " MB, "
+                               << "max used in a thread: " << mp_max << " MB, "
 #endif
-			  << "tot used: " << mp_tot << " MB." << std::endl;
+                               << "tot used: " << mp_tot << " MB." << std::endl;
 	    }
 	} else {
 	    int global_max = mp_tot;
@@ -521,6 +534,14 @@ amrex::Finalize (bool finalize_parallel)
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
+#if defined(__linux__)
+#if !defined(__PGI) || (__PGIC__ >= 16)
+        if (curr_fpe_excepts != 0) {
+            fedisableexcept(curr_fpe_excepts);
+            feenableexcept(prev_fpe_excepts);
+        }
+#endif
+#endif
     }
 #endif
 
@@ -529,6 +550,9 @@ amrex::Finalize (bool finalize_parallel)
 #endif
 
     std::set_new_handler(prev_new_handler);
+
+    amrex::OutStream().precision(prev_out_precision);
+    amrex::ErrorStream().precision(prev_err_precision);
 
     if (finalize_parallel) {
 #if defined(BL_USE_FORTRAN_MPI)
@@ -541,3 +565,14 @@ amrex::Finalize (bool finalize_parallel)
     }
 }
 
+std::ostream&
+amrex::OutStream ()
+{
+    return *system::osout;
+}
+
+std::ostream&
+amrex::ErrorStream ()
+{
+    return *system::oserr;
+}

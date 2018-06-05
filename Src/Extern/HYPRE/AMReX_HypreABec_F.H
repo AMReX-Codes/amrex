@@ -1,5 +1,5 @@
-#ifndef _HYPREABEC_F_H_
-#define _HYPREABEC_F_H_
+#ifndef AMREX_HYPREABEC_F_H_
+#define AMREX_HYPREABEC_F_H_
 
 #include <AMReX_REAL.H>
 

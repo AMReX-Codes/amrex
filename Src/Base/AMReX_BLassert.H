@@ -39,7 +39,7 @@
 
 #else
 
-#if defined(FORTRAN_BOXLIB)
+#if defined(AMREX_FORTRAN_BOXLIB)
 #define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) ((void)0)
 #define AMREX_ASSERT(EX) ((void)0)
 #define    BL_ASSERT(EX) ((void)0)

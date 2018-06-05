@@ -1,6 +1,6 @@
 
-#ifndef _WRAPPEDGSHOP_H_
-#define _WRAPPEDGSHOP_H_
+#ifndef AMREX_WRAPPEDGSHOP_H_
+#define AMREX_WRAPPEDGSHOP_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_RealVect.H"

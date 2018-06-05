@@ -1,5 +1,5 @@
-#ifndef _IRREGFAB_H___
-#define _IRREGFAB_H___
+#ifndef AMREX_IRREGFAB_H_
+#define AMREX_IRREGFAB_H_
 
 #include <cmath>
 #include <cstdlib>

@@ -17,9 +17,9 @@ namespace amrex
 {
   static std::string eb_surface_filename;
 
-  static const IntVect   ebl_debiv(D_DECL(994,213,7));
-  static const IntVect   ebl_debivlo(D_DECL(190,15,0));
-  static const IntVect   ebl_debivhi(D_DECL(191,15,0));
+  static const IntVect   ebl_debiv(AMREX_D_DECL(994,213,7));
+  static const IntVect   ebl_debivlo(AMREX_D_DECL(190,15,0));
+  static const IntVect   ebl_debivhi(AMREX_D_DECL(191,15,0));
   static const VolIndex  ebl_debvoflo(ebl_debivlo, 0);
   static const VolIndex  ebl_debvofhi(ebl_debivhi, 0);
   static const FaceIndex ebl_debface(ebl_debvoflo, ebl_debvofhi);
@@ -813,14 +813,6 @@ namespace amrex
   
     //a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
     //return; // caching disabled for now.... ugh.  bvs
-    if(m_hasMoments)
-    {
-      pout() << "has moments in fillebisl is true" << endl;
-    }
-    else
-    {
-      pout() << "has moments in fillebisl is false" << endl;
-    }
     a_ebisLayout.define(m_domain, a_grids, a_dm, a_nghost, m_graph, m_data, m_hasMoments, m_dx);
   }
 

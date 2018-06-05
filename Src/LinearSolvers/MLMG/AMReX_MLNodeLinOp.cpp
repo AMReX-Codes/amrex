@@ -174,7 +174,7 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
 {
     AMREX_ASSERT(amrlev==0);
     AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
-    const auto& mask = (mglev == 0) ? m_coarse_dot_mask : m_bottom_dot_mask;
+    const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
     const int ncomp = 1;
     const int nghost = 0;
     MultiFab tmp(x.boxArray(), x.DistributionMap(), 1, 0);

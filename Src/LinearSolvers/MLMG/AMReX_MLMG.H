@@ -16,7 +16,7 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class BottomSolver : int { smoother, bicgstab, hypre };
+    enum class BottomSolver : int { smoother, bicgstab, cg, hypre };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();

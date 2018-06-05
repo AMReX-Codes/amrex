@@ -1,5 +1,5 @@
-#ifndef _LOHISIDE_H_
-#define _LOHISIDE_H_
+#ifndef AMREX_LOHISIDE_H_
+#define AMREX_LOHISIDE_H_
 
 namespace amrex
 {

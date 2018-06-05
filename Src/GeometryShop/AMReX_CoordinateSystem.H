@@ -1,5 +1,5 @@
-#ifndef _COORDINATESYSTEM_H_
-#define _COORDINATESYSTEM_H_
+#ifndef AMREX_COORDINATESYSTEM_H_
+#define AMREX_COORDINATESYSTEM_H_
 
 
 #include <map>

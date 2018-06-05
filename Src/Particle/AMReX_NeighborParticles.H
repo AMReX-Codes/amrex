@@ -1,9 +1,10 @@
-#ifndef _NEIGHBORPARTICLES_H_
-#define _NEIGHBORPARTICLES_H_
+#ifndef AMREX_NEIGHBORPARTICLES_H_
+#define AMREX_NEIGHBORPARTICLES_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_Particles.H"
+#include "AMReX_Particles_F.H"
 
 namespace amrex {
 

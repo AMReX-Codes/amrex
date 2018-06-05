@@ -2565,6 +2565,6 @@ private:
 
 }
 
-static amrex::BF_init file_scope_BF_init_object;
+static amrex::BF_init amrex_file_scope_BF_init_object;
 
 #endif /*BL_BASEFAB_H*/

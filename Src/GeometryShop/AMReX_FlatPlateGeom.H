@@ -1,5 +1,5 @@
-#ifndef _FLATPLATEGEOM_H_
-#define _FLATPLATEGEOM_H_
+#ifndef AMREX_FLATPLATEGEOM_H_
+#define AMREX_FLATPLATEGEOM_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_RealVect.H"

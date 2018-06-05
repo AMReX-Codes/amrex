@@ -1,5 +1,6 @@
-#ifndef _BASEIFFABI_H_
-#define _BASEIFFABI_H_
+#ifndef AMREX_BASEIFFABI_H_
+#define AMREX_BASEIFFABI_H_
+
 #include "AMReX_FaceIterator.H"
 #include "AMReX_SPMD.H"
 #include "AMReX_parstream.H"
