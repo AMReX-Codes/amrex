@@ -5,9 +5,6 @@
 
 namespace amrex {
 
-const char NL = '\n';
-const char SP = ' ';
-
 Mask::Mask ()
     :
     BaseFab<int>() {}
@@ -30,7 +27,7 @@ operator<< (std::ostream& os,
 {
     int ncomp = m.nComp();
 
-    os << "(Mask: " << m.box() << SP << ncomp << NL;
+    os << "(Mask: " << m.box() << " " << ncomp << "\n";
 
     IntVect sm = m.box().smallEnd();
     IntVect bg = m.box().bigEnd();
@@ -39,7 +36,7 @@ operator<< (std::ostream& os,
         os << p;
         for (int k = 0; k < ncomp; k++)
             os << "  " << m(p,k);
-        os << NL;
+        os << "\n";
     }
     os << ")\n";
 
@@ -76,7 +73,7 @@ operator>> (std::istream& is,
 void
 Mask::writeOn (std::ostream& os) const
 {
-    os << "(Mask: " << domain << SP << nvar << NL;
+    os << "(Mask: " << domain << " " << nvar << "\n";
     const int* ptr = dataPtr();
     int len = domain.numPts();
     os.write( (char*) ptr, len*sizeof(int) );

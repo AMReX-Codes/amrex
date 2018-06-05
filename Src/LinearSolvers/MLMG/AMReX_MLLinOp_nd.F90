@@ -1,11 +1,10 @@
 
-#include "AMReX_LO_BCTYPES.H"
-
 module amrex_mllinop_nd_module
 
   use amrex_error_module
   use amrex_fort_module, only : amrex_real, amrex_spacedim
   use amrex_lo_util_module, only : polyInterpCoeff
+  use amrex_lo_bctypes_module
   implicit none
 
 #if (AMREX_SPACEDIM == 1)
@@ -54,9 +53,9 @@ contains
     inhomogeneous = (inhomog .ne. 0)
 
     do n = 1, nc
-       if (bct == LO_NEUMANN .or. bct == LO_REFLECT_ODD) then
+       if (bct == amrex_lo_neumann .or. bct == amrex_lo_reflect_odd) then
 
-          if (bct == LO_NEUMANN) then
+          if (bct == amrex_lo_neumann) then
              fac = 1.d0
           else
              fac = -1.d0
@@ -117,7 +116,7 @@ contains
 #endif
           end select
 
-       else if (bct == LO_DIRICHLET) then
+       else if (bct == amrex_lo_dirichlet) then
 
           idim = mod(cdir,amrex_spacedim) + 1 ! cdir starts with 0; idim starts with 1
           lenx = MIN(hi(idim)-lo(idim), maxorder-2)
@@ -269,7 +268,7 @@ contains
     real(amrex_real) :: c0
     
     do n = 1, nc
-       if (bct == LO_NEUMANN) then
+       if (bct == amrex_lo_neumann) then
 
           select case (cdir)
           case (xlo_dir)
@@ -314,9 +313,9 @@ contains
 #endif
           end select
 
-       else if (bct == LO_REFLECT_ODD .or. bct == LO_DIRICHLET) then
+       else if (bct == amrex_lo_reflect_odd .or. bct == amrex_lo_dirichlet) then
 
-          if (bct == LO_REFLECT_ODD) then
+          if (bct == amrex_lo_reflect_odd) then
              c0 = 1.d0
           else
              idim = mod(cdir,amrex_spacedim) + 1 ! cdir starts with 0; idim starts with 1

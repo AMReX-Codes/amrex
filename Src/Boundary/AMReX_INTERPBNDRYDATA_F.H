@@ -5,9 +5,8 @@
 
 #ifdef __cplusplus
 
-#ifdef AMREX_XSDK
 namespace amrex {
-#endif
+
 typedef void BDInterpFunc(amrex_real* bndr, AMREX_ARLIM_P(blo), AMREX_ARLIM_P(bhi),
                           const int* lo, const int* hi,
                           AMREX_ARLIM_P(cblo), AMREX_ARLIM_P(cbhi),
@@ -16,9 +15,8 @@ typedef void BDInterpFunc(amrex_real* bndr, AMREX_ARLIM_P(blo), AMREX_ARLIM_P(bh
                           const int* mask,  AMREX_ARLIM_P(mlo), AMREX_ARLIM_P(mhi),
                           const amrex_real* crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
                           amrex_real* derives, int* max_order);
-#ifdef AMREX_XSDK
+
 }
-#endif
 
 #endif
 

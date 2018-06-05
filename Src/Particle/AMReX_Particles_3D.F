@@ -1,3 +1,4 @@
+#if 0
 ! ::
 ! :: ----------------------------------------------------------
 ! :: Sum the fine grid mass into the coarse grid.
@@ -136,3 +137,5 @@
       enddo
 
       end subroutine part_sumdensup
+
+#endif
