@@ -597,7 +597,9 @@ Redistribute()
     thrust::host_vector<int> proc_map(num_grids);
     for (int i = 0; i < num_grids; ++i) proc_map[i] = m_dmap[i];
  
-    StructOfArrays<PIdx::nattribs, 0> not_ours;
+    std::map<int, StructOfArrays<PIdx::nattribs, 0> > not_ours;
+    std::map<int, std::vector<int> > remote_grids_start;
+    std::map<int, std::vector<int> > remote_grids_stop;
     for (int i = 0; i < num_grids; ++i)
     {
         auto begin = particles_to_redistribute.begin();
@@ -607,8 +609,9 @@ Redistribute()
         thrust::advance(end, stop[i]);
         
         const size_t num_to_add = stop[i] - start[i];
-        
-        if (proc_map[i] == ParallelDescriptor::MyProc())
+        const int dest_proc = proc_map[i];
+
+        if (dest_proc == ParallelDescriptor::MyProc())
         {
             const size_t old_size = m_particles[i].attribs.size();
             const size_t new_size = old_size + num_to_add;
@@ -618,10 +621,10 @@ Redistribute()
         }
         else
         {
-            const size_t old_size = not_ours.size();
+            const size_t old_size = not_ours[dest_proc].size();
             const size_t new_size = old_size + num_to_add;
-            not_ours.resize(new_size);
-            thrust::copy(begin, end, not_ours.begin() + old_size);
+            not_ours[dest_proc].resize(new_size);
+            thrust::copy(begin, end, not_ours[dest_proc].begin() + old_size);
         }
     }
 }
