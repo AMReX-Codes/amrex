@@ -267,12 +267,29 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         auto& particles = m_particles[mfi.index()];
         const int np    = particles.size();
 
-        particles.ex().assign(np, 0.0);
-        particles.ey().assign(np, 0.0);
-        particles.ez().assign(np, 0.0);
-        particles.bx().assign(np, 0.0);
-        particles.by().assign(np, 0.0);
-        particles.bz().assign(np, 0.0);
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.ex().data()),
+                     thrust::device_ptr<double>(particles.ex().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.ey().data()),
+                     thrust::device_ptr<double>(particles.ey().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.ez().data()),
+                     thrust::device_ptr<double>(particles.ez().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.bx().data()),
+                     thrust::device_ptr<double>(particles.bx().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.by().data()),
+                     thrust::device_ptr<double>(particles.by().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.bz().data()),
+                     thrust::device_ptr<double>(particles.bz().data() + np), 0.0);
 
         FORT_LAUNCH_PARTICLES(np,
                               gather_magnetic_field,
@@ -354,12 +371,29 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
         auto& particles = m_particles[mfi.index()];
         const int np    = particles.size();
 
-        particles.ex().assign(np, 0.0);
-        particles.ey().assign(np, 0.0);
-        particles.ez().assign(np, 0.0);
-        particles.bx().assign(np, 0.0);
-        particles.by().assign(np, 0.0);
-        particles.bz().assign(np, 0.0);
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.ex().data()),
+                     thrust::device_ptr<double>(particles.ex().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.ey().data()),
+                     thrust::device_ptr<double>(particles.ey().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.ez().data()),
+                     thrust::device_ptr<double>(particles.ez().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.bx().data()),
+                     thrust::device_ptr<double>(particles.bx().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.by().data()),
+                     thrust::device_ptr<double>(particles.by().data() + np), 0.0);
+
+        thrust::fill(thrust::device,
+                     thrust::device_ptr<double>(particles.bz().data()),
+                     thrust::device_ptr<double>(particles.bz().data() + np), 0.0);
 
         FORT_LAUNCH_PARTICLES(np,
                               gather_magnetic_field,
