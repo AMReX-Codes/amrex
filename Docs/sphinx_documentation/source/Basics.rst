@@ -1979,10 +1979,10 @@ physical (non-periodic) boundary conditions.
 Memory Allocation
 =================
 
-AMReX has a Fortran module, :fortran:`mempool_module` that can be used to
+AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module exists in
 AMReX, is that memory allocation is often very slow in multi-threaded OpenMP
-parallel regions. AMReX :cpp:`mempool_module` provides a much faster
+parallel regions. AMReX :cpp:`amrex_mempool_module` provides a much faster
 alternative approach, in which each thread has its own memory pool. Here are
 examples of using the module.
 
@@ -1990,7 +1990,7 @@ examples of using the module.
 
 ::
 
-      use mempool_module, only : bl_allocate, bl_deallocate
+      use amrex_mempool_module, only : bl_allocate, bl_deallocate
       real(amrex_real), pointer, contiguous :: a(:,:,:), b(:,:,:,:)
       integer :: lo1, hi1, lo2, hi2, lo3, hi3, lo(4), hi(4)
       ! lo1 = ...

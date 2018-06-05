@@ -97,7 +97,7 @@ contains
                     q, qlo, qhi, &
                     dq, dqlo, dqhi)
 
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
     integer, intent(in) :: lo(3), hi(3), qlo(3), qhi(3), dqlo(3), dqhi(3)
     double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2), qlo(3): qhi(3))
@@ -127,7 +127,7 @@ contains
                     q, qlo, qhi, &
                     dq, dqlo, dqhi)
 
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
     integer, intent(in) :: lo(3), hi(3), qlo(3), qhi(3), dqlo(3), dqhi(3)
     double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2), qlo(3): qhi(3))
@@ -253,7 +253,7 @@ contains
                     q, qlo, qhi, &
                     dq, dqlo, dqhi)
 
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
     integer, intent(in) :: lo(3), hi(3), qlo(3), qhi(3), dqlo(3), dqhi(3)
     double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2), qlo(3): qhi(3))
@@ -285,7 +285,7 @@ contains
                     q, qlo, qhi, &
                     dq, dqlo, dqhi)
 
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
     integer, intent(in) :: lo(3), hi(3), qlo(3), qhi(3), dqlo(3), dqhi(3)
     double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2), qlo(3): qhi(3))

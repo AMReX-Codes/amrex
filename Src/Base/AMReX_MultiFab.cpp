@@ -437,6 +437,15 @@ MultiFab::MultiFab (const BoxArray&            bxs,
                     int                        ngrow,
 		    const MFInfo&              info,
                     const FabFactory<FArrayBox>& factory)
+    : MultiFab(bxs,dm,ncomp,IntVect(ngrow),info,factory)
+{}
+
+MultiFab::MultiFab (const BoxArray&            bxs,
+                    const DistributionMapping& dm,
+                    int                        ncomp,
+                    const IntVect&             ngrow,
+		    const MFInfo&              info,
+                    const FabFactory<FArrayBox>& factory)
     :
     FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
 {
@@ -458,6 +467,11 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
 }
 
 MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
+                    const Vector<Real*>& p)
+    : MultiFab(ba, dm, ncomp, IntVect(ngrow), p)
+{}
+
+MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, const IntVect& ngrow,
                     const Vector<Real*>& p)
     :
     FabArray<FArrayBox>(ba, dm, ncomp, ngrow, p)
@@ -495,6 +509,17 @@ MultiFab::define (const BoxArray&            bxs,
                   const DistributionMapping& dm,
                   int                        nvar,
                   int                        ngrow,
+		  const MFInfo&              info,
+                  const FabFactory<FArrayBox>& factory)
+{
+    define(bxs, dm, nvar, IntVect(ngrow), info, factory);
+}
+
+void
+MultiFab::define (const BoxArray&            bxs,
+                  const DistributionMapping& dm,
+                  int                        nvar,
+                  const IntVect&             ngrow,
 		  const MFInfo&              info,
                   const FabFactory<FArrayBox>& factory)
 {
@@ -603,7 +628,7 @@ MultiFab::min (int comp,
                int nghost,
 	       bool local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     Real mn = std::numeric_limits<Real>::max();
 
@@ -628,7 +653,7 @@ MultiFab::min (const Box& region,
                int        nghost,
 	       bool       local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     Real mn = std::numeric_limits<Real>::max();
 
@@ -654,7 +679,7 @@ MultiFab::max (int comp,
                int nghost,
 	       bool local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     Real mx = -std::numeric_limits<Real>::max();
 
@@ -679,7 +704,7 @@ MultiFab::max (const Box& region,
                int        nghost,
 	       bool       local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     Real mx = -std::numeric_limits<Real>::max();
 
@@ -704,7 +729,7 @@ IntVect
 MultiFab::minIndex (int comp,
                     int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     IntVect loc;
 
@@ -788,7 +813,7 @@ IntVect
 MultiFab::maxIndex (int comp,
                     int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     IntVect loc;
 
@@ -1170,7 +1195,7 @@ MultiFab::minus (const MultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1193,7 +1218,7 @@ MultiFab::divide (const MultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1212,7 +1237,7 @@ MultiFab::plus (Real val,
                 int  num_comp,
                 int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1232,7 +1257,7 @@ MultiFab::plus (Real       val,
                 int        num_comp,
                 int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1258,7 +1283,7 @@ MultiFab::plus (const MultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1277,7 +1302,7 @@ MultiFab::mult (Real val,
                 int  num_comp,
                 int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1297,7 +1322,7 @@ MultiFab::mult (Real       val,
                 int        num_comp,
                 int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1319,7 +1344,7 @@ MultiFab::invert (Real numerator,
                   int  num_comp,
                   int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1339,7 +1364,7 @@ MultiFab::invert (Real       numerator,
                   int        num_comp,
                   int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1360,7 +1385,7 @@ MultiFab::negate (int comp,
                   int num_comp,
                   int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
@@ -1378,7 +1403,7 @@ MultiFab::negate (const Box& region,
                   int        num_comp,
                   int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
@@ -1398,16 +1423,16 @@ MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 {
     BL_PROFILE("MultiFab::SumBoundary()");
 
-    if ( n_grow == 0 && boxArray().ixType().cellCentered()) return;
+    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
 
     if (boxArray().ixType().cellCentered()) {
 	// Self copy is safe only for cell-centered MultiFab
-	this->copy(*this,scomp,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
+	this->copy(*this,scomp,scomp,ncomp,n_grow,IntVect::TheZeroVector(),period,FabArrayBase::ADD);
     } else {
 	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
-	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
+	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow[0]);
 	this->setVal(0.0, scomp, ncomp, 0);
-	this->copy(tmp,0,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
+	this->copy(tmp,0,scomp,ncomp,n_grow,IntVect::TheZeroVector(),period,FabArrayBase::ADD);
     }
 }
 

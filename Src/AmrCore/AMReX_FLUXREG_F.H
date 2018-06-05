@@ -8,14 +8,14 @@ extern "C"
 {
 #endif
 
-    void amrex_frfineadd (amrex_real* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
-                         const amrex_real* flx, ARLIM_P(flo), ARLIM_P(fhi),
+    void amrex_frfineadd (amrex_real* reg,       AMREX_ARLIM_P(rlo), AMREX_ARLIM_P(rhi),
+                         const amrex_real* flx, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
                          const int* numcomp, const int* dir,
                          const int* ratio, const amrex_real* mult);
 
-    void amrex_frfaadd (amrex_real* reg,        ARLIM_P(rlo), ARLIM_P(rhi),
-                       const amrex_real* flx,  ARLIM_P(flo), ARLIM_P(fhi),
-                       const amrex_real* area, ARLIM_P(alo), ARLIM_P(ahi),
+    void amrex_frfaadd (amrex_real* reg,        AMREX_ARLIM_P(rlo), AMREX_ARLIM_P(rhi),
+                       const amrex_real* flx,  AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
+                       const amrex_real* area, AMREX_ARLIM_P(alo), AMREX_ARLIM_P(ahi),
                        const int* numcomp, const int* dir,
                        const int* ratio, const amrex_real* mult);
 

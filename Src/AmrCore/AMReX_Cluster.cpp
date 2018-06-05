@@ -5,7 +5,9 @@
 
 namespace amrex {
 
+namespace {
 enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
+}
 
 Cluster::Cluster ()
     :
@@ -21,6 +23,7 @@ Cluster::Cluster (IntVect* a, long len)
 
 Cluster::~Cluster () {}
 
+namespace {
 //
 // Predicate in call to std::partition() in Cluster::Cluster(Cluster,Box).
 //
@@ -36,6 +39,7 @@ public:
 private:
     Box m_box;
 };
+}
 
 Cluster::Cluster (Cluster&   c,
                   const Box& b) 
@@ -231,6 +235,7 @@ FindCut (const int* hist,
     return lo + cutpoint;
 }
 
+namespace {
 //
 // Predicate in call to std::partition() in Cluster::chop().
 //
@@ -247,6 +252,7 @@ private:
     IntVect m_cut;
     int     m_dir;
 };
+}
 
 Cluster*
 Cluster::chop ()

@@ -6,12 +6,12 @@
 !     to simplify the framework strings are passed from FORTRAN to C++
 !     as arrays of integer characters, terminated by the EOS symbol
 !     which we set to -1
-!     blstr2int converts a FORTRAN string to an integer array,
-!     blint2str converts an integer array to a FORTRAN string.
+!     bl_str2int converts a FORTRAN string to an integer array,
+!     bl_int2str converts an integer array to a FORTRAN string.
 !      
 !-----------------------------------------------------------------------
 
-  subroutine blstr2int(iarr, n, str)
+  subroutine bl_str2int(iarr, n, str)
 
     character*(*) :: str
     integer :: n, i, j
@@ -19,7 +19,7 @@
     integer, parameter :: EOS = -1
 
     if ( n .LE. len(str) ) then
-       call bl_abort("blstr2int: str to large for iarr")
+       call bl_abort("bl_str2int: str to large for iarr")
     end if
 
     ! Make sure that IARR is empty
@@ -35,11 +35,11 @@
     ! EOS
     iarr(j) = EOS
 
-  end subroutine blstr2int
+  end subroutine bl_str2int
 
 !-----------------------------------------------------------------------
 
-  subroutine blint2str(str, iarr, n)
+  subroutine bl_int2str(str, iarr, n)
 
     character*(*) :: str
     integer :: n
@@ -52,7 +52,7 @@
     end do
     do i = 1, n
        if ( i .GT. LEN(str) ) then
-          call bl_abort("blint2str: iarr to large for str")
+          call bl_abort("bl_int2str: iarr to large for str")
        end if
        if ( iarr(i) .EQ. EOS ) GO TO 100
        str(i:i) = char(iarr(i))
@@ -60,4 +60,4 @@
 
 100 CONTINUE
 
-  end subroutine blint2str
+  end subroutine bl_int2str

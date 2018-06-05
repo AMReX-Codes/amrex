@@ -12,7 +12,7 @@ Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert
 drag forces onto a fluid, such as in multi-phase flow calculations. The overall
 goals of AMReX's particle tools are to allow users flexibility in specifying
 how the particle data is laid out in memory and to handle the parallel
-communication of particle data automatically. In the following sections, we
+communication of particle data. In the following sections, we
 give an overview of AMReX's particle classes and how to use them.
 
 

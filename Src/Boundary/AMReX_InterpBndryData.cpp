@@ -289,11 +289,11 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         BL_ASSERT(crse_fab.box().contains(crsebnd));
                     }
 
-                    bdfunc[face](bdat,ARLIM(blo),ARLIM(bhi),
-                                 lo,hi,ARLIM(cblo),ARLIM(cbhi),
+                    bdfunc[face](bdat,AMREX_ARLIM(blo),AMREX_ARLIM(bhi),
+                                 lo,hi,AMREX_ARLIM(cblo),AMREX_ARLIM(cbhi),
                                  &num_comp,ratio.getVect(),&is_not_covered,
-                                 mdat,ARLIM(mlo),ARLIM(mhi),
-                                 cdat,ARLIM(clo),ARLIM(chi),derives.dataPtr(),&max_order);
+                                 mdat,AMREX_ARLIM(mlo),AMREX_ARLIM(mhi),
+                                 cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),derives.dataPtr(),&max_order);
                 }
                 else if (fine != nullptr)
                 {

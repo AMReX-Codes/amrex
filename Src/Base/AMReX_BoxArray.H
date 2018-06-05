@@ -26,6 +26,8 @@ namespace amrex
     //! Make a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
     BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
 
+    BoxArray intersect (const BoxArray& ba, const Box& b, const IntVect& ng);
+
     //! Make a BoxArray from the intersection of two BoxArrays.
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
@@ -421,11 +423,15 @@ public:
     */
     bool intersects (const Box& b, int ng = 0) const;
 
+    bool intersects (const Box& b, const IntVect& ng) const;
+
     //! Return intersections of Box and BoxArray
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
 
     //! Return intersections of Box and BoxArray(+ghostcells).
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, int ng) const;
+
+    std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, const IntVect& ng) const;
 
     //! intersect Box and BoxArray, then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const; 
@@ -433,6 +439,9 @@ public:
     //! intersect Box and BoxArray(+ghostcells), then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
 			bool first_only, int ng) const;
+
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
+			bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;

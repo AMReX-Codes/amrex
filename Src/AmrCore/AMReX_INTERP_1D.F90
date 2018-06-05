@@ -3,10 +3,9 @@ module amrex_interp_module
 
   use amrex_fort_module
   use amrex_constants_module
+  use amrex_bc_types_module
 
   implicit none
-
-  include 'AMReX_bc_types.fi'
 
 contains
 
@@ -480,8 +479,8 @@ contains
                cslope(i,1)=sign(one,cen)*min(slp,abs(cen))
             enddo
             if (xok) then
-!               if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
-               if (bc(1,1,n) .eq. EXT_DIR .or. bc(1,1,n).eq.HOEXTRAP) then
+!               if (bclo(1,n) .eq. amrex_bc_ext_dir .or. bclo(1,n).eq.amrex_bc_hoextrap) then
+               if (bc(1,1,n) .eq. amrex_bc_ext_dir .or. bc(1,1,n).eq.amrex_bc_hoextrap) then
                   do i = 1, clen, jst 
                      cen  = -sixteen/fifteen*crse(i-ist,n) + half*crse(i,n) &
                           + two3rd*crse(i+ist,n) - tenth*crse(i+2*ist,n)
@@ -493,7 +492,7 @@ contains
                      cslope(i,1)=sgn*min(slp,abs(cen))
                   enddo
                endif
-               if (bc(1,2,n) .eq. EXT_DIR .or. bc(1,2,n).eq.HOEXTRAP) then
+               if (bc(1,2,n) .eq. amrex_bc_ext_dir .or. bc(1,2,n).eq.amrex_bc_hoextrap) then
                   do i = ncbx, clen, jst 
                      cen = sixteen/fifteen*crse(i+ist,n) - half*crse(i,n) &
                           - two3rd*crse(i-ist,n) + tenth*crse(i-2*ist,n)
@@ -512,15 +511,15 @@ contains
                cslope(i,1)=cen
             enddo
             if (xok) then
-!               if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
-               if (bc(1,1,n) .eq. EXT_DIR .or. bc(1,1,n).eq.HOEXTRAP) then
+!               if (bclo(1,n) .eq. amrex_bc_ext_dir .or. bclo(1,n).eq.amrex_bc_hoextrap) then
+               if (bc(1,1,n) .eq. amrex_bc_ext_dir .or. bc(1,1,n).eq.amrex_bc_hoextrap) then
                   do i = 1, clen, jst 
                      cen  = -sixteen/fifteen*crse(i-ist,n) + half*crse(i,n) &
                           + two3rd*crse(i+ist,n) - tenth*crse(i+2*ist,n)
                      cslope(i,1)=cen
                   enddo
                endif
-               if (bc(1,2,n) .eq. EXT_DIR .or. bc(1,2,n).eq.HOEXTRAP) then
+               if (bc(1,2,n) .eq. amrex_bc_ext_dir .or. bc(1,2,n).eq.amrex_bc_hoextrap) then
                   do i = ncbx, clen, jst 
                      cen = sixteen/fifteen*crse(i+ist,n) - half*crse(i,n) &
                           - two3rd*crse(i-ist,n) + tenth*crse(i-2*ist,n)
@@ -760,7 +759,7 @@ contains
              lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
           end do
 
-          if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
+          if (bclo(1,n) .eq. amrex_bc_ext_dir .or. bclo(1,n).eq.amrex_bc_hoextrap) then
             i = cslopelo(1)
             if (xok) then
                 uc_xslope(i,n)  = -sixteen/fifteen*crse(i-1,n) &
@@ -778,7 +777,7 @@ contains
             lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
           end if
 
-          if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
+          if (bchi(1,n) .eq. amrex_bc_ext_dir .or. bchi(1,n).eq.amrex_bc_hoextrap) then
             i = cslopehi(1)
             if (xok) then
                 uc_xslope(i,n) = sixteen/fifteen*crse(i+1,n) &

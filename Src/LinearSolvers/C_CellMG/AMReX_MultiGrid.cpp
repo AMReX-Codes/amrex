@@ -778,9 +778,9 @@ MultiGrid::average (MultiFab&       c,
         const FArrayBox& ffab = f[cmfi];
 
         amrex_mg_average(cfab.dataPtr(),
-                     ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                     AMREX_ARLIM(cfab.loVect()), AMREX_ARLIM(cfab.hiVect()),
                      ffab.dataPtr(),
-                     ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                     AMREX_ARLIM(ffab.loVect()), AMREX_ARLIM(ffab.hiVect()),
                      bx.loVect(), bx.hiVect(), &nc);
     }
 }
@@ -805,9 +805,9 @@ MultiGrid::interpolate (MultiFab&       f,
         FArrayBox&       ffab = f[mfi];
 
         amrex_mg_interp(ffab.dataPtr(),
-                    ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                    AMREX_ARLIM(ffab.loVect()), AMREX_ARLIM(ffab.hiVect()),
                     cfab.dataPtr(),
-                    ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                    AMREX_ARLIM(cfab.loVect()), AMREX_ARLIM(cfab.hiVect()),
                     bx.loVect(), bx.hiVect(), &nc);
     }
 }

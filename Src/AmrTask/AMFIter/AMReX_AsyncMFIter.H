@@ -368,7 +368,7 @@ namespace amrex {
 		    int myProc = ParallelDescriptor::MyProc();
 		    int numfabs = mf.size();
 		    bool cross = false;
-		    const FabArrayBase::FB& TheFB = mf.getFB(period);
+		    const FabArrayBase::FB& TheFB = mf.getFB(mf.nGrowVect(),period);
 		    const int n_loc_mf = TheFB.m_LocTags->size();
 		    const int n_snds_mf = TheFB.m_SndTags->size();
 		    const int n_rcvs_mf = TheFB.m_RcvTags->size();

@@ -20,7 +20,7 @@ amrex::FAmrCore::FAmrCore ()
             }
         }
             
-        if (blockingFactor(lev) < IntVect{D_DECL(8,8,8)})
+        if (blockingFactor(lev) < IntVect{AMREX_D_DECL(8,8,8)})
         {
             amrex::Print() << "amr.blocking_factor < 8 not recommended\n";
         }

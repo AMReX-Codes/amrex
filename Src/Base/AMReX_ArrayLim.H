@@ -73,6 +73,19 @@
 #define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
 #define AMREX_BCREC_3D(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
 #define AMREX_BCREC_ANYD(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
+#ifdef AMREX_USE_CUDA
+#define AMREX_ARLIM_3D(x) x
+#define AMREX_ARLIM_ANYD(x) x
+#define AMREX_ZFILL(x) x
+#define AMREX_ARLIM_ARG(x) x[0]
+#define AMREX_ARLIM_VAL(x) const int x##_1
+#else
+#define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
+#define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
+#define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
+#define AMREX_ARLIM_ARG(x) ARLIM_3D(x)
+#define AMREX_ARLIM_VAL(x) const int* x
+#endif
 #elif   AMREX_SPACEDIM==2
 #define AMREX_ARLIM_P(x)  const int&,const int&
 #define AMREX_ARLIM(x)  (x)[0],(x)[1]
@@ -81,6 +94,19 @@
 #define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
 #define AMREX_BCREC_3D(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
 #define AMREX_BCREC_ANYD(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
+#ifdef AMREX_USE_CUDA
+#define AMREX_ARLIM_3D(x) x
+#define AMREX_ARLIM_ANYD(x) x
+#define AMREX_ZFILL(x) x
+#define AMREX_ARLIM_ARG(x) x[0], x[1]
+#define AMREX_ARLIM_VAL(x) const int x##_1, const int x##_2
+#else
+#define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
+#define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
+#define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
+#define AMREX_ARLIM_ARG(x) ARLIM_3D(x)
+#define AMREX_ARLIM_VAL(x) const int* x
+#endif
 #elif   AMREX_SPACEDIM==3
 #define AMREX_ARLIM_P(x)  const int&,const int&,const int&
 #define AMREX_ARLIM(x)  (x)[0],(x)[1],(x)[2]
@@ -89,17 +115,24 @@
 #define AMREX_ZFILL(x) x
 #define AMREX_BCREC_3D(x) x
 #define AMREX_BCREC_ANYD(x) x
+#ifdef AMREX_USE_CUDA
+#define AMREX_ARLIM_ARG(x) x[0], x[1], x[2]
+#define AMREX_ARLIM_VAL(x) const int x##_1, const int x##_2, const int x##_3
+#else
+#define AMREX_ARLIM_ARG(x) ARLIM_3D(x)
+#define AMREX_ARLIM_VAL(x) const int* x
+#endif
 #endif
 
-#define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
-#define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect()), (x).nCompPtr()
-#define BL_TO_FORTRAN_BOX(x) ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
-#define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), ARLIM((x).loVect()), ARLIM((x).hiVect())
+#define BL_TO_FORTRAN(x) (x).dataPtr(), AMREX_ARLIM((x).loVect()), AMREX_ARLIM((x).hiVect())
+#define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect()), (x).nCompPtr()
+#define BL_TO_FORTRAN_BOX(x) AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), AMREX_ARLIM((x).loVect()), AMREX_ARLIM((x).hiVect())
 
-#define BL_TO_FORTRAN_3D(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
-#define BL_TO_FORTRAN_ANYD(x) (x).dataPtr(), ARLIM_ANYD((x).loVect()), ARLIM_ANYD((x).hiVect())
-#define BL_TO_FORTRAN_N_3D(x,n) (x).dataPtr(n), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
-#define BL_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), ARLIM_ANYD((x).loVect()), ARLIM_ANYD((x).hiVect())
+#define BL_TO_FORTRAN_3D(x) (x).dataPtr(), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_ANYD(x) (x).dataPtr(), AMREX_ARLIM_ANYD((x).loVect()), AMREX_ARLIM_ANYD((x).hiVect())
+#define BL_TO_FORTRAN_N_3D(x,n) (x).dataPtr(n), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), AMREX_ARLIM_ANYD((x).loVect()), AMREX_ARLIM_ANYD((x).hiVect())
 
 #else
 

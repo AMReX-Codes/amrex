@@ -370,7 +370,7 @@ public:
 
 #ifdef AMREX_PARTICLES
     //! This function can be called from the parent 
-    virtual void particle_redistribute (int lbase = 0, bool init = false) {;}
+    virtual void particle_redistribute (int lbase = 0, bool a_init = false) {;}
 #endif
 
     static void FillPatch(AmrLevel& amrlevel,
