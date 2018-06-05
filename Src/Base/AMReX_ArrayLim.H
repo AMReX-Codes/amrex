@@ -124,6 +124,8 @@
 #endif
 #endif
 
+#define AMREX_ARLIM_REP(x) const int* x
+
 #define BL_TO_FORTRAN(x) (x).dataPtr(), AMREX_ARLIM((x).loVect()), AMREX_ARLIM((x).hiVect())
 #define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect()), (x).nCompPtr()
 #define BL_TO_FORTRAN_BOX(x) AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect())
