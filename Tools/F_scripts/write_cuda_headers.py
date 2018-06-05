@@ -117,9 +117,11 @@ def doit(outdir, fortran_targets, header_files):
             tline = line[:idx]
 
             for target in fortran_targets:
-                if target in tline.lower():
-                    found = target
-                    break
+                fort_target_match = fortran_re.search(tline.lower())
+                if fort_target_match:
+                    if target == fort_target_match.group(5):
+                        found = target
+                        break
 
             if found is not None:
                 launch_sig = "" + line
@@ -196,7 +198,7 @@ def doit(outdir, fortran_targets, header_files):
                 vars.append(var)
 
             if not has_lo or not has_hi:
-                sys.exit("ERROR: function signature must have variables lo and hi defined.")
+                sys.exit("ERROR: function signature must have variables lo and hi defined:\n--- function name:\n {} \n--- function signature:\n {}\n---".format(name,func_sig))
 
             # now we need to remove any vode stuff before the function name
             idx = func_sig.lower().find(name)
