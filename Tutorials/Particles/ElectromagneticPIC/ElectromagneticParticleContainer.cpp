@@ -18,7 +18,7 @@
 using namespace amrex;
 
 namespace {
-    
+
     void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
         int nx = nppc[0];
@@ -639,5 +639,41 @@ RedistributeMPI(std::map<int, StructOfArrays<PIdx::nattribs, 0> >& not_ours,
                 std::map<int, std::vector<int> >& remote_grids_start,
                 std::map<int, std::vector<int> >& remote_grids_stop) 
 {
+    BL_PROFILE("ParticleContainer::RedistributeMPI()");
+#if BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
     
+    long total_snds = 0;
+    Vector<long> num_particles_to_send(NProcs, 0);
+    Vector<long> num_particles_to_rcv(NProcs, 0);
+    for (const auto& kv : not_ours)
+    {
+        const int np = kv.second.size(); 
+        num_particles_to_send[kv.first] = np;
+        total_snds += np;
+    }
+    
+    ParallelDescriptor::ReduceLongMax(total_snds);
+
+    if (total_snds == 0) return;
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    
+    BL_MPI_REQUIRE( MPI_Alltoall(num_particles_to_send.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 num_particles_to_rcv.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    
+    BL_ASSERT(num_particles_to_rcv[ParallelDescriptor::MyProc()] == 0);
+    
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+  
+    
+              
+#endif // MPI
 }
