@@ -16,11 +16,11 @@ AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
   use constants, only : clight
   implicit none
 
-  integer,          intent(in), value    :: np
-  real(amrex_real), intent(inout) :: uxp(np), uyp(np), uzp(np), gaminv(np)
-  real(amrex_real), intent(in)    :: ex(np), ey(np), ez(np)
-  real(amrex_real), intent(in)    :: bx(np), by(np), bz(np)
-  real(amrex_real), value         :: q, m, dt
+  integer,          intent(in), value :: np
+  real(amrex_real), intent(inout)     :: uxp(np), uyp(np), uzp(np), gaminv(np)
+  real(amrex_real), intent(in)        :: ex(np), ey(np), ez(np)
+  real(amrex_real), intent(in)        :: bx(np), by(np), bz(np)
+  real(amrex_real), intent(in), value :: q, m, dt
 
   integer                         :: ip
   real(amrex_real)                :: const
@@ -86,12 +86,12 @@ AMREX_LAUNCH subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gamin
   use amrex_fort_module, only : amrex_real  
   implicit none
 
-  integer,          intent(in), value      :: np
-  real(amrex_real), intent(inout)   :: xp(np), yp(np), zp(np)
-  real(amrex_real), intent(in)      :: uxp(np), uyp(np), uzp(np), gaminv(np)
-  real(amrex_real), value           :: dt
+  integer,          intent(in), value  :: np
+  real(amrex_real), intent(inout)      :: xp(np), yp(np), zp(np)
+  real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
+  real(amrex_real), intent(in), value  :: dt
   
-  integer                           :: ip
+  integer                              :: ip
 
 #ifdef AMREX_USE_CUDA
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
@@ -119,9 +119,9 @@ AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
   use constants, only : clight 
   implicit none
   
-  integer,          intent(in), value      :: np
-  real(amrex_real), intent(in)      :: uxp(np), uyp(np), uzp(np)
-  real(amrex_real), intent(inout)   :: gaminv(np)
+  integer,          intent(in), value :: np
+  real(amrex_real), intent(in)        :: uxp(np), uyp(np), uzp(np)
+  real(amrex_real), intent(inout)     :: gaminv(np)
   
   integer                           :: ip
   real(amrex_real)                  :: clghtisq, usq
@@ -542,7 +542,7 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      y = (yp(ip)-plo(2))*dyi
      z = (zp(ip)-plo(3))*dzi
      
-     ! Compute index of particle     
+     ! Compute index of particle
      j  = floor(x)
      j0 = floor(x)
      k  = floor(y)
@@ -830,14 +830,12 @@ subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi,
   exact = -n0*electron_charge*clight*u*cos(wp*time)
 
   lo = max(boxlo, testlo)
-  hi = max(boxhi, testhi)
+  hi = min(boxhi, testhi)
 
   do l       = lo(3), hi(3)
      do k    = lo(2), hi(2)
         do j = lo(1), hi(1)
-           if (abs(jx(j,k,l)) > 0.d0) then
-               error = max(error, abs(jx(j,k,l) - exact) / abs(jx(j,k,l)))
-           end if
+           error = max(error, abs(jx(j,k,l) - exact) / exact)
         end do
      end do
   end do
