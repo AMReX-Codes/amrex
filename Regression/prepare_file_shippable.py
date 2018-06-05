@@ -10,8 +10,14 @@ with open('WarpX-tests.ini') as f:
 text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
                '[\g<name>]\ndoComparison = 0\nbuildDir = ', text )
 
+# Use only 2 cores for compiling
+text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
+
 # Remove Python test (does not compile in the Docker container)
 text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
+
+# Remove Langmuir_x/y/z test (too long; not that useful)
+text = re.sub( '\[Langmuir_[xyz]\]\n(.+\n)*', '', text)
 
 # Prevent emails from being sent
 text = re.sub( 'sendEmailWhenFail = 1', 'sendEmailWhenFail = 0', text )
