@@ -1,5 +1,5 @@
-#ifndef _GRAPHNODE_H_
-#define _GRAPHNODE_H_
+#ifndef AMREX_GRAPHNODE_H_
+#define AMREX_GRAPHNODE_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_Box.H"

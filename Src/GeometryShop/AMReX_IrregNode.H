@@ -1,5 +1,5 @@
-#ifndef _IRREGNODE_H_
-#define _IRREGNODE_H_
+#ifndef AMREX_IRREGNODE_H_
+#define AMREX_IRREGNODE_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"

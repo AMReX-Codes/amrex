@@ -1,5 +1,5 @@
-#ifndef _GEOMETRYSERVICE_H_
-#define _GEOMETRYSERVICE_H_
+#ifndef AMREX_GEOMETRYSERVICE_H_
+#define AMREX_GEOMETRYSERVICE_H_
 
 
 #include <cmath>

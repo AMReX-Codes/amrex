@@ -1,5 +1,5 @@
-#ifndef _AGGSTENCILI_H_
-#define _AGGSTENCILI_H_
+#ifndef AMREX_AGGSTENCILI_H_
+#define AMREX_AGGSTENCILI_H_
 
 namespace amrex
 {

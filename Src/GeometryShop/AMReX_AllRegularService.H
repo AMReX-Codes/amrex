@@ -1,5 +1,5 @@
-#ifndef _ALLREGULARSERVICE_H_
-#define _ALLREGULARSERVICE_H_
+#ifndef AMREX_ALLREGULARSERVICE_H_
+#define AMREX_ALLREGULARSERVICE_H_
 
 #include "AMReX_GeometryService.H"
 

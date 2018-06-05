@@ -1,5 +1,5 @@
-#ifndef _BASEEBCELLFABI_H_
-#define _BASEEBCELLFABI_H_
+#ifndef AMREX_BASEEBCELLFABI_H_
+#define AMREX_BASEEBCELLFABI_H_
 
 #include "AMReX_BoxIterator.H"
 

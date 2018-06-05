@@ -1,6 +1,6 @@
 
-#ifndef _MULTIINDEXIMPLEM_H_
-#define _MULTIINDEXIMPLEM_H_
+#ifndef AMREX_MULTIINDEXIMPLEM_H_
+#define AMREX_MULTIINDEXIMPLEM_H_
 
 
 // Generate and return a vector of all multi-indices whose magnitude (the sum

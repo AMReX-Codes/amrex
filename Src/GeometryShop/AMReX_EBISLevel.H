@@ -1,5 +1,5 @@
-#ifndef _EBISLEVEL_H_
-#define _EBISLEVEL_H_
+#ifndef AMREX_EBISLEVEL_H_
+#define AMREX_EBISLEVEL_H_
 #include <map>
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"
@@ -143,6 +143,9 @@ namespace amrex
     void  readHeader(const string& a_dirname);
 
     const FabArray<EBGraph>& getGraph () const { return m_graph; }
+
+    ///get dx
+    Real getDx () const { return m_dx; }
 
   protected:
 

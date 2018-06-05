@@ -6,9 +6,9 @@
 
 namespace amrex
 {
-  static const IntVect   ebisl_debiv(D_DECL(994,213,7));
-  static const IntVect   ebisl_debivlo(D_DECL(29,12, 0));
-  static const IntVect   ebisl_debivhi(D_DECL(29,13, 0));
+  static const IntVect   ebisl_debiv(AMREX_D_DECL(994,213,7));
+  static const IntVect   ebisl_debivlo(AMREX_D_DECL(29,12, 0));
+  static const IntVect   ebisl_debivhi(AMREX_D_DECL(29,13, 0));
   static const VolIndex  ebisl_debvoflo(ebisl_debivlo, 0);
   static const VolIndex  ebisl_debvofhi(ebisl_debivhi, 0);
   static const FaceIndex ebisl_debface( ebisl_debvoflo, ebisl_debvofhi);

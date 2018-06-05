@@ -1,6 +1,6 @@
 
-#ifndef _IFSLICER_H_
-#define _IFSLICER_H_
+#ifndef AMREX_IFSLICER_H_
+#define AMREX_IFSLICER_H_
 
 #include <map>
 

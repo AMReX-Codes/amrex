@@ -1,5 +1,5 @@
-#ifndef _FACEITERATOR_H_
-#define _FACEITERATOR_H_
+#ifndef AMREX_FACEITERATOR_H_
+#define AMREX_FACEITERATOR_H_
 
 #include "AMReX_IntVect.H"
 #include "AMReX_FaceIndex.H"

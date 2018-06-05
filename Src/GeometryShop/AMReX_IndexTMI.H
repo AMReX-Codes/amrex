@@ -1,6 +1,6 @@
 ///heh, TMI
-#ifndef _INDEXTMI_H_
-#define _INDEXTMI_H_
+#ifndef AMREX_INDEXTMI_H_
+#define AMREX_INDEXTMI_H_
 
 #include <iostream>
 using std::ostream;

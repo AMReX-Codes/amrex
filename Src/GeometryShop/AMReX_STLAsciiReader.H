@@ -1,5 +1,5 @@
-#ifndef _STLASCIIREADER_H_
-#define _STLASCIIREADER_H_
+#ifndef AMREX_STLASCIIREADER_H_
+#define AMREX_STLASCIIREADER_H_
 
 #include <iostream>
 #include <string>

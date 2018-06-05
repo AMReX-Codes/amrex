@@ -1,5 +1,5 @@
-#ifndef _VOLINDEX_H_
-#define _VOLINDEX_H_
+#ifndef AMREX_VOLINDEX_H_
+#define AMREX_VOLINDEX_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"

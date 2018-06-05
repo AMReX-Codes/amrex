@@ -1,5 +1,5 @@
-#ifndef _LATHEIF_H_
-#define _LATHEIF_H_
+#ifndef AMREX_LATHEIF_H_
+#define AMREX_LATHEIF_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"

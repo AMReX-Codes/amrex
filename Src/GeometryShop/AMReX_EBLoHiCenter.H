@@ -1,5 +1,5 @@
-#ifndef _EBLOHICENTER_H___
-#define _EBLOHICENTER_H___
+#ifndef AMREX_EBLOHICENTER_H_
+#define AMREX_EBLOHICENTER_H_
 
 #include "AMReX_Box.H"
 

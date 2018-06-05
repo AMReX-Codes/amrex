@@ -1,5 +1,5 @@
-#ifndef __IntVectSet__H_
-#define __IntVectSet__H_
+#ifndef AMREX_IntVectSet_H_
+#define AMREX_IntVectSet_H_
 
 #include "AMReX_Box.H"
 #include <unordered_set>

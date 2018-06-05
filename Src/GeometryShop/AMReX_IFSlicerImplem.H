@@ -1,6 +1,6 @@
 
-#ifndef _IFSLICERIMPLEM_H_
-#define _IFSLICERIMPLEM_H_
+#ifndef AMREX_IFSLICERIMPLEM_H_
+#define AMREX_IFSLICERIMPLEM_H_
 
 #include <iostream>
 
