@@ -443,6 +443,13 @@ public:
 		     int             dstcomp,
 		     int             numcomp,
 		     int             nghost);
+ 
+    static void Add (MultiFab&       dst,
+                     const MultiFab& src,
+                     int             srccomp,
+                     int             dstcomp,
+                     int             numcomp,
+                     const IntVect&  nghost);
     /**
     * \brief Copy from src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -454,6 +461,13 @@ public:
                       int             dstcomp,
                       int             numcomp,
                       int             nghost);
+
+    static void Copy (MultiFab&       dst,
+                      const MultiFab& src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      const IntVect&  nghost);
     /**
     * \brief Subtract src from dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -464,6 +478,13 @@ public:
 			  int             dstcomp,
 			  int             numcomp,
 			  int             nghost);
+
+    static void Subtract (MultiFab&       dst,
+			  const MultiFab& src,
+			  int             srccomp,
+			  int             dstcomp,
+			  int             numcomp,
+			  const IntVect&  nghost);
     /**
     * \brief Multiply dst by src including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -474,6 +495,13 @@ public:
 			  int             dstcomp,
 			  int             numcomp,
 			  int             nghost);
+
+    static void Multiply (MultiFab&       dst,
+			  const MultiFab& src,
+			  int             srccomp,
+			  int             dstcomp,
+			  int             numcomp,
+			  const IntVect&  nghost);
     /**
     * \brief Divide dst by src including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -484,6 +512,13 @@ public:
 			int             dstcomp,
 			int             numcomp,
 			int             nghost);
+
+    static void Divide (MultiFab&       dst,
+			const MultiFab& src,
+			int             srccomp,
+			int             dstcomp,
+			int             numcomp,
+			const IntVect&  nghost);
     /**
     * \brief dst += a*src
     */

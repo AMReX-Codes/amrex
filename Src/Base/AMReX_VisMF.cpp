@@ -51,8 +51,6 @@ namespace
 void
 VisMF::Initialize ()
 {
-    BL_PROFILE("VisMF::Initialize");
-
     if(initialized) {
       return;
     }

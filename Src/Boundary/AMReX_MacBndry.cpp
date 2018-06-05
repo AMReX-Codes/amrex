@@ -66,7 +66,8 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
                 //
                 const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
 
-                bctag[face][comp] = (p_bc == PhysBCType::outflow) ? LO_DIRICHLET : LO_NEUMANN;
+                bctag[face][comp] = (p_bc == PhysBCType::outflow) 
+                    ? AMREX_LO_DIRICHLET : AMREX_LO_NEUMANN;
                 bloc[face]        = 0;
             }
             else
@@ -76,7 +77,7 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
                 //
                 const Real delta = dx[dir]*ratio[dir];
 
-                bctag[face][comp] = LO_DIRICHLET;
+                bctag[face][comp] = AMREX_LO_DIRICHLET;
 		bloc[face]        = 0.5*delta;
             }
         }

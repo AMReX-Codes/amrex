@@ -94,9 +94,20 @@ MultiFab::Add (MultiFab&       dst,
 	       int             numcomp,
 	       int             nghost)
 {
+    Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Add (MultiFab&       dst,
+	       const MultiFab& src,
+	       int             srccomp,
+	       int             dstcomp,
+	       int             numcomp,
+	       const IntVect&  nghost)
+{
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Add()");
 
@@ -122,9 +133,20 @@ MultiFab::Copy (MultiFab&       dst,
                 int             numcomp,
                 int             nghost)
 {
+    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Copy (MultiFab&       dst,
+                const MultiFab& src,
+                int             srccomp,
+                int             dstcomp,
+                int             numcomp,
+                const IntVect&  nghost)
+{
 // don't have to    BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost); // && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Copy()");
 
@@ -150,9 +172,20 @@ MultiFab::Subtract (MultiFab&       dst,
 		    int             numcomp,
 		    int             nghost)
 {
+    Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Subtract (MultiFab&       dst,
+		    const MultiFab& src,
+		    int             srccomp,
+		    int             dstcomp,
+		    int             numcomp,
+		    const IntVect&  nghost)
+{
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Subtract()");
 
@@ -177,9 +210,20 @@ MultiFab::Multiply (MultiFab&       dst,
 		    int             numcomp,
 		    int             nghost)
 {
+    Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Multiply (MultiFab&       dst,
+		    const MultiFab& src,
+		    int             srccomp,
+		    int             dstcomp,
+		    int             numcomp,
+		    const IntVect&  nghost)
+{
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Multiply()");
 
@@ -205,9 +249,20 @@ MultiFab::Divide (MultiFab&       dst,
 		  int             numcomp,
 		  int             nghost)
 {
+    Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Divide (MultiFab&       dst,
+		  const MultiFab& src,
+		  int             srccomp,
+		  int             dstcomp,
+		  int             numcomp,
+		  const IntVect&  nghost)
+{
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Divide()");
 
