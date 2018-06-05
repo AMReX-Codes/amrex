@@ -196,7 +196,7 @@ def doit(outdir, fortran_targets, header_files):
                 vars.append(var)
 
             if not has_lo or not has_hi:
-                sys.exit("ERROR: function signature must have variables lo and hi defined.")
+                sys.exit("ERROR: function signature must have variables lo and hi defined:\n--- function name:\n {} \n--- function signature:\n {}\n---".format(name,func_sig))
 
             # now we need to remove any vode stuff before the function name
             idx = func_sig.lower().find(name)
