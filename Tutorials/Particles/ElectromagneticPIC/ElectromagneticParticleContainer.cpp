@@ -267,6 +267,8 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         auto& particles = m_particles[mfi.index()];
         const int np    = particles.size();
 
+        if (np == 0) continue;
+
         thrust::fill(thrust::device,
                      thrust::device_ptr<double>(particles.ex().data()),
                      thrust::device_ptr<double>(particles.ex().data() + np), 0.0);
@@ -371,6 +373,8 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
         auto& particles = m_particles[mfi.index()];
         const int np    = particles.size();
 
+        if (np == 0) continue;
+
         thrust::fill(thrust::device,
                      thrust::device_ptr<double>(particles.ex().data()),
                      thrust::device_ptr<double>(particles.ex().data() + np), 0.0);
@@ -441,6 +445,8 @@ PushParticlePositions(amrex::Real dt)
         auto& particles = m_particles[mfi.index()];
         const int np    = particles.size();
         
+        if (np == 0) continue;
+
         FORT_LAUNCH_PARTICLES(np, set_gamma,
                               np, 
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
@@ -469,6 +475,8 @@ EnforcePeriodicBCs()
         auto& particles = m_particles[mfi.index()];
         const int np    = particles.size();
 
+        if (np == 0) continue;
+
         const Real* plo = m_geom.ProbLo();
         const Real* phi = m_geom.ProbHi();
         
@@ -493,6 +501,8 @@ OK()
         auto& particles = m_particles[i];
         const int np = particles.size();
         auto& soa = particles.attribs;
+
+        if (np == 0) continue;
         
         grid_indices.resize(np);
         
