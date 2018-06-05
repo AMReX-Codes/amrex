@@ -71,21 +71,13 @@ namespace {
     struct DeviceDomain
     {
         Real left_edge[AMREX_SPACEDIM];
-        Real right_edge[AMREX_SPACEDIM];
-        int  num_cells[AMREX_SPACEDIM];
-        
-        Real domain_width[AMREX_SPACEDIM];
         Real inverse_dx[AMREX_SPACEDIM];
-        Real dx[AMREX_SPACEDIM];
         
         DeviceDomain(const Geometry& geom) {
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 left_edge[i] = geom.ProbLo(i);            
-                right_edge[i] = geom.ProbHi(i);            
-                num_cells[i] = geom.Domain().length(i);            
-                domain_width[i] = right_edge[i] - left_edge[i];            
-                dx[i] = domain_width[i] / num_cells[i];
-                inverse_dx[i] = 1.0/dx[i];
+                inverse_dx[i] = geom.InvCellSize(i);
+
             }
         }
     };
