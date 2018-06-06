@@ -5,7 +5,10 @@ module amrex_eb2_3d_module
   use amrex_fort_module
   use amrex_constants_module, only : zero, one, two, three, four, five, six, seven, eight,&
        nine, ten, eleven, fifteen, sixteen, half, third, fourth, sixth, eighth, twelfth
-  use amrex_ebcellflag_module
+  use amrex_ebcellflag_module, only : regular_cell => regular, covered_cell => covered, &
+       is_regular_cell, is_single_valued_cell, is_covered_cell, get_cell_type, get_neighbor_cells, &
+       set_regular_cell, set_single_valued_cell, set_covered_cell, &
+       set_neighbor, clear_neighbor, is_neighbor
   implicit none
 
   integer, parameter :: regular = 0
@@ -16,7 +19,8 @@ module amrex_eb2_3d_module
   real(amrex_real), private, parameter :: small = 1.d-14
 
   private
-  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells
+  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
+       amrex_eb2_coarsen_from_fine
 
 contains
 
@@ -60,9 +64,9 @@ contains
     end do
 
     ! x-face
-    do       k = lo(3)-1, hi(3)+1
-       do    j = lo(2)-1, hi(2)+1
-          do i = lo(1)-1, hi(1)+2
+    do       k = lo(3)-2, hi(3)+2
+       do    j = lo(2)-2, hi(2)+2
+          do i = lo(1)-2, hi(1)+3
              if (       s(i,j,k  ).ge.zero .and. s(i,j+1,k  ).ge.zero &
                   .and. s(i,j,k+1).ge.zero .and. s(i,j+1,k+1).ge.zero ) then
                 fx(i,j,k) = covered
@@ -77,9 +81,9 @@ contains
     end do
 
     ! y-face
-    do       k = lo(3)-1, hi(3)+1
-       do    j = lo(2)-1, hi(2)+2
-          do i = lo(1)-1, hi(1)+1
+    do       k = lo(3)-2, hi(3)+2
+       do    j = lo(2)-2, hi(2)+3
+          do i = lo(1)-2, hi(1)+2
              if (       s(i,j,k  ).ge.zero .and. s(i+1,j,k  ).ge.zero &
                   .and. s(i,j,k+1).ge.zero .and. s(i+1,j,k+1).ge.zero ) then
                 fy(i,j,k) = covered
@@ -94,9 +98,9 @@ contains
     end do
 
     ! z-face
-    do       k = lo(3)-1, hi(3)+2
-       do    j = lo(2)-1, hi(2)+1
-          do i = lo(1)-1, hi(1)+1
+    do       k = lo(3)-2, hi(3)+3
+       do    j = lo(2)-2, hi(2)+2
+          do i = lo(1)-2, hi(1)+2
              if (       s(i,j  ,k).ge.zero .and. s(i+1,j  ,k).ge.zero &
                   .and. s(i,j+1,k).ge.zero .and. s(i+1,j+1,k).ge.zero ) then
                 fz(i,j,k) = covered
@@ -111,9 +115,9 @@ contains
     end do
 
     ! x-edge
-    do       k = lo(3)-1, hi(3)+2
-       do    j = lo(2)-1, hi(2)+2
-          do i = lo(1)-1, hi(1)+1
+    do       k = lo(3)-2, hi(3)+3
+       do    j = lo(2)-2, hi(2)+3
+          do i = lo(1)-2, hi(1)+2
              if (s(i,j,k).ge.zero .and. s(i+1,j,k).ge.zero) then
                 ex(i,j,k) = covered
              else if (s(i,j,k).lt.zero .and. s(i+1,j,k).lt.zero) then
@@ -126,9 +130,9 @@ contains
     end do
 
     ! y-edge
-    do       k = lo(3)-1, hi(3)+2
-       do    j = lo(2)-1, hi(2)+1
-          do i = lo(1)-1, hi(1)+2
+    do       k = lo(3)-2, hi(3)+3
+       do    j = lo(2)-2, hi(2)+2
+          do i = lo(1)-2, hi(1)+3
              if (s(i,j,k).ge.zero .and. s(i,j+1,k).ge.zero) then
                 ey(i,j,k) = covered
              else if (s(i,j,k).lt.zero .and. s(i,j+1,k).lt.zero) then
@@ -141,9 +145,9 @@ contains
     end do
 
     ! z-edge
-    do       k = lo(3)-1, hi(3)+1
-       do    j = lo(2)-1, hi(2)+2
-          do i = lo(1)-1, hi(1)+2
+    do       k = lo(3)-2, hi(3)+2
+       do    j = lo(2)-2, hi(2)+3
+          do i = lo(1)-2, hi(1)+3
              if (s(i,j,k).ge.zero .and. s(i,j,k+1).ge.zero) then
                 ez(i,j,k) = covered
              else if (s(i,j,k).lt.zero .and. s(i,j,k+1).lt.zero) then
@@ -205,8 +209,8 @@ contains
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+2
              if (fx(i,j,k) .eq. regular) then
-                apx(i,j,k) = one
-                fcx(i,j,k,:) = zero
+!                apx(i,j,k) = one
+!                fcx(i,j,k,:) = zero
                 m2x(i,j,k,1) = twelfth
                 m2x(i,j,k,2) = twelfth
                 m2x(i,j,k,3) = zero
@@ -324,8 +328,8 @@ contains
        do    j = lo(2)-1, hi(2)+2
           do i = lo(1)-1, hi(1)+1
              if (fy(i,j,k) .eq. regular) then
-                apy(i,j,k) = one
-                fcy(i,j,k,:) = zero
+!                apy(i,j,k) = one
+!                fcy(i,j,k,:) = zero
                 m2y(i,j,k,1) = twelfth
                 m2y(i,j,k,2) = twelfth
                 m2y(i,j,k,3) = zero
@@ -442,8 +446,8 @@ contains
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
              if (fz(i,j,k) .eq. regular) then
-                apz(i,j,k) = one
-                fcz(i,j,k,:) = zero
+!                apz(i,j,k) = one
+!                fcz(i,j,k,:) = zero
                 m2z(i,j,k,1) = twelfth
                 m2z(i,j,k,2) = twelfth
                 m2z(i,j,k,3) = zero
@@ -721,11 +725,11 @@ contains
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
              if (is_regular_cell(cell(i,j,k))) then
-                vfrac(i,j,k) = one
-                vcent(i,j,k,:) = zero
-                bcent(i,j,k,:) = zero
-                bnorm(i,j,k,:) = zero
-                barea(i,j,k) = zero
+!                vfrac(i,j,k) = one
+!                vcent(i,j,k,:) = zero
+!                bcent(i,j,k,:) = zero
+!                bnorm(i,j,k,:) = zero
+!                barea(i,j,k) = zero
              else if (is_covered_cell(cell(i,j,k))) then
                 vfrac(i,j,k) = zero
                 vcent(i,j,k,:) = zero
@@ -1054,5 +1058,240 @@ contains
 
   end subroutine amrex_eb2_build_cells
     
+
+  subroutine amrex_eb2_coarsen_from_fine (lo, hi, xlo, xhi, ylo, yhi, zlo, zhi, &
+       cvol, cvlo, cvhi, fvol, fvlo, fvhi, ccent, cclo, cchi, fcent, fclo, fchi, &
+       cba, cbalo, cbahi, fba, fbalo, fbahi, cbc, cbclo, cbchi, fbc, fbclo, fbchi, &
+       cbn, cbnlo, cbnhi, fbn, fbnlo, fbnhi, capx, caxlo, caxhi, fapx, faxlo, faxhi, &
+       capy, caylo, cayhi, fapy, faylo, fayhi, capz, cazlo, cazhi, fapz, fazlo, fazhi, &
+       cfcx, cfxlo, cfxhi, ffcx, ffxlo, ffxhi, cfcy, cfylo, cfyhi, ffcy, ffylo, ffyhi, &
+       cfcz, cfzlo, cfzhi, ffcz, ffzlo, ffzhi, cflag, cflo, cfhi, fflag, fflo, ffhi) &
+       bind(c, name='amrex_eb2_coarsen_from_fine')
+    integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, ylo, yhi, zlo, zhi, &
+         cvlo, cvhi,  fvlo, fvhi, cclo, cchi, fclo, fchi, &
+         cbalo, cbahi, fbalo, fbahi, cbclo, cbchi, fbclo, fbchi, &
+         cbnlo, cbnhi, fbnlo, fbnhi, caxlo, caxhi, faxlo, faxhi, &
+         caylo, cayhi, faylo, fayhi, cazlo, cazhi, fazlo, fazhi, &
+         cfxlo, cfxhi, ffxlo, ffxhi, cfylo, cfyhi, ffylo, ffyhi, &
+         cfzlo, cfzhi, ffzlo, ffzhi, cflo, cfhi, fflo, ffhi
+    real(amrex_real), intent(inout) :: cvol ( cvlo(1): cvhi(1), cvlo(2): cvhi(2), cvlo(3): cvhi(3))
+    real(amrex_real), intent(in   ) :: fvol ( fvlo(1): fvhi(1), fvlo(2): fvhi(2), fvlo(3): fvhi(3))
+    real(amrex_real), intent(inout) :: ccent( cclo(1): cchi(1), cclo(2): cchi(2), cclo(3): cchi(3),3)
+    real(amrex_real), intent(in   ) :: fcent( fclo(1): fchi(1), fclo(2): fchi(2), fclo(3): fchi(3),3)
+    real(amrex_real), intent(inout) :: cba  (cbalo(1):cbahi(1),cbalo(2):cbahi(2),cbalo(3):cbahi(3))
+    real(amrex_real), intent(in   ) :: fba  (fbalo(1):fbahi(1),fbalo(2):fbahi(2),fbalo(3):fbahi(3))
+    real(amrex_real), intent(inout) :: cbc  (cbclo(1):cbchi(1),cbclo(2):cbchi(2),cbclo(3):cbchi(3),3)
+    real(amrex_real), intent(in   ) :: fbc  (fbclo(1):fbchi(1),fbclo(2):fbchi(2),fbclo(3):fbchi(3),3)
+    real(amrex_real), intent(inout) :: cbn  (cbnlo(1):cbnhi(1),cbnlo(2):cbnhi(2),cbnlo(3):cbnhi(3),3)
+    real(amrex_real), intent(in   ) :: fbn  (fbnlo(1):fbnhi(1),fbnlo(2):fbnhi(2),fbnlo(3):fbnhi(3),3)
+    real(amrex_real), intent(inout) :: capx (caxlo(1):caxhi(1),caxlo(2):caxhi(2),caxlo(3):caxhi(3))
+    real(amrex_real), intent(in   ) :: fapx (faxlo(1):faxhi(1),faxlo(2):faxhi(2),faxlo(3):faxhi(3))
+    real(amrex_real), intent(inout) :: capy (caylo(1):cayhi(1),caylo(2):cayhi(2),caylo(3):cayhi(3))
+    real(amrex_real), intent(in   ) :: fapy (faylo(1):fayhi(1),faylo(2):fayhi(2),faylo(3):fayhi(3))
+    real(amrex_real), intent(inout) :: capz (cazlo(1):cazhi(1),cazlo(2):cazhi(2),cazlo(3):cazhi(3))
+    real(amrex_real), intent(in   ) :: fapz (fazlo(1):fazhi(1),fazlo(2):fazhi(2),fazlo(3):fazhi(3))
+    real(amrex_real), intent(inout) :: cfcx (cfxlo(1):cfxhi(1),cfxlo(2):cfxhi(2),cfxlo(3):cfxhi(3),3)
+    real(amrex_real), intent(in   ) :: ffcx (ffxlo(1):ffxhi(1),ffxlo(2):ffxhi(2),ffxlo(3):ffxhi(3),3)
+    real(amrex_real), intent(inout) :: cfcy (cfylo(1):cfyhi(1),cfylo(2):cfyhi(2),cfylo(3):cfyhi(3),3)
+    real(amrex_real), intent(in   ) :: ffcy (ffylo(1):ffyhi(1),ffylo(2):ffyhi(2),ffylo(3):ffyhi(3),3)
+    real(amrex_real), intent(inout) :: cfcz (cfzlo(1):cfzhi(1),cfzlo(2):cfzhi(2),cfzlo(3):cfzhi(3),3)
+    real(amrex_real), intent(in   ) :: ffcz (ffzlo(1):ffzhi(1),ffzlo(2):ffzhi(2),ffzlo(3):ffzhi(3),3)
+    integer         , intent(inout) :: cflag( cflo(1): cfhi(1), cflo(2): cfhi(2), cflo(3): cfhi(3))
+    integer         , intent(in   ) :: fflag( fflo(1): ffhi(1), fflo(2): ffhi(2), fflo(3): ffhi(3))
+
+    integer :: i,j,k, ii,jj,kk, ftype(2,2,2)
+    real(amrex_real) :: cvolinv, cbainv, nx, ny, nz, nfac, apinv
+
+    do       k = lo(3), hi(3)
+       kk = k*2
+       do    j = lo(2), hi(2)
+          jj = j*2
+          do i = lo(1), hi(1)
+             ii = i*2
+
+             ftype = get_cell_type(fflag(ii:ii+1,jj:jj+1,kk:kk+1))
+             if (all(ftype.eq.regular_cell)) then
+                ! nothing to do
+             else if (all(ftype.eq.covered_cell)) then
+                call set_covered_cell(cflag(i,j,k))
+                cvol(i,j,k) = zero
+             else
+
+                call set_single_valued_cell(cflag(i,j,k))
+
+                cvol(i,j,k) = eighth*sum(fvol(ii:ii+1,jj:jj+1,kk:kk+1))
+                cvolinv = one/cvol(i,j,k)
+                
+                ccent(i,j,k,1) = eighth*cvolinv* &
+                     ( fvol(ii  ,jj  ,kk  )*(half*fcent(ii  ,jj  ,kk  ,1)-fourth) &
+                     + fvol(ii+1,jj  ,kk  )*(half*fcent(ii+1,jj  ,kk  ,1)+fourth) &
+                     + fvol(ii  ,jj+1,kk  )*(half*fcent(ii  ,jj+1,kk  ,1)-fourth) &
+                     + fvol(ii+1,jj+1,kk  )*(half*fcent(ii+1,jj+1,kk  ,1)+fourth) &
+                     + fvol(ii  ,jj  ,kk+1)*(half*fcent(ii  ,jj  ,kk+1,1)-fourth) &
+                     + fvol(ii+1,jj  ,kk+1)*(half*fcent(ii+1,jj  ,kk+1,1)+fourth) &
+                     + fvol(ii  ,jj+1,kk+1)*(half*fcent(ii  ,jj+1,kk+1,1)-fourth) &
+                     + fvol(ii+1,jj+1,kk+1)*(half*fcent(ii+1,jj+1,kk+1,1)+fourth) )
+                ccent(i,j,k,2) = eighth*cvolinv* &
+                     ( fvol(ii  ,jj  ,kk  )*(half*fcent(ii  ,jj  ,kk  ,2)-fourth) &
+                     + fvol(ii+1,jj  ,kk  )*(half*fcent(ii+1,jj  ,kk  ,2)-fourth) &
+                     + fvol(ii  ,jj+1,kk  )*(half*fcent(ii  ,jj+1,kk  ,2)+fourth) &
+                     + fvol(ii+1,jj+1,kk  )*(half*fcent(ii+1,jj+1,kk  ,2)+fourth) &
+                     + fvol(ii  ,jj  ,kk+1)*(half*fcent(ii  ,jj  ,kk+1,2)-fourth) &
+                     + fvol(ii+1,jj  ,kk+1)*(half*fcent(ii+1,jj  ,kk+1,2)-fourth) &
+                     + fvol(ii  ,jj+1,kk+1)*(half*fcent(ii  ,jj+1,kk+1,2)+fourth) &
+                     + fvol(ii+1,jj+1,kk+1)*(half*fcent(ii+1,jj+1,kk+1,2)+fourth) )
+                ccent(i,j,k,3) = eighth*cvolinv* &
+                     ( fvol(ii  ,jj  ,kk  )*(half*fcent(ii  ,jj  ,kk  ,3)-fourth) &
+                     + fvol(ii+1,jj  ,kk  )*(half*fcent(ii+1,jj  ,kk  ,3)-fourth) &
+                     + fvol(ii  ,jj+1,kk  )*(half*fcent(ii  ,jj+1,kk  ,3)-fourth) &
+                     + fvol(ii+1,jj+1,kk  )*(half*fcent(ii+1,jj+1,kk  ,3)-fourth) &
+                     + fvol(ii  ,jj  ,kk+1)*(half*fcent(ii  ,jj  ,kk+1,3)+fourth) &
+                     + fvol(ii+1,jj  ,kk+1)*(half*fcent(ii+1,jj  ,kk+1,3)+fourth) &
+                     + fvol(ii  ,jj+1,kk+1)*(half*fcent(ii  ,jj+1,kk+1,3)+fourth) &
+                     + fvol(ii+1,jj+1,kk+1)*(half*fcent(ii+1,jj+1,kk+1,3)+fourth) )
+                
+                cba(i,j,k) = fourth*sum(fba(ii:ii+1,jj:jj+1,kk:kk+1))
+                cbainv = one/cba(i,j,k)
+                
+                cbc(i,j,k,1) = fourth*cbainv* &
+                     ( fba(ii  ,jj  ,kk  )*(half*fbc(ii  ,jj  ,kk  ,1)-fourth) &
+                     + fba(ii+1,jj  ,kk  )*(half*fbc(ii+1,jj  ,kk  ,1)+fourth) &
+                     + fba(ii  ,jj+1,kk  )*(half*fbc(ii  ,jj+1,kk  ,1)-fourth) &
+                     + fba(ii+1,jj+1,kk  )*(half*fbc(ii+1,jj+1,kk  ,1)+fourth) &
+                     + fba(ii  ,jj  ,kk+1)*(half*fbc(ii  ,jj  ,kk+1,1)-fourth) &
+                     + fba(ii+1,jj  ,kk+1)*(half*fbc(ii+1,jj  ,kk+1,1)+fourth) &
+                     + fba(ii  ,jj+1,kk+1)*(half*fbc(ii  ,jj+1,kk+1,1)-fourth) &
+                     + fba(ii+1,jj+1,kk+1)*(half*fbc(ii+1,jj+1,kk+1,1)+fourth) )
+                cbc(i,j,k,2) = fourth*cbainv* &
+                     ( fba(ii  ,jj  ,kk  )*(half*fbc(ii  ,jj  ,kk  ,2)-fourth) &
+                     + fba(ii+1,jj  ,kk  )*(half*fbc(ii+1,jj  ,kk  ,2)-fourth) &
+                     + fba(ii  ,jj+1,kk  )*(half*fbc(ii  ,jj+1,kk  ,2)+fourth) &
+                     + fba(ii+1,jj+1,kk  )*(half*fbc(ii+1,jj+1,kk  ,2)+fourth) &
+                     + fba(ii  ,jj  ,kk+1)*(half*fbc(ii  ,jj  ,kk+1,2)-fourth) &
+                     + fba(ii+1,jj  ,kk+1)*(half*fbc(ii+1,jj  ,kk+1,2)-fourth) &
+                     + fba(ii  ,jj+1,kk+1)*(half*fbc(ii  ,jj+1,kk+1,2)+fourth) &
+                     + fba(ii+1,jj+1,kk+1)*(half*fbc(ii+1,jj+1,kk+1,2)+fourth) )
+                cbc(i,j,k,3) = fourth*cbainv* &
+                     ( fba(ii  ,jj  ,kk  )*(half*fbc(ii  ,jj  ,kk  ,3)-fourth) &
+                     + fba(ii+1,jj  ,kk  )*(half*fbc(ii+1,jj  ,kk  ,3)-fourth) &
+                     + fba(ii  ,jj+1,kk  )*(half*fbc(ii  ,jj+1,kk  ,3)-fourth) &
+                     + fba(ii+1,jj+1,kk  )*(half*fbc(ii+1,jj+1,kk  ,3)-fourth) &
+                     + fba(ii  ,jj  ,kk+1)*(half*fbc(ii  ,jj  ,kk+1,3)+fourth) &
+                     + fba(ii+1,jj  ,kk+1)*(half*fbc(ii+1,jj  ,kk+1,3)+fourth) &
+                     + fba(ii  ,jj+1,kk+1)*(half*fbc(ii  ,jj+1,kk+1,3)+fourth) &
+                     + fba(ii+1,jj+1,kk+1)*(half*fbc(ii+1,jj+1,kk+1,3)+fourth) )
+                
+                nx =   fbn(ii  ,jj  ,kk  ,1)*fba(ii  ,jj  ,kk  ) &
+                     + fbn(ii+1,jj  ,kk  ,1)*fba(ii+1,jj  ,kk  ) &
+                     + fbn(ii  ,jj+1,kk  ,1)*fba(ii  ,jj+1,kk  ) &
+                     + fbn(ii+1,jj+1,kk  ,1)*fba(ii+1,jj+1,kk  ) &
+                     + fbn(ii  ,jj  ,kk+1,1)*fba(ii  ,jj  ,kk+1) &
+                     + fbn(ii+1,jj  ,kk+1,1)*fba(ii+1,jj  ,kk+1) &
+                     + fbn(ii  ,jj+1,kk+1,1)*fba(ii  ,jj+1,kk+1) &
+                     + fbn(ii+1,jj+1,kk+1,1)*fba(ii+1,jj+1,kk+1)
+                ny =   fbn(ii  ,jj  ,kk  ,2)*fba(ii  ,jj  ,kk  ) &
+                     + fbn(ii+1,jj  ,kk  ,2)*fba(ii+1,jj  ,kk  ) &
+                     + fbn(ii  ,jj+1,kk  ,2)*fba(ii  ,jj+1,kk  ) &
+                     + fbn(ii+1,jj+1,kk  ,2)*fba(ii+1,jj+1,kk  ) &
+                     + fbn(ii  ,jj  ,kk+1,2)*fba(ii  ,jj  ,kk+1) &
+                     + fbn(ii+1,jj  ,kk+1,2)*fba(ii+1,jj  ,kk+1) &
+                     + fbn(ii  ,jj+1,kk+1,2)*fba(ii  ,jj+1,kk+1) &
+                     + fbn(ii+1,jj+1,kk+1,2)*fba(ii+1,jj+1,kk+1)
+                nz =   fbn(ii  ,jj  ,kk  ,3)*fba(ii  ,jj  ,kk  ) &
+                     + fbn(ii+1,jj  ,kk  ,3)*fba(ii+1,jj  ,kk  ) &
+                     + fbn(ii  ,jj+1,kk  ,3)*fba(ii  ,jj+1,kk  ) &
+                     + fbn(ii+1,jj+1,kk  ,3)*fba(ii+1,jj+1,kk  ) &
+                     + fbn(ii  ,jj  ,kk+1,3)*fba(ii  ,jj  ,kk+1) &
+                     + fbn(ii+1,jj  ,kk+1,3)*fba(ii+1,jj  ,kk+1) &
+                     + fbn(ii  ,jj+1,kk+1,3)*fba(ii  ,jj+1,kk+1) &
+                     + fbn(ii+1,jj+1,kk+1,3)*fba(ii+1,jj+1,kk+1)
+                if (nx.eq.zero .and. ny.eq.zero .and. nz.eq.zero) then
+                   call amrex_error("amrex_eb2_coarsen_from_fine: undefined boundary normal")
+                end if
+                nfac = one/sqrt(nx*nx+ny*ny+nz*nz)
+                cbn(i,j,k,1) = nx*nfac
+                cbn(i,j,k,2) = ny*nfac
+                cbn(i,j,k,3) = nz*nfac
+             end if
+          end do
+       end do
+    end do
+
+    do       k = xlo(3), xhi(3)
+       kk = k*2
+       do    j = xlo(2), xhi(2)
+          jj = j*2
+          do i = xlo(1), xhi(1)
+             ii = i*2
+
+             capx(i,j,k) = fourth*(fapx(ii,jj,kk)+fapx(ii,jj+1,kk)+fapx(ii,jj,kk+1)+fapx(ii,jj+1,kk+1))
+             if (capx(i,j,k) .ne. zero) then
+                apinv = one/capx(i,j,k)
+                cfcx(i,j,k,2) = fourth*apinv* &
+                     ( fapx(ii,jj  ,kk  )*(half*ffcx(ii,jj  ,kk  ,2)-fourth) &
+                     + fapx(ii,jj+1,kk  )*(half*ffcx(ii,jj+1,kk  ,2)+fourth) &
+                     + fapx(ii,jj  ,kk+1)*(half*ffcx(ii,jj  ,kk+1,2)-fourth) &
+                     + fapx(ii,jj+1,kk+1)*(half*ffcx(ii,jj+1,kk+1,2)+fourth) )
+                cfcx(i,j,k,3) = fourth*apinv* &
+                     ( fapx(ii,jj  ,kk  )*(half*ffcx(ii,jj  ,kk  ,3)-fourth) &
+                     + fapx(ii,jj+1,kk  )*(half*ffcx(ii,jj+1,kk  ,3)-fourth) &
+                     + fapx(ii,jj  ,kk+1)*(half*ffcx(ii,jj  ,kk+1,3)+fourth) &
+                     + fapx(ii,jj+1,kk+1)*(half*ffcx(ii,jj+1,kk+1,3)+fourth) )                
+             end if
+          end do
+       end do
+    end do
+
+    do       k = ylo(3), yhi(3)
+       kk = k*2
+       do    j = ylo(2), yhi(2)
+          jj = j*2
+          do i = ylo(1), yhi(1)
+             ii = i*2
+
+             capy(i,j,k) = fourth*(fapy(ii,jj,kk)+fapy(ii+1,jj,kk)+fapy(ii,jj,kk+1)+fapy(ii+1,jj,kk+1))
+             if (capy(i,j,k) .ne. zero) then
+                apinv = one/capy(i,j,k)
+                cfcy(i,j,k,1) = fourth*apinv* &
+                     ( fapy(ii  ,jj,kk  )*(half*ffcy(ii  ,jj,kk  ,1)-fourth) &
+                     + fapy(ii+1,jj,kk  )*(half*ffcy(ii+1,jj,kk  ,1)+fourth) &
+                     + fapy(ii  ,jj,kk+1)*(half*ffcy(ii  ,jj,kk+1,1)-fourth) &
+                     + fapy(ii+1,jj,kk+1)*(half*ffcy(ii+1,jj,kk+1,1)+fourth) )
+                cfcy(i,j,k,3) = fourth*apinv* &
+                     ( fapy(ii  ,jj,kk  )*(half*ffcy(ii  ,jj,kk  ,3)-fourth) &
+                     + fapy(ii+1,jj,kk  )*(half*ffcy(ii+1,jj,kk  ,3)-fourth) &
+                     + fapy(ii  ,jj,kk+1)*(half*ffcy(ii  ,jj,kk+1,3)+fourth) &
+                     + fapy(ii+1,jj,kk+1)*(half*ffcy(ii+1,jj,kk+1,3)+fourth) )                
+             end if
+          end do
+       end do
+    end do
+
+    do       k = zlo(3), zhi(3)
+       kk = k*2
+       do    j = zlo(2), zhi(2)
+          jj = j*2
+          do i = zlo(1), zhi(1)
+             ii = i*2
+
+             capz(i,j,k) = fourth*(fapz(ii,jj,kk)+fapz(ii+1,jj,kk)+fapz(ii,jj+1,kk)+fapz(ii+1,jj+1,kk))
+             if (capz(i,j,k) .ne. zero) then
+                apinv = one/capz(i,j,k)
+                cfcz(i,j,k,1) = fourth*apinv* &
+                     ( fapz(ii  ,jj  ,kk)*(half*ffcz(ii  ,jj  ,kk,1)-fourth) &
+                     + fapz(ii+1,jj  ,kk)*(half*ffcz(ii+1,jj  ,kk,1)+fourth) &
+                     + fapz(ii  ,jj+1,kk)*(half*ffcz(ii  ,jj+1,kk,1)-fourth) &
+                     + fapz(ii+1,jj+1,kk)*(half*ffcz(ii+1,jj+1,kk,1)+fourth) )
+                cfcz(i,j,k,2) = fourth*apinv* &
+                     ( fapz(ii  ,jj  ,kk)*(half*ffcz(ii  ,jj  ,kk,2)-fourth) &
+                     + fapz(ii+1,jj  ,kk)*(half*ffcz(ii+1,jj  ,kk,2)-fourth) &
+                     + fapz(ii  ,jj+1,kk)*(half*ffcz(ii  ,jj+1,kk,2)+fourth) &
+                     + fapz(ii+1,jj+1,kk)*(half*ffcz(ii+1,jj+1,kk,2)+fourth) )                
+             end if
+          end do
+       end do
+    end do
+
+  end subroutine amrex_eb2_coarsen_from_fine
 
 end module amrex_eb2_3d_module

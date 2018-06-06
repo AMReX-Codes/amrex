@@ -5,11 +5,17 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_EBCellFlag.H>
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_F.H>
 
 #include <unordered_map>
 #include <limits>
+#include <cmath>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace amrex { namespace EB2 {
 
@@ -17,17 +23,21 @@ class Level
 {
 public:
 
+    bool isValid () const { return m_valid; }
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
 
 protected:
 
     Level (const Geometry& geom) : m_geom(geom) {}
+ 
+    void coarsenFromFine (Level& fineLevel);
 
     Geometry m_geom;    
     BoxArray m_grids;
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
     MultiGFab m_mgf;
+    FabArray<EBCellFlagFab> m_cellflag;
     MultiFab m_volfrac;
     MultiFab m_centroid;
     MultiFab m_bndryarea;
@@ -35,6 +45,7 @@ protected:
     MultiFab m_bndrynorm;
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
+    bool m_valid = false;
 };
 
 template <typename G>
@@ -43,13 +54,14 @@ class GShopLevel
 {
 public:
     GShopLevel (G const& gshop, const Geometry& geom, int max_grid_size);
+    GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel);
 };
 
 template <typename G>
 GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     : Level(geom)
 {
-    BL_PROFILE("EB2::GShopLevel()");
+    BL_PROFILE("EB2::GShopLevel()-fine");
 
     m_grids.define(geom.Domain());
     m_grids.maxSize(max_grid_size);
@@ -87,146 +99,195 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
     m_dmap = DistributionMapping(m_grids);
 
     m_mgf.define(m_grids, m_dmap);
-    m_volfrac.define(m_grids, m_dmap, 1, 1);
-    m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
-    m_bndryarea.define(m_grids, m_dmap, 1, 1);
-    m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
-    m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, 1);
+    const int ng = 2;
+    m_cellflag.define(m_grids, m_dmap, 1, ng);
+    m_volfrac.define(m_grids, m_dmap, 1, ng);
+    m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
+    m_bndryarea.define(m_grids, m_dmap, 1, ng);
+    m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
+    m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_areafrac[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, 1, 1);
+                                m_dmap, 1, ng);
         m_facecent[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, AMREX_SPACEDIM, 1);
+                                m_dmap, AMREX_SPACEDIM, ng);
     }
 
-    Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
-    Array<BaseFab<Real>, AMREX_SPACEDIM> M2;
     const Real* dx = geom.CellSize();
     const Real* dxinv = geom.InvCellSize();
     const Real* problo = geom.ProbLo();
 
-    for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
-    {
-        auto& gfab = m_mgf[mfi];
-        const Box& vbx = gfab.validbox();
-
-        auto& levelset = gfab.getLevelSet();
-        gshop.fillFab(levelset, geom);
-
-        gfab.buildTypes();
-
-#if (AMREX_SPACEDIM == 3)
-        auto& celltype = gfab.getCellType();
-        auto& facetype = gfab.getFaceType();
-        auto& edgetype = gfab.getEdgeType();
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            const auto& edgetype_fab = edgetype[idim];
-            const Box& b = edgetype_fab.box();
-            auto& inter = intercept[idim];
-            inter.resize(b);
-            inter.setVal(std::numeric_limits<Real>::quiet_NaN());
-            edgetype_fab.ForEachIV(b, 0, 1,
-                [&inter, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
-                    if (t == Type::irregular) {
-                        inter(iv) = gshop.getIntercept(idim, iv, geom);
-                    }
-                });
-        }
-
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            const Box& b = facetype[idim].box();
-            M2[idim].resize(b,3);
-        }
-
-        amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
-                              BL_TO_FORTRAN_ANYD(celltype),
-                              BL_TO_FORTRAN_ANYD(facetype[0]),
-                              BL_TO_FORTRAN_ANYD(facetype[1]),
-                              BL_TO_FORTRAN_ANYD(facetype[2]),
-                              BL_TO_FORTRAN_ANYD(edgetype[0]),
-                              BL_TO_FORTRAN_ANYD(edgetype[1]),
-                              BL_TO_FORTRAN_ANYD(edgetype[2]),
-                              BL_TO_FORTRAN_ANYD(levelset),
-                              BL_TO_FORTRAN_ANYD(intercept[0]),
-                              BL_TO_FORTRAN_ANYD(intercept[1]),
-                              BL_TO_FORTRAN_ANYD(intercept[2]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
-                              BL_TO_FORTRAN_ANYD(M2[0]),
-                              BL_TO_FORTRAN_ANYD(M2[1]),
-                              BL_TO_FORTRAN_ANYD(M2[2]),
-                              dx, dxinv, problo);
-
-        amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
-                              BL_TO_FORTRAN_ANYD(celltype),
-                              BL_TO_FORTRAN_ANYD(facetype[0]),
-                              BL_TO_FORTRAN_ANYD(facetype[1]),
-                              BL_TO_FORTRAN_ANYD(facetype[2]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
-                              BL_TO_FORTRAN_ANYD(M2[0]),
-                              BL_TO_FORTRAN_ANYD(M2[1]),
-                              BL_TO_FORTRAN_ANYD(M2[2]),
-                              BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
-                              BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
-                              BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
-                              BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
-                              BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
-
-#elif (AMREX_SPACEDIM == 2)
-        auto& celltype = gfab.getCellType();
-        auto& facetype = gfab.getFaceType();
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            const auto& facetype_fab = facetype[idim];
-            const Box& b = facetype_fab.box();
-            auto& inter = intercept[idim];
-            inter.resize(b);
-            inter.setVal(std::numeric_limits<Real>::quiet_NaN());
-            facetype_fab.ForEachIV(b, 0, 1,
-                [&inter, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
-                    if (t == Type::irregular) {
-                        inter(iv) = gshop.getIntercept(1-idim, iv, geom);
-                    }
-                });
-        }
-
-        amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
-                              BL_TO_FORTRAN_ANYD(celltype),
-                              BL_TO_FORTRAN_ANYD(facetype[0]),
-                              BL_TO_FORTRAN_ANYD(facetype[1]),
-                              BL_TO_FORTRAN_ANYD(levelset),
-                              BL_TO_FORTRAN_ANYD(intercept[0]),
-                              BL_TO_FORTRAN_ANYD(intercept[1]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
-                              dx, dxinv, problo);
-
-        amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
-                              BL_TO_FORTRAN_ANYD(celltype),
-                              BL_TO_FORTRAN_ANYD(facetype[0]),
-                              BL_TO_FORTRAN_ANYD(facetype[1]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                              BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
-                              BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
-                              BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
-                              BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
-                              BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
+    {
+        Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
+        Array<BaseFab<Real>, AMREX_SPACEDIM> M2;
+        
+        for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
+        {
+            auto& gfab = m_mgf[mfi];
+            const Box& vbx = gfab.validbox();
+            
+            auto& levelset = gfab.getLevelSet();
+            gshop.fillFab(levelset, geom);
+            
+            auto& cellflag = m_cellflag[mfi];
+            
+            gfab.buildTypes(cellflag);
+            
+#if (AMREX_SPACEDIM == 3)
+            auto& facetype = gfab.getFaceType();
+            auto& edgetype = gfab.getEdgeType();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                const auto& edgetype_fab = edgetype[idim];
+                const Box& b = edgetype_fab.box();
+                auto& inter = intercept[idim];
+                inter.resize(b);
+                inter.setVal(std::numeric_limits<Real>::quiet_NaN());
+                edgetype_fab.ForEachIV(b, 0, 1,
+                    [&inter, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
+                        if (t == Type::irregular) {
+                            inter(iv) = gshop.getIntercept(idim, iv, geom);
+                        }
+                    });
+            }
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& b = facetype[idim].box();
+                M2[idim].resize(b,3);
+            }
+            
+            // regular by default
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                m_areafrac[idim][mfi].setVal(1.0);
+                m_facecent[idim][mfi].setVal(0.0);
+            }
+            
+            amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
+                                  BL_TO_FORTRAN_ANYD(cellflag),
+                                  BL_TO_FORTRAN_ANYD(facetype[0]),
+                                  BL_TO_FORTRAN_ANYD(facetype[1]),
+                                  BL_TO_FORTRAN_ANYD(facetype[2]),
+                                  BL_TO_FORTRAN_ANYD(edgetype[0]),
+                                  BL_TO_FORTRAN_ANYD(edgetype[1]),
+                                  BL_TO_FORTRAN_ANYD(edgetype[2]),
+                                  BL_TO_FORTRAN_ANYD(levelset),
+                                  BL_TO_FORTRAN_ANYD(intercept[0]),
+                                  BL_TO_FORTRAN_ANYD(intercept[1]),
+                                  BL_TO_FORTRAN_ANYD(intercept[2]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
+                                  BL_TO_FORTRAN_ANYD(M2[0]),
+                                  BL_TO_FORTRAN_ANYD(M2[1]),
+                                  BL_TO_FORTRAN_ANYD(M2[2]),
+                                  dx, dxinv, problo);
+            
+            // regular by default
+            m_volfrac[mfi].setVal(1.0);
+            m_centroid[mfi].setVal(0.0);
+            m_bndryarea[mfi].setVal(0.0);
+            m_bndrycent[mfi].setVal(0.0);
+            m_bndrynorm[mfi].setVal(0.0);
+
+            amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
+                                  BL_TO_FORTRAN_ANYD(cellflag),
+                                  BL_TO_FORTRAN_ANYD(facetype[0]),
+                                  BL_TO_FORTRAN_ANYD(facetype[1]),
+                                  BL_TO_FORTRAN_ANYD(facetype[2]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
+                                  BL_TO_FORTRAN_ANYD(M2[0]),
+                                  BL_TO_FORTRAN_ANYD(M2[1]),
+                                  BL_TO_FORTRAN_ANYD(M2[2]),
+                                  BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
+            
+#elif (AMREX_SPACEDIM == 2)
+            auto& facetype = gfab.getFaceType();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                const auto& facetype_fab = facetype[idim];
+                const Box& b = facetype_fab.box();
+                auto& inter = intercept[idim];
+                inter.resize(b);
+                inter.setVal(std::numeric_limits<Real>::quiet_NaN());
+                facetype_fab.ForEachIV(b, 0, 1,
+                    [&inter, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
+                        if (t == Type::irregular) {
+                            inter(iv) = gshop.getIntercept(1-idim, iv, geom);
+                        }
+                    });
+            }
+
+            amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
+                                  BL_TO_FORTRAN_ANYD(cellflag),
+                                  BL_TO_FORTRAN_ANYD(facetype[0]),
+                                  BL_TO_FORTRAN_ANYD(facetype[1]),
+                                  BL_TO_FORTRAN_ANYD(levelset),
+                                  BL_TO_FORTRAN_ANYD(intercept[0]),
+                                  BL_TO_FORTRAN_ANYD(intercept[1]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
+                                  dx, dxinv, problo);
+            
+            amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
+                                  BL_TO_FORTRAN_ANYD(cellflag),
+                                  BL_TO_FORTRAN_ANYD(facetype[0]),
+                                  BL_TO_FORTRAN_ANYD(facetype[1]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
+                                  BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
+#endif
+        }
+    }
+
+    m_valid = true;
+}
+
+
+template <typename G>
+GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel)
+    : Level(geom)
+{
+    BL_PROFILE("EB2::GShopLevel()-coarse");
+
+    const BoxArray& fine_grids = fineLevel.m_grids;
+    const BoxArray& fine_covered_grids = fineLevel.m_covered_grids;
+
+    const int coarse_ratio = 2;
+    const int min_width = 8;
+    bool coarsenable = fine_grids.coarsenable(coarse_ratio, min_width)
+        && (fine_covered_grids.empty() || fine_covered_grids.coarsenable(coarse_ratio));
+
+    if (coarsenable)
+    {
+        coarsenFromFine(fineLevel);
+    }
+    else
+    {
+        amrex::Abort("GShopLevel: todo");
     }
 }
+
 
 
 }}

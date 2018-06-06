@@ -4,9 +4,10 @@ module amrex_ebcellflag_module
   implicit none
   private
   public :: is_regular_cell, is_single_valued_cell, is_multi_valued_cell, &
-       is_covered_cell, get_neighbor_cells, num_neighbor_cells, pos_ngbr, &
+       is_covered_cell, get_cell_type, get_neighbor_cells, num_neighbor_cells, pos_ngbr, &
        set_regular_cell, set_covered_cell, set_single_valued_cell, set_neighbor, clear_neighbor, &
-       is_neighbor, amrex_ebcellflag_count, get_neighbor_cells_int_single
+       is_neighbor, amrex_ebcellflag_count, get_neighbor_cells_int_single, &
+       regular, single_valued, multi_valued, covered
   
   integer, parameter :: w_type      = 2
   integer, parameter :: w_numvofs   = 3
@@ -58,6 +59,12 @@ contains
     integer, intent(in) :: flag
     is_covered_cell = ibits(flag,0,w_type) .eq. covered
   end function is_covered_cell
+
+  elemental function get_cell_type (flag) result(r)
+    integer, intent(in) :: flag
+    integer :: r
+    r = ibits(flag,0,w_type)
+  end function get_cell_type
 
 #if (AMREX_SPACEDIM == 2)
 
