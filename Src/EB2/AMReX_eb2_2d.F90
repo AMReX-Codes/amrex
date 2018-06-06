@@ -28,6 +28,8 @@ contains
 
     integer :: i,j
 
+    stop "todo"
+
     do    j = lo(2)-2, hi(2)+2
        do i = lo(1)-2, hi(1)+2
           if (       s(i,j  ).ge.zero .and. s(i+1,j  ).ge.zero &

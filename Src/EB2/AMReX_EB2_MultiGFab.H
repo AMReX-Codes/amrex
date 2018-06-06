@@ -2,6 +2,7 @@
 #define AMREX_EB2_MULTIGFAB_H_
 
 #include <AMReX_EB2_Graph.H>
+#include <AMReX_EBCellFlag.H>
 #include <AMReX_Array.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_MultiFab.H>
@@ -18,7 +19,7 @@ public:
     static constexpr int ngrow_celltype = 2;
     static constexpr int ngrow_facetype = 1;
     static constexpr int ngrow_edgetype = 1;
-    
+
     void define(const Box& vbx) {
         m_validbox = vbx;
         const Box& bxg1 = amrex::grow(vbx,1);
@@ -39,8 +40,8 @@ public:
     const BaseFab<Real>& getLevelSet () const { return m_levelset; }
     BaseFab<Real>& getLevelSet () { return m_levelset; }
 
-    const BaseFab<Type_t>& getCellType () const { return m_celltype; }
-    BaseFab<Type_t>& getCellType () { return m_celltype; }
+    const EBCellFlagFab& getCellType () const { return m_celltype; }
+    EBCellFlagFab& getCellType () { return m_celltype; }
 
     const Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getFaceType () const { return m_facetype; }
     Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getFaceType () { return m_facetype; }
@@ -59,7 +60,7 @@ private:
 
     Box m_validbox;
     BaseFab<Real> m_levelset;
-    BaseFab<Type_t> m_celltype;
+    EBCellFlagFab m_celltype;
     Array<BaseFab<Type_t>, AMREX_SPACEDIM> m_facetype;
 #if (AMREX_SPACEDIM == 3)
     Array<BaseFab<Type_t>, AMREX_SPACEDIM> m_edgetype;
