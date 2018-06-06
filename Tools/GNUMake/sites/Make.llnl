@@ -2,7 +2,7 @@
 # For ray and rzmanta at LLNL
 #
 
-LLNL_MACHINES := ray rzmanta sierra
+LLNL_MACHINES := ray rzmanta sierra butte
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(LLNL_MACHINES)))
   $(error Unknown LLNL computer, $(which_computer))
@@ -10,7 +10,7 @@ endif
 
 ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
 
-  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.04.27
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.05.25
 
   ifeq ($(USE_MPI),TRUE)
     export OMPI_CC  := $(CC)
@@ -43,9 +43,9 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
 
 endif
 
-ifeq ($(which_computer),$(filter $(which_computer),sierra))
+ifeq ($(which_computer),$(filter $(which_computer),sierra butte))
 
-  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.04.27
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.05.25
 
   ifeq ($(USE_MPI),TRUE)
     export OMPI_CC  := $(CC)
