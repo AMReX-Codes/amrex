@@ -484,7 +484,11 @@ public:
     using RealVector     = typename SoA::RealVector;
     using IntVector      = typename SoA::IntVector;
     using ParticleVector = typename AoS::ParticleVector;
-
+#if CUDA
+    using CharVector = Vector<char, CudaManagedAllocator<char>>;
+#else
+    using CharVector = Vector<char>;
+#endif
 
     ParticleContainer ()
       : 
