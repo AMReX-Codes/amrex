@@ -24,11 +24,9 @@ void advance (MultiFab& phi_old,
 
     // =======================================================
 
-    Box* bx;
     Real* dx;
     Box* domain_bx;
 
-    cudaMallocHost(&bx, size_t(sizeof(Box)));
     cudaMallocHost(&domain_bx, size_t(sizeof(Box)));
     cudaMallocHost(&dx, size_t(AMREX_SPACEDIM*sizeof(Real)));
 
@@ -38,12 +36,11 @@ void advance (MultiFab& phi_old,
     }
     *domain_bx = geom.Domain();
 
-    cudaDeviceSynchronize();
-
     // Compute fluxes one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
-        amrex::Print() << "AMREX_SPACEDIM = " << AMREX_SPACEDIM << std::endl;
+        Box* bx;
+        cudaMallocHost(&bx, size_t(sizeof(Box)));
         *bx = mfi.validbox();
 
         compute_flux<<<1, 1>>>(BL_TO_FORTRAN_BOX(*bx),
@@ -55,14 +52,15 @@ void advance (MultiFab& phi_old,
                      BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
                      dx);
-
+        cudaDeviceSynchronize();
+        cudaFreeHost(bx);
     }
 
-    cudaDeviceSynchronize();
- 
     // Advance the solution one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
+        Box* bx;
+        cudaMallocHost(&bx, size_t(sizeof(Box)));
         *bx = mfi.validbox();
         
         update_phi<<<1,1>>>
@@ -76,10 +74,10 @@ void advance (MultiFab& phi_old,
 #endif
                    dx, dt);
 
+        cudaDeviceSynchronize();
+        cudaFreeHost(bx);
     }
 
-    cudaDeviceSynchronize();
-    cudaFreeHost(bx);
     cudaFreeHost(dx);
     cudaFreeHost(domain_bx);
 }
