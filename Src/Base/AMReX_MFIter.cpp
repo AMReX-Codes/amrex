@@ -420,6 +420,7 @@ MFIter::growntilebox (const IntVect& ng) const
 	    bx.growHi(d, ng[d]);
 	}
     }
+    registerBox(bx);
     return bx;
 }
 
