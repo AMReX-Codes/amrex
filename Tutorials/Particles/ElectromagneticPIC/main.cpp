@@ -75,7 +75,7 @@ void test_em_pic(const TestParams& parms)
     Bx.setVal(0.0); By.setVal(0.0); Bz.setVal(0.0);
     jx.setVal(0.0); jy.setVal(0.0); jz.setVal(0.0);
     
-    std::cout << "Initializing particles... ";
+    amrex::Print() << "Initializing particles... ";
 
     int num_species;
     Vector<ElectromagneticParticleContainer*> particles(2);
@@ -114,11 +114,11 @@ void test_em_pic(const TestParams& parms)
         particles[0] = electrons;
     }
 
-    std::cout << "Done. " << std::endl;
+    amrex::Print() << "Done. " << std::endl;
     
     for (int i = 0; i < num_species; ++i) particles[i]->OK();
     
-    std::cout << "Starting main PIC loop... " << std::endl;
+    amrex::Print() << "Starting main PIC loop... " << std::endl;
     
     int nsteps = parms.nsteps;
     const Real dt = compute_dt(geom);
@@ -131,7 +131,7 @@ void test_em_pic(const TestParams& parms)
     Real time = 0.0;
     for (int step = 0; step < nsteps; ++step)
     {         
-        std::cout << "    Time step: " <<  step << std::endl;
+        amrex::Print() << "    Time step: " <<  step << std::endl;
 
         if (synchronized)
         {
@@ -178,7 +178,7 @@ void test_em_pic(const TestParams& parms)
         time += dt;
     }
     
-    std::cout << "Done. " << std::endl;
+    amrex::Print() << "Done. " << std::endl;
 
     BL_PROFILE_VAR_STOP(blp_evolve);
 
@@ -187,7 +187,7 @@ void test_em_pic(const TestParams& parms)
         check_solution(jx, geom, time);
     } else 
     {
-        std::cout << "Not computing error - no exact solution" << std::endl;
+        amrex::Print() << "Not computing error - no exact solution" << std::endl;
     }
 
     if (parms.write_plot) 
@@ -217,7 +217,9 @@ void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
         max_error += fab_max_error;
     }
 
-    std::cout << "Max error is: " << max_error << std::endl;
+    ParallelDescriptor::ReduceRealMax(max_error);
+
+    amrex::Print() << "Max error is: " << max_error << std::endl;
 }
 
 int main(int argc, char* argv[])

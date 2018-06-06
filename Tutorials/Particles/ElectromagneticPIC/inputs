@@ -1,8 +1,8 @@
 
-ncell = (64, 64, 64)
+ncell = (128, 128, 128)
 nppc  = (4, 4, 4)
 
-max_grid_size = 32
+max_grid_size = 64
 
 problem_type = UniformPlasma
 

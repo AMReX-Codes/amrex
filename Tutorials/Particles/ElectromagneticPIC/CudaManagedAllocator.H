@@ -34,7 +34,7 @@ public :
         pointer result = nullptr;        
         cudaError_t error = cudaMallocManaged(&result, cnt*sizeof(T), cudaMemAttachGlobal);
         if(error != cudaSuccess) {
-            std::cout << "allocate failed in cudaMallocManaged" << std::endl;
+            amrex::Print() << "allocate failed in cudaMallocManaged" << std::endl;
         }        
         return result;
     }
@@ -42,7 +42,7 @@ public :
     inline void deallocate(pointer p, size_type) {
         cudaError_t error = cudaFree(p);
         if(error != cudaSuccess) {
-            std::cout << "deallocate failed in cudaFree" << std::endl;
+            amrex::Print() << "deallocate failed in cudaFree" << std::endl;
         }
     }
     
