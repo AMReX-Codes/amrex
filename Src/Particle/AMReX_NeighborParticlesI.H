@@ -1,3 +1,9 @@
+#include "AMReX_NeighborParticles.H"
+
+#include "AMReX_Particles.H"
+#include "AMReX_Particles_F.H"
+
+using namespace amrex;
 
 template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
@@ -428,7 +434,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 }
                 if (who == MyProc) {
                     PairIndex dst_index(tag.grid, tag.tile);
-                    Vector<char>& buffer = neighbors[dst_index];
+                    CharVector& buffer = neighbors[dst_index];
                     BL_ASSERT(tag.dst_offset < buffer.size());
                     std::memcpy(&buffer[tag.dst_offset], &p, pdata_size);
                 } else {
@@ -664,7 +670,7 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        neighbor_list[index] = Vector<int>();
+        neighbor_list[index]; // = IntVector();
     }
 
 #ifdef _OPENMP
@@ -680,7 +686,7 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        Vector<int>& nl = neighbor_list[index];
+        IntVector& nl = neighbor_list[index];
         AoS& particles = pti.GetArrayOfStructs();
 
         int Np = particles.size();
