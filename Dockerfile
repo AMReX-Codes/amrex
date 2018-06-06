@@ -10,7 +10,6 @@ RUN apt-get update \
     gcc \
     gfortran \
     g++ \
-    ccache \
     openmpi-bin \
     libopenmpi-dev \
     libfftw3-dev \
