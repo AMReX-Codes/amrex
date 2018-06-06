@@ -116,22 +116,24 @@ void main_main ()
     for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
     {
         *bx = mfi.validbox();
+
         init_phi<<<1, 1>>>(BL_TO_FORTRAN_BOX(*bx),
                  BL_TO_FORTRAN_ANYD(phi_new[mfi]), 
                  gCellSize, gLo, gHi);
     }
 
-    cudaFree(bx);
-    cudaFree(gCellSize);
-    cudaFree(gLo);
-    cudaFree(gHi);
-
     cudaDeviceSynchronize();
+
+    cudaFreeHost(bx);
+    cudaFreeHost(gCellSize);
+    cudaFreeHost(gLo);
+    cudaFreeHost(gHi);
 
     // ========================================
 
     // compute the time step
     const Real* dx = geom.CellSize();
+
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
     // time = starting time in the simulation

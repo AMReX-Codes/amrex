@@ -16,23 +16,38 @@ void advance (MultiFab& phi_old,
     int ng_p = phi_old.nGrow();
     int ng_f = flux[0].nGrow();
 
-    const Real* dx = geom.CellSize();
-
     //
     // Note that this simple example is not optimized.
     // The following two MFIter loops could be merged
     // and we do not have to use flux MultiFab.
     // 
 
-    const Box& domain_bx = geom.Domain();
+    // =======================================================
+
+    Box* bx;
+    Real* dx;
+    Box* domain_bx;
+
+    cudaMallocHost(&bx, size_t(sizeof(Box)));
+    cudaMallocHost(&domain_bx, size_t(sizeof(Box)));
+    cudaMallocHost(&dx, size_t(AMREX_SPACEDIM*sizeof(Real)));
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+    {
+      dx[i] = geom.CellSize()[i];
+    }
+    *domain_bx = geom.Domain();
+
+    cudaDeviceSynchronize();
 
     // Compute fluxes one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
-        const Box& bx = mfi.validbox();
+        amrex::Print() << "AMREX_SPACEDIM = " << AMREX_SPACEDIM << std::endl;
+        *bx = mfi.validbox();
 
-        compute_flux(BL_TO_FORTRAN_BOX(bx),
-                     BL_TO_FORTRAN_BOX(domain_bx),
+        compute_flux<<<1, 1>>>(BL_TO_FORTRAN_BOX(*bx),
+                     BL_TO_FORTRAN_BOX(*domain_bx),
                      BL_TO_FORTRAN_ANYD(phi_old[mfi]),
                      BL_TO_FORTRAN_ANYD(flux[0][mfi]),
                      BL_TO_FORTRAN_ANYD(flux[1][mfi]),
@@ -40,14 +55,18 @@ void advance (MultiFab& phi_old,
                      BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
                      dx);
+
     }
-    
+
+    cudaDeviceSynchronize();
+ 
     // Advance the solution one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
-        const Box& bx = mfi.validbox();
+        *bx = mfi.validbox();
         
-        update_phi(BL_TO_FORTRAN_BOX(bx),
+        update_phi<<<1,1>>>
+                  (BL_TO_FORTRAN_BOX(*bx),
                    BL_TO_FORTRAN_ANYD(phi_old[mfi]),
                    BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                    BL_TO_FORTRAN_ANYD(flux[0][mfi]),
@@ -55,6 +74,12 @@ void advance (MultiFab& phi_old,
 #if (AMREX_SPACEDIM == 3)   
                    BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                   dx, &dt);
+                   dx, dt);
+
     }
+
+    cudaDeviceSynchronize();
+    cudaFreeHost(bx);
+    cudaFreeHost(dx);
+    cudaFreeHost(domain_bx);
 }

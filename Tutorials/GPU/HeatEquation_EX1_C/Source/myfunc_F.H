@@ -13,6 +13,7 @@ extern "C"
                   amrex_real* data, const int* dlo, const int* dhi,
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
     
+    AMREX_CUDA_GLOBAL
     void compute_flux(const int* lo, const int* hi,
                       const int* domlo, const int* domhi,
                       amrex_real* phi, const int* philo, const int* phihi,
@@ -23,6 +24,7 @@ extern "C"
 #endif
                       const amrex_real* dx);
 
+    AMREX_CUDA_GLOBAL
     void update_phi(const int* lo, const int* hi,
                     amrex_real* pold, const int* polo, const int* pohi,
                     amrex_real* pnew, const int* pnlo, const int* pnhi,
@@ -31,7 +33,7 @@ extern "C"
 #if (BL_SPACEDIM == 3)   
                     amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
-                    const amrex_real* dx, const amrex_real* dt);
+                    const amrex_real* dx, const amrex_real dt);
 
 #ifdef __cplusplus
 }
