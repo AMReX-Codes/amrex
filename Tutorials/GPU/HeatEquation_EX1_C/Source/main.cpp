@@ -1,3 +1,4 @@
+#include <AMReX_CudaAllocators.H>
 #include <AMReX_Managed.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
@@ -92,12 +93,12 @@ void main_main ()
 
     // =======================================
 
-    Box* bx;
+//    Box* bx;
     Real* gCellSize; 
     Real* gLo;
     Real* gHi;
 
-    cudaMallocHost(&bx, size_t(sizeof(Box)));
+//    cudaMallocHost(&bx, size_t(sizeof(Box)));
     cudaMallocHost(&gLo, size_t(AMREX_SPACEDIM*sizeof(Real)));
     cudaMallocHost(&gHi, size_t(AMREX_SPACEDIM*sizeof(Real)));
     cudaMallocHost(&gCellSize, size_t(AMREX_SPACEDIM*sizeof(Real)));
@@ -114,16 +115,18 @@ void main_main ()
     // MFIter = MultiFab Iterator
     for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
     {
+        Box* bx;
+        cudaMallocHost(&bx, size_t(sizeof(Box)));
         *bx = mfi.validbox();
 
         init_phi<<<1, 1>>>(BL_TO_FORTRAN_BOX(*bx),
                  BL_TO_FORTRAN_ANYD(phi_new[mfi]), 
                  gCellSize, gLo, gHi);
+
+        cudaDeviceSynchronize();
+        cudaFreeHost(bx);
     }
 
-    cudaDeviceSynchronize();
-
-    cudaFreeHost(bx);
     cudaFreeHost(gCellSize);
     cudaFreeHost(gLo);
     cudaFreeHost(gHi);
