@@ -92,7 +92,6 @@ void main_main ()
 
     // =======================================
 
-//    Box *bx = new Box();
     Box* bx;
     Real* gCellSize; 
     Real* gLo;
