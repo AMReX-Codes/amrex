@@ -1155,8 +1155,8 @@ Amr::readProbinFile (int& a_init)
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   ZFILL(Geometry::ProbLo()),
-			   ZFILL(Geometry::ProbHi()));
+			   AMREX_ZFILL(Geometry::ProbLo()),
+			   AMREX_ZFILL(Geometry::ProbHi()));
 
 #else
 

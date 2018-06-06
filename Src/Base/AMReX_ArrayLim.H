@@ -17,51 +17,22 @@
 #if     AMREX_SPACEDIM==1
 #define ARLIM_P(x)  const int&
 #define ARLIM(x)  (x)[0]
-#ifdef AMREX_USE_CUDA
-#define ARLIM_3D(x) x
-#define ARLIM_ANYD(x) x
-#define ZFILL(x) x
-#define ARLIM_ARG(x) x[0]
-#define ARLIM_VAL(x) const int x##_1
-#else
 #define ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
-#define ARLIM_ARG(x) ARLIM_3D(x)
-#define ARLIM_VAL(x) const int* x
-#endif
 #elif   AMREX_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1]
-#ifdef AMREX_USE_CUDA
-#define ARLIM_3D(x) x
-#define ARLIM_ANYD(x) x
-#define ZFILL(x) x
-#define ARLIM_ARG(x) x[0], x[1]
-#define ARLIM_VAL(x) const int x##_1, const int x##_2
-#else
 #define ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
-#define ARLIM_ARG(x) ARLIM_3D(x)
-#define ARLIM_VAL(x) const int* x
-#endif
 #elif   AMREX_SPACEDIM==3
 #define ARLIM_P(x)  const int&,const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1],(x)[2]
 #define ARLIM_3D(x) x
 #define ARLIM_ANYD(x) x
 #define ZFILL(x) x
-#ifdef AMREX_USE_CUDA
-#define ARLIM_ARG(x) x[0], x[1], x[2]
-#define ARLIM_VAL(x) const int x##_1, const int x##_2, const int x##_3
-#else
-#define ARLIM_ARG(x) ARLIM_3D(x)
-#define ARLIM_VAL(x) const int* x
 #endif
-#endif
-
-#define ARLIM_REP(x) const int* x
 
 #endif /* ndef AMREX_XSDK */
 

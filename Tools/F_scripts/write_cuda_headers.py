@@ -173,7 +173,7 @@ def doit(outdir, fortran_targets, header_files):
 
             # First write out the device signature
             device_sig = "__device__ {};\n\n".format(func_sig)
-            device_sig = device_sig.replace("ARLIM_VAL", "ARLIM_REP")
+            device_sig = device_sig.replace("AMREX_ARLIM_VAL", "AMREX_ARLIM_REP")
             hout.write(device_sig)
 
             # Now write out the global signature. This involves
@@ -197,11 +197,11 @@ def doit(outdir, fortran_targets, header_files):
                 var = var.replace("BL_FORT_FAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
                 var = var.replace("BL_FORT_IFAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
 
-                if var == "ARLIM_VAL(lo)" or var == "AMREX_ARLIM_VAL(lo)":
+                if var == "AMREX_ARLIM_VAL(lo)":
                     var = "blo"
                     has_lo = True
 
-                if var == "ARLIM_VAL(hi)" or var == "AMREX_ARLIM_VAL(hi)":
+                if var == "AMREX_ARLIM_VAL(hi)":
                     var = "bhi"
                     has_hi = True
 
