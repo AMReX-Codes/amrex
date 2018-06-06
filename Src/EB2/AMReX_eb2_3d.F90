@@ -5,6 +5,7 @@ module amrex_eb2_3d_module
   use amrex_fort_module
   use amrex_constants_module, only : zero, one, two, three, four, five, six, seven, eight,&
        nine, ten, eleven, fifteen, sixteen, half, third, fourth, sixth, eighth, twelfth
+  use amrex_ebcellflag_module
   implicit none
 
   integer, parameter :: regular = 0
@@ -45,14 +46,14 @@ contains
                   .and. s(i,j+1,k  ).ge.zero .and. s(i+1,j+1,k  ).ge.zero &
                   .and. s(i,j  ,k+1).ge.zero .and. s(i+1,j  ,k+1).ge.zero &
                   .and. s(i,j+1,k+1).ge.zero .and. s(i+1,j+1,k+1).ge.zero ) then
-                cell(i,j,k) = covered
+                call set_covered_cell(cell(i,j,k))
              else if (  s(i,j  ,k  ).lt.zero .and. s(i+1,j  ,k  ).lt.zero &
                   .and. s(i,j+1,k  ).lt.zero .and. s(i+1,j+1,k  ).lt.zero &
                   .and. s(i,j  ,k+1).lt.zero .and. s(i+1,j  ,k+1).lt.zero &
                   .and. s(i,j+1,k+1).lt.zero .and. s(i+1,j+1,k+1).lt.zero ) then
-                cell(i,j,k) = regular
+                call set_regular_cell(cell(i,j,k))
              else
-                cell(i,j,k) = irregular
+                call set_single_valued_cell(cell(i,j,k))
              end if
           end do
        end do
@@ -558,15 +559,15 @@ contains
     do       k = lo(3)-1, hi(3)+1
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
-             if (cell(i,j,k) .eq. irregular) then
+             if (is_single_valued_cell(cell(i,j,k))) then
                 if  (fx(i,j,k) .eq. covered .and. fx(i+1,j,k) .eq. covered .and. &
                      fy(i,j,k) .eq. covered .and. fy(i,j+1,k) .eq. covered .and. &
                      fz(i,j,k) .eq. covered .and. fz(i,j,k+1) .eq. covered ) then
-                   cell(i,j,k) = covered
+                   call set_covered_cell(cell(i,j,k))
                 else if (fx(i,j,k) .eq. regular .and. fx(i+1,j,k) .eq. regular .and. &
                      &   fy(i,j,k) .eq. regular .and. fy(i,j+1,k) .eq. regular .and. &
                      &   fz(i,j,k) .eq. regular .and. fz(i,j,k+1) .eq. regular ) then
-                   cell(i,j,k) = regular
+                   call set_regular_cell(cell(i,j,k))
                 end if
              end if
           end do
@@ -710,7 +711,7 @@ contains
     real(amrex_real), intent(inout) :: bcent( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3),3)
     real(amrex_real), intent(inout) :: bnorm( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3),3)
 
-    integer :: i,j,k
+    integer :: i,j,k, ngbr(-1:1,-1:1,-1:1), flg
     real(amrex_real) :: axm, axp, aym, ayp, azm, azp, aax, aay, aaz, B0, Bx, By, Bz
     real(amrex_real) :: dapx, dapy, dapz, apnorm, apnorminv, nx, ny, nz, bainv
     real(amrex_real) :: ny2, ny3, ny4, nz2, nz3, nz4, nz5, Sx, Sy, Sz, den
@@ -719,13 +720,13 @@ contains
     do       k = lo(3)-1, hi(3)+1
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
-             if (cell(i,j,k) .eq. regular) then
+             if (is_regular_cell(cell(i,j,k))) then
                 vfrac(i,j,k) = one
                 vcent(i,j,k,:) = zero
                 bcent(i,j,k,:) = zero
                 bnorm(i,j,k,:) = zero
                 barea(i,j,k) = zero
-             else if (cell(i,j,k) .eq. covered) then
+             else if (is_covered_cell(cell(i,j,k))) then
                 vfrac(i,j,k) = zero
                 vcent(i,j,k,:) = zero
                 bcent(i,j,k,:) = zero
@@ -867,6 +868,186 @@ contains
                 ! because it affects face area
 
              end if
+          end do
+       end do
+    end do
+
+    ! Build neighbors.  By default, all 26 neighbors are already set.
+
+    do       k = lo(3)-1, hi(3)+1
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+             flg = cell(i,j,k)
+             if (fx(i,j,k).eq.covered) then
+                flg = clear_neighbor(flg,-1,0,0)
+             end if
+             if (fx(i+1,j,k).eq.covered) then
+                flg = clear_neighbor(flg,1,0,0)
+             end if
+             if (fy(i,j,k).eq.covered) then
+                flg = clear_neighbor(flg,0,-1,0)
+             end if
+             if (fy(i,j+1,k).eq.covered) then
+                flg = clear_neighbor(flg,0,1,0)
+             end if
+             if (fz(i,j,k).eq.covered) then
+                flg = clear_neighbor(flg,0,0,-1)
+             end if
+             if (fz(i,j,k+1).eq.covered) then
+                flg = clear_neighbor(flg,0,0,1)
+             end if
+
+             ! x-y
+             if (fx(i,j,k).ne.covered .and. fy(i-1,j,k).ne.covered) then
+             else if (fx(i,j-1,k).ne.covered .and. fy(i,j,k).ne.covered) then
+             else
+                flg = clear_neighbor(flg,-1,-1,0)
+             end if
+
+             if (fx(i+1,j,k).ne.covered .and. fy(i+1,j,k).ne.covered) then
+             else if (fx(i+1,j-1,k).eq.covered .and. fy(i,j,k).ne.covered) then
+             else
+                flg = clear_neighbor(flg,1,-1,0)
+             end if
+
+             if (fx(i,j,k).ne.covered .and. fy(i-1,j+1,k).ne.covered) then
+             else if (fx(i,j+1,k).ne.covered .and. fy(i,j+1,k).ne.covered) then
+             else
+                flg = clear_neighbor(flg,-1,1,0)
+             end if
+
+             if (fx(i+1,j,k).ne.covered .and. fy(i+1,j+1,k).ne.covered) then
+             else if (fx(i+1,j+1,k).ne.covered .and. fy(i,j+1,k).ne.covered) then
+             else
+                flg = clear_neighbor(flg,1,1,0)
+             end if
+
+             ! x-z
+             if (fx(i,j,k).ne.covered .and. fz(i-1,j,k).ne.covered) then
+             else if (fx(i,j,k-1).ne.covered .and. fz(i,j,k).ne.covered) then
+             else
+                flg = clear_neighbor(flg,-1,0,-1)
+             end if
+
+             if (fx(i+1,j,k).ne.covered .and. fz(i+1,j,k).ne.covered) then
+             else if (fx(i+1,j,k-1).eq.covered .and. fz(i,j,k).ne.covered) then
+             else
+                flg = clear_neighbor(flg,1,0,-1)
+             end if
+
+             if (fx(i,j,k).ne.covered .and. fz(i-1,j,k+1).ne.covered) then
+             else if (fx(i,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
+             else
+                flg = clear_neighbor(flg,-1,1,0)
+             end if
+
+             if (fx(i+1,j,k).ne.covered .and. fz(i+1,j,k+1).ne.covered) then
+             else if (fx(i+1,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
+             else
+                flg = clear_neighbor(flg,1,0,1)
+             end if
+
+             ! y-z
+             if (fy(i,j,k).ne.covered .and. fz(i,j-1,k).ne.covered) then
+             else if (fy(i,j,k-1).ne.covered .and. fz(i,j,k).ne.covered) then
+             else
+                flg = clear_neighbor(flg,0,-1,-1)
+             end if
+
+             if (fy(i,j+1,k).ne.covered .and. fz(i,j+1,k).ne.covered) then
+             else if (fy(i,j+1,k-1).eq.covered .and. fz(i,j,k).ne.covered) then
+             else
+                flg = clear_neighbor(flg,0,1,-1)
+             end if
+
+             if (fy(i,j,k).ne.covered .and. fz(i,j-1,k+1).ne.covered) then
+             else if (fy(i,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
+             else
+                flg = clear_neighbor(flg,0,-1,1)
+             end if
+
+             if (fy(i,j+1,k).ne.covered .and. fz(i,j+1,k+1).ne.covered) then
+             else if (fy(i,j+1,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
+             else
+                flg = clear_neighbor(flg,0,1,1)
+             end if
+
+             cell(i,j,k) = flg
+          end do
+       end do
+    end do
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             flg = cell(i,j,k)
+             call get_neighbor_cells(flg, ngbr)
+
+             ! -1, -1, -1 corner
+             if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0,-1,-1)) then
+             else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ),-1, 0,-1)) then
+             else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1),-1,-1, 0)) then
+             else
+                flg = clear_neighbor(flg, -1,-1,-1)
+             end if
+
+             ! 1, -1, -1 corner
+             if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0,-1,-1)) then
+             else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ), 1, 0,-1)) then
+             else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1), 1,-1, 0)) then
+             else
+                flg = clear_neighbor(flg, 1,-1,-1)
+             end if
+
+             ! -1, 1, -1 corner
+             if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0, 1,-1)) then
+             else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ),-1, 0,-1)) then
+             else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1),-1, 1, 0)) then
+             else
+                flg = clear_neighbor(flg, -1, 1,-1)
+             end if
+
+             ! 1, 1, -1 corner
+             if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0, 1,-1)) then
+             else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ), 1, 0,-1)) then
+             else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1), 1, 1, 0)) then
+             else
+                flg = clear_neighbor(flg, 1, 1,-1)
+             end if
+
+             ! -1, -1, 1 corner
+             if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0,-1, 1)) then
+             else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ),-1, 0, 1)) then
+             else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1),-1,-1, 0)) then
+             else
+                flg = clear_neighbor(flg, -1,-1, 1)
+             end if
+
+             ! 1, -1, 1 corner
+             if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0,-1, 1)) then
+             else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ), 1, 0, 1)) then
+             else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1), 1,-1, 0)) then
+             else
+                flg = clear_neighbor(flg, 1,-1, 1)
+             end if
+
+             ! -1, 1, 1 corner
+             if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0, 1, 1)) then
+             else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ),-1, 0, 1)) then
+             else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1),-1, 1, 0)) then
+             else
+                flg = clear_neighbor(flg, -1,1,1)
+             end if
+
+             ! 1, 1, 1 corner
+             if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0, 1, 1)) then
+             else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ), 1, 0, 1)) then
+             else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1), 1, 1, 0)) then
+             else
+                flg = clear_neighbor(flg, 1,1,1)
+             end if
+
+             cell(i,j,k) = flg
           end do
        end do
     end do

@@ -30,7 +30,7 @@ MyTest::MyTest ()
 
     initGrids();
 
-    initializeEB();
+//    initializeEB();
 
     initializeEB2();
 
@@ -99,7 +99,7 @@ MyTest::initializeEB2 ()
                                           EB2::PlaneIF({0.06, 0.  , 0.}, {1. ,  0. , 0.}));
         EB2::BoxIF pipe({0.06, -1.0, -100.0}, {0.08, 0.5, 100.0}, false);
         EB2::BoxIF flat_corner({0.05999, -1.0, -100.0}, {1.0, 0.26, 100.0}, false);
-            auto polys = EB2::makeUnion(farwall, ramp, pipe, flat_corner);
+        auto polys = EB2::makeUnion(farwall, ramp, pipe, flat_corner);
         auto pr = EB2::translate(EB2::lathe(polys), {0.5,0.5,0.});
 
         auto gshop = EB2::makeShop(pr);
