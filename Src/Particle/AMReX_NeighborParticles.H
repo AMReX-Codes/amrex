@@ -103,6 +103,8 @@ public:
     using PairIndex = std::pair<int, int>;
     using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
     using AoS = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::AoS;
+    using CharVector = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::CharVector;
+    using IntVector  = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::IntVector;
 
     NeighborParticleContainer(ParGDBBase* gdb, int ncells);
 
@@ -149,8 +151,9 @@ public:
     void setRealCommComp(int i, bool value);
     void setIntCommComp(int i, bool value);
 
-    std::map<PairIndex, Vector<char> > neighbors;
-    std::map<PairIndex, Vector<int>  > neighbor_list;
+    // Note that CharVector and IntVector are defined in AMReXParticles.H
+    std::map<PairIndex, CharVector > neighbors;
+    std::map<PairIndex, IntVector  > neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
     
 protected:
