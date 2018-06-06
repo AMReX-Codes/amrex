@@ -162,6 +162,8 @@ ElectromagneticParticleContainer(const Geometry            & a_geom,
         m_mask_ptr->setVal(grid_id, box, 0, 1);
     }
     m_mask_ptr->FillBoundary(m_geom.periodicity());
+
+    superparticle_size = PIdx::nattribs * sizeof(Real);
 }
 
 void
@@ -612,14 +614,24 @@ Redistribute()
         else
         {
             const size_t old_size = not_ours[dest_proc].size();
-            const size_t new_size = old_size + num_to_add;
+            const size_t new_size 
+                = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
             not_ours[dest_proc].resize(new_size);
-            for (int j = 0; j < PIdx::nattribs; ++j) {
-                const auto& data = particles_to_redistribute.GetRealData(j);
-                thrust::copy(data.data() + start[i],
-                             data.data() + start[j],
-                             not_ours[dest_proc].begin() + old_size);
-            } 
+
+            char* dst = not_ours[dest_proc].data() + old_size;
+            std::memcpy(dst, &num_to_add, sizeof(size_t));
+            dst += sizeof(size_t);
+            std::memcpy(dst, &i, sizeof(int));
+            dst += sizeof(int);
+            std::memcpy(dst, &dest_proc, sizeof(int));
+            dst += sizeof(int);
+
+            for (int j = 0; j < PIdx::nattribs; ++j)
+            {
+                auto& attrib = particles_to_redistribute.GetRealData(j);
+                std::memcpy(dst, attrib.data() + start[i], num_to_add*sizeof(Real));
+                dst += num_to_add*sizeof(Real);
+            }
         }
     }
 
@@ -634,37 +646,120 @@ RedistributeMPI(std::map<int, Vector<char> >& not_ours)
 #if BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     
-    long total_snds = 0;
-    Vector<long> num_particles_to_send(NProcs, 0);
-    Vector<long> num_particles_to_rcv(NProcs, 0);
+    // We may now have particles that are rightfully owned by another CPU.
+    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
+
+    long NumSnds = 0;
+
     for (const auto& kv : not_ours)
     {
         const int np = kv.second.size(); 
-        num_particles_to_send[kv.first] = np;
-        total_snds += np;
+        Snds[kv.first] = np;
+        NumSnds += np;
     }
     
-    ParallelDescriptor::ReduceLongMax(total_snds);
+    ParallelDescriptor::ReduceLongMax(NumSnds);
 
-    if (total_snds == 0) return;
+    if (NumSnds == 0) return;
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                     ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
     
-    BL_MPI_REQUIRE( MPI_Alltoall(num_particles_to_send.dataPtr(),
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
                                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 num_particles_to_rcv.dataPtr(),
+                                 Rcvs.dataPtr(),
                                  1,
                                  ParallelDescriptor::Mpi_typemap<long>::type(),
                                  ParallelDescriptor::Communicator()) );
     
-    BL_ASSERT(num_particles_to_rcv[ParallelDescriptor::MyProc()] == 0);
+    BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
     
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                     ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
-  
+
+    Vector<int> RcvProc;
+    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
     
-              
+    std::size_t TotRcvBytes = 0;
+    for (int i = 0; i < NProcs; ++i) {
+        if (Rcvs[i] > 0) {
+            RcvProc.push_back(i);
+            rOffset.push_back(TotRcvBytes);
+            TotRcvBytes += Rcvs[i];
+        }
+    }
+    
+    const int nrcvs = RcvProc.size();
+    Vector<MPI_Status>  stats(nrcvs);
+    Vector<MPI_Request> rreqs(nrcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+    
+    // Allocate data for rcvs as one big chunk.
+    Vector<char> recvdata(TotRcvBytes);
+    
+    // Post receives.
+    for (int i = 0; i < nrcvs; ++i) {
+        const auto Who    = RcvProc[i];
+        const auto offset = rOffset[i];
+        const auto Cnt    = Rcvs[Who];
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        
+        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+    }
+    
+    // Send.
+    for (const auto& kv : not_ours) {
+        const auto Who = kv.first;
+        const auto Cnt = kv.second.size();
+        
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        
+        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+    }
+
+    if (nrcvs > 0) {
+        ParallelDescriptor::Waitall(rreqs, stats);
+
+        for (int i = 0; i < nrcvs; ++i) {
+            StructOfArrays<PIdx::nattribs, 0> redistributed_particles;
+            const int offset = rOffset[i];
+            char* buffer = &recvdata[offset];
+            int num_particles, gid, pid;
+            std::memcpy(&num_particles, buffer, sizeof(size_t)); buffer += sizeof(size_t);
+            std::memcpy(&gid, buffer, sizeof(int)); buffer += sizeof(int);
+            std::memcpy(&pid, buffer, sizeof(int)); buffer += sizeof(int);
+
+            AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
+
+            {
+                const size_t old_size = redistributed_particles.size();
+                const size_t new_size = old_size + num_particles;        
+                redistributed_particles.resize(new_size);
+                
+                for (int j = 0; j < PIdx::nattribs; ++j) {
+                    auto& attrib = redistributed_particles.GetRealData(j);
+                    std::memcpy(attrib.data() + old_size, buffer, num_particles*sizeof(Real));
+                    buffer += num_particles*sizeof(Real);
+                }
+            }
+
+            {
+                const size_t old_size = m_particles[gid].attribs.size();
+                const size_t new_size = old_size + num_particles;
+                m_particles[gid].attribs.resize(new_size);
+                thrust::copy(redistributed_particles.begin(), 
+                             redistributed_particles.end(), 
+                             m_particles[gid].attribs.begin() + old_size);
+                m_particles[gid].temp.resize(m_particles[gid].attribs.size());
+            }
+        }
+    }
+       
 #endif // MPI
 }

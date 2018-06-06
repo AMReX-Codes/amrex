@@ -70,6 +70,8 @@ protected:
     
     amrex::Real m_charge;
     amrex::Real m_mass;
+
+    size_t superparticle_size;
 };
 
 #endif
