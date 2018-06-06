@@ -26,13 +26,13 @@ public:
     T& operator[] (std::size_t i)
     {
 	BL_ASSERT(static_cast<long>(i) < this->size());
-	return this->std::vector<T>::operator[](i);
+	return this->std::vector<T, Allocator>::operator[](i);
     }
 
     const T& operator[] (std::size_t i) const
     {
 	BL_ASSERT(static_cast<long>(i) < this->size());
-	return this->std::vector<T>::operator[](i);
+	return this->std::vector<T, Allocator>::operator[](i);
     }
 
     //! get access to the underlying data pointer
@@ -40,7 +40,7 @@ public:
     //! get access to the underlying data pointer
     const T* dataPtr () const { return this->data(); }
 
-    long size() const {return static_cast<long>(std::vector<T>::size());}
+    long size() const {return static_cast<long>(std::vector<T, Allocator>::size());}
 
 };
 
