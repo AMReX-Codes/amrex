@@ -483,18 +483,21 @@ EnforcePeriodicBCs()
 
 void
 ElectromagneticParticleContainer::
-OK()
+OK ()
 {
     BL_PROFILE("ElectromagneticParticleContainer::OK");
 
     thrust::device_vector<int> grid_indices;
 
+    long total_np = 0;
     for(MFIter mfi(*m_mask_ptr); mfi.isValid(); ++mfi) {
         int i = mfi.index();
         
         auto& particles = m_particles[i];
         const int np = particles.size();
         auto& soa = particles.attribs;
+
+        total_np += np;
 
         if (np == 0) continue;
         
@@ -513,6 +516,9 @@ OK()
 
         AMREX_ALWAYS_ASSERT(count == 0);
     }
+
+    ParallelDescriptor::ReduceLongMax(total_np);
+    amrex::Print() << "I have " << total_np << " particles." << std::endl;
 }
 
 void
