@@ -151,7 +151,7 @@ void main_main ()
     // Set up BCRec; see Src/Base/AMReX_BC_TYPES.H for supported types
 
 //    Vector<BCRec> bc(phi_old.nComp());
-    Vector<BCRec, amrex::CudaManagedAllocator<BCRec>> bc(phi_old.nComp());
+    Vector<BCRec, amrex::CudaHostAllocator<BCRec>> bc(phi_old.nComp());
 
     for (int n = 0; n < phi_old.nComp(); ++n)
     {
@@ -219,7 +219,7 @@ void main_main ()
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
-//        advance(phi_old, phi_new, flux, dt, geom, bc); 
+        advance(phi_old, phi_new, flux, dt, geom, bc); 
         time = time + dt;
         
         // Tell the I/O Processor to write out which step we're doing

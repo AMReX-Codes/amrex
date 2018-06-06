@@ -15,6 +15,6 @@ void advance (MultiFab& phi_old,
 	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
 	      Real dt,
               const Geometry& geom, 
-              const Vector<BCRec, CudaManagedAllocator<BCRec>>& bc);
+              const Vector<BCRec, CudaHostAllocator<BCRec>>& bc);
 
 #endif
