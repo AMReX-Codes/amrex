@@ -3,7 +3,11 @@ module amrex_eb2_2d_moudle
 
   use amrex_error_module
   use amrex_fort_module
-  use amrex_constants_module, only : zero, one, half, sixth, eighth
+  use amrex_constants_module, only : zero, one, half, fourth, sixth, eighth
+  use amrex_ebcellflag_module, only : regular_cell => regular, covered_cell => covered, &
+       is_regular_cell, is_single_valued_cell, is_covered_cell, get_cell_type, get_neighbor_cells, &
+       set_regular_cell, set_single_valued_cell, set_covered_cell, &
+       set_neighbor, clear_neighbor, is_neighbor
   implicit none
 
   integer, parameter :: regular = 0
@@ -14,7 +18,8 @@ module amrex_eb2_2d_moudle
   real(amrex_real), private, parameter :: small = 1.d-14
 
   private
-  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells
+  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
+       amrex_eb2_coarsen_from_fine
 
 contains
 
@@ -28,24 +33,22 @@ contains
 
     integer :: i,j
 
-    stop "todo"
-
     do    j = lo(2)-2, hi(2)+2
        do i = lo(1)-2, hi(1)+2
           if (       s(i,j  ).ge.zero .and. s(i+1,j  ).ge.zero &
                .and. s(i,j+1).ge.zero .and. s(i+1,j+1).ge.zero) then
-             cell(i,j) = covered
+             call set_covered_cell(cell(i,j))
           else if (  s(i,j  ).lt.zero .and. s(i+1,j  ).lt.zero &
                .and. s(i,j+1).lt.zero .and. s(i+1,j+1).lt.zero) then
-             cell(i,j) = regular
+             call set_regular_cell(cell(i,j))
           else
-             cell(i,j) = irregular
+             call set_single_valued_cell(cell(i,j))
           end if
        end do
     end do
 
-    do    j = lo(2)-1, hi(2)+1
-       do i = lo(1)-1, hi(1)+2
+    do    j = lo(2)-2, hi(2)+2
+       do i = lo(1)-2, hi(1)+3
           if (s(i,j).ge.zero .and. s(i,j+1).ge.zero) then
              fx(i,j) = covered
           else if (s(i,j).lt.zero .and. s(i,j+1).lt.zero) then
@@ -56,8 +59,8 @@ contains
        end do
     end do
 
-    do    j = lo(2)-1, hi(2)+2
-       do i = lo(1)-1, hi(1)+1
+    do    j = lo(2)-2, hi(2)+3
+       do i = lo(1)-2, hi(1)+2
           if (s(i,j).ge.zero .and. s(i+1,j).ge.zero) then
              fy(i,j) = covered
           else if (s(i,j).lt.zero .and. s(i+1,j).lt.zero) then
@@ -99,8 +102,8 @@ contains
     do    j = lo(2)-1, hi(2)+1
        do i = lo(1)-1, hi(1)+2
           if (fx(i,j) .eq. regular) then
-             apx(i,j) = one
-             fcx(i,j,:) = zero
+!             apx(i,j) = one
+!             fcx(i,j,:) = zero
           else if (fx(i,j) .eq. covered) then
              apx(i,j) = zero
              fcx(i,j,:) = zero
@@ -132,8 +135,8 @@ contains
     do    j = lo(2)-1, hi(2)+2
        do i = lo(1)-1, hi(1)+1
           if (fy(i,j) .eq. regular) then
-             apy(i,j) = one
-             fcy(i,j,:) = zero
+!             apy(i,j) = one
+!             fcy(i,j,:) = zero
           else if (fy(i,j) .eq. covered) then
              apy(i,j) = zero
              fcy(i,j,:) = zero
@@ -163,13 +166,13 @@ contains
 
     do    j = lo(2)-1, hi(2)+1
        do i = lo(1)-1, hi(1)+1
-          if (cell(i,j) .eq. irregular) then
+          if (is_single_valued_cell(cell(i,j))) then
              if ( fx(i,j).eq.regular .and. fx(i+1,j).eq.regular .and. &
                   fy(i,j).eq.regular .and. fy(i,j+1).eq.regular ) then
-                cell(i,j) = regular
+                call set_regular_cell(cell(i,j))
              else if ( fx(i,j).eq.covered .and. fx(i+1,j).eq.covered .and. &
                   &    fy(i,j).eq.covered .and. fy(i,j+1).eq.covered ) then
-                cell(i,j) = covered
+                call set_covered_cell(cell(i,j))
              else
                 ncuts = 0
                 if (fx(i,j).eq.irregular) ncuts = ncuts+1
@@ -207,24 +210,22 @@ contains
     real(amrex_real), intent(inout) :: bcent( blo(1): bhi(1), blo(2): bhi(2),2)
     real(amrex_real), intent(inout) :: bnorm( mlo(1): mhi(1), mlo(2): mhi(2),2)
 
-    integer :: i,j
+    integer :: i,j, flg
     real(amrex_real) :: axm, axp, aym, ayp, apnorm, apnorminv
     real(amrex_real) :: nx, ny, x_ym, x_yp, y_xm, y_xp, aa, af1, af2
     real(amrex_real) :: dx, dx2, dx3, dx4, dy, dy2, dy3, dy4, nxabs, nyabs, signx, signy
     real(amrex_real), parameter :: tiny = 1.d-15
     real(amrex_real), parameter :: almostone = 1.d0-1.d-15
 
-    ! xxxx clean up local variables
-
     do    j = lo(2)-1, hi(2)+1
        do i = lo(1)-1, hi(1)+1
-          if (cell(i,j) .eq. regular) then
-             vfrac(i,j) = one
-             vcent(i,j,:) = zero
-             barea(i,j) = zero
-             bcent(i,j,:) = zero
-             bnorm(i,j,:) = zero
-          else if (cell(i,j) .eq. covered) then
+          if (is_regular_cell(cell(i,j))) then
+!             vfrac(i,j) = one
+!             vcent(i,j,:) = zero
+!             barea(i,j) = zero
+!             bcent(i,j,:) = zero
+!             bnorm(i,j,:) = zero
+          else if (is_covered_cell(cell(i,j))) then
              vfrac(i,j) = zero
              vcent(i,j,:) = zero
              barea(i,j) = zero
@@ -321,6 +322,176 @@ contains
           end if
        end do
     end do
+
+    ! Build neighbors.  By default, all neighbors are already set.
+    do    j = lo(2)-1, hi(2)+1
+       do i = lo(1)-1, hi(1)+1
+          flg = cell(i,j)
+          if (fx(i  ,j  ).eq.covered) flg = clear_neighbor(flg, -1,  0)
+          if (fx(i+1,j  ).eq.covered) flg = clear_neighbor(flg,  1,  0)
+          if (fy(i  ,j  ).eq.covered) flg = clear_neighbor(flg,  0, -1)
+          if (fy(i  ,j+1).eq.covered) flg = clear_neighbor(flg,  0,  1)
+
+          if (fx(i,j).ne.covered .and. fy(i-1,j).ne.covered) then
+          else if (fx(i,j-1).ne.covered .and. fy(i,j).ne.covered) then
+          else
+             flg = clear_neighbor(flg,-1,-1)
+          end if
+
+          if (fx(i+1,j).ne.covered .and. fy(i+1,j).ne.covered) then
+          else if (fx(i+1,j-1).eq.covered .and. fy(i,j).ne.covered) then
+          else
+             flg = clear_neighbor(flg,1,-1)
+          end if
+
+          if (fx(i,j).ne.covered .and. fy(i-1,j+1).ne.covered) then
+          else if (fx(i,j+1).ne.covered .and. fy(i,j+1).ne.covered) then
+          else
+             flg = clear_neighbor(flg,-1,1)
+          end if
+
+          if (fx(i+1,j).ne.covered .and. fy(i+1,j+1).ne.covered) then
+          else if (fx(i+1,j+1).ne.covered .and. fy(i,j+1).ne.covered) then
+          else
+             flg = clear_neighbor(flg,1,1)
+          end if
+       end do
+    end do
+
   end subroutine amrex_eb2_build_cells
+
+
+  subroutine amrex_eb2_coarsen_from_fine (lo, hi, xlo, xhi, ylo, yhi, &
+       cvol, cvlo, cvhi, fvol, fvlo, fvhi, ccent, cclo, cchi, fcent, fclo, fchi, &
+       cba, cbalo, cbahi, fba, fbalo, fbahi, cbc, cbclo, cbchi, fbc, fbclo, fbchi, &
+       cbn, cbnlo, cbnhi, fbn, fbnlo, fbnhi, capx, caxlo, caxhi, fapx, faxlo, faxhi, &
+       capy, caylo, cayhi, fapy, faylo, fayhi, &
+       cfcx, cfxlo, cfxhi, ffcx, ffxlo, ffxhi, cfcy, cfylo, cfyhi, ffcy, ffylo, ffyhi, &
+       cflag, cflo, cfhi, fflag, fflo, ffhi) &
+       bind(c, name='amrex_eb2_coarsen_from_fine')
+    integer, dimension(2), intent(in) :: lo, hi, xlo, xhi, ylo, yhi, &
+         cvlo, cvhi,  fvlo, fvhi, cclo, cchi, fclo, fchi, &
+         cbalo, cbahi, fbalo, fbahi, cbclo, cbchi, fbclo, fbchi, &
+         cbnlo, cbnhi, fbnlo, fbnhi, caxlo, caxhi, faxlo, faxhi, &
+         caylo, cayhi, faylo, fayhi, &
+         cfxlo, cfxhi, ffxlo, ffxhi, cfylo, cfyhi, ffylo, ffyhi, &
+         cflo, cfhi, fflo, ffhi
+    real(amrex_real), intent(inout) :: cvol ( cvlo(1): cvhi(1), cvlo(2): cvhi(2))
+    real(amrex_real), intent(in   ) :: fvol ( fvlo(1): fvhi(1), fvlo(2): fvhi(2))
+    real(amrex_real), intent(inout) :: ccent( cclo(1): cchi(1), cclo(2): cchi(2),2)
+    real(amrex_real), intent(in   ) :: fcent( fclo(1): fchi(1), fclo(2): fchi(2),2)
+    real(amrex_real), intent(inout) :: cba  (cbalo(1):cbahi(1),cbalo(2):cbahi(2))
+    real(amrex_real), intent(in   ) :: fba  (fbalo(1):fbahi(1),fbalo(2):fbahi(2))
+    real(amrex_real), intent(inout) :: cbc  (cbclo(1):cbchi(1),cbclo(2):cbchi(2),2)
+    real(amrex_real), intent(in   ) :: fbc  (fbclo(1):fbchi(1),fbclo(2):fbchi(2),2)
+    real(amrex_real), intent(inout) :: cbn  (cbnlo(1):cbnhi(1),cbnlo(2):cbnhi(2),2)
+    real(amrex_real), intent(in   ) :: fbn  (fbnlo(1):fbnhi(1),fbnlo(2):fbnhi(2),2)
+    real(amrex_real), intent(inout) :: capx (caxlo(1):caxhi(1),caxlo(2):caxhi(2))
+    real(amrex_real), intent(in   ) :: fapx (faxlo(1):faxhi(1),faxlo(2):faxhi(2))
+    real(amrex_real), intent(inout) :: capy (caylo(1):cayhi(1),caylo(2):cayhi(2))
+    real(amrex_real), intent(in   ) :: fapy (faylo(1):fayhi(1),faylo(2):fayhi(2))
+    real(amrex_real), intent(inout) :: cfcx (cfxlo(1):cfxhi(1),cfxlo(2):cfxhi(2),2)
+    real(amrex_real), intent(in   ) :: ffcx (ffxlo(1):ffxhi(1),ffxlo(2):ffxhi(2),2)
+    real(amrex_real), intent(inout) :: cfcy (cfylo(1):cfyhi(1),cfylo(2):cfyhi(2),2)
+    real(amrex_real), intent(in   ) :: ffcy (ffylo(1):ffyhi(1),ffylo(2):ffyhi(2),2)
+    integer         , intent(inout) :: cflag( cflo(1): cfhi(1), cflo(2): cfhi(2))
+    integer         , intent(in   ) :: fflag( fflo(1): ffhi(1), fflo(2): ffhi(2))
+
+    integer :: i,j, ii,jj, ftype(2,2)
+    real(amrex_real) :: cvolinv, cbainv, nx, ny, nfac, apinv
+
+
+    do    j = lo(2), hi(2)
+       jj = j*2
+       do i = lo(1), hi(1)
+          ii = i*2
+
+          ftype = get_cell_type(fflag(ii:ii+1,jj:jj+1))
+          if (all(ftype.eq.regular_cell)) then
+             ! nothing to do
+          else if (all(ftype.eq.covered_cell)) then
+             call set_covered_cell(cflag(i,j))
+             cvol(i,j) = zero
+          else
+
+             call set_single_valued_cell(cflag(i,j))
+
+             cvol(i,j) = eighth*sum(fvol(ii:ii+1,jj:jj+1))
+             cvolinv = one/cvol(i,j)
+                
+             ccent(i,j,1) = fourth*cvolinv* &
+                  ( fvol(ii  ,jj  )*(half*fcent(ii  ,jj  ,1)-fourth) &
+                  + fvol(ii+1,jj  )*(half*fcent(ii+1,jj  ,1)+fourth) &
+                  + fvol(ii  ,jj+1)*(half*fcent(ii  ,jj+1,1)-fourth) &
+                  + fvol(ii+1,jj+1)*(half*fcent(ii+1,jj+1,1)+fourth) )
+             ccent(i,j,2) = fourth*cvolinv* &
+                  ( fvol(ii  ,jj  )*(half*fcent(ii  ,jj  ,2)-fourth) &
+                  + fvol(ii+1,jj  )*(half*fcent(ii+1,jj  ,2)-fourth) &
+                  + fvol(ii  ,jj+1)*(half*fcent(ii  ,jj+1,2)+fourth) &
+                  + fvol(ii+1,jj+1)*(half*fcent(ii+1,jj+1,2)+fourth) )
+                
+             cba(i,j) = half*sum(fba(ii:ii+1,jj:jj+1))
+             cbainv = one/cba(i,j)
+                
+             cbc(i,j,1) = half*cbainv* &
+                  ( fba(ii  ,jj  )*(half*fbc(ii  ,jj  ,1)-fourth) &
+                  + fba(ii+1,jj  )*(half*fbc(ii+1,jj  ,1)+fourth) &
+                  + fba(ii  ,jj+1)*(half*fbc(ii  ,jj+1,1)-fourth) &
+                  + fba(ii+1,jj+1)*(half*fbc(ii+1,jj+1,1)+fourth) )
+             cbc(i,j,2) = half*cbainv* &
+                  ( fba(ii  ,jj  )*(half*fbc(ii  ,jj  ,2)-fourth) &
+                  + fba(ii+1,jj  )*(half*fbc(ii+1,jj  ,2)-fourth) &
+                  + fba(ii  ,jj+1)*(half*fbc(ii  ,jj+1,2)+fourth) &
+                  + fba(ii+1,jj+1)*(half*fbc(ii+1,jj+1,2)+fourth) )
+                
+             nx =   fbn(ii  ,jj  ,1)*fba(ii  ,jj  ) &
+                  + fbn(ii+1,jj  ,1)*fba(ii+1,jj  ) &
+                  + fbn(ii  ,jj+1,1)*fba(ii  ,jj+1) &
+                  + fbn(ii+1,jj+1,1)*fba(ii+1,jj+1)
+             ny =   fbn(ii  ,jj  ,2)*fba(ii  ,jj  ) &
+                  + fbn(ii+1,jj  ,2)*fba(ii+1,jj  ) &
+                  + fbn(ii  ,jj+1,2)*fba(ii  ,jj+1) &
+                  + fbn(ii+1,jj+1,2)*fba(ii+1,jj+1)
+             if (nx.eq.zero .and. ny.eq.zero) then
+                call amrex_error("amrex_eb2_coarsen_from_fine: undefined boundary normal")
+             end if
+             nfac = one/sqrt(nx*nx+ny*ny)
+             cbn(i,j,1) = nx*nfac
+             cbn(i,j,2) = ny*nfac
+          end if
+       end do
+    end do
+
+    do    j = xlo(2), xhi(2)
+       jj = j*2
+       do i = xlo(1), xhi(1)
+          ii = i*2
+          
+          capx(i,j) = half*(fapx(ii,jj)+fapx(ii,jj+1))
+          if (capx(i,j) .ne. zero) then
+             apinv = one/capx(i,j)
+             cfcx(i,j,2) = half*apinv* &
+                  ( fapx(ii,jj  )*(half*ffcx(ii,jj  ,2)-fourth) &
+                  + fapx(ii,jj+1)*(half*ffcx(ii,jj+1,2)+fourth) )
+          end if
+       end do
+    end do
+
+    do    j = ylo(2), yhi(2)
+       jj = j*2
+       do i = ylo(1), yhi(1)
+          ii = i*2
+          
+          capy(i,j) = fourth*(fapy(ii,jj)+fapy(ii+1,jj))
+          if (capy(i,j) .ne. zero) then
+             apinv = one/capy(i,j)
+             cfcy(i,j,1) = fourth*apinv* &
+                  ( fapy(ii  ,jj)*(half*ffcy(ii  ,jj,1)-fourth) &
+                  + fapy(ii+1,jj)*(half*ffcy(ii+1,jj,1)+fourth) )
+          end if
+       end do
+    end do
+
+  end subroutine amrex_eb2_coarsen_from_fine
 
 end module amrex_eb2_2d_moudle

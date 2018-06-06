@@ -23,7 +23,6 @@ private:
     int n_cell = 64;
     int max_grid_size = 32;
     int max_coarsening_level = 5;
-    std::string geom_type = "cylinder";
 
     amrex::Geometry geom;
     amrex::BoxArray grids;

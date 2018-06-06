@@ -232,6 +232,12 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
                     });
             }
 
+            // regular by default
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                m_areafrac[idim][mfi].setVal(1.0);
+                m_facecent[idim][mfi].setVal(0.0);
+            }
+
             amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
                                   BL_TO_FORTRAN_ANYD(cellflag),
                                   BL_TO_FORTRAN_ANYD(facetype[0]),
@@ -244,6 +250,13 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
                                   BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
                                   BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
                                   dx, dxinv, problo);
+
+            // regular by default
+            m_volfrac[mfi].setVal(1.0);
+            m_centroid[mfi].setVal(0.0);
+            m_bndryarea[mfi].setVal(0.0);
+            m_bndrycent[mfi].setVal(0.0);
+            m_bndrynorm[mfi].setVal(0.0);
             
             amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
                                   BL_TO_FORTRAN_ANYD(cellflag),
