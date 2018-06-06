@@ -589,9 +589,7 @@ Redistribute()
     thrust::host_vector<int> proc_map(num_grids);
     for (int i = 0; i < num_grids; ++i) proc_map[i] = m_dmap[i];
  
-    std::map<int, StructOfArrays<PIdx::nattribs, 0> > not_ours;
-    std::map<int, std::vector<int> > remote_grids_start;
-    std::map<int, std::vector<int> > remote_grids_stop;
+    std::map<int, Vector<char> > not_ours;
     for (int i = 0; i < num_grids; ++i)
     {
         auto begin = particles_to_redistribute.begin();
@@ -616,20 +614,21 @@ Redistribute()
             const size_t old_size = not_ours[dest_proc].size();
             const size_t new_size = old_size + num_to_add;
             not_ours[dest_proc].resize(new_size);
-            thrust::copy(begin, end, not_ours[dest_proc].begin() + old_size);
-            remote_grids_start[dest_proc].push_back(old_size);
-            remote_grids_stop[dest_proc].push_back(new_size);
+            for (int j = 0; j < PIdx::nattribs; ++j) {
+                const auto& data = particles_to_redistribute.GetRealData(j);
+                thrust::copy(data.data() + start[i],
+                             data.data() + start[j],
+                             not_ours[dest_proc].begin() + old_size);
+            } 
         }
     }
 
-    RedistributeMPI(not_ours, remote_grids_start, remote_grids_stop);
+    RedistributeMPI(not_ours);
 }
 
 void
 ElectromagneticParticleContainer::
-RedistributeMPI(std::map<int, StructOfArrays<PIdx::nattribs, 0> >& not_ours,
-                std::map<int, std::vector<int> >& remote_grids_start,
-                std::map<int, std::vector<int> >& remote_grids_stop) 
+RedistributeMPI(std::map<int, Vector<char> >& not_ours)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
