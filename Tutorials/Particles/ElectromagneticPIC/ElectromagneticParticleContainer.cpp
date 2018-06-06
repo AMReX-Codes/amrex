@@ -598,6 +598,17 @@ Redistribute()
     for (int i = 0; i < num_grids; ++i) proc_map[i] = m_dmap[i];
  
     std::map<int, Vector<char> > not_ours;
+
+    std::map<int, size_t> grid_counts;
+    for (int i = 0; i < num_grids; ++i)
+    {
+        const int dest_proc = proc_map[i];
+        if (dest_proc != ParallelDescriptor::MyProc())
+        {
+            grid_counts[dest_proc] += 1;
+        }
+    }
+
     for (int i = 0; i < num_grids; ++i)
     {
         auto begin = particles_to_redistribute.begin();
@@ -618,13 +629,20 @@ Redistribute()
             m_particles[i].temp.resize(m_particles[i].attribs.size());
         }
         else
-        {
+        {           
+            char* dst;
             const size_t old_size = not_ours[dest_proc].size();
             const size_t new_size 
                 = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
-            not_ours[dest_proc].resize(new_size);
-
-            char* dst = not_ours[dest_proc].data() + old_size;
+            if (old_size == 0) {
+                not_ours[dest_proc].resize(new_size + sizeof(size_t));
+                std::memcpy(not_ours[dest_proc].data(), &grid_counts[dest_proc], sizeof(size_t));
+                dst = not_ours[dest_proc].data() + old_size + sizeof(size_t);
+            } else {
+                not_ours[dest_proc].resize(new_size);
+                dst = not_ours[dest_proc].data() + old_size;
+            } 
+            
             std::memcpy(dst, &num_to_add, sizeof(size_t));
             dst += sizeof(size_t);
             std::memcpy(dst, &i, sizeof(int));
@@ -733,39 +751,45 @@ RedistributeMPI(std::map<int, Vector<char> >& not_ours)
         ParallelDescriptor::Waitall(rreqs, stats);
 
         for (int i = 0; i < nrcvs; ++i) {
-            StructOfArrays<PIdx::nattribs, 0> redistributed_particles;
             const int offset = rOffset[i];
             char* buffer = &recvdata[offset];
-            int num_particles, gid, pid;
-            std::memcpy(&num_particles, buffer, sizeof(size_t)); buffer += sizeof(size_t);
-            std::memcpy(&gid, buffer, sizeof(int)); buffer += sizeof(int);
-            std::memcpy(&pid, buffer, sizeof(int)); buffer += sizeof(int);
-
-            AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
-
-            {
-                const size_t old_size = redistributed_particles.size();
-                const size_t new_size = old_size + num_particles;        
-                redistributed_particles.resize(new_size);
+            size_t num_grids, num_particles;
+            int gid, pid;
+            std::memcpy(&num_grids, buffer, sizeof(size_t)); buffer += sizeof(size_t);
+            for (int g = 0; g < num_grids; ++g) {
+                std::memcpy(&num_particles, buffer, sizeof(size_t)); buffer += sizeof(size_t);
+                std::memcpy(&gid, buffer, sizeof(int)); buffer += sizeof(int);
+                std::memcpy(&pid, buffer, sizeof(int)); buffer += sizeof(int);
                 
-                for (int j = 0; j < PIdx::nattribs; ++j) {
-                    auto& attrib = redistributed_particles.GetRealData(j);
-                    std::memcpy(attrib.data() + old_size, buffer, num_particles*sizeof(Real));
-                    buffer += num_particles*sizeof(Real);
-                }
-            }
+                if (num_particles == 0) continue;
 
-            {
-                const size_t old_size = m_particles[gid].attribs.size();
-                const size_t new_size = old_size + num_particles;
-                m_particles[gid].attribs.resize(new_size);
-                thrust::copy(redistributed_particles.begin(), 
-                             redistributed_particles.end(), 
-                             m_particles[gid].attribs.begin() + old_size);
-                m_particles[gid].temp.resize(m_particles[gid].attribs.size());
+                StructOfArrays<PIdx::nattribs, 0> redistributed_particles;
+
+                AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
+                {
+                    const size_t old_size = redistributed_particles.size();
+                    const size_t new_size = old_size + num_particles;        
+                    redistributed_particles.resize(new_size);
+                    
+                    for (int j = 0; j < PIdx::nattribs; ++j) {
+                        auto& attrib = redistributed_particles.GetRealData(j);
+                        std::memcpy(attrib.data() + old_size, buffer, num_particles*sizeof(Real));
+                        buffer += num_particles*sizeof(Real);
+                    }
+                }
+            
+                {
+                    const size_t old_size = m_particles[gid].attribs.size();
+                    const size_t new_size = old_size + num_particles;
+                    m_particles[gid].attribs.resize(new_size);
+                    thrust::copy(redistributed_particles.begin(),
+                                 redistributed_particles.end(),
+                                 m_particles[gid].attribs.begin() + old_size);
+                    m_particles[gid].temp.resize(m_particles[gid].attribs.size());
+                }
             }
         }
     }
-       
+        
 #endif // MPI
 }
