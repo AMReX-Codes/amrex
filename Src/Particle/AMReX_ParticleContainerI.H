@@ -1315,6 +1315,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               for (int comp = 0; comp < NArrayInt; comp++)
                                   soa.GetIntData(comp)[first] = soa.GetIntData(comp)[pindex];
                           }
+                          ++first;
                       }
 		      //		      BL_PROFILE_VAR_STOP(blp_partition);
                   }
