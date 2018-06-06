@@ -144,6 +144,8 @@ Level::coarsenFromFine (Level& fineLevel)
     // xxxxx todo
     // multivalue and multicut detection
     // celflag neighbors
+
+    m_valid = true;
 }
 
 void

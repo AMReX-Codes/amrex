@@ -96,14 +96,20 @@ MyTest::initializeEB2 ()
 
     if (geom_type == "combustor")
     {
-        EB2::PlaneIF farwall({0.45,0.,0.}, {1.,0.,0.});
-        auto ramp = EB2::makeIntersection(EB2::PlaneIF({0.25, 0.75, 0.}, {0. , -1. , 0.}),
-                                          EB2::PlaneIF({0.25, 0.75, 0.}, {.69, -.19, 0.}),
-                                          EB2::PlaneIF({0.06, 0.  , 0.}, {1. ,  0. , 0.}));
-        EB2::BoxIF pipe({0.06, -1.0, -100.0}, {0.08, 0.5, 100.0}, false);
-        EB2::BoxIF flat_corner({0.05999, -1.0, -100.0}, {1.0, 0.26, 100.0}, false);
+        EB2::PlaneIF farwall({AMREX_D_DECL(0.45,0.,0.)},
+                             {AMREX_D_DECL(1.  ,0.,0.)});
+        auto ramp = EB2::makeIntersection(EB2::PlaneIF({AMREX_D_DECL(0.25, 0.75, 0.)},
+                                                       {AMREX_D_DECL(0.  , -1. , 0.)}),
+                                          EB2::PlaneIF({AMREX_D_DECL(0.25, 0.75, 0.)},
+                                                       {AMREX_D_DECL(.69 , -.19, 0.)}),
+                                          EB2::PlaneIF({AMREX_D_DECL(0.06, 0.  , 0.)},
+                                                       {AMREX_D_DECL(1.  , 0.  , 0.)}));
+        EB2::BoxIF pipe({AMREX_D_DECL(0.06, -1.0, -100.0)},
+                        {AMREX_D_DECL(0.08, 0.5, 100.0)}, false);
+        EB2::BoxIF flat_corner({AMREX_D_DECL(0.05999, -1.0, -100.0)},
+                               {AMREX_D_DECL(1.0, 0.26, 100.0)}, false);
         auto polys = EB2::makeUnion(farwall, ramp, pipe, flat_corner);
-        auto pr = EB2::translate(EB2::lathe(polys), {0.5,0.5,0.});
+        auto pr = EB2::translate(EB2::lathe(polys), {AMREX_D_DECL(0.5,0.5,0.)});
 
         auto gshop = EB2::makeShop(pr);
         EB2::Initialize(gshop, geom, info);
