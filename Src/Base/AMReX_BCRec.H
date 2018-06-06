@@ -88,7 +88,7 @@ private:
 };
 
 #if AMREX_USE_CUDA
-   using BCRecVector = Vector<BCRec, CudaManagedAllocator<BCRec>>;
+   using BCRecVector = Vector<BCRec, CudaHostAllocator<BCRec>>;
 #else
    using BCRecVector = Vector<BCRec>;
 #endif
