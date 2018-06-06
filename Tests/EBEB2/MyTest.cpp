@@ -21,6 +21,7 @@
 #include <AMReX_VisMF.H>
 
 #include <cmath>
+#include <algorithm>
 
 using namespace amrex;
 
@@ -50,6 +51,8 @@ MyTest::readParameters ()
     ParmParse pp;
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
+    pp.query("max_coarsening_level", max_coarsening_level);
+    max_coarsening_level = std::max(max_coarsening_level, 0);
 }
 
 void
@@ -88,7 +91,7 @@ MyTest::initializeEB2 ()
     pp.get("geom_type", geom_type);
     
     EB2::Info info;
-    info.setMaxCoarseningLevel(0)
+    info.setMaxCoarseningLevel(max_coarsening_level)
         .setMaxGridSize(max_grid_size);
 
     if (geom_type == "combustor")

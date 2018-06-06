@@ -15,21 +15,16 @@ public:
 
     GFab () = default;
 
-    static constexpr int ngrow_levelset = 2;
-    static constexpr int ngrow_celltype = 2;
-    static constexpr int ngrow_facetype = 1;
-    static constexpr int ngrow_edgetype = 1;
+    static constexpr int ng = 2;
 
     void define(const Box& vbx) {
         m_validbox = vbx;
-        const Box& bxg1 = amrex::grow(vbx,1);
-        const Box& bxg2 = amrex::grow(vbx,2);
+        const Box& bxg2 = amrex::grow(vbx,ng);
         m_levelset.resize(amrex::surroundingNodes(bxg2));
-        m_celltype.resize(bxg2,1);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            m_facetype[idim].resize(amrex::convert(bxg1,IntVect::TheDimensionVector(idim)));
+            m_facetype[idim].resize(amrex::convert(bxg2,IntVect::TheDimensionVector(idim)));
 #if (AMREX_SPACEDIM == 3)
-            m_edgetype[idim].resize(amrex::convert(bxg1,IntVect::TheNodeVector()
+            m_edgetype[idim].resize(amrex::convert(bxg2,IntVect::TheNodeVector()
                                                        -IntVect::TheDimensionVector(idim)));
 #endif
         }
@@ -39,9 +34,6 @@ public:
 
     const BaseFab<Real>& getLevelSet () const { return m_levelset; }
     BaseFab<Real>& getLevelSet () { return m_levelset; }
-
-    const EBCellFlagFab& getCellType () const { return m_celltype; }
-    EBCellFlagFab& getCellType () { return m_celltype; }
 
     const Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getFaceType () const { return m_facetype; }
     Array<BaseFab<Type_t>,AMREX_SPACEDIM>& getFaceType () { return m_facetype; }
@@ -54,13 +46,12 @@ public:
     const Graph& getGraph () const { return m_graph; }
     Graph& getGraph () { return m_graph; }
 
-    void buildTypes ();
+    void buildTypes (EBCellFlagFab& celltype);
 
 private:
 
     Box m_validbox;
     BaseFab<Real> m_levelset;
-    EBCellFlagFab m_celltype;
     Array<BaseFab<Type_t>, AMREX_SPACEDIM> m_facetype;
 #if (AMREX_SPACEDIM == 3)
     Array<BaseFab<Type_t>, AMREX_SPACEDIM> m_edgetype;
