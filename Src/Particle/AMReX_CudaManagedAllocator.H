@@ -3,6 +3,8 @@
 
 #if CUDA
 
+namespace amrex {
+
 #include <cuda.h>
 #include <driver_types.h>
 #include <cuda_runtime.h>
@@ -62,6 +64,8 @@ public :
     inline bool operator==(CudaManagedAllocator const&)   { return true; }
     inline bool operator!=(CudaManagedAllocator const& a) { return !operator==(a); }
 };
+
+}
 
 #endif // CUDA
 #endif // CUDAMANAGEDALLOCATOR_H_
