@@ -54,3 +54,6 @@ RUN mkdir -p rt-WarpX/WarpX-benchmarks \
     && cd warpx/Regression \
     && python prepare_file_shippable.py \
     && cp shippable-tests.ini ../../rt-WarpX
+
+ENV FFTW_HOME /usr/
+ENV OMP_NUM_THREADS 2
