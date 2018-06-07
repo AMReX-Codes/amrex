@@ -72,17 +72,17 @@ MCMultiGrid::Initialize ()
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-	std::cout << "def_nu_0         = " << def_nu_0         << '\n';
-	std::cout << "def_nu_1         = " << def_nu_1         << '\n';
-	std::cout << "def_nu_2         = " << def_nu_2         << '\n';
-	std::cout << "def_nu_f         = " << def_nu_f         << '\n';
-	std::cout << "def_maxiter      = " << def_maxiter      << '\n';
-	std::cout << "def_usecg        = " << def_usecg        << '\n';
-	std::cout << "def_rtol_b       = " << def_rtol_b       << '\n';
-	std::cout << "def_atol_b       = " << def_atol_b       << '\n';
-	std::cout << "def_nu_b         = " << def_nu_b         << '\n';
-	std::cout << "def_numLevelsMAX = " << def_numLevelsMAX << '\n';
-	std::cout << "def_verbose      = " << def_verbose      << '\n';
+	amrex::OutStream() << "def_nu_0         = " << def_nu_0         << '\n'
+                           << "def_nu_1         = " << def_nu_1         << '\n'
+                           << "def_nu_2         = " << def_nu_2         << '\n'
+                           << "def_nu_f         = " << def_nu_f         << '\n'
+                           << "def_maxiter      = " << def_maxiter      << '\n'
+                           << "def_usecg        = " << def_usecg        << '\n'
+                           << "def_rtol_b       = " << def_rtol_b       << '\n'
+                           << "def_atol_b       = " << def_atol_b       << '\n'
+                           << "def_nu_b         = " << def_nu_b         << '\n'
+                           << "def_numLevelsMAX = " << def_numLevelsMAX << '\n'
+                           << "def_verbose      = " << def_verbose      << '\n';
     }
 
     amrex::ExecOnFinalize(MCMultiGrid::Finalize);
@@ -147,22 +147,22 @@ MCMultiGrid::MCMultiGrid (MCLinOp &_lp)
     if ( ParallelDescriptor::IOProcessor() && (verbose > 2) )
     {
 	BoxArray tmp = Lp.boxArray();
-	std::cout << "MCMultiGrid: numlevels = " << numlevels 
-		  << ": ngrid = " << tmp.size() << ", npts = [";
+	amrex::OutStream() << "MCMultiGrid: numlevels = " << numlevels 
+                           << ": ngrid = " << tmp.size() << ", npts = [";
 	for ( int i = 0; i < numlevels; ++i ) 
         {
 	    if ( i > 0 ) tmp.coarsen(2);
-	    std::cout << tmp.d_numPts() << " ";
+	    amrex::OutStream() << tmp.d_numPts() << " ";
         }
-	std::cout << "]" << '\n';
+	amrex::OutStream() << "]" << '\n';
 
-	std::cout << "MCMultiGrid: " << numlevels
-	     << " multigrid levels created for this solve" << '\n';
+	amrex::OutStream() << "MCMultiGrid: " << numlevels
+                           << " multigrid levels created for this solve" << '\n';
     }
 
     if ( ParallelDescriptor::IOProcessor() && (verbose > 4) )
     {
-	std::cout << "Grids: " << '\n';
+	amrex::OutStream() << "Grids: " << '\n';
 	BoxArray tmp = Lp.boxArray();
 	for (int i = 0; i < numlevels; ++i)
 	{
@@ -170,14 +170,14 @@ MCMultiGrid::MCMultiGrid (MCLinOp &_lp)
             const DistributionMapping& map = Lp.bndryData().bndryValues(face).DistributionMap();
 	    if (i > 0)
 		tmp.coarsen(2);
-	    std::cout << " Level: " << i << '\n';
+	    amrex::OutStream() << " Level: " << i << '\n';
 	    for (int k = 0; k < tmp.size(); k++)
 	    {
 		const Box& b = tmp[k];
-		std::cout << "  [" << k << "]: " << b << "   ";
+		amrex::OutStream() << "  [" << k << "]: " << b << "   ";
 		for (int j = 0; j < BL_SPACEDIM; j++)
-		    std::cout << b.length(j) << ' ';
-                std::cout << ":: " << map[k] << '\n';
+		    amrex::OutStream() << b.length(j) << ' ';
+                amrex::OutStream() << ":: " << map[k] << '\n';
 	    }
 	}
     }
@@ -294,16 +294,16 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 
   if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
   {
-      Spacer(std::cout, level);
-      std::cout << "MCMultiGrid: Initial rhs                = " << norm_rhs << '\n';
-      std::cout << "MCMultiGrid: Initial error (error0)     = " << error0 << '\n';
+      Spacer(amrex::OutStream(), level);
+      amrex::OutStream() << "MCMultiGrid: Initial rhs                = " << norm_rhs << '\n'
+                         << "MCMultiGrid: Initial error (error0)     = " << error0 << '\n';
   }
   
   if ( ParallelDescriptor::IOProcessor() && eps_rel < 1.0e-16 && eps_rel > 0 )
   {
-      std::cout << "MCMultiGrid: Tolerance "
-                << eps_rel
-                << " < 1e-16 is probably set too low" << '\n';
+      amrex::OutStream() << "MCMultiGrid: Tolerance "
+                         << eps_rel
+                         << " < 1e-16 is probably set too low" << '\n';
   }
   //
   // Initialize correction to zero at this level (auto-filled at levels below)
@@ -330,11 +330,11 @@ MCMultiGrid::solve_ (MultiFab& _sol,
     if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
     {
       const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
-      Spacer(std::cout, level);
-      std::cout << "MCMultiGrid: Iteration   "
-                << nit
-                << " error/error0 = "
-                << rel_error << '\n';
+      Spacer(amrex::OutStream(), level);
+      amrex::OutStream() << "MCMultiGrid: Iteration   "
+                         << nit
+                         << " error/error0 = "
+                         << rel_error << '\n';
     }
   }
 
@@ -344,11 +344,11 @@ MCMultiGrid::solve_ (MultiFab& _sol,
       if ( ParallelDescriptor::IOProcessor() )
       {
           const Real rel_error = (error0 != 0) ? error/error0 : 0;
-          Spacer(std::cout, level);
-          std::cout << "MCMultiGrid: Final Iter. "
-                    << nit-1
-                    << " error/error0 = "
-                    << rel_error;
+          Spacer(amrex::OutStream(), level);
+          amrex::OutStream() << "MCMultiGrid: Final Iter. "
+                             << nit-1
+                             << " error/error0 = "
+                             << rel_error;
       }
 
       if ( verbose > 1 )
@@ -356,8 +356,7 @@ MCMultiGrid::solve_ (MultiFab& _sol,
         
         ParallelDescriptor::ReduceRealMax(run_time);
 
-        if ( ParallelDescriptor::IOProcessor() )
-          std::cout << ", Solve time: " << run_time << '\n';
+        amrex::Print() << ", Solve time: " << run_time << '\n';
       }
   }
 
@@ -365,11 +364,11 @@ MCMultiGrid::solve_ (MultiFab& _sol,
   {
     if ( error < eps_rel*norm_rhs )
     {
-      std::cout << "   Converged res < eps_rel*bnorm\n";
+      amrex::OutStream() << "   Converged res < eps_rel*bnorm\n";
     } 
     else if ( error < eps_abs )
     {
-      std::cout << "   Converged res < eps_abs\n";
+      amrex::OutStream() << "   Converged res < eps_abs\n";
     }
   }
   //

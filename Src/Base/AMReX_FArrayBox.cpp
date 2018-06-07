@@ -382,7 +382,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         fio = new FABio_binary(FPC::Native32RealDescriptor().clone());
         break;
     default:
-        std::cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
+        amrex::ErrorStream() << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
         amrex::Abort();
     }
 
@@ -499,7 +499,7 @@ FArrayBox::Initialize ()
         }
         else
         {
-            std::cerr << "FArrayBox::init(): Bad FABio::Format = " << fmt;
+            amrex::ErrorStream() << "FArrayBox::init(): Bad FABio::Format = " << fmt;
             amrex::Abort();
         }
 
@@ -530,7 +530,7 @@ FArrayBox::Initialize ()
             FArrayBox::setOrdering(FABio::FAB_REVERSE_ORDER_2);
         else
         {
-            std::cerr << "FArrayBox::init(): Bad FABio::Ordering = " << ord;
+            amrex::ErrorStream() << "FArrayBox::init(): Bad FABio::Ordering = " << ord;
             amrex::Abort();
         }
     }
@@ -801,7 +801,7 @@ FABio_ascii::read (std::istream& is,
     for(p = sm; p <= bg; bx.next(p)) {
         is >> q;
         if(p != q) {
-          std::cerr << "Error: read IntVect "
+          amrex::ErrorStream() << "Error: read IntVect "
                     << q
                     << "  should be "
                     << p

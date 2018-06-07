@@ -49,8 +49,9 @@ MCLinOp::Initialize ()
     pp.query("v",       def_verbose);
     pp.query("maxorder",def_maxorder);
 
-    if (ParallelDescriptor::IOProcessor() && def_verbose)
-	std::cout << "def_harmavg = " << def_harmavg << '\n';
+    if (ParallelDescriptor::IOProcessor() && def_verbose) {
+        amrex::Print() << "def_harmavg = " << def_harmavg << '\n';
+    }
 
     amrex::ExecOnFinalize(MCLinOp::Finalize);
 

@@ -1141,7 +1141,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
             sum_wgt += W;
         }
 
-        std::cout << "SFC efficiency: " << (sum_wgt/(nteams*max_wgt)) << '\n';
+        amrex::Print() << "SFC efficiency: " << (sum_wgt/(nteams*max_wgt)) << '\n';
     }
 }
 

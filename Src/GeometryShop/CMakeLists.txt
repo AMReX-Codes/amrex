@@ -25,6 +25,7 @@ list ( APPEND ALLHEADERS AMReX_CH_EBIS_ORDER.H	      AMReX_EBGraph.H			 AMReX_Ge
 list ( APPEND ALLHEADERS AMReX_CellEdge.H	      AMReX_EBISBox.H			 AMReX_GeometryService.H	      AMReX_LoHiSide.H	       AMReX_STLAsciiReader.H                                    )
 list ( APPEND ALLHEADERS AMReX_ComplementIF.H	      AMReX_EBISLayout.H		 AMReX_GeometryShop.H		      AMReX_MetaPrograms.H     AMReX_STLBox.H                                            )
 list ( APPEND ALLHEADERS AMReX_ConstrainedLS.H	      AMReX_EBISLevel.H			 AMReX_GraphNode.H		      AMReX_MinimalCCCM.H      AMReX_STLExplorer.H                                       )    
+list ( APPEND ALLHEADERS AMReX_CoveredSlabs.H )
 
 
 
@@ -40,6 +41,7 @@ list ( APPEND CXXSRC AMReX_EBData.cpp	             AMReX_EBLoHiCenter.cpp		    A
 list ( APPEND CXXSRC AMReX_EBDebugOut.cpp	     AMReX_EBNormalizeByVolumeFraction.cpp  AMReX_IFData.cpp		  AMReX_MinimalCCCM.cpp       AMReX_STLMesh.cpp		AMReX_WrappedGShop.cpp       )
 list ( APPEND CXXSRC AMReX_EBFaceFAB.cpp	     AMReX_Ellipsoid.cpp		    AMReX_IFSlicer.cpp		  AMReX_Moments.cpp	      AMReX_STLUtil.cpp		AMReX_ZCylinder.cpp          )
 list ( APPEND CXXSRC AMReX_EBFluxFAB.cpp	     AMReX_EllipsoidIF.cpp		    AMReX_IntVectSet.cpp	  AMReX_NormalDerivative.cpp                                    )    
+list ( APPEND CXXSRC AMReX_CoveredSlabs.cpp )
 
 # 
 #  Collect sources
