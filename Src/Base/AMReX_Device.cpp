@@ -15,6 +15,8 @@ cudaStream_t amrex::Device::cuda_streams[max_cuda_streams];
 cudaStream_t amrex::Device::cuda_stream;
 
 dim3 amrex::Device::numThreadsMin = dim3(1, 1, 1);
+
+cudaDeviceProp amrex::Device::device_prop;
 #endif
 
 void
@@ -24,6 +26,9 @@ amrex::Device::initialize_cuda_c () {
         CudaAPICheck(cudaStreamCreate(&cuda_streams[i]));
 
     cuda_stream = cuda_streams[0];
+
+    cudaGetDeviceProperties(&device_prop, device_id);
+
 }
 
 cudaStream_t
