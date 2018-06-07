@@ -416,6 +416,10 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
   do ip = 1, np
 #endif
      
+     bx(ip) = 0.d0
+     by(ip) = 0.d0
+     bz(ip) = 0.d0
+
      x = (xp(ip)-plo(1))*dxi
      y = (yp(ip)-plo(2))*dyi
      z = (zp(ip)-plo(3))*dzi
@@ -538,6 +542,10 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
   do ip = 1, np
 #endif
      
+     ex(ip) = 0.d0
+     ey(ip) = 0.d0
+     ez(ip) = 0.d0
+
      x = (xp(ip)-plo(1))*dxi
      y = (yp(ip)-plo(2))*dyi
      z = (zp(ip)-plo(3))*dzi
