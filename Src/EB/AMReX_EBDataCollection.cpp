@@ -4,6 +4,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiCutFab.H>
 
+#include <AMReX_EB2_Level.H>
+
 namespace amrex {
 
 EBDataCollection::EBDataCollection (const Geometry& a_geom,
@@ -30,8 +32,8 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
             m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
             EBTower::fillVolFrac(*m_volfrac, m_geom);
 
-//            m_centroid = new MultiCutFab(a_ba, a_dm, 3, m_ngrow[1], *m_cellflags);
-//            EBTower::fillCentroid(*m_centroid, m_geom);
+            m_centroid = new MultiCutFab(a_ba, a_dm, 3, m_ngrow[1], *m_cellflags);
+            EBTower::fillCentroid(*m_centroid, m_geom);
         }
 
         if (m_support == EBSupport::full)
@@ -49,11 +51,25 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
     }
 }
 
+EBDataCollection::EBDataCollection (const EB2::Level& a_level,
+                                    const Geometry& a_geom,
+                                    const BoxArray& a_ba_in,
+                                    const DistributionMapping& a_dm,
+                                    const Vector<int>& a_ngrow, EBSupport a_support)
+    : m_ngrow(a_ngrow),
+      m_support(a_support),
+      m_geom(a_geom)
+{
+    if (m_support >= EBSupport::basic)
+    {
+    }
+}
+
 EBDataCollection::~EBDataCollection ()
 {
     delete m_cellflags;
     delete m_volfrac;
-//    delete m_centroid;
+    delete m_centroid;
     delete m_bndrycent;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         delete m_areafrac[idim];
@@ -75,12 +91,12 @@ EBDataCollection::getVolFrac () const
     return *m_volfrac;
 }
 
-// const MultiCutFab&
-// EBDataCollection::getCentroid () const
-// {
-//     AMREX_ASSERT(m_centroid != nullptr);
-//     return *m_centroid;
-// }
+const MultiCutFab&
+EBDataCollection::getCentroid () const
+{
+    AMREX_ASSERT(m_centroid != nullptr);
+    return *m_centroid;
+}
 
 const MultiCutFab&
 EBDataCollection::getBndryCent () const

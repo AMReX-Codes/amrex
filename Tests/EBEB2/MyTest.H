@@ -27,7 +27,8 @@ private:
     amrex::Geometry geom;
     amrex::BoxArray grids;
     amrex::DistributionMapping dmap;
-//    std::unique_ptr<amrex::EBFArrayBoxFactory> factory;
+    std::unique_ptr<amrex::EBFArrayBoxFactory> old_factory;
+    std::unique_ptr<amrex::EBFArrayBoxFactory> new_factory;
 };
 
 #endif
