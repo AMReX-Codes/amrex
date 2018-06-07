@@ -115,7 +115,7 @@ EBTower::EBTower ()
             m_centroid[lev].define(ba, dm, AMREX_SPACEDIM, 0, m_cellflags[lev]);
             initVolumeGeometry(lev, eblg);
 
-            m_bndrycent[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
+            m_bndrycent[lev].define(ba, dm, AMREX_SPACEDIM, 0, m_cellflags[lev]);
             initBndryCent(lev, eblg);
             
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -518,7 +518,7 @@ EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
 void
 EBTower::fillCentroid (MultiCutFab& a_centroid, const Geometry& a_geom)
 {
-    BL_PROFILE("EBTower::fillBndryCent()");
+    BL_PROFILE("EBTower::fillCentroid()");
     
     const Box& domain = a_geom.Domain();
     

@@ -39,7 +39,7 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
         if (m_support == EBSupport::full)
         {
             const int ng = m_ngrow[2];
-            m_bndrycent = new MultiCutFab(a_ba, a_dm, 3, ng, *m_cellflags);
+            m_bndrycent = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
             EBTower::fillBndryCent(*m_bndrycent, m_geom);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
