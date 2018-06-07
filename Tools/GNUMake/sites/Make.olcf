@@ -51,15 +51,6 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
     FC  := mpifort
     F90 := mpifort
 
-    # If we're using CUDA, make sure that the C/C++ MPI
-    # wrappers are calling nvcc to compile the code.
-    # This is OpenMPI/Spectrum MPI specific.
-
-    ifeq ($(USE_CUDA),TRUE)
-      OMPI_CC := nvcc
-      OMPI_CXX := nvcc
-    endif
-
     LIBRARIES += -lmpi_ibm_mpifh
 
   endif
@@ -91,15 +82,6 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
     CXX := mpicxx
     FC  := mpif90
     F90 := mpif90
-
-    # If we're using CUDA, make sure that the C/C++ MPI
-    # wrappers are calling nvcc to compile the code.
-    # This is OpenMPI/Spectrum MPI specific.
-
-    ifeq ($(USE_CUDA),TRUE)
-      OMPI_CC := nvcc
-      OMPI_CXX := nvcc
-    endif
 
     LIBRARIES += -lmpi_ibm_mpifh
 
