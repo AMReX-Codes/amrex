@@ -1,4 +1,5 @@
 amrex.fpe_trap_invalid=1
+eb2.compare_with_ch_eb=1
 
 n_cell = 64
 max_grid_size = 32
