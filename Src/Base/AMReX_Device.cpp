@@ -378,7 +378,8 @@ amrex::Device::mem_advise_set_preferred(void* p, const std::size_t sz, const int
 
 #ifdef AMREX_USE_CUDA
 #ifndef NO_CUDA_8
-    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
+    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+        CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
 #endif
 #endif
 
@@ -389,7 +390,8 @@ amrex::Device::mem_advise_set_readonly(void* p, const std::size_t sz) {
 
 #ifdef AMReX_USE_CUDA
 #ifndef NO_CUDA_8
-    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+        CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
 #endif
 #endif
 
