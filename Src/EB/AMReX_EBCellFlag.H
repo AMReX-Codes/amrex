@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <iostream>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabFactory.H>
@@ -79,6 +80,13 @@ public:
         return (flag & one_type_mask) == covered_bits;
     }
 
+    bool isConnected (const IntVect& iv) const {
+        int i=0, j=0, k=0;
+        AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
+        const int n = pos_ngbr[k+1][j+1][i+1];
+        return flag & (1 << n);
+    }
+
     void setDisconnected () {
         flag &= one_lower_mask;
     }
@@ -101,7 +109,7 @@ public:
         flag |= 1 << n;
     }
 
-    uint32_t  getValue() const
+    uint32_t getValue() const
     {
       return flag;
     }
@@ -177,6 +185,8 @@ private:
     FabType m_type = FabType::undefined;
     Box m_region;
 };
+
+std::ostream& operator<< (std::ostream& os, const EBCellFlag& flag);
 
 }
 

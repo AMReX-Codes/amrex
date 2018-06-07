@@ -24,6 +24,7 @@ class Level
 public:
 
     bool isValid () const { return m_valid; }
+    void fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const;
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
 
 protected:

@@ -23,8 +23,8 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
         // The BoxArray argument may not be cell-centered BoxArray.
         const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());
 
-        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0],
-                                                  MFInfo(), DefaultFabFactory<EBCellFlagFab>());
+        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
+                                                  DefaultFabFactory<EBCellFlagFab>());
         EBTower::fillEBCellFlag(*m_cellflags, m_geom);
 
         if (m_support >= EBSupport::volume)
@@ -62,6 +62,22 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 {
     if (m_support >= EBSupport::basic)
     {
+        // The BoxArray argument may not be cell-centered BoxArray.
+        const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());
+
+        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
+                                                  DefaultFabFactory<EBCellFlagFab>());
+        a_level.fillEBCellFlag(*m_cellflags, m_geom);
+
+        if (m_support >= EBSupport::volume)
+        {
+            m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
+            a_level.fillVolFrac(*m_volfrac, m_geom);
+
+//            m_centroid = new MultiCutFab(a_ba, a_dm, 3, m_ngrow[1], *m_cellflags);
+//            EBTower::fillCentroid(*m_centroid, m_geom);
+        }
+
     }
 }
 
