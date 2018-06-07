@@ -7,13 +7,31 @@
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX.H>
 
 namespace amrex { namespace EB2 {
 
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
+int max_grid_size = 64;
+bool compare_with_eb = false;
+
+void Initialize ()
+{
+    ParmParse pp("eb2");
+    pp.query("max_grid_size", max_grid_size);
+    pp.query("compare_with_eb", compare_with_eb);
+
+    amrex::ExecOnFinalize(Finalize);
+}
+
+void Finalize ()
+{
+    IndexSpace::clear();
+}
+
 void
-Initialize (const Geometry& geom, const Info& info)
+Build (const Geometry& geom, int max_coarsening_level)
 {
     ParmParse pp("eb2");
     std::string geom_type;
@@ -35,7 +53,7 @@ Initialize (const Geometry& geom, const Info& info)
         EB2::BoxIF bf(lo, hi, has_fluid_inside);
 
         EB2::GeometryShop<EB2::BoxIF> gshop(bf);
-        EB2::Initialize(gshop, geom, info);
+        EB2::Build(gshop, geom, max_coarsening_level);
     }
     else if (geom_type == "cylinder")
     {
@@ -62,7 +80,7 @@ Initialize (const Geometry& geom, const Info& info)
         EB2::CylinderIF cf(radius, height, direction, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::CylinderIF> gshop(cf);
-        EB2::Initialize(gshop, geom, info);
+        EB2::Build(gshop, geom, max_coarsening_level);
     }
     else if (geom_type == "plane")
     {
@@ -77,7 +95,7 @@ Initialize (const Geometry& geom, const Info& info)
         EB2::PlaneIF pf(point, normal);
 
         EB2::GeometryShop<EB2::PlaneIF> gshop(pf);
-        EB2::Initialize(gshop, geom, info);
+        EB2::Build(gshop, geom, max_coarsening_level);
     }
     else if (geom_type == "sphere")
     {
@@ -96,7 +114,7 @@ Initialize (const Geometry& geom, const Info& info)
         EB2::SphereIF sf(radius, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::SphereIF> gshop(sf);
-        EB2::Initialize(gshop, geom, info);
+        EB2::Build(gshop, geom, max_coarsening_level);
     }
     else
     {

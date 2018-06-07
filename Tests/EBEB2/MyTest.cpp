@@ -39,7 +39,6 @@ MyTest::~MyTest ()
 {
     old_factory.reset();
     new_factory.reset();
-    EB2::Finalize();
     AMReX_EBIS::reset();
     EBTower::Destroy();
 }
@@ -94,10 +93,6 @@ MyTest::initializeEB2 ()
     std::string geom_type;
     pp.get("geom_type", geom_type);
     
-    EB2::Info info;
-    info.setMaxCoarseningLevel(max_coarsening_level)
-        .setMaxGridSize(max_grid_size);
-
     if (geom_type == "combustor")
     {
         EB2::PlaneIF farwall({AMREX_D_DECL(0.45,0.,0.)},
@@ -116,11 +111,11 @@ MyTest::initializeEB2 ()
         auto pr = EB2::translate(EB2::lathe(polys), {AMREX_D_DECL(0.5,0.5,0.)});
 
         auto gshop = EB2::makeShop(pr);
-        EB2::Initialize(gshop, geom, info);
+        EB2::Build(gshop, geom, max_coarsening_level);
     }
     else
     {
-        EB2::Initialize(geom, info);
+        EB2::Build(geom, max_coarsening_level);
     }
 
     const EB2::IndexSpace& index_space = EB2::IndexSpace::top();
