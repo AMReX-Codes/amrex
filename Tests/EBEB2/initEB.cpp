@@ -40,18 +40,13 @@ MyTest::initializeEB ()
         GeometryShop gshop(sif, false);
         const Real* dx = geom.CellSize();
         AMReX_EBIS::instance()->define(geom.Domain(), RealVect::Zero, dx[0], gshop,
-                                       max_grid_size, 0);
+                                       max_grid_size, max_coarsening_level);
     }
     else
     {
-        return;
         amrex::Abort("geom_type "+geom_type+ " not supported in Mytest::initializeEB");
     }
 
-
     EBTower::Build();
-    EBFArrayBoxFactory factory(geom, grids, dmap, {1, 1, 1}, EBSupport::full);
-
-    const MultiFab& vfrc = factory.getVolFrac();
-    VisMF::Write(vfrc, "vfrc-old");
+    old_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap, {1, 1, 1}, EBSupport::full));
 }

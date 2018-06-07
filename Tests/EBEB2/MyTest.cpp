@@ -28,7 +28,7 @@ MyTest::MyTest ()
 
     initGrids();
 
-//    initializeEB();
+    initializeEB();
 
     initializeEB2();
 
@@ -37,6 +37,8 @@ MyTest::MyTest ()
 
 MyTest::~MyTest ()
 {
+    old_factory.reset();
+    new_factory.reset();
     EB2::Finalize();
     AMReX_EBIS::reset();
     EBTower::Destroy();
@@ -76,6 +78,11 @@ MyTest::initData ()
 void
 MyTest::test ()
 {
+    const MultiFab& vfrc_old = old_factory->getVolFrac();
+    VisMF::Write(vfrc_old, "vfrc-old");
+
+    const MultiFab& vfrc_new = new_factory->getVolFrac();
+    VisMF::Write(vfrc_new, "vfrc-new");
 }
 
 void
@@ -116,10 +123,9 @@ MyTest::initializeEB2 ()
         EB2::Initialize(geom, info);
     }
 
-    MultiFab vfrc(grids, dmap, 1, 1);
-    const EB2::Level& eb2_level = EB2::getLevel(geom);
-    eb2_level.fillVolFrac(vfrc, geom);
+    const EB2::IndexSpace& index_space = EB2::IndexSpace::top();
+    const EB2::Level& eb_level = index_space.getLevel(geom);
 
-    VisMF::Write(vfrc, "vfrc-new");
+    new_factory.reset(new EBFArrayBoxFactory(eb_level, geom, grids, dmap, {1, 1, 1}, EBSupport::full));
 }
 
