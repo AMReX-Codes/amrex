@@ -18,6 +18,8 @@ dim3 amrex::Device::numThreadsMin = dim3(1, 1, 1);
 
 dim3 amrex::Device::numThreadsOverride = dim3(1, 1, 1);
 dim3 amrex::Device::numBlocksOverride = dim3(1, 1, 1);
+
+cudaDeviceProp amrex::Device::device_prop;
 #endif
 
 void
@@ -53,6 +55,8 @@ amrex::Device::initialize_cuda_c () {
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
     numBlocksOverride.z = (int) nz;
+
+    cudaGetDeviceProperties(&device_prop, device_id);
 
 }
 

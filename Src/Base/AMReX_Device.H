@@ -173,6 +173,8 @@ private:
     static dim3 numThreadsMin;
 
     static dim3 numBlocksOverride, numThreadsOverride;
+
+    static cudaDeviceProp device_prop;
 #endif
 };
 
