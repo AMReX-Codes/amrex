@@ -112,7 +112,7 @@ EBTower::EBTower ()
             initCellFlags(lev, eblg);
 
             m_volfrac[lev].define(ba, dm, 1, 0, MFInfo(), FArrayBoxFactory());
-            m_centroid[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
+            m_centroid[lev].define(ba, dm, AMREX_SPACEDIM, 0, m_cellflags[lev]);
             initVolumeGeometry(lev, eblg);
 
             m_bndrycent[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
@@ -171,7 +171,7 @@ EBTower::initVolumeGeometry (int lev, const EBLevelGrid& eblg)
         vfab.setVal(1.0, bx, 0, 1);
 
         auto& cfab = centroid[mfi];
-        cfab.setVal(0.0, bx, 0, 3);
+        cfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
 
         const EBISBox& ebisbox = ebisl[mfi];
         

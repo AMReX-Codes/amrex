@@ -28,11 +28,11 @@ MyTest::MyTest ()
 
     initGrids();
 
-    initializeEB();
+    if (test_old_eb) {
+        initializeEB();
+    }
 
     initializeEB2();
-
-    initData();
 }
 
 MyTest::~MyTest ()
@@ -51,6 +51,7 @@ MyTest::readParameters ()
     pp.query("max_grid_size", max_grid_size);
     pp.query("max_coarsening_level", max_coarsening_level);
     max_coarsening_level = std::max(max_coarsening_level, 0);
+    pp.query("test_old_eb", test_old_eb);
 }
 
 void
@@ -70,36 +71,39 @@ MyTest::initGrids ()
 }
 
 void
-MyTest::initData ()
-{
-}
-
-void
 MyTest::test ()
 {
-    const FabArray<EBCellFlagFab>& cellflag_old = old_factory->getMultiEBCellFlagFab();
     const FabArray<EBCellFlagFab>& cellflag_new = new_factory->getMultiEBCellFlagFab();
-#if 0
-    for (MFIter mfi(cellflag_new); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.fabbox();
-        const auto& new_fab = cellflag_new[mfi];
-        const auto& old_fab = cellflag_old[mfi];
-        for (BoxIterator bi(bx); bi.ok(); ++bi) {
-            const IntVect& iv = bi();
-            if (new_fab(iv) != old_fab(iv)) {
-                amrex::AllPrint() << "cellflag diff " << iv << ": " << old_fab(iv)
-                                  << ", " << new_fab(iv) << "\n";
-            }
-        }
-    }
-#endif
-
-    const MultiFab& vfrc_old = old_factory->getVolFrac();
-    VisMF::Write(vfrc_old, "vfrc-old");
 
     const MultiFab& vfrc_new = new_factory->getVolFrac();
     VisMF::Write(vfrc_new, "vfrc-new");
+
+    const MultiCutFab& cent_new = new_factory->getCentroid();
+
+    if (test_old_eb)
+    {
+        const FabArray<EBCellFlagFab>& cellflag_old = old_factory->getMultiEBCellFlagFab();
+#if 0
+        for (MFIter mfi(cellflag_new); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.fabbox();
+            const auto& new_fab = cellflag_new[mfi];
+            const auto& old_fab = cellflag_old[mfi];
+            for (BoxIterator bi(bx); bi.ok(); ++bi) {
+                const IntVect& iv = bi();
+                if (new_fab(iv) != old_fab(iv)) {
+                    amrex::AllPrint() << "cellflag diff " << iv << ": " << old_fab(iv)
+                                      << ", " << new_fab(iv) << "\n";
+                }
+            }
+        }
+#endif
+
+        const MultiFab& vfrc_old = old_factory->getVolFrac();
+        VisMF::Write(vfrc_old, "vfrc-old");
+
+        const MultiCutFab& cent_old = old_factory->getCentroid();
+    }
 }
 
 void

@@ -32,7 +32,7 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
             m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
             EBTower::fillVolFrac(*m_volfrac, m_geom);
 
-            m_centroid = new MultiCutFab(a_ba, a_dm, 3, m_ngrow[1], *m_cellflags);
+            m_centroid = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, m_ngrow[1], *m_cellflags);
             EBTower::fillCentroid(*m_centroid, m_geom);
         }
 
@@ -74,8 +74,8 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
             m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
             a_level.fillVolFrac(*m_volfrac, m_geom);
 
-//            m_centroid = new MultiCutFab(a_ba, a_dm, 3, m_ngrow[1], *m_cellflags);
-//            EBTower::fillCentroid(*m_centroid, m_geom);
+            m_centroid = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, m_ngrow[1], *m_cellflags);
+            a_level.fillCentroid(*m_centroid, m_geom);
         }
 
     }

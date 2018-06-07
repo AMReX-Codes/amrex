@@ -14,13 +14,13 @@ namespace amrex { namespace EB2 {
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
 int max_grid_size = 64;
-bool compare_with_eb = false;
+bool compare_with_ch_eb = false;
 
 void Initialize ()
 {
     ParmParse pp("eb2");
     pp.query("max_grid_size", max_grid_size);
-    pp.query("compare_with_eb", compare_with_eb);
+    pp.query("compare_with_ch_eb", compare_with_ch_eb);
 
     amrex::ExecOnFinalize(Finalize);
 }
@@ -125,7 +125,7 @@ Build (const Geometry& geom, int max_coarsening_level)
 const Level&
 getLevel (const Geometry& geom)
 {
-    IndexSpace::top().getLevel(geom);
+    return IndexSpace::top().getLevel(geom);
 }
 
 }}
