@@ -16,8 +16,8 @@ cudaStream_t amrex::Device::cuda_stream;
 
 dim3 amrex::Device::numThreadsMin = dim3(1, 1, 1);
 
-dim3 amrex::Device::numThreadsOverride = dim3(1, 1, 1);
-dim3 amrex::Device::numBlocksOverride = dim3(1, 1, 1);
+dim3 amrex::Device::numThreadsOverride = dim3(0, 0, 0);
+dim3 amrex::Device::numBlocksOverride = dim3(0, 0, 0);
 
 cudaDeviceProp amrex::Device::device_prop;
 #endif
@@ -32,9 +32,9 @@ amrex::Device::initialize_cuda_c () {
 
     ParmParse pp("device");
 
-    int nx = 1;
-    int ny = 1;
-    int nz = 1;
+    int nx = 0;
+    int ny = 0;
+    int nz = 0;
 
     pp.query("numThreads.x", nx);
     pp.query("numThreads.y", ny);
@@ -44,9 +44,9 @@ amrex::Device::initialize_cuda_c () {
     numThreadsOverride.y = (int) ny;
     numThreadsOverride.z = (int) nz;
 
-    nx = 1;
-    ny = 1;
-    nz = 1;
+    nx = 0;
+    ny = 0;
+    nz = 0;
 
     pp.query("numBlocks.x", nx);
     pp.query("numBlocks.y", ny);
@@ -498,13 +498,19 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
     // Allow the user to override these at runtime.
 
-    numBlocks.x = std::max(numBlocks.x, numBlocksOverride.x);
-    numBlocks.y = std::max(numBlocks.y, numBlocksOverride.y);
-    numBlocks.z = std::max(numBlocks.z, numBlocksOverride.z);
+    if (numBlocksOverride.x > 0)
+        numBlocks.x = numBlocksOverride.x;
+    if (numBlocksOverride.y > 0)
+        numBlocks.y = numBlocksOverride.y;
+    if (numBlocksOverride.z > 0)
+        numBlocks.z = numBlocksOverride.z;
 
-    numThreads.x = std::max(numThreads.x, numThreadsOverride.x);
-    numThreads.y = std::max(numThreads.y, numThreadsOverride.y);
-    numThreads.z = std::max(numThreads.z, numThreadsOverride.z);
+    if (numThreadsOverride.x > 0)
+        numThreads.x = numThreadsOverride.x;
+    if (numThreadsOverride.y > 0)
+        numThreads.y = numThreadsOverride.y;
+    if (numThreadsOverride.z > 0)
+        numThreads.z = numThreadsOverride.z;
 
 }
 #endif
