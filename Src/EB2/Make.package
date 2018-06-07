@@ -12,6 +12,7 @@ C$(EB2_BASE)_headers += AMReX_EB2_IF_Sphere.H
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Complement.H
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Intersection.H
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Lathe.H
+C$(EB2_BASE)_headers += AMReX_EB2_IF_Scale.H
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Translation.H
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Union.H
 

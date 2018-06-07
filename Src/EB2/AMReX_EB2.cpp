@@ -1,4 +1,3 @@
-// IF_Extrusion, polynomial, donat, scale, rotate
 
 #include <AMReX_EB2_IF_Box.H>
 #include <AMReX_EB2_IF_Cylinder.H>
