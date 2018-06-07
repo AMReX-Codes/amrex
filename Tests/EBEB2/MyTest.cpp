@@ -79,12 +79,20 @@ MyTest::test ()
     VisMF::Write(vfrc_new, "vfrc-new");
 
     const MultiCutFab& cent_new = new_factory->getCentroid();
+    VisMF::Write(cent_new.ToMultiFab(0.,0.), "cent-new");
 
     const MultiCutFab& bcent_new = new_factory->getBndryCent();
+    VisMF::Write(bcent_new.ToMultiFab(0.,0.), "bcent-new");
 
     const auto& areafrac_new = new_factory->getAreaFrac();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        VisMF::Write(areafrac_new[idim]->ToMultiFab(1.,0.), "area"+std::to_string(idim)+"-new");
+    }
 
     const auto& facecent_new = new_factory->getFaceCent();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        VisMF::Write(facecent_new[idim]->ToMultiFab(1.,0.), "fcent"+std::to_string(idim)+"-new");
+    }
 
     if (test_old_eb)
     {
@@ -109,12 +117,20 @@ MyTest::test ()
         VisMF::Write(vfrc_old, "vfrc-old");
 
         const MultiCutFab& cent_old = old_factory->getCentroid();
+        VisMF::Write(cent_old.ToMultiFab(0.,0.), "cent-old");
 
         const MultiCutFab& bcent_old = old_factory->getBndryCent();
+        VisMF::Write(bcent_old.ToMultiFab(0.,0.), "bcent-old");
 
         const auto& areafrac_old = old_factory->getAreaFrac();
-        
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            VisMF::Write(areafrac_old[idim]->ToMultiFab(1.,0.), "area"+std::to_string(idim)+"-old");
+        }
+
         const auto& facecent_old = old_factory->getFaceCent();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            VisMF::Write(facecent_old[idim]->ToMultiFab(1.,0.), "fcent"+std::to_string(idim)+"-old");
+        }
     }
 }
 
