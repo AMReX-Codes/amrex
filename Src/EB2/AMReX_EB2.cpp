@@ -1,6 +1,8 @@
+// IF_Extrusion, polynomial, donat, scale, rotate
 
 #include <AMReX_EB2_IF_Box.H>
 #include <AMReX_EB2_IF_Cylinder.H>
+#include <AMReX_EB2_IF_Ellipsoid.H>
 #include <AMReX_EB2_IF_Plane.H>
 #include <AMReX_EB2_IF_Sphere.H>
 
