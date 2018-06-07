@@ -5,6 +5,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_Array.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EB2_MultiGFab.H>
@@ -28,6 +29,9 @@ public:
     void fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const;
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
     void fillCentroid (MultiCutFab& centroid, const Geometry& geom) const;
+    void fillBndryCent (MultiCutFab& bndrycent, const Geometry& geom) const;
+    void fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM>& areafrac, const Geometry& geom) const;
+    void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM>& facefrac, const Geometry& geom) const;
 
 protected:
 

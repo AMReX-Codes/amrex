@@ -60,7 +60,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
             const RealVect      & a_origin,
             const Real          & a_dx) const
   {
-    BL_PROFILE("WrappedGShop::isRegular");
+//    BL_PROFILE("WrappedGShop::isRegular");
 
     // first check any of the Box corners are outside, and return false
     // right away. (bvs)
@@ -92,7 +92,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
                       const RealVect&      a_origin,
                       const Real&          a_dx) const
   {
-    BL_PROFILE("WrappedGShop::isRegularEveryPoint");
+//    BL_PROFILE("WrappedGShop::isRegularEveryPoint");
 
     // All corner indices for the current box
     Box allCorners(a_region);
@@ -138,7 +138,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
             const RealVect      & a_origin,
             const Real          & a_dx) const
   {
-    BL_PROFILE("WrappedGShop::isCovered");
+//    BL_PROFILE("WrappedGShop::isCovered");
 
     // first check any of the Box corners are inside, and return false
     // right away. (bvs)
@@ -171,7 +171,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
                       const RealVect&      a_origin,
                       const Real&          a_dx) const
   {
-    BL_PROFILE("WrappedGShop::isCoveredEveryPoint");
+//    BL_PROFILE("WrappedGShop::isCoveredEveryPoint");
 
     // All corner indices for the current box
     Box allCorners(a_region);
@@ -217,7 +217,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
               const RealVect      & a_origin,
               const Real          & a_dx) const
   {
-    BL_PROFILE("WrappedGShop::isIrregular");
+//    BL_PROFILE("WrappedGShop::isIrregular");
 
     // first check if some Box corners are inside and some are outside, and return
     // true right away. (bvs)
@@ -472,7 +472,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
             const RealVect      & a_origin,
             const Real          & a_dx) const
   {
-    BL_PROFILE("WrappedGShop::fillGraph");
+//    BL_PROFILE("WrappedGShop::fillGraph");
 
     BL_ASSERT(a_domain.contains(a_ghostRegion));
 
@@ -484,7 +484,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
     IntVectSet ivsirreg;
 
     {
-      BL_PROFILE("boxiterator loop");
+//      BL_PROFILE("boxiterator_loop");
       for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
@@ -547,7 +547,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
     {
       IntVect iv = ivsit();
       numIrreg++;
-      BL_PROFILE("fillGraph::endOfirregularCellLoop");
+//      BL_PROFILE("fillGraph::endOfirregularCellLoop");
       IrregNode newNode;
 
       fillNewNode(newNode,
@@ -910,7 +910,7 @@ Real WrappedGShop::s_relativeTol = 0.1;
                       const Real                     &     a_dx,
                       const IntVect                  &     a_iv) const
   {
-    BL_PROFILE("WrappedGShop::ComputeVofInternals");
+//    BL_PROFILE("WrappedGShop::ComputeVofInternals");
 
     //for each CutCellMoments<dim>, we record the cell Center
     //(in physical coordinates at the global dimension)
