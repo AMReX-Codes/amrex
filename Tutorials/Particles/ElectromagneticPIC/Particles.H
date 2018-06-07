@@ -4,7 +4,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 
-#include <CudaManagedAllocator.H>
 #include <StructOfArrays.H>
 
 /**
