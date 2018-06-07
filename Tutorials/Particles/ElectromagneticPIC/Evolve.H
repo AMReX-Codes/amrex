@@ -35,19 +35,4 @@ void fill_boundary_magnetic_field(amrex::MultiFab& Bx,
                                   amrex::MultiFab& Bz,
                                   const amrex::Geometry& geom);
 
-void push_and_depose_particles(const amrex::MultiFab& Ex,
-                               const amrex::MultiFab& Ey,
-                               const amrex::MultiFab& Ez,
-                               const amrex::MultiFab& Bx,
-                               const amrex::MultiFab& By,
-                               const amrex::MultiFab& Bz,
-                               amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
-                               amrex::Vector<Particles*>& particles,
-                               const amrex::Geometry& geom, amrex::Real dt);
-    
-void push_particles_only(amrex::Vector<Particles*>& particles, amrex::Real dt);
-
-void enforce_periodic_bcs(amrex::Vector<Particles*>& particles, const amrex::Geometry& geom);
-
-
 #endif
