@@ -393,7 +393,8 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_plus,
                       BL_TO_FORTRAN_BOX(destbox),
                       BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
+                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
                       numcomp);
 
     return *this;
@@ -418,7 +419,8 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_mult,
                       BL_TO_FORTRAN_BOX(destbox),
                       BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
+                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
                       numcomp);
     return *this;
 }
@@ -444,7 +446,8 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
                       BL_TO_FORTRAN_BOX(destbox),
                       BL_TO_FORTRAN_N_ANYD(*this,destcomp),
                       a,
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
+                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
                       numcomp);
     return *this;
 }
@@ -470,7 +473,8 @@ BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
                       BL_TO_FORTRAN_BOX(destbox),
                       BL_TO_FORTRAN_N_ANYD(*this,destcomp),
                       a,
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
+                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
                       numcomp);
     return *this;
 }
@@ -519,7 +523,8 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_minus,
                       BL_TO_FORTRAN_BOX(destbox),
                       BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
+                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
                       numcomp);
     return *this;
 }
@@ -543,7 +548,8 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_divide,
                       BL_TO_FORTRAN_BOX(destbox),
                       BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
+                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
                       numcomp);
     return *this;
 }
@@ -567,7 +573,8 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
     AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_protdivide,
                       BL_TO_FORTRAN_BOX(destbox),
                       BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
+                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
                       numcomp);
     return *this;
 }

@@ -42,27 +42,32 @@ extern "C"
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_plus)(const int* lo, const int* hi,
                                                     amrex_real* dst, const int* dlo, const int* dhi,
-                                                    const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+                                                    const amrex_real* src, const int* slo, const int* shi,
+                                                    const int* sblo, const int* dblo,
                                                     const int ncomp);
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_minus)(const int* lo, const int* hi,
                                                      amrex_real* dst, const int* dlo, const int* dhi,
-                                                     const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+                                                     const amrex_real* src, const int* slo, const int* shi,
+                                                     const int* sblo, const int* dblo,
                                                      const int ncomp);
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_mult)(const int* lo, const int* hi,
                                                     amrex_real* dst, const int* dlo, const int* dhi,
-                                                    const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+                                                    const amrex_real* src, const int* slo, const int* shi,
+                                                    const int* sblo, const int* dblo,
                                                     const int ncomp);
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_divide)(const int* lo, const int* hi,
                                                       amrex_real* dst, const int* dlo, const int* dhi,
-                                                      const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+                                                      const amrex_real* src, const int* slo, const int* shi,
+                                                      const int* sblo, const int* dblo,
                                                       const int ncomp);
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_protdivide)(const int* lo, const int* hi,
                                                           amrex_real* dst, const int* dlo, const int* dhi,
-                                                          const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+                                                          const amrex_real* src, const int* slo, const int* shi,
+                                                          const int* sblo, const int* dblo,
                                                           const int ncomp);
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_invert)(const int* lo, const int* hi,
@@ -72,13 +77,15 @@ extern "C"
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_saxpy)(const int* lo, const int* hi,
                                                      amrex_real* dst, const int* dlo, const int* dhi,
                                                      const amrex_real a,
-                                                     const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+                                                     const amrex_real* src, const int* slo, const int* shi,
+                                                     const int* sblo, const int* dblo,
                                                      const int ncomp);
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_xpay)(const int* lo, const int* hi,
                                                     amrex_real* dst, const int* dlo, const int* dhi,
                                                     const amrex_real a,
-                                                    const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+                                                    const amrex_real* src, const int* slo, const int* shi,
+                                                    const int* sblo, const int* dblo,
                                                     const int ncomp);
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_lincomb)(const int* lo, const int* hi,
