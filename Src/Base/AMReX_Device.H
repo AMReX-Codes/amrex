@@ -170,6 +170,8 @@ private:
     static cudaStream_t cuda_stream;
 
     static dim3 numThreadsMin;
+
+    static cudaDeviceProp device_prop;
 #endif
 };
 

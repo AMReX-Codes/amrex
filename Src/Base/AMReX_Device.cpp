@@ -15,6 +15,8 @@ cudaStream_t amrex::Device::cuda_streams[max_cuda_streams];
 cudaStream_t amrex::Device::cuda_stream;
 
 dim3 amrex::Device::numThreadsMin = dim3(1, 1, 1);
+
+cudaDeviceProp amrex::Device::device_prop;
 #endif
 
 void
@@ -24,6 +26,9 @@ amrex::Device::initialize_cuda_c () {
         CudaAPICheck(cudaStreamCreate(&cuda_streams[i]));
 
     cuda_stream = cuda_streams[0];
+
+    cudaGetDeviceProperties(&device_prop, device_id);
+
 }
 
 cudaStream_t
@@ -373,7 +378,8 @@ amrex::Device::mem_advise_set_preferred(void* p, const std::size_t sz, const int
 
 #ifdef AMREX_USE_CUDA
 #ifndef NO_CUDA_8
-    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
+    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+        CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
 #endif
 #endif
 
@@ -384,7 +390,8 @@ amrex::Device::mem_advise_set_readonly(void* p, const std::size_t sz) {
 
 #ifdef AMReX_USE_CUDA
 #ifndef NO_CUDA_8
-    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+        CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
 #endif
 #endif
 
