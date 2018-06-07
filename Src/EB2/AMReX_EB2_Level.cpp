@@ -24,7 +24,7 @@ Level::coarsenFromFine (Level& fineLevel)
         m_areafrac[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
                                 m_dmap, 1, ng);
         m_facecent[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, AMREX_SPACEDIM, ng);
+                                m_dmap, AMREX_SPACEDIM-1, ng);
     }
 
     const Geometry& fine_geom = fineLevel.m_geom;
@@ -94,7 +94,7 @@ Level::coarsenFromFine (Level& fineLevel)
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& fbx = mfi.grownnodaltilebox(idim,2);
                 m_areafrac[idim][mfi].setVal(1.0, fbx, 0, 1);
-                m_facecent[idim][mfi].setVal(0.0, fbx, 0, AMREX_SPACEDIM);
+                m_facecent[idim][mfi].setVal(0.0, fbx, 0, AMREX_SPACEDIM-1);
             }
         }
 
