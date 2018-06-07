@@ -11,7 +11,8 @@ extern "C"
 #endif
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_copy)(const int* lo, const int* hi,
                                                     amrex_real* dst, const int* dlo, const int* dhi,
-                                                    const amrex_real* src, const int* slo, const int* shi, const int* sblo,
+                                                    const amrex_real* src, const int* slo, const int* shi,
+                                                    const int* sblo, const int* dblo,
                                                     const int ncomp);
 
     AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_copytomem)(const int* lo, const int* hi,

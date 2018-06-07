@@ -208,7 +208,8 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_copy,
                       BL_TO_FORTRAN_BOX(destbox),
                       BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
+                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
                       numcomp);
 }
 

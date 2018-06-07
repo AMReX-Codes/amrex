@@ -7,8 +7,8 @@ module basefab_nd_module
 contains
 
   ! dst = src
-  AMREX_LAUNCH subroutine amrex_fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='amrex_fort_fab_copy')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+  AMREX_LAUNCH subroutine amrex_fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_copy')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
     integer, intent(in), value :: ncomp
@@ -16,7 +16,7 @@ contains
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
 
-    off = sblo - lo
+    off = sblo - dblo
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
