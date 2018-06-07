@@ -338,6 +338,7 @@ endif
 ifeq ($(USE_ACC),TRUE)
 
   ACCSuffix := .ACC
+  DEFINES += -DAMREX_USE_ACC
 
 endif
 
