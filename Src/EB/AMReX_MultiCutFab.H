@@ -78,6 +78,8 @@ public:
     void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng,
                        const Periodicity& period = Periodicity::NonPeriodic());
 
+    MultiFab ToMultiFab (Real regular_value, Real covered_value) const;
+
 private:
 
     FabArray<CutFab> m_data;
