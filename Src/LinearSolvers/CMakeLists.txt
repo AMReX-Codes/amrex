@@ -120,6 +120,20 @@ accumulate_headers (ALLHEADERS)
 accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/C_CellMG)
 
 
+
+#########################################################################
+#
+#  The sources in all folders other than MLMG and C_CellMG are legacy,
+#  and will be included in the build only if ENABLE_LINEAR_SOLVERS_LEGACY
+#  is ON 
+# 
+#########################################################################
+if ( NOT ENABLE_LINEAR_SOLVERS_LEGACY )
+   return ()
+endif ()
+
+
+
 #-------------------------------------------------------------------------------
 #
 # Source in folder C_CellMG4

@@ -182,7 +182,6 @@ program fcompare
         read(fname, *) norm
 
      case ('-g','--ghost')
-        farg = farg + 1
         do_ghost = .true.
 
      case ('-z','--zone_info')

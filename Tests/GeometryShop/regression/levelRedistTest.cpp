@@ -266,11 +266,11 @@ namespace amrex
     int baseproc = 0;
     gather(sumVecOld, localSumOld, baseproc);
     gather(sumVecNew, localSumNew, baseproc);
-    if (procID() == baseproc)
+    if (ParallelDescriptor::MyProc() == baseproc)
     {
-      BL_ASSERT(sumVecOld.size() == numProc());
-      BL_ASSERT(sumVecNew.size() == numProc());
-      for (int ivec = 0; ivec < numProc(); ivec++)
+      BL_ASSERT(sumVecOld.size() == ParallelDescriptor::NProcs());
+      BL_ASSERT(sumVecNew.size() == ParallelDescriptor::NProcs());
+      for (int ivec = 0; ivec < ParallelDescriptor::NProcs(); ivec++)
       {
         massTotOld += sumVecOld[ivec];
         massTotNew += sumVecNew[ivec];

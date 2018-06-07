@@ -6,6 +6,7 @@
 
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Print.H>
 #include <AMReX.H>
 
 namespace amrex {
@@ -51,7 +52,7 @@ BLBackTrace::handler(int s)
 	fclose(p);
     }
     
-    std::cerr << "See " << errfilename << " file for details" << std::endl;
+    amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
 
 #ifdef BL_BACKTRACING
     if (!bt_stack.empty()) {
@@ -88,9 +89,9 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
     }
     else
     {
-      std::cout << "Warning @ BLBackTrace::print_backtrace_info: " 
-                << filename << " is not a valid output file."
-                << std::endl;
+        amrex::Print() << "Warning @ BLBackTrace::print_backtrace_info: " 
+                       << filename << " is not a valid output file."
+                       << std::endl;
     }
 }
 

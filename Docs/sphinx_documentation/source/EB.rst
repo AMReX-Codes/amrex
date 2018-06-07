@@ -618,6 +618,20 @@ parabola. This code creates the surface shown in :numref:`fig::parabolasphere`.
 
    \end{center}
 
+Higher Order Geometries and WrappedGShop
+===========
+
+If one wants more geometric information than simple volume and area fractions and centroids, 
+one can generate geometric moments (m).
+.. raw:: latex
+\begin{equation}
+m^{p,q,r} = \int_V x^p y^q z^r dV
+\end{equation}
+.. raw:: latex
+To generate this information, one should use WrappedGShop instead of GeometryShop.  The user interface 
+is exactly the same.   If you use WrappedGShop to generate your moments, EBData can provide
+moments (up to third order) of every volume and every face in the domain, including the cut face.
+
 EBFarrayBox
 ===========
 

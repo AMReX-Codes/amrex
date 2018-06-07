@@ -1,5 +1,5 @@
-#ifndef AMREX_PARSTREAM_H___
-#define AMREX_PARSTREAM_H___
+#ifndef AMREX_PARSTREAM_H_
+#define AMREX_PARSTREAM_H_
 
 #include <iostream>
 #include <string>
@@ -14,8 +14,7 @@ namespace amrex
  * "pout" but can be set by calling setPoutBaseName().  Output is then
  * directed to these files.  This keeps the output from different processors
  * from getting all jumbled up.
- If    you want fewer files, you can do
- setenv CH_OUTPUT_INTERVAL nproc
+ If    you want fewer files, you can use ParmParse parameter amrex.pout_int=nproc
  and it will only output every nproc processors pout.n files
  (where n%nproc == 0).
 */

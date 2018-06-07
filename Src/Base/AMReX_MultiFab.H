@@ -587,6 +587,10 @@ public:
     */
     bool is_nodal () const;
     /**
+    * \brief This tests on whether the MultiFab is nodal in direction dir.
+    */
+    bool is_nodal (int dir) const;
+    /**
     * \brief This tests on whether the MultiFab is cell-centered.
     */
     bool is_cell_centered () const;

@@ -50,7 +50,7 @@ BndryRegister::define (const BoxArray& grids_,
 void
 BndryRegister::clear ()
 {
-    for (int i = 0; i <= 2*AMREX_SPACEDIM; ++i) {
+    for (int i = 0; i < 2*AMREX_SPACEDIM; ++i) {
         bndry[i].clear();
     }
     grids.clear();

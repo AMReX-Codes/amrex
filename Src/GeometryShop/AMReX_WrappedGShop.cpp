@@ -289,7 +289,6 @@ Real WrappedGShop::s_relativeTol = 0.1;
     a_node.setMomentsToZero();
     //the origin does not matter here --- local just used for differences
     RealVect origin = RealVect::Zero;
-    IntVect ivcoar = a_node.m_cell;
     VolIndex vcoar(a_node.m_cell, a_node.m_cellIndex);
     RealVect coarloc = EBArith::getVoFLocation(vcoar, a_coarDx*RealVect::Unit, origin);
     for(int inode = 0; inode < a_refNodes.size(); inode++)

@@ -475,6 +475,14 @@ checkMoments(IndexedMoments<Dim, ORDER> & a_moments,
 {
   MomentIterator<Dim, ORDER> momit;
   a_bogusPowers.resize(0);
+//eb moments can mysteriously get the wrong signs
+  if(a_ebMoment && a_bindMoments)
+  {
+    if(a_moments[IndexTM<int,Dim>::Zero] < 0.)
+    {
+      a_moments *= -1.0;
+    }
+  }
   Real cellvol = 1;
   for(int idir = 0; idir < Dim; idir++)
   {

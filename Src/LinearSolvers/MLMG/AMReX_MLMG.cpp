@@ -766,6 +766,11 @@ MLMG::actualBottomSolve ()
         else
         {
             MLCGSolver cg_solver(linop);
+            if (bottom_solver == BottomSolver::bicgstab) {
+                cg_solver.setSolver(MLCGSolver::Type::BiCGStab);
+            } else if (bottom_solver == BottomSolver::cg) {
+                cg_solver.setSolver(MLCGSolver::Type::CG);
+            }
             cg_solver.setVerbose(bottom_verbose);
             cg_solver.setMaxIter(bottom_maxiter);
             

@@ -20,6 +20,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
   real(amrex_real) :: coe_a0, coe_ax, coe_ay, coe_axy, coe_axx
   real(amrex_real) :: coe_b0, coe_bx, coe_by, coe_bxy, coe_byy
   real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
+  real(amrex_real), parameter :: one = 1._amrex_real
 
   clo = amrex_coarsen_intvect(2,lo,rr);
   chi = amrex_coarsen_intvect(2,hi,rr);
@@ -40,7 +41,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
            c1 = theta*(cx(i,j  )-cx(i,j-1))
            c2 = 0.5d0*(cx(i,j+1)-cx(i,j-1))
            c3 = theta*(cx(i,j+1)-cx(i,j  ))
-           dCxdy(i,j) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+           dCxdy(i,j) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                 *min(abs(c1),abs(c2),abs(c3))
         end do
      end if
@@ -54,7 +55,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
            c1 = theta*(cy(i  ,j)-cy(i-1,j))
            c2 = 0.5d0*(cy(i+1,j)-cy(i-1,j))
            c3 = theta*(cy(i+1,j)-cy(i  ,j))
-           dCydx(i,j) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+           dCydx(i,j) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                 *min(abs(c1),abs(c2),abs(c3))
         endif
      end do
@@ -123,6 +124,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
   real(amrex_real) :: c1, c2, c3, dc
   real(amrex_real), pointer, contiguous :: tmpx(:,:), tmpy(:,:)
   real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
+  real(amrex_real), parameter :: one = 1._amrex_real
 
   clo = amrex_coarsen_intvect(2,lo,rr);
   chi = amrex_coarsen_intvect(2,hi,rr);
@@ -153,7 +155,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
            c1 = theta*(tmpx(ic  ,j) - tmpx(ic-1,j))
            c2 = 0.5d0*(tmpx(ic+1,j) - tmpx(ic-1,j))
            c3 = theta*(tmpx(ic+1,j) - tmpx(ic  ,j))
-           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+           dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                 *min(abs(c1),abs(c2),abs(c3))
            
            ex(ic*2  ,j) = tmpx(ic,j) - 0.25d0*dc
@@ -184,7 +186,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
            c1 = theta*(tmpy(i,jc  ) - tmpy(i,jc-1))
            c2 = 0.5d0*(tmpy(i,jc+1) - tmpy(i,jc-1))
            c3 = theta*(tmpy(i,jc+1) - tmpy(i,jc  ))
-           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+           dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                 *min(abs(c1),abs(c2),abs(c3))
            
            ey(i,jc*2  ) = tmpy(i,jc) - 0.25d0*dc
@@ -212,6 +214,7 @@ subroutine amrex_interp_cc_bfield (lo, hi, by, bylo, byhi, cy, cylo, cyhi, rr, u
   real(amrex_real), pointer, contiguous :: tmp(:,:)
   real(amrex_real) :: c1, c2, c3, dc
   real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
+  real(amrex_real), parameter :: one = 1._amrex_real
   
   clo = amrex_coarsen_intvect(2,lo,rr);
   chi = amrex_coarsen_intvect(2,hi,rr);
@@ -230,7 +233,7 @@ subroutine amrex_interp_cc_bfield (lo, hi, by, bylo, byhi, cy, cylo, cyhi, rr, u
            c1 = theta*(cy(ic  ,jc) - cy(ic-1,jc))
            c2 = 0.5d0*(cy(ic+1,jc) - cy(ic-1,jc))
            c3 = theta*(cy(ic+1,jc) - cy(ic  ,jc))
-           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+           dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                 *min(abs(c1),abs(c2),abs(c3))
            tmp(ic*2  ,jc) = cy(ic,jc) - 0.25d0*dc
            tmp(ic*2+1,jc) = cy(ic,jc) + 0.25d0*dc
@@ -250,7 +253,7 @@ subroutine amrex_interp_cc_bfield (lo, hi, by, bylo, byhi, cy, cylo, cyhi, rr, u
            c1 = theta*(tmp(i,jc  ) - tmp(i,jc-1))
            c2 = 0.5d0*(tmp(i,jc+1) - tmp(i,jc-1))
            c3 = theta*(tmp(i,jc+1) - tmp(i,jc  ))
-           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+           dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                 *min(abs(c1),abs(c2),abs(c3))
            by(i,jc*2  ) = tmp(i,jc) - 0.25d0*dc
            by(i,jc*2+1) = tmp(i,jc) + 0.25d0*dc

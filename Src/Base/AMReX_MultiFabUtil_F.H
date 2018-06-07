@@ -19,6 +19,13 @@ extern "C"
                           amrex_real* slice_data, const int* slo, const int* shi,
                           const int* fstart, const int* nfull, const int* ncomp);
 
+    void amrex_fill_slice_interp(const int* lo, const int* hi,
+                                 const amrex_real* full_data, const int* flo, const int* fhi,
+                                 amrex_real* slice_data, const int* slo, const int* shi,
+                                 const int* fstart, const int* nfull, const int* ncomp,
+                                 const int* dir, const amrex_real* coord, const amrex_real* plo,
+                                 const amrex_real* dx);
+    
 #ifdef __cplusplus
 }
 #endif

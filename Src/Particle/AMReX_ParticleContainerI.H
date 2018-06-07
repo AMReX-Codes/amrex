@@ -9,12 +9,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size   {
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticleSize ()
 {
-    levelDirectoriesCreated = false;
-    usePrePost = false;
-    doUnlink = true;
-
     num_real_comm_comps = 0;
     for (int i = 0; i < NArrayReal; ++i) {
         if (communicate_real_comp[i]) ++num_real_comm_comps;
@@ -27,7 +23,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
 
     particle_size = sizeof(ParticleType);
     superparticle_size = particle_size + 
-        num_real_comm_comps*sizeof(Real) + num_int_comm_comps*sizeof(int);
+        num_real_comm_comps*sizeof(Real) + num_int_comm_comps*sizeof(int);    
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
+{
+    levelDirectoriesCreated = false;
+    usePrePost = false;
+    doUnlink = true;
+
+    SetParticleSize();
 
     static bool initialized = false;
     if ( ! initialized)
@@ -370,9 +377,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummyMF (int lev) 
 {
-
-  BL_PROFILE("ParticleContainer::RedefineDummyMF");
-
     if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
     
     if (m_dummy_mf[lev] == nullptr || 
@@ -1465,7 +1469,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 BuildRedistributeMask(int lev, int nghost) {
     
-    BL_PROFILE("NeighborParticleContainer::BuildRedistributeMask");
+    BL_PROFILE("ParticleContainer::BuildRedistributeMask");
     BL_ASSERT(lev == 0);
 
     if (redistribute_mask_ptr == nullptr ||
@@ -1727,13 +1731,13 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::AddParticlesAtLevel()");
     if (int(m_particles.size()) < level+1)
         {
-            if (ParallelDescriptor::IOProcessor())
-                {
-                    std::cout << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtLevel resizing m_particles from "
-                              << m_particles.size()
-                              << " to "
-                              << level+1 << '\n';
-                }
+            if (Verbose())
+            {
+                amrex::Print() << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtLevel resizing m_particles from "
+                               << m_particles.size()
+                               << " to "
+                               << level+1 << '\n';
+            }
             m_particles.resize(level + 1);
             m_dummy_mf.resize(level+1);
             for (int lev = 0; lev < level+1; ++lev) {
@@ -2958,10 +2962,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
     }
 }
 

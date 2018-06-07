@@ -505,10 +505,10 @@ bool NFilesIter::CheckNFiles(int nProcs, int nOutFiles, bool groupSets)
     for(int i(0); i < nProcs; ++i) {
       fileNumbers.insert(FileNumber(nOutFiles, i, groupSets));
     }
-    std::cout << "nOutFiles fileNumbers.size() = " << nOutFiles
+    amrex::Print() << "nOutFiles fileNumbers.size() = " << nOutFiles
               << "  " << fileNumbers.size() << std::endl;
     if(nOutFiles != static_cast<int>(fileNumbers.size())) {
-      std::cout << "**** Different number of files." << std::endl;
+      amrex::Print() << "**** Different number of files." << std::endl;
       return false;
     }
   }
@@ -533,7 +533,7 @@ Vector<int> NFilesIter::FileNumbersWritten()
       }
     }
     if(total != nProcs || static_cast<int>(procSet.size()) != nProcs) {
-      std::cout << "**** Error in NFilesIter::FileNumbersWritten():  "
+      amrex::AllPrint() << "**** Error in NFilesIter::FileNumbersWritten():  "
                 << " coordinatorProc nProcs total procSet.size() = "
                 << coordinatorProc << "  " << nProcs << "  "
 		<< total << "  " << procSet.size() << std::endl;
@@ -559,7 +559,7 @@ void NFilesIter::CleanUpMessages() {
     std::pair<int, int> & pii = unreadMessages[i];
     int fromProc, tag(pii.first), nMessages(pii.second);
 #if 0
-    std::cout << ParallelDescriptor::MyProc() << ":: cleaning up " << nMessages
+    amrex::AllPrint() << ParallelDescriptor::MyProc() << ":: cleaning up " << nMessages
               << " messages for tag " << tag << std::endl;
 #endif
     for(int n(0); n < nMessages; ++n) {
