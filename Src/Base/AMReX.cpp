@@ -15,6 +15,10 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EB2.H>
+#endif
+
 #ifndef BL_AMRPROF
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
@@ -431,6 +435,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     MultiFab::Initialize();
     iMultiFab::Initialize();
     VisMF::Initialize();
+#ifdef AMREX_USE_EB
+    EB2::Initialize();
+#endif
     BL_PROFILE_INITPARAMS();
 #endif
 

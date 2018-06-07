@@ -12,14 +12,11 @@
 
 namespace amrex { namespace EB2 {
 
-struct Info
-{
-    int max_coarsening_level = 0;
-    int max_grid_size = 64;
+extern int max_grid_size;
+extern bool compare_with_eb;
 
-    Info& setMaxCoarseningLevel (int n) { max_coarsening_level = n; return *this; }
-    Info& setMaxGridSize (int n) { max_grid_size = n; return *this; }
-};
+void Initialize ();
+void Finalize ();
 
 class IndexSpace
 {
@@ -45,7 +42,7 @@ class IndexSpaceImp
 {
 public:
 
-    IndexSpaceImp (const G& gshop, const Geometry& geom, const Info& info);
+    IndexSpaceImp (const G& gshop, const Geometry& geom, int max_coarsening_level);
 
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
     IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
@@ -70,21 +67,15 @@ private:
 
 template <typename G>
 void
-Initialize (const G& gshop, const Geometry& geom, const Info& info)
+Build (const G& gshop, const Geometry& geom, int max_coarsening_level)
 {
     BL_PROFILE("EB2::Initialize()");
-    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom, info));
+    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom, max_coarsening_level));
 }
 
-inline void Finalize ()
-{
-    IndexSpace::clear();
-}
-
-void Initialize (const Geometry& geom, const Info& info);
+void Build (const Geometry& geom, int max_coarsening_level);
 
 const Level& getLevel (const Geometry& geom);
-
 
 }}
 
