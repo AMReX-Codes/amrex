@@ -6,6 +6,7 @@
 #include <AMReX_EBDataCollection.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_EBSupport.H>
+#include <AMReX_Array.H>
 
 namespace amrex
 {
@@ -46,11 +47,11 @@ public:
 
     const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
 
-    std::array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
         return m_ebdc->getAreaFrac();
     }
 
-    std::array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const {
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const {
         return m_ebdc->getFaceCent();
     }
 

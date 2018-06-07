@@ -191,6 +191,7 @@ Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
 
     Real cov_val = 0.0; // for covered cells
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -227,6 +228,100 @@ Level::fillCentroid (MultiCutFab& centroid, const Geometry& geom) const
             CutFab& dst = centroid[mfi];
             const void* src = static_cast<const void*>(tmp[mfi].dataPtr());
             dst.copyFromMem(src);
+        }
+    }
+}
+
+void
+Level::fillBndryCent (MultiCutFab& bndrycent, const Geometry& geom) const
+{
+    MultiFab tmp(bndrycent.boxArray(), bndrycent.DistributionMap(),
+                 bndrycent.nComp(), bndrycent.nGrow());
+    tmp.setVal(0.0);
+    tmp.ParallelCopy(m_bndrycent,0,0,bndrycent.nComp(),0,bndrycent.nGrow(),geom.periodicity());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(bndrycent.data()); mfi.isValid(); ++mfi)
+    {
+        if (bndrycent.ok(mfi)) {
+            CutFab& dst = bndrycent[mfi];
+            const void* src = static_cast<const void*>(tmp[mfi].dataPtr());
+            dst.copyFromMem(src);
+        }
+    }
+}
+
+void
+Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac, const Geometry& geom) const
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        MultiCutFab& areafrac = *a_areafrac[idim];
+        MultiFab tmp(areafrac.boxArray(), areafrac.DistributionMap(),
+                     areafrac.nComp(), areafrac.nGrow());
+        tmp.setVal(1.0);
+        tmp.ParallelCopy(m_areafrac[idim],0,0,areafrac.nComp(),0,areafrac.nGrow(),geom.periodicity());
+
+        for (MFIter mfi(areafrac.data()); mfi.isValid(); ++mfi)
+        {
+            if (areafrac.ok(mfi)) {
+                CutFab& dst = areafrac[mfi];
+                const void* src = static_cast<const void*>(tmp[mfi].dataPtr());
+                dst.copyFromMem(src);
+            }
+        }
+    }
+
+    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+
+    Real cov_val = 0.0; // for covered cells
+        
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector<std::pair<int,Box> > isects;
+        for (MFIter mfi(a_areafrac[0]->data()); mfi.isValid(); ++mfi)
+        {
+            if (a_areafrac[0]->ok(mfi))
+            {
+                const Box& ccbx = amrex::enclosedCells((*a_areafrac[0])[mfi].box());
+                for (const auto& iv : pshifts)
+                {
+                    m_covered_grids.intersections(ccbx+iv, isects);
+                    for (const auto& is : isects) {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            const Box& fbx = amrex::surroundingNodes(is.second-iv,idim);
+                            (*a_areafrac[idim])[mfi].setVal(cov_val, fbx, 0, 1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void
+Level::fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM>& a_facecent, const Geometry& geom) const
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        MultiCutFab& facecent = *a_facecent[idim];
+        MultiFab tmp(facecent.boxArray(), facecent.DistributionMap(),
+                     facecent.nComp(), facecent.nGrow());
+        tmp.setVal(0.0);
+        tmp.ParallelCopy(m_facecent[idim],0,0,facecent.nComp(),0,facecent.nGrow(),geom.periodicity());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(facecent.data()); mfi.isValid(); ++mfi)
+        {
+            if (facecent.ok(mfi)) {
+                CutFab& dst = facecent[mfi];
+                const void* src = static_cast<const void*>(tmp[mfi].dataPtr());
+                dst.copyFromMem(src);
+            }
         }
     }
 }

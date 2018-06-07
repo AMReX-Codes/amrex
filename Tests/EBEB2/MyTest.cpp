@@ -80,6 +80,12 @@ MyTest::test ()
 
     const MultiCutFab& cent_new = new_factory->getCentroid();
 
+    const MultiCutFab& bcent_new = new_factory->getBndryCent();
+
+    const auto& areafrac_new = new_factory->getAreaFrac();
+
+    const auto& facecent_new = new_factory->getFaceCent();
+
     if (test_old_eb)
     {
         const FabArray<EBCellFlagFab>& cellflag_old = old_factory->getMultiEBCellFlagFab();
@@ -103,6 +109,12 @@ MyTest::test ()
         VisMF::Write(vfrc_old, "vfrc-old");
 
         const MultiCutFab& cent_old = old_factory->getCentroid();
+
+        const MultiCutFab& bcent_old = old_factory->getBndryCent();
+
+        const auto& areafrac_old = old_factory->getAreaFrac();
+        
+        const auto& facecent_old = old_factory->getFaceCent();
     }
 }
 

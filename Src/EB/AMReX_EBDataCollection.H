@@ -4,6 +4,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_EBSupport.H>
+#include <AMReX_Array.H>
 
 namespace amrex {
 
@@ -34,8 +35,8 @@ public:
     const MultiFab& getVolFrac () const;
     const MultiCutFab& getCentroid () const;
     const MultiCutFab& getBndryCent () const;
-    std::array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
-    std::array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
+    Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
+    Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
 
 private:
 
@@ -54,8 +55,8 @@ private:
 
     // EBSupport::full
     MultiCutFab* m_bndrycent = nullptr;
-    std::array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
-    std::array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    Array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    Array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
 };
 
 }
