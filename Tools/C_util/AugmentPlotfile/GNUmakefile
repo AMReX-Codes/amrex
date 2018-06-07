@@ -5,7 +5,7 @@ USE_EB = FALSE
 # Variables for the user to set ...
 #
 PRECISION     = DOUBLE
-DEBUG	      = TRUE
+DEBUG	      = FALSE
 DIM	          = 3
 COMP          = g++
 USE_MPI       = TRUE 
