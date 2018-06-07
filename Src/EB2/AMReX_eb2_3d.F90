@@ -191,9 +191,9 @@ contains
     real(amrex_real), intent(inout) ::    apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(amrex_real), intent(inout) ::    apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
     real(amrex_real), intent(inout) ::    apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
-    real(amrex_real), intent(inout) ::    fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),3)
-    real(amrex_real), intent(inout) ::    fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),3)
-    real(amrex_real), intent(inout) ::    fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),3)
+    real(amrex_real), intent(inout) ::    fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
+    real(amrex_real), intent(inout) ::    fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
+    real(amrex_real), intent(inout) ::    fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
     real(amrex_real), intent(inout) ::    m2x(mxlo(1):mxhi(1),mxlo(2):mxhi(2),mxlo(3):mxhi(3),3)
     real(amrex_real), intent(inout) ::    m2y(mylo(1):myhi(1),mylo(2):myhi(2),mylo(3):myhi(3),3)
     real(amrex_real), intent(inout) ::    m2z(mzlo(1):mzhi(1),mzlo(2):mzhi(2),mzlo(3):mzhi(3),3)
@@ -305,10 +305,9 @@ contains
                    m2x(i,j,k,2) = twelfth
                    m2x(i,j,k,3) = zero
                 else
-                   fcx(i,j,k,1) = zero
                    bcy = half*bcy - half
                    bcz = half*bcz - half
-                   call cut_face_2d(apx(i,j,k),fcx(i,j,k,2),fcx(i,j,k,3), &
+                   call cut_face_2d(apx(i,j,k),fcx(i,j,k,1),fcx(i,j,k,2), &
                         m2x(i,j,k,1),m2x(i,j,k,2),m2x(i,j,k,3),lzm,lzp,lym,lyp,bcy,bcz)
                 end if
 
@@ -423,10 +422,9 @@ contains
                    m2y(i,j,k,2) = twelfth
                    m2y(i,j,k,3) = zero
                 else
-                   fcy(i,j,k,2) = zero
                    bcx = half*bcx - half
                    bcz = half*bcz - half
-                   call cut_face_2d(apy(i,j,k),fcy(i,j,k,1),fcy(i,j,k,3),&
+                   call cut_face_2d(apy(i,j,k),fcy(i,j,k,1),fcy(i,j,k,2),&
                         m2y(i,j,k,1),m2y(i,j,k,2),m2y(i,j,k,3),lzm,lzp,lxm,lxp,bcx,bcz)
                 end if
 
@@ -542,7 +540,6 @@ contains
                    m2z(i,j,k,2) = twelfth
                    m2z(i,j,k,3) = zero
                 else
-                   fcz(i,j,k,3) = zero
                    bcx = half*bcx - half
                    bcy = half*bcy - half
                    call cut_face_2d(apz(i,j,k),fcz(i,j,k,1),fcz(i,j,k,2), &
@@ -703,9 +700,9 @@ contains
     real(amrex_real), intent(inout) ::   apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(amrex_real), intent(inout) ::   apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
     real(amrex_real), intent(inout) ::   apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
-    real(amrex_real), intent(in   ) ::   fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),3)
-    real(amrex_real), intent(in   ) ::   fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),3)
-    real(amrex_real), intent(in   ) ::   fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),3)
+    real(amrex_real), intent(in   ) ::   fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
+    real(amrex_real), intent(in   ) ::   fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
+    real(amrex_real), intent(in   ) ::   fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
     real(amrex_real), intent(in   ) ::   m2x(mxlo(1):mxhi(1),mxlo(2):mxhi(2),mxlo(3):mxhi(3),3)
     real(amrex_real), intent(in   ) ::   m2y(mylo(1):myhi(1),mylo(2):myhi(2),mylo(3):myhi(3),3)
     real(amrex_real), intent(in   ) ::   m2z(mzlo(1):mzhi(1),mzlo(2):mzhi(2),mzlo(3):mzhi(3),3)
@@ -778,10 +775,10 @@ contains
                 B0 = aax + aay + aaz
                 Bx = -nx*aax + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1)) &
                      &       + nz*(azm*fcz(i,j,k,1)-azp*fcz(i,j,k+1,1))
-                By = -ny*aay + nx*(axm*fcx(i,j,k,2)-axp*fcx(i+1,j,k,2)) &
+                By = -ny*aay + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1)) &
                      &       + nz*(azm*fcz(i,j,k,2)-azp*fcz(i,j,k+1,2))
-                Bz = -nz*aaz + nx*(axm*fcx(i,j,k,3)-axp*fcx(i+1,j,k,3)) &
-                     &       + ny*(aym*fcy(i,j,k,3)-ayp*fcy(i,j+1,k,3))
+                Bz = -nz*aaz + nx*(axm*fcx(i,j,k,2)-axp*fcx(i+1,j,k,2)) &
+                     &       + ny*(aym*fcy(i,j,k,2)-ayp*fcy(i,j+1,k,2))
 
                 vfrac(i,j,k) = half*(B0 + nx*Bx + ny*By + nz*Bz)
 
@@ -793,8 +790,8 @@ contains
                 rhs(1) = fourth*(axp-axm)
                 rhs(2) = m2x(i+1,j,k,1) - m2x(i,j,k,1)
                 rhs(3) = m2x(i+1,j,k,2) - m2x(i,j,k,2)
-                rhs(4) = half*(axp*fcx(i+1,j,k,2) + axm*fcx(i,j,k,2))
-                rhs(5) = half*(axp*fcx(i+1,j,k,3) + axm*fcx(i,j,k,3))
+                rhs(4) = half*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))
+                rhs(5) = half*(axp*fcx(i+1,j,k,2) + axm*fcx(i,j,k,2))
                 rhs(6) = m2x(i+1,j,k,3) - m2x(i,j,k,3)
                 !
                 rhs(7) = m2y(i,j+1,k,1) - m2y(i,j,k,1)
@@ -802,7 +799,7 @@ contains
                 rhs(9) = m2y(i,j+1,k,2) - m2y(i,j,k,2)
                 rhs(10) = half*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))
                 rhs(11) = m2y(i,j+1,k,3) - m2y(i,j,k,3)
-                rhs(12) = half*(ayp*fcy(i,j+1,k,3) + aym*fcy(i,j,k,3))
+                rhs(12) = half*(ayp*fcy(i,j+1,k,2) + aym*fcy(i,j,k,2))
                 !
                 rhs(13) = m2z(i,j,k+1,1) - m2z(i,j,k,1)
                 rhs(14) = m2z(i,j,k+1,2) - m2z(i,j,k,2)
@@ -1090,12 +1087,12 @@ contains
     real(amrex_real), intent(in   ) :: fapy (faylo(1):fayhi(1),faylo(2):fayhi(2),faylo(3):fayhi(3))
     real(amrex_real), intent(inout) :: capz (cazlo(1):cazhi(1),cazlo(2):cazhi(2),cazlo(3):cazhi(3))
     real(amrex_real), intent(in   ) :: fapz (fazlo(1):fazhi(1),fazlo(2):fazhi(2),fazlo(3):fazhi(3))
-    real(amrex_real), intent(inout) :: cfcx (cfxlo(1):cfxhi(1),cfxlo(2):cfxhi(2),cfxlo(3):cfxhi(3),3)
-    real(amrex_real), intent(in   ) :: ffcx (ffxlo(1):ffxhi(1),ffxlo(2):ffxhi(2),ffxlo(3):ffxhi(3),3)
-    real(amrex_real), intent(inout) :: cfcy (cfylo(1):cfyhi(1),cfylo(2):cfyhi(2),cfylo(3):cfyhi(3),3)
-    real(amrex_real), intent(in   ) :: ffcy (ffylo(1):ffyhi(1),ffylo(2):ffyhi(2),ffylo(3):ffyhi(3),3)
-    real(amrex_real), intent(inout) :: cfcz (cfzlo(1):cfzhi(1),cfzlo(2):cfzhi(2),cfzlo(3):cfzhi(3),3)
-    real(amrex_real), intent(in   ) :: ffcz (ffzlo(1):ffzhi(1),ffzlo(2):ffzhi(2),ffzlo(3):ffzhi(3),3)
+    real(amrex_real), intent(inout) :: cfcx (cfxlo(1):cfxhi(1),cfxlo(2):cfxhi(2),cfxlo(3):cfxhi(3),2)
+    real(amrex_real), intent(in   ) :: ffcx (ffxlo(1):ffxhi(1),ffxlo(2):ffxhi(2),ffxlo(3):ffxhi(3),2)
+    real(amrex_real), intent(inout) :: cfcy (cfylo(1):cfyhi(1),cfylo(2):cfyhi(2),cfylo(3):cfyhi(3),2)
+    real(amrex_real), intent(in   ) :: ffcy (ffylo(1):ffyhi(1),ffylo(2):ffyhi(2),ffylo(3):ffyhi(3),2)
+    real(amrex_real), intent(inout) :: cfcz (cfzlo(1):cfzhi(1),cfzlo(2):cfzhi(2),cfzlo(3):cfzhi(3),2)
+    real(amrex_real), intent(in   ) :: ffcz (ffzlo(1):ffzhi(1),ffzlo(2):ffzhi(2),ffzlo(3):ffzhi(3),2)
     integer         , intent(inout) :: cflag( cflo(1): cfhi(1), cflo(2): cfhi(2), cflo(3): cfhi(3))
     integer         , intent(in   ) :: fflag( fflo(1): ffhi(1), fflo(2): ffhi(2), fflo(3): ffhi(3))
 
@@ -1227,16 +1224,16 @@ contains
              capx(i,j,k) = fourth*(fapx(ii,jj,kk)+fapx(ii,jj+1,kk)+fapx(ii,jj,kk+1)+fapx(ii,jj+1,kk+1))
              if (capx(i,j,k) .ne. zero) then
                 apinv = one/capx(i,j,k)
+                cfcx(i,j,k,1) = fourth*apinv* &
+                     ( fapx(ii,jj  ,kk  )*(half*ffcx(ii,jj  ,kk  ,1)-fourth) &
+                     + fapx(ii,jj+1,kk  )*(half*ffcx(ii,jj+1,kk  ,1)+fourth) &
+                     + fapx(ii,jj  ,kk+1)*(half*ffcx(ii,jj  ,kk+1,1)-fourth) &
+                     + fapx(ii,jj+1,kk+1)*(half*ffcx(ii,jj+1,kk+1,1)+fourth) )
                 cfcx(i,j,k,2) = fourth*apinv* &
                      ( fapx(ii,jj  ,kk  )*(half*ffcx(ii,jj  ,kk  ,2)-fourth) &
-                     + fapx(ii,jj+1,kk  )*(half*ffcx(ii,jj+1,kk  ,2)+fourth) &
-                     + fapx(ii,jj  ,kk+1)*(half*ffcx(ii,jj  ,kk+1,2)-fourth) &
-                     + fapx(ii,jj+1,kk+1)*(half*ffcx(ii,jj+1,kk+1,2)+fourth) )
-                cfcx(i,j,k,3) = fourth*apinv* &
-                     ( fapx(ii,jj  ,kk  )*(half*ffcx(ii,jj  ,kk  ,3)-fourth) &
-                     + fapx(ii,jj+1,kk  )*(half*ffcx(ii,jj+1,kk  ,3)-fourth) &
-                     + fapx(ii,jj  ,kk+1)*(half*ffcx(ii,jj  ,kk+1,3)+fourth) &
-                     + fapx(ii,jj+1,kk+1)*(half*ffcx(ii,jj+1,kk+1,3)+fourth) )                
+                     + fapx(ii,jj+1,kk  )*(half*ffcx(ii,jj+1,kk  ,2)-fourth) &
+                     + fapx(ii,jj  ,kk+1)*(half*ffcx(ii,jj  ,kk+1,2)+fourth) &
+                     + fapx(ii,jj+1,kk+1)*(half*ffcx(ii,jj+1,kk+1,2)+fourth) )                
              end if
           end do
        end do
@@ -1257,11 +1254,11 @@ contains
                      + fapy(ii+1,jj,kk  )*(half*ffcy(ii+1,jj,kk  ,1)+fourth) &
                      + fapy(ii  ,jj,kk+1)*(half*ffcy(ii  ,jj,kk+1,1)-fourth) &
                      + fapy(ii+1,jj,kk+1)*(half*ffcy(ii+1,jj,kk+1,1)+fourth) )
-                cfcy(i,j,k,3) = fourth*apinv* &
-                     ( fapy(ii  ,jj,kk  )*(half*ffcy(ii  ,jj,kk  ,3)-fourth) &
-                     + fapy(ii+1,jj,kk  )*(half*ffcy(ii+1,jj,kk  ,3)-fourth) &
-                     + fapy(ii  ,jj,kk+1)*(half*ffcy(ii  ,jj,kk+1,3)+fourth) &
-                     + fapy(ii+1,jj,kk+1)*(half*ffcy(ii+1,jj,kk+1,3)+fourth) )                
+                cfcy(i,j,k,2) = fourth*apinv* &
+                     ( fapy(ii  ,jj,kk  )*(half*ffcy(ii  ,jj,kk  ,2)-fourth) &
+                     + fapy(ii+1,jj,kk  )*(half*ffcy(ii+1,jj,kk  ,2)-fourth) &
+                     + fapy(ii  ,jj,kk+1)*(half*ffcy(ii  ,jj,kk+1,2)+fourth) &
+                     + fapy(ii+1,jj,kk+1)*(half*ffcy(ii+1,jj,kk+1,2)+fourth) )                
              end if
           end do
        end do

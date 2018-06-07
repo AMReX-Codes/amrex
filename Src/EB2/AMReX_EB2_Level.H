@@ -113,7 +113,7 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
         m_areafrac[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
                                 m_dmap, 1, ng);
         m_facecent[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, AMREX_SPACEDIM, ng);
+                                m_dmap, AMREX_SPACEDIM-1, ng);
     }
 
     const Real* dx = geom.CellSize();

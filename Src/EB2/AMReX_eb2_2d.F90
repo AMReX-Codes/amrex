@@ -93,8 +93,8 @@ contains
     real(amrex_real), intent(in   ) :: intery(iylo(1):iyhi(1),iylo(2):iyhi(2))
     real(amrex_real), intent(inout) ::    apx(axlo(1):axhi(1),axlo(2):axhi(2))
     real(amrex_real), intent(inout) ::    apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
-    real(amrex_real), intent(inout) ::    fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),2)
-    real(amrex_real), intent(inout) ::    fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),2)
+    real(amrex_real), intent(inout) ::    fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
+    real(amrex_real), intent(inout) ::    fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
 
     integer :: i,j, ncuts
 
@@ -103,28 +103,26 @@ contains
        do i = lo(1)-1, hi(1)+2
           if (fx(i,j) .eq. regular) then
 !             apx(i,j) = one
-!             fcx(i,j,:) = zero
+!             fcx(i,j) = zero
           else if (fx(i,j) .eq. covered) then
              apx(i,j) = zero
-             fcx(i,j,:) = zero
+             fcx(i,j) = zero
           else
              if (levset(i,j) .lt. zero) then
                 apx(i,j) = (interx(i,j)-(problo(2)+j*dx(2)))*dxinv(2)
-                fcx(i,j,1) = zero
-                fcx(i,j,2) = half*apx(i,j) - half
+                fcx(i,j) = half*apx(i,j) - half
              else
                 apx(i,j) = one - (interx(i,j)-(problo(2)+j*dx(2)))*dxinv(2)
-                fcx(i,j,1) = zero
-                fcx(i,j,2) = half - half*apx(i,j)
+                fcx(i,j) = half - half*apx(i,j)
              end if
 
              if (apx(i,j) .gt. one-small) then
                 apx(i,j) = one
-                fcx(i,j,:) = zero
+                fcx(i,j) = zero
                 fx(i,j) = regular
              else if (apx(i,j) .lt. small) then
                 apx(i,j) = zero
-                fcx(i,j,:) = zero
+                fcx(i,j) = zero
                 fx(i,j) = covered
              end if
           end if
@@ -136,28 +134,26 @@ contains
        do i = lo(1)-1, hi(1)+1
           if (fy(i,j) .eq. regular) then
 !             apy(i,j) = one
-!             fcy(i,j,:) = zero
+!             fcy(i,j) = zero
           else if (fy(i,j) .eq. covered) then
              apy(i,j) = zero
-             fcy(i,j,:) = zero
+             fcy(i,j) = zero
           else
              if (levset(i,j) .lt. zero) then
                 apy(i,j) = (intery(i,j)-(problo(1)+i*dx(1)))*dxinv(1)
-                fcy(i,j,1) = half*apy(i,j) - half
-                fcy(i,j,2) = zero
+                fcy(i,j) = half*apy(i,j) - half
              else
                 apy(i,j) = one - (intery(i,j)-(problo(1)+i*dx(1)))*dxinv(1)
-                fcy(i,j,1) = half - half*apy(i,j)
-                fcy(i,j,2) = zero
+                fcy(i,j) = half - half*apy(i,j)
              end if
 
              if (apy(i,j) .gt. one-small) then
                 apy(i,j) = one
-                fcy(i,j,:) = zero
+                fcy(i,j) = zero
                 fy(i,j) = regular
              else if (fy(i,j) .eq. covered) then
                 apy(i,j) = zero
-                fcy(i,j,:) = zero
+                fcy(i,j) = zero
                 fy(i,j) = covered
              end if
           end if
@@ -390,10 +386,10 @@ contains
     real(amrex_real), intent(in   ) :: fapx (faxlo(1):faxhi(1),faxlo(2):faxhi(2))
     real(amrex_real), intent(inout) :: capy (caylo(1):cayhi(1),caylo(2):cayhi(2))
     real(amrex_real), intent(in   ) :: fapy (faylo(1):fayhi(1),faylo(2):fayhi(2))
-    real(amrex_real), intent(inout) :: cfcx (cfxlo(1):cfxhi(1),cfxlo(2):cfxhi(2),2)
-    real(amrex_real), intent(in   ) :: ffcx (ffxlo(1):ffxhi(1),ffxlo(2):ffxhi(2),2)
-    real(amrex_real), intent(inout) :: cfcy (cfylo(1):cfyhi(1),cfylo(2):cfyhi(2),2)
-    real(amrex_real), intent(in   ) :: ffcy (ffylo(1):ffyhi(1),ffylo(2):ffyhi(2),2)
+    real(amrex_real), intent(inout) :: cfcx (cfxlo(1):cfxhi(1),cfxlo(2):cfxhi(2))
+    real(amrex_real), intent(in   ) :: ffcx (ffxlo(1):ffxhi(1),ffxlo(2):ffxhi(2))
+    real(amrex_real), intent(inout) :: cfcy (cfylo(1):cfyhi(1),cfylo(2):cfyhi(2))
+    real(amrex_real), intent(in   ) :: ffcy (ffylo(1):ffyhi(1),ffylo(2):ffyhi(2))
     integer         , intent(inout) :: cflag( cflo(1): cfhi(1), cflo(2): cfhi(2))
     integer         , intent(in   ) :: fflag( fflo(1): ffhi(1), fflo(2): ffhi(2))
 
@@ -470,9 +466,9 @@ contains
           capx(i,j) = half*(fapx(ii,jj)+fapx(ii,jj+1))
           if (capx(i,j) .ne. zero) then
              apinv = one/capx(i,j)
-             cfcx(i,j,2) = half*apinv* &
-                  ( fapx(ii,jj  )*(half*ffcx(ii,jj  ,2)-fourth) &
-                  + fapx(ii,jj+1)*(half*ffcx(ii,jj+1,2)+fourth) )
+             cfcx(i,j) = half*apinv* &
+                  ( fapx(ii,jj  )*(half*ffcx(ii,jj  )-fourth) &
+                  + fapx(ii,jj+1)*(half*ffcx(ii,jj+1)+fourth) )
           end if
        end do
     end do
@@ -485,9 +481,9 @@ contains
           capy(i,j) = fourth*(fapy(ii,jj)+fapy(ii+1,jj))
           if (capy(i,j) .ne. zero) then
              apinv = one/capy(i,j)
-             cfcy(i,j,1) = fourth*apinv* &
-                  ( fapy(ii  ,jj)*(half*ffcy(ii  ,jj,1)-fourth) &
-                  + fapy(ii+1,jj)*(half*ffcy(ii+1,jj,1)+fourth) )
+             cfcy(i,j) = fourth*apinv* &
+                  ( fapy(ii  ,jj)*(half*ffcy(ii  ,jj)-fourth) &
+                  + fapy(ii+1,jj)*(half*ffcy(ii+1,jj)+fourth) )
           end if
        end do
     end do
