@@ -1,7 +1,13 @@
 #ifndef CUDAMANAGEDALLOCATOR_H_
 #define CUDAMANAGEDALLOCATOR_H_
 
+#include <iostream>
+#include <memory>
 #include <limits>
+
+#include <cuda.h>
+#include <driver_types.h>
+#include <cuda_runtime.h>
 
 template<typename T>
 class CudaManagedAllocator {
@@ -34,7 +40,7 @@ public :
         pointer result = nullptr;        
         cudaError_t error = cudaMallocManaged(&result, cnt*sizeof(T), cudaMemAttachGlobal);
         if(error != cudaSuccess) {
-            amrex::Print() << "allocate failed in cudaMallocManaged" << std::endl;
+            std::cout << "allocate failed in cudaMallocManaged" << std::endl;
         }        
         return result;
     }
@@ -42,7 +48,7 @@ public :
     inline void deallocate(pointer p, size_type) {
         cudaError_t error = cudaFree(p);
         if(error != cudaSuccess) {
-            amrex::Print() << "deallocate failed in cudaFree" << std::endl;
+            std::cout << "deallocate failed in cudaFree" << std::endl;
         }
     }
     
@@ -56,5 +62,7 @@ public :
     inline bool operator==(CudaManagedAllocator const&)   { return true; }
     inline bool operator!=(CudaManagedAllocator const& a) { return !operator==(a); }
 };
+
+
 
 #endif
