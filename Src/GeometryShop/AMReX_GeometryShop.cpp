@@ -1990,7 +1990,6 @@ namespace amrex
                     if (bpit.first)
                     {
                       const NodeMapIt& pmit = bpit.second;
-                      IntVect diff = p2 - p1;
                       auto& intersect = pmit->second;
 
                       intersect[a_faceNormal] = a_origin[a_faceNormal]+
@@ -2175,7 +2174,6 @@ namespace amrex
 		if (bpit.first)
 		{
 		  const auto& pmit = bpit.second;
-		  auto diff = p2 - p1;
 		  auto& intersect = pmit->second;
                   intersect[domain] = a_origin[domain] + p1[domain]*a_dx;
                   intersect[range] = intercept;
