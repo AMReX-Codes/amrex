@@ -6,6 +6,7 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_EBCellFlag.H>
+#include <AMReX_MultiCutFab.H>
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_F.H>
 
@@ -26,6 +27,7 @@ public:
     bool isValid () const { return m_valid; }
     void fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const;
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
+    void fillCentroid (MultiCutFab& centroid, const Geometry& geom) const;
 
 protected:
 

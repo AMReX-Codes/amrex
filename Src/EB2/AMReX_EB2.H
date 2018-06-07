@@ -13,7 +13,7 @@
 namespace amrex { namespace EB2 {
 
 extern int max_grid_size;
-extern bool compare_with_eb;
+extern bool compare_with_ch_eb;
 
 void Initialize ();
 void Finalize ();

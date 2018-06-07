@@ -211,4 +211,24 @@ Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
     }
 }
 
+void
+Level::fillCentroid (MultiCutFab& centroid, const Geometry& geom) const
+{
+    MultiFab tmp(centroid.boxArray(), centroid.DistributionMap(),
+                 AMREX_SPACEDIM, centroid.nGrow());
+    tmp.setVal(0.0);
+    tmp.ParallelCopy(m_centroid,0,0,AMREX_SPACEDIM,0,centroid.nGrow(),geom.periodicity());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(centroid.data()); mfi.isValid(); ++mfi)
+    {
+        if (centroid.ok(mfi)) {
+            CutFab& dst = centroid[mfi];
+            const void* src = static_cast<const void*>(tmp[mfi].dataPtr());
+            dst.copyFromMem(src);
+        }
+    }
+}
+
 }}

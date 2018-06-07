@@ -18,11 +18,11 @@ private:
     void initGrids ();
     void initializeEB ();
     void initializeEB2 ();
-    void initData ();
 
     int n_cell = 64;
     int max_grid_size = 32;
     int max_coarsening_level = 5;
+    bool test_old_eb = true;
 
     amrex::Geometry geom;
     amrex::BoxArray grids;
