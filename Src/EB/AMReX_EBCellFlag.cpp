@@ -74,6 +74,8 @@ operator<< (std::ostream& os, const EBCellFlag& flag)
 #endif
 
     os.flags(old_fmt);
+
+    return os;
 }
 
 }
