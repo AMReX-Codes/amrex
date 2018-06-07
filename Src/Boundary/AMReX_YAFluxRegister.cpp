@@ -37,6 +37,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
     BoxArray cfba = fba;
     cfba.coarsen(ref_ratio);
+    cfba.uniqify();
 
     Box cdomain = m_crse_geom.Domain();
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
@@ -91,29 +92,86 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     BoxList cfp_bl;
     Vector<int> cfp_procmap;
     int nlocal = 0;
-    int myproc = ParallelDescriptor::MyProc();
+    const int myproc = ParallelDescriptor::MyProc();
+    const int n_cfba = cfba.size();
+
+#ifdef _OPENMP
     
-    for (int i = 0; i < cfba.size(); ++i)
+    const int nthreads = omp_get_max_threads();
+    Vector<BoxList> bl_priv(nthreads, BoxList());
+    Vector<Vector<int> > procmap_priv(nthreads);
+    Vector<Vector<int> > localindex_priv(nthreads);
+#pragma omp parallel
+    {
+        BoxList bl_tmp;
+        const int tid = omp_get_thread_num();
+        BoxList& bl = bl_priv[tid];
+        Vector<int>& pmp = procmap_priv[tid];
+        Vector<int>& lid = localindex_priv[tid];
+#pragma omp for
+        for (int i = 0; i < n_cfba; ++i)
+        {
+            Box bx = amrex::grow(cfba[i], 1);
+            bx &= cdomain;
+
+            cfba.complementIn(bl_tmp, bx);
+            const int ntmp = bl_tmp.size();
+            bl.join(bl_tmp);
+
+            int proc = fdm[i];
+            for (int j = 0; j < ntmp; ++j) {
+                pmp.push_back(proc);
+            }
+
+            if (proc == myproc) {
+                lid.push_back(ntmp);
+            }
+        }
+    }
+
+    for (auto const& bl : bl_priv) {
+        cfp_bl.join(bl);
+    }
+
+    for (auto const& pmp : procmap_priv) {
+        cfp_procmap.insert(std::end(cfp_procmap), std::begin(pmp), std::end(pmp));
+    }
+
+    for (auto& lid : localindex_priv) {
+        for (int nl : lid) {
+            for (int j = 0; j < nl; ++j) {
+                m_cfp_localindex.push_back(nlocal);
+            }
+            ++nlocal;
+        }
+    }
+
+#else
+
+    BoxList bl_tmp;
+    for (int i = 0; i < n_cfba; ++i)
     {
         Box bx = amrex::grow(cfba[i], 1);
         bx &= cdomain;
 
-        const BoxList& bl = cfba.complementIn(bx);
-        cfp_bl.join(bl);
+        cfba.complementIn(bl_tmp, bx);
+        const int ntmp = bl_tmp.size();
+        cfp_bl.join(bl_tmp);
 
         int proc = fdm[i];
-        for (int j = 0; j < bl.size(); ++j) {
+        for (int j = 0; j < ntmp; ++j) {
             cfp_procmap.push_back(proc);
-            if (proc == myproc) {
-                m_cfp_localindex.push_back(nlocal);  // This Array store local index in fine ba/dm.
-                                                          // Its size is local size of cfp.
-            }
         }
 
         if (proc == myproc) {
+            for (int j = 0; j < ntmp; ++j) {
+                m_cfp_localindex.push_back(nlocal);  // This Array store local index in fine ba/dm.
+            }                                        // Its size is local size of cfp.
             ++nlocal;
         }
     }
+
+#endif
 
     // It's safe even if cfp_bl is empty.
 
