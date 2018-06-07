@@ -51,8 +51,8 @@ contains
     do n = 1, ncomp
        do       k = blo(3), bhi(3)
           do    j = blo(2), bhi(2)
-             offset = tile_size(1) * (j - lo(2)) + tile_size(1) * tile_size(2) * (k - lo(3)) + &
-                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1) + 1 - lo(1)
+             offset = tile_size(1) * (j - slo(2)) + tile_size(1) * tile_size(2) * (k - slo(3)) + &
+                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1) + 1 - slo(1)
              do i = blo(1), bhi(1)
                 dst(offset+i) = src(i,j,k,n)
              end do
@@ -82,8 +82,8 @@ contains
     do n = 1, ncomp
        do       k = blo(3), bhi(3)
           do    j = blo(2), bhi(2)
-             offset = tile_size(1) * (j - lo(2)) + tile_size(1) * tile_size(2) * (k - lo(3)) + &
-                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1) + 1 - lo(1)
+             offset = tile_size(1) * (j - dlo(2)) + tile_size(1) * tile_size(2) * (k - dlo(3)) + &
+                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1) + 1 - dlo(1)
              do i = blo(1), bhi(1)
                 dst(i,j,k,n)  = src(offset+i)
              end do
@@ -202,8 +202,8 @@ contains
 
 
 
-  AMREX_LAUNCH subroutine amrex_fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='amrex_fort_fab_plus')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+  AMREX_LAUNCH subroutine amrex_fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_plus')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
@@ -211,7 +211,7 @@ contains
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
 
-    off = sblo - lo
+    off = sblo - dblo
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
@@ -228,8 +228,8 @@ contains
 
 
 
-  AMREX_LAUNCH subroutine amrex_fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='amrex_fort_fab_minus')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+  AMREX_LAUNCH subroutine amrex_fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_minus')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
@@ -237,7 +237,7 @@ contains
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
 
-    off = sblo - lo
+    off = sblo - dblo
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
@@ -254,8 +254,8 @@ contains
 
 
 
-  AMREX_LAUNCH subroutine amrex_fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='amrex_fort_fab_mult')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+  AMREX_LAUNCH subroutine amrex_fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_mult')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
@@ -263,7 +263,7 @@ contains
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
 
-    off = sblo - lo
+    off = sblo - dblo
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
@@ -280,8 +280,8 @@ contains
 
 
 
-  AMREX_LAUNCH subroutine amrex_fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='amrex_fort_fab_divide')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+  AMREX_LAUNCH subroutine amrex_fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_divide')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
@@ -289,7 +289,7 @@ contains
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
 
-    off = sblo - lo
+    off = sblo - dblo
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
@@ -306,8 +306,8 @@ contains
 
 
 
-  AMREX_LAUNCH subroutine amrex_fort_fab_protdivide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='amrex_fort_fab_protdivide')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+  AMREX_LAUNCH subroutine amrex_fort_fab_protdivide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_protdivide')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
@@ -315,7 +315,7 @@ contains
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
 
-    off = sblo - lo
+    off = sblo - dblo
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
@@ -358,8 +358,8 @@ contains
 
 
   ! dst += a*src
-  AMREX_LAUNCH subroutine amrex_fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) bind(c, name='amrex_fort_fab_saxpy')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+  AMREX_LAUNCH subroutine amrex_fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_saxpy')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ), value :: a
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -368,7 +368,7 @@ contains
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
 
-    off = sblo - lo
+    off = sblo - dblo
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
@@ -385,8 +385,8 @@ contains
 
 
   ! dst = src + a*dst
-  AMREX_LAUNCH subroutine amrex_fort_fab_xpay(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) bind(c, name='amrex_fort_fab_xpay')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+  AMREX_LAUNCH subroutine amrex_fort_fab_xpay(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_xpay')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ), value :: a
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -395,7 +395,7 @@ contains
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
 
-    off = sblo - lo
+    off = sblo - dblo
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
