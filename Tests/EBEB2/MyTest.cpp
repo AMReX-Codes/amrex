@@ -77,6 +77,24 @@ MyTest::initData ()
 void
 MyTest::test ()
 {
+    const FabArray<EBCellFlagFab>& cellflag_old = old_factory->getMultiEBCellFlagFab();
+    const FabArray<EBCellFlagFab>& cellflag_new = new_factory->getMultiEBCellFlagFab();
+#if 0
+    for (MFIter mfi(cellflag_new); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.fabbox();
+        const auto& new_fab = cellflag_new[mfi];
+        const auto& old_fab = cellflag_old[mfi];
+        for (BoxIterator bi(bx); bi.ok(); ++bi) {
+            const IntVect& iv = bi();
+            if (new_fab(iv) != old_fab(iv)) {
+                amrex::AllPrint() << "cellflag diff " << iv << ": " << old_fab(iv)
+                                  << ", " << new_fab(iv) << "\n";
+            }
+        }
+    }
+#endif
+
     const MultiFab& vfrc_old = old_factory->getVolFrac();
     VisMF::Write(vfrc_old, "vfrc-old");
 

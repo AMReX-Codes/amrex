@@ -149,6 +149,40 @@ Level::coarsenFromFine (Level& fineLevel)
 }
 
 void
+Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const
+{
+    cellflag.ParallelCopy(m_cellflag,0,0,1,0,cellflag.nGrow(),geom.periodicity());
+
+    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+
+    auto cov_val = EBCellFlag::TheCoveredCell();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector<std::pair<int,Box> > isects;
+        for (MFIter mfi(cellflag); mfi.isValid(); ++mfi)
+        {
+            auto& fab = cellflag[mfi];
+            const Box& bx = fab.box();
+            for (const auto& iv : pshifts)
+            {
+                m_covered_grids.intersections(bx+iv, isects);
+                for (const auto& is : isects) {
+                    fab.setVal(cov_val, is.second-iv, 0, 1);
+                }
+            }
+
+            // fix type and region for each fab
+            fab.setRegion(bx);
+            fab.setType(FabType::undefined);
+            auto typ = fab.getType(bx);
+            fab.setType(typ);
+        }
+    }
+}
+
+void
 Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
 {
     vfrac.setVal(1.0);
