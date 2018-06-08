@@ -724,15 +724,15 @@ contains
              if (is_regular_cell(cell(i,j,k))) then
 !                vfrac(i,j,k) = one
 !                vcent(i,j,k,:) = zero
-!                bcent(i,j,k,:) = zero
+!                bcent(i,j,k,:) = -one
 !                bnorm(i,j,k,:) = zero
 !                barea(i,j,k) = zero
              else if (is_covered_cell(cell(i,j,k))) then
                 vfrac(i,j,k) = zero
-                vcent(i,j,k,:) = zero
-                bcent(i,j,k,:) = zero
-                bnorm(i,j,k,:) = zero
-                barea(i,j,k) = zero
+!                vcent(i,j,k,:) = zero
+!                bcent(i,j,k,:) = -one
+!                bnorm(i,j,k,:) = zero
+!                barea(i,j,k) = zero
              else
 
                 axm = apx(i,j,k)

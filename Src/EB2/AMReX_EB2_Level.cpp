@@ -89,7 +89,7 @@ Level::coarsenFromFine (Level& fineLevel)
             m_volfrac[mfi].setVal(1.0, gbx, 0, 1);
             m_centroid[mfi].setVal(0.0, gbx, 0, AMREX_SPACEDIM);
             m_bndryarea[mfi].setVal(0.0, gbx, 0, 1);
-            m_bndrycent[mfi].setVal(0.0, gbx, 0, AMREX_SPACEDIM);
+            m_bndrycent[mfi].setVal(-1.0, gbx, 0, AMREX_SPACEDIM);
             m_bndrynorm[mfi].setVal(0.0, gbx, 0, AMREX_SPACEDIM);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& fbx = mfi.grownnodaltilebox(idim,2);
@@ -237,7 +237,7 @@ Level::fillBndryCent (MultiCutFab& bndrycent, const Geometry& geom) const
 {
     MultiFab tmp(bndrycent.boxArray(), bndrycent.DistributionMap(),
                  bndrycent.nComp(), bndrycent.nGrow());
-    tmp.setVal(0.0);
+    tmp.setVal(-1.0);
     tmp.ParallelCopy(m_bndrycent,0,0,bndrycent.nComp(),0,bndrycent.nGrow(),geom.periodicity());
 #ifdef _OPENMP
 #pragma omp parallel

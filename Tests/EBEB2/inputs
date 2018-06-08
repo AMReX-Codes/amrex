@@ -4,6 +4,7 @@ eb2.compare_with_ch_eb=1
 n_cell = 64
 max_grid_size = 32
 max_coarsening_level = 1
+test_cellflag = 1
 
 eb2.geom_type = sphere
 

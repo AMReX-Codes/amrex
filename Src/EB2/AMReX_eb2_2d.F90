@@ -219,14 +219,14 @@ contains
 !             vfrac(i,j) = one
 !             vcent(i,j,:) = zero
 !             barea(i,j) = zero
-!             bcent(i,j,:) = zero
+!             bcent(i,j,:) = -one
 !             bnorm(i,j,:) = zero
           else if (is_covered_cell(cell(i,j))) then
              vfrac(i,j) = zero
-             vcent(i,j,:) = zero
-             barea(i,j) = zero
-             bcent(i,j,:) = zero
-             bnorm(i,j,:) = zero
+!             vcent(i,j,:) = zero
+!             barea(i,j) = zero
+!             bcent(i,j,:) = -one
+!             bnorm(i,j,:) = zero
           else
              axm = apx(i,j)
              axp = apx(i+1,j)
