@@ -21,14 +21,15 @@ private:
 
     int n_cell = 64;
     int max_grid_size = 32;
-    int max_coarsening_level = 5;
+    int max_coarsening_level = 4;
     bool test_old_eb = true;
+    bool test_cellflag = true;
 
     amrex::Geometry geom;
     amrex::BoxArray grids;
     amrex::DistributionMapping dmap;
-    std::unique_ptr<amrex::EBFArrayBoxFactory> old_factory;
-    std::unique_ptr<amrex::EBFArrayBoxFactory> new_factory;
+    amrex::Vector<std::unique_ptr<amrex::EBFArrayBoxFactory> > old_factory;
+    amrex::Vector<std::unique_ptr<amrex::EBFArrayBoxFactory> > new_factory;
 };
 
 #endif

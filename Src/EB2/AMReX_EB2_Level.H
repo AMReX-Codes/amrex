@@ -199,7 +199,7 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
             m_volfrac[mfi].setVal(1.0);
             m_centroid[mfi].setVal(0.0);
             m_bndryarea[mfi].setVal(0.0);
-            m_bndrycent[mfi].setVal(0.0);
+            m_bndrycent[mfi].setVal(-1.0);
             m_bndrynorm[mfi].setVal(0.0);
 
             amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
@@ -262,7 +262,7 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
             m_volfrac[mfi].setVal(1.0);
             m_centroid[mfi].setVal(0.0);
             m_bndryarea[mfi].setVal(0.0);
-            m_bndrycent[mfi].setVal(0.0);
+            m_bndrycent[mfi].setVal(-1.0);
             m_bndrynorm[mfi].setVal(0.0);
             
             amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),

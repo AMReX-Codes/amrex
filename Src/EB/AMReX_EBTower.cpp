@@ -206,7 +206,7 @@ EBTower::initBndryCent (int lev, const EBLevelGrid& eblg)
     {
         const Box& bx = mfi.tilebox();
         auto& fab = bndrycent[mfi];
-        fab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+        fab.setVal(-1.0, bx, 0, AMREX_SPACEDIM);
 
         const EBISBox& ebisbox = ebisl[mfi];
 
@@ -542,7 +542,7 @@ EBTower::fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom)
 
     const auto& src_bndrycent = m_instance->m_bndrycent[lev];
 
-    a_bndrycent.setVal(0.0);
+    a_bndrycent.setVal(-1.0);
 
     a_bndrycent.ParallelCopy(src_bndrycent, 0, 0, a_bndrycent.nComp(), 0, a_bndrycent.nGrow(), a_geom.periodicity());
 }

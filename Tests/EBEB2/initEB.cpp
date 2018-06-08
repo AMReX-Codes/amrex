@@ -48,5 +48,13 @@ MyTest::initializeEB ()
     }
 
     EBTower::Build();
-    old_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap, {1, 1, 1}, EBSupport::full));
+    old_factory.emplace_back(new EBFArrayBoxFactory(geom, grids, dmap, {1, 1, 1}, EBSupport::full));
+
+    for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
+    {
+        int ratio = std::pow(2,ilev);
+        Geometry cgeom(amrex::coarsen(geom.Domain(),ratio));
+        old_factory.emplace_back(new EBFArrayBoxFactory(cgeom, amrex::coarsen(grids,ratio),
+                                                        dmap, {1, 1, 1}, EBSupport::full));
+    }
 }

@@ -39,8 +39,8 @@ MyTest::MyTest ()
 
 MyTest::~MyTest ()
 {
-    old_factory.reset();
-    new_factory.reset();
+    old_factory.clear();
+    new_factory.clear();
     AMReX_EBIS::reset();
     EBTower::Destroy();
 }
@@ -54,6 +54,7 @@ MyTest::readParameters ()
     pp.query("max_coarsening_level", max_coarsening_level);
     max_coarsening_level = std::max(max_coarsening_level, 0);
     pp.query("test_old_eb", test_old_eb);
+    pp.query("test_cellflag", test_cellflag);
 }
 
 void
@@ -75,63 +76,72 @@ MyTest::initGrids ()
 void
 MyTest::test ()
 {
-    const FabArray<EBCellFlagFab>& cellflag_new = new_factory->getMultiEBCellFlagFab();
-
-    const MultiFab& vfrc_new = new_factory->getVolFrac();
-    VisMF::Write(vfrc_new, "vfrc-new");
-
-    const MultiCutFab& cent_new = new_factory->getCentroid();
-    VisMF::Write(cent_new.ToMultiFab(0.,0.), "cent-new");
-
-    const MultiCutFab& bcent_new = new_factory->getBndryCent();
-    VisMF::Write(bcent_new.ToMultiFab(0.,0.), "bcent-new");
-
-    const auto& areafrac_new = new_factory->getAreaFrac();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        VisMF::Write(areafrac_new[idim]->ToMultiFab(1.,0.), "area"+std::to_string(idim)+"-new");
-    }
-
-    const auto& facecent_new = new_factory->getFaceCent();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        VisMF::Write(facecent_new[idim]->ToMultiFab(1.,0.), "fcent"+std::to_string(idim)+"-new");
-    }
-
-    if (test_old_eb)
+    for (int ilev = 0, nlevs = old_factory.size(); ilev < nlevs; ++ilev)
     {
-        const FabArray<EBCellFlagFab>& cellflag_old = old_factory->getMultiEBCellFlagFab();
-#if 0
-        for (MFIter mfi(cellflag_new); mfi.isValid(); ++mfi)
+        const FabArray<EBCellFlagFab>& cellflag_new = new_factory[ilev]->getMultiEBCellFlagFab();
+
+        const MultiFab& vfrc_new = new_factory[ilev]->getVolFrac();
+        VisMF::Write(vfrc_new, "new-vfrc-lev"+std::to_string(ilev));
+        
+        const MultiCutFab& cent_new = new_factory[ilev]->getCentroid();
+        VisMF::Write(cent_new.ToMultiFab(0.,0.), "new-cent-lev"+std::to_string(ilev));
+        
+        const MultiCutFab& bcent_new = new_factory[ilev]->getBndryCent();
+        VisMF::Write(bcent_new.ToMultiFab(0.,0.), "new-bcent-lev"+std::to_string(ilev));
+        
+        const auto& areafrac_new = new_factory[ilev]->getAreaFrac();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            VisMF::Write(areafrac_new[idim]->ToMultiFab(1.,0.),
+                         "new-area"+std::to_string(idim)+"-lev"+std::to_string(ilev));
+        }
+        
+        const auto& facecent_new = new_factory[ilev]->getFaceCent();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            VisMF::Write(facecent_new[idim]->ToMultiFab(1.,0.),
+                         "new-fcent"+std::to_string(idim)+"-lev"+std::to_string(ilev));
+        }
+        
+        if (test_old_eb)
         {
-            const Box& bx = mfi.fabbox();
-            const auto& new_fab = cellflag_new[mfi];
-            const auto& old_fab = cellflag_old[mfi];
-            for (BoxIterator bi(bx); bi.ok(); ++bi) {
-                const IntVect& iv = bi();
-                if (new_fab(iv) != old_fab(iv)) {
-                    amrex::AllPrint() << "cellflag diff " << iv << ": " << old_fab(iv)
-                                      << ", " << new_fab(iv) << "\n";
+            const FabArray<EBCellFlagFab>& cellflag_old = old_factory[ilev]->getMultiEBCellFlagFab();
+
+            if (test_cellflag)
+            {
+                for (MFIter mfi(cellflag_new); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.fabbox();
+                    const auto& new_fab = cellflag_new[mfi];
+                    const auto& old_fab = cellflag_old[mfi];
+                    for (BoxIterator bi(bx); bi.ok(); ++bi) {
+                        const IntVect& iv = bi();
+                        if (new_fab(iv) != old_fab(iv)) {
+                            amrex::AllPrint() << "cellflag diff " << iv << ": " << old_fab(iv)
+                                              << ", " << new_fab(iv) << "\n";
+                        }
+                    }
                 }
             }
-        }
-#endif
-
-        const MultiFab& vfrc_old = old_factory->getVolFrac();
-        VisMF::Write(vfrc_old, "vfrc-old");
-
-        const MultiCutFab& cent_old = old_factory->getCentroid();
-        VisMF::Write(cent_old.ToMultiFab(0.,0.), "cent-old");
-
-        const MultiCutFab& bcent_old = old_factory->getBndryCent();
-        VisMF::Write(bcent_old.ToMultiFab(0.,0.), "bcent-old");
-
-        const auto& areafrac_old = old_factory->getAreaFrac();
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            VisMF::Write(areafrac_old[idim]->ToMultiFab(1.,0.), "area"+std::to_string(idim)+"-old");
-        }
-
-        const auto& facecent_old = old_factory->getFaceCent();
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            VisMF::Write(facecent_old[idim]->ToMultiFab(1.,0.), "fcent"+std::to_string(idim)+"-old");
+            
+            const MultiFab& vfrc_old = old_factory[ilev]->getVolFrac();
+            VisMF::Write(vfrc_old, "old-vfrc-lev"+std::to_string(ilev));
+            
+            const MultiCutFab& cent_old = old_factory[ilev]->getCentroid();
+            VisMF::Write(cent_old.ToMultiFab(0.,0.),  "old-cent-lev"+std::to_string(ilev));
+            
+            const MultiCutFab& bcent_old = old_factory[ilev]->getBndryCent();
+            VisMF::Write(bcent_old.ToMultiFab(0.,0.),  "old-bcent-lev"+std::to_string(ilev));
+            
+            const auto& areafrac_old = old_factory[ilev]->getAreaFrac();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                VisMF::Write(areafrac_old[idim]->ToMultiFab(1.,0.),
+                             "old-area"+std::to_string(idim)+"-lev"+std::to_string(ilev));
+            }
+            
+            const auto& facecent_old = old_factory[ilev]->getFaceCent();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                VisMF::Write(facecent_old[idim]->ToMultiFab(1.,0.),
+                             "old-fcent"+std::to_string(idim)+"-lev"+std::to_string(ilev));
+            }
         }
     }
 }
@@ -173,6 +183,17 @@ MyTest::initializeEB2 ()
     const EB2::IndexSpace& index_space = EB2::IndexSpace::top();
     const EB2::Level& eb_level = index_space.getLevel(geom);
 
-    new_factory.reset(new EBFArrayBoxFactory(eb_level, geom, grids, dmap, {1, 1, 1}, EBSupport::full));
+    new_factory.emplace_back(
+        new EBFArrayBoxFactory(eb_level, geom, grids, dmap, {1, 1, 1}, EBSupport::full));
+
+    for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
+    {
+        int ratio = std::pow(2,ilev);
+        Geometry cgeom(amrex::coarsen(geom.Domain(),ratio));
+        const EB2::Level& crse_eb_level = index_space.getLevel(cgeom);
+        new_factory.emplace_back(
+            new EBFArrayBoxFactory(crse_eb_level, cgeom, amrex::coarsen(grids,ratio),
+                                   dmap, {1, 1, 1}, EBSupport::full));
+    }
 }
 
