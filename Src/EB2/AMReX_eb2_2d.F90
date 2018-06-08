@@ -352,7 +352,7 @@ contains
           else
              flg = clear_neighbor(flg,1,1)
           end if
-          
+
           cell(i,j) = flg
        end do
     end do
