@@ -78,6 +78,8 @@ MyTest::test ()
 {
     for (int ilev = 0, nlevs = old_factory.size(); ilev < nlevs; ++ilev)
     {
+        const Box& lev_domain_m1 = amrex::grow(new_factory[ilev]->getDomain(), -1);
+
         const FabArray<EBCellFlagFab>& cellflag_new = new_factory[ilev]->getMultiEBCellFlagFab();
 
         const MultiFab& vfrc_new = new_factory[ilev]->getVolFrac();
@@ -105,13 +107,14 @@ MyTest::test ()
         {
             const FabArray<EBCellFlagFab>& cellflag_old = old_factory[ilev]->getMultiEBCellFlagFab();
 
-            if (test_cellflag)
+            if (test_cellflag && ilev == 0)
             {
                 for (MFIter mfi(cellflag_new); mfi.isValid(); ++mfi)
                 {
-                    const Box& bx = mfi.fabbox();
+                    const Box& bx = mfi.fabbox() & lev_domain_m1;
                     const auto& new_fab = cellflag_new[mfi];
                     const auto& old_fab = cellflag_old[mfi];
+
                     for (BoxIterator bi(bx); bi.ok(); ++bi) {
                         const IntVect& iv = bi();
                         if (new_fab(iv) != old_fab(iv)) {
