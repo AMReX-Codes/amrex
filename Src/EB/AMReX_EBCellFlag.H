@@ -160,8 +160,12 @@ private:
                                             { w_lower_mask+21, w_lower_mask+22, w_lower_mask+23 },
                                             { w_lower_mask+24, w_lower_mask+25, w_lower_mask+26 }}} }};
 
-    // regular connected with all neighbors 
+    // regular connected with all neighbors
+#if AMREX_SPACEDIM == 3
     static constexpr uint32_t default_value = zero_lower_mask | regular_bits | single_vof_bits;
+#else
+    static constexpr uint32_t default_value = 0x7fc004;  // zero out "3d" neighbors
+#endif
     static constexpr uint32_t covered_value = zero_lower_mask | covered_bits;
 
     uint32_t flag = default_value;
