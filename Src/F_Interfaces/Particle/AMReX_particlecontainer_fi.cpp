@@ -32,7 +32,7 @@ extern "C" {
     }
 
     void amrex_fi_write_particles(FParticleContainer* particlecontainer,
-                                  const char* dirname, const char* pname, bool is_checkpoint)
+                                  const char* dirname, const char* pname, int is_checkpoint)
     {
         particlecontainer->Checkpoint(dirname, pname, is_checkpoint);
     }

@@ -47,7 +47,7 @@ module amrex_particlecontainer_module
        type(c_ptr), value :: pc
        character(kind=c_char), intent(in) :: dirname(*)
        character(kind=c_char), intent(in) :: pname(*)
-       logical, intent(in)                :: is_checkpoint
+       integer(c_int), value              :: is_checkpoint
      end subroutine amrex_fi_write_particles
 
      subroutine amrex_fi_particle_redistribute (pc,lev_min,lev_max,ng) bind(c)
@@ -97,9 +97,17 @@ contains
   subroutine amrex_write_particles (dirname, pname, is_checkpoint)
     character(len=*), intent(in) :: dirname
     character(len=*), intent(in) :: pname
-    logical, intent(in)          :: is_checkpoint    
+    logical, intent(in)          :: is_checkpoint
+
+    integer(c_int) :: is_check_flag
+    if (is_checkpoint) then
+       is_check_flag = 1
+    else
+       is_check_flag = 0
+    end if
+    
     call amrex_fi_write_particles(particlecontainer, &
-         amrex_string_f_to_c(dirname), amrex_string_f_to_c(pname), is_checkpoint)
+         amrex_string_f_to_c(dirname), amrex_string_f_to_c(pname), is_check_flag)
   end subroutine amrex_write_particles
 
   subroutine amrex_particle_redistribute (lev_min,lev_max,nghost)
