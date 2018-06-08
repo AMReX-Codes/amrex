@@ -23,6 +23,7 @@ namespace amrex
   static const VolIndex  ebl_debvoflo(ebl_debivlo, 0);
   static const VolIndex  ebl_debvofhi(ebl_debivhi, 0);
   static const FaceIndex ebl_debface(ebl_debvoflo, ebl_debvofhi);
+
 /***/
   void
   EBISLevel::checkForMultiValuedCells() const
@@ -818,4 +819,3 @@ namespace amrex
 
 
 }
-

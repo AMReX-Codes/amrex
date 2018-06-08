@@ -336,7 +336,7 @@ contains
           end if
 
           if (fx(i+1,j).ne.covered .and. fy(i+1,j).ne.covered) then
-          else if (fx(i+1,j-1).eq.covered .and. fy(i,j).ne.covered) then
+          else if (fx(i+1,j-1).ne.covered .and. fy(i,j).ne.covered) then
           else
              flg = clear_neighbor(flg,1,-1)
           end if
