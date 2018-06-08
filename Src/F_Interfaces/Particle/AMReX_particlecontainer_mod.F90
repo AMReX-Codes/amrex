@@ -104,14 +104,15 @@ contains
 
   subroutine amrex_particle_redistribute (lev_min,lev_max,nghost)
     integer, optional, intent(in) :: lev_min, lev_max, nghost
-    integer(c_int) :: min, max, ng
-    min = 0
-    max = -1
-    ng  = 0
-    if(present(lev_min)) min = lev_min
-    if(present(lev_max)) max = lev_max
-    if(present(nghost )) ng = nghost
-    call amrex_fi_particle_redistribute(particlecontainer, min, max, ng)
+    integer(c_int) :: default_min, default_max, default_ng
+    default_min = 0
+    default_max = -1
+    default_ng  = 0
+    if(present(lev_min)) default_min = lev_min
+    if(present(lev_max)) default_max = lev_max
+    if(present(nghost )) default_ng = nghost
+    call amrex_fi_particle_redistribute(particlecontainer, &
+         default_min, default_max, default_ng)
   end subroutine amrex_particle_redistribute
 
   function amrex_get_particles(lev, mfi) result(particles)
