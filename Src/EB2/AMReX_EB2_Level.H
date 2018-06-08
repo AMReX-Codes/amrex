@@ -38,6 +38,7 @@ protected:
     Level (const Geometry& geom) : m_geom(geom) {}
  
     void coarsenFromFine (Level& fineLevel);
+    void buildCellFlag ();
 
     Geometry m_geom;    
     BoxArray m_grids;

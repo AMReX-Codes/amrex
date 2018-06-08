@@ -108,7 +108,7 @@ MyTest::test ()
         {
             const FabArray<EBCellFlagFab>& cellflag_old = old_factory[ilev]->getMultiEBCellFlagFab();
 
-            if (test_cellflag && ilev == 0)
+            if (test_cellflag)
             {
                 for (MFIter mfi(cellflag_new); mfi.isValid(); ++mfi)
                 {
