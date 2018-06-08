@@ -205,12 +205,12 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_copy,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
-                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_copy)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         numcomp);
 }
 
 template <>
@@ -225,11 +225,11 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
-	AMREX_FORT_LAUNCH(srcbox, amrex_fort_fab_copytomem,
-                          BL_TO_FORTRAN_BOX(srcbox),
-                          static_cast<Real*>(dst),
-                          BL_TO_FORTRAN_N_ANYD(*this,srccomp),
-                          numcomp);
+	AMREX_DEVICE_LAUNCH(amrex_fort_fab_copytomem)
+            (AMREX_ARLIM_ARG(srcbox.loVect()), AMREX_ARLIM_ARG(srcbox.hiVect()),
+             static_cast<Real*>(dst),
+             BL_TO_FORTRAN_N_ANYD(*this,srccomp),
+             numcomp);
         return sizeof(Real) * srcbox.numPts() * numcomp;
     }
     else
@@ -250,10 +250,10 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok()) 
     {
-	AMREX_FORT_LAUNCH(dstbox, amrex_fort_fab_copyfrommem,
-                          BL_TO_FORTRAN_BOX(dstbox),
-                          BL_TO_FORTRAN_N_ANYD(*this,dstcomp), numcomp,
-                          static_cast<const Real*>(src));
+	AMREX_DEVICE_LAUNCH(amrex_fort_fab_copyfrommem)
+            (AMREX_ARLIM_ARG(dstbox.loVect()), AMREX_ARLIM_ARG(dstbox.hiVect()),
+             BL_TO_FORTRAN_N_ANYD(*this,dstcomp), numcomp,
+             static_cast<const Real*>(src));
         return sizeof(Real) * dstbox.numPts() * numcomp;
     }
     else
@@ -272,10 +272,10 @@ BaseFab<Real>::performSetVal (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    AMREX_FORT_LAUNCH(bx, amrex_fort_fab_setval,
-                      BL_TO_FORTRAN_BOX(bx),
-                      BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
-                      val);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_setval)
+        (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
+         val);
 }
 
 template<>
@@ -390,12 +390,12 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_plus,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
-                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_plus)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         numcomp);
 
     return *this;
 }
@@ -416,12 +416,12 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_mult,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
-                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_mult)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         numcomp);
     return *this;
 }
 
@@ -520,12 +520,12 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_minus,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
-                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_minus)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         numcomp);
     return *this;
 }
 
@@ -545,12 +545,12 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_divide,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
-                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_divide)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         numcomp);
     return *this;
 }
 
@@ -570,12 +570,12 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_protdivide,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
-                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_protdivide)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         numcomp);
     return *this;
 }
 
