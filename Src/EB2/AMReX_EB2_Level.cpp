@@ -165,11 +165,14 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
         {
             auto& fab = cellflag[mfi];
             const Box& bx = fab.box();
-            for (const auto& iv : pshifts)
+            if (!m_covered_grids.empty())
             {
-                m_covered_grids.intersections(bx+iv, isects);
-                for (const auto& is : isects) {
-                    fab.setVal(cov_val, is.second-iv, 0, 1);
+                for (const auto& iv : pshifts)
+                {
+                    m_covered_grids.intersections(bx+iv, isects);
+                    for (const auto& is : isects) {
+                        fab.setVal(cov_val, is.second-iv, 0, 1);
+                    }
                 }
             }
 
@@ -195,6 +198,7 @@ Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    if (!m_covered_grids.empty())
     {
         std::vector<std::pair<int,Box> > isects;
         for (MFIter mfi(vfrac); mfi.isValid(); ++mfi)
@@ -280,6 +284,7 @@ Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac, const Geome
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    if (!m_covered_grids.empty())
     {
         std::vector<std::pair<int,Box> > isects;
         for (MFIter mfi(a_areafrac[0]->data()); mfi.isValid(); ++mfi)
