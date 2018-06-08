@@ -492,8 +492,8 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
     }
 
-    numThreads.x = std::max((int) numThreadsMin.x, 32);
-    numThreads.y = std::max((int) numThreadsMin.y, 8);
+    numThreads.x = std::max((int) numThreadsMin.x, 16);
+    numThreads.y = std::max((int) numThreadsMin.y, 16);
     numThreads.z = std::max((int) numThreadsMin.z, 1);
 
     // Allow the user to override these at runtime.
