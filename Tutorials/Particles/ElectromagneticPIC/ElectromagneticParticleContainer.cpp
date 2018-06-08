@@ -283,10 +283,6 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                               BL_TO_FORTRAN_3D(Ez[mfi]),
                               plo, dx);
         
-#ifdef AMREX_USE_CUDA           
-        cudaDeviceSynchronize();
-#endif
-
         FORT_LAUNCH_PARTICLES(np, 
                               push_momentum_boris,
                               np,
@@ -296,10 +292,6 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                               particles.bx().data(), particles.by().data(), particles.bz().data(),
                               m_charge, m_mass, dt);
         
-#ifdef AMREX_USE_CUDA                        
-        cudaDeviceSynchronize();
-#endif      
-
         FORT_LAUNCH_PARTICLES(np,
                               push_position_boris,
                               np,
@@ -307,10 +299,6 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
                               particles.ginv().data(), dt);
         
-#ifdef AMREX_USE_CUDA
-        cudaDeviceSynchronize();
-#endif
-
         FORT_LAUNCH_PARTICLES(np, deposit_current,
                               BL_TO_FORTRAN_3D(jx[mfi]),
                               BL_TO_FORTRAN_3D(jy[mfi]),
@@ -365,10 +353,6 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
                               BL_TO_FORTRAN_3D(Ez[mfi]),
                               plo, dx);
         
-#ifdef AMREX_USE_CUDA           
-        cudaDeviceSynchronize();
-#endif
-
         FORT_LAUNCH_PARTICLES(np, 
                               push_momentum_boris,
                               np,
@@ -397,10 +381,6 @@ PushParticlePositions(amrex::Real dt)
                               np, 
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
                               particles.ginv().data());
-        
-#ifdef AMREX_USE_CUDA
-        cudaDeviceSynchronize();
-#endif        
         
         FORT_LAUNCH_PARTICLES(np, push_position_boris,
                               np,
