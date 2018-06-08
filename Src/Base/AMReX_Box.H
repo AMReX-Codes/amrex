@@ -298,6 +298,7 @@ public:
     Box& setSmall (int dir, int sm_index)  { smallend.setVal(dir,sm_index); return *this; }
 
     //! Redefine the big end of the Box.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& setBig (const IntVect& bg) { bigend = bg; return *this; }
 
     //! Redefine the big end of the Box.

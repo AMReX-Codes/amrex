@@ -30,6 +30,31 @@ class MultiFab;
 class DistributionMapping;
 class BoxArray;
 
+#ifdef AMREX_USE_CUDA
+struct GeometryData : public Managed
+{
+
+ //! Returns the cellsize for each coordinate direction.
+    const Real* CellSize () const { BL_ASSERT(ok); return dx; }
+ //! Returns the lo end of the problem domain in each dimension.
+    const Real* ProbLo ()  { return prob_domain.lo(); }
+ //! Returns the hi end of the problem domain in each dimension.
+    const Real* ProbHi () { return prob_domain.hi(); }
+
+public:
+    int     spherical_origin_fix;
+    bool    is_periodic[AMREX_SPACEDIM];
+    RealBox prob_domain;
+    CoordSys::CoordType c_sys; 
+    Real      offset[AMREX_SPACEDIM];
+
+    Box domain;
+    Real dx[AMREX_SPACEDIM];
+    Real inv_dx[AMREX_SPACEDIM];
+    bool ok;
+};
+#endif
+
 class Geometry
     :
     public CoordSys
@@ -48,6 +73,11 @@ public:
     Geometry (Geometry&& rhs) noexcept = default;
     Geometry& operator= (const Geometry& rhs) = default;
     Geometry& operator= (Geometry&& rhs) = default;
+
+#ifdef AMREX_USE_CUDA
+    // Returns pointer to copy of geometry's stored data
+    GeometryData* dataPtr();
+#endif
 
     static void Finalize ();
     //! Read static values from ParmParse database.
@@ -172,6 +202,10 @@ private:
     // Non-static data.
     //
     Box domain;
+
+#ifdef AMREX_USE_CUDA
+    GeometryData* geomData;
+#endif
 };
 
 
