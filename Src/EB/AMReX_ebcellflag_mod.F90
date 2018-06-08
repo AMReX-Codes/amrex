@@ -6,7 +6,7 @@ module amrex_ebcellflag_module
   public :: is_regular_cell, is_single_valued_cell, is_multi_valued_cell, &
        is_covered_cell, get_cell_type, get_neighbor_cells, num_neighbor_cells, pos_ngbr, &
        set_regular_cell, set_covered_cell, set_single_valued_cell, set_neighbor, clear_neighbor, &
-       is_neighbor, amrex_ebcellflag_count, get_neighbor_cells_int_single, &
+       clear_allneighbors, is_neighbor, amrex_ebcellflag_count, get_neighbor_cells_int_single, &
        regular, single_valued, multi_valued, covered
   
   integer, parameter :: w_type      = 2
@@ -65,6 +65,14 @@ contains
     integer :: r
     r = ibits(flag,0,w_type)
   end function get_cell_type
+
+  elemental function clear_allneighbors (flag) result(r)
+    integer, intent(in) :: flag
+    integer :: r
+    r = flag
+    call mvbits(0, 0, 27, r, pos_ngbr(-1,-1,-1))
+    r = ibset(r, pos_ngbr(0,0,0))
+  end function clear_allneighbors
 
 #if (AMREX_SPACEDIM == 2)
 

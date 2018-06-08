@@ -19,7 +19,7 @@ module amrex_eb2_2d_moudle
 
   private
   public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
-       amrex_eb2_coarsen_from_fine
+       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap
 
 contains
 
@@ -396,7 +396,7 @@ contains
     integer         , intent(inout) :: cflag( cflo(1): cfhi(1), cflo(2): cfhi(2))
     integer         , intent(in   ) :: fflag( fflo(1): ffhi(1), fflo(2): ffhi(2))
 
-    integer :: i,j, ii,jj, ftype(2,2)
+    integer :: i,j, ii,jj, ftype(2,2), flg
     real(amrex_real) :: cvolinv, cbainv, nx, ny, nfac, apinv
 
 
@@ -492,5 +492,55 @@ contains
     end do
 
   end subroutine amrex_eb2_coarsen_from_fine
+
+
+  subroutine amrex_eb2_build_cellflag_from_ap (lo, hi, &
+       apx, xlo, xhi, apy, ylo, yhi, cflag, flo, fhi) &
+       bind(c,name='amrex_eb2_build_cellflag_from_ap')
+    integer, dimension(2) :: lo, hi, xlo, xhi, ylo, yhi, zlo, zhi, flo, fhi
+    real(amrex_real), intent(in   ) ::  apx (xlo(1):xhi(1),xlo(2):xhi(2))
+    real(amrex_real), intent(in   ) ::  apy (ylo(1):yhi(1),ylo(2):yhi(2))
+    integer         , intent(inout) :: cflag(flo(1):fhi(1),flo(2):fhi(2))
+
+    integer :: i,j, flg
+
+    ! By default, all neighbors are already set.
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          flg = cflag(i,j)
+
+          if (apx(i  ,j  ).eq.zero) flg = clear_neighbor(flg, -1,  0)
+          if (apx(i+1,j  ).eq.zero) flg = clear_neighbor(flg,  1,  0)
+          if (apy(i  ,j  ).eq.zero) flg = clear_neighbor(flg,  0, -1)
+          if (apy(i  ,j+1).eq.zero) flg = clear_neighbor(flg,  0,  1)
+
+          if (apx(i,j).ne.zero .and. apy(i-1,j).ne.zero) then
+          else if (apx(i,j-1).ne.zero .and. apy(i,j).ne.zero) then
+          else
+             flg = clear_neighbor(flg,-1,-1)
+          end if
+
+          if (apx(i+1,j).ne.zero .and. apy(i+1,j).ne.zero) then
+          else if (apx(i+1,j-1).ne.zero .and. apy(i,j).ne.zero) then
+          else
+             flg = clear_neighbor(flg,1,-1)
+          end if
+
+          if (apx(i,j).ne.zero .and. apy(i-1,j+1).ne.zero) then
+          else if (apx(i,j+1).ne.zero .and. apy(i,j+1).ne.zero) then
+          else
+             flg = clear_neighbor(flg,-1,1)
+          end if
+
+          if (apx(i+1,j).ne.zero .and. apy(i+1,j+1).ne.zero) then
+          else if (apx(i+1,j+1).ne.zero .and. apy(i,j+1).ne.zero) then
+          else
+             flg = clear_neighbor(flg,1,1)
+          end if
+
+          cflag(i,j) = flg
+       end do
+    end do
+  end subroutine amrex_eb2_build_cellflag_from_ap
 
 end module amrex_eb2_2d_moudle

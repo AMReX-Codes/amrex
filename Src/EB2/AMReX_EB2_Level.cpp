@@ -143,9 +143,35 @@ Level::coarsenFromFine (Level& fineLevel)
 
     // xxxxx todo
     // multivalue and multicut detection
-    // celflag neighbors
+
+    buildCellFlag();
 
     m_valid = true;
+}
+
+void
+Level::buildCellFlag ()
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_areafrac[idim].setBndry(1.0);
+        m_areafrac[idim].FillBoundary(0,1,{AMREX_D_DECL(1,1,1)},m_geom.periodicity());
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(m_cellflag,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        amrex_eb2_build_cellflag_from_ap
+            (BL_TO_FORTRAN_BOX(bx),
+             BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
+             BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+             BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
+#endif
+             BL_TO_FORTRAN_ANYD(m_cellflag[mfi]));
+    }
 }
 
 void
