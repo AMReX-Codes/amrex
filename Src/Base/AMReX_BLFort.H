@@ -65,7 +65,16 @@
     { \
         int numThreads; int numBlocks; \
         Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
-        function<<<numBlocks, numThreads>>>(__VA_ARGS__); \
+        function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+        CudaErrorCheck(); \
+    }
+
+#define FORT_LAUNCH_PARTICLES_STREAM(num_particles, stream, function, ...)      \
+    { \
+        int numThreads; int numBlocks; \
+        Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+        amrex::Print() << Device::stream_from_index(stream) << std::endl; \
+        function<<<numBlocks, numThreads, 0, Device::stream_from_index(stream)>>>(__VA_ARGS__); \
         CudaErrorCheck(); \
     }
 
