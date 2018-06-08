@@ -15,7 +15,7 @@ namespace amrex {
 
 //!A Box with real dimensions.  A RealBox is OK iff volume >= 0.
 
-class RealBox
+class RealBox : public Managed
 {
 public:
     //! The default constructor.  Builds invalid RealBox.
@@ -36,6 +36,7 @@ public:
              const Real* dx,
              const Real* base);
     //! Explicit dimension specific constructors.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
              AMREX_D_DECL(Real x1, Real y1, Real z1));
     //! Returns lo side.

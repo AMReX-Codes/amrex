@@ -49,7 +49,12 @@ operator>> (std::istream& is,
     return is;
 }
 
-Geometry::Geometry () {}
+Geometry::Geometry () 
+{
+#ifdef AMREX_USE_CUDA
+    geomData = new GeometryData();
+#endif
+}
 
 Geometry::Geometry (const Box&     dom,
                     const RealBox* rb,
@@ -57,7 +62,33 @@ Geometry::Geometry (const Box&     dom,
                     int*           is_per)
 {
     define(dom,rb,coord,is_per);
+
+#ifdef AMREX_USE_CUDA
+    geomData = new GeometryData();
+#endif
 }
+
+#ifdef AMREX_USE_CUDA
+GeometryData* Geometry::dataPtr()
+{
+    // Set current values of data to values in geomData before returning.
+    geomData->spherical_origin_fix = spherical_origin_fix;
+    geomData->domain = domain;
+    geomData->prob_domain = prob_domain;
+    geomData->c_sys = c_sys; 
+    geomData->ok = ok;
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+    {
+      geomData->is_periodic[i] = is_periodic;
+      geomData->offset[i] = offset[i];
+      geomData->dx[i] = dx[i];
+      geomData->inv_dx[i] = inv_dx[i];
+    }
+
+    return geomData;
+}
+#endif
 
 void
 Geometry::define (const Box&     dom,
