@@ -119,7 +119,7 @@ contains
     integer(c_int),     intent(in) :: lev
     type(amrex_mfiter), intent(in) :: mfi
     type(amrex_particle),  pointer :: particles(:)
-    type(c_ptr), target            :: data
+    type(c_ptr)                    :: data
     integer(c_long)                :: np
     call amrex_fi_get_particles(particlecontainer, lev, mfi%p, data, np)
     call c_f_pointer(data, particles, [np])
