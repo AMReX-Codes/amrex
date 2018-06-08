@@ -194,6 +194,7 @@ contains
   elemental subroutine set_covered_cell (flag)
     integer, intent(inout) :: flag
     call mvbits(covered, 0, w_type, flag, 0)
+    call mvbits(0, 0, w_numvofs, flag, pos_numvofs)
   end subroutine set_covered_cell
 
   elemental subroutine set_single_valued_cell (flag)
