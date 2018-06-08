@@ -107,6 +107,12 @@ else
   USE_MPI := FALSE
 endif
 
+ifdef USE_CONDUIT
+  USE_CONDUIT := $(strip $(USE_CONDUIT))
+else
+  USE_CONDUIT := FALSE
+endif
+
 ifeq ($(USE_PMI), TRUE)
   DEFINES += -DAMREX_PMI
 endif
