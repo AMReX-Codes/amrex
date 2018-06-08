@@ -323,6 +323,7 @@ contains
     do    j = lo(2)-1, hi(2)+1
        do i = lo(1)-1, hi(1)+1
           flg = cell(i,j)
+
           if (fx(i  ,j  ).eq.covered) flg = clear_neighbor(flg, -1,  0)
           if (fx(i+1,j  ).eq.covered) flg = clear_neighbor(flg,  1,  0)
           if (fy(i  ,j  ).eq.covered) flg = clear_neighbor(flg,  0, -1)
@@ -351,6 +352,8 @@ contains
           else
              flg = clear_neighbor(flg,1,1)
           end if
+          
+          cell(i,j) = flg
        end do
     end do
 
