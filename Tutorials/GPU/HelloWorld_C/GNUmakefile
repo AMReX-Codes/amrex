@@ -7,7 +7,7 @@ DIM	= 3
 
 COMP    = pgi 
 
-USE_MPI   = TRUE 
+USE_MPI   = FALSE 
 USE_OMP   = FALSE
 USE_CUDA  = TRUE
 
