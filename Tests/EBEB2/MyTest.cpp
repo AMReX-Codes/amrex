@@ -55,6 +55,7 @@ MyTest::readParameters ()
     max_coarsening_level = std::max(max_coarsening_level, 0);
     pp.query("test_old_eb", test_old_eb);
     pp.query("test_cellflag", test_cellflag);
+    pp.query("ng_eb", ng_eb);
 }
 
 void
@@ -111,7 +112,7 @@ MyTest::test ()
             {
                 for (MFIter mfi(cellflag_new); mfi.isValid(); ++mfi)
                 {
-                    const Box& bx = mfi.fabbox() & lev_domain_m1;
+                    const Box& bx = mfi.validbox() & lev_domain_m1;
                     const auto& new_fab = cellflag_new[mfi];
                     const auto& old_fab = cellflag_old[mfi];
 
@@ -187,7 +188,7 @@ MyTest::initializeEB2 ()
     const EB2::Level& eb_level = index_space.getLevel(geom);
 
     new_factory.emplace_back(
-        new EBFArrayBoxFactory(eb_level, geom, grids, dmap, {1, 1, 1}, EBSupport::full));
+        new EBFArrayBoxFactory(eb_level, geom, grids, dmap, {ng_eb, ng_eb, ng_eb}, EBSupport::full));
 
     for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
     {
@@ -196,7 +197,7 @@ MyTest::initializeEB2 ()
         const EB2::Level& crse_eb_level = index_space.getLevel(cgeom);
         new_factory.emplace_back(
             new EBFArrayBoxFactory(crse_eb_level, cgeom, amrex::coarsen(grids,ratio),
-                                   dmap, {1, 1, 1}, EBSupport::full));
+                                   dmap, {ng_eb, ng_eb, ng_eb}, EBSupport::full));
     }
 }
 

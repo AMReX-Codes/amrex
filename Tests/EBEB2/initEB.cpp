@@ -55,6 +55,6 @@ MyTest::initializeEB ()
         int ratio = std::pow(2,ilev);
         Geometry cgeom(amrex::coarsen(geom.Domain(),ratio));
         old_factory.emplace_back(new EBFArrayBoxFactory(cgeom, amrex::coarsen(grids,ratio),
-                                                        dmap, {1, 1, 1}, EBSupport::full));
+                                                        dmap, {ng_eb, ng_eb, ng_eb}, EBSupport::full));
     }
 }

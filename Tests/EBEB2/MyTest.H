@@ -24,6 +24,7 @@ private:
     int max_coarsening_level = 4;
     bool test_old_eb = true;
     bool test_cellflag = true;
+    int ng_eb = 4;
 
     amrex::Geometry geom;
     amrex::BoxArray grids;

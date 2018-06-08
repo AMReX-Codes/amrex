@@ -138,6 +138,11 @@ EBTower::initCellFlags (int lev, const EBLevelGrid& eblg)
     FabArray<EBCellFlagFab>& ebcf = m_cellflags[lev];
     const auto& ebisl = eblg.getEBISL();
 
+    const auto& graph = ebisl.getAllGraphs();
+    for (MFIter mfi(*graph); mfi.isValid(); ++mfi) {
+        (*graph)[mfi].setCellFlags();
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
