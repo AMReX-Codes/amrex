@@ -180,7 +180,8 @@ contains
 
   AMREX_LAUNCH subroutine amrex_fort_fab_sum (lo, hi, src, slo, shi, ncomp, sm) &
        bind(c,name='amrex_fort_fab_sum')
-    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
+    integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: sm
 
