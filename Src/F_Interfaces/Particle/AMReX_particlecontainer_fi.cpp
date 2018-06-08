@@ -57,11 +57,11 @@ extern "C" {
                 auto& aos = particle_tile.GetArrayOfStructs();
                 dp = aos.data();
             } else {
-                dp = NULL;
+                dp = nullptr;
             }            
         } else {
             np = 0;
-            dp = NULL;
+            dp = nullptr;
         }
     }
 
