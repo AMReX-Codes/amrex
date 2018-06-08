@@ -4,11 +4,19 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
 
+#include <AMReX_Geometry.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_BaseFab_f.H>
+
+bool checkManaged(const void *ptr)
+{
+   cudaPointerAttributes ptr_attr;
+   cudaPointerGetAttributes(&ptr_attr, ptr);
+   return ptr_attr.isManaged;
+}
 
 AMREX_CUDA_GLOBAL
 void kernel_IntVect(amrex::IntVect *iv1, amrex::IntVect *iv2)
@@ -22,48 +30,58 @@ void kernel_IntVect(amrex::IntVect *iv1, amrex::IntVect *iv2)
 AMREX_CUDA_GLOBAL
 void kernel_BaseFabReal(amrex::BaseFab<amrex::Real> *bf1, amrex::Real *val, amrex::IntVect *iv)
 {
-  amrex::Box bx(bf1->box());
-  *iv = bx.bigEnd();
-  *val = bf1->nComp();
+   amrex::Box bx(bf1->box());
+   *iv = bx.bigEnd();
+   *val = bf1->nComp();
 
-  bf1->setVal(17.499, bx, 0, 1);
-  bf1->getVal(val, amrex::IntVect(7,7,7));
+   bf1->setVal(17.499, bx, 0, 1);
+   bf1->getVal(val, amrex::IntVect(7,7,7));
 
-  amrex::BaseFab<amrex::Real> local(bx);
-  local.setVal(43.001, bx, 0, 1);
-  local.getVal(val, amrex::IntVect(7,7,7));
+   amrex::BaseFab<amrex::Real> local(bx);
+   local.setVal(43.001, bx, 0, 1);
+   local.getVal(val, amrex::IntVect(7,7,7));
 }
 
 AMREX_CUDA_GLOBAL
 void kernel_BaseFabInt(amrex::BaseFab<int> *bf1, int *val, amrex::IntVect *iv)
 {
-  amrex::Box bx(bf1->box());
-  *iv = bx.bigEnd();
-  *val = bf1->nComp();
+   amrex::Box bx(bf1->box());
+   *iv = bx.bigEnd();
+   *val = bf1->nComp();
 
-  bf1->setVal(17.499, bx, 0, 1);
-  bf1->getVal(val, amrex::IntVect(7,7,7));
+   bf1->setVal(17.499, bx, 0, 1);
+   bf1->getVal(val, amrex::IntVect(7,7,7));
 }
 
 AMREX_CUDA_GLOBAL
 void kernel_BaseFabCopy(amrex::BaseFab<amrex::Real> *bf1, amrex::BaseFab<amrex::Real> *bf2)
 {
-  
-  amrex::Real* mem = (new amrex::Real(1000));
+   amrex::Real* mem = (new amrex::Real(1000));
 //  cudaMalloc(&mem, 1000);
-  amrex::Box bx1 = bf1->box(); 
-  amrex::Box bx2 = bx1;
-  for (int i=0; i<3; ++i)
-  {
-    bx2.setBig(i,(bx2.bigEnd(i))/2);
-  }
+   amrex::Box bx1 = bf1->box(); 
+   amrex::Box bx2 = bx1;
+   for (int i=0; i<3; ++i)
+   {
+     bx2.setBig(i,(bx2.bigEnd(i))/2);
+   }
 
-  bf1->copy(*bf2, bx1, 0, bx2, 0, 1);
+   bf1->copy(*bf2, bx1, 0, bx2, 0, 1);
 
-  bf1->copyToMem(bx1, 0, 1, mem);
-  bf2->copyFromMem(bx1, 0, 1, mem);
-  delete(mem);
+   bf1->copyToMem(bx1, 0, 1, mem);
+   bf2->copyFromMem(bx1, 0, 1, mem);
+   delete(mem);
 //  cudaFree(mem);
+}
+
+AMREX_CUDA_GLOBAL
+void kernel_Geometry(amrex::GeometryData *geom, amrex::Box *domain, amrex::Real *off, amrex::Box *bx)
+{
+    for (int i=0; i<3; ++i)
+    {
+      off[i] = geom->offset[i];
+    }
+
+    *bx = *domain;
 }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -193,6 +211,53 @@ int main (int argc, char* argv[])
 
     }
 
+    // GeomData test
+    {
+      amrex::Print() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl << std::endl;
+
+      amrex::Geometry geom;
+      amrex::Box baseBox(amrex::IntVect(0,0,0), amrex::IntVect(14,14,14));
+      amrex::Box *baseBoxB = new amrex::Box(amrex::IntVect(9,9,9), amrex::IntVect(34,34,34));
+      amrex::RealBox *real = new amrex::RealBox(-10.0, -10.0, 0, 25, 25, 35);
+      amrex::RealBox *realB = new amrex::RealBox(0, 0, 0, 0, 0, 0);
+      int coordsys = 0;    // 0 (1D, 2D & 3D), 1(2D), 2(1D)
+      int is_per[3] = {0,0,0};
+
+      geom.define(baseBox, real, coordsys, is_per); 
+
+      amrex::Real *off;
+      cudaMallocManaged(&off, size_t(3*sizeof(amrex::Real)));
+      amrex::GeometryData *gData = geom.dataPtr();
+      for (int i=0; i<3; ++i)
+      {
+        off[i] = i;
+        amrex::Print() << "off[" << i << "] = " << off[i] << std::endl;
+        amrex::Print() << "offset[" << i << "] = " << gData->offset[i] << std::endl;
+      } 
+
+      amrex::Print() << "off.isManaged = " << checkManaged(off) << std::endl;
+      amrex::Print() << "geom.dataPtr().isManaged = " << checkManaged(geom.dataPtr()) << std::endl;
+      amrex::Print() << "&(geom.dataPtr()->offset).isManaged = " << checkManaged(&(gData->offset[0])) << std::endl;
+      amrex::Print() << "geom.dataPtr()->prob_domain.lo() = " << checkManaged(geom.dataPtr()->prob_domain.lo()) << std::endl;
+      amrex::Print() << "geom.dataPtr()->domain = " << gData->domain << std::endl;
+
+      amrex::Print() << "geom.dataPtr()->c_sys = " << gData->c_sys << std::endl; 
+
+      amrex::Print() << "RealBox Before = " << *baseBoxB << std::endl;
+      kernel_Geometry<<<1, 1>>>(gData, &(geom.dataPtr()->domain), off, baseBoxB);
+      cudaDeviceSynchronize();
+      amrex::Print() << "RealBox After = " << *baseBoxB << std::endl;
+
+      for (int i=0; i<3; ++i)
+      {
+        amrex::Print() << "off[" << i << "] = " << off[i] << std::endl;
+      } 
+
+      cudaFree(off);
+
+    }
+
+    amrex::Print() << std::endl << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl << std::endl;
 
     amrex::Finalize();
 }

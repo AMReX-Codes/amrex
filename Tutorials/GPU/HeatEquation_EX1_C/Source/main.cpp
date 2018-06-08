@@ -92,25 +92,6 @@ void main_main ()
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
     // =======================================
-
-//    Box* bx;
-    Real* gCellSize; 
-    Real* gLo;
-    Real* gHi;
-
-//    cudaMallocHost(&bx, size_t(sizeof(Box)));
-    cudaMallocHost(&gLo, size_t(AMREX_SPACEDIM*sizeof(Real)));
-    cudaMallocHost(&gHi, size_t(AMREX_SPACEDIM*sizeof(Real)));
-    cudaMallocHost(&gCellSize, size_t(AMREX_SPACEDIM*sizeof(Real)));
-
-    // Geometry is fixed for entire loop
-    for (int i=0; i<AMREX_SPACEDIM; ++i)
-    {
-       gCellSize[i] = geom.CellSize()[i];
-       gLo[i] = geom.ProbLo()[i];
-       gHi[i] = geom.ProbHi()[i];
-    }
-
     // Initialize phi_new by calling a Fortran routine.
     // MFIter = MultiFab Iterator
     for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
@@ -121,15 +102,16 @@ void main_main ()
 
         init_phi<<<1, 1>>>(BL_TO_FORTRAN_BOX(*bx),
                  BL_TO_FORTRAN_ANYD(phi_new[mfi]), 
-                 gCellSize, gLo, gHi);
+                 geom.dataPtr()->CellSize(), geom.dataPtr()->ProbLo(), geom.dataPtr()->ProbHi());
+/*
+        init_phi(BL_TO_FORTRAN_BOX(bx),
+                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
+                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+*/
 
         cudaDeviceSynchronize();
         cudaFreeHost(bx);
     }
-
-    cudaFreeHost(gCellSize);
-    cudaFreeHost(gLo);
-    cudaFreeHost(gHi);
 
     // ========================================
 

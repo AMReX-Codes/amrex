@@ -1,0 +1,6 @@
+# PROBLEM SIZE & GEOMETRY
+geometry.is_periodic =  1     1     1
+geometry.coord_sys   =  0
+
+geometry.prob_lo     =  0     0     0
+geometry.prob_hi     =  28.49002849  28.49002849  28.49002849

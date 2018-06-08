@@ -3,7 +3,7 @@
 AMREX_HOME ?= ../../../../
 
 DEBUG     = FALSE
-USE_MPI   = FALSE
+USE_MPI   = TRUE 
 USE_OMP   = FALSE
 USE_CUDA  = TRUE
 COMP      = pgi
