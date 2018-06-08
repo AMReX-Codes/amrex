@@ -54,7 +54,8 @@ ifeq ($(USE_OMP),TRUE)
 endif
 
 ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -Minfo=acc -ta=nvidia -mcmodel=medium
+  # GENERIC_PGI_FLAGS += -acc -Minfo=acc -ta=nvidia -mcmodel=medium
+  GENERIC_PGI_FLAGS += -acc -ta=tesla:$(CUDA_VERSION),cuda9.0,lineinfo,ptxinfo -Minfo=accel
 else
   GENERIC_PGI_FLAGS += -noacc
 endif
@@ -80,8 +81,9 @@ ifeq ($(USE_CUDA),TRUE)
 
   DEFINES := $(DEFINES)
 
-  CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
-  CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
+  # -Xptxas=-v provides too much info when using Thrust
+  CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)' -gencode=arch=compute_60,code=sm_60 -lineinfo
+  CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)' -gencode=arch=compute_60,code=sm_60 -lineinfo
 
   HOST_CXX := $(CXX)
   HOST_CC := $(CC)
@@ -128,8 +130,8 @@ FFLAGS   += -Mnomain
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -Mcuda=$(CUDA_VERSION)
-  FFLAGS   += -Mcuda=$(CUDA_VERSION)
+  F90FLAGS += -Mcuda=$(CUDA_VERSION),cuda9.0,lineinfo,ptxinfo
+  FFLAGS   += -Mcuda=$(CUDA_VERSION),cuda9.0,lineinfo,ptxinfo
 
   F90FLAGS += CUDAROOT=$(COMPILE_CUDA_PATH)
   FFLAGS   += CUDAROOT=$(COMPILE_CUDA_PATH)

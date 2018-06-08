@@ -263,8 +263,12 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 
         if (np == 0) continue;
 
+#ifdef AMREX_USE_ACC
+	FTOC(gather_magnetic_field)(
+#else
         FORT_LAUNCH_PARTICLES(np,
                               gather_magnetic_field,
+#endif
                               np, 
                               particles.x().data(),  particles.y().data(),  particles.z().data(),
                               particles.bx().data(), particles.by().data(), particles.bz().data(),
@@ -273,8 +277,12 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                               BL_TO_FORTRAN_3D(Bz[mfi]),
                               plo, dx);
         
+#ifdef AMREX_USE_ACC
+	FTOC(gather_electric_field)(
+#else
         FORT_LAUNCH_PARTICLES(np,
                               gather_electric_field,
+#endif
                               np, 
                               particles.x().data(),  particles.y().data(),  particles.z().data(),
                               particles.ex().data(), particles.ey().data(), particles.ez().data(),
@@ -283,8 +291,12 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                               BL_TO_FORTRAN_3D(Ez[mfi]),
                               plo, dx);
         
+#ifdef AMREX_USE_ACC
+        FTOC(push_momentum_boris)(
+#else
         FORT_LAUNCH_PARTICLES(np, 
                               push_momentum_boris,
+#endif
                               np,
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
                               particles.ginv().data(),
@@ -292,14 +304,23 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                               particles.bx().data(), particles.by().data(), particles.bz().data(),
                               m_charge, m_mass, dt);
         
+#ifdef AMREX_USE_ACC
+        FTOC(push_position_boris)(
+#else
         FORT_LAUNCH_PARTICLES(np,
                               push_position_boris,
+#endif
                               np,
                               particles.x().data(),  particles.y().data(),  particles.z().data(),
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
                               particles.ginv().data(), dt);
         
-        FORT_LAUNCH_PARTICLES(np, deposit_current,
+#ifdef AMREX_USE_ACC
+        FTOC(deposit_current)(
+#else
+        FORT_LAUNCH_PARTICLES(np, 
+                              deposit_current,
+#endif
                               BL_TO_FORTRAN_3D(jx[mfi]),
                               BL_TO_FORTRAN_3D(jy[mfi]),
                               BL_TO_FORTRAN_3D(jz[mfi]),
@@ -333,8 +354,12 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
 
         if (np == 0) continue;
 
+#ifdef AMREX_USE_ACC
+	FTOC(gather_magnetic_field)(
+#else
         FORT_LAUNCH_PARTICLES(np,
                               gather_magnetic_field,
+#endif
                               np, 
                               particles.x().data(),  particles.y().data(),  particles.z().data(),
                               particles.bx().data(), particles.by().data(), particles.bz().data(),
@@ -343,8 +368,12 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
                               BL_TO_FORTRAN_3D(Bz[mfi]),
                               plo, dx);
         
+#ifdef AMREX_USE_ACC
+	FTOC(gather_electric_field)(
+#else
         FORT_LAUNCH_PARTICLES(np,
                               gather_electric_field,
+#endif
                               np, 
                               particles.x().data(),  particles.y().data(),  particles.z().data(),
                               particles.ex().data(), particles.ey().data(), particles.ez().data(),
@@ -353,8 +382,12 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
                               BL_TO_FORTRAN_3D(Ez[mfi]),
                               plo, dx);
         
+#ifdef AMREX_USE_ACC
+        FTOC(push_momentum_boris)(
+#else
         FORT_LAUNCH_PARTICLES(np, 
                               push_momentum_boris,
+#endif
                               np,
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
                               particles.ginv().data(),
@@ -382,7 +415,12 @@ PushParticlePositions(amrex::Real dt)
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
                               particles.ginv().data());
         
-        FORT_LAUNCH_PARTICLES(np, push_position_boris,
+#ifdef AMREX_USE_ACC
+        FTOC(push_position_boris)(
+#else
+        FORT_LAUNCH_PARTICLES(np, 
+                              push_position_boris,
+#endif
                               np,
                               particles.x().data(),  particles.y().data(),  particles.z().data(),
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),

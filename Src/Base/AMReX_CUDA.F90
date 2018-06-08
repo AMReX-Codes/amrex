@@ -57,7 +57,9 @@ module cuda_module
 contains
 
   subroutine initialize_cuda(id, rank, num_devices, num_ranks, ioproc, v) bind(c, name='initialize_cuda')
-
+#ifdef AMREX_USE_ACC
+    use openacc, only: acc_init, acc_set_device_num, acc_device_nvidia
+#endif
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
                        cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
 #if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
@@ -77,7 +79,14 @@ contains
     cudaResult = cudaSetDevice(cuda_device_id)
     call gpu_error_test(cudaResult)
 
-    call gpu_synchronize()
+    call gpu_synchronize() ! Max recommends to avoid sporadic initialization errors
+
+#ifdef AMREX_USE_ACC
+    call acc_init(acc_device_nvidia)
+    call acc_set_device_num(cuda_device_id, acc_device_nvidia)
+#endif
+
+    call gpu_synchronize() ! Max recommends to avoid sporadic initialization errors
 
     ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
     ! This stream is synchronous and blocking. It is our default choice, and we
@@ -136,7 +145,9 @@ contains
 
 
   subroutine finalize_cuda() bind(c, name='finalize_cuda')
-
+#ifdef AMREX_USE_ACC
+    use openacc, only: acc_shutdown, acc_device_nvidia
+#endif
     use cudafor, only: cudaStreamDestroy, cudaDeviceReset
 
     implicit none
@@ -150,6 +161,9 @@ contains
 
     call gpu_stop_profiler()
 
+#ifdef AMREX_USE_ACC
+    call acc_shutdown(acc_device_nvidia)
+#endif
     cudaResult = cudaDeviceReset()
     call gpu_error_test(cudaResult, abort=0)
 
