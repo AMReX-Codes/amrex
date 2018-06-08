@@ -415,7 +415,7 @@ contains
 
              call set_single_valued_cell(cflag(i,j))
 
-             cvol(i,j) = eighth*sum(fvol(ii:ii+1,jj:jj+1))
+             cvol(i,j) = fourth*sum(fvol(ii:ii+1,jj:jj+1))
              cvolinv = one/cvol(i,j)
                 
              ccent(i,j,1) = fourth*cvolinv* &
@@ -481,10 +481,10 @@ contains
        do i = ylo(1), yhi(1)
           ii = i*2
           
-          capy(i,j) = fourth*(fapy(ii,jj)+fapy(ii+1,jj))
+          capy(i,j) = half*(fapy(ii,jj)+fapy(ii+1,jj))
           if (capy(i,j) .ne. zero) then
              apinv = one/capy(i,j)
-             cfcy(i,j) = fourth*apinv* &
+             cfcy(i,j) = half*apinv* &
                   ( fapy(ii  ,jj)*(half*ffcy(ii  ,jj)-fourth) &
                   + fapy(ii+1,jj)*(half*ffcy(ii+1,jj)+fourth) )
           end if
