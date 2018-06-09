@@ -878,102 +878,107 @@ contains
     do       k = lo(3)-1, hi(3)+1
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
-             flg = cell(i,j,k)
-             if (fx(i,j,k).eq.covered) then
-                flg = clear_neighbor(flg,-1,0,0)
-             end if
-             if (fx(i+1,j,k).eq.covered) then
-                flg = clear_neighbor(flg,1,0,0)
-             end if
-             if (fy(i,j,k).eq.covered) then
-                flg = clear_neighbor(flg,0,-1,0)
-             end if
-             if (fy(i,j+1,k).eq.covered) then
-                flg = clear_neighbor(flg,0,1,0)
-             end if
-             if (fz(i,j,k).eq.covered) then
-                flg = clear_neighbor(flg,0,0,-1)
-             end if
-             if (fz(i,j,k+1).eq.covered) then
-                flg = clear_neighbor(flg,0,0,1)
-             end if
-
-             ! x-y
-             if (fx(i,j,k).ne.covered .and. fy(i-1,j,k).ne.covered) then
-             else if (fx(i,j-1,k).ne.covered .and. fy(i,j,k).ne.covered) then
+             if (is_covered_cell(cell(i,j,k))) then
+                cell(i,j,k) = clear_allneighbors(cell(i,j,k))
              else
-                flg = clear_neighbor(flg,-1,-1,0)
-             end if
+                flg = cell(i,j,k)
 
-             if (fx(i+1,j,k).ne.covered .and. fy(i+1,j,k).ne.covered) then
-             else if (fx(i+1,j-1,k).eq.covered .and. fy(i,j,k).ne.covered) then
-             else
-                flg = clear_neighbor(flg,1,-1,0)
-             end if
+                if (fx(i,j,k).eq.covered) then
+                   flg = clear_neighbor(flg,-1,0,0)
+                end if
+                if (fx(i+1,j,k).eq.covered) then
+                   flg = clear_neighbor(flg,1,0,0)
+                end if
+                if (fy(i,j,k).eq.covered) then
+                   flg = clear_neighbor(flg,0,-1,0)
+                end if
+                if (fy(i,j+1,k).eq.covered) then
+                   flg = clear_neighbor(flg,0,1,0)
+                end if
+                if (fz(i,j,k).eq.covered) then
+                   flg = clear_neighbor(flg,0,0,-1)
+                end if
+                if (fz(i,j,k+1).eq.covered) then
+                   flg = clear_neighbor(flg,0,0,1)
+                end if
+                
+                ! x-y
+                if (fx(i,j,k).ne.covered .and. fy(i-1,j,k).ne.covered) then
+                else if (fx(i,j-1,k).ne.covered .and. fy(i,j,k).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,-1,-1,0)
+                end if
+                
+                if (fx(i+1,j,k).ne.covered .and. fy(i+1,j,k).ne.covered) then
+                else if (fx(i+1,j-1,k).ne.covered .and. fy(i,j,k).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,1,-1,0)
+                end if
+                
+                if (fx(i,j,k).ne.covered .and. fy(i-1,j+1,k).ne.covered) then
+                else if (fx(i,j+1,k).ne.covered .and. fy(i,j+1,k).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,-1,1,0)
+                end if
+                
+                if (fx(i+1,j,k).ne.covered .and. fy(i+1,j+1,k).ne.covered) then
+                else if (fx(i+1,j+1,k).ne.covered .and. fy(i,j+1,k).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,1,1,0)
+                end if
+                
+                ! x-z
+                if (fx(i,j,k).ne.covered .and. fz(i-1,j,k).ne.covered) then
+                else if (fx(i,j,k-1).ne.covered .and. fz(i,j,k).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,-1,0,-1)
+                end if
+                
+                if (fx(i+1,j,k).ne.covered .and. fz(i+1,j,k).ne.covered) then
+                else if (fx(i+1,j,k-1).ne.covered .and. fz(i,j,k).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,1,0,-1)
+                end if
+                
+                if (fx(i,j,k).ne.covered .and. fz(i-1,j,k+1).ne.covered) then
+                else if (fx(i,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,-1,0,1)
+                end if
+                
+                if (fx(i+1,j,k).ne.covered .and. fz(i+1,j,k+1).ne.covered) then
+                else if (fx(i+1,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,1,0,1)
+                end if
+                
+                ! y-z
+                if (fy(i,j,k).ne.covered .and. fz(i,j-1,k).ne.covered) then
+                else if (fy(i,j,k-1).ne.covered .and. fz(i,j,k).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,0,-1,-1)
+                end if
+                
+                if (fy(i,j+1,k).ne.covered .and. fz(i,j+1,k).ne.covered) then
+                else if (fy(i,j+1,k-1).ne.covered .and. fz(i,j,k).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,0,1,-1)
+                end if
+                
+                if (fy(i,j,k).ne.covered .and. fz(i,j-1,k+1).ne.covered) then
+                else if (fy(i,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,0,-1,1)
+                end if
+                
+                if (fy(i,j+1,k).ne.covered .and. fz(i,j+1,k+1).ne.covered) then
+                else if (fy(i,j+1,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
+                else
+                   flg = clear_neighbor(flg,0,1,1)
+                end if
 
-             if (fx(i,j,k).ne.covered .and. fy(i-1,j+1,k).ne.covered) then
-             else if (fx(i,j+1,k).ne.covered .and. fy(i,j+1,k).ne.covered) then
-             else
-                flg = clear_neighbor(flg,-1,1,0)
+                cell(i,j,k) = flg
              end if
-
-             if (fx(i+1,j,k).ne.covered .and. fy(i+1,j+1,k).ne.covered) then
-             else if (fx(i+1,j+1,k).ne.covered .and. fy(i,j+1,k).ne.covered) then
-             else
-                flg = clear_neighbor(flg,1,1,0)
-             end if
-
-             ! x-z
-             if (fx(i,j,k).ne.covered .and. fz(i-1,j,k).ne.covered) then
-             else if (fx(i,j,k-1).ne.covered .and. fz(i,j,k).ne.covered) then
-             else
-                flg = clear_neighbor(flg,-1,0,-1)
-             end if
-
-             if (fx(i+1,j,k).ne.covered .and. fz(i+1,j,k).ne.covered) then
-             else if (fx(i+1,j,k-1).eq.covered .and. fz(i,j,k).ne.covered) then
-             else
-                flg = clear_neighbor(flg,1,0,-1)
-             end if
-
-             if (fx(i,j,k).ne.covered .and. fz(i-1,j,k+1).ne.covered) then
-             else if (fx(i,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
-             else
-                flg = clear_neighbor(flg,-1,1,0)
-             end if
-
-             if (fx(i+1,j,k).ne.covered .and. fz(i+1,j,k+1).ne.covered) then
-             else if (fx(i+1,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
-             else
-                flg = clear_neighbor(flg,1,0,1)
-             end if
-
-             ! y-z
-             if (fy(i,j,k).ne.covered .and. fz(i,j-1,k).ne.covered) then
-             else if (fy(i,j,k-1).ne.covered .and. fz(i,j,k).ne.covered) then
-             else
-                flg = clear_neighbor(flg,0,-1,-1)
-             end if
-
-             if (fy(i,j+1,k).ne.covered .and. fz(i,j+1,k).ne.covered) then
-             else if (fy(i,j+1,k-1).eq.covered .and. fz(i,j,k).ne.covered) then
-             else
-                flg = clear_neighbor(flg,0,1,-1)
-             end if
-
-             if (fy(i,j,k).ne.covered .and. fz(i,j-1,k+1).ne.covered) then
-             else if (fy(i,j,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
-             else
-                flg = clear_neighbor(flg,0,-1,1)
-             end if
-
-             if (fy(i,j+1,k).ne.covered .and. fz(i,j+1,k+1).ne.covered) then
-             else if (fy(i,j+1,k+1).ne.covered .and. fz(i,j,k+1).ne.covered) then
-             else
-                flg = clear_neighbor(flg,0,1,1)
-             end if
-
-             cell(i,j,k) = flg
           end do
        end do
     end do
@@ -981,74 +986,76 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             flg = cell(i,j,k)
-             call get_neighbor_cells(flg, ngbr)
-
-             ! -1, -1, -1 corner
-             if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0,-1,-1)) then
-             else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ),-1, 0,-1)) then
-             else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1),-1,-1, 0)) then
-             else
-                flg = clear_neighbor(flg, -1,-1,-1)
+             if (.not.is_covered_cell(cell(i,j,k))) then
+                flg = cell(i,j,k)
+                call get_neighbor_cells(flg, ngbr)
+                
+                ! -1, -1, -1 corner
+                if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0,-1,-1)) then
+                else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ),-1, 0,-1)) then
+                else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1),-1,-1, 0)) then
+                else
+                   flg = clear_neighbor(flg, -1,-1,-1)
+                end if
+                
+                ! 1, -1, -1 corner
+                if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0,-1,-1)) then
+                else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ), 1, 0,-1)) then
+                else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1), 1,-1, 0)) then
+                else
+                   flg = clear_neighbor(flg, 1,-1,-1)
+                end if
+                
+                ! -1, 1, -1 corner
+                if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0, 1,-1)) then
+                else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ),-1, 0,-1)) then
+                else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1),-1, 1, 0)) then
+                else
+                   flg = clear_neighbor(flg, -1, 1,-1)
+                end if
+                
+                ! 1, 1, -1 corner
+                if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0, 1,-1)) then
+                else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ), 1, 0,-1)) then
+                else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1), 1, 1, 0)) then
+                else
+                   flg = clear_neighbor(flg, 1, 1,-1)
+                end if
+                
+                ! -1, -1, 1 corner
+                if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0,-1, 1)) then
+                else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ),-1, 0, 1)) then
+                else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1),-1,-1, 0)) then
+                else
+                   flg = clear_neighbor(flg, -1,-1, 1)
+                end if
+                
+                ! 1, -1, 1 corner
+                if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0,-1, 1)) then
+                else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ), 1, 0, 1)) then
+                else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1), 1,-1, 0)) then
+                else
+                   flg = clear_neighbor(flg, 1,-1, 1)
+                end if
+                
+                ! -1, 1, 1 corner
+                if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0, 1, 1)) then
+                else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ),-1, 0, 1)) then
+                else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1),-1, 1, 0)) then
+                else
+                   flg = clear_neighbor(flg, -1,1,1)
+                end if
+                
+                ! 1, 1, 1 corner
+                if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0, 1, 1)) then
+                else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ), 1, 0, 1)) then
+                else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1), 1, 1, 0)) then
+                else
+                   flg = clear_neighbor(flg, 1,1,1)
+                end if
+                
+                cell(i,j,k) = flg
              end if
-
-             ! 1, -1, -1 corner
-             if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0,-1,-1)) then
-             else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ), 1, 0,-1)) then
-             else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1), 1,-1, 0)) then
-             else
-                flg = clear_neighbor(flg, 1,-1,-1)
-             end if
-
-             ! -1, 1, -1 corner
-             if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0, 1,-1)) then
-             else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ),-1, 0,-1)) then
-             else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1),-1, 1, 0)) then
-             else
-                flg = clear_neighbor(flg, -1, 1,-1)
-             end if
-
-             ! 1, 1, -1 corner
-             if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0, 1,-1)) then
-             else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ), 1, 0,-1)) then
-             else if (ngbr( 0, 0,-1).eq.1 .and. is_neighbor(cell(i  ,j  ,k-1), 1, 1, 0)) then
-             else
-                flg = clear_neighbor(flg, 1, 1,-1)
-             end if
-
-             ! -1, -1, 1 corner
-             if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0,-1, 1)) then
-             else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ),-1, 0, 1)) then
-             else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1),-1,-1, 0)) then
-             else
-                flg = clear_neighbor(flg, -1,-1, 1)
-             end if
-
-             ! 1, -1, 1 corner
-             if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0,-1, 1)) then
-             else if (ngbr( 0,-1, 0).eq.1 .and. is_neighbor(cell(i  ,j-1,k  ), 1, 0, 1)) then
-             else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1), 1,-1, 0)) then
-             else
-                flg = clear_neighbor(flg, 1,-1, 1)
-             end if
-
-             ! -1, 1, 1 corner
-             if      (ngbr(-1, 0, 0).eq.1 .and. is_neighbor(cell(i-1,j  ,k  ), 0, 1, 1)) then
-             else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ),-1, 0, 1)) then
-             else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1),-1, 1, 0)) then
-             else
-                flg = clear_neighbor(flg, -1,1,1)
-             end if
-
-             ! 1, 1, 1 corner
-             if      (ngbr( 1, 0, 0).eq.1 .and. is_neighbor(cell(i+1,j  ,k  ), 0, 1, 1)) then
-             else if (ngbr( 0, 1, 0).eq.1 .and. is_neighbor(cell(i  ,j+1,k  ), 1, 0, 1)) then
-             else if (ngbr( 0, 0, 1).eq.1 .and. is_neighbor(cell(i  ,j  ,k+1), 1, 1, 0)) then
-             else
-                flg = clear_neighbor(flg, 1,1,1)
-             end if
-
-             cell(i,j,k) = flg
           end do
        end do
     end do
@@ -1307,102 +1314,107 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             flg = clear_allneighbors(cflag(i,j,k))
-
-             if (apx(i  ,j,k).ne.zero) flg = set_neighbor(flg, -1,  0,  0)
-             if (apx(i+1,j,k).ne.zero) flg = set_neighbor(flg,  1,  0,  0)
-             if (apy(i,j  ,k).ne.zero) flg = set_neighbor(flg,  0, -1,  0)
-             if (apy(i,j+1,k).ne.zero) flg = set_neighbor(flg,  0,  1,  0)
-             if (apz(i,j,k  ).ne.zero) flg = set_neighbor(flg,  0,  0, -1)
-             if (apz(i,j,k+1).ne.zero) flg = set_neighbor(flg,  0,  0,  1)
-
-             if ( (apx(i,j,k).ne.zero .and. apy(i-1,j,k).ne.zero) .or. &
-                  (apy(i,j,k).ne.zero .and. apx(i,j-1,k).ne.zero) ) then
-                flg = set_neighbor(flg, -1, -1, 0)
-                if (apz(i-1,j-1,k  ).ne.zero) flg = set_neighbor(flg,-1,-1,-1)
-                if (apz(i-1,j-1,k+1).ne.zero) flg = set_neighbor(flg,-1,-1, 1)
+             cflag(i,j,k) = clear_allneighbors(cflag(i,j,k))
+                
+             if (.not.is_covered_cell(cflag(i,j,k))) then
+                flg = clear_allneighbors(cflag(i,j,k))
+                
+                if (apx(i  ,j,k).ne.zero) flg = set_neighbor(flg, -1,  0,  0)
+                if (apx(i+1,j,k).ne.zero) flg = set_neighbor(flg,  1,  0,  0)
+                if (apy(i,j  ,k).ne.zero) flg = set_neighbor(flg,  0, -1,  0)
+                if (apy(i,j+1,k).ne.zero) flg = set_neighbor(flg,  0,  1,  0)
+                if (apz(i,j,k  ).ne.zero) flg = set_neighbor(flg,  0,  0, -1)
+                if (apz(i,j,k+1).ne.zero) flg = set_neighbor(flg,  0,  0,  1)
+                
+                if ( (apx(i,j,k).ne.zero .and. apy(i-1,j,k).ne.zero) .or. &
+                     (apy(i,j,k).ne.zero .and. apx(i,j-1,k).ne.zero) ) then
+                   flg = set_neighbor(flg, -1, -1, 0)
+                   if (apz(i-1,j-1,k  ).ne.zero) flg = set_neighbor(flg,-1,-1,-1)
+                   if (apz(i-1,j-1,k+1).ne.zero) flg = set_neighbor(flg,-1,-1, 1)
+                end if
+                
+                if ( (apx(i+1,j,k).ne.zero .and. apy(i+1,j,k).ne.zero) .or. &
+                     (apy(i,j,k).ne.zero .and. apx(i+1,j-1,k).ne.zero) ) then
+                   flg = set_neighbor(flg, 1, -1, 0)
+                   if (apz(i+1,j-1,k  ).ne.zero) flg = set_neighbor(flg, 1,-1,-1)
+                   if (apz(i+1,j-1,k+1).ne.zero) flg = set_neighbor(flg, 1,-1, 1)
+                end if
+                
+                if ( (apx(i,j,k).ne.zero .and. apy(i-1,j+1,k).ne.zero) .or. &
+                     (apy(i,j+1,k).ne.zero .and. apx(i,j+1,k).ne.zero) ) then
+                   flg = set_neighbor(flg, -1, 1, 0)
+                   if (apz(i-1,j+1,k  ).ne.zero) flg = set_neighbor(flg,-1, 1,-1)
+                   if (apz(i-1,j+1,k+1).ne.zero) flg = set_neighbor(flg,-1, 1, 1)
+                end if
+                
+                if ( (apx(i+1,j,k).ne.zero .and. apy(i+1,j+1,k).ne.zero) .or. &
+                     (apy(i,j+1,k).ne.zero .and. apx(i+1,j+1,k).ne.zero) ) then
+                   flg = set_neighbor(flg, 1, 1, 0)
+                   if (apz(i+1,j+1,k  ).ne.zero) flg = set_neighbor(flg, 1, 1,-1)
+                   if (apz(i+1,j+1,k+1).ne.zero) flg = set_neighbor(flg, 1, 1, 1)
+                end if
+                
+                if ( (apx(i,j,k).ne.zero .and. apz(i-1,j,k).ne.zero) .or. &
+                     (apz(i,j,k).ne.zero .and. apx(i,j,k-1).ne.zero) ) then
+                   flg = set_neighbor(flg, -1, 0, -1)
+                   if (apy(i-1,j  ,k-1).ne.zero) flg = set_neighbor(flg,-1,-1,-1)
+                   if (apy(i-1,j+1,k-1).ne.zero) flg = set_neighbor(flg,-1, 1,-1)
+                end if
+                
+                if ( (apx(i+1,j,k).ne.zero .and. apz(i+1,j,k).ne.zero) .or. &
+                     (apz(i,j,k).ne.zero .and. apx(i+1,j,k-1).ne.zero) ) then
+                   flg = set_neighbor(flg, 1, 0, -1)
+                   if (apy(i+1,j  ,k-1).ne.zero) flg = set_neighbor(flg, 1,-1,-1)
+                   if (apy(i+1,j+1,k-1).ne.zero) flg = set_neighbor(flg, 1, 1,-1)
+                end if
+                
+                if ( (apx(i,j,k).ne.zero .and. apz(i-1,j,k+1).ne.zero) .or. &
+                     (apz(i,j,k+1).ne.zero .and. apx(i,j,k+1).ne.zero) ) then
+                   flg = set_neighbor(flg, -1, 0, 1)
+                   if (apy(i-1,j  ,k+1).ne.zero) flg = set_neighbor(flg,-1,-1, 1)
+                   if (apy(i-1,j+1,k+1).ne.zero) flg = set_neighbor(flg,-1, 1, 1)
+                end if
+                
+                if ( (apx(i+1,j,k).ne.zero .and. apz(i+1,j,k+1).ne.zero) .or. &
+                     (apz(i,j,k+1).ne.zero .and. apx(i+1,j,k+1).ne.zero) ) then
+                   flg = set_neighbor(flg, 1, 0, 1)
+                   if (apy(i+1,j  ,k+1).ne.zero) flg = set_neighbor(flg, 1,-1, 1)
+                   if (apy(i+1,j+1,k+1).ne.zero) flg = set_neighbor(flg, 1, 1, 1)
+                end if
+                
+                if ( (apy(i,j,k).ne.zero .and. apz(i,j-1,k).ne.zero) .or. &
+                     (apz(i,j,k).ne.zero .and. apy(i,j,k-1).ne.zero) ) then
+                   flg = set_neighbor(flg, 0, -1, -1)
+                   if (apx(i  ,j-1,k-1).ne.zero) flg = set_neighbor(flg,-1,-1,-1)
+                   if (apx(i+1,j-1,k-1).ne.zero) flg = set_neighbor(flg, 1,-1,-1)
+                end if
+                
+                if ( (apy(i,j+1,k).ne.zero .and. apz(i,j+1,k).ne.zero) .or. &
+                     (apz(i,j,k).ne.zero .and. apy(i,j+1,k-1).ne.zero) ) then
+                   flg = set_neighbor(flg, 0, 1, -1)
+                   if (apx(i  ,j+1,k-1).ne.zero) flg = set_neighbor(flg,-1, 1,-1)
+                   if (apx(i+1,j+1,k-1).ne.zero) flg = set_neighbor(flg, 1, 1,-1)
+                end if
+                
+                if ( (apy(i,j,k).ne.zero .and. apz(i,j-1,k+1).ne.zero) .or. &
+                     (apz(i,j,k+1).ne.zero .and. apy(i,j,k+1).ne.zero) ) then
+                   flg = set_neighbor(flg, 0, -1, 1)
+                   if (apx(i  ,j-1,k+1).ne.zero) flg = set_neighbor(flg,-1,-1, 1)
+                   if (apx(i+1,j-1,k+1).ne.zero) flg = set_neighbor(flg, 1,-1, 1)
+                end if
+                
+                if ( (apy(i,j+1,k).ne.zero .and. apz(i,j+1,k+1).ne.zero) .or. &
+                     (apz(i,j,k+1).ne.zero .and. apy(i,j+1,k+1).ne.zero) ) then
+                   flg = set_neighbor(flg, 0, 1, 1)
+                   if (apx(i  ,j+1,k+1).ne.zero) flg = set_neighbor(flg,-1, 1, 1)
+                   if (apx(i+1,j+1,k+1).ne.zero) flg = set_neighbor(flg, 1, 1, 1)
+                end if
+                   
+                cflag(i,j,k) = flg
              end if
-
-             if ( (apx(i+1,j,k).ne.zero .and. apy(i+1,j,k).ne.zero) .or. &
-                  (apy(i,j,k).ne.zero .and. apx(i+1,j-1,k).ne.zero) ) then
-                flg = set_neighbor(flg, 1, -1, 0)
-                if (apz(i+1,j-1,k  ).ne.zero) flg = set_neighbor(flg, 1,-1,-1)
-                if (apz(i+1,j-1,k+1).ne.zero) flg = set_neighbor(flg, 1,-1, 1)
-             end if
-
-             if ( (apx(i,j,k).ne.zero .and. apy(i-1,j+1,k).ne.zero) .or. &
-                  (apy(i,j+1,k).ne.zero .and. apx(i,j+1,k).ne.zero) ) then
-                flg = set_neighbor(flg, -1, 1, 0)
-                if (apz(i-1,j+1,k  ).ne.zero) flg = set_neighbor(flg,-1, 1,-1)
-                if (apz(i-1,j+1,k+1).ne.zero) flg = set_neighbor(flg,-1, 1, 1)
-             end if
-
-             if ( (apx(i+1,j,k).ne.zero .and. apy(i+1,j+1,k).ne.zero) .or. &
-                  (apy(i,j+1,k).ne.zero .and. apx(i+1,j+1,k).ne.zero) ) then
-                flg = set_neighbor(flg, 1, 1, 0)
-                if (apz(i+1,j+1,k  ).ne.zero) flg = set_neighbor(flg, 1, 1,-1)
-                if (apz(i+1,j+1,k+1).ne.zero) flg = set_neighbor(flg, 1, 1, 1)
-             end if
-
-             if ( (apx(i,j,k).ne.zero .and. apz(i-1,j,k).ne.zero) .or. &
-                  (apz(i,j,k).ne.zero .and. apx(i,j,k-1).ne.zero) ) then
-                flg = set_neighbor(flg, -1, 0, -1)
-                if (apy(i-1,j  ,k-1).ne.zero) flg = set_neighbor(flg,-1,-1,-1)
-                if (apy(i-1,j+1,k-1).ne.zero) flg = set_neighbor(flg,-1, 1,-1)
-             end if
-
-             if ( (apx(i+1,j,k).ne.zero .and. apz(i+1,j,k).ne.zero) .or. &
-                  (apz(i,j,k).ne.zero .and. apx(i+1,j,k-1).ne.zero) ) then
-                flg = set_neighbor(flg, 1, 0, -1)
-                if (apy(i+1,j  ,k-1).ne.zero) flg = set_neighbor(flg, 1,-1,-1)
-                if (apy(i+1,j+1,k-1).ne.zero) flg = set_neighbor(flg, 1, 1,-1)
-             end if
-
-             if ( (apx(i,j,k).ne.zero .and. apz(i-1,j,k+1).ne.zero) .or. &
-                  (apz(i,j,k+1).ne.zero .and. apx(i,j,k+1).ne.zero) ) then
-                flg = set_neighbor(flg, -1, 0, 1)
-                if (apy(i-1,j  ,k+1).ne.zero) flg = set_neighbor(flg,-1,-1, 1)
-                if (apy(i-1,j+1,k+1).ne.zero) flg = set_neighbor(flg,-1, 1, 1)
-             end if
-
-             if ( (apx(i+1,j,k).ne.zero .and. apz(i+1,j,k+1).ne.zero) .or. &
-                  (apz(i,j,k+1).ne.zero .and. apx(i+1,j,k+1).ne.zero) ) then
-                flg = set_neighbor(flg, 1, 0, 1)
-                if (apy(i+1,j  ,k+1).ne.zero) flg = set_neighbor(flg, 1,-1, 1)
-                if (apy(i+1,j+1,k+1).ne.zero) flg = set_neighbor(flg, 1, 1, 1)
-             end if
-
-             if ( (apy(i,j,k).ne.zero .and. apz(i,j-1,k).ne.zero) .or. &
-                  (apz(i,j,k).ne.zero .and. apy(i,j,k-1).ne.zero) ) then
-                flg = set_neighbor(flg, 0, -1, -1)
-                if (apx(i  ,j-1,k-1).ne.zero) flg = set_neighbor(flg,-1,-1,-1)
-                if (apx(i+1,j-1,k-1).ne.zero) flg = set_neighbor(flg, 1,-1,-1)
-             end if
-
-             if ( (apy(i,j+1,k).ne.zero .and. apz(i,j+1,k).ne.zero) .or. &
-                  (apz(i,j,k).ne.zero .and. apy(i,j+1,k-1).ne.zero) ) then
-                flg = set_neighbor(flg, 0, 1, -1)
-                if (apx(i  ,j+1,k-1).ne.zero) flg = set_neighbor(flg,-1, 1,-1)
-                if (apx(i+1,j+1,k-1).ne.zero) flg = set_neighbor(flg, 1, 1,-1)
-             end if
-
-             if ( (apy(i,j,k).ne.zero .and. apz(i,j-1,k+1).ne.zero) .or. &
-                  (apz(i,j,k+1).ne.zero .and. apy(i,j,k+1).ne.zero) ) then
-                flg = set_neighbor(flg, 0, -1, 1)
-                if (apx(i  ,j-1,k+1).ne.zero) flg = set_neighbor(flg,-1,-1, 1)
-                if (apx(i+1,j-1,k+1).ne.zero) flg = set_neighbor(flg, 1,-1, 1)
-             end if
-
-             if ( (apy(i,j+1,k).ne.zero .and. apz(i,j+1,k+1).ne.zero) .or. &
-                  (apz(i,j,k+1).ne.zero .and. apy(i,j+1,k+1).ne.zero) ) then
-                flg = set_neighbor(flg, 0, 1, 1)
-                if (apx(i  ,j+1,k+1).ne.zero) flg = set_neighbor(flg,-1, 1, 1)
-                if (apx(i+1,j+1,k+1).ne.zero) flg = set_neighbor(flg, 1, 1, 1)
-             end if
-
-             cflag(i,j,k) = flg
           end do
        end do
     end do
   end subroutine amrex_eb2_build_cellflag_from_ap
+
 end module amrex_eb2_3d_module

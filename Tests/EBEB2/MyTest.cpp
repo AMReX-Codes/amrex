@@ -80,6 +80,8 @@ MyTest::test ()
 {
     for (int ilev = 0, nlevs = old_factory.size(); ilev < nlevs; ++ilev)
     {
+        amrex::Print() << "\n Testing level " << ilev << "\n";
+
         const Box& lev_domain_m1 = amrex::grow(new_factory[ilev]->getDomain(), -1);
 
         const FabArray<EBCellFlagFab>& cellflag_new = new_factory[ilev]->getMultiEBCellFlagFab();
