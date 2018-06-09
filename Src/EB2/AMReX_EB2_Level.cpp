@@ -181,6 +181,13 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
 
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
 
+    Box gdomain = geom.Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (geom.isPeriodic(idim)) {
+            gdomain.grow(idim, cellflag.nGrow());
+        }
+    }
+
     auto cov_val = EBCellFlag::TheCoveredCell();
 #ifdef _OPENMP
 #pragma omp parallel
@@ -203,9 +210,10 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
             }
 
             // fix type and region for each fab
-            fab.setRegion(bx);
+            const Box& regbx = bx & gdomain;
+            fab.setRegion(regbx);
             fab.setType(FabType::undefined);
-            auto typ = fab.getType(bx);
+            auto typ = fab.getType(regbx);
             fab.setType(typ);
         }
     }
