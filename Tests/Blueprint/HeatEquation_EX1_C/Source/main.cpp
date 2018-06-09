@@ -16,7 +16,10 @@
 #include <conduit/conduit_blueprint.hpp>
 #include <conduit/conduit_relay.hpp>
 
+#include <ascent.hpp>
+
 using namespace conduit;
+using namespace ascent;
 
 int main (int argc, char* argv[])
 {
@@ -113,7 +116,25 @@ void main_main ()
     // time = starting time in the simulation
     Real time = 0.0;
 
+    int rank   = ParallelDescriptor::MyProc();  // Return the rank
+    int ntasks = ParallelDescriptor::NProcs();  // Return the number of processes
+    
+    /////////////////////////////
+    // Setup Ascent
+    /////////////////////////////
+    // Create an instance of Ascent
+    Ascent ascent;
+    Node open_opts;
+
+    // for the MPI case, provide the mpi comm
+#ifdef BL_USE_MPI
+    open_opts["mpi_comm"] = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+#endif
+
+    ascent.open(open_opts);
+
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
+
     if (plot_int > 0)
     {
         int n = 0;
@@ -133,6 +154,29 @@ void main_main ()
         // (For debugging and to demonstrate how to do this w/o Ascent)
         ///////////////////////////////////////////////////////////////////
         WriteBlueprintFiles( bp_mesh, "bp_heateq_ex_", n);
+
+        ///////////////////////////////////////////////////////////////////
+        // Render with Ascent
+        ///////////////////////////////////////////////////////////////////
+
+        Node scenes;
+        scenes["s1/plots/p1/type"] = "pseudocolor";
+        scenes["s1/plots/p1/params/field"] = "phi";
+        // Set the output file name (ascent will add ".png")
+        const std::string& png_out = amrex::Concatenate("ascent_render_",0,5);
+        scenes["s1/image_prefix"] = png_out;
+
+        // setup actions
+        Node actions;
+        Node &add_act = actions.append();
+        add_act["action"] = "add_scenes";
+        add_act["scenes"] = scenes;
+        actions.append()["action"] = "execute";
+        actions.append()["action"] = "reset";
+
+
+        ascent.publish(bp_mesh);
+        ascent.execute(actions);
     }
 
     // build the flux multifabs
@@ -146,39 +190,8 @@ void main_main ()
     }
 
     
-    int rank = ParallelDescriptor::MyProc();  // Return the rank
-    int ntasks = ParallelDescriptor::NProcs();  // Return the number of processes
-    
-    /////////////////////////////
-    // Setup Ascent
-    /////////////////////////////
-    // Create an instance of Ascent
-    // Ascent ascent();
-    // Node open_opts;
-    // for MPI case
-    // if(ntasks > 0)
-    // {
-    //     open_opts["mpi_comm"] = MPI_Comm_c2f(ParallelDescriptor::Communicator())
-    // }
-    // ascent.open(open_opts);
-    //
-    // Node actions;
-    //
-    // // declare a scene to render the dataset
-    // Node scenes;
-    // scenes["s1/plots/p1/type"] = "pseudocolor";
-    // scenes["s1/plots/p1/params/field"] = "phi";
-    // // Set the output file name (ascent will add ".png")
-    // scenes["s1/image_prefix"] = "out_ascent_render";
-    //
-    // // setup actions
-    // Node actions;
-    // Node &add_act = actions.append();
-    // add_act["action"] = "add_scenes";
-    // add_act["scenes"] = scenes;
-    //
-    // actions.append()["action"] = "execute";
 
+    
     for (int n = 1; n <= nsteps; ++n)
     {
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
@@ -215,11 +228,31 @@ void main_main ()
             ///////////////////////////////////////////////////////////////////
             // Render with Ascent
             ///////////////////////////////////////////////////////////////////
-            // ascent.publish(bp_mesh);
-            // ascent.execute(actions);
+            
+            // add a scene with a pseudocolor plot
+            Node scenes;
+            scenes["s1/plots/p1/type"] = "pseudocolor";
+            scenes["s1/plots/p1/params/field"] = "phi";
+            // Set the output file name (ascent will add ".png")
+            const std::string& png_out = amrex::Concatenate("ascent_render_",n,5);
+            scenes["s1/image_prefix"] = png_out;
+
+            // setup actions
+            Node actions;
+            Node &add_act = actions.append();
+            add_act["action"] = "add_scenes";
+            add_act["scenes"] = scenes;
+            actions.append()["action"] = "execute";
+            actions.append()["action"] = "reset";
+
+
+            ascent.publish(bp_mesh);
+            ascent.execute(actions);
 
         }
     }
+
+    ascent.close();
 
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
