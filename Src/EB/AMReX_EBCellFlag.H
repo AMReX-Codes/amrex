@@ -166,7 +166,8 @@ private:
 #else
     static constexpr uint32_t default_value = 0x7fc004;  // zero out "3d" neighbors
 #endif
-    static constexpr uint32_t covered_value = zero_lower_mask | covered_bits;
+//    static constexpr uint32_t covered_value = zero_lower_mask | covered_bits;
+    static constexpr uint32_t covered_value = 0x40003;  // zero out all neighbors
 
     uint32_t flag = default_value;
 };
