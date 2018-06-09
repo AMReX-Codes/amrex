@@ -18,6 +18,7 @@
 #include "MyTest.H"
 #include <AMReX_ParmParse.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_MultiFabUtil.H>
 
 #include <cmath>
 #include <algorithm>
@@ -90,8 +91,8 @@ MyTest::test ()
         VisMF::Write(cent_new.ToMultiFab(0.,0.), "new-cent-lev"+std::to_string(ilev));
         
         const MultiCutFab& bcent_new = new_factory[ilev]->getBndryCent();
-        VisMF::Write(bcent_new.ToMultiFab(0.,0.), "new-bcent-lev"+std::to_string(ilev));
-        
+        VisMF::Write(bcent_new.ToMultiFab(-1.,-1.), "new-bcent-lev"+std::to_string(ilev));
+
         const auto& areafrac_new = new_factory[ilev]->getAreaFrac();
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             VisMF::Write(areafrac_new[idim]->ToMultiFab(1.,0.),
@@ -133,8 +134,8 @@ MyTest::test ()
             VisMF::Write(cent_old.ToMultiFab(0.,0.),  "old-cent-lev"+std::to_string(ilev));
             
             const MultiCutFab& bcent_old = old_factory[ilev]->getBndryCent();
-            VisMF::Write(bcent_old.ToMultiFab(0.,0.),  "old-bcent-lev"+std::to_string(ilev));
-            
+            VisMF::Write(bcent_old.ToMultiFab(-1.,-1.),  "old-bcent-lev"+std::to_string(ilev));
+
             const auto& areafrac_old = old_factory[ilev]->getAreaFrac();
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 VisMF::Write(areafrac_old[idim]->ToMultiFab(1.,0.),
