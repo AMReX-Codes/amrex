@@ -7,6 +7,8 @@ max_coarsening_level = 1
 test_cellflag = 1
 ng_eb = 4
 
+
+eb2.max_grid_size = 16
 eb2.geom_type = plane
 
 # sphere
@@ -15,8 +17,17 @@ eb2.sphere_radius           = 0.15
 eb2.sphere_has_fluid_inside = 0
 
 # plane
-eb2.plane_point  = 0.5  0.5  0.5
-eb2.plane_normal = 0.0  1.0  0.0 
+#eb2.plane_point  = 0.5  0.5  0.5
+#eb2.plane_normal = 0.0  -1.0  0.0 
+# the old GeometryShop's bndry centroid is wrong for the case above
+
+# check facecent of
+eb2.plane_normal = 1.0  1.0  0.0 
+eb2.plane_point  = 0.53 0.51 0.5
+
+# check area of 
+#eb2.plane_normal = 0.5 -0.0457 0.0
+#eb2.plane_point  = 0.36 0.45   0.5
 
 # box
 eb2.box_lo               = 0.3  0.2  0.25
