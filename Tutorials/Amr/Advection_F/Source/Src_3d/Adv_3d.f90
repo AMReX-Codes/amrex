@@ -214,14 +214,8 @@ subroutine advect_particles(particles, np, &
            e_hi = w_hi
            e_lo = w_lo
            e_hi(d) = length(d) - cc_cell(d)
-           do j = 1, 3
-              if (e_hi(j) > 1.d0) then
-                 e_hi(j) = 1.d0
-              end if
-              if (e_hi(j) < 0.d0) then
-                 e_hi(j) = 0.d0
-              end if
-           end do
+
+           e_hi = max(0.d0,min(1.d0,e_hi))
            e_lo(d) = 1.d0 - e_hi(d)
            
            vel = e_lo(1)*e_lo(2)*e_lo(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1, e_cell(3)-1) + &
