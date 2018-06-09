@@ -10,6 +10,9 @@
 using namespace amrex;
 using namespace conduit;
 
+#include <ascent.hpp>
+using namespace ascent;
+
 
 struct TestParams {
   int nx;
@@ -157,6 +160,31 @@ void test_assign_density(TestParams& parms)
     // (For debugging and to demonstrate how to do this w/o Ascent)
     ///////////////////////////////////////////////////////////////////////////
     WriteBlueprintFiles(bp_mesh,"bp_example_");
+    
+    ///////////////////////////////////////////////////////////////////
+    // Render with Ascent
+    ///////////////////////////////////////////////////////////////////
+    
+    // add a scene with a pseudocolor plot
+    Node scenes;
+    scenes["s1/plots/p1/type"] = "pseudocolor";
+    scenes["s1/plots/p1/params/field"] = "density";
+    // Set the output file name (ascent will add ".png")
+    scenes["s1/image_prefix"] = "ascent_render";
+
+    // setup actions
+    Node actions;
+    Node &add_act = actions.append();
+    add_act["action"] = "add_scenes";
+    add_act["scenes"] = scenes;
+    actions.append()["action"] = "execute";
+    actions.append()["action"] = "reset";
+
+    Ascent ascent;
+    ascent.open();
+    ascent.publish(bp_mesh);
+    ascent.execute(actions);
+    ascent.close();
 }
 
 int main(int argc, char* argv[])
