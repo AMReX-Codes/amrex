@@ -91,7 +91,7 @@ MyTest::initializeEB ()
     }
 
     EBTower::Build();
-    old_factory.emplace_back(new EBFArrayBoxFactory(geom, grids, dmap, {1, 1, 1}, EBSupport::full));
+    old_factory.emplace_back(new EBFArrayBoxFactory(geom, grids, dmap, {ng_eb, ng_eb, ng_eb}, EBSupport::full));
 
     for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
     {
