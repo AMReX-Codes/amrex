@@ -51,7 +51,7 @@
 #define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
-#define AMREX_ARLIM_ARG(x) ARLIM_3D(x)
+#define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
 #define AMREX_ARLIM_VAL(x) const int* x
 #endif
 #elif   AMREX_SPACEDIM==2
@@ -69,7 +69,7 @@
 #define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
-#define AMREX_ARLIM_ARG(x) ARLIM_3D(x)
+#define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
 #define AMREX_ARLIM_VAL(x) const int* x
 #endif
 #elif   AMREX_SPACEDIM==3
@@ -84,7 +84,7 @@
 #define AMREX_ARLIM_ARG(x) x[0], x[1], x[2]
 #define AMREX_ARLIM_VAL(x) const int x##_1, const int x##_2, const int x##_3
 #else
-#define AMREX_ARLIM_ARG(x) ARLIM_3D(x)
+#define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
 #define AMREX_ARLIM_VAL(x) const int* x
 #endif
 #endif
