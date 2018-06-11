@@ -88,11 +88,12 @@ extern "C"
                              const int* sblo, const int* dblo,
                              const int ncomp);
 
-    AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_lincomb)(const int* lo, const int* hi,
-                                                       amrex_real* dst, const int* dlo, const int* dhi,
-                                                       const amrex_real a, const amrex_real* x, const int* xlo, const int* xhi, const int* xblo,
-                                                       const amrex_real b, const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
-                                                       const int ncomp);
+    void amrex_fort_fab_lincomb(AMREX_ARLIM_VAL(lo), AMREX_ARLIM_VAL(hi),
+                                const int* offset,
+                                amrex_real* dst, const int* dlo, const int* dhi,
+                                const amrex_real a, const amrex_real* x, const int* xlo, const int* xhi, const int* xblo,
+                                const amrex_real b, const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
+                                const int ncomp);
 
     void amrex_fort_fab_addproduct(AMREX_ARLIM_VAL(lo), AMREX_ARLIM_VAL(hi),
                                    amrex_real* dst, const int* dlo, const int* dhi,
@@ -100,10 +101,11 @@ extern "C"
                                    const amrex_real* src2, const int* s2lo, const int* s2hi,
                                    const int ncomp);
 
-    AMREX_FORT_LAUNCHABLE(void amrex_fort_fab_dot)(const int* lo, const int* hi,
-                                                   const amrex_real* x, const int* xlo, const int* xhi,
-                                                   const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
-                                                   const int ncomp, amrex_real* dp);
+    void amrex_fort_fab_dot(AMREX_ARLIM_VAL(lo), AMREX_ARLIM_VAL(hi),
+                            const int* offset,
+                            const amrex_real* x, const int* xlo, const int* xhi,
+                            const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
+                            const int ncomp, amrex_real* dp);
 
     amrex_real amrex_fort_fab_dot_mask (const int* lo, const int* hi,
 		       const amrex_real* x, const int* xlo, const int* xhi,
