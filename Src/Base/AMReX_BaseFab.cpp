@@ -227,6 +227,7 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
     {
 	AMREX_DEVICE_LAUNCH(amrex_fort_fab_copytomem)
             (AMREX_ARLIM_ARG(srcbox.loVect()), AMREX_ARLIM_ARG(srcbox.hiVect()),
+             AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
              static_cast<Real*>(dst),
              BL_TO_FORTRAN_N_ANYD(*this,srccomp),
              numcomp);
@@ -252,6 +253,7 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
     {
 	AMREX_DEVICE_LAUNCH(amrex_fort_fab_copyfrommem)
             (AMREX_ARLIM_ARG(dstbox.loVect()), AMREX_ARLIM_ARG(dstbox.hiVect()),
+             AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
              BL_TO_FORTRAN_N_ANYD(*this,dstcomp), numcomp,
              static_cast<const Real*>(src));
         return sizeof(Real) * dstbox.numPts() * numcomp;
