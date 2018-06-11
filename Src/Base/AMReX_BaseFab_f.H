@@ -16,11 +16,13 @@ extern "C"
                              const int ncomp);
 
     void amrex_fort_fab_copytomem(AMREX_ARLIM_VAL(lo), AMREX_ARLIM_VAL(hi),
+                                  const int* bx_lo, const int* bx_hi,
                                   amrex_real* dst,
                                   const amrex_real* src, const int* slo, const int* shi,
                                   const int ncomp);
 
     void amrex_fort_fab_copyfrommem(AMREX_ARLIM_VAL(lo), AMREX_ARLIM_VAL(hi),
+                                    const int* bx_lo, const int* bx_hi,
                                     const amrex_real* dst, const int* dlo, const int* dhi, const int ncomp,
                                     const amrex_real* src);
 
