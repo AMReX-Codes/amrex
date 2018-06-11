@@ -1110,7 +1110,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostPa
 	// Here we add the particle to each potential grid.
 	//
 	for (const auto& isec : isects)
-	  {
+        {
+            (void) isec;
 	    //
 	    // Create a copy.
 	    //
@@ -1125,7 +1126,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostPa
 	    // Store it in the AoS.
 	    //
 	    ghosts().push_back(p);
-	  }
+	}
       }
   }
 }
