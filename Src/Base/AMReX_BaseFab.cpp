@@ -607,12 +607,13 @@ BaseFab<Real>::linComb (const BaseFab<Real>& f1,
     BL_ASSERT(comp2 >= 0 && comp2+numcomp <= f2.nComp());
     BL_ASSERT(comp  >= 0 && comp +numcomp <=    nComp());
 
-    AMREX_FORT_LAUNCH(b, amrex_fort_fab_lincomb,
-                      BL_TO_FORTRAN_BOX(b),
-                      BL_TO_FORTRAN_N_ANYD(*this,comp),
-                      alpha, BL_TO_FORTRAN_N_ANYD(f1,comp1), AMREX_ARLIM_3D(b1.loVect()),
-                      beta,  BL_TO_FORTRAN_N_ANYD(f2,comp2), AMREX_ARLIM_3D(b2.loVect()),
-                numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_lincomb)
+        (AMREX_ARLIM_ARG(b.loVect()), AMREX_ARLIM_ARG(b.hiVect()),
+         AMREX_ARLIM_3D(b.loVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,comp),
+         alpha, BL_TO_FORTRAN_N_ANYD(f1,comp1), AMREX_ARLIM_3D(b1.loVect()),
+         beta,  BL_TO_FORTRAN_N_ANYD(f2,comp2), AMREX_ARLIM_3D(b2.loVect()),
+         numcomp);
     return *this;
 }
 
@@ -639,11 +640,12 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     Real* dp_f = &dp;
 #endif
     
-    AMREX_FORT_LAUNCH(xbx, amrex_fort_fab_dot,
-                      BL_TO_FORTRAN_BOX(xbx),
-                      BL_TO_FORTRAN_N_ANYD(*this,xcomp),
-                      BL_TO_FORTRAN_N_ANYD(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
-                      numcomp, dp_f);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_dot)
+        (AMREX_ARLIM_ARG(xbx.loVect()), AMREX_ARLIM_ARG(xbx.hiVect()),
+         AMREX_ARLIM_3D(xbx.loVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,xcomp),
+         BL_TO_FORTRAN_N_ANYD(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
+         numcomp, dp_f);
     
 #ifdef AMREX_USE_CUDA
     CudaAPICheck(cudaMemcpy(&dp, dp_f, sizeof(Real), cudaMemcpyDeviceToHost));

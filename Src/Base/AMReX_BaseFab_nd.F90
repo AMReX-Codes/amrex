@@ -1,6 +1,6 @@
 module basefab_nd_module
 
-  use amrex_fort_module, only: amrex_real, get_loop_bounds, amrex_add, amrex_max
+  use amrex_fort_module, only: amrex_real, amrex_add, amrex_max
 
   implicit none
 
@@ -376,10 +376,10 @@ contains
   
 
   ! dst = a*x + b*y
-  AMREX_LAUNCH subroutine amrex_fort_fab_lincomb(lo, hi, dst, dlo, dhi, a, x, xlo, xhi, xblo, &
-                                                      b, y, ylo, yhi, yblo, ncomp) bind(c, name='amrex_fort_fab_lincomb')
+  AMREX_DEVICE subroutine amrex_fort_fab_lincomb(lo, hi, offset, dst, dlo, dhi, a, x, xlo, xhi, xblo, &
+                                                 b, y, ylo, yhi, yblo, ncomp) bind(c, name='amrex_fort_fab_lincomb')
 
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), xlo(3), xhi(3), xblo(3), &
+    integer, intent(in) :: lo(3), hi(3), offset(3), dlo(3), dhi(3), xlo(3), xhi(3), xblo(3), &
                            ylo(3), yhi(3), yblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ), value :: a, b
@@ -388,17 +388,14 @@ contains
     real(amrex_real), intent(in   ) ::   y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
 
     integer :: i,j,k,n,xoff(3),yoff(3)
-    integer :: blo(3), bhi(3)
 
-    xoff = xblo - lo
-    yoff = yblo - lo
-
-    call get_loop_bounds(blo, bhi, lo, hi)
+    xoff = xblo - offset
+    yoff = yblo - offset
 
     do n = 1, ncomp
-       do       k = blo(3), bhi(3)
-          do    j = blo(2), bhi(2)
-             do i = blo(1), bhi(1)
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 dst(i,j,k,n) = a * x(i+xoff(1),j+xoff(2),k+xoff(3),n) &
                      +         b * y(i+yoff(1),j+yoff(2),k+yoff(3),n)
              end do
@@ -432,24 +429,21 @@ contains
 
 
   ! dot_product
-  AMREX_LAUNCH subroutine amrex_fort_fab_dot(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp) bind(c, name='amrex_fort_fab_dot')
-    integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3)
+  AMREX_DEVICE subroutine amrex_fort_fab_dot(lo, hi, offset, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp) bind(c, name='amrex_fort_fab_dot')
+    integer, intent(in) :: lo(3), hi(3), offset(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
     real(amrex_real), intent(in) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
     real(amrex_real) :: dp
 
     integer :: i,j,k,n, off(3)
-    integer :: blo(3), bhi(3)
 
-    call get_loop_bounds(blo, bhi, lo, hi)
-
-    off = yblo - lo
+    off = yblo - offset
 
     do n = 1, ncomp
-       do       k = blo(3), bhi(3)
-          do    j = blo(2), bhi(2)
-             do i = blo(1), bhi(1)
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 call amrex_add(dp, x(i,j,k,n)*y(i+off(1),j+off(2),k+off(3),n))
              end do
           end do
