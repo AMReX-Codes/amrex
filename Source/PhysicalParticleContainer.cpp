@@ -1120,7 +1120,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     BL_PROFILE("PhysicalParticleContainer::GetParticleSlice");
     
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-    // Assume always z
+    // Assume that the boost in the positive z direction.
 #if (AMREX_SPACEDIM == 2)
     AMREX_ALWAYS_ASSERT(direction == 1);
 #else
