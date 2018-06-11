@@ -14,6 +14,8 @@ COMP      = gnu
 DIM       = 2
 #DIM       = 3
 
+USE_PARTICLES = TRUE
+
 Bpack   := ./Make.package 
 Blocs   := . 
 
