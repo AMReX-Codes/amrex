@@ -213,44 +213,64 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                     if(!tile_realbox.contains( RealVect{x, z} )) continue;
 #endif
 
-                    if (plasma_injector->insideBounds(x, y, z)) {
-                        Real dens;
-                        std::array<Real, 3> u;
-                        if (WarpX::gamma_boost == 1.){
-                            // Lab-frame simulation
-                            plasma_injector->getMomentum(u, x, y, z);
-                            dens = plasma_injector->getDensity(x, y, z);
-                        } else {
-                            // Boosted-frame simulation: call `getMomentum`
-                            // and `getDensity` with lab-frame Parameters
-                            // (Assumes that the plasma has a low velocity,
-                            // and that the boost is along z)
-                            Real t = WarpX::GetInstance().gett_new(lev);
-                            Real v_boost = WarpX::beta_boost*PhysConst::c;
-                            Real z_lab = WarpX::gamma_boost*( z + v_boost*t );
-                            plasma_injector->getMomentum(u, x, y, z_lab);
-                            dens = plasma_injector->getDensity(x, y, z_lab);
-                            // Perform Lorentz transform
-                            // (Assumes that the plasma has a low velocity)
-                            u[2] = WarpX::gamma_boost * ( u[2] - v_boost );
-                            dens = WarpX::gamma_boost * dens;
-                        }
-                        attribs[PIdx::w ] = dens * scale_fac;
-                        attribs[PIdx::ux] = u[0];
-                        attribs[PIdx::uy] = u[1];
-                        attribs[PIdx::uz] = u[2];
+                    Real dens;
+                    std::array<Real, 3> u;
+                    if (WarpX::gamma_boost == 1.){
+                      // Lab-frame simulation
+                      // If the particle is not within the species's
+                      // xmin, xmax, ymin, ymax, zmin, zmax, go to
+                      // the next generated particle.
+                      if (!plasma_injector->insideBounds(x, y, z)) continue;
+                      plasma_injector->getMomentum(u, x, y, z);
+                      dens = plasma_injector->getDensity(x, y, z);
+                    } else {
+                      // Boosted-frame simulation
+                      Real c = PhysConst::c;
+                      Real gamma_boost = WarpX::gamma_boost;
+                      Real beta_boost = WarpX::beta_boost;
+                      // Since the user provides the density distribution
+                      // at t_lab=0 and in the lab-frame coordinates,
+                      // we need to find the lab-frame position of this
+                      // particle at t_lab=0, from its boosted-frame coordinates
+                      // Assuming ballistic motion, this is given by:
+                      // z0_lab = gamma*( z_boost*(1-beta*betaz_lab) - ct_boost*(betaz_lab-beta) )
+                      // where betaz_lab is the speed of the particle in the lab frame
+                      // 
+                      // In order for this equation to be solvable, betaz_lab
+                      // is explicitly assumed to have no dependency on z0_lab
+                      plasma_injector->getMomentum(u, x, y, 0.); // No z0_lab dependency
+                      // At this point u is the lab-frame momentum
+                      // => Apply the above formula for z0_lab
+                      Real gamma_lab = std::sqrt( 1 + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])/(c*c) );
+                      Real betaz_lab = u[2]/gamma_lab/c;
+                      Real t = WarpX::GetInstance().gett_new(lev);
+                      Real z0_lab = gamma_boost * ( z*(1-beta_boost*betaz_lab) - c*t*(betaz_lab-beta_boost) );
+                      // If the particle is not within the lab-frame zmin, zmax, etc.
+                      // go to the next generated particle.
+                      if (!plasma_injector->insideBounds(x, y, z0_lab)) continue;
+                      // call `getDensity` with lab-frame parameters
+                      dens = plasma_injector->getDensity(x, y, z0_lab);
+                      // At this point u and dens are the lab-frame quantities
+                      // => Perform Lorentz transform
+                      dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
+                      u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
+                    }
+                    attribs[PIdx::w ] = dens * scale_fac;
+                    attribs[PIdx::ux] = u[0];
+                    attribs[PIdx::uy] = u[1];
+                    attribs[PIdx::uz] = u[2];
 
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-                        attribs[PIdx::xold] = x;
-                        attribs[PIdx::yold] = y;
-                        attribs[PIdx::zold] = z;
-
-                        attribs[PIdx::uxold] = u[0];
-                        attribs[PIdx::uyold] = u[1];
-                        attribs[PIdx::uzold] = u[2];
+                    attribs[PIdx::xold] = x;
+                    attribs[PIdx::yold] = y;
+                    attribs[PIdx::zold] = z;
+                    
+                    attribs[PIdx::uxold] = u[0];
+                    attribs[PIdx::uyold] = u[1];
+                    attribs[PIdx::uzold] = u[2];
 #endif
-                        AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
-                    }
+                    
+                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
             }
         }

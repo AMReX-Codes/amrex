@@ -38,6 +38,7 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     for (unsigned int i = PIdx::Ex; i <= PIdx::Bz; ++i) {
         communicate_real_comp[i] = false; // Don't need to communicate E and B.
     }
+    SetParticleSize();
     ReadParameters();
 }
 
