@@ -85,7 +85,7 @@ template <int dim> void IFSlicer<dim>::print(ostream& a_out) const
   a_out << "fixed component  = " << m_fixedComp  << "\n";
   a_out << "fixed value      = " << m_fixedValue << "\n";
   a_out << "At one dimension higher: " << dim + 1 << "\n";
-  this->m_IFSlicer.print(a_out);
+  this->m_IFSlicer->print(a_out);
 }
 
 template <int dim> ostream& operator<<(ostream             & a_out,
