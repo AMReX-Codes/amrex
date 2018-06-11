@@ -36,11 +36,11 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 
             const Box& sbx = mfi.nodaltilebox(idir-1);
 
-            AMREX_FORT_LAUNCH(sbx, compute_flux,
-                              BL_TO_FORTRAN_BOX(sbx),
-                              BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                              BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
-                              dx, idir);
+            AMREX_DEVICE_LAUNCH(compute_flux)
+                (AMREX_ARLIM_ARG(sbx.loVect()), AMREX_ARLIM_ARG(sbx.hiVect()),
+                 BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+                 BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
+                 dx, idir);
 
         }
 
@@ -51,16 +51,16 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
 
-        AMREX_FORT_LAUNCH(bx, update_phi,
-                          BL_TO_FORTRAN_BOX(bx),
-                          BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                          BL_TO_FORTRAN_ANYD(new_phi[mfi]),
-                          BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                          BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+        AMREX_DEVICE_LAUNCH(update_phi)
+            (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+             BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+             BL_TO_FORTRAN_ANYD(new_phi[mfi]),
+             BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+             BL_TO_FORTRAN_ANYD(flux[1][mfi]),
 #if (AMREX_SPACEDIM == 3)   
-                          BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+             BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                          dx, dt);
+             dx, dt);
     }
 
 }

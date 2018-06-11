@@ -7,10 +7,11 @@
 extern "C" {
 #endif
 
-    AMREX_FORT_LAUNCHABLE(void amrex_fab_filcc)(amrex_real* q, const int* qlo, const int* qhi, const int* nq,
-                                                const int* domlo, const int* domhi,
-                                                const amrex_real* dx, const amrex_real* xlo,
-                                                const int* bclo);
+    void amrex_fab_filcc(AMREX_ARLIM_VAL(lo), AMREX_ARLIM_VAL(hi),
+                         amrex_real* q, const int* qlo, const int* qhi, const int* nq,
+                         const int* domlo, const int* domhi,
+                         const amrex_real* dx, const amrex_real* xlo,
+                         const int* bclo);
 
 
     void amrex_hoextraptocc (amrex_real* q, const int* qlo, const int* qhi,
