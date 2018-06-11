@@ -288,10 +288,10 @@ BaseFab<Real>::invert (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    AMREX_FORT_LAUNCH(bx, amrex_fort_fab_invert,
-                      BL_TO_FORTRAN_BOX(bx),
-                      BL_TO_FORTRAN_N_ANYD(*this,comp), &ncomp,
-                      val);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_invert)
+        (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
+         val);
     return *this;
 }
 
@@ -329,10 +329,10 @@ BaseFab<Real>::norm (const Box& bx,
     
     if (p == 0 || p == 1)
     {
-        AMREX_FORT_LAUNCH(bx, amrex_fort_fab_norm,
-                          BL_TO_FORTRAN_BOX(bx),
-                          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
-                          p, nrm_f);
+        AMREX_DEVICE_LAUNCH(amrex_fort_fab_norm)
+            (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+             BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
+             p, nrm_f);
     }
     else
         {
@@ -365,7 +365,9 @@ BaseFab<Real>::sum (const Box& bx,
     Real* sm_f = &sm;
 #endif
     
-    AMREX_FORT_LAUNCH(bx, amrex_fort_fab_sum, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_sum)
+        (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
     
 #ifdef AMREX_USE_CUDA
     CudaAPICheck(cudaMemcpy(&sm, sm_f, sizeof(Real), cudaMemcpyDeviceToHost));
@@ -442,13 +444,13 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_saxpy,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      a,
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
-                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_saxpy)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         a,
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         numcomp);
     return *this;
 }
 
@@ -469,13 +471,13 @@ BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_xpay,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      a,
-                      BL_TO_FORTRAN_N_ANYD(src,srccomp),
-                      AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_xpay)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         a,
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         numcomp);
     return *this;
 }
 
@@ -495,12 +497,12 @@ BaseFab<Real>::addproduct (const Box&           destbox,
     BL_ASSERT(   comp2 >= 0 &&    comp2+numcomp <= src2.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=      nComp());
 
-    AMREX_FORT_LAUNCH(destbox, amrex_fort_fab_addproduct,
-                      BL_TO_FORTRAN_BOX(destbox),
-                      BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                      BL_TO_FORTRAN_N_ANYD(src1,comp1),
-                      BL_TO_FORTRAN_N_ANYD(src2,comp2),
-                      numcomp);
+    AMREX_DEVICE_LAUNCH(amrex_fort_fab_addproduct)
+        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         BL_TO_FORTRAN_N_ANYD(src1,comp1),
+         BL_TO_FORTRAN_N_ANYD(src2,comp2),
+         numcomp);
     return *this;
 }
 
