@@ -949,185 +949,163 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtualParticles (int  level,
-                                                                                           AoS& virts) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::CreateVirtualParticles (int level, AoS& virts) const
 {
-
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CreateVirtualParticles()");
-  BL_ASSERT(level > 0);
-  BL_ASSERT(virts.empty());
-  
-  if (level >= static_cast<int>(m_particles.size()))
-      return;
-
-  if (aggregation_type == "")
-  {
-      ParmParse pp("particles");
-      aggregation_type = "None";
-      pp.query("aggregation_type", aggregation_type);
-      aggregation_buffer = 2;
-      pp.query("aggregation_buffer", aggregation_buffer);
-  }
-
-  if (aggregation_type == "None");
-  else if (aggregation_type == "Cell");
-  else if (aggregation_type == "Flow") amrex::Abort("Flow aggregation not implemented");
-  else amrex::Abort("Unknown Particle Aggregation mode");
-
-  if (aggregation_type == "None")
-  { 
-      const auto& pmap = m_particles[level];
-      for (const auto& kv : pmap)
-      {
-          const auto& pbox = kv.second.GetArrayOfStructs();
-          for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
-          {
-              virts.push_back(*it);
-              virts.back().m_idata.id = VirtualParticleID;
-	  }
-      }
-      return;
-  }
-
-
-  if (aggregation_type == "Cell")
-  {
-      BoxList bl_buffer;
-      bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
-      BoxArray buffer(std::move(bl_buffer));
-      buffer.grow(aggregation_buffer);
-  
-      const auto& pmap = m_particles[level];
-      for (const auto& kv : pmap) {
-          const auto& pbox = kv.second.GetArrayOfStructs();
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CreateVirtualParticles()");
+    BL_ASSERT(level > 0);
+    BL_ASSERT(virts.empty());
     
-          std::map<IntVect,ParticleType> agg_map;
-    
-          for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
-          {
-              IntVect cell = Index(*it, level);
-              if (buffer.contains(cell))
-              {
-                  // It's in the no-aggregation buffer.
-                  // Set its id to indicate that it's a virt.
-                  virts.push_back(*it);
-                  virts.back().m_idata.id = VirtualParticleID;
-              }
-              else
-              {
-                  //
-                  // Note that Cell aggregation assumes that p.m_rdata.arr[AMREX_SPACEDIM] is mass and
-                  // that all other components should be combined in a mass-weighted
-                  // average.
-                  //
-                  auto agg_map_it = agg_map.find(cell);
-		
-                  if (agg_map_it == agg_map.end())
-		  {
-                      //
-                      // Add the particle.
-                      //
-                      ParticleType p = *it;
-                      //
-                      // Set its id to indicate that it's a virt.
-                      //
-                      p.m_idata.id = VirtualParticleID;
-                      agg_map[cell] = p;
-		  }
-                  else
-                  {
-                      BL_ASSERT(agg_map_it != agg_map.end());
-                      const ParticleType&  pnew       = *it;
-                      ParticleType&        pold       = agg_map_it->second;
-                      const Real           old_mass   = pold.m_rdata.arr[AMREX_SPACEDIM];
-                      const Real           new_mass   = pnew.m_rdata.arr[AMREX_SPACEDIM];
-                      const Real           total_mass = old_mass + new_mass;
-                      //
-                      // Set the position to the center of mass.
-                      //
-                      for (int i = 0; i < AMREX_SPACEDIM; i++)
-                      {
-                          pold.m_rdata.pos[i] = (old_mass*pold.m_rdata.pos[i] + new_mass*pnew.m_rdata.pos[i])/total_mass;
-		      }
-                      BL_ASSERT(this->Index(pold, level) == cell);
-                      //
-                      // Set the metadata (presumably velocity) to the mass-weighted average.
-                      //
-                      for (int i = AMREX_SPACEDIM + 1; i < AMREX_SPACEDIM + NStructReal; i++)
-		      {
-                          pold.m_rdata.arr[i] = (old_mass*pold.m_rdata.arr[i] + new_mass*pnew.m_rdata.arr[i])/total_mass;
-		      }
-                      pold.m_rdata.arr[AMREX_SPACEDIM] = total_mass;
-		  }
-	      }
-	  }
+    if (level >= static_cast<int>(m_particles.size()))
+        return;
 
-          //
-          // Add the aggregated particles to the virtuals.
-          //
-          for (const auto& agg_particle : agg_map)
-          {
-              virts.push_back(agg_particle.second);
-          }
-      }
-  }
+    if (aggregation_type == "")
+    {
+        ParmParse pp("particles");
+        aggregation_type = "None";
+        pp.query("aggregation_type", aggregation_type);
+        aggregation_buffer = 2;
+        pp.query("aggregation_buffer", aggregation_buffer);
+    }
+
+    if (aggregation_type == "None");
+    else if (aggregation_type == "Cell");
+    else if (aggregation_type == "Flow") amrex::Abort("Flow aggregation not implemented");
+    else amrex::Abort("Unknown Particle Aggregation mode");
+    
+    if (aggregation_type == "None")
+    { 
+        const auto& pmap = m_particles[level];
+        for (const auto& kv : pmap)
+        {
+            const auto& pbox = kv.second.GetArrayOfStructs();
+            for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
+            {
+                virts.push_back(*it);
+                virts.back().m_idata.id = VirtualParticleID;
+            }
+        }
+        return;
+    }
+
+
+    if (aggregation_type == "Cell")
+    {
+        BoxList bl_buffer;
+        bl_buffer.complementIn(Geom(level).Domain(), ParticleBoxArray(level));
+        BoxArray buffer(std::move(bl_buffer));
+        buffer.grow(aggregation_buffer);
+        
+        const auto& pmap = m_particles[level];
+        for (const auto& kv : pmap)
+        {
+            const auto& pbox = kv.second.GetArrayOfStructs();
+            
+            std::map<IntVect,ParticleType> agg_map;
+            
+            for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
+            {
+                IntVect cell = Index(*it, level);
+                if (buffer.contains(cell))
+                {
+                    // It's in the no-aggregation buffer.
+                    // Set its id to indicate that it's a virt.
+                    virts.push_back(*it);
+                    virts.back().m_idata.id = VirtualParticleID;
+                }
+                else
+                {
+                    //
+                    // Note that Cell aggregation assumes that p.m_rdata.arr[AMREX_SPACEDIM] is mass and
+                    // that all other components should be combined in a mass-weighted
+                    // average.
+                    //
+                    auto agg_map_it = agg_map.find(cell);
+                    
+                    if (agg_map_it == agg_map.end())
+                    {
+                        //
+                        // Add the particle.
+                        //
+                        ParticleType p = *it;
+                        //
+                        // Set its id to indicate that it's a virt.
+                        //
+                        p.m_idata.id = VirtualParticleID;
+                        agg_map[cell] = p;
+                    }
+                    else
+                    {
+                        BL_ASSERT(agg_map_it != agg_map.end());
+                        const ParticleType&  pnew       = *it;
+                        ParticleType&        pold       = agg_map_it->second;
+                        const Real           old_mass   = pold.m_rdata.arr[AMREX_SPACEDIM];
+                        const Real           new_mass   = pnew.m_rdata.arr[AMREX_SPACEDIM];
+                        const Real           total_mass = old_mass + new_mass;
+                        //
+                        // Set the position to the center of mass.
+                        //
+                        for (int i = 0; i < AMREX_SPACEDIM; i++)
+                        {
+                            pold.m_rdata.pos[i] = (old_mass*pold.m_rdata.pos[i] + new_mass*pnew.m_rdata.pos[i])/total_mass;
+                        }
+                        BL_ASSERT(this->Index(pold, level) == cell);
+                        //
+                        // Set the metadata (presumably velocity) to the mass-weighted average.
+                        //
+                        for (int i = AMREX_SPACEDIM + 1; i < AMREX_SPACEDIM + NStructReal; i++)
+                        {
+                            pold.m_rdata.arr[i] = (old_mass*pold.m_rdata.arr[i] + new_mass*pnew.m_rdata.arr[i])/total_mass;
+                        }
+                        pold.m_rdata.arr[AMREX_SPACEDIM] = total_mass;
+                    }
+                }
+            }
+            
+            //
+            // Add the aggregated particles to the virtuals.
+            //
+            for (const auto& agg_particle : agg_map)
+            {
+                virts.push_back(agg_particle.second);
+            }
+        }
+    }
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostParticles (int   level,
-                                                     int   nGrow,
-                                                     AoS& ghosts) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::CreateGhostParticles (int level, int nGrow, AoS& ghosts) const
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CreateGhostParticles()");
-  BL_ASSERT(ghosts.empty());
-  BL_ASSERT(level < finestLevel());
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CreateGhostParticles()");
+    BL_ASSERT(ghosts.empty());
+    BL_ASSERT(level < finestLevel());
   
-  if (level >= int(m_particles.size()))
-    //
-    // This level could exist and simply have no particles.
-    //
-    return;
+    if (level >= static_cast<int>(m_particles.size()))
+        return;
   
-  const BoxArray& fine = ParticleBoxArray(level + 1);
+    const BoxArray& fine = ParticleBoxArray(level + 1);
   
-  std::vector< std::pair<int,Box> > isects;
+    std::vector< std::pair<int,Box> > isects;
   
-  const auto& pmap = m_particles[level];
-  for (const auto& kv : pmap) {
-    const auto& pbox = kv.second.GetArrayOfStructs();
-    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
-      {
-	//
-	// Find particle location on the finer level.
-	//
-	const IntVect& iv = Index(*it, level+1);
-	//
-	// Is it in the grown finer level?
-	//
-	fine.intersections(Box(iv,iv),isects,false,nGrow);
-	//
-	// Here we add the particle to each potential grid.
-	//
-	for (const auto& isec : isects)
-	  {
-	    //
-	    // Create a copy.
-	    //
-	    ParticleType p = *it;
-	    
-	    //
-	    // Set its id to indicate that it's a ghost.
-	    //
-	    p.m_idata.id = GhostParticleID;
-	    
-	    //
-	    // Store it in the AoS.
-	    //
-	    ghosts().push_back(p);
-	  }
-      }
-  }
+    const auto& pmap = m_particles[level];
+    for (const auto& kv : pmap)
+    {
+        const auto& pbox = kv.second.GetArrayOfStructs();
+        for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
+        {
+            const IntVect& iv = Index(*it, level+1);
+            fine.intersections(Box(iv,iv),isects,false,nGrow);
+            for (const auto& isec : isects)
+            {
+                amrex::ignore_unused(isec);
+                ParticleType p = *it;  // yes, make a copy
+                p.m_idata.id = GhostParticleID;	    
+                ghosts().push_back(p);
+            }
+        }
+    }
 }
 
 //
@@ -4590,7 +4568,6 @@ AssignCellDensitySingleLevelFort (int rho_index,
             int nstride = particles.dataShape().first;
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
-            const Box& box = fab.box();
             Real* data_ptr;
             const int *lo, *hi;
 #ifdef _OPENMP
@@ -4602,6 +4579,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
             lo = tile_box.loVect();
             hi = tile_box.hiVect();
 #else
+            const Box& box = fab.box();
             data_ptr = fab.dataPtr();
             lo = box.loVect();
             hi = box.hiVect();
