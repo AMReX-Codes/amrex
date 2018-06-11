@@ -29,6 +29,10 @@ eb2.plane_point  = 0.53 0.51 0.5
 #eb2.plane_normal = 0.5 -0.0457 0.0
 #eb2.plane_point  = 0.36 0.45   0.5
 
+#
+eb2.plane_normal = 0.5 -0.3 -1.0
+eb2.plane_point  = 0.51 0.52 0.53
+
 # box
 eb2.box_lo               = 0.3  0.2  0.25
 eb2.box_hi               = 0.8  0.4  0.55
