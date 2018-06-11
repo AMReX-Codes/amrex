@@ -98,11 +98,11 @@ Level::coarsenFromFine (Level& fineLevel)
             }
         }
 
-        const Box&  bx = mfi.growntilebox(1);
-        const Box& xbx = mfi.grownnodaltilebox(0,1);
-        const Box& ybx = mfi.grownnodaltilebox(1,1);
+        const Box&  bx = mfi.tilebox();
+        const Box& xbx = mfi.nodaltilebox(0);
+        const Box& ybx = mfi.nodaltilebox(1);
 #if (AMREX_SPACEDIM == 3)
-        const Box& zbx = mfi.grownnodaltilebox(2,1);
+        const Box& zbx = mfi.nodaltilebox(2);
 #endif
 
         amrex_eb2_coarsen_from_fine(BL_TO_FORTRAN_BOX( bx),
@@ -153,7 +153,6 @@ void
 Level::buildCellFlag ()
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        m_areafrac[idim].setBndry(1.0);
         m_areafrac[idim].FillBoundary(0,1,{AMREX_D_DECL(1,1,1)},m_geom.periodicity());
     }
 

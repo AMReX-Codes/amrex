@@ -114,6 +114,7 @@ public:
       return flag;
     }
 
+    static constexpr EBCellFlag TheDefaultCell () { return {default_value}; }
     static constexpr EBCellFlag TheCoveredCell () { return {covered_value}; }
   
 private:
