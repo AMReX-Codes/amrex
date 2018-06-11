@@ -6,7 +6,7 @@ void advance (MultiFab& phi_old,
               MultiFab& phi_new,
 	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
 	      Real dt,
-              const Geometry& geom)
+              Geometry& geom)
 {
     // Fill the ghost cells of each grid from the other grids
     // includes periodic domain boundaries
@@ -23,7 +23,7 @@ void advance (MultiFab& phi_old,
     // 
 
     // =======================================================
-
+/*
     Real* dx;
     Box* domain_bx;
 
@@ -35,6 +35,9 @@ void advance (MultiFab& phi_old,
       dx[i] = geom.CellSize()[i];
     }
     *domain_bx = geom.Domain();
+*/
+
+    GeometryData* geomData = geom.dataPtr();
 
     // Compute fluxes one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
@@ -44,14 +47,15 @@ void advance (MultiFab& phi_old,
         *bx = mfi.validbox();
 
         compute_flux<<<1, 1>>>(BL_TO_FORTRAN_BOX(*bx),
-                     BL_TO_FORTRAN_BOX(*domain_bx),
+                     BL_TO_FORTRAN_BOX(geom.dataPtr()->Domain()),
                      BL_TO_FORTRAN_ANYD(phi_old[mfi]),
                      BL_TO_FORTRAN_ANYD(flux[0][mfi]),
                      BL_TO_FORTRAN_ANYD(flux[1][mfi]),
 #if (AMREX_SPACEDIM == 3)   
                      BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                     dx);
+                     geom.dataPtr()->CellSize());
+
         cudaDeviceSynchronize();
         cudaFreeHost(bx);
     }
@@ -72,12 +76,13 @@ void advance (MultiFab& phi_old,
 #if (AMREX_SPACEDIM == 3)   
                    BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                   dx, dt);
+                   geom.dataPtr()->CellSize(), dt);
 
         cudaDeviceSynchronize();
         cudaFreeHost(bx);
     }
-
+/*
     cudaFreeHost(dx);
     cudaFreeHost(domain_bx);
+*/
 }

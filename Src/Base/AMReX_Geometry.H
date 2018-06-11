@@ -40,6 +40,8 @@ struct GeometryData : public Managed
     const Real* ProbLo ()  { return prob_domain.lo(); }
  //! Returns the hi end of the problem domain in each dimension.
     const Real* ProbHi () { return prob_domain.hi(); }
+ //! Returns our rectangular domain.
+    const Box& Domain () const { return domain; }
 
 public:
     int     spherical_origin_fix;
