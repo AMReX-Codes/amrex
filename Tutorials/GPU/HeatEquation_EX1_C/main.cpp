@@ -25,7 +25,7 @@ void main_main ()
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
-    Array<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
+    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
 
     // inputs parameters
     {
@@ -55,8 +55,8 @@ void main_main ()
     BoxArray ba;
     Geometry geom;
     {
-        IntVect dom_lo(IntVect(AMREX_D_DECL(0,0,0)));
-        IntVect dom_hi(IntVect(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1)));
+        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
         Box domain(dom_lo, dom_hi);
 
         // Initialize the boxarray "ba" from the single box "bx"
@@ -64,12 +64,9 @@ void main_main ()
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         ba.maxSize(max_grid_size);
 
-        // This defines the physical size of the box.  Right now the box is [-1,1] in each direction.
-        RealBox real_box;
-        for (int n = 0; n < BL_SPACEDIM; n++) {
-            real_box.setLo(n,-1.0);
-            real_box.setHi(n, 1.0);
-        }
+        // This defines the physical box, [-1,1] in each direction.
+        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
@@ -81,9 +78,6 @@ void main_main ()
     // Ncomp = number of components for each array
     int Ncomp  = 1;
 
-    // time = starting time in the simulation
-    Real time = 0.0;
-  
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
@@ -106,6 +100,9 @@ void main_main ()
     const Real* dx = geom.CellSize();
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
+    // time = starting time in the simulation
+    Real time = 0.0;
+  
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
     {
