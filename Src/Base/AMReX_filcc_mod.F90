@@ -1,7 +1,7 @@
 
 module amrex_filcc_module
 
-  use amrex_fort_module, only : amrex_real, amrex_spacedim, get_loop_bounds
+  use amrex_fort_module, only : amrex_real, amrex_spacedim
   use amrex_bc_types_module
   use amrex_constants_module
 #ifdef AMREX_USE_CUDA
@@ -94,20 +94,16 @@ contains
 
 #endif
 
-  AMREX_LAUNCH subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
+  AMREX_DEVICE subroutine amrex_fab_filcc (lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
        bind(c, name='amrex_fab_filcc')
 
     implicit none
 
-    integer, intent(in) :: qlo(3), qhi(3), nq
+    integer, intent(in) :: lo(3), hi(3), qlo(3), qhi(3), nq
     integer, dimension(amrex_spacedim), intent(in) :: domlo, domhi
     real(amrex_real), intent(in) :: dx(amrex_spacedim), xlo(amrex_spacedim)
     integer, intent(in) :: bc(amrex_spacedim,2,nq)
     real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
-
-    integer :: lo(3), hi(3)
-
-    call get_loop_bounds(lo, hi, qlo, qhi)
 
     call amrex_filccn(lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
 
