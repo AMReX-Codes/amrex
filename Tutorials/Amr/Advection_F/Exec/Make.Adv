@@ -12,7 +12,7 @@ include $(Bpack)
 INCLUDE_LOCATIONS += $(Blocs)
 VPATH_LOCATIONS   += $(Blocs)
 
-Pdirs 	:= Base Boundary AmrCore F_Interfaces/Base F_Interfaces/AmrCore
+Pdirs 	:= Base Boundary AmrCore Particle F_Interfaces/Base F_Interfaces/AmrCore F_Interfaces/Particle
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
 $(info $(Ppack))
