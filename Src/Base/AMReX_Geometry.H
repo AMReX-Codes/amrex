@@ -31,7 +31,7 @@ class DistributionMapping;
 class BoxArray;
 
 #ifdef AMREX_USE_CUDA
-struct GeometryData : public Managed
+struct GeometryData : public Pinned
 {
 
  //! Returns the cellsize for each coordinate direction.

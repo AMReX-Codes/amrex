@@ -44,8 +44,27 @@ struct Managed {
   }
 
 };
+
+struct Pinned {
+
+  void *operator new(size_t len)
+  {
+    void *ptr;
+    cudaMallocHost(&ptr, len);
+    cudaDeviceSynchronize();
+    return ptr;
+  }
+
+  void operator delete(void *ptr)
+  {
+    cudaDeviceSynchronize();
+    cudaFreeHost(ptr);
+  }
+
+};
 #else
 struct Managed { };
+struct Pinned  { };
 #endif
 
 // ************************************************
@@ -58,6 +77,7 @@ struct Managed { };
 #define AMREX_CUDA_GLOBAL
 
 struct Managed { };
+struct Pinned  { };
 
 #endif
 
