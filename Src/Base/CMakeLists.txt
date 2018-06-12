@@ -13,6 +13,8 @@ list ( APPEND ALLHEADERS AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Bas
 list ( APPEND ALLHEADERS AMReX.H)
 list ( APPEND CXXSRC     AMReX.cpp AMReX_error_fi.cpp )
 
+list ( APPEND ALLHEADERS AMReX_IndexSequence.H)
+
 list ( APPEND CXXSRC     AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp )
 list ( APPEND ALLHEADERS AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H )
 
@@ -122,6 +124,8 @@ list ( APPEND F90SRC     AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F9
 list ( APPEND F90SRC     AMReX_error_mod.F90 AMReX_parmparse_mod.F90 AMReX_string_mod.F90 )
 list ( APPEND F90SRC     AMReX_bc_types_mod.F90 )
 list ( APPEND F90SRC     AMReX_ParallelDescriptor_F.F90 )
+
+list ( APPEND F90SRC     AMReX_io_mod.F90 )
 
 list ( APPEND CXXSRC     AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 

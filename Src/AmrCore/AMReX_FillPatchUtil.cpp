@@ -255,12 +255,11 @@ namespace amrex
 	}
 
 #ifdef AMREX_USE_EB
-        const EBFArrayBoxFactory factory{cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic};
+        auto factory = makeEBFabFactory(cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic);
+	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(), *factory);
 #else
-        const FArrayBoxFactory factory{};
+	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
 #endif
-
-	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(), factory);
 
         mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 

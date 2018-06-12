@@ -23,6 +23,7 @@ namespace amrex
   static const VolIndex  ebl_debvoflo(ebl_debivlo, 0);
   static const VolIndex  ebl_debvofhi(ebl_debivhi, 0);
   static const FaceIndex ebl_debface(ebl_debvoflo, ebl_debvofhi);
+
 /***/
   void
   EBISLevel::checkForMultiValuedCells() const
@@ -813,17 +814,8 @@ namespace amrex
   
     //a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
     //return; // caching disabled for now.... ugh.  bvs
-    if(m_hasMoments)
-    {
-      pout() << "has moments in fillebisl is true" << endl;
-    }
-    else
-    {
-      pout() << "has moments in fillebisl is false" << endl;
-    }
     a_ebisLayout.define(m_domain, a_grids, a_dm, a_nghost, m_graph, m_data, m_hasMoments, m_dx);
   }
 
 
 }
-
