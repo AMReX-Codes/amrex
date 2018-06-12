@@ -40,7 +40,8 @@ namespace amrex
 
             if (! grown_domain_box.contains(fab_box))
             {
-                AMREX_DEVICE_LAUNCH(amrex_fab_filcc)
+#pragma gpu
+                amrex_fab_filcc
                     (AMREX_ARLIM_ARG(fab_box.loVect()), AMREX_ARLIM_ARG(fab_box.hiVect()),
                      BL_TO_FORTRAN_FAB(fab),
                      BL_TO_FORTRAN_BOX(domain_box),
