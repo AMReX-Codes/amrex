@@ -466,11 +466,11 @@ main (int   argc,
     int ncompMedi = normsMedi.size();
     int ncompCoar = normsCoar.size();
     int ncomp = std::min(ncompMedi, ncompCoar);
-    amrex::Print() << "\\begin{table}[p]" << endl;
-    amrex::Print() << "\\begin{center}" << endl;
-    amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << endl;
-    amrex::Print() << "Variable & $e_{4h \\rightarrow 2h}$ & Order & $e_{2h \\rightarrow h}$\\\\" << endl;;
-    amrex::Print() << "\\hline " << endl;
+    amrex::Print() << "\\begin{table}[p]" << std::endl;
+    amrex::Print() << "\\begin{center}" << std::endl;
+    amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << std::endl;
+    amrex::Print() << "Variable & $e_{4h \\rightarrow 2h}$ & Order & $e_{2h \\rightarrow h}$\\\\" << std::endl;;
+    amrex::Print() << "\\hline " << std::endl;
 
     for (int icomp = 0; icomp < ncomp; icomp++)
     {
@@ -508,24 +508,24 @@ main (int   argc,
                      << setiosflags(ios::showpoint)
                      << setiosflags(ios::scientific)
                      << normsMedi[icomp];
-      amrex::Print() << " \\\\ " << endl;
+      amrex::Print() << " \\\\ " << std::endl;
 
     }
-    amrex::Print() << "\\hline " << endl;
-    amrex::Print() << "\\end{tabular}" << endl;
-    amrex::Print() << "\\end{center}" << endl;
+    amrex::Print() << "\\hline " << std::endl;
+    amrex::Print() << "\\end{tabular}" << std::endl;
+    amrex::Print() << "\\end{center}" << std::endl;
     amrex::Print() << "\\caption{Solution error convergence rates using $L_";
     if(inorm == 0)
     {
-      amrex::Print() <<"\\infty norm." << endl;;
+      amrex::Print() <<"\\infty norm." << std::endl;;
     }
     else
     {
       amrex::Print() << inorm << " norm.";
     }
-    amrex::Print() << "}" << endl;
-    amrex::Print() << "\\end{table}" << endl;
-    amrex::Print() << endl << endl;
+    amrex::Print() << "}" << std::endl;
+    amrex::Print() << "\\end{table}" << std::endl;
+    amrex::Print() << std::endl << std::endl;
   }
 
 

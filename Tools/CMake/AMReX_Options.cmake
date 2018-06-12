@@ -145,6 +145,11 @@ endif ()
 option ( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option ( ENABLE_LINEAR_SOLVERS )
 
+if ( ENABLE_LINEAR_SOLVERS )
+   option ( ENABLE_LINEAR_SOLVERS_LEGACY  "Build AMReX Linear solvers (legacy components)" OFF )
+   print_option ( ENABLE_LINEAR_SOLVERS_LEGACY )
+endif ()
+
 if ( USE_XSDK_DEFAULTS )
    set ( ENABLE_FBASELIB  OFF )
 else ()

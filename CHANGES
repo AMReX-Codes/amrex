@@ -1,3 +1,19 @@
+# 18.06
+
+  -- When amrex::Initialize is called, optional std::ostream arguments
+     can be passed in and their defaults are std::cout and std::cerr.
+
+  -- ParmParse inputs files can now contain Fortran namelist that can
+     be accessed from Fortan (and Frotran only).  These Fortran inputs
+     are stored in amrex_namelist character variable in
+     amrex_parmparse_module, and can be read with standard Fortran
+     I/O.
+     
+  -- There is a new non-blocking parallel copy function in
+     MultiFab/FabArray called ParallelCopy_nowait.  It returns a
+     CopierHandle object and can later be used to finish the
+     communication with CopierHandle::finish().
+
 # 18.05
 
   -- FillBoundary and ParallelCopy functions can now take IntVect

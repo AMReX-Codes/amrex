@@ -439,6 +439,59 @@ public:
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY,
                        const FabArrayBase::CPC* a_cpc = nullptr);
+
+    struct CopierHandleImpl {
+        CopierHandleImpl (FabArray<FAB>& a_dstfa, const CPC& a_cpc)
+            : dstfa(a_dstfa), thecpc(a_cpc) {}
+        ~CopierHandleImpl () {}
+        void finish ();
+        FabArray<FAB>& dstfa;
+        const CPC& thecpc;
+        CpOp op;
+        int dcomp;
+        int ncomp;
+        int SeqNum;
+        int N_snds;
+        int N_rcvs;
+        int actual_n_rcvs;
+        Vector<MPI_Request> send_reqs;
+        Vector<char*>       send_data;
+        Vector<int>         recv_from;
+        Vector<char*>       recv_data;
+        Vector<int>         recv_size;
+        Vector<MPI_Request> recv_reqs;
+    };
+
+    struct CopierHandle {
+        CopierHandle (FabArray<FAB>& a_dstfa, const CPC& a_cpc)
+            : m_impl(new CopierHandleImpl(a_dstfa, a_cpc)) {}
+        CopierHandle () = default;
+        CopierHandle (CopierHandle&&) = default;
+        CopierHandle (CopierHandle const&) = delete;
+        CopierHandle& operator= (CopierHandle const&) = delete;
+        CopierHandle& operator= (CopierHandle&&) = delete;
+        ~CopierHandle () {
+            if (m_impl) m_impl->finish();
+        }
+        void finish () {
+            if (m_impl) {
+                m_impl->finish();
+                m_impl.reset();
+            }
+        }
+        std::unique_ptr<CopierHandleImpl> m_impl;
+    };
+
+    CopierHandle ParallelCopy_nowait (const FabArray<FAB>& src,
+                                      int                  src_comp,
+                                      int                  dest_comp,
+                                      int                  num_comp,
+                                      const IntVect&       src_nghost,
+                                      const IntVect&       dst_nghost,
+                                      const Periodicity&   period = Periodicity::NonPeriodic(),
+                                      CpOp                 op = FabArrayBase::COPY,
+                                      const FabArrayBase::CPC* a_cpc = nullptr);
+
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,

@@ -73,6 +73,9 @@ public:
     //! Is the specified RealBox contained in this RealBox?
     bool contains (const RealBox& bx, Real eps=0.0) const;
 
+    //! Does the specified RealBox intersect with this RealBox?
+    bool intersects (const RealBox& bx) const;
+    
 private:
     //
     // The data.

@@ -22,7 +22,8 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
   real(amrex_real) :: coe_b0, coe_bx, coe_by, coe_bz, coe_bxy, coe_byy, coe_byz
   real(amrex_real) :: coe_c0, coe_cx, coe_cy, coe_cz, coe_cxz, coe_cyz, coe_czz
   real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
-
+  real(amrex_real), parameter :: one = 1.0_amrex_real
+  
   clo = amrex_coarsen_intvect(3,lo,rr);
   chi = amrex_coarsen_intvect(3,hi,rr);
 
@@ -48,13 +49,13 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
               c1 = theta*(cx(i,j  ,k)-cx(i,j-1,k))
               c2 = 0.5d0*(cx(i,j+1,k)-cx(i,j-1,k))
               c3 = theta*(cx(i,j+1,k)-cx(i,j  ,k))
-              dCxdy(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dCxdy(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
               
               c1 = theta*(cx(i,j,k  )-cx(i,j,k-1))
               c2 = 0.5d0*(cx(i,j,k+1)-cx(i,j,k-1))
               c3 = theta*(cx(i,j,k+1)-cx(i,j,k  ))
-              dCxdz(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dCxdz(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
            end do
         end if
@@ -73,13 +74,13 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
               c1 = theta*(cy(i  ,j,k)-cy(i-1,j,k))
               c2 = 0.5d0*(cy(i+1,j,k)-cy(i-1,j,k))
               c3 = theta*(cy(i+1,j,k)-cy(i  ,j,k))
-              dCydx(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dCydx(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
               
               c1 = theta*(cy(i,j,k  )-cy(i,j,k-1))
               c2 = 0.5d0*(cy(i,j,k+1)-cy(i,j,k-1))
               c3 = theta*(cy(i,j,k+1)-cy(i,j,k  ))
-              dCydz(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dCydz(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
            end do
         end if
@@ -98,13 +99,13 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
               c1 = theta*(cz(i  ,j,k)-cz(i-1,j,k))
               c2 = 0.5d0*(cz(i+1,j,k)-cz(i-1,j,k))
               c3 = theta*(cz(i+1,j,k)-cz(i  ,j,k))
-              dCzdx(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dCzdx(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
               
               c1 = theta*(cz(i,j  ,k)-cz(i,j-1,k))
               c2 = 0.5d0*(cz(i,j+1,k)-cz(i,j-1,k))
               c3 = theta*(cz(i,j+1,k)-cz(i,j  ,k))
-              dCzdy(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dCzdy(i,j,k) = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
            end do
         end if
@@ -218,6 +219,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
   real(amrex_real) :: c1, c2, c3, dc
   real(amrex_real), pointer, contiguous :: tmpx(:,:,:), tmpy(:,:,:), tmpz(:,:,:)
   real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
+  real(amrex_real), parameter :: one = 1.0_amrex_real
 
   clo = amrex_coarsen_intvect(3,lo,rr);
   chi = amrex_coarsen_intvect(3,hi,rr);
@@ -260,7 +262,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
               c1 = theta*(tmpx(ic  ,j,k) - tmpx(ic-1,j,k))
               c2 = 0.5d0*(tmpx(ic+1,j,k) - tmpx(ic-1,j,k))
               c3 = theta*(tmpx(ic+1,j,k) - tmpx(ic  ,j,k))
-              dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
               
               ex(ic*2  ,j,k) = tmpx(ic,j,k) - 0.25d0*dc
@@ -303,7 +305,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
               c1 = theta*(tmpy(i,jc  ,k) - tmpy(i,jc-1,k))
               c2 = 0.5d0*(tmpy(i,jc+1,k) - tmpy(i,jc-1,k))
               c3 = theta*(tmpy(i,jc+1,k) - tmpy(i,jc  ,k))
-              dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
               
               ey(i,jc*2  ,k) = tmpy(i,jc,k) - 0.25d0*dc
@@ -345,7 +347,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
               c1 = theta*(tmpz(i,j,kc  ) - tmpz(i,j,kc-1))
               c2 = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))
               c3 = theta*(tmpz(i,j,kc+1) - tmpz(i,j,kc  ))
-              dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+              dc = 0.25d0*(sign(one,c1)+sign(one,c2))*(sign(one,c1)+sign(one,c3)) &
                    *min(abs(c1),abs(c2),abs(c3))
               
               ez(i,j,kc*2  ) = tmpz(i,j,kc) - 0.25d0*dc
