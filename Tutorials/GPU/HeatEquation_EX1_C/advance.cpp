@@ -36,7 +36,8 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 
             const Box& sbx = mfi.nodaltilebox(idir-1);
 
-            AMREX_DEVICE_LAUNCH(compute_flux)
+#pragma gpu
+            compute_flux
                 (AMREX_ARLIM_ARG(sbx.loVect()), AMREX_ARLIM_ARG(sbx.hiVect()),
                  BL_TO_FORTRAN_ANYD(old_phi[mfi]),
                  BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
@@ -51,7 +52,8 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
 
-        AMREX_DEVICE_LAUNCH(update_phi)
+#pragma gpu
+        update_phi
             (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
              BL_TO_FORTRAN_ANYD(old_phi[mfi]),
              BL_TO_FORTRAN_ANYD(new_phi[mfi]),

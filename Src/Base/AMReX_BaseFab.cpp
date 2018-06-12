@@ -205,7 +205,8 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_copy)
+#pragma gpu
+    amrex_fort_fab_copy
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
@@ -225,7 +226,8 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
-	AMREX_DEVICE_LAUNCH(amrex_fort_fab_copytomem)
+#pragma gpu
+	amrex_fort_fab_copytomem
             (AMREX_ARLIM_ARG(srcbox.loVect()), AMREX_ARLIM_ARG(srcbox.hiVect()),
              AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
              static_cast<Real*>(dst),
@@ -251,7 +253,8 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok()) 
     {
-	AMREX_DEVICE_LAUNCH(amrex_fort_fab_copyfrommem)
+#pragma gpu
+	amrex_fort_fab_copyfrommem
             (AMREX_ARLIM_ARG(dstbox.loVect()), AMREX_ARLIM_ARG(dstbox.hiVect()),
              AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
              BL_TO_FORTRAN_N_ANYD(*this,dstcomp), numcomp,
@@ -274,7 +277,8 @@ BaseFab<Real>::performSetVal (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_setval)
+#pragma gpu
+    amrex_fort_fab_setval
         (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
          val);
@@ -290,7 +294,8 @@ BaseFab<Real>::invert (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_invert)
+#pragma gpu
+    amrex_fort_fab_invert
         (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
          val);
@@ -331,7 +336,8 @@ BaseFab<Real>::norm (const Box& bx,
     
     if (p == 0 || p == 1)
     {
-        AMREX_DEVICE_LAUNCH(amrex_fort_fab_norm)
+#pragma gpu
+        amrex_fort_fab_norm
             (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
              BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
              p, nrm_f);
@@ -366,8 +372,9 @@ BaseFab<Real>::sum (const Box& bx,
 #else
     Real* sm_f = &sm;
 #endif
-    
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_sum)
+
+#pragma gpu
+    amrex_fort_fab_sum
         (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
     
@@ -394,7 +401,8 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_plus)
+#pragma gpu
+    amrex_fort_fab_plus
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
@@ -420,7 +428,8 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_mult)
+#pragma gpu
+    amrex_fort_fab_mult
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
@@ -446,7 +455,8 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_saxpy)
+#pragma gpu
+    amrex_fort_fab_saxpy
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          a,
@@ -473,7 +483,8 @@ BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_xpay)
+#pragma gpu
+    amrex_fort_fab_xpay
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          a,
@@ -499,7 +510,8 @@ BaseFab<Real>::addproduct (const Box&           destbox,
     BL_ASSERT(   comp2 >= 0 &&    comp2+numcomp <= src2.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=      nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_addproduct)
+#pragma gpu
+    amrex_fort_fab_addproduct
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src1,comp1),
@@ -524,7 +536,8 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_minus)
+#pragma gpu
+    amrex_fort_fab_minus
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
@@ -549,7 +562,8 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_divide)
+#pragma gpu
+    amrex_fort_fab_divide
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
@@ -574,7 +588,8 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_protdivide)
+#pragma gpu
+    amrex_fort_fab_protdivide
         (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
@@ -609,7 +624,8 @@ BaseFab<Real>::linComb (const BaseFab<Real>& f1,
     BL_ASSERT(comp2 >= 0 && comp2+numcomp <= f2.nComp());
     BL_ASSERT(comp  >= 0 && comp +numcomp <=    nComp());
 
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_lincomb)
+#pragma gpu
+    amrex_fort_fab_lincomb
         (AMREX_ARLIM_ARG(b.loVect()), AMREX_ARLIM_ARG(b.hiVect()),
          AMREX_ARLIM_3D(b.loVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp),
@@ -641,8 +657,9 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
 #else
     Real* dp_f = &dp;
 #endif
-    
-    AMREX_DEVICE_LAUNCH(amrex_fort_fab_dot)
+
+#pragma gpu
+    amrex_fort_fab_dot
         (AMREX_ARLIM_ARG(xbx.loVect()), AMREX_ARLIM_ARG(xbx.hiVect()),
          AMREX_ARLIM_3D(xbx.loVect()),
          BL_TO_FORTRAN_N_ANYD(*this,xcomp),
