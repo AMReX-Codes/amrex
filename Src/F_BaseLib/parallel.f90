@@ -157,6 +157,7 @@ module parallel
      module procedure parallel_bcast_i
      module procedure parallel_bcast_ll
      module procedure parallel_bcast_l
+     module procedure parallel_bcast_ch
      module procedure parallel_bcast_c
      module procedure parallel_bcast_z
      module procedure parallel_bcast_dv
@@ -164,6 +165,7 @@ module parallel
      module procedure parallel_bcast_iv
      module procedure parallel_bcast_llv
      module procedure parallel_bcast_lv
+     module procedure parallel_bcast_chv
      module procedure parallel_bcast_cv
      module procedure parallel_bcast_zv
      module procedure parallel_bcast_d2v
@@ -1612,6 +1614,18 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Bcast(a, 1, MPI_LOGICAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_l
+  subroutine parallel_bcast_ch(a, root, comm)
+    character(len=*) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, len(a), MPI_CHARACTER, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_ch
   subroutine parallel_bcast_c(a, root, comm)
     complex(kind=sp_t) :: a
     integer, intent(in), optional :: root
@@ -1697,6 +1711,18 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Bcast(a, size(a), MPI_LOGICAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_lv
+  subroutine parallel_bcast_chv(a, root, comm)
+    character(len=*) :: a(:)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, len(a(1))*size(a), MPI_CHARACTER, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_chv
   subroutine parallel_bcast_cv(a, root, comm)
     complex(kind=sp_t) :: a(:)
     integer, intent(in), optional :: root
