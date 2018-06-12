@@ -68,7 +68,7 @@ contains
     integer :: i, j, k, n
     integer(c_long) :: offset, tile_size(3)
 
-    tile_size = hi - lo + 1
+    tile_size = bx_hi - bx_lo + 1
 
     do n = 1, ncomp
        do       k = lo(3), hi(3)
