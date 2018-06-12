@@ -8,6 +8,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_IntVect.H>
 
+#include <thrust/device_vector.h>
+
 #include <Particles.H>
 
 class ElectromagneticParticleContainer
@@ -64,7 +66,7 @@ public:
 
 protected:
 
-    void RedistributeMPI(std::map<int, amrex::Vector<char> >& not_ours);
+    void RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours);
     
     int m_species_id;
     

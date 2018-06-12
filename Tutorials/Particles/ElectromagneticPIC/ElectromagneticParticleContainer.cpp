@@ -567,7 +567,7 @@ Redistribute()
     thrust::host_vector<int> proc_map(num_grids);
     for (int i = 0; i < num_grids; ++i) proc_map[i] = m_dmap[i];
  
-    std::map<int, Vector<char> > not_ours;
+    std::map<int, thrust::device_vector<char> > not_ours;
 
     std::map<int, size_t> grid_counts;
     for (int i = 0; i < num_grids; ++i)
@@ -606,35 +606,39 @@ Redistribute()
                 = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
             if (old_size == 0) {
                 not_ours[dest_proc].resize(new_size + sizeof(size_t));
-                std::memcpy(not_ours[dest_proc].data(), &grid_counts[dest_proc], sizeof(size_t));
-                dst = not_ours[dest_proc].data() + old_size + sizeof(size_t);
+                cudaMemcpy(thrust::raw_pointer_cast(not_ours[dest_proc].data()), 
+                           &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
+                dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size + sizeof(size_t));
             } else {
                 not_ours[dest_proc].resize(new_size);
-                dst = not_ours[dest_proc].data() + old_size;
+                dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
             } 
-            
-            std::memcpy(dst, &num_to_add, sizeof(size_t));
+
+            cudaMemcpy(thrust::raw_pointer_cast(dst), &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
             dst += sizeof(size_t);
-            std::memcpy(dst, &i, sizeof(int));
+
+            cudaMemcpy(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
             dst += sizeof(int);
-            std::memcpy(dst, &dest_proc, sizeof(int));
+
+            cudaMemcpy(thrust::raw_pointer_cast(dst), &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
             dst += sizeof(int);
 
             for (int j = 0; j < PIdx::nattribs; ++j)
             {
                 auto& attrib = particles_to_redistribute.GetRealData(j);
-                std::memcpy(dst, attrib.data() + start[i], num_to_add*sizeof(Real));
+                cudaMemcpy(thrust::raw_pointer_cast(dst), attrib.data() + start[i],
+                           num_to_add*sizeof(Real), cudaMemcpyDeviceToDevice);
                 dst += num_to_add*sizeof(Real);
             }
         }
     }
-
+    
     RedistributeMPI(not_ours);
 }
-
+ 
 void
 ElectromagneticParticleContainer::
-RedistributeMPI(std::map<int, Vector<char> >& not_ours)
+RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
@@ -691,7 +695,7 @@ RedistributeMPI(std::map<int, Vector<char> >& not_ours)
     const int SeqNum = ParallelDescriptor::SeqNum();
     
     // Allocate data for rcvs as one big chunk.
-    Vector<char> recvdata(TotRcvBytes);
+    thrust::device_vector<char> recvdata(TotRcvBytes);
     
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
@@ -702,7 +706,8 @@ RedistributeMPI(std::map<int, Vector<char> >& not_ours)
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+        rreqs[i] = ParallelDescriptor::Arecv(thrust::raw_pointer_cast(recvdata.data() + offset),
+                                             Cnt, Who, SeqNum).req();
     }
     
     // Send.
@@ -714,7 +719,8 @@ RedistributeMPI(std::map<int, Vector<char> >& not_ours)
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+        ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
+                                 Cnt, Who, SeqNum);
     }
 
     if (nrcvs > 0) {
@@ -722,14 +728,14 @@ RedistributeMPI(std::map<int, Vector<char> >& not_ours)
 
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
-            char* buffer = &recvdata[offset];
+            char* buffer = thrust::raw_pointer_cast(recvdata.data() + offset);
             size_t num_grids, num_particles;
             int gid, pid;
-            std::memcpy(&num_grids, buffer, sizeof(size_t)); buffer += sizeof(size_t);
+            cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyDeviceToHost); buffer += sizeof(size_t);
             for (int g = 0; g < num_grids; ++g) {
-                std::memcpy(&num_particles, buffer, sizeof(size_t)); buffer += sizeof(size_t);
-                std::memcpy(&gid, buffer, sizeof(int)); buffer += sizeof(int);
-                std::memcpy(&pid, buffer, sizeof(int)); buffer += sizeof(int);
+                cudaMemcpy(&num_particles, buffer, sizeof(size_t), cudaMemcpyDeviceToHost); buffer += sizeof(size_t);
+                cudaMemcpy(&gid, buffer, sizeof(int), cudaMemcpyDeviceToHost); buffer += sizeof(int);
+                cudaMemcpy(&pid, buffer, sizeof(int), cudaMemcpyDeviceToHost); buffer += sizeof(int);
                 
                 if (num_particles == 0) continue;
 
@@ -743,7 +749,7 @@ RedistributeMPI(std::map<int, Vector<char> >& not_ours)
                     
                     for (int j = 0; j < PIdx::nattribs; ++j) {
                         auto& attrib = redistributed_particles.GetRealData(j);
-                        std::memcpy(attrib.data() + old_size, buffer, num_particles*sizeof(Real));
+                        cudaMemcpy(attrib.data() + old_size, buffer, num_particles*sizeof(Real), cudaMemcpyHostToDevice);
                         buffer += num_particles*sizeof(Real);
                     }
                 }
