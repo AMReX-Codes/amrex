@@ -40,10 +40,14 @@ public:
     RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
              AMREX_D_DECL(Real x1, Real y1, Real z1));
     //! Returns lo side.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Real* lo () const& { return xlo; }
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Real* lo () && = delete;
     //! Returns hide side.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Real* hi () const& { return xhi; }
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Real* hi () && = delete;
     //! Returns length in specified direction.
     Real lo (int dir) const { return xlo[dir]; }
