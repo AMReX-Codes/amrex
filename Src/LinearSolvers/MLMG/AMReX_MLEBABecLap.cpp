@@ -36,4 +36,32 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
 MLEBABecLap::~MLEBABecLap ()
 {}
 
+void
+MLEBABecLap::prepareForSolve ()
+{
+
+}
+
+void
+MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
+{
+
+}
+
+void
+MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const
+{
+}
+
+void
+MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
+                    const FArrayBox& sol, const int face_only) const
+{
+}
+
+void
+MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+}
+
 }
