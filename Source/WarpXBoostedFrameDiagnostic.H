@@ -55,8 +55,6 @@ class BoostedFrameDiagnostic {
         void writeSnapShotHeader();
     };
 
-    bool do_particles = true;
-    
     amrex::Real gamma_boost_;
     amrex::Real inv_gamma_boost_;
     amrex::Real beta_boost_;
