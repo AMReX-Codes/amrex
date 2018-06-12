@@ -1227,7 +1227,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             char* data = nullptr;
             if (nbytes > 0)
             {
-                data = static_cast<char*>(amrex::The_Arena()->alloc(nbytes));
+                data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
             }
                     
             send_data.push_back(data);
@@ -1318,7 +1318,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                          ParallelContext::global_to_local_rank(send_rank[j]),
                          SeqNum,
                          ParallelContext::CommunicatorSub());
-                    amrex::The_Arena()->free(send_data[j]);
+                    amrex::The_FA_Arena()->free(send_data[j]);
                 }
             }
             
@@ -1444,7 +1444,7 @@ FabArray<FAB>::CopierHandleImpl::finish ()
         }
         
         for (auto p : recv_data) {
-            amrex::The_Arena()->free(p);
+            amrex::The_FA_Arena()->free(p);
         }
     }
 	
