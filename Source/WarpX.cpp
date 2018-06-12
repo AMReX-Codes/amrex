@@ -47,7 +47,8 @@ bool WarpX::serialize_ics     = false;
 bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
-bool WarpX::do_boosted_frame_particles = false;
+bool WarpX::do_boosted_frame_fields = true;
+bool WarpX::do_boosted_frame_particles = true;
 
 bool WarpX::do_dynamic_scheduling = false;
 
@@ -299,6 +300,7 @@ WarpX::ReadParameters ()
             pp.get("dt_snapshots_lab", dt_snapshots_lab);
             pp.get("gamma_boost", gamma_boost);
 
+            pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
             pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
 
             
