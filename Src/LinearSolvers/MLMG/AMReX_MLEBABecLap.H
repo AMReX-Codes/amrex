@@ -35,6 +35,10 @@ public:
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 
+    void setScalars (Real a, Real b);
+    void setACoeffs (int amrlev, const MultiFab& alpha);
+    void setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPACEDIM>& beta);
+
 protected:
 
     virtual void prepareForSolve () final;
@@ -69,6 +73,14 @@ private:
 
     Vector<int> m_is_singular;
 
+    //
+    // functions
+    //
+
+    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+                                        Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b);
+    void averageDownCoeffs ();
+    void averageDownCoeffsToCoarseAmrLevel (int flev);
 };
 
 }
