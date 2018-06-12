@@ -15,11 +15,11 @@ bool checkManaged(const void *ptr)
 }
 
 AMREX_CUDA_GLOBAL
-void init_phi(Box bx, GeometryData *geom, BaseFab<Real> &phi_new)
+void init_phi(Box bx, GeometryData geom, BaseFab<Real> &phi_new)
 {
    init_phi(BL_TO_FORTRAN_BOX(bx),
             BL_TO_FORTRAN_ANYD(phi_new),
-            geom->CellSize(), geom->ProbLo(), geom->ProbHi());
+            geom.CellSize(), geom.ProbLo(), geom.ProbHi());
 }
 
 int main (int argc, char* argv[])

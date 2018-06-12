@@ -31,7 +31,7 @@ class DistributionMapping;
 class BoxArray;
 
 #ifdef AMREX_USE_CUDA
-struct GeometryData : public Pinned
+struct GeometryData
 {
 
  //! Returns the cellsize for each coordinate direction.
@@ -82,7 +82,7 @@ public:
 
 #ifdef AMREX_USE_CUDA
     // Returns pointer to copy of geometry's stored data
-    GeometryData* dataPtr();
+    GeometryData dataPtr();
 #endif
 
     static void Finalize ();
@@ -210,7 +210,7 @@ private:
     Box domain;
 
 #ifdef AMREX_USE_CUDA
-    GeometryData* geomData;
+    GeometryData geomData;
 #endif
 };
 

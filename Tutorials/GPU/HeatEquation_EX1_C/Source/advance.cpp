@@ -3,22 +3,22 @@
 #include "myfunc_F.H"
 
 AMREX_CUDA_GLOBAL
-void compute_flux (Box bx, GeometryData *geom, BaseFab<Real> &phi_old,
+void compute_flux (Box bx, GeometryData geom, BaseFab<Real> &phi_old,
                    AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ))
 {
         compute_flux(BL_TO_FORTRAN_BOX(bx),
-                     BL_TO_FORTRAN_BOX(geom->Domain()),
+                     BL_TO_FORTRAN_BOX(geom.Domain()),
                      BL_TO_FORTRAN_ANYD(phi_old),
                      BL_TO_FORTRAN_ANYD(fluxX),
                      BL_TO_FORTRAN_ANYD(fluxY),
 #if (AMREX_SPACEDIM == 3)   
                      BL_TO_FORTRAN_ANYD(fluxZ),
 #endif
-                     geom->CellSize());
+                     geom.CellSize());
 }
 
 AMREX_CUDA_GLOBAL
-void update_phi (Box bx, GeometryData *geom, BaseFab<Real> &phi_old, BaseFab<Real> &phi_new, 
+void update_phi (Box bx, GeometryData geom, BaseFab<Real> &phi_old, BaseFab<Real> &phi_new, 
                  AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ), Real dt)
 {
         update_phi(BL_TO_FORTRAN_BOX(bx),
@@ -29,7 +29,7 @@ void update_phi (Box bx, GeometryData *geom, BaseFab<Real> &phi_old, BaseFab<Rea
 #if (AMREX_SPACEDIM == 3)   
                    BL_TO_FORTRAN_ANYD(fluxZ),
 #endif
-                   geom->CellSize(), dt);
+                   geom.CellSize(), dt);
 }
 
 
