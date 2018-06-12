@@ -384,8 +384,8 @@ private:
 
     std::string restart_chkfile;
 
-    std::string check_file {"chk"};
-    std::string plot_file {"plt"};
+    std::string check_file {"checkpoints/chk"};
+    std::string plot_file {"plotfiles/plt"};
     int check_int = -1;
     int plot_int = -1;
 
