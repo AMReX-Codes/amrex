@@ -35,12 +35,16 @@ struct GeometryData : public Managed
 {
 
  //! Returns the cellsize for each coordinate direction.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Real* CellSize () const { BL_ASSERT(ok); return dx; }
  //! Returns the lo end of the problem domain in each dimension.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Real* ProbLo ()  { return prob_domain.lo(); }
  //! Returns the hi end of the problem domain in each dimension.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Real* ProbHi () { return prob_domain.hi(); }
  //! Returns our rectangular domain.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Box& Domain () const { return domain; }
 
 public:
