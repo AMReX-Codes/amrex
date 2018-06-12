@@ -2,6 +2,38 @@
 #include "myfunc.H"
 #include "myfunc_F.H"
 
+AMREX_CUDA_GLOBAL
+void compute_flux (Box bx, GeometryData *geom, BaseFab<Real> &phi_old,
+                   AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ))
+{
+        compute_flux(BL_TO_FORTRAN_BOX(bx),
+                     BL_TO_FORTRAN_BOX(geom->Domain()),
+                     BL_TO_FORTRAN_ANYD(phi_old),
+                     BL_TO_FORTRAN_ANYD(fluxX),
+                     BL_TO_FORTRAN_ANYD(fluxY),
+#if (AMREX_SPACEDIM == 3)   
+                     BL_TO_FORTRAN_ANYD(fluxZ),
+#endif
+                     geom->CellSize());
+}
+
+AMREX_CUDA_GLOBAL
+void update_phi (Box bx, GeometryData *geom, BaseFab<Real> &phi_old, BaseFab<Real> &phi_new, 
+                 AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ), Real dt)
+{
+        update_phi(BL_TO_FORTRAN_BOX(bx),
+                   BL_TO_FORTRAN_ANYD(phi_old),
+                   BL_TO_FORTRAN_ANYD(phi_new),
+                   BL_TO_FORTRAN_ANYD(fluxX),
+                   BL_TO_FORTRAN_ANYD(fluxY),
+#if (AMREX_SPACEDIM == 3)   
+                   BL_TO_FORTRAN_ANYD(fluxZ),
+#endif
+                   geom->CellSize(), dt);
+}
+
+
+
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
 	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
@@ -23,66 +55,31 @@ void advance (MultiFab& phi_old,
     // 
 
     // =======================================================
-/*
-    Real* dx;
-    Box* domain_bx;
-
-    cudaMallocHost(&domain_bx, size_t(sizeof(Box)));
-    cudaMallocHost(&dx, size_t(AMREX_SPACEDIM*sizeof(Real)));
-
-    for (int i=0; i<AMREX_SPACEDIM; ++i)
-    {
-      dx[i] = geom.CellSize()[i];
-    }
-    *domain_bx = geom.Domain();
-*/
-
-    GeometryData* geomData = geom.dataPtr();
 
     // Compute fluxes one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
-        Box* bx;
-        cudaMallocHost(&bx, size_t(sizeof(Box)));
-        *bx = mfi.validbox();
 
-        compute_flux<<<1, 1>>>(BL_TO_FORTRAN_BOX(*bx),
-                     BL_TO_FORTRAN_BOX(geom.dataPtr()->Domain()),
-                     BL_TO_FORTRAN_ANYD(phi_old[mfi]),
-                     BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                     BL_TO_FORTRAN_ANYD(flux[1][mfi]),
-#if (AMREX_SPACEDIM == 3)   
-                     BL_TO_FORTRAN_ANYD(flux[2][mfi]),
-#endif
-                     geom.dataPtr()->CellSize());
-
-        cudaDeviceSynchronize();
-        cudaFreeHost(bx);
+        compute_flux<<<1, 1>>> (mfi.validbox(),
+                                geom.dataPtr(),
+                                phi_old[mfi],
+                                AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]));
     }
+
+    cudaDeviceSynchronize();
 
     // Advance the solution one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
-        Box* bx;
-        cudaMallocHost(&bx, size_t(sizeof(Box)));
-        *bx = mfi.validbox();
-        
-        update_phi<<<1,1>>>
-                  (BL_TO_FORTRAN_BOX(*bx),
-                   BL_TO_FORTRAN_ANYD(phi_old[mfi]),
-                   BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
-#if (AMREX_SPACEDIM == 3)   
-                   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
-#endif
-                   geom.dataPtr()->CellSize(), dt);
 
-        cudaDeviceSynchronize();
-        cudaFreeHost(bx);
+        update_phi<<<1, 1>>> (mfi.validbox(),
+                              geom.dataPtr(),
+                              phi_old[mfi],
+                              phi_new[mfi],
+                              AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]),
+                              dt);
     }
-/*
-    cudaFreeHost(dx);
-    cudaFreeHost(domain_bx);
-*/
+
+    cudaDeviceSynchronize();
+
 }

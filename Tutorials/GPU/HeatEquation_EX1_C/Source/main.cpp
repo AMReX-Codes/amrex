@@ -14,6 +14,14 @@ bool checkManaged(const void *ptr)
    return ptr_attr.isManaged;
 }
 
+AMREX_CUDA_GLOBAL
+void init_phi(Box bx, GeometryData *geom, BaseFab<Real> &phi_new)
+{
+   init_phi(BL_TO_FORTRAN_BOX(bx),
+            BL_TO_FORTRAN_ANYD(phi_new),
+            geom->CellSize(), geom->ProbLo(), geom->ProbHi());
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -94,24 +102,18 @@ void main_main ()
     // =======================================
     // Initialize phi_new by calling a Fortran routine.
     // MFIter = MultiFab Iterator
-    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
     {
-        Box* bx;
-        cudaMallocHost(&bx, size_t(sizeof(Box)));
-        *bx = mfi.validbox();
+        init_phi<<<1,1>>>(mfi.validbox(), geom.dataPtr(), phi_new[mfi]); 
 
-        init_phi<<<1, 1>>>(BL_TO_FORTRAN_BOX(*bx),
-                 BL_TO_FORTRAN_ANYD(phi_new[mfi]), 
-                 geom.dataPtr()->CellSize(), geom.dataPtr()->ProbLo(), geom.dataPtr()->ProbHi());
-/*
+/*      Original version
         init_phi(BL_TO_FORTRAN_BOX(bx),
                  BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
 */
-
-        cudaDeviceSynchronize();
-        cudaFreeHost(bx);
     }
+
+    cudaDeviceSynchronize();
 
     // ========================================
 
