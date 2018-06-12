@@ -12,12 +12,12 @@ extern "C"
                   amrex_real* data, const int* dlo, const int* dhi,
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
     
-    void compute_flux(AMREX_ARLIM_VAL(lo), AMREX_ARLIM_VAL(hi),
+    void compute_flux(const int* lo, const int* hi,
                       amrex_real* phi, const int* philo, const int* phihi,
                       amrex_real* flux, const int* flo, const int* fhi,
                       const amrex_real* dx, const int idir);
 
-    void update_phi(AMREX_ARLIM_VAL(lo), AMREX_ARLIM_VAL(hi),
+    void update_phi(const int* lo, const int* hi,
                     amrex_real* pold, const int* polo, const int* pohi,
                     amrex_real* pnew, const int* pnlo, const int* pnhi,
                     amrex_real* fluxx, const int* fxlo, const int* fxhi,

@@ -200,10 +200,18 @@ def doit(outdir, fortran_targets, header_files):
                 if var == "AMREX_ARLIM_VAL(lo)":
                     var = "blo"
                     has_lo = True
+                elif var == "lo":
+                    var = "blo"
+                    has_lo = True
+                    func_sig = func_sig.replace("const int* lo", "AMREX_ARLIM_VAL(lo)")
 
                 if var == "AMREX_ARLIM_VAL(hi)":
                     var = "bhi"
                     has_hi = True
+                elif var == "hi":
+                    var = "bhi"
+                    has_hi = True
+                    func_sig = func_sig.replace("const int* hi", "AMREX_ARLIM_VAL(hi)")
 
                 vars.append(var)
 
