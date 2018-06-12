@@ -10,10 +10,12 @@
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_F.H>
+#include <AMReX_EB2_IF_AllRegular.H>
 
 #include <unordered_map>
 #include <limits>
 #include <cmath>
+#include <type_traits>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -25,7 +27,7 @@ class Level
 {
 public:
 
-    bool isValid () const { return m_valid; }
+    bool isAllRegular () const { return m_allregular; }
     void fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const;
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
     void fillCentroid (MultiCutFab& centroid, const Geometry& geom) const;
@@ -53,7 +55,7 @@ protected:
     MultiFab m_bndrynorm;
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
-    bool m_valid = false;
+    bool m_allregular = false;
 };
 
 template <typename G>
@@ -69,6 +71,11 @@ template <typename G>
 GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_size)
     : Level(geom)
 {
+    if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
+        m_allregular = true;
+        return;
+    }
+
     BL_PROFILE("EB2::GShopLevel()-fine");
 
     m_grids.define(geom.Domain());
@@ -280,8 +287,6 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
 #endif
         }
     }
-
-    m_valid = true;
 }
 
 
@@ -289,6 +294,11 @@ template <typename G>
 GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel)
     : Level(geom)
 {
+    if (fineLevel.isAllRegular()) {
+        m_allregular = true;
+        return;
+    }
+
     BL_PROFILE("EB2::GShopLevel()-coarse");
 
     const BoxArray& fine_grids = fineLevel.m_grids;

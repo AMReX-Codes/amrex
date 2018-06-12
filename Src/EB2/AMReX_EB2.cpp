@@ -1,4 +1,5 @@
 
+#include <AMReX_EB2_IF_AllRegular.H>
 #include <AMReX_EB2_IF_Box.H>
 #include <AMReX_EB2_IF_Cylinder.H>
 #include <AMReX_EB2_IF_Ellipsoid.H>
@@ -40,7 +41,13 @@ Build (const Geometry& geom, int max_coarsening_level)
     std::string geom_type;
     pp.get("geom_type", geom_type);
 
-    if (geom_type == "box")
+    if (geom_type == "all_regular")
+    {
+        EB2::AllRegularIF rif;
+        EB2::GeometryShop<EB2::AllRegularIF> gshop(rif);
+        EB2::Build(gshop, geom, max_coarsening_level);
+    }
+    else if (geom_type == "box")
     {
         std::vector<Real> vlo;
         pp.getarr("box_lo", vlo);

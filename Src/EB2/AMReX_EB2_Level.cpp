@@ -145,8 +145,6 @@ Level::coarsenFromFine (Level& fineLevel)
     // multivalue and multicut detection
 
     buildCellFlag();
-
-    m_valid = true;
 }
 
 void
@@ -176,6 +174,18 @@ Level::buildCellFlag ()
 void
 Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const
 {
+    if (isAllRegular()) {
+        cellflag.setVal(EBCellFlag::TheDefaultCell());
+        for (MFIter mfi(cellflag); mfi.isValid(); ++mfi)
+        {
+            auto& fab = cellflag[mfi];
+            const Box& bx = fab.box();
+            fab.setRegion(bx);
+            fab.setType(FabType::regular);
+        }
+        return;
+    }
+
     cellflag.ParallelCopy(m_cellflag,0,0,1,0,cellflag.nGrow(),geom.periodicity());
 
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
@@ -222,6 +232,8 @@ void
 Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
 {
     vfrac.setVal(1.0);
+    if (isAllRegular()) return;
+
     vfrac.ParallelCopy(m_volfrac,0,0,1,0,vfrac.nGrow(),geom.periodicity());
 
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
@@ -252,6 +264,11 @@ Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
 void
 Level::fillCentroid (MultiCutFab& centroid, const Geometry& geom) const
 {
+    if (isAllRegular()) {
+        centroid.setVal(0.0);
+        return;
+    }
+
     MultiFab tmp(centroid.boxArray(), centroid.DistributionMap(),
                  AMREX_SPACEDIM, centroid.nGrow());
     tmp.setVal(0.0);
@@ -272,6 +289,11 @@ Level::fillCentroid (MultiCutFab& centroid, const Geometry& geom) const
 void
 Level::fillBndryCent (MultiCutFab& bndrycent, const Geometry& geom) const
 {
+    if (isAllRegular()) {
+        bndrycent.setVal(-1.0);
+        return;
+    }
+
     MultiFab tmp(bndrycent.boxArray(), bndrycent.DistributionMap(),
                  bndrycent.nComp(), bndrycent.nGrow());
     tmp.setVal(-1.0);
@@ -292,6 +314,13 @@ Level::fillBndryCent (MultiCutFab& bndrycent, const Geometry& geom) const
 void
 Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac, const Geometry& geom) const
 {
+    if (isAllRegular()) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            a_areafrac[idim]->setVal(1.0);
+        }
+        return;
+    }
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         MultiCutFab& areafrac = *a_areafrac[idim];
@@ -343,6 +372,13 @@ Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac, const Geome
 void
 Level::fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM>& a_facecent, const Geometry& geom) const
 {
+    if (isAllRegular()) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            a_facecent[idim]->setVal(0.0);
+        }        
+        return;
+    }
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         MultiCutFab& facecent = *a_facecent[idim];
