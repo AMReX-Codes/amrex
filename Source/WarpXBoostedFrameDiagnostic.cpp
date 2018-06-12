@@ -41,7 +41,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         snapshot.updateCurrentZPositions(t_boost, inv_gamma_boost_, inv_beta_boost_);
         snapshots_.push_back(snapshot);
         buff_counter_.push_back(0);
-        data_buffer_[i].reset( nullptr );
+        if (WarpX::do_boosted_frame_fields) data_buffer_[i].reset( nullptr );
     }
 
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
@@ -102,7 +102,7 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 
 void
 BoostedFrameDiagnostic::
-writeLabFrameData(const MultiFab& cell_centered_data,
+writeLabFrameData(const MultiFab* cell_centered_data,
                   const MultiParticleContainer& mypc,
                   const Geometry& geom, const Real t_boost, const Real dt) {
 
@@ -130,7 +130,7 @@ writeLabFrameData(const MultiFab& cell_centered_data,
 
         if (buff_counter_[i] == 0) {
             if (WarpX::do_boosted_frame_fields) {
-                const int ncomp = cell_centered_data.nComp();
+                const int ncomp = cell_centered_data->nComp();
                 Box buff_box = geom.Domain();
                 buff_box.setSmall(boost_direction_, i_lab - num_buffer_ + 1);
                 buff_box.setBig(boost_direction_, i_lab);
@@ -143,12 +143,12 @@ writeLabFrameData(const MultiFab& cell_centered_data,
         }
 
         if (WarpX::do_boosted_frame_fields) {
-            const int ncomp = cell_centered_data.nComp();
+            const int ncomp = cell_centered_data->nComp();
             const int start_comp = 0;
             const bool interpolate = true;
             std::unique_ptr<MultiFab> slice = amrex::get_slice_data(boost_direction_,
                                                                     snapshots_[i].current_z_boost,
-                                                                    cell_centered_data, geom,
+                                                                    *cell_centered_data, geom,
                                                                     start_comp, ncomp, interpolate);
             
             // transform it to the lab frame

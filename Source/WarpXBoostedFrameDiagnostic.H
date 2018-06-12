@@ -87,7 +87,7 @@ public:
     
     void Flush(const amrex::Geometry& geom);
     
-    void writeLabFrameData(const amrex::MultiFab& cell_centered_data,
+    void writeLabFrameData(const amrex::MultiFab* cell_centered_data,
                            const MultiParticleContainer& mypc,
                            const amrex::Geometry& geom,
                            const amrex::Real t_boost, const amrex::Real dt);
