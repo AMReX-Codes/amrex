@@ -86,6 +86,10 @@ Distribution across MPI ranks and parallelization
     This relies on each MPI rank handling several (in fact many) subdomains
     (see ``max_grid_size``).
 
+* ``warpx.load_balance_with_sfc`` (`0` or `1`)
+    If this is `1`: use a Space-Filling Curve (SFC) algorithm in order to perform load-balancing of the simulation.
+    If this is `0` (default): the Knapsack algorithm is used instead.
+
 * ``warpx.do_dynamic_scheduling`` (`0` or `1`)
     Whether to use OpenMP dynamic scheduling.
 
