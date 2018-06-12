@@ -11,12 +11,31 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_BaseFab_f.H>
 
+#define RLIM_3D(x) &((int []){x[0], x[1], 0, x[2], 0}[0])
+
 bool checkManaged(const void *ptr)
 {
    cudaPointerAttributes ptr_attr;
    cudaPointerGetAttributes(&ptr_attr, ptr);
    return ptr_attr.isManaged;
 }
+
+AMREX_CUDA_DEVICE
+void myf(int* a)
+{
+   printf("a[1] = %i", a[1]);
+}
+
+AMREX_CUDA_GLOBAL
+void passBoxByValue(amrex::Box bx)
+{
+   printf("Box.bigEnd[2] = %i\n", bx.bigEnd(2));
+
+   myf(RLIM_3D(bx.bigEnd()));
+
+//   printf("array[0] = %i", arr[2]);
+}
+
 
 AMREX_CUDA_GLOBAL
 void kernel_IntVect(amrex::IntVect *iv1, amrex::IntVect *iv2)
@@ -254,7 +273,12 @@ int main (int argc, char* argv[])
       } 
 
       cudaFree(off);
+    }
 
+    {
+      amrex::Box vbx(amrex::IntVect(-12,-13,-14), amrex::IntVect(23,24,25));
+      passBoxByValue<<<1,1>>>(vbx);
+      cudaDeviceSynchronize();
     }
 
     amrex::Print() << std::endl << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl << std::endl;
