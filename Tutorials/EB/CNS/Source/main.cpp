@@ -51,6 +51,8 @@ int main (int argc, char* argv[])
         timer_init = ParallelDescriptor::second();
 
 	Amr amr;
+        AmrLevel::SetEBSupportLevel(EBSupport::full);
+        AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
 
         if (EB2::use_eb2)
         {
@@ -62,8 +64,6 @@ int main (int argc, char* argv[])
             initialize_EBIS(amr.maxLevel());
             EBTower::Build();
             AMReX_EBIS::reset();  // CNS no longer needs the EBIndexSpace singleton.
-            AmrLevel::SetEBSupportLevel(EBSupport::full);
-            AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
         }
             
 	amr.init(strt_time,stop_time);
