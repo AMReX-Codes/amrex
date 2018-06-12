@@ -554,6 +554,9 @@ public:
 
     //! Grow in the direction of the given face.
     Box& grow (Orientation face, int n_cell = 1) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
         int idir = face.coordDir();
         if (face.isLow())
             smallend.shift(idir, -n_cell);
@@ -748,6 +751,9 @@ Box::surroundingNodes (int dir)
 {
     if (!(btype[dir]))
     {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
         bigend.shift(dir,1);
         //
         // Set dir'th bit to 1 = IndexType::NODE.
@@ -761,6 +767,9 @@ inline
 Box&
 Box::surroundingNodes ()
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
         if ((btype[i] == 0))
             bigend.shift(i,1);
@@ -774,6 +783,9 @@ Box::enclosedCells (int dir)
 {
     if (btype[dir])
     {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
         bigend.shift(dir,-1);
         //
         // Set dir'th bit to 0 = IndexType::CELL.
@@ -787,6 +799,9 @@ inline
 Box&
 Box::enclosedCells ()
 {
+#ifdef AMREX_USE_DEVICE
+    initialize_device_memory();
+#endif
     for (int i = 0 ; i < AMREX_SPACEDIM; ++i)
         if (btype[i])
             bigend.shift(i,-1);
@@ -949,6 +964,9 @@ void AllGatherBoxes (Vector<Box>& bxs);
     //! Grow Box in each direction by specified amount.
     inline Box grow (const Box& b, const IntVect& v) {
         Box result = b;
+#ifdef AMREX_USE_DEVICE
+        result.initialize_device_memory();
+#endif
         result.grow(v);
         return result;
     }
