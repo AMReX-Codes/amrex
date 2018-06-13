@@ -3,7 +3,8 @@
 """
 Search the Fortran source code for subroutines marked as:
 
-AMREX_DEVICE subroutine name(...)
+#pragma gpu
+   name(args, ...);
 
 and maintain a list of these.
 
@@ -82,8 +83,8 @@ def find_fortran_targets(fortran_names):
     return targets
 
 
-def doit(outdir, fortran_targets, header_files):
-    """rewrite the headers"""
+def convert_headers(outdir, fortran_targets, header_files):
+    """rewrite the C++ headers that contain the Fortran routines"""
 
     print('looking for targets: {}'.format(fortran_targets))
     print('looking in header files: {}'.format(header_files))
@@ -244,6 +245,68 @@ def doit(outdir, fortran_targets, header_files):
         hin.close()
         hout.close()
 
+
+def convert_cxx(outdir, cxx_files):
+    """look through the C++ files for "#pragma gpu" and switch it
+    to the appropriate CUDA launch macro"""
+
+    print('looking in C++ files: {}'.format(cxx_files))
+
+    for c in cxx_files:
+        cxx = "/".join([c[1], c[0]])
+
+        # open the original C++ file
+        try:
+            hin = open(cxx, "r")
+        except IOError:
+            sys.exit("Cannot open header {}".format(cxx))
+
+        # open the C++ file for output
+        _, tail = os.path.split(cxx)
+        ofile = os.path.join(outdir, tail)
+        try:
+            hout = open(ofile, "w")
+        except IOError:
+            sys.exit("Cannot open output file {}".format(ofile))
+
+        # look for the appropriate pragma, and once found, capture the
+        # function call following it
+        line = hin.readline()
+        while line:
+
+            # if the line starts with "#pragma gpu", then we need 
+            # to take action
+            if line.startswith("#pragma gpu"):
+                # we don't need to reproduce the pragma line in the
+                # output, but we need to capture the whole function
+                # call that follows
+                func_call = ""
+                line = hin.readline()
+                while not line.strip().endswith(";"):
+                    func_call += line
+                    line = hin.readline()
+                # last line -- remove the semi-colon
+                func_call += line.rstrip()[:-1]
+
+                # now split it into the function name and the
+                # arguments
+                print(func_call)
+                dd = decls_re.search(func_call)
+                func_name = dd.group(1).strip().replace(" ", "")
+                args = dd.group(3)
+
+                # finally output the code in the form we want, with
+                # the device launch
+                hout.write("AMREX_DEVICE_LAUNCH({})\n    ({});\n".format(
+                    func_name, args))
+
+            else:
+                # we didn't find a pragma
+                hout.write(line)
+
+            line = hin.readline()
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -254,6 +317,8 @@ if __name__ == "__main__":
                         help="the names of the fortran files to search")
     parser.add_argument("--headers",
                         help="the names of the header files to convert")
+    parser.add_argument("--cxx",
+                        help="the names of the C++ files to process pragmas")
     parser.add_argument("--output_dir",
                         help="where to write the new header files",
                         default="")
@@ -270,4 +335,9 @@ if __name__ == "__main__":
 
     # copy the headers to the output directory, replacing the signatures
     # of the target Fortran routines with the CUDA pair
-    doit(args.output_dir, targets, headers)
+    convert_headers(args.output_dir, targets, headers)
+
+    # now let's do the C++ files
+    cxx, _ = ffv.find_files(args.vpath, args.cxx)
+
+    convert_cxx(args.output_dir, cxx)
