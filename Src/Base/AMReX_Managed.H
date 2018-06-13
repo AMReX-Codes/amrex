@@ -20,7 +20,19 @@ inline void CudaErrorCheck() {
     }
 }
 
-#define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...)  \
+inline void syncDevice() 
+{
+   cudaDeviceSynchronize();
+}
+
+inline bool checkManaged(const void *ptr)
+{
+   cudaPointerAttributes ptr_attr;
+   cudaPointerGetAttributes(&ptr_attr, ptr);
+   return ptr_attr.isManaged;
+}
+
+#define AMREX_SIMPLE_LAUNCH(function, numBlocks, numThreads, ...)  \
     { \
       function<<<numBlocks, numThreads>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
@@ -71,11 +83,14 @@ struct Pinned  { };
 
 #else
 
-#define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...) function(__VA_ARGS__)
+#define AMREX_SIMPLE_LAUNCH(function, numBlocks, numThreads, ...) function(__VA_ARGS__)
 #define AMREX_CUDA_HOST
 #define AMREX_CUDA_DEVICE
 #define AMREX_CUDA_GLOBAL
 
+
+inline bool syncDevice() {}
+inline bool checkManaged(const void *ptr) {}
 struct Managed { };
 struct Pinned  { };
 
