@@ -27,6 +27,7 @@ module mytest_module
   integer, save :: linop_maxorder = 2
   logical, save :: agglomeration = .true.
   logical, save :: consolidation = .true.
+  integer, save :: max_coarsening_level = 30
 
   ! data
   type(amrex_geometry), allocatable, save :: geom(:)
@@ -74,6 +75,7 @@ contains
     call pp % query("linop_maxorder", linop_maxorder)
     call pp % query("agglomeration", agglomeration)
     call pp % query("consolidation", consolidation)
+    call pp % query("max_coarsening_level", max_coarsening_level)
 
     call amrex_parmparse_destroy(pp)
   end subroutine init_parameters
@@ -183,7 +185,8 @@ contains
     if (composite_solve) then
 
        call amrex_poisson_build(poisson, geom, ba, dm, &
-            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
+            max_coarsening_level=max_coarsening_level)
        
        call poisson % set_maxorder(linop_maxorder)
 
@@ -212,7 +215,8 @@ contains
        do ilev = 0, max_level
 
           call amrex_poisson_build(poisson, [geom(ilev)], [ba(ilev)], [dm(ilev)], &
-               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
+               max_coarsening_level=max_coarsening_level)
        
           call poisson % set_maxorder(linop_maxorder)
 
@@ -277,7 +281,8 @@ contains
     if (composite_solve) then
 
        call amrex_abeclaplacian_build(abeclap, geom, ba, dm, &
-            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
+            max_coarsening_level=max_coarsening_level)
 
        call abeclap % set_maxorder(linop_maxorder)
 
@@ -312,7 +317,8 @@ contains
        do ilev = 0, max_level
           
           call amrex_abeclaplacian_build(abeclap, [geom(ilev)], [ba(ilev)], [dm(ilev)], &
-               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
+               max_coarsening_level=max_coarsening_level)
 
        call abeclap % set_maxorder(linop_maxorder)
 
