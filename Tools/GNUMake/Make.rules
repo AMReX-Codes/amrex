@@ -6,7 +6,7 @@ vpath %.F    $(FINAL_VPATH_LOCATIONS)
 vpath %.f90  $(FINAL_VPATH_LOCATIONS)
 vpath %.F90  $(FINAL_VPATH_LOCATIONS)
 vpath %.c    $(FINAL_VPATH_LOCATIONS)
-vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
+vpath %.cpp  $(TmpBuildDir)/header_temp_dir $(FINAL_VPATH_LOCATIONS)
 vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
 
@@ -250,8 +250,9 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
             --defines "-DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes)" \
             --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends
 
+# $(CEXE_sources)
 ifeq ($(USE_CUDA),TRUE)
-$(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources) $(CEXE_sources)
+$(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources) 
 	@if [ ! -d $(TmpBuildDir)/header_temp_dir ]; then mkdir -p $(TmpBuildDir)/header_temp_dir; fi
 	@$(SHELL) -ec 'touch $(TmpBuildDir)/header_temp' # So that the rule always gets updated
 	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py --output_dir $(TmpBuildDir)/header_temp_dir --vpath "$(VPATH_LOCATIONS)" --headers "$(FEXE_headers) $(F90EXE_headers)" --fortran "$(F90EXE_sources) $(FEXE_sources)" --cxx "$(CEXE_sources)"
