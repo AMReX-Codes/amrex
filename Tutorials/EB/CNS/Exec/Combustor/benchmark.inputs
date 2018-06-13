@@ -47,7 +47,7 @@ amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 
 #this is for the JBB combustor
-geom_type = "polygon_revolution"
+eb2.geom_type = "polygon_revolution"
 num_poly = 3
 #far wall (all these polys are done as fractions of the domain)
 poly_0_num_pts  = 4

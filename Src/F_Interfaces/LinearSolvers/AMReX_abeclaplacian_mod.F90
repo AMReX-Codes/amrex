@@ -21,11 +21,11 @@ module amrex_abeclaplacian_module
   end type amrex_abeclaplacian
 
   interface
-     subroutine amrex_fi_new_abeclaplacian (abeclap,n,gm,ba,dm,mt,agg,con) bind(c)
+     subroutine amrex_fi_new_abeclaplacian (abeclap,n,gm,ba,dm,mt,agg,con,mcl) bind(c)
        import
        implicit none
        type(c_ptr), intent(inout) :: abeclap
-       integer(c_int), value :: n, mt, agg, con
+       integer(c_int), value :: n, mt, agg, con, mcl
        type(c_ptr), intent(in) :: gm(*), ba(*), dm(*)
      end subroutine amrex_fi_new_abeclaplacian
 
@@ -70,14 +70,15 @@ contains
 
 
   subroutine amrex_abeclaplacian_build (abeclap, geom, ba, dm, metric_term, &
-       agglomeration, consolidation)
+       agglomeration, consolidation, max_coarsening_level)
     type(amrex_abeclaplacian), intent(inout) :: abeclap
     type(amrex_geometry), intent(in) :: geom(0:)
     type(amrex_boxarray), intent(in) :: ba(0:)
     type(amrex_distromap), intent(in) :: dm(0:)
     logical, intent(in), optional :: metric_term, agglomeration, consolidation
+    integer, intent(in), optional :: max_coarsening_level
 
-    integer(c_int) :: imt, iagg, icon
+    integer(c_int) :: imt, iagg, icon, imcl
     integer(c_int) :: ilev, nlevs
     type(c_ptr) :: gm_cp(0:size(geom)-1)
     type(c_ptr) :: ba_cp(0:size(geom)-1)
@@ -110,6 +111,11 @@ contains
        end if
     end if
 
+    imcl = 30
+    if (present(max_coarsening_level)) then
+       imcl = max_coarsening_level
+    end if
+
     nlevs = size(geom)
     do ilev = 0, nlevs-1
        gm_cp(ilev) = geom(ilev)%p
@@ -118,7 +124,7 @@ contains
     end do
 
     abeclap%owner = .true.
-    call amrex_fi_new_abeclaplacian(abeclap%p, nlevs, gm_cp, ba_cp, dm_cp, imt, iagg, icon)
+    call amrex_fi_new_abeclaplacian(abeclap%p, nlevs, gm_cp, ba_cp, dm_cp, imt, iagg, icon, imcl)
   end subroutine amrex_abeclaplacian_build
 
 
