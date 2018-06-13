@@ -7,6 +7,11 @@
 #include <AMReX_MLMG_F.H>
 #include <AMReX_MLABecLaplacian.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil.H>
+#endif
+
 // sol: full solution
 // rhs: rhs of the original equation L(sol) = rhs
 // res: rhs of the residual equation L(cor) = res
@@ -735,7 +740,8 @@ MLMG::actualBottomSolve ()
         MultiFab raii_b;
         if (linop.isBottomSingular())
         {
-            raii_b.define(b.boxArray(), b.DistributionMap(), ncomp, b.nGrow());
+            raii_b.define(b.boxArray(), b.DistributionMap(), ncomp, b.nGrow(),
+                          MFInfo(), *linop.Factory(amrlev,mglev));
             MultiFab::Copy(raii_b,b,0,0,ncomp,b.nGrow());
             bottom_b = &raii_b;
 
@@ -913,7 +919,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         else
         {
             sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
-                                              a_sol[alev]->DistributionMap(), ncomp, 1));
+                                              a_sol[alev]->DistributionMap(), ncomp, 1,
+                                              MFInfo(), *linop.Factory(alev)));
             sol_raii[alev]->setVal(0.0);
             MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 0);
             sol[alev] = sol_raii[alev].get();
@@ -923,9 +930,19 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     rhs.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-      rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), ncomp, 0);
-      MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, 0);
-      linop.applyMetricTerm(alev, 0, rhs[alev]);
+        rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), ncomp, 0,
+                         MFInfo(), *linop.Factory(alev));
+        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, 0);
+        linop.applyMetricTerm(alev, 0, rhs[alev]);
+
+#ifdef AMREX_USE_EB
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
+        if (factory) {
+            Vector<Real> val(ncomp, 0.0);
+            amrex::EB_set_covered(rhs[alev], 0, ncomp, val);
+            amrex::EB_set_covered(*sol[alev], 0, ncomp, val);
+        }
+#endif
     }
 
     for (int falev = finest_amr_lev; falev > 0; --falev)
@@ -987,7 +1004,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         {
             cor[alev][mglev].reset(new MultiFab(res[alev][mglev].boxArray(),
                                                 res[alev][mglev].DistributionMap(),
-                                                ncomp, ng));
+                                                ncomp, ng, MFInfo(),
+                                                *linop.Factory(alev,mglev)));
             cor[alev][mglev]->setVal(0.0);
         }
     }
@@ -1001,7 +1019,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         {
             cor_hold[alev][mglev].reset(new MultiFab(cor[alev][mglev]->boxArray(),
                                                      cor[alev][mglev]->DistributionMap(),
-                                                     ncomp, ng));
+                                                     ncomp, ng, MFInfo(),
+                                                     *linop.Factory(alev,mglev)));
             cor_hold[alev][mglev]->setVal(0.0);
         }
     }
@@ -1010,7 +1029,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         cor_hold[alev].resize(1);
         cor_hold[alev][0].reset(new MultiFab(cor[alev][0]->boxArray(),
                                              cor[alev][0]->DistributionMap(),
-                                             ncomp, ng));
+                                             ncomp, ng, MFInfo(),
+                                             *linop.Factory(alev,0)));
         cor_hold[alev][0]->setVal(0.0);
     }
 
@@ -1047,8 +1067,8 @@ MLMG::prepareForNSolve ()
     const BoxArray& ba = (*ns_linop).m_grids[0][0];
     const DistributionMapping& dm =(*ns_linop).m_dmap[0][0]; 
 
-    ns_sol.reset(new MultiFab(ba, dm, ncomp, 1));
-    ns_rhs.reset(new MultiFab(ba, dm, ncomp, 0));
+    ns_sol.reset(new MultiFab(ba, dm, ncomp, 1, MFInfo(), *(ns_linop->Factory(0,0))));
+    ns_rhs.reset(new MultiFab(ba, dm, ncomp, 0, MFInfo(), *(ns_linop->Factory(0,0))));
     ns_sol->setVal(0.0);
     ns_rhs->setVal(0.0);
 
@@ -1107,7 +1127,8 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
             if (sol_raii[alev] == nullptr)
             {
                 sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
-                                                  a_sol[alev]->DistributionMap(), ncomp, 1));
+                                                  a_sol[alev]->DistributionMap(), ncomp, 1,
+                                                  MFInfo(), *linop.Factory(alev)));
             }
             MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 0);
             sol[alev] = sol_raii[alev].get();
@@ -1125,7 +1146,8 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         const MultiFab* prhs = a_rhs[alev];
 #if (AMREX_SPACEDIM != 3)
-        MultiFab rhstmp(prhs->boxArray(), prhs->DistributionMap(), ncomp, 0);
+        MultiFab rhstmp(prhs->boxArray(), prhs->DistributionMap(), ncomp, 0,
+                        MFInfo(), *linop.Factory(alev));
         MultiFab::Copy(rhstmp, *prhs, 0, 0, ncomp, 0);
         linop.applyMetricTerm(alev, 0, rhstmp);
         prhs = &rhstmp;
@@ -1167,13 +1189,15 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
         {
             in_raii[alev].define(a_in[alev]->boxArray(),
                                  a_in[alev]->DistributionMap(),
-                                 a_in[alev]->nComp(), 1);
+                                 a_in[alev]->nComp(), 1,
+                                 MFInfo(), *linop.Factory(alev));
             MultiFab::Copy(in_raii[alev], *a_in[alev], 0, 0, a_in[alev]->nComp(), 0);
             in[alev] = &(in_raii[alev]);
         }
         rh[alev].define(a_in[alev]->boxArray(),
                         a_in[alev]->DistributionMap(),
-                        a_in[alev]->nComp(), 0);
+                        a_in[alev]->nComp(), 0, MFInfo(),
+                        *linop.Factory(alev));
         rh[alev].setVal(0.0);
     }
 
@@ -1242,7 +1266,7 @@ MLMG::averageDownAndSync ()
 Real
 MLMG::getNodalSum (int amrlev, int mglev, MultiFab& mf) const
 {
-    MultiFab one(mf.boxArray(), mf.DistributionMap(), 1, 0);
+    MultiFab one(mf.boxArray(), mf.DistributionMap(), 1, 0, MFInfo(), mf.Factory());
     one.setVal(1.0);
     const bool local = true;
     Real s1 = linop.xdoty(amrlev, mglev, mf, one, local);
@@ -1265,6 +1289,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
+        const auto& factory = *(linop.m_factory[0].back());
         MPI_Comm comm = linop.BottomCommunicator();
 
         hypre_solver.reset(new HypreABecLap2(ba, dm, geom, comm));
@@ -1272,19 +1297,20 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 
         hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());
 
-        auto ac = linop.getACoeffs(0, linop.NMGLevels(0)-1);
+        const int mglev = linop.NMGLevels(0)-1;
+        auto ac = linop.getACoeffs(0, mglev);
         if (ac)
         {
             hypre_solver->setACoeffs(*ac);
         }
         else
         {
-            MultiFab alpha(ba,dm,ncomp,0);
+            MultiFab alpha(ba,dm,ncomp,0,MFInfo(),factory);
             alpha.setVal(0.0);
             hypre_solver->setACoeffs(alpha);
         }
 
-        auto bc = linop.getBCoeffs(0, linop.NMGLevels(0)-1);
+        auto bc = linop.getBCoeffs(0, mglev);
         if (bc[0])
         {
             hypre_solver->setBCoeffs(bc);
@@ -1295,7 +1321,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                                  dm, ncomp, 0);
+                                  dm, ncomp, 0, MFInfo(), factory);
                 beta[idim].setVal(1.0);
             }
             hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));

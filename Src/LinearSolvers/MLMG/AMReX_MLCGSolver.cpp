@@ -84,19 +84,20 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
+    const auto& factory = sol.Factory();
 
-    MultiFab ph(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab sh(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
+    MultiFab ph(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab sh(ba, dm, ncomp, nghost, MFInfo(), factory);
     ph.setVal(0.0);
     sh.setVal(0.0);
 
-    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab p    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab s    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab rh   (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab v    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab t    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
+    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab p    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab s    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab rh   (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab v    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab t    (ba, dm, ncomp, 0, MFInfo(), factory);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
     Lp.normalize(amrlev, mglev, r);
@@ -253,14 +254,15 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
+    const auto& factory = sol.Factory();
 
-    MultiFab p(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
+    MultiFab p(ba, dm, ncomp, nghost, MFInfo(), factory);
     p.setVal(0.0);
 
-    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab z    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab q    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
+    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab z    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab q    (ba, dm, ncomp, 0, MFInfo(), factory);
 
     MultiFab::Copy(sorig,sol,0,0,ncomp,0);
 
