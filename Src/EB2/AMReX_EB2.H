@@ -43,7 +43,8 @@ class IndexSpaceImp
 {
 public:
 
-    IndexSpaceImp (const G& gshop, const Geometry& geom, int max_coarsening_level);
+    IndexSpaceImp (const G& gshop, const Geometry& geom,
+                   int required_coarsening_level, int max_coarsening_level);
 
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
     IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
@@ -68,13 +69,17 @@ private:
 
 template <typename G>
 void
-Build (const G& gshop, const Geometry& geom, int max_coarsening_level)
+Build (const G& gshop, const Geometry& geom,
+       int required_coarsening_level, int max_coarsening_level)
 {
     BL_PROFILE("EB2::Initialize()");
-    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom, max_coarsening_level));
+    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom, required_coarsening_level,
+                                          max_coarsening_level));
 }
 
-void Build (const Geometry& geom, int max_coarsening_level);
+void Build (const Geometry& geom,
+            int required_coarsening_level,
+            int max_coarsening_level);
 
 const Level& getLevel (const Geometry& geom);
 

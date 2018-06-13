@@ -10,7 +10,7 @@
 
 using namespace amrex;
 
-void initialize_EB2 (const Geometry& geom, const int max_level);
+void initialize_EB2 (const Geometry& geom, const int required_level, const int max_level);
 void initialize_EBIS(const int max_level);
 
 int main (int argc, char* argv[])
@@ -56,7 +56,7 @@ int main (int argc, char* argv[])
 
         if (EB2::use_eb2)
         {
-            initialize_EB2(amr.Geom(amr.maxLevel()), amr.maxLevel());
+            initialize_EB2(amr.Geom(amr.maxLevel()), amr.maxLevel(), amr.maxLevel());
         }
         else
         {
