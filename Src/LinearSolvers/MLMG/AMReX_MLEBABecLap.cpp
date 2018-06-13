@@ -1,7 +1,9 @@
 
 #include <AMReX_MLEBABecLap.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_EBFArrayBox.H>
 
+#include <AMReX_MLEBABecLap_F.H>
 #include <AMReX_MLABecLap_F.H>
 #include <AMReX_ABec_F.H>
 
@@ -47,9 +49,11 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
             {
                 const BoxArray& ba = amrex::convert(m_grids[amrlev][mglev],
                                                     IntVect::TheDimensionVector(idim));
+                const int ng = 1;
                 m_b_coeffs[amrlev][mglev][idim].define(ba,
                                                        m_dmap[amrlev][mglev],
-                                                       1, 0, MFInfo(), *m_factory[amrlev][mglev]);
+                                                       1, ng, MFInfo(), *m_factory[amrlev][mglev]);
+                m_b_coeffs[amrlev][mglev][idim].setVal(0.0);
             }
         }
     }
@@ -83,6 +87,7 @@ MLEBABecLap::setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPAC
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
+        m_b_coeffs[amrlev][0][idim].FillBoundary(m_geom[amrlev][0].periodicity());
     }
 }
 
@@ -173,6 +178,72 @@ MLEBABecLap::prepareForSolve ()
 void
 MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
+    BL_PROFILE("MLEBABecLap::Fapply()");
+
+    const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
+    AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
+                 const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
+                 const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(in.Factory()));
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+    auto area = (factory) ? factory->getAreaFrac()
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    auto fcent = (factory) ? factory->getFaceCent()
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(out, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        const FArrayBox& xfab = in[mfi];
+        FArrayBox& yfab = out[mfi];
+        const FArrayBox& afab = acoef[mfi];
+        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
+                     const FArrayBox& byfab = bycoef[mfi];,
+                     const FArrayBox& bzfab = bzcoef[mfi];);
+
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+
+        if (fabtyp == FabType::covered) {
+            yfab.setVal(0.0, bx, 0, 1);
+        } else if (fabtyp == FabType::regular) {
+            amrex_mlabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD(yfab),
+                                  BL_TO_FORTRAN_ANYD(xfab),
+                                  BL_TO_FORTRAN_ANYD(afab),
+                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
+                                               BL_TO_FORTRAN_ANYD(byfab),
+                                               BL_TO_FORTRAN_ANYD(bzfab)),
+                                  dxinv, m_a_scalar, m_b_scalar);
+        } else {
+            amrex_mlebabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_ANYD(yfab),
+                                    BL_TO_FORTRAN_ANYD(xfab),
+                                    BL_TO_FORTRAN_ANYD(afab),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
+                                                 BL_TO_FORTRAN_ANYD(byfab),
+                                                 BL_TO_FORTRAN_ANYD(bzfab)),
+                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    dxinv, m_a_scalar, m_b_scalar);
+        }
+    }
+
+    VisMF::Write(in, "in");
+    VisMF::Write(out, "out");
+
     amrex::Abort("Fapply: todo");
 }
 
