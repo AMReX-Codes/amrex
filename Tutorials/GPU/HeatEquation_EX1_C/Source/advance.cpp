@@ -59,27 +59,21 @@ void advance (MultiFab& phi_old,
     // Compute fluxes one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
-
-        compute_flux<<<1, 1>>> (mfi.validbox(),
-                                geom.dataPtr(),
-                                phi_old[mfi],
-                                AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]));
+        AMREX_SIMPLE_LAUNCH(compute_flux, 1, 1, mfi.validbox(), 
+                                  geom.dataPtr(), phi_old[mfi],
+                                  AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]));
     }
-
-    cudaDeviceSynchronize();
+    syncDevice();
 
     // Advance the solution one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
 
-        update_phi<<<1, 1>>> (mfi.validbox(),
-                              geom.dataPtr(),
-                              phi_old[mfi],
-                              phi_new[mfi],
-                              AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]),
-                              dt);
+        AMREX_SIMPLE_LAUNCH(update_phi, 1, 1, mfi.validbox(),
+                            geom.dataPtr(), phi_old[mfi], phi_new[mfi],
+                            AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]),
+                            dt);
     }
-
-    cudaDeviceSynchronize();
+    syncDevice();
 
 }

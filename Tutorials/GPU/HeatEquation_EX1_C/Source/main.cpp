@@ -7,13 +7,6 @@
 #include "myfunc.H"
 #include "myfunc_F.H"
 
-bool checkManaged(const void *ptr)
-{
-   cudaPointerAttributes ptr_attr;
-   cudaPointerGetAttributes(&ptr_attr, ptr);
-   return ptr_attr.isManaged;
-}
-
 AMREX_CUDA_GLOBAL
 void init_phi(Box bx, GeometryData geom, BaseFab<Real> &phi_new)
 {
@@ -54,7 +47,7 @@ void main_main ()
         pp.get("max_grid_size",max_grid_size);
 
         // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be writtenq
+        //  If plot_int < 0 then no plot files will be written
         plot_int = -1;
         pp.query("plot_int",plot_int);
 
@@ -104,16 +97,19 @@ void main_main ()
     // MFIter = MultiFab Iterator
     for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
     {
-        init_phi<<<1,1>>>(mfi.validbox(), geom.dataPtr(), phi_new[mfi]); 
+        AMREX_SIMPLE_LAUNCH(init_phi, 1, 1, mfi.validbox(), geom.dataPtr(), phi_new[mfi]); 
 
 /*      Original version
         init_phi(BL_TO_FORTRAN_BOX(bx),
                  BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+
+        CUDA version
+        init_phi<<<1,1>>>(mfi.validbox(), geom.dataPtr(), phi_new[mfi]);
 */
     }
 
-    cudaDeviceSynchronize();
+    syncDevice();
 
     // ========================================
 

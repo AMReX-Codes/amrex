@@ -1,5 +1,4 @@
-
-attributes(device) subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
+AMREX_CUDA_FORT_DEVICE subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi, fluxz, fzlo, fzhi, &
                          dx) bind(C, name="compute_flux")
 
@@ -47,7 +46,7 @@ attributes(device) subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, ph
 end subroutine compute_flux
 
 
-attributes(device) subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
+AMREX_CUDA_FORT_DEVICE subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
                        fluxx, fxlo, fxhi, fluxy, fylo, fyhi, fluxz, fzlo, fzhi, &
                        dx, dt) bind(C, name="update_phi")
 

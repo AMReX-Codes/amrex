@@ -1,4 +1,4 @@
-attributes(device) subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
+AMREX_CUDA_FORT_DEVICE subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
 
   use amrex_fort_module, only : amrex_real
 
