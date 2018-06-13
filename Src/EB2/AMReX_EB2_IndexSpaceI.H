@@ -1,6 +1,7 @@
 
 template <typename G>
 IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
+                                 int required_coarsening_level,
                                  int max_coarsening_level)
 {
     // build finest level (i.e., level 0) first
@@ -9,7 +10,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
     m_gslevel.reserve(std::max(max_coarsening_level+1, 1));
     m_gslevel.emplace_back(gshop, geom, EB2::max_grid_size);
 
-    for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
+    for (int ilev = 1; ilev <= required_coarsening_level; ++ilev)
     {
         Box cdomain = amrex::coarsen(m_geom.back().Domain(),2);
         Geometry cgeom(cdomain);
