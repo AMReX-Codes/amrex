@@ -52,7 +52,7 @@ namespace amrex
     FabArray<EBCellFAB> dummy(m_eblg.getDBL(),m_eblg.getDM(), nvar, m_ghost, MFInfo(), fact);
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
-      BL_PROFILE("vof stencil definition");
+//      BL_PROFILE("vof stencil definition");
       const     Box& grid = m_eblg.getDBL()  [mfi];
       const EBISBox& ebis = m_eblg.getEBISL()[mfi];
  

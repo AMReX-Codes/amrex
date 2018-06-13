@@ -9,6 +9,8 @@ C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Ba
 C$(AMREX_BASE)_headers += AMReX.H
 C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp
 
+C$(AMREX_BASE)_headers += AMReX_IndexSequence.H
+
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 

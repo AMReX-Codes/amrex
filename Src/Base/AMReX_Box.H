@@ -154,6 +154,16 @@ public:
 #endif
     }
 
+    std::array<int,3> loVect3d () const {
+#if (AMREX_SPACEDIM == 1)
+        return {smallend[0], 0, 0};
+#elif (AMREX_SPACEDIM == 2)
+        return {smallend[0], smallend[1], 0};
+#elif (AMREX_SPACEDIM == 3)
+        return {smallend[0], smallend[1], smallend[2]};
+#endif
+    }
+
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
     const int* loVect () const& { 
 #ifdef AMREX_USE_CUDA
