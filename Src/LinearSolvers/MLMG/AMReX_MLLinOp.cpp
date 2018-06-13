@@ -325,7 +325,7 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
         for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev)
         {
             const auto& ba = amrex::convert(m_grids[alev][mlev], m_ixtype);
-            mf[alev][mlev].define(ba, m_dmap[alev][mlev], nc, ng);
+            mf[alev][mlev].define(ba, m_dmap[alev][mlev], nc, ng, MFInfo(), *m_factory[alev][mlev]);
         }
     }
 }

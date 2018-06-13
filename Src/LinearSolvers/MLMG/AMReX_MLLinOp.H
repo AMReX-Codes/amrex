@@ -159,6 +159,9 @@ protected:
     int AMRRefRatio (int amr_lev) const { return m_amr_ref_ratio[amr_lev]; }
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
+    FabFactory<FArrayBox> const* Factory (int amr_lev, int mglev=0) const {
+        return m_factory[amr_lev][mglev].get();
+    }
 
 #ifdef BL_USE_MPI
     bool isBottomActive () const { return m_bottom_comm != MPI_COMM_NULL; }
