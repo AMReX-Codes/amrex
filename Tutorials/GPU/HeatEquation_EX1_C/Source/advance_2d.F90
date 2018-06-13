@@ -1,5 +1,4 @@
-
-subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
+AMREX_CUDA_FORT_DEVICE subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi, &
                          dx) bind(C, name="compute_flux")
 
@@ -33,7 +32,7 @@ subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
 end subroutine compute_flux
 
 
-subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
+AMREX_CUDA_FORT_DEVICE subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
                        fluxx, fxlo, fxhi, fluxy, fylo, fyhi, &
                        dx, dt) bind(C, name="update_phi")
 
@@ -46,7 +45,7 @@ subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
   real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
   real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
   real(amrex_real), intent(in)    :: dx(2)
-  real(amrex_real), intent(in)    :: dt
+  real(amrex_real), intent(in), value :: dt
 
   ! local variables
   integer i,j
