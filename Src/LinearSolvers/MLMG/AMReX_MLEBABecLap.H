@@ -41,6 +41,8 @@ public:
 
 protected:
 
+    virtual bool isCrossStencil () const { return false; }
+
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
     virtual bool isBottomSingular () const final { return m_is_singular[0]; }
