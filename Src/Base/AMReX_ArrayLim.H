@@ -1,4 +1,3 @@
-
 #ifndef AMREX_ARRAYLIM_H_
 #define AMREX_ARRAYLIM_H_
 
@@ -6,7 +5,25 @@
 
 #ifdef __cplusplus
 
+// If on GPUs, use a simple array wrapper that 
+// designates needed functions as __host__ __device__
+#ifndef AMREX_USE_CUDA
 #include <array>
+template <class T, std::size_t N>
+using amrex_simpleArray = std::array<T,N>;
+#else
+#include <AMReX_Managed.H>
+template <class T, std::size_t N>
+struct amrex_simpleArray {
+
+   AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+   inline const T& operator [] (int i) const { return arr[i]; }
+   AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+   inline const T* data() const { return arr; };
+
+   T arr[N];
+};
+#endif
 
 /*
 ** C++ stuff ...
@@ -17,15 +34,15 @@
 #if     AMREX_SPACEDIM==1
 #define ARLIM_P(x)  const int&
 #define ARLIM(x)  (x)[0]
-#define ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
-#define ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
-#define ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
+#define ARLIM_3D(x) amrex_simpleArray<int,3>{(x)[0], 0, 0}.data()
+#define ARLIM_ANYD(x) amrex_simpleArray<int,3>{(x)[0], 0, 0}.data()
+#define ZFILL(x) amrex_simpleArray<amrex::Real,3>{(x)[0], 0., 0.}.data()
 #elif   AMREX_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1]
-#define ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
-#define ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
-#define ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
+#define ARLIM_3D(x) amrex_simpleArray<int,3>{(x)[0], (x)[1], 0}.data()
+#define ARLIM_ANYD(x) amrex_simpleArray<int,3>{(x)[0], (x)[1], 0}.data()
+#define ZFILL(x) amrex_simpleArray<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
 #elif   AMREX_SPACEDIM==3
 #define ARLIM_P(x)  const int&,const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1],(x)[2]
@@ -39,19 +56,19 @@
 #if     AMREX_SPACEDIM==1
 #define AMREX_ARLIM_P(x)  const int&
 #define AMREX_ARLIM(x)  (x)[0]
-#define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
-#define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
-#define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
-#define AMREX_BCREC_3D(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
-#define AMREX_BCREC_ANYD(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
+#define AMREX_ARLIM_3D(x) amrex_simpleArray<int,3>{(x)[0], 0, 0}.data()
+#define AMREX_ARLIM_ANYD(x) amrex_simpleArray<int,3>{(x)[0], 0, 0}.data()
+#define AMREX_ZFILL(x) amrex_simpleArray<amrex::Real,3>{(x)[0], 0., 0.}.data()
+#define AMREX_BCREC_3D(x) amrex_simpleArray<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
+#define AMREX_BCREC_ANYD(x) amrex_simpleArray<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
 #elif   AMREX_SPACEDIM==2
 #define AMREX_ARLIM_P(x)  const int&,const int&
 #define AMREX_ARLIM(x)  (x)[0],(x)[1]
-#define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
-#define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
-#define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
-#define AMREX_BCREC_3D(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
-#define AMREX_BCREC_ANYD(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
+#define AMREX_ARLIM_3D(x) amrex_simpleArray<int,3>{(x)[0], (x)[1], 0}.data()
+#define AMREX_ARLIM_ANYD(x) amrex_simpleArray<int,3>{(x)[0], (x)[1], 0}.data()
+#define AMREX_ZFILL(x) amrex_simpleArray<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
+#define AMREX_BCREC_3D(x) amrex_simpleArray<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
+#define AMREX_BCREC_ANYD(x) amrex_simpleArray<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
 #elif   AMREX_SPACEDIM==3
 #define AMREX_ARLIM_P(x)  const int&,const int&,const int&
 #define AMREX_ARLIM(x)  (x)[0],(x)[1],(x)[2]
