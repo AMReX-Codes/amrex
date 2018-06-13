@@ -49,14 +49,7 @@ operator>> (std::istream& is,
     return is;
 }
 
-Geometry::Geometry () 
-{
-/*
-#ifdef AMREX_USE_CUDA
-    geomData = new GeometryData();
-#endif
-*/
-}
+Geometry::Geometry () {}
 
 Geometry::Geometry (const Box&     dom,
                     const RealBox* rb,
@@ -64,14 +57,8 @@ Geometry::Geometry (const Box&     dom,
                     int*           is_per)
 {
     define(dom,rb,coord,is_per);
-/*
-#ifdef AMREX_USE_CUDA
-    geomData = new GeometryData();
-#endif
-*/
 }
 
-#ifdef AMREX_USE_CUDA
 GeometryData Geometry::dataPtr()
 {
     // Set current values of data to values in geomData before returning.
@@ -91,7 +78,6 @@ GeometryData Geometry::dataPtr()
 
     return geomData;
 }
-#endif
 
 void
 Geometry::define (const Box&     dom,

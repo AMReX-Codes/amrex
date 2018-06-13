@@ -30,9 +30,10 @@ class MultiFab;
 class DistributionMapping;
 class BoxArray;
 
-#ifdef AMREX_USE_CUDA
 struct GeometryData
 {
+
+    GeometryData() {}
 
  //! Returns the cellsize for each coordinate direction.
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
@@ -59,7 +60,6 @@ public:
     Real inv_dx[AMREX_SPACEDIM];
     bool ok;
 };
-#endif
 
 class Geometry
     :
@@ -80,10 +80,8 @@ public:
     Geometry& operator= (const Geometry& rhs) = default;
     Geometry& operator= (Geometry&& rhs) = default;
 
-#ifdef AMREX_USE_CUDA
-    // Returns pointer to copy of geometry's stored data
+    // Returns non-static copy of geometry's stored data.
     GeometryData dataPtr();
-#endif
 
     static void Finalize ();
     //! Read static values from ParmParse database.
@@ -209,9 +207,7 @@ private:
     //
     Box domain;
 
-#ifdef AMREX_USE_CUDA
     GeometryData geomData;
-#endif
 };
 
 
