@@ -59,8 +59,8 @@ amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 ## this is a scaled sphere
 eb2.geom_type = anisotropic_sphere
-sphere_radius = 0.25
-sphere_center = 0.5 0.5 0.5
+eb2.sphere_radius = 0.25
+eb2.sphere_center = 0.5 0.5 0.5
 
 physics.gamma  = 1.6666666666666667
 physics.eos_mu = 41.57255
