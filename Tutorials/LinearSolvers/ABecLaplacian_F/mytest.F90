@@ -23,6 +23,7 @@ module mytest_module
   integer, save :: cg_verbose = 0
   integer, save :: max_iter = 100
   integer, save :: max_fmg_iter = 0
+  integer, save :: bottom_solver = amrex_bottom_default
   integer, save :: linop_maxorder = 2
   logical, save :: agglomeration = .true.
   logical, save :: consolidation = .true.
@@ -69,6 +70,7 @@ contains
     call pp % query("cg_verbose", cg_verbose)
     call pp % query("max_iter", max_iter)
     call pp % query("max_fmg_iter", max_fmg_iter)
+    call pp % query("bottom_solver", bottom_solver)
     call pp % query("linop_maxorder", linop_maxorder)
     call pp % query("agglomeration", agglomeration)
     call pp % query("consolidation", consolidation)
@@ -199,6 +201,7 @@ contains
        call multigrid % set_cg_verbose(cg_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
+       call multigrid % set_bottom_solver(bottom_solver)
 
        err = multigrid % solve(solution, rhs, 1.e-10_amrex_real, 0.0_amrex_real)
 
@@ -237,6 +240,7 @@ contains
           call multigrid % set_cg_verbose(cg_verbose)
           call multigrid % set_max_iter(max_iter)
           call multigrid % set_max_fmg_iter(max_fmg_iter)
+          call multigrid % set_bottom_solver(bottom_solver)
 
           err = multigrid % solve([solution(ilev)], [rhs(ilev)], 1.e-10_amrex_real, 0.0_amrex_real)
 
@@ -297,6 +301,7 @@ contains
        call multigrid % set_cg_verbose(cg_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
+       call multigrid % set_bottom_solver(bottom_solver)
 
        err = multigrid % solve(solution, rhs, 1.e-10_amrex_real, 0.0_amrex_real)
 
@@ -332,6 +337,7 @@ contains
        call multigrid % set_cg_verbose(cg_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
+       call multigrid % set_bottom_solver(bottom_solver)
 
        err = multigrid % solve([solution(ilev)], [rhs(ilev)], 1.e-10_amrex_real, 0.0_amrex_real)
 
