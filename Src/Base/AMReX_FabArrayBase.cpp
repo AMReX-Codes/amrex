@@ -1263,10 +1263,10 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 	ba_crse_patch.define(bl);
 	dm_crse_patch.define(std::move(iprocs));
 #ifdef AMREX_USE_EB
-        fact_crse_patch.reset(new EBFArrayBoxFactory(Geometry(cdomain),
-                                                     ba_crse_patch,
-                                                     dm_crse_patch,
-                                                     {0,0,0}, EBSupport::basic));
+        fact_crse_patch = makeEBFabFactory(Geometry(cdomain),
+                                           ba_crse_patch,
+                                           dm_crse_patch,
+                                           {0,0,0}, EBSupport::basic);
 #else
         fact_crse_patch.reset(new FArrayBoxFactory());
 #endif
