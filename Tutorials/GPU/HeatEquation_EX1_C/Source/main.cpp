@@ -97,16 +97,7 @@ void main_main ()
     // MFIter = MultiFab Iterator
     for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
     {
-        AMREX_SIMPLE_LAUNCH(init_phi, 1, 1, mfi.validbox(), geom.dataPtr(), phi_new[mfi]); 
-
-/*      Original version
-        init_phi(BL_TO_FORTRAN_BOX(bx),
-                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
-
-        CUDA version
-        init_phi<<<1,1>>>(mfi.validbox(), geom.dataPtr(), phi_new[mfi]);
-*/
+        AMREX_SIMPLE_LAUNCH(init_phi, 1, 1, mfi.validbox(), geom.data(), phi_new[mfi]); 
     }
 
     syncDevice();
