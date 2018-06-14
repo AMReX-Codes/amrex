@@ -84,7 +84,9 @@ public:
     static bool do_boosted_frame_diagnostic;
     static int  num_snapshots_lab;
     static amrex::Real dt_snapshots_lab;
-
+    static bool do_boosted_frame_fields;
+    static bool do_boosted_frame_particles;
+    
     // Boosted frame parameters
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;

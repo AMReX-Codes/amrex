@@ -72,6 +72,11 @@ public:
                          amrex::Real x_rms, amrex::Real y_rms, amrex::Real z_rms,
                          amrex::Real q_tot, long npart);
 
+    virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
+                                  const amrex::Real z_new, const amrex::Real t_boost, 
+                                  const amrex::Real t_lab, const amrex::Real dt,
+                                  DiagnosticParticles& diagnostic_particles) final;
+    
 protected:
 
     std::string species_name;
