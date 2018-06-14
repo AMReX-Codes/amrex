@@ -59,21 +59,17 @@ Geometry::Geometry (const Box&     dom,
     define(dom,rb,coord,is_per);
 }
 
-GeometryData Geometry::dataPtr()
+GeometryData Geometry::data()
 {
+    GeometryData geomData;
+
     // Set current values of data to values in geomData before returning.
-    geomData.spherical_origin_fix = spherical_origin_fix;
     geomData.domain = domain;
     geomData.prob_domain = prob_domain;
-    geomData.c_sys = c_sys; 
-    geomData.ok = ok;
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-      geomData.is_periodic[i] = is_periodic;
-      geomData.offset[i] = offset[i];
       geomData.dx[i] = dx[i];
-      geomData.inv_dx[i] = inv_dx[i];
     }
 
     return geomData;

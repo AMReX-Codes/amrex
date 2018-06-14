@@ -32,12 +32,9 @@ class BoxArray;
 
 struct GeometryData
 {
-
-    GeometryData() {}
-
  //! Returns the cellsize for each coordinate direction.
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
-    const Real* CellSize () const { BL_ASSERT(ok); return dx; }
+    const Real* CellSize () const { return dx; }
  //! Returns the lo end of the problem domain in each dimension.
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const Real* ProbLo ()  { return prob_domain.lo(); }
@@ -49,16 +46,9 @@ struct GeometryData
     const Box& Domain () const { return domain; }
 
 public:
-    int     spherical_origin_fix;
-    bool    is_periodic[AMREX_SPACEDIM];
     RealBox prob_domain;
-    CoordSys::CoordType c_sys; 
-    Real      offset[AMREX_SPACEDIM];
-
     Box domain;
     Real dx[AMREX_SPACEDIM];
-    Real inv_dx[AMREX_SPACEDIM];
-    bool ok;
 };
 
 class Geometry
@@ -81,7 +71,7 @@ public:
     Geometry& operator= (Geometry&& rhs) = default;
 
     // Returns non-static copy of geometry's stored data.
-    GeometryData dataPtr();
+    GeometryData data();
 
     static void Finalize ();
     //! Read static values from ParmParse database.
@@ -206,8 +196,6 @@ private:
     // Non-static data.
     //
     Box domain;
-
-    GeometryData geomData;
 };
 
 
