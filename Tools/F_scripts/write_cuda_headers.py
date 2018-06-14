@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 Search the Fortran source code for subroutines marked as:
@@ -13,16 +13,24 @@ temp directory, modifying any of the marked subroutines to have both a
 device and host signature.
 """
 
+from __future__ import print_function
+
+import sys
+
+if sys.version_info < (2, 7):
+    sys.exit("ERROR: need python 2.7 or later for dep.py")
+
+if sys.version[0] == "2":
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+
 import os
 import re
-import sys
 import argparse
 
 import find_files_vpath as ffv
 import preprocess
 
-if sys.version_info[0] == 2:
-    sys.exit("python 3 is required")
 
 TEMPLATE = """
 __global__ static void cuda_{}
