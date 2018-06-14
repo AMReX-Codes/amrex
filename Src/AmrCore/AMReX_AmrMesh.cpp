@@ -36,8 +36,8 @@ AmrMesh::AmrMesh ()
     InitAmrMesh(max_level_in,n_cell_in);    
 }
 
-  AmrMesh::AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
-                    std::vector<int> a_refrat)
+AmrMesh::AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
+                  std::vector<int> a_refrat)
 {
   Initialize();
 

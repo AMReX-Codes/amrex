@@ -7,6 +7,7 @@
 #include <list>
 #include <map>
 
+#include <AMReX_EB2.H>
 #include "AMReX_GeometryShop.H"
 #include "AMReX_GeomIntersectUtils.H"
 #include "AMReX_RealVect.H"
@@ -863,7 +864,8 @@ namespace amrex
                   }
               }
           }
-#if 1
+
+        if (!EB2::compare_with_ch_eb) {
         // iterate over faces recalculating face area
         // face order is xLo,xHi,yLo,yHi,zLo,zHi
         for (int iFace = 0; iFace < 2*SpaceDim; ++iFace)
@@ -1173,7 +1175,8 @@ namespace amrex
                 }
               }
           }
-#endif
+        }
+
         // fill in some arguments of computeVofInternals for the faces
         for (int faceNormal = 0;faceNormal < SpaceDim;++faceNormal)
           {

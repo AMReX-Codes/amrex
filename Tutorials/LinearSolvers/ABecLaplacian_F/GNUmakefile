@@ -15,6 +15,9 @@ include ./Make.package
 
 Pdirs 	:= Base Boundary AmrCore LinearSolvers/C_CellMG LinearSolvers/MLMG
 Pdirs   += F_Interfaces/Base F_Interfaces/AmrCore F_Interfaces/LinearSolvers
+ifeq ($(USE_HYPRE),TRUE) then
+    Pdirs += Extern/HYPRE
+endif
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
 include $(Ppack)

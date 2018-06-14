@@ -95,7 +95,7 @@ EBTower::EBTower ()
 
     m_cellflags.resize(nlevels);
     m_volfrac.resize(nlevels);
-//    m_centroid.resize(nlevels);
+    m_centroid.resize(nlevels);
     m_bndrycent.resize(nlevels);
     m_areafrac.resize(nlevels);
     m_facecent.resize(nlevels);
@@ -112,10 +112,10 @@ EBTower::EBTower ()
             initCellFlags(lev, eblg);
 
             m_volfrac[lev].define(ba, dm, 1, 0, MFInfo(), FArrayBoxFactory());
-//            m_centroid[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
+            m_centroid[lev].define(ba, dm, AMREX_SPACEDIM, 0, m_cellflags[lev]);
             initVolumeGeometry(lev, eblg);
 
-            m_bndrycent[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
+            m_bndrycent[lev].define(ba, dm, AMREX_SPACEDIM, 0, m_cellflags[lev]);
             initBndryCent(lev, eblg);
             
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -138,6 +138,11 @@ EBTower::initCellFlags (int lev, const EBLevelGrid& eblg)
     FabArray<EBCellFlagFab>& ebcf = m_cellflags[lev];
     const auto& ebisl = eblg.getEBISL();
 
+    const auto& graph = ebisl.getAllGraphs();
+    for (MFIter mfi(*graph); mfi.isValid(); ++mfi) {
+        (*graph)[mfi].setCellFlags();
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -157,7 +162,7 @@ void
 EBTower::initVolumeGeometry (int lev, const EBLevelGrid& eblg)
 {
     MultiFab& volfrac = m_volfrac[lev];
-//    MultiCutFab& centroid = m_centroid[lev];
+    MultiCutFab& centroid = m_centroid[lev];
     const auto& ebisl = eblg.getEBISL();
 
 #ifdef _OPENMP
@@ -170,8 +175,8 @@ EBTower::initVolumeGeometry (int lev, const EBLevelGrid& eblg)
         auto& vfab = volfrac[mfi];
         vfab.setVal(1.0, bx, 0, 1);
 
-//        auto& cfab = centroid[mfi];
-//        cfab.setVal(0.0, bx, 0, 3);
+        auto& cfab = centroid[mfi];
+        cfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
 
         const EBISBox& ebisbox = ebisl[mfi];
         
@@ -183,10 +188,10 @@ EBTower::initVolumeGeometry (int lev, const EBLevelGrid& eblg)
             for (const auto& vi : vofs)
             {
                 vtot += ebisbox.volFrac(vi);
-//                const auto& c = ebisbox.centroid(vi);
-//                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-//                    cfab(iv,idim) = c[idim];
-//                }
+                const auto& c = ebisbox.centroid(vi);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    cfab(iv,idim) = c[idim];
+                }
             }
             vfab(iv) = vtot;
         }
@@ -515,21 +520,21 @@ EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
     a_volfrac.EnforcePeriodicity(a_geom.periodicity());
 }
 
-// void
-// EBTower::fillCentroid (MultiCutFab& a_centroid, const Geometry& a_geom)
-// {
-//     BL_PROFILE("EBTower::fillBndryCent()");
+void
+EBTower::fillCentroid (MultiCutFab& a_centroid, const Geometry& a_geom)
+{
+    BL_PROFILE("EBTower::fillCentroid()");
+    
+    const Box& domain = a_geom.Domain();
+    
+    int lev = m_instance->getIndex(domain);
+    
+    const auto& src_centroid = m_instance->m_centroid[lev];
+    
+    a_centroid.setVal(0.0);
 
-//     const Box& domain = a_geom.Domain();
-
-//     int lev = m_instance->getIndex(domain);
-
-//     const auto& src_centroid = m_instance->m_centroid[lev];
-
-//     a_centroid.setVal(0.0);
-
-//     a_centroid.ParallelCopy(src_centroid, 0, 0, a_centroid.nComp(), 0, a_centroid.nGrow(), a_geom.periodicity());
-// }
+    a_centroid.ParallelCopy(src_centroid, 0, 0, a_centroid.nComp(), 0, a_centroid.nGrow(), a_geom.periodicity());
+}
 
 void
 EBTower::fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom)
