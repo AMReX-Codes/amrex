@@ -8,6 +8,7 @@
 #include <AMReX_MLABecLaplacian.H>
 
 #ifdef AMREX_USE_EB
+#include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
 #endif
@@ -331,7 +332,11 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 
     if (linop.isCellCentered()) {
         const int amrrr = linop.AMRRefRatio(calev);
+#ifdef AMREX_USE_EB
+        amrex::EB_average_down(fine_res, crse_res, 0, ncomp, amrrr);
+#else
         amrex::average_down(fine_res, crse_res, 0, ncomp, amrrr);
+#endif
     }
 }
 
@@ -516,6 +521,8 @@ MLMG::interpCorrection (int alev)
     cfine.setVal(0.0);
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
 
+    bool isEB = fine_cor.hasEBFabFactory();
+
     if (linop.isCellCentered())
     {
 #ifdef _OPENMP
@@ -524,11 +531,38 @@ MLMG::interpCorrection (int alev)
         for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                     BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                     BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                     &refratio[0],
-				     &ncomp);
+#ifdef AMREX_USE_EB
+            bool call_lincc;
+            if (isEB)
+            {
+                const auto& flag = dynamic_cast<EBFArrayBox&>(fine_cor[mfi]).getEBCellFlagFab();
+                if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
+                    call_lincc = true;
+                } else {
+                    amrex_mlmg_eb_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                            BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                            BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                            BL_TO_FORTRAN_ANYD(flag),
+                                            &refratio[0],
+                                            &ncomp);
+                    call_lincc = false;
+                }
+            }
+            else
+            {
+                call_lincc = true;
+            }
+#else
+            const bool call_lincc = true;
+#endif
+            if (call_lincc)
+            {
+                amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                         BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                         &refratio[0],
+                                         &ncomp);
+            }
         }
     }
     else
@@ -591,6 +625,8 @@ MLMG::interpCorrection (int alev, int mglev)
         cmf = & cfine;
     }
 
+    bool isEB = fine_cor.hasEBFabFactory();
+
     if (linop.isCellCentered())
     {
 #ifdef _OPENMP
@@ -599,10 +635,36 @@ MLMG::interpCorrection (int alev, int mglev)
         for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                     BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                     BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
-                                     &refratio,&ncomp);
+#ifdef AMREX_USE_EB
+            bool call_lincc;
+            if (isEB)
+            {
+                const auto& flag = dynamic_cast<EBFArrayBox&>(fine_cor[mfi]).getEBCellFlagFab();
+                if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
+                    call_lincc = true;
+                } else {
+                    amrex_mlmg_eb_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                            BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                            BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
+                                            BL_TO_FORTRAN_ANYD(flag),
+                                            &refratio, &ncomp);
+                    call_lincc = false;
+                }
+            }
+            else
+            {
+                call_lincc = true;
+            }
+#else
+            const bool call_lincc = true;
+#endif
+            if (call_lincc)
+            {
+                amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                         BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
+                                         &refratio,&ncomp);
+            }
         }
     }
     else
