@@ -371,9 +371,10 @@ namespace amrex
            const int& a_dir,
            const Side::LoHiSide& a_sd,
            const int& a_steps) const;
-  private:
 
     void setCellFlags();
+
+  private:
 
     void fixCellFlagType();
 
@@ -470,6 +471,8 @@ namespace amrex
     ~EBGraph();
 
     EBGraph (EBGraph&& rhs) noexcept = default;
+
+      void setCellFlags () { m_implem->setCellFlags(); }
         
     ///
     /**
@@ -1073,6 +1076,6 @@ namespace amrex
   }
         
   /*******************************/
-        
+       
 }
 #endif
