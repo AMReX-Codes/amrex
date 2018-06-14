@@ -65,7 +65,7 @@ public:
     virtual void PostRestart () final {}
 
     // Inject particles in Box 'part_box'
-    void AddParticles (int lev);
+    virtual void AddParticles (int lev);
     void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
 
     void AddGaussianBeam(amrex::Real x_m, amrex::Real y_m, amrex::Real z_m,
