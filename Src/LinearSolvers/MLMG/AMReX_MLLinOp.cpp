@@ -292,7 +292,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     {
         for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            m_factory[amrlev].emplace_back(new FArrayBoxFactory());
+            m_factory[amrlev].emplace_back(makeFactory(amrlev,mglev));
         }
     }
 

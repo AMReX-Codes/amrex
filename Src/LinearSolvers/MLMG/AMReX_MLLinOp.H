@@ -186,6 +186,10 @@ protected:
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
+    virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const {
+        return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
+    }
+
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const = 0;
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const = 0;
     virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,

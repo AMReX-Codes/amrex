@@ -41,6 +41,8 @@ public:
 
 protected:
 
+    virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final;
+
     virtual bool isCrossStencil () const { return false; }
 
     virtual void prepareForSolve () final;
