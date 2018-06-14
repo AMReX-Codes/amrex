@@ -150,7 +150,7 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
                 if fort_target_match:
                     if target == fort_target_match.group(3):
                         found = target
-                        print('found target {} in header {}'.format(target, h))
+                        print('found target {} in header {}'.format(target, h.cpp_name))
                         break
 
             # we found a target function, so capture the entire
@@ -169,12 +169,21 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
 
         hin.close()
 
-        # we've now finished going through the header. Now copy
-        # over the unpreprocessed header and append the new CUDA
-        # signatures at the end.
+        # we've now finished going through the header. Note: there may
+        # be more signatures here than we really need, because some may
+        # have come in via '#includes' in the preprocessing.
+
+        print(" ")
+        print("***********************************************************")
+        print("file: {}".format(h.name))
+        print('signatures: {}'.format(signatures))
+
+        # Now we'll go back to the original file, parse it, making note
+        # of any of the signatures we find, but using the preprocessed
+        # version in the final output.
 
         # open the CUDA header for output
-        _, tail = os.path.split(hf.name)
+        _, tail = os.path.split(h.name)
         ofile = os.path.join(outdir, tail)
         try:
             hout = open(ofile, "w")
@@ -185,19 +194,60 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
 
         # and back to the original file (not preprocessed) for the input
         try:
-            hin = open(hf.name, "r")
+            hin = open(h.name, "r")
         except IOError:
             sys.exit("Cannot open output file {}".format(ofile))
 
-        # copy all the lines over
-        for line in hin:
-            hout.write(line)
+        signatures_needed = []
+
+        line = hin.readline()
+        while line:
+
+            print("line: {}".format(line))
+
+            # strip comments
+            idx = line.find("//")
+            tline = line[:idx]
+
+            # if the line is not a function signature that we already
+            # captured then we just write it out
+            for target in signatures:
+
+                fort_target_match = fortran_binding_re.search(tline.lower())
+                if fort_target_match:
+                    if target == fort_target_match.group(3):
+                        found = target
+                        signatures_needed.append(found)
+
+                        print('found target {} in unprocessed header {}'.format(target, h.name))
+                        print(fort_target_match.group(0))
+                        break
+
+            if found is not None:
+                pass
+            else:
+            # if found is not None:
+            #     launch_sig = "" + line
+            #     sig_end = False
+            #     while not sig_end:
+            #         line = hin.readline()
+            #         print("> line: {}".format(line))
+            #         launch_sig += line
+            #         if line.strip().endswith(";"):
+            #             sig_end = True
+
+            #     print("here")
+            # else:
+            #     # this was not one of our device headers
+                hout.write(line)
+                
+            line = hin.readline()
+
+        # we are done with the pass through the header and we know all
+        # of the signatures that need to be CUDAed
 
         # now do the CUDA signatures
-        print(" ")
-        print("***********************************************************")
-        print("file: {}".format(h.name))
-        print('signatures: {}'.format(signatures))
+        print('signatures needed: {}'.format(signatures_needed))
 
         hout.write("\n")
         hout.write("#include <AMReX_ArrayLim.H>\n")
@@ -205,7 +255,7 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         hout.write("#include <AMReX_Device.H>\n")
         hout.write("\n")
 
-        hdrmh = os.path.basename(hf.name).strip(".H")
+        hdrmh = os.path.basename(h.name).strip(".H")
 
         # Add an include guard -- do we still need this?
         hout.write("#ifndef _cuda_" + hdrmh + "_\n")
@@ -215,7 +265,9 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         hout.write("#ifdef AMREX_USE_CUDA\n")
         hout.write("extern \"C\" {\n\n")
 
-        for name, func_sig in signatures.items():
+        for name in signatures_needed:
+
+            func_sig = signatures[name]
 
             # First write out the device signature
             device_sig = "__device__ {};\n\n".format(func_sig)
