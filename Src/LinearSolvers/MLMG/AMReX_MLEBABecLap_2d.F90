@@ -201,7 +201,7 @@ contains
                   if (apy(i,j+1).ne.zero .and. apy(i,j+1).ne.one) then
                      fracx = abs(fcy(i,j+1))
                      ii = i + int(sign(one,fcy(i,j+1)))
-                     fyp = (one-fracx)*fyp + fracx*bY(i-1,j+1)*(phi(i-1,j+1)-phi(i-1,j))
+                     fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
                      syp = (one-fracx)*syp
                   end if
 
