@@ -56,8 +56,6 @@ class Preprocessor(object):
             command = "{} {} {}".format(self.cpp_cmd, self.defines,
                                         sf.name)
 
-        print("running {}".format(command))
-
         stdout, rc = run(command, outfile=processed_file)
 
         if rc == 0:

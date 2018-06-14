@@ -261,7 +261,7 @@ $(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources)
              --headers "$(FEXE_headers) $(F90EXE_headers)" \
              --fortran "$(F90EXE_sources) $(FEXE_sources)" \
              --cxx "$(CEXE_sources)" \
-             --cpp "$(HOST_CC) -E -P -x c -std=c99" \
+             --cpp "$(HOST_CC) -E -P" \
              --defines "$(FINAL_CPPFLAGS) $(includes)"
 endif
 
