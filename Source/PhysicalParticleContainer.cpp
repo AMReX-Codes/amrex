@@ -28,6 +28,72 @@ void PhysicalParticleContainer::InitData()
     }
 }
 
+void PhysicalParticleContainer::MaptoBoostedFrame()
+{
+    // Map the particles from the lab frame to the boosted frame.
+    // This boosts the particles to the lab frame and calculates
+    // the particle time in the boosted frame. It then maps
+    // the positions to the time in the boosted frame.
+
+    // For now, start with the assumption that this will only happen
+    // at the start of the simulation.
+    const Real t_lab = 0.;
+
+    const Real uz_boost = WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        Vector<Real> xp, yp, zp;
+
+        for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
+        {
+
+            auto& attribs = pti.GetAttribs();
+            auto& uxp = attribs[PIdx::ux];
+            auto& uyp = attribs[PIdx::uy];
+            auto& uzp = attribs[PIdx::uz];
+
+            // Copy data from particle container to temp arrays
+            pti.GetPosition(xp, yp, zp);
+
+            // Loop over particles
+            const long np = pti.numParticles();
+            for (int i=0 ; i < np ; i++) {
+
+                // tpr is the particle's time in the boosted frame
+                const Real tpr = WarpX::gamma_boost*t_lab - uz_boost*zp[i]/(PhysConst::c*PhysConst::c);
+
+                // The particle's transformed location in the boosted frame
+                const Real xpr = xp[i];
+                const Real ypr = yp[i];
+                const Real zpr = WarpX::gamma_boost*zp[i] - uz_boost*t_lab;
+
+                // transform u and gamma to the boosted frame
+                const Real gamma_lab = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
+                // uxp[i] = uxp[i];
+                // uyp[i] = uyp[i];
+                uzp[i] = WarpX::gamma_boost*uzp[i] - uz_boost*gamma_lab;
+                const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
+
+                const Real vxpr = uxp[i]/gammapr;
+                const Real vypr = uyp[i]/gammapr;
+                const Real vzpr = uzp[i]/gammapr;
+
+                // Move the particles to where they will be at t = 0 in the boosted frame
+                xp[i] = xpr - tpr*vxpr;
+                yp[i] = ypr - tpr*vypr;
+                zp[i] = zpr - tpr*vzpr;
+            }
+
+            // Copy the data back to the particle container
+            pti.SetPosition(xp, yp, zp);
+
+        }
+    }
+}
+
 void
 PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
                                            Real x_rms, Real y_rms, Real z_rms,
@@ -98,6 +164,10 @@ PhysicalParticleContainer::AddParticles (int lev)
                         plasma_injector->z_rms,
                         plasma_injector->q_tot,
                         plasma_injector->npart);
+
+        if (WarpX::gamma_boost > 1.) {
+            MaptoBoostedFrame();
+        }
 
         return;
     }

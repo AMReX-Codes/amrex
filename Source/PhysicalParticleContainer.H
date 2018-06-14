@@ -68,6 +68,8 @@ public:
     virtual void AddParticles (int lev);
     void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
 
+    void MaptoBoostedFrame();
+
     void AddGaussianBeam(amrex::Real x_m, amrex::Real y_m, amrex::Real z_m,
                          amrex::Real x_rms, amrex::Real y_rms, amrex::Real z_rms,
                          amrex::Real q_tot, long npart);
