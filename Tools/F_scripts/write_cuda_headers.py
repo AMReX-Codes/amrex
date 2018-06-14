@@ -156,13 +156,12 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
             # we found a target function, so capture the entire
             # signature, which may span multiple lines
             if found is not None:
-                launch_sig = "" + line
+                launch_sig = ""
                 sig_end = False
-                while not sig_end:
-                    line = hin.readline()
+                while not line.strip().endswith(";"):
                     launch_sig += line
-                    if line.strip().endswith(";"):
-                        sig_end = True
+                    line = hin.readline()
+                launch_sig += line
 
                 signatures[found] = launch_sig
 
@@ -195,6 +194,9 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
             hout.write(line)
 
         # now do the CUDA signatures
+        print(" ")
+        print("***********************************************************")
+        print("file: {}".format(h.name))
         print('signatures: {}'.format(signatures))
 
         hout.write("\n")
@@ -317,7 +319,7 @@ def convert_cxx(outdir, cxx_files):
         line = hin.readline()
         while line:
 
-            # if the line starts with "#pragma gpu", then we need 
+            # if the line starts with "#pragma gpu", then we need
             # to take action
             if line.startswith("#pragma gpu"):
                 # we don't need to reproduce the pragma line in the
