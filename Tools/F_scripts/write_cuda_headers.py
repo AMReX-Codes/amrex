@@ -17,7 +17,9 @@ import os
 import re
 import sys
 import argparse
+
 import find_files_vpath as ffv
+import preprocess
 
 if sys.version_info[0] == 2:
     sys.exit("python 3 is required")
@@ -54,6 +56,17 @@ fortran_re = re.compile("(AMREX_DEVICE)(\\s+)(subroutine)(\\s+)((?:[a-z][a-z_]+)
 fortran_binding_re = re.compile("(void)(\\s+)((?:[a-z][a-z_]+))",
                                 re.IGNORECASE|re.DOTALL)
 
+class HeaderFile(object):
+    """ hold information about one of the headers """
+
+    def __init__(self, filename):
+
+        self.name = filename
+
+        # when we preprocess, the output has a different name
+        self.cpp_name = None
+
+
 def find_fortran_targets(fortran_names):
     """read through the Fortran files and look for those marked up with
     AMREX_DEVICE"""
@@ -83,29 +96,35 @@ def find_fortran_targets(fortran_names):
     return targets
 
 
-def convert_headers(outdir, fortran_targets, header_files):
+def convert_headers(outdir, fortran_targets, header_files, cpp):
     """rewrite the C++ headers that contain the Fortran routines"""
 
     print('looking for targets: {}'.format(fortran_targets))
     print('looking in header files: {}'.format(header_files))
 
+    # first preprocess all the headers and store them in a temporary
+    # location.  The preprocessed headers will only be used for the
+    # search for the signature, not as the basis for writing the final
+    # CUDA header
+    pheaders = []
+
     for h in header_files:
         hdr = "/".join([h[1], h[0]])
+        hf = HeaderFile(hdr)
 
-        # open the header file
+        # preprocess -- this will create a new file in our temp_dir that
+        # was run through cpp and has the name CPP-filename
+        cpp.preprocess(hf, add_name="CPP")
+
+    # now scan the preprocessed headers and find any of our function
+    # signatures and output to a new unpreprocessed header
+    for h in pheaders:
+
+        # open the preprocessed header file -- this is what we'll scan
         try:
-            hin = open(hdr, "r")
+            hin = open(h.cpp_name, "r")
         except IOError:
-            sys.exit("Cannot open header {}".format(hdr))
-
-        # open the CUDA header for output
-        _, tail = os.path.split(hdr)
-        ofile = os.path.join(outdir, tail)
-        try:
-            hout = open(ofile, "w")
-        except IOError:
-            sys.exit("Cannot open output file {}".format(ofile))
-
+            sys.exit("Cannot open header {}".format(h.cpp_name))
 
         # we'll keep track of the signatures that we need to mangle
         signatures = {}
@@ -114,9 +133,8 @@ def convert_headers(outdir, fortran_targets, header_files):
         while line:
 
             # if the line does not start a function signature that
-            # matches one of our targets, then we just write it out
-            # unchanged.  otherwise, we need to capture the function
-            # signature
+            # matches one of our targets, then we ignore it.
+            # Otherwise, we need to capture the function signature
             found = None
 
             # strip comments
@@ -131,6 +149,8 @@ def convert_headers(outdir, fortran_targets, header_files):
                         print('found target {} in header {}'.format(target, h))
                         break
 
+            # we found a target function, so capture the entire
+            # signature, which may span multiple lines
             if found is not None:
                 launch_sig = "" + line
                 sig_end = False
@@ -142,16 +162,31 @@ def convert_headers(outdir, fortran_targets, header_files):
 
                 signatures[found] = launch_sig
 
-            else:
-                # this wasn't a device header
-                hout.write(line)
+        hin.close()
 
-            line = hin.readline()
+        # we've now finished going through the header. Now copy
+        # over the unpreprocessed header and append the new CUDA
+        # signatures at the end.
 
-        # we've now finished going through the header.  All the normal
-        # signatures have simply been copied over.  Now we need to
-        # make the versions of the signatures for the device
+        # open the CUDA header for output
+        _, tail = os.path.split(hf.name)
+        ofile = os.path.join(outdir, tail)
+        try:
+            hout = open(ofile, "w")
+        except IOError:
+            sys.exit("Cannot open output file {}".format(ofile))
 
+        # and back to the original file (not preprocessed) for the input
+        try:
+            hin = open(hf.name, "w")
+        except IOError:
+            sys.exit("Cannot open output file {}".format(ofile))
+
+        # copy all the lines over
+        for line in hin:
+            hout.write(line)
+
+        # now do the CUDA signatures
         print('signatures: {}'.format(signatures))
 
         hout.write("\n")
@@ -160,7 +195,7 @@ def convert_headers(outdir, fortran_targets, header_files):
         hout.write("#include <AMReX_Device.H>\n")
         hout.write("\n")
 
-        hdrmh = os.path.basename(hdr).strip(".H")
+        hdrmh = os.path.basename(hf.name).strip(".H")
 
         # Add an include guard -- do we still need this?
         hout.write("#ifndef _cuda_" + hdrmh + "_\n")
@@ -322,22 +357,42 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir",
                         help="where to write the new header files",
                         default="")
+    parser.add_argument("--cpp",
+                        help="command to run C preprocessor on .F90 files first.  If omitted, then no preprocessing is done",
+                        default="")
+    parser.add_argument("--defines",
+                        help="defines to send to preprocess the files",
+                        default="")
+
+
     args = parser.parse_args()
+
+    if args.cpp != "":
+        cpp_pass = preprocess.Preprocessor(temp_dir=args.output_dir, cpp_cmd=args.cpp,
+                                           defines=args.defines)
+    else:
+        cpp_pass = None
+
+    # part I: for each Fortran routine marked with
+    # AMREX_DEVICE_LAUNCH, we need to append a new header in the
+    # corresponding *_F.H file
 
     # find the location of the Fortran files
     fortran, _ = ffv.find_files(args.vpath, args.fortran)
 
-    # find the names of the Fortran subroutines that are marked as device
+    # find the names of the Fortran subroutines that are marked as
+    # device
     targets = find_fortran_targets(fortran)
 
     # find the location of the headers
     headers, _ = ffv.find_files(args.vpath, args.headers)
 
-    # copy the headers to the output directory, replacing the signatures
-    # of the target Fortran routines with the CUDA pair
-    convert_headers(args.output_dir, targets, headers)
+    # copy the headers to the output directory, replacing the
+    # signatures of the target Fortran routines with the CUDA pair
+    convert_headers(args.output_dir, targets, headers, cpp_pass)
 
-    # now let's do the C++ files
+
+    # part II: for each C++ file, we need to expand the `#pragma gpu`
     cxx, _ = ffv.find_files(args.vpath, args.cxx)
 
     convert_cxx(args.output_dir, cxx)
