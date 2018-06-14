@@ -126,6 +126,12 @@ extern "C" {
                                       const amrex_real alpha, const amrex_real beta);
 
 
+    void amrex_eb_mg_interp (const int* lo, const int* hi,
+                             amrex_real* fine, const int* flo, const int* fhi,
+                             const amrex_real* crse, const int* clo, const int* chi,
+                             const void* flag, const int* glo, const int* ghi,
+                             const int* ncomp);
+
 #ifdef __cplusplus
 }
 #endif

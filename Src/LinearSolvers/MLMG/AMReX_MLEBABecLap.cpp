@@ -7,6 +7,7 @@
 #include <AMReX_MLEBABecLap_F.H>
 #include <AMReX_MLABecLap_F.H>
 #include <AMReX_ABec_F.H>
+#include <AMReX_MG_F.H>
 
 namespace amrex {
 
@@ -502,6 +503,61 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                         dxinv, m_a_scalar, m_b_scalar);
         }
     }
+}
+
+void
+MLEBABecLap::restriction (int, int, MultiFab& crse, MultiFab& fine) const
+{
+    const int ncomp = getNComp();
+    amrex::EB_average_down(fine, crse, 0, ncomp, 2);
+}
+
+void
+MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
+{
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][fmglev].get());
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
+    {
+        const Box&         bx    = mfi.tilebox();
+        const int          ncomp = getNComp();
+        const FArrayBox& cfab    = crse[mfi];
+        FArrayBox&       ffab    = fine[mfi];
+
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(amrex::refine(bx,2)) : FabType::regular;
+
+        if (fabtyp == FabType::regular)
+        {
+            amrex_mg_interp(ffab.dataPtr(),
+                            AMREX_ARLIM(ffab.loVect()), AMREX_ARLIM(ffab.hiVect()),
+                            cfab.dataPtr(),
+                            AMREX_ARLIM(cfab.loVect()), AMREX_ARLIM(cfab.hiVect()),
+                            bx.loVect(), bx.hiVect(), &ncomp);
+        }
+        else if (fabtyp == FabType::singlevalued)
+        {
+            amrex_eb_mg_interp(BL_TO_FORTRAN_BOX(bx),
+                               BL_TO_FORTRAN_ANYD(ffab),
+                               BL_TO_FORTRAN_ANYD(cfab),
+                               BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                               &ncomp);
+        }
+    }
+}
+
+void
+MLEBABecLap::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
+                                     const MultiFab& fine_sol, const MultiFab& fine_rhs)
+{
+    const auto amrrr = AMRRefRatio(camrlev);
+    const int ncomp = getNComp();
+    amrex::average_down(fine_sol, crse_sol, 0, ncomp, amrrr);
+    amrex::EB_average_down(fine_rhs, crse_rhs, 0, ncomp, amrrr);
 }
 
 }

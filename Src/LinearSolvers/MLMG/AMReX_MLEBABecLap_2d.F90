@@ -9,7 +9,8 @@ module amrex_mlebabeclap_2d_module
   implicit none
 
   private
-  public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize
+  public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
+       amrex_eb_mg_interp
 
 contains
 
@@ -266,5 +267,50 @@ contains
        end do
     end do
   end subroutine amrex_mlebabeclap_normalize
+
+
+  subroutine amrex_eb_mg_interp (lo, hi, fine, flo, fhi, crse, clo, chi, flag, glo, ghi, ncomp) &
+       bind(c,name='amrex_eb_mg_interp')
+    integer, dimension(2), intent(in) :: lo, hi, flo, fhi, clo, chi, glo, ghi
+    integer, intent(in) :: ncomp
+    real(amrex_real), intent(inout) :: fine(flo(1):fhi(1),flo(2):fhi(2),ncomp)
+    real(amrex_real), intent(in   ) :: crse(clo(1):chi(1),clo(2):chi(2),ncomp)
+    integer         , intent(in   ) :: flag(glo(1):ghi(1),glo(2):ghi(2))
+
+    integer :: i,j,ii,jj,n
+
+    do n = 1, ncomp
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+
+             ii = 2*i
+             jj = 2*j
+             if (.not.is_covered_cell(flag(ii,jj))) then
+                fine(ii,jj,n) = fine(ii,jj,n) + crse(i,j,n)
+             end if
+
+             ii = 2*i+1
+             jj = 2*j
+             if (.not.is_covered_cell(flag(ii,jj))) then
+                fine(ii,jj,n) = fine(ii,jj,n) + crse(i,j,n)
+             end if
+
+             ii = 2*i
+             jj = 2*j+1
+             if (.not.is_covered_cell(flag(ii,jj))) then
+                fine(ii,jj,n) = fine(ii,jj,n) + crse(i,j,n)
+             end if
+
+             ii = 2*i+1
+             jj = 2*j+1
+             if (.not.is_covered_cell(flag(ii,jj))) then
+                fine(ii,jj,n) = fine(ii,jj,n) + crse(i,j,n)
+             end if
+
+          end do
+       end do
+    end do
+
+  end subroutine amrex_eb_mg_interp
 
 end module amrex_mlebabeclap_2d_module
