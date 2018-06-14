@@ -19,6 +19,15 @@ MLEBABecLap::MLEBABecLap (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
+std::unique_ptr<FabFactory<FArrayBox> >
+MLEBABecLap::makeFactory (int amrlev, int mglev) const
+{
+    return makeEBFabFactory(m_geom[amrlev][mglev],
+                            m_grids[amrlev][mglev],
+                            m_dmap[amrlev][mglev],
+                            {1,1,1}, EBSupport::full);
+}
+
 void
 MLEBABecLap::define (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
@@ -114,8 +123,6 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
-        amrex::Abort("averageDownCoeffsSameAmrLevel: todo");
-
         if (m_a_scalar == 0.0)
         {
             a[mglev].setVal(0.0);
