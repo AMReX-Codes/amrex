@@ -39,22 +39,24 @@ class Preprocessor(object):
         self.defines = defines
         self.f90_preprocess = f90_preprocess
 
-    def preprocess(self, sf):
+    def preprocess(self, sf, add_name="F90PP"):
         """ preprocess the file described by a SourceFile object sf """
 
         # we want to do:
         # $(FORT_CPP) $(CPPFLAGS) $< | $(F90PREP) > $(f77TempDir)/$*.f90
         # we output to the temporary directory
 
-        processed_file = "{}/F90PP-{}".format(self.temp_dir,
-                                             os.path.basename(sf.name))
+        processed_file = "{}/{}-{}".format(self.temp_dir, add_name,
+                                           os.path.basename(sf.name))
 
-        if self.f90_preprocess != "":
+        if self.f90_preprocess != "" and self.f90_preprocess is not None:
             command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
                                              sf.name, self.f90_preprocess)
         else:
             command = "{} {} {}".format(self.cpp_cmd, self.defines,
                                         sf.name)
+
+        print("running {}".format(command))
 
         stdout, rc = run(command, outfile=processed_file)
 
