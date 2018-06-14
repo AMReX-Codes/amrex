@@ -116,9 +116,13 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         # was run through cpp and has the name CPP-filename
         cpp.preprocess(hf, add_name="CPP")
 
+        pheaders.append(hf)
+
     # now scan the preprocessed headers and find any of our function
     # signatures and output to a new unpreprocessed header
     for h in pheaders:
+
+        print("working on {}".format(h.cpp_name))
 
         # open the preprocessed header file -- this is what we'll scan
         try:
@@ -162,6 +166,8 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
 
                 signatures[found] = launch_sig
 
+            line = hin.readline()
+
         hin.close()
 
         # we've now finished going through the header. Now copy
@@ -176,9 +182,11 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         except IOError:
             sys.exit("Cannot open output file {}".format(ofile))
 
+        print("** outputting to ... ", ofile)
+
         # and back to the original file (not preprocessed) for the input
         try:
-            hin = open(hf.name, "w")
+            hin = open(hf.name, "r")
         except IOError:
             sys.exit("Cannot open output file {}".format(ofile))
 
