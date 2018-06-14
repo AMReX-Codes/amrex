@@ -11,7 +11,19 @@ struct PIdx
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
 	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+        xold, yold, zold, uxold, uyold, uzold,
+#endif        
 	nattribs
+    };
+};
+
+struct DiagIdx
+{
+    enum {
+        w = 0,
+        x, y, z, ux, uy, uz,
+        nattribs
     };
 };
 
@@ -57,6 +69,9 @@ class WarpXParticleContainer
 public:
     friend MultiParticleContainer;
 
+    using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
+    using DiagnosticParticles = std::map<std::pair<int, int>, DiagnosticParticleData>;
+    
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
@@ -82,6 +97,11 @@ public:
 
     virtual void PostRestart () = 0;
 
+    virtual void GetParticleSlice(const int direction,     const amrex::Real z_old,
+                                  const amrex::Real z_new, const amrex::Real t_boost, 
+                                  const amrex::Real t_lab, const amrex::Real dt,
+                                  DiagnosticParticles& diagnostic_particles) {}
+    
     void AllocData ();
 
     ///
