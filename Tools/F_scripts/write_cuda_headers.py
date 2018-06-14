@@ -76,8 +76,6 @@ def find_fortran_targets(fortran_names):
     for f in fortran_names:
         ffile = "/".join([f[1], f[0]])
 
-        print("working on {}".format(ffile))
-
         # open the Fortran file
         try:
             fin = open(ffile, "r")
@@ -121,8 +119,6 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
     # now scan the preprocessed headers and find any of our function
     # signatures and output to a new unpreprocessed header
     for h in pheaders:
-
-        print("working on {}".format(h.cpp_name))
 
         # open the preprocessed header file -- this is what we'll scan
         try:
@@ -173,10 +169,6 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         # be more signatures here than we really need, because some may
         # have come in via '#includes' in the preprocessing.
 
-        print(" ")
-        print("***********************************************************")
-        print("file: {}".format(h.name))
-        print('signatures: {}'.format(signatures))
 
         # Now we'll go back to the original file, parse it, making note
         # of any of the signatures we find, but using the preprocessed
@@ -190,8 +182,6 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         except IOError:
             sys.exit("Cannot open output file {}".format(ofile))
 
-        print("** outputting to ... ", ofile)
-
         # and back to the original file (not preprocessed) for the input
         try:
             hin = open(h.name, "r")
@@ -203,7 +193,9 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         line = hin.readline()
         while line:
 
-            print("line: {}".format(line))
+            # if the line does not start a function signature that we
+            # need, then we ignore it
+            found = None
 
             # strip comments
             idx = line.find("//")
@@ -220,25 +212,19 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
                         signatures_needed.append(found)
 
                         print('found target {} in unprocessed header {}'.format(target, h.name))
-                        print(fort_target_match.group(0))
                         break
 
             if found is not None:
-                pass
-            else:
-            # if found is not None:
-            #     launch_sig = "" + line
-            #     sig_end = False
-            #     while not sig_end:
-            #         line = hin.readline()
-            #         print("> line: {}".format(line))
-            #         launch_sig += line
-            #         if line.strip().endswith(";"):
-            #             sig_end = True
+                launch_sig = "" + line
+                sig_end = False
+                while not sig_end:
+                    line = hin.readline()
+                    launch_sig += line
+                    if line.strip().endswith(";"):
+                        sig_end = True
 
-            #     print("here")
-            # else:
-            #     # this was not one of our device headers
+            else:
+                # this was not one of our device headers
                 hout.write(line)
                 
             line = hin.readline()
