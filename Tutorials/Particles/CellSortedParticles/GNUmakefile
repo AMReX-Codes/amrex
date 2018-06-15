@@ -12,7 +12,7 @@ USE_PARTICLES = TRUE
 
 PRECISION     = DOUBLE
 
-USE_MPI       = FALSE
+USE_MPI       = TRUE
 USE_OMP       = FALSE
 
 ###################################################
