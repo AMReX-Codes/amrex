@@ -61,6 +61,9 @@ InitParticles(const IntVect& a_num_particles_per_cell)
                                      *a_num_particles_per_cell[1], 
                                      *a_num_particles_per_cell[2]);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
@@ -125,6 +128,9 @@ CellSortedParticleContainer::InitCellVectors()
         }
     }
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         auto& particles = pti.GetArrayOfStructs();
@@ -147,6 +153,10 @@ CellSortedParticleContainer::BuildFortranStructures()
     BL_PROFILE("CellSortedParticleContainer::BuildFortranStructures");
     
     const int lev = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
@@ -168,7 +178,10 @@ CellSortedParticleContainer::MoveParticles()
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).CellSize();
     const Real dt = 0.1;
-    
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int grid_id = pti.index();
@@ -202,6 +215,10 @@ CellSortedParticleContainer::ReBin()
     BL_PROFILE("CellSortedParticleContainer::ReBin()");
     
     const int lev = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int grid_id = pti.index();
