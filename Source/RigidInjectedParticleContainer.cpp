@@ -260,6 +260,21 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
 
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+    auto& xpold  = attribs[PIdx::xold];
+    auto& ypold  = attribs[PIdx::yold];
+    auto& zpold  = attribs[PIdx::zold];
+    auto& uxpold = attribs[PIdx::uxold];
+    auto& uypold = attribs[PIdx::uyold];
+    auto& uzpold = attribs[PIdx::uzold];
+
+    warpx_copy_attribs(&np, xp.data(), yp.data(), zp.data(),
+                       uxp.data(), uyp.data(), uzp.data(),
+                       xpold.data(), ypold.data(), zpold.data(),
+                       uxpold.data(), uypold.data(), uzpold.data());
+
+#endif
+
     // Save the position and momenta, making copies
     Vector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
 
