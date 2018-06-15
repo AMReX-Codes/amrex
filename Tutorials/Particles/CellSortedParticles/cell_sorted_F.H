@@ -13,7 +13,10 @@ extern "C"
                         int** c_vectors,
                         int* sizes,
                         const int* clo,
-                        const int* chi);
+                        const int* chi,
+                        const amrex_real* plo,
+                        const amrex_real* dx,
+                        const amrex_real* dt);
     
 #ifdef __cplusplus
 };

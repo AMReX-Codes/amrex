@@ -35,7 +35,8 @@ contains
   
 end module cell_sorted_particle_module
 
-subroutine move_particles(particles, np, cell_part_ids, cell_part_cnt, clo, chi) &
+subroutine move_particles(particles, np, &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt) &
      bind(c,name="move_particles")
   
   use amrex_fort_module, only: amrex_real
@@ -44,15 +45,23 @@ subroutine move_particles(particles, np, cell_part_ids, cell_part_cnt, clo, chi)
   
   implicit none
 
-  type(particle_t), intent(inout) :: particles(np)
-  integer(c_int),   intent(in)    :: np
-  integer(c_int),   intent(in)    :: clo(3), chi(3)
-  type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-
+  type(particle_t), intent(inout), target :: particles(np)
+  integer(c_int), intent(in) :: np
+  integer(c_int), intent(in) :: clo(3), chi(3)
+  type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  real(amrex_real), intent(in) :: plo(3)
+  real(amrex_real), intent(in) :: dx(3)
+  real(amrex_real), intent(in) :: dt
+  
   integer :: i, j, k, p, cell_np, new_np
+  integer :: cell(3)
   integer(c_int), pointer :: cell_parts(:)
+  type(particle_t), pointer :: part
+  real(amrex_real) inv_dx(3)
 
+  inv_dx = 1.d0/dx
+  
   do k = clo(3), chi(3)
      do j = clo(2), chi(2)
         do i = clo(1), chi(1)
@@ -62,8 +71,16 @@ subroutine move_particles(particles, np, cell_part_ids, cell_part_cnt, clo, chi)
            new_np = cell_np
            p = 1
            do while (p <= new_np)
-              if (mod(particles(cell_parts(p))%id, 2) == 0) then
-                 particles(cell_parts(p))%sorted = 0
+              part => particles(cell_parts(p))
+              
+              ! move the particle in a straight line
+              part%pos = part%pos + dt*part%vel
+
+              ! if it has changed cells, remove from vector.
+              ! otherwise continue
+              cell = floor((part%pos - plo)*inv_dx)              
+              if ((cell(1) /= i) .or. (cell(2) /= j) .or. (cell(3) /= k)) then
+                 part%sorted = 0
                  call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
               else
                  p = p + 1

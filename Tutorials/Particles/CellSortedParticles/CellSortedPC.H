@@ -35,8 +35,14 @@ public:
     void InitParticles(const amrex::IntVect& a_num_particles_per_cell);
 
     void InitCellVectors();
+
+    void ReBin();
+
+    void MoveParticles();
     
 protected:
+
+    void BuildFortranStructures();
     
     std::map<int, amrex::BaseFab<std::unique_ptr<std::vector<int> > > > m_cell_vectors;
     std::map<int, amrex::BaseFab<int> > m_vector_size;

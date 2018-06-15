@@ -55,29 +55,16 @@ InitParticles(const IntVect& a_num_particles_per_cell)
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     const Real* dx = geom.CellSize();
+    const Real* plo = geom.ProbLo();
 
     const int num_ppc = AMREX_D_TERM( a_num_particles_per_cell[0], 
                                      *a_num_particles_per_cell[1], 
                                      *a_num_particles_per_cell[2]);
 
-    for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
-    {
-        const Box& box = mfi.validbox();
-        const int grid_id = mfi.index();
-        m_cell_vectors[grid_id].resize(box);
-        m_vector_size[grid_id].resize(box);
-        m_vector_ptrs[grid_id].resize(box);
-        for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv))
-        {
-            m_cell_vectors[grid_id](iv).reset(new std::vector<int>());
-        }
-    }
-    
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
         const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
-        const Real* tile_lo = tile_realbox.lo();
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
@@ -91,9 +78,9 @@ InitParticles(const IntVect& a_num_particles_per_cell)
                 get_position_unit_cell(r, a_num_particles_per_cell, i_part);
                 get_gaussian_random_momentum(u, 0.0, 0.1);
                 
-                Real x = tile_lo[0] + (iv[0] + r[0])*dx[0];
-                Real y = tile_lo[1] + (iv[1] + r[1])*dx[1];
-                Real z = tile_lo[2] + (iv[2] + r[2])*dx[2];
+                Real x = plo[0] + (iv[0] + r[0])*dx[0];
+                Real y = plo[1] + (iv[1] + r[1])*dx[1];
+                Real z = plo[2] + (iv[2] + r[2])*dx[2];
                 
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
@@ -107,64 +94,22 @@ InitParticles(const IntVect& a_num_particles_per_cell)
                 p.rdata(RealData::vy) = u[1];
                 p.rdata(RealData::vz) = u[2];
 
-                p.idata(IntData::sorted) = 1;
+                p.idata(IntData::sorted) = 0;
 
-                // note - use 1-based indexing for convenience with Fortran
-                m_cell_vectors[mfi.index()](iv)->push_back(particle_tile.size()+1);  
-
+                AMREX_ASSERT(this->Index(p, lev) == iv);
+                
                 particle_tile.push_back(p);
             }
         }
-    }
-
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        const Box& tile_box  = mfi.tilebox();
-        const int grid_id = mfi.index();
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        {
-            m_vector_size[grid_id](iv) = m_cell_vectors[grid_id](iv)->size();
-            m_vector_ptrs[grid_id](iv) = m_cell_vectors[grid_id](iv)->data();
-        }
-    }
-    
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
-        
-        move_particles(particles.data(), &np,
-                       m_vector_ptrs[grid_id].dataPtr(),
-                       m_vector_size[grid_id].dataPtr(),    
-                       m_vector_ptrs[grid_id].loVect(),
-                       m_vector_ptrs[grid_id].hiVect());
-    }
-    
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        const Box& tile_box  = mfi.tilebox();
-        const int grid_id = mfi.index();
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        {
-            const auto new_size = m_vector_size[grid_id](iv);
-            auto& pvec = *m_cell_vectors[grid_id](iv);
-            pvec.resize(new_size);
-        }
-    }        
+    }    
 }
 
 void
 CellSortedParticleContainer::InitCellVectors()
 {
-    BL_PROFILE("CellSortedParticleContainer::InitParticles");
+    BL_PROFILE("CellSortedParticleContainer::InitCellVectors");
     
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    const Real* dx = geom.CellSize();
 
     // allocate storage for cell vectors. NOTE - do not tile this loop
     for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
@@ -184,14 +129,24 @@ CellSortedParticleContainer::InitCellVectors()
     {
         auto& particles = pti.GetArrayOfStructs();
         const int np    = pti.numParticles();
-        for(int p = 0; p <= np; ++p) {
-            const IntVect& iv = this->Index(particles[p], lev);
+        for(int pindex = 0; pindex < np; ++pindex) {
+            ParticleType& p = particles[pindex];
+            const IntVect& iv = this->Index(p, lev);
+            p.idata(IntData::sorted) = 1;
             // note - use 1-based indexing for convenience with Fortran
-            m_cell_vectors[pti.index()](iv)->push_back(p + 1);
+            m_cell_vectors[pti.index()](iv)->push_back(pindex + 1);
         }
     }
     
-    // now we build the structures for passing into Fortran
+    BuildFortranStructures();
+}
+
+void
+CellSortedParticleContainer::BuildFortranStructures()
+{
+    BL_PROFILE("CellSortedParticleContainer::BuildFortranStructures");
+    
+    const int lev = 0;
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
@@ -202,4 +157,69 @@ CellSortedParticleContainer::InitCellVectors()
             m_vector_ptrs[grid_id](iv) = m_cell_vectors[grid_id](iv)->data();
         }
     }    
+}
+
+void
+CellSortedParticleContainer::MoveParticles()
+{
+    BL_PROFILE("CellSortedParticleContainer::MoveParticles()");
+    
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).CellSize();
+    const Real dt = 0.1;
+    
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+                
+        move_particles(particles.data(), &np,
+                       m_vector_ptrs[grid_id].dataPtr(),
+                       m_vector_size[grid_id].dataPtr(),    
+                       m_vector_ptrs[grid_id].loVect(),
+                       m_vector_ptrs[grid_id].hiVect(),
+                       plo, dx, &dt);
+
+        // resize particle vectors after call to move_particles
+        const Box& tile_box  = pti.tilebox();
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        {
+            const auto new_size = m_vector_size[grid_id](iv);
+            auto& pvec = *m_cell_vectors[grid_id](iv);
+            pvec.resize(new_size);
+        }
+    }
+}
+
+void
+CellSortedParticleContainer::ReBin()
+{
+    BL_PROFILE("CellSortedParticleContainer::ReBin()");
+    
+    const int lev = 0;
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+        for(int pindex = 0; pindex < np; ++pindex)
+        {
+            ParticleType& p = particles[pindex];
+            if (p.idata(IntData::sorted)) continue;
+            const IntVect& iv = this->Index(p, lev);
+            p.idata(IntData::sorted) = 1;
+            // note - use 1-based indexing for convenience with Fortran
+            m_cell_vectors[pti.index()](iv)->push_back(pindex + 1);
+        }        
+    }
+
+    BuildFortranStructures();    
 }

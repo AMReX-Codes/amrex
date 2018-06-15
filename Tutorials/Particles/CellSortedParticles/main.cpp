@@ -50,7 +50,8 @@ void test_cell_sorted(const TestParams& parms)
 
     CellSortedParticleContainer particles(geom, dm, ba);
     particles.InitParticles(parms.nppc);
-
+    particles.InitCellVectors();
+    
     amrex::Print() << "Done. " << std::endl;
 
     BL_PROFILE_VAR_STOP(blp_init);
@@ -61,7 +62,10 @@ void test_cell_sorted(const TestParams& parms)
 
     for (int step = 0; step < parms.nsteps; ++step)
     {
-        amrex::Print() << "    Time step: " <<  step << std::endl;        
+        amrex::Print() << "    Time step: " <<  step << std::endl;
+        particles.MoveParticles();
+        particles.Redistribute();
+        particles.ReBin();
     }
 
     amrex::Print() << "Done. " << std::endl;
