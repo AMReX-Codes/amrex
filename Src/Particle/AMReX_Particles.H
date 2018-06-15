@@ -521,7 +521,7 @@ public:
         resizeData();
     }
 
-    ~ParticleContainer () {}
+    virtual ~ParticleContainer () {}
 
     void Define (ParGDBBase* gdb)
     {
