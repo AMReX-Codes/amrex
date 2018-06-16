@@ -101,15 +101,15 @@ RigidInjectedParticleContainer::RemapParticles()
         const Real uz_boost = WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
         const Real csq = PhysConst::c*PhysConst::c;
 
+        vzbeam_ave_boosted = meanParticleVelocity(false)[2];
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         {
-
             // Get the average beam velocity in the boosted frame.
             // Note that the particles are already in the boosted frame.
             // This value is saved to advance the particles not injected yet
-            vzbeam_ave_boosted = meanParticleVelocity(false)[2];
 
             Vector<Real> xp, yp, zp;
 
@@ -160,18 +160,18 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
     // to the t=0 in the boosted frame. If using rigid_advance, the z position
     // is adjusted using vzbar, otherwise using vz[i]
 
+    if (rigid_advance) {
+        // Get the average beam velocity in the boosted frame
+        // This value is saved to advance the particles not injected yet
+        const Real vzbeam_ave_lab = meanParticleVelocity(false)[2];
+        vzbeam_ave_boosted = (vzbeam_ave_lab - WarpX::beta_boost*PhysConst::c)/(1. - vzbeam_ave_lab*WarpX::beta_boost/PhysConst::c);
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         Vector<Real> xp, yp, zp;
-
-        if (rigid_advance) {
-            // Get the average beam velocity in the boosted frame
-            // This value is saved to advance the particles not injected yet
-            const Real vzbeam_ave_lab = meanParticleVelocity(false)[2];
-            vzbeam_ave_boosted = (vzbeam_ave_lab - WarpX::beta_boost*PhysConst::c)/(1. - vzbeam_ave_lab*WarpX::beta_boost/PhysConst::c);
-        }
 
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
