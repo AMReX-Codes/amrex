@@ -252,6 +252,9 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 
 # $(CEXE_sources)
 ifeq ($(USE_CUDA),TRUE)
+CUDA_CPPFLAGS_T := $(patsubst -DAMREX_USE_MPI, ,$(FINAL_CPPFLAGS))
+CUDA_CPPFLAGS := $(patsubst -DBL_USE_MPI, ,$(CUDA_CPPFLAGS))
+
 $(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources) 
 	@if [ ! -d $(TmpBuildDir)/header_temp_dir ]; then mkdir -p $(TmpBuildDir)/header_temp_dir; fi
 	@$(SHELL) -ec 'touch $(TmpBuildDir)/header_temp' # So that the rule always gets updated
@@ -262,7 +265,7 @@ $(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources)
              --fortran "$(F90EXE_sources) $(FEXE_sources)" \
              --cxx "$(CEXE_sources)" \
              --cpp "$(HOST_CC) -E -P -std=c99" \
-             --defines "$(FINAL_CPPFLAGS) $(includes)"
+             --defines "$(CUDA_CPPFLAGS) $(includes)"
 endif
 
 #
