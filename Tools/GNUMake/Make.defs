@@ -361,13 +361,18 @@ ifeq ($(USE_CUDA),TRUE)
     ifeq ($(USE_MPI),TRUE)
       # Make sure that the C/C++ MPI
       # wrappers are calling nvcc to compile the code.
-      # This is OpenMPI/Spectrum MPI specific right now.
+      # Right now we handle OpenMPI/Spectrum MPI and MPICH.
       # Other MPI implementations could be added later.
 
       export OMPI_CC := $(CC)
       export OMPI_CXX := $(CXX)
       export OMPI_F77 := $(FC)
       export OMPI_FC  := $(F90)
+
+      export MPICH_CC  := $(CC)
+      export MPICH_CXX := $(CXX)
+      export MPICH_F77 := $(FC)
+      export MPICH_FC  := $(F90)
 
       LINK_WITH_FORTRAN_COMPILER=TRUE
     endif
