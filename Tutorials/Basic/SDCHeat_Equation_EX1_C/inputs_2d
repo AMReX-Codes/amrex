@@ -1,4 +1,4 @@
-nsteps = 1024
-plot_int = 32
-n_cell = 256
+nsteps = 8
+plot_int = 1
+n_cell = 64
 max_grid_size = 64

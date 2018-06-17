@@ -45,14 +45,19 @@ module pf_mod_quadrature
 contains
 
   !>  Subroutine to create quadrature matrices
- subroutine pf_quadrature(qtype_in, nnodes, nnodes0, nodes, nflags, smat, qmat,qmatFE,qmatBE,qmatLU)bind(C, name="pf_quadrature")
+ subroutine pf_quadrature(qtype_in, nnodes, nnodes0, nodes, nflags, smatin, qmatin,qmatFEin,qmatBEin,qmatLUin)bind(C, name="pf_quadrature")
 
-    integer,    intent(in)  :: qtype_in, nnodes, nnodes0
-    real(amrex_real), intent(out) :: nodes(nnodes)
-    real(amrex_real), intent(out) :: smat(nnodes-1,nnodes), qmat(nnodes-1,nnodes)
-    real(amrex_real), intent(out) :: qmatFE(nnodes-1,nnodes), qmatBE(nnodes-1,nnodes),qmatLU(nnodes-1,nnodes)
+   integer,    intent(in)  :: qtype_in, nnodes, nnodes0
+    real(amrex_real), intent(inout) :: nodes(nnodes)
+    real(amrex_real), intent(out) :: smatin(nnodes,nnodes-1)
+    real(amrex_real), intent(inout) :: qmatin(nnodes,nnodes-1)
+    real(amrex_real), intent(out) :: qmatFEin(nnodes,nnodes-1), qmatBEin(nnodes,nnodes-1),qmatLUin(nnodes,nnodes-1)
+!    real(amrex_real), intent(out) :: qmatFE(nnodes-1,nnodes), qmatBE(nnodes-1,nnodes),qmatLU(nnodes-1,nnodes)
+!    real(amrex_real), intent(out) :: smat(nnodes-1,nnodes), qmat(nnodes-1,nnodes)
     integer,    intent(out) :: nflags(nnodes)
 
+    real(amrex_real) :: qmatFE(nnodes-1,nnodes), qmatBE(nnodes-1,nnodes),qmatLU(nnodes-1,nnodes)
+    real(amrex_real) :: smat(nnodes-1,nnodes), qmat(nnodes-1,nnodes)
     real(c_long_double) :: qnodes0(nnodes0), qnodes(nnodes), dt
     real(amrex_real)          :: qmat0(nnodes0-1,nnodes0), smat0(nnodes0-1,nnodes0)
     integer             :: flags0(nnodes0)
@@ -63,6 +68,7 @@ contains
     proper    = btest(qtype_in, 8)
     composite = btest(qtype_in, 9)
     no_left   = btest(qtype_in, 10)
+    print *,'proper,composite,no_left',proper,composite,no_left
 
     qmat = 0
     smat = 0
@@ -143,10 +149,23 @@ contains
     if (all(nodes == 0.0d0)) then
        stop 'ERROR: pf_quadrature: invalid SDC nnodes.'
     end if
+!!$    print *,'printing matrices in quadrature'
+!!$    do m = 1,nnodes-1
+!!$       print *,qmat(m,:)
+!!$       print *,qmatFE(m,:)
+!!$       print *,qmatBE(m,:)
+!!$    end do
+!!$    print *,'transpose'
+    do n = 1,nnodes-1
+       do m = 1,nnodes
+          qmatin(m,n)=qmat(n,m)
+          qmatFEin(m,n)=qmatFE(n,m)
+          qmatBEin(m,n)=qmatBE(n,m)
+          qmatLUin(m,n)=qmatLU(n,m)
+       end do
+    end do
 
-    print *,qmat
-    print *,qmatFE
-    print *,qmatBE
+    
   end subroutine pf_quadrature
 
   !>  Function to decide if the restriction of the nodes is pointwise, e.g. coarse nodes are every other fine node
