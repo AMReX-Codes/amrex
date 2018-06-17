@@ -11,6 +11,9 @@ extern "C"
     void init_phi(const int* lo, const int* hi,
                   amrex_real* data, const int* dlo, const int* dhi,
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+    void err_phi(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
     
     void compute_flux(const int* lo, const int* hi,
                       const int* domlo, const int* domhi,
@@ -33,7 +36,7 @@ extern "C"
 #endif
                     const amrex_real* dx, amrex_real dt); // note dt is passed by value
   void pf_quadrature(int* qtype_in, int* nnodes, int* nnodes0,
-    amrex_real* nodes, amrex_real* smat,amrex_real* qmat,
+		     amrex_real* nodes, int* nflags,amrex_real* smat,amrex_real* qmat,
     amrex_real* qmatFE,amrex_real* qmatBE,amrex_real* qmatLU);
 #ifdef __cplusplus
 }

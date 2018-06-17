@@ -24,7 +24,8 @@ void sweep (MultiFab& phi_old,
 	    Real qnodes [],
 	    Real qmat [][SDC_NNODES],
 	    Real qmatE [][SDC_NNODES],
-	    Real qmatI [][SDC_NNODES]);
+	    Real qmatI [][SDC_NNODES],
+	    int nsweeps);
 
 
 #endif

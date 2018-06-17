@@ -23,7 +23,7 @@ void main_main ()
     Real strt_time = ParallelDescriptor::second();
 
     // AMREX_SPACEDIM: number of dimensions
-    int n_cell, max_grid_size, nsteps, plot_int;
+    int n_cell, max_grid_size, nsteps, plot_int,nsweeps;
     Vector<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
 
     // inputs parameters
@@ -44,10 +44,11 @@ void main_main ()
         pp.query("plot_int",plot_int);
 
         // Default nsteps to 0, allow us to set it to something else in the inputs file
-        nsteps = 10;
+        nsteps = 0;
         pp.query("nsteps",nsteps);
-
         pp.queryarr("is_periodic", is_periodic);
+
+
     }
 
     // make BoxArray and Geometry
@@ -89,7 +90,7 @@ void main_main ()
 
 
     // Initialize phi_new by calling a Fortran routine.
-    // MFIter = MultiFab Iterator
+    //MFIter = MultiFab Iterator
     for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
@@ -102,7 +103,7 @@ void main_main ()
     // compute the time step
     const Real* dx = geom.CellSize();
     Real dt = dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
-
+    dt = 0.01/nsteps;
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
     {
@@ -141,8 +142,10 @@ void main_main ()
     }
     
 
-    // make the quadrature tables
+    // make the quadrature tables: the SDC_NNODES is defined in 
     Real qnodes [SDC_NNODES];
+    int  nflags [SDC_NNODES];
+    //    Real qmat [(SDC_NNODES-1)*SDC_NNODES];
     Real qmat [SDC_NNODES-1][SDC_NNODES];
     Real smat [SDC_NNODES-1][SDC_NNODES];
     Real qmatFE [SDC_NNODES-1][SDC_NNODES];
@@ -150,43 +153,71 @@ void main_main ()
     Real qmatLU [SDC_NNODES-1][SDC_NNODES];
     int qtype_in=1;
     int nnodes=SDC_NNODES;
-    pf_quadrature(&qtype_in, &nnodes, &nnodes,qnodes, &smat[0][0],&qmat[0][0],&qmatFE[0][0],&qmatBE[0][0],&qmatLU[0][0]);
-    for (int i = 0; i <SDC_NNODES-1; ++i)
-      for (int j = 0; j <SDC_NNODES; ++j)
+    pf_quadrature(&qtype_in, &nnodes, &nnodes,qnodes,nflags, &smat[0][0],&qmat[0][0],&qmatFE[0][0],&qmatBE[0][0],&qmatLU[0][0]);
+    amrex::Print() << "qnodes "  << "\n";
+    for (int i = 0; i <SDC_NNODES; ++i)
 	{
-	  std::cout << qmat[i][j] << std::endl;
+	  std::cout << qnodes[i] << std::endl;
 	}
+    amrex::Print() << "qmat "  << "\n";
     for (int i = 0; i <SDC_NNODES-1; ++i)
-      for (int j = 0; j <SDC_NNODES; ++j){
-	std::cout << qmatFE[i][j] << std::endl;
+      {
+	for (int j = 0; j <SDC_NNODES; ++j)
+	  {
+	    std::cout << qmat[i][j] << " "; 
+	  }
+	std::cout  << std::endl;
       }
+    amrex::Print() << "qmatFE "  << "\n";
     for (int i = 0; i <SDC_NNODES-1; ++i)
-      for (int j = 0; j <SDC_NNODES; ++j)
-	{
-	  std::cout << qmatBE[i][j] << std::endl;
-	}
-    
+      {
+	for (int j = 0; j <SDC_NNODES; ++j)
+	  {
+	    std::cout << qmatFE[i][j] << " ";
+	  }
+    	std::cout  << std::endl;
+      }
+
+    amrex::Print() << "qmatBE "  << "\n";
+    for (int i = 0; i <SDC_NNODES-1; ++i)
+      {
+	for (int j = 0; j <SDC_NNODES; ++j)
+	  {
+	    std::cout << qmatBE[i][j] << " "; 
+	  }
+    	std::cout  << std::endl;
+      }
+
+    MultiFab::Copy(phi_old,phi_new, 0, 0, 1, 0);
+    nsweeps =4;
     for (int n = 1; n <= nsteps; ++n)
     {
 
-        MultiFab::Copy(phi_sdc[0],phi_new, 0, 0, 1, 0);
-
-        // new_phi = old_phi + dt * (something)
-	sweep(phi_old, phi_new, flux,phi_sdc,res_sdc,f_sdc,f_sdc_old, dt, geom,qnodes,qmat,qmatFE,qmatBE); 
-        time = time + dt;
-        
-        MultiFab::Copy(phi_new, phi_sdc[SDC_NNODES-1], 0, 0, 1, 0);
-
-        // Tell the I/O Processor to write out which step we're doing
-        amrex::Print() << "Advanced step " << n << "\n";
-
-        // Write a plotfile of the current data (plot_int was defined in the inputs file)
-        if (plot_int > 0 && n%plot_int == 0)
+      // new_phi = old_phi + dt * (something)
+      sweep(phi_old, phi_new, flux,phi_sdc,res_sdc,f_sdc,f_sdc_old, dt, geom,qnodes,qmat,qmatFE,qmatBE,nsweeps); 
+      time = time + dt;
+      MultiFab::Copy(phi_old,phi_new, 0, 0, 1, 0);
+      
+      
+            for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+      	{
+      	  const Box& bx = mfi.validbox();
+      	  err_phi(BL_TO_FORTRAN_BOX(bx),
+      		  BL_TO_FORTRAN_ANYD(phi_new[mfi]),
+      		  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+      	}
+      // Tell the I/O Processor to write out which step we're doing
+      amrex::Print() << "Advanced step " << n << "\n";
+      
+      // Write a plotfile of the current data (plot_int was defined in the inputs file)
+      if (plot_int > 0 && n%plot_int == 0)
         {
-            const std::string& pltfile = amrex::Concatenate("plt",n,5);
-            WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
+	  const std::string& pltfile = amrex::Concatenate("plt",n,5);
+	  WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
         }
     }
+    
+
 
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
