@@ -97,8 +97,6 @@ InitParticles(const IntVect& a_num_particles_per_cell)
                 p.rdata(RealData::vy) = u[1];
                 p.rdata(RealData::vz) = u[2];
 
-                p.idata(IntData::sorted) = 0;
-
                 AMREX_ASSERT(this->Index(p, lev) == iv);
                 
                 particle_tile.push_back(p);
@@ -108,14 +106,34 @@ InitParticles(const IntVect& a_num_particles_per_cell)
 }
 
 void
-CellSortedParticleContainer::InitCellVectors()
+CellSortedParticleContainer::UpdateCellVectors()
 {
-    BL_PROFILE("CellSortedParticleContainer::InitCellVectors");
+    BL_PROFILE("CellSortedParticleContainer::UpdateCellVectors");
     
     const int lev = 0;
+    
+    bool needs_update = false;
+    if (not m_vectors_initialized)
+    {
+        // this is the first call, so we must update
+        m_vectors_initialized = true;
+        needs_update = true;
+    }
+    else if ((m_BARef != this->ParticleBoxArray(lev).getRefID()) or 
+             (m_DMRef != this->ParticleDistributionMap(lev).getRefID()))
+    {
+        // the grids have changed, so we must update
+        m_BARef = this->ParticleBoxArray(lev).getRefID();
+        m_DMRef = this->ParticleDistributionMap(lev).getRefID();
+        needs_update = true;
+    }
+    
+    if (not needs_update) return;
 
-    m_BARef = this->ParticleBoxArray(lev).getRefID();
-    m_DMRef = this->ParticleDistributionMap(lev).getRefID();
+    // clear old data
+    m_cell_vectors.clear();
+    m_vector_size.clear();
+    m_vector_ptrs.clear();
     
     // allocate storage for cell vectors. NOTE - do not tile this loop
     for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
@@ -131,6 +149,7 @@ CellSortedParticleContainer::InitCellVectors()
         }
     }
 
+    // insert particles into vectors - this can be tiled
 #ifdef _OPENMP
 #pragma omp parallel
 #endif    
@@ -147,13 +166,13 @@ CellSortedParticleContainer::InitCellVectors()
         }
     }
     
-    BuildFortranStructures();
+    UpdateFortranStructures();
 }
 
 void
-CellSortedParticleContainer::BuildFortranStructures()
+CellSortedParticleContainer::UpdateFortranStructures()
 {
-    BL_PROFILE("CellSortedParticleContainer::BuildFortranStructures");
+    BL_PROFILE("CellSortedParticleContainer::UpdateFortranStructures");
     
     const int lev = 0;
 
@@ -169,13 +188,15 @@ CellSortedParticleContainer::BuildFortranStructures()
             m_vector_size[grid_id](iv) = m_cell_vectors[grid_id](iv)->size();
             m_vector_ptrs[grid_id](iv) = m_cell_vectors[grid_id](iv)->data();
         }
-    }    
+    }
 }
 
 void
 CellSortedParticleContainer::MoveParticles()
 {
     BL_PROFILE("CellSortedParticleContainer::MoveParticles()");
+
+    UpdateCellVectors();
     
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
@@ -241,5 +262,5 @@ CellSortedParticleContainer::ReBin()
         }        
     }
 
-    BuildFortranStructures();    
+    UpdateFortranStructures();    
 }
