@@ -253,7 +253,7 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 # $(CEXE_sources)
 ifeq ($(USE_CUDA),TRUE)
 CUDA_CPPFLAGS_T := $(patsubst -DAMREX_USE_MPI, ,$(FINAL_CPPFLAGS))
-CUDA_CPPFLAGS := $(patsubst -DBL_USE_MPI, ,$(CUDA_CPPFLAGS))
+CUDA_CPPFLAGS := $(patsubst -DBL_USE_MPI, ,$(CUDA_CPPFLAGS_T))
 
 $(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources) 
 	@if [ ! -d $(TmpBuildDir)/header_temp_dir ]; then mkdir -p $(TmpBuildDir)/header_temp_dir; fi
