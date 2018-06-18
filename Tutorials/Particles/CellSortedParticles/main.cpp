@@ -50,7 +50,6 @@ void test_cell_sorted(const TestParams& parms)
 
     CellSortedParticleContainer particles(geom, dm, ba);
     particles.InitParticles(parms.nppc);
-    particles.InitCellVectors();
     
     amrex::Print() << "Done. " << std::endl;
 
