@@ -43,8 +43,12 @@ public:
 protected:
 
     void BuildFortranStructures();
+
+    using CellVectors = amrex::BaseFab<std::unique_ptr<std::vector<int> > >;
     
-    std::map<int, amrex::BaseFab<std::unique_ptr<std::vector<int> > > > m_cell_vectors;
+    amrex::BoxArray::RefID m_BARef;
+    amrex::DistributionMapping::RefID m_DMRef;
+    std::map<int, CellVectors> m_cell_vectors;
     std::map<int, amrex::BaseFab<int> > m_vector_size;
     std::map<int, amrex::BaseFab<int*> > m_vector_ptrs;
 };
