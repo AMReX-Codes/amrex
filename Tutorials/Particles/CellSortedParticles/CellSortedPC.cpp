@@ -104,7 +104,7 @@ InitParticles(const IntVect& a_num_particles_per_cell)
                 particle_tile.push_back(p);
             }
         }
-    }    
+    }
 }
 
 void
@@ -114,6 +114,9 @@ CellSortedParticleContainer::InitCellVectors()
     
     const int lev = 0;
 
+    m_BARef = this->ParticleBoxArray(lev).getRefID();
+    m_DMRef = this->ParticleDistributionMap(lev).getRefID();
+    
     // allocate storage for cell vectors. NOTE - do not tile this loop
     for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
     {
