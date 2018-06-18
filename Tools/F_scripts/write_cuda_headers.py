@@ -419,13 +419,25 @@ if __name__ == "__main__":
     parser.add_argument("--defines",
                         help="defines to send to preprocess the files",
                         default="")
+    parser.add_argument("--exclude_defines",
+                        help="space separated string of directives to remove from defines",
+                        default="")
 
 
     args = parser.parse_args()
 
+    defines = args.defines
+
+    if args.exclude_defines != "":
+        excludes = args.exclude_defines.split()
+        for ex in excludes:
+            defines = defines.replace(ex, "")
+
+    print("defines: ", defines)
+
     if args.cpp != "":
         cpp_pass = preprocess.Preprocessor(temp_dir=args.output_dir, cpp_cmd=args.cpp,
-                                           defines=args.defines)
+                                           defines=defines)
     else:
         cpp_pass = None
 
