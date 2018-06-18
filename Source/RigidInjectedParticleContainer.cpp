@@ -30,54 +30,11 @@ RigidInjectedParticleContainer::RigidInjectedParticleContainer (AmrCore* amr_cor
 void RigidInjectedParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
+
+    // Particles added by AddParticles should already be in the boosted frame
+    RemapParticles();
+
     Redistribute();  // We then redistribute
-}
-
-void
-RigidInjectedParticleContainer::AddParticles (int lev)
-{
-    BL_PROFILE("RigidInjectedParticleContainer::AddParticles()");
-
-    // This is the same as PhysicalParticleContainer::AddParticles except that after
-    // the particles are loaded by the different methods, different operations are done.
-    // Here, the particles are boosted and remapped as necessary.
-
-    if (plasma_injector->add_single_particle) {
-        AddNParticles(lev, 1,
-                      &(plasma_injector->single_particle_pos[0]),
-                      &(plasma_injector->single_particle_pos[1]),
-                      &(plasma_injector->single_particle_pos[2]),
-                      &(plasma_injector->single_particle_vel[0]),
-                      &(plasma_injector->single_particle_vel[1]),
-                      &(plasma_injector->single_particle_vel[2]),
-                      1, &(plasma_injector->single_particle_weight), 0);
-
-        return;
-    }
-
-    if (plasma_injector->gaussian_beam) {
-        AddGaussianBeam(plasma_injector->x_m,
-                        plasma_injector->y_m,
-                        plasma_injector->z_m,
-                        plasma_injector->x_rms,
-                        plasma_injector->y_rms,
-                        plasma_injector->z_rms,
-                        plasma_injector->q_tot,
-                        plasma_injector->npart);
-
-        // Particles are generated in the lab frame and need to be boosted
-        BoostandRemapParticles();
-
-        return;
-    }
-
-    if ( plasma_injector->doInjection() ) {
-        AddPlasma( lev );
-
-        // Particles are already in the boosted frame
-        RemapParticles();
-
-    }
 }
 
 void

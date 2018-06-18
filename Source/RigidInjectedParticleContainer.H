@@ -14,7 +14,6 @@ public:
     virtual ~RigidInjectedParticleContainer () {}
 
     virtual void InitData() override;
-    virtual void AddParticles (int lev) override;
 
     virtual void RemapParticles();
     virtual void BoostandRemapParticles();
