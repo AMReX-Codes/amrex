@@ -26,7 +26,7 @@ class CellSortedParticleContainer
 {
 public:
 
-    using MyParIter = amrex::ParIter<RealData::ncomps, IntData::ncomps, 0, 0>;
+    using MyParIter = amrex::ParIter<RealData::ncomps, IntData::ncomps>;
     
     CellSortedParticleContainer (const amrex::Geometry            & a_geom,
                                  const amrex::DistributionMapping & a_dmap,
@@ -44,14 +44,17 @@ protected:
     
     void UpdateFortranStructures();
 
-    using CellVectors = amrex::BaseFab<std::vector<int> >;
-    
-    amrex::BoxArray::RefID m_BARef;
-    amrex::DistributionMapping::RefID m_DMRef;
-    std::map<int, CellVectors> m_cell_vectors;
+    // used to store vectors of particle indices on a cell-by-cell basis
+    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+
+    // primitive data for passing the above into Fortran
     std::map<int, amrex::BaseFab<int> > m_vector_size;
     std::map<int, amrex::BaseFab<int*> > m_vector_ptrs;
+
+    // used to keep track of whether we need to rebuild the above or not
     bool m_vectors_initialized = false;
+    amrex::BoxArray::RefID m_BARef;
+    amrex::DistributionMapping::RefID m_DMRef;
 };
 
 #endif
