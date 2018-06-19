@@ -86,6 +86,8 @@ namespace amrex
     std::ostream& OutStream ();
     std::ostream& ErrorStream ();
 
+    int Verbose ();
+
     namespace system
     {
 #ifdef NDEBUG
