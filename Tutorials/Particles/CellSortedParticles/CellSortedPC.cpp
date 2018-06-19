@@ -143,10 +143,6 @@ CellSortedParticleContainer::UpdateCellVectors()
         m_cell_vectors[grid_id].resize(box);
         m_vector_size[grid_id].resize(box);
         m_vector_ptrs[grid_id].resize(box);
-//        for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv))
-//        {
-//            m_cell_vectors[grid_id](iv).reset(new std::vector<int>());
-//        }
     }
 
     // insert particles into vectors - this can be tiled
