@@ -1500,6 +1500,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                  int lev_min, int lev_max, int nGrow, int local)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
+    BL_PROFILE_VAR_NS("RedistributeMPI_unpack", blp_unpack);
+
 #if BL_USE_MPI
 
     const int NProcs = ParallelDescriptor::NProcs();
@@ -1581,7 +1583,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
-        
+     
+	BL_PROFILE_VAR_START(blp_unpack);
+   
         ParticleLocData pld;
         
         if (recvdata.size() % superparticle_size != 0) {
@@ -1621,6 +1625,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             
             pbuf += superparticle_size;
         }
+
+	BL_PROFILE_VAR_STOP(blp_unpack);
     }
 #endif /*BL_USE_MPI*/
 }
