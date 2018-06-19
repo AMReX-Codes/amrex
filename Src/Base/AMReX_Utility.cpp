@@ -269,8 +269,10 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
   if(ParallelDescriptor::IOProcessor()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
-      amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
-                     << " exists.  Renaming to:  " << newoldname << std::endl;
+      if (amrex::system::verbose) {
+          amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
+                         << " exists.  Renaming to:  " << newoldname << std::endl;
+      }
       std::rename(path.c_str(), newoldname.c_str());
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) {
