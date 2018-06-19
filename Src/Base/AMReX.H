@@ -3,6 +3,7 @@
 #define BL_AMREX_H
 
 #include <AMReX_ccse-mpi.H>
+#include <AMReX_Exception.H>
 
 #include <iostream>
 #include <functional>
@@ -99,6 +100,7 @@ namespace amrex
 
         extern int signal_handling;
         extern int call_addr2line;
+        extern int throw_exception;
 
         extern std::ostream* osout;
         extern std::ostream* oserr;
