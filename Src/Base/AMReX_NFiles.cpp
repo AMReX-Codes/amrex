@@ -92,7 +92,7 @@ void NFilesIter::SetDynamic(int deciderproc)
     currentDeciderIndex = 0;
   }
   if(myProc == deciderProc) {
-    int wsp = NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
+    NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   }
 
   deciderTag = ParallelDescriptor::SeqNum();
