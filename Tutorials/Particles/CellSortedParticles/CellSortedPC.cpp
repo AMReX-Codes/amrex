@@ -143,10 +143,10 @@ CellSortedParticleContainer::UpdateCellVectors()
         m_cell_vectors[grid_id].resize(box);
         m_vector_size[grid_id].resize(box);
         m_vector_ptrs[grid_id].resize(box);
-        for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv))
-        {
-            m_cell_vectors[grid_id](iv).reset(new std::vector<int>());
-        }
+//        for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv))
+//        {
+//            m_cell_vectors[grid_id](iv).reset(new std::vector<int>());
+//        }
     }
 
     // insert particles into vectors - this can be tiled
@@ -162,7 +162,7 @@ CellSortedParticleContainer::UpdateCellVectors()
             const IntVect& iv = this->Index(p, lev);
             p.idata(IntData::sorted) = 1;
             // note - use 1-based indexing for convenience with Fortran
-            m_cell_vectors[pti.index()](iv)->push_back(pindex + 1);
+            m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
         }
     }
     
@@ -185,8 +185,8 @@ CellSortedParticleContainer::UpdateFortranStructures()
         const int grid_id = mfi.index();
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
         {
-            m_vector_size[grid_id](iv) = m_cell_vectors[grid_id](iv)->size();
-            m_vector_ptrs[grid_id](iv) = m_cell_vectors[grid_id](iv)->data();
+            m_vector_size[grid_id](iv) = m_cell_vectors[grid_id](iv).size();
+            m_vector_ptrs[grid_id](iv) = m_cell_vectors[grid_id](iv).data();
         }
     }
 }
@@ -227,7 +227,7 @@ CellSortedParticleContainer::MoveParticles()
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
         {
             const auto new_size = m_vector_size[grid_id](iv);
-            auto& pvec = *m_cell_vectors[grid_id](iv);
+            auto& pvec = m_cell_vectors[grid_id](iv);
             pvec.resize(new_size);
         }
     }
@@ -242,12 +242,12 @@ CellSortedParticleContainer::ReBin()
 
 #ifdef _OPENMP
 #pragma omp parallel
-#endif    
+#endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
-        
+
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
@@ -258,9 +258,9 @@ CellSortedParticleContainer::ReBin()
             const IntVect& iv = this->Index(p, lev);
             p.idata(IntData::sorted) = 1;
             // note - use 1-based indexing for convenience with Fortran
-            m_cell_vectors[pti.index()](iv)->push_back(pindex + 1);
-        }        
+            m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
+        }
     }
 
-    UpdateFortranStructures();    
+    UpdateFortranStructures();
 }
