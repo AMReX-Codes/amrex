@@ -44,7 +44,7 @@ protected:
     
     void UpdateFortranStructures();
 
-    using CellVectors = amrex::BaseFab<std::unique_ptr<std::vector<int> > >;
+    using CellVectors = amrex::BaseFab<std::vector<int> >;
     
     amrex::BoxArray::RefID m_BARef;
     amrex::DistributionMapping::RefID m_DMRef;
