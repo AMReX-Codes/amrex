@@ -108,14 +108,13 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
 #endif
         if (plasma_injector->insideBounds(x, y, z)) {
 	    plasma_injector->getMomentum(u, x, y, z);
+            if (WarpX::gamma_boost > 1.) {
+                MapParticletoBoostedFrame(x, y, z, u);
+            }
             attribs[PIdx::ux] = u[0];
             attribs[PIdx::uy] = u[1];
             attribs[PIdx::uz] = u[2];
             attribs[PIdx::w ] = weight;
-
-            if (WarpX::gamma_boost > 1.) {
-                MapParticletoBoostedFrame(x, y, z, u);
-            }
 
             AddOneParticle(0, 0, 0, x, y, z, attribs);
             }
