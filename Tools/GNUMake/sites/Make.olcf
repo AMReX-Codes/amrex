@@ -59,6 +59,10 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
     override XTRALIBS := -lgfortran
   endif
 
+  ifeq ($(lowercase_comp),ibm)
+    override XTRALIBS += -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib
+  endif
+
   # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
 
   SYSTEM_CUDA_PATH=$(CUDAPATH)
@@ -89,6 +93,10 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
   ifeq ($(lowercase_comp),gnu)
     override XTRALIBS := -lgfortran
+  endif
+
+  ifeq ($(lowercase_comp),ibm)
+    override XTRALIBS += -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib
   endif
 
   # If the cuda module is loaded, CUDAPATH is set as the toolkit location.

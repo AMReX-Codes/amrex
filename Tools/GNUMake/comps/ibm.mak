@@ -93,7 +93,7 @@ FFLAGS   += -qfixed=72
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
-override XTRALIBS = -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
+override XTRALIBS = -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
 
 ifeq ($(USE_OMP),TRUE)
   override XTRALIBS += -lxlsmp
