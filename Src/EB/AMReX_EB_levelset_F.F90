@@ -20,8 +20,8 @@ contains
     !                                                                                                                 !
     !-----------------------------------------------------------------------------------------------------------------!
 
-    pure subroutine amrex_eb_init_levelset(lo,  hi,    &
-                                  phi, phlo, phhi ) &
+    pure subroutine amrex_eb_init_levelset(lo,  hi,          &
+                                           phi, phlo, phhi ) &
                     bind(C, name="amrex_eb_init_levelset")
 
         implicit none
@@ -61,10 +61,10 @@ contains
     !----------------------------------------------------------------------------------------------------------------!
 
     pure subroutine amrex_eb_fill_levelset(lo,      hi,          &
-                                     eb_list, l_eb,        &
-                                     valid,   vlo,  vhi,   &
-                                     phi,     phlo, phhi,  &
-                                     dx,      dx_eb      ) &
+                                           eb_list, l_eb,        &
+                                           valid,   vlo,  vhi,   &
+                                           phi,     phlo, phhi,  &
+                                           dx,      dx_eb      ) &
                      bind(C, name="amrex_eb_fill_levelset")
 
         implicit none
@@ -201,7 +201,7 @@ contains
 
         end subroutine closest_dist
 
-      end subroutine amrex_eb_fill_levelset
+    end subroutine amrex_eb_fill_levelset
 
 
 
@@ -219,9 +219,9 @@ contains
     !----------------------------------------------------------------------------------------------------------------!
 
     pure subroutine amrex_eb_validate_levelset(lo,    hi,   n_pad, &
-                                      impf,  imlo, imhi,  &
-                                      valid, vlo,  vhi,   &
-                                      phi,   phlo, phhi  )&
+                                               impf,  imlo, imhi,  &
+                                               valid, vlo,  vhi,   &
+                                               phi,   phlo, phhi  )&
                     bind(C, name="amrex_eb_validate_levelset")
 
         implicit none
@@ -250,7 +250,7 @@ contains
             end do
         end do
 
-      end subroutine amrex_eb_validate_levelset
+    end subroutine amrex_eb_validate_levelset
 
 
 
@@ -266,11 +266,11 @@ contains
     !----------------------------------------------------------------------------------------------------------------!
 
     pure subroutine amrex_eb_update_levelset_intersection(lo,    hi,           &
-                                                 v_in,  vilo, vihi,   &
-                                                 ls_in, lslo, lshi,   &
-                                                 valid, vlo,  vhi,    &
-                                                 phi,   phlo, phhi,   &
-                                                 dx,    n_pad       ) &
+                                                          v_in,  vilo, vihi,   &
+                                                          ls_in, lslo, lshi,   &
+                                                          valid, vlo,  vhi,    &
+                                                          phi,   phlo, phhi,   &
+                                                          dx,    n_pad       ) &
                     bind(C, name="amrex_eb_update_levelset_intersection")
 
         implicit none
@@ -318,7 +318,7 @@ contains
             end do
         end do
 
-      end subroutine amrex_eb_update_levelset_intersection
+    end subroutine amrex_eb_update_levelset_intersection
 
 
 
@@ -334,11 +334,11 @@ contains
     !----------------------------------------------------------------------------------------------------------------!
 
     pure subroutine amrex_eb_update_levelset_union(lo,    hi,           &
-                                          v_in,  vilo, vihi,   &
-                                          ls_in, lslo, lshi,   &
-                                          valid, vlo,  vhi,    &
-                                          phi,   phlo, phhi,   &
-                                          dx,    n_pad       ) &
+                                                   v_in,  vilo, vihi,   &
+                                                   ls_in, lslo, lshi,   &
+                                                   valid, vlo,  vhi,    &
+                                                   phi,   phlo, phhi,   &
+                                                   dx,    n_pad       ) &
                     bind(C, name="amrex_eb_update_levelset_union")
 
         implicit none
@@ -386,7 +386,48 @@ contains
             end do
         end do
 
-      end subroutine amrex_eb_update_levelset_union
+    end subroutine amrex_eb_update_levelset_union
+
+
+
+    !----------------------------------------------------------------------------------------------------------------!
+    !                                                                                                                !
+    !   pure subroutine FILL_VALID                                                                                   !
+    !                                                                                                                !
+    !   Purpose: Fills elements of valid with 1 whenever it corresponds to a position with n_pad of the level set    !
+    !   value being negative (i.e. phi < 0), and 0 otherwise.                                                        !
+    !                                                                                                                !
+    !----------------------------------------------------------------------------------------------------------------!
+
+    pure subroutine amrex_eb_fill_valid(       lo,     hi, &
+                                        valid, vlo,   vhi, &
+                                        phi,   phlo, phhi, &
+                                        n_pad            ) &
+                    bind(C, name="amrex_eb_fill_valid")
+
+        implicit none
+
+        integer, dimension(3), intent(in   ) :: lo, hi, vlo, vhi, phlo, phhi
+        integer,               intent(in   ) :: n_pad
+        integer,               intent(  out) :: valid( vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3))
+        real(c_real),          intent(in   ) :: phi  (phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3))
+
+        integer :: i, j, k
+        logical :: valid_cell
+
+
+        do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                    valid_cell = neighbour_is_valid(phi, phlo, phhi, i, j, k, n_pad)
+                    if ( valid_cell ) then
+                        valid(i, j, k) = 1
+                    end if
+                end do
+            end do
+        end do
+
+    end subroutine amrex_eb_fill_valid
 
 
 
@@ -410,38 +451,36 @@ contains
 
 
         !----------------------------------------------------------------------------------------------------!
-        ! build neighbour stencil of size 2 * n_pad                                                          !
-        !                                ^^^                                                                 !
-        !                  *** fudge factor: finite-sized particle can overlap with neighbouring cells       !
+        ! build neighbour stencil of size n_pad                                                              !
         ! note: stencil could be out-of-bounds (due to fudge factor) => bounds-checking                      !
         !----------------------------------------------------------------------------------------------------!
 
-        klo = k - 2 * n_pad
+        klo = k - n_pad
         if ( klo .lt. phlo(3) ) then
             klo = phlo(3)
         end if
 
-        khi = k + 2 * n_pad
+        khi = k + n_pad
         if ( khi .gt. phhi(3) ) then
             khi = phhi(3)
         end if
 
-        jlo = j - 2 * n_pad
+        jlo = j - n_pad
         if ( jlo .lt. phlo(2) ) then
             jlo = phlo(2)
         end if
 
-        jhi = j + 2 * n_pad
+        jhi = j + n_pad
         if ( jhi .gt. phhi(2) ) then
             jhi = phhi(2)
         end if
 
-        ilo = i - 2 * n_pad
+        ilo = i - n_pad
         if ( ilo .lt. phlo(1) ) then
             ilo = phlo(1)
         end if
 
-        ihi = i + 2 * n_pad
+        ihi = i + n_pad
         if ( ihi .gt. phhi(1) ) then
             ihi = phhi(1)
         end if
@@ -491,8 +530,8 @@ contains
             end do
         end do
 
-      end subroutine amrex_eb_count_facets
-    
+    end subroutine amrex_eb_count_facets
+
 
 
     pure subroutine amrex_eb_as_list(lo,       hi,   c_facets,  &
@@ -540,13 +579,13 @@ contains
             end do
         end do
 
-      end subroutine amrex_eb_as_list
+    end subroutine amrex_eb_as_list
 
 
 
     pure subroutine amrex_eb_interp_levelset(pos, plo,  n_refine, &
-                                    phi, phlo, phhi,     &
-                                    dx,  phi_interp    ) &
+                                             phi, phlo, phhi,     &
+                                             dx,  phi_interp    ) &
                     bind(C, name="amrex_eb_interp_levelset")
 
 
@@ -594,13 +633,13 @@ contains
                    + phi(i+1, j,   k+1) * wx_hi * wy_lo * wz_hi &
                    + phi(i+1, j+1, k+1) * wx_hi * wy_hi * wz_hi
 
-      end subroutine amrex_eb_interp_levelset
+    end subroutine amrex_eb_interp_levelset
 
 
 
     pure subroutine amrex_eb_normal_levelset(pos, plo,   n_refine, &
-                                    phi, phlo,  phhi,     &
-                                    dx,  normal         ) &
+                                             phi, phlo,  phhi,     &
+                                             dx,  normal         ) &
                     bind(C, name="amrex_eb_normal_levelset")
 
         implicit none
@@ -671,6 +710,6 @@ contains
         inv_norm = 1.0d0 / sqrt(normal(1)**2 + normal(2)**2 + normal(3)**2)
         normal(:) = normal(:) * inv_norm
 
-      end subroutine amrex_eb_normal_levelset
+    end subroutine amrex_eb_normal_levelset
 
 end module amrex_eb_levelset
