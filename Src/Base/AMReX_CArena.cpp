@@ -96,13 +96,6 @@ CArena::alloc (size_t nbytes)
     return vp;
 }
 
-void*
-CArena::alloc (void* parent_ptr, size_t nbytes)
-{
-  amrex::Abort("CArena::alloc(parent_ptr, nbytes) is not yet setup.");
-  return ::operator new(nbytes);
-}
-
 void
 CArena::free (void* vp)
 {

@@ -5,37 +5,17 @@
 void*
 amrex::BArena::alloc (std::size_t _sz)
 {
-    return ::operator new(_sz);
-}
 
-void*
-amrex::BArena::alloc (void* parent_ptr, std::size_t _sz)
-{
+// Using CUDA, CUDA is available, object created on the host.
+// Manage everything for now. Improve later for other applications.
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && !defined(__CUDA_ARCH__)
 
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)  // Using CUDA
-
-#ifdef __CUDA_ARCH__  // On Device
-// Currently, not implemented. Done locally at allocations.
-// Placeholder to avoid compiler complaints.
-   return NULL; 
-
-#else  // On Host
-   cudaPointerAttributes ptr_attr;
-   cudaPointerGetAttributes(&ptr_attr, parent_ptr);
-   if (ptr_attr.isManaged)
-   {
      void *ptr;
      cudaMallocManaged(&ptr, _sz);
      cudaDeviceSynchronize();
      return ptr;
-   }
-   else
-   {
-     return ::operator new(_sz);
-   }
-#endif
 
-#else  // No CUDA
+#else  // No CUDA or on the device. 
    return ::operator new(_sz);
 #endif
 }
@@ -43,27 +23,12 @@ amrex::BArena::alloc (void* parent_ptr, std::size_t _sz)
 void
 amrex::BArena::free (void* ptr)
 {
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)  // Using CUDA
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && !defined(__CUDA_ARCH__)
 
-#ifdef __CUDA_ARCH__  // On Device
-// Currently, not implemented. Done locally at allocations.
-// Placeholder to avoid compiler complaints.
+   cudaDeviceSynchronize();
+   cudaFree(ptr); 
 
-#else  // On Host
-   cudaPointerAttributes ptr_attr;
-   cudaPointerGetAttributes(&ptr_attr, ptr);
-   if (ptr_attr.isManaged)
-   {
-     cudaDeviceSynchronize();
-     cudaFree(ptr); 
-   }
-   else
-   {
-     ::operator delete(ptr);
-   }
-#endif
-
-#else  // No CUDA
+#else 
    ::operator delete(ptr);
 #endif
 }

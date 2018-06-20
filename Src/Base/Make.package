@@ -43,6 +43,7 @@ C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Managed.H AMReX_CudaAllocators.H
 
+
 #
 # I/O stuff.
 #
@@ -154,6 +155,16 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_bc_types_mod.F90
 
   F90$(AMREX_BASE)_sources += AMReX_ParallelDescriptor_F.F90
+
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  C$(AMREX_BASE)_header += AMReX_Device.H 
+  C$(AMREX_BASE)_sources += AMReX_Device.cpp
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  F90$(AMREX_BASE)_sources += AMReX_CUDA.F90
 endif
 
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
