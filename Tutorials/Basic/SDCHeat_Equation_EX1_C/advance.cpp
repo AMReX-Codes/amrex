@@ -8,13 +8,10 @@ void sweep (MultiFab& phi_old,
    	    Vector<MultiFab>& phi_sdc,
    	    Vector<MultiFab>& res_sdc,
 	    Vector<Vector<MultiFab> >& f_sdc,
-	    Vector<Vector<MultiFab> >& f_sdc_old,
 	    Real dt,
 	    const Geometry& geom,
 	    Real qnodes [],
-	    Real qmat [][SDC_NNODES],
-  	    Real qmatE [][SDC_NNODES],
-	    Real qmatI [][SDC_NNODES],
+	    Real qmats [][SDC_NNODES-1][SDC_NNODES],
 	    int nsweeps)
 
 
@@ -32,7 +29,6 @@ void sweep (MultiFab& phi_old,
   // The following two MFIter loops could be merged
   // and we do not have to use flux MultiFab.
   // 
-  //  pf_quadrature(qtype_in, SDC_NNODES,SDC_NNODES, );
   const Box& domain_bx = geom.Domain();
 
   MultiFab::Copy(phi_sdc[0],phi_old, 0, 0, 1, 0);
@@ -70,7 +66,7 @@ void sweep (MultiFab& phi_old,
 	      res_sdc[sdc_m].setVal(0.0);
 	      for (int sdc_n = 0; sdc_n < SDC_NNODES; sdc_n++)
 		{
-		  qij = dt*(qmat[sdc_m][sdc_n]-qmatE[sdc_m][sdc_n]);
+		  qij = dt*(qmats[0][sdc_m][sdc_n]-qmats[1][sdc_m][sdc_n]);
 		  res_sdc[sdc_m][mfi].saxpy(qij,f_sdc[1][sdc_n][mfi]);
 		}
 	    }
@@ -101,7 +97,7 @@ void sweep (MultiFab& phi_old,
 	      phi_sdc[sdc_m+1][mfi].saxpy(1.0,res_sdc[sdc_m][mfi]);
 	      for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
 		{
-		  qij = dt*qmatE[sdc_m][sdc_n];
+		  qij = dt*qmats[1][sdc_m][sdc_n];
 		  //      	      amrex::Print() << "sdc_n " << sdc_n << "\n";
 		  //amrex::Print() << "qij " << qij << "\n";
 		  //amrex::Print() << "dt_m " << dt_m << "\n";	      

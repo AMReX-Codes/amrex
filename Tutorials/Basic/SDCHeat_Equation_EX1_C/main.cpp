@@ -55,7 +55,7 @@ void main_main ()
     BoxArray ba;
     Geometry geom;
     {
-        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+              IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
         IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
         Box domain(dom_lo, dom_hi);
 
@@ -126,9 +126,7 @@ void main_main ()
     Vector<MultiFab> phi_sdc(SDC_NNODES);
     Vector<MultiFab> res_sdc(SDC_NNODES);
     Vector<Vector<MultiFab> > f_sdc(SDC_NPIECES); // access by [npieces][node]
-    Vector<Vector<MultiFab> > f_sdc_old(SDC_NPIECES); // access by [npieces][node]
     for (auto& v : f_sdc) v.resize(SDC_NNODES);
-    for (auto& v : f_sdc_old) v.resize(SDC_NNODES);
 
     for (int sdc_m = 0; sdc_m < SDC_NNODES; sdc_m++)
     {
@@ -137,7 +135,6 @@ void main_main ()
 	for (int i = 0; i < SDC_NPIECES; i++)
 	  {
 	    f_sdc[i][sdc_m].define(ba, dm, Ncomp, Nghost);
-	    f_sdc_old[i][sdc_m].define(ba, dm, Ncomp, Nghost);
 	  }
     }
     
@@ -145,15 +142,11 @@ void main_main ()
     // make the quadrature tables: the SDC_NNODES is defined in 
     Real qnodes [SDC_NNODES];
     int  nflags [SDC_NNODES];
-    //    Real qmat [(SDC_NNODES-1)*SDC_NNODES];
-    Real qmat [SDC_NNODES-1][SDC_NNODES];
-    Real smat [SDC_NNODES-1][SDC_NNODES];
-    Real qmatFE [SDC_NNODES-1][SDC_NNODES];
-    Real qmatBE [SDC_NNODES-1][SDC_NNODES];
-    Real qmatLU [SDC_NNODES-1][SDC_NNODES];
+    Real qmats [4][SDC_NNODES-1][SDC_NNODES];
+
     int qtype_in=1;
     int nnodes=SDC_NNODES;
-    pf_quadrature(&qtype_in, &nnodes, &nnodes,qnodes,nflags, &smat[0][0],&qmat[0][0],&qmatFE[0][0],&qmatBE[0][0],&qmatLU[0][0]);
+    pf_quadrature(&qtype_in, &nnodes, &nnodes,qnodes,nflags, &qmats[0][0][0]);
     amrex::Print() << "qnodes "  << "\n";
     for (int i = 0; i <SDC_NNODES; ++i)
 	{
@@ -164,7 +157,7 @@ void main_main ()
       {
 	for (int j = 0; j <SDC_NNODES; ++j)
 	  {
-	    std::cout << qmat[i][j] << " "; 
+	    std::cout << qmats[0][i][j] << " "; 
 	  }
 	std::cout  << std::endl;
       }
@@ -173,7 +166,7 @@ void main_main ()
       {
 	for (int j = 0; j <SDC_NNODES; ++j)
 	  {
-	    std::cout << qmatFE[i][j] << " ";
+	    std::cout << qmats[1][i][j] << " ";
 	  }
     	std::cout  << std::endl;
       }
@@ -183,7 +176,7 @@ void main_main ()
       {
 	for (int j = 0; j <SDC_NNODES; ++j)
 	  {
-	    std::cout << qmatBE[i][j] << " "; 
+	    std::cout << qmats[2][i][j] << " "; 
 	  }
     	std::cout  << std::endl;
       }
@@ -193,13 +186,13 @@ void main_main ()
     for (int n = 1; n <= nsteps; ++n)
     {
 
-      // new_phi = old_phi + dt * (something)
-      sweep(phi_old, phi_new, flux,phi_sdc,res_sdc,f_sdc,f_sdc_old, dt, geom,qnodes,qmat,qmatFE,qmatBE,nsweeps); 
+      // Call a routine to do some  SDC sweeps
+      sweep(phi_old, phi_new, flux,phi_sdc,res_sdc,f_sdc, dt, geom,qnodes,qmats,nsweeps); 
       time = time + dt;
       MultiFab::Copy(phi_old,phi_new, 0, 0, 1, 0);
       
       
-            for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+      for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
       	{
       	  const Box& bx = mfi.validbox();
       	  err_phi(BL_TO_FORTRAN_BOX(bx),
@@ -217,7 +210,6 @@ void main_main ()
         }
     }
     
-
 
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors

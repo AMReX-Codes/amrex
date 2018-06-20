@@ -35,9 +35,9 @@ extern "C"
                     amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
                     const amrex_real* dx, amrex_real dt); // note dt is passed by value
+
   void pf_quadrature(int* qtype_in, int* nnodes, int* nnodes0,
-		     amrex_real* nodes, int* nflags,amrex_real* smat,amrex_real* qmat,
-    amrex_real* qmatFE,amrex_real* qmatBE,amrex_real* qmatLU);
+		     amrex_real* nodes, int* nflags,amrex_real* qmats);
 #ifdef __cplusplus
 }
 #endif

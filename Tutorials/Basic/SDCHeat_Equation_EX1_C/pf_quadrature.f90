@@ -45,15 +45,11 @@ module pf_mod_quadrature
 contains
 
   !>  Subroutine to create quadrature matrices
- subroutine pf_quadrature(qtype_in, nnodes, nnodes0, nodes, nflags, smatin, qmatin,qmatFEin,qmatBEin,qmatLUin)bind(C, name="pf_quadrature")
+ subroutine pf_quadrature(qtype_in, nnodes, nnodes0, nodes, nflags, qmats)bind(C, name="pf_quadrature")
 
    integer,    intent(in)  :: qtype_in, nnodes, nnodes0
     real(amrex_real), intent(inout) :: nodes(nnodes)
-    real(amrex_real), intent(out) :: smatin(nnodes,nnodes-1)
-    real(amrex_real), intent(inout) :: qmatin(nnodes,nnodes-1)
-    real(amrex_real), intent(out) :: qmatFEin(nnodes,nnodes-1), qmatBEin(nnodes,nnodes-1),qmatLUin(nnodes,nnodes-1)
-!    real(amrex_real), intent(out) :: qmatFE(nnodes-1,nnodes), qmatBE(nnodes-1,nnodes),qmatLU(nnodes-1,nnodes)
-!    real(amrex_real), intent(out) :: smat(nnodes-1,nnodes), qmat(nnodes-1,nnodes)
+    real(amrex_real), intent(inout) :: qmats(nnodes,nnodes-1,4)
     integer,    intent(out) :: nflags(nnodes)
 
     real(amrex_real) :: qmatFE(nnodes-1,nnodes), qmatBE(nnodes-1,nnodes),qmatLU(nnodes-1,nnodes)
@@ -158,10 +154,10 @@ contains
 !!$    print *,'transpose'
     do n = 1,nnodes-1
        do m = 1,nnodes
-          qmatin(m,n)=qmat(n,m)
-          qmatFEin(m,n)=qmatFE(n,m)
-          qmatBEin(m,n)=qmatBE(n,m)
-          qmatLUin(m,n)=qmatLU(n,m)
+          qmats(m,n,1)=qmat(n,m)
+          qmats(m,n,2)=qmatFE(n,m)
+          qmats(m,n,3)=qmatBE(n,m)
+          qmats(m,n,4)=qmatLU(n,m)
        end do
     end do
 
