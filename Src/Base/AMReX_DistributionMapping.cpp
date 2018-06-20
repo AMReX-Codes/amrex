@@ -926,7 +926,8 @@ void
 Distribute (const std::vector<SFCToken>&     tokens,
             int                              nprocs,
             Real                             volpercpu,
-            std::vector< std::vector<int> >& v)
+            std::vector< std::vector<int> >& v,
+            int                              nmax = std::numeric_limits<int>::max())
 
 {
     BL_ASSERT(static_cast<int>(v.size()) == nprocs);
@@ -940,10 +941,11 @@ Distribute (const std::vector<SFCToken>&     tokens,
         Real vol = 0;
 
         for ( int TSZ = static_cast<int>(tokens.size());
-              K < TSZ && (i == (nprocs-1) || vol < volpercpu);
-              ++cnt, ++K)
+              K < TSZ && (i == (nprocs-1) || (vol < volpercpu && cnt <= nmax));
+              ++K)
         {
             vol += tokens[K].m_vol;
+            ++cnt;
 
             v[i].push_back(tokens[K].m_box);
         }
@@ -962,8 +964,9 @@ Distribute (const std::vector<SFCToken>&     tokens,
 
 #ifndef NDEBUG
     int cnt = 0;
-    for (int i = 0; i < nprocs; ++i)
+    for (int i = 0; i < nprocs; ++i) {
         cnt += v[i].size();
+    }
     BL_ASSERT(cnt == static_cast<int>(tokens.size()));
 #endif
 }
@@ -971,7 +974,9 @@ Distribute (const std::vector<SFCToken>&     tokens,
 void
 DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
-                                          int                   /*   nprocs */)
+                                          int                   /*   nprocs */,
+                                          int                      nmax,
+                                          bool                     sort)
 {
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
@@ -1035,7 +1040,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     std::vector< std::vector<int> > vec(nteams);
 
-    Distribute(tokens,nteams,volperteam,vec);
+    Distribute(tokens,nteams,volperteam,vec,nmax);
 
     // vec has a size of nteams and vec[] holds a vector of box ids.
 
@@ -1055,7 +1060,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         LIpairV.push_back(LIpair(wgt,i));
     }
 
-    Sort(LIpairV, true);
+    if (sort) Sort(LIpairV, true);
 
     // LIpairV has a size of nteams and LIpairV[] is pair whose first is weight
     // and second is an index into vec.  LIpairV is sorted by weight such that
@@ -1065,9 +1070,24 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     Vector<Vector<int> > wrkerord;
 
     if (nteams == nprocs) {
-	LeastUsedCPUs(nprocs,ord);
+        if (sort) {
+            LeastUsedCPUs(nprocs,ord);
+        } else {
+            ord.resize(nprocs);
+            std::iota(ord.begin(), ord.end(), 0);
+        }
     } else {
-	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+        if (sort) {
+            LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+        } else {
+            ord.resize(nteams);
+            std::iota(ord.begin(), ord.end(), 0);
+            wrkerord.resize(nteams);
+            for (auto& v : wrkerord) {
+                v.resize(nworkers);
+                std::iota(v.begin(), v.end(), 0);
+            }
+        }
     }
 
     // ord is a vector of process (or team) ids, sorted from least used to more heavily used.
@@ -1175,7 +1195,9 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 void
 DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
                                       const std::vector<long>& wgts,
-                                      int                      nprocs)
+                                      int                      nprocs,
+                                      int                      nmax,
+                                      bool                     sort)
 {
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
@@ -1188,7 +1210,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     }
     else
     {
-        SFCProcessorMapDoIt(boxes,wgts,nprocs);
+        SFCProcessorMapDoIt(boxes,wgts,nprocs,nmax,sort);
     }
 }
 
@@ -1353,8 +1375,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
 }
 
 DistributionMapping
-DistributionMapping::makeSFC (const MultiFab& weight, 
-                              const BoxArray& boxes)
+DistributionMapping::makeSFC (const MultiFab& weight, int nmax, bool sort)
 {
     DistributionMapping r;
 
@@ -1383,11 +1404,10 @@ DistributionMapping::makeSFC (const MultiFab& weight,
 
     int nprocs = ParallelContext::NProcsSub();
 
-    r.SFCProcessorMap(boxes, cost, nprocs);
+    r.SFCProcessorMap(weight.boxArray(), cost, nprocs, nmax, sort);
 
     return r;
 }
-
 
 std::vector<std::vector<int> >
 DistributionMapping::makeSFC (const BoxArray& ba)
