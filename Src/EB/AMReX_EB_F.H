@@ -48,6 +48,13 @@ extern "C"
             const amrex_real * dx,    const int * n_pad
         );
 
+    void amrex_eb_fill_valid(
+            const int * lo,         const int * hi,
+            int * valid,            const int * vlo,  const int * vhi,
+            const amrex_real * phi, const int * phlo, const int * phhi,
+            const int * n_pad
+        );
+
     void amrex_eb_count_facets(
             const int * lo,    const int * hi,
             const void * flag, const int * flo, const int * fhi,
