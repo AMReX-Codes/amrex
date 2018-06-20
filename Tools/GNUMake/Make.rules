@@ -6,7 +6,11 @@ vpath %.F    $(FINAL_VPATH_LOCATIONS)
 vpath %.f90  $(FINAL_VPATH_LOCATIONS)
 vpath %.F90  $(FINAL_VPATH_LOCATIONS)
 vpath %.c    $(FINAL_VPATH_LOCATIONS)
+ifeq ($(USE_CUDA),TRUE)
 vpath %.cpp  $(TmpBuildDir)/header_temp_dir $(FINAL_VPATH_LOCATIONS)
+else
+vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
+endif
 vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
 
