@@ -1164,8 +1164,8 @@ contains
                enddo
                enddo
 
-               if (abs(crseTotnew - crseTot)/cvol .gt. 1.e-8) then
 #ifdef AMREX_DEBUG
+               if (abs(crseTotnew - crseTot)/cvol .gt. 1.e-8) then
                   print *,' '
                   print *,'BLEW CONSERVATION with ICASE = ',icase
                   print *,'AT COARSE CELL ',ic,jc,' AND COMPONENT ',n
