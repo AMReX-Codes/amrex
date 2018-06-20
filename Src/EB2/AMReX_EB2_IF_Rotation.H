@@ -32,9 +32,9 @@ public:
 #if (AMREX_SPACEDIM==2)
     Real operator() (const RealArray& p) const
 	    {
-		Real x = p[0]*cos(m_angle) - p[1]*sin(m_angle); 
-		Real y = p[0]*sin(m_angle) + p[1]*cos(m_angle); 
-	        return m_f({AMREX_D_DECL(x, y)});
+		Real x =  p[0]*std::cos(m_angle) + p[1]*std::sin(m_angle); 
+		Real y = -p[0]*std::sin(m_angle) + p[1]*std::cos(m_angle); 
+	        return m_f({x, y});
 	    }
 
 #endif
@@ -43,19 +43,19 @@ public:
     Real operator() (const RealArray& p) const
 	{
    	if(m_dir==0){
-		Real y = p[1]*cos(m_angle) - p[2]*sin(m_angle); 
-		Real z = p[1]*sin(m_angle) + p[2]*cos(m_angle); 
-	        return m_f({AMREX_D_DECL(p[0], y, z)});
+		Real y =  p[1]*std::cos(m_angle) + p[2]*std::sin(m_angle); 
+		Real z = -p[1]*std::sin(m_angle) + p[2]*std::cos(m_angle); 
+	        return m_f({p[0], y, z});
 	 }
 	else if(m_dir==1){
-		Real x = p[0]*cos(m_angle) + p[2]*sin(m_angle); 
-		Real z = -p[0]*sin(m_angle) + p[2]*cos(m_angle); 
-	        return m_f({AMREX_D_DECL(x, p[1], z)});
+		Real x = p[0]*std::cos(m_angle) - p[2]*std::sin(m_angle); 
+		Real z = p[0]*std::sin(m_angle) + p[2]*std::cos(m_angle); 
+	        return m_f({x, p[1], z});
 	}
 	else if(m_dir==2){
-		Real x = p[0]*cos(m_angle) - p[1]*sin(m_angle); 
-		Real y = p[0]*sin(m_angle) + p[1]*cos(m_angle); 
-	        return m_f({AMREX_D_DECL(x, y, p[2])});
+		Real x =  p[0]*std::cos(m_angle) + p[1]*std::sin(m_angle); 
+		Real y = -p[0]*std::sin(m_angle) + p[1]*std::cos(m_angle); 
+	        return m_f({x, y, p[2]});
 	}
 	}
 #endif
