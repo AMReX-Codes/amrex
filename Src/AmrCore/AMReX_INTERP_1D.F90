@@ -4,6 +4,7 @@ module amrex_interp_module
   use amrex_fort_module
   use amrex_constants_module
   use amrex_bc_types_module
+  use amrex_error_module
 
   implicit none
 
@@ -972,12 +973,9 @@ contains
              enddo
           enddo
        else if (lratiox .eq. 4) then
-!      todo
-          write(6,*) 'AMREX_QUARTINTERP: refinement ratio = 4 TODO'
-          stop
+          call amrex_error('AMREX_QUARTINTERP: refinement ratio = 4 TODO')
        else
-          write(6,*) 'AMREX_QUARTINTERP: unsupported refinement ratio'
-          stop
+          call amrex_error('AMREX_QUARTINTERP: unsupported refinement ratio')
        endif
 
      end subroutine AMREX_QUARTINTERP

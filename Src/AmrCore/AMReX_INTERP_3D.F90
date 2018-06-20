@@ -4,6 +4,7 @@ module amrex_interp_module
   use amrex_fort_module
   use amrex_constants_module
   use amrex_bc_types_module
+  use amrex_error_module
 
   implicit none
 
@@ -1180,9 +1181,9 @@ contains
       integer icase
 
       if (MAX(lratiox,lratioy,lratioz).gt.rMAX) then
-         print *,'rMAX in INTERP_3D::AMREX_PROTECT_INTERP must be >= ', &
-              MAX(lratiox,lratioy,lratioz)
-         call bl_abort(" ")
+!         print *,'rMAX in INTERP_3D::AMREX_PROTECT_INTERP must be >= ', &
+!              MAX(lratiox,lratioy,lratioz)
+         call bl_abort("rMAX in INTERP_3D")
       endif
 
       do kc = cblo(3), cbhi(3)
@@ -1416,6 +1417,7 @@ contains
                enddo
                enddo
 
+#ifdef AMREX_DEBUG
                if (abs(sum_fine_new - sum_fine_old) .gt. 1.e-8) then
                   print *,' '
                   print *, &
@@ -1436,6 +1438,7 @@ contains
                   enddo
                   enddo
                endif
+#endif
 
 !              do k = klo,khi
 !              do j = jlo,jhi
@@ -1609,12 +1612,9 @@ contains
           enddo  ! do n
 
        else if (lratiox.eq.4 .and. lratioy.eq.4 .and. lratioz.eq.4) then
-!      todo
-          write(6,*) 'AMREX_QUARTINTERP: refinement ratio = 4 TODO'
-          stop
+          call amrex_error('AMREX_QUARTINTERP: refinement ratio = 4 TODO')
        else
-          write(6,*) 'AMREX_QUARTINTERP: unsupported refinement ratio'
-          stop
+          call amrex_error('AMREX_QUARTINTERP: unsupported refinement ratio')
        endif
 
      end subroutine AMREX_QUARTINTERP
