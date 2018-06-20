@@ -34,9 +34,6 @@ public:
     //! Allocate some memory.
     virtual void* alloc (size_t nbytes) override;
 
-    //! Allocate some memory, accounting for managed memory.
-    virtual void* alloc (void* parent_ptr, size_t nbytes) override;
-
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.

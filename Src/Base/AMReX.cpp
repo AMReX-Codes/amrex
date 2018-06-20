@@ -14,6 +14,10 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
+#ifdef AMREX_USE_CUDA
+#include <AMReX_Device.H>
+#endif
+
 
 #ifndef BL_AMRPROF
 #include <AMReX_ParmParse.H>
@@ -377,6 +381,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         func_parm_parse();
     }
 
+#ifdef AMREX_USE_DEVICE
+    // Initialize after ParmParse so that we can read inputs.
+    Device::initialize_device();
+#endif
+
     {
 	ParmParse pp("amrex");
 	pp.query("v", system::verbose);
@@ -487,6 +496,10 @@ amrex::Finalize (bool finalize_parallel)
         //
         The_Finalize_Function_Stack.pop();
     }
+
+#ifdef AMREX_USE_DEVICE
+    Device::finalize_device();
+#endif
 
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.

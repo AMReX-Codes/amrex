@@ -1427,10 +1427,12 @@ BaseFab<T>::define ()
 
     truesize  = nvar*numpts;
     ptr_owner = true;
+// amrex::Arena is a virtual base class, not supported on GPUs.
+// So for now, need to manually add allocation for objects built on GPU. 
 #ifndef __CUDA_ARCH__
-    dptr      = static_cast<T*>(amrex::The_Arena()->alloc(this, truesize*sizeof(T)));
+    dptr      = static_cast<T*>(amrex::The_Arena()->alloc(truesize*sizeof(T)));
 #else
-    dptr      = (::new T(truesize*sizeof(T)));
+    dptr      = static_cast<T*>(::operator new(truesize*sizeof(T)));
 #endif
     //
     // Now call T::T() on the raw memory so we have valid Ts.
@@ -1598,11 +1600,13 @@ BaseFab<T>::clear ()
 	    {
 		ptr->~T();
 	    }
-#ifdef __CUDA_ARCH__
-            ::delete(dptr);
-#else
+#ifndef __CUDA_ARCH__
 	    amrex::The_Arena()->free(dptr);
+#else
+            ::operator delete(dptr);
+#endif
 
+#ifndef __CUDA_ARCH__
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
 	    } else {

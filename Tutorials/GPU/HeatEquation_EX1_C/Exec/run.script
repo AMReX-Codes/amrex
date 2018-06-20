@@ -15,8 +15,10 @@ omp=1
 export OMP_NUM_THREADS=${omp}
 EXE="./main2d.pgi.MPI.CUDA.ex"
 #EXE="../main3d.pgi.CUDA.ex"
-JSRUN="jsrun -n 1 -a 1 -g 1 -c 1 --bind=packed:${omp}"
+JSRUN="jsrun -n 2 -a 1 -g 1 -c 1 --bind=packed:${omp}"
 INPUTS=inputs_2d
+# n = tasks (MPI), g = gpus/task, c = threads/task, a = task/resource
+
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 #mkdir $rundir
@@ -25,13 +27,14 @@ rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 #cd $rundir
 
 # 0. Run with memcheck to find problems while initially designing kernels.
-#${JSRUN} cuda-memcheck ${EXE} ${INPUTS} &> nvprof.txt
+#${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} ${INPUTS} &> memcheck.${LSB_JOBID}.txt
+${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} ${INPUTS} &> memcheck.${LSB_JOBID}.txt
 
 # 1. Run normally
 #${JSRUN} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprof.txt
-${JSRUN} nvprof ${EXE} ${INPUTS} &> nvprof.txt
+#${JSRUN} --smpiargs="-gpu" nvprof ${EXE} ${INPUTS} &> nvprof.${LSB_JOBID}.txt
 #${JSRUN} nvprof --profile-child-processes ${EXE} inputs &> nvprof.txt
 
 # 3. Run under nvprof and store performance data in a nvvp file

@@ -1,4 +1,5 @@
 #include <AMReX.H>
+#include <AMReX_Device.H>
 
 #ifndef AMREX_MANAGED
 #define AMREX_MANAGED
@@ -10,7 +11,7 @@
 #define AMREX_CUDA_HOST __host__
 #define AMREX_CUDA_DEVICE __device__
 #define AMREX_CUDA_GLOBAL __global__
-
+/*
 inline void CudaErrorCheck() {
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -19,7 +20,7 @@ inline void CudaErrorCheck() {
         amrex::Abort(errStr);
     }
 }
-
+*/
 inline void syncDevice() 
 {
    cudaDeviceSynchronize();

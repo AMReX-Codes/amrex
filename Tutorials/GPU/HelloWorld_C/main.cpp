@@ -13,13 +13,6 @@
 
 #define RLIM_3D(x) &((int []){x[0], x[1], 0, x[2], 0}[0])
 
-bool checkManaged(const void *ptr)
-{
-   cudaPointerAttributes ptr_attr;
-   cudaPointerGetAttributes(&ptr_attr, ptr);
-   return ptr_attr.isManaged;
-}
-
 AMREX_CUDA_DEVICE
 void myf(int* a)
 {
@@ -91,7 +84,7 @@ void kernel_BaseFabCopy(amrex::BaseFab<amrex::Real> *bf1, amrex::BaseFab<amrex::
    delete(mem);
 //  cudaFree(mem);
 }
-
+/*
 AMREX_CUDA_GLOBAL
 void kernel_Geometry(amrex::GeometryData *geom, amrex::Box *domain, amrex::Real *off, amrex::Box *bx)
 {
@@ -102,7 +95,7 @@ void kernel_Geometry(amrex::GeometryData *geom, amrex::Box *domain, amrex::Real 
 
     *bx = *domain;
 }
-
+*/
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 int main (int argc, char* argv[])
@@ -229,7 +222,7 @@ int main (int argc, char* argv[])
                         "bf2 Max Val = "  << val_new << std::endl; 
 
     }
-
+/*
     // GeomData test
     {
       amrex::Print() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl << std::endl;
@@ -274,7 +267,7 @@ int main (int argc, char* argv[])
 
       cudaFree(off);
     }
-
+*/
     {
       amrex::Box vbx(amrex::IntVect(-12,-13,-14), amrex::IntVect(23,24,25));
       passBoxByValue<<<1,1>>>(vbx);

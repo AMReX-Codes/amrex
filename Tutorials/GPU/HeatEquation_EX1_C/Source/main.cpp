@@ -99,7 +99,6 @@ void main_main ()
     {
         AMREX_SIMPLE_LAUNCH(init_phi, 1, 1, mfi.validbox(), geom.data(), phi_new[mfi]); 
     }
-
     syncDevice();
 
     // ========================================
