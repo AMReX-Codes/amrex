@@ -18,13 +18,10 @@ void sweep (MultiFab& phi_old,
 	    Vector<MultiFab>& phi_sdc,
 	    Vector<MultiFab>& res_sdc,
 	    Vector<Vector<MultiFab> >& f_sdc,
-	    Vector<Vector<MultiFab> >& f_sdc_old,
 	    Real dt,
 	    const Geometry& geom,
 	    Real qnodes [],
-	    Real qmat [][SDC_NNODES],
-	    Real qmatE [][SDC_NNODES],
-	    Real qmatI [][SDC_NNODES],
+	    Real qmats [][SDC_NNODES-1][SDC_NNODES],
 	    int nsweeps);
 
 
