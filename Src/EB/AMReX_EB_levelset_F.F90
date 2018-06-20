@@ -1,4 +1,4 @@
-module amrex_eb_levelset
+module amrex_eb_levelset_module
     use amrex_fort_module, only: c_real => amrex_real
     use iso_c_binding,     only: c_int
 
@@ -712,4 +712,4 @@ contains
 
     end subroutine amrex_eb_normal_levelset
 
-end module amrex_eb_levelset
+end module amrex_eb_levelset_module
