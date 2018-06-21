@@ -20,49 +20,46 @@ long private_total_bytes_allocated_in_fabs_hwm = 0L;
 long private_total_cells_allocated_in_fabs     = 0L;
 long private_total_cells_allocated_in_fabs_hwm = 0L;
 
-int BF_init::m_cnt = 0;
-
 namespace
 {
-    Arena* the_arena = 0;
+    static bool basefab_initialized = false;
 }
 
-BF_init::BF_init ()
+void
+BaseFab_Initialize()
 {
-    if (m_cnt++ == 0)
-    {
-        BL_ASSERT(the_arena == 0);
 
-#if defined(BL_COALESCE_FABS)
-        the_arena = new CArena;
-#else
-        the_arena = new BArena;
-#endif
+  if (!basefab_initialized) 
+  {
+      basefab_initalized = true;
 
 #ifdef _OPENMP
 #pragma omp parallel
-	{
-	    amrex::private_total_bytes_allocated_in_fabs     = 0;
-	    amrex::private_total_bytes_allocated_in_fabs_hwm = 0;
-	    amrex::private_total_cells_allocated_in_fabs     = 0;
-	    amrex::private_total_cells_allocated_in_fabs_hwm = 0;
-	}
+      {
+         amrex::private_total_bytes_allocated_in_fabs     = 0;
+         amrex::private_total_bytes_allocated_in_fabs_hwm = 0;
+         amrex::private_total_cells_allocated_in_fabs     = 0;
+         amrex::private_total_cells_allocated_in_fabs_hwm = 0;
+      }
 #endif
 
 #ifdef BL_MEM_PROFILING
-	MemProfiler::add("Fab", std::function<MemProfiler::MemInfo()>
-			 ([] () -> MemProfiler::MemInfo {
-			     return {amrex::TotalBytesAllocatedInFabs(),
-				     amrex::TotalBytesAllocatedInFabsHWM()};
-			 }));
+      MemProfiler::add("Fab", std::function<MemProfiler::MemInfo()>
+                       ([] () -> MemProfiler::MemInfo {
+                           return {amrex::TotalBytesAllocatedInFabs(),
+                                   amrex::TotalBytesAllocatedInFabsHWM()};
+                       }));
 #endif
-    }
+  }
+
+  amrex::ExecOnFinalize(amrex::BaseFab_Finalize);
+
 }
 
-BF_init::~BF_init ()
+void
+BaseFab_Finalize()
 {
-    if (--m_cnt == 0)
-        delete the_arena;
+    basefab_initialized = false;   
 }
 
 long 
@@ -151,14 +148,6 @@ update_fab_stats (long n, long s, size_t szt)
 	    = std::max(amrex::private_total_cells_allocated_in_fabs_hwm,
 		       amrex::private_total_cells_allocated_in_fabs);
     }
-}
-
-Arena*
-The_Arena ()
-{
-    BL_ASSERT(the_arena != 0);
-
-    return the_arena;
 }
 
 #if !defined(BL_NO_FORT)

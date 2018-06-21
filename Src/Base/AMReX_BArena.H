@@ -21,11 +21,11 @@ public:
     * \brief Allocates a dynamic memory arena of size sz.
     * Returns a pointer to this memory.
     */
-    virtual void* alloc (std::size_t sz) override;
+    void* alloc (std::size_t sz);
     /**
     * \brief Deletes the arena pointed to by pt.
     */
-    virtual void free (void* pt) override;
+    void free (void* pt);
 };
 
 }

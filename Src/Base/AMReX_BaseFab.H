@@ -21,6 +21,7 @@
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_Managed.H>
+#include <AMReX_BArena.H>
 
 namespace amrex
 {
@@ -41,6 +42,9 @@ namespace amrex
     long TotalCellsAllocatedInFabsHWM();
     void ResetTotalBytesAllocatedInFabsHWM();
     void update_fab_stats (long n, long s, std::size_t szt);
+
+    void BaseFab_Initialize ();
+    void BaseFab_Finalize ();
 
 /**
 *  \brief A Fortran Array-like Object
@@ -126,6 +130,9 @@ public:
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
     BaseFab& operator= (const T&);
+
+    static void Initialize();
+    static void Finalize();
 
     /**
     * \brief This function resizes a BaseFab so it covers the Box b
@@ -968,6 +975,7 @@ protected:
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
 };
+
 
 template <class B, class F>
 AMREX_CUDA_HOST AMREX_CUDA_DEVICE
@@ -2612,19 +2620,5 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   }
   return *this;
 }
-
-
-class BF_init
-{
-public:
-    BF_init ();
-    ~BF_init ();
-private:
-    static int m_cnt;
-};
-
-}
-
-static amrex::BF_init amrex_file_scope_BF_init_object;
 
 #endif /*BL_BASEFAB_H*/

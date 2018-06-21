@@ -7,8 +7,17 @@
 namespace amrex {
 
 class Arena;
+class BArena;
+class CArena;
 
-Arena* The_Arena ();
+void Arena_Initialize();
+void Arena_Finalize();
+
+#ifdef BL_COALESCE_FABS
+CArena* The_Arena ();
+#else
+BArena* The_Arena ();
+#endif
 
 /**
 * \brief 
@@ -20,17 +29,7 @@ class Arena
 {
 public:
 
-    virtual ~Arena ();
-    /**
-    * Allocate a dynamic memory arena
-    * \param sz size of the memory request
-    * \return a pointer to the allocated memory
-    */
-    virtual void* alloc (std::size_t sz) = 0;
-    /**
-    * \brief A pure virtual function for deleting the arena pointed to by pt
-    */
-    virtual void free (void* pt) = 0;
+    ~Arena ();
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns
     * the next largest arena size that will align to align_size bytes
