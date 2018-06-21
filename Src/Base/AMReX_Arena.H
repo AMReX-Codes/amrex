@@ -3,6 +3,7 @@
 #define BL_ARENA_H
 
 #include <cstddef>
+#include <memory>
 
 namespace amrex {
 

@@ -1,6 +1,9 @@
 
+#include <AMReX_CArena.H>
+#include <AMReX_BArena.H>
 #include <AMReX_Arena.H>
 #include <AMReX.H>
+#include <AMReX_Utility.H>
 
 namespace amrex {
 
@@ -39,7 +42,7 @@ The_Arena ()
 {
     BL_ASSERT(the_arena != 0);
 
-    return the_arena;
+    return the_arena.get();
 }
 
 const unsigned int Arena::align_size;

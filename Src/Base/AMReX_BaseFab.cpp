@@ -31,7 +31,7 @@ BaseFab_Initialize()
 
   if (!basefab_initialized) 
   {
-      basefab_initalized = true;
+      basefab_initialized = true;
 
 #ifdef _OPENMP
 #pragma omp parallel

@@ -2621,4 +2621,6 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   return *this;
 }
 
+}
+
 #endif /*BL_BASEFAB_H*/

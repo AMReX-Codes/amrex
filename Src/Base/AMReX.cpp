@@ -8,8 +8,11 @@
 #include <stack>
 #include <limits>
 
-#include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX.H>
+#include <AMReX_Arena.H>
+#include <AMReX_BaseFab.H>
+#include <AMReX_Box.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
@@ -17,7 +20,6 @@
 #ifdef AMREX_USE_CUDA
 #include <AMReX_Device.H>
 #endif
-
 
 #ifndef BL_AMRPROF
 #include <AMReX_ParmParse.H>
