@@ -234,11 +234,14 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
             else:
                 # this was not one of our device headers
                 hout.write(line)
-                
+
             line = hin.readline()
 
         # we are done with the pass through the header and we know all
         # of the signatures that need to be CUDAed
+
+        # remove any dupes in the signatures needed
+        signatures_needed = list(set(signatures_needed))
 
         # now do the CUDA signatures
         print('signatures needed: {}'.format(signatures_needed))
