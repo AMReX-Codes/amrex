@@ -291,7 +291,7 @@ contains
        ! Note: this will only work if the threadblock size is
        ! larger in each dimension than the number of ghost zones.
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
        call syncthreads()
 #endif
 
@@ -424,7 +424,7 @@ contains
        end if
 #endif
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
        call syncthreads()
 #endif
 
@@ -557,7 +557,7 @@ contains
        end if
 #endif
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
        call syncthreads()
 #endif
 
