@@ -326,7 +326,7 @@ BaseFab<Real>::norm (const Box& bx,
     
     Real nrm = 0.0;
     
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* nrm_f = sptr.get();
     CudaAPICheck(cudaMemset(nrm_f, 0, sizeof(Real)));
@@ -347,7 +347,7 @@ BaseFab<Real>::norm (const Box& bx,
             amrex::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
         }
     
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     CudaAPICheck(cudaMemcpy(&nrm, nrm_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
@@ -365,7 +365,7 @@ BaseFab<Real>::sum (const Box& bx,
     
     Real sm = 0.0;
     
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* sm_f = sptr.get();
     CudaAPICheck(cudaMemset(sm_f, 0, sizeof(Real)));
@@ -378,7 +378,7 @@ BaseFab<Real>::sum (const Box& bx,
         (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
     
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     CudaAPICheck(cudaMemcpy(&sm, sm_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
@@ -650,7 +650,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     
     Real dp = 0.0;
     
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* dp_f = sptr.get();
     CudaAPICheck(cudaMemset(dp_f, 0, sizeof(Real)));
@@ -666,7 +666,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
          BL_TO_FORTRAN_N_ANYD(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
          numcomp, dp_f);
     
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     CudaAPICheck(cudaMemcpy(&dp, dp_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
