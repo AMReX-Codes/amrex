@@ -206,7 +206,9 @@ ifeq ($(DEBUG),TRUE)
     CPPFLAGS	+= -DAMREX_DEBUG
     DebugSuffix := .DEBUG
 else
-    CPPFLAGS	+= -DNDEBUG
+    ifneq ($(AMREX_XSDK),TRUE)
+        CPPFLAGS += -DNDEBUG
+    endif
     DebugSuffix :=
 endif
 

@@ -90,10 +90,12 @@ namespace amrex
 
     namespace system
     {
-#ifdef NDEBUG
+#ifndef AMREX_DEBUG
 	constexpr bool NDebug = true;
+        constexpr bool  Debug = false;
 #else
 	constexpr bool NDebug = false;
+        constexpr bool  Debug = true;
 #endif
 
 	extern std::string exename;
