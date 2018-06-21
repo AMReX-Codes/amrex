@@ -1409,8 +1409,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
   if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
       // Looks like we lost an AmrLevel on a regrid.
-      amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing m_particles from "
-                     << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
+      if (m_verbose > 0) {
+          amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing m_particles from "
+                         << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
+      }
       BL_ASSERT(int(m_particles.size()) >= 2);
       
       m_particles.resize(theEffectiveFinestLevel + 1);
@@ -1589,8 +1591,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         ParticleLocData pld;
         
         if (recvdata.size() % superparticle_size != 0) {
-            amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
-                              << recvdata.size() << ", " << superparticle_size << "\n";
+            if (m_verbose) {
+                amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
+                                  << recvdata.size() << ", " << superparticle_size << "\n";
+            }
             amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
         }
         
@@ -1693,10 +1697,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_m
                     {
                         if (lev != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile)
                         {
-                            amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                              << "POS  " << AMREX_D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
-                                              << "LEV  " << lev  << " " << pld.m_lev << '\n'
-                                              << "GRID " << grid << " " << pld.m_grid << '\n';
+                            if (m_verbose) {
+                                amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
+                                                  << "POS  " << AMREX_D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
+                                                  << "LEV  " << lev  << " " << pld.m_lev << '\n'
+                                                  << "GRID " << grid << " " << pld.m_grid << '\n';
+                            }
                             return false;
                         }
                     }
