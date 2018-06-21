@@ -165,10 +165,10 @@ initialize_EBIS(const int max_level)
           int normalDir;
           Real plateLoc;
     
-          pp.getarr("plate_lo", platelovec, 0, SpaceDim);
-          pp.getarr("plate_hi", platehivec, 0, SpaceDim);
-          pp.get("plate_location", plateLoc);
-          pp.get("plate_normal", normalDir);
+          ppeb2.getarr("plate_lo", platelovec, 0, SpaceDim);
+          ppeb2.getarr("plate_hi", platehivec, 0, SpaceDim);
+          ppeb2.get("plate_location", plateLoc);
+          ppeb2.get("plate_normal", normalDir);
 
           RealVect plateLo, plateHi;
           for(int idir = 0; idir < SpaceDim; idir++)
@@ -190,10 +190,10 @@ initialize_EBIS(const int max_level)
             int indepVar;
             Real startPt;
             Real slope;
-            pp.get("up_dir",upDir);
-            pp.get("indep_var",indepVar);
-            pp.get("start_pt", startPt);
-            pp.get("ramp_slope", slope);
+            ppeb2.get("up_dir",upDir);
+            ppeb2.get("indep_var",indepVar);
+            ppeb2.get("start_pt", startPt);
+            ppeb2.get("ramp_slope", slope);
 
             RealVect normal = RealVect::Zero;
             normal[upDir] = 1.0;
@@ -206,7 +206,7 @@ initialize_EBIS(const int max_level)
 
             impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
           }
-          else if (geom_type == "ramp_normal_point")
+          else if (geom_type == "plane")//"ramp_normal_point")
           {
             amrex::Print() << "ramp geometry using normal and point directly \n";
             RealVect normal;
@@ -214,9 +214,9 @@ initialize_EBIS(const int max_level)
             Vector<Real> pointvec; 
             Vector<Real> normalvec;
             int inside;
-            pp.getarr("ramp_normal", normalvec, 0, SpaceDim);
-            pp.getarr("ramp_point" ,  pointvec, 0, SpaceDim);
-            pp.get("ramp_inside", inside);
+            ppeb2.getarr("ramp_normal", normalvec, 0, SpaceDim);
+            ppeb2.getarr("ramp_point" ,  pointvec, 0, SpaceDim);
+            ppeb2.get("ramp_inside", inside);
             bool normalInside = (inside == 0);
             for(int idir = 0; idir < SpaceDim; idir++)
             {
@@ -234,10 +234,10 @@ initialize_EBIS(const int max_level)
             int indepVar;
             Real startPt;
             Real slope;
-            pp.get("up_dir",upDir);
-            pp.get("indep_var",indepVar);
-            pp.get("start_pt", startPt);
-            pp.get("ramp_slope", slope);
+            ppeb2.get("up_dir",upDir);
+            ppeb2.get("indep_var",indepVar);
+            ppeb2.get("start_pt", startPt);
+            ppeb2.get("ramp_slope", slope);
 
             RealVect normal = RealVect::Zero;
             normal[upDir] = 1.0;
@@ -256,8 +256,8 @@ initialize_EBIS(const int max_level)
             amrex::Print() << "anisotropic sphere geometry\n";
             Vector<Real> centervec(SpaceDim);
             Real radius;
-            pp.get(   "sphere_radius", radius);
-            pp.getarr("sphere_center", centervec, 0, SpaceDim);
+            ppeb2.get(   "sphere_radius", radius);
+            ppeb2.getarr("sphere_center", centervec, 0, SpaceDim);
             RealVect center;
             for(int idir = 0; idir < SpaceDim; idir++)
             {
@@ -305,7 +305,7 @@ initialize_EBIS(const int max_level)
 
             poly.push_back(mono);
 
-#if BL_SPACEDIM==3
+#if AMREX_SPACEDIM==3
             // z^2 term
             coef = amplitude;
             powers = IntVect::Zero;
@@ -360,7 +360,7 @@ initialize_EBIS(const int max_level)
 
             poly.push_back(mono);
 
-#if BL_SPACEDIM==3
+#if AMREX_SPACEDIM==3
             // z^2 term
             coef = amplitude;
             powers = IntVect::Zero;
