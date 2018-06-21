@@ -123,6 +123,48 @@ void LSFactory::init_geom(const BoxArray & ba, const Geometry & geom,
 
 
 
+void LSFactory::fill_valid_kernel(){
+
+    int search_radius = 1;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++ mfi) {
+        Box tile_box = mfi.tilebox();
+        const int * lo = tile_box.loVect();
+        const int * hi = tile_box.hiVect();
+
+        const auto & ls_tile = (* ls_grid)[mfi];
+        auto & valid_tile    = (* ls_valid)[mfi];
+
+        amrex_eb_fill_valid(lo, hi,
+                            BL_TO_FORTRAN_3D(valid_tile),
+                            BL_TO_FORTRAN_3D(ls_tile),
+                            & search_radius);
+
+    }
+
+    ls_valid->FillBoundary(geom_ls.periodicity());
+}
+
+
+
+void LSFactory::fill_valid(int n){
+    if(n <= 0) return;
+
+    fill_valid_kernel();
+    return fill_valid(n-1);
+}
+
+
+
+void LSFactory::fill_valid(){
+    return fill_valid(ls_grid_pad);
+}
+
+
+
 std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb_factory) {
     // 1-D list of eb-facet data. Format:
     // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
@@ -176,12 +218,12 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
             const auto & af_y_tile = (* areafrac[1])[mfi];
             const auto & af_z_tile = (* areafrac[2])[mfi];
 
-            amrex_eb_compute_normals(lo,                  hi,
-                            flag.dataPtr(),      flag.loVect(),      flag.hiVect(),
-                            norm_tile.dataPtr(), norm_tile.loVect(), norm_tile.hiVect(),
-                            af_x_tile.dataPtr(), af_x_tile.loVect(), af_x_tile.hiVect(),
-                            af_y_tile.dataPtr(), af_y_tile.loVect(), af_y_tile.hiVect(),
-                            af_z_tile.dataPtr(), af_z_tile.loVect(), af_z_tile.hiVect());
+            amrex_eb_compute_normals(lo, hi,
+                                     BL_TO_FORTRAN_3D(flag),
+                                     BL_TO_FORTRAN_3D(norm_tile),
+                                     BL_TO_FORTRAN_3D(af_x_tile),
+                                     BL_TO_FORTRAN_3D(af_y_tile),
+                                     BL_TO_FORTRAN_3D(af_z_tile)  );
         }
     }
 
@@ -225,12 +267,12 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
 
             int facet_list_size = facet_list->size();
 
-            amrex_eb_as_list(tile_box.loVect(),     tile_box.hiVect(),    & c_facets,
-                       flag.dataPtr(),        flag.loVect(),        flag.hiVect(),
-                       norm_tile.dataPtr(),   norm_tile.loVect(),   norm_tile.hiVect(),
-                       bcent_tile.dataPtr(),  bcent_tile.loVect(),  bcent_tile.hiVect(),
-                       facet_list->dataPtr(), & facet_list_size,
-                       dx_eb_vect.dataPtr());
+            amrex_eb_as_list(tile_box.loVect(), tile_box.hiVect(), & c_facets,
+                             BL_TO_FORTRAN_3D(flag),
+                             BL_TO_FORTRAN_3D(norm_tile),
+                             BL_TO_FORTRAN_3D(bcent_tile),
+                             facet_list->dataPtr(), & facet_list_size,
+                             dx_eb_vect.dataPtr()                               );
             }
     }
     return facet_list;
@@ -273,16 +315,18 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
         auto & v_tile = (* ls_valid)[mfi];
         auto & ls_tile = (* ls_grid)[mfi];
 
-        amrex_eb_update_levelset_intersection(tile_box.loVect(),    tile_box.hiVect(),
-                                     valid_in_tile.dataPtr(), valid_in_tile.loVect(), valid_in_tile.hiVect(),
-                                     ls_in_tile.dataPtr(),    ls_in_tile.loVect(),    ls_in_tile.hiVect(),
-                                     v_tile.dataPtr(),        v_tile.loVect(),        v_tile.hiVect(),
-                                     ls_tile.dataPtr(),       ls_tile.loVect(),       ls_tile.hiVect(),
-                                     dx_vect.dataPtr(),       & ls_grid_pad);
+        amrex_eb_update_levelset_intersection(tile_box.loVect(), tile_box.hiVect(),
+                                              BL_TO_FORTRAN_3D(valid_in_tile),
+                                              BL_TO_FORTRAN_3D(ls_in_tile),
+                                              BL_TO_FORTRAN_3D(v_tile),
+                                              BL_TO_FORTRAN_3D(ls_tile),
+                                              dx_vect.dataPtr(), & ls_grid_pad        );
     }
 
     ls_grid->FillBoundary(geom_ls.periodicity());
-    ls_valid->FillBoundary(geom_ls.periodicity());
+
+    fill_valid();
+    //ls_valid->FillBoundary(geom_ls.periodicity());
 }
 
 
@@ -300,17 +344,20 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
         auto & v_tile = (* ls_valid)[mfi];
         auto & ls_tile = (* ls_grid)[mfi];
 
-        amrex_eb_update_levelset_union(tile_box.loVect(),    tile_box.hiVect(),
-                              valid_in_tile.dataPtr(), valid_in_tile.loVect(), valid_in_tile.hiVect(),
-                              ls_in_tile.dataPtr(),    ls_in_tile.loVect(),    ls_in_tile.hiVect(),
-                              v_tile.dataPtr(),        v_tile.loVect(),        v_tile.hiVect(),
-                              ls_tile.dataPtr(),       ls_tile.loVect(),       ls_tile.hiVect(),
-                              dx_vect.dataPtr(),       & ls_grid_pad);
+        amrex_eb_update_levelset_union(tile_box.loVect(), tile_box.hiVect(),
+                                       BL_TO_FORTRAN_3D(valid_in_tile),
+                                       BL_TO_FORTRAN_3D(ls_in_tile),
+                                       BL_TO_FORTRAN_3D(v_tile),
+                                       BL_TO_FORTRAN_3D(ls_tile),
+                                       dx_vect.dataPtr(), & ls_grid_pad           );
     }
 
     ls_grid->FillBoundary(geom_ls.periodicity());
-    ls_valid->FillBoundary(geom_ls.periodicity());
+
+    fill_valid();
+    //ls_valid->FillBoundary(geom_ls.periodicity());
 }
+
 
 
 std::unique_ptr<MultiFab> LSFactory::copy_data(const DistributionMapping& dm) const {
@@ -321,12 +368,14 @@ std::unique_ptr<MultiFab> LSFactory::copy_data(const DistributionMapping& dm) co
 }
 
 
+
 std::unique_ptr<iMultiFab> LSFactory::copy_valid(const DistributionMapping& dm) const {
     std::unique_ptr<iMultiFab> cpy(new iMultiFab(ls_ba, dm, 1, ls_grid_pad));
     cpy->copy(* ls_valid, 0, 0, 1, 0, 0 /*ls_grid_pad, ls_grid_pad*/);
     cpy->FillBoundary(geom_ls.periodicity());
     return cpy;
 }
+
 
 
 std::unique_ptr<MultiFab> LSFactory::coarsen_data() const {
@@ -397,30 +446,13 @@ void LSFactory::set_data(const MultiFab & mf_ls){
     ls_grid->copy(mf_ls, 0, 0, 1, ls_grid_pad, ls_grid_pad);
     ls_grid->FillBoundary(geom_ls.periodicity());
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++ mfi) {
-        Box tile_box = mfi.tilebox();
-        const int * lo = tile_box.loVect();
-        const int * hi = tile_box.hiVect();
-
-        const auto & ls_tile = (* ls_grid)[mfi];
-        auto & valid_tile    = (* ls_valid)[mfi];
-
-        amrex_eb_fill_valid(lo, hi,
-                            valid_tile.dataPtr(), valid_tile.loVect(), valid_tile.hiVect(),
-                            ls_tile.dataPtr(),    ls_tile.loVect(),    ls_tile.hiVect(),
-                            & ls_grid_pad);
-
-    }
-
-    ls_valid->FillBoundary(geom_ls.periodicity());
+    fill_valid();
 }
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory & eb_factory, const EBIndexSpace & eb_is) {
+std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory & eb_factory,
+                                                       const EBIndexSpace & eb_is) {
 
     // Generate facets (TODO: in future these can also be provided by user)
     std::unique_ptr<Vector<Real>> facets = eb_facets(eb_factory);
@@ -464,16 +496,16 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
         auto & ls_tile = eb_ls[mfi];
         const auto & if_tile = (* impfunct)[mfi];
         if(len_facets > 0) {
-            amrex_eb_fill_levelset(lo,                hi,
-                             facets->dataPtr(), & len_facets,
-                             v_tile.dataPtr(),  v_tile.loVect(),  v_tile.hiVect(),
-                             ls_tile.dataPtr(), ls_tile.loVect(), ls_tile.hiVect(),
-                             dx_vect.dataPtr(), dx_eb_vect.dataPtr());
+            amrex_eb_fill_levelset(lo, hi,
+                                   facets->dataPtr(), & len_facets,
+                                   BL_TO_FORTRAN_3D(v_tile),
+                                   BL_TO_FORTRAN_3D(ls_tile),
+                                   dx_vect.dataPtr(), dx_eb_vect.dataPtr());
 
-            amrex_eb_validate_levelset(lo,                hi,               & ls_grid_ref,
-                              if_tile.dataPtr(), if_tile.loVect(), if_tile.hiVect(),
-                              v_tile.dataPtr(),  v_tile.loVect(),  v_tile.hiVect(),
-                              ls_tile.dataPtr(), ls_tile.loVect(), ls_tile.hiVect());
+            amrex_eb_validate_levelset(lo, hi, & ls_grid_ref,
+                                       BL_TO_FORTRAN_3D(if_tile),
+                                       BL_TO_FORTRAN_3D(v_tile),
+                                       BL_TO_FORTRAN_3D(ls_tile)   );
 
             region_tile.setVal(1);
         }
@@ -486,7 +518,9 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 }
 
 
-std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_factory, const EBIndexSpace & eb_is) {
+
+std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_factory,
+                                                const EBIndexSpace & eb_is) {
 
     // Generate facets (TODO: in future these can also be provided by user)
     std::unique_ptr<Vector<Real>> facets = eb_facets(eb_factory);
@@ -524,16 +558,16 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
         const auto & if_tile = (* impfunct)[mfi];
 
         if(len_facets > 0) {
-            amrex_eb_fill_levelset(lo,                hi,
-                             facets->dataPtr(), & len_facets,
-                             v_tile.dataPtr(),  v_tile.loVect(),  v_tile.hiVect(),
-                             ls_tile.dataPtr(), ls_tile.loVect(), ls_tile.hiVect(),
-                             dx_vect.dataPtr(), dx_eb_vect.dataPtr());
+            amrex_eb_fill_levelset(lo, hi,
+                                   facets->dataPtr(), & len_facets,
+                                   BL_TO_FORTRAN_3D(v_tile),
+                                   BL_TO_FORTRAN_3D(ls_tile),
+                                   dx_vect.dataPtr(), dx_eb_vect.dataPtr());
 
-            amrex_eb_validate_levelset(lo,                hi,               & ls_grid_ref,
-                              if_tile.dataPtr(), if_tile.loVect(), if_tile.hiVect(),
-                              v_tile.dataPtr(),  v_tile.loVect(),  v_tile.hiVect(),
-                              ls_tile.dataPtr(), ls_tile.loVect(), ls_tile.hiVect());
+            amrex_eb_validate_levelset(lo, hi, & ls_grid_ref,
+                                       BL_TO_FORTRAN_3D(if_tile),
+                                       BL_TO_FORTRAN_3D(v_tile),
+                                       BL_TO_FORTRAN_3D(ls_tile)   );
 
             region_tile.setVal(1);
         }
@@ -543,6 +577,7 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
     update_union(eb_ls, * region_valid);
     return region_valid;
 }
+
 
 
 std::unique_ptr<iMultiFab> LSFactory::intersection_ebis(const EBIndexSpace & eb_is) {
@@ -571,6 +606,7 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebis(const EBIndexSpace & eb_
 }
 
 
+
 std::unique_ptr<iMultiFab> LSFactory::union_ebis(const EBIndexSpace & eb_is) {
     std::unique_ptr<MultiFab> mf_impfunc = ebis_impfunc(eb_is);
     std::unique_ptr<iMultiFab> region_valid = std::unique_ptr<iMultiFab>(new iMultiFab);
@@ -597,6 +633,7 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebis(const EBIndexSpace & eb_is) {
 }
 
 
+
 PolynomialDF::PolynomialDF(const Vector<PolyTerm> & a_polynomial, const bool & a_inside)
              :PolynomialIF(a_polynomial, a_inside)
 {
@@ -610,6 +647,7 @@ PolynomialDF::PolynomialDF(const Vector<PolyTerm> & a_polynomial, const bool & a
         order = cur_order > order ? cur_order : order;
     }
 }
+
 
 
 Real PolynomialDF::value(const RealVect & a_point, const Vector<PolyTerm> & a_polynomial) const {
@@ -650,9 +688,11 @@ Real PolynomialDF::value(const RealVect & a_point, const Vector<PolyTerm> & a_po
 };
 
 
+
 Real PolynomialDF::value(const RealVect & a_point) const {
     return value(a_point,m_polynomial);
 }
+
 
 
 BaseIF * PolynomialDF::newImplicitFunction() const {
