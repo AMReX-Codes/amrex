@@ -63,6 +63,10 @@ class LSFactory {
         void update_ba(const BoxArray& new_ba, const DistributionMapping & dm);
         void init_geom(const BoxArray& ba, const Geometry& geom, const DistributionMapping & dm);
 
+        void fill_valid_kernel();
+        void fill_valid(int n);
+        void fill_valid();
+
     public:
         LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
                   const BoxArray& ba, const Geometry& geom, const DistributionMapping& dm);

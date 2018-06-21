@@ -307,16 +307,16 @@ contains
             end do
         end do
 
-        do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                    valid_cell = neighbour_is_valid(phi, phlo, phhi, i, j, k, n_pad)
-                    if ( valid_cell ) then
-                        valid(i, j, k) = 1
-                    end if
-                end do
-            end do
-        end do
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1)
+        !             valid_cell = neighbour_is_valid(phi, phlo, phhi, i, j, k, n_pad)
+        !             if ( valid_cell ) then
+        !                 valid(i, j, k) = 1
+        !             end if
+        !         end do
+        !     end do
+        ! end do
 
     end subroutine amrex_eb_update_levelset_intersection
 
@@ -375,16 +375,16 @@ contains
             end do
         end do
 
-        do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                    valid_cell = neighbour_is_valid(phi, phlo, phhi, i, j, k, n_pad)
-                    if ( valid_cell ) then
-                        valid(i, j, k) = 1
-                    end if
-                end do
-            end do
-        end do
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1)
+        !             valid_cell = neighbour_is_valid(phi, phlo, phhi, i, j, k, n_pad)
+        !             if ( valid_cell ) then
+        !                 valid(i, j, k) = 1
+        !             end if
+        !         end do
+        !     end do
+        ! end do
 
     end subroutine amrex_eb_update_levelset_union
 
