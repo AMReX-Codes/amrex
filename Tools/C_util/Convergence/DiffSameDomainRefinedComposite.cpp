@@ -20,7 +20,7 @@ using std::ios;
 #include <AMReX_AVGDOWN_F.H>
 #include "AMReX_ArrayLim.H"
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
 #include <TV_TempWrite.H>
 #endif
 

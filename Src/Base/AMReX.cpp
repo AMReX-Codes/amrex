@@ -86,6 +86,8 @@ std::string amrex::Version ()
 #endif
 }
 
+int amrex::Verbose () { return amrex::system::verbose; }
+
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
 // to ensure that when writing the message to stderr, that no additional
@@ -457,9 +459,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
-	amrex::Print() << "!\n! WARNING: Maximum of long int, "
-		       << std::numeric_limits<long>::max() 
-		       << ", might be too small for big runs.\n!\n";
+        if (system::verbose) {
+            amrex::Print() << "!\n! WARNING: Maximum of long int, "
+                           << std::numeric_limits<long>::max() 
+                           << ", might be too small for big runs.\n!\n";
+        }
     }
 
 #if defined(BL_USE_FORTRAN_MPI)
