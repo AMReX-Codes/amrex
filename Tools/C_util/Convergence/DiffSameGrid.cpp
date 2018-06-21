@@ -15,7 +15,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_AmrData.H>
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
 #include <TV_TempWrite.H>
 #endif
 

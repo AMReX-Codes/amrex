@@ -591,7 +591,7 @@ contains
                         alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
                      endif
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
                      if (alpha(ic,jc,n) .lt. 0.d0) then
                         print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
                         print *,'ALPHA = ',alpha(ic,jc,n)
