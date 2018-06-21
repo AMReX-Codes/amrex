@@ -49,8 +49,57 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
         auto gshop = EB2::makeShop(pr);
         EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
     }
+    else if(geom_type == "ramp_slope") 
+    {
+	amrex::Print() << " Ramp using slope!\n"; 
+	int upDir; 
+	int indepVar; 
+	Real startPt; 
+	Real slope; 
+	pp.get("up_dir", upDir); 
+	pp.get("indep_var", indepVar); 
+	pp.get("start_pt", startPt); 
+	pp.get("ramp_slope", slope); 
+	
+	RealArray normal; 
+	RealArray point; 
+	for(int idir = 0; idir < SpaceDim; idir++)
+	{
+		normal[idir] = 0.; 
+		point[idir] = 0.; 		
+	}
+	normal[upDir] = 1.0; 
+	normal[indepVar] = -slope; 
+	
+	point[upDir] = -slope*startPt; 
+	EB2::PlaneIF myplane(point, normal); 
+	
+	auto gshop = EB2::makeShop(myplane); 
+	EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level); 
+	 
+    }
+    else if(geom_type == "ramp_normal_point")
+    {
+	amrex::Print() << " Ramp Geometry using normal and point directly \n"; 
+	RealArray normal; 
+	RealArray point; 
+	Vector<Real> pointvec; 
+	Vector<Real> normalvec; 
+	pp.getarr("ramp_normal", normalvec, 0, SpaceDim); 
+	pp.getarr("ramp_point", pointvec, 0, SpaceDim); 
+	for(int idir = 0; idir < SpaceDim; idir++)
+	{
+		point[idir] = pointvec[idir]; 
+		normal[idir] = normalvec[idir]; 
+	}
+	EB2::PlaneIF myplane(point,normal); 
+	auto gshop = EB2::makeShop(myplane); 
+	EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level); 
+    }
     else
     {
         EB2::Build(geom, max_coarsening_level, max_coarsening_level);
     }
 }
+
+
