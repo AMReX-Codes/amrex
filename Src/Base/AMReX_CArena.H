@@ -17,7 +17,7 @@ namespace amrex {
 */
 
 class CArena
-    :
+    : 
     public Arena
 {
 public:
@@ -29,16 +29,16 @@ public:
     CArena (size_t hunk_size = 0);
     
     //! The destructor.
-    virtual ~CArena () override;
+    ~CArena ();
 
     //! Allocate some memory.
-    virtual void* alloc (size_t nbytes) override;
+    void* alloc (size_t nbytes);
 
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
     */
-    virtual void free (void* ap) override;
+    void free (void* ap);
 
     //! The current amount of heap space used by the CArena object.
     size_t heap_space_used () const;
