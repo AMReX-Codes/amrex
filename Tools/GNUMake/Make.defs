@@ -138,6 +138,10 @@ ifndef USE_CUDA_UM
   USE_CUDA_UM = TRUE
 endif
 
+ifndef NO_DEVICE_LAUNCH
+  NO_DEVICE_LAUNCH = FALSE
+endif
+
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA version.
   CUDA_VERSION ?= cuda9.0
@@ -390,8 +394,15 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     CUDASuffix := .CUDA
-    DEFINES += -DAMREX_LAUNCH='attributes(global)'
-    DEFINES += -DAMREX_DEVICE='attributes(device)'
+
+    ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+      DEFINES += -DAMREX_LAUNCH='attributes(global)'
+      DEFINES += -DAMREX_DEVICE='attributes(device)'
+    else
+      DEFINES += -DAMREX_LAUNCH=""
+      DEFINES += -DAMREX_DEVICE=""
+      DEFINES += -DAMREX_NO_DEVICE_LAUNCH
+    endif
 
 else
     DEFINES += -DAMREX_LAUNCH=""
@@ -607,7 +618,9 @@ ifeq ($(USE_CUDA),TRUE)
 
     # Include the headers with the CUDA kernels.
 
-    INCLUDE_LOCATIONS += $(TmpBuildDir)/header_temp_dir
+    ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+      INCLUDE_LOCATIONS += $(TmpBuildDir)/header_temp_dir
+    endif
 
     # Bring in NVML support. This is not required,
     # but is recommended if you do not have a solution

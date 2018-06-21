@@ -7,7 +7,11 @@ vpath %.f90  $(FINAL_VPATH_LOCATIONS)
 vpath %.F90  $(FINAL_VPATH_LOCATIONS)
 vpath %.c    $(FINAL_VPATH_LOCATIONS)
 ifeq ($(USE_CUDA),TRUE)
+ifneq ($(NO_DEVICE_LAUNCH),TRUE)
 vpath %.cpp  $(TmpBuildDir)/header_temp_dir $(FINAL_VPATH_LOCATIONS)
+else
+vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
+endif
 else
 vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
 endif
@@ -35,7 +39,9 @@ else
 	$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
 endif
 ifeq ($(USE_CUDA),TRUE)
+ifneq ($(NO_DEVICE_LAUNCH),TRUE)
 	$(SILENT) $(RM) $(TmpBuildDir)/header_temp
+endif
 endif
 #	@echo SUCCESS
 
@@ -256,6 +262,7 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 
 # $(CEXE_sources)
 ifeq ($(USE_CUDA),TRUE)
+ifneq ($(NO_DEVICE_LAUNCH),TRUE)
 $(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources) 
 	@if [ ! -d $(TmpBuildDir)/header_temp_dir ]; then mkdir -p $(TmpBuildDir)/header_temp_dir; fi
 	@$(SHELL) -ec 'touch $(TmpBuildDir)/header_temp' # So that the rule always gets updated
@@ -268,6 +275,7 @@ $(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources)
              --cpp "$(HOST_CC) -E -P -std=c99" \
              --defines "$(FINAL_CPPFLAGS) $(includes)" \
              --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI"
+endif
 endif
 
 #
@@ -343,7 +351,9 @@ include $(depEXETempDir)/f90.depends
 endif
 
 ifeq ($(USE_CUDA), TRUE)
+ifneq ($(NO_DEVICE_LAUNCH),TRUE)
 include $(TmpBuildDir)/header_temp
+endif
 endif
 
 endif

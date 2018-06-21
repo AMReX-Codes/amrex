@@ -72,7 +72,7 @@ contains
     integer, intent(in   ) :: lo(3), hi(3)
     integer, intent(inout) :: blo(3), bhi(3)
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     ! Get our spatial index based on the CUDA thread index
 
     blo(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
@@ -107,7 +107,7 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicAdd(x, y)
 #else
     x = x + y
@@ -128,7 +128,7 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicSub(x, y)
 #else
     x = x - y
@@ -149,7 +149,7 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicMax(x, y)
 #else
     x = max(x, y)
@@ -170,7 +170,7 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicMin(x, y)
 #else
     x = min(x, y)
