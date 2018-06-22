@@ -9,6 +9,12 @@
 
 namespace amrex
 {
+    class InterpHook {
+    public:
+        virtual ~InterpHook () {}
+        virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const {}
+    };
+
     bool ProperlyNested (const IntVect& ratio, const IntVect& blockint_factor, int ngrow, 
 			 const IndexType& boxType, Interpolater* mapper);
 
@@ -24,7 +30,9 @@ namespace amrex
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const BCRec& bcs);
+			     Interpolater* mapper, const BCRec& bcs,
+                             const InterpHook& pre_interp = InterpHook(),
+                             const InterpHook& post_interp = InterpHook());
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
 			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
@@ -33,19 +41,26 @@ namespace amrex
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const Vector<BCRec>& bcs);
+			     Interpolater* mapper, const Vector<BCRec>& bcs,
+                             const InterpHook& pre_interp = InterpHook(),
+                             const InterpHook& post_interp = InterpHook());
 
     void InterpFromCoarseLevel (MultiFab& mf, Real time,
 				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
-				Interpolater* mapper, const BCRec& bcs);
+				Interpolater* mapper, const BCRec& bcs,
+                                const InterpHook& pre_interp = InterpHook(),
+                                const InterpHook& post_interp = InterpHook());
+
 
     void InterpFromCoarseLevel (MultiFab& mf, Real time,
 				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
-				Interpolater* mapper, const Vector<BCRec>& bcs);
+				Interpolater* mapper, const Vector<BCRec>& bcs,
+                                const InterpHook& pre_interp = InterpHook(),
+                                const InterpHook& post_interp = InterpHook());
 
     void InterpCrseFineBndryBfield (const std::array<MultiFab,AMREX_SPACEDIM>& crse,
                                     std::array<MultiFab,AMREX_SPACEDIM>& fine,
