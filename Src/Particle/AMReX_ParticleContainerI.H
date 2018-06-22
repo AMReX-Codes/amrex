@@ -17,6 +17,39 @@ namespace
             it = p.second;
         }
     }
+
+    template <typename T>
+    std::vector<std::size_t> sort_permutation(const std::vector<T>& vec)
+    {
+        std::vector<std::size_t> p(vec.size());
+        std::iota(p.begin(), p.end(), 0);
+        std::sort(p.begin(), p.end(),
+                  [&](std::size_t i, std::size_t j) {
+                      return (vec[i] < vec[j]);
+                  }
+                  );
+        return p;
+    }
+
+    template <typename T>
+    void apply_permutation_in_place(std::vector<T>& vec, const std::vector<std::size_t>& p)
+    {
+        std::vector<bool> done(vec.size());
+        for (std::size_t i = 0; i < vec.size(); ++i)
+            {
+                if (done[i]) continue;
+                done[i] = true;
+                std::size_t prev_j = i;
+                std::size_t j = p[i];
+                while (i != j)
+                    {
+                        std::swap(vec[prev_j], vec[j]);
+                        done[j] = true;
+                        prev_j = j;
+                        j = p[j];
+                    }
+            }
+    }    
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1647,13 +1680,11 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         }
 
         Vector<RcvParticleTag> tags(npart);
-        Vector<int> indices(npart);
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif        
         for (int i = 0; i < npart; ++i)
         {
-            indices[i] = i;
             ParticleLocData pld;
             locateParticle(struct_data[i], pld, lev_min, lev_max, nGrow);
             tags[i].lev  = pld.m_lev;
@@ -1661,25 +1692,30 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             tags[i].tile = pld.m_tile;
         }
 
-        std::sort(indices.begin(), indices.end(),
-                  [&](const int& a, const int& b) {
-                      return (tags[a] < tags[b]);
-                   }
-        );
+        std::vector<std::size_t> indices;
+        indices = sort_permutation(tags);
+        apply_permutation_in_place(tags, indices);
+        apply_permutation_in_place(struct_data, indices);
+        for (int comp = 0; comp < NArrayReal; ++comp)
+        {
+            apply_permutation_in_place(real_data[comp], indices);
+        }
+        for (int comp = 0; comp < NArrayInt; ++comp)
+        {
+            apply_permutation_in_place(int_data[comp], indices);
+        }
         
         Vector<int> begin;
         Vector<int> end;
-        get_range_begin_end(indices, begin, end);
+        get_range_begin_end(tags, begin, end);
 
-       
         for (int i = 0; i < static_cast<int>(begin.size()); ++i)
         {
-            if (begin[i] == npart) continue;
-            const int pindex = indices[begin[i]];
+            const int pindex = begin[i];
+            if (pindex == npart) continue;
             const int my_lev  = tags[pindex].lev;
             const int my_grid = tags[pindex].grid;
             const int my_tile = tags[pindex].tile;
-            amrex::Print() << my_lev << " " << my_grid << " " << my_tile << std::endl;
             m_particles[my_lev][std::make_pair(my_grid, my_tile)];
         }
         
@@ -1691,23 +1727,22 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             for (int j = begin[i]; j < end[i]; ++j)
             {
                 if (j == npart) continue;
-                const int pindex = indices[j];
-                const int my_lev  = tags[pindex].lev;
-                const int my_grid = tags[pindex].grid;
-                const int my_tile = tags[pindex].tile; 
+                const int my_lev  = tags[j].lev;
+                const int my_grid = tags[j].grid;
+                const int my_tile = tags[j].tile; 
 
                 auto& ptile = m_particles[my_lev][std::make_pair(my_grid, my_tile)];
 
-                ptile.push_back(struct_data[pindex]);
+                ptile.push_back(struct_data[j]);
             
                 for (int comp = 0; comp < NArrayReal; ++comp)
                 {
-                    ptile.push_back_real(comp, real_data[comp][pindex]);
+                    ptile.push_back_real(comp, real_data[comp][j]);
                 }
 
                 for (int comp = 0; comp < NArrayInt; ++comp)
                 {
-                    ptile.push_back_int(comp, int_data[comp][pindex]);
+                    ptile.push_back_int(comp, int_data[comp][j]);
                 }
             }
         }
