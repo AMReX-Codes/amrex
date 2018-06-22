@@ -1609,8 +1609,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         for (int i = 0; i < npart; ++i)
         {
             char* pbuf = recvdata.data() + i*superparticle_size;
-            ParticleType* p = reinterpret_cast<ParticleType*>(pbuf);
-            locateParticle(*p, pld, lev_min, lev_max, nGrow);
+            ParticleType p;
+            std::memcpy(&p, pbuf, sizeof(ParticleType));
+            locateParticle(p, pld, lev_min, lev_max, nGrow);
             rcv_levs[i] = pld.m_lev;
             rcv_grid[i] = pld.m_grid;
             rcv_tile[i] = pld.m_tile;
@@ -1621,9 +1622,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
             
             char* pbuf = recvdata.data() + j*superparticle_size;
-            ParticleType* p = reinterpret_cast<ParticleType*>(pbuf);
-            
-            ptile.push_back(*p);
+            ParticleType p;
+            std::memcpy(&p, pbuf, sizeof(ParticleType));            
+            ptile.push_back(p);
 
             Real* rdata = (Real*)(pbuf + particle_size);
             for (int comp = 0; comp < NArrayReal; ++comp) {
