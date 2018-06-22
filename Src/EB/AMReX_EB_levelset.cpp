@@ -144,8 +144,6 @@ void LSFactory::fill_valid_kernel(){
                             & search_radius);
 
     }
-
-    ls_valid->FillBoundary(geom_ls.periodicity());
 }
 
 
@@ -161,6 +159,9 @@ void LSFactory::fill_valid(int n){
 
 void LSFactory::fill_valid(){
     return fill_valid(ls_grid_pad);
+
+    // Avoid FillBoundary in recursive steps
+    ls_valid->FillBoundary(geom_ls.periodicity());
 }
 
 
