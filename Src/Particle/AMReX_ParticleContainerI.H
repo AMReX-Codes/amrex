@@ -1642,7 +1642,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
      
-	BL_PROFILE_VAR_START(blp_initial_copy);
+	BL_PROFILE_VAR_START(blp_locate);
    
         if (recvdata.size() % superparticle_size != 0) {
             if (m_verbose) {
@@ -1654,53 +1654,22 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
         int npart = recvdata.size() / superparticle_size;
         
-        Vector<Vector<Real> > real_data(NArrayReal);
-        for (int i = 0; i < NArrayReal; ++i) real_data[i].resize(npart);
-        Vector<Vector<int> > int_data(NArrayInt);
-        for (int i = 0; i < NArrayInt; ++i) int_data[i].resize(npart);
-        Vector<ParticleType> struct_data(npart);
+        Vector<int> rcv_levs(npart);
+        Vector<int> rcv_grid(npart);
+        Vector<int> rcv_tile(npart);
 
-        char* pbuf = recvdata.data();
-        for (int i = 0; i < npart; ++i)
-        {
-            std::memcpy(&struct_data[i], pbuf, particle_size);
-
-            Real* rdata = (Real*)(pbuf + particle_size);
-            for (int comp = 0; comp < NArrayReal; ++comp) {
-                if (communicate_real_comp[comp]) {
-                    real_data[comp][i] = *rdata++;
-                } else {
-                    real_data[comp][i] = 0.0;
-                }
-            }
-
-            int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
-            for (int comp = 0; comp < NArrayInt; ++comp) {
-                if (communicate_int_comp[comp]) {
-                    int_data[comp][i] = *idata++;
-                } else {
-                    int_data[comp][i] = 0;
-                }
-            }
-            
-            pbuf += superparticle_size;
-        }
-
-	BL_PROFILE_VAR_STOP(blp_initial_copy);
-
-	BL_PROFILE_VAR_START(blp_locate);
-        
-        Vector<RcvParticleTag> tags(npart);
+        ParticleLocData pld;
 #ifdef _OPENMP
-#pragma omp parallel for
-#endif        
+#pragma omp parallel for private(pld)
+#endif                
         for (int i = 0; i < npart; ++i)
         {
-            ParticleLocData pld;
-            locateParticle(struct_data[i], pld, lev_min, lev_max, nGrow);
-            tags[i].lev  = pld.m_lev;
-            tags[i].grid = pld.m_grid;
-            tags[i].tile = pld.m_tile;
+            char* pbuf = recvdata.data() + i*superparticle_size;
+            ParticleType* p = reinterpret_cast<ParticleType*>(pbuf);
+            locateParticle(*p, pld, lev_min, lev_max, nGrow);
+            rcv_levs[i] = pld.m_lev;
+            rcv_grid[i] = pld.m_grid;
+            rcv_tile[i] = pld.m_tile;
         }
 
 	BL_PROFILE_VAR_STOP(blp_locate);
@@ -1708,23 +1677,30 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         BL_PROFILE_VAR_START(blp_final_copy);
         for (int j = 0; j < npart; ++j)
         {
-            const int my_lev  = tags[j].lev;
-            const int my_grid = tags[j].grid;
-            const int my_tile = tags[j].tile; 
+            auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
             
-            auto& ptile = m_particles[my_lev][std::make_pair(my_grid, my_tile)];
+            char* pbuf = recvdata.data() + j*superparticle_size;
+            ParticleType* p = reinterpret_cast<ParticleType*>(pbuf);
             
-            ptile.push_back(struct_data[j]);
-            
-            for (int comp = 0; comp < NArrayReal; ++comp)
-            {
-                ptile.push_back_real(comp, real_data[comp][j]);
-            }
+            ptile.push_back(*p);
 
-            for (int comp = 0; comp < NArrayInt; ++comp)
-            {
-                ptile.push_back_int(comp, int_data[comp][j]);
+            Real* rdata = (Real*)(pbuf + particle_size);
+            for (int comp = 0; comp < NArrayReal; ++comp) {
+                if (communicate_real_comp[comp]) {
+                    ptile.push_back_real(comp, *rdata++);
+                } else {
+                    ptile.push_back_real(comp, 0.0);
+                }
             }
+            
+            int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
+            for (int comp = 0; comp < NArrayInt; ++comp) {
+                if (communicate_int_comp[comp]) {
+                    ptile.push_back_int(comp, *idata++);
+                } else {
+                    ptile.push_back_int(comp, 0);
+                }
+            }            
         }
 
 	BL_PROFILE_VAR_STOP(blp_final_copy);
