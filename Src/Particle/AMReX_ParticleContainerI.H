@@ -2433,6 +2433,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 	}
         
         writeIntData(istuff.dataPtr(), istuff.size(), ofs);
+        ofs.flush();  // Some systems require this flush() (probably due to a bug)
       }
       
       // Write the Real data in binary.
@@ -2459,6 +2460,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
           }
       }
       WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
+      ofs.flush();  // Some systems require this flush() (probably due to a bug)              
     }
 }
 
