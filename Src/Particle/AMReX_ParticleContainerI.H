@@ -1701,64 +1701,25 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
 	BL_PROFILE_VAR_STOP(blp_locate);
 
-	BL_PROFILE_VAR_START(blp_sort);
-        
-        std::vector<std::size_t> indices;
-        indices = sort_permutation(tags);
-        apply_permutation_in_place(tags, indices);
-        apply_permutation_in_place(struct_data, indices);
-        for (int comp = 0; comp < NArrayReal; ++comp)
+        BL_PROFILE_VAR_START(blp_final_copy);
+        for (int j = 0; j < npart; ++j)
         {
-            apply_permutation_in_place(real_data[comp], indices);
-        }
-        for (int comp = 0; comp < NArrayInt; ++comp)
-        {
-            apply_permutation_in_place(int_data[comp], indices);
-        }
-        
-        Vector<int> begin;
-        Vector<int> end;
-        get_range_begin_end(tags, begin, end);
-
-	BL_PROFILE_VAR_STOP(blp_sort);
-
-	BL_PROFILE_VAR_START(blp_final_copy);
-        
-        for (int i = 0; i < static_cast<int>(begin.size()); ++i)
-        {
-            const int pindex = begin[i];
-            if (pindex == npart) continue;
-            const int my_lev  = tags[pindex].lev;
-            const int my_grid = tags[pindex].grid;
-            const int my_tile = tags[pindex].tile;
-            m_particles[my_lev][std::make_pair(my_grid, my_tile)];
-        }
-        
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif        
-        for (int i = 0; i < static_cast<int>(begin.size()); ++i)
-        {
-            for (int j = begin[i]; j < end[i]; ++j)
-            {
-                if (j == npart) continue;
-                const int my_lev  = tags[j].lev;
-                const int my_grid = tags[j].grid;
-                const int my_tile = tags[j].tile; 
-
-                auto& ptile = m_particles[my_lev][std::make_pair(my_grid, my_tile)];
-
-                ptile.push_back(struct_data[j]);
+            const int my_lev  = tags[j].lev;
+            const int my_grid = tags[j].grid;
+            const int my_tile = tags[j].tile; 
             
-                for (int comp = 0; comp < NArrayReal; ++comp)
-                {
-                    ptile.push_back_real(comp, real_data[comp][j]);
-                }
+            auto& ptile = m_particles[my_lev][std::make_pair(my_grid, my_tile)];
+            
+            ptile.push_back(struct_data[j]);
+            
+            for (int comp = 0; comp < NArrayReal; ++comp)
+            {
+                ptile.push_back_real(comp, real_data[comp][j]);
+            }
 
-                for (int comp = 0; comp < NArrayInt; ++comp)
-                {
-                    ptile.push_back_int(comp, int_data[comp][j]);
-                }
+            for (int comp = 0; comp < NArrayInt; ++comp)
+            {
+                ptile.push_back_int(comp, int_data[comp][j]);
             }
         }
 
