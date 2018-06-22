@@ -1553,7 +1553,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                  int lev_min, int lev_max, int nGrow, int local)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
-    BL_PROFILE_VAR_NS("RedistributeMPI_unpack", blp_unpack);
+    BL_PROFILE_VAR_NS("RedistributeMPI_initial_copy", blp_initial_copy);
+    BL_PROFILE_VAR_NS("RedistributeMPI_locate", blp_locate);
+    BL_PROFILE_VAR_NS("RedistributeMPI_sort", blp_sort);
+    BL_PROFILE_VAR_NS("RedistributeMPI_final_copy", blp_final_copy);
 
 #if BL_USE_MPI
 
@@ -1637,7 +1640,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
      
-	BL_PROFILE_VAR_START(blp_unpack);
+	BL_PROFILE_VAR_START(blp_initial_copy);
    
         if (recvdata.size() % superparticle_size != 0) {
             amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
@@ -1679,6 +1682,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             pbuf += superparticle_size;
         }
 
+	BL_PROFILE_VAR_STOP(blp_initial_copy);
+
+	BL_PROFILE_VAR_START(blp_locate);
+        
         Vector<RcvParticleTag> tags(npart);
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -1692,6 +1699,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             tags[i].tile = pld.m_tile;
         }
 
+	BL_PROFILE_VAR_STOP(blp_locate);
+
+	BL_PROFILE_VAR_START(blp_sort);
+        
         std::vector<std::size_t> indices;
         indices = sort_permutation(tags);
         apply_permutation_in_place(tags, indices);
@@ -1709,6 +1720,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         Vector<int> end;
         get_range_begin_end(tags, begin, end);
 
+	BL_PROFILE_VAR_STOP(blp_sort);
+
+	BL_PROFILE_VAR_START(blp_final_copy);
+        
         for (int i = 0; i < static_cast<int>(begin.size()); ++i)
         {
             const int pindex = begin[i];
@@ -1747,7 +1762,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             }
         }
 
-	BL_PROFILE_VAR_STOP(blp_unpack);
+	BL_PROFILE_VAR_STOP(blp_final_copy);
     }
 #endif /*BL_USE_MPI*/
 }
