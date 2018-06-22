@@ -18,6 +18,28 @@ namespace
     };
 }
 
+namespace {
+    
+    typedef void (*INTERP_HOOK) (const int* lo, const int*hi,
+                                 Real* d, const int* dlo, const int* dhi,
+                                 int icomp, int ncomp);
+
+    class FIInterpHook final
+        : public InterpHook
+    {
+    public:
+        FIInterpHook (INTERP_HOOK a_f) : m_f(a_f) {}
+        virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const final
+        {
+            m_f(BL_TO_FORTRAN_BOX(bx),
+                BL_TO_FORTRAN_ANYD(fab),
+                icomp, ncomp);
+        }
+    private:
+        INTERP_HOOK m_f;
+    };
+}
+
 extern "C"
 {
     void amrex_fi_fillpatch_single (MultiFab* mf, Real time, MultiFab* smf[], Real stime[], int ns,
@@ -38,7 +60,8 @@ extern "C"
 				 FPhysBC::fill_physbc_funptr_t cfill,
                                  FPhysBC::fill_physbc_funptr_t ffill,
 				 int rr, int interp_id,
-				 int* lo_bc[], int* hi_bc[])
+				 int* lo_bc[], int* hi_bc[],
+                                 INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
     {
 	Vector<BCRec> bcs;
 	// skip first scomp components
@@ -55,7 +78,9 @@ extern "C"
 				  *cgeom, *fgeom,
 				  cbc, fbc,
 				  IntVect{AMREX_D_DECL(rr,rr,rr)},
-				  interp[interp_id], bcs);
+				  interp[interp_id], bcs,
+                                  FIInterpHook(pre_interp),
+                                  FIInterpHook(post_interp));
     }
 
     void amrex_fi_fillcoarsepatch (MultiFab* mf, Real time, const MultiFab* cmf,
@@ -64,7 +89,8 @@ extern "C"
                                    FPhysBC::fill_physbc_funptr_t cfill,
                                    FPhysBC::fill_physbc_funptr_t ffill,
                                    int rr, int interp_id,
-                                   int* lo_bc[], int* hi_bc[])
+                                   int* lo_bc[], int* hi_bc[],
+                                   INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
     {
 	Vector<BCRec> bcs;
         // skip first scomp components
@@ -79,6 +105,8 @@ extern "C"
                                      *cgeom, *fgeom,
                                      cbc, fbc,
                                      IntVect{AMREX_D_DECL(rr,rr,rr)},
-                                     interp[interp_id], bcs);
+                                     interp[interp_id], bcs,
+                                     FIInterpHook(pre_interp),
+                                     FIInterpHook(post_interp));
     }
 }
