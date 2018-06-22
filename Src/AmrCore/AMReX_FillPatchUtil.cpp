@@ -122,12 +122,14 @@ namespace amrex
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const BCRec& bcs)
+			     Interpolater* mapper, const BCRec& bcs,
+                             const InterpHook& pre_interp,
+                             const InterpHook& post_interp)
     {
         Vector<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
 
         FillPatchTwoLevels(mf,time,cmf,ct,fmf,ft,scomp,dcomp,ncomp,cgeom,fgeom,
-                           cbc,fbc,ratio,mapper,bcs_array);
+                           cbc,fbc,ratio,mapper,bcs_array,pre_interp,post_interp);
     }
 
 
@@ -138,7 +140,9 @@ namespace amrex
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const Vector<BCRec>& bcs)
+			     Interpolater* mapper, const Vector<BCRec>& bcs,
+                             const InterpHook& pre_interp,
+                             const InterpHook& post_interp)
     {
 	BL_PROFILE("FillPatchTwoLevels");
 
@@ -170,7 +174,7 @@ namespace amrex
                 mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
-		
+
 		int idummy1=0, idummy2=0;
 		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
                 ignore_unused(cc);
@@ -179,16 +183,20 @@ namespace amrex
 #endif
 		for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
 		{
+                    FArrayBox& sfab = mf_crse_patch[mfi];
 		    int li = mfi.LocalIndex();
-		    int gi = fpc.dst_idxs[li];		
+		    int gi = fpc.dst_idxs[li];	
+                    FArrayBox& dfab = mf[gi];
 		    const Box& dbx = fpc.dst_boxes[li];
 		    
 		    Vector<BCRec> bcr(ncomp);
 		    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+
+                    pre_interp(sfab, sfab.box(), 0, ncomp);
 		    
-		    mapper->interp(mf_crse_patch[mfi],
+		    mapper->interp(sfab,
 				   0,
-				   mf[gi],
+				   dfab,
 				   dcomp,
 				   ncomp,
 				   dbx,
@@ -197,6 +205,8 @@ namespace amrex
 				   fgeom,
 				   bcr,
 				   idummy1, idummy2);
+
+                    post_interp(dfab, dbx, dcomp, ncomp);
 		}
 	    }
 	}
@@ -208,12 +218,15 @@ namespace amrex
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
-				Interpolater* mapper, const BCRec& bcs)
+				Interpolater* mapper, const BCRec& bcs,
+                                const InterpHook& pre_interp,
+                                const InterpHook& post_interp)
     {
 
         Vector<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
         InterpFromCoarseLevel(mf,time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
-                              cbc,fbc,ratio,mapper,bcs_array);
+                              cbc,fbc,ratio,mapper,bcs_array,
+                              pre_interp, post_interp);
 
     }
 
@@ -222,7 +235,9 @@ namespace amrex
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
-				Interpolater* mapper, const Vector<BCRec>& bcs)
+				Interpolater* mapper, const Vector<BCRec>& bcs,
+                                const InterpHook& pre_interp,
+                                const InterpHook& post_interp)
     {
 	const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
@@ -277,14 +292,17 @@ namespace amrex
 
             for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
             {
+                FArrayBox& sfab = mf_crse_patch[mfi];
                 FArrayBox& dfab = mf[mfi];
                 const Box& dbx = dfab.box() & fdomain_g;
                 
                 amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+
+                pre_interp(sfab, sfab.box(), 0, ncomp);
                 
-                mapper->interp(mf_crse_patch[mfi],
+                mapper->interp(sfab,
                                0,
-                               mf[mfi],
+                               dfab,
                                dcomp,
                                ncomp,
                                dbx,
@@ -292,7 +310,9 @@ namespace amrex
                                cgeom,
                                fgeom,
                                bcr,
-                               idummy1, idummy2);	    
+                               idummy1, idummy2);
+
+                post_interp(dfab, dbx, dcomp, ncomp);
             }
 	}
 

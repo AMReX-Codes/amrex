@@ -108,14 +108,18 @@ contains
         do_line = 1
         ilen = hi(1)-lo(1)+1
         if (ilen .gt. LSDIM) then
+#ifdef AMREX_DEBUG
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: ilen = ',ilen
+#endif
           call bl_error("stop")
         end if
       else if (h(1) .gt. 1.5D0*h(2)) then
         do_line = 2
         jlen = hi(2)-lo(2)+1
         if (jlen .gt. LSDIM) then
+#ifdef AMREX_DEBUG
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: jlen = ',jlen
+#endif
           call bl_error("stop")
         end if
       else 
@@ -241,7 +245,9 @@ contains
          end do
 
        else
+#ifdef AMREX_DEBUG
          print *,'BOGUS DO_LINE '
+#endif
          call bl_error("stop")
        end if
       end do

@@ -445,7 +445,7 @@ NFilesIter &NFilesIter::operator++() {
             }
 	    if(nextProcToWrite == -1) {
               --remainingWriters;
-	      amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << std::endl;
+//	      amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << std::endl;
 	    } else {
 
 	    fileNumbersWriteOrder[nextFileNumberToWrite].push_back(nextProcToWrite);
@@ -505,10 +505,10 @@ bool NFilesIter::CheckNFiles(int nProcs, int nOutFiles, bool groupSets)
     for(int i(0); i < nProcs; ++i) {
       fileNumbers.insert(FileNumber(nOutFiles, i, groupSets));
     }
-    amrex::Print() << "nOutFiles fileNumbers.size() = " << nOutFiles
-              << "  " << fileNumbers.size() << std::endl;
+//    amrex::Print() << "nOutFiles fileNumbers.size() = " << nOutFiles
+//              << "  " << fileNumbers.size() << std::endl;
     if(nOutFiles != static_cast<int>(fileNumbers.size())) {
-      amrex::Print() << "**** Different number of files." << std::endl;
+//      amrex::Print() << "**** Different number of files." << std::endl;
       return false;
     }
   }

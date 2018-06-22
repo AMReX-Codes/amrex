@@ -13,7 +13,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_VisMF.H>
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
 #ifdef BL_USE_ARRAYVIEW
 #include <ArrayView.H>
 #endif
@@ -279,7 +279,7 @@ main (int   argc,
     const Real bgVal = 1.0;
     
 #if 1
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     // testing flux computation
     BoxArray xfluxbox(bs);
     xfluxbox.surroundingNodes(0);

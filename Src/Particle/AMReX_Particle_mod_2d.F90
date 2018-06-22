@@ -184,9 +184,11 @@ contains
                              wx_hi*wy_lo*acc(i,   j-1, nc) + &
                              wx_hi*wy_hi*acc(i,   j,   nc)
        
-          if (abs(acceleration(nc) - 5.d0) .ge. 1.0d-9) then
-             print *, particles(1, n), particles(2, n)
-          end if
+#ifdef AMREX_DEBUG
+!          if (abs(acceleration(nc) - 5.d0) .ge. 1.0d-9) then
+!             print *, particles(1, n), particles(2, n)
+!          end if
+#endif
 
        end do
     end do
