@@ -31,9 +31,12 @@ namespace {
         FIInterpHook (INTERP_HOOK a_f) : m_f(a_f) {}
         virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const final
         {
-            m_f(BL_TO_FORTRAN_BOX(bx),
-                BL_TO_FORTRAN_ANYD(fab), fab.nComp(),
-                icomp+1, ncomp);  // m_f is a fortran function expecting 1-based index
+            if (m_f) {
+                m_f(BL_TO_FORTRAN_BOX(bx),
+                    BL_TO_FORTRAN_ANYD(fab), fab.nComp(),
+                    icomp+1, ncomp);
+                // m_f is a fortran function expecting 1-based index
+            }
         }
     private:
         INTERP_HOOK m_f;
