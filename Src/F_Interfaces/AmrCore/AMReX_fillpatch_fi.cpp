@@ -21,8 +21,8 @@ namespace
 namespace {
     
     typedef void (*INTERP_HOOK) (const int* lo, const int*hi,
-                                 Real* d, const int* dlo, const int* dhi,
-                                 int icomp, int ncomp);
+                                 Real* d, const int* dlo, const int* dhi, const int nd,
+                                 const int icomp, const int ncomp);
 
     class FIInterpHook final
         : public InterpHook
@@ -32,8 +32,8 @@ namespace {
         virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const final
         {
             m_f(BL_TO_FORTRAN_BOX(bx),
-                BL_TO_FORTRAN_ANYD(fab),
-                icomp, ncomp);
+                BL_TO_FORTRAN_ANYD(fab), fab.nComp(),
+                icomp+1, ncomp);  // m_f is a fortran function expecting 1-based index
         }
     private:
         INTERP_HOOK m_f;
