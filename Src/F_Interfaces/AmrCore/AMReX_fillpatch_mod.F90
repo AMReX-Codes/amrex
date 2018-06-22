@@ -14,13 +14,12 @@ module amrex_fillpatch_module
   end interface amrex_fillpatch
 
   interface
-     subroutine amrex_interp_hook_proc (lo, hi, d, dlo, dhi, icomp, ncomp) bind(c)
+     subroutine amrex_interp_hook_proc (lo, hi, d, dlo, dhi, nd, icomp, ncomp) bind(c)
        import
        implicit none
        integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
-       integer(c_int), intent(in), value :: icomp, ncomp
-       real(amrex_real), intent(inout) :: &
-            d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),icomp+ncomp-1)
+       integer(c_int), intent(in), value :: nd, icomp, ncomp
+       real(amrex_real), intent(inout) :: d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nd)
      end subroutine amrex_interp_hook_proc
   end interface
 
