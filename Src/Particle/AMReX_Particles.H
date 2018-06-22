@@ -87,6 +87,22 @@ struct ParticleLocData
   Box     m_grown_gridbox;
 };
 
+//
+// Used to unpack the rcv buffers after MPI
+//
+struct RcvParticleTag
+{
+    int lev;
+    int grid;
+    int tile;
+
+    bool operator<(const RcvParticleTag& other) const {
+        if (lev  != other.lev ) return lev  < other.lev;
+        if (grid != other.grid) return grid < other.grid;
+        if (tile != other.tile) return tile < other.tile;
+        return false;
+    }    
+};
 
 //
 // The struct used to store particles.

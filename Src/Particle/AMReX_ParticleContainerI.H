@@ -1,3 +1,23 @@
+namespace
+{
+    template <typename T>
+    void get_range_begin_end(const Vector<T>& vec,
+                                   Vector<int>& begin,
+                                   Vector<int>& end)
+    {
+        begin.clear();
+        end.clear();
+
+        auto it = vec.begin();
+        while (it != vec.end())
+        {
+            auto p = std::equal_range(vec.begin(), vec.end(), *it);
+            begin.push_back(p.first - vec.begin());
+            end.push_back(p.second - vec.begin());
+            it = p.second;
+        }
+    }
+}
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
@@ -1586,44 +1606,110 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
      
 	BL_PROFILE_VAR_START(blp_unpack);
    
-        ParticleLocData pld;
-        
         if (recvdata.size() % superparticle_size != 0) {
             amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
                               << recvdata.size() << ", " << superparticle_size << "\n";
             amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
         }
-        
-        char* pbuf = recvdata.data();
+
         int npart = recvdata.size() / superparticle_size;
-        for (int i = 0; i < npart; ++i) {
-            ParticleType p;
-            std::memcpy(&p, pbuf, particle_size);
-            
-            locateParticle(p, pld, lev_min, lev_max, nGrow);
-            
-            auto& ptile = m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
-            ptile.push_back(p);
-            
+        
+        Vector<Vector<Real> > real_data(NArrayReal);
+        for (int i = 0; i < NArrayReal; ++i) real_data[i].resize(npart);
+        Vector<Vector<int> > int_data(NArrayInt);
+        for (int i = 0; i < NArrayInt; ++i) int_data[i].resize(npart);
+        Vector<ParticleType> struct_data(npart);
+
+        char* pbuf = recvdata.data();
+        for (int i = 0; i < npart; ++i)
+        {
+            std::memcpy(&struct_data[i], pbuf, particle_size);
+
             Real* rdata = (Real*)(pbuf + particle_size);
             for (int comp = 0; comp < NArrayReal; ++comp) {
                 if (communicate_real_comp[comp]) {
-                    ptile.push_back_real(comp, *rdata++);
+                    real_data[comp][i] = *rdata++;
                 } else {
-                    ptile.push_back_real(comp, 0.0);
+                    real_data[comp][i] = 0.0;
                 }
             }
-            
+
             int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
             for (int comp = 0; comp < NArrayInt; ++comp) {
                 if (communicate_int_comp[comp]) {
-                    ptile.push_back_int(comp, *idata++);
+                    int_data[comp][i] = *idata++;
                 } else {
-                    ptile.push_back_int(comp, 0);
+                    int_data[comp][i] = 0;
                 }
             }
             
             pbuf += superparticle_size;
+        }
+
+        Vector<RcvParticleTag> tags(npart);
+        Vector<int> indices(npart);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif        
+        for (int i = 0; i < npart; ++i)
+        {
+            indices[i] = i;
+            ParticleLocData pld;
+            locateParticle(struct_data[i], pld, lev_min, lev_max, nGrow);
+            tags[i].lev  = pld.m_lev;
+            tags[i].grid = pld.m_grid;
+            tags[i].tile = pld.m_tile;
+        }
+
+        std::sort(indices.begin(), indices.end(),
+                  [&](const int& a, const int& b) {
+                      return (tags[a] < tags[b]);
+                   }
+        );
+        
+        Vector<int> begin;
+        Vector<int> end;
+        get_range_begin_end(indices, begin, end);
+
+       
+        for (int i = 0; i < static_cast<int>(begin.size()); ++i)
+        {
+            if (begin[i] == npart) continue;
+            const int pindex = indices[begin[i]];
+            const int my_lev  = tags[pindex].lev;
+            const int my_grid = tags[pindex].grid;
+            const int my_tile = tags[pindex].tile;
+            amrex::Print() << my_lev << " " << my_grid << " " << my_tile << std::endl;
+            m_particles[my_lev][std::make_pair(my_grid, my_tile)];
+        }
+        
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif        
+        for (int i = 0; i < static_cast<int>(begin.size()); ++i)
+        {
+            for (int j = begin[i]; j < end[i]; ++j)
+            {
+                if (j == npart) continue;
+                const int pindex = indices[j];
+                const int my_lev  = tags[pindex].lev;
+                const int my_grid = tags[pindex].grid;
+                const int my_tile = tags[pindex].tile; 
+
+                auto& ptile = m_particles[my_lev][std::make_pair(my_grid, my_tile)];
+
+                ptile.push_back(struct_data[pindex]);
+            
+                for (int comp = 0; comp < NArrayReal; ++comp)
+                {
+                    ptile.push_back_real(comp, real_data[comp][pindex]);
+                }
+
+                for (int comp = 0; comp < NArrayInt; ++comp)
+                {
+                    ptile.push_back_int(comp, int_data[comp][pindex]);
+                }
+            }
         }
 
 	BL_PROFILE_VAR_STOP(blp_unpack);
