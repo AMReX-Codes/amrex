@@ -96,11 +96,25 @@ struct RcvParticleTag
     int grid;
     int tile;
 
-    bool operator<(const RcvParticleTag& other) const {
+    bool operator<(const RcvParticleTag& other) const
+    {
         if (lev  != other.lev ) return lev  < other.lev;
         if (grid != other.grid) return grid < other.grid;
         if (tile != other.tile) return tile < other.tile;
         return false;
+    }    
+
+    bool operator<=(const RcvParticleTag& other) const
+    {
+        if (lev  != other.lev ) return lev  < other.lev;
+        if (grid != other.grid) return grid < other.grid;
+        if (tile != other.tile) return tile < other.tile;
+        return true;
+    }
+
+    bool operator==(const RcvParticleTag& other) const
+    {
+        return (lev  == other.lev ) and (grid == other.grid) and  (tile == other.tile);
     }    
 };
 
