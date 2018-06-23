@@ -60,9 +60,7 @@ contains
 
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
                        cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -99,7 +97,7 @@ contains
     have_prop = .true.
 
     if (prop%major < 3) then
-       call bl_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
+       call amrex_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
     end if
 
     max_threads_dim = prop%maxThreadsDim
@@ -241,9 +239,7 @@ contains
   subroutine threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     use cudafor, only: dim3
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -297,29 +293,29 @@ contains
     ! Should not exceed maximum allowable threads per block.
 
     if (numThreads % x > max_threads_dim(1)) then
-       call bl_error("Too many CUDA threads per block in x-dimension.")
+       call amrex_error("Too many CUDA threads per block in x-dimension.")
     end if
 
     if (numThreads % y > max_threads_dim(2)) then
-       call bl_error("Too many CUDA threads per block in y-dimension.")
+       call amrex_error("Too many CUDA threads per block in y-dimension.")
     end if
 
     if (numThreads % z > max_threads_dim(3)) then
-       call bl_error("Too many CUDA threads per block in z-dimension.")
+       call amrex_error("Too many CUDA threads per block in z-dimension.")
     end if
 
     if (numThreadsTotal > prop % maxThreadsPerBlock) then
-       call bl_error("Too many CUDA threads per block requested compared to device limit.")
+       call amrex_error("Too many CUDA threads per block requested compared to device limit.")
     end if
 
     ! Blocks or threads should be at least one in every dimension.
 
     if (min(numThreads % x, numThreads % y, numThreads % z) < 1) then
-       call bl_error("Number of CUDA threads per block must be positive.")
+       call amrex_error("Number of CUDA threads per block must be positive.")
     end if
 
     if (min(numBlocks % x, numBlocks % y, numBlocks % z) < 1) then
-       call bl_error("Number of CUDA threadblocks must be positive.")
+       call amrex_error("Number of CUDA threadblocks must be positive.")
     end if
 
   end subroutine threads_and_blocks
@@ -434,9 +430,7 @@ contains
 
     use cudafor, only: cudaMallocManaged, cudaMemAttachGlobal, c_devptr
     use iso_c_binding, only: c_size_t
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -452,7 +446,7 @@ contains
 
     else
 
-       call bl_error("The GPU does not support managed memory allocations")
+       call amrex_error("The GPU does not support managed memory allocations")
 
     end if
 
@@ -667,9 +661,7 @@ contains
 
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
 
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error, bl_warn
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -691,13 +683,9 @@ contains
     error_string = "CUDA Error " // trim(adjustl(cudaResultStr)) // ": " // cudaGetErrorString(cudaResult)
 
     if (abort == 1) then
-       call bl_error(error_string)
+       call amrex_error(error_string)
     else
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-       call bl_warn(error_string)
-#else
-       call bl_warning(error_string)
-#endif
+       print *, error_string
     end if
 
   end subroutine gpu_error
