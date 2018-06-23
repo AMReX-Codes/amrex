@@ -24,3 +24,14 @@ CC := nvcc
 
 override XTRALIBS :=
 
+# Store the CUDA toolkit version.
+
+nvcc_version       := $(shell $(CXX) --version | tail -1 | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}')
+nvcc_major_version := $(shell $(CXX) --version | tail -1 | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
+nvcc_minor_version := $(shell $(CXX) --version | tail -1 | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
+
+DEFINES += -DAMREX_NVCC_VERSION=$(nvcc_version)
+DEFINES += -DAMREX_NVCC_MAJOR_VERSION=$(nvcc_major_version)
+DEFINES += -DAMREX_NVCC_MINOR_VERSION=$(nvcc_minor_version)
+
+
