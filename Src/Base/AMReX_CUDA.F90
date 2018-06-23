@@ -568,14 +568,12 @@ contains
 
     integer :: cudaResult
 
-#ifndef NO_CUDA_8
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1 .and. prop%concurrentManagedAccess == 1)) then
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(stream_from_index(idx)))
        call gpu_error_test(cudaResult)
 
     end if
-#endif
 
   end subroutine gpu_htod_memprefetch_async
 
@@ -594,14 +592,12 @@ contains
 
     integer :: cudaResult
 
-#ifndef NO_CUDA_8
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(stream_from_index(idx)))
        call gpu_error_test(cudaResult)
 
     end if
-#endif
 
   end subroutine gpu_dtoh_memprefetch_async
 

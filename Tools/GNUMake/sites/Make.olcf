@@ -28,15 +28,11 @@ ifeq ($(which_computer),$(filter $(which_computer),titan))
   # If the cudatoolkit module is loaded, CRAY_CUDATOOLKIT_DIR is set as the toolkit location.
 
   SYSTEM_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
+
+  # Specify that we want to build for Kepler
+
+  CUDA_VERSION=cc35
   COMPILE_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
-
-  # Signal no support for CUDA 8.
-
-  NO_CUDA_8_SUPPORT = TRUE
-
-  # Specify support for the Kepler GPUs.
-
-  CUDA_VERSION=cuda7.5
 
 endif
 
