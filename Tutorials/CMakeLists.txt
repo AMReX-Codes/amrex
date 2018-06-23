@@ -34,12 +34,13 @@ foreach (subdir ${AMREX_TUTORIALS_SUBDIRS})
    #
    # Loop over all the tutorials in this subdir
    # 
-   foreach ( this_tutorial ${ALL_TUTORIALS})
+   add_subdirectory (Amr/Advection_AmrCore)
+   # foreach ( this_tutorial ${ALL_TUTORIALS})
 
-      get_filename_component (dir ${this_tutorial} DIRECTORY )
-      add_subdirectory (${dir})
+   #    get_filename_component (dir ${this_tutorial} DIRECTORY )
+   #    add_subdirectory (${dir})
 
-   endforeach ()
+   # endforeach ()
 
    
 endforeach ()

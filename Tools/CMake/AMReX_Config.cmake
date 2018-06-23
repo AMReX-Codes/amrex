@@ -29,57 +29,6 @@ if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
    set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 endif ()
 
-# 
-#  Setup MPI 
-# 
-if (ENABLE_MPI)
-   find_package (MPI REQUIRED)
-   # Includes
-   list (APPEND AMREX_EXTRA_Fortran_INCLUDE_PATH "${MPI_Fortran_INCLUDE_PATH}")
-   list (APPEND AMREX_EXTRA_C_INCLUDE_PATH "${MPI_C_INCLUDE_PATH}")
-   list (APPEND AMREX_EXTRA_CXX_INCLUDE_PATH "${MPI_CXX_INCLUDE_PATH}")
-   # Compile flags
-   append ( MPI_Fortran_COMPILE_FLAGS AMREX_EXTRA_Fortran_FLAGS ) 
-   append ( MPI_C_COMPILE_FLAGS AMREX_EXTRA_C_FLAGS )
-   append ( MPI_CXX_COMPILE_FLAGS AMREX_EXTRA_CXX_FLAGS )
-   # Libraries
-   list (APPEND AMREX_EXTRA_Fortran_LIBRARIES "${MPI_Fortran_LIBRARIES}")
-   list (APPEND AMREX_EXTRA_C_LIBRARIES "${MPI_C_LIBRARIES}")
-   list (APPEND AMREX_EXTRA_CXX_LIBRARIES "${MPI_CXX_LIBRARIES}")
-   # Link flags
-   list (APPEND AMREX_EXTRA_Fortran_LINK_FLAGS "${MPI_Fortran_LINK_FLAGS}")
-   list (APPEND AMREX_EXTRA_C_LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-   list (APPEND AMREX_EXTRA_CXX_LINK_FLAGS "${MPI_CXX_LINK_FLAGS}")
-   # Link Line
-   append_to_link_line ( AMREX_EXTRA_Fortran_LIBRARIES
-      AMREX_EXTRA_Fortran_LINK_LINE AMREX_EXTRA_Fortran_LINK_FLAGS )
-   append_to_link_line ( AMREX_EXTRA_C_LIBRARIES
-      AMREX_EXTRA_C_LINK_LINE AMREX_EXTRA_C_LINK_FLAGS )
-   append_to_link_line ( AMREX_EXTRA_CXX_LIBRARIES
-      AMREX_EXTRA_CXX_LINK_LINE AMREX_EXTRA_CXX_LINK_FLAGS )
-endif ()
-
-#
-# Setup OpenMP
-# 
-if (ENABLE_OMP)
-   find_package (OpenMP REQUIRED)
-   # Compile flags
-   append ( OpenMP_Fortran_FLAGS AMREX_EXTRA_Fortran_FLAGS ) 
-   append ( OpenMP_C_FLAGS AMREX_EXTRA_C_FLAGS )
-   append ( OpenMP_CXX_FLAGS AMREX_EXTRA_CXX_FLAGS )
-else ()
-   if ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
-      list ( APPEND AMREX_EXTRA_Fortran_FLAGS  "-h noomp")
-   endif ()
-   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
-      list ( APPEND AMREX_EXTRA_C_FLAGS  "-h noomp")
-   endif ()
-   if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
-      list ( APPEND AMREX_EXTRA_CXX_FLAGS  "-h noomp")
-   endif ()
-endif()
-
 #
 # Setup third-party profilers
 #
@@ -129,12 +78,6 @@ if ( ENABLE_FPE )
    append ( AMREX_FFLAGS_FPE   CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} )
 endif ()
 
-      
-# Add all preprocessor definitions to compile string
-# For fortran, this goes into CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} since
-# it is a required flag
-append ( AMREX_Fortran_DEFINES CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} )
-
 #  Add definition related to specific compiler ( only GNU for now )
 #  AMREX_COMPILER_DEFINES is defined in AMReX_Compilers.cmake
 if ( AMREX_COMPILER_DEFINES )
@@ -143,7 +86,6 @@ if ( AMREX_COMPILER_DEFINES )
    endforeach ()
 endif ()
 
-add_definitions ( ${AMREX_DEFINES} )
 
 # Add extra flags
 append ( AMREX_EXTRA_Fortran_FLAGS CMAKE_Fortran_FLAGS )
@@ -172,3 +114,89 @@ message( STATUS "   C++ link flags           = ${AMREX_EXTRA_CXX_LINK_FLAGS}")
 message( STATUS "   Fortran link flags       = ${AMREX_EXTRA_Fortran_LINK_FLAGS}")
 message( STATUS "   C++ extra link line      = ${AMREX_EXTRA_CXX_LINK_LINE}") 
 message( STATUS "   Fortran extra link line  = ${AMREX_EXTRA_Fortran_LINK_LINE}")
+
+
+
+function (configure_amrex)
+
+   # 
+   # Check if target "amrex" has been defined before
+   # calling this macro
+   #
+   if (NOT TARGET amrex)
+      message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'configure_amrex'" )     
+   endif ()
+
+   #
+   # MPI (CMake 3.11 allows to import MPI as an imported TARGET)
+   #  
+   if (ENABLE_MPI)
+      find_package (MPI REQUIRED)
+
+      # Includes
+      target_include_directories ( amrex PUBLIC
+	 $<$<COMPILE_LANGUAGE:Fortran>:${MPI_Fortran_INCLUDE_PATH}>
+	 $<$<COMPILE_LANGUAGE:C>:${MPI_C_INCLUDE_PATH}>
+	 $<$<COMPILE_LANGUAGE:CXX>:${MPI_CXX_INCLUDE_PATH}>
+	 )
+
+      # Additional compiler flags
+      target_compile_options ( amrex PUBLIC
+	 $<$<COMPILE_LANGUAGE:Fortran>:${MPI_Fortran_COMPILE_FLAGS}>
+	 $<$<COMPILE_LANGUAGE:C>:${MPI_C_COMPILE_FLAGS}>
+	 $<$<COMPILE_LANGUAGE:CXX>:${MPI_CXX_COMPILE_FLAGS}>
+	 )
+      
+      # Libraries to link to + linker flags
+      string ( STRIP ${MPI_CXX_LINK_FLAGS} MPI_CXX_LINK_FLAGS )
+      target_link_libraries ( amrex PUBLIC "${MPI_CXX_LINK_FLAGS}"
+	 ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES} )
+	 
+   endif ()
+
+
+   #
+   # Setup OpenMP
+   # 
+   if (ENABLE_OMP)
+      find_package (OpenMP REQUIRED)
+
+      # Additional compiler flags
+      target_compile_options ( amrex PUBLIC
+	 $<$<COMPILE_LANGUAGE:Fortran>:${OpenMP_Fortran_FLAGS}>
+	 $<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>
+	 $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>
+	 )
+
+      # The openMP flags are required also during linking phase
+      # The NON-clean way of achiving this is by adding a flag to the linker
+      # as follows. Notice that in more recent version of CMake, openMP becomes
+      # an imported target, thus provinding a clean way to do this
+      string ( STRIP ${OpenMP_CXX_FLAGS} OpenMP_CXX_FLAGS )
+      target_link_libraries ( amrex PUBLIC "${OpenMP_CXX_FLAGS}" )
+
+   # else ()
+   #    if ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+   # 	 list ( APPEND AMREX_EXTRA_Fortran_FLAGS  "-h noomp")
+   #    endif ()
+   #    if ( ${CMAKE_C_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+   # 	 list ( APPEND AMREX_EXTRA_C_FLAGS  "-h noomp")
+   #    endif ()
+   #    if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+   # 	 list ( APPEND AMREX_EXTRA_CXX_FLAGS  "-h noomp")
+   #    endif ()
+   endif()
+
+
+
+   # 
+   # Set compile definitions
+   # 
+   set_amrex_defines ()
+
+   #
+   # Set compiler flags
+   #
+   set_amrex_compilers ()
+   
+endfunction ()
