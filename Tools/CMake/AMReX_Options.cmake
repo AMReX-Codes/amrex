@@ -145,17 +145,10 @@ endif ()
 option ( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option ( ENABLE_LINEAR_SOLVERS )
 
-if ( ENABLE_LINEAR_SOLVERS )
-   option ( ENABLE_LINEAR_SOLVERS_LEGACY  "Build AMReX Linear solvers (legacy components)" OFF )
-   print_option ( ENABLE_LINEAR_SOLVERS_LEGACY )
-endif ()
-
-if ( USE_XSDK_DEFAULTS )
-   set ( ENABLE_FBASELIB  OFF )
-else ()
-   option ( ENABLE_FBASELIB "Build Fortran kernel (deprecated)" ON )
-   print_option ( ENABLE_FBASELIB )
-endif ()
+############ To be removed #####################
+set ( ENABLE_FBASELIB "DEPRECATED" CACHE STRING "Build Fortran kernel (deprecated)" FORCE)
+print_option (ENABLE_FBASELIB)
+################################################
 
 option ( ENABLE_AMRDATA "Build data services" OFF)
 print_option ( ENABLE_AMRDATA )
@@ -183,12 +176,12 @@ option (ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option ( ENABLE_FPE )
 
 if (DEBUG)
-   option ( ENABLE_ASSERTION "Enable assertions" ON)
+   option ( ENABLE_ASSERTIONS "Enable assertions" ON)
 else ()
-   option ( ENABLE_ASSERTION "Enable assertions" OFF)
+   option ( ENABLE_ASSERTIONS "Enable assertions" OFF)
 endif ()
 
-print_option ( ENABLE_ASSERTION )
+print_option ( ENABLE_ASSERTIONS )
 
 
 #

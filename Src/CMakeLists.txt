@@ -1,25 +1,58 @@
 #
-# Define a macro to accumulate all headers
-#
-set (AMREX_ALLHEADERS "" )
-macro (accumulate_headers headers)
-   list (APPEND AMREX_ALLHEADERS ${${headers}} )
-endmacro ()
-
-#
-# Define a macro to accumulate include paths
-#
-set (INCLUDE_PATHS "")
-macro (accumulate_include_dirs path)
-   list (APPEND INCLUDE_PATHS ${path})
-endmacro ()
-
-
-#
 # Fist, define the library we want to add
+# Think of this as a constructor for object "amrex"
+# In the following, we will use setters to change
+# the properties of this object, like setting the sources,
+# setting the compile definitions and so on
 #
-add_library ( amrex "")
+add_library ( amrex "" )
 
+#
+# Next, we implement a wrapper to add sources and headers
+# to target object "amrex".
+# If headers are detected, this function add the
+# header's path to the include paths
+# Variable PUBLIC_HEADERS accumulate all the headers for
+# final installation
+# WARNING: this routine add automatically ${CMAKE_CURRENT_LIST_DIR}
+# to the source file given, so always add sources with the relative path
+# to the directory where add_sources is called from
+set (PUBLIC_HEADERS)
+macro ( add_sources )
+   foreach ( item IN ITEMS ${ARGV} )
+      target_sources ( amrex PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${item})
+      # If it's a header, add it the public header group so it gets installed
+      get_filename_component ( ext ${item} EXT )
+      if ( ( ${ext} STREQUAL ".H" ) OR ( ${ext} STREQUAL ".h" ) )
+	 # Do the following command to handle the case when ${item} is not the name
+	 # of the source file, but it's in the form <relative-path>/<file-name>
+	 # where <relative-path> is the path relative to the directory containing
+	 # the list file invoking add_sources
+	 get_filename_component ( dir ${CMAKE_CURRENT_LIST_DIR}/${item} DIRECTORY )
+	 list ( APPEND PUBLIC_HEADERS ${CMAKE_CURRENT_LIST_DIR}/${item} )
+	 target_include_directories ( amrex PUBLIC $<BUILD_INTERFACE:${dir}> )
+      endif()      
+   endforeach ()
+   unset (ext)
+   unset (dir)
+endmacro ()
+
+#
+# Set some properties for target 'amrex', like
+# compile definitions and so on
+#
+
+# General configuration
+configure_amrex ()
+
+
+# Include paths 
+target_include_directories ( amrex
+   PUBLIC
+#   "${AMREX_EXTRA_Fortran_INCLUDE_PATH};${AMREX_EXTRA_CXX_INCLUDE_PATH}"
+   $<INSTALL_INTERFACE:include> # This is the include dir in installation tree
+   $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}> 
+   )
 
 #
 # Now, one by one, let's add all the source files in the subdirectories
@@ -36,10 +69,6 @@ if (ENABLE_EB)
    include (EB/CMakeLists.txt)
    include (GeometryShop/CMakeLists.txt)
    include (EB2/CMakeLists.txt)
-endif ()
-
-if (ENABLE_FBASELIB)
-   include (F_BaseLib/CMakeLists.txt)
 endif ()
 
 if (ENABLE_PROFPARSER OR ENABLE_AMRDATA)
@@ -60,7 +89,7 @@ endif ()
 
 #
 # Here we generate AMReX_BuildInfo.cpp
-# If Python < 2.7 script won't work so
+# If Python < 2.7, script won't work so
 # we do not include this in library
 # 
 if ( NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") )
@@ -73,27 +102,22 @@ if ( NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") )
       OUTPUT AMReX_buildInfo.cpp
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generating AMReX_buildInfo.cpp" )
-
+   
    target_sources ( amrex PRIVATE  ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp )
-
 endif ()
 
-
-
 #
-# Add all the include paths collected so far
-# 
-include_directories ( ${CMAKE_Fortran_MODULE_DIRECTORY} ${INCLUDE_PATHS}
-   ${AMREX_EXTRA_Fortran_INCLUDE_PATH} ${AMREX_EXTRA_CXX_INCLUDE_PATH} )
-
+# Set property to export public header
+#
+set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}" )
 
 #
 # Define install  
 #
-set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${AMREX_ALLHEADERS}" )
-
-install ( TARGETS amrex EXPORT amrex ARCHIVE DESTINATION ${AMREX_LIBRARY_DIR}
+install ( TARGETS amrex EXPORT AMReX ARCHIVE DESTINATION ${AMREX_LIBRARY_DIR}
    LIBRARY DESTINATION ${AMREX_LIBRARY_DIR} PUBLIC_HEADER DESTINATION ${AMREX_INCLUDE_DIR} )
+
+install ( EXPORT AMReX NAMESPACE AMReX:: DESTINATION ${AMREX_CMAKE_DIR} )
 
 install ( DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION ${AMREX_INCLUDE_DIR})
 

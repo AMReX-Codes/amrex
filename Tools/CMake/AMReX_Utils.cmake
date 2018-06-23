@@ -53,7 +53,7 @@ function ( find_include_paths dirlist )
    file ( GLOB_RECURSE includes LIST_DIRECTORIES true 
       ${ARG_ROOT}/*.h ${ARG_ROOT}/*.H )
    
-  
+   
    foreach (item ${includes})
 
       get_filename_component ( path ${item} PATH )
@@ -82,7 +82,7 @@ function ( find_include_paths dirlist )
    
    
    set ( ${dirlist} ${tmp} PARENT_SCOPE )
-  
+   
 endfunction ()
 
 
@@ -198,4 +198,74 @@ function (scan_for_sources f90src f77src cxxsrc allheaders)
    set (f90src)
 
 endfunction ()
+
+
+#
+# Find all source files ( Fortran, C++, Headers )
+# in CMAKE_CURRENT_LIST_DIR.
+#
+# Arguments:
+#
+#  source_list  = the list of sources (prefixed with their absolute path)
+#  ROOT         = directory to search.
+#                 If not given, default is CMAKE_CURRENT_LIST_DIR
+#  RECURSE      = if given, enables search for subdirectories
+#
+# This macro returns a list of files with their absolute paths
+#
+# WARNING: it is dangerous and definetely discouraged to use
+#          GLOBBING to find sources. Use at your own risk.
+# 
+macro ( find_all_sources sources_list include_paths )
+
+   cmake_parse_arguments ( ARG "RECURSE" "ROOT" ""  ${ARGN} )
+
+   if ( NOT (ARG_ROOT) )
+      set (ARG_ROOT ${CMAKE_CURRENT_LIST_DIR})
+   endif ()
+
+   if (ARG_RECURSE)
+      set ( search_type GLOB_RECURSE )
+   else ()
+      set ( search_type GLOB )
+   endif ()
+   
+   file ( ${search_type} ${sources_list}
+      "${ARG_ROOT}/*.f90"
+      "${ARG_ROOT}/*.F90"
+      "${ARG_ROOT}/*.F"
+      "${ARG_ROOT}/*.cpp"
+      "${ARG_ROOT}/*.H"
+      "${ARG_ROOT}/*.h"
+      )
+   
+   unset (search_type)
+
+   # Find include paths
+   if ( ${sources_list} )
+   
+      set ( include_paths )
+      
+      foreach ( file IN LISTS ${sources_list} )
+
+	 get_filename_component ( ext ${file} EXT )
+
+	 if ( ("${ext}" STREQUAL ".h") OR ("${ext}" STREQUAL ".H") )
+
+	    get_filename_component (path ${file} DIRECTORY)
+	    list ( APPEND ${include_paths} ${path} ) 
+
+	 endif()
+      
+      endforeach ()
+
+      unset (path)
+
+      if ( ${include_paths} )
+	 list ( REMOVE_DUPLICATES ${include_paths} )
+      endif ()
+      
+   endif ()
+
+endmacro ()
 

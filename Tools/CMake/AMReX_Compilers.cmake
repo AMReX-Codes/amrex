@@ -11,15 +11,44 @@
 #  AMREX_CXXFLAGS_FPE
 #  AMREX_COMPILER_DEFINES
 # 
+function ( set_amrex_compilers )
 
-#
-# Check wether the compiler ID has been defined
-# 
-if (  NOT (DEFINED CMAKE_Fortran_COMPILER_ID) OR
-      NOT (DEFINED CMAKE_C_COMPILER_ID) OR 
-      NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
-   message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
-endif ()
+   # 
+   # Check if target "amrex" has been defined before
+   # calling this macro
+   #
+   if (NOT TARGET amrex)
+      message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'set_amrex_compilers'" )
+   endif ()
+
+   #
+   # Check wether the compiler ID has been defined
+   # 
+   if (  NOT (DEFINED CMAKE_Fortran_COMPILER_ID) OR
+	 NOT (DEFINED CMAKE_C_COMPILER_ID) OR 
+	 NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
+      message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
+   endif ()
+
+   #
+   # GNU compilers
+   #
+   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU" )
+
+      target_compile_options ( amrex
+	 PRIVATE
+	 $<$<COMPILE_LANGUAGE:Fortran>:-ffixed-line-length-none -ffree-line-length-none -fno-range-check -fno-second-underscore> 
+	 PUBLIC
+	 $<$<$<CONFIG:Debug>:$<COMPILE_LANGUAGE:Fortran>>:-g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -finit-real=snan  -finit-integer=2147483647>
+
+	 )
+      
+   endif ()
+
+
+endfunction () 
+
+
 
 #
 # Check the same compiler suite is used for all languages
@@ -37,11 +66,11 @@ endif ()
 if ( ${COMPILER} STREQUAL "GNU" )
 
    # GNU compiler specific flags
-   set (AMREX_FFLAGS_DEBUG "-g -O0 -ggdb -fbounds-check -fbacktrace\
- -Wuninitialized -Wunused -finit-real=snan  -finit-integer=2147483647")
+ #   set (AMREX_FFLAGS_DEBUG "-g -O0 -ggdb -fbounds-check -fbacktrace\
+ # -Wuninitialized -Wunused -finit-real=snan  -finit-integer=2147483647")
    set (AMREX_FFLAGS_RELEASE "-O3")
-   set (AMREX_FFLAGS_REQUIRED "-ffixed-line-length-none -ffree-line-length-none\
- -fno-range-check -fno-second-underscore")
+ #   set (AMREX_FFLAGS_REQUIRED "-ffixed-line-length-none -ffree-line-length-none\
+ # -fno-range-check -fno-second-underscore")
    set (AMREX_FFLAGS_FPE "-ffpe-trap=invalid,zero -ftrapv" )
 
    set (AMREX_CXXFLAGS_DEBUG "-g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare")
