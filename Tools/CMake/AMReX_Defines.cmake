@@ -84,9 +84,11 @@ add_define ( AMREX_XSDK IF USE_XSDK_DEFAULTS )
 if (DEBUG)
    add_define (AMREX_DEBUG)
 else ()
-   add_define (NDEBUG)
+   if ( NOT USE_XSDK_DEFAULTS ) 
+      add_define (NDEBUG)
+   endif ()
 endif ()
-
+ 
 # Base profiling options
 add_define ( AMREX_PROFILING IF ENABLE_BASE_PROFILE )
 

@@ -369,7 +369,9 @@ Amr::InitAmr ()
        }
        else if (numvals == 0)
        {
-	   amrex::Print(amrex::ErrorStream()) << "Using default regrid_int = 1 at all levels!\n";
+           if (verbose) {
+               amrex::Print(amrex::ErrorStream()) << "Using default regrid_int = 1 at all levels!\n";
+           }
        }
        else if (numvals < max_level)
        {
@@ -418,7 +420,9 @@ Amr::InitAmr ()
             initial_ba[lev-1].define(bl);
         }
         is.close();
-	amrex::Print() << "Read initial_ba. Size is " << initial_ba.size() << "\n";
+        if (verbose > 0) {
+            amrex::Print() << "Read initial_ba. Size is " << initial_ba.size() << "\n";
+        }
 
 #undef STRIP
     }
@@ -451,8 +455,9 @@ Amr::InitAmr ()
                  {
                      if (bx.length(idim) > max_grid_size[lev][idim])
                      {
-                         amrex::Print() << "Grid " << bx << " too large" << '\n';
-                         amrex::Error();
+                         std::ostringstream ss;
+                         ss << "Grid " << bx << " too large" << '\n';
+                         amrex::Error(ss.str());
                      }
                  }
                  bl.push_back(bx);
@@ -1608,13 +1613,13 @@ Amr::restart (const std::string& filename)
 	Box restart_domain(Geom(lev).Domain());
        if ( ! (inputs_domain[lev] == restart_domain) )
        {
-	   amrex::Print() 
-	       << "Problem at level " << lev << '\n'
+           std::ostringstream ss;
+           ss  << "Problem at level " << lev << '\n'
 	       << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n'
 	       << "Domain according to checkpoint file is " << restart_domain      << '\n'
 	       << "Amr::restart() failed -- box from inputs file does not "
 	       << "equal box from restart file. \n";
-          amrex::Abort();
+           amrex::Abort(ss.str());
        }
     }
 
@@ -2496,14 +2501,18 @@ Amr::makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) con
 {
     BL_PROFILE("makeLoadBalanceDistributionMap()");
 
-    amrex::Print() << "Load balance on level " << lev << " at t = " << time << "\n";
+    if (verbose) {
+        amrex::Print() << "Load balance on level " << lev << " at t = " << time << "\n";
+    }
 
     DistributionMapping newdm;
 
     const int work_est_type = amr_level[0]->WorkEstType();
 
     if (work_est_type < 0) {
-        amrex::Print() << "\nAMREX WARNING: work estimates type does not exist!\n\n";
+        if (verbose) {
+            amrex::Print() << "\nAMREX WARNING: work estimates type does not exist!\n\n";
+        }
         newdm.define(ba);
     }
     else if (amr_level[lev])
@@ -2850,8 +2859,10 @@ Amr::initSubcycle ()
     sub_cycle = true;
     if (pp.contains("nosub"))
     {
-	amrex::Print() << "Warning: The nosub flag has been deprecated.\n "
-				    << "... please use subcycling_mode to control subcycling.\n";
+        if (verbose) {
+            amrex::Print() << "Warning: The nosub flag has been deprecated.\n "
+                           << "... please use subcycling_mode to control subcycling.\n";
+        }
         int nosub;
         pp.query("nosub",nosub);
         if (nosub > 0)

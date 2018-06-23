@@ -1409,8 +1409,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
   if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
       // Looks like we lost an AmrLevel on a regrid.
-      amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing m_particles from "
-                     << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
+      if (m_verbose > 0) {
+          amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing m_particles from "
+                         << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
+      }
       BL_ASSERT(int(m_particles.size()) >= 2);
       
       m_particles.resize(theEffectiveFinestLevel + 1);
@@ -1500,6 +1502,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                  int lev_min, int lev_max, int nGrow, int local)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
+    BL_PROFILE_VAR_NS("RedistributeMPI_unpack", blp_unpack);
+
 #if BL_USE_MPI
 
     const int NProcs = ParallelDescriptor::NProcs();
@@ -1581,26 +1585,47 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
-        
-        ParticleLocData pld;
-        
+     
+	BL_PROFILE_VAR_START(blp_unpack);
+   
         if (recvdata.size() % superparticle_size != 0) {
-            amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
-                              << recvdata.size() << ", " << superparticle_size << "\n";
+            if (m_verbose) {
+                amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
+                                  << recvdata.size() << ", " << superparticle_size << "\n";
+            }
             amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
         }
-        
-        char* pbuf = recvdata.data();
+
         int npart = recvdata.size() / superparticle_size;
-        for (int i = 0; i < npart; ++i) {
+        
+        Vector<int> rcv_levs(npart);
+        Vector<int> rcv_grid(npart);
+        Vector<int> rcv_tile(npart);
+
+        ParticleLocData pld;
+#ifdef _OPENMP
+#pragma omp parallel for private(pld)
+#endif                
+        for (int i = 0; i < npart; ++i)
+        {
+            char* pbuf = recvdata.data() + i*superparticle_size;
             ParticleType p;
-            std::memcpy(&p, pbuf, particle_size);
-            
+            std::memcpy(&p, pbuf, sizeof(ParticleType));
             locateParticle(p, pld, lev_min, lev_max, nGrow);
+            rcv_levs[i] = pld.m_lev;
+            rcv_grid[i] = pld.m_grid;
+            rcv_tile[i] = pld.m_tile;
+        }
+
+        for (int j = 0; j < npart; ++j)
+        {
+            auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
             
-            auto& ptile = m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
+            char* pbuf = recvdata.data() + j*superparticle_size;
+            ParticleType p;
+            std::memcpy(&p, pbuf, sizeof(ParticleType));            
             ptile.push_back(p);
-            
+
             Real* rdata = (Real*)(pbuf + particle_size);
             for (int comp = 0; comp < NArrayReal; ++comp) {
                 if (communicate_real_comp[comp]) {
@@ -1617,10 +1642,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 } else {
                     ptile.push_back_int(comp, 0);
                 }
-            }
-            
-            pbuf += superparticle_size;
+            }            
         }
+
+	BL_PROFILE_VAR_STOP(blp_unpack);
     }
 #endif /*BL_USE_MPI*/
 }
@@ -1687,10 +1712,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_m
                     {
                         if (lev != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile)
                         {
-                            amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                              << "POS  " << AMREX_D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
-                                              << "LEV  " << lev  << " " << pld.m_lev << '\n'
-                                              << "GRID " << grid << " " << pld.m_grid << '\n';
+                            if (m_verbose) {
+                                amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
+                                                  << "POS  " << AMREX_D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
+                                                  << "LEV  " << lev  << " " << pld.m_lev << '\n'
+                                                  << "GRID " << grid << " " << pld.m_grid << '\n';
+                            }
                             return false;
                         }
                     }
@@ -2324,6 +2351,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 	}
         
         writeIntData(istuff.dataPtr(), istuff.size(), ofs);
+        ofs.flush();  // Some systems require this flush() (probably due to a bug)
       }
       
       // Write the Real data in binary.
@@ -2350,6 +2378,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
           }
       }
       WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
+      ofs.flush();  // Some systems require this flush() (probably due to a bug)              
     }
 }
 
