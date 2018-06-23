@@ -644,14 +644,6 @@ ifeq ($(USE_CUDA),TRUE)
 
     endif
 
-    ifeq ($(NO_CUDA_8_SUPPORT),TRUE)
-      DEFINES += -DNO_CUDA_8
-      ifeq ($(lowercase_comp),pgi)
-        F90FLAGS := $(subst cuda8.0,cuda7.5,$(F90FLAGS))
-        FFLAGS := $(subst cuda8.0,cuda7.5,$(FFLAGS))
-      endif
-    endif
-
     # Set the CUDA threads define in case the user updated it.
 
     DEFINES += -DCUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
