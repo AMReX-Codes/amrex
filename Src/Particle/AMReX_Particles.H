@@ -87,7 +87,6 @@ struct ParticleLocData
   Box     m_grown_gridbox;
 };
 
-
 //
 // The struct used to store particles.
 //
@@ -521,7 +520,7 @@ public:
         resizeData();
     }
 
-    ~ParticleContainer () {}
+    virtual ~ParticleContainer () {}
 
     void Define (ParGDBBase* gdb)
     {

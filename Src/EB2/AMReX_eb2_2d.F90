@@ -175,7 +175,7 @@ contains
                 if (fx(i+1,j).eq.irregular) ncuts = ncuts+1
                 if (fy(i,j).eq.irregular) ncuts = ncuts+1
                 if (fy(i,j+1).eq.irregular) ncuts = ncuts+1
-                if (ncuts .ne. 0 .and. ncuts .ne. 2) then
+                if (ncuts .gt. 2) then
                    call amrex_error("amrex_eb2_build_faces: wrong number of cuts")
                 end if
              end if

@@ -61,6 +61,7 @@ namespace system
     int verbose;
     int signal_handling;
     int call_addr2line;
+    int throw_exception;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
 }
@@ -87,6 +88,8 @@ std::string amrex::Version ()
     return std::string("Unknown");
 #endif
 }
+
+int amrex::Verbose () { return amrex::system::verbose; }
 
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
@@ -131,9 +134,13 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
-    write_lib_id("Error");
-    write_to_stderr_without_buffering(msg);
-    ParallelDescriptor::Abort();
+    if (system::throw_exception) {
+        throw RuntimeError(msg);
+    } else {
+        write_lib_id("Error");
+        write_to_stderr_without_buffering(msg);
+        ParallelDescriptor::Abort();
+    }
 }
 
 void
@@ -207,9 +214,13 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
 void
 amrex::Abort (const char* msg)
 {
-    write_lib_id("Abort");
-    write_to_stderr_without_buffering(msg);
-    ParallelDescriptor::Abort();
+   if (system::throw_exception) {
+        throw RuntimeError(msg);
+    } else {
+       write_lib_id("Abort");
+       write_to_stderr_without_buffering(msg);
+       ParallelDescriptor::Abort();
+   }
 }
 
 void
@@ -260,9 +271,12 @@ amrex::Assert (const char* EX,
                  line);
     }
 
-    write_to_stderr_without_buffering(buf);
-
-    ParallelDescriptor::Abort();
+   if (system::throw_exception) {
+        throw RuntimeError(buf);
+    } else {
+       write_to_stderr_without_buffering(buf);
+       ParallelDescriptor::Abort();
+   }
 }
 
 namespace
@@ -300,6 +314,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::verbose = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
+    system::throw_exception = 0;
     system::osout = &a_osout;
     system::oserr = &a_oserr;
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
@@ -408,6 +423,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	pp.query("verbose", system::verbose);
 
         pp.query("signal_handling", system::signal_handling);
+        pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
         if (system::signal_handling)
         {
@@ -464,9 +480,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
-	amrex::Print() << "!\n! WARNING: Maximum of long int, "
-		       << std::numeric_limits<long>::max() 
-		       << ", might be too small for big runs.\n!\n";
+        if (system::verbose) {
+            amrex::Print() << "!\n! WARNING: Maximum of long int, "
+                           << std::numeric_limits<long>::max() 
+                           << ", might be too small for big runs.\n!\n";
+        }
     }
 
 #if defined(BL_USE_FORTRAN_MPI)
