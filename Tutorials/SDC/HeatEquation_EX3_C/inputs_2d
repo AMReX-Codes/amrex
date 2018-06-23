@@ -1,0 +1,13 @@
+# Implicit time step is set to 10 * (explicit time step)
+nsteps = 4
+plot_int = 2
+n_cell = 256
+max_grid_size = 256
+
+! 0 = periodic
+! 2 = homogeneous Neumann (zero flux)
+! 3 = Dirichlet (prescribed value)
+!bc_lo = 0 2
+!bc_hi = 0 2
+bc_lo = 0 0
+bc_hi = 0 0
