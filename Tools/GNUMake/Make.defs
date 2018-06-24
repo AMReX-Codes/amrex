@@ -516,9 +516,7 @@ objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
-INCLUDE_LOCATIONS += $(srcTempDir)
-
-includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
