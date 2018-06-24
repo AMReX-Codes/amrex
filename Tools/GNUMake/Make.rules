@@ -6,15 +6,7 @@ vpath %.F    $(FINAL_VPATH_LOCATIONS)
 vpath %.f90  $(FINAL_VPATH_LOCATIONS)
 vpath %.F90  $(FINAL_VPATH_LOCATIONS)
 vpath %.c    $(FINAL_VPATH_LOCATIONS)
-ifeq ($(USE_CUDA),TRUE)
-ifneq ($(NO_DEVICE_LAUNCH),TRUE)
-vpath %.cpp  $(TmpBuildDir)/header_temp_dir $(FINAL_VPATH_LOCATIONS)
-else
 vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
-endif
-else
-vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
-endif
 vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
 
@@ -37,11 +29,6 @@ ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	$(SILENT) $(F90) $(F90FLAGS) $(FINAL_CPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
 else
 	$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
-endif
-ifeq ($(USE_CUDA),TRUE)
-ifneq ($(NO_DEVICE_LAUNCH),TRUE)
-	$(SILENT) $(RM) $(TmpBuildDir)/header_temp
-endif
 endif
 #	@echo SUCCESS
 
@@ -131,7 +118,7 @@ tags:	$(allSources)
 	$(SILENT) ctags --fortran-kinds=+i $(abspath $^)
 
 TAGS:	$(allSources)
-	@echo etags $< ...
+	@echo etags $< ... 
 	$(SILENT) etags $(abspath $^)
 
 clang-analyze: $(CEXE_sources)
@@ -149,38 +136,44 @@ FORCE:
 #
 $(objEXETempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.c
 	@echo Compiling $*.c ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f
 	@echo Compiling $*.f ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.F
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
-	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $< | $(FORTPREP) > $(f77EXETempDir)/$*.f
-	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(f77EXETempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $(srcTempdir)/$(<F) | $(FORTPREP) > $(srcTempDir)/$*.f
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(srcTempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.F90
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ "$(CUDA_MAXREGCOUNT_$(<F))" != "" ]; then \
-	  $(SILENT) $(F90CACHE) $(F90) $(patsubst -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT), -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT_$(<F)), $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION); \
+	  $(SILENT) $(F90CACHE) $(F90) $(patsubst -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT), -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT_$(<F)), $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION); \
 	else \
-	  $(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION); \
+	  $(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION); \
 	fi
 
 #
@@ -247,6 +240,11 @@ $(depEXETempDir)/%.d: %.f
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
+$(TmpBuildDir)/$(optionsSuffix)_source_copied: $(CEXE_sources) $(cEXE_sources) $(FEXE_sources) $(fEXE_sources) $(F90EXE_sources) $(f90EXE_sources)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_source_copied' # So that the rule always gets updated
+	@$(SHELL) -ec 'cp $? $(srcTempDir)'
+
 DEP_CHECK_OPTS :=
 
 $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
@@ -263,11 +261,11 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 # $(CEXE_sources)
 ifeq ($(USE_CUDA),TRUE)
 ifneq ($(NO_DEVICE_LAUNCH),TRUE)
-$(TmpBuildDir)/header_temp: $(F90EXE_sources) $(FEXE_sources) 
-	@if [ ! -d $(TmpBuildDir)/header_temp_dir ]; then mkdir -p $(TmpBuildDir)/header_temp_dir; fi
-	@$(SHELL) -ec 'touch $(TmpBuildDir)/header_temp' # So that the rule always gets updated
+$(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(F90EXE_sources) $(FEXE_sources) 
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_cuda_done' # So that the rule always gets updated
 	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py \
-             --output_dir $(TmpBuildDir)/header_temp_dir \
+             --output_dir "$(srcTempDir)" \
              --vpath "$(VPATH_LOCATIONS)" \
              --headers "$(FEXE_headers) $(F90EXE_headers)" \
              --fortran "$(F90EXE_sources) $(FEXE_sources)" \
@@ -346,13 +344,15 @@ ifdef FEXE_sources
 -include $(FEXE_sources:%.F=$(depEXETempDir)/%.d)
 endif
 
+include $(TmpBuildDir)/$(optionsSuffix)_source_copied
+
 ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
 include $(depEXETempDir)/f90.depends
 endif
 
 ifeq ($(USE_CUDA), TRUE)
 ifneq ($(NO_DEVICE_LAUNCH),TRUE)
-include $(TmpBuildDir)/header_temp
+include $(TmpBuildDir)/$(optionsSuffix)_cuda_done
 endif
 endif
 
