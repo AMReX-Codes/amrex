@@ -322,12 +322,20 @@ typecheck: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 
 #
 # Now load/build the dependency files.
+# Also handle any necessary preprocessing.
 #
 ifneq ($(MAKECMDGOALS),realclean)
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),uninstall)
 ifneq ($(MAKECMDGOALS),distclean)
 ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
+
+ifeq ($(USE_CUDA), TRUE)
+ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+include $(TmpBuildDir)/$(optionsSuffix)_cuda_done
+endif
+endif
+
 ifdef CEXE_sources
 -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
 endif
@@ -344,17 +352,11 @@ ifdef FEXE_sources
 -include $(FEXE_sources:%.F=$(depEXETempDir)/%.d)
 endif
 
-include $(TmpBuildDir)/$(optionsSuffix)_source_copied
-
 ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
 include $(depEXETempDir)/f90.depends
 endif
 
-ifeq ($(USE_CUDA), TRUE)
-ifneq ($(NO_DEVICE_LAUNCH),TRUE)
-include $(TmpBuildDir)/$(optionsSuffix)_cuda_done
-endif
-endif
+include $(TmpBuildDir)/$(optionsSuffix)_source_copied
 
 endif
 endif
