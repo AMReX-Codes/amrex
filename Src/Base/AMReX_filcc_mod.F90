@@ -94,7 +94,7 @@ contains
 
 #endif
 
-  AMREX_DEVICE subroutine amrex_fab_filcc (lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
+  subroutine amrex_fab_filcc (lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
        bind(c, name='amrex_fab_filcc')
 
     implicit none
@@ -105,12 +105,14 @@ contains
     integer, intent(in) :: bc(amrex_spacedim,2,nq)
     real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
 
+    !$gpu
+
     call amrex_filccn(lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
 
   end subroutine amrex_fab_filcc
 
 #ifndef AMREX_XSDK
-  AMREX_DEVICE subroutine filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+  subroutine filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
     implicit none
     integer,          intent(in   ) :: lo(3), hi(3)
     integer,          intent(in   ) :: q_lo(3), q_hi(3)
@@ -119,11 +121,14 @@ contains
     real(amrex_real), intent(in   ) :: xlo(amrex_spacedim), dx(amrex_spacedim)
     real(amrex_real), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
     integer,          intent(in   ) :: bc(amrex_spacedim,2,ncomp)
+
+    !$gpu
+
     call amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
   end subroutine filccn
 #endif
 
-  AMREX_DEVICE subroutine amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+  subroutine amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 
     implicit none
 
@@ -139,6 +144,8 @@ contains
     integer :: is, ie, js, je, ks, ke
     integer :: i, j, k, n
     integer :: imin, imax, jmin, jmax, kmin, kmax
+
+    !$gpu
 
     is = max(q_lo(1), domlo(1))
     ie = min(q_hi(1), domhi(1))

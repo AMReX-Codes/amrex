@@ -4,7 +4,7 @@ module advance_module
 
 contains
 
-  AMREX_DEVICE subroutine compute_flux (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir) bind(c, name='compute_flux')
+  subroutine compute_flux (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir) bind(c, name='compute_flux')
 
     use amrex_fort_module, only: rt => amrex_real
 
@@ -18,6 +18,8 @@ contains
 
     ! local variables
     integer :: i, j, k
+
+    !$gpu
 
     do         k = lo(3), hi(3)
         do     j = lo(2), hi(2)
@@ -40,11 +42,11 @@ contains
 
 
 
-  AMREX_DEVICE subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-                                      fluxx, fxlo, fxhi, &
-                                      fluxy, fylo, fyhi, &
-                                      fluxz, fzlo, fzhi, &
-                                      dx, dt) bind(c, name='update_phi')
+  subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
+                         fluxx, fxlo, fxhi, &
+                         fluxy, fylo, fyhi, &
+                         fluxz, fzlo, fzhi, &
+                         dx, dt) bind(c, name='update_phi')
 
     use amrex_fort_module, only: rt => amrex_real
 
@@ -63,6 +65,8 @@ contains
     ! local variables
     integer i,j,k
     real(rt) :: dtdx(3)
+
+    !$gpu
 
     dtdx = dt/dx
 
