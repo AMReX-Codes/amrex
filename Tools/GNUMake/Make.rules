@@ -242,8 +242,8 @@ $(depEXETempDir)/%.d: %.f
 
 $(TmpBuildDir)/$(optionsSuffix)_source_copied: $(CEXE_sources) $(cEXE_sources) $(FEXE_sources) $(fEXE_sources) $(F90EXE_sources) $(f90EXE_sources)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_source_copied' # So that the rule always gets updated
 	@$(SHELL) -ec 'cp $? $(srcTempDir)'
+	@$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_source_copied' # So that the rule always gets updated
 
 DEP_CHECK_OPTS :=
 
