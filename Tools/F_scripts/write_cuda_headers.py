@@ -1,16 +1,23 @@
 #!/usr/bin/env python
 
 """
-Search the Fortran source code for subroutines marked as:
+Search the Fortran source code for subroutines marked with !$gpu in their specification part:
 
-#pragma gpu
-   name(args, ...);
+  subroutine sub(a)
+
+    integer :: a
+
+    !$gpu
+
+    ...
+
+  end subroutine
 
 and maintain a list of these.
 
 Then copy the C++ headers for Fortran files (typically *_F.H) into a
-temp directory, modifying any of the marked subroutines to have both a
-device and host signature.
+temp directory, modifying any subroutines marked with #pragma gpu to
+have both a device and host signature.
 """
 
 from __future__ import print_function
