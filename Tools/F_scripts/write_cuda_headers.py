@@ -13,7 +13,17 @@ Search the Fortran source code for subroutines marked with !$gpu in their specif
 
   end subroutine
 
-and maintain a list of these.
+and maintain a list of these. For each one, in a new copy of the file in
+the temporary build directory, replace !$gpu with attributes(device)
+prior to the subroutine statement:
+
+  attributes(device) subroutine sub(a)
+
+    integer :: a
+
+    ...
+
+  end subroutine
 
 Then copy the C++ headers for Fortran files (typically *_F.H) into a
 temp directory, modifying any subroutines marked with #pragma gpu to
