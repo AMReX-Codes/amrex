@@ -65,12 +65,14 @@ contains
 
 
 
-  AMREX_DEVICE subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='get_loop_bounds')
+  subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='get_loop_bounds')
 
     implicit none
 
     integer, intent(in   ) :: lo(3), hi(3)
     integer, intent(inout) :: blo(3), bhi(3)
+
+    !$gpu
 
 #if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     ! Get our spatial index based on the CUDA thread index
@@ -96,7 +98,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine amrex_add(x, y)
+  subroutine amrex_add(x, y)
 
     implicit none
 
@@ -106,6 +108,8 @@ contains
     real(amrex_real), intent(inout) :: x
 
     real(amrex_real) :: t
+
+    !$gpu
 
 #if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicAdd(x, y)
@@ -117,7 +121,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine amrex_subtract(x, y)
+  subroutine amrex_subtract(x, y)
 
     implicit none
 
@@ -127,6 +131,8 @@ contains
     real(amrex_real), intent(inout) :: x
 
     real(amrex_real) :: t
+
+    !$gpu
 
 #if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicSub(x, y)
@@ -138,7 +144,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine amrex_max(x, y)
+  subroutine amrex_max(x, y)
 
     implicit none
 
@@ -148,6 +154,8 @@ contains
     real(amrex_real), intent(inout) :: x
 
     real(amrex_real) :: t
+
+    !$gpu
 
 #if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicMax(x, y)
@@ -159,7 +167,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine amrex_min(x, y)
+  subroutine amrex_min(x, y)
 
     implicit none
 
@@ -169,6 +177,8 @@ contains
     real(amrex_real), intent(inout) :: x
 
     real(amrex_real) :: t
+
+    !$gpu
 
 #if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicMin(x, y)
