@@ -350,6 +350,8 @@ endif
 ifeq ($(USE_ACC),TRUE)
 
   ACCSuffix := .ACC
+  DEFINES += -DAMREX_USE_ACC
+  DEFINES += -DAMREX_USE_GPU
 
 endif
 
@@ -385,6 +387,7 @@ ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DCUDA
     DEFINES += -DAMREX_USE_CUDA
+    DEFINES += -DAMREX_USE_GPU
 
     USE_DEVICE := TRUE
     DEFINES += -DAMREX_USE_DEVICE
