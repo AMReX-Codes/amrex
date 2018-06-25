@@ -1502,7 +1502,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                  int lev_min, int lev_max, int nGrow, int local)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
-    BL_PROFILE_VAR_NS("RedistributeMPI_unpack", blp_unpack);
+    BL_PROFILE_VAR_NS("RedistributeMPI_locate", blp_locate);
+    BL_PROFILE_VAR_NS("RedistributeMPI_copy", blp_copy);
 
 #if BL_USE_MPI
 
@@ -1586,7 +1587,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
      
-	BL_PROFILE_VAR_START(blp_unpack);
+	BL_PROFILE_VAR_START(blp_locate);
    
         if (recvdata.size() % superparticle_size != 0) {
             if (m_verbose) {
@@ -1617,6 +1618,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             rcv_tile[i] = pld.m_tile;
         }
 
+	BL_PROFILE_VAR_STOP(blp_locate);
+
+        BL_PROFILE_VAR_START(blp_copy);
+
         for (int j = 0; j < npart; ++j)
         {
             auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
@@ -1645,7 +1650,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             }            
         }
 
-	BL_PROFILE_VAR_STOP(blp_unpack);
+	BL_PROFILE_VAR_STOP(blp_copy);
     }
 #endif /*BL_USE_MPI*/
 }
