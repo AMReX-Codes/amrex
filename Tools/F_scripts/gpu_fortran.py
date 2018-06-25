@@ -69,10 +69,10 @@ def update_fortran_subroutines(ffile):
 
     for line in lines:
 
-        if "subroutine" in line and not found_subroutine:
+        if ("subroutine" in line or "function" in line) and not found_subroutine:
             found_subroutine = True
 
-        if "end subroutine" in line:
+        if ("end subroutine" in line or "end function" in line):
 
             # Now if the subroutine contains !$gpu, prepend
             # attributes(device) to the subroutine.
@@ -85,6 +85,7 @@ def update_fortran_subroutines(ffile):
                     subroutine = subroutine.replace("AMREX_DEVICE", "attributes(device)")
                 else:
                     subroutine = subroutine.replace("subroutine", "attributes(device) subroutine", 1)
+                    subroutine = subroutine.replace("function", "attributes(device) function", 1)
 
             fout.write(subroutine)
             subroutine = ""
