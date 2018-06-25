@@ -226,6 +226,9 @@ $(depEXETempDir)/%.d: %.F
 	@echo Depending $< ...
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+ifeq ($(USE_CUDA),TRUE)
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -235,6 +238,9 @@ $(depEXETempDir)/%.d: %.f
 	@echo Depending $< ...
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+ifeq ($(USE_CUDA),TRUE)
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -243,10 +249,16 @@ $(depEXETempDir)/%.d: %.f
 $(depEXETempDir)/%.d: %.F90
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+ifeq ($(USE_CUDA),TRUE)
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+endif
 
 $(depEXETempDir)/%.d: %.f90
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+ifeq ($(USE_CUDA),TRUE)
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+endif
 
 DEP_CHECK_OPTS :=
 
