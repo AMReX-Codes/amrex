@@ -233,16 +233,20 @@ $(depEXETempDir)/%.d: %.F
 
 $(depEXETempDir)/%.d: %.f
 	@echo Depending $< ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(TmpBuildDir)/$(optionsSuffix)_source_copied: $(CEXE_sources) $(cEXE_sources) $(FEXE_sources) $(fEXE_sources) $(F90EXE_sources) $(f90EXE_sources)
-	@if [ ! -d $(TmpBuildDir) ]; then mkdir -p $(TmpBuildDir); fi
-	@$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_source_copied' # So that the rule always gets updated
+$(depEXETempDir)/%.d: %.F90
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $? $(srcTempDir)'
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+
+$(depEXETempDir)/%.d: %.f90
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 
 DEP_CHECK_OPTS :=
 
@@ -361,8 +365,6 @@ endif
 ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
 include $(depEXETempDir)/f90.depends
 endif
-
-include $(TmpBuildDir)/$(optionsSuffix)_source_copied
 
 endif
 endif
