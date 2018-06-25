@@ -5,7 +5,7 @@ stop_time =  0.2
 geometry.is_periodic = 0 0 0
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =  0      0      0
-geometry.prob_hi     =  1.0   1.0    1.0
+geometry.prob_hi     =  5.0   5.0    5.0
 amr.n_cell           =  128    128     128
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
@@ -49,20 +49,20 @@ amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 eb2.use_eb2 = 1
 eb2.geom_type = "combustor" 
 #Far wall location in x 
-eb2.far_wall_loc = 0.45
+eb2.far_wall_loc = 2.25
 
 #Ramp construct -- 3 planes, only plane 2 needs normal 
-eb2.ramp_plane1_point = 0.25 0.75 0. 
-eb2.ramp_plane2_point = 0.25 0.75 0. 
-eb2.ramp_plane2_normal = 0.69 -0.19 0. 
-eb2.ramp_plane3_point = 0.06 0. 0. 
+eb2.ramp_plane1_point = 1.25 3.75 0. 
+eb2.ramp_plane2_point = 1.25 3.75 0. 
+eb2.ramp_plane2_normal = 3.45 -0.95 0. 
+eb2.ramp_plane3_point = 0.3 0. 0. 
 
 #pipe construct
-eb2.pipe_lo = 0.06 -1.0 -100.0 
-eb2.pipe_hi = 0.08 0.5 100.0
+eb2.pipe_lo = 0.3 -5.0 -100.0 
+eb2.pipe_hi = 0.5 2.5 100.0
 
 #Lathe translation vector 
-eb2.lathe_trans_vec = 0.5 0.5 0.
+eb2.lathe_trans_vec = 2.5 2.5 0.
  
 #eb2.geom_type = "polygon_revolution"
 #num_poly = 3
