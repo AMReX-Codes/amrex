@@ -398,8 +398,13 @@ def convert_cxx(outdir, cxx_files):
 
                 # finally output the code in the form we want, with
                 # the device launch
-                hout.write("AMREX_DEVICE_LAUNCH({})\n    ({});\n".format(
-                    func_name, args))
+                hout.write("dim3 {}numBlocks, {}numThreads;\n" \
+                            "Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n" \
+                            "#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
+                            "CudaAPICheck(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
+                            "#endif\n" \
+                            "cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(
+                                func_name, func_name, func_name, func_name, func_name, func_name, func_name, func_name, args))
 
             else:
                 # we didn't find a pragma
@@ -452,7 +457,7 @@ if __name__ == "__main__":
         cpp_pass = None
 
     # part I: for each Fortran routine marked with
-    # AMREX_DEVICE_LAUNCH, we need to append a new header in the
+    # !$gpu, we need to append a new header in the
     # corresponding *_F.H file
 
     # find the names of the Fortran subroutines that are marked as
