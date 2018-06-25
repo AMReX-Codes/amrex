@@ -5,7 +5,7 @@ module amrex_mlmg_interp_module
   implicit none
 
   private
-  public :: amrex_mlmg_lin_cc_interp, amrex_mlmg_lin_nd_interp
+  public :: amrex_mlmg_lin_cc_interp, amrex_mlmg_lin_nd_interp, amrex_mlmg_eb_cc_interp
 
 contains
 
