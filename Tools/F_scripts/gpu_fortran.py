@@ -13,9 +13,9 @@ Search the Fortran source code for subroutines marked with !$gpu in their specif
 
   end subroutine
 
-For each one, prepend AMREX_DEVICE prior to the subroutine statement:
+For each one, prepend attributes(device) prior to the subroutine statement:
 
-  AMREX_DEVICE subroutine sub(a)
+  attributes(device) subroutine sub(a)
 
     integer :: a
 
@@ -44,7 +44,7 @@ import argparse
 
 def update_fortran_subroutines(ffile):
     """For subroutines marked up with !$gpu, replace with
-    AMREX_DEVICE."""
+    attributes(device)."""
 
     # open the input Fortran file
     try:
@@ -75,11 +75,16 @@ def update_fortran_subroutines(ffile):
         if "end subroutine" in line:
 
             # Now if the subroutine contains !$gpu, prepend
-            # AMREX_DEVICE to the subroutine, if it does not
-            # already contain it.
+            # attributes(device) to the subroutine.
 
-            if "!$gpu" in subroutine and "AMREX_DEVICE" not in subroutine:
-                subroutine = subroutine.replace("subroutine", "AMREX_DEVICE subroutine", 1)
+            if "!$gpu" in subroutine:
+
+                # Some code may contain a legacy AMREX_DEVICE statement.
+
+                if "AMREX_DEVICE" in subroutine:
+                    subroutine = subroutine.replace("AMREX_DEVICE", "attributes(device)")
+                else:
+                    subroutine = subroutine.replace("subroutine", "attributes(device) subroutine", 1)
 
             fout.write(subroutine)
             subroutine = ""

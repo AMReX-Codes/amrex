@@ -59,9 +59,11 @@ __global__ static void cuda_{}
 # for finding just the variable definitions in the function signature (between the ())
 decls_re = re.compile("(.*?)(\\()(.*)(\\))", re.IGNORECASE|re.DOTALL)
 
-# for finding a fortran function subroutine marked with AMREX_DEVICE
+# for finding a fortran function subroutine marked with AMREX_DEVICE or attributes(device)
 fortran_re = re.compile("(AMREX_DEVICE)(\\s+)(subroutine)(\\s+)((?:[a-z][a-z_]+))",
                         re.IGNORECASE|re.DOTALL)
+fortran_attributes_re = re.compile("(attributes\\(device\\))(\\s+)(subroutine)(\\s+)((?:[a-z][a-z_]+))",
+                                   re.IGNORECASE|re.DOTALL)
 
 # for finding a header entry for a function binding to a fortran subroutine
 fortran_binding_re = re.compile("(void)(\\s+)((?:[a-z][a-z_]+))",
@@ -97,6 +99,10 @@ def find_fortran_targets(fortran_names):
             m = fortran_re.search(line)
             if m is not None:
                 targets.append(m.group(5).lower())
+            else:
+                m = fortran_attributes_re.search(line)
+                if m is not None:
+                    targets.append(m.group(5).lower())
 
             line = fin.readline()
 
