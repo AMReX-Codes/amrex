@@ -31,25 +31,71 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     
     if (geom_type == "combustor")
     {
-        EB2::PlaneIF farwall({AMREX_D_DECL(0.45,0.,0.)},
-                             {AMREX_D_DECL(1.  ,0.,0.)});
-        auto ramp = EB2::makeIntersection(EB2::PlaneIF({AMREX_D_DECL(0.25, 0.75, 0.)},
-                                                       {AMREX_D_DECL(0.  , -1. , 0.)}),
-                                          EB2::PlaneIF({AMREX_D_DECL(0.25, 0.75, 0.)},
-                                                       {AMREX_D_DECL(.69 , -.19, 0.)}),
-                                          EB2::PlaneIF({AMREX_D_DECL(0.06, 0.  , 0.)},
-                                                       {AMREX_D_DECL(1.  , 0.  , 0.)}));
-        EB2::BoxIF pipe({AMREX_D_DECL(0.06, -1.0, -100.0)},
-                        {AMREX_D_DECL(0.08, 0.5, 100.0)}, false);
-        EB2::BoxIF flat_corner({AMREX_D_DECL(0.05999, -1.0, -100.0)},
-                               {AMREX_D_DECL(1.0, 0.26, 100.0)}, false);
-        auto polys = EB2::makeUnion(farwall, ramp, pipe, flat_corner);
-        auto pr = EB2::translate(EB2::lathe(polys), {AMREX_D_DECL(0.5,0.5,0.)});
+	        Real fwl; 
+		pp.get("far_wall_loc",fwl);
+ 
+	        EB2::PlaneIF farwall({AMREX_D_DECL(fwl,0.,0.)},
+        	                     {AMREX_D_DECL(1.  ,0.,0.)});
 
-        auto gshop = EB2::makeShop(pr);
-        EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
+		Vector<Real> pl1ptvec, pl2ptvec, pl2nrmlvec, pl3ptvec; 
+		RealArray pl1pt, pl2pt, pl2nrm, pl3pt; 
+		pp.getarr("ramp_plane1_point", pl1ptvec, 0, SpaceDim);
+		pp.getarr("ramp_plane2_point", pl2ptvec, 0, SpaceDim); 
+		pp.getarr("ramp_plane2_normal", pl2nrmlvec, 0, SpaceDim); 
+		pp.getarr("ramp_plane3_point", pl3ptvec, 0, SpaceDim); 
+		for(int idir=0; idir<SpaceDim; idir++)
+		{
+			pl1pt[idir]  = pl1ptvec[idir]; 
+			pl2pt[idir]  = pl2ptvec[idir]; 
+			pl2nrm[idir] = pl2nrmlvec[idir]; 
+			pl3pt[idir]  = pl3ptvec[idir];
+		}
+
+	        auto ramp = EB2::makeIntersection(EB2::PlaneIF(pl1pt,
+                                                 {AMREX_D_DECL(0.  , -1. , 0.)}),
+	                                         EB2::PlaneIF(pl2pt,pl2nrm),
+                                                 EB2::PlaneIF(pl3pt,
+                                                 {AMREX_D_DECL(1.  , 0.  , 0.)}));
+
+		Vector<Real> pipelovec, pipehivec; 
+		pp.getarr("pipe_lo", pipelovec, 0, SpaceDim); 
+		pp.getarr("pipe_hi", pipehivec, 0, SpaceDim); 
+		RealArray pipe_lo, pipe_hi; 
+		for(int idir=0; idir<SpaceDim; idir++)
+		{
+			pipe_lo[idir]  = pipelovec[idir]; 
+			pipe_hi[idir]  = pipehivec[idir]; 
+		}
+
+
+	        EB2::BoxIF pipe(pipe_lo, pipe_hi, false);
+		Real dx = std::max(geom.CellSize()[0],std::max(geom.CellSize()[1], geom.CellSize()[2])); 
+		Real ydx; 
+
+		//Derive location for flat corner from ramp intersection. 
+		if(dx < ((geom.ProbHi(0) - geom.ProbLo(0))/32.))
+			ydx = -pl2nrm[0]/pl2nrm[1]*(pipe_hi[0]+ 4./3.*dx - pl2pt[0]) + pl2pt[1]; 
+		else 
+			ydx = pipe_hi[1];
+
+	        EB2::BoxIF flat_corner({AMREX_D_DECL(pipe_lo[0]-0.0001, -geom.ProbHi(1), -100.0)},
+                               {AMREX_D_DECL(geom.ProbHi(0), ydx, 100.0)}, false);
+
+		Vector<Real> lathe_trans_vec; 
+		RealArray lathe_trans; 
+
+		pp.getarr("lathe_trans_vec", lathe_trans_vec, 0, SpaceDim); 
+		for(int idir=0; idir<SpaceDim; idir++) 
+			lathe_trans[idir] = lathe_trans_vec[idir]; 
+
+
+	        auto polys = EB2::makeUnion(farwall, ramp, pipe, flat_corner);
+	        auto pr = EB2::translate(EB2::lathe(polys), lathe_trans);
+
+	        auto gshop = EB2::makeShop(pr);
+	        EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
     }
-    else if(geom_type == "ramp_slope") 
+    else if(geom_type == "ramp") 
     {
 	amrex::Print() << " Ramp using slope!\n"; 
 	int upDir; 
@@ -57,10 +103,9 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
 	Real startPt; 
 	Real slope; 
 	pp.get("up_dir", upDir); 
-	pp.get("indep_var", indepVar); 
+	pp.get("indep_var", indepVar);
 	pp.get("start_pt", startPt); 
 	pp.get("ramp_slope", slope); 
-	
 	RealArray normal; 
 	RealArray point; 
 	for(int idir = 0; idir < SpaceDim; idir++)
@@ -68,10 +113,10 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
 		normal[idir] = 0.; 
 		point[idir] = 0.; 		
 	}
-	normal[upDir] = 1.0; 
-	normal[indepVar] = -slope; 
+	normal[upDir] = -1.0; 
+	normal[indepVar] = slope; 
 	
-	point[upDir] = -slope*startPt; 
+	point[upDir] = -startPt*slope;
 	EB2::PlaneIF myplane(point, normal); 
 	
 	auto gshop = EB2::makeShop(myplane); 
