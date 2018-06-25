@@ -496,9 +496,6 @@ ifeq ($(AMREX_XSDK),TRUE)
    DEFINES += -DAMREX_XSDK
 endif
 
-includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-fincludes	= $(includes)
-fmoddir         = $(objEXETempDir)
 
 CPPFLAGS	+= $(DEFINES)
 
@@ -513,10 +510,15 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
 TmpBuildDir     = tmp_build_dir
+srcTempDir      = $(TmpBuildDir)/s/$(optionsSuffix).EXE
 depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
 objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
+
+includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+fincludes	= $(includes)
+fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
@@ -619,12 +621,6 @@ ifeq ($(USE_CUDA),TRUE)
         ifeq ($(TINY_PROFILE),TRUE)
             LIBRARIES += -lnvToolsExt
         endif
-    endif
-
-    # Include the headers with the CUDA kernels.
-
-    ifneq ($(NO_DEVICE_LAUNCH),TRUE)
-      INCLUDE_LOCATIONS += $(TmpBuildDir)/header_temp_dir
     endif
 
     # Bring in NVML support. This is not required,

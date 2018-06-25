@@ -98,14 +98,12 @@ def find_fortran_targets(fortran_names):
 
     targets = []
 
-    for f in fortran_names:
-        ffile = "/".join([f[1], f[0]])
-
+    for f in fortran_names.split():
         # open the Fortran file
         try:
-            fin = open(ffile, "r")
+            fin = open(f, "r")
         except IOError:
-            sys.exit("Cannot open Fortran file {}".format(ffile))
+            sys.exit("Cannot open Fortran file {}".format(f))
 
         # loop through the file and look for the target subroutines
         line = fin.readline()
@@ -465,12 +463,9 @@ if __name__ == "__main__":
     # AMREX_DEVICE_LAUNCH, we need to append a new header in the
     # corresponding *_F.H file
 
-    # find the location of the Fortran files
-    fortran, _ = ffv.find_files(args.vpath, args.fortran)
-
     # find the names of the Fortran subroutines that are marked as
     # device
-    targets = find_fortran_targets(fortran)
+    targets = find_fortran_targets(args.fortran)
 
     # find the location of the headers
     headers, _ = ffv.find_files(args.vpath, args.headers)
