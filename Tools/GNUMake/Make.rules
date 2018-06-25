@@ -135,39 +135,33 @@ FORCE:
 #
 $(objEXETempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.c
 	@echo Compiling $*.c ...
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f
 	@echo Compiling $*.f ...
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.F
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $(srcTempdir)/$(<F) | $(FORTPREP) > $(srcTempDir)/$*.f
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(srcTempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.F90
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@if [ "$(CUDA_MAXREGCOUNT_$(<F))" != "" ]; then \
 	  $(SILENT) $(F90CACHE) $(F90) $(patsubst -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT), -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT_$(<F)), $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION); \
 	else \
@@ -212,6 +206,8 @@ $(objEXETempDir)/%.o: %.F90
 
 $(depEXETempDir)/%.d: %.cpp
 	@echo Depending $< ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -219,6 +215,8 @@ $(depEXETempDir)/%.d: %.cpp
 
 $(depEXETempDir)/%.d: %.c
 	@echo Depending $< ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -226,6 +224,8 @@ $(depEXETempDir)/%.d: %.c
 
 $(depEXETempDir)/%.d: %.F
 	@echo Depending $< ...
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -348,6 +348,14 @@ endif
 
 ifdef FEXE_sources
 -include $(FEXE_sources:%.F=$(depEXETempDir)/%.d)
+endif
+
+ifdef F90EXE_sources
+-include $(F90EXE_sources:%.F90=$(depEXETempDir)/%.d)
+endif
+
+ifdef f90EXE_sources
+-include $(f90EXE_sources:%.f90=$(depEXETempDir)/%.d)
 endif
 
 ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
