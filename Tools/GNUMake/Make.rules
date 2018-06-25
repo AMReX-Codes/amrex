@@ -253,9 +253,10 @@ DEP_CHECK_OPTS :=
 $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
 	@echo "Building f90/F90 dependency File ..."
 	$(MODDEP) $(DEP_CHECK_OPTS) --prefix $(objEXETempDir) \
-            --temp_dir $(srcTempDir) \
+            --temp_dir $(f77EXETempDir) \
             --cpp "$(FORT_CPP)" \
             --defines "-DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes)" \
             --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends
@@ -270,7 +271,7 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(F90EXE_sources) $(FEXE_sources)
              --output_dir "$(srcTempDir)" \
              --vpath "$(VPATH_LOCATIONS)" \
              --headers "$(FEXE_headers) $(F90EXE_headers)" \
-             --fortran "$(F90EXE_sources) $(FEXE_sources)" \
+             --fortran "$(patsubst %,$(srcTempDir)/%,$(^F))" \
              --cxx "$(CEXE_sources)" \
              --cpp "$(HOST_CC) -E -P -std=c99" \
              --defines "$(FINAL_CPPFLAGS) $(includes)" \
