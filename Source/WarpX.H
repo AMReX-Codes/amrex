@@ -15,6 +15,8 @@
 #include <AMReX_RealVect.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_LayoutData.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
