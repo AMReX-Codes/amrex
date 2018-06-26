@@ -1,15 +1,13 @@
+# 
 #
-# This file provides the following variables
+# FUNCTION: set_amrex_compilers
+# 
+# Set the compiler flags for target "amrex".
+# This function requires target "amrex" to be already existent.
 #
-#  AMREX_FFLAGS_DEBUG 
-#  AMREX_FFLAGS_RELEASE
-#  AMREX_FFLAGS_REQUIRED
-#  AMREX_FFLAGS_FPE
-#  AMREX_CXXFLAGS_DEBUG
-#  AMREX_CXXFLAGS_RELEASE
-#  AMREX_CXXFLAGS_REQUIRED
-#  AMREX_CXXFLAGS_FPE
-#  AMREX_COMPILER_DEFINES
+# Author: Michele Rosso
+# Date  : June 26, 2018
+#
 # 
 function ( set_amrex_compilers )
 
@@ -17,9 +15,63 @@ function ( set_amrex_compilers )
    # Check if target "amrex" has been defined before
    # calling this macro
    #
-   if (NOT TARGET amrex)
+   if ( NOT TARGET amrex )
       message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'set_amrex_compilers'" )
    endif ()
+
+   # 
+   # Load defaults
+   # 
+   load_compiler_defaults ()
+
+   # Overwrite defaults if user has set CMAKE_<lang>_FLAGS
+   # Not the standard CMake-way of doing things
+   if ( NOT CMAKE_Fortran_FLAGS )
+      set ( CMAKE_Fortran_FLAGS ${AMREX_Fortran_FLAGS_${CMAKE_BUILD_TYPE}} )
+   endif()
+
+   if ( NOT CMAKE_CXX_FLAGS )
+      set ( CMAKE_CXX_FLAGS ${AMREX_CXX_FLAGS_${CMAKE_BUILD_TYPE}} )
+   endif() 
+
+
+   target_compile_options ( amrex
+      PUBLIC
+      "$<$<COMPILE_LANGUAGE:Fortran>:${CMAKE_Fortran_FLAGS}>" 
+      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CXX_FLAGS}>" ) 
+
+   if (DEFINED ENABLE_FPE)
+      if (ENABLE_FPE)
+	 target_compile_options ( amrex
+	    PUBLIC
+	    "$<$<COMPILE_LANGUAGE:Fortran>:${AMREX_Fortran_FLAGS_FPE}>" 
+	    "$<$<COMPILE_LANGUAGE:CXX>:${AMREX_CXX_FLAGS_FPE}>" ) 
+      endif ()
+   else ()
+      message (AUTHOR_WARNING "Variable ENABLE_FPE is not defined")
+   endif ()
+   
+endfunction () 
+
+
+# 
+#
+# MACRO:  load_compiler_defaults
+# 
+# Set the following variables to the default compiler flags:
+#
+# AMREX_<lang>_FLAGS_<CMAKE_BUILD_TYPE>
+# AMREX_<lang>_FLAGS_FPE
+# 
+# where <lang> is either C or Fortran.
+#
+# The *_FPE flags enable floating point exceptions
+#
+# Author: Michele Rosso
+# Date  : June 26, 2018
+#
+# 
+macro ( load_compiler_defaults )
 
    #
    # Check wether the compiler ID has been defined
@@ -31,117 +83,76 @@ function ( set_amrex_compilers )
    endif ()
 
    #
-   # GNU compilers
-   #
-   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU" )
-
-      target_compile_options ( amrex
-	 PRIVATE
-	 $<$<COMPILE_LANGUAGE:Fortran>:-ffixed-line-length-none -ffree-line-length-none -fno-range-check -fno-second-underscore> 
-	 PUBLIC
-	 $<$<$<CONFIG:Debug>:$<COMPILE_LANGUAGE:Fortran>>:-g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -finit-real=snan  -finit-integer=2147483647>
-
-	 )
-      
+   # Check the same compiler suite is used for all languages
+   # 
+   
+   if (  NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_Fortran_COMPILER_ID}) OR
+	 NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_CXX_COMPILER_ID}) )
+      message ( FATAL_ERROR "C compiler ID does not match Fortran/C++ compiler ID" )
    endif ()
 
 
-endfunction () 
+   #
+   # Load defaults
+   # 
+   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU")  ### GNU compiler ###
+      
+      set ( AMREX_Fortran_FLAGS_Release -O3)
+      set ( AMREX_Fortran_FLAGS_Debug
+	 -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -finit-real=snan -finit-integer=2147483647)
+      set ( AMREX_Fortran_FLAGS_FPE -ffpe-trap=invalid,zero -ftrapv)
+      
 
+      set ( AMREX_CXX_FLAGS_Debug -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare)
+      set ( AMREX_CXX_FLAGS_Release -O3 )
+      set ( AMREX_CXX_FLAGS_FPE -ftrapv )
+            
+   elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "Intel")  ### Intel compiler ###
 
+      set ( AMREX_Fortran_FLAGS_Debug -g -O0 -traceback -check bounds,uninit,pointers)
+      set ( AMREX_Fortran_FLAGS_Release -O3 -ip -qopt-report=5 -qopt-report-phase=vec)
+      set ( AMREX_Fortran_FLAGS_FPE )
+      
+      set ( AMREX_CXX_FLAGS_Debug     -g -O0 -traceback -Wcheck)
+      set ( AMREX_CXX_FLAGS_Release   -O3 -ip -qopt-report=5 -qopt-report-phase=vec)
+      set ( AMREX_CXX_FLAGS_FPE )
+      
+   elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "PGI")  ### PGI compiler ###
 
-#
-# Check the same compiler suite is used for all languages
-# 
-set ( COMPILER ${CMAKE_C_COMPILER_ID} )
-
-if (  NOT (${COMPILER} STREQUAL ${CMAKE_Fortran_COMPILER_ID}) OR
-      NOT (${COMPILER} STREQUAL ${CMAKE_CXX_COMPILER_ID}) )
-   message ( FATAL_ERROR "C compiler ID does not match Fortran/C++ compiler ID" )
-endif ()
-
-# 
-# Select Compiler flags based on compiler ID
-# 
-if ( ${COMPILER} STREQUAL "GNU" )
-
-   # GNU compiler specific flags
- #   set (AMREX_FFLAGS_DEBUG "-g -O0 -ggdb -fbounds-check -fbacktrace\
- # -Wuninitialized -Wunused -finit-real=snan  -finit-integer=2147483647")
-   set (AMREX_FFLAGS_RELEASE "-O3")
- #   set (AMREX_FFLAGS_REQUIRED "-ffixed-line-length-none -ffree-line-length-none\
- # -fno-range-check -fno-second-underscore")
-   set (AMREX_FFLAGS_FPE "-ffpe-trap=invalid,zero -ftrapv" )
-
-   set (AMREX_CXXFLAGS_DEBUG "-g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare")
-   set (AMREX_CXXFLAGS_RELEASE "-O3")
-   set (AMREX_CXXFLAGS_REQUIRED "") #-ftemplate-depth-64 -Wno-deprecated")
-   set (AMREX_CXXFLAGS_FPE "-ftrapv")
-
-elseif ( ${COMPILER} STREQUAL "Intel" )
+      set ( AMREX_Fortran_FLAGS_Debug -g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr)
+      set ( AMREX_Fortran_FLAGS_Release -gopt -fast)
+      set ( AMREX_Fortran_FLAGS_FPE )
    
-   # Intel compiler specific flags
-   set (AMREX_FFLAGS_DEBUG "-g -O0 -traceback -check bounds,uninit,pointers")
-   set (AMREX_FFLAGS_RELEASE "-O3 -ip -qopt-report=5 -qopt-report-phase=vec")
-   set (AMREX_FFLAGS_REQUIRED "-extend_source")
-   set (AMREX_FFLAGS_FPE "")
+      set ( AMREX_CXX_FLAGS_Debug -O0 -Mbounds)
+      set ( AMREX_CXX_FLAGS_Release -gopt -fast)
+      set ( AMREX_CXX_FLAGS_FPE )
+
+   elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "Cray")  ### Cray compiler ###
+
+      set ( AMREX_Fortran_FLAGS_Debug -g -O0 -e i)
+      set ( AMREX_Fortran_FLAGS_Release -O2)
+      set ( AMREX_Fortran_FLAGS_FPE )
+      
+      set ( AMREX_CXX_FLAGS_Debug -g -O0)
+      set ( AMREX_CXX_FLAGS_Release -O2)
+      set ( AMREX_CXX_FLAGS_FPE )
+      
+   elseif ()
+
+      set ( AMREX_Fortran_FLAGS_Debug )
+      set ( AMREX_Fortran_FLAGS_Release )
+      set ( AMREX_Fortran_FLAGS_FPE )
+      
+      set ( AMREX_CXX_FLAGS_Debug )
+      set ( AMREX_CXX_FLAGS_Release )
+      set ( AMREX_CXX_FLAGS_FPE )
+
+      message ( WARNING "Compiler NOT recognized: ID is ${CMAKE_C_COMPILER_ID}. No default flags are loaded!" )
+      
+   endif ()
    
-   set (AMREX_CXXFLAGS_DEBUG "-g -O0 -traceback -Wcheck")
-   set (AMREX_CXXFLAGS_RELEASE "-O3 -ip -qopt-report=5 -qopt-report-phase=vec")
-   set (AMREX_CXXFLAGS_REQUIRED  "-std=c++11")#-ftemplate-depth-64 -Wno-deprecated")
-   set (AMREX_CXXFLAGS_FPE "")
-
-elseif (${COMPILER} STREQUAL "PGI")
-
-   # PGI compiler specific flags
-   set (AMREX_FFLAGS_DEBUG "-g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr")
-   set (AMREX_FFLAGS_RELEASE "-gopt -fast")
-   set (AMREX_FFLAGS_REQUIRED "-extend")
-   set (AMREX_FFLAGS_FPE "")
-   
-   set (AMREX_CXXFLAGS_DEBUG "-O0 -Mbounds")
-   set (AMREX_CXXFLAGS_RELEASE "-gopt -fast")
-   set (AMREX_CXXFLAGS_REQUIRED "")#-ftemplate-depth-64 -Wno-deprecated")
-   set (AMREX_CXXFLAGS_FPE "")
-
-elseif ( ${COMPILER} STREQUAL "Cray" )
-
-   # Cray compiler specific flags
-   set (AMREX_FFLAGS_DEBUG "-g -O0 -e i")
-   set (AMREX_FFLAGS_RELEASE "-O2")
-   set (AMREX_FFLAGS_REQUIRED "-N 255 -h list=a")
-   set (AMREX_FFLAGS_FPE "")
-   
-   set (AMREX_CXXFLAGS_DEBUG "-g -O0")
-   set (AMREX_CXXFLAGS_RELEASE "-O2")
-   set (AMREX_CXXFLAGS_REQUIRED "-h std=c++11 -h list=a")#-ftemplate-depth-64 -Wno-deprecated")
-   set (AMREX_CXXFLAGS_FPE "")
-
-elseif ()
-
-   message ( FATAL_ERROR "Compiler NOT recognized: ID is ${COMPILER}" )
-
-endif ()
+endmacro ()
 
 
 
-#
-# This part is for GNU compiler only
-#
-if ( NOT ( ${COMPILER} STREQUAL "GNU" ) )
-   return ()
-endif ()
 
-if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
-   message ( WARNING " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}.\
- This might break during build. GCC>=4.8 is recommended. " )
-endif ()
-
-set ( AMREX_COMPILER_DEFINES "BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}" )
-
-string ( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
-list ( GET VERSION_LIST 0 GCC_VERSION_MAJOR )
-list ( GET VERSION_LIST 1 GCC_VERSION_MINOR )
-
-list ( APPEND AMREX_COMPILER_DEFINES "BL_GCC_MAJOR_VERSION=${GCC_VERSION_MAJOR}" )
-list ( APPEND AMREX_COMPILER_DEFINES "BL_GCC_MINOR_VERSION=${GCC_VERSION_MINOR}" )
