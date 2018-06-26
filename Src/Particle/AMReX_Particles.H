@@ -29,8 +29,6 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_Print.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_Interpolater.H>
-#include <AMReX_FillPatchUtil.H>
 #include <AMReX_NFiles.H>
 #include <AMReX_VectorIO.H>
 #include <AMReX_Particles_F.H>
@@ -86,7 +84,6 @@ struct ParticleLocData
   Box     m_tilebox;
   Box     m_grown_gridbox;
 };
-
 
 //
 // The struct used to store particles.
@@ -521,7 +518,7 @@ public:
         resizeData();
     }
 
-    ~ParticleContainer () {}
+    virtual ~ParticleContainer () {}
 
     void Define (ParGDBBase* gdb)
     {
@@ -849,7 +846,6 @@ public:
       return doUnlink;
     }
 
-
 protected:
 
     //
@@ -887,6 +883,8 @@ protected:
 			bool           is_checkpoint,
 			std::ifstream& ifs);
 
+
+    void SetParticleSize ();
     
     void BuildRedistributeMask(int lev, int nghost=1);
     std::unique_ptr<iMultiFab> redistribute_mask_ptr;

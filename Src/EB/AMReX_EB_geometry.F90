@@ -1,5 +1,5 @@
 module amrex_eb_geometry_module
-    
+
     use amrex_fort_module, only: c_real => amrex_real
 
     implicit none
@@ -341,23 +341,22 @@ contains
 
             ! IMPORTANT: this point might be outside the cell
             !  -> in that case, it will be one of the cell's corners
-            
+
             ! but don't use the PT_IN_BOX function, as it can yield false positives / negatives
             !  -> but if you do want to use it, include test [1] below to avoid rounding errors
             !if (.not. pt_in_box(c_vec_tmp, ind_loop, tmp_facet)) then
-            
+
             ! if closest point is outside cell, determine the furthest we can go along the
             ! EB edge line whilst staying within the cell.
             call lambda_bounds(lambda_min, lambda_max, ind_loop, edge_p0, edge_v, dx)
-            
-            ! [1]: why this test? What if (due to rounding 
+
             if (lambda_tmp .lt. lambda_min) then
                 lambda_tmp = lambda_min
-            elseif ( lambda_tmp .gt. lambda_max) then  ! [1] (see above)
+            elseif ( lambda_tmp .gt. lambda_max) then
                 lambda_tmp = lambda_max
             end if
             c_vec_tmp(:) = edge_p0(:) + lambda_tmp*edge_v(:)
-            
+
             !end if
 
             ! determine new distance to particle

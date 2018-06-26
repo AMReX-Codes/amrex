@@ -101,6 +101,7 @@ initialize_EBIS(const int max_level)
         ParmParse pp;
         ParmParse ppa("amr");
         ParmParse ppg("geometry");
+        ParmParse ppeb2("eb2");
         Vector<int> n_cell;
         ppa.getarr("n_cell", n_cell, 0, SpaceDim);
 
@@ -147,7 +148,7 @@ initialize_EBIS(const int max_level)
 
         
         std::string geom_type;
-        pp.get("geom_type", geom_type);
+        ppeb2.get("geom_type", geom_type);
         if (geom_type == "all_regular")
         {
           //allregular
@@ -272,8 +273,8 @@ initialize_EBIS(const int max_level)
             amrex::Print() << "sphere geometry\n";
             Vector<Real> centervec(SpaceDim);
             Real radius;
-            pp.get(   "sphere_radius", radius);
-            pp.getarr("sphere_center", centervec, 0, SpaceDim);
+            ppeb2.get(   "sphere_radius", radius);
+            ppeb2.getarr("sphere_center", centervec, 0, SpaceDim);
             RealVect center;
             for(int idir = 0; idir < SpaceDim; idir++)
             {

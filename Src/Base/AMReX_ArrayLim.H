@@ -77,6 +77,8 @@ struct amrex_simpleArray {
 #define AMREX_ZFILL(x) x
 #define AMREX_BCREC_3D(x) x
 #define AMREX_BCREC_ANYD(x) x
+#define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
+#define AMREX_ARLIM_VAL(x) const int* x
 #endif
 
 #define BL_TO_FORTRAN(x) (x).dataPtr(), AMREX_ARLIM((x).loVect()), AMREX_ARLIM((x).hiVect())

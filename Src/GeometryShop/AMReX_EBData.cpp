@@ -889,7 +889,7 @@ namespace amrex
 
       for (VoFIterator vofit(ivsIrreg, a_coarGraph); vofit.ok(); ++vofit)
       {
-        BL_PROFILE("EBDataImplem::coarsenVoFs_VoFIterator");
+//        BL_PROFILE("EBDataImplem::coarsenVoFs_VoFIterator");
         const VolIndex& vofCoar = vofit();
         const Vector<VolIndex>& vofsFine = a_coarGraph.refine(vofCoar);
         int nFine = vofsFine.size();
@@ -902,7 +902,7 @@ namespace amrex
 
         for (int ifine = 0; ifine < nFine; ifine++)
         {
-          BL_PROFILE("EBDataImplem::coarsenVoFs_fine");
+//          BL_PROFILE("EBDataImplem::coarsenVoFs_fine");
           const VolIndex& vofFine =vofsFine[ifine];
 
           if (a_fineGraph.isIrregular(vofFine.gridIndex()))
@@ -1038,14 +1038,14 @@ namespace amrex
     {
       for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
       {
-        BL_PROFILE("EBDataImplem::coarsenFaces_faceDir");
+//        BL_PROFILE("EBDataImplem::coarsenFaces_faceDir");
 
         FaceIterator faceit(ivsIrreg, a_coarGraph, faceDir,
                             FaceStop::SurroundingWithBoundary);
 
         for (faceit.reset(); faceit.ok(); ++faceit)
         {
-          BL_PROFILE("EBDataImplem::coarsenFaces_FaceIterator");
+//          BL_PROFILE("EBDataImplem::coarsenFaces_FaceIterator");
 
           const FaceIndex&  faceCoar  = faceit();
           const Vector<FaceIndex>& facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
@@ -1054,7 +1054,7 @@ namespace amrex
           Vector<RealVect> centroidsFine(facesFine.size());
           for (int ifine = 0; ifine < facesFine.size(); ifine++)
           {
-            BL_PROFILE("EBDataImplem::coarsenFaces_fine");
+//            BL_PROFILE("EBDataImplem::coarsenFaces_fine");
 
             const FaceIndex& faceFine = facesFine[ifine];
             IntVect loiv = faceFine.gridIndex(Side::Lo);
