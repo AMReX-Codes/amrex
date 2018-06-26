@@ -10,6 +10,7 @@ print(fn)
 def get_particle_field(field):
     files = glob(os.path.join(fn, field + '_*'))
     all_data = np.array([])
+    files.sort()
     for f in files:
         data = np.fromfile(f)
         all_data = np.concatenate((all_data, data))
