@@ -18,6 +18,11 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     plasma_injector.reset(new PlasmaInjector(species_id, species_name));
     charge = plasma_injector->getCharge();
     mass = plasma_injector->getMass();
+
+    ParmParse pp(species_name);
+
+    pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
+
 }
 
 void PhysicalParticleContainer::InitData()
@@ -26,6 +31,48 @@ void PhysicalParticleContainer::InitData()
     if (maxLevel() > 0) {
         Redistribute();  // We then redistribute
     }
+}
+
+void PhysicalParticleContainer::MapParticletoBoostedFrame(Real& x, Real& y, Real& z, std::array<Real, 3>& u)
+{
+    // Map the particles from the lab frame to the boosted frame.
+    // This boosts the particle to the lab frame and calculates
+    // the particle time in the boosted frame. It then maps
+    // the position to the time in the boosted frame.
+
+    // For now, start with the assumption that this will only happen
+    // at the start of the simulation.
+    const Real t_lab = 0.;
+
+    const Real uz_boost = WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
+
+    // tpr is the particle's time in the boosted frame
+    Real tpr = WarpX::gamma_boost*t_lab - uz_boost*z/(PhysConst::c*PhysConst::c);
+
+    // The particle's transformed location in the boosted frame
+    Real xpr = x;
+    Real ypr = y;
+    Real zpr = WarpX::gamma_boost*z - uz_boost*t_lab;
+
+    // transform u and gamma to the boosted frame
+    Real gamma_lab = std::sqrt(1. + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])/(PhysConst::c*PhysConst::c));
+    // u[0] = u[0];
+    // u[1] = u[1];
+    u[2] = WarpX::gamma_boost*u[2] - uz_boost*gamma_lab;
+    Real gammapr = std::sqrt(1. + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])/(PhysConst::c*PhysConst::c));
+
+    Real vxpr = u[0]/gammapr;
+    Real vypr = u[1]/gammapr;
+    Real vzpr = u[2]/gammapr;
+
+    // Move the particles to where they will be at t = 0 in the boosted frame
+    if (boost_adjust_transverse_positions) {
+      x = xpr - tpr*vxpr;
+      y = ypr - tpr*vypr;
+    }
+
+    z = zpr - tpr*vzpr;
+
 }
 
 void
@@ -61,10 +108,14 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
 #endif
         if (plasma_injector->insideBounds(x, y, z)) {
 	    plasma_injector->getMomentum(u, x, y, z);
+            if (WarpX::gamma_boost > 1.) {
+                MapParticletoBoostedFrame(x, y, z, u);
+            }
             attribs[PIdx::ux] = u[0];
             attribs[PIdx::uy] = u[1];
             attribs[PIdx::uz] = u[2];
             attribs[PIdx::w ] = weight;
+
             AddOneParticle(0, 0, 0, x, y, z, attribs);
             }
         }
@@ -98,6 +149,7 @@ PhysicalParticleContainer::AddParticles (int lev)
                         plasma_injector->z_rms,
                         plasma_injector->q_tot,
                         plasma_injector->npart);
+
 
         return;
     }

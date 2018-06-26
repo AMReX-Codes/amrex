@@ -23,30 +23,112 @@ RigidInjectedParticleContainer::RigidInjectedParticleContainer (AmrCore* amr_cor
     pp.get("zinject_plane", zinject_plane);
     pp.query("projected", projected);
     pp.query("focused", focused);
+    pp.query("rigid_advance", rigid_advance);
 
 }
 
 void RigidInjectedParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
-    BoostandRemapParticles();
+
+    // Particles added by AddParticles should already be in the boosted frame
+    RemapParticles();
+
     Redistribute();  // We then redistribute
 }
+
+void
+RigidInjectedParticleContainer::RemapParticles()
+{
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(projected, "ERROR: projected = false is not supported with this particle loading");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!focused, "ERROR: focused = true is not supported with this particle loading");
+
+    // For rigid_advance == false, nothing needs to be done
+
+    if (rigid_advance) {
+
+        // The particle z positions are adjusted to account for the difference between
+        // advancing with vzbar and wih vz[i] before injection
+
+        // For now, start with the assumption that this will only happen
+        // at the start of the simulation.
+        const Real t_lab = 0.;
+
+        const Real uz_boost = WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
+        const Real csq = PhysConst::c*PhysConst::c;
+
+        vzbeam_ave_boosted = meanParticleVelocity(false)[2];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            // Get the average beam velocity in the boosted frame.
+            // Note that the particles are already in the boosted frame.
+            // This value is saved to advance the particles not injected yet
+
+            Vector<Real> xp, yp, zp;
+
+            for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
+            {
+
+                auto& attribs = pti.GetAttribs();
+                auto& uxp = attribs[PIdx::ux];
+                auto& uyp = attribs[PIdx::uy];
+                auto& uzp = attribs[PIdx::uz];
+
+                // Copy data from particle container to temp arrays
+                pti.GetPosition(xp, yp, zp);
+
+                // Loop over particles
+                const long np = pti.numParticles();
+                for (int i=0 ; i < np ; i++) {
+
+                    const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/csq);
+                    const Real vzpr = uzp[i]/gammapr;
+
+                    // Back out the value of z_lab
+                    const Real z_lab = (zp[i] + uz_boost*t_lab + WarpX::gamma_boost*t_lab*vzpr)/(WarpX::gamma_boost + uz_boost*vzpr/csq);
+
+                    // Time of the particle in the boosted frame given its position in the lab frame at t=0.
+                    const Real tpr = WarpX::gamma_boost*t_lab - uz_boost*z_lab/csq;
+
+                    // Adjust the position, taking away its motion from its own velocity and adding
+                    // the motion from the average velocity
+                    zp[i] = zp[i] + tpr*vzpr - tpr*vzbeam_ave_boosted;
+
+                }
+
+                // Copy the data back to the particle container
+                pti.SetPosition(xp, yp, zp);
+
+            }
+        }
+    }
+}
+
 
 void
 RigidInjectedParticleContainer::BoostandRemapParticles()
 {
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        Vector<Real> xp, yp, zp, giv;
+    // Boost the particles into the boosted frame and map the particles
+    // to the t=0 in the boosted frame. If using rigid_advance, the z position
+    // is adjusted using vzbar, otherwise using vz[i]
 
+    if (rigid_advance) {
         // Get the average beam velocity in the boosted frame
         // This value is saved to advance the particles not injected yet
         const Real vzbeam_ave_lab = meanParticleVelocity(false)[2];
         vzbeam_ave_boosted = (vzbeam_ave_lab - WarpX::beta_boost*PhysConst::c)/(1. - vzbeam_ave_lab*WarpX::beta_boost/PhysConst::c);
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        Vector<Real> xp, yp, zp;
 
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
@@ -69,14 +151,14 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
                 const Real vy_lab = uyp[i]/gamma_lab;
                 const Real vz_lab = uzp[i]/gamma_lab;
 
-                // t_lab is the time in the lab frame that the particles reaches z=0
+                // t0_lab is the time in the lab frame that the particles reaches z=0
                 // The location and time (z=0, t=0) is a synchronization point between the
                 // lab and boosted frames.
-                const Real t_lab = -zp[i]/vz_lab;
+                const Real t0_lab = -zp[i]/vz_lab;
 
                 if (!projected) {
-                    xp[i] += t_lab*vx_lab;
-                    yp[i] += t_lab*vy_lab;
+                    xp[i] += t0_lab*vx_lab;
+                    yp[i] += t0_lab*vy_lab;
                 }
                 if (focused) {
                     // Correct for focusing effect from shift from z=0 to zinject
@@ -88,15 +170,23 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
                 // Time of the particle in the boosted frame given its position in the lab frame at t=0.
                 const Real tpr = -WarpX::gamma_boost*WarpX::beta_boost*zp[i]/PhysConst::c;
 
-                // Position of the particle in the boosted from given its position in the lab frame at t=0.
+                // Position of the particle in the boosted frame given its position in the lab frame at t=0.
                 const Real zpr = WarpX::gamma_boost*zp[i];
 
                 // Momentum of the particle in the boosted frame (assuming that it is fixed).
                 uzp[i] = WarpX::gamma_boost*(uzp[i] - WarpX::beta_boost*PhysConst::c*gamma_lab);
 
                 // Put the particle at the location in the boosted frame at boost frame t=0,
-                // with the particle moving at the average velocity
-                zp[i] = zpr - vzbeam_ave_boosted*tpr;
+                if (rigid_advance) {
+                    // with the particle moving at the average velocity
+                    zp[i] = zpr - vzbeam_ave_boosted*tpr;
+                }
+                else {
+                    // with the particle moving with its own velocity
+                    const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
+                    const Real vzpr = uzp[i]/gammapr;
+                    zp[i] = zpr - vzpr*tpr;
+                }
 
             }
 
@@ -126,6 +216,21 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     auto& Byp = attribs[PIdx::By];
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
+
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+    auto& xpold  = attribs[PIdx::xold];
+    auto& ypold  = attribs[PIdx::yold];
+    auto& zpold  = attribs[PIdx::zold];
+    auto& uxpold = attribs[PIdx::uxold];
+    auto& uypold = attribs[PIdx::uyold];
+    auto& uzpold = attribs[PIdx::uzold];
+
+    warpx_copy_attribs(&np, xp.data(), yp.data(), zp.data(),
+                       uxp.data(), uyp.data(), uzp.data(),
+                       xpold.data(), ypold.data(), zpold.data(),
+                       uxpold.data(), uypold.data(), uzpold.data());
+
+#endif
 
     // Save the position and momenta, making copies
     Vector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
@@ -167,13 +272,18 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         bool done = true;
         for (int i=0 ; i < zp.size() ; i++) {
             if (zp[i] <= zinject_plane) {
-                xp[i] = xp_save[i];
-                yp[i] = yp_save[i];
-                zp[i] = zp_save[i] + dt*vzbeam_ave_boosted;
                 uxp[i] = uxp_save[i];
                 uyp[i] = uyp_save[i];
                 uzp[i] = uzp_save[i];
                 giv[i] = 1./std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
+                xp[i] = xp_save[i];
+                yp[i] = yp_save[i];
+                if (rigid_advance) {
+                    zp[i] = zp_save[i] + dt*vzbeam_ave_boosted;
+                }
+                else {
+                    zp[i] = zp_save[i] + dt*uzp[i]*giv[i];
+                }
                 done = false;
             }
         }
