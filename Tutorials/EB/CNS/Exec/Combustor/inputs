@@ -6,7 +6,7 @@ geometry.is_periodic = 0 0 0
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =  0      0      0
 geometry.prob_hi     =  5.0   5.0    5.0
-amr.n_cell           =  128    128     128
+amr.n_cell           =  64    64     64
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 # 0 = Interior           3 = Symmetry
@@ -63,28 +63,3 @@ eb2.pipe_hi = 0.5 2.5 100.0
 
 #Lathe translation vector 
 eb2.lathe_trans_vec = 2.5 2.5 0.
- 
-#eb2.geom_type = "polygon_revolution"
-#num_poly = 3
-#far wall (all these polys are done as fractions of the domain)
-#poly_0_num_pts  = 4
-#poly_0_point_0  = 0.45  -1.0 0.0
-#poly_0_point_1  = 2.0    -1.0 0.0
-#poly_0_point_2  = 2.0     2.0 0.0
-#poly_0_point_3  = 0.45   2.0 0.0
-
-#ramping bit
-#poly_1_num_pts  = 5
-#poly_1_point_0  = 0.06    -1.0 0.0
-#poly_1_point_1  = 2.0    -1.0 0.0
-#poly_1_point_2  = 2.0     0.75 0.0
-#poly_1_point_3  = 0.25    0.75 0.0
-#poly_1_point_4  = 0.06     0.25 0.0
-
-#pipe
-#poly_2_num_pts  = 4
-#poly_2_point_0  = 0.06 -1.0 0.0
-#poly_2_point_1  = 0.08    -1.0 0.0
-#poly_2_point_2  = 0.08    0.5 0.0
-#poly_2_point_3  = 0.06   0.5 0.0
-
