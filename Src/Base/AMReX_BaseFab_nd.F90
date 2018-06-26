@@ -1,6 +1,6 @@
 module basefab_nd_module
 
-  use amrex_fort_module, only: amrex_real, amrex_add, amrex_max
+  use amrex_fort_module, only: amrex_real
 
   implicit none
 
@@ -179,6 +179,7 @@ contains
 
   subroutine amrex_fort_fab_sum (lo, hi, src, slo, shi, ncomp, sm) &
        bind(c,name='amrex_fort_fab_sum')
+    use amrex_fort_module, only: amrex_add
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -462,6 +463,7 @@ contains
 
   ! dot_product
   subroutine amrex_fort_fab_dot(lo, hi, offset, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp) bind(c, name='amrex_fort_fab_dot')
+    use amrex_fort_module, only: amrex_add
     integer, intent(in) :: lo(3), hi(3), offset(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
