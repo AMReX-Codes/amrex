@@ -93,6 +93,7 @@ public:
     const IntVect& smallEnd () && = delete;
 
     //! Returns the coordinate of the low end in the given direction.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     int smallEnd (int dir) const& { return smallend[dir]; }
 
     //! Get the bigend.
@@ -189,6 +190,7 @@ public:
     * \brief Returns true if Boxes have non-null intersections.
     * It is an error if the Boxes have different types.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool intersects (const Box& b) const { Box isect(*this); isect &= b; return isect.ok(); }
 
     /**
@@ -371,6 +373,7 @@ public:
     * \brief Return Box that is intersection of this Box
     * and argument.  The Boxes MUST be of same type.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box operator& (const Box& rhs) const { Box lhs(*this); lhs &= rhs; return lhs; }
 
     //! Intersect this Box with its argument. The Boxes MUST be of the same type.
