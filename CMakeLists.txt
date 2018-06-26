@@ -18,11 +18,6 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 
 #
-# Always verbose output during make
-# 
-# set ( CMAKE_VERBOSE_MAKEFILE on )
-
-#
 # Set the search path for cmake modules
 #
 set ( CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/Tools/CMake )
@@ -41,11 +36,6 @@ include ( AMReX_CMakeVariables )
 # Load AMReX options 
 #
 include ( AMReX_Options )
-
-#
-# Configure build
-# 
-include ( AMReX_Config )
 
 # 
 # Source files for all binaries and libraries found under src

@@ -26,6 +26,16 @@ endif ()
 
 set (  __AMREX_CMAKEVARIABLES__ "" )
 
+
+#
+# Disable CMAKE default flags for build type ( NOT CMAKE STANDARD PRACTICE!!! )
+#
+set ( CMAKE_Fortran_FLAGS_DEBUG "")
+set ( CMAKE_Fortran_FLAGS_RELEASE "")
+set ( CMAKE_CXX_FLAGS_DEBUG "")
+set ( CMAKE_CXX_FLAGS_RELEASE "")
+
+
 # Set paths for build system
 set ( CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/mod_files )
 

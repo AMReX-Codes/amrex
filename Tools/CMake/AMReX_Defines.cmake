@@ -1,59 +1,18 @@
-#
-#
-#  This file provides:
-#
-#    AMREX_DEFINES:          list of the cpp flags to be used on ALL sources
-#    AMREX_Fortran_DEFINES:  list of Fortran-specific cpp flags
-#    add_define():           function to add definitions to AMREX_DEFINES 
-#
-#  Once this file is included, AMREX_DEFINES and AMREX_Fortran_DEFINES will be
-#  populated with the preprocessor directives needed for a succesfull build.
-#  Further CPP flags can be appended manually or via add_define() after this
-#  file has been included.
 # 
-#  As per xSDK requirements, if a user set the env variable CPPFLAGS,
-#  CPPFLAGS should overwrite AMReX_DEFINES. Since this is not possible without
-#  breaking the build (most of the defines here are necessary for AMReX to compile),
-#  for the time being we will not follow this requirement.
+# FUNCTION: set_amrex_defines
+#
+# Populate the "compile definitions" property of target "amrex".
+# Target "amrex" must exist before calling this function.
+#
+# As per xSDK requirements, if a user set the env variable CPPFLAGS,
+# CPPFLAGS should overwrite AMReX_DEFINES. Since this is not possible without
+# breaking the build (most of the defines here are necessary for AMReX to compile),
+# for the time being we will not follow this requirement.
 #  
+# Author: Michele Rosso
+# Date  : June 26, 2018
+#
 # 
-
-#
-# Function to accumulate preprocessor directives (to be removed)
-#
-function ( add_define new_define )
-
-   cmake_parse_arguments ( DEFINE "" "IF" ""  ${ARGN} )
-
-   set ( condition  1 )
-
-   if (DEFINE_IF)
-      set ( condition ${${DEFINE_IF}} )
-   endif()
-
-   # Return if flags does not need to be included
-   if (NOT condition)
-      return ()
-   endif ()
-   
-   set ( definition -D${new_define} )
-   
-   list ( FIND AMREX_DEFINES ${definition} out )
-   
-   if ( ${out} EQUAL -1 )
-      list ( APPEND AMREX_DEFINES ${definition} )
-      #  Add legacy definition
-      string (FIND ${definition} "AMREX_" out )
-      if (${out} GREATER -1 )
-	 string (REPLACE "AMREX_" "BL_" legacy_definition ${definition})
-	 list ( APPEND AMREX_DEFINES ${legacy_definition} )
-      endif ()
-      set ( AMREX_DEFINES ${AMREX_DEFINES} PARENT_SCOPE )
-   endif ()
-   
-endfunction ()
-
-
 function ( set_amrex_defines )
 
    # 
@@ -153,11 +112,55 @@ function ( set_amrex_defines )
    # Fortran-specific defines: BL_LANG_FORT e AMREX_LANG_FORT
    #
    target_compile_definitions ( amrex PUBLIC
-      $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT;AMREX_LANG_FORT> )
+      $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT> )
+   target_compile_definitions ( amrex PUBLIC
+      $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LANG_FORT> )
+
+   #
+   # GNU-specific defines
+   # 
+   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU" ) 
    
+      if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
+	 message ( WARNING " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}.This might break during build. GCC>=4.8 is recommended.")
+      endif ()
+      
+      string ( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
+      list ( GET VERSION_LIST 0 GCC_VERSION_MAJOR )
+      list ( GET VERSION_LIST 1 GCC_VERSION_MINOR )
+
+      target_compile_definitions ( amrex PUBLIC
+	 BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+	 BL_GCC_MAJOR_VERSION=${GCC_VERSION_MAJOR}
+	 BL_GCC_MINOR_VERSION=${GCC_VERSION_MINOR}
+	 )
+
+   endif ()
+
 endfunction ()
 
-
+# 
+#
+# FUNCTION: add_amrex_define
+#
+# Add definition to target "amrex" compile definitions.
+#
+# Arguments:
+#
+#    new_define    = variable containing the definition to add.
+#                    The new define can be any string with no "-D" prepended.
+#                    If the new define is in the form AMREX_SOMENAME,
+#                    this function also adds BL_SOMENAME to the list,
+#                    unless NO_LEGACY is specified (see below)
+# 
+#    NO_LEGACY     = if specified, the legacy version of a new_define given in the
+#                    form AMREX_SOMENAME will not be added.
+#                     
+#    IF <cond-var> = new_define is added only if <cond-var> is true
+#
+# Author: Michele Rosso
+# Date  : June 26, 2018
+# 
 function ( add_amrex_define new_define )
 
    # 

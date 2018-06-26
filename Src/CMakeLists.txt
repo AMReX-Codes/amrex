@@ -15,7 +15,7 @@ add_library ( amrex "" )
 # Variable PUBLIC_HEADERS accumulate all the headers for
 # final installation
 # WARNING: this routine add automatically ${CMAKE_CURRENT_LIST_DIR}
-# to the source file given, so always add sources with the relative path
+# to the input source file, so always add sources with the relative path
 # to the directory where add_sources is called from
 set (PUBLIC_HEADERS)
 macro ( add_sources )
@@ -43,16 +43,8 @@ endmacro ()
 #
 
 # General configuration
+include ( AMReX_Config )
 configure_amrex ()
-
-
-# Include paths 
-target_include_directories ( amrex
-   PUBLIC
-#   "${AMREX_EXTRA_Fortran_INCLUDE_PATH};${AMREX_EXTRA_CXX_INCLUDE_PATH}"
-   $<INSTALL_INTERFACE:include> # This is the include dir in installation tree
-   $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}> 
-   )
 
 #
 # Now, one by one, let's add all the source files in the subdirectories
@@ -110,6 +102,14 @@ endif ()
 # Set property to export public header
 #
 set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}" )
+
+#
+# Add include paths for when AMReX is linked against 
+#
+target_include_directories ( amrex
+   PUBLIC
+   $<INSTALL_INTERFACE:include> # This is the include dir in installation tree
+   )
 
 #
 # Define install  
