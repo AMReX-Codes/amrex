@@ -82,7 +82,7 @@ class HeaderFile(object):
 
 def find_fortran_targets(fortran_names):
     """read through the Fortran files and look for those marked up with
-    AMREX_DEVICE"""
+    attributes(device) or AMREX_DEVICE"""
 
     targets = []
 
@@ -98,11 +98,11 @@ def find_fortran_targets(fortran_names):
         while line:
             m = fortran_re.search(line)
             if m is not None:
-                targets.append(m.group(5).lower())
+                targets.append(m.group(5).lower().replace("_device",""))
             else:
                 m = fortran_attributes_re.search(line)
                 if m is not None:
-                    targets.append(m.group(5).lower())
+                    targets.append(m.group(5).lower().replace("_device",""))
 
             line = fin.readline()
 
@@ -275,6 +275,16 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
 
             # First write out the device signature
             device_sig = "__device__ {};\n\n".format(func_sig)
+
+            idx = func_sig.lower().find(name)
+
+            # here's the case-sensitive name
+            case_name = func_sig[idx:idx+len(name)]
+
+            # Add _device to the function name.
+
+            device_sig = device_sig.replace(case_name, case_name + "_device")
+
             device_sig = device_sig.replace("AMREX_ARLIM_VAL", "AMREX_ARLIM_REP")
             hout.write(device_sig)
 
@@ -320,15 +330,9 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
             if not has_lo or not has_hi:
                 sys.exit("ERROR: function signature must have variables lo and hi defined:\n--- function name:\n {} \n--- function signature:\n {}\n---".format(name,func_sig))
 
-            # now we need to remove any vode stuff before the function name
-            idx = func_sig.lower().find(name)
-
-            # here's the case-sensitive name
-            case_name = func_sig[idx:idx+len(name)]
-
             # reassemble the function sig
             all_vars = ", ".join(vars)
-            new_call = "{}({})".format(case_name, all_vars)
+            new_call = "{}({})".format(case_name + "_device", all_vars)
 
 
             hout.write(TEMPLATE.format(func_sig[idx:].replace(';',''), new_call))
