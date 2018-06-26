@@ -92,7 +92,7 @@ namespace {
 }
 
 void
-initialize_EBIS(const int max_level)
+initialize_EBIS(const Geometry& geom, const int max_level)
 {
     BL_PROFILE("initialize_EBIS");
 
@@ -552,6 +552,160 @@ initialize_EBIS(const int max_level)
             }
       
           }
+	  else if(geom_type=="combustor")
+	  {
+		amrex::Print() << "Direct Point input for combustor! \n"; 
+		bool insideRegular = false; 
+		Real hix = geom.ProbHi(0); 
+		Real hiy = geom.ProbHi(1); 
+		Real loy = geom.ProbLo(1); 
+
+		//Data for constructing combustor
+		Vector<Vector<RealVect> > polygons; 
+		polygons.resize(4); //3 polygons "Pipe, Ramp, Flattened Corner and Far Wall"  
+
+		//=============== Far Wall =====================================
+		//User gives location, from this generate plane polygon 
+		Vector<RealVect> farwall(4); //four points 
+		Real fwl; 
+		ppeb2.get("far_wall_loc", fwl);
+		//gets x location of far wall  
+		RealVect fwpnt0 = RealVect::Zero; 
+		RealVect fwpnt1 = RealVect::Zero; 
+		RealVect fwpnt2 = RealVect::Zero; 
+		RealVect fwpnt3 = RealVect::Zero; 
+		fwpnt0[0] = fwl; //Should be physical location 
+		fwpnt0[1] = loy; //Scaled for convenience 
+		fwpnt1[0] = 1.0*hix; 
+		fwpnt1[1] = loy; 
+		fwpnt2[0] = 1.0*hix; 
+		fwpnt2[1] = 1.0*hiy; 
+		fwpnt3[0] = fwl; 
+		fwpnt3[1] = 1.0*hiy; 
+		farwall[0] = fwpnt0; 
+		farwall[1] = fwpnt1; 
+		farwall[2] = fwpnt2; 
+		farwall[3] = fwpnt3; 
+		polygons[0] = farwall; 
+
+		//=============== Pipe Section ====================================
+		//Require 4 Points, much like the Farwall. However, user passes in "high" and "low"
+		//Utilizing high and low, a plane polygon is derived
+		Vector<RealVect> pipe(4);  
+                Vector<Real> pipelovec, pipehivec;
+                ppeb2.getarr("pipe_lo", pipelovec, 0, SpaceDim);
+                ppeb2.getarr("pipe_hi", pipehivec, 0, SpaceDim);
+		RealVect pipelo1(RealVect::Zero), pipelo2(RealVect::Zero); 
+		RealVect pipehi1(RealVect::Zero), pipehi2(RealVect::Zero); 
+		pipelo1[0] = pipelovec[0]; 
+		pipelo1[1] = pipelovec[1]; 
+		pipelo2[0] = pipehivec[0]; 
+		pipelo2[1] = pipelovec[1]; 
+	
+		pipehi1[0] = pipehivec[0]; 
+		pipehi1[1] = pipehivec[1]; 
+		pipehi2[0] = pipelovec[0]; 
+		pipehi2[2] = pipehivec[1]; 
+		
+		pipe[0] = pipelo1; 
+		pipe[1] = pipelo2; 
+		pipe[2] = pipehi1; 
+		pipe[3] = pipehi2; 
+
+
+		//================ Ramp Section ===============================
+		//Ramp contains 3 planes and a flattened corner, we will need 6 points to 
+		//construct it as a polygon. The user supplies the 3 plane points, and one normal vec
+		Vector<RealVect> ramp(5); 
+				 
+                Vector<Real> pl1ptvec, pl2ptvec, pl2nrmlvec, pl3ptvec;
+                RealVect ramp0(RealVect::Zero), ramp1(RealVect::Zero); 
+		RealVect ramp2(RealVect::Zero), ramp3(RealVect::Zero);
+		RealVect ramp4(RealVect::Zero), ramp5(RealVect::Zero);
+                ppeb2.getarr("ramp_plane1_point", pl1ptvec, 0, SpaceDim);
+                ppeb2.getarr("ramp_plane2_point", pl2ptvec, 0, SpaceDim);
+                ppeb2.getarr("ramp_plane2_normal", pl2nrmlvec, 0, SpaceDim);
+                ppeb2.getarr("ramp_plane3_point", pl3ptvec, 0, SpaceDim);
+		Real rampy = -pl2nrmlvec[0]/pl2nrmlvec[1]*(pipehi1[0] - pl2ptvec[0]) + pl2ptvec[1]; 
+
+
+		ramp0[0] = pipehi1[0]; 
+		ramp0[1] = pipelo1[1];
+		ramp1[0] = fwl; 
+		ramp1[1] = pipelo1[1]; 
+		ramp2[0] = fwl;  
+		ramp2[1] = pl2ptvec[1]; 
+		ramp3[0] = pl2ptvec[0]; 
+		ramp3[1] = pl2ptvec[1]; 
+		ramp4[0] = pipehi1[0]; 
+		ramp4[1] = rampy; 
+		
+		ramp[0] = ramp0; 
+		ramp[1] = ramp1; 
+		ramp[2] = ramp2; 
+		ramp[3] = ramp3; 
+		ramp[4] = ramp4; 
+		
+		polygons[1] = ramp; 
+
+		//================ Flattened Corner ============================================
+		// This flattens the corner between the pipe and ramp, allowing for better 
+		// Cell cuts. 
+
+		Vector<RealVect> flatcnr(4); 
+		Real dx = std::max(geom.CellSize()[0],std::max(geom.CellSize()[1], geom.CellSize()[2]));
+                Real ydx;
+
+                //Derive location for flat corner from plane2/pipe intersection. 
+                if(dx < ((geom.ProbHi(0) - geom.ProbLo(0))/32.))
+                        ydx = -pl2nrmlvec[0]/pl2nrmlvec[1]*(pipehi1[0]+ 4./3.*dx
+			      - pl2ptvec[0]) + pl2ptvec[1];
+                else
+                        ydx = pipehi1[1];
+
+		RealVect fltpt0(RealVect::Zero), fltpt1(RealVect::Zero); 
+		RealVect fltpt2(RealVect::Zero), fltpt3(RealVect::Zero); 
+
+		fltpt0 = pipelo2; 
+		fltpt1[0] = pipelo2[0] + dx; 
+		fltpt1[1] = pipelo2[1]; 
+		fltpt2[0] = pipelo2[0] + dx; 
+		fltpt2[1] = ydx; 
+		fltpt3[0] = pipelo2[0]; 
+		fltpt3[1] = ydx; 
+
+		flatcnr[0] = fltpt0; 
+		flatcnr[1] = fltpt1; 
+		flatcnr[2] = fltpt2; 
+		flatcnr[3] = fltpt3; 
+
+
+		polygons[2] = flatcnr; 
+		polygons[3] = pipe; //Polygons in order of farthest to nearest (to the origin)
+
+		UnionIF* crossSection = makeCrossSection(polygons); 
+
+		if(SpaceDim == 2) 
+		{
+		  //In 2D use "as is" 
+		  impfunc.reset(crossSection->newImplicitFunction()); 
+		} 
+		else{
+		  //In 3D rotate about the z-axis
+			LatheIF lathe(*crossSection, insideRegular);  
+		  //We are starting around the y-axis so we need to translate 
+		  //Over to the center 
+
+			Vector<Real> trans_vec; 
+		 	ppeb2.getarr("lathe_trans_vec", trans_vec, 0, SpaceDim); 
+		 	RealVect translation; 
+		 	for(int idir = 0; idir < SpaceDim; idir++) 
+				translation[idir] = trans_vec[idir]; 
+		   	TransformIF implicit(lathe); 
+			implicit.translate(translation); 
+			impfunc.reset(implicit.newImplicitFunction()); 
+		}
+	  } 
           else
           {
             //bogus which_geom
