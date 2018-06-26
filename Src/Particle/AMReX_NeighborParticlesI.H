@@ -651,9 +651,10 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
 }
 
 template <int NStructReal, int NStructInt>
+template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-buildNeighborList(int lev, bool sort) {
+buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
     BL_ASSERT(lev == 0);

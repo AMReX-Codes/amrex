@@ -771,7 +771,7 @@ AmrLevelAdv::init_particles ()
       const BoxArray& ba = TracerPC->ParticleBoxArray(0);
       const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
 
-      AmrTracerParticleContainer::ParticleInitData pdata = {1.0};
+      AmrTracerParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
 
       TracerPC->SetVerbose(0);
       TracerPC->InitOnePerCell(0.5, 0.5, 0.5, pdata);

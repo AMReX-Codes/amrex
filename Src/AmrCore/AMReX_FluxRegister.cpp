@@ -316,7 +316,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     Box cbox = amrex::coarsen(flux.box(),ratio);
     BL_ASSERT(cbox.contains(loreg.box()));
 #endif
@@ -329,7 +329,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     BL_ASSERT(cbox.contains(hireg.box()));
 #endif
     rlo = hireg.box().loVect();
@@ -363,7 +363,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     Box cbox = amrex::coarsen(flux.box(),ratio);
     BL_ASSERT(cbox.contains(loreg.box()));
 #endif
@@ -377,7 +377,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     BL_ASSERT(cbox.contains(hireg.box()));
 #endif
     rlo = hireg.box().loVect();

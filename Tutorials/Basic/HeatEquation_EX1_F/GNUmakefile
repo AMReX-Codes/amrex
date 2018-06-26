@@ -8,10 +8,12 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_MPI3  = FALSE
 
+USE_F_INTERFACES = TRUE
+
 MEM_PROFILE  = FALSE
 TINY_PROFILE = FALSE
 
-COMP      = g++
+COMP      = gnu
 
 DIM       = 3
 

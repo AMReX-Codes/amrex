@@ -4,11 +4,13 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Amr.H>
 #include <AMReX_EBTower.H>
+#include <AMReX_EB2.H>
 
 #include <CNS.H>
 
 using namespace amrex;
 
+void initialize_EB2 (const Geometry& geom, const int required_level, const int max_level);
 void initialize_EBIS(const int max_level);
 
 int main (int argc, char* argv[])
@@ -49,14 +51,21 @@ int main (int argc, char* argv[])
         timer_init = ParallelDescriptor::second();
 
 	Amr amr;
-
-        //xxxxx maybe we should have armex::EBInitialize() and EBFinalize()
-        initialize_EBIS(amr.maxLevel());
-        EBTower::Build();
-        AMReX_EBIS::reset();  // CNS no longer needs the EBIndexSpace singleton.
         AmrLevel::SetEBSupportLevel(EBSupport::full);
         AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
 
+        if (EB2::use_eb2)
+        {
+            initialize_EB2(amr.Geom(amr.maxLevel()), amr.maxLevel(), amr.maxLevel());
+        }
+        else
+        {
+            //xxxxx maybe we should have armex::EBInitialize() and EBFinalize()
+            initialize_EBIS(amr.maxLevel());
+            EBTower::Build();
+            AMReX_EBIS::reset();  // CNS no longer needs the EBIndexSpace singleton.
+        }
+            
 	amr.init(strt_time,stop_time);
 
         timer_init = ParallelDescriptor::second() - timer_init;
@@ -85,7 +94,7 @@ int main (int argc, char* argv[])
 	    amr.writePlotFile();
 	}
 
-        EBTower::Destroy();
+        if (!EB2::use_eb2) EBTower::Destroy();
     }
 
     timer_tot = ParallelDescriptor::second() - timer_tot;
