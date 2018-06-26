@@ -648,7 +648,7 @@ initialize_EBIS(const Geometry& geom, const int max_level)
 		
 		polygons[1] = ramp; 
 
-		//================ Flattened Corner ============================================
+		//================ Flattened Corner ==============================
 		// This flattens the corner between the pipe and ramp, allowing for better 
 		// Cell cuts. 
 
