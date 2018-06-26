@@ -126,7 +126,6 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
   ifeq ($(lowercase_comp),gnu)
     override XTRALIBS := -lgfortran
   endif
-endif
 
   # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
 
