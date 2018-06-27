@@ -81,8 +81,10 @@ function (configure_amrex)
       # Libraries to link to + linker flags
       # CMake doc suggests not to use absolute paths for portability reasons
       # (and we ignore it for now)
-      string ( STRIP ${MPI_CXX_LINK_FLAGS} MPI_CXX_LINK_FLAGS )
-      target_link_libraries ( amrex PUBLIC "${MPI_CXX_LINK_FLAGS}"
+      if (MPI_CXX_LINK_FLAGS)
+      	 string ( STRIP ${MPI_CXX_LINK_FLAGS} MPI_CXX_LINK_FLAGS )
+      endif ()
+      target_link_libraries ( amrex PUBLIC ${MPI_CXX_LINK_FLAGS}
 	 ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
       
    endif ()
@@ -95,19 +97,19 @@ function (configure_amrex)
 
       # Additional compiler flags
       target_compile_options ( amrex PUBLIC
-	 "$<$<COMPILE_LANGUAGE:Fortran>:${OpenMP_Fortran_FLAGS}>"
-	 "$<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>"
-	 "$<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>"
+	 $<$<COMPILE_LANGUAGE:Fortran>:${OpenMP_Fortran_FLAGS}>
+	 $<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>
+	 $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>
 	 )
 
       # The openMP flags are required also during linking phase
       # The NON-clean way of achiving this is by adding a flag to the linker
       # as follows. Notice that in more recent version of CMake, openMP becomes
       # an imported target, thus provinding a clean way to do this
-      if (MPI_CXX_LINK_FLAGS)
-	 string ( STRIP ${MPI_CXX_LINK_FLAGS} MPI_CXX_LINK_FLAGS )
+      if (OpenMP_CXX_FLAGS)
+	 string ( STRIP "${OpenMP_CXX_FLAGS}" OpenMP_CXX_FLAGS )
       endif()    
-      target_link_libraries ( amrex PUBLIC "${OpenMP_CXX_FLAGS}" )
+      target_link_libraries ( amrex PUBLIC ${OpenMP_CXX_FLAGS} )
 
    else ()
       # Cray compiler has OMP turned on by default
