@@ -253,67 +253,32 @@ bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::PeriodicShift (ParticleType& p) const
 {
-    //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::PeriodicShift()");
-
-    // This routine should only be called when Where() returns false.
     BL_ASSERT(m_gdb != 0);
 
-    // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     const Geometry& geom    = Geom(0);
     const Box&      dmn     = geom.Domain();
-    const IntVect&  iv      = Index(p, 0);
+    const IntVect&  iv      = Index(p, 0);    
     bool            shifted = false;  
-
-    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+    IntVect         new_iv  = iv;
+    
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
         if (!geom.isPeriodic(i)) continue;
 
-        if (iv[i] > dmn.bigEnd(i)) {
-            if (p.m_rdata.pos[i] == geom.ProbHi(i))
-                //
-                // Don't let particles lie exactly on the domain face.
-                // Force the particle to be outside the domain so the
-                // periodic shift will bring it back inside.
-                //
-                p.m_rdata.pos[i] += .125*geom.CellSize(i);
-            
-            p.m_rdata.pos[i] -= geom.ProbLength(i);
-            
-            if (p.m_rdata.pos[i] <= geom.ProbLo(i))
-                //
-                // This can happen due to precision issues.
-                //
-                p.m_rdata.pos[i] += .125*geom.CellSize(i);
-            
-            BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));
-            
+        if (iv[i] > dmn.bigEnd(i))
+        {                        
+            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);            
+            BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));            
             shifted = true;
         }
-        else if (iv[i] < dmn.smallEnd(i)) {
-            if (p.m_rdata.pos[i] == geom.ProbLo(i))
-                //
-                // Don't let particles lie exactly on the domain face.
-                // Force the particle to be outside the domain so the
-                // periodic shift will bring it back inside.
-                //
-                p.m_rdata.pos[i] -= .125*geom.CellSize(i);
-            
-            p.m_rdata.pos[i] += geom.ProbLength(i);
-            
-            if (p.m_rdata.pos[i] >= geom.ProbHi(i))
-                //
-                // This can happen due to precision issues.
-                //
-                p.m_rdata.pos[i] -= .125*geom.CellSize(i);
-            
-            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
-            
+        else if (iv[i] < dmn.smallEnd(i))
+        {
+            while (p.m_rdata.pos[i] < geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i);                        
+            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));            
             shifted = true;
         }
     }
-    //
-    // The particle may still be outside the domain in the case
-    // where we aren't periodic on the face out which it travelled.
-    //
+
     return shifted;
 }
 
@@ -325,7 +290,6 @@ Reset (ParticleType& p,
        bool          verbose,
        ParticleLocData pld) const
 {
-    //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::Reset()");
     BL_ASSERT(m_gdb != 0);
 
     bool ok = Where(p, pld);
@@ -412,6 +376,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
       if (!success && lev_min == 0)
       {
 	// The particle has left the domain; invalidate it.
+          amrex::Print() << "leaving domain" << std::endl;
 	p.m_idata.id = -p.m_idata.id;
 	success = true;
       }
