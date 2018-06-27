@@ -112,9 +112,9 @@ function (configure_amrex)
       target_link_libraries ( amrex PUBLIC ${OpenMP_CXX_FLAGS} )
 
    else ()
-      # Cray compiler has OMP turned on by default
-      target_compile_options ( amrex PUBLIC
-	 "$<$<C_COMPILER_ID:Cray>:-h noomp>" )
+      	 # Cray compiler has OMP turned on by default
+	 target_compile_options ( amrex PUBLIC $<$<C_COMPILER_ID:Cray>:-h noomp> )
+	 target_link_libraries ( amrex PUBLIC $<$<C_COMPILER_ID:Cray>:-h noomp> )
    endif()
 
    #
@@ -126,7 +126,7 @@ function (configure_amrex)
    # Print out summary
    # 
    print_amrex_configuration_summary ()
-   
+
 endfunction ()
 
 # 
@@ -149,9 +149,9 @@ function (print_amrex_configuration_summary)
    # Retrieve defines
    #
    get_target_property ( AMREX_DEFINES amrex COMPILE_DEFINITIONS )
-   extract_by_language ( AMREX_DEFINES AMREX_GENERAL_DEFINES AMREX_Fortran_DEFINES )
-   string (REPLACE " " " -D" AMREX_GENERAL_DEFINES "-D${AMREX_GENERAL_DEFINES}" )
-   string (REPLACE ";" " -D" AMREX_GENERAL_DEFINES "${AMREX_GENERAL_DEFINES}" )
+   extract_by_language ( AMREX_DEFINES AMREX_CXX_DEFINES AMREX_Fortran_DEFINES )
+   string (REPLACE " " " -D" AMREX_CXX_DEFINES "-D${AMREX_CXX_DEFINES}" )
+   string (REPLACE ";" " -D" AMREX_CXX_DEFINES "${AMREX_CXX_DEFINES}" )
    string (REPLACE " " " -D" AMREX_Fortran_DEFINES "-D${AMREX_Fortran_DEFINES}" )
    string (REPLACE ";" " -D" AMREX_Fortran_DEFINES "${AMREX_Fortran_DEFINES}" )
    
@@ -186,8 +186,8 @@ function (print_amrex_configuration_summary)
    message( STATUS "AMReX configuration summary: ")
    message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
    message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
-   message( STATUS "   General defines          = ${AMREX_GENERAL_DEFINES}")
-   message( STATUS "   Fortran-specific defines = ${AMREX_Fortran_DEFINES}")
+   message( STATUS "   C++ defines              = ${AMREX_CXX_DEFINES}")
+   message( STATUS "   Fortran defines          = ${AMREX_Fortran_DEFINES}")
    message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
    message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
    message( STATUS "   C++ flags                = ${AMREX_CXX_FLAGS}")
@@ -268,7 +268,8 @@ macro ( extract_by_language list cxx_list fortran_list )
 	 endif ()
       elseif ( ${idx3} GREATER -1 )
       else ()
-	 list ( APPEND ${cxx_list} ${item} )	    
+	 list ( APPEND ${cxx_list} ${item} )
+	 list ( APPEND ${fortran_list} ${item} )	    
       endif () 
      
    endforeach ()

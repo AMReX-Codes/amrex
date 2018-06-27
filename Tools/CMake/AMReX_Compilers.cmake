@@ -49,6 +49,18 @@ function ( set_amrex_compilers )
    else ()
       message (AUTHOR_WARNING "Variable ENABLE_FPE is not defined")
    endif ()
+
+   # Force C++11 standard ( This feature is broken for Intel compiler, so
+   # we gotta do it manually )
+   set_target_properties ( amrex PROPERTIES
+      CXX_STANDARD 11
+      CXX_STANDARD_REQUIRED YES
+      CXX_EXTENSIONS NO
+      )
+
+   if (${CMAKE_C_COMPILER_ID} STREQUAL "Intel")
+      target_compile_options ( amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++11> ) 
+   endif ()
    
 endfunction () 
 
@@ -90,7 +102,7 @@ macro ( load_compiler_defaults )
       message ( FATAL_ERROR "C compiler ID does not match Fortran/C++ compiler ID" )
    endif ()
 
-
+   
    #
    # Load defaults
    # 
@@ -110,11 +122,11 @@ macro ( load_compiler_defaults )
 
       set ( AMREX_Fortran_FLAGS_Debug -g -O0 -traceback -check bounds,uninit,pointers)
       set ( AMREX_Fortran_FLAGS_Release -O3 -ip -qopt-report=5 -qopt-report-phase=vec)
-      set ( AMREX_Fortran_FLAGS_FPE )
+      set ( AMREX_Fortran_FLAGS_FPE -fpe3 )
       
       set ( AMREX_CXX_FLAGS_Debug     -g -O0 -traceback -Wcheck)
       set ( AMREX_CXX_FLAGS_Release   -O3 -ip -qopt-report=5 -qopt-report-phase=vec)
-      set ( AMREX_CXX_FLAGS_FPE )
+      set ( AMREX_CXX_FLAGS_FPE -fpe3 )
       
    elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "PGI")  ### PGI compiler ###
 
@@ -130,11 +142,11 @@ macro ( load_compiler_defaults )
 
       set ( AMREX_Fortran_FLAGS_Debug -g -O0 -e i)
       set ( AMREX_Fortran_FLAGS_Release -O2)
-      set ( AMREX_Fortran_FLAGS_FPE )
+      set ( AMREX_Fortran_FLAGS_FPE -K trap=fp )
       
       set ( AMREX_CXX_FLAGS_Debug -g -O0)
       set ( AMREX_CXX_FLAGS_Release -O2)
-      set ( AMREX_CXX_FLAGS_FPE )
+      set ( AMREX_CXX_FLAGS_FPE -K trap=fp )
       
    elseif ()
 
