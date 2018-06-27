@@ -1,7 +1,6 @@
 #include "Evolve.H"
 #include "NodalFlags.H"
 #include "Constants.H"
-
 #include "em_pic_F.H"
 
 using namespace amrex;
@@ -97,4 +96,20 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
                     BL_TO_FORTRAN_3D(Ey[mfi]),
                     dtsdx[0], dtsdx[1]);
     }    
+}
+
+void fill_boundary_electric_field(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez, const Geometry& geom)
+{    
+    const auto& period = geom.periodicity();
+    Ex.FillBoundary(period);
+    Ey.FillBoundary(period);
+    Ez.FillBoundary(period);    
+}
+
+void fill_boundary_magnetic_field(MultiFab& Bx, MultiFab& By, MultiFab& Bz, const Geometry& geom)
+{    
+    const auto& period = geom.periodicity();
+    Bx.FillBoundary(period);
+    By.FillBoundary(period);
+    Bz.FillBoundary(period);    
 }

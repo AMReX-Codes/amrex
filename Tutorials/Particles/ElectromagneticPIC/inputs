@@ -1,9 +1,12 @@
 
-ncell = (64, 64, 64)
-nppc  = (4, 4, 2)
+ncell = (128, 128, 128)
+nppc  = (4, 4, 4)
 
-max_grid_size = 128
+max_grid_size = 64
+
+#problem_type = Langmuir
+problem_type = UniformPlasma
 
 nsteps = 10
 
-verbose = true
+write_plot = false
