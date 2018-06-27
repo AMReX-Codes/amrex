@@ -59,7 +59,7 @@ LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
 
         // Initialize in fortran land
         amrex_eb_init_levelset(tile_box.loVect(), tile_box.hiVect(),
-                      ls_tile.dataPtr(), ls_tile.loVect(),  ls_tile.hiVect());
+                               ls_tile.dataPtr(), ls_tile.loVect(),  ls_tile.hiVect());
     }
 }
 
@@ -159,6 +159,17 @@ void LSFactory::fill_valid(int n){
 
 void LSFactory::fill_valid(){
     return fill_valid(ls_grid_pad);
+
+    // Set boundary values of valid_grid
+    Box domain(base_geom.Domain());
+    domain.refine(ls_grid_ref);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+        auto & v_tile = (* ls_valid)[mfi];
+        amrex_eb_fill_valid_bcs(BL_TO_FORTRAN_3D(v_tile), domain.loVect(), domain.hiVect());
+    }
 
     // Avoid FillBoundary in recursive steps
     ls_valid->FillBoundary(geom_ls.periodicity());
@@ -324,10 +335,27 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
                                               dx_vect.dataPtr(), & ls_grid_pad        );
     }
 
+    Box domain(base_geom.Domain());
+    domain.refine(ls_grid_ref);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+        const auto & valid_in_tile = valid_in[mfi];
+        const auto & ls_in_tile = ls_in[mfi];
+        auto & v_tile = (* ls_valid)[mfi];
+        auto & ls_tile = (* ls_grid)[mfi];
+
+        amrex_eb_update_levelset_intersection_bcs( BL_TO_FORTRAN_3D(valid_in_tile),
+                                                   BL_TO_FORTRAN_3D(ls_in_tile),
+                                                   BL_TO_FORTRAN_3D(v_tile),
+                                                   BL_TO_FORTRAN_3D(ls_tile),
+                                                   domain.loVect(), domain.hiVect()  );
+    }
+
     ls_grid->FillBoundary(geom_ls.periodicity());
 
     fill_valid();
-    //ls_valid->FillBoundary(geom_ls.periodicity());
 }
 
 
@@ -353,10 +381,28 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
                                        dx_vect.dataPtr(), & ls_grid_pad           );
     }
 
+
+    Box domain(base_geom.Domain());
+    domain.refine(ls_grid_ref);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+        const auto & valid_in_tile = valid_in[mfi];
+        const auto & ls_in_tile = ls_in[mfi];
+        auto & v_tile = (* ls_valid)[mfi];
+        auto & ls_tile = (* ls_grid)[mfi];
+
+        amrex_eb_update_levelset_union_bcs( BL_TO_FORTRAN_3D(valid_in_tile),
+                                            BL_TO_FORTRAN_3D(ls_in_tile),
+                                            BL_TO_FORTRAN_3D(v_tile),
+                                            BL_TO_FORTRAN_3D(ls_tile),
+                                            domain.loVect(), domain.hiVect()  );
+    }
+
     ls_grid->FillBoundary(geom_ls.periodicity());
 
     fill_valid();
-    //ls_valid->FillBoundary(geom_ls.periodicity());
 }
 
 
@@ -462,9 +508,9 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
     std::unique_ptr<MultiFab> impfunct = ebis_impfunc(eb_is);
     impfunct->FillBoundary(geom_ls.periodicity());
 
-    // What if there are no facets in this core domain? => do nothing
-    //if(len_facets < 1)
-    //    return;
+    // What if there are no facets in this core domain? => do nothing in terms
+    // of filling, but make sure that the region valid is still set to 0 =>
+    // dont just return here.
 
     // Local MultiFab storing level-set data for this eb_factory
     MultiFab eb_ls;
@@ -501,7 +547,7 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
                                    facets->dataPtr(), & len_facets,
                                    BL_TO_FORTRAN_3D(v_tile),
                                    BL_TO_FORTRAN_3D(ls_tile),
-                                   dx_vect.dataPtr(), dx_eb_vect.dataPtr());
+                                   dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
 
             amrex_eb_validate_levelset(lo, hi, & ls_grid_ref,
                                        BL_TO_FORTRAN_3D(if_tile),
@@ -512,6 +558,31 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
         }
 
     }
+
+    Box domain = Box(base_geom.Domain());
+    domain.refine(ls_grid_ref);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(eb_ls, true); mfi.isValid(); ++mfi){
+        auto & ls_tile = eb_ls[mfi];
+        auto & v_tile  = eb_valid[mfi];
+        const auto & if_tile = (* impfunct)[mfi];
+
+        if(len_facets > 0) {
+            amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
+                                        BL_TO_FORTRAN_3D(v_tile),
+                                        domain.loVect(), domain.hiVect(),
+                                        facets->dataPtr(), & len_facets,
+                                        dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
+
+            amrex_eb_validate_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
+                                            BL_TO_FORTRAN_3D(v_tile),
+                                            domain.loVect(), domain.hiVect(),
+                                            BL_TO_FORTRAN_3D(if_tile)         );
+        }
+    }
+
 
     // Update LSFactory using local eb level-set
     update_intersection(eb_ls, * region_valid);
@@ -542,9 +613,12 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
     region_valid->define(ls_ba, ls_dm, 1, 0);
     region_valid->setVal(0);
 
-    // Fill local MultiFab with eb_factory's level-set data. Note the role of eb_valid:
-    //  -> eb_valid = 1 if the corresponding eb_ls location could be projected onto the eb-facets
-    //  -> eb_valid = 0 if eb_ls is the fall-back (euclidian) distance to the nearest eb-facet
+    // Fill local MultiFab with eb_factory's level-set data. Note the role of
+    // eb_valid:
+    //  -> eb_valid = 1 if the corresponding eb_ls location could be projected
+    //                  onto the eb-facets
+    //  -> eb_valid = 0 if eb_ls is the fall-back (euclidian) distance to the
+    //                  nearest eb-facet
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -571,6 +645,30 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
                                        BL_TO_FORTRAN_3D(ls_tile)   );
 
             region_tile.setVal(1);
+        }
+    }
+
+    Box domain = Box(base_geom.Domain());
+    domain.refine(ls_grid_ref);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(eb_ls, true); mfi.isValid(); ++mfi){
+        auto & ls_tile = eb_ls[mfi];
+        auto & v_tile  = eb_valid[mfi];
+        const auto & if_tile = (* impfunct)[mfi];
+
+        if(len_facets > 0) {
+            amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
+                                        BL_TO_FORTRAN_3D(v_tile),
+                                        domain.loVect(), domain.hiVect(),
+                                        facets->dataPtr(), & len_facets,
+                                        dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
+
+            amrex_eb_validate_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
+                                            BL_TO_FORTRAN_3D(v_tile),
+                                            domain.loVect(), domain.hiVect(),
+                                            BL_TO_FORTRAN_3D(if_tile)         );
         }
     }
 
