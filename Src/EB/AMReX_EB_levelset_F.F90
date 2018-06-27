@@ -122,17 +122,13 @@ contains
         real(c_real),               intent(  out) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
         integer,                    intent(  out) :: valid(vlo(1):vhi(1),     vlo(2):vhi(2),     vlo(3):vhi(3))
 
-        real(c_real), dimension(3), intent(in   ) :: dx, dx_eb
-
+        ! ** extra data used by fill levelset operation
+        real(c_real), dimension(3),    intent(in   ) :: dx, dx_eb
         integer,                       intent(in   ) :: l_eb
         real(c_real), dimension(l_eb), intent(in   ) :: eb_list
 
-        integer :: i,j,k
-        logical :: valid_cell
 
-        real(c_real), dimension(3) :: pos_node
-        real(c_real)               :: levelset_node
-
+        integer, dimension(3) :: lo, hi
 
         !-------------------------------------------------------------------------------------------------------------!
         ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
@@ -140,118 +136,94 @@ contains
 
         ! 2 i-j faces => k is in [philo(3), domlo(3)) U (domhi(3), phihi(3)]
 
-        do k = philo(3), domlo(3) - 1
-            do j = philo(2), phihi(2)
-                do i = philo(1), phihi(1)
-                    pos_node      = (/ i*dx(1), j*dx(2), k*dx(3) /)
-                    call closest_dist ( levelset_node, valid_cell, eb_list, l_eb, dx_eb, pos_node)
+        if ( philo(3).lt.domlo(3) ) then
+            lo(:) = philo(:)      ! k = philo(3), domlo(3) - 1
+            hi(:) = phihi(:)      ! j = philo(2), phihi(2)
+            hi(3) = domlo(3) - 1  ! i = philo(1), phihi(1)
 
-                    phi(i, j, k) = levelset_node;
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
+        end if
 
-                    if ( valid_cell ) then
-                        valid(i, j, k) = 1
-                    else
-                        valid(i, j, k) = 0
-                    end if
-                end do
-            end do
-        end do
+        if ( phihi(3).gt.domhi(3) ) then
+            lo(:) = philo(:)      ! k = domhi(3) + 1, phihi(3)
+            hi(:) = phihi(:)      ! j = philo(2), phihi(2)
+            lo(3) = domhi(3) + 1  ! i = philo(1), phihi(1)
 
-        do k = domhi(3) + 1, phihi(3)
-            do j = philo(2), phihi(2)
-                do i = philo(1), phihi(1)
-                    pos_node      = (/ i*dx(1), j*dx(2), k*dx(3) /)
-                    call closest_dist ( levelset_node, valid_cell, eb_list, l_eb, dx_eb, pos_node)
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
+        end if
 
-                    phi(i, j, k) = levelset_node;
-
-                    if ( valid_cell ) then
-                        valid(i, j, k) = 1
-                    else
-                        valid(i, j, k) = 0
-                    end if
-                end do
-            end do
-        end do
 
         ! 2 i-k faces => j is in [philo(2), domlo(2)) U (domhi(2), phihi(2)]
 
         if ( philo(2).lt.domlo(2) ) then
-        do k = philo(3), phihi(3)
-            do j = philo(2), domlo(2) - 1
-                do i = philo(1), phihi(1)
-                    pos_node      = (/ i*dx(1), j*dx(2), k*dx(3) /)
-                    call closest_dist ( levelset_node, valid_cell, eb_list, l_eb, dx_eb, pos_node)
+            lo(:) = philo(:)      ! k = philo(3), phihi(3)
+            hi(:) = phihi(:)      ! j = philo(2), domlo(2) - 1
+            hi(2) = domlo(2) - 1  ! i = philo(1), phihi(1)
 
-                    phi(i, j, k) = levelset_node;
-
-                    if ( valid_cell ) then
-                        valid(i, j, k) = 1
-                    else
-                        valid(i, j, k) = 0
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
         end if
 
         if ( phihi(2).gt.domhi(2) ) then
-        do k = philo(3), phihi(3)
-            do j = domhi(2) + 1, phihi(2)
-                do i = philo(1), phihi(1)
-                    pos_node      = (/ i*dx(1), j*dx(2), k*dx(3) /)
-                    call closest_dist ( levelset_node, valid_cell, eb_list, l_eb, dx_eb, pos_node)
+            lo(:) = philo(:)      ! k = philo(3), phihi(3)
+            hi(:) = phihi(:)      ! j = domhi(2) + 1, phihi(2)
+            lo(2) = domhi(2) + 1  ! i = philo(1), phihi(1)
 
-                    phi(i, j, k) = levelset_node;
-
-                    if ( valid_cell ) then
-                        valid(i, j, k) = 1
-                    else
-                        valid(i, j, k) = 0
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
         end if
+
 
         ! 2 j-k faces => i is in [philo(1), domlo(1)) U (domhi(1), phihi(1)]
 
         if ( philo(1).lt.domlo(1) ) then
-        do k = philo(3), phihi(3)
-            do j = philo(2), phihi(2)
-                do i = philo(1), domlo(1) - 1
-                    pos_node      = (/ i*dx(1), j*dx(2), k*dx(3) /)
-                    call closest_dist ( levelset_node, valid_cell, eb_list, l_eb, dx_eb, pos_node)
+            lo(:) = philo(:)      ! k = philo(3), phihi(3)
+            hi(:) = phihi(:)      ! j = philo(2), phihi(2)
+            hi(1) = domlo(1) - 1  ! i = philo(1), domlo(1) - 1
 
-                    phi(i, j, k) = levelset_node;
-
-                    if ( valid_cell ) then
-                        valid(i, j, k) = 1
-                    else
-                        valid(i, j, k) = 0
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
         end if
 
         if ( phihi(1).gt.domhi(1) ) then
-        do k = philo(3), phihi(3)
-            do j = philo(2), phihi(2)
-                do i = domhi(1) + 1, phihi(1)
-                    pos_node      = (/ i*dx(1), j*dx(2), k*dx(3) /)
-                    call closest_dist ( levelset_node, valid_cell, eb_list, l_eb, dx_eb, pos_node)
+            lo(:) = philo(:)      ! k = philo(3), phihi(3)
+            hi(:) = phihi(:)      ! j = philo(2), phihi(2)
+            lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phihi(1)
 
-                    phi(i, j, k) = levelset_node;
-
-                    if ( valid_cell ) then
-                        valid(i, j, k) = 1
-                    else
-                        valid(i, j, k) = 0
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
         end if
 
     end subroutine amrex_eb_fill_levelset_bcs
@@ -559,8 +531,7 @@ contains
         integer,                    intent(in   ) :: n_pad
 
         real(c_real) :: ls_node, in_node
-        integer      :: i, j, k, ii, jj, kk
-        logical      :: valid_cell
+        integer      :: ii, jj, kk
 
         do kk = lo(3), hi(3)
             do jj = lo(2), hi(2)
@@ -764,8 +735,7 @@ contains
         integer,                    intent(in   ) :: n_pad
 
         real(c_real) :: ls_node, in_node
-        integer      :: i, j, k, ii, jj, kk
-        logical      :: valid_cell
+        integer      :: ii, jj, kk
 
         do kk = lo(3), hi(3)
             do jj = lo(2), hi(2)
