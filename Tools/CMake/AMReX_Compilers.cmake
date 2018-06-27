@@ -34,12 +34,11 @@ function ( set_amrex_compilers )
       set ( CMAKE_CXX_FLAGS ${AMREX_CXX_FLAGS_${CMAKE_BUILD_TYPE}} )
    endif() 
 
-
    target_compile_options ( amrex
       PUBLIC
       "$<$<COMPILE_LANGUAGE:Fortran>:${CMAKE_Fortran_FLAGS}>" 
-      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CXX_FLAGS}>" ) 
-
+      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CXX_FLAGS}>" )
+   
    if (DEFINED ENABLE_FPE)
       if (ENABLE_FPE)
 	 target_compile_options ( amrex
