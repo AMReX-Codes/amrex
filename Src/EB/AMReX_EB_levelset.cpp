@@ -158,17 +158,28 @@ void LSFactory::fill_valid(int n){
 
 
 void LSFactory::fill_valid(){
-    return fill_valid(ls_grid_pad);
+    fill_valid(ls_grid_pad);
 
     // Set boundary values of valid_grid
+
     Box domain(base_geom.Domain());
     domain.refine(ls_grid_ref);
+
+    IntVect periodic(
+            AMREX_D_DECL(
+                base_geom.isPeriodic(0),
+                base_geom.isPeriodic(1),
+                base_geom.isPeriodic(2)
+            )
+        );
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
         auto & v_tile = (* ls_valid)[mfi];
-        amrex_eb_fill_valid_bcs(BL_TO_FORTRAN_3D(v_tile), domain.loVect(), domain.hiVect());
+        amrex_eb_fill_valid_bcs(BL_TO_FORTRAN_3D(v_tile),
+                                periodic.getVect(), domain.loVect(), domain.hiVect());
     }
 
     // Avoid FillBoundary in recursive steps
