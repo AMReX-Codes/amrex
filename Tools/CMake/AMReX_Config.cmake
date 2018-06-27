@@ -104,7 +104,9 @@ function (configure_amrex)
       # The NON-clean way of achiving this is by adding a flag to the linker
       # as follows. Notice that in more recent version of CMake, openMP becomes
       # an imported target, thus provinding a clean way to do this
-      string ( STRIP ${OpenMP_CXX_FLAGS} OpenMP_CXX_FLAGS )
+      if (MPI_CXX_LINK_FLAGS)
+	 string ( STRIP ${MPI_CXX_LINK_FLAGS} MPI_CXX_LINK_FLAGS )
+      endif()    
       target_link_libraries ( amrex PUBLIC "${OpenMP_CXX_FLAGS}" )
 
    else ()
@@ -146,8 +148,10 @@ function (print_amrex_configuration_summary)
    #
    get_target_property ( AMREX_DEFINES amrex COMPILE_DEFINITIONS )
    extract_by_language ( AMREX_DEFINES AMREX_GENERAL_DEFINES AMREX_Fortran_DEFINES )
-   string (REPLACE ";" " -D" AMREX_GENERAL_DEFINES "-D${AMREX_GENERAL_DEFINES}" )
-   string (REPLACE ";" " -D" AMREX_Fortran_DEFINES "-D${AMREX_Fortran_DEFINES}" )
+   string (REPLACE " " " -D" AMREX_GENERAL_DEFINES "-D${AMREX_GENERAL_DEFINES}" )
+   string (REPLACE ";" " -D" AMREX_GENERAL_DEFINES "${AMREX_GENERAL_DEFINES}" )
+   string (REPLACE " " " -D" AMREX_Fortran_DEFINES "-D${AMREX_Fortran_DEFINES}" )
+   string (REPLACE ";" " -D" AMREX_Fortran_DEFINES "${AMREX_Fortran_DEFINES}" )
    
    #
    # Retrieve compile flags
@@ -167,6 +171,9 @@ function (print_amrex_configuration_summary)
    # Link libraries
    # 
    get_target_property ( AMREX_LINK_LINE amrex LINK_LIBRARIES )
+   if (NOT AMREX_LINK_LINE) # LINK_LIBRARIES property can return "NOT_FOUND"
+      set (AMREX_LINK_LINE "")
+   endif ()   
    list ( REMOVE_DUPLICATES AMREX_LINK_LINE )
    string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )
    
@@ -196,9 +203,19 @@ endfunction ()
 # 
 macro ( extract_by_language list cxx_list fortran_list )
 
+   #
+   # Re-position list separators to reshape list 
+   # 
+
+   # Replace all ; with a place holder (*)
+   string ( REPLACE ";" "*" ${list} "${${list}}" )
+
+   # Add list delimiter only where it suits us
+   string ( REPLACE ">*" ">;" ${list} "${${list}}" )
+   string ( REPLACE "*$" ";$" ${list} "${${list}}" )
+   string ( REPLACE "*/" ";/" ${list} "${${list}}" )
+   string ( REPLACE "*" " "   ${list} "${${list}}" )
    
-   list ( REMOVE_DUPLICATES ${list} )
-     
    #
    # First remove entries related to a compiler other than
    # the one currently in use or BUILD_INTERFACES keyword
@@ -254,8 +271,12 @@ macro ( extract_by_language list cxx_list fortran_list )
      
    endforeach ()
 
-   list ( REMOVE_DUPLICATES ${cxx_list} )
-   list ( REMOVE_DUPLICATES ${fortran_list} )
+   if (${cxx_list})
+      list ( REMOVE_DUPLICATES ${cxx_list} )
+   endif ()
+   if (${fortran_list})
+      list ( REMOVE_DUPLICATES ${fortran_list} )
+   endif ()
    
    unset (tmp_list)
    
