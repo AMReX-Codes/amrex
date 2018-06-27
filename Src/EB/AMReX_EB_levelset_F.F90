@@ -870,12 +870,12 @@ contains
     !----------------------------------------------------------------------------------------------------------------!
 
 
-    pure subroutine amrex_eb_fill_valid_bcs( valid, vlo, vhi, domlo, domhi ) &
+    pure subroutine amrex_eb_fill_valid_bcs( valid, vlo, vhi, periodic, domlo, domhi ) &
                     bind(C, name="amrex_eb_fill_valid_bcs")
 
         implicit none
 
-        integer, dimension(3), intent(in   ) :: vlo, vhi, domlo, domhi
+        integer, dimension(3), intent(in   ) :: vlo, vhi, periodic, domlo, domhi
         integer,               intent(  out) :: valid(vlo(1):vhi(1), vlo(2):vhi(2), vlo(3):vhi(3))
 
         integer :: i, j, k
@@ -886,64 +886,70 @@ contains
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
-        do k = vlo(3), domlo(3) - 1
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), vhi(1)
-                    valid(i, j, k) = 1
+        if ( periodic(1).eq.0 ) then
+            do k = vlo(3), domlo(3) - 1
+                do j = vlo(2), vhi(2)
+                    do i = vlo(1), vhi(1)
+                        valid(i, j, k) = 1
+                    end do
                 end do
             end do
-        end do
 
-        do k = domhi(3) + 1, vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), vhi(1)
-                    valid(i, j, k) = 1
+            do k = domhi(3) + 1, vhi(3)
+                do j = vlo(2), vhi(2)
+                    do i = vlo(1), vhi(1)
+                        valid(i, j, k) = 1
+                    end do
                 end do
             end do
-        end do
+        end if
 
         ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
 
-        if ( vlo(2).lt.domlo(2) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), domlo(2) - 1
-                do i = vlo(1), vhi(1)
-                    valid(i, j, k) = 1
+        if ( periodic(2).eq.0 ) then
+            if ( vlo(2).lt.domlo(2) ) then
+                do k = vlo(3), vhi(3)
+                    do j = vlo(2), domlo(2) - 1
+                        do i = vlo(1), vhi(1)
+                            valid(i, j, k) = 1
+                        end do
+                    end do
                 end do
-            end do
-        end do
-        end if
+            end if
 
-        if (vhi(2).gt.domhi(2) ) then
-        do k = vlo(3), vhi(3)
-            do j = domhi(2) + 1, vhi(2)
-                do i = vlo(1), vhi(1)
-                    valid(i, j, k) = 1
+            if (vhi(2).gt.domhi(2) ) then
+                do k = vlo(3), vhi(3)
+                    do j = domhi(2) + 1, vhi(2)
+                        do i = vlo(1), vhi(1)
+                            valid(i, j, k) = 1
+                        end do
+                    end do
                 end do
-            end do
-        end do
+            end if
         end if
 
         ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
 
-        if ( vlo(1).lt.domlo(1) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), domlo(1) - 1
-                    valid(i, j, k) = 1
+        if ( periodic(3).eq.0 ) then
+            if ( vlo(1).lt.domlo(1) ) then
+                do k = vlo(3), vhi(3)
+                    do j = vlo(2), vhi(2)
+                        do i = vlo(1), domlo(1) - 1
+                            valid(i, j, k) = 1
+                        end do
+                    end do
                 end do
-            end do
-        end do
-        end if
+            end if
 
-        if ( vhi(1).gt.domhi(1) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = domhi(1) + 1, vhi(1)
-                    valid(i, j, k) = 1
+            if ( vhi(1).gt.domhi(1) ) then
+                do k = vlo(3), vhi(3)
+                    do j = vlo(2), vhi(2)
+                        do i = domhi(1) + 1, vhi(1)
+                            valid(i, j, k) = 1
+                        end do
+                    end do
                 end do
-            end do
-        end do
+            end if
         end if
 
     end subroutine amrex_eb_fill_valid_bcs

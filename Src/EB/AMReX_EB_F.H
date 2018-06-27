@@ -78,8 +78,8 @@ extern "C"
         );
 
     void amrex_eb_fill_valid_bcs(
-            int * valid, const int * vlo,   const int * vhi,
-                         const int * domlo, const int * domhi
+            int * valid,          const int * vlo,   const int * vhi,
+            const int * periodic, const int * domlo, const int * domhi
         );
 
     void amrex_eb_count_facets(
