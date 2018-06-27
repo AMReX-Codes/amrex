@@ -331,8 +331,7 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
                                               BL_TO_FORTRAN_3D(valid_in_tile),
                                               BL_TO_FORTRAN_3D(ls_in_tile),
                                               BL_TO_FORTRAN_3D(v_tile),
-                                              BL_TO_FORTRAN_3D(ls_tile),
-                                              dx_vect.dataPtr(), & ls_grid_pad        );
+                                              BL_TO_FORTRAN_3D(ls_tile)              );
     }
 
     Box domain(base_geom.Domain());

@@ -496,8 +496,7 @@ contains
                                                           v_in,  vilo, vihi,   &
                                                           ls_in, lslo, lshi,   &
                                                           valid, vlo,  vhi,    &
-                                                          phi,   phlo, phhi,   &
-                                                          dx,    n_pad       ) &
+                                                          phi,   phlo, phhi  ) &
                     bind(C, name="amrex_eb_update_levelset_intersection")
 
         implicit none
@@ -507,8 +506,6 @@ contains
         real(c_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,                    intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
         real(c_real),               intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
-        real(c_real), dimension(3), intent(in   ) :: dx
-        integer,                    intent(in   ) :: n_pad
 
         real(c_real) :: ls_node, in_node
         integer      :: ii, jj, kk
@@ -555,130 +552,108 @@ contains
         integer      :: i, j, k
         real(c_real) :: ls_node, in_node
 
+
+        integer, dimension(3) :: lo, hi
+
         !-------------------------------------------------------------------------------------------------------------!
         ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
         !-------------------------------------------------------------------------------------------------------------!
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
-        do k = vlo(3), domlo(3) - 1
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), vhi(1)
-                    if (v_in(i, j, k) .eq. 1 ) then
-                        in_node = ls_in(i, j, k)
-                        ls_node = phi(i, j, k)
+        if ( phlo(3).lt.domlo(3) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), domlo(3) - 1
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(3) = domlo(3) - 1  ! i = phlo(1), phhi(1)
 
-                        if ( in_node .lt. ls_node ) then
-                            phi(i, j, k) = in_node
-                            if ( ls_node .le. 0 ) then
-                                valid(i, j, k) = 1
-                            end if
-                        end if
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
+        end if
 
-        do k = domhi(3) + 1, vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), vhi(1)
-                    if (v_in(i, j, k) .eq. 1 ) then
-                        in_node = ls_in(i, j, k)
-                        ls_node = phi(i, j, k)
+        if ( phhi(3).gt.domhi(3) ) then
+            lo(:) = phlo(:)       ! k = domhi(3) + 1, phihi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(3) = domhi(3) + 1  ! i = phlo(1), phhi(1)
 
-                        if ( in_node .lt. ls_node ) then
-                            phi(i, j, k) = in_node
-                            if ( ls_node .le. 0 ) then
-                                valid(i, j, k) = 1
-                            end if
-                        end if
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
+        end if
+
 
         ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
 
-        if ( vlo(2).lt.domlo(2) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), domlo(2) - 1
-                do i = vlo(1), vhi(1)
-                    if (v_in(i, j, k) .eq. 1 ) then
-                        in_node = ls_in(i, j, k)
-                        ls_node = phi(i, j, k)
+        if ( phlo(2).lt.domlo(2) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), domlo(2) - 1
+            hi(2) = domlo(2) - 1  ! i = phlo(1), phhi(1)
 
-                        if ( in_node .lt. ls_node ) then
-                            phi(i, j, k) = in_node
-                            if ( ls_node .le. 0 ) then
-                                valid(i, j, k) = 1
-                            end if
-                        end if
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
         end if
 
-        if (vhi(2).gt.domhi(2) ) then
-        do k = vlo(3), vhi(3)
-            do j = domhi(2) + 1, vhi(2)
-                do i = vlo(1), vhi(1)
-                    if (v_in(i, j, k) .eq. 1 ) then
-                        in_node = ls_in(i, j, k)
-                        ls_node = phi(i, j, k)
+        if ( phhi(2).gt.domhi(2) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = domhi(2) + 1, phhi(2)
+            lo(2) = domhi(2) + 1  ! i = phlo(1), phhi(1)
 
-                        if ( in_node .lt. ls_node ) then
-                            phi(i, j, k) = in_node
-                            if ( ls_node .le. 0 ) then
-                                valid(i, j, k) = 1
-                            end if
-                        end if
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
         end if
+
 
         ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
 
-        if ( vlo(1).lt.domlo(1) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), domlo(1) - 1
-                    if (v_in(i, j, k) .eq. 1 ) then
-                        in_node = ls_in(i, j, k)
-                        ls_node = phi(i, j, k)
+        if ( phlo(1).lt.domlo(1) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(1) = domlo(1) - 1  ! i = phlo(1), domlo(1) - 1
 
-                        if ( in_node .lt. ls_node ) then
-                            phi(i, j, k) = in_node
-                            if ( ls_node .le. 0 ) then
-                                valid(i, j, k) = 1
-                            end if
-                        end if
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
         end if
 
-        if ( vhi(1).gt.domhi(1) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = domhi(1) + 1, vhi(1)
-                    if (v_in(i, j, k) .eq. 1 ) then
-                        in_node = ls_in(i, j, k)
-                        ls_node = phi(i, j, k)
+        !        end do
+        !    end do
+        !end do
+        !end if
 
-                        if ( in_node .lt. ls_node ) then
-                            phi(i, j, k) = in_node
-                            if ( ls_node .le. 0 ) then
-                                valid(i, j, k) = 1
-                            end if
-                        end if
-                    end if
-                end do
-            end do
-        end do
+        if ( phhi(1).gt.domhi(1) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phhi(1)
+
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
         end if
 
     end subroutine amrex_eb_update_levelset_intersection_bcs
