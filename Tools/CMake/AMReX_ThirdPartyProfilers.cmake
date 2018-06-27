@@ -49,9 +49,9 @@ elseif ( ${TP_PROFILE} MATCHES "VTUNE" )
    target_compile_options ( amrex PUBLIC -debug inline-debug-info -parallel-source-info=2 )
 
    if ( ${SITE} MATCHES "nersc" )
-      target_compile_options ( amrex PUBLIC -dynamic ${TPP_CFLAGS} )
+      target_compile_options ( amrex PUBLIC -dynamic )
       target_include_directories ( amrex PUBLIC $ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include )
-      target_link_libraries ( amrex PUBLIC $ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify )
+      target_link_libraries ( amrex PUBLIC -L$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify )
    endif ()
 
 endif ()
