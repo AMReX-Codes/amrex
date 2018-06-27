@@ -1,44 +1,26 @@
 #ifndef ELECTROMAGNETIC_PARTICLE_CONTAINER_H_
 #define ELECTROMAGNETIC_PARTICLE_CONTAINER_H_
 
-#include <AMReX_Particles.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_REAL.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_IntVect.H>
 
-struct PIdx
-{
-    enum { // Particle Attributes stored in amrex::ParticleContainer's struct of arrays
-        w = 0,  // weight
-        ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz, ginv,
-        nattribs
-    };
-};
+#include <thrust/device_vector.h>
 
-class ElectromagneticParIter
-    : public amrex::ParIter<0,0,PIdx::nattribs>
-{
-public:
-    using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
-    using RealVector = amrex::Vector<amrex::Real>;
-
-    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
-        return GetStructOfArrays().GetRealData();
-    }
-    
-    std::array<RealVector, PIdx::nattribs>& GetAttribs () {
-        return GetStructOfArrays().GetRealData();
-    }
-    
-    const RealVector& GetAttribs (int comp) const {
-        return GetStructOfArrays().GetRealData(comp);
-    }
-    
-    RealVector& GetAttribs (int comp) {
-        return GetStructOfArrays().GetRealData(comp);
-    }
-};
+#include <Particles.H>
 
 class ElectromagneticParticleContainer
-    : public amrex::ParticleContainer<0,0,PIdx::nattribs>
 {
+    amrex::BoxArray m_ba;
+    amrex::Geometry m_geom;
+    amrex::DistributionMapping m_dmap;
+
+    std::map<int, Particles> m_particles;
+    std::unique_ptr<amrex::MultiFab> m_mask_ptr;
+
 public:
 
     ElectromagneticParticleContainer (const amrex::Geometry            & a_geom,
@@ -47,12 +29,14 @@ public:
                                       const int                         a_species_id,
                                       const amrex::Real                 a_charge,
                                       const amrex::Real                 a_mass);
-
+    
     void InitParticles(const amrex::IntVect& a_num_particles_per_cell,
                        const amrex::Real     a_thermal_momentum_std, 
                        const amrex::Real     a_thermal_momentum_mean,
-                       const amrex::Real     a_density);
-
+                       const amrex::Real     a_density,
+                       const amrex::RealBox& a_bounds, 
+                       const int             a_problem);
+    
     void PushAndDeposeParticles(const amrex::MultiFab& Ex,
                                 const amrex::MultiFab& Ey,
                                 const amrex::MultiFab& Ez,
@@ -63,17 +47,33 @@ public:
                                       amrex::MultiFab& jy, 
                                       amrex::MultiFab& jz,
                                       amrex::Real      dt);
+
+    void PushParticleMomenta(const amrex::MultiFab& Ex,
+                             const amrex::MultiFab& Ey,
+                             const amrex::MultiFab& Ez,
+                             const amrex::MultiFab& Bx,
+                             const amrex::MultiFab& By,
+                             const amrex::MultiFab& Bz,
+                                   amrex::Real      dt);
     
-    void PushParticlesOnly(amrex::Real dt);
+    void PushParticlePositions(amrex::Real dt);
 
     void EnforcePeriodicBCs();
 
+    void OK();
+
+    void Redistribute();
+
 protected:
+
+    void RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours);
     
     int m_species_id;
     
     amrex::Real m_charge;
     amrex::Real m_mass;
+
+    size_t superparticle_size;
 };
 
 #endif
