@@ -50,17 +50,14 @@ function ( set_amrex_compilers )
       message (AUTHOR_WARNING "Variable ENABLE_FPE is not defined")
    endif ()
 
-   # Force C++11 standard ( This feature is broken for Intel compiler, so
-   # we gotta do it manually )
-   set_target_properties ( amrex PROPERTIES
-      CXX_STANDARD 11
-      CXX_STANDARD_REQUIRED YES
-      CXX_EXTENSIONS NO
-      )
-
-   if (${CMAKE_C_COMPILER_ID} STREQUAL "Intel")
-      target_compile_options ( amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++11> ) 
-   endif ()
+   # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
+   # add c++11 support manually in order to have transitive property
+   target_compile_options ( amrex PUBLIC
+      $<$<$<C_COMPILER_ID:Cray>:$<COMPILE_LANGUAGE:CXX>>:-h std=c++11>  
+      $<$<$<C_COMPILER_ID:PGI>:$<COMPILE_LANGUAGE:CXX>>:-std=c++11>  
+      $<$<$<C_COMPILER_ID:Intel>:$<COMPILE_LANGUAGE:CXX>>:-std=c++11>  
+      $<$<$<C_COMPILER_ID:GNU>:$<COMPILE_LANGUAGE:CXX>>:-std=c++11> )
+   
    
 endfunction () 
 
