@@ -387,115 +387,95 @@ contains
         real(c_real),          intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
         real(c_real),          intent(  out) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
 
-        integer :: i, j, k
-        real(c_real) :: levelset_node
-
+        integer, dimension(3) :: lo, hi
         !-------------------------------------------------------------------------------------------------------------!
         ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
         !-------------------------------------------------------------------------------------------------------------!
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
-        do k = vlo(3), domlo(3) - 1
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), vhi(1)
-                    if ( valid(i, j, k)  == 0 ) then
-                        levelset_node = dabs( phi(i, j, k) )
-                        if ( impf(i, j, k) <= 0 ) then
-                            phi(i, j, k) = levelset_node
-                        else
-                            phi(i, j, k) = -levelset_node
-                        end if
-                    end if
-                end do
-            end do
-        end do
+        if ( phlo(3).lt.domlo(3) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), domlo(3) - 1
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(3) = domlo(3) - 1  ! i = phlo(1), phhi(1)
 
-        do k = domhi(3) + 1, vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), vhi(1)
-                    if ( valid(i, j, k)  == 0 ) then
-                        levelset_node = dabs( phi(i, j, k) )
-                        if ( impf(i, j, k) <= 0 ) then
-                            phi(i, j, k) = levelset_node
-                        else
-                            phi(i, j, k) = -levelset_node
-                        end if
-                    end if
-                end do
-            end do
-        end do
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
+        end if
+
+        if ( phhi(3).gt.domhi(3) ) then
+            lo(:) = phlo(:)       ! k = domhi(3) + 1, phihi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(3) = domhi(3) + 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
+        end if
+
 
         ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
 
-        if ( vlo(2).lt.domlo(2) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), domlo(2) - 1
-                do i = vlo(1), vhi(1)
-                    if ( valid(i, j, k)  == 0 ) then
-                        levelset_node = dabs( phi(i, j, k) )
-                        if ( impf(i, j, k) <= 0 ) then
-                            phi(i, j, k) = levelset_node
-                        else
-                            phi(i, j, k) = -levelset_node
-                        end if
-                    end if
-                end do
-            end do
-        end do
+        if ( phlo(2).lt.domlo(2) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), domlo(2) - 1
+            hi(2) = domlo(2) - 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
         end if
 
-        if ( vhi(2).gt.domhi(2) ) then
-        do k = vlo(3), vhi(3)
-            do j = domhi(2) + 1, vhi(2)
-                do i = vlo(1), vhi(1)
-                    if ( valid(i, j, k)  == 0 ) then
-                        levelset_node = dabs( phi(i, j, k) )
-                        if ( impf(i, j, k) <= 0 ) then
-                            phi(i, j, k) = levelset_node
-                        else
-                            phi(i, j, k) = -levelset_node
-                        end if
-                    end if
-                end do
-            end do
-        end do
+        if ( phhi(2).gt.domhi(2) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = domhi(2) + 1, phhi(2)
+            lo(2) = domhi(2) + 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
         end if
+
 
         ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
 
-        if ( vlo(1).lt.domlo(1) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = vlo(1), domlo(1) - 1
-                    if ( valid(i, j, k)  == 0 ) then
-                        levelset_node = dabs( phi(i, j, k) )
-                        if ( impf(i, j, k) <= 0 ) then
-                            phi(i, j, k) = levelset_node
-                        else
-                            phi(i, j, k) = -levelset_node
-                        end if
-                    end if
-                end do
-            end do
-        end do
+        if ( phlo(1).lt.domlo(1) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(1) = domlo(1) - 1  ! i = phlo(1), domlo(1) - 1
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
         end if
 
-        if ( vhi(1).gt.domhi(1) ) then
-        do k = vlo(3), vhi(3)
-            do j = vlo(2), vhi(2)
-                do i = domhi(1) + 1, vhi(1)
-                    if ( valid(i, j, k)  == 0 ) then
-                        levelset_node = dabs( phi(i, j, k) )
-                        if ( impf(i, j, k) <= 0 ) then
-                            phi(i, j, k) = levelset_node
-                        else
-                            phi(i, j, k) = -levelset_node
-                        end if
-                    end if
-                end do
-            end do
-        end do
+        if ( phhi(1).gt.domhi(1) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
         end if
 
     end subroutine amrex_eb_validate_levelset_bcs
