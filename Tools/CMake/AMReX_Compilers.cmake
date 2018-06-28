@@ -31,12 +31,10 @@ function ( set_amrex_compilers )
    #
    # Check the same compiler suite is used for all languages
    # 
-   
    if (  NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_Fortran_COMPILER_ID}) OR
 	 NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_CXX_COMPILER_ID}) )
       message ( FATAL_ERROR "C compiler ID does not match Fortran/C++ compiler ID" )
    endif ()
-
 
    
    #
@@ -157,106 +155,6 @@ function ( set_amrex_compilers )
       $<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
    
 endfunction () 
-
-
-# # 
-# #
-# # MACRO:  load_compiler_defaults
-# # 
-# # Set the following variables to the default compiler flags:
-# #
-# # AMREX_<lang>_FLAGS_<CMAKE_BUILD_TYPE>
-# # AMREX_<lang>_FLAGS_FPE
-# # 
-# # where <lang> is either C or Fortran.
-# #
-# # The *_FPE flags enable floating point exceptions
-# #
-# # Author: Michele Rosso
-# # Date  : June 26, 2018
-# #
-# # 
-# macro ( load_compiler_defaults )
-
-#    #
-#    # Check wether the compiler ID has been defined
-#    # 
-#    if (  NOT (DEFINED CMAKE_Fortran_COMPILER_ID) OR
-# 	 NOT (DEFINED CMAKE_C_COMPILER_ID) OR 
-# 	 NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
-#       message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
-#    endif ()
-
-#    #
-#    # Check the same compiler suite is used for all languages
-#    # 
-   
-#    if (  NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_Fortran_COMPILER_ID}) OR
-# 	 NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_CXX_COMPILER_ID}) )
-#       message ( FATAL_ERROR "C compiler ID does not match Fortran/C++ compiler ID" )
-#    endif ()
-
-   
-#    #
-#    # Load defaults
-#    # 
-#    if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU")  ### GNU compiler ###
-      
-#       set ( AMREX_Fortran_FLAGS_Release -O3)
-#       set ( AMREX_Fortran_FLAGS_Debug
-# 	 -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -finit-real=snan -finit-integer=2147483647)
-#       set ( AMREX_Fortran_FLAGS_FPE -ffpe-trap=invalid,zero -ftrapv)
-      
-
-#       set ( AMREX_CXX_FLAGS_Debug -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare)
-#       set ( AMREX_CXX_FLAGS_Release -O3 )
-#       set ( AMREX_CXX_FLAGS_FPE -ftrapv )
-      
-#    elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "Intel")  ### Intel compiler ###
-
-#       set ( AMREX_Fortran_FLAGS_Debug -g -O0 -traceback -check bounds,uninit,pointers)
-#       set ( AMREX_Fortran_FLAGS_Release -O3 -ip -qopt-report=5 -qopt-report-phase=vec)
-#       set ( AMREX_Fortran_FLAGS_FPE -fpe3 )
-      
-#       set ( AMREX_CXX_FLAGS_Debug     -g -O0 -traceback -Wcheck)
-#       set ( AMREX_CXX_FLAGS_Release   -O3 -ip -qopt-report=5 -qopt-report-phase=vec)
-#       set ( AMREX_CXX_FLAGS_FPE -fpe3 )
-      
-#    elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "PGI")  ### PGI compiler ###
-
-#       set ( AMREX_Fortran_FLAGS_Debug -g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr)
-#       set ( AMREX_Fortran_FLAGS_Release -gopt -fast)
-#       set ( AMREX_Fortran_FLAGS_FPE )
-      
-#       set ( AMREX_CXX_FLAGS_Debug -O0 -Mbounds)
-#       set ( AMREX_CXX_FLAGS_Release -gopt -fast)
-#       set ( AMREX_CXX_FLAGS_FPE )
-
-#    elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "Cray")  ### Cray compiler ###
-
-#       set ( AMREX_Fortran_FLAGS_Debug -g -O0 -e i)
-#       set ( AMREX_Fortran_FLAGS_Release -O2)
-#       set ( AMREX_Fortran_FLAGS_FPE -K trap=fp )
-      
-#       set ( AMREX_CXX_FLAGS_Debug -g -O0)
-#       set ( AMREX_CXX_FLAGS_Release -O2)
-#       set ( AMREX_CXX_FLAGS_FPE -K trap=fp )
-      
-#    elseif ()
-
-#       set ( AMREX_Fortran_FLAGS_Debug )
-#       set ( AMREX_Fortran_FLAGS_Release )
-#       set ( AMREX_Fortran_FLAGS_FPE )
-      
-#       set ( AMREX_CXX_FLAGS_Debug )
-#       set ( AMREX_CXX_FLAGS_Release )
-#       set ( AMREX_CXX_FLAGS_FPE )
-
-#       message ( WARNING "Compiler NOT recognized: ID is ${CMAKE_C_COMPILER_ID}. No default flags are loaded!" )
-      
-#    endif ()
-   
-# endmacro ()
 
 
 

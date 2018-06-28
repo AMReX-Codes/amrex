@@ -4,6 +4,10 @@
 #  To import into other CMake projects
 #
 # ############################################################################ #
+@PACKAGE_INIT@
+
+include ( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
+
 
 #
 # Build type
@@ -14,38 +18,6 @@ set (AMREX_BUILD_TYPE  @AMREX_BUILD_TYPE@)
 # Versioning
 # 
 set (AMREX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
-
-
-#
-# Directories and libraries
-#
-set (AMREX_TOOLS_DIR     @AMREX_TOOLS_DIR@)
-set (AMREX_SOURCE_DIR    @AMREX_SOURCE_DIR@)
-set (AMREX_INCLUDE_DIR   @AMREX_INCLUDE_DIR@)
-set (AMREX_LIBRARY_DIR   @AMREX_LIBRARY_DIR@)
-set (AMREX_BINARY_DIR    @AMREX_BINARY_DIR@)
-set (AMREX_INSTALL_DIR   @CMAKE_INSTALL_PREFIX@)
-set (AMREX_LIBRARIES     @AMREX_LIBRARIES@)
-set (AMREX_CMAKE_DIR     @AMREX_CMAKE_DIR@)
-
-#
-# Compilation 
-#
-set (AMREX_DEFINES             @AMREX_DEFINES@ )
-set (AMREX_Fortran_FLAGS       "@AMREX_Fortran_FLAGS@")
-set (AMREX_Fortran_DEFINES     "@AMREX_Fortran_DEFINES@")
-set (AMREX_CXX_FLAGS           "@AMREX_CXX_FLAGS@")
-set (AMREX_C_FLAGS             "@AMREX_C_FLAGS@")
-set (AMREX_EXTRA_Fortran_FLAGS "@AMREX_EXTRA_Fortran_FLAGS@")
-set (AMREX_EXTRA_CXX_FLAGS     "@AMREX_EXTRA_CXX_FLAGS@")
-set (AMREX_EXTRA_C_FLAGS       "@AMREX_EXTRA_C_FLAGS@")
-set (AMREX_EXTRA_Fortran_INCLUDE_PATH "@AMREX_EXTRA_Fortran_INCLUDE_PATH@")
-set (AMREX_EXTRA_C_INCLUDE_PATH       "@AMREX_EXTRA_C_INCLUDE_PATH@")
-set (AMREX_EXTRA_CXX_INCLUDE_PATH     "@AMREX_EXTRA_CXX_INCLUDE_PATH@")
-set (AMREX_EXTRA_Fortran_LINK_LINE "@AMREX_EXTRA_Fortran_LINK_LINE@")
-set (AMREX_EXTRA_C_LINK_LINE       "@AMREX_EXTRA_C_LINK_LINE@")
-set (AMREX_EXTRA_CXX_LINK_LINE     "@AMREX_EXTRA_CXX_LINK_LINE@")
-
 
 # 
 # Configuration options
@@ -70,7 +42,7 @@ set (AMREX_ENABLE_DP_PARTICLES       @ENABLE_DP_PARTICLES@)
 
 # Compilation options 
 set (AMREX_ENABLE_FPE                @ENABLE_FPE@)
-set (AMREX_ENABLE_ASSERTION          @ENABLE_ASSERTION@)
+set (AMREX_ENABLE_ASSERTIONS         @ENABLE_ASSERTIONS@)
 
 # Profiling options
 set (AMREX_ENABLE_BASE_PROFILE       @ENABLE_BASE_PROFILE@)
@@ -108,11 +80,13 @@ function ( echo_amrex_config_options )
    echo_amrex_option ( AMREX_ENABLE_FBASELIB           )
    echo_amrex_option ( AMREX_ENABLE_AMRDATA            )
    echo_amrex_option ( AMREX_ENABLE_PARTICLES          )
-   echo_amrex_option ( AMREX_ENABLE_DP_PARTICLES       )
-
+   if (AMREX_ENABLE_PARTICLES)
+      echo_amrex_option ( AMREX_ENABLE_DP_PARTICLES    )
+   endif ()
+   
    # Compilation options 
    echo_amrex_option ( AMREX_ENABLE_FPE        )
-   echo_amrex_option ( AMREX_ENABLE_ASSERTION  )
+   echo_amrex_option ( AMREX_ENABLE_ASSERTIONS )
 
    # Profiling options
    echo_amrex_option ( AMREX_ENABLE_BASE_PROFILE   )

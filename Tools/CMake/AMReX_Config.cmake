@@ -36,25 +36,17 @@ function (configure_amrex)
    include ( AMReX_Compilers )
    
    # 
-   # Set compile definitions
+   # Set properties for target "amrex"
    # 
    set_amrex_defines ()
-
-   #
-   # Set compiler flags
-   #
    set_amrex_compilers ()
 
-   #
-   # Decide whether or not to use PIC 
-   #
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
-      set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+      set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
    
-   #
+   
    # Include paths for Fortran modules
-   #
    target_include_directories ( amrex
       PUBLIC "$<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>" )
    
