@@ -1680,14 +1680,11 @@ Amr::checkPoint ()
     //  it to a bad suffix if there were stream errors.
     //
 
-    if(precreateDirectories) {    // ---- make all directories at once
+    if (precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
-      for(int i(0); i <= finest_level; ++i) {
-          if (verbose > 1) {
-              amrex::Print() << "IOIOIOIO:  Amr::checkPoint:  precreating directories for "
-                             << ckfileTemp << "  for level " << i << "\n";
-          }
+      for (int i(0); i <= finest_level; ++i) 
+      {
         amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
