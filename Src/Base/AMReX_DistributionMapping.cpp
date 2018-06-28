@@ -15,7 +15,6 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
-#include <list>
 #include <map>
 #include <vector>
 #include <queue>
@@ -527,7 +526,6 @@ class WeightedBox
     int  m_boxid;
     long m_weight;
 public:
-    WeightedBox () {}
     WeightedBox (int b, int w) : m_boxid(b), m_weight(w) {}
     long weight () const { return m_weight; }
     int  boxid ()  const { return m_boxid;  }
@@ -540,15 +538,17 @@ public:
 
 class WeightedBoxList
 {
-    std::list<WeightedBox>* m_lb;
-    long                    m_weight;
+    Vector<WeightedBox>* m_lb;
+    long                 m_weight;
 public:
-    WeightedBoxList (std::list<WeightedBox>* lb) : m_lb(lb), m_weight(0) {}
+    WeightedBoxList (long w) : m_lb(nullptr), m_weight(w) {}
+    WeightedBoxList (Vector<WeightedBox>* lb) : m_lb(lb), m_weight(0) {}
     long weight () const
     {
         return m_weight;
     }
-    void erase (std::list<WeightedBox>::iterator& it)
+    bool addWeight (long dw) { m_weight += dw; }
+    void erase (Vector<WeightedBox>::iterator& it)
     {
         m_weight -= it->weight();
         m_lb->erase(it);
@@ -559,10 +559,10 @@ public:
         m_lb->push_back(bx);
     }
     int size () const { return m_lb->size(); }
-    std::list<WeightedBox>::const_iterator begin () const { return m_lb->begin(); }
-    std::list<WeightedBox>::iterator begin ()             { return m_lb->begin(); }
-    std::list<WeightedBox>::const_iterator end () const   { return m_lb->end();   }
-    std::list<WeightedBox>::iterator end ()               { return m_lb->end();   }
+    Vector<WeightedBox>::const_iterator begin () const { return m_lb->begin(); }
+    Vector<WeightedBox>::iterator begin ()             { return m_lb->begin(); }
+    Vector<WeightedBox>::const_iterator end () const   { return m_lb->end();   }
+    Vector<WeightedBox>::iterator end ()               { return m_lb->end();   }
 
     bool operator< (const WeightedBoxList& rhs) const
     {
@@ -584,7 +584,7 @@ knapsack (const std::vector<long>&         wgts,
     //
     result.resize(nprocs);
 
-    std::vector<WeightedBox> lb;
+    Vector<WeightedBox> lb;
     lb.reserve(wgts.size());
     for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
@@ -596,15 +596,16 @@ knapsack (const std::vector<long>&         wgts,
     //
     // For each ball, starting with heaviest, assign ball to the lightest box.
     //
-    std::priority_queue<WeightedBoxList>   wblq;
-    std::vector< std::list<WeightedBox>* > vbbs(nprocs);
+    std::priority_queue<WeightedBoxList> wblq;
+    Vector<std::unique_ptr<Vector<WeightedBox> > > raii_vwb(nprocs);
     for (int i  = 0; i < nprocs; ++i)
     {
-        vbbs[i] = new std::list<WeightedBox>;
-        wblq.push(WeightedBoxList(vbbs[i]));
+        raii_vwb[i].reset(new Vector<WeightedBox>);
+        wblq.push(WeightedBoxList(raii_vwb[i].get()));
     }
     BL_ASSERT(int(wblq.size()) == nprocs);
-    std::list<WeightedBoxList> wblqg;
+    Vector<WeightedBoxList> wblqg;
+    wblqg.reserve(nprocs);
     for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
         WeightedBoxList wbl = wblq.top();
@@ -616,115 +617,96 @@ knapsack (const std::vector<long>&         wgts,
 	    wblqg.push_back(wbl);
 	}
     }
-    while (!wblq.empty())
-    {
-        wblqg.push_back(wblq.top());
-        wblq.pop();
-    }
-    BL_ASSERT(int(wblqg.size()) == nprocs);
-    wblqg.sort();
-    //
-    // Compute the max weight and the sum of the weights.
-    //
+
     Real max_weight = 0;
     Real sum_weight = 0;
-    std::list<WeightedBoxList>::iterator it = wblqg.begin();
-    for (std::list<WeightedBoxList>::const_iterator End =  wblqg.end(); it != End; ++it)
+    for (auto const& wbl : wblqg)
     {
-        long wgt = (*it).weight();
+        Real wgt = wbl.weight();
         sum_weight += wgt;
-        max_weight = (wgt > max_weight) ? wgt : max_weight;
+        max_weight = std::max(wgt, max_weight);
+    }
+
+    while (!wblq.empty())
+    {
+	WeightedBoxList wbl = wblq.top();
+        wblq.pop();
+	if (wbl.size() > 0) {
+	    Real wgt = wbl.weight();
+	    sum_weight += wgt;
+	    max_weight = std::max(wgt, max_weight);
+	    wblqg.push_back(wbl);
+	}
     }
 
     efficiency = sum_weight/(nprocs*max_weight);
 
-top:
+    std::sort(wblqg.begin(), wblqg.end());
 
-    std::list<WeightedBoxList>::iterator it_top = wblqg.begin();
+top: ;
 
-    WeightedBoxList wbl_top = *it_top;
-    //
-    // For each ball in the heaviest box.
-    //
-    std::list<WeightedBox>::iterator it_wb = wbl_top.begin();
-
-    if (efficiency > max_efficiency || !do_full_knapsack) goto bottom;
-
-    for ( ; it_wb != wbl_top.end(); ++it_wb )
+    if (efficiency < max_efficiency && do_full_knapsack)
     {
-        //
-        // For each ball not in the heaviest box.
-        //
-        std::list<WeightedBoxList>::iterator it_chk = it_top;
-        it_chk++;
-        for ( ; it_chk != wblqg.end(); ++it_chk)
+        auto bl_top = wblqg.begin();
+	long w_top = bl_top->weight();
+        for (auto bl_chk = bl_top+1; bl_chk != wblqg.end(); ++bl_chk)
         {
-            WeightedBoxList wbl_chk = *it_chk;
-            std::list<WeightedBox>::iterator it_owb = wbl_chk.begin();
-            for ( ; it_owb != wbl_chk.end(); ++it_owb)
+            for (auto ball_1 = bl_top->begin(); ball_1 != bl_top->end(); ++ball_1)
             {
-                //
-                // If exchanging these two balls reduces the load balance,
-                // then exchange them and go to top.  The way we are doing
-                // things, sum_weight cannot change.  So the efficiency will
-                // increase if after we switch the two balls *it_wb and
-                // *it_owb the max weight is reduced.
-                //
-                Real w_tb = (*it_top).weight() + (*it_owb).weight() - (*it_wb).weight();
-                Real w_ob = (*it_chk).weight() + (*it_wb).weight() - (*it_owb).weight();
-                //
-                // If the other ball reduces the weight of the top box when
-                // swapped, then it will change the efficiency.
-                //
-                if (w_tb < (*it_top).weight() && w_ob < (*it_top).weight())
+                for (auto ball_2 = bl_chk->begin(); ball_2 != bl_chk->end(); ++ball_2)
                 {
-                    //
-                    // Adjust the sum weight and the max weight.
-                    //
-                    WeightedBox wb = *it_wb;
-                    WeightedBox owb = *it_owb;
-                    wblqg.erase(it_top);
-                    wblqg.erase(it_chk);
-                    wbl_top.erase(it_wb);
-                    wbl_chk.erase(it_owb);
-                    wbl_top.push_back(owb);
-                    wbl_chk.push_back(wb);
-                    std::list<WeightedBoxList> tmp;
-                    tmp.push_back(wbl_top);
-                    tmp.push_back(wbl_chk);
-                    tmp.sort();
-                    wblqg.merge(tmp);
-                    max_weight = (*wblqg.begin()).weight();
-                    efficiency = sum_weight/(nprocs*max_weight);
-                    goto top;
+                    // should we swap ball 1 and ball 2?
+                    long dw = ball_1->weight() - ball_2->weight();
+                    long w_bl1 = w_top            - dw;
+                    long w_bl2 = bl_chk->weight() + dw;
+                    if (w_bl1 < w_top && w_bl2 < w_top)
+                    {
+                        std::swap(*ball_1, *ball_2);
+			bl_top->addWeight(-dw);
+			bl_chk->addWeight( dw);
+
+			if (bl_top+1 == bl_chk)  // they are next to each other
+			{
+			    if (*bl_chk < *bl_top) {
+				std::swap(*bl_top, *bl_chk);
+			    }
+			}
+			else
+			{
+			    // sink down
+			    auto it = std::lower_bound(bl_top+1, bl_chk, *bl_top);
+			    std::rotate(bl_top, bl_top+1, it);
+
+			    // bubble up
+			    it = std::lower_bound(bl_top, bl_chk, *bl_chk);
+			    std::rotate(it, bl_chk, bl_chk+1);
+                        }
+
+			if (bl_chk+1 != wblqg.end()) // we maybe to sink bl_chk further down
+			{
+			    auto it = std::lower_bound(bl_chk+1, wblqg.end(), *bl_chk);
+			    std::rotate(bl_chk, bl_chk+1, it);
+			}
+
+                        max_weight = bl_top->weight();
+                        efficiency = sum_weight / (nprocs*max_weight);
+                        goto top;
+                    }
                 }
             }
         }
     }
-
- bottom:
-    //
-    // Here I am "load-balanced".
-    //
-    std::list<WeightedBoxList>::const_iterator cit = wblqg.begin();
-
-    for (int i = 0; i < nprocs; ++i)
+    
+    for (int i = 0, N = wblqg.size(); i < N; ++i)
     {
-        const WeightedBoxList& wbl = *cit;
+        const WeightedBoxList& wbl = wblqg[i];
 
         result[i].reserve(wbl.size());
-
-        for (std::list<WeightedBox>::const_iterator it1 = wbl.begin(), End = wbl.end();
-            it1 != End;
-              ++it1)
+        for (auto const& wb : wbl)
         {
-            result[i].push_back((*it1).boxid());
+            result[i].push_back(wb.boxid());
         }
-        ++cit;
     }
-
-    for (int i  = 0; i < nprocs; ++i)
-        delete vbbs[i];
 }
 
 void
