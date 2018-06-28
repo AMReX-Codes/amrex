@@ -197,7 +197,7 @@ CellSortedParticleContainer::MoveParticles()
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
-    const Real dt = 10.0;
+    const Real dt = 0.1;
 
 #ifdef _OPENMP
 #pragma omp parallel
