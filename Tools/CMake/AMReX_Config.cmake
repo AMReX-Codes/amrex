@@ -219,8 +219,10 @@ macro ( extract_by_language list cxx_list fortran_list )
    string ( REPLACE "*" " "   ${list} "${${list}}" )
    
    #
-   # First remove entries related to a compiler other than
-   # the one currently in use or BUILD_INTERFACES keyword
+   # First remove entries related to:
+   # 1) a compiler other than the one currently in use
+   # 2) BUILD_INTERFACES keyword
+   # 3) a build type other than the current one
    # 
    set (tmp_list)
    foreach ( item IN ITEMS ${${list}} )
@@ -233,18 +235,31 @@ macro ( extract_by_language list cxx_list fortran_list )
       if ( ${idx} GREATER -1 )
 	 continue ()
       endif()
-      
+
+      # Skip genex for compilers other than the one in use
       string ( FIND ${item} "C_COMPILER_ID" idx1 )
       if ( ${idx1} GREATER -1 )
 	 string ( FIND ${item} "${CMAKE_C_COMPILER_ID}" idx2 )
 	 if ( ${idx2} GREATER -1 )
-	    string (REPLACE "C_COMPILER_ID" "" item ${item} )
-	    string (REPLACE "${CMAKE_C_COMPILER_ID}" "" item ${item} )
-	    list (APPEND tmp_list ${item})
+	    string (REPLACE "C_COMPILER_ID${CMAKE_C_COMPILER_ID}" "" item ${item} )
+	 else ()
+	    continue ()
 	 endif ()
-      else ()
-	 list (APPEND tmp_list ${item})
       endif ()
+
+      string (FIND ${item} "CONFIG" idx3 )
+      if ( ${idx3} GREATER -1 )
+	 string (FIND ${item} "${CMAKE_BUILD_TYPE}" idx4)
+	 if ( ${idx4} GREATER -1 )
+	    string (REPLACE "CONFIG${CMAKE_BUILD_TYPE}" "" item ${item} )
+	 else ()
+	    continue ()
+	 endif () 
+      endif ()
+
+      # Now item should be ok to be added to final list
+      list (APPEND tmp_list ${item})
+      
    endforeach ()
    
    set (${fortran_list})
