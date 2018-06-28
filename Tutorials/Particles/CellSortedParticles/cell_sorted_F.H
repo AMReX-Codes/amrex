@@ -9,7 +9,9 @@ extern "C"
 #endif
 
     void move_particles(void* particles,
-                        const int *np, 
+                        const int *np,
+                        const int *lo,
+                        const int *hi,
                         int** c_vectors,
                         int* sizes,
                         const int* clo,
