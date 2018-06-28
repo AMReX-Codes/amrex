@@ -43,8 +43,7 @@ extern "C"
             const int * valid_in,     const int * vilo, const int * vihi,
             const amrex_real * ls_in, const int * lslo, const int * lshi,
             int * valid,              const int * vlo,  const int * vhi,
-            amrex_real * phi,         const int * phlo, const int * phhi,
-            const amrex_real * dx,    const int * n_pad
+            amrex_real * phi,         const int * phlo, const int * phhi
         );
 
     void amrex_eb_update_levelset_intersection_bcs(
@@ -60,8 +59,7 @@ extern "C"
             const int * valid_in,     const int * vilo, const int * vihi,
             const amrex_real * ls_in, const int * lslo, const int * lshi,
             int * valid,              const int * vlo,  const int * vhi,
-            amrex_real * phi,         const int * phlo, const int * phhi,
-            const amrex_real * dx,    const int * n_pad
+            amrex_real * phi,         const int * phlo, const int * phhi
         );
 
     void amrex_eb_update_levelset_union_bcs(
@@ -80,8 +78,8 @@ extern "C"
         );
 
     void amrex_eb_fill_valid_bcs(
-            int * valid, const int * vlo,   const int * vhi,
-                         const int * domlo, const int * domhi
+            int * valid,          const int * vlo,   const int * vhi,
+            const int * periodic, const int * domlo, const int * domhi
         );
 
     void amrex_eb_count_facets(
