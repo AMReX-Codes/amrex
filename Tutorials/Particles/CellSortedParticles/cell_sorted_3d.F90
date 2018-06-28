@@ -35,7 +35,7 @@ contains
   
 end module cell_sorted_particle_module
 
-subroutine move_particles(particles, np, &
+subroutine move_particles(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt) &
      bind(c,name="move_particles")
   
@@ -47,6 +47,7 @@ subroutine move_particles(particles, np, &
 
   type(particle_t), intent(inout), target :: particles(np)
   integer(c_int), intent(in) :: np
+  integer(c_int), intent(in) :: lo(3), hi(3)
   integer(c_int), intent(in) :: clo(3), chi(3)
   type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -62,9 +63,9 @@ subroutine move_particles(particles, np, &
 
   inv_dx = 1.d0/dx
   
-  do k = clo(3), chi(3)
-     do j = clo(2), chi(2)
-        do i = clo(1), chi(1)
+  do k = lo(3), hi(3)
+     do j = lo(2), hi(2)
+        do i = lo(1), hi(1)
            cell_np = cell_part_cnt(i,j,k)
            call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
 
