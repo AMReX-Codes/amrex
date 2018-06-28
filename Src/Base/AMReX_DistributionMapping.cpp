@@ -645,7 +645,7 @@ knapsack (const std::vector<long>&         wgts,
 
 top: ;
 
-    if (efficiency < max_efficiency && do_full_knapsack)
+    if (efficiency < max_efficiency && do_full_knapsack && wblqg.begin()->size() > 1)
     {
         auto bl_top = wblqg.begin();
 	long w_top = bl_top->weight();
