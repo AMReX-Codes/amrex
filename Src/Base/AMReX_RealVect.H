@@ -496,8 +496,6 @@ public:
   friend std::istream& operator>> (std::istream& is, RealVect& iv);
   friend class HDF5Handle;
 
-  static size_t io_offset;
-
 protected:
 
   /**

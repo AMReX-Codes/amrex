@@ -5,7 +5,7 @@ module advect_module
   implicit none
   private
 
-  public :: advect
+  public :: advect, advect_particles
 
 contains
 
@@ -149,5 +149,94 @@ subroutine advect(time, lo, hi, &
   call bl_deallocate(slope)
 
 end subroutine advect
+
+subroutine advect_particles(particles, np, &
+     ux, uxlo, uxhi, uy, uylo, uyhi, uz, uzlo, uzhi, dt, dx, plo) bind(c)
+  use iso_c_binding
+  use amrex_fort_module, only : amrex_real
+  use amrex_particlecontainer_module, only : amrex_particle
+  
+  integer,                    intent(in)            :: np
+  type(amrex_particle),       target, intent(inout) :: particles(np)
+  integer,                    intent(in)            :: uxlo(3), uxhi(3)
+  integer,                    intent(in)            :: uylo(3), uyhi(3)
+  integer,                    intent(in)            :: uzlo(3), uzhi(3)
+  real(amrex_real), target,   intent(in)     :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2),uxlo(3):uxhi(3))
+  real(amrex_real), target,   intent(in)     :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2),uxlo(3):uxhi(3))
+  real(amrex_real), target,   intent(in)     :: uz(uzlo(1):uzhi(1),uzlo(2):uzhi(2),uxlo(3):uxhi(3))
+  real(amrex_real),           intent(in)            :: dt
+  real(amrex_real),           intent(in)            :: plo(3)
+  real(amrex_real),           intent(in)            :: dx(3)
+
+  integer cell(3)
+  integer cc_cell(3)
+  integer e_cell(3)
+    
+  integer ipass, n, d, j
+  real(amrex_real) w_lo(3), w_hi(3)
+  real(amrex_real) e_lo(3), e_hi(3)
+  real(amrex_real) length(3)
+  real(amrex_real) inv_dx(3)
+  real(amrex_real) vel
+
+  type dataptr
+     real(amrex_real), dimension(:,:,:), pointer, contiguous :: p
+  end type dataptr
+
+  type(dataptr), dimension(3) :: velocity
+
+  if (np == 0) then
+     return
+  end if
+  
+  velocity(1)%p => ux
+  velocity(2)%p => uy
+  velocity(3)%p => uy
+    
+  inv_dx = 1.0d0/dx
+   
+  do ipass = 1, 2
+     do n = 1, np
+
+        length = (particles(n)%pos - plo)*inv_dx          
+
+        cc_cell = floor(length)
+        cell    = floor(length + 0.5d0)
+          
+        w_hi = length + 0.5d0 - cell          
+        w_lo = 1.d0 - w_hi
+        
+        ! x direction
+        do d = 1, 3
+           e_cell = cell
+           e_cell(d) = cc_cell(d) + 1
+             
+           e_hi = w_hi
+           e_lo = w_lo
+           e_hi(d) = length(d) - cc_cell(d)
+
+           e_hi = max(0.d0,min(1.d0,e_hi))
+           e_lo(d) = 1.d0 - e_hi(d)
+           
+           vel = e_lo(1)*e_lo(2)*e_lo(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1, e_cell(3)-1) + &
+                 e_lo(1)*e_lo(2)*e_hi(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1, e_cell(3)  ) + &
+                 e_lo(1)*e_hi(2)*e_lo(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)  , e_cell(3)-1) + &
+                 e_lo(1)*e_hi(2)*e_hi(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)  , e_cell(3)  ) + &
+                 e_hi(1)*e_lo(2)*e_lo(3)*velocity(d)%p(e_cell(1)  , e_cell(2)-1, e_cell(3)-1) + &
+                 e_hi(1)*e_lo(2)*e_hi(3)*velocity(d)%p(e_cell(1)  , e_cell(2)-1, e_cell(3)  ) + &
+                 e_hi(1)*e_hi(2)*e_lo(3)*velocity(d)%p(e_cell(1)  , e_cell(2)  , e_cell(3)-1) + &
+                 e_hi(1)*e_hi(2)*e_hi(3)*velocity(d)%p(e_cell(1)  , e_cell(2)  , e_cell(3)  )
+
+           if (ipass == 1) then
+              particles(n)%vel(d) = particles(n)%pos(d)
+              particles(n)%pos(d) = particles(n)%pos(d) + 0.5d0*dt*vel
+           else
+              particles(n)%pos(d) = particles(n)%vel(d) + dt*vel
+              particles(n)%vel(d) = vel
+           end if
+        end do
+     end do
+  end do
+end subroutine advect_particles
 
 end module advect_module

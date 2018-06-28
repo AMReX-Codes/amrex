@@ -23,6 +23,10 @@ public:
     CutFab& operator= (const CutFab&) = delete;
     CutFab& operator= (CutFab&&) = delete;
 
+    std::size_t copyFromMem (const void* src) {
+        return copyFromMem (box(), 0, nComp(), src);
+    }
+
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
@@ -66,11 +70,15 @@ public:
     FabArray<CutFab>& data () { return m_data; }
     const FabArray<CutFab>& data () const { return m_data; }
 
+    const BoxArray& boxArray () const { return m_data.boxArray(); }
+    const DistributionMapping& DistributionMap () const { return m_data.DistributionMap(); }
     int nComp () const { return m_data.nComp(); }
     int nGrow () const { return m_data.nGrow(); }
 
-    void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng);
-    void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng, const Periodicity& period);
+    void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng,
+                       const Periodicity& period = Periodicity::NonPeriodic());
+
+    MultiFab ToMultiFab (Real regular_value, Real covered_value) const;
 
 private:
 
