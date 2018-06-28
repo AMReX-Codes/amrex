@@ -592,11 +592,9 @@ knapsack (const std::vector<long>&         wgts,
     {
         lb.push_back(WeightedBox(i, wgts[i]));
     }
-    BL_ASSERT(lb.size() == wgts.size());
     std::sort(lb.begin(), lb.end());
-    BL_ASSERT(lb.size() == wgts.size());
     //
-    // For each ball, starting with heaviest, assign ball to the lightest box.
+    // For each ball, starting with heaviest, assign ball to the lightest bin.
     //
     std::priority_queue<WeightedBoxList> wblq;
     Vector<std::unique_ptr<Vector<WeightedBox> > > raii_vwb(nprocs);
@@ -605,9 +603,8 @@ knapsack (const std::vector<long>&         wgts,
         raii_vwb[i].reset(new Vector<WeightedBox>);
         wblq.push(WeightedBoxList(raii_vwb[i].get()));
     }
-    BL_ASSERT(int(wblq.size()) == nprocs);
-    Vector<WeightedBoxList> wblqg;
-    wblqg.reserve(nprocs);
+    Vector<WeightedBoxList> wblv;
+    wblv.reserve(nprocs);
     for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
         WeightedBoxList wbl = wblq.top();
@@ -616,13 +613,13 @@ knapsack (const std::vector<long>&         wgts,
 	if (wbl.size() < nmax) {
 	    wblq.push(wbl);
 	} else {
-	    wblqg.push_back(wbl);
+	    wblv.push_back(wbl);
 	}
     }
 
     Real max_weight = 0;
     Real sum_weight = 0;
-    for (auto const& wbl : wblqg)
+    for (auto const& wbl : wblv)
     {
         Real wgt = wbl.weight();
         sum_weight += wgt;
@@ -637,25 +634,25 @@ knapsack (const std::vector<long>&         wgts,
 	    Real wgt = wbl.weight();
 	    sum_weight += wgt;
 	    max_weight = std::max(wgt, max_weight);
-	    wblqg.push_back(wbl);
+	    wblv.push_back(wbl);
 	}
     }
 
     efficiency = sum_weight/(nprocs*max_weight);
 
-    std::sort(wblqg.begin(), wblqg.end());
+    std::sort(wblv.begin(), wblv.end());
 
     if (efficiency < max_efficiency && do_full_knapsack
-        && wblqg.size() > 1 && wblqg.begin()->size() > 1)
+        && wblv.size() > 1 && wblv.begin()->size() > 1)
     {
         BL_PROFILE_VAR("knapsack()swap", swap);
     
 top: ;
 
-        if (efficiency < max_efficiency && wblqg.begin()->size() > 1)
+        if (efficiency < max_efficiency && wblv.begin()->size() > 1)
         {
-            auto bl_top = wblqg.begin();
-            auto bl_bottom = wblqg.end()-1;
+            auto bl_top = wblv.begin();
+            auto bl_bottom = wblv.end()-1;
             long w_top = bl_top->weight();
             long w_bottom = bl_bottom->weight();
             for (auto ball_1 = bl_top->begin(); ball_1 != bl_top->end(); ++ball_1)
@@ -697,12 +694,12 @@ top: ;
             }
         }
 
-        BL_ASSERT(std::is_sorted(wblqg.begin(), wblqg.end()));
+        BL_ASSERT(std::is_sorted(wblv.begin(), wblv.end()));
     }
     
-    for (int i = 0, N = wblqg.size(); i < N; ++i)
+    for (int i = 0, N = wblv.size(); i < N; ++i)
     {
-        const WeightedBoxList& wbl = wblqg[i];
+        const WeightedBoxList& wbl = wblv[i];
 
         result[i].reserve(wbl.size());
         for (auto const& wb : wbl)
