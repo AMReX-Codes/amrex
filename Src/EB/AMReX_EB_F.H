@@ -33,7 +33,7 @@ extern "C"
     void amrex_eb_fill_levelset_bcs(
             amrex_real * phi, const int * philo, const int * phihi,
             int * valid,      const int * vlo,   const int * vhi,
-                              const int * domlo, const int * domhi,
+            const int * peri, const int * domlo, const int * domhi,
             const amrex_real * eb_list, const int * l_eb,
             const amrex_real * dx, const amrex_real * dx_eb
         );
@@ -51,7 +51,7 @@ extern "C"
             const amrex_real * ls_in, const int * lslo,  const int * lshi,
             int * valid,              const int * vlo,   const int * vhi,
             amrex_real * phi,         const int * phlo,  const int * phhi,
-                                      const int * domlo, const int * domhi
+            const int * periodic,     const int * domlo, const int * domhi
         );
 
     void amrex_eb_update_levelset_union(
@@ -67,7 +67,7 @@ extern "C"
             const amrex_real * ls_in, const int * lslo,  const int * lshi,
             int * valid,              const int * vlo,   const int * vhi,
             amrex_real * phi,         const int * phlo,  const int * phhi,
-                                      const int * domlo, const int * domhi
+            const int * periodic,     const int * domlo, const int * domhi
         );
 
     void amrex_eb_fill_valid(
@@ -107,7 +107,7 @@ extern "C"
     void amrex_eb_validate_levelset_bcs(
             amrex_real * phi,        const int * phlo,  const int * phhi,
             const int * valid,       const int * vlo,   const int * vhi,
-                                     const int * domlo, const int * domhi,
+            const int * periodic,    const int * domlo, const int * domhi,
             const amrex_real * impf, const int * imlo,  const int * imhi
         );
 

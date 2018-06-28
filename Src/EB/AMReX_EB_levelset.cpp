@@ -54,7 +54,9 @@ LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
 #pragma omp parallel
 #endif
     for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
-        Box tile_box   = mfi.tilebox();
+        // also initialize ghost cells => growntilebox. Note: if a direction is
+        // not periodic, FillBoundary will never touch those ghost cells.
+        Box tile_box   = mfi.growntilebox();
         auto & ls_tile = (* ls_grid)[mfi];
 
         // Initialize in fortran land
@@ -160,16 +162,20 @@ void LSFactory::fill_valid(int n){
 void LSFactory::fill_valid(){
     fill_valid(ls_grid_pad);
 
-    // Set boundary values of valid_grid
+   /****************************************************************************
+    * Set boundary values of valid_grid                                        *
+    ****************************************************************************/
 
-    Box domain(base_geom.Domain());
-    domain.refine(ls_grid_ref);
+    // Simulation domain
+    Box domain(geom_ls.Domain());
 
+    // Int array flagging periodic directions => no need to fill the periodic
+    // ones as they are filled by FillBoundary
     IntVect periodic(
             AMREX_D_DECL(
-                base_geom.isPeriodic(0),
-                base_geom.isPeriodic(1),
-                base_geom.isPeriodic(2)
+                geom_ls.isPeriodic(0),
+                geom_ls.isPeriodic(1),
+                geom_ls.isPeriodic(2)
             )
         );
 
@@ -345,8 +351,23 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
                                               BL_TO_FORTRAN_3D(ls_tile)              );
     }
 
-    Box domain(base_geom.Domain());
-    domain.refine(ls_grid_ref);
+   /****************************************************************************
+    * Set boundary values of ls_grid                                           *
+    ****************************************************************************/
+
+    // Simulation domain
+    Box domain(geom_ls.Domain());
+
+    // Int array flagging periodic directions => no need to fill the periodic
+    // ones as they are filled by FillBoundary
+    IntVect periodic(
+            AMREX_D_DECL(
+                geom_ls.isPeriodic(0),
+                geom_ls.isPeriodic(1),
+                geom_ls.isPeriodic(2)
+            )
+        );
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -360,6 +381,7 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
                                                    BL_TO_FORTRAN_3D(ls_in_tile),
                                                    BL_TO_FORTRAN_3D(v_tile),
                                                    BL_TO_FORTRAN_3D(ls_tile),
+                                                   periodic.getVect(),
                                                    domain.loVect(), domain.hiVect()  );
     }
 
@@ -390,9 +412,23 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
                                        BL_TO_FORTRAN_3D(ls_tile)                  );
     }
 
+   /****************************************************************************
+    * Set boundary values of ls_grid                                           *
+    ****************************************************************************/
 
-    Box domain(base_geom.Domain());
-    domain.refine(ls_grid_ref);
+    // Simulation domain
+    Box domain(geom_ls.Domain());
+
+    // Int array flagging periodic directions => no need to fill the periodic
+    // ones as they are filled by FillBoundary
+    IntVect periodic(
+            AMREX_D_DECL(
+                geom_ls.isPeriodic(0),
+                geom_ls.isPeriodic(1),
+                geom_ls.isPeriodic(2)
+            )
+        );
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -406,6 +442,7 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
                                             BL_TO_FORTRAN_3D(ls_in_tile),
                                             BL_TO_FORTRAN_3D(v_tile),
                                             BL_TO_FORTRAN_3D(ls_tile),
+                                            periodic.getVect(),
                                             domain.loVect(), domain.hiVect()  );
     }
 
@@ -418,7 +455,7 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
 
 std::unique_ptr<MultiFab> LSFactory::copy_data(const DistributionMapping& dm) const {
     std::unique_ptr<MultiFab> cpy(new MultiFab(ls_ba, dm, 1, ls_grid_pad));
-    cpy->copy(* ls_grid, 0, 0, 1, 0, 0 /*ls_grid_pad, ls_grid_pad*/);
+    cpy->copy(* ls_grid, 0, 0, 1, ls_grid_pad, ls_grid_pad);
     cpy->FillBoundary(geom_ls.periodicity());
     return cpy;
 }
@@ -427,7 +464,7 @@ std::unique_ptr<MultiFab> LSFactory::copy_data(const DistributionMapping& dm) co
 
 std::unique_ptr<iMultiFab> LSFactory::copy_valid(const DistributionMapping& dm) const {
     std::unique_ptr<iMultiFab> cpy(new iMultiFab(ls_ba, dm, 1, ls_grid_pad));
-    cpy->copy(* ls_valid, 0, 0, 1, 0, 0 /*ls_grid_pad, ls_grid_pad*/);
+    cpy->copy(* ls_valid, 0, 0, 1, ls_grid_pad, ls_grid_pad);
     cpy->FillBoundary(geom_ls.periodicity());
     return cpy;
 }
@@ -466,14 +503,14 @@ void LSFactory::regrid(const BoxArray & ba, const DistributionMapping & dm)
     //          -> ls_ba, cc_ba, and eb_ba are all inherited
     update_ba(ba, dm);
 
-    int ng = 0; //ls_grid_pad;
-    std::unique_ptr<MultiFab> ls_grid_new = std::unique_ptr<MultiFab>(new MultiFab(ls_ba, dm, 1, ls_grid_pad /*ng*/));
+    int ng = ls_grid_pad;
+    std::unique_ptr<MultiFab> ls_grid_new = std::unique_ptr<MultiFab>(new MultiFab(ls_ba, dm, 1, ng));
 
     ls_grid_new->copy(* ls_grid, 0, 0, 1, ng, ng);
     ls_grid_new->FillBoundary(geom_ls.periodicity());
     ls_grid = std::move(ls_grid_new);
 
-    std::unique_ptr<iMultiFab> ls_valid_new = std::unique_ptr<iMultiFab>(new iMultiFab(ls_ba, dm, 1, ls_grid_pad /*ng*/));
+    std::unique_ptr<iMultiFab> ls_valid_new = std::unique_ptr<iMultiFab>(new iMultiFab(ls_ba, dm, 1,ng));
 
     ls_valid_new->copy(* ls_valid, 0, 0, 1, ng, ng);
     ls_valid_new->FillBoundary(geom_ls.periodicity());
@@ -568,8 +605,23 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 
     }
 
-    Box domain = Box(base_geom.Domain());
-    domain.refine(ls_grid_ref);
+   /****************************************************************************
+    * Set and validate boundary values of eb_ls                                *
+    ****************************************************************************/
+
+    // Simulation domain
+    Box domain = Box(geom_ls.Domain());
+
+    // Int array flagging periodic directions => no need to fill the periodic
+    // ones as they are filled by FillBoundary
+    IntVect periodic(
+            AMREX_D_DECL(
+                geom_ls.isPeriodic(0),
+                geom_ls.isPeriodic(1),
+                geom_ls.isPeriodic(2)
+            )
+        );
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -581,17 +633,19 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
         if(len_facets > 0) {
             amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
                                         BL_TO_FORTRAN_3D(v_tile),
-                                        domain.loVect(), domain.hiVect(),
+                                        periodic.getVect(), domain.loVect(), domain.hiVect(),
                                         facets->dataPtr(), & len_facets,
                                         dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
 
             amrex_eb_validate_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
                                             BL_TO_FORTRAN_3D(v_tile),
-                                            domain.loVect(), domain.hiVect(),
+                                            periodic.getVect(), domain.loVect(), domain.hiVect(),
                                             BL_TO_FORTRAN_3D(if_tile)         );
         }
     }
 
+    eb_ls.FillBoundary(geom_ls.periodicity());
+    eb_valid.FillBoundary(geom_ls.periodicity());
 
     // Update LSFactory using local eb level-set
     update_intersection(eb_ls, * region_valid);
@@ -657,8 +711,25 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
         }
     }
 
-    Box domain = Box(base_geom.Domain());
-    domain.refine(ls_grid_ref);
+   /****************************************************************************
+    * Set and validate boundary values of eb_ls                                *
+    ****************************************************************************/
+
+    // Simulation domain
+
+    Box domain = Box(geom_ls.Domain());
+
+    // Int array flagging periodic directions => no need to fill the periodic
+    // ones as they are filled by FillBoundary
+    IntVect periodic(
+            AMREX_D_DECL(
+                geom_ls.isPeriodic(0),
+                geom_ls.isPeriodic(1),
+                geom_ls.isPeriodic(2)
+            )
+        );
+
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -670,16 +741,19 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
         if(len_facets > 0) {
             amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
                                         BL_TO_FORTRAN_3D(v_tile),
-                                        domain.loVect(), domain.hiVect(),
+                                        periodic.getVect(), domain.loVect(), domain.hiVect(),
                                         facets->dataPtr(), & len_facets,
                                         dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
 
             amrex_eb_validate_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
                                             BL_TO_FORTRAN_3D(v_tile),
-                                            domain.loVect(), domain.hiVect(),
+                                            periodic.getVect(), domain.loVect(), domain.hiVect(),
                                             BL_TO_FORTRAN_3D(if_tile)         );
         }
     }
+
+    eb_ls.FillBoundary(geom_ls.periodicity());
+    eb_valid.FillBoundary(geom_ls.periodicity());
 
     // Update LSFactory using local eb level-set
     update_union(eb_ls, * region_valid);
@@ -705,7 +779,8 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebis(const EBIndexSpace & eb_
     for(MFIter mfi( * mf_impfunc, true); mfi.isValid(); ++ mfi){
         FArrayBox & a_fab = (* mf_impfunc)[mfi];
 
-        for(BoxIterator bit(mfi.tilebox()); bit.ok(); ++bit)
+        // Note: growntilebox => flip also the ghost cells...
+        for(BoxIterator bit(mfi.growntilebox()); bit.ok(); ++bit)
             a_fab(bit(), 0) = - a_fab(bit(), 0);
     }
 
