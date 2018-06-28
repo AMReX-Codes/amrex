@@ -649,10 +649,10 @@ top: ;
     {
         auto bl_top = wblqg.begin();
 	long w_top = bl_top->weight();
-        for (auto bl_chk = bl_top+1; bl_chk != wblqg.end(); ++bl_chk)
-        {
-            for (auto ball_1 = bl_top->begin(); ball_1 != bl_top->end(); ++ball_1)
-            {
+	for (auto ball_1 = bl_top->begin(); ball_1 != bl_top->end(); ++ball_1)
+	{
+	    for (auto bl_chk = bl_top+1; bl_chk != wblqg.end(); ++bl_chk)
+	    {
                 for (auto ball_2 = bl_chk->begin(); ball_2 != bl_chk->end(); ++ball_2)
                 {
                     // should we swap ball 1 and ball 2?
