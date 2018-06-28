@@ -109,16 +109,16 @@ contains
     end subroutine amrex_eb_fill_levelset
 
 
-    pure subroutine amrex_eb_fill_levelset_bcs( phi, philo, phihi, &
-                                                valid, vlo, vhi,   &
-                                                domlo, domhi,      &
-                                                eb_list, l_eb,     &
-                                                dx, dx_eb         )&
+    pure subroutine amrex_eb_fill_levelset_bcs( phi,      philo, phihi, &
+                                                valid,    vlo,   vhi,   &
+                                                periodic, domlo, domhi, &
+                                                eb_list, l_eb,          &
+                                                dx, dx_eb              )&
                     bind(C, name="amrex_eb_fill_levelset_bcs")
 
         implicit none
 
-        integer,      dimension(3), intent(in   ) :: philo, phihi, vlo, vhi, domlo, domhi
+        integer,      dimension(3), intent(in   ) :: philo, phihi, vlo, vhi, periodic, domlo, domhi
         real(c_real),               intent(  out) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
         integer,                    intent(  out) :: valid(vlo(1):vhi(1),     vlo(2):vhi(2),     vlo(3):vhi(3))
 
@@ -136,7 +136,7 @@ contains
 
         ! 2 i-j faces => k is in [philo(3), domlo(3)) U (domhi(3), phihi(3)]
 
-        if ( philo(3).lt.domlo(3) ) then
+        if ( (periodic(3).eq.0) .and. (philo(3).lt.domlo(3)) ) then
             lo(:) = philo(:)      ! k = philo(3), domlo(3) - 1
             hi(:) = phihi(:)      ! j = philo(2), phihi(2)
             hi(3) = domlo(3) - 1  ! i = philo(1), phihi(1)
@@ -150,7 +150,7 @@ contains
             )
         end if
 
-        if ( phihi(3).gt.domhi(3) ) then
+        if ( (periodic(3).eq.0) .and. (phihi(3).gt.domhi(3)) ) then
             lo(:) = philo(:)      ! k = domhi(3) + 1, phihi(3)
             hi(:) = phihi(:)      ! j = philo(2), phihi(2)
             lo(3) = domhi(3) + 1  ! i = philo(1), phihi(1)
@@ -167,7 +167,7 @@ contains
 
         ! 2 i-k faces => j is in [philo(2), domlo(2)) U (domhi(2), phihi(2)]
 
-        if ( philo(2).lt.domlo(2) ) then
+        if ( (periodic(2).eq.0) .and. (philo(2).lt.domlo(2)) ) then
             lo(:) = philo(:)      ! k = philo(3), phihi(3)
             hi(:) = phihi(:)      ! j = philo(2), domlo(2) - 1
             hi(2) = domlo(2) - 1  ! i = philo(1), phihi(1)
@@ -181,7 +181,7 @@ contains
             )
         end if
 
-        if ( phihi(2).gt.domhi(2) ) then
+        if ( (periodic(2).eq.0) .and. (phihi(2).gt.domhi(2)) ) then
             lo(:) = philo(:)      ! k = philo(3), phihi(3)
             hi(:) = phihi(:)      ! j = domhi(2) + 1, phihi(2)
             lo(2) = domhi(2) + 1  ! i = philo(1), phihi(1)
@@ -198,7 +198,7 @@ contains
 
         ! 2 j-k faces => i is in [philo(1), domlo(1)) U (domhi(1), phihi(1)]
 
-        if ( philo(1).lt.domlo(1) ) then
+        if ( (periodic(1).eq.0) .and. (philo(1).lt.domlo(1)) ) then
             lo(:) = philo(:)      ! k = philo(3), phihi(3)
             hi(:) = phihi(:)      ! j = philo(2), phihi(2)
             hi(1) = domlo(1) - 1  ! i = philo(1), domlo(1) - 1
@@ -212,7 +212,7 @@ contains
             )
         end if
 
-        if ( phihi(1).gt.domhi(1) ) then
+        if ( (periodic(1).eq.0) .and. (phihi(1).gt.domhi(1)) ) then
             lo(:) = philo(:)      ! k = philo(3), phihi(3)
             hi(:) = phihi(:)      ! j = philo(2), phihi(2)
             lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phihi(1)
@@ -374,15 +374,15 @@ contains
     end subroutine amrex_eb_validate_levelset
 
 
-    pure subroutine amrex_eb_validate_levelset_bcs( phi, phlo, phhi,   &
-                                                    valid, vlo, vhi,   &
-                                                    domlo, domhi,      &
-                                                    impf, imlo, imhi ) &
+    pure subroutine amrex_eb_validate_levelset_bcs( phi,      phlo,  phhi,  &
+                                                    valid,    vlo,   vhi,   &
+                                                    periodic, domlo, domhi, &
+                                                    impf,     imlo,  imhi ) &
                     bind(C, name="amrex_eb_validate_levelset_bcs")
 
         implicit none
 
-        integer, dimension(3), intent(in   ) :: phlo, phhi, vlo, vhi, domlo, domhi, imlo, imhi
+        integer, dimension(3), intent(in   ) :: phlo, phhi, vlo, vhi, periodic, domlo, domhi, imlo, imhi
         integer,               intent(in   ) :: valid (  vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3)  )
         real(c_real),          intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
         real(c_real),          intent(  out) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
@@ -394,7 +394,7 @@ contains
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
-        if ( phlo(3).lt.domlo(3) ) then
+        if ( (periodic(3).eq.0) .and. (phlo(3).lt.domlo(3)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), domlo(3) - 1
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             hi(3) = domlo(3) - 1  ! i = phlo(1), phhi(1)
@@ -407,7 +407,7 @@ contains
             )
         end if
 
-        if ( phhi(3).gt.domhi(3) ) then
+        if ( (periodic(3).eq.0) .and. (phhi(3).gt.domhi(3)) ) then
             lo(:) = phlo(:)       ! k = domhi(3) + 1, phihi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             lo(3) = domhi(3) + 1  ! i = phlo(1), phhi(1)
@@ -423,7 +423,7 @@ contains
 
         ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
 
-        if ( phlo(2).lt.domlo(2) ) then
+        if ( (periodic(2).eq.0) .and. (phlo(2).lt.domlo(2)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), domlo(2) - 1
             hi(2) = domlo(2) - 1  ! i = phlo(1), phhi(1)
@@ -436,7 +436,7 @@ contains
             )
         end if
 
-        if ( phhi(2).gt.domhi(2) ) then
+        if ( (periodic(2).eq.0) .and. (phhi(2).gt.domhi(2)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = domhi(2) + 1, phhi(2)
             lo(2) = domhi(2) + 1  ! i = phlo(1), phhi(1)
@@ -452,7 +452,7 @@ contains
 
         ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
 
-        if ( phlo(1).lt.domlo(1) ) then
+        if ( (periodic(1).eq.0) .and. (phlo(1).lt.domlo(1)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             hi(1) = domlo(1) - 1  ! i = phlo(1), domlo(1) - 1
@@ -465,7 +465,7 @@ contains
             )
         end if
 
-        if ( phhi(1).gt.domhi(1) ) then
+        if ( (periodic(1).eq.0) .and. (phhi(1).gt.domhi(1)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phhi(1)
@@ -534,16 +534,16 @@ contains
 
 
 
-    pure subroutine amrex_eb_update_levelset_intersection_bcs( v_in,  vilo, vihi,   &
-                                                               ls_in, lslo, lshi,   &
-                                                               valid, vlo,  vhi,    &
-                                                               phi,   phlo, phhi,   &
-                                                               domlo, domhi   )     &
+    pure subroutine amrex_eb_update_levelset_intersection_bcs( v_in,     vilo,  vihi,   &
+                                                               ls_in,    lslo,  lshi,   &
+                                                               valid,    vlo,   vhi,    &
+                                                               phi,      phlo,  phhi,   &
+                                                               periodic, domlo, domhi ) &
                     bind(C, name="amrex_eb_update_levelset_intersection_bcs")
 
         implicit none
 
-        integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, domlo, domhi
+        integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, periodic, domlo, domhi
         integer,               intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
         real(c_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,               intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
@@ -557,7 +557,7 @@ contains
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
-        if ( phlo(3).lt.domlo(3) ) then
+        if ( (periodic(3).eq.0) .and. (phlo(3).lt.domlo(3)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), domlo(3) - 1
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             hi(3) = domlo(3) - 1  ! i = phlo(1), phhi(1)
@@ -571,7 +571,7 @@ contains
             )
         end if
 
-        if ( phhi(3).gt.domhi(3) ) then
+        if ( (periodic(3).eq.0) .and. (phhi(3).gt.domhi(3)) ) then
             lo(:) = phlo(:)       ! k = domhi(3) + 1, phihi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             lo(3) = domhi(3) + 1  ! i = phlo(1), phhi(1)
@@ -588,7 +588,7 @@ contains
 
         ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
 
-        if ( phlo(2).lt.domlo(2) ) then
+        if ( (periodic(2).eq.0) .and. (phlo(2).lt.domlo(2)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), domlo(2) - 1
             hi(2) = domlo(2) - 1  ! i = phlo(1), phhi(1)
@@ -602,7 +602,7 @@ contains
             )
         end if
 
-        if ( phhi(2).gt.domhi(2) ) then
+        if ( (periodic(2).eq.0) .and. (phhi(2).gt.domhi(2)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = domhi(2) + 1, phhi(2)
             lo(2) = domhi(2) + 1  ! i = phlo(1), phhi(1)
@@ -619,7 +619,7 @@ contains
 
         ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
 
-        if ( phlo(1).lt.domlo(1) ) then
+        if ( (periodic(1).eq.0) .and. (phlo(1).lt.domlo(1)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             hi(1) = domlo(1) - 1  ! i = phlo(1), domlo(1) - 1
@@ -633,7 +633,7 @@ contains
             )
         end if
 
-        if ( phhi(1).gt.domhi(1) ) then
+        if ( (periodic(1).eq.0) .and. (phhi(1).gt.domhi(1)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phhi(1)
@@ -702,16 +702,16 @@ contains
 
     end subroutine amrex_eb_update_levelset_union
 
-    pure subroutine amrex_eb_update_levelset_union_bcs( v_in,  vilo, vihi,   &
-                                                        ls_in, lslo, lshi,   &
-                                                        valid, vlo,  vhi,    &
-                                                        phi,   phlo, phhi,   &
-                                                        domlo, domhi   )     &
+    pure subroutine amrex_eb_update_levelset_union_bcs( v_in,     vilo,  vihi,   &
+                                                        ls_in,    lslo,  lshi,   &
+                                                        valid,    vlo,   vhi,    &
+                                                        phi,      phlo,  phhi,   &
+                                                        periodic, domlo, domhi ) &
                     bind(C, name="amrex_eb_update_levelset_union_bcs")
 
         implicit none
 
-        integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, domlo, domhi
+        integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, periodic, domlo, domhi
         integer,               intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
         real(c_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,               intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
@@ -727,7 +727,7 @@ contains
         !-------------------------------------------------------------------------------------------------------------!
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
-        if ( phlo(3).lt.domlo(3) ) then
+        if ( (periodic(3).eq.0) .and. (phlo(3).lt.domlo(3)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), domlo(3) - 1
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             hi(3) = domlo(3) - 1  ! i = phlo(1), phhi(1)
@@ -741,7 +741,7 @@ contains
             )
         end if
 
-        if ( phhi(3).gt.domhi(3) ) then
+        if ( (periodic(3).eq.0) .and. (phhi(3).gt.domhi(3)) ) then
             lo(:) = phlo(:)       ! k = domhi(3) + 1, phihi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             lo(3) = domhi(3) + 1  ! i = phlo(1), phhi(1)
@@ -758,7 +758,7 @@ contains
 
         ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
 
-        if ( phlo(2).lt.domlo(2) ) then
+        if ( (periodic(2).eq.0) .and. (phlo(2).lt.domlo(2)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), domlo(2) - 1
             hi(2) = domlo(2) - 1  ! i = phlo(1), phhi(1)
@@ -772,7 +772,7 @@ contains
             )
         end if
 
-        if ( phhi(2).gt.domhi(2) ) then
+        if ( (periodic(2).eq.0) .and. (phhi(2).gt.domhi(2)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = domhi(2) + 1, phhi(2)
             lo(2) = domhi(2) + 1  ! i = phlo(1), phhi(1)
@@ -789,7 +789,7 @@ contains
 
         ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
 
-        if ( phlo(1).lt.domlo(1) ) then
+        if ( (periodic(1).eq.0) .and. (phlo(1).lt.domlo(1)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             hi(1) = domlo(1) - 1  ! i = phlo(1), domlo(1) - 1
@@ -803,7 +803,7 @@ contains
             )
         end if
 
-        if ( phhi(1).gt.domhi(1) ) then
+        if ( (periodic(1).eq.0) .and. (phhi(1).gt.domhi(1)) ) then
             lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
             hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
             lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phhi(1)
@@ -886,7 +886,7 @@ contains
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
-        if ( periodic(1).eq.0 ) then
+        if ( periodic(3).eq.0 ) then
             do k = vlo(3), domlo(3) - 1
                 do j = vlo(2), vhi(2)
                     do i = vlo(1), vhi(1)
@@ -930,7 +930,7 @@ contains
 
         ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
 
-        if ( periodic(3).eq.0 ) then
+        if ( periodic(1).eq.0 ) then
             if ( vlo(1).lt.domlo(1) ) then
                 do k = vlo(3), vhi(3)
                     do j = vlo(2), vhi(2)
