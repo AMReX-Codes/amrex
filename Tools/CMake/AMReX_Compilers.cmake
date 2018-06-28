@@ -53,11 +53,10 @@ function ( set_amrex_compilers )
    # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
    # add c++11 support manually in order to have transitive property
    target_compile_options ( amrex PUBLIC
-      $<$<$<C_COMPILER_ID:Cray>:$<COMPILE_LANGUAGE:CXX>>:-h std=c++11>  
-      $<$<$<C_COMPILER_ID:PGI>:$<COMPILE_LANGUAGE:CXX>>:-std=c++11>  
-      $<$<$<C_COMPILER_ID:Intel>:$<COMPILE_LANGUAGE:CXX>>:-std=c++11>  
-      $<$<$<C_COMPILER_ID:GNU>:$<COMPILE_LANGUAGE:CXX>>:-std=c++11> )
-   
+      $<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11>>
+      $<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+      $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+      $<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
    
 endfunction () 
 
