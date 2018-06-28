@@ -547,7 +547,7 @@ public:
     {
         return m_weight;
     }
-    bool addWeight (long dw) { m_weight += dw; }
+    void addWeight (long dw) { m_weight += dw; }
     void erase (Vector<WeightedBox>::iterator& it)
     {
         m_weight -= it->weight();
@@ -645,65 +645,58 @@ knapsack (const std::vector<long>&         wgts,
 
     std::sort(wblqg.begin(), wblqg.end());
 
-    
-    if (efficiency < max_efficiency && do_full_knapsack && wblqg.begin()->size() > 1)
+    if (efficiency < max_efficiency && do_full_knapsack
+        && wblqg.size() > 1 && wblqg.begin()->size() > 1)
     {
-        BL_PROFILE("knapsack()::swap");
+        BL_PROFILE_VAR("knapsack()swap", swap);
     
 top: ;
 
-        if (efficiency < max_efficiency && do_full_knapsack && wblqg.begin()->size() > 1)
+        if (efficiency < max_efficiency && wblqg.begin()->size() > 1)
         {
             auto bl_top = wblqg.begin();
+            auto bl_bottom = wblqg.end()-1;
             long w_top = bl_top->weight();
+            long w_bottom = bl_bottom->weight();
             for (auto ball_1 = bl_top->begin(); ball_1 != bl_top->end(); ++ball_1)
             {
-                for (auto bl_chk = bl_top+1; bl_chk != wblqg.end(); ++bl_chk)
+                for (auto ball_2 = bl_bottom->begin(); ball_2 != bl_bottom->end(); ++ball_2)
                 {
-                    for (auto ball_2 = bl_chk->begin(); ball_2 != bl_chk->end(); ++ball_2)
+                    // should we swap ball 1 and ball 2?
+                    long dw = ball_1->weight() - ball_2->weight();
+                    long w_top_new    = w_top    - dw;
+                    long w_bottom_new = w_bottom + dw;
+                    if (w_top_new < w_top && w_bottom_new < w_top)
                     {
-                        // should we swap ball 1 and ball 2?
-                        long dw = ball_1->weight() - ball_2->weight();
-                        long w_bl1 = w_top            - dw;
-                        long w_bl2 = bl_chk->weight() + dw;
-                        if (w_bl1 < w_top && w_bl2 < w_top)
+                        std::swap(*ball_1, *ball_2);
+                        bl_top->addWeight(-dw);
+                        bl_bottom->addWeight(dw);
+                            
+                        if (bl_top+1 == bl_bottom)  // they are next to each other
                         {
-                            std::swap(*ball_1, *ball_2);
-                            bl_top->addWeight(-dw);
-                            bl_chk->addWeight( dw);
-                            
-                            if (bl_top+1 == bl_chk)  // they are next to each other
-                            {
-                                if (*bl_chk < *bl_top) {
-                                    std::swap(*bl_top, *bl_chk);
-                                }
+                            if (*bl_bottom < *bl_top) {
+                                std::swap(*bl_top, *bl_bottom);
                             }
-                            else
-                            {
-                                // sink down
-                                auto it = std::lower_bound(bl_top+1, bl_chk, *bl_top);
-                                std::rotate(bl_top, bl_top+1, it);
-                                
-                                // bubble up
-                                it = std::lower_bound(bl_top, bl_chk, *bl_chk);
-                                std::rotate(it, bl_chk, bl_chk+1);
-                            }
-                            
-                            if (bl_chk+1 != wblqg.end()) // we maybe to sink bl_chk further down
-                            {
-                                auto it = std::lower_bound(bl_chk+1, wblqg.end(), *bl_chk);
-                                std::rotate(bl_chk, bl_chk+1, it);
-                            }
-                            
-                            max_weight = bl_top->weight();
-                            efficiency = sum_weight / (nprocs*max_weight);
-                            goto top;
                         }
+                        else
+                        {
+                            // bubble up
+                            auto it = std::lower_bound(bl_top+1, bl_bottom, *bl_bottom);
+                            std::rotate(it, bl_bottom, bl_bottom+1);
+
+                            // sink down
+                            it = std::lower_bound(bl_top+1, bl_bottom+1, *bl_top);
+                            std::rotate(bl_top, bl_top+1, it);
+                        }
+
+                        max_weight = bl_top->weight();
+                        efficiency = sum_weight / (nprocs*max_weight);
+                        goto top;
                     }
                 }
             }
         }
-        
+
         BL_ASSERT(std::is_sorted(wblqg.begin(), wblqg.end()));
     }
     
