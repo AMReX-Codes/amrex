@@ -1075,9 +1075,9 @@ ParmParse::Finalize ()
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
       finalize_verbose = amrex::system::verbose;
-      if (finalize_verbose) std::cout << "Unused ParmParse Variables:\n";
+      if (finalize_verbose) amrex::OutStream() << "Unused ParmParse Variables:\n";
       finalize_table("[TOP]", g_table);
-      if (finalize_verbose) std::cout << "done.\n";
+      if (finalize_verbose) amrex::OutStream() << "done.\n";
 	//
 	// First loop through and delete all queried entries.
 	//

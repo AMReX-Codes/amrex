@@ -3,13 +3,17 @@
 #define AMREX_ARRAY_H_
 
 #include <array>
+#include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
+#include <AMReX_REAL.H>
 
 namespace amrex {
 
     template <class T, std::size_t N>
     using Array = std::array<T,N>;
 
+    using RealArray = Array<Real,AMREX_SPACEDIM>;
+    using IntArray  = Array<int ,AMREX_SPACEDIM>;
 }
 
 namespace amrex

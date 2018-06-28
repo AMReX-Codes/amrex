@@ -3,6 +3,7 @@
 #define BL_FACOPYDESCRIPTOR_H_
 
 #include <AMReX_FabArray.H>
+#include <sstream>
 
 namespace amrex {
 
@@ -281,9 +282,10 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
 	if(remoteProc >= ParallelDescriptor::NProcs()) {
-	    amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
-					  << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
-	    amrex::Abort("Bad remoteProc");
+            std::ostringstream ss;
+            ss << ParallelDescriptor::MyProc() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
+               << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
+	    amrex::Abort("Bad remoteProc: "+ss.str());
 	}
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;

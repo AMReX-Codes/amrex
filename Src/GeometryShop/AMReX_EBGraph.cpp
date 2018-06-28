@@ -520,7 +520,7 @@ namespace amrex
         }
       }
     }
-    setCellFlags();
+//    setCellFlags();
   }
         
   /*******************************/
@@ -1679,7 +1679,7 @@ namespace amrex
         }
       }
     }
-    setCellFlags();
+//    setCellFlags();
   }
         
   /*******************************/
@@ -1938,7 +1938,7 @@ namespace amrex
     m_isMaskBuilt = false;
 
     m_cellFlags.resize(m_fullRegion,1);
-    setCellFlags();
+//    setCellFlags();
 
     return retval;
   }

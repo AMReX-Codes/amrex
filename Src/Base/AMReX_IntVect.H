@@ -49,6 +49,8 @@ public:
 	}
     };
 
+    using hasher = shift_hasher;
+
     ///
     /**
        This is an IntVect all of whose components are equal to zero.

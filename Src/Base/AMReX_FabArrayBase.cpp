@@ -1179,10 +1179,10 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 	ba_crse_patch.define(bl);
 	dm_crse_patch.define(std::move(iprocs));
 #ifdef AMREX_USE_EB
-        fact_crse_patch.reset(new EBFArrayBoxFactory(Geometry(cdomain),
-                                                     ba_crse_patch,
-                                                     dm_crse_patch,
-                                                     {0,0,0}, EBSupport::basic));
+        fact_crse_patch = makeEBFabFactory(Geometry(cdomain),
+                                           ba_crse_patch,
+                                           dm_crse_patch,
+                                           {0,0,0}, EBSupport::basic);
 #else
         fact_crse_patch.reset(new FArrayBoxFactory());
 #endif
@@ -1752,13 +1752,15 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
 
 	    if (count != recv_size[i]) {
 		r = false;
-		amrex::AllPrint() << "ERROR: Proc. " << ParallelContext::MyProcSub()
-				  << " received " << count << " counts of data from Proc. "
-				  << recv_stats[i].MPI_SOURCE
-				  << " with tag " << recv_stats[i].MPI_TAG
-				  << " error " << recv_stats[i].MPI_ERROR
-				  << ", but the expected counts is " << recv_size[i]
-                                  << " with tag " << tag << "\n";
+                if (amrex::Verbose()) {
+                    amrex::AllPrint() << "ERROR: Proc. " << ParallelContext::MyProcSub()
+                                      << " received " << count << " counts of data from Proc. "
+                                      << recv_stats[i].MPI_SOURCE
+                                      << " with tag " << recv_stats[i].MPI_TAG
+                                      << " error " << recv_stats[i].MPI_ERROR
+                                      << ", but the expected counts is " << recv_size[i]
+                                      << " with tag " << tag << "\n";
+                }
 	    }
 	}
     }

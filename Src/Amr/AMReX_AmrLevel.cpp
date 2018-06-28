@@ -18,6 +18,7 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_EB2.H>
 #endif
 
 namespace amrex {
@@ -104,9 +105,11 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, ba, dm,
-                                           {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
-                                           m_eb_support_level));
+    m_factory = makeEBFabFactory(geom, ba, dm,
+                                 {m_eb_basic_grow_cells,
+                                  m_eb_volume_grow_cells,
+                                  m_eb_full_grow_cells},
+                                 m_eb_support_level);
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -357,9 +360,9 @@ AmrLevel::restart (Amr&          papa,
     parent->SetDistributionMap(level, dmap);
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap,
-                                           {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
-                                           m_eb_support_level));
+    m_factory = makeEBFabFactory(geom, grids, dmap,
+                                 {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
+                                 m_eb_support_level);
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -959,7 +962,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 		static bool first = true;
 		if (first) {
 		    first = false;
-		    if (ParallelDescriptor::IOProcessor()) {
+		    if (ParallelDescriptor::IOProcessor() && amrex::Verbose()) {
 			IntVect new_blocking_factor = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
                         new_blocking_factor *= 2;
 			for (int j = 0; j < 10; ++j) {
@@ -971,13 +974,13 @@ FillPatchIterator::Initialize (int  boxGrow,
 				new_blocking_factor *= 2;
 			    }
 			}
-			amrex::Print() << "WARNING: Grids are not properly nested.  We might have to use\n"
+                        amrex::Print() << "WARNING: Grids are not properly nested.  We might have to use\n"
                                        << "         two coarse levels to do fillpatch.  Consider using\n";
-			if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
-			    amrex::Print() << "         amr.blocking_factor=" << new_blocking_factor << "\n";
-			} else {
-			    amrex::Print() << "         larger amr.blocking_factor.\n";
-			}
+                        if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
+                            amrex::Print() << "         amr.blocking_factor=" << new_blocking_factor << "\n";
+                        } else {
+                            amrex::Print() << "         larger amr.blocking_factor.\n";
+                        }
 		    }
 		}
 
@@ -1485,8 +1488,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         }
 
 #ifdef AMREX_USE_EB
-        MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),
-                        EBFArrayBoxFactory(cgeom, crseBA, mf_DM, {0,0,0}, EBSupport::basic));
+        auto cfactory = makeEBFabFactory(cgeom, crseBA, mf_DM, {0,0,0}, EBSupport::basic);
+        MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),*cfactory);
 #else
 	MultiFab crseMF(crseBA,mf_DM,NComp,0);
 #endif
