@@ -58,10 +58,16 @@ function (configure_amrex)
 
       # Includes
       target_include_directories ( amrex PUBLIC
-	 $<$<COMPILE_LANGUAGE:Fortran>:${MPI_Fortran_INCLUDE_PATH}>
-	 $<$<COMPILE_LANGUAGE:C>:${MPI_C_INCLUDE_PATH}>
-	 $<$<COMPILE_LANGUAGE:CXX>:${MPI_CXX_INCLUDE_PATH}>
-	 )
+	 ${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH}
+	 ${MPI_CXX_INCLUDE_PATH} )
+
+      # Genex $<COMPILE_LANGUAGE:...> is broken for export. A fix
+      # is present in CMake 3.12
+      # target_include_directories ( amrex PUBLIC
+      # 	 $<$<COMPILE_LANGUAGE:Fortran>:${MPI_Fortran_INCLUDE_PATH}>
+      # 	 $<$<COMPILE_LANGUAGE:C>:${MPI_C_INCLUDE_PATH}>
+      # 	 $<$<COMPILE_LANGUAGE:CXX>:${MPI_CXX_INCLUDE_PATH}>
+      # 	 )
 
       # Additional compiler flags
       target_compile_options ( amrex PUBLIC
