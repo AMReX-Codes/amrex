@@ -278,12 +278,14 @@ void BLProfiler::InitParams() {
   pParse.query("prof_flushinterval", flushInterval);
   pParse.query("prof_flushtimeinterval", flushTimeInterval);
   pParse.query("prof_flushprint", bFlushPrint);
+#if 0
   amrex::Print() << "PPPPPPPP::  nProfFiles         = " << nProfFiles << '\n';
   amrex::Print() << "PPPPPPPP::  csFlushSize        = " << csFlushSize << '\n';
   amrex::Print() << "PPPPPPPP::  traceFlushSize     = " << traceFlushSize << '\n';
   amrex::Print() << "PPPPPPPP::  flushInterval      = " << flushInterval << '\n';
   amrex::Print() << "PPPPPPPP::  flushTimeInterval  = " << flushTimeInterval << " s." << '\n';
   amrex::Print() << "PPPPPPPP::  flushPrint         = " << bFlushPrint << '\n';
+#endif
 }
 
 
@@ -449,8 +451,8 @@ void BLProfiler::RegionStop(const std::string &rname) {
   int rnameNumber;
   std::map<std::string, int>::iterator it = BLProfiler::mRegionNameNumbers.find(rname);
   if(it == BLProfiler::mRegionNameNumbers.end()) {  // ---- error
-    amrex::Print() << "-------- error in RegionStop:  region " << rname
-		   << " never started.\n";
+//    amrex::Print() << "-------- error in RegionStop:  region " << rname
+//		   << " never started.\n";
     rnameNumber = BLProfiler::mRegionNameNumbers.size();
     BLProfiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
   } else {
@@ -808,7 +810,7 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
   for(int iname(0); iname < addNames.size(); ++iname) {
     std::map<std::string, ProfStats>::iterator it = mProfStats.find(addNames[iname]);
     if(it == mProfStats.end()) {
-      amrex::Print() << "BLProfiler::Finalize:  adding name:  " << addNames[iname] << "\n";
+//      amrex::Print() << "BLProfiler::Finalize:  adding name:  " << addNames[iname] << "\n";
       ProfStats ps;
       mProfStats.insert(std::pair<std::string, ProfStats>(addNames[iname], ps));
     }

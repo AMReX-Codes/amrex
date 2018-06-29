@@ -3,7 +3,7 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_Particles.H>
+#include <AMReX_AmrParticles.H>
 #include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
@@ -90,7 +90,7 @@ void test_assign_density(TestParams& parms)
         acceleration[lev]->setVal(5.0, 1);
     }
 
-    typedef ParticleContainer<1> MyParticleContainer;
+    typedef AmrParticleContainer<1> MyParticleContainer;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 

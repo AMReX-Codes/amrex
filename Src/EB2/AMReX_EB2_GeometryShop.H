@@ -180,7 +180,7 @@ GeometryShop<F>::BrentRootFinder (const RealArray& lo, const RealArray& hi, int 
     Real fc = fb;
 
     if (fb*fa > 0.0) {
-        amrex::AllPrint() << "fa " << fa << " fb " << fb << "\n";
+//        amrex::AllPrint() << "fa " << fa << " fb " << fb << "\n";
         amrex::Error("GeometryShop::BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
         return 0.0;
     } else if (fa == 0.0) {
