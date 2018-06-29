@@ -22,16 +22,16 @@ BLBackTrace::handler(int s)
 
     switch (s) {
     case SIGSEGV:
-	amrex::write_to_stderr_without_buffering("Segfault");
+	amrex::ErrorStream() << "Segfault\n";
 	break;
     case SIGFPE:
-	amrex::write_to_stderr_without_buffering("Erroneous arithmetic operation");
+	amrex::ErrorStream() << "Erroneous arithmetic operation\n";
 	break;
     case SIGINT:
-	amrex::write_to_stderr_without_buffering("SIGINT");
+	amrex::ErrorStream() << "SIGINT\n";
 	break;
     case SIGABRT:
-	amrex::write_to_stderr_without_buffering("SIGABRT");
+	amrex::ErrorStream() << "SIGABRT\n";
 	break;
     }
 

@@ -960,7 +960,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
         }
     }
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     int cnt = 0;
     for (int i = 0; i < nprocs; ++i)
         cnt += v[i].size();
