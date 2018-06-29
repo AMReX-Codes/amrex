@@ -227,14 +227,24 @@ void
 iMultiFab::define (const BoxArray&            bxs,
 		   const DistributionMapping& dm,
 		   int                        nvar,
-		   int                        ngrow,
+		   const IntVect&             ngrow,
 		   const MFInfo&              info,
                    const FabFactory<IArrayBox>& factory)
 {
     this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
 }
 
-
+void
+iMultiFab::define (const BoxArray&            bxs,
+		   const DistributionMapping& dm,
+		   int                        nvar,
+		   int                        ngrow,
+		   const MFInfo&              info,
+                   const FabFactory<IArrayBox>& factory)
+{
+    this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
+}
+    
 const IArrayBox&
 iMultiFab::operator[] (int K) const
 {
