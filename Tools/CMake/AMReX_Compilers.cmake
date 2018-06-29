@@ -74,6 +74,23 @@ function ( set_amrex_compilers )
 	 )	  
    endif ()
 
+   #
+   # Set REQUIRED fortran flags
+   # 
+   target_compile_options ( amrex
+      PRIVATE
+      # GNU 
+      $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
+      -ffixed-line-length-none -ffree-line-length-none -fno-range-check -fno-second-underscore>>
+      # Intel 
+      $<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:Fortran>:
+      -extend_source>>
+      # Cray 
+      $<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:Fortran>:
+      -N 255 -h list=a>>
+      # PGI 
+      $<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:Fortran>:
+      -extend>> )
 
    #
    # Set C++ Flags
@@ -112,6 +129,17 @@ function ( set_amrex_compilers )
 	 )	  
    endif ()
 
+
+   # C++ REQUIRED flags
+   # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
+   # add c++11 support manually in order to have transitive property
+   target_compile_options ( amrex PUBLIC
+      $<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
+      $<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+      $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+      $<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
+
+   
    #
    # Floating-point exceptions flags only if enabled
    # (I think these flags could be added tp both Fortran and
@@ -145,14 +173,6 @@ function ( set_amrex_compilers )
    else ()
       message (AUTHOR_WARNING "Variable ENABLE_FPE is not defined")
    endif ()
-
-   # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
-   # add c++11 support manually in order to have transitive property
-   target_compile_options ( amrex PUBLIC
-      $<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11>>
-      $<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-      $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-      $<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
    
 endfunction () 
 

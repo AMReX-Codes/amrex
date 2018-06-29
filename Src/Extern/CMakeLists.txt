@@ -6,7 +6,7 @@
 add_sources ( amrdata/AMReX_AmrData.H        amrdata/AMReX_XYPlotDataList.H )
 add_sources ( amrdata/AMReX_DataServices.H   amrdata/AMReX_AmrvisConstants.H )
 add_sources ( amrdata/AMReX_AmrData.cpp      amrdata/AMReX_XYPlotDataList.cpp )
-add_sources ( amrdata/AMReX_DataServices.cpp )
+add_sources ( amrdata/AMReX_DataServices.cpp amrdata/AMReX_FABUTIL_${DIM}D.F )
 
 if (ENABLE_PROPARSER)
    add_sources ( amrdata/AMReX_XYPlotDataList.cpp amrdata/AMReX_XYPlotDataList.H )
