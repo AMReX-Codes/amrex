@@ -154,34 +154,34 @@ contains
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), value, intent(in) :: alpha, beta
     integer         , value, intent(in) :: redblack
-    real(amrex_real), intent(inout) ::  phi( hlo(1): hhi(1), hlo(2): hhi(2), hlo(3): hhi(3))
-    real(amrex_real), intent(in   ) ::  rhs( rlo(1): rhi(1), rlo(2): rhi(2), rlo(3): rhi(3))
-    real(amrex_real), intent(in   ) ::    a( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3))
-    real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3))
-    real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
-    real(amrex_real), intent(in   ) ::   bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
-    integer         , intent(in   ) ::   m0(m0lo(1):m0hi(1),m0lo(2):m0hi(2),m0lo(3):m0hi(3))
-    integer         , intent(in   ) ::   m1(m1lo(1):m1hi(1),m1lo(2):m1hi(2),m1lo(3):m1hi(3))
-    integer         , intent(in   ) ::   m2(m2lo(1):m2hi(1),m2lo(2):m2hi(2),m2lo(3):m2hi(3))
-    integer         , intent(in   ) ::   m3(m3lo(1):m3hi(1),m3lo(2):m3hi(2),m3lo(3):m3hi(3))
-    integer         , intent(in   ) ::   m4(m4lo(1):m4hi(1),m4lo(2):m4hi(2),m4lo(3):m4hi(3))
-    integer         , intent(in   ) ::   m5(m5lo(1):m5hi(1),m5lo(2):m5hi(2),m5lo(3):m5hi(3))
-    real(amrex_real), intent(in   ) ::   f0(f0lo(1):f0hi(1),f0lo(2):f0hi(2),f0lo(3):f0hi(3))
-    real(amrex_real), intent(in   ) ::   f1(f1lo(1):f1hi(1),f1lo(2):f1hi(2),f1lo(3):f1hi(3))
-    real(amrex_real), intent(in   ) ::   f2(f2lo(1):f2hi(1),f2lo(2):f2hi(2),f2lo(3):f2hi(3))
-    real(amrex_real), intent(in   ) ::   f3(f3lo(1):f3hi(1),f3lo(2):f3hi(2),f3lo(3):f3hi(3))
-    real(amrex_real), intent(in   ) ::   f4(f4lo(1):f4hi(1),f4lo(2):f4hi(2),f4lo(3):f4hi(3))
-    real(amrex_real), intent(in   ) ::   f5(f5lo(1):f5hi(1),f5lo(2):f5hi(2),f5lo(3):f5hi(3))
-    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
-    real(amrex_real), intent(in   ) :: vfrc( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
-    real(amrex_real), intent(in   ) ::  apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
-    real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
-    real(amrex_real), intent(in   ) ::  apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
+    real(amrex_real), intent(inout) ::  phi( hlo(1): hhi(1), hlo(2): hhi(2), hlo(3): hhi(3)  )
+    real(amrex_real), intent(in   ) ::  rhs( rlo(1): rhi(1), rlo(2): rhi(2), rlo(3): rhi(3)  )
+    real(amrex_real), intent(in   ) ::    a( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3)  )
+    real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3)  )
+    real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3)  )
+    real(amrex_real), intent(in   ) ::   bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3)  )
+    integer         , intent(in   ) ::   m0(m0lo(1):m0hi(1),m0lo(2):m0hi(2),m0lo(3):m0hi(3)  )
+    integer         , intent(in   ) ::   m1(m1lo(1):m1hi(1),m1lo(2):m1hi(2),m1lo(3):m1hi(3)  )
+    integer         , intent(in   ) ::   m2(m2lo(1):m2hi(1),m2lo(2):m2hi(2),m2lo(3):m2hi(3)  )
+    integer         , intent(in   ) ::   m3(m3lo(1):m3hi(1),m3lo(2):m3hi(2),m3lo(3):m3hi(3)  )
+    integer         , intent(in   ) ::   m4(m4lo(1):m4hi(1),m4lo(2):m4hi(2),m4lo(3):m4hi(3)  )
+    integer         , intent(in   ) ::   m5(m5lo(1):m5hi(1),m5lo(2):m5hi(2),m5lo(3):m5hi(3)  )
+    real(amrex_real), intent(in   ) ::   f0(f0lo(1):f0hi(1),f0lo(2):f0hi(2),f0lo(3):f0hi(3)  )
+    real(amrex_real), intent(in   ) ::   f1(f1lo(1):f1hi(1),f1lo(2):f1hi(2),f1lo(3):f1hi(3)  )
+    real(amrex_real), intent(in   ) ::   f2(f2lo(1):f2hi(1),f2lo(2):f2hi(2),f2lo(3):f2hi(3)  )
+    real(amrex_real), intent(in   ) ::   f3(f3lo(1):f3hi(1),f3lo(2):f3hi(2),f3lo(3):f3hi(3)  )
+    real(amrex_real), intent(in   ) ::   f4(f4lo(1):f4hi(1),f4lo(2):f4hi(2),f4lo(3):f4hi(3)  )
+    real(amrex_real), intent(in   ) ::   f5(f5lo(1):f5hi(1),f5lo(2):f5hi(2),f5lo(3):f5hi(3)  )
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3)  )
+    real(amrex_real), intent(in   ) :: vfrc( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3)  )
+    real(amrex_real), intent(in   ) ::  apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3)  )
+    real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3)  )
+    real(amrex_real), intent(in   ) ::  apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3)  )
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
     real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
 
-    integer :: i, j, k, ioff, ii, jj, kk
+    integer :: i, j, k, ioff, joff, ii, jj, kk
     real(amrex_real) :: cf0, cf1, cf2, cf3, cf4, cf5,  delta, gamma, rho 
     real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
     real(amrex_real) :: sxm, sxp, sym, syp, szm, szp
@@ -193,8 +193,10 @@ contains
     if(alpha.ne.zero) call amrex_error("amrex_mlebabeclap_gsrb: todo") 
    
     do       k = lo(3), hi(3) 
-       do    j = lo(2), hi(2) 
-          do i = lo(1), hi(1) 
+       joff    = mod(lo(2)+k+redblack,2)
+       do    j = lo(2)+joff, hi(2), 2
+          ioff = mod(lo(1)+j+redblack,2)
+          do i = lo(1)+ioff, hi(1), 2
              if (is_covered_cell(flag(i,j,k))) then 
                 phi(i,j,k) = zero 
              else 
@@ -246,7 +248,7 @@ contains
                        jj = j + int(sign(one, fcx(i+1,j,k,1)))
                        kk = k + int(sign(one, fcx(i+1,j,k,2)))
                        fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(phi(i+1,jj,k)-phi(i,jj,k)) & 
-                           + fracz*Bx(i+1,j,kk)*(phi(i+1,j,kk)-phi(i,j,kk))
+                           + fracz*bX(i+1,j,kk)*(phi(i+1,j,kk)-phi(i,j,kk))
                        sxp = (one-fracy-fracz)*sxp
                    end if 
                    
@@ -355,12 +357,12 @@ contains
              x(i,j,k) = x(i,j,k) / (alpha*a(i,j,k) + dhx*(bX(i,j,k)+bX(i+1,j,k))   &
                       + dhy*(bY(i,j,k)+bY(i,j+1,k)) + dhz*(bZ(i,j,k)+bZ(i,j,k+1)))
           else if (is_single_valued_cell(flag(i,j,k))) then
-             sxm =  bX(i,j,k  ) * (one-abs(fcx(i  ,j,k,1)+fcx(i  ,j,k,2)))
-             sxp = -bX(i+1,j,k) * (one-abs(fcx(i+1,j,k,1)+fcx(i+1,j,k,2)))
-             sym =  bY(i,j,k  ) * (one-abs(fcy(i,j  ,k,1)+fcy(i,j  ,k,2)))
-             syp = -bY(i,j+1,k) * (one-abs(fcy(i,j+1,k,1)+fcy(i,j+1,k,2)))
-             szm =  bZ(i,j,k  ) * (one-abs(fcz(i,j,k  ,1)+fcz(i,j,k  ,2)))
-             szp = -bZ(i,j,k+1) * (one-abs(fcz(i,j,k+1,1)+fcz(i,j,k+1,2)))
+             sxm =  bX(i,j,k  ) * (one-(abs(fcx(i  ,j,k,1))+abs(fcx(i  ,j,k,2))))
+             sxp = -bX(i+1,j,k) * (one-(abs(fcx(i+1,j,k,1))+abs(fcx(i+1,j,k,2))))
+             sym =  bY(i,j,k  ) * (one-(abs(fcy(i,j  ,k,1))+abs(fcy(i,j  ,k,2))))
+             syp = -bY(i,j+1,k) * (one-(abs(fcy(i,j+1,k,1))+abs(fcy(i,j+1,k,2))))
+             szm =  bZ(i,j,k  ) * (one-(abs(fcz(i,j,k  ,1))+abs(fcz(i,j,k  ,2))))
+             szp = -bZ(i,j,k+1) * (one-(abs(fcz(i,j,k+1,1))+abs(fcz(i,j,k+1,2))))
 
              gamma = alpha*a(i,j,k) + (one/vfrc(i,j,k)) * &
                   (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + & 
