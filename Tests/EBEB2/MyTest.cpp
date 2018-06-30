@@ -5,6 +5,7 @@
 #include <AMReX_EB2_IF_Complement.H>
 #include <AMReX_EB2_IF_Scale.H>
 #include <AMReX_EB2_IF_Translation.H>
+#include <AMReX_EB2_IF_Rotation.H>
 #include <AMReX_EB2_IF_Lathe.H>
 #include <AMReX_EB2_IF_Box.H>
 #include <AMReX_EB2_IF_Cylinder.H>
@@ -182,6 +183,13 @@ MyTest::initializeEB2 ()
         auto gshop = EB2::makeShop(pr);
         EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
     }
+    else if(geom_type == "rotate")
+    {
+	EB2::PlaneIF myplane({AMREX_D_DECL(0.5,0.5,0.5)},{AMREX_D_DECL(1., 1.,0.)}); 
+	auto planerotz = EB2::rotate(myplane, atan(1.)*.25, 2); //rotate plane by pi/16 holding z axis
+	auto gshop = EB2::makeShop(planerotz); 
+	EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level); 
+    } 
     else
     {
         EB2::Build(geom, max_coarsening_level, max_coarsening_level);

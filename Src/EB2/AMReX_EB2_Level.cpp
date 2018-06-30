@@ -1,9 +1,10 @@
 
 #include <AMReX_EB2_Level.H>
+#include <algorithm>
 
 namespace amrex { namespace EB2 {
 
-void
+int
 Level::coarsenFromFine (Level& fineLevel)
 {
     const BoxArray& fine_grids = fineLevel.m_grids;
@@ -78,8 +79,9 @@ Level::coarsenFromFine (Level& fineLevel)
         }
     }
 
+    int error = 0;
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:error)
 #endif
     for (MFIter mfi(m_volfrac,true); mfi.isValid(); ++mfi)
     {
@@ -105,6 +107,7 @@ Level::coarsenFromFine (Level& fineLevel)
         const Box& zbx = mfi.nodaltilebox(2);
 #endif
 
+        int tile_error = 0;
         amrex_eb2_coarsen_from_fine(BL_TO_FORTRAN_BOX( bx),
                                     BL_TO_FORTRAN_BOX(xbx),
                                     BL_TO_FORTRAN_BOX(ybx),
@@ -138,13 +141,16 @@ Level::coarsenFromFine (Level& fineLevel)
                                     BL_TO_FORTRAN_ANYD(f_facecent[2][mfi]),
 #endif
                                     BL_TO_FORTRAN_ANYD(m_cellflag[mfi]),
-                                    BL_TO_FORTRAN_ANYD(f_cellflag[mfi]));
+                                    BL_TO_FORTRAN_ANYD(f_cellflag[mfi]),
+                                    &tile_error);
+        error = std::max(error,tile_error);
     }
 
-    // xxxxx todo
-    // multivalue and multicut detection
+    if (!error) {
+        buildCellFlag();
+    }
 
-    buildCellFlag();
+    return error;
 }
 
 void

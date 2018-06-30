@@ -39,7 +39,7 @@ protected:
 
     Level (const Geometry& geom) : m_geom(geom) {}
  
-    void coarsenFromFine (Level& fineLevel);
+    int coarsenFromFine (Level& fineLevel);
     void buildCellFlag ();
 
     Geometry m_geom;    
@@ -311,7 +311,7 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
 
     if (coarsenable)
     {
-        coarsenFromFine(fineLevel);
+        int error = coarsenFromFine(fineLevel);
     }
     else
     {
