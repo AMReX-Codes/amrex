@@ -10,7 +10,7 @@ list ( APPEND ALLHEADERS AMReX_EB2_IF_Plane.H    AMReX_EB2_IndexSpaceI.H   AMReX
 list ( APPEND ALLHEADERS AMReX_EB2_IF_Cylinder.H AMReX_EB2_IF_Scale.H      AMReX_EB2_Level.H )
 list ( APPEND ALLHEADERS AMReX_EB2.H             AMReX_EB2_IF_Ellipsoid.H  AMReX_EB2_IF_Sphere.H )
 list ( APPEND ALLHEADERS AMReX_EB2_MultiGFab.H   AMReX_EB2_IF_AllRegular.H AMReX_EB2_IF_Intersection.H )
-list ( APPEND AMReX_EB2_IF_Translation.H )
+list ( APPEND AMReX_EB2_IF_Translation.H         AMReX_EB2_IF_Rotation.H )
 
 list ( APPEND CXXSRC  AMReX_EB2.cpp  AMReX_EB2_Level.cpp  AMReX_EB2_MultiGFab.cpp )
 
