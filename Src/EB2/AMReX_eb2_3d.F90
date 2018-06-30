@@ -1057,7 +1057,7 @@ contains
        cbn, cbnlo, cbnhi, fbn, fbnlo, fbnhi, capx, caxlo, caxhi, fapx, faxlo, faxhi, &
        capy, caylo, cayhi, fapy, faylo, fayhi, capz, cazlo, cazhi, fapz, fazlo, fazhi, &
        cfcx, cfxlo, cfxhi, ffcx, ffxlo, ffxhi, cfcy, cfylo, cfyhi, ffcy, ffylo, ffyhi, &
-       cfcz, cfzlo, cfzhi, ffcz, ffzlo, ffzhi, cflag, cflo, cfhi, fflag, fflo, ffhi) &
+       cfcz, cfzlo, cfzhi, ffcz, ffzlo, ffzhi, cflag, cflo, cfhi, fflag, fflo, ffhi, ierr) &
        bind(c, name='amrex_eb2_coarsen_from_fine')
     integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, ylo, yhi, zlo, zhi, &
          cvlo, cvhi,  fvlo, fvhi, cclo, cchi, fclo, fchi, &
@@ -1066,6 +1066,7 @@ contains
          caylo, cayhi, faylo, fayhi, cazlo, cazhi, fazlo, fazhi, &
          cfxlo, cfxhi, ffxlo, ffxhi, cfylo, cfyhi, ffylo, ffyhi, &
          cfzlo, cfzhi, ffzlo, ffzhi, cflo, cfhi, fflo, ffhi
+    integer, intent(inout) :: ierr
     real(amrex_real), intent(inout) :: cvol ( cvlo(1): cvhi(1), cvlo(2): cvhi(2), cvlo(3): cvhi(3))
     real(amrex_real), intent(in   ) :: fvol ( fvlo(1): fvhi(1), fvlo(2): fvhi(2), fvlo(3): fvhi(3))
     real(amrex_real), intent(inout) :: ccent( cclo(1): cchi(1), cclo(2): cchi(2), cclo(3): cchi(3),3)

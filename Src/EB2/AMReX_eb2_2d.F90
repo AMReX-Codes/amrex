@@ -366,7 +366,7 @@ contains
        cbn, cbnlo, cbnhi, fbn, fbnlo, fbnhi, capx, caxlo, caxhi, fapx, faxlo, faxhi, &
        capy, caylo, cayhi, fapy, faylo, fayhi, &
        cfcx, cfxlo, cfxhi, ffcx, ffxlo, ffxhi, cfcy, cfylo, cfyhi, ffcy, ffylo, ffyhi, &
-       cflag, cflo, cfhi, fflag, fflo, ffhi) &
+       cflag, cflo, cfhi, fflag, fflo, ffhi, ierr) &
        bind(c, name='amrex_eb2_coarsen_from_fine')
     integer, dimension(2), intent(in) :: lo, hi, xlo, xhi, ylo, yhi, &
          cvlo, cvhi,  fvlo, fvhi, cclo, cchi, fclo, fchi, &
@@ -375,6 +375,7 @@ contains
          caylo, cayhi, faylo, fayhi, &
          cfxlo, cfxhi, ffxlo, ffxhi, cfylo, cfyhi, ffylo, ffyhi, &
          cflo, cfhi, fflo, ffhi
+    integer, intent(inout) :: ierr
     real(amrex_real), intent(inout) :: cvol ( cvlo(1): cvhi(1), cvlo(2): cvhi(2))
     real(amrex_real), intent(in   ) :: fvol ( fvlo(1): fvhi(1), fvlo(2): fvhi(2))
     real(amrex_real), intent(inout) :: ccent( cclo(1): cchi(1), cclo(2): cchi(2),2)
@@ -396,9 +397,8 @@ contains
     integer         , intent(inout) :: cflag( cflo(1): cfhi(1), cflo(2): cfhi(2))
     integer         , intent(in   ) :: fflag( fflo(1): ffhi(1), fflo(2): ffhi(2))
 
-    integer :: i,j, ii,jj, ftype(2,2), flg
+    integer :: i,j, ii,jj, ftype(2,2), flg, ncells
     real(amrex_real) :: cvolinv, cbainv, nx, ny, nfac, apinv
-
 
     do    j = lo(2), hi(2)
        jj = j*2
@@ -413,6 +413,37 @@ contains
              cvol(i,j) = zero
           else
 
+             ! check for multi-values
+             ncells = 0
+             if (ftype(1,1).ne.covered_cell) then
+                ncells = ncells + 1
+             end if
+             if (ftype(2,1).ne.covered_cell) then
+                if (.not.is_neighbor(fflag(ii+1,jj),-1,0)) then
+                   ncells = ncells + 1
+                end if
+             end if
+             if (ftype(1,2).ne.covered_cell) then
+                if(  .not.is_neighbor(fflag(ii,jj+1),0,-1) .and. &
+                     .not.is_neighbor(fflag(ii,jj+1),1,-1)) then
+                   ncells = ncells +1
+                end if
+             end if
+             if (ftype(2,2).ne.covered_cell) then
+                if ( .not.is_neighbor(fflag(ii+1,jj+1),-1,-1) .and. &
+                     .not.is_neighbor(fflag(ii+1,jj+1), 0,-1) .and. &
+                     .not.is_neighbor(fflag(ii+1,jj+1),-1, 0)) then
+                   ncells = ncells + 1
+                end if
+             end if
+
+             if (ncells .gt. 1) then
+                ierr = 1
+                return
+             else if (ncells .eq. 0) then
+                call amrex_error("amrex_eb2_coarsen_from_fine: how come ncells.eq.0?")
+             end if
+             
              call set_single_valued_cell(cflag(i,j))
 
              cvol(i,j) = fourth*sum(fvol(ii:ii+1,jj:jj+1))
@@ -452,7 +483,8 @@ contains
                   + fbn(ii  ,jj+1,2)*fba(ii  ,jj+1) &
                   + fbn(ii+1,jj+1,2)*fba(ii+1,jj+1)
              if (nx.eq.zero .and. ny.eq.zero) then
-                call amrex_error("amrex_eb2_coarsen_from_fine: undefined boundary normal")
+                ierr = 1
+                return
              end if
              nfac = one/sqrt(nx*nx+ny*ny)
              cbn(i,j,1) = nx*nfac
