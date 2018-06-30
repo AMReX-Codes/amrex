@@ -128,7 +128,8 @@ extern "C" {
                                       const amrex_real* ffcz, const int* ffzlo, const int* ffzhi,
 #endif
                                       const void* cflag, const int* cflo, const int* cfhi,
-                                      const void* fflag, const int* fflo, const int* ffhi);
+                                      const void* fflag, const int* fflo, const int* ffhi,
+                                      int* tile_error);
 
 
     void amrex_eb2_build_cellflag_from_ap (const int* lo, const int*hi,
