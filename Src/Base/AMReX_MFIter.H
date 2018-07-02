@@ -123,7 +123,13 @@ public:
         }
     }
 #else
-    void operator++ () { ++currentIndex; }
+    void operator++ () {
+         ++currentIndex; 
+#ifdef AMREX_USE_CUDA
+         Device::set_stream_index(currentIndex);
+         Device::check_for_errors();
+#endif
+    }
 #endif
 
     //! Is the iterator valid i.e. is it associated with a FAB?

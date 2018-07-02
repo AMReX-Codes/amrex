@@ -146,6 +146,12 @@ MFIter::~MFIter ()
     if ( ! (flags & NoTeamBarrier) )
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
+
+#ifdef AMREX_USE_CUDA
+//    Device::synchronize();
+    Device::check_for_errors();
+    Device::set_stream_index(-1);
+#endif
 }
 
 void 
@@ -237,6 +243,10 @@ MFIter::Initialize ()
 	currentIndex = beginIndex;
 
 	typ = fabArray.boxArray().ixType();
+
+#ifdef AMREX_USE_CUDA
+        Device::set_stream_index(currentIndex);
+#endif
     }
 }
 
