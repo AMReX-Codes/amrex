@@ -20,9 +20,9 @@ dim3 amrex::Device::numThreadsOverride = dim3(1, 1, 1);
 dim3 amrex::Device::numBlocksOverride = dim3(1, 1, 1);
 #endif
 
+#ifdef AMREX_USE_CUDA
 void
 amrex::Device::initialize_cuda_c () {
-
     for (int i = 0; i < max_cuda_streams; ++i)
         CudaAPICheck(cudaStreamCreate(&cuda_streams[i]));
 
@@ -53,7 +53,6 @@ amrex::Device::initialize_cuda_c () {
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
     numBlocksOverride.z = (int) nz;
-
 }
 
 cudaStream_t
@@ -65,7 +64,7 @@ amrex::Device::stream_from_index(int idx) {
         return cuda_streams[idx % max_cuda_streams];
 
 }
-
+#endif
 
 void
 amrex::Device::initialize_device() {
@@ -74,6 +73,8 @@ amrex::Device::initialize_device() {
 
     pp.query("v", verbose);
     pp.query("verbose", verbose);
+
+    device_id = -1;
 
 #ifdef AMREX_USE_CUDA
 
@@ -207,7 +208,6 @@ amrex::Device::initialize_device() {
     // the logic here will still work even if there's only one GPU
     // visible to each rank.
 
-    device_id = -1;
     int j = 0;
     for (auto it = uuid_to_rank.begin(); it != uuid_to_rank.end(); ++it) {
         for (int i = 0; i < it->second.size(); ++i) {
@@ -286,9 +286,8 @@ amrex::Device::set_stream_index(const int idx) {
 
 #ifdef AMREX_USE_CUDA
     set_stream_idx(idx);
-#endif
-
     cuda_stream = cuda_streams[idx % max_cuda_streams + 1];
+#endif
 
 }
 
@@ -309,7 +308,6 @@ void
 amrex::Device::prepare_for_launch(const int* lo, const int* hi) {
 
     // Sets the number of threads and blocks in Fortran.
-
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
     int txmin = numThreadsMin.x;
     int tymin = numThreadsMin.y;
@@ -509,4 +507,3 @@ amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& n
 }
 
 #endif
-
