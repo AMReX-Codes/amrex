@@ -96,7 +96,7 @@ function (configure_amrex)
 
    #
    # Setup OpenMP
-   # 
+   #
    if (ENABLE_OMP)
       find_package (OpenMP REQUIRED)
 
@@ -118,8 +118,8 @@ function (configure_amrex)
 
    else ()
       	 # Cray compiler has OMP turned on by default
-	 target_compile_options ( amrex PUBLIC $<$<C_COMPILER_ID:Cray>:-h noomp> )
-	 target_link_libraries ( amrex PUBLIC $<$<C_COMPILER_ID:Cray>:-h noomp> )
+	 target_compile_options ( amrex PUBLIC "$<$<C_COMPILER_ID:Cray>:-h;noomp>" )
+	 target_link_libraries ( amrex  PUBLIC "$<$<C_COMPILER_ID:Cray>:-h;noomp>" )
    endif()
 
    #
