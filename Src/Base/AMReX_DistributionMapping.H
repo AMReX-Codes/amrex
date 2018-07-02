@@ -120,8 +120,9 @@ class DistributionMapping
     //! Are the distributions different?
     bool operator!= (const DistributionMapping& rhs) const;
 
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
-                         int nprocs);
+    void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts, int nprocs,
+                         int nmax=std::numeric_limits<int>::max(),
+                         bool sort=true);
     void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
                               Real* efficiency = 0,
 			      bool do_full_knapsack = true,
@@ -151,7 +152,9 @@ class DistributionMapping
     static DistributionMapping makeKnapSack   (const Vector<Real>& rcost);
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
-    static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
+    static DistributionMapping makeSFC        (const MultiFab& weight,
+                                               int nmax=std::numeric_limits<int>::max(),
+                                               bool sort=true);
 
     static std::vector<std::vector<int> > makeSFC (const BoxArray& ba);
 
@@ -197,7 +200,9 @@ private:
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
-                              int                      nprocs);
+                              int                      nprocs,
+                              int                      nmax=std::numeric_limits<int>::max(),
+                              bool                     sort=true);
 
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
