@@ -107,7 +107,7 @@ class LSFactory {
         const int get_eb_pad() const {return eb_grid_pad;};
 
         // Return AMR level
-        const int get_amr_level() const {return amr_lev;};
+        int get_amr_level() const {return amr_lev;};
 
 
         // Return BoxArrays:
