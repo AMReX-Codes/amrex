@@ -118,7 +118,9 @@ ifeq ($(USE_MPI3),TRUE)
 endif
 
 
-ifndef USE_CUDA
+ifdef USE_CUDA
+  USE_CUDA := $(strip $(USE_CUDA))
+else
   USE_CUDA = FALSE
 endif
 
