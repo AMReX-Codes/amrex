@@ -1,3 +1,9 @@
+# 18.07
+
+  -- Pre- and post-interpolation hooks in FillPatch.
+
+  -- NDEBUG is no longer defined in xSDK mode.
+
 # 18.06
 
   -- When amrex::Initialize is called, optional std::ostream arguments
