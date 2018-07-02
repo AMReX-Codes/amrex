@@ -1,9 +1,10 @@
 #ifndef CUDAALLOCATORS_H_
 #define CUDAALLOCATORS_H_
 
+#include <memory>
+
 #ifdef AMREX_USE_CUDA
 
-#include <memory>
 #include <iostream>
 #include <limits>
 #include <cuda.h>
@@ -128,6 +129,14 @@ public :
 };
 
 }
+// When not using CUDA, replace with standard allocator.
+// Prevents need to wrap applications in lots of ifdefs.
+#else
+
+template <typename T>
+using CudaManagedAllocator = std::allocator<T>;
+template <typename T>
+using CudaHostAllocator = std::allocator<T>;
 
 #endif // CUDA
 #endif // CUDAMANAGEDALLOCATOR_H_
