@@ -18,11 +18,11 @@ WarpX::LoadBalance ()
         const Real nprocs = ParallelDescriptor::NProcs();
         const int nmax = static_cast<int>(std::ceil(nboxes/nprocs*load_balance_knapsack_factor));
         const DistributionMapping newdm = (load_balance_with_sfc)
-	  ? DistributionMapping::makeSFC(*costs[lev], std::numeric_limits<int>::max(), false)
+	  ? DistributionMapping::makeSFC(*costs[lev], false)
             : DistributionMapping::makeKnapSack(*costs[lev], nmax);
         RemakeLevel(lev, t_new[lev], boxArray(lev), newdm);
     }
-    
+
     mypc->Redistribute();
 }
 
@@ -68,7 +68,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             auto pmf = std::unique_ptr<MultiFab>(new MultiFab(F_fp[lev]->boxArray(),
                                                               dm, 1, ng));
             pmf->Redistribute(*F_fp[lev], 0, 0, 1, ng);
-            F_fp[lev] = std::move(pmf);            
+            F_fp[lev] = std::move(pmf);
         }
 
         if (rho_fp[lev] != nullptr) {
@@ -76,7 +76,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_fp[lev]->boxArray(),
                                                               dm, 1, ng));
             // pmf->Redistribute(*rho_fp[lev], 0, 0, 1, ng);
-            rho_fp[lev] = std::move(pmf);            
+            rho_fp[lev] = std::move(pmf);
         }
 
         // Aux patch
@@ -133,21 +133,21 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                     current_cp[lev][idim] = std::move(pmf);
                 }
             }
-            
+
             if (F_cp[lev] != nullptr) {
                 const IntVect& ng = F_cp[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(F_cp[lev]->boxArray(),
                                                                   dm, 1, ng));
                 pmf->Redistribute(*F_cp[lev], 0, 0, 1, ng);
-                F_cp[lev] = std::move(pmf);            
+                F_cp[lev] = std::move(pmf);
             }
-            
+
             if (rho_cp[lev] != nullptr) {
                 const IntVect& ng = rho_cp[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_cp[lev]->boxArray(),
                                                                   dm, 1, ng));
                 // pmf->Redistribute(*rho_cp[lev], 0, 0, 1, ng);
-                rho_cp[lev] = std::move(pmf);            
+                rho_cp[lev] = std::move(pmf);
             }
         }
 
@@ -163,4 +163,3 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
         amrex::Abort("RemakeLevel: to be implemented");
     }
 }
-
