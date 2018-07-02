@@ -153,8 +153,8 @@ class DistributionMapping
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight,
-                                               int nmax=std::numeric_limits<int>::max(),
-                                               bool sort=true);
+                                               bool sort=true,
+                                               int nmax=std::numeric_limits<int>::max());
 
     static std::vector<std::vector<int> > makeSFC (const BoxArray& ba);
 

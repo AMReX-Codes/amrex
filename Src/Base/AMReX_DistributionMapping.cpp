@@ -1357,7 +1357,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
 }
 
 DistributionMapping
-DistributionMapping::makeSFC (const MultiFab& weight, int nmax, bool sort)
+DistributionMapping::makeSFC (const MultiFab& weight, bool sort, int nmax)
 {
     DistributionMapping r;
 
