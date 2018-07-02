@@ -66,7 +66,8 @@ WarpX::InitDiagnostics () {
         myBFD.reset(new BoostedFrameDiagnostic(zmin_lab,
 					       zmax_lab,
                                                moving_window_v, dt_snapshots_lab,
-                                               num_snapshots_lab, gamma_boost, dt_boost, 
+                                               num_snapshots_lab, gamma_boost,
+                                               t_new[0], dt_boost, 
                                                moving_window_dir));
     }
 }

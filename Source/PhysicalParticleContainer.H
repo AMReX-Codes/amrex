@@ -65,17 +65,30 @@ public:
     virtual void PostRestart () final {}
 
     // Inject particles in Box 'part_box'
-    void AddParticles (int lev);
+    virtual void AddParticles (int lev);
     void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
+
+    void MapParticletoBoostedFrame(amrex::Real& x, amrex::Real& y, amrex::Real& z, std::array<amrex::Real, 3>& u);
 
     void AddGaussianBeam(amrex::Real x_m, amrex::Real y_m, amrex::Real z_m,
                          amrex::Real x_rms, amrex::Real y_rms, amrex::Real z_rms,
                          amrex::Real q_tot, long npart);
 
+    virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
+                                  const amrex::Real z_new, const amrex::Real t_boost, 
+                                  const amrex::Real t_lab, const amrex::Real dt,
+                                  DiagnosticParticles& diagnostic_particles) final;
+    
 protected:
 
     std::string species_name;
     std::unique_ptr<PlasmaInjector> plasma_injector;
+
+    // When true, adjust the transverse particle positions accounting
+    // for the difference between the Lorentz transformed time of the
+    // particle and the time of the boosted frame.
+    bool boost_adjust_transverse_positions = false;
+
 };
 
 #endif

@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 	RealBox realbox{plotbox, dx, xyzmin};
 	int is_per[3] = {0,0,0};
 	Geometry geom{plotbox, &realbox, 0, is_per};
-	std::string plotname{"plt00000"};
+	std::string plotname{"plotfiles/plt00000"};
 	Vector<std::string> varnames{"x", "y", "z", "ux", "uy", "uz", "gamma"};
 	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }

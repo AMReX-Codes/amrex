@@ -71,11 +71,18 @@ extern "C"
 {
 #endif
 
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+    void warpx_copy_attribs(const long* np,
+                            const amrex_real* xp, const amrex_real* yp, const amrex_real* zp,
+                            const amrex_real* uxp, const amrex_real* uyp, const amrex_real* uzp,
+                            amrex_real* xpold, amrex_real* ypold, amrex_real* zpold,
+                            amrex_real* uxpold, amrex_real* uypold, amrex_real* uzpold);
+#endif    
         void WRPX_COPY_SLICE(const int* lo, const int* hi,
                              const amrex_real* tmp, const int* tlo, const int* thi,
                              amrex_real* buf, const int* blo, const int* bhi,
                              const int* ncomp, const int* i_boost, const int* i_lab);
-
+   
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -401,7 +408,8 @@ extern "C"
                                   const amrex_real* fin, const int* ilo, const int* ihi,
                                   const amrex_real* stencil, const int* nsten);
 
-    int parser_initialize_function(const char *str_func, const char *str_var);
+    int parser_initialize_function(const char *str_func, const int len_func,
+                                   const char *str_var, const int len_var);
 
     amrex::Real parser_evaluate_function(const amrex::Real*, const int, const int);
 

@@ -77,7 +77,6 @@ electrons.zmin = -2
 electrons.zmax =  2
 
 electrons.zinject_plane = 0.
-electrons.gammabetabeam_lab_ave = 1.
 electrons.projected = true
 electrons.focused = false
 

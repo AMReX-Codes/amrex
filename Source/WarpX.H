@@ -15,6 +15,8 @@
 #include <AMReX_RealVect.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_LayoutData.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
@@ -88,7 +90,9 @@ public:
     static bool do_boosted_frame_diagnostic;
     static int  num_snapshots_lab;
     static amrex::Real dt_snapshots_lab;
-
+    static bool do_boosted_frame_fields;
+    static bool do_boosted_frame_particles;
+    
     // Boosted frame parameters
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
@@ -373,6 +377,8 @@ private:
 
     int load_balance_int = -1;
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > costs;
+    int load_balance_with_sfc = 0;
+    amrex::Real load_balance_knapsack_factor = 1.24;
 
     // Other runtime parameters
     int verbose = 1;
@@ -386,8 +392,8 @@ private:
 
     std::string restart_chkfile;
 
-    std::string check_file {"chk"};
-    std::string plot_file {"plt"};
+    std::string check_file {"checkpoints/chk"};
+    std::string plot_file {"plotfiles/plt"};
     int check_int = -1;
     int plot_int = -1;
 

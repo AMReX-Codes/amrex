@@ -38,6 +38,8 @@ WarpX::ExchangeWithPmlE (int lev)
 void
 WarpX::UpdateAuxilaryData ()
 {
+    BL_PROFILE("UpdateAuxilaryData()");
+
     const int use_limiter = 0;
 
     for (int lev = 1; lev <= finest_level; ++lev)
@@ -253,6 +255,8 @@ WarpX::FillBoundaryB(int lev)
 void
 WarpX::SyncCurrent ()
 {
+    BL_PROFILE("SyncCurrent()");
+
     // Restrict fine patch current onto the coarse patch, before fine patch SumBoundary
     for (int lev = 1; lev <= finest_level; ++lev) 
     {
