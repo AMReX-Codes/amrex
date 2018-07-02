@@ -537,6 +537,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const FabFactory<FArrayBox>& factory)
 {
     define(bxs, dm, nvar, IntVect(ngrow), info, factory);
+    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
 }
 
 void

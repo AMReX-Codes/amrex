@@ -385,7 +385,7 @@ contains
         integer, dimension(3), intent(in   ) :: phlo, phhi, vlo, vhi, periodic, domlo, domhi, imlo, imhi
         integer,               intent(in   ) :: valid (  vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3)  )
         real(c_real),          intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
-        real(c_real),          intent(  out) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
+        real(c_real),          intent(in   ) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
 
         integer, dimension(3) :: lo, hi
         !-------------------------------------------------------------------------------------------------------------!
