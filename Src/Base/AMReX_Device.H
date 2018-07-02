@@ -167,8 +167,8 @@ private:
 
     static int verbose;
 
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
     static const int max_cuda_streams = 100;
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
     static cudaStream_t cuda_streams[max_cuda_streams];
     static cudaStream_t cuda_stream;
 
