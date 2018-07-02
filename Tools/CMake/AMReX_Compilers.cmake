@@ -27,61 +27,48 @@ function ( set_amrex_compilers )
 	 NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
       message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
    endif ()
-
-   #
-   # Check the same compiler suite is used for all languages
-   # 
-   if (  NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_Fortran_COMPILER_ID}) OR
-	 NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_CXX_COMPILER_ID}) )
-      message ( FATAL_ERROR "C compiler ID does not match Fortran/C++ compiler ID" )
-   endif ()
-
    
    #
-   # Set Fortran Flags
+   # Set Fortran Flags only if not provided by user
    # 
-   if ( CMAKE_Fortran_FLAGS )
-      target_compile_options ( amrex
-	 PUBLIC
-	 $<$<COMPILE_LANGUAGE:Fortran>:${CMAKE_Fortran_FLAGS}> )
-   else () # Set defaults
+   if ( NOT CMAKE_Fortran_FLAGS )
       target_compile_options ( amrex
 	 PUBLIC
 	 # GNU Debug
-	 $<$<CONFIG:Debug>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
-	 -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -finit-real=snan -finit-integer=2147483647>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
+	 -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -finit-real=snan -finit-integer=2147483647>>>>
 	 # GNU Release
-	 $<$<CONFIG:Release>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
-	 -O3>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
+	 >>>>
 	 # Intel Debug
-	 $<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:Fortran>:
-	 -g -O0 -traceback -check bounds,uninit,pointers>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:Fortran>:
+	 -O0 -traceback -check bounds,uninit,pointers>>>>
 	 # Intel Release
-	 $<$<CONFIG:Release>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:Fortran>:
-	 -O3 -ip -qopt-report=5 -qopt-report-phase=vec>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:Fortran>:
+	 -ip -qopt-report=5 -qopt-report-phase=vec>>>>
 	 # Cray Debug
-	 $<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:Fortran>:
-	 -g -O0 -e i >>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:Fortran>:
+	 -O0 -e i>>>>
 	 # Cray Release 
-	 $<$<CONFIG:Release>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:Fortran>:
-	 -O2>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:Fortran>:
+	 >>>>
 	 # PGI Debug
-	 $<$<CONFIG:Debug>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:Fortran>:
-	 -g -O0 -Mbounds -Mchkptr>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:Fortran>:
+	 -O0 -Mbounds -Mchkptr>>>>
 	 # PGI Release
-	 $<$<CONFIG:Release>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:Fortran>:
-	 -gopt -fast>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:Fortran>:
+	 -gopt -fast>>>>
 	 )	  
    endif ()
 
    #
-   # Set REQUIRED fortran flags
+   # Set REQUIRED fortran flags (only amrdata/ needs this)
    # 
    target_compile_options ( amrex
       PRIVATE
       # GNU 
       $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
-      -ffixed-line-length-none -ffree-line-length-none -fno-range-check -fno-second-underscore>>
+      -ffixed-line-length-none>> 
       # Intel 
       $<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:Fortran>:
       -extend_source>>
@@ -93,39 +80,35 @@ function ( set_amrex_compilers )
       -extend>> )
 
    #
-   # Set C++ Flags
+   # Set C++ Flags only if not provided by user
    # 
-   if ( CMAKE_CXX_FLAGS )
-      target_compile_options ( amrex
-	 PUBLIC
-	 $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CXX_FLAGS}> )
-   else () # Set defaults
+   if ( NOT CMAKE_CXX_FLAGS )
       target_compile_options ( amrex
 	 PUBLIC
 	 # GNU Debug
-	 $<$<CONFIG:Debug>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
+	 -O0 -fno-inline -ggdb -Wall -Wno-sign-compare>>>>
 	 # GNU Release
-	 $<$<CONFIG:Release>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O3>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
+	 >>>>
 	 # Intel Debug
-	 $<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -g -O0 -traceback -Wcheck>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
+	 -O0 -traceback -Wcheck>>>>
 	 # Intel Release
-	 $<$<CONFIG:Release>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O3 -ip -qopt-report=5 -qopt-report-phase=vec>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
+	 -ip -qopt-report=5 -qopt-report-phase=vec>>>>
 	 # Cray Debug
-	 $<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -g -O0>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
+	 -O0>>>>
 	 # Cray Release 
-	 $<$<CONFIG:Release>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O2>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
+	 >>>>
 	 # PGI Debug
-	 $<$<CONFIG:Debug>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O0 -Mbounds>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
+	 -O0 -Mbounds>>>>
 	 # PGI Release
-	 $<$<CONFIG:Release>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -gopt -fast>>>
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
+	 -gopt -fast>>>>
 	 )	  
    endif ()
 
@@ -133,7 +116,8 @@ function ( set_amrex_compilers )
    # C++ REQUIRED flags
    # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
    # add c++11 support manually in order to have transitive property
-   target_compile_options ( amrex PUBLIC
+   target_compile_options ( amrex
+      PUBLIC
       $<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
       $<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
       $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>

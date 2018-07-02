@@ -4,7 +4,7 @@
 #
 # Set all the properties (except sources and installation-related)
 # required to build target "amrex".
-# Target "amrex" must exist befroe this function is called.
+# Target "amrex" must exist before this function is called.
 #
 # Author: Michele Rosso
 # Date  : June 26, 2018
@@ -45,10 +45,17 @@ function (configure_amrex)
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
    
+   # 
+   # Location for Fortran modules
+   # 
+   set ( AMREX_Fortran_MODULE_DIR ${PROJECT_BINARY_DIR}/mod_files )
+
+   set_target_properties ( amrex
+      PROPERTIES
+      Fortran_MODULE_DIRECTORY ${AMREX_Fortran_MODULE_DIR} )
    
-   # Include paths for Fortran modules
    target_include_directories ( amrex
-      PUBLIC "$<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>" )
+      PUBLIC "$<BUILD_INTERFACE:${AMREX_Fortran_MODULE_DIR}>" )
    
    #
    # Setup MPI (CMake 3.11 allows to import MPI as an imported TARGET)
@@ -141,7 +148,6 @@ function (print_amrex_configuration_summary)
    if (NOT TARGET amrex)
       message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'set_amrex_defines'" )
    endif ()
-
    
    #
    # Retrieve defines
@@ -160,6 +166,13 @@ function (print_amrex_configuration_summary)
    extract_by_language ( AMREX_FLAGS AMREX_CXX_FLAGS AMREX_Fortran_FLAGS)
    string ( REPLACE ";" " " AMREX_CXX_FLAGS "${AMREX_CXX_FLAGS}" )
    string ( REPLACE ";" " " AMREX_Fortran_FLAGS "${AMREX_Fortran_FLAGS}" )
+
+   # Add base flags
+   string ( TOUPPER "${CMAKE_BUILD_TYPE}"  AMREX_BUILD_TYPE )
+   set (AMREX_CXX_FLAGS  "${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CXX_FLAGS} ${AMREX_CXX_FLAGS}")
+   set (AMREX_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_Fortran_FLAGS} ${AMREX_Fortran_FLAGS}")
+   string (STRIP "${AMREX_CXX_FLAGS}" AMREX_CXX_FLAGS)
+   string (STRIP "${AMREX_Fortran_FLAGS}" AMREX_Fortran_FLAGS)
 
    #
    # Include paths
@@ -219,8 +232,7 @@ macro ( extract_by_language list cxx_list fortran_list )
    #
    # First remove entries related to:
    # 1) a compiler other than the one currently in use
-   # 2) BUILD_INTERFACES keyword
-   # 3) a build type other than the current one
+   # 2) a build type other than the current one
    # 
    set (tmp_list)
    foreach ( item IN ITEMS ${${list}} )
@@ -228,11 +240,8 @@ macro ( extract_by_language list cxx_list fortran_list )
       string (REPLACE ">" "" item ${item} )
       string (REPLACE ":" "" item ${item} )
 
-      # Skip build interface generator expressions 
-      string ( FIND ${item} "BUILD_INTERFACE" idx )
-      if ( ${idx} GREATER -1 )
-	 continue ()
-      endif()
+      # Accept build interface generator expressions 
+      string (REPLACE "BUILD_INTERFACE" "" item ${item})
 
       # Skip genex for compilers other than the one in use
       string ( FIND ${item} "C_COMPILER_ID" idx1 )
