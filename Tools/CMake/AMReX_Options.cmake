@@ -20,15 +20,6 @@ endif ()
 set (__AMREX_OPTIONS__ "")
 
 #
-# Check weather the AMReX_CMakeVariables.cmake
-# has been loaded; abort if not
-#
-if ( NOT ( DEFINED __AMREX_CMAKEVARIABLES__ ) )
-   message ( FATAL_ERROR "AMReX_CMakeVariables.cmake must be included\
-before including AMReX_Options.cmake" )
-endif ()
-
-#
 # Define a macro to check the value of the inputs integer options 
 # 
 macro (print_option var)

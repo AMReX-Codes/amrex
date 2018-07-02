@@ -24,7 +24,7 @@ target_sources ( ${EXENAME}
 
 set_target_properties ( ${EXENAME} PROPERTIES      
    INCLUDE_DIRECTORIES
-   ${INC1} ${INC2} ${INC3}
+   "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/mod_files"
    Fortran_MODULE_DIRECTORY
    ${CMAKE_CURRENT_BINARY_DIR}/mod_files
    RUNTIME_OUTPUT_DIRECTORY

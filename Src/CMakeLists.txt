@@ -83,8 +83,15 @@ endif ()
 # Here we generate AMReX_BuildInfo.cpp
 # If Python < 2.7, script won't work so
 # we do not include this in library
-# 
-if ( NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") )
+#
+#
+# Check for Python >= 2.7: this is needed to build AMReX_BuildInfo.cpp
+# This is not a required package. This provides PYTHONINTERP_FOUND and
+# PYTHON_VERSION_STRING, PYTHON_VERSION_MAJOR and PYTHON_VERSION_MINOR  
+#
+find_package (PythonInterp QUIET)
+
+if ( (NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") ) AND PYTHONINTERP_FOUND )
    add_custom_command(
       COMMAND  ${PROJECT_SOURCE_DIR}/Tools/C_scripts/makebuildinfo_C.py
       --amrex_home "${PROJECT_SOURCE_DIR}"
@@ -101,22 +108,38 @@ endif ()
 #
 # Set property to export public header
 #
-set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}" )
+set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+
 
 #
 # Write and install configure file 
 #
 include(CMakePackageConfigHelpers)
 
-configure_package_config_file ( ${AMREX_CONFIG_INSTALL_INFILE} ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
+configure_package_config_file (
+   ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
+   ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
    INSTALL_DESTINATION bin/cmake/AMReX )
 
-# NO package version for now
-# write_basic_package_version_file ( AMReXConfigVersion.cmake
-#   VERSION ${AMREX_GIT_VERSION}
-#   COMPATIBILITY AnyNewerVersion )
+# 
+# Package version is a modified form of AMREX_GIT_VERSION
+#
+if (AMREX_GIT_VERSION)
+   string (FIND "${AMREX_GIT_VERSION}" "-" IDX REVERSE)
+   string (SUBSTRING "${AMREX_GIT_VERSION}" 0 "${IDX}" AMREX_VERSION)
+   string (FIND "${AMREX_VERSION}" "-" IDX REVERSE)
+   string (SUBSTRING "${AMREX_VERSION}" 0 "${IDX}" AMREX_VERSION )
+   string (REPLACE "-" "." AMREX_VERSION "${AMREX_VERSION}")
 
-install ( FILES ${CMAKE_BINARY_DIR}/AMReXConfig.cmake DESTINATION lib/cmake/AMReX ) 
+   write_basic_package_version_file ( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
+      VERSION ${AMREX_VERSION}
+      COMPATIBILITY AnyNewerVersion )
+endif ()
+
+install ( FILES
+   ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
+   ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
+   DESTINATION lib/cmake/AMReX ) 
 
 #
 # Define install  
@@ -133,16 +156,15 @@ install ( EXPORT AMReXTargets
    DESTINATION lib/cmake/AMReX )
 
 # Install fortran modules
-install ( DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ # Trailing backslash is crucial here!
+get_target_property (AMREX_Fortran_MODULE_DIR amrex Fortran_MODULE_DIRECTORY )
+install ( DIRECTORY ${AMREX_Fortran_MODULE_DIR}/ # Trailing backslash is crucial here!
    DESTINATION include )
 
 # This header in a weird path has to be copied to install includes
 install ( FILES ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
    DESTINATION include )
 
-#
 # Install Tools directory
-#
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/
    DESTINATION Tools 
    USE_SOURCE_PERMISSIONS )

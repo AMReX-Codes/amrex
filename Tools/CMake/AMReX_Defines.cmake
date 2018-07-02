@@ -35,9 +35,11 @@ function ( set_amrex_defines )
 
    # Debug flag
    add_amrex_define ( AMREX_DEBUG NO_LEGACY IF DEBUG )
-   if ( (NOT DEBUG) AND (NOT USE_XSDK_DEFAULTS) )
-      add_amrex_define (NDEBUG)
-   endif ()
+
+   # Let CMake take care of this one
+   # if ( (NOT DEBUG) AND (NOT USE_XSDK_DEFAULTS) )
+   #    add_amrex_define (NDEBUG)
+   # endif ()
 
    # Base profiling options
    add_amrex_define ( AMREX_PROFILING IF ENABLE_BASE_PROFILE )
@@ -80,9 +82,6 @@ function ( set_amrex_defines )
    if (NOT ENABLE_DP)
       add_amrex_define (AMREX_USE_FLOAT)
    endif ()
-
-   # Fortran/C mangling scheme
-   add_amrex_define ( AMREX_FORT_USE_${FORTLINK} )
 
    # Dimensionality
    add_amrex_define ( AMREX_SPACEDIM=${DIM} )
@@ -137,6 +136,27 @@ function ( set_amrex_defines )
 
    endif ()
 
+   # 
+   # Fortran/C mangling scheme
+   # 
+   include ( FortranCInterface )
+   include ( ${FortranCInterface_BINARY_DIR}/Output.cmake )
+
+   set ( FORTLINK "" )
+   
+   if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
+      set (FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
+      message (STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
+   elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
+	 ( FortranCInterface_GLOBAL_CASE STREQUAL "LOWER" ) )
+      set (FORTLINK "UNDERSCORE")
+      message (STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
+   else ()
+      message (AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
+   endif ()
+
+   add_amrex_define ( AMREX_FORT_USE_${FORTLINK} )
+   
 endfunction ()
 
 # 
