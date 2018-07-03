@@ -153,7 +153,11 @@ function (print_amrex_configuration_summary)
    # Retrieve defines
    #
    get_target_property ( AMREX_DEFINES amrex COMPILE_DEFINITIONS )
-   extract_by_language ( AMREX_DEFINES AMREX_CXX_DEFINES AMREX_Fortran_DEFINES )
+   replace_genex ( AMREX_DEFINES AMREX_CXX_DEFINES     LANGUAGE CXX )
+   replace_genex ( AMREX_DEFINES AMREX_Fortran_DEFINES LANGUAGE Fortran )
+
+
+   # extract_by_language ( AMREX_DEFINES AMREX_CXX_DEFINES AMREX_Fortran_DEFINES )
    string (REPLACE " " " -D" AMREX_CXX_DEFINES "-D${AMREX_CXX_DEFINES}" )
    string (REPLACE ";" " -D" AMREX_CXX_DEFINES "${AMREX_CXX_DEFINES}" )
    string (REPLACE " " " -D" AMREX_Fortran_DEFINES "-D${AMREX_Fortran_DEFINES}" )
@@ -163,7 +167,8 @@ function (print_amrex_configuration_summary)
    # Retrieve compile flags
    #
    get_target_property ( AMREX_FLAGS   amrex COMPILE_OPTIONS)
-   extract_by_language ( AMREX_FLAGS AMREX_CXX_FLAGS AMREX_Fortran_FLAGS)
+   replace_genex ( AMREX_FLAGS AMREX_CXX_FLAGS     LANGUAGE CXX )
+   replace_genex ( AMREX_FLAGS AMREX_Fortran_FLAGS LANGUAGE Fortran )
    string ( REPLACE ";" " " AMREX_CXX_FLAGS "${AMREX_CXX_FLAGS}" )
    string ( REPLACE ";" " " AMREX_Fortran_FLAGS "${AMREX_Fortran_FLAGS}" )
 
@@ -178,16 +183,18 @@ function (print_amrex_configuration_summary)
    # Include paths
    #
    get_target_property ( AMREX_INCLUDE_PATHS amrex INTERFACE_INCLUDE_DIRECTORIES )
-   extract_by_language ( AMREX_INCLUDE_PATHS AMREX_CXX_INCLUDE_PATHS AMREX_Fortran_INCLUDE_PATHS)
+   replace_genex ( AMREX_INCLUDE_PATHS AMREX_CXX_INCLUDE_PATHS LANGUAGE CXX )
+   replace_genex ( AMREX_INCLUDE_PATHS AMREX_Fortran_INCLUDE_PATHS LANGUAGE Fortran )
+
 
    #
    # Link libraries
    # 
-   get_target_property ( AMREX_LINK_LINE amrex LINK_LIBRARIES )
+   get_target_property ( TMP amrex LINK_LIBRARIES )
+   replace_genex (TMP AMREX_LINK_LINE)
    if (NOT AMREX_LINK_LINE) # LINK_LIBRARIES property can return "NOT_FOUND"
       set (AMREX_LINK_LINE "")
    endif ()   
-   list ( REMOVE_DUPLICATES AMREX_LINK_LINE )
    string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )
    
    
@@ -208,101 +215,3 @@ function (print_amrex_configuration_summary)
    message( STATUS "   Link line                = ${AMREX_LINK_LINE}") 
 
 endfunction ()
-
-
-#
-#  Helper macro to differentiate configuration options
-#  by language
-# 
-macro ( extract_by_language list cxx_list fortran_list )
-
-   #
-   # Re-position list separators to reshape list 
-   # 
-
-   # Replace all ; with a place holder (*)
-   string ( REPLACE ";" "*" ${list} "${${list}}" )
-
-   # Add list delimiter only where it suits us
-   string ( REPLACE ">*" ">;" ${list} "${${list}}" )
-   string ( REPLACE "*$" ";$" ${list} "${${list}}" )
-   string ( REPLACE "*/" ";/" ${list} "${${list}}" )
-   string ( REPLACE "*" " "   ${list} "${${list}}" )
-   
-   #
-   # First remove entries related to:
-   # 1) a compiler other than the one currently in use
-   # 2) a build type other than the current one
-   # 
-   set (tmp_list)
-   foreach ( item IN ITEMS ${${list}} )
-      string (REPLACE "$<" "" item ${item} )
-      string (REPLACE ">" "" item ${item} )
-      string (REPLACE ":" "" item ${item} )
-
-      # Accept build interface generator expressions 
-      string (REPLACE "BUILD_INTERFACE" "" item ${item})
-
-      # Skip genex for compilers other than the one in use
-      string ( FIND ${item} "C_COMPILER_ID" idx1 )
-      if ( ${idx1} GREATER -1 )
-	 string ( FIND ${item} "${CMAKE_C_COMPILER_ID}" idx2 )
-	 if ( ${idx2} GREATER -1 )
-	    string (REPLACE "C_COMPILER_ID${CMAKE_C_COMPILER_ID}" "" item ${item} )
-	 else ()
-	    continue ()
-	 endif ()
-      endif ()
-
-      string (FIND ${item} "CONFIG" idx3 )
-      if ( ${idx3} GREATER -1 )
-	 string (FIND ${item} "${CMAKE_BUILD_TYPE}" idx4)
-	 if ( ${idx4} GREATER -1 )
-	    string (REPLACE "CONFIG${CMAKE_BUILD_TYPE}" "" item ${item} )
-	 else ()
-	    continue ()
-	 endif () 
-      endif ()
-
-      # Now item should be ok to be added to final list
-      list (APPEND tmp_list ${item})
-      
-   endforeach ()
-   
-   set (${fortran_list})
-   set (${cxx_list})
-   
-   foreach ( item IN ITEMS ${tmp_list} )
-
-      string ( FIND ${item} "COMPILE_LANGUAGEFortran" idx1 )
-      string ( FIND ${item} "COMPILE_LANGUAGECXX"     idx2 )
-      string ( FIND ${item} "COMPILE_LANGUAGEC"       idx3 )
-      
-      if ( ${idx1} GREATER -1 )
-	 string (REPLACE "COMPILE_LANGUAGEFortran" "" item ${item} )
-	 if ( NOT ( item STREQUAL "") )
-   	    list ( APPEND ${fortran_list} ${item} )
-	 endif ()
-      elseif ( ${idx2} GREATER -1)
-	 string (REPLACE "COMPILE_LANGUAGECXX" "" item ${item} )
-	 if ( NOT ( item STREQUAL "") )
-   	    list ( APPEND ${cxx_list} ${item} )
-	 endif ()
-      elseif ( ${idx3} GREATER -1 )
-      else ()
-	 list ( APPEND ${cxx_list} ${item} )
-	 list ( APPEND ${fortran_list} ${item} )	    
-      endif () 
-     
-   endforeach ()
-
-   if (${cxx_list})
-      list ( REMOVE_DUPLICATES ${cxx_list} )
-   endif ()
-   if (${fortran_list})
-      list ( REMOVE_DUPLICATES ${fortran_list} )
-   endif ()
-   
-   unset (tmp_list)
-   
-endmacro ()
