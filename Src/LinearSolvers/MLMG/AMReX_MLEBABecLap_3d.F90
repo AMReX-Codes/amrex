@@ -63,7 +63,7 @@ contains
                 fxm = bX(i,j,k)*(x(i,j,k) - x(i-1,j,k))
                 if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
                     fracy = abs(fcx(i,j,k,1))
-                    fracz = abs(fcz(i,j,k,2))
+                    fracz = abs(fcx(i,j,k,2))
                     jj = j + int(sign(one, fcx(i,j,k,1)))
                     kk = k + int(sign(one, fcx(i,j,k,2)))
                     fxm = (one-fracy-fracz)*fxm + fracy*bX(i,jj,k)*(x(i,jj,k)-x(i-1,jj,k)) + & 
@@ -181,7 +181,7 @@ contains
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
     real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
 
-    integer :: i, j, k, ioff, joff, ii, jj, kk
+    integer :: i, j, k, ioff, ii, jj, kk
     real(amrex_real) :: cf0, cf1, cf2, cf3, cf4, cf5,  delta, gamma, rho 
     real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
     real(amrex_real) :: sxm, sxp, sym, syp, szm, szp
@@ -193,8 +193,7 @@ contains
     if(alpha.ne.zero) call amrex_error("amrex_mlebabeclap_gsrb: todo") 
    
     do       k = lo(3), hi(3) 
-       joff    = mod(lo(2)+k+redblack,2)
-       do    j = lo(2)+joff, hi(2), 2
+        do    j = lo(2), hi(2)
           ioff = mod(lo(1)+j+redblack,2)
           do i = lo(1)+ioff, hi(1), 2
              if (is_covered_cell(flag(i,j,k))) then 
