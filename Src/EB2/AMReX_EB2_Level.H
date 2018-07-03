@@ -322,11 +322,12 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
 
     if (coarsenable)
     {
-        m_ok = coarsenFromFine(fineLevel);
+        int ierr = coarsenFromFine(fineLevel);
+        m_ok = ierr == 0;
     }
     else
     {
-        amrex::Abort("GShopLevel: todo");
+        m_ok = false;
     }
 }
 
