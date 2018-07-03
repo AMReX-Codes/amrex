@@ -116,6 +116,13 @@ set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 #
 include(CMakePackageConfigHelpers)
 
+# File for install tree
+configure_package_config_file (
+   ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
+   ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
+   INSTALL_DESTINATION bin/cmake/AMReX )
+
+# File for build tree
 configure_package_config_file (
    ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
    ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
@@ -137,7 +144,7 @@ if (AMREX_GIT_VERSION)
 endif ()
 
 install ( FILES
-   ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
+   ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
    ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
    DESTINATION lib/cmake/AMReX ) 
 
@@ -170,12 +177,12 @@ install (DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/
    USE_SOURCE_PERMISSIONS )
 
 
-#
-# Export targets in build-tree ( so third-party can use amrex without installing???)
-# Check this
-# 
-# export ( TARGETS
-#          amrex
-# 	 NAMESPACE AMReX::
-# 	 FILE "${CMAKE_BINARY_DIR}/AMReXTargets.cmake" )
+
+#Export targets in build-tree ( so third-party can use amrex without installing???)
+#Check this
+
+export ( TARGETS
+         amrex
+	 NAMESPACE AMReX::
+	 FILE "${CMAKE_BINARY_DIR}/AMReXTargets.cmake" )
 

@@ -295,3 +295,89 @@ macro ( set_default_config_flags )
    
 endmacro ()
 
+
+
+
+
+#
+#  Helper macro to replace genex from list 
+# 
+macro (replace_genex input_list output_list )
+
+   cmake_parse_arguments ( ARG "" "LANGUAGE" "" ${ARGN} )
+
+   set (tmp_list ${${input_list}})
+   
+   # Replace all ; with a place holder (*)
+   string ( REPLACE ";" "*" tmp_list "${tmp_list}" )
+
+   # Add tmp_list delimiter only where it suits us
+   string ( REPLACE ">*" ">;" tmp_list "${tmp_list}" )
+   string ( REPLACE "*$" ";$" tmp_list "${tmp_list}" )
+   string ( REPLACE "*/" ";/" tmp_list "${tmp_list}" )
+   string ( REPLACE "*" " "   tmp_list "${tmp_list}" )
+   
+   #
+   # First remove entries related to:
+   # 1) a compiler other than the one currently in use
+   # 2) a build type other than the current one
+   # 
+   foreach ( item IN ITEMS ${tmp_list} )
+      string (REPLACE "$<" "" item ${item} )
+      string (REPLACE ">" "" item ${item} )
+      string (REPLACE ":" "" item ${item} )
+
+      # Accept build interface generator expressions 
+      string (REPLACE "BUILD_INTERFACE" "" item ${item})
+
+      # Skip genex for compilers other than the one in use
+      string ( FIND ${item} "C_COMPILER_ID" idx1 )
+      if ( ${idx1} GREATER -1 )
+   	 string ( FIND ${item} "${CMAKE_C_COMPILER_ID}" idx2 )
+   	 if ( ${idx2} GREATER -1 )
+   	    string (REPLACE "C_COMPILER_ID${CMAKE_C_COMPILER_ID}" "" item ${item} )
+   	 else ()
+   	    continue ()
+   	 endif ()
+      endif ()
+
+      string (FIND ${item} "CONFIG" idx3 )
+      if ( ${idx3} GREATER -1 )
+   	 string (FIND ${item} "${CMAKE_BUILD_TYPE}" idx4)
+   	 if ( ${idx4} GREATER -1 )
+   	    string (REPLACE "CONFIG${CMAKE_BUILD_TYPE}" "" item ${item} )
+   	 else ()
+   	    continue ()
+   	 endif () 
+      endif ()
+
+      # Extract by Language part
+      if ( ARG_LANGUAGE )
+	 string ( FIND ${item} "COMPILE_LANGUAGE" idx1 )
+	 if (${idx1} GREATER -1)
+	    if (${ARG_LANGUAGE} STREQUAL Fortran )
+	       string ( FIND ${item} "Fortran" idx2 )
+	       if ( ${idx2} GREATER -1)
+		  string (REPLACE "COMPILE_LANGUAGEFortran" "" item ${item} )
+	       else()
+		  continue ()
+	       endif ()
+	    elseif (${ARG_LANGUAGE} STREQUAL CXX)
+	       string ( FIND ${item} "CXX" idx2 )
+	       if ( ${idx2} GREATER -1)
+		  string (REPLACE "COMPILE_LANGUAGECXX" "" item ${item} )
+	       else()
+		  continue ()
+	       endif ()
+	    endif ()
+	 endif ()	    
+      endif ()
+            
+      # Now item should be ok to be added to final list
+      list ( APPEND ${output_list} ${item})
+      
+   endforeach ()
+
+   list (REMOVE_DUPLICATES ${output_list} )
+   
+endmacro ()
