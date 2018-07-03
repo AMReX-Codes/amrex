@@ -20,7 +20,7 @@ module amrex_eb2_3d_module
 
   private
   public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
-       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap
+       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap, amrex_eb2_check_mvmc
 
 contains
 
@@ -1406,4 +1406,14 @@ contains
     end do
   end subroutine amrex_eb2_build_cellflag_from_ap
 
+
+  subroutine amrex_eb2_check_mvmc (cclo, cchi, ndlo, ndhi, cls, clo, chi, fls, flo, fhi, ierr) &
+       bind(c,name='amrex_eb2_check_mvmc')
+    integer, dimension(3), intent(in) :: cclo, cchi, ndlo, ndhi, clo, chi, flo, fhi
+    real(amrex_real), intent(inout) :: cls(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(amrex_real), intent(in   ) :: fls(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    integer, intent(inout) :: ierr
+    
+  end subroutine amrex_eb2_check_mvmc
+  
 end module amrex_eb2_3d_module
