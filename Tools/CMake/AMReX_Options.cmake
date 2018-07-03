@@ -84,7 +84,7 @@ print_option ( BUILD_SHARED_LIBS )
 print_option ( CMAKE_INSTALL_PREFIX )
 
 
-set (DIM 3 CACHE INT "Dimension of AMReX build")
+set (DIM 3 CACHE STRING "Dimension of AMReX build")
 if ( (${DIM} GREATER 3) OR (${DIM} LESS 1) )
    message ( FATAL_ERROR "DIM must be either 1, 2 or 3.")
 endif ()
