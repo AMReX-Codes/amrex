@@ -54,11 +54,11 @@ contains
               else if (is_regular_cell(flag(i,j,k))) then 
                  y(i,j,k) = alpha*a(i,j,k)*x(i,j,k) & 
                             - dhx * (bX(i+1,j,k)*(x(i+1,j,k) - x(i  ,j,k))  & 
-                                    -bX(i  ,j,k)*(x(i  ,j,k) - x(i-1,j,k))) & 
+                            &       -bX(i  ,j,k)*(x(i  ,j,k) - x(i-1,j,k))) & 
                             - dhy * (bY(i,j+1,k)*(x(i,j+1,k) - x(i,j  ,k))  &
-                                    -bY(i,j  ,k)*(x(i,j  ,k) - x(i,j-1,k))) &
+                            &       -bY(i,j  ,k)*(x(i,j  ,k) - x(i,j-1,k))) &
                             - dhz * (bZ(i,j,k+1)*(x(i,j,k+1) - x(i,j,k  ))  & 
-                                    -bZ(i,j,k  )*(x(i,j,k  ) - x(i,j,k-1)))
+                            &       -bZ(i,j,k  )*(x(i,j,k  ) - x(i,j,k-1)))
               else 
                 fxm = bX(i,j,k)*(x(i,j,k) - x(i-1,j,k))
                 if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
@@ -77,7 +77,7 @@ contains
                     jj = j + int(sign(one,fcx(i+1,j,k,1)))
                     kk = k + int(sign(one,fcx(i+1,j,k,2)))
                     fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(x(i+1,jj,k)-x(i,jj,k)) + & 
-                           fracz*bX(i,j,kk)*(x(i+1,j,kk)-x(i,j,kk))
+                           fracz*bX(i+1,j,kk)*(x(i+1,j,kk)-x(i,j,kk))
                 endif 
 
                 fym = bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
@@ -103,7 +103,7 @@ contains
                 fzm = bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
                 if (apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
                     fracx = abs(fcz(i,j,k,1))
-                    fracx = abs(fcz(i,j,k,2))
+                    fracy = abs(fcz(i,j,k,2))
                     ii = i + int(sign(one,fcz(i,j,k,1)))
                     jj = j + int(sign(one,fcz(i,j,k,2)))
                     fzm = (one-fracx-fracy)*fzm + fracx*bZ(ii,jj,k)*(x(ii,j,k) - x(ii,j,k-1)) + & 
@@ -194,7 +194,7 @@ contains
    
     do       k = lo(3), hi(3) 
         do    j = lo(2), hi(2)
-          ioff = mod(lo(1)+j+redblack,2)
+          ioff = mod(lo(1)+k+j+redblack,2)
           do i = lo(1)+ioff, hi(1), 2
              if (is_covered_cell(flag(i,j,k))) then 
                 phi(i,j,k) = zero 
@@ -363,8 +363,9 @@ contains
              szm =  bZ(i,j,k  ) * (one-(abs(fcz(i,j,k  ,1))+abs(fcz(i,j,k  ,2))))
              szp = -bZ(i,j,k+1) * (one-(abs(fcz(i,j,k+1,1))+abs(fcz(i,j,k+1,2))))
 
-             gamma = alpha*a(i,j,k) + (one/vfrc(i,j,k)) * &
-                  (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + & 
+             gamma =  alpha*a(i,j,k) + (one/vfrc(i,j,k)) * &
+                  (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
+                   dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + & 
                    dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
 
              x(i,j,k) = x(i,j,k) / gamma
