@@ -1258,6 +1258,7 @@ end module mod_interpret
 MODULE parser_wrapper
 USE iso_c_binding
 USE amrex_fort_module, only : amrex_real
+USE amrex_error_module, only : amrex_error
 USE mod_interpret, only : nb_res, table_of_res, calc_res, eval_res, csv2list
 
 IMPLICIT NONE
