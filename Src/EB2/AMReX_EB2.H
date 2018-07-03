@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <memory>
 #include <type_traits>
+#include <string>
 
 namespace amrex { namespace EB2 {
 
@@ -32,6 +33,7 @@ public:
     static int size () { return m_instance.size(); }
 
     virtual const Level& getLevel (const Geometry&) const = 0;
+    virtual int maxCoarseningLevel () const = 0;
 
 protected:
     static Vector<std::unique_ptr<IndexSpace> > m_instance;
@@ -54,6 +56,7 @@ public:
     virtual ~IndexSpaceImp () {}
 
     virtual const Level& getLevel (const Geometry& geom) const final;
+    virtual int maxCoarseningLevel () const final { return m_gslevel.size(); }
 
     using F = typename G::FunctionType;
 
@@ -83,6 +86,8 @@ void Build (const Geometry& geom,
 
 const Level& getLevel (const Geometry& geom);
 
+int maxCoarseningLevel ();
+        
 }}
 
 #endif

@@ -28,6 +28,7 @@ class Level
 public:
 
     bool isAllRegular () const { return m_allregular; }
+    bool isOK () const { return m_ok; }
     void fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const;
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
     void fillCentroid (MultiCutFab& centroid, const Geometry& geom) const;
@@ -57,6 +58,7 @@ protected:
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
     bool m_allregular = false;
+    bool m_ok = false;
 };
 
 template <typename G>
@@ -74,6 +76,7 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
 {
     if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
         m_allregular = true;
+        m_ok = true;
         return;
     }
 
@@ -108,6 +111,8 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
     if (cut_boxes.empty()) {
         m_grids = BoxArray();
         m_dmap = DistributionMapping();
+        m_allregular = true;
+        m_ok = true;
         return;
     }
 
@@ -290,6 +295,8 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
     }
 
     m_levelset = m_mgf.getLevelSet();
+
+    m_ok = true;
 }
 
 
@@ -299,6 +306,7 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
 {
     if (fineLevel.isAllRegular()) {
         m_allregular = true;
+        m_ok = true;
         return;
     }
 
@@ -314,18 +322,13 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
 
     if (coarsenable)
     {
-        int error = coarsenFromFine(fineLevel);
-        if (error) {
-            amrex::Abort("coarsenFromFine error");
-        }
+        m_ok = coarsenFromFine(fineLevel);
     }
     else
     {
         amrex::Abort("GShopLevel: todo");
     }
 }
-
-
 
 }}
 

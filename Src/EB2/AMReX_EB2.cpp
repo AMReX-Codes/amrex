@@ -138,4 +138,10 @@ getLevel (const Geometry& geom)
     return IndexSpace::top().getLevel(geom);
 }
 
+int
+maxCoarseningLevel ()
+{
+    return IndexSpace::top().maxCoarseningLevel();
+}
+
 }}
