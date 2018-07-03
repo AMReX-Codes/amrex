@@ -91,7 +91,7 @@ Distribution across MPI ranks and parallelization
     If this is `0` (default): the Knapsack algorithm is used instead.
 
 * ``warpx.do_dynamic_scheduling`` (`0` or `1`)
-    Whether to use OpenMP dynamic scheduling.
+    Whether to activate OpenMP dynamic scheduling. (Activated by default)
 
 Math parser and user-defined constants
 --------------------------------------
