@@ -122,11 +122,11 @@ configure_package_config_file (
    ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
    INSTALL_DESTINATION bin/cmake/AMReX )
 
-# File for build tree
-configure_package_config_file (
-   ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
-   ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
-   INSTALL_DESTINATION bin/cmake/AMReX )
+# # File for build tree
+# configure_package_config_file (
+#    ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
+#    ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
+#    INSTALL_DESTINATION bin/cmake/AMReX )
 
 # 
 # Package version is a modified form of AMREX_GIT_VERSION
@@ -178,11 +178,11 @@ install (DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/
 
 
 
-#Export targets in build-tree ( so third-party can use amrex without installing???)
-#Check this
+# #Export targets in build-tree ( so third-party can use amrex without installing???)
+# #Check this
 
-export ( TARGETS
-         amrex
-	 NAMESPACE AMReX::
-	 FILE "${CMAKE_BINARY_DIR}/AMReXTargets.cmake" )
+# export ( TARGETS
+#          amrex
+# 	 NAMESPACE AMReX::
+# 	 FILE "${CMAKE_BINARY_DIR}/AMReXTargets.cmake" )
 
