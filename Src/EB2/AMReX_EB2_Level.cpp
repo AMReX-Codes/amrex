@@ -14,6 +14,26 @@ Level::coarsenFromFine (Level& fineLevel)
     m_covered_grids = amrex::coarsen(fine_covered_grids, 2);
     m_dmap = fine_dmap;
 
+    auto const& f_levelset = fineLevel.m_levelset;
+    m_levelset.define(amrex::convert(m_grids,IntVect::TheNodeVector()), m_dmap, 1, 0);
+    int mvmc_error = 0;
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:mvmc_error)
+#endif
+    for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
+    {
+        const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
+        const Box& ndbx = mfi.tilebox();
+        int tile_error = 0;
+        amrex_eb2_check_mvmc(BL_TO_FORTRAN_BOX(ccbx),
+                             BL_TO_FORTRAN_BOX(ndbx),
+                             BL_TO_FORTRAN_ANYD(m_levelset[mfi]),
+                             BL_TO_FORTRAN_ANYD(f_levelset[mfi]),
+                             &tile_error);
+        mvmc_error = std::max(mvmc_error, tile_error);
+    }
+    if (mvmc_error) return mvmc_error;
+    
     const int ng = 2;
     m_cellflag.define(m_grids, m_dmap, 1, ng);
     m_volfrac.define(m_grids, m_dmap, 1, ng);
