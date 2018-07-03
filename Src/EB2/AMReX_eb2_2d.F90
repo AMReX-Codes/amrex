@@ -19,7 +19,7 @@ module amrex_eb2_2d_moudle
 
   private
   public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
-       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap
+       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap, amrex_eb2_check_mvmc
 
 contains
 
@@ -397,7 +397,7 @@ contains
     integer         , intent(inout) :: cflag( cflo(1): cfhi(1), cflo(2): cfhi(2))
     integer         , intent(in   ) :: fflag( fflo(1): ffhi(1), fflo(2): ffhi(2))
 
-    integer :: i,j, ii,jj, ftype(2,2), flg, ncells
+    integer :: i,j, ii,jj, ftype(2,2)
     real(amrex_real) :: cvolinv, cbainv, nx, ny, nfac, apinv
 
     do    j = lo(2), hi(2)
@@ -412,38 +412,6 @@ contains
              call set_covered_cell(cflag(i,j))
              cvol(i,j) = zero
           else
-
-             ! check for multi-values
-             ncells = 0
-             if (ftype(1,1).ne.covered_cell) then
-                ncells = ncells + 1
-             end if
-             if (ftype(2,1).ne.covered_cell) then
-                if (.not.is_neighbor(fflag(ii+1,jj),-1,0)) then
-                   ncells = ncells + 1
-                end if
-             end if
-             if (ftype(1,2).ne.covered_cell) then
-                if(  .not.is_neighbor(fflag(ii,jj+1),0,-1) .and. &
-                     .not.is_neighbor(fflag(ii,jj+1),1,-1)) then
-                   ncells = ncells +1
-                end if
-             end if
-             if (ftype(2,2).ne.covered_cell) then
-                if ( .not.is_neighbor(fflag(ii+1,jj+1),-1,-1) .and. &
-                     .not.is_neighbor(fflag(ii+1,jj+1), 0,-1) .and. &
-                     .not.is_neighbor(fflag(ii+1,jj+1),-1, 0)) then
-                   ncells = ncells + 1
-                end if
-             end if
-
-             if (ncells .gt. 1) then
-                ierr = 1
-                return
-             else if (ncells .eq. 0) then
-                call amrex_error("amrex_eb2_coarsen_from_fine: how come ncells.eq.0?")
-             end if
-             
              call set_single_valued_cell(cflag(i,j))
 
              cvol(i,j) = fourth*sum(fvol(ii:ii+1,jj:jj+1))
@@ -574,5 +542,47 @@ contains
        end do
     end do
   end subroutine amrex_eb2_build_cellflag_from_ap
+
+  
+  subroutine amrex_eb2_check_mvmc (cclo, cchi, ndlo, ndhi, cls, clo, chi, fls, flo, fhi, ierr) &
+       bind(c,name='amrex_eb2_check_mvmc')
+    integer, dimension(2), intent(in) :: cclo, cchi, ndlo, ndhi, clo, chi, flo, fhi
+    real(amrex_real), intent(inout) :: cls(clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fls(flo(1):fhi(1),flo(2):fhi(2))
+    integer, intent(inout) :: ierr
+
+    integer :: i,j, ii, jj, ncuts
+
+    do    j = ndlo(2), ndhi(2)
+       do i = ndlo(1), ndhi(1)
+          cls(i,j) = fls(2*i,2*j)
+       end do
+    end do
+
+    do    j = cclo(2), cchi(2)
+       jj = 2*j
+       do i = cclo(1), cchi(1)
+          ii = 2*i
+          ncuts = 0
+          if (has_cut(fls(ii  ,jj  ),fls(ii+1,jj  ))) ncuts = ncuts+1
+          if (has_cut(fls(ii+1,jj  ),fls(ii+2,jj  ))) ncuts = ncuts+1
+          if (has_cut(fls(ii  ,jj+2),fls(ii+1,jj+2))) ncuts = ncuts+1
+          if (has_cut(fls(ii+1,jj+2),fls(ii+2,jj+2))) ncuts = ncuts+1
+          if (has_cut(fls(ii  ,jj  ),fls(ii  ,jj+1))) ncuts = ncuts+1
+          if (has_cut(fls(ii  ,jj+1),fls(ii  ,jj+2))) ncuts = ncuts+1
+          if (has_cut(fls(ii+2,jj  ),fls(ii+2,jj+1))) ncuts = ncuts+1
+          if (has_cut(fls(ii+2,jj+1),fls(ii+2,jj+2))) ncuts = ncuts+1
+          if (ncuts .ne. 0 .and. ncuts .ne. 2) then
+             ierr = 2
+          end if
+       end do
+    end do
+  contains
+    pure function has_cut(a,b)
+      real(amrex_real), intent(in) :: a,b
+      logical has_cut
+      has_cut = (a.ge.zero .and. b.lt.zero) .or. (b.ge.zero .and. a.lt.zero)
+    end function has_cut
+  end subroutine amrex_eb2_check_mvmc
 
 end module amrex_eb2_2d_moudle

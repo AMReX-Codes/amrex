@@ -47,6 +47,7 @@ protected:
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
     MultiGFab m_mgf;
+    MultiFab m_levelset;
     FabArray<EBCellFlagFab> m_cellflag;
     MultiFab m_volfrac;
     MultiFab m_centroid;
@@ -287,6 +288,8 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
 #endif
         }
     }
+
+    m_levelset = m_mgf.getLevelSet();
 }
 
 
@@ -312,6 +315,9 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
     if (coarsenable)
     {
         int error = coarsenFromFine(fineLevel);
+        if (error) {
+            amrex::Abort("coarsenFromFine error");
+        }
     }
     else
     {

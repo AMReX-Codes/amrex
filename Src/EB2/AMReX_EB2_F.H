@@ -141,6 +141,12 @@ extern "C" {
                                            void* flag, const int* flo, const int* fhi);
     
 
+    void amrex_eb2_check_mvmc (const int* cclo, const int* cchi,
+                               const int* ndlo, const int* ndhi,
+                               amrex_real* cls, const int* clo, const int* chi,
+                               const amrex_real* fls, const int* flo, const int* fhi,
+                               int* error);
+
 #ifdef __cplusplus
 }
 #endif
