@@ -50,9 +50,9 @@ contains
 
     else
 
-       write(6,*) "AMREX_SETVOLUME not define for coord = ",coord
+!       write(6,*) "AMREX_SETVOLUME not define for coord = ",coord
 
-       call bl_abort(" ")
+       call bl_abort("AMREX_SETVOLUME not define for coord")
 
     end if
        
@@ -96,8 +96,8 @@ contains
        else if (dir .eq. 2) then
           fa = dx(1)*dx(2)
        else
-          write(6,*) "AMREX_SETAREA: invalid dir = ",dir
-          call bl_abort(" ")
+!          write(6,*) "AMREX_SETAREA: invalid dir = ",dir
+          call bl_abort("AMREX_SETAREA: invalid dir")
        end if
 
        do k = reg_l3, reg_h3
@@ -110,8 +110,8 @@ contains
 
     else
 
-       write(6,*) "AMREX_SETAREA not define for coord = ",coord
-       call bl_abort(" ")
+!       write(6,*) "AMREX_SETAREA not define for coord = ",coord
+       call bl_abort("AMREX_SETAREA not define for coord")
 
     end if
        
@@ -156,8 +156,7 @@ contains
 
     else 
 
-       write(6,*)' non-cartesian not allowed in 3D yet'
-       call bl_abort(" ")
+       call bl_abort("non-cartesian not allowed in 3D yet")
 
     endif
 

@@ -22,7 +22,7 @@ using std::ios;
 #include "DebugDump.H"
 #include <iomanip>
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
 #include <TV_TempWrite.H>
 #endif
 

@@ -289,8 +289,10 @@ contains
                 end if
 
                 if (ncuts .gt. 2) then
+#ifdef AMREX_DEBUG
                    print *, "ncuts = ", i,j,k,ncuts
                    flush(6)
+#endif
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not suported")
                 end if
 
@@ -402,8 +404,10 @@ contains
                 end if
 
                 if (ncuts .gt. 2) then
+#ifdef AMREX_DEBUG
                    print *, "ncuts = ", i,j,k,ncuts
                    flush(6)
+#endif
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 end if
 
@@ -516,8 +520,10 @@ contains
                 end if
 
                 if (ncuts .gt. 2) then
+#ifdef AMREX_DEBUG
                    print *, "ncuts = ", i,j,k,ncuts
                    flush(6)
+#endif
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 end if
 
@@ -740,7 +746,9 @@ contains
                      ayp .ge. half .and. ayp .lt. one .and. &
                      azm .ge. half .and. azm .lt. one .and. &
                      azp .ge. half .and. azp .lt. one ) then
+#ifdef AMREX_DEBUG
                    print *, "amrex_eb2_build_cells: multiple cuts in cell ", i,j,k
+#endif
                    call amrex_error("amrex_eb2_build_cells: multiple cuts")
                 end if
 
