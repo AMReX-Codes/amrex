@@ -749,7 +749,7 @@ contains
 #ifdef AMREX_DEBUG
                    print *, "amrex_eb2_build_cells: multiple cuts in cell ", i,j,k
 #endif
-                   call amrex_error("amrex_eb2_build_cells: multiple cuts")
+                   call amrex_error("amrex_eb2_build_cells: multiple cuts not supported")
                 end if
 
                 dapx = axm - axp
@@ -1425,7 +1425,7 @@ contains
     integer, intent(inout) :: ncuts(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),6)
     integer, intent(inout) :: ierr
 
-    integer :: i,j,k, ii,jj,kk, n
+    integer :: i,j,k, ii,jj,kk, n, nopen
 
     do       k = ndlo(3), ndhi(3)
        kk = k*2
@@ -1518,7 +1518,7 @@ contains
                 ierr = 1
                 return
              else
-                call amrex_error("amrex_eb2_check_mvmc: wrong nubmer of cuts on x-face", n)
+                call amrex_error("amrex_eb2_check_mvmc: how did this happen? wrong nubmer of cuts on x-face", n)
              end if
           end do
        end do
@@ -1538,7 +1538,7 @@ contains
                 ierr = 1
                 return
              else
-                call amrex_error("amrex_eb2_check_mvmc: wrong nubmer of cuts on y-face", n)
+                call amrex_error("amrex_eb2_check_mvmc: how did this happen? wrong nubmer of cuts on y-face", n)
              end if
           end do
        end do
@@ -1558,7 +1558,39 @@ contains
                 ierr = 1
                 return
              else
-                call amrex_error("amrex_eb2_check_mvmc: wrong nubmer of cuts on x-face", n)
+                call amrex_error("amrex_eb2_check_mvmc: how did this happen? wrong nubmer of cuts on x-face", n)
+             end if
+          end do
+       end do
+    end do
+
+    do       k = cclo(3), cchi(3)
+       do    j = cclo(2), cchi(2)
+          do i = cclo(1), cchi(1)
+             if ( ncuts(i  ,j  ,k  ,4).eq.1 .and. &
+                  ncuts(i+1,j  ,k  ,4).eq.1 .and. &
+                  ncuts(i  ,j  ,k  ,5).eq.1 .and. &
+                  ncuts(i  ,j+1,k  ,5).eq.1 .and. &
+                  ncuts(i  ,j  ,k  ,6).eq.1 .and. &
+                  ncuts(i  ,j  ,k+1,6).eq.1 ) then
+                ii = i*2
+                jj = j*2
+                kk = k*2
+                nopen = 0
+                if (fls(ii  ,jj  ,kk  ) .lt. zero) nopen = nopen + 1
+                if (fls(ii+2,jj  ,kk  ) .lt. zero) nopen = nopen + 1
+                if (fls(ii  ,jj+2,kk  ) .lt. zero) nopen = nopen + 1
+                if (fls(ii+2,jj+2,kk  ) .lt. zero) nopen = nopen + 1
+                if (fls(ii  ,jj  ,kk+2) .lt. zero) nopen = nopen + 1
+                if (fls(ii+2,jj  ,kk+2) .lt. zero) nopen = nopen + 1
+                if (fls(ii  ,jj+2,kk+2) .lt. zero) nopen = nopen + 1
+                if (fls(ii+2,jj+2,kk+2) .lt. zero) nopen = nopen + 1
+                if (nopen .eq. 2 .or. nopen .eq. 6) then
+                   ierr = 1
+                   return
+                else if (nopen .ne. 4) then
+                   call amrex_error("amrex_eb2_check_mvmc: how did this happen? nopen", nopen)
+                end if
              end if
           end do
        end do
