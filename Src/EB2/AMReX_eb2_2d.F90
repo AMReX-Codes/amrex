@@ -574,6 +574,7 @@ contains
           if (has_cut(fls(ii+2,jj+1),fls(ii+2,jj+2))) ncuts = ncuts+1
           if (ncuts .ne. 0 .and. ncuts .ne. 2) then
              ierr = 2
+             return
           end if
        end do
     end do
