@@ -375,10 +375,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
       success = EnforcePeriodicWhere(p, pld, lev_min, lev_max, local_grid);
       if (!success && lev_min == 0)
       {
-	// The particle has left the domain; invalidate it.
-          if (m_verbose) {
-              amrex::Print() << "leaving domain" << std::endl;
-          }
+          // The particle has left the domain; invalidate it.
           p.m_idata.id = -p.m_idata.id;
           success = true;
       }
