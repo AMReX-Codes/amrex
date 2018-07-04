@@ -17,7 +17,7 @@
 
 namespace amrex {
 
-#if !defined(NDEBUG)
+#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
 bool IArrayBox::do_initval = true;
 #else
 bool IArrayBox::do_initval = false;

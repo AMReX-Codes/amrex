@@ -166,7 +166,7 @@ DivVis::initCoefficients (const BoxArray &_ba, const DistributionMapping& _dm)
     //
     const int nCompA = (BL_SPACEDIM == 2  ?  2  :  1);
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     if (BL_SPACEDIM == 3)
 	BL_ASSERT(geomarray[level].IsCartesian());
 #endif
