@@ -73,7 +73,7 @@ contains
     call amrex_parmparse_destroy(pp)
 
     stepno = 0
-    dtstep = 1.e100
+    dtstep = huge(1._rt)
 
     call amr_data_init()
   end subroutine my_amr_init

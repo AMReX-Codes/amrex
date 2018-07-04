@@ -4,6 +4,7 @@ module amrex_interp_module
   use amrex_fort_module
   use amrex_constants_module
   use amrex_bc_types_module
+  use amrex_error_module
 
   implicit none
 
@@ -590,7 +591,7 @@ contains
                         alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
                      endif
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
                      if (alpha(ic,jc,n) .lt. 0.d0) then
                         print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
                         print *,'ALPHA = ',alpha(ic,jc,n)
@@ -943,8 +944,10 @@ contains
       integer icase
 
       if (MAX(lratiox,lratioy).gt.rMAX) then
+#ifdef AMREX_DEBUG
          print *,'rMAX in INTERP_2D::AMREX_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy)
-         call bl_abort(" ")
+#endif
+         call bl_abort("rMAX in INTERP_2D")
       endif
 
       do jc = cblo(2), cbhi(2)
@@ -1161,6 +1164,7 @@ contains
                enddo
                enddo
 
+#ifdef AMREX_DEBUG
                if (abs(crseTotnew - crseTot)/cvol .gt. 1.e-8) then
                   print *,' '
                   print *,'BLEW CONSERVATION with ICASE = ',icase
@@ -1180,6 +1184,7 @@ contains
                   enddo
                   enddo
                endif
+#endif
 
 !              do j = jlo,jhi
 !              do i = ilo,ihi
@@ -1314,12 +1319,9 @@ contains
              enddo
           enddo
        else if (lratiox.eq.4 .and. lratioy.eq.4) then
-!      todo
-          write(6,*) 'AMREX_QUARTINTERP: refinement ratio = 4 TODO'
-          stop
+          call amrex_error('AMREX_QUARTINTERP: refinement ratio = 4 TODO')
        else
-          write(6,*) 'AMREX_QUARTINTERP: unsupported refinement ratio'
-          stop
+          call amrex_error('AMREX_QUARTINTERP: unsupported refinement ratio')
        endif
 
      end subroutine AMREX_QUARTINTERP
