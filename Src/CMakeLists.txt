@@ -137,11 +137,13 @@ if (AMREX_GIT_VERSION)
    string (FIND "${AMREX_VERSION}" "-" IDX REVERSE)
    string (SUBSTRING "${AMREX_VERSION}" 0 "${IDX}" AMREX_VERSION )
    string (REPLACE "-" "." AMREX_VERSION "${AMREX_VERSION}")
-
-   write_basic_package_version_file ( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
-      VERSION ${AMREX_VERSION}
-      COMPATIBILITY AnyNewerVersion )
 endif ()
+
+write_basic_package_version_file ( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
+   VERSION ${AMREX_VERSION}
+   COMPATIBILITY AnyNewerVersion )
+
+
 
 install ( FILES
    ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
