@@ -376,9 +376,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
       if (!success && lev_min == 0)
       {
 	// The particle has left the domain; invalidate it.
-          amrex::Print() << "leaving domain" << std::endl;
-	p.m_idata.id = -p.m_idata.id;
-	success = true;
+          if (m_verbose) {
+              amrex::Print() << "leaving domain" << std::endl;
+          }
+          p.m_idata.id = -p.m_idata.id;
+          success = true;
       }
     }
     else
