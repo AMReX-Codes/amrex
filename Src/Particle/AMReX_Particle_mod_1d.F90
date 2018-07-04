@@ -146,10 +146,12 @@ contains
        do nc = 1, ncomp
           acceleration(nc) = wx_lo*acc(i-1, nc) + &
                              wx_hi*acc(i,   nc)
-       
-          if (abs(acceleration(nc) - 5.d0) .ge. 1.0d-9) then
-             print *, particles(1, n)
-          end if
+
+#ifdef AMREX_DEBUG
+!          if (abs(acceleration(nc) - 5.d0) .ge. 1.0d-9) then
+!             print *, particles(1, n)
+!          end if
+#endif
 
        end do
     end do

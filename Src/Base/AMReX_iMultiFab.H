@@ -341,6 +341,18 @@ public:
     virtual void define (const BoxArray&            bxs,
 			 const DistributionMapping& dm,
 			 int                        nvar,
+			 const IntVect&             ngrow,
+#ifdef AMREX_STRICT_MODE
+			 const MFInfo&              info,
+                         const FabFactory<IArrayBox>& factory) override;
+#else
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
+#endif
+
+    virtual void define (const BoxArray&            bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
 			 int                        ngrow,
 #ifdef AMREX_STRICT_MODE
 			 const MFInfo&              info,

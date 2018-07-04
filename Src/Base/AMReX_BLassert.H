@@ -12,7 +12,7 @@
 #undef BL_ASSERT
 #endif
 
-#if defined(NDEBUG) && !defined(BL_USE_ASSERTION)
+#if !defined(AMREX_DEBUG) && !defined(AMREX_USE_ASSERTION)
 
 /*
   The macro AMREX_ASSERT(EX) is a debugging macro, used to test the

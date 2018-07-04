@@ -143,7 +143,8 @@ public:
     ///
     /// Build a Neighbor List for each tile
     ///
-    void buildNeighborList(int lev, bool sort=false);
+    template <class CheckPair>
+    void buildNeighborList(int lev, CheckPair check_pair, bool sort=false);
 
     void buildNeighborListFort(int lev, bool sort=false);
 
@@ -169,10 +170,6 @@ protected:
     /// Perform handshake to figure out how many bytes each proc should receive
     ///
     void getRcvCountsMPI();
-
-    virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
-        return false;
-    };
 
     size_t cdata_size;
     int num_neighbor_cells;

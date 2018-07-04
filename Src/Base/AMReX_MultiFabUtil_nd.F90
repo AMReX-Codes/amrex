@@ -76,7 +76,7 @@ contains
     real(amrex_real), intent(in)    :: coord
     real(amrex_real), intent(in)    :: plo(3), dx(3)
     
-    integer n, i, j, k, hi, lo
+    integer n, i, j, k
     real(amrex_real) distance, weight
     integer offset(3)
 

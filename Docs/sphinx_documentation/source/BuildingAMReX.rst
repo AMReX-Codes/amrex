@@ -330,19 +330,29 @@ defined in  ``/path/to/amrex/Tools/CMake/AMReX_Compilers.cmake``.
 
 .. _sec:build:cmake:config:
 
-Importing AMReX configuration into a CMake project
+Importing AMReX into your CMake project
 --------------------------------------------------
 
-In order to import the AMReX configuration options into your CMake build
-system, include the following line in the appropriate CMakeLists.txt file:
+In order to import the AMReX library into your CMake project, you need
+to include the following line in the appropriate CMakeLists.txt file: 
 
 .. highlight:: cmake
 
 ::
 
-    find_package (AMReX CONFIG REQUIRED HINTS /path/to/installdir/cmake )
+    find_package (AMReX 18 [REQUIRED] [HINTS /path/to/installdir/] )
 
-This will load AMReX-specific CMake variables containing the necessary
-information to compile and link your code to AMReX. For a list of all the
-available configuration variables, refer to the file ``AMReXConfig.cmake.in``
-in ``/path/to/installdir/cmake/``.
+
+In the above snippet, ``18`` refer to the mininum AMReX version supporting
+the import feature discussed here.
+Linking AMReX to any target defined in your CMake project is done by including
+the following line in the appropriate CMakeLists.txt file
+
+.. highlight:: cmake
+
+::
+
+    target_link_libraries ( <your-target-name>  AMReX::amrex )
+
+The above snippet will take care of properly linking ``<your-target-name>``
+to AMReX and to all the required transitive dependencies.
