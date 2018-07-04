@@ -145,6 +145,9 @@ extern "C" {
                                const int* ndlo, const int* ndhi,
                                amrex_real* cls, const int* clo, const int* chi,
                                const amrex_real* fls, const int* flo, const int* fhi,
+#if (AMREX_SPACEDIM == 3)
+                               int* ncuts, const int* tlo, const int* thi,
+#endif
                                int* error);
 
 #ifdef __cplusplus
