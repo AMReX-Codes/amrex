@@ -1,5 +1,6 @@
 
 #include <AMReX_EB2_Level.H>
+#include <AMReX_IArrayBox.H>
 #include <algorithm>
 
 namespace amrex { namespace EB2 {
@@ -20,17 +21,28 @@ Level::coarsenFromFine (Level& fineLevel)
 #ifdef _OPENMP
 #pragma omp parallel reduction(max:mvmc_error)
 #endif
-    for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
     {
-        const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
-        const Box& ndbx = mfi.tilebox();
-        int tile_error = 0;
-        amrex_eb2_check_mvmc(BL_TO_FORTRAN_BOX(ccbx),
-                             BL_TO_FORTRAN_BOX(ndbx),
-                             BL_TO_FORTRAN_ANYD(m_levelset[mfi]),
-                             BL_TO_FORTRAN_ANYD(f_levelset[mfi]),
-                             &tile_error);
-        mvmc_error = std::max(mvmc_error, tile_error);
+#if (AMREX_SPACEDIM == 3)
+        IArrayBox ncuts;
+#endif
+        for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
+            {
+                const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
+                const Box& ndbx = mfi.tilebox();
+#if (AMREX_SPACEDIM == 3)
+                ncuts.resize(amrex::surroundingNodes(ccbx),6);
+#endif
+                int tile_error = 0;
+                amrex_eb2_check_mvmc(BL_TO_FORTRAN_BOX(ccbx),
+                                     BL_TO_FORTRAN_BOX(ndbx),
+                                     BL_TO_FORTRAN_ANYD(m_levelset[mfi]),
+                                     BL_TO_FORTRAN_ANYD(f_levelset[mfi]),
+#if (AMREX_SPACEDIM == 3)
+                                     BL_TO_FORTRAN_ANYD(ncuts),
+#endif
+                                     &tile_error);
+                mvmc_error = std::max(mvmc_error, tile_error);
+            }
     }
     if (mvmc_error) return mvmc_error;
     
