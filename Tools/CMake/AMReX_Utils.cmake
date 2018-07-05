@@ -331,9 +331,9 @@ macro (replace_genex input_list output_list )
       string (REPLACE "BUILD_INTERFACE" "" item ${item})
 
       # Skip genex for compilers other than the one in use
-      string ( FIND ${item} "C_COMPILER_ID" idx1 )
+      string ( FIND ${item} "C_COMPILER_ID" idx1 )      
       if ( ${idx1} GREATER -1 )
-   	 string ( FIND ${item} "${CMAKE_C_COMPILER_ID}" idx2 )
+   	 string ( FIND ${item} "C_COMPILER_ID${CMAKE_C_COMPILER_ID}" idx2 )
    	 if ( ${idx2} GREATER -1 )
    	    string (REPLACE "C_COMPILER_ID${CMAKE_C_COMPILER_ID}" "" item ${item} )
    	 else ()
@@ -341,6 +341,18 @@ macro (replace_genex input_list output_list )
    	 endif ()
       endif ()
 
+      string ( FIND ${item} "CXX_COMPILER_ID" idx1 )
+      if ( ${idx1} GREATER -1 )
+	 string ( FIND ${item} "CXX_COMPILER_ID${CMAKE_CXX_COMPILER_ID}" idx2 )
+	 if ( ${idx2} GREATER -1 )
+	    string (REPLACE "CXX_COMPILER_ID${CMAKE_CXX_COMPILER_ID}" "" item ${item} )
+	 else ()
+	    continue ()
+	 endif ()
+      endif ()
+
+
+      
       string (FIND ${item} "CONFIG" idx3 )
       if ( ${idx3} GREATER -1 )
    	 string (FIND ${item} "${CMAKE_BUILD_TYPE}" idx4)
@@ -378,6 +390,8 @@ macro (replace_genex input_list output_list )
       
    endforeach ()
 
-   list (REMOVE_DUPLICATES ${output_list} )
+   if (${output_list})
+      list (REMOVE_DUPLICATES ${output_list} )
+   endif ()
    
 endmacro ()
