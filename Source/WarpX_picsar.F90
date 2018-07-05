@@ -1,12 +1,16 @@
 #if (BL_SPACEDIM == 3)
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb3d_energy_conserving_generic
-#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_generic
+#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb3d_energy_conserving_generic
+#define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic
+#define WRPX_PXR_PUSH_BVEC                pxrpush_em3d_bvec
+#define WRPX_PXR_PUSH_EVEC                pxrpush_em3d_evec
 
 #elif (BL_SPACEDIM == 2)
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb2dxz_energy_conserving_generic
-#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_generic_2d
+#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2dxz_energy_conserving_generic
+#define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic_2d
+#define WRPX_PXR_PUSH_BVEC                pxrpush_em2d_bvec
+#define WRPX_PXR_PUSH_EVEC                pxrpush_em2d_evec
 
 #endif
 
@@ -435,5 +439,113 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 #endif
 
   end subroutine
+
+
+  subroutine warpx_push_evec( & 
+     xlo, xhi, ylo, yhi, zlo, zhi, &
+     ex, exlo, exhi,&
+     ey, eylo, eyhi, &
+     ez, ezlo, ezhi, &
+     bx, bxlo, bxhi, &
+     by, bylo, byhi, &
+     bz, bzlo, bzhi, &
+     jx, jxlo, jxhi, &
+     jy, jylo, jyhi, &
+     jz, jzlo, jzhi, &
+     mudt, dtsdx, dtsdy, dtsdz) bind(C, name="warpx_push_evec")
+
+  integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: zlo(BL_SPACEDIM), zhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: exlo(BL_SPACEDIM), exhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: eylo(BL_SPACEDIM), eyhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: ezlo(BL_SPACEDIM), ezhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: bxlo(BL_SPACEDIM), bxhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: bylo(BL_SPACEDIM), byhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: bzlo(BL_SPACEDIM), bzhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: jxlo(BL_SPACEDIM), jxhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: jylo(BL_SPACEDIM), jyhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: jzlo(BL_SPACEDIM), jzhi(BL_SPACEDIM)
+
+  real(amrex_real), intent(IN OUT):: ex(*)
+  real(amrex_real), intent(IN OUT):: ey(*)
+  real(amrex_real), intent(IN OUT):: ez(*)
+
+  real(amrex_real), intent(IN):: bx(*)
+  real(amrex_real), intent(IN):: by(*)
+  real(amrex_real), intent(IN):: bz(*)
+
+  real(amrex_real), intent(IN):: jx(*)
+  real(amrex_real), intent(IN):: jy(*)
+  real(amrex_real), intent(IN):: jz(*)
+
+  real(amrex_real), intent(IN) :: mudt, dtsdx, dtsdy, dtsdz
+
+  write(*,*) "IN warpx_push_evec"
+  write(*,*) "xlo, xhi, ylo, yhi, zlo, zhi"
+  write(*,*) xlo, xhi, ylo, yhi, zlo, zhi
+  write(*,*) "exlo, exhi, eylo, eyhi, ezlo, ezhi"
+  write(*,*) exlo, exhi, eylo, eyhi, ezlo, ezhi
+
+   CALL WRPX_PXR_PUSH_EVEC(&
+        xlo, xhi, ylo, yhi, zlo, zhi, &
+        ex, exlo, exhi,&
+        ey, eylo, eyhi,&
+        ez, ezlo, ezhi,&
+        bx, bxlo, bxhi,&
+        by, bylo, byhi,&
+        bz, bzlo, bzhi,&
+        jx, jxlo, jxhi,&
+        jy, jylo, jyhi,&
+        jz, jzlo, jzhi,&
+        mudt, dtsdx, dtsdy, dtsdz);
+
+  end subroutine warpx_push_evec
+  
+  
+
+  subroutine warpx_push_bvec( & 
+     xlo, xhi, ylo, yhi, zlo, zhi, &
+     ex, exlo, exhi,&
+     ey, eylo, eyhi, &
+     ez, ezlo, ezhi, &
+     bx, bxlo, bxhi, &
+     by, bylo, byhi, &
+     bz, bzlo, bzhi, &
+     dtsdx, dtsdy, dtsdz) bind(C, name="warpx_push_bvec")
+
+  integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: zlo(BL_SPACEDIM), zhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: exlo(BL_SPACEDIM), exhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: eylo(BL_SPACEDIM), eyhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: ezlo(BL_SPACEDIM), ezhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: bxlo(BL_SPACEDIM), bxhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: bylo(BL_SPACEDIM), byhi(BL_SPACEDIM)
+  integer(c_int), intent(in) :: bzlo(BL_SPACEDIM), bzhi(BL_SPACEDIM)
+
+  real(amrex_real), intent(IN OUT):: ex(*)
+  real(amrex_real), intent(IN OUT):: ey(*)
+  real(amrex_real), intent(IN OUT):: ez(*)
+
+  real(amrex_real), intent(IN):: bx(*)
+  real(amrex_real), intent(IN):: by(*)
+  real(amrex_real), intent(IN):: bz(*)
+
+  real(amrex_real), intent(IN) :: dtsdx, dtsdy, dtsdz
+
+  CALL WRPX_PXR_PUSH_BVEC( &
+     xlo, xhi, ylo, yhi, zlo, zhi, &
+     ex,exlo,exhi,&
+     ey,eylo, eyhi, &
+     ez,ezlo, ezhi, &
+     bx, bxlo, bxhi, &
+     by, bylo, byhi, &
+     bz, bzlo, bzhi, &
+     dtsdx,dtsdy,dtsdz)
+
+  end subroutine warpx_push_bvec
+
+
 
 end module warpx_to_pxr_module
