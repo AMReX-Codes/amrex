@@ -12,7 +12,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
 
     for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
     {
-        bool coarsenable = m_geom.back().Domain().coarsenable(2);
+        bool coarsenable = m_geom.back().Domain().coarsenable(2,2);
         if (!coarsenable) {
             if (ilev <= required_coarsening_level) {
                 amrex::Abort("IndexSpaceImp: domain is not coarsenable at level "+std::to_string(ilev));
