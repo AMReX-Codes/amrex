@@ -7,6 +7,7 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_RealBox.H>
+#include <AMReX_Device.H>
 
 #ifdef _OPENMP
 #include <omp.h>
