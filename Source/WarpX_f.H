@@ -172,30 +172,30 @@ extern "C"
                 BL_FORT_FAB_ARG_3D(ex),
                 BL_FORT_FAB_ARG_3D(ey),
                 BL_FORT_FAB_ARG_3D(ez),
-				const BL_FORT_FAB_ARG_3D(bx),
-				const BL_FORT_FAB_ARG_3D(by),
-				const BL_FORT_FAB_ARG_3D(bz),
-				const BL_FORT_FAB_ARG_3D(jx),
-				const BL_FORT_FAB_ARG_3D(jy),
-				const BL_FORT_FAB_ARG_3D(jz),
-				const amrex::Real* mudt,
-				const amrex::Real* dtsdx, 
-				const amrex::Real* dtsdy, 
-				const amrex::Real* dtsdz);
+                const BL_FORT_FAB_ARG_3D(bx),
+                const BL_FORT_FAB_ARG_3D(by),
+                const BL_FORT_FAB_ARG_3D(bz),
+                const BL_FORT_FAB_ARG_3D(jx),
+                const BL_FORT_FAB_ARG_3D(jy),
+                const BL_FORT_FAB_ARG_3D(jz),
+                const amrex::Real* mudt,
+                const amrex::Real* dtsdx, 
+                const amrex::Real* dtsdy, 
+                const amrex::Real* dtsdz);
 
         void warpx_push_bvec(
                 const int* xlo, const int* xhi,
-				const int* ylo, const int* yhi,
-				const int* zlo, const int* zhi,
-				const BL_FORT_FAB_ARG_3D(ex),
-				const BL_FORT_FAB_ARG_3D(ey),
-				const BL_FORT_FAB_ARG_3D(ez),
-				BL_FORT_FAB_ARG_3D(bx),
-				BL_FORT_FAB_ARG_3D(by),
-				BL_FORT_FAB_ARG_3D(bz),
-				const amrex::Real* dtsdx, 
-				const amrex::Real* dtsdy, 
-				const amrex::Real* dtsdz);
+                const int* ylo, const int* yhi,
+                const int* zlo, const int* zhi,
+                const BL_FORT_FAB_ARG_3D(ex),
+                const BL_FORT_FAB_ARG_3D(ey),
+                const BL_FORT_FAB_ARG_3D(ez),
+                BL_FORT_FAB_ARG_3D(bx),
+                BL_FORT_FAB_ARG_3D(by),
+                BL_FORT_FAB_ARG_3D(bz),
+                const amrex::Real* dtsdx, 
+                const amrex::Real* dtsdy, 
+                const amrex::Real* dtsdz);
 
 #ifdef USE_OPENBC_POISSON
     void warpx_openbc_potential (amrex::Real* rho, amrex::Real* phi, const amrex::Real* dx);

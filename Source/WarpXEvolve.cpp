@@ -6,7 +6,6 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpX_py.H>
-#include <typeinfo>
 
 using namespace amrex;
 
