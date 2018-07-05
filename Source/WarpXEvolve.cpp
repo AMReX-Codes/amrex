@@ -531,10 +531,6 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
             // Call picsar routine for each tile
-            std::cout << "tex.loVect() " << tex.loVect() << std::endl;
-            std::cout << "tey.loVect() " << tey.loVect() << std::endl;
-            std::cout << "tez.loVect() " << tez.loVect() << std::endl;
-            // std::cout << typeid(tex.loVect()[0]).name() << std::endl;
             warpx_push_evec(
                 tex.loVect(), tex.hiVect(),
                 tey.loVect(), tey.hiVect(),
