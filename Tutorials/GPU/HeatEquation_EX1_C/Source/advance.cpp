@@ -1,33 +1,14 @@
 
 #include "myfunc.H"
 #include "myfunc_F.H"
-#include "AMReX_Utility.H"
-
-AMREX_CUDA_DEVICE
-Box getCellBox(const Box & bx)
-{
-// Return intersection of the cell for this thread and the entire domain.
-// If more threads are assigned than mesh cells in the domain, intersection will return an empty box.
-// If box is empty, skip the work in the MFIter loop for that thread.
-// If no CUDA, return the entire box.
-
-#ifdef AMREX_USE_CUDA
-     return (bx & Box(IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
-                                           bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
-                                           bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
-                      IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
-                                           bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
-                                           bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z)))));
-#else
-     return bx;
-#endif
-}
+#include <AMReX_CUDA_Utility.H>
+#include <AMReX_Managed.H>
 
 AMREX_CUDA_GLOBAL
 void compute_flux (Box bx, GeometryData geom, BaseFab<Real> &phi_old,
                    AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ))
 {
-     Box threadBox = getCellBox(bx);
+     Box threadBox = getThreadBox(bx);
 
      if (threadBox.ok())
      {
@@ -48,7 +29,7 @@ AMREX_CUDA_GLOBAL
 void update_phi (Box bx, GeometryData geom, BaseFab<Real> &phi_old, BaseFab<Real> &phi_new, 
                  AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ), Real dt)
 {
-     Box threadBox = getCellBox(bx);
+     Box threadBox = getThreadBox(bx);
 
      if (threadBox.ok())
      {
@@ -71,6 +52,7 @@ void advance (MultiFab& phi_old,
 	      Real dt,
               Geometry& geom)
 {
+
     // Fill the ghost cells of each grid from the other grids
     // includes periodic domain boundaries
     phi_old.FillBoundary(geom.periodicity());
@@ -84,7 +66,6 @@ void advance (MultiFab& phi_old,
     // The following two MFIter loops could be merged
     // and we do not have to use flux MultiFab.
     // 
-
     // =======================================================
 
     // Compute fluxes one grid at a time
@@ -97,7 +78,7 @@ void advance (MultiFab& phi_old,
                           geom.data(), phi_old[mfi],
                           AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]));
     }
-    syncDevice();
+    Device::synchronize();
 
     // Advance the solution one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
@@ -110,6 +91,6 @@ void advance (MultiFab& phi_old,
                           AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]),
                           dt);
     }
-    syncDevice(); 
+    Device::synchronize(); 
 
 }

@@ -369,6 +369,19 @@ amrex::Device::device_malloc(const std::size_t sz) {
 
 }
 
+bool
+amrex::Device::checkManaged(const void* ptr) {
+
+#ifdef AMREX_USE_CUDA
+     cudaPointerAttributes ptr_attr;
+     cudaPointerGetAttributes(&ptr_attr, ptr);
+     return ptr_attr.isManaged;
+#else
+     return false;
+#endif
+
+}
+
 void
 amrex::Device::device_free(void* ptr) {
 

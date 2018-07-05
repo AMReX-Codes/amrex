@@ -11,7 +11,6 @@
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Vector.H>
-#include <AMReX_Managed.H>
 
 namespace amrex
 {

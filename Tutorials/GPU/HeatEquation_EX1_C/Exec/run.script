@@ -1,5 +1,5 @@
 #!/bin/bash
-#BSUB -P CSC249ADCD03
+#BSUB -P CSC190port
 #BSUB -W 10 
 #BSUB -nnodes 1
 #BSUB -J MMtest 
@@ -7,16 +7,16 @@
 #BSUB -e MMtest.%J
 
 module load pgi
-module load cuda
+module load cuda/9.1.85
 module list
 set -x
 
 omp=1
 export OMP_NUM_THREADS=${omp}
-EXE="./main3d.pgi.MPI.CUDA.ex"
+EXE="./main2d.pgi.MPI.CUDA.ex"
 #EXE="../main3d.pgi.CUDA.ex"
 JSRUN="jsrun -n 2 -a 1 -g 1 -c 1 --bind=packed:${omp}"
-INPUTS=inputs_3d
+INPUTS=inputs_2d
 # n = tasks (MPI), g = gpus/task, c = threads/task, a = task/resource
 
 

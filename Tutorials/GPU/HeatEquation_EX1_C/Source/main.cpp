@@ -1,5 +1,8 @@
 #include <AMReX_CudaAllocators.H>
+#include <AMReX_Device.H>
 #include <AMReX_Managed.H>
+#include <AMReX_Utility.H>
+#include <AMReX_CUDA_Utility.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
@@ -7,12 +10,19 @@
 #include "myfunc.H"
 #include "myfunc_F.H"
 
+using namespace amrex;
+
 AMREX_CUDA_GLOBAL
-void init_phi(Box bx, GeometryData geom, BaseFab<Real> &phi_new)
+void init_phi_x(Box bx, GeometryData geom, BaseFab<Real> &phi_new)
 {
-   init_phi(BL_TO_FORTRAN_BOX(bx),
-            BL_TO_FORTRAN_ANYD(phi_new),
-            geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+   Box threadBox = getThreadBox(bx);
+
+   if (threadBox.ok())
+   {
+      init_phi(BL_TO_FORTRAN_BOX(threadBox),
+               BL_TO_FORTRAN_ANYD(phi_new),
+               geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+   }
 }
 
 int main (int argc, char* argv[])
@@ -97,9 +107,12 @@ void main_main ()
     // MFIter = MultiFab Iterator
     for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
     {
-        AMREX_SIMPLE_LAUNCH(init_phi, 1, 1, mfi.validbox(), geom.data(), phi_new[mfi]); 
+        const Box& vbx = mfi.validbox();
+
+        AMREX_BOX_LAUNCH(vbx, 
+                         init_phi_x, vbx, geom.data(), phi_new[mfi]); 
     }
-    syncDevice();
+    Device::synchronize(); 
 
     // ========================================
 
