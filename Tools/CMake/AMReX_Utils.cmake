@@ -395,3 +395,14 @@ macro (replace_genex input_list output_list )
    endif ()
    
 endmacro ()
+
+
+#
+# Strip string from trailing and leading whitespace
+# after veryfing it is not empty
+#
+macro (strip var)
+   if (${var})
+      string ( STRIP ${${var}} ${var} )
+   endif ()  
+endmacro ()
