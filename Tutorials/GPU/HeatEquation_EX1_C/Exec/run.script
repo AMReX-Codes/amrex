@@ -28,7 +28,7 @@ rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 
 # 0. Run with memcheck to find problems while initially designing kernels.
 #${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} ${INPUTS} &> memcheck.${LSB_JOBID}.txt
-${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} ${INPUTS} &> memcheck.${LSB_JOBID}.txt
+${JSRUN} --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks" cuda-memcheck ${EXE} ${INPUTS} &> memcheck.${LSB_JOBID}.txt
 
 # 1. Run normally
 #${JSRUN} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
