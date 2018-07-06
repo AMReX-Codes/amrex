@@ -119,7 +119,6 @@ function (configure_amrex)
    else ()
       	 # Cray compiler has OMP turned on by default
 	 target_compile_options ( amrex PUBLIC $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )
-	 target_link_libraries ( amrex  PUBLIC $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )
    endif()
 
    #
