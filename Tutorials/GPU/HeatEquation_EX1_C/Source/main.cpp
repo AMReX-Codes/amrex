@@ -13,7 +13,7 @@
 using namespace amrex;
 
 AMREX_CUDA_GLOBAL
-void init_phi_x(Box bx, GeometryData geom, BaseFab<Real> &phi_new)
+void init_phi(Box bx, GeometryData geom, BaseFab<Real> &phi_new)
 {
    Box threadBox = getThreadBox(bx);
 
@@ -110,7 +110,7 @@ void main_main ()
         const Box& vbx = mfi.validbox();
 
         AMREX_BOX_LAUNCH(vbx, 
-                         init_phi_x, vbx, geom.data(), phi_new[mfi]); 
+                         init_phi, vbx, geom.data(), phi_new[mfi]); 
     }
     Device::synchronize(); 
 
