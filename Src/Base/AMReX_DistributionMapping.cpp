@@ -912,6 +912,12 @@ Distribute (const std::vector<SFCToken>&     tokens,
             int                              nmax = std::numeric_limits<int>::max())
 
 {
+#ifdef _CRAYC
+    // Without this, we get segfault with Cray.
+    std::stringstream ss;
+    amrex::Print(ss) << nmax << std::endl;
+#endif
+
     BL_ASSERT(static_cast<int>(v.size()) == nprocs);
 
     int  K        = 0;
