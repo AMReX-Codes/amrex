@@ -51,7 +51,7 @@ MyTest::solve ()
         mleb.setLevelBC(ilev, &phi[ilev]);
     }
 
-    mleb.setScalars(0.0, 1.0);
+    mleb.setScalars(0.5, 1.0);
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         mleb.setACoeffs(ilev, acoef[ilev]);
@@ -152,7 +152,7 @@ MyTest::initData ()
 
         phi[ilev].setVal(0.0);
         rhs[ilev].setVal(0.0);
-        acoef[ilev].setVal(0.0);
+        acoef[ilev].setVal(1.0);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             bcoef[ilev][idim].setVal(1.0);
         }

@@ -36,7 +36,7 @@ contains
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
 
     integer :: i,j, ii, jj
-    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
+    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy, dxa, dya, dxx, dyx 
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -84,8 +84,27 @@ contains
                   (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
 
              if (alpha .ne. zero) then
-                y(i,j) = y(i,j) + alpha*a(i,j)*x(i,j)
-                call amrex_error("amrex_mlebabeclap_adotx: alpha .ne. 0 todo")
+                if(apx(i,j).ne.zero.and.apx(i,j).ne.one) then 
+                    dxx = dhx*(x(i+1,j)-x(i,j))
+                    dxa = dhx*(a(i+1,j)-a(i,j))
+                endif
+                if(apx(i+1,j).ne.zero.and.apx(i+1,j).ne.one) then 
+                    dxx = dhx*(x(i,j)-x(i-1,j))
+                    dxa = dhx*(a(i,j)-a(i-1,j))
+                endif 
+                if(apy(i,j).ne.zero.and.apy(i,j).ne.one) then 
+                    dyx = dhx*(x(i,j+1)-x(i,j))
+                    dya = dhx*(a(i,j+1)-a(i,j))
+                endif 
+                if(apy(i,j+1).ne.zero.and.apy(i,j+1).ne.one) then 
+                    dyx = dhx*(x(i,j)-x(i,j-1))
+                    dya = dhx*(a(i,j)-a(i,j-1))
+                endif 
+                fracx = fcy(i,j) 
+                fracy = fcx(i,j)
+                y(i,j) = y(i,j) + alpha*(a(i,j) + fracx*dxa + fracy*dya) * & 
+                       &                (x(i,j) + fracx*dxx + fracy*dyx)
+!               call amrex_error("amrex_mlebabeclap_adotx: alpha .ne. 0 todo")
              end if
           end if
        end do
@@ -133,12 +152,12 @@ contains
     integer :: i,j,ioff,ii,jj
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
-    real(amrex_real) :: sxm, sxp, sym, syp
+    real(amrex_real) :: sxm, sxp, sym, syp, dxa, dya
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
 
-    if (alpha.ne.zero) call amrex_error("amrex_mlebabeclap_gsrb: todo")
+!    if (alpha.ne.zero) call amrex_error("amrex_mlebabeclap_gsrb: todo")
 
     do j = lo(2), hi(2)
        ioff = mod(lo(1)+j+redblack,2)
@@ -177,6 +196,7 @@ contains
                      jj = j + int(sign(one,fcx(i,j)))
                      fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(phi(i,jj)-phi(i-1,jj))
                      sxm = (one-fracy)*sxm
+                     dxa = dhx*(a(i+1,j)-a(i,j))
                   end if
                   
                   fxp =  bX(i+1,j)*phi(i+1,j)
@@ -186,6 +206,7 @@ contains
                      jj = j + int(sign(one,fcx(i+1,j)))
                      fxp = (one-fracy)*fxp + fracy*bX(i+1,jj)*(phi(i+1,jj)-phi(i,jj))
                      sxp = (one-fracy)*sxp
+                     dxa = dhx*(a(i,j)-a(i-1,j))
                   end if
                   
                   fym = -bY(i,j)*phi(i,j-1)
@@ -195,6 +216,7 @@ contains
                      ii = i + int(sign(one,fcy(i,j)))
                      fym = (one-fracx)*fym + fracx*bY(ii,j)*(phi(ii,j)-phi(ii,j-1))
                      sym = (one-fracx)*sym
+                     dya = dhx*(a(i,j+1)-a(i,j))
                   end if
                   
                   fyp =  bY(i,j+1)*phi(i,j+1)
@@ -204,11 +226,16 @@ contains
                      ii = i + int(sign(one,fcy(i,j+1)))
                      fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
                      syp = (one-fracx)*syp
+                     dya = dhx*(a(i,j)-a(i,j-1))
                   end if
 
-                  gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
+
+                  gamma = alpha*(a(i,j) + fcy(i,j)*dxa + fcx(i,j)*dya) + (one/vfrc(i,j)) * &
                        (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
-                  
+
+!                 gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
+!                       (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
+
                   rho = -(one/vfrc(i,j)) * &
                        (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
                end if
@@ -242,7 +269,7 @@ contains
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
     
     integer :: i,j
-    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma
+    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, dxa, dya 
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -258,9 +285,25 @@ contains
              sxp = -bX(i+1,j) * (one-abs(fcx(i+1,j)))
              sym =  bY(i,j)   * (one-abs(fcy(i,j)))
              syp = -bY(i,j+1) * (one-abs(fcy(i,j+1)))
-             
-             gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
+ 
+                if(apx(i,j).ne.zero.and.apx(i,j).ne.one) then 
+                    dxa = dhx*(a(i+1,j)-a(i,j))
+                endif
+                if(apx(i+1,j).ne.zero.and.apx(i+1,j).ne.one) then 
+                    dxa = dhx*(a(i,j)-a(i-1,j))
+                endif 
+                if(apy(i,j).ne.zero.and.apy(i,j).ne.one) then 
+                    dya = dhx*(a(i,j+1)-a(i,j))
+                endif 
+                if(apy(i,j+1).ne.zero.and.apy(i,j+1).ne.one) then 
+                    dya = dhx*(a(i,j)-a(i,j-1))
+                endif 
+            
+             gamma = alpha*(a(i,j) + fcy(i,j)*dxa + fcx(i,j)*dya)  + (one/vfrc(i,j)) * &
                   (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
+
+!             gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
+!                       (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
 
              x(i,j) = x(i,j) / gamma
           end if
