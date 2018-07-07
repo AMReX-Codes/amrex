@@ -38,12 +38,14 @@ WarpX::ExchangeWithPmlE (int lev)
 void
 WarpX::UpdateAuxilaryData ()
 {
+    BL_PROFILE("UpdateAuxilaryData()");
+
     const int use_limiter = 0;
 
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& crse_period = Geom(lev-1).periodicity();
-        const int ng = Bfield_cp[lev][0]->nGrow();
+        const IntVect& ng = Bfield_cp[lev][0]->nGrowVect();
         const DistributionMapping& dm = Bfield_cp[lev][0]->DistributionMap();
 
         // B field
@@ -253,6 +255,8 @@ WarpX::FillBoundaryB(int lev)
 void
 WarpX::SyncCurrent ()
 {
+    BL_PROFILE("SyncCurrent()");
+
     // Restrict fine patch current onto the coarse patch, before fine patch SumBoundary
     for (int lev = 1; lev <= finest_level; ++lev) 
     {
@@ -284,8 +288,8 @@ WarpX::SyncCurrent ()
     for (int lev = 0; lev < finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        const int ngsrc = current_cp[lev+1][0]->nGrow();
-        const int ngdst = 0;
+        const IntVect& ngsrc = current_cp[lev+1][0]->nGrowVect();
+        const IntVect ngdst = IntVect::TheZeroVector();
         current_fp[lev][0]->copy(*current_cp[lev+1][0],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
         current_fp[lev][1]->copy(*current_cp[lev+1][1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
         current_fp[lev][2]->copy(*current_cp[lev+1][2],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
@@ -323,7 +327,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                     int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    int ng = fine[0]->nGrow()/ref_ratio;
+    const IntVect& ng = fine[0]->nGrowVect()/ref_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel
@@ -350,51 +354,52 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
 }
 
 void
-WarpX::SyncRho ()
+WarpX::SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
+                const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc)
 {
-    if (!rho_fp[0]) return;
+    if (!rhof[0]) return;
 
     // Restrict fine patch onto the coarse patch, before fine patch SumBoundary
     for (int lev = 1; lev <= finest_level; ++lev) 
     {
-        rho_cp[lev]->setVal(0.0);      
+        rhoc[lev]->setVal(0.0);      
         const IntVect& ref_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], ref_ratio[0]);
+        SyncRho(*rhof[lev], *rhoc[lev], ref_ratio[0]);
     }
 
     // Sum up fine patch
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        rho_fp[lev]->SumBoundary(period);
+        rhof[lev]->SumBoundary(period);
     }
 
     // Add fine level's coarse patch to coarse level's fine patch
     for (int lev = 0; lev < finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        const int ngsrc = rho_cp[lev+1]->nGrow();
-        const int ngdst = 0;
-        rho_fp[lev]->copy(*rho_cp[lev+1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        const IntVect& ngsrc = rhoc[lev+1]->nGrowVect();
+        const IntVect ngdst = IntVect::TheZeroVector();
+        rhof[lev]->copy(*rhoc[lev+1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
     }
 
     // Sum up coarse patch
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        rho_cp[lev]->SumBoundary(cperiod);
+        rhoc[lev]->SumBoundary(cperiod);
     }
 
     // sync shared nodal points
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        rho_fp[lev]->OverrideSync(period);
+        rhof[lev]->OverrideSync(period);
     }
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        rho_cp[lev]->OverrideSync(cperiod);
+        rhoc[lev]->OverrideSync(cperiod);
     }
 }
 
@@ -402,7 +407,7 @@ void
 WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    int ng = fine.nGrow()/ref_ratio;
+    const IntVect& ng = fine.nGrowVect()/ref_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel

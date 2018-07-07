@@ -7,3 +7,4 @@ Running WarpX as an executable
    how_to_run
    examples
    parameters
+   profiling

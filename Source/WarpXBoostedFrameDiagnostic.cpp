@@ -1,13 +1,14 @@
 #include "WarpXBoostedFrameDiagnostic.H"
 #include <AMReX_MultiFabUtil.H>
 #include "WarpX_f.H"
+#include "WarpX.H"
 
 using namespace amrex;
 
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots, 
-                       Real gamma_boost, Real dt_boost, 
+                       Real gamma_boost, Real t_boost, Real dt_boost, 
                        int boost_direction)
     : gamma_boost_(gamma_boost),
       dt_snapshots_lab_(dt_snapshots_lab),
@@ -18,6 +19,9 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
     BL_PROFILE("BoostedFrameDiagnostic::BoostedFrameDiagnostic");
 
+    AMREX_ALWAYS_ASSERT(WarpX::do_boosted_frame_fields or
+                        WarpX::do_boosted_frame_particles);
+    
     inv_gamma_boost_ = 1.0 / gamma_boost_;
     beta_boost_ = std::sqrt(1.0 - inv_gamma_boost_*inv_gamma_boost_);
     inv_beta_boost_ = 1.0 / beta_boost_;
@@ -28,22 +32,79 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
     writeMetaData();
 
-    data_buffer_.resize(N_snapshots);
+    if (WarpX::do_boosted_frame_fields) data_buffer_.resize(N_snapshots);
+    if (WarpX::do_boosted_frame_particles) particles_buffer_.resize(N_snapshots);
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
         LabSnapShot snapshot(t_lab, zmin_lab + v_window_lab * t_lab,
                              zmax_lab + v_window_lab * t_lab, i);
+        snapshot.updateCurrentZPositions(t_boost, inv_gamma_boost_, inv_beta_boost_);
         snapshots_.push_back(snapshot);
         buff_counter_.push_back(0);
-        data_buffer_[i].reset( nullptr );
+        if (WarpX::do_boosted_frame_fields) data_buffer_[i].reset( nullptr );
     }
 
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 }
 
+void BoostedFrameDiagnostic::Flush(const Geometry& geom)
+{
+    BL_PROFILE("BoostedFrameDiagnostic::Flush");
+    
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
+
+    for (int i = 0; i < N_snapshots_; ++i) {
+
+        int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
+        
+        if (buff_counter_[i] != 0) {
+            if (WarpX::do_boosted_frame_fields) {
+                const BoxArray& ba = data_buffer_[i]->boxArray();
+                const int hi = ba[0].bigEnd(boost_direction_);
+                const int lo = hi - buff_counter_[i] + 1;
+                
+                Box buff_box = geom.Domain();
+                buff_box.setSmall(boost_direction_, lo);
+                buff_box.setBig(boost_direction_, hi);
+                
+                BoxArray buff_ba(buff_box);
+                buff_ba.maxSize(max_box_size_);
+                DistributionMapping buff_dm(buff_ba);
+                
+                const int ncomp = data_buffer_[i]->nComp();
+                
+                MultiFab tmp(buff_ba, buff_dm, ncomp, 0);
+                
+                tmp.copy(*data_buffer_[i], 0, 0, ncomp);
+                
+                std::stringstream ss;
+                ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
+                VisMF::Write(tmp, ss.str());
+            }
+            
+            if (WarpX::do_boosted_frame_particles) {
+                auto & mypc = WarpX::GetInstance().GetPartContainer();
+                for (int j = 0; j < mypc.nSpecies(); ++j) {
+                    std::stringstream part_ss;
+                    std::string species_name = "/particle" + std::to_string(j) + "/";
+                    part_ss << snapshots_[i].file_name + species_name;
+                    writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+                }
+                particles_buffer_[i].clear();
+            }
+            buff_counter_[i] = 0;
+        }
+    }
+
+    VisMF::SetHeaderVersion(current_version);
+}
+
 void
 BoostedFrameDiagnostic::
-writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {
+writeLabFrameData(const MultiFab* cell_centered_data,
+                  const MultiParticleContainer& mypc,
+                  const Geometry& geom, const Real t_boost, const Real dt) {
 
     BL_PROFILE("BoostedFrameDiagnostic::writeLabFrameData");
 
@@ -55,82 +116,160 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
     const Real zhi_boost = domain_z_boost.hi(boost_direction_);
 
     for (int i = 0; i < N_snapshots_; ++i) {
+        const Real old_z_boost = snapshots_[i].current_z_boost;
         snapshots_[i].updateCurrentZPositions(t_boost,
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
-
+        
         if ( (snapshots_[i].current_z_boost < zlo_boost) or
              (snapshots_[i].current_z_boost > zhi_boost) or
              (snapshots_[i].current_z_lab < snapshots_[i].zmin_lab) or
              (snapshots_[i].current_z_lab > snapshots_[i].zmax_lab) ) continue;
 
-        // for each z position, fill a slice with the data.
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
 
-        const int ncomp = cell_centered_data.nComp();
-        const int start_comp = 0;
-        std::unique_ptr<MultiFab> slice = amrex::get_slice_data(boost_direction_,
-                                                                snapshots_[i].current_z_boost,
-                                                                cell_centered_data, geom,
-                                                                start_comp, ncomp);
-
-        // transform it to the lab frame
-        for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
-            const Box& tile_box = mfi.tilebox();
-            WRPX_LORENTZ_TRANSFORM_Z(BL_TO_FORTRAN_ANYD((*slice)[mfi]),
-                                     BL_TO_FORTRAN_BOX(tile_box),
-                                     &gamma_boost_, &beta_boost_);
-        }
-
         if (buff_counter_[i] == 0) {
-            Box buff_box = geom.Domain();
-            buff_box.setSmall(boost_direction_, i_lab - num_buffer_ + 1);
-            buff_box.setBig(boost_direction_, i_lab);
-            BoxArray buff_ba(buff_box);
-            buff_ba.maxSize(max_box_size_);
-            DistributionMapping buff_dm(buff_ba);
-            data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
+            if (WarpX::do_boosted_frame_fields) {
+                const int ncomp = cell_centered_data->nComp();
+                Box buff_box = geom.Domain();
+                buff_box.setSmall(boost_direction_, i_lab - num_buffer_ + 1);
+                buff_box.setBig(boost_direction_, i_lab);
+                BoxArray buff_ba(buff_box);
+                buff_ba.maxSize(max_box_size_);
+                DistributionMapping buff_dm(buff_ba);
+                data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
+            }
+            if (WarpX::do_boosted_frame_particles) particles_buffer_[i].resize(mypc.nSpecies());
         }
-        
-        Real dx = geom.CellSize(boost_direction_);
-        int i_boost = (snapshots_[i].current_z_boost - geom.ProbLo(boost_direction_))/dx;
-        Box slice_box = geom.Domain();
-        slice_box.setSmall(boost_direction_, i_boost);
-        slice_box.setBig(boost_direction_, i_boost);
-        BoxArray slice_ba(slice_box);
-        slice_ba.maxSize(max_box_size_);
-        MultiFab tmp(slice_ba, data_buffer_[i]->DistributionMap(), ncomp, 0);
-        tmp.copy(*slice, 0, 0, ncomp);
 
+        if (WarpX::do_boosted_frame_fields) {
+            const int ncomp = cell_centered_data->nComp();
+            const int start_comp = 0;
+            const bool interpolate = true;
+            std::unique_ptr<MultiFab> slice = amrex::get_slice_data(boost_direction_,
+                                                                    snapshots_[i].current_z_boost,
+                                                                    *cell_centered_data, geom,
+                                                                    start_comp, ncomp, interpolate);
+            
+            // transform it to the lab frame
+            for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
+                const Box& tile_box = mfi.tilebox();
+                WRPX_LORENTZ_TRANSFORM_Z(BL_TO_FORTRAN_ANYD((*slice)[mfi]),
+                                         BL_TO_FORTRAN_BOX(tile_box),
+                                         &gamma_boost_, &beta_boost_);
+            }
+            
+            Real dx = geom.CellSize(boost_direction_);
+            int i_boost = (snapshots_[i].current_z_boost - geom.ProbLo(boost_direction_))/dx;
+            Box slice_box = geom.Domain();
+            slice_box.setSmall(boost_direction_, i_boost);
+            slice_box.setBig(boost_direction_, i_boost);
+            BoxArray slice_ba(slice_box);
+            slice_ba.maxSize(max_box_size_);
+            MultiFab tmp(slice_ba, data_buffer_[i]->DistributionMap(), ncomp, 0);
+            tmp.copy(*slice, 0, 0, ncomp);
+            
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
-            const Box& tile_box  = mfi.tilebox();
-            WRPX_COPY_SLICE(BL_TO_FORTRAN_BOX(tile_box),
-                            BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                            BL_TO_FORTRAN_ANYD((*data_buffer_[i])[mfi]),
-                            &ncomp, &i_boost, &i_lab);
+            for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
+                const Box& tile_box  = mfi.tilebox();
+                WRPX_COPY_SLICE(BL_TO_FORTRAN_BOX(tile_box),
+                                BL_TO_FORTRAN_ANYD(tmp[mfi]),
+                                BL_TO_FORTRAN_ANYD((*data_buffer_[i])[mfi]),
+                                &ncomp, &i_boost, &i_lab);
+            }
+        }
+        
+        if (WarpX::do_boosted_frame_particles) {
+            mypc.GetLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
+                                 old_z_boost, snapshots_[i].current_z_boost,
+                                 t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
         }
 
-        ++buff_counter_[i];
 
+        ++buff_counter_[i];
+        
         if (buff_counter_[i] == num_buffer_) {
-            std::stringstream ss;
-            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
-            VisMF::Write(*data_buffer_[i], ss.str());
+
+            if (WarpX::do_boosted_frame_fields) {
+                std::stringstream mesh_ss;
+                mesh_ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
+                VisMF::Write(*data_buffer_[i], mesh_ss.str());
+            }
+            
+            if (WarpX::do_boosted_frame_particles) {
+                for (int j = 0; j < mypc.nSpecies(); ++j) {
+                    std::stringstream part_ss;
+                    std::string species_name = "/particle" + std::to_string(j) + "/";
+                    part_ss << snapshots_[i].file_name + species_name;
+                    writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+                }            
+                particles_buffer_[i].clear();
+            }
             buff_counter_[i] = 0;
         }
     }
+        
+    VisMF::SetHeaderVersion(current_version);    
+}
 
-    VisMF::SetHeaderVersion(current_version);
+void
+BoostedFrameDiagnostic::
+writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata, const std::string& name,
+                  const int i_lab)
+{
+
+    BL_PROFILE("BoostedFrameDiagnostic::writeParticleData");
+    
+    std::string field_name;
+    std::ofstream ofs;
+
+    const int MyProc = ParallelDescriptor::MyProc();
+    auto np = pdata.GetRealData(DiagIdx::w).size();
+
+    if (np == 0) return;
+    
+    field_name = name + Concatenate("w_", i_lab, 5) + "_" + std::to_string(MyProc);
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::w).data(), np, ofs);
+    ofs.close();
+
+    field_name = name + Concatenate("x_", i_lab, 5) + "_" + std::to_string(MyProc);
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::x).data(), np, ofs);
+    ofs.close();    
+
+    field_name = name + Concatenate("y_", i_lab, 5) + "_" + std::to_string(MyProc);
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::y).data(), np, ofs);
+    ofs.close();    
+
+    field_name = name + Concatenate("z_", i_lab, 5) + "_" + std::to_string(MyProc);
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::z).data(), np, ofs);
+    ofs.close();    
+    
+    field_name = name + Concatenate("ux_", i_lab, 5) + "_" + std::to_string(MyProc);
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::ux).data(), np, ofs);
+    ofs.close();    
+
+    field_name = name + Concatenate("uy_", i_lab, 5) + "_" + std::to_string(MyProc);
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::uy).data(), np, ofs);
+    ofs.close();    
+
+    field_name = name + Concatenate("uz_", i_lab, 5) + "_" + std::to_string(MyProc);
+    ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(pdata.GetRealData(DiagIdx::uz).data(), np, ofs);
+    ofs.close();    
 }
 
 void
 BoostedFrameDiagnostic::
 writeMetaData() 
 {
-
     BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -174,13 +313,22 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
     
     if (ParallelDescriptor::IOProcessor()) {
 
-        const int nlevels = 1;
-        const std::string level_prefix = "Level_";
-        
         if (!UtilCreateDirectory(file_name, 0755))
             CreateDirectoryFailed(file_name);
-        for(int i(0); i < nlevels; ++i) {
+
+        const int nlevels = 1;
+        for(int i = 0; i < nlevels; ++i) {
             const std::string &fullpath = LevelFullPath(i, file_name);
+            if (!UtilCreateDirectory(fullpath, 0755))
+                CreateDirectoryFailed(fullpath);
+        }
+
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
+        int nspecies = mypc.nSpecies();
+        
+        const std::string particles_prefix = "particle";
+        for(int i = 0; i < nspecies; ++i) {
+            const std::string fullpath = file_name + "/" + particles_prefix + std::to_string(i);
             if (!UtilCreateDirectory(fullpath, 0755))
                 CreateDirectoryFailed(fullpath);
         }

@@ -436,7 +436,9 @@ WarpX::GetCellCenteredData() {
 
     const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
     amrex::average_node_to_cellcenter(*cc, dcomp, *charge_density, 0, 1);
-        
+
+    cc->FillBoundary(geom[lev].periodicity());
+    
     return cc;
 }
 
@@ -808,6 +810,16 @@ WarpX::WritePlotFile () const
     particle_varnames.push_back("By");
     particle_varnames.push_back("Bz");
 
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+    particle_varnames.push_back("xold");
+    particle_varnames.push_back("yold");
+    particle_varnames.push_back("zold");
+
+    particle_varnames.push_back("uxold");
+    particle_varnames.push_back("uyold");
+    particle_varnames.push_back("uzold");    
+#endif
+    
     mypc->Checkpoint(plotfilename, "particle", true, particle_varnames);
 
     WriteJobInfo(plotfilename);

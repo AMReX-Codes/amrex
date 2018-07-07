@@ -1,0 +1,99 @@
+#################################
+######### BOX PARAMETERS ########
+#################################
+max_step = 2700 # 10800
+amr.n_cell =  64 1696 # 352 6784
+amr.max_grid_size = 64
+amr.max_level = 0
+amr.plot_int = 100
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1     0            # Is periodic?
+# physical domain when running in the lab frame
+# geometry.prob_lo     = -250.e-6   -220.e-6
+# geometry.prob_hi     =  250.e-6      1.e-6
+# physical domain when running in a boosted frame
+geometry.prob_lo     = -250.e-6   -8794.49e-6
+geometry.prob_hi     =  250.e-6      39.974e-6
+
+#################################
+############ NUMERICS ###########
+#################################
+warpx.verbose = 1
+algo.current_deposition = 2
+algo.charge_deposition = 0
+algo.field_gathering = 0
+algo.particle_pusher = 0
+interpolation.nox = 3
+interpolation.noy = 3
+interpolation.noz = 3
+warpx.use_filter = 1
+warpx.cfl = 1.
+warpx.do_pml = 0
+# Moving window
+warpx.do_moving_window = 1
+warpx.moving_window_dir = z
+warpx.moving_window_v = 1.0 # in units of the speed of light
+warpx.serialize_ics = 1
+
+#################################
+####### BOOST PARAMETERS ########
+#################################
+warpx.gamma_boost = 20.
+warpx.boost_direction = z
+warpx.do_boosted_frame_diagnostic = 1
+warpx.num_snapshots_lab = 32
+warpx.dt_snapshots_lab = 3.33e-11
+
+#################################
+############ PLASMA #############
+#################################
+constants.use_my_constants = 1
+constants.constant_names  = zmax    rc     rmax    n0     kp
+constants.constant_values = 30.e-2  70.e-6 200.e-6 2.2e23 88263.0
+
+particles.nspecies = 2
+particles.species_names = electrons ions
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = NUniformPerCell
+electrons.num_particles_per_cell_each_dim = 1 1 1
+electrons.momentum_distribution_type = "gaussian"
+electrons.xmin = -220.e-6
+electrons.xmax =  220.e-6
+electrons.zmin = 0.e-6
+electrons.zmax = .3
+electrons.profile                 = "parse_density_function"
+electrons.density_function(x,y,z) = "((x**2+y**2)<rmax**2)*n0*(1+4*(x**2+y**2)/(kp**2*rc**4))"
+
+ions.charge = q_e
+ions.mass = m_p
+ions.injection_style = NUniformPerCell
+ions.num_particles_per_cell_each_dim = 1 1 1
+ions.momentum_distribution_type = "gaussian"
+ions.xmin = -220.e-6
+ions.xmax =  220.e-6
+ions.zmin = 0.
+ions.zmax = .3
+ions.profile                 = "parse_density_function"
+ions.density_function(x,y,z) = "((x**2+y**2)<rmax**2)*n0*(1+4*(x**2+y**2)/(kp**2*rc**4))"
+
+# Particle Injection
+warpx.do_plasma_injection = 1
+warpx.num_injected_species = 2
+warpx.injected_plasma_species = 0 1
+
+#################################
+############# LASER #############
+#################################
+warpx.use_laser = 1
+laser.profile      = Gaussian
+laser.position     = 0. 0. -0.1e-6 # This point is on the laser plane
+laser.direction    = 0. 0. 1.      # The plane normal direction
+laser.polarization = 1. 0. 0.      # The main polarization vector
+laser.e_max        = 5.53e12       # Maximum amplitude of the laser field (in V/m)
+laser.profile_waist = 53.e-6       # The waist of the laser (in meters)
+laser.profile_duration = 68.e-15   # The duration of the laser (in seconds)
+laser.profile_t_peak = 150.e-15    # The time at which the laser reaches its peak (in seconds)
+laser.profile_focal_distance = 0.e-6  # Focal distance from the antenna (in meters)
+laser.wavelength = 0.81e-6         # The wavelength of the laser (in meters)

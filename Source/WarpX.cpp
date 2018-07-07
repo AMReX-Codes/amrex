@@ -19,10 +19,13 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXConst.H>
+#include <WarpXWrappers.h>
 
 using namespace amrex;
 
 Vector<Real> WarpX::B_external(3, 0.0);
+
+int WarpX::do_moving_window = 0;
 
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
@@ -44,6 +47,10 @@ bool WarpX::serialize_ics     = false;
 bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
+bool WarpX::do_boosted_frame_fields = true;
+bool WarpX::do_boosted_frame_particles = true;
+
+bool WarpX::do_dynamic_scheduling = true;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -143,10 +150,43 @@ WarpX::WarpX ()
     gather_masks.resize(nlevs_max);
 
     costs.resize(nlevs_max);
+
+#ifdef WARPX_USE_PSATD
+    rho2_fp.resize(nlevs_max);
+    rho2_cp.resize(nlevs_max);
+
+    Efield_fp_fft.resize(nlevs_max);
+    Bfield_fp_fft.resize(nlevs_max);
+    current_fp_fft.resize(nlevs_max);
+    rho_prev_fp_fft.resize(nlevs_max);
+    rho_next_fp_fft.resize(nlevs_max);
+
+    Efield_cp_fft.resize(nlevs_max);
+    Bfield_cp_fft.resize(nlevs_max);
+    current_cp_fft.resize(nlevs_max);
+    rho_prev_cp_fft.resize(nlevs_max);
+    rho_next_cp_fft.resize(nlevs_max);
+
+    dataptr_fp_fft.resize(nlevs_max);
+    dataptr_cp_fft.resize(nlevs_max);
+
+    ba_valid_fp_fft.resize(nlevs_max);
+    ba_valid_cp_fft.resize(nlevs_max);
+
+    domain_fp_fft.resize(nlevs_max);
+    domain_cp_fft.resize(nlevs_max);
+
+    comm_fft.resize(nlevs_max,MPI_COMM_NULL);
+    color_fft.resize(nlevs_max,-1);
+#endif
 }
 
 WarpX::~WarpX ()
 {
+    int nlevs_max = maxLevel() +1;
+    for (int lev = 0; lev < nlevs_max; ++lev) {
+        ClearLevel(lev);
+    }
 }
 
 void
@@ -260,6 +300,10 @@ WarpX::ReadParameters ()
             pp.get("dt_snapshots_lab", dt_snapshots_lab);
             pp.get("gamma_boost", gamma_boost);
 
+            pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
+            pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
+
+
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
                 "The moving window should be on if using the boosted frame diagnostic.");
 
@@ -330,6 +374,10 @@ WarpX::ReadParameters ()
         }
 
         pp.query("load_balance_int", load_balance_int);
+        pp.query("load_balance_with_sfc", load_balance_with_sfc);
+        pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
+
+        pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
     }
 
     {
@@ -349,6 +397,17 @@ WarpX::ReadParameters ()
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
     }
+
+#ifdef WARPX_USE_PSATD
+    {
+        ParmParse pp("psatd");
+        pp.query("ngroups_fft", ngroups_fft);
+        pp.query("fftw_plan_measure", fftw_plan_measure);
+        pp.query("nox", nox_fft);
+        pp.query("noy", noy_fft);
+        pp.query("noz", noz_fft);
+    }
+#endif
 }
 
 // This is a virtual function.
@@ -358,6 +417,11 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
 {
     AllocLevelData(lev, new_grids, new_dmap);
     InitLevelData(lev, time);
+
+#ifdef WARPX_USE_PSATD
+    AllocLevelDataFFT(lev);
+    InitLevelDataFFT(lev, time);
+#endif
 }
 
 void
@@ -382,17 +446,67 @@ WarpX::ClearLevel (int lev)
     rho_cp[lev].reset();
 
     costs[lev].reset();
+
+#ifdef WARPX_USE_PSATD
+    for (int i = 0; i < 3; ++i) {
+        Efield_fp_fft[lev][i].reset();
+        Bfield_fp_fft[lev][i].reset();
+        current_fp_fft[lev][i].reset();
+
+        Efield_cp_fft[lev][i].reset();
+        Bfield_cp_fft[lev][i].reset();
+        current_cp_fft[lev][i].reset();
+    }
+
+    rho2_fp[lev].reset();
+    rho2_cp[lev].reset();
+
+    rho_prev_fp_fft[lev].reset();
+    rho_next_fp_fft[lev].reset();
+
+    rho_prev_cp_fft[lev].reset();
+    rho_next_cp_fft[lev].reset();
+
+    dataptr_fp_fft[lev].reset();
+    dataptr_cp_fft[lev].reset();
+
+    ba_valid_fp_fft[lev] = BoxArray();
+    ba_valid_cp_fft[lev] = BoxArray();
+
+    FreeFFT(lev);
+#endif
 }
 
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-    int ngJ = ngE;
-    int ngRho = ngE;
+    // Ex, Ey, Ez, Bx, By, and Bz have the same number of ghost cells.
+    // jx, jy, jz and rho have the same number of ghost cells.
+    // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
+    // but different number of ghost cells in z-direction if NCI filter is used.
+    int ngx = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
+    int ngy = (WarpX::noy % 2) ? WarpX::noy+1 : WarpX::noy;  // Always even number
+    int ngz_nonci = (WarpX::noz % 2) ? WarpX::noz+1 : WarpX::noz;  // Always even number
+    int ngz;
+    if (warpx_use_fdtd_nci_corr()) {
+        int ng = WarpX::noz + (mypc->nstencilz_fdtd_nci_corr-1);
+        ngz = (ng % 2) ? ng+1 : ng;
+    } else {
+        ngz = ngz_nonci;
+    }
+
+#if (BL_SPACEDIM == 3)
+    IntVect ngE(ngx,ngy,ngz);
+    IntVect ngJ(ngx,ngy,ngz_nonci);
+    IntVect ngRho = ngJ;
+#elif (BL_SPACEDIM == 2)
+    IntVect ngE(ngx,ngz);
+    IntVect ngJ(ngx,ngz_nonci);
+    IntVect ngRho = ngJ;
+#endif
+
     int ngF = (do_moving_window) ? 2 : 0;
-    
+
     //
     // The fine patch
     //
@@ -419,13 +533,10 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     //
     if (lev == 0)
     {
-        Bfield_aux[lev][0].reset(new MultiFab(*Bfield_fp[lev][0], amrex::make_alias, 0, 1));
-        Bfield_aux[lev][1].reset(new MultiFab(*Bfield_fp[lev][1], amrex::make_alias, 0, 1));
-        Bfield_aux[lev][2].reset(new MultiFab(*Bfield_fp[lev][2], amrex::make_alias, 0, 1));
-
-        Efield_aux[lev][0].reset(new MultiFab(*Efield_fp[lev][0], amrex::make_alias, 0, 1));
-        Efield_aux[lev][1].reset(new MultiFab(*Efield_fp[lev][1], amrex::make_alias, 0, 1));
-        Efield_aux[lev][2].reset(new MultiFab(*Efield_fp[lev][2], amrex::make_alias, 0, 1));
+        for (int idir = 0; idir < 3; ++idir) {
+            Efield_aux[lev][idir].reset(new MultiFab(*Efield_fp[lev][idir], amrex::make_alias, 0, 1));
+            Bfield_aux[lev][idir].reset(new MultiFab(*Bfield_fp[lev][idir], amrex::make_alias, 0, 1));
+        }
     }
     else
     {
@@ -648,11 +759,11 @@ void WarpX::computePhi(const Vector<std::unique_ptr<MultiFab> >& rho,
 
             NoOpPhysBC cphysbc, fphysbc;
 #if BL_SPACEDIM == 3
-            int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-            int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+            int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+            int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
 #else
-            int lo_bc[] = {INT_DIR, INT_DIR};
-            int hi_bc[] = {INT_DIR, INT_DIR};
+            int lo_bc[] = {BCType::int_dir, BCType::int_dir};
+            int hi_bc[] = {BCType::int_dir, BCType::int_dir};
 #endif
             Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
             NodeBilinear mapper;
@@ -660,7 +771,7 @@ void WarpX::computePhi(const Vector<std::unique_ptr<MultiFab> >& rho,
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
                                          0, 0, 1, geom[lev], geom[lev+1],
                                          cphysbc, fphysbc,
-                                         IntVect(D_DECL(2, 2, 2)), &mapper, bcs);
+                                         IntVect(AMREX_D_DECL(2, 2, 2)), &mapper, bcs);
         }
     }
 

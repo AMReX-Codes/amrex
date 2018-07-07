@@ -1,4 +1,6 @@
 import os, shutil, re
+import pandas as pd
+import numpy as np
 
 def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='knl', Cname='knl', n_node=1):
     # Clean res_dir
@@ -73,7 +75,7 @@ def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
     batch_string = ''
     batch_string += '#!/bin/bash\n'
     batch_string += '#SBATCH --job-name=' + run_name + str(n_node) + str(n_mpi) + str(n_omp) + '\n'
-    batch_string += '#SBATCH --time=00:20:00\n'
+    batch_string += '#SBATCH --time=00:23:00\n'
     batch_string += '#SBATCH -C ' + Cname + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH -q regular\n'
@@ -158,6 +160,40 @@ def get_nsteps(run_name):
     nsteps = float(line_match_nsteps.group(0).split()[2])
     return nsteps
 
+def extract_dataframe(filename, n_steps):
+    # Get init time and total time through Inclusive time                                                                                                                            
+    partition_limit_start = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
+    with open(filename) as file_handler:
+        output_text = file_handler.read()
+    # get total simulation time                                                                                                                                                      
+    line_match_totaltime = re.search('TinyProfiler total time across processes.*', output_text)
+    total_time = float(line_match_totaltime.group(0).split()[8])
+    # get time performing steps as Inclusive WarpX::Evolve() time                                                                                                                    
+    search_area = output_text.partition(partition_limit_start)[2]
+    line_match_looptime = re.search('\nWarpX::Evolve().*', search_area)
+    time_wo_initialization = float(line_match_looptime.group(0).split()[3])
+    # Get timers for all routines                                                                                                                                                    
+    # Where to start and stop in the output_file                                                                                                                                     
+    partition_limit_start = 'NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %'
+    partition_limit_end   = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
+    # Put file content in a string                                                                                                                                                   
+    with open(filename) as file_handler:
+        output_text = file_handler.read()
+    # Keep only profiling data                                                                                                                                                       
+    search_area = output_text.partition(partition_limit_start)[2]\
+                             .partition(partition_limit_end)[0]
+    list_string = search_area.split('\n')[2:-4]
+    time_array = np.zeros(len(list_string))
+    column_list= []
+    for i in np.arange(len(list_string)):
+        column_list.append(list_string[i].split()[0])
+        time_array[i] = float(list_string[i].split()[3])
+    df = pd.DataFrame(columns=column_list)
+    df.loc[0] = time_array
+    df['time_initialization'] = total_time - time_wo_initialization
+    df['time_running'] = time_wo_initialization
+    df['string_output'] = partition_limit_start + '\n' + search_area
+    return df
 
 # Run a performance test in an interactive allocation                                                                                                                                                                                                                            
 # def run_interactive(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):

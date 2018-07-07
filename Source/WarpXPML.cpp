@@ -283,7 +283,7 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt, const std::string& pml_ty
         amrex::Abort("Unknown PML type " + pml_type_s);
     }
 
-    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+    const std::array<Real,BL_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
@@ -328,10 +328,10 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_ty
         amrex::Abort("Unknown PML type " + pml_type_s);
     }
 
-    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+    const std::array<Real,BL_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
     
     const Real c2 = PhysConst::c*PhysConst::c;
-    const std::array<Real,BL_SPACEDIM> dtsdx_c2 {D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
+    const std::array<Real,BL_SPACEDIM> dtsdx_c2 {AMREX_D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
@@ -534,7 +534,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
                 for (int ii = -1; ii <= 1; ++ii) {
                     if (ii != 0 || jj != 0 || kk != 0) {
                         Box b = grid_bx;
-                        b.shift(grid_bx_sz * IntVect{D_DECL(ii,jj,kk)});
+                        b.shift(grid_bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
                         b &= bx;
                         if (b.ok()) {
                             bndryboxes.push_back(b);
@@ -656,14 +656,14 @@ PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp)
 void
 PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
-    const int ngr = reg.nGrow();
-    const int ngp = pml.nGrow();
+    const IntVect& ngr = reg.nGrowVect();
+    const IntVect& ngp = pml.nGrowVect();
     const int ncp = pml.nComp();
     const auto& period = geom.periodicity();
 
     MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
 
-    if (ngp > 0)  // Copy from pml to the ghost cells of regular data
+    if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
     {
         MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
         MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
@@ -672,7 +672,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
         }
         
         MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
-        tmpregmf.copy(totpmlmf, 0, 0, 1, 0, ngr, period);
+        tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
         
 #ifdef _OPENMP
 #pragma omp parallel
@@ -693,7 +693,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     // Zero out the second (and third) component
     MultiFab::Copy(tmpregmf,reg,0,0,1,0);
     tmpregmf.setVal(0.0, 1, ncp-1, 0);
-    pml.copy (tmpregmf, 0, 0, ncp, 0, ngp, period);
+    pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
 }
 
 void
@@ -706,7 +706,7 @@ PML::FillBoundary ()
 void
 PML::FillBoundaryE ()
 {
-    if (pml_E_fp[0] && pml_E_fp[0]->nGrow() > 0)
+    if (pml_E_fp[0] && pml_E_fp[0]->nGrowVect().max() > 0)
     {
         const auto& period = m_geom->periodicity();
         pml_E_fp[0]->FillBoundary(period);
@@ -714,7 +714,7 @@ PML::FillBoundaryE ()
         pml_E_fp[2]->FillBoundary(period);
     }    
 
-    if (pml_E_cp[0] && pml_E_cp[0]->nGrow() > 0)
+    if (pml_E_cp[0] && pml_E_cp[0]->nGrowVect().max() > 0)
     {
         const auto& period = m_cgeom->periodicity();
         pml_E_cp[0]->FillBoundary(period);

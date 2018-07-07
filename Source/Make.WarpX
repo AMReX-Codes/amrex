@@ -40,6 +40,23 @@ ifeq ($(USE_OPENBC_POISSON),TRUE)
   DEFINES += -DFFT_FFTW -DMPIPARALLEL -DUSE_OPENBC_POISSON
 endif
 
+ifeq ($(USE_PSATD),TRUE)
+  FFTW_HOME ?= NOT_SET
+  ifneq ($(FFTW_HOME),NOT_SET)
+    VPATH_LOCATIONS += $(FFTW_HOME)/include
+    INCLUDE_LOCATIONS += $(FFTW_HOME)/include
+    LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+  endif
+  USERSuffix += .PSATD
+  DEFINES += -DWARPX_USE_PSATD
+  DEFINES += -DFFTW   # PICSAR uses it
+  LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_omp
+endif
+
+ifeq ($(STORE_OLD_PARTICLE_ATTRIBS),TRUE)
+     DEFINES += -DWARPX_STORE_OLD_PARTICLE_ATTRIBS
+endif
+
 # job_info support
 CEXE_sources += AMReX_buildInfo.cpp
 CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/AMReX_buildInfo.H

@@ -1,10 +1,14 @@
 #include <limits>
+#include <algorithm>
+#include <string>
 
 #include <ParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 
 using namespace amrex;
+
+constexpr int MultiParticleContainer::nstencilz_fdtd_nci_corr;
 
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
@@ -13,7 +17,12 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     int n = WarpX::use_laser ? nspecies+1 : nspecies;
     allcontainers.resize(n);
     for (int i = 0; i < nspecies; ++i) {
-	allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i, species_names[i]));
+        if (species_types[i] == PCTypes::Physical) {
+            allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i, species_names[i]));
+        }
+        else if (species_types[i] == PCTypes::RigidInjected) {
+            allcontainers[i].reset(new RigidInjectedParticleContainer(amr_core, i, species_names[i]));
+        }
     }
     if (WarpX::use_laser) {
 	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
@@ -34,8 +43,23 @@ MultiParticleContainer::ReadParameters ()
         if (nspecies > 0) {
             pp.getarr("species_names", species_names);
             BL_ASSERT(species_names.size() == nspecies);
-        }
 
+            species_types.resize(nspecies, PCTypes::Physical);
+
+            std::vector<std::string> rigid_injected_species;
+            pp.queryarr("rigid_injected_species", rigid_injected_species);
+
+            if (!rigid_injected_species.empty()) {
+                for (auto const& name : rigid_injected_species) {
+                    auto it = std::find(species_names.begin(), species_names.end(), name);
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
+                    int i = std::distance(species_names.begin(), it);
+                    species_types[i] = PCTypes::RigidInjected;
+                }
+            }
+        }
+	pp.query("use_fdtd_nci_corr", use_fdtd_nci_corr);
+	pp.query("l_lower_order_in_v", l_lower_order_in_v);
 	initialized = true;
     }
 }
@@ -84,15 +108,15 @@ MultiParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiF
     int nlevs = rho.size();
     int ng = rho[0]->nGrow();
 
-    for (unsigned i = 0; i < nlevs; i++) { 
+    for (unsigned i = 0; i < nlevs; i++) {
         rho[i]->setVal(0.0, ng);
     }
-    
+
     for (auto& pc : allcontainers) {
 	pc->EvolveES(E, rho, t, dt);
     }
 
-    for (unsigned i = 0; i < nlevs; i++) { 
+    for (unsigned i = 0; i < nlevs; i++) {
         const Geometry& gm = allcontainers[0]->Geom(i);
         rho[i]->SumBoundary(gm.periodicity());
     }
@@ -103,15 +127,16 @@ MultiParticleContainer::Evolve (int lev,
                                 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                                 MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* rho, Real t, Real dt)
+                                MultiFab* rho, MultiFab* rho2, Real t, Real dt)
 {
     jx.setVal(0.0);
     jy.setVal(0.0);
     jz.setVal(0.0);
     if (rho) rho->setVal(0.0);
+    if (rho2) rho2->setVal(0.0);
     for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, rho, t, dt);
-    }    
+	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, rho, rho2, t, dt);
+    }
 }
 
 void
@@ -131,13 +156,23 @@ MultiParticleContainer::PushX (Real dt)
 }
 
 void
+MultiParticleContainer::PushP (int lev, Real dt,
+                               const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                               const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+{
+    for (auto& pc : allcontainers) {
+       pc->PushP(lev, dt, Ex, Ey, Ez, Bx, By, Bz);
+    }
+}
+
+void
 MultiParticleContainer::
 DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
 {
     int nlevs = rho.size();
     int ng = rho[0]->nGrow();
 
-    for (unsigned i = 0; i < nlevs; i++) { 
+    for (unsigned i = 0; i < nlevs; i++) {
         rho[i]->setVal(0.0, ng);
     }
 
@@ -189,8 +224,9 @@ MultiParticleContainer::Redistribute ()
 void
 MultiParticleContainer::RedistributeLocal ()
 {
+    int num_ghost = WarpX::do_moving_window ? 2 : 1;
     for (auto& pc : allcontainers) {
-	pc->Redistribute(0, 0, 0, true);
+	pc->Redistribute(0, 0, 0, num_ghost);
     }
 }
 
@@ -238,5 +274,55 @@ MultiParticleContainer::PostRestart ()
 {
     for (auto& pc : allcontainers) {
 	pc->PostRestart();
-    }    
+    }
+}
+
+void
+MultiParticleContainer
+::GetLabFrameData(const std::string& snapshot_name,
+                  const int i_lab, const int direction,
+                  const Real z_old, const Real z_new,
+                  const Real t_boost, const Real t_lab, const Real dt,
+                  Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const
+{
+
+    BL_PROFILE("MultiParticleContainer::GetLabFrameData");
+    
+    for (int i = 0; i < nspecies; ++i)
+    {
+        WarpXParticleContainer* pc = allcontainers[i].get();
+        WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
+        pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
+        
+        for (auto it = diagnostic_particles.begin(); it != diagnostic_particles.end(); ++it)
+        {
+            parts[i].GetRealData(DiagIdx::w).insert(  parts[i].GetRealData(DiagIdx::w  ).end(),
+                                                    it->second.GetRealData(DiagIdx::w  ).begin(),
+                                                    it->second.GetRealData(DiagIdx::w  ).end());
+
+            parts[i].GetRealData(DiagIdx::x).insert(  parts[i].GetRealData(DiagIdx::x  ).end(),
+                                                    it->second.GetRealData(DiagIdx::x  ).begin(),
+                                                    it->second.GetRealData(DiagIdx::x  ).end());
+
+            parts[i].GetRealData(DiagIdx::y).insert(  parts[i].GetRealData(DiagIdx::y  ).end(),
+                                                    it->second.GetRealData(DiagIdx::y  ).begin(),
+                                                    it->second.GetRealData(DiagIdx::y  ).end());
+
+            parts[i].GetRealData(DiagIdx::z).insert(  parts[i].GetRealData(DiagIdx::z  ).end(),
+                                                    it->second.GetRealData(DiagIdx::z  ).begin(),
+                                                    it->second.GetRealData(DiagIdx::z  ).end());
+
+            parts[i].GetRealData(DiagIdx::ux).insert(  parts[i].GetRealData(DiagIdx::ux).end(),
+                                                     it->second.GetRealData(DiagIdx::ux).begin(),
+                                                     it->second.GetRealData(DiagIdx::ux).end());
+
+            parts[i].GetRealData(DiagIdx::uy).insert(  parts[i].GetRealData(DiagIdx::uy).end(),
+                                                     it->second.GetRealData(DiagIdx::uy).begin(),
+                                                     it->second.GetRealData(DiagIdx::uy).end());
+
+            parts[i].GetRealData(DiagIdx::uz).insert(  parts[i].GetRealData(DiagIdx::uz).end(),
+                                                     it->second.GetRealData(DiagIdx::uz).begin(),
+                                                     it->second.GetRealData(DiagIdx::uz).end());
+        }
+    }
 }

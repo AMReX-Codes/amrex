@@ -11,6 +11,11 @@ using namespace amrex;
 
 int WarpXParticleContainer::do_not_push = 0;
 
+WarpXParIter::WarpXParIter (ContainerType& pc, int level)
+    : ParIter(pc, level, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling))
+{
+}
+
 #if (BL_SPACEDIM == 2)
 void
 WarpXParIter::GetPosition (Vector<Real>& x, Vector<Real>& y, Vector<Real>& z) const
@@ -30,9 +35,10 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     : ParticleContainer<0,0,PIdx::nattribs>(amr_core->GetParGDB())
     , species_id(ispecies)
 {
-    for (unsigned int i = PIdx::Ex; i < PIdx::nattribs; ++i) {
+    for (unsigned int i = PIdx::Ex; i <= PIdx::Bz; ++i) {
         communicate_real_comp[i] = false; // Don't need to communicate E and B.
     }
+    SetParticleSize();
     ReadParameters();
 }
 
@@ -46,10 +52,6 @@ WarpXParticleContainer::ReadParameters ()
 
         do_tiling = true;  // because the default in amrex is false
 	pp.query("do_tiling",  do_tiling);
-
-//        tile_size = IntVect(D_DECL(8,8,8));
-        tile_size = IntVect(D_DECL(102400,8,8));
-
         pp.query("do_not_push", do_not_push);
         
 	initialized = true;
@@ -213,7 +215,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
         MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
         coarsened_fine_data.setVal(0.0);
         
-        IntVect ratio(D_DECL(2, 2, 2));  // FIXME
+        IntVect ratio(AMREX_D_DECL(2, 2, 2));  // FIXME
         
         for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
@@ -340,6 +342,53 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
     return total_charge;
 }
 
+std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
+
+    const int lev = 0;
+
+    amrex::Real vx_total = 0.0;
+    amrex::Real vy_total = 0.0;
+    amrex::Real vz_total = 0.0;
+
+    long np_total = 0;
+
+    amrex::Real inv_clight_sq = 1.0/PhysConst::c/PhysConst::c;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:vx_total, vy_total, vz_total, np_total)
+#endif
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& ux = pti.GetAttribs(PIdx::ux);
+        auto& uy = pti.GetAttribs(PIdx::uy);
+        auto& uz = pti.GetAttribs(PIdx::uz);
+
+        np_total += pti.numParticles();
+
+        for (unsigned long i = 0; i < ux.size(); i++) {
+            Real usq = (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_clight_sq;
+            Real gaminv = 1.0/std::sqrt(1.0 + usq);
+            vx_total += ux[i]*gaminv;
+            vy_total += uy[i]*gaminv;
+            vz_total += uz[i]*gaminv;
+        }
+    }
+
+    if (!local) {
+        ParallelDescriptor::ReduceRealSum(vx_total);
+        ParallelDescriptor::ReduceRealSum(vy_total);
+        ParallelDescriptor::ReduceRealSum(vz_total);
+        ParallelDescriptor::ReduceLongSum(np_total);
+    }
+    
+    std::array<Real, 3> mean_v;
+    mean_v[0] = vx_total / np_total;
+    mean_v[1] = vy_total / np_total;
+    mean_v[2] = vz_total / np_total;
+
+    return mean_v;
+}
+
 Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 
     const int lev = 0;
@@ -462,3 +511,4 @@ WarpXParticleContainer::PushX (int lev, Real dt)
         }
     }
 }
+

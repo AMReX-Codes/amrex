@@ -37,6 +37,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	    profile = laser_t::Gaussian;
   } else if(laser_type_s == "harris") {
       profile = laser_t::Harris;
+  } else if(laser_type_s == "parse_field_function") {
+      profile = laser_t::parse_field_function;
 	} else {
 	    amrex::Abort("Unknown laser type");
 	}
@@ -46,8 +48,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	pp.getarr("direction", nvec);
 	pp.getarr("polarization", p_X);
 	pp.query("pusher_algo", pusher_algo);
-	pp.get("e_max", e_max);
 	pp.get("wavelength", wavelength);
+	pp.get("e_max", e_max);
 
 	if ( profile == laser_t::Gaussian ) {
 	    // Parse the properties of the Gaussian profile
@@ -58,11 +60,25 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	}
 
   if ( profile == laser_t::Harris ) {
-	    // Parse the properties of the Harris profile
-	   pp.get("profile_waist", profile_waist);
-	   pp.get("profile_duration", profile_duration);
-           pp.get("profile_focal_distance", profile_focal_distance);
-	}
+    // Parse the properties of the Harris profile
+    pp.get("profile_waist", profile_waist);
+    pp.get("profile_duration", profile_duration);
+    pp.get("profile_focal_distance", profile_focal_distance);
+  }
+
+  if ( profile == laser_t::parse_field_function ) {
+    // Parse the properties of the parse_field_function profile
+    pp.get("field_function(X,Y,t)", field_function);
+    // User-defined constants: replace names by value
+    my_constants.ReadParameters();
+    field_function = my_constants.replaceStringValue(field_function);
+    // Pass math expression and list of variables to Fortran as char*
+    const std::string s_var = "X,Y,t";
+    parser_instance_number = parser_initialize_function(field_function.c_str(),
+                                                        field_function.length(),
+                                                        s_var.c_str(),
+                                                        s_var.length());
+  }
 
 	// Plane normal
 	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
@@ -70,9 +86,11 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
     if (WarpX::gamma_boost > 1.) {
         // Check that the laser direction is equal to the boost direction
-        BL_ASSERT( nvec[0]*WarpX::boost_direction[0]
-                + nvec[1]*WarpX::boost_direction[1]
-                + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12 );
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
+            nvec[0]*WarpX::boost_direction[0]
+          + nvec[1]*WarpX::boost_direction[1]
+          + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12,
+          "The Lorentz boost should be in the same direction as the laser propagation");
         // Get the position of the plane, along the boost direction, in the lab frame
         // and convert the position of the antenna to the boosted frame
         Z0_lab = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
@@ -88,7 +106,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
 	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14, 
-                                         "Laser plane vector is not perpendicular to the main polarization vector");
+            "Laser plane vector is not perpendicular to the main polarization vector");
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
 
@@ -258,7 +276,8 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* rho, Real t, Real dt)
+                                MultiFab* rho, MultiFab* rho2,
+                                Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
@@ -269,9 +288,6 @@ LaserParticleContainer::Evolve (int lev,
 
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ  = jx.nGrow();
-    long ngRho = (rho) ? rho->nGrow() : 0;
-
-    long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     Real t_lab = t;
@@ -346,13 +362,16 @@ LaserParticleContainer::Evolve (int lev,
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
 
-	    const long lvect = 8;
+            long lvect = 8;
 
-            if (rho)
+            auto depositCharge = [&] (MultiFab* rhomf)
             {
+                long ngRho = rhomf->nGrow();
+                long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
+
                 Real* data_ptr;
                 const int *rholen;
-                FArrayBox& rhofab = (*rho)[pti];
+                FArrayBox& rhofab = (*rhomf)[pti];
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
                 Box grown_box;
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
@@ -408,7 +427,9 @@ LaserParticleContainer::Evolve (int lev,
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
                                                 BL_TO_FORTRAN_3D(rhofab), ncomp);
                 }
-            }
+            };
+
+            if (rho) depositCharge(rho);
 
 	    //
 	    // Particle Push
@@ -428,13 +449,19 @@ LaserParticleContainer::Evolve (int lev,
                                     &profile_focal_distance, amplitude_E.data() );
 	    }
 
+            if (profile == laser_t::parse_field_function) {
+		parse_function_laser( &np, plane_Xp.data(), plane_Yp.data(), &t,
+				      amplitude_E.data(), parser_instance_number );
+	    }
+
 	    // Calculate the corresponding momentum and position for the particles
             for (int i = 0; i < np; ++i)
             {
                 // Calculate the velocity according to the amplitude of E
                 Real sign_charge = std::copysign( 1.0, wp[i] );
                 Real v_over_c = sign_charge * mobility * amplitude_E[i];
-                BL_ASSERT( v_over_c < 1 );
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( v_over_c < 1,
+                    "The laser particles have to move unphysically in order to emit the laser.");
                 // The velocity is along the laser polarization p_X
                 Real vx = PhysConst::c * v_over_c * p_X[0];
                 Real vy = PhysConst::c * v_over_c * p_X[1];
@@ -447,7 +474,7 @@ LaserParticleContainer::Evolve (int lev,
                     vz -= PhysConst::c * WarpX::beta_boost * nvec[2];
                 }
                 // Get the corresponding momenta
-                giv[i] = std::sqrt( 1 - pow(WarpX::gamma_boost *  v_over_c, 2) )/WarpX::gamma_boost;
+                giv[i] = std::sqrt(1 - std::pow(v_over_c,2))/WarpX::gamma_boost;
                 Real gamma = 1./giv[i];
                 uxp[i] = gamma * vx;
                 uyp[i] = gamma * vy;
@@ -582,6 +609,8 @@ LaserParticleContainer::Evolve (int lev,
 
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
+            if (rho2) depositCharge(rho2);
+
 	    //
 	    // copy particle data back
 	    //
@@ -641,4 +670,12 @@ LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
     // the amplitude of the field) are given in the lab-frame.
     // Therefore, the mobility needs to be modified by a factor WarpX::gamma_boost.
     mobility = mobility/WarpX::gamma_boost;
+}
+
+void
+LaserParticleContainer::PushP (int lev, Real dt,
+                               const MultiFab&, const MultiFab&, const MultiFab&,
+                               const MultiFab&, const MultiFab&, const MultiFab&)
+{
+    // I don't think we need to do anything.
 }

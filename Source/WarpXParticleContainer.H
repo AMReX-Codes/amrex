@@ -11,7 +11,19 @@ struct PIdx
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
 	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+        xold, yold, zold, uxold, uyold, uzold,
+#endif        
 	nattribs
+    };
+};
+
+struct DiagIdx
+{
+    enum {
+        w = 0,
+        x, y, z, ux, uy, uz,
+        nattribs
     };
 };
 
@@ -20,6 +32,8 @@ class WarpXParIter
 {
 public:
     using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
+
+    WarpXParIter (ContainerType& pc, int level);
 
 #if (BL_SPACEDIM == 2)
     void GetPosition (amrex::Vector<amrex::Real>& x,
@@ -55,6 +69,9 @@ class WarpXParticleContainer
 public:
     friend MultiParticleContainer;
 
+    using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
+    using DiagnosticParticles = std::map<std::pair<int, int>, DiagnosticParticleData>;
+    
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
@@ -75,10 +92,16 @@ public:
 			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
-                         amrex::MultiFab* rho, amrex::Real t, amrex::Real dt) = 0;
+                         amrex::MultiFab* rho, amrex::MultiFab* rho2,
+                         amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
 
+    virtual void GetParticleSlice(const int direction,     const amrex::Real z_old,
+                                  const amrex::Real z_new, const amrex::Real t_boost, 
+                                  const amrex::Real t_lab, const amrex::Real dt,
+                                  DiagnosticParticles& diagnostic_particles) {}
+    
     void AllocData ();
 
     ///
@@ -98,6 +121,17 @@ public:
     void PushX (         amrex::Real dt);
     void PushX (int lev, amrex::Real dt);
 
+    ///
+    /// This pushes the particle momenta by dt.
+    /// 
+    virtual void PushP (int lev, amrex::Real dt,
+                        const amrex::MultiFab& Ex,
+                        const amrex::MultiFab& Ey,
+                        const amrex::MultiFab& Ez,
+                        const amrex::MultiFab& Bx,
+                        const amrex::MultiFab& By,
+                        const amrex::MultiFab& Bz) = 0;
+
     void DepositCharge(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                        bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
@@ -107,6 +141,8 @@ public:
     /// This is needed when solving Poisson's equation with periodic boundary conditions.
     ///
     amrex::Real sumParticleCharge(bool local = false);
+
+    std::array<amrex::Real, 3> meanParticleVelocity(bool local = false);
 
     amrex::Real maxParticleVelocity(bool local = false);
 

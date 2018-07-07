@@ -14,6 +14,9 @@
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_LayoutData.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
@@ -82,12 +85,16 @@ public:
     // Back transformation diagnostic
     static bool do_boosted_frame_diagnostic;
     static int  num_snapshots_lab;
-    static Real dt_snapshots_lab;
-
+    static amrex::Real dt_snapshots_lab;
+    static bool do_boosted_frame_fields;
+    static bool do_boosted_frame_particles;
+    
     // Boosted frame parameters
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
     static amrex::Vector<amrex::Real> boost_direction;
+
+    static bool do_dynamic_scheduling;
 
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
@@ -111,7 +118,7 @@ public:
 
     void ComputeDt ();
     void MoveWindow (bool move_j);
-    void UpdatePlasmaInjectionPosition (Real dt);
+    void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
     void EvolveE (         amrex::Real dt, DtType typ);
     void EvolveE (int lev, amrex::Real dt, DtType typ);
@@ -134,7 +141,8 @@ public:
     void FillBoundaryB (int lev);
 
     void SyncCurrent ();
-    void SyncRho ();
+    void SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
+                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc);
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -171,6 +179,8 @@ public:
     static amrex::IntVect jx_nodal_flag;
     static amrex::IntVect jy_nodal_flag;
     static amrex::IntVect jz_nodal_flag;
+
+    static int do_moving_window;
 
 protected:
 
@@ -247,6 +257,8 @@ private:
     void ComputePMLFactors ();
 
     void InitDiagnostics ();
+
+    void InitNCICorrector ();
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
@@ -344,12 +356,11 @@ private:
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     // Moving window parameters
-    int do_moving_window  = 0;
     int moving_window_dir = -1;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
     amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
-    Real current_injection_position = 0;
+    amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters
     int do_plasma_injection  = 0;
@@ -362,6 +373,8 @@ private:
 
     int load_balance_int = -1;
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > costs;
+    int load_balance_with_sfc = 0;
+    amrex::Real load_balance_knapsack_factor = 1.24;
 
     // Other runtime parameters
     int verbose = 1;
@@ -375,8 +388,8 @@ private:
 
     std::string restart_chkfile;
 
-    std::string check_file {"chk"};
-    std::string plot_file {"plt"};
+    std::string check_file {"checkpoints/chk"};
+    std::string plot_file {"plotfiles/plt"};
     int check_int = -1;
     int plot_int = -1;
 
@@ -404,6 +417,87 @@ private:
     amrex::RealVect fine_tag_hi;
 
     bool is_synchronized = true;
+
+#ifdef WARPX_USE_PSATD
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_fp;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_cp;
+
+    // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
+    // This includes data for the FFT guard cells (between FFT groups)
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_fp_fft;
+
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_cp_fft;
+
+    // FFTData is a stuct containing a 22 pointers to auxiliary arrays
+    // 1-11: padded arrays in real space (required by FFTW); 12-22: arrays in spectral space
+    struct FFTData
+    {
+        static constexpr int N = 22;
+        void* data[N] = { nullptr };
+
+        ~FFTData () {
+            for (int i = 0; i < N; ++i) { // The memory is allocated by Fortran routines
+                std::free(data[i]);
+                data[i] = nullptr;
+            }
+        }
+
+        FFTData () = default;
+
+        FFTData (FFTData && rhs) noexcept {
+            for (int i = 0; i < N; ++i) {
+                data[i] = rhs.data[i];
+                rhs.data[i] = nullptr;
+            }
+        }
+
+        FFTData (FFTData const&) = delete;
+        void operator= (FFTData const&) = delete;
+        void operator= (FFTData&&) = delete;
+    };
+
+    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
+    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
+
+  // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
+    amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
+    amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
+
+    amrex::Vector<amrex::Box> domain_fp_fft;  //  "global" domain for the group this process belongs to
+    amrex::Vector<amrex::Box> domain_cp_fft;
+
+    amrex::Vector<MPI_Comm> comm_fft;
+    amrex::Vector<int>      color_fft;
+
+    int ngroups_fft = 4;
+    int fftw_plan_measure = 1;
+    int nox_fft = 16;
+    int noy_fft = 16;
+    int noz_fft = 16;
+
+    void AllocLevelDataFFT (int lev);
+    void InitLevelDataFFT (int lev, amrex::Real time);
+
+    void InitFFTComm (int lev);
+    void FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
+                                amrex::BoxArray& ba_valid, amrex::Box& domain_fft,
+                                const amrex::Box& domain);
+    void InitFFTDataPlan (int lev);
+    void FreeFFT (int lev);
+
+    void EvolvePSATD (int numsteps);
+    void PushPSATD (amrex::Real dt);
+    void PushPSATD (int lev, amrex::Real dt);
+
+#endif
 };
 
 #endif

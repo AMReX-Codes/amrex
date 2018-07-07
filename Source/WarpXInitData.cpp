@@ -5,6 +5,7 @@
 
 #include <WarpX.H>
 #include <WarpX_f.H>
+#include <WarpXWrappers.h>
 
 using namespace amrex;
 
@@ -15,19 +16,23 @@ WarpX::InitData ()
 
     if (restart_chkfile.empty())
     {
-	InitFromScratch();
         ComputeDt();
+	InitFromScratch();
     }
     else
     {
 	InitFromCheckpoint();
-	PostRestart();
         if (is_synchronized) {
             ComputeDt();
         }
+	PostRestart();
     }
 
     ComputePMLFactors();
+
+    if (warpx_use_fdtd_nci_corr()) {
+        WarpX::InitNCICorrector();
+    }
 
     InitDiagnostics();
 
@@ -61,7 +66,8 @@ WarpX::InitDiagnostics () {
         myBFD.reset(new BoostedFrameDiagnostic(zmin_lab,
 					       zmax_lab,
                                                moving_window_v, dt_snapshots_lab,
-                                               num_snapshots_lab, gamma_boost, dt_boost, 
+                                               num_snapshots_lab, gamma_boost,
+                                               t_new[0], dt_boost, 
                                                moving_window_dir));
     }
 }
@@ -120,8 +126,33 @@ WarpX::ComputePMLFactors ()
 }
 
 void
+WarpX::InitNCICorrector ()
+{
+    if (warpx_use_fdtd_nci_corr())
+    {
+        const Geometry& gm = Geom(finest_level);
+        const Real* dx = gm.CellSize();
+        const int l_lower_order_in_v = warpx_l_lower_order_in_v();
+        amrex::Real dz, cdtodz;
+        if (BL_SPACEDIM == 3){ 
+            dz = dx[2]; 
+        }else{ 
+            dz = dx[1]; 
+        }
+        cdtodz = PhysConst::c * dt[finest_level] / dz;
+        WRPX_PXR_NCI_CORR_INIT( mypc->fdtd_nci_stencilz_ex.data(), 
+                                mypc->fdtd_nci_stencilz_by.data(), 
+                                mypc->nstencilz_fdtd_nci_corr, cdtodz, 
+                                l_lower_order_in_v);
+    }
+}
+
+void
 WarpX::PostRestart ()
 {
+#ifdef WARPX_USE_PSATD
+    amrex::Abort("WarpX::PostRestart: TODO for PSATD");
+#endif
     mypc->PostRestart();
 }
 

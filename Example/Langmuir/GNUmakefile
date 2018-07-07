@@ -1,20 +1,23 @@
-DEBUG	= FALSE
-#DEBUG	= TRUE
+AMREX_HOME  ?= ../../../amrex
+PICSAR_HOME ?= ../../../picsar
 
-DIM	= 3
+DEBUG    = FALSE
+
+DIM    = 2
+DIM    = 3
 
 COMP    = gcc
-FCOMP   = gfortran
 
 TINY_PROFILE = TRUE
 TINY_PROFILE = FALSE
 
-USE_MPI   = TRUE
 USE_OMP   = TRUE
 
 EBASE     = main
 
 USE_PYTHON_MAIN = FALSE
 
-WARPX_HOME := ../..
+USE_PSATD = FALSE
+
+WARPX_HOME := ../../../warpx
 include $(WARPX_HOME)/Source/Make.WarpX

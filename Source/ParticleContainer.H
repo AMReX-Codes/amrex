@@ -4,11 +4,13 @@
 
 #include <memory>
 #include <map>
+#include <string>
 
 #include <AMReX_Particles.H>
 
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
+#include <RigidInjectedParticleContainer.H>
 #include <LaserParticleContainer.H>
 
 //
@@ -30,6 +32,10 @@ public:
 
     WarpXParticleContainer& GetParticleContainer (int ispecies) {
 	return *allcontainers[ispecies];
+    }
+
+    std::array<amrex::Real, 3> meanParticleVelocity(int ispecies) {
+        return allcontainers[ispecies]->meanParticleVelocity();
     }
 
     void AllocData ();
@@ -69,7 +75,7 @@ public:
 		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 		 amrex::MultiFab& jx,  amrex::MultiFab& jy, amrex::MultiFab& jz, 
-                 amrex::MultiFab* rho, amrex::Real t, amrex::Real dt);
+                 amrex::MultiFab* rho, amrex::MultiFab* rho2, amrex::Real t, amrex::Real dt);
 
     ///
     /// This pushes the particle positions by one half time step for all the species in the 
@@ -84,6 +90,16 @@ public:
     /// or when restarting from a checkpoint. This is the electromagnetic version.
     /// 
     void PushX (amrex::Real dt);
+
+    ///
+    /// This pushes the particle momenta by dt for all the species in the
+    /// MultiParticleContainer. It is used to desynchronize the particles after initializaton
+    /// or when restarting from a checkpoint.  It is also used to synchronize particles at the
+    /// the end of the run.  This is the electromagnetic version.
+    /// 
+    void PushP (int lev, amrex::Real dt,
+                const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz);
 
     ///
     /// This deposits the particle charge onto rho, accumulating the value for all the species
@@ -129,11 +145,36 @@ public:
     void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
     void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
 
-    int nSpecies() {return nspecies;}
+    int nSpecies() const {return nspecies;}
+
+    int L_lower_order_in_v() {return l_lower_order_in_v;}
+
+    bool Use_fdtd_nci_corr() {return use_fdtd_nci_corr;}
+
+    void GetLabFrameData(const std::string& snapshot_name,
+                         const int i_lab, const int direction,
+                         const amrex::Real z_old, const amrex::Real z_new,
+                         const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
+                         amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
+    
+    // 
+    // Parameters for the Cherenkov corrector in the FDTD solver.
+    // Both stencils are calculated ar runtime.
+    // 
+    // Number of coefficients for the stencil of the NCI corrector.
+    // The stencil is applied in the z direction only.
+    static constexpr int nstencilz_fdtd_nci_corr=5;
+    std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex;
+    std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by;
 
 protected:
 
+    // Particle container types
+    enum struct PCTypes {Physical, RigidInjected};
+
     std::vector<std::string> species_names;
+
+    std::vector<PCTypes> species_types;
 
 private:
 
@@ -145,5 +186,8 @@ private:
     // runtime parameters
     int nspecies = 1;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
 
+    int l_lower_order_in_v = true;
+
+    bool use_fdtd_nci_corr = false;
 };
 #endif /*WARPX_ParticleContainer_H_*/

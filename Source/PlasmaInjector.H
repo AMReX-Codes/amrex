@@ -5,6 +5,7 @@
 
 #include "AMReX_REAL.H"
 #include <AMReX_Vector.H>
+#include <WarpXConst.H>
 #include "AMReX_ParmParse.H"
 #include "AMReX_Utility.H"
 
@@ -57,6 +58,22 @@ private:
 };
 
 ///
+/// This describes a density function parsed in the input file. 
+///
+class ParseDensityProfile : public PlasmaDensityProfile
+{
+public:
+    ParseDensityProfile(const std::string _parse_density_function);
+    virtual amrex::Real getDensity(amrex::Real x,
+                                   amrex::Real y,
+                                   amrex::Real z) const override;
+    UserConstants my_constants;
+private:
+    std::string _parse_density_function;
+    int parser_instance_number=0;
+};
+
+///
 /// PlasmaMomentumDistribution describes how the particle momenta
 /// are set. Subclasses must define a getMomentum method that fills
 /// a u with the 3 components of the particle momentum
@@ -88,6 +105,22 @@ private:
 };
 
 ///
+/// This describes a custom momentum distribution. Users can supply
+/// in their problem directory.
+///
+///
+class CustomMomentumDistribution : public PlasmaMomentumDistribution
+{
+public:
+    CustomMomentumDistribution(const std::string& species_name);
+    virtual void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z) override;
+
+private:
+    amrex::Vector<amrex::Real> params;
+};
+
+
+///
 /// This is a Gaussian Random momentum distribution.
 /// Particles will get random momenta, drawn from a normal.
 /// ux_m, ux_y, and ux_z describe the mean components in the x, y, and z
@@ -100,13 +133,17 @@ public:
     GaussianRandomMomentumDistribution(amrex::Real ux_m,
                                        amrex::Real uy_m,
                                        amrex::Real uz_m,
-                                       amrex::Real u_th);
+                                       amrex::Real ux_th,
+                                       amrex::Real uy_th,
+                                       amrex::Real uz_th);
     virtual void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z) override;
 private:
     amrex::Real _ux_m;
     amrex::Real _uy_m;
     amrex::Real _uz_m;
-    amrex::Real _u_th;
+    amrex::Real _ux_th;
+    amrex::Real _uy_th;
+    amrex::Real _uz_th;
 };
 
 ///
@@ -212,6 +249,8 @@ public:
     amrex::Real z_rms;
     amrex::Real q_tot;
     long npart;
+
+    std::string str_density_function;
 
 protected:
 

@@ -10,18 +10,18 @@
 using namespace amrex;
 
 void
-WarpX::Evolve(int numsteps) {
-    BL_PROFILE("WarpX::Evolve()");
+WarpX::Evolve (int numsteps) {
+    BL_PROFILE_REGION("WarpX::Evolve()");
 
     if (do_electrostatic) {
         EvolveES(numsteps);
     } else {
-        EvolveEM(numsteps);
+      EvolveEM(numsteps);
     }
 }
 
 void
-WarpX::EvolveES(int numsteps) {
+WarpX::EvolveES (int numsteps) {
 
     amrex::Print() << "Running in electrostatic mode \n";
 
@@ -39,7 +39,7 @@ WarpX::EvolveES(int numsteps) {
 
     bool max_time_reached = false;
 
-    // nodal storage for the electrostatic case
+    // nodal storage for thee electrostatic case
     const int num_levels = max_level + 1;
     Vector<std::unique_ptr<MultiFab> > rhoNodal(num_levels);
     Vector<std::unique_ptr<MultiFab> > phiNodal(num_levels);
@@ -112,8 +112,8 @@ WarpX::EvolveES(int numsteps) {
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
-        amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
-                      << " DT = " << dt[0] << "\n";
+        amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = "
+                      << cur_time << " DT = " << dt[0] << "\n";
 
 	// sync up time
 	for (int i = 0; i <= finest_level; ++i) {
@@ -171,6 +171,7 @@ WarpX::EvolveEM (int numsteps)
     }
 
     bool max_time_reached = false;
+    Real walltime, walltime_start = ParallelDescriptor::second();
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
 
@@ -180,42 +181,47 @@ WarpX::EvolveEM (int numsteps)
 
         if (costs[0] != nullptr)
         {
-            if (step > 0 && (step-1) % load_balance_int == 0)
+#ifdef WARPX_USE_PSATD
+            amrex::Abort("LoadBalance for PSATD: TODO");
+#endif
+            if (step > 0 && (step+1) % load_balance_int == 0)
             {
                 LoadBalance();
+		// Reset the costs to 0
+		for (int lev = 0; lev <= finest_level; ++lev) {
+		  costs[lev]->setVal(0.0);
+		}
             }
 
             for (int lev = 0; lev <= finest_level; ++lev) {
-                costs[lev]->setVal(0.0);
+	      // Perform running average of the costs
+	      // (Giving more importance to most recent costs)
+	      (*costs[lev].get()).mult( (1. - 2./load_balance_int) );
             }
         }
 
-        // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
-        // Particles have p^{n-1/2} and x^{n-1/2}.
-
-        // Beyond one step, we have B^{n-1/2} and E^{n}.
-        // Particles have p^{n-1/2} and x^{n}.
-        // F for div E cleaning is at n-1/2.
-
+        // At the beginning, we have B^{n} and E^{n}.
+        // Particles have p^{n} and x^{n}.
+        // is_synchronized is true.
         if (is_synchronized) {
-            // on first step, push E and X by 0.5*dt
+            FillBoundaryE();
             FillBoundaryB();
-            EvolveE(0.5*dt[0], DtType::SecondHalf);
-            mypc->PushX(0.5*dt[0]);
-            UpdatePlasmaInjectionPosition(0.5*dt[0]);
-            mypc->Redistribute();  // Redistribute particles
-            is_synchronized = false;
-        }
+            UpdateAuxilaryData();
+            // on first step, push p by -0.5*dt
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->PushP(lev, -0.5*dt[0],
+                            *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                            *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+            }
+           is_synchronized = false;
+        } else {
+           // Beyond one step, we have E^{n} and B^{n}.
+           // Particles have p^{n-1/2} and x^{n}.
+           UpdateAuxilaryData();
+       }
 
-        FillBoundaryE();
-
-        EvolveB(0.5*dt[0], DtType::FirstHalf); // We now B^{n}
-
-        FillBoundaryB();
-
-        UpdateAuxilaryData();
-
-        // Push particle from x^{n} to x{n+1}
+        // Push particle from x^{n} to x^{n+1}
+        //               from p^{n-1/2} to p^{n+1/2}
         // Deposit current j^{n+1/2}
         // Deposit charge density rho^{n}
         if (warpx_py_particleinjection) warpx_py_particleinjection();
@@ -224,30 +230,43 @@ WarpX::EvolveEM (int numsteps)
         PushParticlesandDepose(cur_time);
         if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 
-        EvolveB(0.5*dt[0], DtType::SecondHalf); // We now B^{n+1/2}
-
         SyncCurrent();
 
-        SyncRho();
+        SyncRho(rho_fp, rho_cp);
+#ifdef WARPX_USE_PSATD
+        SyncRho(rho2_fp, rho2_cp);
+#endif
 
-        EvolveF(dt[0], DtType::Full);
-
-        // Fill B's ghost cells because of the next step of evolving E.
+        // Push E and B from {n} to {n+1}
+        // (And update guard cells immediately afterwards)
+#ifdef WARPX_USE_PSATD
+        PushPSATD(dt[0]);
+        FillBoundaryE();
         FillBoundaryB();
+#else
+        EvolveF(dt[0], DtType::Full);
+        EvolveB(0.5*dt[0], DtType::SecondHalf); // We now have B^{n+1/2}
+        FillBoundaryB();
+        EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
+        FillBoundaryE();
+        EvolveB(0.5*dt[0], DtType::FirstHalf); // We now have B^{n+1}
+        FillBoundaryB();
+#endif
 
         if (warpx_py_beforeEsolve) warpx_py_beforeEsolve();
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
-            // on last step, push by only 0.5*dt to synchronize all at n+1/2
-            EvolveE(0.5*dt[0], DtType::FirstHalf); // We now have E^{n+1/2}
-            mypc->PushX(-0.5*dt[0]);
-            UpdatePlasmaInjectionPosition(-0.5*dt[0]);
+            // At the end of last step, push p by 0.5*dt to synchronize
+            UpdateAuxilaryData();
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->PushP(lev, 0.5*dt[0],
+                    *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                    *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+                }
             is_synchronized = true;
-        } else {
-            EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
         }
         if (warpx_py_afterEsolve) warpx_py_afterEsolve();
 
-         for (int lev = 0; lev <= max_level; ++lev) {
+        for (int lev = 0; lev <= max_level; ++lev) {
             ++istep[lev];
         }
 
@@ -269,6 +288,9 @@ WarpX::EvolveEM (int numsteps)
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
+        walltime = ParallelDescriptor::second() - walltime_start;
+        amrex::Print()<< "Walltime = " << walltime
+             << " s; Avg. per step = " << walltime/(step+1) << " s\n";
 
 	// sync up time
 	for (int i = 0; i <= max_level; ++i) {
@@ -276,14 +298,15 @@ WarpX::EvolveEM (int numsteps)
 	}
 
         if (do_boosted_frame_diagnostic) {
-            std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
-            myBFD->writeLabFrameData(*cell_centered_data, geom[0], cur_time);
+            std::unique_ptr<MultiFab> cell_centered_data = nullptr;
+            if (WarpX::do_boosted_frame_fields) {
+                cell_centered_data = GetCellCenteredData();
+            }
+            myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
 	if (to_make_plot)
         {
-            FillBoundaryE();
-            FillBoundaryB();
             UpdateAuxilaryData();
 
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -312,8 +335,6 @@ WarpX::EvolveEM (int numsteps)
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step))
     {
-        FillBoundaryE();
-        FillBoundaryB();
         UpdateAuxilaryData();
 
         for (int lev = 0; lev <= finest_level; ++lev) {
@@ -327,6 +348,10 @@ WarpX::EvolveEM (int numsteps)
 
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
 	WriteCheckPointFile();
+    }
+
+    if (do_boosted_frame_diagnostic) {
+        myBFD->Flush(geom[0]);
     }
 }
 
@@ -700,20 +725,26 @@ WarpX::PushParticlesandDepose (Real cur_time)
 void
 WarpX::PushParticlesandDepose (int lev, Real cur_time)
 {
+#ifdef WARPX_USE_PSATD
+    MultiFab* prho2 = rho2_fp[lev].get();
+#else
+    MultiFab* prho2 = nullptr;
+#endif
+
     mypc->Evolve(lev,
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
                  *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
-                 rho_fp[lev].get(), cur_time, dt[lev]);
+                 rho_fp[lev].get(), prho2, cur_time, dt[lev]);
 }
 
 void
 WarpX::ComputeDt ()
 {
     const Real* dx = geom[max_level].CellSize();
-    const Real deltat  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
-                                                     + 1./(dx[1]*dx[1]),
-                                                     + 1./(dx[2]*dx[2]))) * PhysConst::c );
+    const Real deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
+                                                           + 1./(dx[1]*dx[1]),
+                                                           + 1./(dx[2]*dx[2]))) * PhysConst::c );
     dt.resize(0);
     dt.resize(max_level+1,deltat);
 

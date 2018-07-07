@@ -3,7 +3,9 @@
 #include <sstream>
 
 #include <WarpXConst.H>
+#include <WarpX_f.H>
 #include <AMReX.H>
+#include <WarpX.H>
 
 using namespace amrex;
 
@@ -65,6 +67,24 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
     pp.getarr("custom_profile_params", params);
 }
 
+ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
+    : _parse_density_function(parse_density_function)
+{
+    my_constants.ReadParameters();
+    parse_density_function = my_constants.replaceStringValue(parse_density_function);
+    const std::string s_var = "x,y,z";
+    parser_instance_number = parser_initialize_function(parse_density_function.c_str(),
+                                                        parse_density_function.length(),
+                                                        s_var.c_str(),
+                                                        s_var.length());
+}
+
+Real ParseDensityProfile::getDensity(Real x, Real y, Real z) const
+{
+    std::array<amrex::Real, 3> list_var = {x,y,z};
+    return parser_evaluate_function(list_var.data(), 3, parser_instance_number);
+}
+
 ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
                                                            Real uy,
                                                            Real uz)
@@ -77,18 +97,26 @@ void ConstantMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) 
     u[2] = _uz;
 }
 
+CustomMomentumDistribution::CustomMomentumDistribution(const std::string& species_name)
+{
+  ParmParse pp(species_name);
+  pp.getarr("custom_momentum_params", params);
+}
+
 GaussianRandomMomentumDistribution::GaussianRandomMomentumDistribution(Real ux_m,
                                                                        Real uy_m,
                                                                        Real uz_m,
-                                                                       Real u_th)
-    : _ux_m(ux_m), _uy_m(uy_m), _uz_m(uz_m), _u_th(u_th)
+                                                                       Real ux_th,
+                                                                       Real uy_th,
+                                                                       Real uz_th)
+    : _ux_m(ux_m), _uy_m(uy_m), _uz_m(uz_m), _ux_th(ux_th), _uy_th(uy_th), _uz_th(uz_th)
 {
 }
 
 void GaussianRandomMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
-    Real ux_th = amrex::RandomNormal(0.0, _u_th);
-    Real uy_th = amrex::RandomNormal(0.0, _u_th);
-    Real uz_th = amrex::RandomNormal(0.0, _u_th);
+    Real ux_th = amrex::RandomNormal(0.0, _ux_th);
+    Real uy_th = amrex::RandomNormal(0.0, _uy_th);
+    Real uz_th = amrex::RandomNormal(0.0, _uz_th);
 
     u[0] = _ux_m + ux_th;
     u[1] = _uy_m + uy_th;
@@ -229,6 +257,11 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         rho_prof.reset(new ConstantDensityProfile(density));
     } else if (rho_prof_s == "custom") {
         rho_prof.reset(new CustomDensityProfile(species_name));
+    } else if (rho_prof_s == "parse_density_function") {
+        // Serialize particle initialization
+        WarpX::serialize_ics = true;
+        pp.get("density_function(x,y,z)", str_density_function);
+        rho_prof.reset(new ParseDensityProfile(str_density_function));
     } else {
         StringParseAbortMessage("Density profile type", rho_prof_s);
     }
@@ -248,16 +281,23 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.query("uy", uy);
         pp.query("uz", uz);
         mom_dist.reset(new ConstantMomentumDistribution(ux, uy, uz));
+    } else if (mom_dist_s == "custom") {
+        mom_dist.reset(new CustomMomentumDistribution(species_name));
     } else if (mom_dist_s == "gaussian") {
         Real ux_m = 0.;
         Real uy_m = 0.;
         Real uz_m = 0.;
-        Real u_th = 0.;
+        Real ux_th = 0.;
+        Real uy_th = 0.;
+        Real uz_th = 0.;
         pp.query("ux_m", ux_m);
         pp.query("uy_m", uy_m);
         pp.query("uz_m", uz_m);
-        pp.query("u_th", u_th);
-        mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, u_th));
+        pp.query("ux_th", ux_th);
+        pp.query("uy_th", uy_th);
+        pp.query("uz_th", uz_th);
+        mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, 
+                                                              ux_th, uy_th, uz_th));
     } else if (mom_dist_s == "radial_expansion") {
         Real u_over_r = 0.;
 	pp.query("u_over_r", u_over_r);

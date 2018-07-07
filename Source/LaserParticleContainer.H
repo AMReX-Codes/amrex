@@ -4,8 +4,9 @@
 #include <limits>
 
 #include <WarpXParticleContainer.H>
+#include <WarpXConst.H>
 
-enum class laser_t { Null, Gaussian, Harris };
+enum class laser_t { Null, Gaussian, Harris, parse_field_function };
 
 class LaserParticleContainer
     : public WarpXParticleContainer
@@ -24,9 +25,20 @@ public:
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
-                         amrex::MultiFab* rho, amrex::Real t, amrex::Real dt) final;
+                         amrex::MultiFab* rho, amrex::MultiFab* rho2,
+                         amrex::Real t, amrex::Real dt) final;
+
+    virtual void PushP (int lev, amrex::Real dt,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ,
+                        const amrex::MultiFab& ) final;
 
     virtual void PostRestart () final;
+
+    UserConstants my_constants;
 
 private:
 
@@ -52,6 +64,10 @@ private:
     amrex::Real profile_duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
+
+    // parse_field_function profile
+    int parser_instance_number = 0;
+    std::string field_function;
 
     // laser particle domain
     amrex::RealBox prob_domain;
