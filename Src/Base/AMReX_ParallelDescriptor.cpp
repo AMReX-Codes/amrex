@@ -310,7 +310,9 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     // ---- find the maximum value for a tag
     int flag(0), *p;
-    BL_MPI_REQUIRE( MPI_Comm_get_attr(m_comm, MPI_TAG_UB, &p, &flag) );
+    // For Open MPI, calling this with subcommunicators will fail.
+    // So we use MPI_COMM_WORLD here.
+    BL_MPI_REQUIRE( MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_TAG_UB, &p, &flag) );
     m_MaxTag = *p;
     if(!flag) {
         amrex::Abort("MPI_Comm_get_attr() failed to get MPI_TAG_UB");
