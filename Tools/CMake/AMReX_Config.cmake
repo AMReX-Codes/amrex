@@ -34,6 +34,7 @@ function (configure_amrex)
    include ( AMReX_ThirdPartyProfilers )
    include ( AMReX_Defines )
    include ( AMReX_Compilers )
+   include ( AMReX_Utils )
    
    # 
    # Set properties for target "amrex"
@@ -76,7 +77,11 @@ function (configure_amrex)
       # 	 $<$<COMPILE_LANGUAGE:CXX>:${MPI_CXX_INCLUDE_PATH}>
       # 	 )
 
+      
       # Additional compiler flags
+      strip (MPI_C_COMPILE_FLAGS)
+      strip (MPI_CXX_COMPILE_FLAGS)
+      strip (MPI_Fortran_COMPILE_FLAGS)
       target_compile_options ( amrex PUBLIC
 	 $<$<COMPILE_LANGUAGE:Fortran>:${MPI_Fortran_COMPILE_FLAGS}>
 	 $<$<COMPILE_LANGUAGE:C>:${MPI_C_COMPILE_FLAGS}>
@@ -86,9 +91,7 @@ function (configure_amrex)
       # Libraries to link to + linker flags
       # CMake doc suggests not to use absolute paths for portability reasons
       # (and we ignore it for now)
-      if (MPI_CXX_LINK_FLAGS)
-      	 string ( STRIP ${MPI_CXX_LINK_FLAGS} MPI_CXX_LINK_FLAGS )
-      endif ()
+      strip ( MPI_CXX_LINK_FLAGS )
       target_link_libraries ( amrex PUBLIC ${MPI_CXX_LINK_FLAGS}
 	 ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
       
@@ -101,6 +104,9 @@ function (configure_amrex)
       find_package (OpenMP REQUIRED)
 
       # Additional compiler flags
+      strip (OpenMP_C_FLAGS)
+      strip (OpenMP_CXX_FLAGS)
+      strip (OpenMP_Fortran_FLAGS)
       target_compile_options ( amrex PUBLIC
 	 $<$<COMPILE_LANGUAGE:Fortran>:${OpenMP_Fortran_FLAGS}>
 	 $<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>
@@ -111,15 +117,11 @@ function (configure_amrex)
       # The NON-clean way of achiving this is by adding a flag to the linker
       # as follows. Notice that in more recent version of CMake, openMP becomes
       # an imported target, thus provinding a clean way to do this
-      if (OpenMP_CXX_FLAGS)
-	 string ( STRIP "${OpenMP_CXX_FLAGS}" OpenMP_CXX_FLAGS )
-      endif()    
+      strip (OpenMP_CXX_FLAGS)
       target_link_libraries ( amrex PUBLIC ${OpenMP_CXX_FLAGS} )
-
    else ()
       	 # Cray compiler has OMP turned on by default
-	 target_compile_options ( amrex PUBLIC "$<$<C_COMPILER_ID:Cray>:-h;noomp>" )
-	 target_link_libraries ( amrex  PUBLIC "$<$<C_COMPILER_ID:Cray>:-h;noomp>" )
+	 target_compile_options ( amrex PUBLIC $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )
    endif()
 
    #
