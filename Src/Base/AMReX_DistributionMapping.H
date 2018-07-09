@@ -121,7 +121,6 @@ class DistributionMapping
     bool operator!= (const DistributionMapping& rhs) const;
 
     void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts, int nprocs,
-                         int nmax=std::numeric_limits<int>::max(),
                          bool sort=true);
     void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
                               Real* efficiency = 0,
@@ -152,9 +151,7 @@ class DistributionMapping
     static DistributionMapping makeKnapSack   (const Vector<Real>& rcost);
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
-    static DistributionMapping makeSFC        (const MultiFab& weight,
-                                               bool sort=true,
-                                               int nmax=std::numeric_limits<int>::max());
+    static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
 
     static std::vector<std::vector<int> > makeSFC (const BoxArray& ba);
 
@@ -201,7 +198,6 @@ private:
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
                               int                      nprocs,
-                              int                      nmax=std::numeric_limits<int>::max(),
                               bool                     sort=true);
 
     void RRSFCDoIt           (const BoxArray&          boxes,

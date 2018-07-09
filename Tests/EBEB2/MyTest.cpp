@@ -79,7 +79,7 @@ MyTest::initGrids ()
 void
 MyTest::test ()
 {
-    for (int ilev = 0, nlevs = old_factory.size(); ilev < nlevs; ++ilev)
+    for (int ilev = 0, nlevs = new_factory.size(); ilev < nlevs; ++ilev)
     {
         amrex::Print() << "\n Testing level " << ilev << "\n";
 

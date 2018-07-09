@@ -56,7 +56,7 @@ public:
     virtual ~IndexSpaceImp () {}
 
     virtual const Level& getLevel (const Geometry& geom) const final;
-    virtual int maxCoarseningLevel () const final { return m_gslevel.size(); }
+    virtual int maxCoarseningLevel () const final { return m_gslevel.size()-1; }
 
     using F = typename G::FunctionType;
 
