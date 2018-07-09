@@ -45,6 +45,14 @@ if ( EXISTS ${CMAKE_SOURCE_DIR}/.git AND ${GIT_FOUND} )
       WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
       OUTPUT_VARIABLE TMP )
    string ( STRIP ${TMP} TMP )
+else ()
+   # Grep first line from file CHANGES if AMREX_GIT_VERSION is not
+   # provided
+   file(STRINGS ${PROJECT_SOURCE_DIR}/CHANGES ALL_VERSIONS REGEX "#")
+   list(GET ALL_VERSIONS 0 TMP)
+   string(REPLACE "#" "" TMP "${TMP}")
+   string (STRIP "${TMP}" TMP )
+   set (TMP "${TMP}.0")
 endif ()
 
 set ( AMREX_GIT_VERSION "${TMP}" CACHE INTERNAL "" )
