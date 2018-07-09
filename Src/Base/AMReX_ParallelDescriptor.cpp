@@ -333,14 +333,16 @@ ParallelDescriptor::StartParallel (int*    argc,
 void
 ParallelDescriptor::EndParallel ()
 {
-    if (call_mpi_finalize) {
-        BL_MPI_REQUIRE( MPI_Finalize() );
-    } else {
+    if (!call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Comm_free(&m_comm) );
     }
     m_comm = MPI_COMM_NULL;
 
     ParallelContext::pop();
+
+    if (call_mpi_finalize) {
+        MPI_Finalize();
+    }
 }
 
 double
