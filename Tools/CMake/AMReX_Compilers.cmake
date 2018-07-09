@@ -27,6 +27,15 @@ function ( set_amrex_compilers )
 	 NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
       message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
    endif ()
+
+   #
+   # Fortran and C compiler must be the same so that we can use
+   # the genex C_COMPILER_ID (Fortran_COMPILER_ID is not supported)
+   #
+   if ( NOT (${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_Fortran_COMPILER_ID}) )
+      message ( FATAL_ERROR "Fortran compiler ID must match C compiler ID")
+   endif ()
+
    
    #
    # Set Fortran Flags only if not provided by user
@@ -86,28 +95,28 @@ function ( set_amrex_compilers )
       target_compile_options ( amrex
 	 PUBLIC
 	 # GNU Debug
-	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
 	 -O0 -fno-inline -ggdb -Wall -Wno-sign-compare>>>>
 	 # GNU Release
-	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
 	 >>>>
 	 # Intel Debug
-	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
 	 -O0 -traceback -Wcheck>>>>
 	 # Intel Release
-	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
 	 -ip -qopt-report=5 -qopt-report-phase=vec>>>>
 	 # Cray Debug
-	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
 	 -O0>>>>
 	 # Cray Release 
-	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
 	 >>>>
 	 # PGI Debug
-	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
+	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
 	 -O0 -Mbounds>>>>
 	 # PGI Release
-	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
+	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
 	 -gopt -fast>>>>
 	 )	  
    endif ()
@@ -118,10 +127,12 @@ function ( set_amrex_compilers )
    # add c++11 support manually in order to have transitive property
    target_compile_options ( amrex
       PUBLIC
-      $<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
-      $<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-      $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-      $<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
+      $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
+      $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+      $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+      $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+      $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+      $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
 
    
    #
@@ -136,22 +147,22 @@ function ( set_amrex_compilers )
 	    # GNU
 	    $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
 	    -ffpe-trap=invalid,zero -ftrapv>>
-	    $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
+	    $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
 	    -ftrapv>>
 	    # Intel
-	    $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
+	    $<$<C_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:Fortran>:
 	    -fpe3>>
-	    $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
+	    $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
 	    -fpe3>>
 	    # Cray
-	    $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
+	    $<$<C_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:Fortran>:
 	    -K trap=fp>>
-	    $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
+	    $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
 	    -K trap=fp>>
 	    #  PGI
-	    $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:Fortran>:
+	    $<$<C_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:Fortran>:
 	    -Ktrap=divz,inv>>
-	    $<$<C_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
+	    $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
 	    >> )
       endif ()
    else ()
