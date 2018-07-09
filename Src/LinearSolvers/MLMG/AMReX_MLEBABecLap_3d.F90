@@ -40,7 +40,8 @@ contains
    real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2) 
 
    integer  :: i, j, k, ii, jj, kk 
-   real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz 
+   real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz, cx, cy, cz 
+   real(amrex_real) :: face_cen(6,2), dxa, dya, dza   
 
    dhx = beta*dxinv(1)*dxinv(1) 
    dhy = beta*dxinv(2)*dxinv(2)  
@@ -120,15 +121,53 @@ contains
                            fracy*bZ(i,jj,k+1)*(x(i,jj,k+1)-x(i,jj,k))
                 endif 
 
-
                 y(i,j,k) = (one/vfrc(i,j,k))*&
                        (dhx*(apx(i,j,k)*fxm - apx(i+1,j,k)*fxp) + &
                         dhy*(apy(i,j,k)*fym - apy(i,j+1,k)*fyp) + &
                         dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp))
 
-               if(alpha .ne. zero) then 
-                y(i,j,k) = y(i,j,k) + alpha*a(i,j,k)*x(i,j,k)
-                call amrex_error("amrex_mlebabeclap_adotx: alpha .ne. 0 todo") 
+               if(alpha .ne. zero) then
+                dxa = zero 
+                dya = zero 
+                dza = zero 
+  
+                face_cen(1,1) = 0.5d0*(fcx(i,j,k,1) + fcx(i,j,k+1,1))     !y on lo x face
+                face_cen(1,2) = 0.5d0*(fcx(i,j,k,2) + fcx(i,j+1,k,2))     !z on lo x face 
+                face_cen(2,1) = 0.5d0*(fcy(i,j,k,1) + fcy(i,j,k+1,1))     !x on lo y face 
+                face_cen(2,2) = 0.5d0*(fcy(i,j,k,2) + fcy(i+1,j,k,2))     !z on lo y face
+                face_cen(3,1) = 0.5d0*(fcz(i,j,k,1) + fcz(i,j+1,k,1))     !x on lo z face 
+                face_cen(3,2) = 0.5d0*(fcz(i,j,k,2) + fcz(i+1,j,k,2))     !y on lo z face 
+                face_cen(4,1) = 0.5d0*(fcx(i+1,j,k,1) + fcx(i+1,j,k+1,1)) !y on hi x face 
+                face_cen(4,2) = 0.5d0*(fcx(i+1,j,k,2) + fcy(i+1,j+1,k,2)) !z on hi x face 
+                face_cen(5,1) = 0.5d0*(fcy(i,j+1,k,1) + fcy(i,j+1,k+1,1)) !x on hi y face 
+                face_cen(5,2) = 0.5d0*(fcy(i,j+1,k,2) + fcy(i+1,j+1,k,2)) !z on hi y face 
+                face_cen(6,1) = 0.5d0*(fcz(i,j,k+1,1) + fcy(i,j+1,k+1,1)) !x on hi z face 
+                face_cen(6,2) = 0.5d0*(fcz(i,j,k+1,2) + fcz(i+1,j,k+1,2)) !y on hi z face
+
+                cx = 0.25d0*(face_cen(2,1) + face_cen(3,1) + face_cen(5,1) + face_cen(6,1))
+                cy = 0.25d0*(face_cen(1,1) + face_cen(3,2) + face_cen(4,1) + face_cen(6,2)) 
+                cz = 0.25d0*(face_cen(1,2) + face_cen(2,2) + face_cen(4,2) + face_cen(5,2)) 
+
+               if(apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then
+                    if(i.ne.ahi(1)) dxa = dxinv(1)*(a(i+1,j,k)-a(i,j,k))
+                endif
+                if(apx(i+1,j,k).ne.zero.and.apx(i+1,j,k).ne.one) then
+                   if(i.ne.alo(1)) dxa = dxinv(1)*(a(i,j,k)-a(i-1,j,k))
+                endif
+                if(apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then
+                   if(j.ne.ahi(2)) dya = dxinv(2)*(a(i,j+1,k)-a(i,j,k))
+                endif
+                if(apy(i,j+1,k).ne.zero.and.apy(i,j+1,k).ne.one) then
+                   if(j.ne.alo(2)) dya = dxinv(2)*(a(i,j,k)-a(i,j-1,k))
+                endif
+                if(apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then
+                   if(k.ne.ahi(3)) dza = dxinv(3)*(a(i,j,k+1)-a(i,j,k))
+                endif
+                if(apy(i,j,k+1).ne.zero.and.apy(i,j,k+1).ne.one) then
+                   if(k.ne.alo(3)) dza = dxinv(3)*(a(i,j,k)-a(i,j,k-1))
+                endif
+
+                y(i,j,k) = y(i,j,k) + alpha*(a(i,j,k) + cx*dxa + cy*dya + cz*dza)*x(i,j,k)
                endif
               endif 
           enddo
@@ -185,13 +224,11 @@ contains
     real(amrex_real) :: cf0, cf1, cf2, cf3, cf4, cf5,  delta, gamma, rho 
     real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
     real(amrex_real) :: sxm, sxp, sym, syp, szm, szp
-
+    real(amrex_real) :: face_cen(6,2), dxa, dya, dza, cx, cy, cz 
     dhx = beta*dxinv(1)*dxinv(1) 
     dhy = beta*dxinv(2)*dxinv(2) 
     dhz = beta*dxinv(3)*dxinv(3) 
 
-    if(alpha.ne.zero) call amrex_error("amrex_mlebabeclap_gsrb: todo") 
-   
     do       k = lo(3), hi(3) 
         do    j = lo(2), hi(2)
           ioff = mod(lo(1)+k+j+redblack,2)
@@ -226,7 +263,10 @@ contains
                          + dhy*(bY(i,j+1,k)*phi(i,j+1,k) + bY(i,j,k)*phi(i,j-1,k)) & 
                          + dhz*(bZ(i,j,k+1)*phi(i,j,k+1) + bZ(i,j,k)*phi(i,j,k-1)) 
                 else 
-                   
+                   dxa = zero
+                   dya = zero 
+                   dza = zero 
+ 
                    fxm = -bX(i,j,k)*phi(i-1,j,k) 
                    sxm =  bX(i,j,k) 
                    if(apx(i,j,k).ne.zero .and. apx(i,j,k).ne.one) then 
@@ -237,6 +277,7 @@ contains
                        fxm = (one-fracy-fracz)*fxm + fracy*bX(i,jj,k)*(phi(i,jj,k)-phi(i-1,jj,k)) &
                            +  fracz*bX(i,j,kk)*(phi(i,j,kk)-phi(i-1,j,kk))
                        sxm = (one-fracy-fracz)*sxm
+                       if(i.ne.ahi(1)) dxa = dxinv(1)*(a(i+1,j,k) - a(i,j,k))
                    end if
                    
                    fxp =  bX(i+1,j,k)*phi(i+1,j,k) 
@@ -249,6 +290,7 @@ contains
                        fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(phi(i+1,jj,k)-phi(i,jj,k)) & 
                            + fracz*bX(i+1,j,kk)*(phi(i+1,j,kk)-phi(i,j,kk))
                        sxp = (one-fracy-fracz)*sxp
+                       if(i.ne.alo(1)) dxa = dxinv(1)*(a(i,j,k) - a(i-1,j,k))
                    end if 
                    
                    fym = -bY(i,j,k)*phi(i,j-1,k)
@@ -261,6 +303,7 @@ contains
                       fym = (one-fracx-fracz)*fym + fracx*bY(ii,j,k)*(phi(ii,j,k)-phi(ii,j-1,k)) & 
                           +  fracz*bY(i,j,kk)*(phi(i,j,kk)-phi(i,j-1,kk))
                       sym = (one-fracx-fracz)*sym
+                      if(j.ne.ahi(2)) dya = dxinv(2)*(a(i,j+1,k)-a(i,j,k))
                    endif
  
                    fyp =  bY(i,j+1,k)*phi(i,j+1,k)
@@ -273,6 +316,7 @@ contains
                       fyp = (one-fracx-fracz)*fyp + fracx*bY(ii,j+1,k)*(phi(ii,j+1,k)-phi(ii,j,k)) &
                           +  fracz*bY(i,j+1,kk)*(phi(i,j+1,kk)-phi(i,j,kk))
                       syp = (one-fracx-fracz)*syp
+                      if(j.ne.alo(2)) dya = dxinv(2)*(a(i,j,k)-a(i,j-1,k))
                    end if 
  
                    fzm = -bZ(i,j,k)*phi(i,j,k-1)
@@ -285,6 +329,7 @@ contains
                       fzm = (one-fracx-fracy)*fzm + fracx*bZ(ii,j,k)*(phi(ii,j,k)-phi(ii,j,k-1)) & 
                           +  fracy*bZ(i,jj,k)*(phi(i,jj,k)-phi(i,jj,k-1))
                       szm = (one-fracx-fracy)*szm
+                      if(k.ne.ahi(3)) dza = dxinv(3)*(a(i,j,k+1)-a(i,j,k))
                     endif
                
                     fzp =  bZ(i,j,k+1)*phi(i,j,k+1) 
@@ -297,10 +342,28 @@ contains
                        fzp = (one-fracx-fracy)*fzp + fracx*bZ(ii,j,k+1)*(phi(ii,j,k+1)-phi(ii,j,k)) &
                            +  fracy*bZ(i,jj,k+1)*(phi(i,jj,k+1)-phi(i,jj,k))
                        szp = (one-fracx-fracy)*szp
+                       if(k.ne.alo(3)) dza = dxinv(3)*(a(i,j,k)-a(i,j,k-1))
                     end if 
-                   
-                    gamma = alpha*a(i,j,k) + (one/vfrc(i,j,k)) * & 
-                           (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
+
+                    face_cen(1,1) = 0.5d0*(fcx(i,j,k,1) + fcx(i,j,k+1,1))     !y on lo x face
+                    face_cen(1,2) = 0.5d0*(fcx(i,j,k,2) + fcx(i,j+1,k,2))     !z on lo x face 
+                    face_cen(2,1) = 0.5d0*(fcy(i,j,k,1) + fcy(i,j,k+1,1))     !x on lo y face 
+                    face_cen(2,2) = 0.5d0*(fcy(i,j,k,2) + fcy(i+1,j,k,2))     !z on lo y face
+                    face_cen(3,1) = 0.5d0*(fcz(i,j,k,1) + fcz(i,j+1,k,1))     !x on lo z face 
+                    face_cen(3,2) = 0.5d0*(fcz(i,j,k,2) + fcz(i+1,j,k,2))     !y on lo z face 
+                    face_cen(4,1) = 0.5d0*(fcx(i+1,j,k,1) + fcx(i+1,j,k+1,1)) !y on hi x face 
+                    face_cen(4,2) = 0.5d0*(fcx(i+1,j,k,2) + fcy(i+1,j+1,k,2)) !z on hi x face 
+                    face_cen(5,1) = 0.5d0*(fcy(i,j+1,k,1) + fcy(i,j+1,k+1,1)) !x on hi y face 
+                    face_cen(5,2) = 0.5d0*(fcy(i,j+1,k,2) + fcy(i+1,j+1,k,2)) !z on hi y face 
+                    face_cen(6,1) = 0.5d0*(fcz(i,j,k+1,1) + fcy(i,j+1,k+1,1)) !x on hi z face 
+                    face_cen(6,2) = 0.5d0*(fcz(i,j,k+1,2) + fcz(i+1,j,k+1,2)) !y on hi z face
+
+                    cx = 0.25d0*(face_cen(2,1) + face_cen(3,1) + face_cen(5,1) + face_cen(6,1))
+                    cy = 0.25d0*(face_cen(1,1) + face_cen(3,2) + face_cen(4,1) + face_cen(6,2)) 
+                    cz = 0.25d0*(face_cen(1,2) + face_cen(2,2) + face_cen(4,2) + face_cen(5,2)) 
+                  
+                    gamma = alpha*(a(i,j,k) + cx*dxa + cy*dya + cz*dza) +& 
+                           (one/vfrc(i,j,k))*(dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
                             dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + &
                             dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
 
@@ -344,6 +407,7 @@ contains
 
     integer :: i, j, k
     real(amrex_real) :: dhx, dhy, dhz, sxm, sxp, sym, syp, szm, szp, gamma
+    real(amrex_real) :: face_cen(6,2), dxa, dya, dza, cx, cy, cz 
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -362,8 +426,47 @@ contains
              syp = -bY(i,j+1,k) * (one-(abs(fcy(i,j+1,k,1))+abs(fcy(i,j+1,k,2))))
              szm =  bZ(i,j,k  ) * (one-(abs(fcz(i,j,k  ,1))+abs(fcz(i,j,k  ,2))))
              szp = -bZ(i,j,k+1) * (one-(abs(fcz(i,j,k+1,1))+abs(fcz(i,j,k+1,2))))
+             dxa = zero 
+             dya = zero 
+             dza = zero 
+  
+             face_cen(1,1) = 0.5d0*(fcx(i,j,k,1) + fcx(i,j,k+1,1))     !y on lo x face
+             face_cen(1,2) = 0.5d0*(fcx(i,j,k,2) + fcx(i,j+1,k,2))     !z on lo x face 
+             face_cen(2,1) = 0.5d0*(fcy(i,j,k,1) + fcy(i,j,k+1,1))     !x on lo y face 
+             face_cen(2,2) = 0.5d0*(fcy(i,j,k,2) + fcy(i+1,j,k,2))     !z on lo y face
+             face_cen(3,1) = 0.5d0*(fcz(i,j,k,1) + fcz(i,j+1,k,1))     !x on lo z face 
+             face_cen(3,2) = 0.5d0*(fcz(i,j,k,2) + fcz(i+1,j,k,2))     !y on lo z face 
+             face_cen(4,1) = 0.5d0*(fcx(i+1,j,k,1) + fcx(i+1,j,k+1,1)) !y on hi x face 
+             face_cen(4,2) = 0.5d0*(fcx(i+1,j,k,2) + fcy(i+1,j+1,k,2)) !z on hi x face 
+             face_cen(5,1) = 0.5d0*(fcy(i,j+1,k,1) + fcy(i,j+1,k+1,1)) !x on hi y face 
+             face_cen(5,2) = 0.5d0*(fcy(i,j+1,k,2) + fcy(i+1,j+1,k,2)) !z on hi y face 
+             face_cen(6,1) = 0.5d0*(fcz(i,j,k+1,1) + fcy(i,j+1,k+1,1)) !x on hi z face 
+             face_cen(6,2) = 0.5d0*(fcz(i,j,k+1,2) + fcz(i+1,j,k+1,2)) !y on hi z face
 
-             gamma =  alpha*a(i,j,k) + (one/vfrc(i,j,k)) * &
+             cx = 0.25d0*(face_cen(2,1) + face_cen(3,1) + face_cen(5,1) + face_cen(6,1))
+             cy = 0.25d0*(face_cen(1,1) + face_cen(3,2) + face_cen(4,1) + face_cen(6,2)) 
+             cz = 0.25d0*(face_cen(1,2) + face_cen(2,2) + face_cen(4,2) + face_cen(5,2)) 
+
+             if(apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then
+                if(i.ne.ahi(1)) dxa = dxinv(1)*(a(i+1,j,k)-a(i,j,k))
+             endif
+             if(apx(i+1,j,k).ne.zero.and.apx(i+1,j,k).ne.one) then
+                if(i.ne.alo(1)) dxa = dxinv(1)*(a(i,j,k)-a(i-1,j,k))
+             endif
+             if(apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then
+                if(j.ne.ahi(2)) dya = dxinv(2)*(a(i,j+1,k)-a(i,j,k))
+             endif
+             if(apy(i,j+1,k).ne.zero.and.apy(i,j+1,k).ne.one) then
+                if(j.ne.alo(2)) dya = dxinv(2)*(a(i,j,k)-a(i,j-1,k))
+             endif
+             if(apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then
+                if(k.ne.ahi(3)) dza = dxinv(3)*(a(i,j,k+1)-a(i,j,k))
+             endif
+             if(apy(i,j,k+1).ne.zero.and.apy(i,j,k+1).ne.one) then
+                if(k.ne.alo(3)) dza = dxinv(3)*(a(i,j,k)-a(i,j,k-1))
+             endif
+
+             gamma =  alpha*(a(i,j,k) + cx*dxa + cy*dya + cz*dza) + (one/vfrc(i,j,k)) * &
                   (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
                    dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + & 
                    dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
