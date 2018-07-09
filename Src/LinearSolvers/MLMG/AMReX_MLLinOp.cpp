@@ -1,10 +1,12 @@
 
 #include <cmath>
+#include <algorithm>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_ParmParse.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBTower.H>
+#include <AMReX_EB2.H>
 #endif
 
 namespace amrex {
@@ -40,6 +42,9 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
     info = a_info;
+#if AMREX_USE_EB
+    info.max_coarsening_level = std::min(info.max_coarsening_level, EB2::maxCoarseningLevel());
+#endif
     defineGrids(a_geom, a_grids, a_dmap, a_factory);
     defineAuxData();
     defineBC();
