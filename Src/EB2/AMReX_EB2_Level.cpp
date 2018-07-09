@@ -56,7 +56,7 @@ Level::prepareForCoarsening (const Level& rhs, int max_grid_size)
     rhs.fillCentroid(m_centroid, m_geom);
 
     m_bndryarea.define(m_grids, m_dmap, 1, ng);
-    rhs.fillBndryCent(m_bndryarea, m_geom);
+    rhs.fillBndryArea(m_bndryarea, m_geom);
 
     m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
     rhs.fillBndryCent(m_bndrycent, m_geom);
@@ -540,12 +540,11 @@ Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_areafrac, const
 void
 Level::fillAreaFrac (Array<MultiFab*,AMREX_SPACEDIM> const& a_areafrac, const Geometry& geom) const
 {
-    if (isAllRegular()) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            a_areafrac[idim]->setVal(1.0);
-        }
-        return;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        a_areafrac[idim]->setVal(1.0);
     }
+
+    if (isAllRegular()) return;
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
@@ -629,29 +628,26 @@ Level::fillLevelSet (MultiFab& levelset, const Geometry& geom) const
 
     Real cov_val = 1.0; // for covered cells
 
-#if 0
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     if (!m_covered_grids.empty())
     {
         std::vector<std::pair<int,Box> > isects;
-        for (MFIter mfi(*a_areafrac[0]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(levelset); mfi.isValid(); ++mfi)
         {
-            const Box& ccbx = amrex::enclosedCells((*a_areafrac[0])[mfi].box());
+            FArrayBox& lsfab = levelset[mfi];
+            const Box& ccbx = amrex::enclosedCells(lsfab.box());
             for (const auto& iv : pshifts)
             {
                 m_covered_grids.intersections(ccbx+iv, isects);
                 for (const auto& is : isects) {
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        const Box& fbx = amrex::surroundingNodes(is.second-iv,idim);
-                        (*a_areafrac[idim])[mfi].setVal(cov_val, fbx, 0, 1);
-                    }
+                    const Box& fbx = amrex::surroundingNodes(is.second-iv);
+                    lsfab.setVal(cov_val, fbx, 0, 1);
                 }
             }
         }
     }
-#endif
 }
         
 }}
