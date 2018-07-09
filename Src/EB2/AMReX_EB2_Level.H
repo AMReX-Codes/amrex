@@ -336,8 +336,6 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
     bool coarsenable = fine_grids.coarsenable(coarse_ratio, min_width)
         && (fine_covered_grids.empty() || fine_covered_grids.coarsenable(coarse_ratio));
 
-    // xxxxx how to coarsen to 2x2x2?
-    
     if (coarsenable)
     {
         int ierr = coarsenFromFine(fineLevel, true);
