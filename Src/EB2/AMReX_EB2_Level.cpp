@@ -86,6 +86,11 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
     m_covered_grids = amrex::coarsen(fine_covered_grids, 2);
     m_dmap = fine_dmap;
 
+    if (! (fine_grids.coarsenable(2,2) &&
+           (fine_covered_grids.empty() || fine_covered_grids.coarsenable(2,2)))) {
+        return 1;
+    }
+
     auto const& f_levelset = fineLevel.m_levelset;
     m_levelset.define(amrex::convert(m_grids,IntVect::TheNodeVector()), m_dmap, 1, 0);
     int mvmc_error = 0;
