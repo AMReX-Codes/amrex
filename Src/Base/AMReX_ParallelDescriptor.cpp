@@ -296,17 +296,18 @@ ParallelDescriptor::StartParallel (int*    argc,
                                    MPI_Comm a_mpi_comm)
 {
     int sflag(0);
-
-    BL_MPI_REQUIRE( MPI_Initialized(&sflag) );
+    MPI_Initialized(&sflag);
 
     if ( ! sflag) {
-	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
+	MPI_Init(argc, argv);
         m_comm = MPI_COMM_WORLD;
         call_mpi_finalize = 1;
     } else {
-        BL_MPI_REQUIRE( MPI_Comm_dup(a_mpi_comm, &m_comm) );
+        MPI_Comm_dup(a_mpi_comm, &m_comm);
         call_mpi_finalize = 0;
     }
+
+    ParallelContext::push(m_comm);
 
     // ---- find the maximum value for a tag
     int flag(0), *p;
@@ -325,8 +326,6 @@ ParallelDescriptor::StartParallel (int*    argc,
     if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
 #endif
 
-    ParallelContext::push(m_comm);
-
     // Wait until all other processes are properly started.
 //    BL_MPI_REQUIRE( MPI_Barrier(Communicator()) );
 }
@@ -334,14 +333,14 @@ ParallelDescriptor::StartParallel (int*    argc,
 void
 ParallelDescriptor::EndParallel ()
 {
-    ParallelContext::pop();
-
     if (call_mpi_finalize) {
         BL_MPI_REQUIRE( MPI_Finalize() );
     } else {
         BL_MPI_REQUIRE( MPI_Comm_free(&m_comm) );
     }
     m_comm = MPI_COMM_NULL;
+
+    ParallelContext::pop();
 }
 
 double
