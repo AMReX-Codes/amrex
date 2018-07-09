@@ -341,14 +341,14 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
     if (coarsenable)
     {
         int ierr = coarsenFromFine(fineLevel, true);
-        m_ok = ierr == 0;
+        m_ok = (ierr == 0);
     }
     else
     {
         Level fine_level_2(fineLevel.m_geom);
         fine_level_2.prepareForCoarsening(fineLevel, max_grid_size);
         int ierr = coarsenFromFine(fine_level_2, false);
-        m_ok = ierr == 0;
+        m_ok = (ierr == 0);
     }
 }
 
