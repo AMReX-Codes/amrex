@@ -87,16 +87,16 @@ contains
                dxa = zero  
                dya = zero
                if(apx(i,j).ne.zero.and.apx(i,j).ne.one) then 
-                    if(i.ne.ahi(1)) dxa = dhx*(a(i+1,j)-a(i,j))
+                    if(i.ne.ahi(1)) dxa = dxinv(1)*(a(i+1,j)-a(i,j))
                 endif
                 if(apx(i+1,j).ne.zero.and.apx(i+1,j).ne.one) then 
-                   if(i.ne.alo(1)) dxa = dhx*(a(i,j)-a(i-1,j))
+                   if(i.ne.alo(1)) dxa = dxinv(1)*(a(i,j)-a(i-1,j))
                 endif 
                 if(apy(i,j).ne.zero.and.apy(i,j).ne.one) then 
-                   if(j.ne.ahi(2)) dya = dhy*(a(i,j+1)-a(i,j))
+                   if(j.ne.ahi(2)) dya = dxinv(2)*(a(i,j+1)-a(i,j))
                 endif 
                 if(apy(i,j+1).ne.zero.and.apy(i,j+1).ne.one) then 
-                   if(j.ne.alo(2)) dya = dhy*(a(i,j)-a(i,j-1))
+                   if(j.ne.alo(2)) dya = dxinv(2)*(a(i,j)-a(i,j-1))
                 endif
                 c1 = 0.5d0*(fcy(i,j) + fcy(i,j+1))
                 c2 = 0.5d0*(fcx(i,j) + fcx(i+1,j))
@@ -196,7 +196,7 @@ contains
                      jj = j + int(sign(one,fcx(i,j)))
                      fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(phi(i,jj)-phi(i-1,jj))
                      sxm = (one-fracy)*sxm
-                     if(i.ne.ahi(1)) dxa = dhx*(a(i+1,j)-a(i,j))
+                     if(i.ne.ahi(1)) dxa = dxinv(1)*(a(i+1,j)-a(i,j))
                   end if
                   
                   fxp =  bX(i+1,j)*phi(i+1,j)
@@ -206,7 +206,7 @@ contains
                      jj = j + int(sign(one,fcx(i+1,j)))
                      fxp = (one-fracy)*fxp + fracy*bX(i+1,jj)*(phi(i+1,jj)-phi(i,jj))
                      sxp = (one-fracy)*sxp
-                     if(i.ne.alo(1)) dxa = dhx*(a(i,j)-a(i-1,j))
+                     if(i.ne.alo(1)) dxa = dxinv(1)*(a(i,j)-a(i-1,j))
                   end if
                   
                   fym = -bY(i,j)*phi(i,j-1)
@@ -216,7 +216,7 @@ contains
                      ii = i + int(sign(one,fcy(i,j)))
                      fym = (one-fracx)*fym + fracx*bY(ii,j)*(phi(ii,j)-phi(ii,j-1))
                      sym = (one-fracx)*sym
-                     if(j.ne.ahi(2)) dya = dhy*(a(i,j+1)-a(i,j))
+                     if(j.ne.ahi(2)) dya = dxinv(2)*(a(i,j+1)-a(i,j))
                   end if
                   
                   fyp =  bY(i,j+1)*phi(i,j+1)
@@ -226,7 +226,7 @@ contains
                      ii = i + int(sign(one,fcy(i,j+1)))
                      fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
                      syp = (one-fracx)*syp
-                     if(j.ne.alo(2)) dya = dhy*(a(i,j)-a(i,j-1))
+                     if(j.ne.alo(2)) dya = dxinv(2)*(a(i,j)-a(i,j-1))
                   end if
                   c1 = 0.5d0*(fcy(i,j) + fcy(i,j+1))
                   c2 = 0.5d0*(fcx(i,j) + fcx(i+1,j)) 
@@ -286,16 +286,16 @@ contains
              dxa = zero 
              dya = zero 
                 if(apx(i,j).ne.zero.and.apx(i,j).ne.one) then 
-                    if(i.ne.ahi(1)) dxa = dhx*(a(i+1,j)-a(i,j))
+                    if(i.ne.ahi(1)) dxa = dxinv(1)*(a(i+1,j)-a(i,j))
                 endif
                 if(apx(i+1,j).ne.zero.and.apx(i+1,j).ne.one) then 
-                    if(i.ne.alo(1)) dxa = dhx*(a(i,j)-a(i-1,j))
+                    if(i.ne.alo(1)) dxa = dxinv(1)*(a(i,j)-a(i-1,j))
                 endif 
                 if(apy(i,j).ne.zero.and.apy(i,j).ne.one) then 
-                    if(j.ne.ahi(2)) dya = dhy*(a(i,j+1)-a(i,j))
+                    if(j.ne.ahi(2)) dya = dxinv(2)*(a(i,j+1)-a(i,j))
                 endif 
                 if(apy(i,j+1).ne.zero.and.apy(i,j+1).ne.one) then 
-                    if(j.ne.alo(2)) dya = dhy*(a(i,j)-a(i,j-1))
+                    if(j.ne.alo(2)) dya = dxinv(2)*(a(i,j)-a(i,j-1))
                 endif 
             c1 = 0.5d0*(fcy(i,j) + fcy(i,j+1)) 
             c2 = 0.5d0*(fcx(i,j) + fcx(i+1,j)) 
