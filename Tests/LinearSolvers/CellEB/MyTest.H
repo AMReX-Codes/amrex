@@ -31,7 +31,7 @@ private:
     int max_iter = 100;
     int max_fmg_iter = 0;
     int max_bottom_iter = 1000;
-    int max_coarsening_level = 1;
+    int max_coarsening_level = 30;
     bool use_hypre = false;
 
     amrex::Vector<amrex::Geometry> geom;
