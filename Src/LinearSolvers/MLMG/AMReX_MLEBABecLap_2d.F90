@@ -36,7 +36,7 @@ contains
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
 
     integer :: i,j, ii, jj
-    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy, dxa, dya
+    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy, dxa, dya, c1, c2 
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -98,10 +98,12 @@ contains
                 if(apy(i,j+1).ne.zero.and.apy(i,j+1).ne.one) then 
                    if(j.ne.alo(2)) dya = dhy*(a(i,j)-a(i,j-1))
                 endif
+                c1 = 0.5d0*(fcy(i,j) + fcy(i,j+1))
+                c2 = 0.5d0*(fcx(i,j) + fcx(i+1,j))
 !                if(isnan(dxa).or.isnan(dya)) then 
 !                   print*, "nan derivatives", dxa, dya, i, j
 !                endif 
-                y(i,j) = y(i,j) + alpha*(a(i,j) + fcy(i,j)*dxa + fcx(i,j)*dya)*x(i,j) 
+                y(i,j) = y(i,j) + alpha*(a(i,j) + c1*dxa + c2*dya)*x(i,j) 
             end if
           end if
        end do
@@ -149,7 +151,7 @@ contains
     integer :: i,j,ioff,ii,jj
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
-    real(amrex_real) :: sxm, sxp, sym, syp, dxa, dya
+    real(amrex_real) :: sxm, sxp, sym, syp, dxa, dya, c1, c2
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -226,9 +228,10 @@ contains
                      syp = (one-fracx)*syp
                      if(j.ne.alo(2)) dya = dhy*(a(i,j)-a(i,j-1))
                   end if
+                  c1 = 0.5d0*(fcy(i,j) + fcy(i,j+1))
+                  c2 = 0.5d0*(fcx(i,j) + fcx(i+1,j)) 
 
-
-                  gamma = alpha*(a(i,j) + fcy(i,j)*dxa + fcx(i,j)*dya) + (one/vfrc(i,j)) * &
+                  gamma = alpha*(a(i,j) + c1*dxa + c2*dya) + (one/vfrc(i,j)) * &
                        (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
 
                   rho = -(one/vfrc(i,j)) * &
@@ -264,7 +267,7 @@ contains
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
     
     integer :: i,j
-    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, dxa, dya 
+    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, dxa, dya, c1, c2
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -294,8 +297,9 @@ contains
                 if(apy(i,j+1).ne.zero.and.apy(i,j+1).ne.one) then 
                     if(j.ne.alo(2)) dya = dhy*(a(i,j)-a(i,j-1))
                 endif 
-            
-             gamma = alpha*(a(i,j) + fcy(i,j)*dxa + fcx(i,j)*dya)  + (one/vfrc(i,j)) * &
+            c1 = 0.5d0*(fcy(i,j) + fcy(i,j+1)) 
+            c2 = 0.5d0*(fcx(i,j) + fcx(i+1,j)) 
+             gamma = alpha*(a(i,j) + c1*dxa + c2*dya)  + (one/vfrc(i,j)) * &
                   (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
 
              x(i,j) = x(i,j) / gamma
