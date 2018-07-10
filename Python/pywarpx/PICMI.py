@@ -7,12 +7,12 @@ import pywarpx
 codename = 'WarpX'
 
 # --- Values from WarpXConst.H
-c   = 299792458.
-#ep0 = 8.854187817e-12
-#mu0 = 1.2566370614359173e-06
-#q_e = 1.6021764620000001e-19
-#m_e = 9.10938291e-31
-#m_p = 1.6726231000000001e-27
+c = 299792458.
+ep0 = 8.854187817e-12
+mu0 = 1.2566370614359173e-06
+q_e = 1.602176462e-19
+m_e = 9.10938291e-31
+m_p = 1.6726231e-27
 
 
 class Species(PICMI_Base.PICMI_Species):
@@ -57,7 +57,14 @@ class GaussianBeam(PICMI_Base.PICMI_GaussianBeam):
         self.species.bucket.y_rms = self.Yrms
         self.species.bucket.z_rms = self.Zrms
         self.species.bucket.npart = self.number_sim_particles
-        self.species.bucket.q_tot = self.number_real_particles*self.species.bucket.charge
+
+        # --- Calculate the total charge. Note that charge might be a string instead of a number.
+        charge = self.species.bucket.charge
+        if charge == 'q_e' or charge == '+q_e':
+            charge = q_e
+        elif charge == '-q_e':
+            charge = -q_e
+        self.species.bucket.q_tot = self.number_real_particles*charge
 
         # --- These need to be defined even though they are not used
         self.species.bucket.profile = "constant"
@@ -73,12 +80,12 @@ class GaussianBeam(PICMI_Base.PICMI_GaussianBeam):
         #self.species.bucket.zmin
         #self.species.bucket.zmax
 
-        if self.UXdiv != 0. and UYdiv != 0. and UZdiv != 0.:
+        if self.UXdiv != 0. and self.UYdiv != 0. and self.UZdiv != 0.:
             self.species.bucket.momentum_distribution_type = "radial_expansion"
             self.species.bucket.u_over_r = self.UXdiv
             #self.species.bucket.u_over_y = self.UYdiv
             #self.species.bucket.u_over_z = self.UZdiv
-        elif self.UXrms != 0. or UYrms != 0. or UZrms != 0.:
+        elif self.UXrms != 0. or self.UYrms != 0. or self.UZrms != 0.:
             self.species.bucket.momentum_distribution_type = "gaussian"
             self.species.bucket.ux_m = self.UXmean
             self.species.bucket.uy_m = self.UYmean
@@ -229,6 +236,9 @@ class EM_solver(PICMI_Base.PICMI_EM_solver):
         if 'particle_pusher_algo' in kw:
             pywarpx.algo.particle_pusher = kw['particle_pusher_algo']
 
+        pywarpx.interpolation.nox = self.norderx
+        pywarpx.interpolation.noy = self.nordery
+        pywarpx.interpolation.noz = self.norderz
 
 class Simulation(PICMI_Base.PICMI_Simulation):
     def init(self, **kw):
