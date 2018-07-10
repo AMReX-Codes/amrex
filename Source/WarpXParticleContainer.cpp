@@ -16,7 +16,7 @@ WarpXParIter::WarpXParIter (ContainerType& pc, int level)
 {
 }
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 void
 WarpXParIter::GetPosition (Vector<Real>& x, Vector<Real>& y, Vector<Real>& z) const
 {
@@ -84,11 +84,11 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
     ParticleType p;
     p.id()  = ParticleType::NextID();
     p.cpu() = ParallelDescriptor::MyProc();
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     p.pos(0) = x;
     p.pos(1) = y;
     p.pos(2) = z;
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     p.pos(0) = x;
     p.pos(1) = z;
 #endif
@@ -134,11 +134,11 @@ WarpXParticleContainer::AddNParticles (int lev,
         ParticleType p;
         p.id()  = ParticleType::NextID();
         p.cpu() = ParallelDescriptor::MyProc();
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
         p.pos(0) = x[i];
         p.pos(1) = y[i];
         p.pos(2) = z[i];
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
         p.pos(0) = x[i];
         p.pos(1) = z[i];
 #endif
@@ -284,7 +284,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
             rholen = rhofab.length();
 #endif
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
             const long nx = rholen[0]-1-2*ng;
             const long ny = rholen[1]-1-2*ng;
             const long nz = rholen[2]-1-2*ng;
@@ -433,7 +433,7 @@ WarpXParticleContainer::PushXES (Real dt)
             
             WRPX_PUSH_LEAPFROG_POSITIONS(particles.data(), nstride, np,
                                          uxp.data(), uyp.data(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                          uzp.data(),
 #endif
                                          &dt,

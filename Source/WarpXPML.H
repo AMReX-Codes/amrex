@@ -6,7 +6,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 
 #define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x,y)                              \
     (x).sigma_star_fac1[y][0].data(), (x).sigma_star_fac1[y][0].m_lo, (x).sigma_star_fac1[y][0].m_hi, \
@@ -55,7 +55,7 @@ struct SigmaBox
     void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
     void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
 
-    using SigmaVect = std::array<Sigma,BL_SPACEDIM>;
+    using SigmaVect = std::array<Sigma,AMREX_SPACEDIM>;
     // 3: there are 3 types: full dt, first half and second half dt
     using MTSigmaVect = std::array<SigmaVect,3>;
 

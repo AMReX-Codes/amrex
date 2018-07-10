@@ -43,9 +43,9 @@ contains
     ! Because diffract_factor is a complex, the code below takes into
     ! account the impact of the dimensionality on both the Gouy phase
     ! and the amplitude of the laser
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     prefactor = prefactor / diffract_factor
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     prefactor = prefactor / sqrt(diffract_factor)
 #endif
 
