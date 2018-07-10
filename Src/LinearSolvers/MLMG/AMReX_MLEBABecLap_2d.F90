@@ -17,25 +17,25 @@ contains
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       centr, ctlo, cthi, &
+       cntr, ctlo, cthi, &
        dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_adotx')
     integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
          flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, ctlo, cthi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), value, intent(in) :: alpha, beta
-    real(amrex_real), intent(inout) ::     y( ylo(1): yhi(1), ylo(2): yhi(2))
-    real(amrex_real), intent(in   ) ::     x( xlo(1): xhi(1), xlo(2): xhi(2))
-    real(amrex_real), intent(in   ) ::     a( alo(1): ahi(1), alo(2): ahi(2))
-    real(amrex_real), intent(in   ) ::    bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2))
-    real(amrex_real), intent(in   ) ::    by(bylo(1):byhi(1),bylo(2):byhi(2))
-    integer         , intent(in   ) ::  flag( flo(1): fhi(1), flo(2): fhi(2))
-    real(amrex_real), intent(in   ) ::  vfrc( vlo(1): vhi(1), vlo(2): vhi(2))
-    real(amrex_real), intent(in   ) ::   apx(axlo(1):axhi(1),axlo(2):axhi(2))
-    real(amrex_real), intent(in   ) ::   apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
-    real(amrex_real), intent(in   ) ::   fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
-    real(amrex_real), intent(in   ) ::   fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
-    real(amrex_real), intent(in   ) ::  centr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)
+    real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2))
+    real(amrex_real), intent(in   ) ::    x( xlo(1): xhi(1), xlo(2): xhi(2))
+    real(amrex_real), intent(in   ) ::    a( alo(1): ahi(1), alo(2): ahi(2))
+    real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2))
+    real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2))
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
+    real(amrex_real), intent(in   ) :: vfrc( vlo(1): vhi(1), vlo(2): vhi(2))
+    real(amrex_real), intent(in   ) ::  apx(axlo(1):axhi(1),axlo(2):axhi(2))
+    real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
+    real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
+    real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
+    real(amrex_real), intent(in   ) ::  cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)
     integer :: i,j, ii, jj
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy, dxa, dya, c1, c2 
 
@@ -87,8 +87,8 @@ contains
              if (alpha .ne. zero) then
                dxa = zero  
                dya = zero
-               c1 = centr(i,j,1)  
-               c2 = centr(i,j,2) 
+               c1 = cntr(i,j,1)  
+               c2 = cntr(i,j,2) 
                if(c1.ge.zero) then 
                    dxa = dxinv(1)*(a(i+1,j)*x(i+1,j) - a(i,j)*x(i,j))
                else 
@@ -115,12 +115,12 @@ contains
        f1, f1lo, f1hi, f3, f3lo, f3hi, &
        flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       dxinv, alpha, beta, redblack) &
+       cntr, ctlo, cthi, dxinv, alpha, beta, redblack) &
        bind(c,name='amrex_mlebabeclap_gsrb')
     integer, dimension(2), intent(in) :: lo, hi, hlo, hhi, rlo, rhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
          m0lo, m0hi, m1lo, m1hi, m2lo, m2hi, m3lo, m3hi, &
          f0lo, f0hi, f1lo, f1hi, f2lo, f2hi, f3lo, f3hi, &
-         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
+         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, ctlo, cthi 
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), value, intent(in) :: alpha, beta
     integer, value, intent(in) :: redblack
@@ -143,11 +143,12 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
+    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)
 
     integer :: i,j,ioff,ii,jj
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
-    real(amrex_real) :: sxm, sxp, sym, syp, dxa, dya, c1, c2
+    real(amrex_real) :: sxm, sxp, sym, syp, dxa, dya, cx, cy
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -220,8 +221,20 @@ contains
                      fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
                      syp = (one-fracx)*syp
                   end if
-
-                  gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
+                  cx = cntr(i,j,1) 
+                  cy = cntr(i,j,2) 
+ 
+                  if(cx.ge.zero) then 
+                     dxa = dxinv(1)*(a(i+1,j) - a(i,j))
+                  else 
+                     dxa = dxinv(1)*(a(i,j) - a(i-1,j)) 
+                  endif
+                  if(cy.ge.zero) then 
+                     dya = dxinv(2)*(a(i,j+1) - a(i,j))
+                  else
+                     dya = dxinv(2)*(a(i,j) - a(i,j-1)) 
+                  endif
+                  gamma = alpha*(a(i,j) + cx*dxa + cy*dya) + (one/vfrc(i,j)) * &
                        (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
 
                   rho = -(one/vfrc(i,j)) * &
@@ -239,10 +252,10 @@ contains
   subroutine amrex_mlebabeclap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       dxinv, alpha, beta) &
+       cntr, ctlo, cthi, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_normalize')
     integer, dimension(2), intent(in) :: lo, hi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
-         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
+         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, ctlo, cthi 
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    x( xlo(1): xhi(1), xlo(2): xhi(2))
@@ -255,9 +268,10 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
-    
+    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)     
+
     integer :: i,j
-    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, dxa, dya, c1, c2
+    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, dxa, dya, cx, cy
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -275,7 +289,21 @@ contains
              syp = -bY(i,j+1) * (one-abs(fcy(i,j+1)))
              dxa = zero 
              dya = zero 
-             gamma = alpha*a(i,j)  + (one/vfrc(i,j)) * &
+             cx  = cntr(i,j,1) 
+             cy  = cntr(i,j,2) 
+
+             if(cx.ge.zero) then 
+                 dxa = dxinv(1)*(a(i+1,j) - a(i,j)) 
+             else 
+                 dxa = dxinv(1)*(a(i,j) - a(i-1,j))
+             endif
+             if(cy.ge.zero) then 
+                 dya = dxinv(2)*(a(i,j+1) - a(i,j)) 
+             else
+                 dya = dxinv(2)*(a(i,j) - a(i,j-1)) 
+             endif 
+
+             gamma = alpha*(a(i,j) + cx*dxa + cy*dya)  + (one/vfrc(i,j)) * &
                   (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
 
              x(i,j) = x(i,j) / gamma
