@@ -203,7 +203,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-
+    const MultiCutFab* centroid = (factory) ? &(factory->getCentroid()) : nullptr; 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -246,6 +246,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    BL_TO_FORTRAN_ANYD((*centroid)[mfi]),
                                     dxinv, m_a_scalar, m_b_scalar);
         }
     }
