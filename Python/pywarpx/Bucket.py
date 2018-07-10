@@ -26,14 +26,18 @@ class Bucket(object):
         "Concatenate the attributes into a string"
         result = []
         for attr, value in iteritems(self.argvattrs):
+            if value is None:
+                continue
             # --- repr is applied to value so that for floats, all of the digits are included.
             # --- The strip is then needed when value is a string.
-            if hasattr(value, '__iter__'):
+            if isinstance(value, str):
+                rhs = value
+            elif hasattr(value, '__iter__'):
                 # --- For lists, tuples, and arrays make a space delimited string of the values
                 rhs = ' '.join(map(repr, value))
             else:
                 rhs = value
-            attrstring = '{0}.{1}={2}'.format(self.instancename, attr, repr(rhs).strip("'\""))
+            attrstring = '{0}.{1} = {2}'.format(self.instancename, attr, repr(rhs).strip("'\""))
             result += [attrstring]
         return result
 
