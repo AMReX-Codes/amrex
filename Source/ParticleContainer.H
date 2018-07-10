@@ -122,11 +122,10 @@ public:
     amrex::Real sumParticleCharge(bool local = false);
 
     void Checkpoint (const std::string& dir,
-		     const std::string& name,
 		     bool is_checkpoint,
                      const amrex::Vector<std::string>& varnames = amrex::Vector<std::string>()) const;
 
-    void Restart (const std::string& dir, const std::string& name);
+    void Restart (const std::string& dir);
 
     void PostRestart ();
 
