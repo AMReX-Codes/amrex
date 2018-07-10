@@ -11,6 +11,9 @@ amr.n_cell           =  64   64   64
 # VERBOSITY
 amr.v              = 1       # verbosity in Amr
 
+# NO. OF COMPONENTS
+amr.ncomp          = 4
+
 # REFINEMENT
 amr.max_level       = 2       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
