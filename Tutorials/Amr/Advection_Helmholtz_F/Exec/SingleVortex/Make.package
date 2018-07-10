@@ -1,0 +1,3 @@
+f90EXE_sources += Prob.f90
+
+F90EXE_sources += face_velocity_$(DIM)d.F90
