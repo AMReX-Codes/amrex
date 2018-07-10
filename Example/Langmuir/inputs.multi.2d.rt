@@ -1,0 +1,77 @@
+# Maximum number of time steps
+max_step = 40
+
+# number of grid points
+amr.n_cell =   64  64
+
+# Maximum allowable size of each subdomain in the problem domain;
+#    this is used to decompose the domain for parallel calculations.
+amr.max_grid_size = 32
+
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+amr.max_level = 0
+
+amr.plot_int = 20   # How often to write plotfiles.  "<= 0" means no plotfiles.
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1      1      # Is periodic?
+geometry.prob_lo     = -20.e-6    -20.e-6    # physical domain
+geometry.prob_hi     =  20.e-6     20.e-6
+
+warpx.serialize_ics = 1
+
+# Verbosity
+warpx.verbose = 1
+
+# Algorithms
+algo.current_deposition = 3
+algo.charge_deposition = 0
+algo.field_gathering = 1
+algo.particle_pusher = 0
+
+# Interpolation
+interpolation.nox = 1
+interpolation.noy = 1
+interpolation.noz = 1
+
+# CFL
+warpx.cfl = 1.0
+
+# Particles
+particles.nspecies = 2
+particles.species_names = electrons positrons
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = "NUniformPerCell"
+electrons.num_particles_per_cell_each_dim = 2 2
+electrons.xmin = -20.e-6
+electrons.xmax =  20.e-6
+electrons.ymin = -20.e-6
+electrons.ymax = 20.e-6
+electrons.zmin = -20.e-6
+electrons.zmax = 20.e-6
+
+electrons.profile = constant
+electrons.density = 2.e24   # number of electrons per m^3
+electrons.momentum_distribution_type = "custom"
+# See CustomMomentumProb for a definition of the parameters
+electrons.custom_momentum_params = -0.01 4.e24 2 2 2
+
+positrons.charge = q_e
+positrons.mass = m_e
+positrons.injection_style = "NUniformPerCell"
+positrons.num_particles_per_cell_each_dim = 2 2
+positrons.xmin = -20.e-6
+positrons.xmax =  20.e-6
+positrons.ymin = -20.e-6
+positrons.ymax = 20.e-6
+positrons.zmin = -20.e-6
+positrons.zmax = 20.e-6
+
+positrons.profile = constant
+positrons.density = 2.e24   # number of positrons per m^3
+positrons.momentum_distribution_type = "custom"
+# See CustomMomentumProb for a definition of the parameters
+positrons.custom_momentum_params = 0.01 4.e24 2 2 2
