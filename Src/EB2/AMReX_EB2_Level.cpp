@@ -120,6 +120,11 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
             mvmc_error = std::max(mvmc_error, tile_error);
         }
     }
+    {
+        bool b = mvmc_error;
+        ParallelDescriptor::ReduceBoolOr(b);
+        mvmc_error = b;
+    }
     if (mvmc_error) return mvmc_error;
     
     const int ng = 2;
@@ -256,6 +261,11 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                     BL_TO_FORTRAN_ANYD(f_cellflag[mfi]),
                                     &tile_error);
         error = std::max(error,tile_error);
+    }
+    {
+        bool b = error;
+        ParallelDescriptor::ReduceBoolOr(b);
+        error = b;
     }
 
     if (!error) {
