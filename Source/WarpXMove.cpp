@@ -13,9 +13,9 @@ WarpX::UpdatePlasmaInjectionPosition (Real dt)
         // In boosted-frame simulations, the plasma has moved since the last
         // call to this function, and injection position needs to be updated
         current_injection_position -= WarpX::beta_boost *
-#if ( BL_SPACEDIM == 3 )
+#if ( AMREX_SPACEDIM == 3 )
             WarpX::boost_direction[dir] * PhysConst::c * dt;
-#elif ( BL_SPACEDIM == 2 )
+#elif ( AMREX_SPACEDIM == 2 )
             // In 2D, dir=0 corresponds to x and dir=1 corresponds to z
             // This needs to be converted in order to index `boost_direction`
             // which has 3 components, for both 2D and 3D simulations.
@@ -36,8 +36,8 @@ WarpX::MoveWindow (bool move_j)
     UpdatePlasmaInjectionPosition( dt[0] );
 
     // compute the number of cells to shift on the base level
-    Real new_lo[BL_SPACEDIM];
-    Real new_hi[BL_SPACEDIM];
+    Real new_lo[AMREX_SPACEDIM];
+    Real new_hi[AMREX_SPACEDIM];
     const Real* current_lo = geom[0].ProbLo();
     const Real* current_hi = geom[0].ProbHi();
     const Real* dx = geom[0].CellSize();
@@ -47,7 +47,7 @@ WarpX::MoveWindow (bool move_j)
 
     // update the problem domain. Note the we only do this on the base level because
     // amrex::Geometry objects share the same, static RealBox.
-    for (int i=0; i<BL_SPACEDIM; i++) {
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
         new_lo[i] = current_lo[i];
         new_hi[i] = current_hi[i];
     }
@@ -189,7 +189,7 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     }
     adjBox = amrex::convert(adjBox, typ);
 
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (idim == dir and typ.nodeCentered(dir)) {
             if (num_shift > 0) {
                 adjBox.growLo(idim, -1);

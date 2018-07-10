@@ -83,7 +83,7 @@ WarpX::UpdateAuxilaryData ()
                     bfab[1].resize(amrex::convert(ccbx,By_nodal_flag));
                     bfab[2].resize(amrex::convert(ccbx,Bz_nodal_flag));
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                     amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
                                                  BL_TO_FORTRAN_ANYD(bfab[0]),
                                                  BL_TO_FORTRAN_ANYD(bfab[1]),
@@ -151,7 +151,7 @@ WarpX::UpdateAuxilaryData ()
                     efab[1].resize(amrex::convert(ccbx,Ey_nodal_flag));
                     efab[2].resize(amrex::convert(ccbx,Ez_nodal_flag));
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                     amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
                                         BL_TO_FORTRAN_ANYD(efab[0]),
                                         BL_TO_FORTRAN_ANYD(efab[1]),

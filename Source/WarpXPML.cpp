@@ -75,7 +75,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
     const int*     lo = box.loVect();
     const int*     hi = box.hiVect();
 
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         sigma     [idim].resize(sz[idim]+1);
         sigma_star[idim].resize(sz[idim]  );
@@ -106,18 +106,18 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         }
     }
 
-    Vector<Real> fac(BL_SPACEDIM);
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+    Vector<Real> fac(AMREX_SPACEDIM);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(delta*delta));
     }
 
     const std::vector<std::pair<int,Box> >& isects = grids.intersections(box, false, ncell);
 
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        int jdim = (idim+1) % BL_SPACEDIM;
-#if (BL_SPACEDIM == 3)
-        int kdim = (idim+2) % BL_SPACEDIM;
+        int jdim = (idim+1) % AMREX_SPACEDIM;
+#if (AMREX_SPACEDIM == 3)
+        int kdim = (idim+2) % AMREX_SPACEDIM;
 #endif
 
         Vector<int> direct_faces, side_faces, direct_side_edges, side_side_edges, corners;
@@ -133,7 +133,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             {
                 side_faces.push_back(kv.first);
             }
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
             else if (amrex::grow(grid_box, kdim, ncell).intersects(box))
             {
                 side_faces.push_back(kv.first);
@@ -166,7 +166,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 
             Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
             lobox.grow(jdim,ncell);
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
             lobox.grow(kdim,ncell);
 #endif
             Box looverlap = lobox & box;
@@ -176,7 +176,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
             hibox.grow(jdim,ncell);
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
             hibox.grow(kdim,ncell);
 #endif
             Box hioverlap = hibox & box;
@@ -189,7 +189,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             }
         }
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
         for (auto gid : side_side_edges)
         {
             const Box& grid_box = grids[gid];
@@ -226,7 +226,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         for (auto gid : side_faces)
         {
             const Box& grid_box = grids[gid];
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
             const Box& overlap = amrex::grow(grid_box,jdim,ncell) & box;
 #else
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
@@ -283,9 +283,9 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt, const std::string& pml_ty
         amrex::Abort("Unknown PML type " + pml_type_s);
     }
 
-    const std::array<Real,BL_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+    const std::array<Real,AMREX_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
 
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         for (int i = 0, N = sigma_star[idim].size(); i < N; ++i)
         {
@@ -328,12 +328,12 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_ty
         amrex::Abort("Unknown PML type " + pml_type_s);
     }
 
-    const std::array<Real,BL_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+    const std::array<Real,AMREX_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
     
     const Real c2 = PhysConst::c*PhysConst::c;
-    const std::array<Real,BL_SPACEDIM> dtsdx_c2 {AMREX_D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
+    const std::array<Real,AMREX_SPACEDIM> dtsdx_c2 {AMREX_D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
 
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         for (int i = 0, N = sigma[idim].size(); i < N; ++i)
         {
@@ -364,7 +364,7 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_ty
 void
 SigmaBox::ComputePMLFactorsHalfDt (MTSigmaVect& fac1, MTSigmaVect& fac2)
 {
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         const auto& alpha = fac1[0][idim];
         const auto& beta  = fac2[0][idim];
@@ -506,7 +506,7 @@ BoxArray
 PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell)
 {
     Box domain = geom.Domain();
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! Geometry::isPeriodic(idim) ) {
             domain.grow(idim, ncell);
         }
@@ -524,7 +524,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
         bx &= domain;
         
         Vector<Box> bndryboxes;
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
         int kbegin = -1, kend = 1;
 #else
         int kbegin =  0, kend = 0;

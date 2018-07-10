@@ -73,11 +73,11 @@ WarpX::WriteWarpXHeader(const std::string& name) const
         HeaderFile << is_synchronized << "\n";
 
 	// Geometry
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << Geometry::ProbLo(i) << ' ';
 	}
         HeaderFile << '\n';
-        for (int i = 0; i < BL_SPACEDIM; ++i) {
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << Geometry::ProbHi(i) << ' ';
 	}
         HeaderFile << '\n';
@@ -254,7 +254,7 @@ WarpX::InitFromCheckpoint ()
         is >> is_synchronized;
 	GotoNextLine(is);
 
-	Real prob_lo[BL_SPACEDIM];
+	Real prob_lo[AMREX_SPACEDIM];
 	std::getline(is, line);
 	{
 	    std::istringstream lis(line);
@@ -264,7 +264,7 @@ WarpX::InitFromCheckpoint ()
 	    }
 	}
 
-	Real prob_hi[BL_SPACEDIM];
+	Real prob_hi[AMREX_SPACEDIM];
 	std::getline(is, line);
 	{
 	    std::istringstream lis(line);
@@ -404,13 +404,13 @@ WarpX::GetCellCenteredData() {
                                                       DistributionMap(lev),
                                                       nc, ng) );
 
-    Vector<const MultiFab*> srcmf(BL_SPACEDIM);
+    Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
     int dcomp = 0;
 
     // first the electric field
     PackPlotDataPtrs(srcmf, Efield_aux[lev]);
     amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
     MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
     amrex::average_node_to_cellcenter(*cc, dcomp+1, *Efield_aux[lev][1], 0, 1);
 #endif
@@ -419,7 +419,7 @@ WarpX::GetCellCenteredData() {
     // then the magnetic field
     PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
     amrex::average_face_to_cellcenter(*cc, dcomp, srcmf);
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
     MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
     MultiFab::Copy(*cc, *Bfield_aux[lev][1], 0, dcomp+1, 1, ng);
 #endif
@@ -428,7 +428,7 @@ WarpX::GetCellCenteredData() {
     // then the current density
     PackPlotDataPtrs(srcmf, current_fp[lev]);
     amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
     MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
     amrex::average_node_to_cellcenter(*cc, dcomp+1, *current_fp[lev][1], 0, 1);
 #endif
@@ -473,11 +473,11 @@ WarpX::WritePlotFile () const
 	    const int ngrow = 0;
 	    mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
-	    Vector<const MultiFab*> srcmf(BL_SPACEDIM);
+	    Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
 	    PackPlotDataPtrs(srcmf, current_fp[lev]);
 	    int dcomp = 0;
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
             amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
 #endif
@@ -491,7 +491,7 @@ WarpX::WritePlotFile () const
 
 	    PackPlotDataPtrs(srcmf, Efield_aux[lev]);
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
             amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
 #endif
@@ -505,7 +505,7 @@ WarpX::WritePlotFile () const
 
 	    PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
 	    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
             MultiFab::Copy(*mf[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
@@ -618,7 +618,7 @@ WarpX::WritePlotFile () const
             {
                 PackPlotDataPtrs(srcmf, Efield_fp[lev]);
                 amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
                 MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
                 amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
 #endif
@@ -632,7 +632,7 @@ WarpX::WritePlotFile () const
 
                 PackPlotDataPtrs(srcmf, Bfield_fp[lev]);
                 amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
                 MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
                 MultiFab::Copy(*mf[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
@@ -1025,7 +1025,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
             jobInfoFile << " level: " << i << "\n";
             jobInfoFile << "   number of boxes = " << grids[i].size() << "\n";
             jobInfoFile << "   maximum zones   = ";
-            for (int n = 0; n < BL_SPACEDIM; n++)
+            for (int n = 0; n < AMREX_SPACEDIM; n++)
 	    {
                 jobInfoFile << geom[i].Domain().length(n) << " ";
 	    }
@@ -1036,11 +1036,11 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
         jobInfoFile << "   -x: " << "interior" << "\n";
         jobInfoFile << "   +x: " << "interior" << "\n";
-        if (BL_SPACEDIM >= 2) {
+        if (AMREX_SPACEDIM >= 2) {
 	    jobInfoFile << "   -y: " << "interior" << "\n";
 	    jobInfoFile << "   +y: " << "interior" << "\n";
         }
-        if (BL_SPACEDIM == 3) {
+        if (AMREX_SPACEDIM == 3) {
 	    jobInfoFile << "   -z: " << "interior" << "\n";
 	    jobInfoFile << "   +z: " << "interior" << "\n";
         }
@@ -1063,12 +1063,12 @@ void
 WarpX::PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
                          const std::array<std::unique_ptr<MultiFab>,3>& data)
 {
-    BL_ASSERT(pmf.size() == BL_SPACEDIM);
-#if (BL_SPACEDIM == 3)
+    BL_ASSERT(pmf.size() == AMREX_SPACEDIM);
+#if (AMREX_SPACEDIM == 3)
     pmf[0] = data[0].get();
     pmf[1] = data[1].get();
     pmf[2] = data[2].get();
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     pmf[0] = data[0].get();
     pmf[1] = data[2].get();
 #endif
