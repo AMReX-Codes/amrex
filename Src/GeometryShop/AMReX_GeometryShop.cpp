@@ -2364,7 +2364,7 @@ namespace amrex
 
             p = std::abs(p);
 
-            if (2.0 * p < std::min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
+            if (2.0 * p < std::min(3.0*xm*q-std::abs(tol1*q), 1.0*std::abs(e*q)))
               {
                 //  Accept interpolation
                 e = d;
