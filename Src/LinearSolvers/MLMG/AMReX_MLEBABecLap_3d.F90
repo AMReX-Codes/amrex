@@ -324,8 +324,8 @@ contains
                     end if 
 
                   
-                    gamma = alpha*a(i,j,k) + & 
-                           (one/vfrc(i,j,k))*(dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
+                    gamma = alpha*a(i,j,k) + (one/vfrc(i,j,k)) * & 
+                           (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
                             dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + &
                             dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
 
