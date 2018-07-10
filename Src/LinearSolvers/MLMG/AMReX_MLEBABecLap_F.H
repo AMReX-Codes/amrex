@@ -34,6 +34,7 @@ extern "C" {
                                   const amrex_real* fcz, const int* czlo, const int* czhi,
 #endif
 #endif
+                                  const amrex_real* centr, const int* ctlo, const int* cthi, 
                                   const amrex_real* dxinv,
                                   const amrex_real alpha, const amrex_real beta);
 
