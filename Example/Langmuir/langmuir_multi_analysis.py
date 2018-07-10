@@ -3,9 +3,9 @@
 # This is a script that analyses the simulation results from
 # the script `inputs.multi.rt`. This simulates a 3D periodic plasma wave.
 # The electric field in the simulation is given (in theory) by:
-# $$ E_x = -\epsilon \,\frac{m_e c^2 k_x}{q_e}\cos(k_x x)\sin(k_y y)\sin(k_z z)\sin( \omega_p t)$$
-# $$ E_y = -\epsilon \,\frac{m_e c^2 k_y}{q_e}\sin(k_x x)\cos(k_y y)\sin(k_z z)\sin( \omega_p t)$$
-# $$ E_z = -\epsilon \,\frac{m_e c^2 k_z}{q_e}\sin(k_x x)\sin(k_y y)\cos(k_z z)\sin( \omega_p t)$$
+# $$ E_x = \epsilon \,\frac{m_e c^2 k_x}{q_e}\sin(k_x x)\cos(k_y y)\cos(k_z z)\sin( \omega_p t)$$
+# $$ E_y = \epsilon \,\frac{m_e c^2 k_y}{q_e}\cos(k_x x)\sin(k_y y)\cos(k_z z)\sin( \omega_p t)$$
+# $$ E_z = \epsilon \,\frac{m_e c^2 k_z}{q_e}\cos(k_x x)\cos(k_y y)\sin(k_z z)\sin( \omega_p t)$$
 import sys
 import matplotlib
 matplotlib.use('Agg')
@@ -36,22 +36,22 @@ kz = 2.*np.pi*n_osc_z/(zmax-zmin)
 wp = np.sqrt((n*e**2)/(m_e*epsilon_0))
 
 k = {'Ex':kx, 'Ey':ky, 'Ez':kz}
-sin = {'Ex': (0,1,1), 'Ey':(1,0,1), 'Ez':(1,1,0)}
+cos = {'Ex': (0,1,1), 'Ey':(1,0,1), 'Ez':(1,1,0)}
 
-def get_contribution( is_sin, k ):
+def get_contribution( is_cos, k ):
     du = (xmax-xmin)/Nx
     u = xmin + du*( 0.5 + np.arange(Nx) )
-    if is_sin == 1:
-        return( np.sin(k*u) )
-    else:
+    if is_cos == 1:
         return( np.cos(k*u) )
+    else:
+        return( np.sin(k*u) )
 
 def get_theoretical_field( field, t ):
-    amplitude = - epsilon * (m_e*c**2*k[field])/e * np.sin(wp*t)
-    sin_flag = sin[field]
-    x_contribution = get_contribution( sin_flag[0], kx )
-    y_contribution = get_contribution( sin_flag[1], ky )
-    z_contribution = get_contribution( sin_flag[2], kz )
+    amplitude = epsilon * (m_e*c**2*k[field])/e * np.sin(wp*t)
+    cos_flag = cos[field]
+    x_contribution = get_contribution( cos_flag[0], kx )
+    y_contribution = get_contribution( cos_flag[1], ky )
+    z_contribution = get_contribution( cos_flag[2], kz )
 
     E = amplitude * x_contribution[:, np.newaxis, np.newaxis] \
                   * y_contribution[np.newaxis, :, np.newaxis] \
