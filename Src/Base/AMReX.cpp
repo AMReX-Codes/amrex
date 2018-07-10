@@ -70,6 +70,7 @@ namespace {
     std::new_handler prev_new_handler;
     typedef void (*SignalHandler)(int);
     SignalHandler prev_handler_sigsegv;
+    SignalHandler prev_handler_sigterm;
     SignalHandler prev_handler_sigint;
     SignalHandler prev_handler_sigabrt;
     SignalHandler prev_handler_sigfpe;
@@ -408,6 +409,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         {
             // We could save the singal handlers and restore them in Finalize.
             prev_handler_sigsegv = signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+            prev_handler_sigterm = signal(SIGTERM,  BLBackTrace::handler);
             prev_handler_sigint = signal(SIGINT,  BLBackTrace::handler);
             prev_handler_sigabrt = signal(SIGABRT, BLBackTrace::handler);
 
@@ -556,6 +558,7 @@ amrex::Finalize (bool finalize_parallel)
     if (system::signal_handling)
     {
         if (prev_handler_sigsegv != SIG_ERR) signal(SIGSEGV, prev_handler_sigsegv);
+        if (prev_handler_sigterm != SIG_ERR) signal(SIGTERM, prev_handler_sigterm);
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
