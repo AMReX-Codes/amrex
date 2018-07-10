@@ -51,4 +51,10 @@ sim = PICMI.Simulation(plot_int = 2,
                        cfl = 1.0,
                        max_step = 1000)
 
+# write_inputs will create an inputs file that can be used to run
+# with the compiled version.
 sim.write_inputs(inputs_name = 'inputs_from_PICMI')
+
+# Alternatively, sim.step will run WarpX, controlling it from Python
+#sim.step()
+
