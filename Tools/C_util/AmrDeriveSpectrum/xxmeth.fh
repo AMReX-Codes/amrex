@@ -1,0 +1,10 @@
+c ::: SCCS stuff "@(#)xxmeth.fh	1.1\t10/2/92"
+
+      REAL_T gamma, difmag, small, smallr, ssx0, ssy0, sst0, alpha
+      REAL_T curtime
+      integer niter, iorder, qposition
+      logical lnewton
+      common /meth1/ gamma, alpha, difmag, small, smallr, niter, iorder, qposition
+      common /meth2/ ssx0, ssy0, sst0, curtime, lnewton
+
+

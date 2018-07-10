@@ -101,13 +101,13 @@ class LSFactory {
         std::unique_ptr<MultiFab>  coarsen_data() const;
 
         // Return grid parameters
-        const int get_ls_ref() const {return ls_grid_ref;};
-        const int get_ls_pad() const {return ls_grid_pad;};
-        const int get_eb_ref() const {return eb_grid_ref;};
-        const int get_eb_pad() const {return eb_grid_pad;};
+        int get_ls_ref() const {return ls_grid_ref;};
+        int get_ls_pad() const {return ls_grid_pad;};
+        int get_eb_ref() const {return eb_grid_ref;};
+        int get_eb_pad() const {return eb_grid_pad;};
 
         // Return AMR level
-        const int get_amr_level() const {return amr_lev;};
+        int get_amr_level() const {return amr_lev;};
 
 
         // Return BoxArrays:

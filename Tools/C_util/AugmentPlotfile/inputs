@@ -1,0 +1,13 @@
+
+infile = test_infile
+
+outfile = test_outfile
+
+add_vorticity = 1
+
+
+add_divergence = 1
+
+
+#verbose = 1
+
