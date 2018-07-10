@@ -1,0 +1,40 @@
+##-----------------------------------------------------------
+## INPUT PARAMETERS FOR AMRDERIVESPECTRUM PROBLEM
+##-----------------------------------------------------------
+
+# Verbose flag
+verbose = 1
+
+# List of input plotfiles to process
+infile = test-FFTWMPI
+
+# Variables to read from the input plotfiles
+vars = x_velocity y_velocity z_velocity
+
+# Flag determining whether div_free
+div_free = 0
+
+# Flag determining whether or not to transpose spatial indices
+transpose_dp = 0
+
+# Flag sets whether or not to weight by density^(1/3)
+density_weighting = 0
+
+# Density field
+density = density
+
+# Flag sets whether or not to apply cutoff density
+use_cutoff_density = 0
+
+# Cutoff density below which to zero the velocities
+cutoff_density = 0.0
+
+# Flag determining whether or not to read a list of
+# wavenumbers to filter on.
+do_filter = 0
+
+# List of wavenumbers to filter on
+# filterWN = 0.0 0.0 0.0
+
+# This sets the finest level to do the FFT
+finestLevel = 2

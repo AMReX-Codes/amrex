@@ -1,0 +1,14 @@
+CEXE_headers += AMReX_DataServices.H AMReX_AmrData.H AMReX_XYPlotDataList.H AMReX_AmrvisConstants.H AMReX_BLWritePlotFile.H
+CEXE_sources += AMReX_DataServices.cpp AMReX_AmrData.cpp AMReX_BLWritePlotFile.cpp
+
+ifneq ($(findstring BL_NOLINEVALUES, $(DEFINES)), BL_NOLINEVALUES)
+CEXE_sources += AMReX_XYPlotDataList.cpp
+endif
+
+ifeq ($(DIM),3)
+FEXE_sources += DERIVE_3D.F AMReX_FABUTIL_3D.F
+else
+ifeq ($(DIM),2)
+FEXE_sources += DERIVE_2D.F AMReX_FABUTIL_2D.F
+endif
+endif
