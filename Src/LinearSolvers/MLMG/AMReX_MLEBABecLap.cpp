@@ -53,14 +53,15 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
         m_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
+            const int ng = 1;
             m_a_coeffs[amrlev][mglev].define(m_grids[amrlev][mglev],
                                              m_dmap[amrlev][mglev],
-                                             1, 0, MFInfo(), *m_factory[amrlev][mglev]);
+                                             1, ng, MFInfo(), *m_factory[amrlev][mglev]);
+            m_a_coeffs[amrlev][mglev].setVal(0.0);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& ba = amrex::convert(m_grids[amrlev][mglev],
                                                     IntVect::TheDimensionVector(idim));
-                const int ng = 1;
                 m_b_coeffs[amrlev][mglev][idim].define(ba,
                                                        m_dmap[amrlev][mglev],
                                                        1, ng, MFInfo(), *m_factory[amrlev][mglev]);
@@ -78,13 +79,6 @@ MLEBABecLap::setScalars (Real a, Real b)
 {
     m_a_scalar = a;
     m_b_scalar = b;
-    if (a == 0.0)
-    {
-        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
-        {
-            m_a_coeffs[amrlev][0].setVal(0.0);
-        }
-    }
 }
 
 void
@@ -98,7 +92,6 @@ MLEBABecLap::setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPAC
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
-        m_b_coeffs[amrlev][0][idim].FillBoundary(m_geom[amrlev][0].periodicity());
     }
 }
 
@@ -115,6 +108,15 @@ MLEBABecLap::averageDownCoeffs ()
     }
 
     averageDownCoeffsSameAmrLevel(m_a_coeffs[0], m_b_coeffs[0]);
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_a_coeffs[amrlev][mglev].FillBoundary(m_geom[amrlev][mglev].periodicity());
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                m_b_coeffs[amrlev][mglev][idim].FillBoundary(m_geom[amrlev][mglev].periodicity());
+            }
+        }
+    }
 }
 
 void
