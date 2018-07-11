@@ -832,13 +832,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArrayData 
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetAllowParticlesNearBoundary (bool value)
-{
-  allow_particles_near_boundary = value; 
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetParticleLocations (Vector<Real>& part_data)
 {
   BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::SetParticleLocations()");

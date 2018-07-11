@@ -466,8 +466,7 @@ public:
       communicate_real_comp(NArrayReal, true),
       communicate_int_comp(NArrayInt, true),
       m_verbose(0), 
-      m_gdb(nullptr),
-      allow_particles_near_boundary(false)
+      m_gdb(nullptr)
     {
         Initialize ();
     }
@@ -477,8 +476,7 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
 	m_verbose(0),
-	m_gdb(gdb), 
-	allow_particles_near_boundary(false)
+	m_gdb(gdb)
     {
         Initialize ();
         reserveData();
@@ -492,7 +490,6 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
         m_verbose(0), 
-	allow_particles_near_boundary(false),
 	m_gdb_object(geom,dmap,ba)
     {
         Initialize ();
@@ -509,7 +506,6 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
         m_verbose(0), 
-	allow_particles_near_boundary(false),
 	m_gdb_object(geom,dmap,ba,rr)
     {
         Initialize ();
@@ -640,10 +636,6 @@ public:
     // rho_index: rho index in rdata
     Real sumParticleMass (int rho_index, int level, bool local = false) const;
 
-    // Set the flag that allows particles to live near the domain boundary and throw away 
-    //     the part of their contribution in AssignDensity that is outside the domain.
-    void SetAllowParticlesNearBoundary(bool value);
- 
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
     //
     // OK checks that all particles are in the right places (for some value of right)
@@ -854,7 +846,6 @@ protected:
     //
     int         m_verbose;
     ParGDBBase* m_gdb;
-    bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
 
     // ---- variables for i/o optimization saved for pre and post checkpoint
