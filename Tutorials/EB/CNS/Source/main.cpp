@@ -11,7 +11,7 @@
 using namespace amrex;
 
 void initialize_EB2 (const Geometry& geom, const int required_level, const int max_level);
-void initialize_EBIS(const int max_level);
+void initialize_EBIS(const Geometry& geom, const int max_level);
 
 int main (int argc, char* argv[])
 {
@@ -61,7 +61,7 @@ int main (int argc, char* argv[])
         else
         {
             //xxxxx maybe we should have armex::EBInitialize() and EBFinalize()
-            initialize_EBIS(amr.maxLevel());
+            initialize_EBIS(amr.Geom(amr.maxLevel()), amr.maxLevel());
             EBTower::Build();
             AMReX_EBIS::reset();  // CNS no longer needs the EBIndexSpace singleton.
         }

@@ -1642,27 +1642,24 @@ FabArrayBase::flushTileArrayCache ()
 void
 FabArrayBase::clearThisBD (bool no_assertion)
 {
-    if ( ! boxarray.empty() ) 
-    {
-	BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
+    BL_ASSERT(boxarray.empty() || no_assertion || getBDKey() == m_bdkey);
 
-	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
-	if (cnt_it != m_BD_count.end()) 
-	{
-	    --(cnt_it->second);
-	    if (cnt_it->second == 0) 
-	    {
-		m_BD_count.erase(cnt_it);
-		
-		// Since this is the last one built with these BoxArray 
-		// and DistributionMapping, erase it from caches.
-		flushTileArray(IntVect::TheZeroVector(), no_assertion);
-		flushFPinfo(no_assertion);
-		flushCFinfo(no_assertion);
-		flushFB(no_assertion);
-		flushCPC(no_assertion);
-	    }
-	}
+    std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
+    if (cnt_it != m_BD_count.end()) 
+    {
+        --(cnt_it->second);
+        if (cnt_it->second == 0) 
+        {
+            m_BD_count.erase(cnt_it);
+            
+            // Since this is the last one built with these BoxArray 
+            // and DistributionMapping, erase it from caches.
+            flushTileArray(IntVect::TheZeroVector(), no_assertion);
+            flushFPinfo(no_assertion);
+            flushCFinfo(no_assertion);
+            flushFB(no_assertion);
+            flushCPC(no_assertion);
+        }
     }
 }
 
