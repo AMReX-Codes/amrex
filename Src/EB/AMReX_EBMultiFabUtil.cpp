@@ -207,4 +207,79 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
     }
 }
 
+
+void EB_average_down_faces (const Vector<const MultiFab*>& fine, Vector<const MultiFab*>& crse,
+                            const Intvect& ratio, int ngcrse)
+{
+    BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
+    BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
+    BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+
+    int ncomp = crse[0]->nComp();
+    if (!S_fine.hasEBFabFactory())
+    {
+        amrex::average_down_faces(fine, crse, ratio, ngcrse);
+    }
+    else 
+    {
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine.Factory());
+        const auto& aspect = factory.getAreaFrac();
+
+        if (isMFIterSafe(*fine[0], *crse[0]))
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (int n=0; n<AMREX_SPACEDIM; ++n) {
+                for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+                {
+
+                    const auto& flag_fab = amrex::getEBCellFlagFab(fine_fab);
+                    FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
+                    const Box& tbx = mfi.growntilebox(ngcrse);
+               
+                    if(typ == FabType::Regular || typ == FabType::Covered) 
+                    {    
+
+                        BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
+                            (tbx.loVect(),tbx.hiVect(),
+                             BL_TO_FORTRAN((*fine[n])[mfi]),
+                             BL_TO_FORTRAN((*crse[n])[mfi]),
+                             ratio.getVect(),n,ncomp);
+                    }
+                    else
+                    {
+                       amrex_eb_average_down_faces(BL_TO_FORTRAN_BOX(tbx),
+                                                   tbx.loVect(), tbx.hiVect(), 
+                                                   BL_TO_FORTRAN((*fine[n])[mfi]), 
+                                                   BL_TO_FORTRAN((*crse[n])[mfi]),
+                                                   AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*aspect[0])[mfi]), 
+                                                                BL_TO_FORTRAN_ANYD((*aspect[0])[mfi]),
+                                                                BL_TO_FORTRAN_ANYD((*aspect[2])[mfi])),
+                                                   
+                    }
+                }
+            }
+        }
+        else
+        {
+            std::array<MultiFab,AMREX_SPACEDIM> ctmp;
+            Vector<MultiFab*> vctmp(AMREX_SPACEDIM);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                BoxArray cba = fine[idim]->boxArray();
+                cba.coarsen(ratio);
+                ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+                vctmp[idim] = &ctmp[idim];
+            }
+            average_down_faces(fine, vctmp, ratio, ngcrse);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);
+            }
+        }
+    }
+}
+       
+
 }
