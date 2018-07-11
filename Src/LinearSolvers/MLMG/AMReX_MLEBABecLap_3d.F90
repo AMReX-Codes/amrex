@@ -1,6 +1,6 @@
 
 module amrex_mlebabeclap_3d_module
-
+  
   use amrex_error_module 
   use amrex_constants_module, only: zero, one 
   use amrex_fort_module, only : amrex_real
@@ -67,8 +67,13 @@ contains
                     fracz = abs(fcx(i,j,k,2))
                     jj = j + int(sign(one, fcx(i,j,k,1)))
                     kk = k + int(sign(one, fcx(i,j,k,2)))
-                    fxm = (one-fracy-fracz)*fxm + fracy*bX(i,jj,k)*(x(i,jj,k)-x(i-1,jj,k)) + & 
-                         &                        fracz*bX(i,j,kk)*(x(i,j,kk)-x(i-1,j,kk))
+                    fxm = (one-fracy)*(one-fracz)*fxm + &
+                         & fracy*(one-fracz)*bX(i,jj,k)*(x(i,jj,k)-x(i-1,jj,k)) + & 
+                         & fracz*(one-fracy)*bX(i,j,kk)*(x(i,j,kk)-x(i-1,j,kk)) + &
+                         & fracy*fracz*bX(i,jj,kk)*(x(i,jj,kk)-x(i-1,jj,kk))
+
+!                    fxm = (one-fracy-fracz)*fxm + fracy*bX(i,jj,k)*(x(i,jj,k)-x(i-1,jj,k)) + & 
+!                                                & fracz*bX(i,j,kk)*(x(i,j,kk)-x(i-1,j,kk))
                 endif 
 
                 fxp = bX(i+1,j,k)*(x(i+1,j,k) - x(i,j,k))
@@ -77,8 +82,12 @@ contains
                     fracz = abs(fcx(i+1,j,k,2))
                     jj = j + int(sign(one,fcx(i+1,j,k,1)))
                     kk = k + int(sign(one,fcx(i+1,j,k,2)))
-                    fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(x(i+1,jj,k)-x(i,jj,k)) + & 
-                         &                        fracz*bX(i+1,j,kk)*(x(i+1,j,kk)-x(i,j,kk))
+                    fxp = (one-fracy)*(one-fracz)*fxp + &
+                         & fracy*(one-fracz)*bX(i+1,jj,k)*(x(i+1,jj,k)-x(i,jj,k)) + & 
+                         & fracz*(one-fracy)*bX(i+1,j,kk)*(x(i+1,j,kk)-x(i,j,kk)) + & 
+                         & fracy*fracz*bX(i+1,jj,kk)*(x(i+1,jj,kk)-x(i,jj,kk))
+!                    fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(x(i+1,jj,k)-x(i,jj,k)) + & 
+!                                                & fracz*bX(i+1,j,kk)*(x(i+1,j,kk)-x(i,j,kk))
                 endif 
 
                 fym = bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
@@ -87,8 +96,12 @@ contains
                     fracz = abs(fcy(i,j,k,2))
                     ii = i + int(sign(one,fcy(i,j,k,1)))
                     kk = k + int(sign(one,fcy(i,j,k,2)))
-                    fym = (one-fracx-fracz)*fym + fracx*bY(ii,j,k)*(x(ii,j,k)-x(ii,j-1,k)) + & 
-                         &                        fracz*bY(i,j,kk)*(x(i,j,kk)-x(i,j-1,kk))
+                    fym = (one-fracx)*(one-fracz)*fym + &
+                         & fracx*(one-fracz)*bY(ii,j,k)*(x(ii,j,k)-x(ii,j-1,k)) + & 
+                         & fracz*(one-fracx)*bY(i,j,kk)*(x(i,j,kk)-x(i,j-1,kk)) + &
+                         & fracx*fracz*bY(ii,j,kk)*(x(ii,j,kk)-x(ii,j-1,kk))
+!                    fym = (one-fracx-fracz)*fym + fracx*bY(ii,j,k)*(x(ii,j,k)-x(ii,j-1,k)) + & 
+!                                                & fracz*bY(i,j,kk)*(x(i,j,kk)-x(i,j-1,kk))
                 endif 
 
                 fyp = bY(i,j+1,k)*(x(i,j+1,k) - x(i,j,k))
@@ -97,8 +110,12 @@ contains
                     fracz = abs(fcy(i,j+1,k,2))
                     ii = i + int(sign(one,fcy(i,j+1,k,1)))
                     kk = k + int(sign(one,fcy(i,j+1,k,2)))
-                    fyp = (one-fracx-fracz)*fyp + fracx*bY(ii,j+1,k)*(x(ii,j+1,k)-x(ii,j,k)) + &
-                         &                        fracz*bY(i,j+1,kk)*(x(i,j+1,kk)-x(i,j,kk))
+                    fyp = (one-fracx)*(one-fracz)*fyp + &
+                         & fracx*(one-fracz)*bY(ii,j+1,k)*(x(ii,j+1,k)-x(ii,j,k)) + &
+                         & fracz*(one-fracx)*bY(i,j+1,kk)*(x(i,j+1,kk)-x(i,j,kk)) + & 
+                         & fracx*fracz*bY(ii,j+1,kk)*(x(ii,j+1,kk)-x(ii,j,kk))
+!                    fyp = (one-fracx-fracz)*fyp + fracx*bY(ii,j+1,k)*(x(ii,j+1,k)-x(ii,j,k)) + &
+!                                                & fracz*bY(i,j+1,kk)*(x(i,j+1,kk)-x(i,j,kk))
                 endif 
 
                 fzm = bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
@@ -107,8 +124,12 @@ contains
                     fracy = abs(fcz(i,j,k,2))
                     ii = i + int(sign(one,fcz(i,j,k,1)))
                     jj = j + int(sign(one,fcz(i,j,k,2)))
-                    fzm = (one-fracx-fracy)*fzm + fracx*bZ(ii,j,k)*(x(ii,j,k)-x(ii,j,k-1)) + & 
-                         &                        fracy*bZ(i,jj,k)*(x(i,jj,k)-x(i,jj,k-1))
+                    fzm = (one-fracx)*(one-fracy)*fzm + &
+                         & fracx*(one-fracy)*bZ(ii,j,k)*(x(ii,j,k)-x(ii,j,k-1)) + & 
+                         & fracy*(one-fracx)*bZ(i,jj,k)*(x(i,jj,k)-x(i,jj,k-1)) + &
+                         & fracx*fracy*bZ(ii,jj,k)*(x(ii,jj,k)-x(ii,jj,k-1))
+!                    fzm = (one-fracx-fracy)*fzm + fracx*bZ(ii,j,k)*(x(ii,j,k)-x(ii,j,k-1)) + & 
+!                                                & fracy*bZ(i,jj,k)*(x(i,jj,k)-x(i,jj,k-1))
                 endif 
 
                 fzp = bZ(i,j,k+1)*(x(i,j,k+1) - x(i,j,k))
@@ -117,8 +138,12 @@ contains
                     fracy = abs(fcz(i,j,k+1,2))
                     ii = i + int(sign(one,fcz(i,j,k+1,1)))
                     jj = j + int(sign(one,fcz(i,j,k+1,2)))
-                    fzp = (one-fracx-fracy)*fzp + fracx*bZ(ii,j,k+1)*(x(ii,j,k+1)-x(ii,j,k)) + &
-                         &                        fracy*bZ(i,jj,k+1)*(x(i,jj,k+1)-x(i,jj,k))
+                    fzp = (one-fracx)*(one-fracy)*fzp + & 
+                         & fracx*(one-fracy)*bZ(ii,j,k+1)*(x(ii,j,k+1)-x(ii,j,k)) + &
+                         & fracy*(one-fracx)*bZ(i,jj,k+1)*(x(i,jj,k+1)-x(i,jj,k)) + &
+                         & fracx*fracy*bZ(ii,jj,k+1)*(x(ii,jj,k+1)-x(ii,jj,k))
+!                    fzp = (one-fracx-fracy)*fzp + fracx*bZ(ii,j,k+1)*(x(ii,j,k+1)-x(ii,j,k)) + &
+!                                                & fracy*bZ(i,jj,k+1)*(x(i,jj,k+1)-x(i,jj,k))
                 endif 
 
                 y(i,j,k) = (one/vfrc(i,j,k))*&
@@ -259,9 +284,14 @@ contains
                        fracz = abs(fcx(i,j,k,2)) 
                        jj = j + int(sign(one, fcx(i,j,k,1)))
                        kk = k + int(sign(one, fcx(i,j,k,2))) 
-                       fxm = (one-fracy-fracz)*fxm + fracy*bX(i,jj,k)*(phi(i,jj,k)-phi(i-1,jj,k)) &
-                           +  fracz*bX(i,j,kk)*(phi(i,j,kk)-phi(i-1,j,kk))
-                       sxm = (one-fracy-fracz)*sxm
+!                       fxm = (one-fracy-fracz)*fxm + fracy*bX(i,jj,k)*(phi(i,jj,k)-phi(i-1,jj,k)) &
+!                           +  fracz*bX(i,j,kk)*(phi(i,j,kk)-phi(i-1,j,kk))
+                       fxm = (one-fracy)*(one-fracz)*fxm + &
+                            & fracy*(one-fracz)*bX(i,jj,k)*(phi(i,jj,k)-phi(i-1,jj,k)) + & 
+                            & fracz*(one-fracy)*bX(i,j,kk)*(phi(i,j,kk)-phi(i-1,j,kk)) + &
+                            & fracy*fracz*bX(i,jj,kk)*(phi(i,jj,kk)-phi(i-1,jj,kk))
+!                       sxm = (one-fracy-fracz)
+                       sxm = (one-fracy)*(one-fracz)*sxm
                    end if
                    
                    fxp =  bX(i+1,j,k)*phi(i+1,j,k) 
@@ -271,9 +301,14 @@ contains
                        fracz = abs(fcx(i+1,j,k,2)) 
                        jj = j + int(sign(one, fcx(i+1,j,k,1)))
                        kk = k + int(sign(one, fcx(i+1,j,k,2)))
-                       fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(phi(i+1,jj,k)-phi(i,jj,k)) & 
-                           + fracz*bX(i+1,j,kk)*(phi(i+1,j,kk)-phi(i,j,kk))
-                       sxp = (one-fracy-fracz)*sxp
+!                       fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(phi(i+1,jj,k)-phi(i,jj,k)) & 
+!                           + fracz*bX(i+1,j,kk)*(phi(i+1,j,kk)-phi(i,j,kk))
+                       fxp = (one-fracy)*(one-fracz)*fxp + &
+                            & fracy*(one-fracz)*bX(i+1,jj,k)*(phi(i+1,jj,k)-phi(i,jj,k)) + & 
+                            & fracz*(one-fracy)*bX(i+1,j,kk)*(phi(i+1,j,kk)-phi(i,j,kk)) + & 
+                            & fracy*fracz*bX(i+1,jj,kk)*(phi(i+1,jj,kk)-phi(i,jj,kk))
+!                       sxp = (one-fracy-fracz)*sxp
+                        sxp = (one-fracy)*(one-fracz)*sxp
                    end if 
                    
                    fym = -bY(i,j,k)*phi(i,j-1,k)
@@ -283,9 +318,14 @@ contains
                       fracz = abs(fcy(i,j,k,2))
                       ii = i + int(sign(one,fcy(i,j,k,1)))
                       kk = k + int(sign(one,fcy(i,j,k,2))) 
-                      fym = (one-fracx-fracz)*fym + fracx*bY(ii,j,k)*(phi(ii,j,k)-phi(ii,j-1,k)) & 
-                          +  fracz*bY(i,j,kk)*(phi(i,j,kk)-phi(i,j-1,kk))
-                      sym = (one-fracx-fracz)*sym
+!                      fym = (one-fracx-fracz)*fym + fracx*bY(ii,j,k)*(phi(ii,j,k)-phi(ii,j-1,k)) & 
+!                          +  fracz*bY(i,j,kk)*(phi(i,j,kk)-phi(i,j-1,kk))
+                      fym = (one-fracx)*(one-fracz)*fym + &
+                           & fracx*(one-fracz)*bY(ii,j,k)*(phi(ii,j,k)-phi(ii,j-1,k)) + & 
+                           & fracz*(one-fracx)*bY(i,j,kk)*(phi(i,j,kk)-phi(i,j-1,kk)) + &
+                           & fracx*fracz*bY(ii,j,kk)*(phi(ii,j,kk)-phi(ii,j-1,kk))
+!                      sym = (one-fracx-fracz)*sym
+                      sym = (one-fracx)*(one-fracz)*sym
                    endif
  
                    fyp =  bY(i,j+1,k)*phi(i,j+1,k)
@@ -295,9 +335,14 @@ contains
                       fracz = abs(fcy(i,j+1,k,2)) 
                       ii = i + int(sign(one,fcy(i,j+1,k,1)))
                       kk = k + int(sign(one,fcy(i,j+1,k,2)))
-                      fyp = (one-fracx-fracz)*fyp + fracx*bY(ii,j+1,k)*(phi(ii,j+1,k)-phi(ii,j,k)) &
-                          +  fracz*bY(i,j+1,kk)*(phi(i,j+1,kk)-phi(i,j,kk))
-                      syp = (one-fracx-fracz)*syp
+!                      fyp = (one-fracx-fracz)*fyp + fracx*bY(ii,j+1,k)*(phi(ii,j+1,k)-phi(ii,j,k)) &
+!                          +  fracz*bY(i,j+1,kk)*(phi(i,j+1,kk)-phi(i,j,kk))
+                      fyp = (one-fracx)*(one-fracz)*fyp + &
+                           & fracx*(one-fracz)*bY(ii,j+1,k)*(phi(ii,j+1,k)-phi(ii,j,k)) + &
+                           & fracz*(one-fracx)*bY(i,j+1,kk)*(phi(i,j+1,kk)-phi(i,j,kk)) + & 
+                           & fracx*fracz*bY(ii,j+1,kk)*(phi(ii,j+1,kk)-phi(ii,j,kk))
+!                      syp = (one-fracx-fracz)*syp
+                      syp = (one-fracx)*(one-fracz)*syp
                    end if 
  
                    fzm = -bZ(i,j,k)*phi(i,j,k-1)
@@ -307,9 +352,14 @@ contains
                       fracy = abs(fcz(i,j,k,2)) 
                       ii = i + int(sign(one,fcz(i,j,k,1)))
                       jj = j + int(sign(one,fcz(i,j,k,2)))
-                      fzm = (one-fracx-fracy)*fzm + fracx*bZ(ii,j,k)*(phi(ii,j,k)-phi(ii,j,k-1)) & 
-                          +  fracy*bZ(i,jj,k)*(phi(i,jj,k)-phi(i,jj,k-1))
-                      szm = (one-fracx-fracy)*szm
+!                      fzm = (one-fracx-fracy)*fzm + fracx*bZ(ii,j,k)*(phi(ii,j,k)-phi(ii,j,k-1)) & 
+!                          +  fracy*bZ(i,jj,k)*(phi(i,jj,k)-phi(i,jj,k-1))
+                      fzm = (one-fracx)*(one-fracy)*fzm + &
+                           & fracx*(one-fracy)*bZ(ii,j,k)*(phi(ii,j,k)-phi(ii,j,k-1)) + & 
+                           & fracy*(one-fracx)*bZ(i,jj,k)*(phi(i,jj,k)-phi(i,jj,k-1)) + &
+                           & fracx*fracy*bZ(ii,jj,k)*(phi(ii,jj,k)-phi(ii,jj,k-1))
+!                      szm = (one-fracx-fracy)*szm
+                      szm = (one-fracx)*(one-fracy)*szm
                     endif
                
                     fzp =  bZ(i,j,k+1)*phi(i,j,k+1) 
@@ -319,9 +369,14 @@ contains
                        fracy = abs(fcz(i,j,k+1,2))
                        ii = i + int(sign(one,fcz(i,j,k+1,1)))
                        jj = j + int(sign(one,fcz(i,j,k+1,2)))
-                       fzp = (one-fracx-fracy)*fzp + fracx*bZ(ii,j,k+1)*(phi(ii,j,k+1)-phi(ii,j,k)) &
-                           +  fracy*bZ(i,jj,k+1)*(phi(i,jj,k+1)-phi(i,jj,k))
-                       szp = (one-fracx-fracy)*szp
+!                       fzp = (one-fracx-fracy)*fzp + fracx*bZ(ii,j,k+1)*(phi(ii,j,k+1)-phi(ii,j,k)) &
+!                           +  fracy*bZ(i,jj,k+1)*(phi(i,jj,k+1)-phi(i,jj,k))
+                       fzp = (one-fracx)*(one-fracy)*fzp + & 
+                            & fracx*(one-fracy)*bZ(ii,j,k+1)*(phi(ii,j,k+1)-phi(ii,j,k)) + &
+                            & fracy*(one-fracx)*bZ(i,jj,k+1)*(phi(i,jj,k+1)-phi(i,jj,k)) + &
+                            & fracx*fracy*bZ(ii,jj,k+1)*(phi(ii,jj,k+1)-phi(ii,jj,k))
+!                       szp = (one-fracx-fracy)*szp
+                       szp = (one-fracx)*(one-fracy)*szp
                     end if 
  
                     cx = cntr(i,j,k,1) 
