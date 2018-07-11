@@ -20,7 +20,7 @@ module amrex_eb2_3d_module
 
   private
   public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
-       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap
+       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap, amrex_eb2_check_mvmc
 
 contains
 
@@ -749,7 +749,7 @@ contains
 #ifdef AMREX_DEBUG
                    print *, "amrex_eb2_build_cells: multiple cuts in cell ", i,j,k
 #endif
-                   call amrex_error("amrex_eb2_build_cells: multiple cuts")
+                   call amrex_error("amrex_eb2_build_cells: multiple cuts not supported")
                 end if
 
                 dapx = axm - axp
@@ -1065,7 +1065,7 @@ contains
        cbn, cbnlo, cbnhi, fbn, fbnlo, fbnhi, capx, caxlo, caxhi, fapx, faxlo, faxhi, &
        capy, caylo, cayhi, fapy, faylo, fayhi, capz, cazlo, cazhi, fapz, fazlo, fazhi, &
        cfcx, cfxlo, cfxhi, ffcx, ffxlo, ffxhi, cfcy, cfylo, cfyhi, ffcy, ffylo, ffyhi, &
-       cfcz, cfzlo, cfzhi, ffcz, ffzlo, ffzhi, cflag, cflo, cfhi, fflag, fflo, ffhi) &
+       cfcz, cfzlo, cfzhi, ffcz, ffzlo, ffzhi, cflag, cflo, cfhi, fflag, fflo, ffhi, ierr) &
        bind(c, name='amrex_eb2_coarsen_from_fine')
     integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, ylo, yhi, zlo, zhi, &
          cvlo, cvhi,  fvlo, fvhi, cclo, cchi, fclo, fchi, &
@@ -1074,6 +1074,7 @@ contains
          caylo, cayhi, faylo, fayhi, cazlo, cazhi, fazlo, fazhi, &
          cfxlo, cfxhi, ffxlo, ffxhi, cfylo, cfyhi, ffylo, ffyhi, &
          cfzlo, cfzhi, ffzlo, ffzhi, cflo, cfhi, fflo, ffhi
+    integer, intent(inout) :: ierr
     real(amrex_real), intent(inout) :: cvol ( cvlo(1): cvhi(1), cvlo(2): cvhi(2), cvlo(3): cvhi(3))
     real(amrex_real), intent(in   ) :: fvol ( fvlo(1): fvhi(1), fvlo(2): fvhi(2), fvlo(3): fvhi(3))
     real(amrex_real), intent(inout) :: ccent( cclo(1): cchi(1), cclo(2): cchi(2), cclo(3): cchi(3),3)
@@ -1206,7 +1207,8 @@ contains
                      + fbn(ii  ,jj+1,kk+1,3)*fba(ii  ,jj+1,kk+1) &
                      + fbn(ii+1,jj+1,kk+1,3)*fba(ii+1,jj+1,kk+1)
                 if (nx.eq.zero .and. ny.eq.zero .and. nz.eq.zero) then
-                   call amrex_error("amrex_eb2_coarsen_from_fine: undefined boundary normal")
+                   ierr = 1
+                   return
                 end if
                 nfac = one/sqrt(nx*nx+ny*ny+nz*nz)
                 cbn(i,j,k,1) = nx*nfac
@@ -1413,4 +1415,194 @@ contains
     end do
   end subroutine amrex_eb2_build_cellflag_from_ap
 
+
+  subroutine amrex_eb2_check_mvmc (cclo, cchi, ndlo, ndhi, cls, clo, chi, fls, flo, fhi, &
+       ncuts, tlo, thi, ierr) &
+       bind(c,name='amrex_eb2_check_mvmc')
+    integer, dimension(3), intent(in) :: cclo,cchi,ndlo,ndhi,clo,chi,flo,fhi,tlo,thi
+    real(amrex_real), intent(inout) :: cls(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(amrex_real), intent(in   ) :: fls(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    integer, intent(inout) :: ncuts(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),6)
+    integer, intent(inout) :: ierr
+
+    integer :: i,j,k, ii,jj,kk, n, nopen
+
+    do       k = ndlo(3), ndhi(3)
+       kk = k*2
+       do    j = ndlo(2), ndhi(2)
+          jj = j*2
+          do i = ndlo(1), ndhi(1)
+             ii = i*2
+             cls(i,j,k) = fls(ii,jj,kk)
+          end do
+       end do
+    end do
+
+    ! x-edges
+    do       k = cclo(3), cchi(3)+1
+       kk = k*2
+       do    j = cclo(2), cchi(2)+1
+          jj = j*2
+          do i = cclo(1), cchi(1)
+             ii = i*2
+             ncuts(i,j,k,1) = 0
+             if (has_cut(fls(ii,jj,kk),fls(ii+1,jj,kk))) then
+                ncuts(i,j,k,1) = ncuts(i,j,k,1)+1
+             end if
+             if (has_cut(fls(ii+1,jj,kk),fls(ii+2,jj,kk))) then
+                ncuts(i,j,k,1) = ncuts(i,j,k,1)+1
+             end if
+             if (ncuts(i,j,k,1) .eq. 2) then
+                ierr = 1
+                return
+             end if
+          end do
+       end do
+    end do
+
+    ! y-edges
+    do       k = cclo(3), cchi(3)+1
+       kk = k*2
+       do    j = cclo(2), cchi(2)
+          jj = j*2
+          do i = cclo(1), cchi(1)+1
+             ii = i*2
+             ncuts(i,j,k,2) = 0
+             if (has_cut(fls(ii,jj,kk),fls(ii,jj+1,kk))) then
+                ncuts(i,j,k,2) = ncuts(i,j,k,2)+1
+             end if
+             if (has_cut(fls(ii,jj+1,kk),fls(ii,jj+2,kk))) then
+                ncuts(i,j,k,2) = ncuts(i,j,k,2)+1
+             end if
+             if (ncuts(i,j,k,2) .eq. 2) then
+                ierr = 1
+                return
+             end if
+          end do
+       end do
+    end do
+
+    ! z-edges
+    do       k = cclo(3), cchi(3)
+       kk = k*2
+       do    j = cclo(2), cchi(2)+1
+          jj = j*2
+          do i = cclo(1), cchi(1)+1
+             ii = i*2
+             ncuts(i,j,k,3) = 0
+             if (has_cut(fls(ii,jj,kk),fls(ii,jj,kk+1))) then
+                ncuts(i,j,k,3) = ncuts(i,j,k,3)+1
+             end if
+             if (has_cut(fls(ii,jj,kk+1),fls(ii,jj,kk+2))) then
+                ncuts(i,j,k,3) = ncuts(i,j,k,3)+1
+             end if
+             if (ncuts(i,j,k,3) .eq. 2) then
+                ierr = 1
+                return
+             end if
+          end do
+       end do
+    end do
+
+    ! x-faces
+    do       k = cclo(3), cchi(3)
+       do    j = cclo(2), cchi(2)
+          do i = cclo(1), cchi(1)+1
+             n =    ncuts(i,j,k,2) + ncuts(i,j,k+1,2) &
+                  + ncuts(i,j,k,3) + ncuts(i,j+1,k,3)
+             if (n .eq. 0) then
+                ncuts(i,j,k,4) = 0
+             else if (n .eq. 2) then
+                ncuts(i,j,k,4) = 1
+             else if (n .eq. 4) then
+                ierr = 1
+                return
+             else
+                call amrex_error("amrex_eb2_check_mvmc: how did this happen? wrong nubmer of cuts on x-face", n)
+             end if
+          end do
+       end do
+    end do
+    
+    ! y-faces
+    do       k = cclo(3), cchi(3)
+       do    j = cclo(2), cchi(2)+1
+          do i = cclo(1), cchi(1)
+             n =    ncuts(i,j,k,1) + ncuts(i,j,k+1,1) &
+                  + ncuts(i,j,k,3) + ncuts(i+1,j,k,3)
+             if (n .eq. 0) then
+                ncuts(i,j,k,5) = 0
+             else if (n .eq. 2) then
+                ncuts(i,j,k,5) = 1
+             else if (n .eq. 4) then
+                ierr = 1
+                return
+             else
+                call amrex_error("amrex_eb2_check_mvmc: how did this happen? wrong nubmer of cuts on y-face", n)
+             end if
+          end do
+       end do
+    end do
+
+    ! z-faces
+    do       k = cclo(3), cchi(3)+1
+       do    j = cclo(2), cchi(2)
+          do i = cclo(1), cchi(1)
+             n =    ncuts(i,j,k,1) + ncuts(i,j+1,k,1) &
+                  + ncuts(i,j,k,2) + ncuts(i+1,j,k,2)
+             if (n .eq. 0) then
+                ncuts(i,j,k,6) = 0
+             else if (n .eq. 2) then
+                ncuts(i,j,k,6) = 1
+             else if (n .eq. 4) then
+                ierr = 1
+                return
+             else
+                call amrex_error("amrex_eb2_check_mvmc: how did this happen? wrong nubmer of cuts on x-face", n)
+             end if
+          end do
+       end do
+    end do
+
+    do       k = cclo(3), cchi(3)
+       do    j = cclo(2), cchi(2)
+          do i = cclo(1), cchi(1)
+             if ( ncuts(i  ,j  ,k  ,4).eq.1 .and. &
+                  ncuts(i+1,j  ,k  ,4).eq.1 .and. &
+                  ncuts(i  ,j  ,k  ,5).eq.1 .and. &
+                  ncuts(i  ,j+1,k  ,5).eq.1 .and. &
+                  ncuts(i  ,j  ,k  ,6).eq.1 .and. &
+                  ncuts(i  ,j  ,k+1,6).eq.1 ) then
+                ii = i*2
+                jj = j*2
+                kk = k*2
+                nopen = 0
+                if (fls(ii  ,jj  ,kk  ) .lt. zero) nopen = nopen + 1
+                if (fls(ii+2,jj  ,kk  ) .lt. zero) nopen = nopen + 1
+                if (fls(ii  ,jj+2,kk  ) .lt. zero) nopen = nopen + 1
+                if (fls(ii+2,jj+2,kk  ) .lt. zero) nopen = nopen + 1
+                if (fls(ii  ,jj  ,kk+2) .lt. zero) nopen = nopen + 1
+                if (fls(ii+2,jj  ,kk+2) .lt. zero) nopen = nopen + 1
+                if (fls(ii  ,jj+2,kk+2) .lt. zero) nopen = nopen + 1
+                if (fls(ii+2,jj+2,kk+2) .lt. zero) nopen = nopen + 1
+                if (nopen .eq. 2 .or. nopen .eq. 6) then
+                   ierr = 1
+                   return
+                else if (nopen .ne. 4) then
+                   call amrex_error("amrex_eb2_check_mvmc: how did this happen? nopen", nopen)
+                end if
+             end if
+          end do
+       end do
+    end do
+    
+  contains
+    pure function has_cut(a,b)
+      real(amrex_real), intent(in) :: a,b
+      logical has_cut
+      has_cut = (a.ge.zero .and. b.lt.zero) .or. (b.ge.zero .and. a.lt.zero)
+    end function has_cut
+
+  end subroutine amrex_eb2_check_mvmc
+  
 end module amrex_eb2_3d_module

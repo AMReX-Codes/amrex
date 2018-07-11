@@ -360,7 +360,7 @@ contains
             do jj = lo(2), hi(2)
                 do ii = lo(1), hi(1)
                     if ( valid(ii, jj, kk)  == 0 ) then
-                        levelset_node = dabs( phi(ii, jj, kk) )
+                        levelset_node = abs( phi(ii, jj, kk) )
                         if ( impf(ii, jj, kk) <= 0 ) then
                             phi(ii, jj, kk) = levelset_node
                         else
