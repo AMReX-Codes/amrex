@@ -30,6 +30,8 @@ contains
              end do
           end do
        end do
+       src_fab(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3), comp) = &
+       dst_fab(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3), comp)
 
        ! pass in the y-direction
        do k = dlo(3), dhi(3)
@@ -41,6 +43,8 @@ contains
              end do
           end do
        end do
+       src_fab(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3), comp) = &
+       dst_fab(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3), comp)
 
        ! pass in the z-direction
        do k = dlo(3), dhi(3)
@@ -78,6 +82,8 @@ contains
                                    0.25d0 * src_fab(i+1, j, comp)
           end do
        end do
+       src_fab(dlo(1):dhi(1),dlo(2):dhi(2), comp) = &
+       dst_fab(dlo(1):dhi(1),dlo(2):dhi(2), comp)
 
        ! pass in the z-direction
        do j = dlo(2), dhi(2)

@@ -13,7 +13,7 @@ namespace
     {
         *ngrow = mf.nGrow();
         *num_boxes = mf.local_size();
-        *shapes = (int*) malloc(BL_SPACEDIM * (*num_boxes) * sizeof(int));
+        *shapes = (int*) malloc(AMREX_SPACEDIM * (*num_boxes) * sizeof(int));
         double** data = (double**) malloc((*num_boxes) * sizeof(double*));
         
         int i = 0;
@@ -22,8 +22,8 @@ namespace
 #endif
         for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
             data[i] = (double*) mf[mfi].dataPtr();
-            for (int j = 0; j < BL_SPACEDIM; ++j) {
-                (*shapes)[BL_SPACEDIM*i+j] = mf[mfi].box().length(j); 
+            for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+                (*shapes)[AMREX_SPACEDIM*i+j] = mf[mfi].box().length(j); 
             }
         }
         return data;
@@ -32,13 +32,13 @@ namespace
     {
         *ngrow = mf.nGrow();
         *num_boxes = mf.local_size();
-        int *loVects = (int*) malloc((*num_boxes)*BL_SPACEDIM * sizeof(int));
+        int *loVects = (int*) malloc((*num_boxes)*AMREX_SPACEDIM * sizeof(int));
 
         int i = 0;
         for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
             const int* loVect = mf[mfi].loVect();
-            for (int j = 0; j < BL_SPACEDIM; ++j) {
-                loVects[BL_SPACEDIM*i+j] = loVect[j];
+            for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+                loVects[AMREX_SPACEDIM*i+j] = loVect[j];
             }
         }
         return loVects;
@@ -73,7 +73,7 @@ extern "C"
 
     int warpx_SpaceDim() 
     {
-        return BL_SPACEDIM;
+        return AMREX_SPACEDIM;
     }
 
     void amrex_init (int argc, char* argv[])
