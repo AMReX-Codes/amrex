@@ -409,9 +409,16 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         {
             // We could save the singal handlers and restore them in Finalize.
             prev_handler_sigsegv = signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
-            prev_handler_sigterm = signal(SIGTERM,  BLBackTrace::handler);
             prev_handler_sigint = signal(SIGINT,  BLBackTrace::handler);
             prev_handler_sigabrt = signal(SIGABRT, BLBackTrace::handler);
+
+            int term = 0;
+            pp.query("handle_sigterm", term);
+            if (term) {
+                prev_handler_sigterm = signal(SIGTERM,  BLBackTrace::handler);
+            } else {
+                prev_handler_sigterm = SIG_ERR;
+            }
 
             prev_handler_sigfpe = SIG_ERR;
 
