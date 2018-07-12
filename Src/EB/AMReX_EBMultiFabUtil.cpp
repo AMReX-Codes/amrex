@@ -207,22 +207,23 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
     }
 }
 
+#ifdef EBavgface
 
-void EB_average_down_faces (const Vector<const MultiFab*>& fine, Vector<const MultiFab*>& crse,
-                            const Intvect& ratio, int ngcrse)
+void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< MultiFab*>& crse,
+                            const IntVect& ratio, int ngcrse)
 {
     BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
     BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
     BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
     int ncomp = crse[0]->nComp();
-    if (!S_fine.hasEBFabFactory())
+    if (!fine[0].hasEBFabFactory())
     {
         amrex::average_down_faces(fine, crse, ratio, ngcrse);
     }
     else 
     {
-        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine.Factory());
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine[0].Factory());
         const auto& aspect = factory.getAreaFrac();
 
         if (isMFIterSafe(*fine[0], *crse[0]))
@@ -233,12 +234,12 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, Vector<const Mu
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
                 for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
                 {
-
+		    auto fine_fab = fine[n][mfi]
                     const auto& flag_fab = amrex::getEBCellFlagFab(fine_fab);
                     FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
                     const Box& tbx = mfi.growntilebox(ngcrse);
                
-                    if(typ == FabType::Regular || typ == FabType::Covered) 
+                    if(typ == FabType::regular || typ == FabType::covered) 
                     {    
 
                         BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
@@ -280,6 +281,6 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, Vector<const Mu
         }
     }
 }
-       
+#endif       
 
 }
