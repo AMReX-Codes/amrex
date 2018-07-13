@@ -48,18 +48,19 @@ amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 #this is for the JBB combustor
 eb2.use_eb2 = 1
 eb2.geom_type = "combustor" 
-#Far wall location in x 
-eb2.far_wall_loc = 2.25
 
-#Ramp construct -- 3 planes, only plane 2 needs normal 
-eb2.ramp_plane1_point = 1.25 3.75 0. 
-eb2.ramp_plane2_point = 1.25 3.75 0. 
-eb2.ramp_plane2_normal = 3.45 -0.95 0. 
-eb2.ramp_plane3_point = 0.3 0. 0. 
+#Far wall location in x 
+combustor.far_wall_loc = 2.25
+
+#Ramp construct
+# Plane 1: horizontal
+# Plane 2: slope
+# plane 3: vertical
+combustor.ramp_plane1_point = 1.25 3.75
+combustor.ramp_plane2_point = 1.25 3.75
+combustor.ramp_plane2_normal = 3.45 -0.95
+combustor.ramp_plane3_point = 0.5 0.
 
 #pipe construct
-eb2.pipe_lo = 0.3 -5.0 -100.0 
-eb2.pipe_hi = 0.5 2.5 100.0
-
-#Lathe translation vector 
-eb2.lathe_trans_vec = 2.5 2.5 0.
+combustor.pipe_lo = 0.3 -5.0
+combustor.pipe_hi = 0.5 2.5
