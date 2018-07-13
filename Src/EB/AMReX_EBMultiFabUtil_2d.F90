@@ -4,7 +4,7 @@ module amrex_eb_avgdown_module
   implicit none
 
   private
-  public :: amrex_eb_avgdown_sv, amrex_eb_avgdown
+  public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces
 
 contains
 
@@ -81,5 +81,63 @@ contains
        end do
     end do
   end subroutine amrex_eb_avgdown
+
+  subroutine amrex_eb_avgdown_faces (lo, hi, fine, flo, fhi, crse, clo, chi, &
+       ap, aplo, aphi, lrat, idir, ncomp) bind(c,name='amrex_eb_avgdown_faces')
+    implicit none
+    integer, intent(in), dimension(2) :: lo, hi, flo, fhi, clo, chi, aplo, aphi, lrat
+    integer, intent(in)               :: idir ,ncomp 
+    real(amrex_real), intent(in   )   :: fine( flo(1): fhi(1), flo(2): fhi(2), ncomp)
+    real(amrex_real), intent(inout)   :: crse( clo(1): chi(1), clo(2): chi(2), ncomp) 
+    real(amrex_real), intent(in   )   ::  ap(aplo(1):aphi(1),aplo(2):aphi(2)) 
+
+    integer :: i, j, ii, jj, n, iref, jref, facx, facy
+    real(amrex_real) :: fa 
+   
+    facx = lrat(1) 
+    facy = lrat(2)
+ 
+    if(idir.eq.0) then  
+      do n = 1, ncomp 
+         do j       = lo(2), hi(2) 
+            jj      = j*facy
+            do i    = lo(1),hi(1)
+               ii   = i*facx
+               crse(i,j,n) = 0.d0 
+               fa          = 0.d0 
+               do    jref  = 0, facy-1
+                     fa          = fa + ap(ii, jj+jref) 
+                     crse(i,j,n) = crse(i,j,n) + ap(ii,jj+jref)*fine(ii,jj+jref,n)
+               enddo
+               if(fa.gt.1.d-30) then 
+                 crse(i,j,n) = crse(i,j,n)/fa
+               else 
+                 crse(i,j,n) = fine(ii,jj,n) !covered face
+               endif 
+            enddo
+         enddo 
+      enddo
+    else
+      do n = 1, ncomp
+         do j       = lo(2), hi(2)
+            jj      = j*facy
+            do i    = lo(1), hi(1) 
+               ii   = i*facx
+               crse(i,j,n) = 0.d0
+               fa          = 0.d0 
+               do    iref  = 0, facx-1
+                     fa          = fa + ap(ii+iref, jj) 
+                     crse(i,j,n) = crse(i,j,n) + ap(ii+iref,jj)*fine(ii+iref,jj,n)
+               enddo
+               if(fa.gt.1.d-30) then 
+                 crse(i,j,n) = crse(i,j,n)/fa
+               else
+                 crse(i,j,n) = fine(ii,jj,n) !covered face 
+               endif
+             enddo
+         enddo
+      enddo 
+    endif
+  end subroutine amrex_eb_avgdown_faces 
 
 end module amrex_eb_avgdown_module
