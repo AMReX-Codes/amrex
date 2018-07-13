@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
                 const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
                 
                 // Call picsar routine for each tile
-                WRPX_PXR_PUSH_BVEC(
+                warpx_push_bvec(
                     tbx.loVect(), tbx.hiVect(),
                     tby.loVect(), tby.hiVect(),
                     tbz.loVect(), tbz.hiVect(),
@@ -164,8 +164,7 @@ int main(int argc, char* argv[])
                     BL_TO_FORTRAN_3D((*Bfield[0])[mfi]),
                     BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
                     BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
-                    &dtsdx[0], &dtsdx[1], &dtsdx[2],
-                    &norder);
+                    &dtsdx[0], &dtsdx[1], &dtsdx[2]);
 	    }	    
 	}
 
@@ -192,7 +191,7 @@ int main(int argc, char* argv[])
                 const Box& tez  = mfi.tilebox(Ez_nodal_flag);
                 
                 // Call picsar routine for each tile
-                WRPX_PXR_PUSH_EVEC(
+                warpx_push_evec(
                     tex.loVect(), tex.hiVect(),
                     tey.loVect(), tey.hiVect(),
                     tez.loVect(), tez.hiVect(),
@@ -206,8 +205,7 @@ int main(int argc, char* argv[])
                     BL_TO_FORTRAN_3D((*current[1])[mfi]),
                     BL_TO_FORTRAN_3D((*current[2])[mfi]),
                     &mu_c2_dt,
-                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
-                    &norder);
+                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
 	    }
 	}
 
