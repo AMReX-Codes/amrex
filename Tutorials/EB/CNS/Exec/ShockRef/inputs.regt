@@ -51,10 +51,10 @@ amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 # EB
 eb2.geom_type = ramp
-up_dir = 1
-indep_var = 0
-ramp_slope = 1.1503684072210092   # tan(49 degree)
-start_pt = 5.2
+eb2.up_dir = 1
+eb2.indep_var = 0
+eb2.ramp_slope = 1.1503684072210092   # tan(49 degree)
+eb2.start_pt = 5.2
 
 physics.gamma  = 1.6666666666666667
 physics.eos_mu = 41.57255
