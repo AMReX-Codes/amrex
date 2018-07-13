@@ -35,7 +35,7 @@ public:
 
     WarpXParIter (ContainerType& pc, int level);
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
     void GetPosition (amrex::Vector<amrex::Real>& x,
                       amrex::Vector<amrex::Real>& y,
                       amrex::Vector<amrex::Real>& z) const;

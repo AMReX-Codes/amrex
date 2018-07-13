@@ -1,12 +1,16 @@
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb3d_energy_conserving_generic
-#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_generic
+#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb3d_energy_conserving_generic
+#define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic
+#define WRPX_PXR_PUSH_BVEC                pxrpush_em3d_bvec
+#define WRPX_PXR_PUSH_EVEC                pxrpush_em3d_evec
 
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb2dxz_energy_conserving_generic
-#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_generic_2d
+#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2dxz_energy_conserving_generic
+#define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic_2d
+#define WRPX_PXR_PUSH_BVEC                pxrpush_em2d_bvec
+#define WRPX_PXR_PUSH_EVEC                pxrpush_em2d_evec
 
 #endif
 
@@ -69,11 +73,11 @@ contains
        lvect,field_gathe_algo) &
        bind(C, name="warpx_geteb_energy_conserving")
 
-    integer, intent(in) :: exg_lo(BL_SPACEDIM), eyg_lo(BL_SPACEDIM), ezg_lo(BL_SPACEDIM), &
-                           bxg_lo(BL_SPACEDIM), byg_lo(BL_SPACEDIM), bzg_lo(BL_SPACEDIM)
-    integer, intent(in) :: exg_hi(BL_SPACEDIM), eyg_hi(BL_SPACEDIM), ezg_hi(BL_SPACEDIM), &
-                           bxg_hi(BL_SPACEDIM), byg_hi(BL_SPACEDIM), bzg_hi(BL_SPACEDIM)
-    integer, intent(in) :: ixyzmin(BL_SPACEDIM)
+    integer, intent(in) :: exg_lo(AMREX_SPACEDIM), eyg_lo(AMREX_SPACEDIM), ezg_lo(AMREX_SPACEDIM), &
+                           bxg_lo(AMREX_SPACEDIM), byg_lo(AMREX_SPACEDIM), bzg_lo(AMREX_SPACEDIM)
+    integer, intent(in) :: exg_hi(AMREX_SPACEDIM), eyg_hi(AMREX_SPACEDIM), ezg_hi(AMREX_SPACEDIM), &
+                           bxg_hi(AMREX_SPACEDIM), byg_hi(AMREX_SPACEDIM), bzg_hi(AMREX_SPACEDIM)
+    integer, intent(in) :: ixyzmin(AMREX_SPACEDIM)
     real(amrex_real), intent(in) :: xmin,ymin,zmin,dx,dy,dz
     integer(c_long), intent(in) :: field_gathe_algo
     integer(c_long), intent(in) :: np,nox,noy,noz
@@ -85,10 +89,10 @@ contains
     logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v
 
     ! Compute the number of valid cells and guard cells
-    integer(c_long) :: exg_nvalid(BL_SPACEDIM), eyg_nvalid(BL_SPACEDIM), ezg_nvalid(BL_SPACEDIM),    &
-                       bxg_nvalid(BL_SPACEDIM), byg_nvalid(BL_SPACEDIM), bzg_nvalid(BL_SPACEDIM),    &
-                       exg_nguards(BL_SPACEDIM), eyg_nguards(BL_SPACEDIM), ezg_nguards(BL_SPACEDIM), &
-                       bxg_nguards(BL_SPACEDIM), byg_nguards(BL_SPACEDIM), bzg_nguards(BL_SPACEDIM)
+    integer(c_long) :: exg_nvalid(AMREX_SPACEDIM), eyg_nvalid(AMREX_SPACEDIM), ezg_nvalid(AMREX_SPACEDIM),    &
+                       bxg_nvalid(AMREX_SPACEDIM), byg_nvalid(AMREX_SPACEDIM), bzg_nvalid(AMREX_SPACEDIM),    &
+                       exg_nguards(AMREX_SPACEDIM), eyg_nguards(AMREX_SPACEDIM), ezg_nguards(AMREX_SPACEDIM), &
+                       bxg_nguards(AMREX_SPACEDIM), byg_nguards(AMREX_SPACEDIM), bzg_nguards(AMREX_SPACEDIM)
 
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
@@ -160,7 +164,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
 
   ! Dimension 3
-#if (BL_SPACEDIM==3)
+#if (AMREX_SPACEDIM==3)
 
   SELECT CASE(charge_depo_algo)
 
@@ -201,7 +205,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   END SELECT
 
   ! Dimension 2
-#elif (BL_SPACEDIM==2)
+#elif (AMREX_SPACEDIM==2)
 
   CALL pxr_depose_rho_n_2dxz(rho,np,xp,yp,zp,w,q,xmin,zmin,dx,dz,nx,nz,&
        nxguard,nzguard,nox,noz, &
@@ -242,7 +246,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     lvect,current_depo_algo) &
     bind(C, name="warpx_current_deposition")
 
-    integer, intent(in) :: jx_ntot(BL_SPACEDIM), jy_ntot(BL_SPACEDIM), jz_ntot(BL_SPACEDIM)
+    integer, intent(in) :: jx_ntot(AMREX_SPACEDIM), jy_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
     integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
     integer(c_long), intent(IN)                                  :: np
     integer(c_long), intent(IN)                                  :: nox,noy,noz
@@ -259,8 +263,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     integer(c_long), intent(IN)                                   :: current_depo_algo
 
     ! Compute the number of valid cells and guard cells
-    integer(c_long) :: jx_nvalid(BL_SPACEDIM), jy_nvalid(BL_SPACEDIM), jz_nvalid(BL_SPACEDIM), &
-                       jx_nguards(BL_SPACEDIM), jy_nguards(BL_SPACEDIM), jz_nguards(BL_SPACEDIM)
+    integer(c_long) :: jx_nvalid(AMREX_SPACEDIM), jy_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
+                       jx_nguards(AMREX_SPACEDIM), jy_nguards(AMREX_SPACEDIM), jz_nguards(AMREX_SPACEDIM)
     jx_nvalid = jx_ntot - 2*jx_ng
     jy_nvalid = jy_ntot - 2*jy_ng
     jz_nvalid = jz_ntot - 2*jz_ng
@@ -269,7 +273,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     jz_nguards = jz_ng
 
 ! Dimension 3
-#if (BL_SPACEDIM==3)
+#if (AMREX_SPACEDIM==3)
    CALL WRPX_PXR_CURRENT_DEPOSITION(        &
         jx,jx_nguards,jx_nvalid,            &
         jy,jy_nguards,jy_nvalid,            &
@@ -278,7 +282,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         xmin,ymin,zmin,dt,dx,dy,dz,         &
         nox,noy,noz,current_depo_algo)
 ! Dimension 2
-#elif (BL_SPACEDIM==2)
+#elif (AMREX_SPACEDIM==2)
         CALL WRPX_PXR_CURRENT_DEPOSITION(   &
         jx,jx_nguards,jx_nvalid,            &
         jy,jy_nguards,jy_nvalid,            &
@@ -287,7 +291,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         xmin,zmin,dt,dx,dz,nox,noz,lvect)
 #endif
 
-  end subroutine
+  end subroutine warpx_current_deposition
 
   ! _________________________________________________________________
   !>
@@ -340,13 +344,13 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     END SELECT
 
     !!!! --- push particle species positions a time step
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
 #endif
 
-  end subroutine
+  end subroutine warpx_particle_pusher
 
 
   ! _________________________________________________________________
@@ -425,12 +429,119 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
 
     !!!! --- push particle species positions a time step
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
 #endif
 
-  end subroutine
+  end subroutine warpx_particle_pusher_positions
+
+  ! _________________________________________________________________
+  !>
+  !> @brief
+  !> Main subroutine for the Maxwell solver (E field)
+  !>
+  !> @param[in] xlo, xhi, ylo, yhi, zlo, zhi lower and higher bounds
+  !>            where to apply the solver (PICSAR's valid cells)
+  !> @param[inout] ex, ey, ez arrays for electric field to update
+  !> @param[in] bx, by, bz, jx, jy, jz arrays for magnetic field and current
+  !> @param[in] exlo, exhi, eylo, eyhi, ezlo, ezhi lower and higher bound for
+  !>            the electric field arrays
+  !> @param[in] bxlo, bxhi, bylo, byhi, bzlo, bzhi lower and higher bound for
+  !>            the magnetic field arrays
+  !> @param[in] jxlo, jxhi, jylo, jyhi, jzlo, jzhi lower and higher bound for
+  !>            the current arrays
+  !> @param[in] mudt normalized time step mu_0 * c**2 * dt
+  !> @param[in] dtsdx, dtsdy, dtsdz factors c**2 * dt/(dx, dy, dz)
+  subroutine warpx_push_evec( & 
+    xlo, xhi, ylo, yhi, zlo, zhi, &
+    ex, exlo, exhi, &
+    ey, eylo, eyhi, &
+    ez, ezlo, ezhi, &
+    bx, bxlo, bxhi, &
+    by, bylo, byhi, &
+    bz, bzlo, bzhi, &
+    jx, jxlo, jxhi, &
+    jy, jylo, jyhi, &
+    jz, jzlo, jzhi, &
+    mudt, dtsdx, dtsdy, dtsdz) bind(C, name="warpx_push_evec")
+
+    integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), &
+      ylo(BL_SPACEDIM), yhi(BL_SPACEDIM), zlo(BL_SPACEDIM), zhi(BL_SPACEDIM), &
+      exlo(BL_SPACEDIM), exhi(BL_SPACEDIM), eylo(BL_SPACEDIM), eyhi(BL_SPACEDIM), &
+      ezlo(BL_SPACEDIM), ezhi(BL_SPACEDIM), bxlo(BL_SPACEDIM), bxhi(BL_SPACEDIM), &
+      bylo(BL_SPACEDIM), byhi(BL_SPACEDIM), bzlo(BL_SPACEDIM), bzhi(BL_SPACEDIM), &
+      jxlo(BL_SPACEDIM), jxhi(BL_SPACEDIM), jylo(BL_SPACEDIM), jyhi(BL_SPACEDIM), &
+      jzlo(BL_SPACEDIM), jzhi(BL_SPACEDIM)
+
+    real(amrex_real), intent(IN OUT):: ex(*), ey(*), ez(*)
+
+    real(amrex_real), intent(IN):: bx(*), by(*), bz(*), jx(*), jy(*), jz(*)
+
+    real(amrex_real), intent(IN) :: mudt, dtsdx, dtsdy, dtsdz
+
+    CALL WRPX_PXR_PUSH_EVEC(&
+        xlo, xhi, ylo, yhi, zlo, zhi, &
+        ex, exlo, exhi,&
+        ey, eylo, eyhi,&
+        ez, ezlo, ezhi,&
+        bx, bxlo, bxhi,&
+        by, bylo, byhi,&
+        bz, bzlo, bzhi,&
+        jx, jxlo, jxhi,&
+        jy, jylo, jyhi,&
+        jz, jzlo, jzhi,&
+        mudt, dtsdx, dtsdy, dtsdz);
+
+  end subroutine warpx_push_evec
+
+  ! _________________________________________________________________
+  !>
+  !> @brief
+  !> Main subroutine for the Maxwell solver (B field)
+  !>
+  !> @param[in] xlo, xhi, ylo, yhi, zlo, zhi lower and higher bounds
+  !>            where to apply the solver (PICSAR's valid cells)
+  !> @param[inout] ex, ey, ez arrays for electric field to update
+  !> @param[in] bx, by, bz arrays for magnetic field
+  !> @param[in] exlo, exhi, eylo, eyhi, ezlo, ezhi lower and higher bound for
+  !>            the electric field arrays
+  !> @param[in] bxlo, bxhi, bylo, byhi, bzlo, bzhi lower and higher bound for
+  !>            the magnetic field arrays
+  !> @param[in] dtsdx, dtsdy, dtsdz factors 0.5 * dt/(dx, dy, dz)
+  subroutine warpx_push_bvec( & 
+    xlo, xhi, ylo, yhi, zlo, zhi, &
+    ex, exlo, exhi, &
+    ey, eylo, eyhi, &
+    ez, ezlo, ezhi, &
+    bx, bxlo, bxhi, &
+    by, bylo, byhi, &
+    bz, bzlo, bzhi, &
+    dtsdx, dtsdy, dtsdz) bind(C, name="warpx_push_bvec")
+
+    integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), &
+      ylo(BL_SPACEDIM), yhi(BL_SPACEDIM), zlo(BL_SPACEDIM), zhi(BL_SPACEDIM), &
+      exlo(BL_SPACEDIM), exhi(BL_SPACEDIM), eylo(BL_SPACEDIM), eyhi(BL_SPACEDIM), &
+      ezlo(BL_SPACEDIM), ezhi(BL_SPACEDIM), bxlo(BL_SPACEDIM), bxhi(BL_SPACEDIM), &
+      bylo(BL_SPACEDIM), byhi(BL_SPACEDIM), bzlo(BL_SPACEDIM), bzhi(BL_SPACEDIM)
+
+    real(amrex_real), intent(IN OUT):: ex(*), ey(*), ez(*)
+
+    real(amrex_real), intent(IN):: bx(*), by(*), bz(*)
+
+    real(amrex_real), intent(IN) :: dtsdx, dtsdy, dtsdz
+
+    CALL WRPX_PXR_PUSH_BVEC( &
+      xlo, xhi, ylo, yhi, zlo, zhi, &
+      ex,exlo,exhi,&
+      ey,eylo, eyhi, &
+      ez,ezlo, ezhi, &
+      bx, bxlo, bxhi, &
+      by, bylo, byhi, &
+      bz, bzlo, bzhi, &
+      dtsdx,dtsdy,dtsdz)
+
+  end subroutine warpx_push_bvec
 
 end module warpx_to_pxr_module

@@ -110,7 +110,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
 
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
 	u_X = p_X;
 	u_Y = p_Y;
 #else
@@ -148,7 +148,7 @@ LaserParticleContainer::InitData (int lev)
 
     auto Transform = [&](int i, int j) -> Vector<Real>
     {
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
 		 position[1] + (S_X*(i+0.5))*u_X[1] + (S_Y*(j+0.5))*u_Y[1],
 		 position[2] + (S_X*(i+0.5))*u_X[2] + (S_Y*(j+0.5))*u_Y[2] };
@@ -162,7 +162,7 @@ LaserParticleContainer::InitData (int lev)
     // Given the "lab" frame coordinates, return the real coordinates in the laser plane coordinates
     auto InverseTransform = [&](const Vector<Real>& pos) -> Vector<Real>
     {
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	return {u_X[0]*(pos[0]-position[0])+u_X[1]*(pos[1]-position[1])+u_X[2]*(pos[2]-position[2]),
 		u_Y[0]*(pos[0]-position[0])+u_Y[1]*(pos[1]-position[1])+u_Y[2]*(pos[2]-position[2])};
 #else
@@ -186,7 +186,7 @@ LaserParticleContainer::InitData (int lev)
 
 	const Real* prob_lo = prob_domain.lo();
 	const Real* prob_hi = prob_domain.hi();
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	compute_min_max(prob_lo[0], prob_lo[1], prob_lo[2]);
 	compute_min_max(prob_hi[0], prob_lo[1], prob_lo[2]);
 	compute_min_max(prob_lo[0], prob_hi[1], prob_lo[2]);
@@ -206,7 +206,7 @@ LaserParticleContainer::InitData (int lev)
     const int nprocs = ParallelDescriptor::NProcs();
     const int myproc = ParallelDescriptor::MyProc();
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     const Box plane_box {IntVect(plane_lo[0],plane_lo[1],0),
                          IntVect(plane_hi[0],plane_hi[1],0)};
     BoxArray plane_ba {plane_box};
@@ -241,7 +241,7 @@ LaserParticleContainer::InitData (int lev)
 	    for (IntVect cell = bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
 	    {
 		const Vector<Real>& pos = Transform(cell[0], cell[1]);
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 		const Real* x = pos.data();
 #else
 		const Real x[2] = {pos[0], pos[2]};
@@ -345,14 +345,14 @@ LaserParticleContainer::Evolve (int lev,
 	    for (int i = 0; i < np; ++i)
             {
                 // Find the coordinates of the particles in the emission plane
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                 plane_Xp[i] = u_X[0]*(xp[i] - position[0])
                             + u_X[1]*(yp[i] - position[1])
                             + u_X[2]*(zp[i] - position[2]);
                 plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
                             + u_Y[1]*(yp[i] - position[1])
                             + u_Y[2]*(zp[i] - position[2]);
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
                 plane_Xp[i] = u_X[0]*(xp[i] - position[0])
                             + u_X[2]*(zp[i] - position[2]);
                 plane_Yp[i] = 0;
@@ -387,7 +387,7 @@ LaserParticleContainer::Evolve (int lev,
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                 const long nx = rholen[0]-1-2*ngRhoDeposit;
                 const long ny = rholen[1]-1-2*ngRhoDeposit;
                 const long nz = rholen[2]-1-2*ngRhoDeposit;
@@ -481,7 +481,7 @@ LaserParticleContainer::Evolve (int lev,
                 uzp[i] = gamma * vz;
                 // Push the the particle positions
                 xp[i] += vx * dt;
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                 yp[i] += vy * dt;
 #endif
                 zp[i] += vz * dt;
@@ -642,7 +642,7 @@ LaserParticleContainer::ComputeSpacing (int lev, Real& Sx, Real& Sy) const
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
     const Real eps = dx[0]*1.e-50;
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     Sx = std::min(std::min(dx[0]/(std::abs(u_X[0])+eps),
 			   dx[1]/(std::abs(u_X[1])+eps)),
 		           dx[2]/(std::abs(u_X[2])+eps));

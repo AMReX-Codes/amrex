@@ -95,12 +95,12 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
        std::array<Real, 3> u;
        Real weight;
        for (long i = 0; i < npart; ++i) {
-#if ( BL_SPACEDIM == 3 )
+#if ( AMREX_SPACEDIM == 3 )
             weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);
             Real z = distz(mt);
-#elif ( BL_SPACEDIM == 2 )
+#elif ( AMREX_SPACEDIM == 2 )
             weight = q_tot/npart/charge/y_rms;
             Real x = distx(mt);
             Real y = 0.;
@@ -182,9 +182,9 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
     const Real* dx = geom.CellSize();
 
     Real scale_fac;
-#if BL_SPACEDIM==3
+#if AMREX_SPACEDIM==3
     scale_fac = dx[0]*dx[1]*dx[2]/num_ppc;
-#elif BL_SPACEDIM==2
+#elif AMREX_SPACEDIM==2
     scale_fac = dx[0]*dx[1]/num_ppc;
 #endif
 
@@ -217,7 +217,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
             Real ncells_adjust;
             bool no_overlap = 0;
 
-            for (int dir=0; dir<BL_SPACEDIM; dir++) {
+            for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
                 if ( tile_realbox.lo(dir) < part_realbox.hi(dir) ) {
                     ncells_adjust = std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir] );
                     overlap_realbox.setLo( dir, part_realbox.lo(dir) + std::max(ncells_adjust, 0.) * dx[dir]);
@@ -248,20 +248,20 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                 for (int i_part=0; i_part<num_ppc;i_part++) {
                     std::array<Real, 3> r;
                     plasma_injector->getPositionUnitBox(r, i_part);
-#if ( BL_SPACEDIM == 3 )
+#if ( AMREX_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
                     Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
                     Real z = overlap_corner[2] + (iv[2] + r[2])*dx[2];
-#elif ( BL_SPACEDIM == 2 )
+#elif ( AMREX_SPACEDIM == 2 )
                     Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
                     Real y = 0;
                     Real z = overlap_corner[1] + (iv[1] + r[1])*dx[1];
 #endif
                     // If the new particle is not inside the tile box,
                     // go to the next generated particle.
-#if ( BL_SPACEDIM == 3 )
+#if ( AMREX_SPACEDIM == 3 )
                     if(!tile_realbox.contains( RealVect{x, y, z} )) continue;
-#elif ( BL_SPACEDIM == 2 )
+#elif ( AMREX_SPACEDIM == 2 )
                     if(!tile_realbox.contains( RealVect{x, z} )) continue;
 #endif
 
@@ -361,28 +361,28 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
             auto& attribs = pti.GetAttribs();
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             auto& Ezp = attribs[PIdx::Ez];
 #endif
             Exp.assign(np,0.0);
             Eyp.assign(np,0.0);
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             Ezp.assign(np,0.0);
 #endif
 
             const FArrayBox& exfab = (*E[lev][0])[pti];
             const FArrayBox& eyfab = (*E[lev][1])[pti];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             const FArrayBox& ezfab = (*E[lev][2])[pti];
 #endif
 
             WRPX_INTERPOLATE_CIC(particles.data(), nstride, np,
                                  Exp.data(), Eyp.data(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                  Ezp.data(),
 #endif
                                  exfab.dataPtr(), eyfab.dataPtr(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                  ezfab.dataPtr(),
 #endif
                                  box.loVect(), box.hiVect(), plo, dx, &ng);
@@ -398,13 +398,13 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
 
     MultiFab coarse_Ex(coarsened_fine_BA, fine_dm, 1, 1);
     MultiFab coarse_Ey(coarsened_fine_BA, fine_dm, 1, 1);
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     MultiFab coarse_Ez(coarsened_fine_BA, fine_dm, 1, 1);
 #endif
 
     coarse_Ex.copy(*E[0][0], 0, 0, 1, 1, 1);
     coarse_Ey.copy(*E[0][1], 0, 0, 1, 1, 1);
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     coarse_Ez.copy(*E[0][2], 0, 0, 1, 1, 1);
 #endif
 
@@ -430,29 +430,29 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
             auto& attribs = pti.GetAttribs();
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             auto& Ezp = attribs[PIdx::Ez];
 #endif
             Exp.assign(np,0.0);
             Eyp.assign(np,0.0);
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             Ezp.assign(np,0.0);
 #endif
 
             const FArrayBox& exfab = (*E[lev][0])[pti];
             const FArrayBox& eyfab = (*E[lev][1])[pti];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             const FArrayBox& ezfab = (*E[lev][2])[pti];
 #endif
 
             if (lev == 0) {
                 WRPX_INTERPOLATE_CIC(particles.data(), nstride, np,
                                      Exp.data(), Eyp.data(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 Ezp.data(),
 #endif
                                 exfab.dataPtr(), eyfab.dataPtr(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                 ezfab.dataPtr(),
 #endif
                                 box.loVect(), box.hiVect(), plo, dx, &ng);
@@ -460,7 +460,7 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
 
                 const FArrayBox& exfab_coarse = coarse_Ex[pti];
                 const FArrayBox& eyfab_coarse = coarse_Ey[pti];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 const FArrayBox& ezfab_coarse = coarse_Ez[pti];
 #endif
                 const Box& coarse_box = coarsened_fine_BA[pti];
@@ -468,16 +468,16 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
 
                 WRPX_INTERPOLATE_CIC_TWO_LEVELS(particles.data(), nstride, np,
                                                 Exp.data(), Eyp.data(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                                 Ezp.data(),
 #endif
                                                 exfab.dataPtr(), eyfab.dataPtr(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                                 ezfab.dataPtr(),
 #endif
                                                 box.loVect(), box.hiVect(), dx,
                                                 exfab_coarse.dataPtr(), eyfab_coarse.dataPtr(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                                 ezfab_coarse.dataPtr(),
 #endif
                                                 (*masks[1])[pti].dataPtr(),
@@ -603,14 +603,14 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
             auto& uxp = attribs[PIdx::ux];
             auto& uyp = attribs[PIdx::uy];
 
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             auto& uzp = attribs[PIdx::uz];
 #endif
 
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
 
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             auto& Ezp = attribs[PIdx::Ez];
 #endif
             //
@@ -618,11 +618,11 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
             //
             WRPX_PUSH_LEAPFROG(particles.data(), nstride, np,
                                uxp.data(), uyp.data(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                uzp.data(),
 #endif
                                Exp.data(), Eyp.data(),
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                Ezp.data(),
 #endif
                                &this->charge, &this->mass, &dt,
@@ -700,7 +700,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
             if (warpx_use_fdtd_nci_corr())
             {
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
                 const Box& tbox = amrex::grow(pti.tilebox(),{static_cast<int>(WarpX::nox),
                             static_cast<int>(WarpX::noz)});
 #else
@@ -734,7 +734,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                         &nstencilz_fdtd_nci_corr);
                 byfab = &filtered_By;
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                 filtered_Ey.resize(amrex::convert(tbox,WarpX::Ey_nodal_flag));
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
                                         BL_TO_FORTRAN_ANYD(filtered_Ey),
@@ -810,7 +810,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                 const long nx = rholen[0]-1-2*ngRhoDeposit;
                 const long ny = rholen[1]-1-2*ngRhoDeposit;
                 const long nz = rholen[2]-1-2*ngRhoDeposit;

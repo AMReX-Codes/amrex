@@ -1,7 +1,7 @@
 
 #include <AMReX_BLFort.H>
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_3d
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_3d
@@ -9,8 +9,6 @@
 #define WRPX_SYNC_RHO                    warpx_sync_rho_3d
 #define WRPX_CLEAN_EVEC                  warpx_clean_evec_3d
 
-#define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
-#define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_3d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_3d
 #define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_3d
@@ -33,7 +31,7 @@
 #define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
 
 
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_2d
@@ -41,8 +39,6 @@
 #define WRPX_SYNC_RHO                    warpx_sync_rho_2d
 #define WRPX_CLEAN_EVEC                  warpx_clean_evec_2d
 
-#define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
-#define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_2d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_2d
 #define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_2d
@@ -169,34 +165,37 @@ extern "C"
 
     // Maxwell solver
 
-        void WRPX_PXR_PUSH_EVEC(
-                                const int* xlo, const int* xhi,
-                                const int* ylo, const int* yhi,
-                                const int* zlo, const int* zhi,
-                                BL_FORT_FAB_ARG_3D(ex),
-                                BL_FORT_FAB_ARG_3D(ey),
-                                BL_FORT_FAB_ARG_3D(ez),
-				const BL_FORT_FAB_ARG_3D(bx),
-				const BL_FORT_FAB_ARG_3D(by),
-				const BL_FORT_FAB_ARG_3D(bz),
-				const BL_FORT_FAB_ARG_3D(jx),
-				const BL_FORT_FAB_ARG_3D(jy),
-				const BL_FORT_FAB_ARG_3D(jz),
-				const amrex::Real* mudt,
-				const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz,
-				const int* norder);
+        void warpx_push_evec(
+                const int* xlo, const int* xhi,
+                const int* ylo, const int* yhi,
+                const int* zlo, const int* zhi,
+                BL_FORT_FAB_ARG_3D(ex),
+                BL_FORT_FAB_ARG_3D(ey),
+                BL_FORT_FAB_ARG_3D(ez),
+                const BL_FORT_FAB_ARG_3D(bx),
+                const BL_FORT_FAB_ARG_3D(by),
+                const BL_FORT_FAB_ARG_3D(bz),
+                const BL_FORT_FAB_ARG_3D(jx),
+                const BL_FORT_FAB_ARG_3D(jy),
+                const BL_FORT_FAB_ARG_3D(jz),
+                const amrex::Real* mudt,
+                const amrex::Real* dtsdx, 
+                const amrex::Real* dtsdy, 
+                const amrex::Real* dtsdz);
 
-        void WRPX_PXR_PUSH_BVEC(const int* xlo, const int* xhi,
-				const int* ylo, const int* yhi,
-				const int* zlo, const int* zhi,
-				const BL_FORT_FAB_ARG_3D(ex),
-				const BL_FORT_FAB_ARG_3D(ey),
-				const BL_FORT_FAB_ARG_3D(ez),
-				BL_FORT_FAB_ARG_3D(bx),
-				BL_FORT_FAB_ARG_3D(by),
-				BL_FORT_FAB_ARG_3D(bz),
-				const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz,
-				const int* norder);
+        void warpx_push_bvec(
+                const int* xlo, const int* xhi,
+                const int* ylo, const int* yhi,
+                const int* zlo, const int* zhi,
+                const BL_FORT_FAB_ARG_3D(ex),
+                const BL_FORT_FAB_ARG_3D(ey),
+                const BL_FORT_FAB_ARG_3D(ez),
+                BL_FORT_FAB_ARG_3D(bx),
+                BL_FORT_FAB_ARG_3D(by),
+                BL_FORT_FAB_ARG_3D(bz),
+                const amrex::Real* dtsdx, 
+                const amrex::Real* dtsdy, 
+                const amrex::Real* dtsdz);
 
 #ifdef USE_OPENBC_POISSON
     void warpx_openbc_potential (amrex::Real* rho, amrex::Real* phi, const amrex::Real* dx);
@@ -228,7 +227,7 @@ extern "C"
     void WRPX_COMPUTE_E_NODAL(const int* lo, const int* hi,
                               const amrex::Real* phi,
                               amrex::Real* Ex, amrex::Real* Ey,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                           amrex::Real* Ez,
 #endif
                           const amrex::Real* dx);
@@ -242,16 +241,16 @@ extern "C"
 
     void WRPX_INTERPOLATE_CIC_TWO_LEVELS(const amrex::Real* particles, int ns, int np,
                                          amrex::Real* Ex_p, amrex::Real* Ey_p,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                                          amrex::Real* Ez_p,
 #endif
                                          const amrex::Real* Ex, const amrex::Real* Ey,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                                          const amrex::Real* Ez,
 #endif
                                          const int* lo, const int* hi, const amrex::Real* dx,
                                          const amrex::Real* cEx, const amrex::Real* cEy,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                                          const amrex::Real* cEz,
 #endif
                                          const int* mask,
@@ -260,11 +259,11 @@ extern "C"
 
     void WRPX_INTERPOLATE_CIC(const amrex::Real* particles, int ns, int np,
                               amrex::Real* Ex_p, amrex::Real* Ey_p,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                               amrex::Real* Ez_p,
 #endif
                               const amrex::Real* Ex, const amrex::Real* Ey,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                               const amrex::Real* Ez,
 #endif
                               const int* lo, const int* hi,
@@ -273,11 +272,11 @@ extern "C"
 
     void WRPX_PUSH_LEAPFROG(amrex::Real* particles, int ns, int np,
                             amrex::Real* vx_p, amrex::Real* vy_p,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                             amrex::Real* vz_p,
 #endif
                             const amrex::Real* Ex_p, const amrex::Real* Ey_p,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                             const amrex::Real* Ez_p,
 #endif
                             const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
@@ -285,7 +284,7 @@ extern "C"
 
     void WRPX_PUSH_LEAPFROG_POSITIONS(amrex::Real* particles, int ns, int np,
                                       amrex::Real* vx_p, amrex::Real* vy_p,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                                       amrex::Real* vz_p,
 #endif
                                       const amrex::Real* dt, const amrex::Real* prob_lo,
@@ -322,7 +321,7 @@ extern "C"
                             BL_FORT_FAB_ARG_3D(bz),
                             const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi,
                             const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                             const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi,
                             const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
 #endif
@@ -340,7 +339,7 @@ extern "C"
                             const BL_FORT_FAB_ARG_3D(bz),
                             const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi,
                             const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                             const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi,
                             const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
 #endif
@@ -356,7 +355,7 @@ extern "C"
                               const BL_FORT_FAB_ARG_3D(f),
                               const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi,
                               const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                               const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi,
                               const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
 #endif
@@ -371,7 +370,7 @@ extern "C"
                          const BL_FORT_FAB_ARG_3D(ez),
                          const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi,
                          const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                          const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi,
                          const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
 #endif
