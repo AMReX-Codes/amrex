@@ -3,6 +3,7 @@
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb3d_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic
 #define WRPX_PXR_PUSH_BVEC                pxrpush_em3d_bvec
+#define WRPX_PXR_PUSH_BVEC_CKC            pxrpush_em3d_bvec_ckc
 #define WRPX_PXR_PUSH_EVEC                pxrpush_em3d_evec
 
 #elif (AMREX_SPACEDIM == 2)
@@ -10,6 +11,7 @@
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2dxz_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic_2d
 #define WRPX_PXR_PUSH_BVEC                pxrpush_em2d_bvec
+#define WRPX_PXR_PUSH_BVEC_CKC            pxrpush_em2d_bvec_ckc
 #define WRPX_PXR_PUSH_EVEC                pxrpush_em2d_evec
 
 #endif
@@ -521,13 +523,15 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     bx, bxlo, bxhi, &
     by, bylo, byhi, &
     bz, bzlo, bzhi, &
-    dtsdx, dtsdy, dtsdz) bind(C, name="warpx_push_bvec")
+    dtsdx, dtsdy, dtsdz, &
+    maxwell_fdtd_solver_id) bind(C, name="warpx_push_bvec")
 
     integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), &
       ylo(BL_SPACEDIM), yhi(BL_SPACEDIM), zlo(BL_SPACEDIM), zhi(BL_SPACEDIM), &
       exlo(BL_SPACEDIM), exhi(BL_SPACEDIM), eylo(BL_SPACEDIM), eyhi(BL_SPACEDIM), &
       ezlo(BL_SPACEDIM), ezhi(BL_SPACEDIM), bxlo(BL_SPACEDIM), bxhi(BL_SPACEDIM), &
-      bylo(BL_SPACEDIM), byhi(BL_SPACEDIM), bzlo(BL_SPACEDIM), bzhi(BL_SPACEDIM)
+      bylo(BL_SPACEDIM), byhi(BL_SPACEDIM), bzlo(BL_SPACEDIM), bzhi(BL_SPACEDIM), &
+      maxwell_fdtd_solver_id
 
     real(amrex_real), intent(IN OUT):: ex(*), ey(*), ez(*)
 
@@ -535,16 +539,33 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
     real(amrex_real), intent(IN) :: dtsdx, dtsdy, dtsdz
 
-    CALL WRPX_PXR_PUSH_BVEC( &
-      xlo, xhi, ylo, yhi, zlo, zhi, &
-      ex,exlo,exhi,&
-      ey,eylo, eyhi, &
-      ez,ezlo, ezhi, &
-      bx, bxlo, bxhi, &
-      by, bylo, byhi, &
-      bz, bzlo, bzhi, &
-      dtsdx,dtsdy,dtsdz)
+    write(*,*) maxwell_fdtd_solver_id
 
+    IF (maxwell_fdtd_solver_id .eq. 0) THEN
+      write(*,*) "pushing Yee"
+      ! Yee FDTD solver
+      CALL WRPX_PXR_PUSH_BVEC( &
+        xlo, xhi, ylo, yhi, zlo, zhi, &
+      	ex, exlo, exhi, &
+      	ey, eylo, eyhi, &
+      	ez, ezlo, ezhi, &
+      	bx, bxlo, bxhi, &
+      	by, bylo, byhi, &
+      	bz, bzlo, bzhi, &
+      	dtsdx,dtsdy,dtsdz)
+    ELSE IF (maxwell_fdtd_solver_id .eq. 1) THEN
+      write(*,*) "pushing CKC"
+      ! Cole-Karkkainen FDTD solver
+      CALL WRPX_PXR_PUSH_BVEC_CKC( &
+        xlo, xhi, ylo, yhi, zlo, zhi, &
+      	ex, exlo, exhi, &
+      	ey, eylo, eyhi, &
+      	ez, ezlo, ezhi, &
+      	bx, bxlo, bxhi, &
+      	by, bylo, byhi, &
+      	bz, bzlo, bzhi, &
+      	dtsdx,dtsdy,dtsdz)
+    ENDIF			
   end subroutine warpx_push_bvec
 
 end module warpx_to_pxr_module

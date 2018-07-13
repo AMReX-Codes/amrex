@@ -195,7 +195,8 @@ extern "C"
                 BL_FORT_FAB_ARG_3D(bz),
                 const amrex::Real* dtsdx, 
                 const amrex::Real* dtsdy, 
-                const amrex::Real* dtsdz);
+                const amrex::Real* dtsdz,
+		const int* maxwell_fdtd_solver_id);
 
 #ifdef USE_OPENBC_POISSON
     void warpx_openbc_potential (amrex::Real* rho, amrex::Real* phi, const amrex::Real* dx);
@@ -326,7 +327,12 @@ extern "C"
                             const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
 #endif
                             const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi,
-                            const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
+                            const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi,
+                            const amrex::Real* dtsdx,
+			    const amrex::Real* dtsdy,
+			    const amrex::Real* dtsdz,
+			    const int* maxwell_fdtd_solver_id);
+
 
     void WRPX_PUSH_PML_EVEC(const int* xlo, const int* xhi,
                             const int* ylo, const int* yhi,
