@@ -11,7 +11,7 @@ constexpr int WarpX::FFTData::N;
 namespace {
 
 static iMultiFab
-BuildFFTOwnerMask (const MultiFab& mf)
+BuildFFTOwnerMask (const MultiFab& mf, const Geometry& geom)
 {
     const BoxArray& ba = mf.boxArray();
     const DistributionMapping& dm = mf.DistributionMap();
@@ -20,49 +20,46 @@ BuildFFTOwnerMask (const MultiFab& mf)
     const int nonowner = 0;
     mask.setVal(owner);
 
+    const Box& domain_box = amrex::convert(geom.Domain(), ba.ixType());
+
+    AMREX_ASSERT(ba.complementIn(domain_box).isEmpty());
+    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    for (MFIter mfi(mask); mfi.isValid(); ++mfi)
     {
-        std::vector< std::pair<int,Box> > isects;
-        for (MFIter mfi(mask); mfi.isValid(); ++mfi)
-        {
-            IArrayBox& fab = mask[mfi];
-            const Box& bx = fab.box();
-            const int igrid = mfi.index();
-            ba.intersections(bx, isects);
-            for (const auto& is : isects)
-            {
-                if (is.first != igrid)
-                {
-                    const Box& ibx = is.second;
-                    bool on_high_end = false;
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        Box bhi = bx;
-                        bhi.setSmall(idim, bx.bigEnd(idim));
-                        if (bhi.contains(ibx)) {
-                            on_high_end = true;
-                            break;
-                        }
-                    }
-                    if (on_high_end) {
-                        fab.setVal(nonowner, ibx, 0, 1);
-                    }
+        IArrayBox& fab = mask[mfi];
+        const Box& bx = fab.box();
+        Box bx2 = bx;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (bx2.type(idim) == IndexType::NODE) {
+                if (bx2.bigEnd(idim) < domain_box.bigEnd(idim)) {
+                    bx2.growHi(idim, -1);
                 }
             }
         }
+
+        const BoxList& bl = amrex::boxDiff(bx, bx2);
+        for (const auto& b : bl) {
+            fab.setVal(nonowner, b, 0, 1);
+        }
     }
 
+    static int count = 0;
+    count++;
+    amrex::VisMF::Write(amrex::ToMultiFab(mask), "mask-"+std::to_string(count));
+    
     return mask;
 }
 
 static void
-CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba_valid_fft)
+CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba_valid_fft, const Geometry& geom)
 {
     auto idx_type = mf_fft.ixType();
     MultiFab mftmp(amrex::convert(ba_valid_fft,idx_type), mf_fft.DistributionMap(), 1, 0);
 
-    const iMultiFab& mask = BuildFFTOwnerMask(mftmp);
+    const iMultiFab& mask = BuildFFTOwnerMask(mftmp, geom);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -390,12 +387,12 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     BL_PROFILE_VAR_STOP(blp_push_eb);
 
     BL_PROFILE_VAR_START(blp_copy);
-    CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Efield_fp[lev][1], *Efield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Efield_fp[lev][2], *Efield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Bfield_fp[lev][0], *Bfield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Bfield_fp[lev][1], *Bfield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Bfield_fp[lev][2], *Bfield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
+    CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Efield_fp[lev][1], *Efield_fp_fft[lev][1], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Efield_fp[lev][2], *Efield_fp_fft[lev][2], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][0], *Bfield_fp_fft[lev][0], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][1], *Bfield_fp_fft[lev][1], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][2], *Bfield_fp_fft[lev][2], ba_valid_fp_fft[lev], geom[lev]);
     BL_PROFILE_VAR_STOP(blp_copy);
 
     if (lev > 0)
