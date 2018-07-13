@@ -539,10 +539,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
     real(amrex_real), intent(IN) :: dtsdx, dtsdy, dtsdz
 
-    write(*,*) maxwell_fdtd_solver_id
-
     IF (maxwell_fdtd_solver_id .eq. 0) THEN
-      write(*,*) "pushing Yee"
       ! Yee FDTD solver
       CALL WRPX_PXR_PUSH_BVEC( &
         xlo, xhi, ylo, yhi, zlo, zhi, &
@@ -554,7 +551,6 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
       	bz, bzlo, bzhi, &
       	dtsdx,dtsdy,dtsdz)
     ELSE IF (maxwell_fdtd_solver_id .eq. 1) THEN
-      write(*,*) "pushing CKC"
       ! Cole-Karkkainen FDTD solver
       CALL WRPX_PXR_PUSH_BVEC_CKC( &
         xlo, xhi, ylo, yhi, zlo, zhi, &
