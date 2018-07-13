@@ -217,13 +217,13 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
     BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
     int ncomp = crse[0]->nComp();
-    if (!fine[0].hasEBFabFactory())
+    if (!(*fine[0]).hasEBFabFactory())
     {
         amrex::average_down_faces(fine, crse, ratio, ngcrse);
     }
     else 
     {
-        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine[0].Factory());
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>((*fine[0]).Factory());
         const auto& aspect = factory.getAreaFrac();
 
         if (isMFIterSafe(*fine[0], *crse[0]))
@@ -234,10 +234,10 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
                 for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
                 {
-		    auto fine_fab = fine[n][mfi]
+		    auto fine_fab = (*fine[n])[mfi];
                     const auto& flag_fab = amrex::getEBCellFlagFab(fine_fab);
-                    FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
                     const Box& tbx = mfi.growntilebox(ngcrse);
+                    FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
                
                     if(typ == FabType::regular || typ == FabType::covered) 
                     {    
@@ -255,8 +255,8 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
                                                    BL_TO_FORTRAN((*fine[n])[mfi]), 
                                                    BL_TO_FORTRAN((*crse[n])[mfi]),
                                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*aspect[0])[mfi]), 
-                                                                BL_TO_FORTRAN_ANYD((*aspect[0])[mfi]),
-                                                                BL_TO_FORTRAN_ANYD((*aspect[2])[mfi])),
+                                                                BL_TO_FORTRAN_ANYD((*aspect[1])[mfi]),
+                                                                BL_TO_FORTRAN_ANYD((*aspect[2])[mfi])));
                                                    
                     }
                 }
