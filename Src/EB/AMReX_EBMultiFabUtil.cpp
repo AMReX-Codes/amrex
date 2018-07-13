@@ -210,7 +210,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
 
 //#ifdef EBavgface
 
-void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< MultiFab*>& crse,
+void EB_average_down_faces (const Vector<const MultiFab*>& fine, Vector< MultiFab*>& crse,
                             const IntVect& ratio, int ngcrse)
 {
     BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
