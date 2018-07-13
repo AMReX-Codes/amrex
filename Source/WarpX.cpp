@@ -35,6 +35,7 @@ long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
+int WarpX::maxwell_fdtd_solver_id = 0;
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
@@ -396,6 +397,15 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
+	std::string s_solver;
+	pp.get("maxwell_fdtd_solver", s_solver);
+	if (s_solver == "yee") {
+	   maxwell_fdtd_solver_id = 0;
+	} else if (s_solver == "ckc") {
+	   maxwell_fdtd_solver_id = 1;
+	} else {
+	   amrex::Abort("Unknown FDTD Solver type " + s_solver);
+	}
     }
 
 #ifdef WARPX_USE_PSATD
