@@ -34,6 +34,7 @@ include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
 include $(PICSAR_HOME)/src/Make.package
 
 DEFINES += -DPICSAR_NO_ASSUMED_ALIGNMENT
+DEFINES += -DWARPX
 
 ifeq ($(USE_OPENBC_POISSON),TRUE)
   include $(OPENBC_HOME)/Make.package

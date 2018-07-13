@@ -9,8 +9,6 @@
 #define WRPX_SYNC_RHO                    warpx_sync_rho_3d
 #define WRPX_CLEAN_EVEC                  warpx_clean_evec_3d
 
-#define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
-#define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_3d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_3d
 #define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_3d
@@ -41,8 +39,6 @@
 #define WRPX_SYNC_RHO                    warpx_sync_rho_2d
 #define WRPX_CLEAN_EVEC                  warpx_clean_evec_2d
 
-#define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
-#define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_2d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_2d
 #define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_2d
@@ -169,34 +165,37 @@ extern "C"
 
     // Maxwell solver
 
-        void WRPX_PXR_PUSH_EVEC(
-                                const int* xlo, const int* xhi,
-                                const int* ylo, const int* yhi,
-                                const int* zlo, const int* zhi,
-                                BL_FORT_FAB_ARG_3D(ex),
-                                BL_FORT_FAB_ARG_3D(ey),
-                                BL_FORT_FAB_ARG_3D(ez),
-				const BL_FORT_FAB_ARG_3D(bx),
-				const BL_FORT_FAB_ARG_3D(by),
-				const BL_FORT_FAB_ARG_3D(bz),
-				const BL_FORT_FAB_ARG_3D(jx),
-				const BL_FORT_FAB_ARG_3D(jy),
-				const BL_FORT_FAB_ARG_3D(jz),
-				const amrex::Real* mudt,
-				const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz,
-				const int* norder);
+        void warpx_push_evec(
+                const int* xlo, const int* xhi,
+                const int* ylo, const int* yhi,
+                const int* zlo, const int* zhi,
+                BL_FORT_FAB_ARG_3D(ex),
+                BL_FORT_FAB_ARG_3D(ey),
+                BL_FORT_FAB_ARG_3D(ez),
+                const BL_FORT_FAB_ARG_3D(bx),
+                const BL_FORT_FAB_ARG_3D(by),
+                const BL_FORT_FAB_ARG_3D(bz),
+                const BL_FORT_FAB_ARG_3D(jx),
+                const BL_FORT_FAB_ARG_3D(jy),
+                const BL_FORT_FAB_ARG_3D(jz),
+                const amrex::Real* mudt,
+                const amrex::Real* dtsdx, 
+                const amrex::Real* dtsdy, 
+                const amrex::Real* dtsdz);
 
-        void WRPX_PXR_PUSH_BVEC(const int* xlo, const int* xhi,
-				const int* ylo, const int* yhi,
-				const int* zlo, const int* zhi,
-				const BL_FORT_FAB_ARG_3D(ex),
-				const BL_FORT_FAB_ARG_3D(ey),
-				const BL_FORT_FAB_ARG_3D(ez),
-				BL_FORT_FAB_ARG_3D(bx),
-				BL_FORT_FAB_ARG_3D(by),
-				BL_FORT_FAB_ARG_3D(bz),
-				const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz,
-				const int* norder);
+        void warpx_push_bvec(
+                const int* xlo, const int* xhi,
+                const int* ylo, const int* yhi,
+                const int* zlo, const int* zhi,
+                const BL_FORT_FAB_ARG_3D(ex),
+                const BL_FORT_FAB_ARG_3D(ey),
+                const BL_FORT_FAB_ARG_3D(ez),
+                BL_FORT_FAB_ARG_3D(bx),
+                BL_FORT_FAB_ARG_3D(by),
+                BL_FORT_FAB_ARG_3D(bz),
+                const amrex::Real* dtsdx, 
+                const amrex::Real* dtsdy, 
+                const amrex::Real* dtsdz);
 
 #ifdef USE_OPENBC_POISSON
     void warpx_openbc_potential (amrex::Real* rho, amrex::Real* phi, const amrex::Real* dx);

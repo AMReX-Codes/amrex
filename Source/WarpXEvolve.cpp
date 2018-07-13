@@ -402,7 +402,7 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
             // Call picsar routine for each tile
-            WRPX_PXR_PUSH_BVEC(
+            warpx_push_bvec(
                 tbx.loVect(), tbx.hiVect(),
                 tby.loVect(), tby.hiVect(),
                 tbz.loVect(), tbz.hiVect(),
@@ -412,8 +412,7 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
                 BL_TO_FORTRAN_3D((*Bx)[mfi]),
                 BL_TO_FORTRAN_3D((*By)[mfi]),
                 BL_TO_FORTRAN_3D((*Bz)[mfi]),
-                &dtsdx[0], &dtsdx[1], &dtsdx[2],
-                &norder);
+                &dtsdx[0], &dtsdx[1], &dtsdx[2]);
 
             if (cost) {
                 Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
@@ -531,7 +530,7 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
             // Call picsar routine for each tile
-            WRPX_PXR_PUSH_EVEC(
+            warpx_push_evec(
                 tex.loVect(), tex.hiVect(),
                 tey.loVect(), tey.hiVect(),
                 tez.loVect(), tez.hiVect(),
@@ -545,8 +544,7 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
                 BL_TO_FORTRAN_3D((*jy)[mfi]),
                 BL_TO_FORTRAN_3D((*jz)[mfi]),
                 &mu_c2_dt,
-                &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
-                &norder);
+                &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
 
             if (F) {
                 WRPX_CLEAN_EVEC(tex.loVect(), tex.hiVect(),
