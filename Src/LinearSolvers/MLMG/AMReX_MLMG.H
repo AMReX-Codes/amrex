@@ -16,7 +16,7 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class BottomSolver : int { smoother, bicgstab, cg, hypre };
+    enum class BottomSolver : int { smoother, bicgstab, cg, hypre, petsc };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -99,6 +99,10 @@ private:
     std::unique_ptr<MLMGBndry> hypre_bndry;
 #endif
 
+    // PETSc
+#ifdef AMREX_USE_PETSC
+#endif
+    
     // To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     // in the frame of the original equation, not the correction form
     Vector<std::unique_ptr<MultiFab> > sol_raii;
@@ -153,6 +157,8 @@ private:
     Real getNodalSum (int amrlve, int mglev, MultiFab& mf) const;
 
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
+
+    void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
 };
 
 }

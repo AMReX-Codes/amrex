@@ -1,0 +1,5 @@
+
+CEXE_headers += AMReX_PETSc.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/PETSc
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/PETSc
