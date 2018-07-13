@@ -6,6 +6,7 @@
 #include <AMReX_EBMultiFabUtil_F.H>
 #include <AMReX_MultiFabUtil_F.H>
 #include <AMReX_EBCellFlag.H>
+#include <AMReX_MultiCutFab.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -207,7 +208,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
     }
 }
 
-#ifdef EBavgface
+//#ifdef EBavgface
 
 void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< MultiFab*>& crse,
                             const IntVect& ratio, int ngcrse)
@@ -224,7 +225,7 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
     else 
     {
         const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>((*fine[0]).Factory());
-        const auto& aspect = factory.getAreaFrac();
+        const auto&  aspect = factory.getAreaFrac();
 
         if (isMFIterSafe(*fine[0], *crse[0]))
         {
@@ -234,8 +235,7 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
                 for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
                 {
-		    auto fine_fab = (*fine[n])[mfi];
-                    const auto& flag_fab = amrex::getEBCellFlagFab(fine_fab);
+                    const auto& flag_fab = amrex::getEBCellFlagFab((*fine[n])[mfi]);
                     const Box& tbx = mfi.growntilebox(ngcrse);
                     FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
                
@@ -246,18 +246,15 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
                             (tbx.loVect(),tbx.hiVect(),
                              BL_TO_FORTRAN((*fine[n])[mfi]),
                              BL_TO_FORTRAN((*crse[n])[mfi]),
-                             ratio.getVect(),n,ncomp);
+                             ratio.getVect(),n, ncomp);
                     }
                     else
                     {
-                       amrex_eb_average_down_faces(BL_TO_FORTRAN_BOX(tbx),
-                                                   tbx.loVect(), tbx.hiVect(), 
-                                                   BL_TO_FORTRAN((*fine[n])[mfi]), 
-                                                   BL_TO_FORTRAN((*crse[n])[mfi]),
-                                                   AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*aspect[0])[mfi]), 
-                                                                BL_TO_FORTRAN_ANYD((*aspect[1])[mfi]),
-                                                                BL_TO_FORTRAN_ANYD((*aspect[2])[mfi])));
-                                                   
+                       amrex_eb_avgdown_faces(tbx.loVect(), tbx.hiVect(), 
+                                              BL_TO_FORTRAN_ANYD((*fine[n])[mfi]), 
+                                              BL_TO_FORTRAN_ANYD((*crse[n])[mfi]),
+                                              BL_TO_FORTRAN_ANYD((*aspect[n])[mfi]),
+                                              ratio.getVect(), n, ncomp);
                     }
                 }
             }
@@ -281,6 +278,6 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
         }
     }
 }
-#endif       
+//#endif       
 
 }
