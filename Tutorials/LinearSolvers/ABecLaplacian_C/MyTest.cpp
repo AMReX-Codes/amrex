@@ -61,7 +61,11 @@ MyTest::solvePoisson ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setCGVerbose(cg_verbose);
-        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        if (use_hypre) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        } else if (use_petsc) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+        }
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -92,7 +96,11 @@ MyTest::solvePoisson ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setCGVerbose(cg_verbose);
-            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            } else if (use_petsc) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+            }
             
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
@@ -158,7 +166,11 @@ MyTest::solveABecLaplacian ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setCGVerbose(cg_verbose);
-        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        if (use_hypre) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        } else if (use_petsc) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+        }
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -207,7 +219,11 @@ MyTest::solveABecLaplacian ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setCGVerbose(cg_verbose);
-            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            } else if (use_petsc) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+            }
 
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
@@ -249,6 +265,11 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
+#ifdef AMREX_USE_PETSC
+    pp.query("use_petsc", use_petsc);
+#endif
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(use_hypre && use_petsc),
+                                     "use_hypre & use_petsc cannot be both true");
 }
 
 void

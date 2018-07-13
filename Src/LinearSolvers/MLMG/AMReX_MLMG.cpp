@@ -7,6 +7,11 @@
 #include <AMReX_MLMG_F.H>
 #include <AMReX_MLABecLaplacian.H>
 
+#ifdef AMREX_USE_PETSC
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
+#endif
+
 // sol: full solution
 // rhs: rhs of the original equation L(sol) = rhs
 // res: rhs of the residual equation L(cor) = res
@@ -766,6 +771,10 @@ MLMG::actualBottomSolve ()
         {
             bottomSolveWithHypre(x, *bottom_b);
         }
+        else if (bottom_solver == BottomSolver::petsc)
+        {
+            bottomSolveWithPETSc(x, *bottom_b);
+        }
         else
         {
             MLCGSolver cg_solver(linop);
@@ -1319,4 +1328,24 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 #endif
 }
 
+void
+MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
+{
+#if !defined(AMREX_USE_PETSC)
+    amrex::Abort("bottomSolveWithPETSc is called without building with PETSc");
+#else
+
+    PETSC_COMM_WORLD = linop.BottomCommunicator();
+    
+    auto ierr = PetscInitialize(nullptr, nullptr, nullptr, nullptr);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (!ierr, "MLMG::bottomSolveWithPETSc: Failed to call PetscInitialize");
+
+    ierr = PetscFinalize();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        (!ierr, "MLMG::bottomSolveWithPETSc: Failed to call PetscFinalize");
+    
+#endif
+}
+    
 }
