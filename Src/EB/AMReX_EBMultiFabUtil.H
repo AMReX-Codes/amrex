@@ -17,8 +17,8 @@ namespace amrex
                           int ratio);
     void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                           const IntVect& ratio);
-    void EB_average_down_faces (const Vector<const MultiFab*>& fine, Vector<const MultiFab*>& crse,
-                                const IntVect& ratio, int ngcrse=0);
+    void EB_average_down_faces (const Vector<const MultiFab*>& fine, Vector<MultiFab*>& crse,
+                                const IntVect& ratio, int ngcrse);
 
 }
 
