@@ -337,6 +337,12 @@ Numerics and algorithms
      - ``0``: Boris pusher
      - ``1``: Vay pusher
 
+* ``algo.maxwell_fdtd_solver`` (`string`)
+    The algorithm for the FDTD Maxwell field solver:
+
+     - ``yee``: Yee FDTD solver
+     - ``ckc``: Cole-Karkkainen solver with Cowan coefficients (see Cowan - PRST-AB 16, 041303 (2013))
+
 * ``interpolation.nox``, ``interpolation.noy``, ``interpolation.noz`` (`integer`)
     The order of the shape factors for the macroparticles, for the 3 dimensions of space.
     Lower-order shape factors result in faster simulations, but more noisy results,
