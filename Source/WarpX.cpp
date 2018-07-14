@@ -401,16 +401,16 @@ WarpX::ReadParameters ()
 	pp.query("maxwell_fdtd_solver", s_solver);
 	// if maxwell_fdtd_solver is specified, set the value
 	// of maxwell_fdtd_solver_id accordingly.
-    // Otherwise keep the default value maxwell_fdtd_solver_id=0
-	if (s_solver != "") {
-      if (s_solver == "yee") {
-	    maxwell_fdtd_solver_id = 0;
-	  } else if (s_solver == "ckc") {
-	    maxwell_fdtd_solver_id = 1;
-	  } else {
-	    amrex::Abort("Unknown FDTD Solver type " + s_solver);
-	  }
-    }
+      // Otherwise keep the default value maxwell_fdtd_solver_id=0
+      if (s_solver != "") {
+        if (s_solver == "yee") {
+            maxwell_fdtd_solver_id = 0;
+        } else if (s_solver == "ckc") {
+            maxwell_fdtd_solver_id = 1;
+        } else {
+            amrex::Abort("Unknown FDTD Solver type " + s_solver);
+        }
+      }
     }
 
 #ifdef WARPX_USE_PSATD
