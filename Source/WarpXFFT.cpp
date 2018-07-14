@@ -250,12 +250,12 @@ WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm
     domain_fft = amrex::grow(bldata[color_fft[lev]], nguards_fft);
     // Ask FFTW to chop in z-direction into pieces
     int nz_fft, z0_fft;
-    warpx_fft_domain_decomp(&nz_fft, &z0_fft, BL_TO_FORTRAN_BOX(domain_fft));
+    warpx_fft_domain_decomp(&nz_fft, &z0_fft, WARPX_TO_FORTRAN_BOX(domain_fft));
 
     Vector<Box> bx_fft;
     if (nz_fft > 0) {
         Box b = domain_fft;
-        b.setRange(2, z0_fft+domain_fft.smallEnd(2), nz_fft);
+        b.setRange(AMREX_SPACEDIM-1, z0_fft+domain_fft.smallEnd(AMREX_SPACEDIM-1), nz_fft);
         bx_fft.push_back(b);
     }
     amrex::AllGatherBoxes(bx_fft);
@@ -367,17 +367,17 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     BL_PROFILE_VAR_START(blp_push_eb);
     for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
     {
-        warpx_fft_push_eb(BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]));
+        warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]));
     }
     BL_PROFILE_VAR_STOP(blp_push_eb);
 

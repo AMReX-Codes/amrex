@@ -104,7 +104,6 @@ contains
     type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
-    integer :: iret
     integer(idp) :: nopenmp
     integer :: nx_padded
     integer, dimension(3) :: shp
