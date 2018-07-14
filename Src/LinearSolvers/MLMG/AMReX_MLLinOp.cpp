@@ -43,7 +43,8 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
     info = a_info;
 #if AMREX_USE_EB
-    info.max_coarsening_level = std::min(info.max_coarsening_level, EB2::maxCoarseningLevel());
+    info.max_coarsening_level = std::min(info.max_coarsening_level,
+                                         EB2::maxCoarseningLevel(a_geom[0]));
 #endif
     defineGrids(a_geom, a_grids, a_dmap, a_factory);
     defineAuxData();
@@ -85,7 +86,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
         int rr = mg_coarsen_ratio;
         const Box& dom = a_geom[amrlev].Domain();
-        for (int i = 0; i < info.max_coarsening_level; ++i)
+        for (int i = 0; i < 2; ++i)
         {
             if (!dom.coarsenable(rr)) amrex::Abort("MLLinOp: Uncoarsenable domain");
 
