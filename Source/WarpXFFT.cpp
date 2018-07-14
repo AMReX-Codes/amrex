@@ -46,10 +46,6 @@ BuildFFTOwnerMask (const MultiFab& mf, const Geometry& geom)
         }
     }
 
-    static int count = 0;
-    count++;
-    amrex::VisMF::Write(amrex::ToMultiFab(mask), "mask-"+std::to_string(count));
-    
     return mask;
 }
 
