@@ -140,9 +140,10 @@ contains
     real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)
 
     integer :: i,j,ioff,ii,jj
-    real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho
+    real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
     real(amrex_real) :: sxm, sxp, sym, syp
+    real(amrex_real) :: omega = 1._amrex_real
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -230,7 +231,8 @@ contains
                   end if
                end if
 
-               phi(i,j) = (rhs(i,j) + rho - phi(i,j)*delta) / (gamma - delta)
+               res = rhs(i,j) - (gamma*phi(i,j) - rho)
+               phi(i,j) = phi(i,j) + omega*res/(gamma-delta)
             end if
        end do
     end do

@@ -40,8 +40,7 @@ contains
    real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2) 
    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),ctlo(3):cthi(3),3)
    integer  :: i, j, k, ii, jj, kk 
-   real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz, cx, cy, cz 
-   real(amrex_real) :: face_cen(6,2), dxa, dya, dza   
+   real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
 
    dhx = beta*dxinv(1)*dxinv(1) 
    dhy = beta*dxinv(2)*dxinv(2)  
@@ -68,12 +67,9 @@ contains
                     jj = j + int(sign(one, fcx(i,j,k,1)))
                     kk = k + int(sign(one, fcx(i,j,k,2)))
                     fxm = (one-fracy)*(one-fracz)*fxm + &
-                         & fracy*(one-fracz)*bX(i,jj,k)*(x(i,jj,k)-x(i-1,jj,k)) + & 
-                         & fracz*(one-fracy)*bX(i,j,kk)*(x(i,j,kk)-x(i-1,j,kk)) + &
-                         & fracy*fracz*bX(i,jj,kk)*(x(i,jj,kk)-x(i-1,jj,kk))
-
-!                    fxm = (one-fracy-fracz)*fxm + fracy*bX(i,jj,k)*(x(i,jj,k)-x(i-1,jj,k)) + & 
-!                                                & fracz*bX(i,j,kk)*(x(i,j,kk)-x(i-1,j,kk))
+                         & fracy*(one-fracz)*bX(i,jj,k )*(x(i,jj,k )-x(i-1,jj,k )) + & 
+                         & fracz*(one-fracy)*bX(i,j ,kk)*(x(i,j ,kk)-x(i-1,j ,kk)) + &
+                         & fracy*     fracz *bX(i,jj,kk)*(x(i,jj,kk)-x(i-1,jj,kk))
                 endif 
 
                 fxp = bX(i+1,j,k)*(x(i+1,j,k) - x(i,j,k))
@@ -83,11 +79,9 @@ contains
                     jj = j + int(sign(one,fcx(i+1,j,k,1)))
                     kk = k + int(sign(one,fcx(i+1,j,k,2)))
                     fxp = (one-fracy)*(one-fracz)*fxp + &
-                         & fracy*(one-fracz)*bX(i+1,jj,k)*(x(i+1,jj,k)-x(i,jj,k)) + & 
-                         & fracz*(one-fracy)*bX(i+1,j,kk)*(x(i+1,j,kk)-x(i,j,kk)) + & 
-                         & fracy*fracz*bX(i+1,jj,kk)*(x(i+1,jj,kk)-x(i,jj,kk))
-!                    fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(x(i+1,jj,k)-x(i,jj,k)) + & 
-!                                                & fracz*bX(i+1,j,kk)*(x(i+1,j,kk)-x(i,j,kk))
+                         & fracy*(one-fracz)*bX(i+1,jj,k )*(x(i+1,jj,k )-x(i,jj,k )) + & 
+                         & fracz*(one-fracy)*bX(i+1,j ,kk)*(x(i+1,j ,kk)-x(i,j ,kk)) + & 
+                         & fracy*     fracz *bX(i+1,jj,kk)*(x(i+1,jj,kk)-x(i,jj,kk))
                 endif 
 
                 fym = bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
@@ -97,11 +91,9 @@ contains
                     ii = i + int(sign(one,fcy(i,j,k,1)))
                     kk = k + int(sign(one,fcy(i,j,k,2)))
                     fym = (one-fracx)*(one-fracz)*fym + &
-                         & fracx*(one-fracz)*bY(ii,j,k)*(x(ii,j,k)-x(ii,j-1,k)) + & 
-                         & fracz*(one-fracx)*bY(i,j,kk)*(x(i,j,kk)-x(i,j-1,kk)) + &
-                         & fracx*fracz*bY(ii,j,kk)*(x(ii,j,kk)-x(ii,j-1,kk))
-!                    fym = (one-fracx-fracz)*fym + fracx*bY(ii,j,k)*(x(ii,j,k)-x(ii,j-1,k)) + & 
-!                                                & fracz*bY(i,j,kk)*(x(i,j,kk)-x(i,j-1,kk))
+                         & fracx*(one-fracz)*bY(ii,j,k )*(x(ii,j,k )-x(ii,j-1,k )) + & 
+                         & fracz*(one-fracx)*bY(i ,j,kk)*(x(i ,j,kk)-x(i ,j-1,kk)) + &
+                         & fracx*     fracz *bY(ii,j,kk)*(x(ii,j,kk)-x(ii,j-1,kk))
                 endif 
 
                 fyp = bY(i,j+1,k)*(x(i,j+1,k) - x(i,j,k))
@@ -111,11 +103,9 @@ contains
                     ii = i + int(sign(one,fcy(i,j+1,k,1)))
                     kk = k + int(sign(one,fcy(i,j+1,k,2)))
                     fyp = (one-fracx)*(one-fracz)*fyp + &
-                         & fracx*(one-fracz)*bY(ii,j+1,k)*(x(ii,j+1,k)-x(ii,j,k)) + &
-                         & fracz*(one-fracx)*bY(i,j+1,kk)*(x(i,j+1,kk)-x(i,j,kk)) + & 
-                         & fracx*fracz*bY(ii,j+1,kk)*(x(ii,j+1,kk)-x(ii,j,kk))
-!                    fyp = (one-fracx-fracz)*fyp + fracx*bY(ii,j+1,k)*(x(ii,j+1,k)-x(ii,j,k)) + &
-!                                                & fracz*bY(i,j+1,kk)*(x(i,j+1,kk)-x(i,j,kk))
+                         & fracx*(one-fracz)*bY(ii,j+1,k )*(x(ii,j+1,k )-x(ii,j,k )) + &
+                         & fracz*(one-fracx)*bY(i ,j+1,kk)*(x(i ,j+1,kk)-x(i ,j,kk)) + & 
+                         & fracx*     fracz *bY(ii,j+1,kk)*(x(ii,j+1,kk)-x(ii,j,kk))
                 endif 
 
                 fzm = bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
@@ -125,11 +115,9 @@ contains
                     ii = i + int(sign(one,fcz(i,j,k,1)))
                     jj = j + int(sign(one,fcz(i,j,k,2)))
                     fzm = (one-fracx)*(one-fracy)*fzm + &
-                         & fracx*(one-fracy)*bZ(ii,j,k)*(x(ii,j,k)-x(ii,j,k-1)) + & 
-                         & fracy*(one-fracx)*bZ(i,jj,k)*(x(i,jj,k)-x(i,jj,k-1)) + &
-                         & fracx*fracy*bZ(ii,jj,k)*(x(ii,jj,k)-x(ii,jj,k-1))
-!                    fzm = (one-fracx-fracy)*fzm + fracx*bZ(ii,j,k)*(x(ii,j,k)-x(ii,j,k-1)) + & 
-!                                                & fracy*bZ(i,jj,k)*(x(i,jj,k)-x(i,jj,k-1))
+                         & fracx*(one-fracy)*bZ(ii,j ,k)*(x(ii,j ,k)-x(ii,j ,k-1)) + & 
+                         & fracy*(one-fracx)*bZ(i ,jj,k)*(x(i ,jj,k)-x(i ,jj,k-1)) + &
+                         & fracx*     fracy *bZ(ii,jj,k)*(x(ii,jj,k)-x(ii,jj,k-1))
                 endif 
 
                 fzp = bZ(i,j,k+1)*(x(i,j,k+1) - x(i,j,k))
@@ -139,11 +127,9 @@ contains
                     ii = i + int(sign(one,fcz(i,j,k+1,1)))
                     jj = j + int(sign(one,fcz(i,j,k+1,2)))
                     fzp = (one-fracx)*(one-fracy)*fzp + & 
-                         & fracx*(one-fracy)*bZ(ii,j,k+1)*(x(ii,j,k+1)-x(ii,j,k)) + &
-                         & fracy*(one-fracx)*bZ(i,jj,k+1)*(x(i,jj,k+1)-x(i,jj,k)) + &
-                         & fracx*fracy*bZ(ii,jj,k+1)*(x(ii,jj,k+1)-x(ii,jj,k))
-!                    fzp = (one-fracx-fracy)*fzp + fracx*bZ(ii,j,k+1)*(x(ii,j,k+1)-x(ii,j,k)) + &
-!                                                & fracy*bZ(i,jj,k+1)*(x(i,jj,k+1)-x(i,jj,k))
+                         & fracx*(one-fracy)*bZ(ii,j ,k+1)*(x(ii,j ,k+1)-x(ii,j ,k)) + &
+                         & fracy*(one-fracx)*bZ(i ,jj,k+1)*(x(i ,jj,k+1)-x(i ,jj,k)) + &
+                         & fracx*     fracy *bZ(ii,jj,k+1)*(x(ii,jj,k+1)-x(ii,jj,k))
                 endif 
 
                 y(i,j,k) = (one/vfrc(i,j,k))*&
@@ -151,33 +137,24 @@ contains
                         dhy*(apy(i,j,k)*fym - apy(i,j+1,k)*fyp) + &
                         dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp))
 
-               if(alpha .ne. zero) then
-                dxa = zero 
-                dya = zero 
-                dza = zero 
-                cx  = cntr(i,j,k,1) 
-                cy  = cntr(i,j,k,2) 
-                cz  = cntr(i,j,k,3) 
+                if(alpha .ne. zero) then
+                   fracx = abs(cntr(i,j,k,1))
+                   fracy = abs(cntr(i,j,k,2))
+                   fracz = abs(cntr(i,j,k,3))
+                   ii = i + int(sign(one,cntr(i,j,k,1)))
+                   jj = j + int(sign(one,cntr(i,j,k,2)))
+                   kk = k + int(sign(one,cntr(i,j,k,3)))
 
-                !derivatives of "ax"
-                if(cx.ge.zero) then 
-                   dxa = dxinv(1)*(a(i+1,j,k)*x(i+1,j,k) - a(i,j,k)*x(i,j,k))
-                else
-                   dxa = dxinv(1)*(a(i,j,k)*x(i,j,k) - a(i-1,j,k)*x(i-1,j,k)) 
+                   y(i,j,k) = y(i,j,k) + alpha* &
+                        ((one-fracx)*(one-fracy)*(one-fracz)*a(i ,j ,k )*x(i ,j ,k ) &
+                        +     fracx *(one-fracy)*(one-fracz)*a(ii,j ,k )*x(ii,j ,k ) &
+                        +(one-fracx)*     fracy *(one-fracz)*a(i ,jj,k )*x(i ,jj,k ) &
+                        +     fracx *     fracy *(one-fracz)*a(ii,jj,k )*x(ii,jj,k ) &
+                        +(one-fracx)*(one-fracy)*     fracz *a(i ,j ,kk)*x(i ,j ,kk) &
+                        +     fracx *(one-fracy)*     fracz *a(ii,j ,kk)*x(ii,j ,kk) &
+                        +(one-fracx)*     fracy *     fracz *a(i ,jj,kk)*x(i ,jj,kk) &
+                        +     fracx *     fracy *     fracz *a(ii,jj,kk)*x(ii,jj,kk))
                 endif
-                if(cy.ge.zero) then 
-                   dya = dxinv(2)*(a(i,j+1,k)*x(i,j+1,k) - a(i,j,k)*x(i,j,k)) 
-                else
-                   dya = dxinv(2)*(a(i,j,k)*x(i,j,k) - a(i,j-1,k)*x(i,j-1,k)) 
-                endif
-                if(cz.ge.zero) then 
-                   dza = dxinv(3)*(a(i,j,k+1)*x(i,j,k+1) - a(i,j,k)*x(i,j,k)) 
-                else 
-                   dza = dxinv(3)*(a(i,j,k)*x(i,j,k) - a(i,j,k-1)*x(i,j,k-1)) 
-                endif 
-       
-                y(i,j,k) = y(i,j,k) + alpha*(a(i,j,k) + cx*dxa + cy*dya + cz*dza)*x(i,j,k)
-               endif
               endif 
           enddo
        enddo 
@@ -231,16 +208,17 @@ contains
     real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),ctlo(3):cthi(3),3)
 
     integer :: i, j, k, ioff, ii, jj, kk
-    real(amrex_real) :: cf0, cf1, cf2, cf3, cf4, cf5,  delta, gamma, rho 
+    real(amrex_real) :: cf0, cf1, cf2, cf3, cf4, cf5,  delta, gamma, rho, res
     real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
     real(amrex_real) :: sxm, sxp, sym, syp, szm, szp
-    real(amrex_real) :: dxa, dya, dza, cx, cy, cz 
+    real(amrex_real), parameter :: omega = 1.15_amrex_real ! over-relaxation
+    
     dhx = beta*dxinv(1)*dxinv(1) 
     dhy = beta*dxinv(2)*dxinv(2) 
     dhz = beta*dxinv(3)*dxinv(3) 
 
     do       k = lo(3), hi(3) 
-        do    j = lo(2), hi(2)
+       do    j = lo(2), hi(2)
           ioff = mod(lo(1)+k+j+redblack,2)
           do i = lo(1)+ioff, hi(1), 2
              if (is_covered_cell(flag(i,j,k))) then 
@@ -271,44 +249,35 @@ contains
 
                    rho   = dhx*(bX(i+1,j,k)*phi(i+1,j,k) + bX(i,j,k)*phi(i-1,j,k)) & 
                          + dhy*(bY(i,j+1,k)*phi(i,j+1,k) + bY(i,j,k)*phi(i,j-1,k)) & 
-                         + dhz*(bZ(i,j,k+1)*phi(i,j,k+1) + bZ(i,j,k)*phi(i,j,k-1)) 
+                         + dhz*(bZ(i,j,k+1)*phi(i,j,k+1) + bZ(i,j,k)*phi(i,j,k-1))
+
                 else 
-                   dxa = zero
-                   dya = zero 
-                   dza = zero 
- 
                    fxm = -bX(i,j,k)*phi(i-1,j,k) 
                    sxm =  bX(i,j,k) 
                    if(apx(i,j,k).ne.zero .and. apx(i,j,k).ne.one) then 
-                       fracy = abs(fcx(i,j,k,1))
-                       fracz = abs(fcx(i,j,k,2)) 
-                       jj = j + int(sign(one, fcx(i,j,k,1)))
-                       kk = k + int(sign(one, fcx(i,j,k,2))) 
-!                       fxm = (one-fracy-fracz)*fxm + fracy*bX(i,jj,k)*(phi(i,jj,k)-phi(i-1,jj,k)) &
-!                           +  fracz*bX(i,j,kk)*(phi(i,j,kk)-phi(i-1,j,kk))
-                       fxm = (one-fracy)*(one-fracz)*fxm + &
-                            & fracy*(one-fracz)*bX(i,jj,k)*(phi(i,jj,k)-phi(i-1,jj,k)) + & 
-                            & fracz*(one-fracy)*bX(i,j,kk)*(phi(i,j,kk)-phi(i-1,j,kk)) + &
-                            & fracy*fracz*bX(i,jj,kk)*(phi(i,jj,kk)-phi(i-1,jj,kk))
-!                       sxm = (one-fracy-fracz)
-                       sxm = (one-fracy)*(one-fracz)*sxm
+                      fracy = abs(fcx(i,j,k,1))
+                      fracz = abs(fcx(i,j,k,2)) 
+                      jj = j + int(sign(one, fcx(i,j,k,1)))
+                      kk = k + int(sign(one, fcx(i,j,k,2))) 
+                      fxm = (one-fracy)*(one-fracz)*fxm &
+                           +     fracy *(one-fracz)*bX(i,jj,k )*(phi(i,jj,k )-phi(i-1,jj,k )) & 
+                           +(one-fracy)*     fracz *bX(i,j ,kk)*(phi(i,j ,kk)-phi(i-1,j ,kk)) &
+                           +     fracy *     fracz *bX(i,jj,kk)*(phi(i,jj,kk)-phi(i-1,jj,kk))
+                      sxm = (one-fracy)*(one-fracz)*sxm
                    end if
                    
                    fxp =  bX(i+1,j,k)*phi(i+1,j,k) 
                    sxp = -bX(i+1,j,k)
                    if(apx(i+1,j,k).ne.zero.and.apx(i+1,j,k).ne.one) then 
-                       fracy = abs(fcx(i+1,j,k,1)) 
-                       fracz = abs(fcx(i+1,j,k,2)) 
-                       jj = j + int(sign(one, fcx(i+1,j,k,1)))
-                       kk = k + int(sign(one, fcx(i+1,j,k,2)))
-!                       fxp = (one-fracy-fracz)*fxp + fracy*bX(i+1,jj,k)*(phi(i+1,jj,k)-phi(i,jj,k)) & 
-!                           + fracz*bX(i+1,j,kk)*(phi(i+1,j,kk)-phi(i,j,kk))
-                       fxp = (one-fracy)*(one-fracz)*fxp + &
-                            & fracy*(one-fracz)*bX(i+1,jj,k)*(phi(i+1,jj,k)-phi(i,jj,k)) + & 
-                            & fracz*(one-fracy)*bX(i+1,j,kk)*(phi(i+1,j,kk)-phi(i,j,kk)) + & 
-                            & fracy*fracz*bX(i+1,jj,kk)*(phi(i+1,jj,kk)-phi(i,jj,kk))
-!                       sxp = (one-fracy-fracz)*sxp
-                        sxp = (one-fracy)*(one-fracz)*sxp
+                      fracy = abs(fcx(i+1,j,k,1)) 
+                      fracz = abs(fcx(i+1,j,k,2)) 
+                      jj = j + int(sign(one, fcx(i+1,j,k,1)))
+                      kk = k + int(sign(one, fcx(i+1,j,k,2)))
+                      fxp = (one-fracy)*(one-fracz)*fxp &
+                           +     fracy *(one-fracz)*bX(i+1,jj,k )*(phi(i+1,jj,k )-phi(i,jj,k )) & 
+                           +(one-fracy)*     fracz *bX(i+1,j ,kk)*(phi(i+1,j ,kk)-phi(i,j ,kk)) & 
+                           +     fracy *     fracz *bX(i+1,jj,kk)*(phi(i+1,jj,kk)-phi(i,jj,kk))
+                      sxp = (one-fracy)*(one-fracz)*sxp
                    end if 
                    
                    fym = -bY(i,j,k)*phi(i,j-1,k)
@@ -318,13 +287,10 @@ contains
                       fracz = abs(fcy(i,j,k,2))
                       ii = i + int(sign(one,fcy(i,j,k,1)))
                       kk = k + int(sign(one,fcy(i,j,k,2))) 
-!                      fym = (one-fracx-fracz)*fym + fracx*bY(ii,j,k)*(phi(ii,j,k)-phi(ii,j-1,k)) & 
-!                          +  fracz*bY(i,j,kk)*(phi(i,j,kk)-phi(i,j-1,kk))
-                      fym = (one-fracx)*(one-fracz)*fym + &
-                           & fracx*(one-fracz)*bY(ii,j,k)*(phi(ii,j,k)-phi(ii,j-1,k)) + & 
-                           & fracz*(one-fracx)*bY(i,j,kk)*(phi(i,j,kk)-phi(i,j-1,kk)) + &
-                           & fracx*fracz*bY(ii,j,kk)*(phi(ii,j,kk)-phi(ii,j-1,kk))
-!                      sym = (one-fracx-fracz)*sym
+                      fym = (one-fracx)*(one-fracz)*fym &
+                           +     fracx *(one-fracz)*bY(ii,j,k )*(phi(ii,j,k )-phi(ii,j-1,k )) & 
+                           +(one-fracx)*     fracz *bY(i ,j,kk)*(phi(i ,j,kk)-phi(i ,j-1,kk)) &
+                           +     fracx *     fracz *bY(ii,j,kk)*(phi(ii,j,kk)-phi(ii,j-1,kk))
                       sym = (one-fracx)*(one-fracz)*sym
                    endif
  
@@ -335,13 +301,10 @@ contains
                       fracz = abs(fcy(i,j+1,k,2)) 
                       ii = i + int(sign(one,fcy(i,j+1,k,1)))
                       kk = k + int(sign(one,fcy(i,j+1,k,2)))
-!                      fyp = (one-fracx-fracz)*fyp + fracx*bY(ii,j+1,k)*(phi(ii,j+1,k)-phi(ii,j,k)) &
-!                          +  fracz*bY(i,j+1,kk)*(phi(i,j+1,kk)-phi(i,j,kk))
-                      fyp = (one-fracx)*(one-fracz)*fyp + &
-                           & fracx*(one-fracz)*bY(ii,j+1,k)*(phi(ii,j+1,k)-phi(ii,j,k)) + &
-                           & fracz*(one-fracx)*bY(i,j+1,kk)*(phi(i,j+1,kk)-phi(i,j,kk)) + & 
-                           & fracx*fracz*bY(ii,j+1,kk)*(phi(ii,j+1,kk)-phi(ii,j,kk))
-!                      syp = (one-fracx-fracz)*syp
+                      fyp = (one-fracx)*(one-fracz)*fyp &
+                           +     fracx *(one-fracz)*bY(ii,j+1,k )*(phi(ii,j+1,k )-phi(ii,j,k )) &
+                           +(one-fracx)*     fracz *bY(i ,j+1,kk)*(phi(i ,j+1,kk)-phi(i ,j,kk)) & 
+                           +     fracx *     fracz *bY(ii,j+1,kk)*(phi(ii,j+1,kk)-phi(ii,j,kk))
                       syp = (one-fracx)*(one-fracz)*syp
                    end if 
  
@@ -352,13 +315,10 @@ contains
                       fracy = abs(fcz(i,j,k,2)) 
                       ii = i + int(sign(one,fcz(i,j,k,1)))
                       jj = j + int(sign(one,fcz(i,j,k,2)))
-!                      fzm = (one-fracx-fracy)*fzm + fracx*bZ(ii,j,k)*(phi(ii,j,k)-phi(ii,j,k-1)) & 
-!                          +  fracy*bZ(i,jj,k)*(phi(i,jj,k)-phi(i,jj,k-1))
-                      fzm = (one-fracx)*(one-fracy)*fzm + &
-                           & fracx*(one-fracy)*bZ(ii,j,k)*(phi(ii,j,k)-phi(ii,j,k-1)) + & 
-                           & fracy*(one-fracx)*bZ(i,jj,k)*(phi(i,jj,k)-phi(i,jj,k-1)) + &
-                           & fracx*fracy*bZ(ii,jj,k)*(phi(ii,jj,k)-phi(ii,jj,k-1))
-!                      szm = (one-fracx-fracy)*szm
+                      fzm = (one-fracx)*(one-fracy)*fzm &
+                           +     fracx *(one-fracy)*bZ(ii,j ,k)*(phi(ii,j ,k)-phi(ii,j ,k-1)) & 
+                           +(one-fracx)*     fracy *bZ(i ,jj,k)*(phi(i ,jj,k)-phi(i ,jj,k-1)) &
+                           +     fracx *     fracy *bZ(ii,jj,k)*(phi(ii,jj,k)-phi(ii,jj,k-1))
                       szm = (one-fracx)*(one-fracy)*szm
                     endif
                
@@ -369,48 +329,45 @@ contains
                        fracy = abs(fcz(i,j,k+1,2))
                        ii = i + int(sign(one,fcz(i,j,k+1,1)))
                        jj = j + int(sign(one,fcz(i,j,k+1,2)))
-!                       fzp = (one-fracx-fracy)*fzp + fracx*bZ(ii,j,k+1)*(phi(ii,j,k+1)-phi(ii,j,k)) &
-!                           +  fracy*bZ(i,jj,k+1)*(phi(i,jj,k+1)-phi(i,jj,k))
-                       fzp = (one-fracx)*(one-fracy)*fzp + & 
-                            & fracx*(one-fracy)*bZ(ii,j,k+1)*(phi(ii,j,k+1)-phi(ii,j,k)) + &
-                            & fracy*(one-fracx)*bZ(i,jj,k+1)*(phi(i,jj,k+1)-phi(i,jj,k)) + &
-                            & fracx*fracy*bZ(ii,jj,k+1)*(phi(ii,jj,k+1)-phi(ii,jj,k))
-!                       szp = (one-fracx-fracy)*szp
+                       fzp = (one-fracx)*(one-fracy)*fzp & 
+                            +     fracx *(one-fracy)*bZ(ii,j ,k+1)*(phi(ii,j ,k+1)-phi(ii,j ,k)) &
+                            +(one-fracx)*     fracy *bZ(i ,jj,k+1)*(phi(i ,jj,k+1)-phi(i ,jj,k)) &
+                            +     fracx *     fracy *bZ(ii,jj,k+1)*(phi(ii,jj,k+1)-phi(ii,jj,k))
                        szp = (one-fracx)*(one-fracy)*szp
                     end if 
  
-                    cx = cntr(i,j,k,1) 
-                    cy = cntr(i,j,k,2) 
-                    cz = cntr(i,j,k,3) 
-                    
-                    if(cx.ge.zero) then 
-                        dxa = dxinv(1)*(a(i+1,j,k) - a(i,j,k)) 
-                    else 
-                        dxa = dxinv(1)*(a(i,j,k) - a(i-1,j,k))
-                    endif 
-                    if(cy.ge.zero) then 
-                        dya = dxinv(2)*(a(i,j+1,k) - a(i,j,k)) 
-                    else 
-                        dya = dxinv(2)*(a(i,j,k) - a(i,j-1,k)) 
-                    endif
-                    if(cz.ge.zero) then 
-                        dza = dxinv(3)*(a(i,j,k+1) - a(i,j,k)) 
-                    else
-                        dza = dxinv(3)*(a(i,j,k) - a(i,j,k-1)) 
-                    endif
-
-                    gamma = alpha*(a(i,j,k)+ cx*dxa + cy*dya + cz*dza) + (one/vfrc(i,j,k)) * & 
-                           (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
-                            dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + &
-                            dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
+                    gamma = (one/vfrc(i,j,k)) * & 
+                            (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
+                             dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + &
+                             dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
 
                     rho = -(one/vfrc(i,j,k)) * & 
                            (dhx*(apx(i,j,k)*fxm-apx(i+1,j,k)*fxp) + &
                             dhy*(apy(i,j,k)*fym-apy(i,j+1,k)*fyp) + &
                             dhz*(apz(i,j,k)*fzm-apz(i,j,k+1)*fzp))
-                  end if 
 
-                  phi(i,j,k) = (rhs(i,j,k) + rho - phi(i,j,k)*delta)/(gamma -delta)
+                    if (alpha .ne. zero) then
+                       fracx = abs(cntr(i,j,k,1))
+                       fracy = abs(cntr(i,j,k,2))
+                       fracz = abs(cntr(i,j,k,3))
+                       ii = i + int(sign(one,cntr(i,j,k,1)))
+                       jj = j + int(sign(one,cntr(i,j,k,2)))
+                       kk = k + int(sign(one,cntr(i,j,k,3)))
+
+                       gamma = gamma + alpha*(one-fracx)*(one-fracy)*(one-fracz)*a(i ,j ,k )
+                       rho = rho - alpha* &
+                            (     fracx *(one-fracy)*(one-fracz)*a(ii,j ,k )*phi(ii,j ,k ) &
+                            +(one-fracx)*     fracy *(one-fracz)*a(i ,jj,k )*phi(i ,jj,k ) &
+                            +     fracx *     fracy *(one-fracz)*a(ii,jj,k )*phi(ii,jj,k ) &
+                            +(one-fracx)*(one-fracy)*     fracz *a(i ,j ,kk)*phi(i ,j ,kk) &
+                            +     fracx *(one-fracy)*     fracz *a(ii,j ,kk)*phi(ii,j ,kk) &
+                            +(one-fracx)*     fracy *     fracz *a(i ,jj,kk)*phi(i ,jj,kk) &
+                            +     fracx *     fracy *     fracz *a(ii,jj,kk)*phi(ii,jj,kk))
+                    end if
+                  end if
+
+                  res = rhs(i,j,k) - (gamma*phi(i,j,k) - rho)
+                  phi(i,j,k) = phi(i,j,k) + omega*res/(gamma-delta)
               endif
           end do 
        end do 
@@ -444,9 +401,8 @@ contains
     real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
     real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),ctlo(3):cthi(3),3)
 
-    integer :: i, j, k
-    real(amrex_real) :: dhx, dhy, dhz, sxm, sxp, sym, syp, szm, szp, gamma
-    real(amrex_real) :: dxa, dya, dza, cx, cy, cz 
+    integer :: i, j, k, ii, jj, kk
+    real(amrex_real) :: dhx, dhy, dhz, sxm, sxp, sym, syp, szm, szp, gamma, fracx, fracy, fracz
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -456,40 +412,31 @@ contains
       do    j = lo(2), hi(2)
         do  i = lo(1), hi(1)
           if (is_regular_cell(flag(i,j,k))) then
-             x(i,j,k) = x(i,j,k) / (alpha*a(i,j,k) + dhx*(bX(i,j,k)+bX(i+1,j,k))   &
-                      + dhy*(bY(i,j,k)+bY(i,j+1,k)) + dhz*(bZ(i,j,k)+bZ(i,j,k+1)))
+             x(i,j,k) = x(i,j,k) / (alpha*a(i,j,k) + dhx*(bX(i,j,k)+bX(i+1,j,k)) &
+                  &                                + dhy*(bY(i,j,k)+bY(i,j+1,k)) &
+                  &                                + dhz*(bZ(i,j,k)+bZ(i,j,k+1)))
           else if (is_single_valued_cell(flag(i,j,k))) then
-             sxm =  bX(i,j,k  ) * (one-(abs(fcx(i  ,j,k,1))+abs(fcx(i  ,j,k,2))))
-             sxp = -bX(i+1,j,k) * (one-(abs(fcx(i+1,j,k,1))+abs(fcx(i+1,j,k,2))))
-             sym =  bY(i,j,k  ) * (one-(abs(fcy(i,j  ,k,1))+abs(fcy(i,j  ,k,2))))
-             syp = -bY(i,j+1,k) * (one-(abs(fcy(i,j+1,k,1))+abs(fcy(i,j+1,k,2))))
-             szm =  bZ(i,j,k  ) * (one-(abs(fcz(i,j,k  ,1))+abs(fcz(i,j,k  ,2))))
-             szp = -bZ(i,j,k+1) * (one-(abs(fcz(i,j,k+1,1))+abs(fcz(i,j,k+1,2))))
-             
-             cx = cntr(i,j,k,1) 
-             cy = cntr(i,j,k,2) 
-             cz = cntr(i,j,k,3) 
-           
-             if(cx.ge.zero) then 
-                dxa = dxinv(1)*(a(i+1,j,k) - a(i,j,k)) 
-             else 
-                dxa = dxinv(1)*(a(i,j,k) - a(i-1,j,k))
-             endif 
-             if(cy.ge.zero) then 
-                dya = dxinv(2)*(a(i,j+1,k) - a(i,j,k)) 
-             else 
-                dya = dxinv(2)*(a(i,j,k) - a(i,j-1,k)) 
-             endif
-             if(cz.ge.zero) then 
-                dza = dxinv(3)*(a(i,j,k+1) - a(i,j,k)) 
-             else
-                dza = dxinv(3)*(a(i,j,k) - a(i,j,k-1)) 
-             endif
-            
-             gamma =  alpha*(a(i,j,k) + cx*dxa + cy*dya + cz*dza) + (one/vfrc(i,j,k)) * &
+             sxm =  bX(i,j,k  ) * (one-abs(fcx(i  ,j,k,1)))*(one-abs(fcx(i  ,j,k,2)))
+             sxp = -bX(i+1,j,k) * (one-abs(fcx(i+1,j,k,1)))*(one-abs(fcx(i+1,j,k,2)))
+             sym =  bY(i,j,k  ) * (one-abs(fcy(i,j  ,k,1)))*(one-abs(fcy(i,j  ,k,2)))
+             syp = -bY(i,j+1,k) * (one-abs(fcy(i,j+1,k,1)))*(one-abs(fcy(i,j+1,k,2)))
+             szm =  bZ(i,j,k  ) * (one-abs(fcz(i,j,k  ,1)))*(one-abs(fcz(i,j,k  ,2)))
+             szp = -bZ(i,j,k+1) * (one-abs(fcz(i,j,k+1,1)))*(one-abs(fcz(i,j,k+1,2)))
+
+             gamma =  (one/vfrc(i,j,k)) * &
                   (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
                    dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + & 
                    dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
+
+             if (alpha .ne. zero) then
+                fracx = abs(cntr(i,j,k,1))
+                fracy = abs(cntr(i,j,k,2))
+                fracz = abs(cntr(i,j,k,3))
+                ii = i + int(sign(one,cntr(i,j,k,1)))
+                jj = j + int(sign(one,cntr(i,j,k,2)))
+                kk = k + int(sign(one,cntr(i,j,k,3)))
+                gamma = gamma + alpha*(one-fracx)*(one-fracy)*(one-fracz)*a(i,j,k)
+             end if
 
              x(i,j,k) = x(i,j,k) / gamma
           end if
