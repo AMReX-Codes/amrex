@@ -35,6 +35,12 @@ EBTower::validDomain (const Box& domain)
     return (bx_it != m_instance->m_domains.end());
 }
 
+Box const&
+EBTower::coarestDomain ()
+{
+    return m_instance->m_domains.back();
+}
+    
 EBTower::EBTower ()
 {
     BL_PROFILE("EBTower::EBTower()");

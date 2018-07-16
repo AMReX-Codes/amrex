@@ -49,6 +49,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
              Real a_tol_rel, Real a_tol_abs)
 {
     BL_PROFILE_REGION("MLMG::solve()");
+    BL_PROFILE("MLMG::solve()");
 
     bool is_nsolve = linop.m_parent;
 

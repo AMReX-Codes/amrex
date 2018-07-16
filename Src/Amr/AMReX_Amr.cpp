@@ -53,6 +53,14 @@
 #include <DatasetClient.H>
 #endif
 
+#ifdef USE_PERILLA
+#include <WorkerThread.H>
+#include <Perilla.H>
+#ifdef USE_PERILLA_PTHREADS
+    pthread_mutex_t teamFinishLock=PTHREAD_MUTEX_INITIALIZER;
+#endif
+#endif
+
 namespace amrex {
 
 //
@@ -1833,12 +1841,18 @@ Amr::timeStep (int  level,
                int  niter,
                Real stop_time)
 {
+#ifdef USE_PERILLA
+    perilla::syncAllWorkerThreads();
+    if(perilla::isMasterThread())
+    {
+#endif
     BL_PROFILE("Amr::timeStep()");
     BL_COMM_PROFILE_NAMETAG("Amr::timeStep TOP");
 
     // This is used so that the AmrLevel functions can know which level is being advanced 
     //      when regridding is called with possible lbase > level.
     which_level_being_advanced = level;
+
 
     // Update so that by default, we don't force a post-step regrid.
     amr_level[level]->setPostStepRegrid(0);
@@ -1924,9 +1938,21 @@ Amr::timeStep (int  level,
 	amrex::Print() << "[Level " << level << " step " << level_steps[level]+1 << "] "
 		       << "ADVANCE with dt = " << dt_level[level] << "\n";
     }
+
+#ifdef USE_PERILLA
+    }
+    perilla::syncAllWorkerThreads();
+#endif
+
     BL_PROFILE_REGION_START("amr_level.advance");
     Real dt_new = amr_level[level]->advance(time,dt_level[level],iteration,niter);
     BL_PROFILE_REGION_STOP("amr_level.advance");
+
+#ifdef USE_PERILLA
+    perilla::syncWorkerThreads();
+    if(perilla::isMasterThread())
+    {
+#endif
 
     dt_min[level] = iteration == 1 ? dt_new : std::min(dt_min[level],dt_new);
 
@@ -1959,6 +1985,11 @@ Amr::timeStep (int  level,
 	}
     }
 
+#ifdef USE_PERILLA
+    }
+    perilla::syncAllWorkerThreads();
+#endif
+
     //
     // Advance grids at higher level.
     //
@@ -1981,10 +2012,23 @@ Amr::timeStep (int  level,
         }
     }
 
+#ifdef USE_PERILLA
+    perilla::syncAllWorkerThreads();
+#endif
+
     amr_level[level]->post_timestep(iteration);
 
+#ifdef USE_PERILLA
+    perilla::syncAllWorkerThreads();
+    if(perilla::isMasterThread())
+    {
+#endif
     // Set this back to negative so we know whether we are in fact in this routine
     which_level_being_advanced = -1;
+#ifdef USE_PERILLA
+    }
+    perilla::syncAllWorkerThreads();
+#endif
 }
 
 Real
@@ -1997,12 +2041,19 @@ Amr::coarseTimeStepDt (Real stop_time)
 void
 Amr::coarseTimeStep (Real stop_time)
 {
+    Real      run_stop;
+    Real run_strt;
+#ifdef USE_PERILLA_PTHREADS
+    perilla::syncAllThreads();
+    if(perilla::isMasterThread())
+    {
+#endif
     BL_PROFILE_REGION_START("Amr::coarseTimeStep()");
     BL_PROFILE("Amr::coarseTimeStep()");
     std::stringstream stepName;
     stepName << "timeStep STEP " << level_steps[0];
 
-    const Real run_strt = ParallelDescriptor::second() ;
+    run_strt = ParallelDescriptor::second() ;
 
     //
     // Compute new dt.
@@ -2031,7 +2082,80 @@ Amr::coarseTimeStep (Real stop_time)
 
     BL_PROFILE_REGION_START(stepName.str());
 
+#ifdef USE_PERILLA_PTHREADS
+    }
+    perilla::syncAllThreads();
+#endif
+
+#ifdef USE_PERILLA
+#ifdef USE_PERILLA_PTHREADS
+    if(perilla::isMasterThread()){
+        Perilla::numTeamsFinished = 0;
+        RegionGraph::graphCnt = 0;
+        if(levelSteps(0)==0){
+            for(int i=0; i<= finest_level; i++)
+                getLevel(i).initPerilla(cumtime);
+                    Perilla::communicateTags(graphArray);
+        }
+    }
+    perilla::syncAllThreads();
+
+    if(perilla::isCommunicationThread())
+    {
+        Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+    }else{
+        timeStep(0,cumtime,1,1,stop_time);
+        if(perilla::isMasterWorkerThread()){
+            pthread_mutex_lock(&teamFinishLock);
+            Perilla::numTeamsFinished++;
+            pthread_mutex_unlock(&teamFinishLock);
+        }
+    }
+#else
+    Perilla::numTeamsFinished = 0;
+    RegionGraph::graphCnt = 0;
+    if(levelSteps(0)==0){
+        for(int i=0; i<= finest_level; i++)
+            getLevel(i).initPerilla(cumtime);
+        Perilla::communicateTags(graphArray);
+    }
+
+#pragma omp parallel
+    {
+        if(perilla::isCommunicationThread())
+        {
+            Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+        }
+        else{
+            timeStep(0,cumtime,1,1,stop_time);
+            if(perilla::isMasterWorkerThread()){
+#pragma omp atomic
+                Perilla::numTeamsFinished++;
+            }
+        }
+    }
+#endif
+
+#ifdef USE_PERILLA_PTHREADS
+    perilla::syncAllThreads();
+#endif
+    if(perilla::isMasterThread()){
+        if(level_steps[0] == Perilla::max_step){
+            for(int i=0; i<= finest_level; i++)
+                getLevel(i).finalizePerilla(cumtime);
+        }
+    }
+
+#else
+    //synchronous
     timeStep(0,cumtime,1,1,stop_time);
+#endif
+
+#ifdef USE_PERILLA_PTHREADS
+    perilla::syncAllThreads();
+    if(perilla::isMasterThread())
+    {
+#endif
 
     BL_PROFILE_REGION_STOP(stepName.str());
 
@@ -2042,7 +2166,7 @@ Amr::coarseTimeStep (Real stop_time)
     if (verbose > 0)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      run_stop = ParallelDescriptor::second() - run_strt;
+        run_stop = ParallelDescriptor::second() - run_strt;
 	const int istep    = level_steps[0];
 
 #ifdef BL_LAZY
@@ -2212,6 +2336,10 @@ Amr::coarseTimeStep (Real stop_time)
           }
 	}
     }
+#ifdef USE_PERILLA_PTHREADS
+    }
+#endif
+
 }
 
 bool

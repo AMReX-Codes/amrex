@@ -517,11 +517,11 @@ main (int   argc,
     amrex::Print() << "\\caption{Solution error convergence rates using $L_";
     if(inorm == 0)
     {
-      amrex::Print() <<"\\infty norm." << std::endl;;
+      amrex::Print() <<"\\infty$ norm." << std::endl;;
     }
     else
     {
-      amrex::Print() << inorm << " norm.";
+      amrex::Print() << inorm << "$ norm.";
     }
     amrex::Print() << "}" << std::endl;
     amrex::Print() << "\\end{table}" << std::endl;
