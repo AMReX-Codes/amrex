@@ -332,7 +332,7 @@ bool RegionGraph::isFireableRegion(int r, bool patchFilled)
 	}
     }
 
-    if(ParallelDescriptor::NProcsAll() == 1) return true;
+    if(ParallelDescriptor::NProcs() == 1) return true;
 
     if(lMap.size() > 0)
 	if(lMap[r]->r_con.firingRuleCnt != lMap[r]->r_con.nrcv)
@@ -657,7 +657,7 @@ void RegionGraph::graphTeardown(int tg)
 	}
     }
 
-    if(ParallelDescriptor::NProcsAll() == 1) return;
+    if(ParallelDescriptor::NProcs() == 1) return;
 
 
 
