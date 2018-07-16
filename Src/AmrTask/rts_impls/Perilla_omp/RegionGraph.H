@@ -106,7 +106,7 @@ namespace amrex{
 	    void alloc_CopyMap(const MultiFab& mf)
 	    {
 
-		Array<int> IndArr = mf.IndexArray();
+		Vector<int> IndArr = mf.IndexArray();
 		const int n = IndArr.size(); //mf.indexArray.size();
 		//const int n = mf.size();
 		map.reserve(n);
