@@ -35,9 +35,9 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
-    real(amrex_real), intent(in   ) ::  cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)
+    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)
     integer :: i,j, ii, jj
-    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy, dxa, dya, c1, c2 
+    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -85,21 +85,15 @@ contains
                   (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
 
              if (alpha .ne. zero) then
-               dxa = zero  
-               dya = zero
-               c1 = cntr(i,j,1)  
-               c2 = cntr(i,j,2) 
-               if(c1.ge.zero) then 
-                   dxa = dxinv(1)*(a(i+1,j)*x(i+1,j) - a(i,j)*x(i,j))
-               else 
-                   dxa = dxinv(1)*(a(i,j)*x(i,j) - a(i-1,j)*x(i-1,j))
-               endif
-               if(c2.ge.zero) then 
-                   dya = dxinv(2)*(a(i,j+1)*x(i,j+1) - a(i,j)*x(i,j))
-               else
-                   dya = dxinv(2)*(a(i,j)*x(i,j) - a(i,j-1)*x(i,j-1))
-               endif
-               y(i,j) = y(i,j) + alpha*(a(i,j)*x(i,j) + c1*dxa + c2*dya)
+                fracx = abs(cntr(i,j,1))
+                ii = i + int(sign(one,cntr(i,j,1)))
+                fracy = abs(cntr(i,j,2))
+                jj = j + int(sign(one,cntr(i,j,2)))
+
+                y(i,j) = y(i,j) + alpha*((one-fracx)*(one-fracy)*a(i ,j )*x(i ,j ) &
+                     &                  +     fracx *(one-fracy)*a(ii,j )*x(ii,j ) &
+                     &                  +(one-fracx)*     fracy *a(i ,jj)*x(i ,jj) &
+                     &                  +     fracx *     fracy *a(ii,jj)*x(ii,jj))
             end if
           end if
        end do
@@ -148,12 +142,10 @@ contains
     integer :: i,j,ioff,ii,jj
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
-    real(amrex_real) :: sxm, sxp, sym, syp, dxa, dya, cx, cy
+    real(amrex_real) :: sxm, sxp, sym, syp
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
-
-!    if (alpha.ne.zero) call amrex_error("amrex_mlebabeclap_gsrb: todo")
 
     do j = lo(2), hi(2)
        ioff = mod(lo(1)+j+redblack,2)
@@ -184,8 +176,6 @@ contains
                        + dhy * (bY(i,j+1)*phi(i,j+1) + bY(i,j)*phi(i,j-1))
 
                else
-                  dxa = zero 
-                  dya = zero
                   fxm = -bX(i,j)*phi(i-1,j)
                   sxm =  bX(i,j)
                   if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
@@ -221,24 +211,23 @@ contains
                      fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
                      syp = (one-fracx)*syp
                   end if
-                  cx = cntr(i,j,1) 
-                  cy = cntr(i,j,2) 
  
-                  if(cx.ge.zero) then 
-                     dxa = dxinv(1)*(a(i+1,j) - a(i,j))
-                  else 
-                     dxa = dxinv(1)*(a(i,j) - a(i-1,j)) 
-                  endif
-                  if(cy.ge.zero) then 
-                     dya = dxinv(2)*(a(i,j+1) - a(i,j))
-                  else
-                     dya = dxinv(2)*(a(i,j) - a(i,j-1)) 
-                  endif
-                  gamma = alpha*(a(i,j) + cx*dxa + cy*dya) + (one/vfrc(i,j)) * &
+                  gamma = (one/vfrc(i,j)) * &
                        (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
-
                   rho = -(one/vfrc(i,j)) * &
                        (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
+
+                  if (alpha .ne. zero) then
+                     fracx = abs(cntr(i,j,1))
+                     ii = i + int(sign(one,cntr(i,j,1)))
+                     fracy = abs(cntr(i,j,2))
+                     jj = j + int(sign(one,cntr(i,j,2)))
+
+                     gamma = gamma + alpha*(one-fracx)*(one-fracy)*a(i ,j )
+                     rho = rho - alpha*(     fracx *(one-fracy)*a(ii,j )*phi(ii,j ) &
+                          &            +(one-fracx)*     fracy *a(i ,jj)*phi(i ,jj) &
+                          &            +     fracx *     fracy *a(ii,jj)*phi(ii,jj))
+                  end if
                end if
 
                phi(i,j) = (rhs(i,j) + rho - phi(i,j)*delta) / (gamma - delta)
@@ -270,8 +259,8 @@ contains
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
     real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)     
 
-    integer :: i,j
-    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, dxa, dya, cx, cy
+    integer :: i,j,ii,jj
+    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, fracx, fracy
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -287,24 +276,17 @@ contains
              sxp = -bX(i+1,j) * (one-abs(fcx(i+1,j)))
              sym =  bY(i,j)   * (one-abs(fcy(i,j)))
              syp = -bY(i,j+1) * (one-abs(fcy(i,j+1)))
-             dxa = zero 
-             dya = zero 
-             cx  = cntr(i,j,1) 
-             cy  = cntr(i,j,2) 
 
-             if(cx.ge.zero) then 
-                 dxa = dxinv(1)*(a(i+1,j) - a(i,j)) 
-             else 
-                 dxa = dxinv(1)*(a(i,j) - a(i-1,j))
-             endif
-             if(cy.ge.zero) then 
-                 dya = dxinv(2)*(a(i,j+1) - a(i,j)) 
-             else
-                 dya = dxinv(2)*(a(i,j) - a(i,j-1)) 
-             endif 
-
-             gamma = alpha*(a(i,j) + cx*dxa + cy*dya)  + (one/vfrc(i,j)) * &
+             gamma = (one/vfrc(i,j)) * &
                   (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
+
+             if (alpha .ne. zero) then
+                fracx = abs(cntr(i,j,1))
+                ii = i + int(sign(one,cntr(i,j,1)))
+                fracy = abs(cntr(i,j,2))
+                jj = j + int(sign(one,cntr(i,j,2)))
+                gamma = gamma + alpha*(one-fracx)*(one-fracy)*a(i ,j )
+             end if
 
              x(i,j) = x(i,j) / gamma
           end if
