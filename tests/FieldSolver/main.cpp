@@ -146,6 +146,8 @@ int main(int argc, char* argv[])
 #endif
 
 	    const int norder = 2;
+	    // FDT Yee solver
+        const int maxwell_fdtd_solver_id = 0;
 
 	    for ( MFIter mfi(*Bfield[0],true); mfi.isValid(); ++mfi )
 	    {
@@ -164,7 +166,8 @@ int main(int argc, char* argv[])
                     BL_TO_FORTRAN_3D((*Bfield[0])[mfi]),
                     BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
                     BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
-                    &dtsdx[0], &dtsdx[1], &dtsdx[2]);
+                    &dtsdx[0], &dtsdx[1], &dtsdx[2],
+                    &maxwell_fdtd_solver_id);
 	    }	    
 	}
 
