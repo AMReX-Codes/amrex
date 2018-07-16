@@ -76,6 +76,7 @@ public:
     static long charge_deposition_algo;
     static long field_gathering_algo;
     static long particle_pusher_algo;
+    static int maxwell_fdtd_solver_id;
 
     // Interpolation order
     static long nox;

@@ -412,7 +412,8 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
                 BL_TO_FORTRAN_3D((*Bx)[mfi]),
                 BL_TO_FORTRAN_3D((*By)[mfi]),
                 BL_TO_FORTRAN_3D((*Bz)[mfi]),
-                &dtsdx[0], &dtsdx[1], &dtsdx[2]);
+	        &dtsdx[0], &dtsdx[1], &dtsdx[2],
+	        &WarpX::maxwell_fdtd_solver_id);
 
             if (cost) {
                 Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
@@ -433,7 +434,9 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
             const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
                                             : pml[lev]->GetMultiSigmaBox_cp();
-
+	    int patch_level = (ipatch == 0) ? lev : lev-1;
+	    const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
+	    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -453,7 +456,9 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
                     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                    WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi],dttype));
+		    WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi],dttype),
+		    &dtsdx[0], &dtsdx[1], &dtsdx[2],
+		    &WarpX::maxwell_fdtd_solver_id);
             }
         }
     }
@@ -727,9 +732,22 @@ void
 WarpX::ComputeDt ()
 {
     const Real* dx = geom[max_level].CellSize();
-    const Real deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
-                                                           + 1./(dx[1]*dx[1]),
-                                                           + 1./(dx[2]*dx[2]))) * PhysConst::c );
+    Real deltat = 0.;
+    
+    if (maxwell_fdtd_solver_id == 0) {
+      // CFL time step Yee solver
+      deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
+                                                    + 1./(dx[1]*dx[1]),
+                                                    + 1./(dx[2]*dx[2]))) * PhysConst::c );
+    } else {
+      // CFL time step CKC solver
+#if (BL_SPACEDIM == 3)
+      const Real delta = std::min(dx[0],std::min(dx[1],dx[2]));
+#elif (BL_SPACEDIM == 2)
+      const Real delta = std::min(dx[0],dx[1]);
+#endif
+      deltat = cfl*delta/PhysConst::c;
+    }
     dt.resize(0);
     dt.resize(max_level+1,deltat);
 
