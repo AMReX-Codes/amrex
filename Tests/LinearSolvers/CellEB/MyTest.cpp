@@ -51,7 +51,7 @@ MyTest::solve ()
         mleb.setLevelBC(ilev, &phi[ilev]);
     }
 
-    mleb.setScalars(0.5, 1.0);
+    mleb.setScalars(1.0, 1.0);
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         mleb.setACoeffs(ilev, acoef[ilev]);
