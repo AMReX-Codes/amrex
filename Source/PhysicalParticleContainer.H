@@ -102,6 +102,7 @@ protected:
     // for the difference between the Lorentz transformed time of the
     // particle and the time of the boosted frame.
     bool boost_adjust_transverse_positions = false;
+    bool do_backward_propagation = false;
 
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
     std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;

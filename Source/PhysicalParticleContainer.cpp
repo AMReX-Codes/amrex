@@ -22,7 +22,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     ParmParse pp(species_name);
 
     pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
-
+    pp.query("do_backward_propagation", do_backward_propagation);
 }
 
 void PhysicalParticleContainer::InitData()
@@ -64,6 +64,10 @@ void PhysicalParticleContainer::MapParticletoBoostedFrame(Real& x, Real& y, Real
     Real vxpr = u[0]/gammapr;
     Real vypr = u[1]/gammapr;
     Real vzpr = u[2]/gammapr;
+
+    if (do_backward_propagation){
+        u[2] = -u[2];
+    }
 
     // Move the particles to where they will be at t = 0 in the boosted frame
     if (boost_adjust_transverse_positions) {
