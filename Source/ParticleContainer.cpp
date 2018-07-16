@@ -80,22 +80,14 @@ MultiParticleContainer::InitData ()
     }
 }
 
+
+#ifdef WARPX_DO_ELECTROSTATIC
 void
 MultiParticleContainer::FieldGatherES (const Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
                                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
 {
     for (auto& pc : allcontainers) {
 	pc->FieldGatherES(E, masks);
-    }
-}
-
-void
-MultiParticleContainer::FieldGather (int lev,
-                                     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
-{
-    for (auto& pc : allcontainers) {
-	pc->FieldGather(lev, Ex, Ey, Ez, Bx, By, Bz);
     }
 }
 
@@ -123,45 +115,10 @@ MultiParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiF
 }
 
 void
-MultiParticleContainer::Evolve (int lev,
-                                const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-                                MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* rho, MultiFab* rho2, Real t, Real dt)
-{
-    jx.setVal(0.0);
-    jy.setVal(0.0);
-    jz.setVal(0.0);
-    if (rho) rho->setVal(0.0);
-    if (rho2) rho2->setVal(0.0);
-    for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, rho, rho2, t, dt);
-    }
-}
-
-void
 MultiParticleContainer::PushXES (Real dt)
 {
     for (auto& pc : allcontainers) {
 	pc->PushXES(dt);
-    }
-}
-
-void
-MultiParticleContainer::PushX (Real dt)
-{
-    for (auto& pc : allcontainers) {
-	pc->PushX(dt);
-    }
-}
-
-void
-MultiParticleContainer::PushP (int lev, Real dt,
-                               const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                               const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
-{
-    for (auto& pc : allcontainers) {
-       pc->PushP(lev, dt, Ex, Ey, Ez, Bx, By, Bz);
     }
 }
 
@@ -188,6 +145,63 @@ DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
     }
 }
 
+amrex::Real
+MultiParticleContainer::sumParticleCharge (bool local)
+{
+    amrex::Real total_charge = allcontainers[0]->sumParticleCharge(local);
+    for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
+        total_charge += allcontainers[i]->sumParticleCharge(local);
+    }
+    return total_charge;
+}
+
+#endif // WARPX_DO_ELECTROSTATIC
+
+void
+MultiParticleContainer::FieldGather (int lev,
+                                     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+{
+    for (auto& pc : allcontainers) {
+	pc->FieldGather(lev, Ex, Ey, Ez, Bx, By, Bz);
+    }
+}
+
+void
+MultiParticleContainer::Evolve (int lev,
+                                const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+                                MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                MultiFab* rho, MultiFab* rho2, Real t, Real dt)
+{
+    jx.setVal(0.0);
+    jy.setVal(0.0);
+    jz.setVal(0.0);
+    if (rho) rho->setVal(0.0);
+    if (rho2) rho2->setVal(0.0);
+    for (auto& pc : allcontainers) {
+	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, rho, rho2, t, dt);
+    }
+}
+
+void
+MultiParticleContainer::PushX (Real dt)
+{
+    for (auto& pc : allcontainers) {
+	pc->PushX(dt);
+    }
+}
+
+void
+MultiParticleContainer::PushP (int lev, Real dt,
+                               const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                               const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+{
+    for (auto& pc : allcontainers) {
+       pc->PushP(lev, dt, Ex, Ey, Ez, Bx, By, Bz);
+    }
+}
+
 std::unique_ptr<MultiFab>
 MultiParticleContainer::GetChargeDensity (int lev, bool local)
 {
@@ -201,16 +215,6 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 	rho->SumBoundary(gm.periodicity());
     }
     return rho;
-}
-
-amrex::Real
-MultiParticleContainer::sumParticleCharge (bool local)
-{
-    amrex::Real total_charge = allcontainers[0]->sumParticleCharge(local);
-    for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
-        total_charge += allcontainers[i]->sumParticleCharge(local);
-    }
-    return total_charge;
 }
 
 void
