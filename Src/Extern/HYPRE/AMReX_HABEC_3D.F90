@@ -11,7 +11,6 @@ module amrex_habec_module
 
   use amrex_fort_module, only : rt => amrex_real
   implicit none
-  integer(kind=8), parameter :: HYPRE_PARCSR = 5555
 
 contains
 

@@ -1,6 +1,7 @@
 #include <AMReX_HypreABecLap3.H>
 #include <AMReX_HypreABec_F.H>
 #include <cmath>
+#include <numeric>
 
 namespace {
 static int ispow2(int i) {
@@ -45,16 +46,11 @@ HypreABecLap3::HypreABecLap3(const BoxArray& grids,
   GbInd.setVal(0);
 
   // Arrays needed to build the global indices for all procs
-  CellsGIndex.resize(grids.size());
-  numCellsProc.resize(num_procs+1);
+  CellsGIndex.resize(grids.size(), 0);
+  numCellsProc.resize(num_procs+1, 0);
 
   // These arrays store the starting global indices of all the boxes involved
-  StartIndex.resize(grids.size());
-
-  // Initialize all the arrays to 0
-  std::fill(CellsGIndex.begin(), CellsGIndex.end(), 0);
-  std::fill(numCellsProc.begin(), numCellsProc.end(), 0);
-  std::fill(StartIndex.begin(), StartIndex.end(), 0);
+  StartIndex.resize(grids.size(), 0);
 
   // Fill the numpoints in the box and in the proc where this box resides
   for (int i = 0; i < grids.size(); i++) {
@@ -64,12 +60,8 @@ HypreABecLap3::HypreABecLap3(const BoxArray& grids,
   }
 
   // making sure that counting starts from 0 for procId = 0
-  for (int i = 1; i< (num_procs+1); i++) {
-    if (numCellsProc[i] == 0) {
-      amrex::Abort("No rows in this core - Check domain decomposition");
-    }
-    numCellsProc[i] += numCellsProc[i-1];
-  }
+  std::partial_sum(numCellsProc.begin(), numCellsProc.end(),
+                   numCellsProc.begin());
 
   // Box starting index starting from the proc offset
   for (int i = 0; i < grids.size(); i++) {
@@ -77,10 +69,9 @@ HypreABecLap3::HypreABecLap3(const BoxArray& grids,
   }
 
   // Starting and ending global index for each box
-  for (int i = 0; i < (grids.size()-1); i++) {
+  for (int i = 0; i <= (grids.size()-1); i++) {
     StartIndex[i] = CellsGIndex[i];
   }
-  StartIndex[grids.size()-1] = CellsGIndex[grids.size()-1];
 
   // Fill up the imultifab with global indices
   for (MFIter mfi(GbInd); mfi.isValid(); ++mfi) {
@@ -98,7 +89,7 @@ HypreABecLap3::HypreABecLap3(const BoxArray& grids,
   int iupper = GbInd.max(0, nghost, local);
 
   // Fill the global indices in the ghost cells along the grid edges
-  GbInd.FillBoundary();
+  GbInd.FillBoundary(geom.periodicity());
 
   // Create the HYPRE matrix object
   HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
@@ -135,8 +126,7 @@ HypreABecLap3::setACoeffs(const MultiFab& alpha) {
   MultiFab::Copy(acoefs, alpha, 0, 0, 1, 0);
 }
 
-void
-HypreABecLap3::setBCoeffs(const std::array<const MultiFab*,
+void HypreABecLap3::setBCoeffs(const std::array<const MultiFab*,
                           BL_SPACEDIM>& beta) {
   for (int idim=0; idim < BL_SPACEDIM; idim++) {
     MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, 0);
@@ -181,6 +171,7 @@ HypreABecLap3::solve(MultiFab& soln, const MultiFab& rhs,
 void HypreABecLap3::loadBndryData(LinOpBCType bc_type, Real bc_value) {
   const int comp = 0;
   const Real* dx = geom.CellSize();
+
   for (int n=0; n< BL_SPACEDIM; ++n) {
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi) {
       int i = mfi.index();
@@ -248,7 +239,7 @@ void HypreABecLap3::loadBndryData(LinOpBCType bc_type, Real bc_value) {
 }
 
 void HypreABecLap3::loadMatrix() {
-  static_assert(BL_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
+  static_assert(BL_SPACEDIM > 1, "HypreABecLap3: 1D not supported");
 
   const int size = 2 * BL_SPACEDIM + 1;
   const int bho = 0;
