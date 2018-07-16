@@ -85,8 +85,7 @@ contains
   subroutine amrex_eb_avgdown_faces (lo, hi, fine, flo, fhi, crse, clo, chi, &
        ap, aplo, aphi, lrat, idir, ncomp) bind(c,name='amrex_eb_avgdown_faces')
     implicit none
-    integer, intent(in), dimension(2) :: lo, hi, flo, fhi, clo, chi, aplo, aphi, lrat
-    integer, intent(in)               :: idir ,ncomp 
+    integer, intent(in) :: lo(2), hi(2), flo(2), fhi(2), clo(2), chi(2), aplo(2), aphi(2), lrat(2), idir ,ncomp 
     real(amrex_real), intent(in   )   :: fine( flo(1): fhi(1), flo(2): fhi(2), ncomp)
     real(amrex_real), intent(inout)   :: crse( clo(1): chi(1), clo(2): chi(2), ncomp) 
     real(amrex_real), intent(in   )   ::  ap(aplo(1):aphi(1),aplo(2):aphi(2)) 
@@ -96,8 +95,9 @@ contains
    
     facx = lrat(1) 
     facy = lrat(2)
- 
-    if(idir.eq.0) then  
+    print*, "Inside avgdown faces", " clo = ",clo, "lo = ",lo, "chi = ", chi,  "hi = ",hi, ncomp, lrat
+    print*, "idir", idir 
+    if(idir.eq.0) then           
       do n = 1, ncomp 
          do j       = lo(2), hi(2) 
             jj      = j*facy
@@ -118,6 +118,7 @@ contains
          enddo 
       enddo
     else
+      print*, idir
       do n = 1, ncomp
          do j       = lo(2), hi(2)
             jj      = j*facy
@@ -126,6 +127,7 @@ contains
                crse(i,j,n) = 0.d0
                fa          = 0.d0 
                do    iref  = 0, facx-1
+                     print*, " index = ", ii+iref, "fhi(1) = ", fhi(1), "aphi(1) = ", aphi(1)
                      fa          = fa + ap(ii+iref, jj) 
                      crse(i,j,n) = crse(i,j,n) + ap(ii+iref,jj)*fine(ii+iref,jj,n)
                enddo
@@ -137,7 +139,8 @@ contains
              enddo
          enddo
       enddo 
-    endif
+   endif
+  print*, "End Avgdown Faces"
   end subroutine amrex_eb_avgdown_faces 
 
 end module amrex_eb_avgdown_module

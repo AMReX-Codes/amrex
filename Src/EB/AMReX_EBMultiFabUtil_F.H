@@ -30,7 +30,7 @@ extern "C"
                                  const amrex_real* fine, const int* flo, const int* fhi, 
                                  amrex_real* crse, const int* clo, const int* chi,
                                  const amrex_real* ap, const int* aplo, const int* aphi, 
-                                 const int* ratio, const int idir, const int& ncomp);
+                                 const int* ratio, const int idir, const int* ncomp);
     
 #ifdef __cplusplus
 }

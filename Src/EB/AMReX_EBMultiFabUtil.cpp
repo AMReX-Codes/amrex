@@ -254,7 +254,7 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, Vector< MultiFa
                                               BL_TO_FORTRAN_ANYD((*fine[n])[mfi]), 
                                               BL_TO_FORTRAN_ANYD((*crse[n])[mfi]),
                                               BL_TO_FORTRAN_ANYD((*aspect[n])[mfi]),
-                                              ratio.getVect(), n, ncomp);
+                                              ratio.getVect(), n, &ncomp);
                     }
                 }
             }
