@@ -157,6 +157,14 @@ public:
                           Real dt,
                           int  iteration,
                           int  ncycle) = 0;
+
+#ifdef USE_PERILLA
+    // For Perilla initialization
+    virtual void initPerilla (Real time)=0;
+    virtual void finalizePerilla (Real time)=0;
+#endif
+
+
     /**
     * \brief Contains operations to be done after a timestep.  This is a
     * pure virtual function and hence MUST be implemented by derived
@@ -487,6 +495,110 @@ class FillPatchIterator
     Box UngrownBox () const { return MFIter::validbox(); }
 
     MultiFab& get_mf() { return m_fabs; }
+
+#ifdef USE_PERILLA
+    FillPatchIterator (AmrLevel& amrlevel,
+                       MultiFab& leveldata,
+                       int       boxGrow,
+                       Real      time,
+                       int       state_indx,
+                       int       scomp,
+                       int       ncomp,
+                       int       f);
+
+    void initFillPatch(int boxGrow, int time, int index, int scomp, int ncomp, int iter);
+
+    void InitializePush (int  boxGrow,
+                         Real time,
+                         int  state_indx,
+                         int  scomp,
+                         int  ncomp,
+                         int f);
+
+    void InitializePull (int  boxGrow,
+                         Real time,
+                         int  state_indx,
+                         int  scomp,
+                         int  ncomp,
+                         int f);
+
+    void FillPatchPush (int  boxGrow,
+                         Real time,
+                         int  state_indx,
+                         int  scomp,
+                         int  ncomp,
+                         int f,
+                         unsigned char pushLevel,
+                         bool singleT=false);
+
+    void FillPatchPull (int  boxGrow,
+                         Real time,
+                         int  state_indx,
+                         int  scomp,
+                         int  ncomp,
+                         int f,
+                         bool singleT=false);
+
+    void finalizeGraphs()
+    {
+      //std::cout << "Completing RGs ";
+
+      if(destGraph != NULL)
+        {
+          //std::cout << destGraph->graphID << " ";
+           destGraph->finalizeGraph();
+        }
+      if(csrcGraph != NULL)
+        {
+          //std::cout << csrcGraph->graphID << " ";
+          csrcGraph->finalizeGraph();
+        }
+      if(fsrcGraph != NULL)
+        {
+          //std::cout << fsrcGraph->graphID << " ";
+          fsrcGraph->finalizeGraph();
+        }
+      if(m_rg_crse_patch != NULL)
+        {
+          //std::cout << m_rg_crse_patch->graphID << " ";
+          m_rg_crse_patch->finalizeGraph();
+        }
+
+      //std::cout <<" by tg " << tg << std::endl;
+    }
+
+    void Reset()
+    {
+      int tg= perilla::wid();
+      //std::cout << "Resetting RGs ";
+      if(destGraph != NULL)
+        {
+          //std::cout << destGraph->graphID << " ";
+           destGraph->Reset();
+        }
+      if(csrcGraph != NULL)
+        {
+          //std::cout << csrcGraph->graphID << " ";
+          csrcGraph->Reset();
+        }
+      if(fsrcGraph != NULL)
+        {
+          //std::cout << fsrcGraph->graphID << " ";
+          fsrcGraph->Reset();
+        }
+      if(m_rg_crse_patch != NULL)
+        {
+          //std::cout << m_rg_crse_patch->graphID << " ";
+          m_rg_crse_patch->Reset();
+        }
+      //std::cout <<" by tg " << tg << std::endl;
+    }
+
+    RegionGraph* get_destGraph(){return destGraph;}
+    RegionGraph* get_crscGraph(){return csrcGraph;}
+    RegionGraph* get_fsrcGraph(){return fsrcGraph;}
+#endif
+
     
   private:
     //
@@ -507,6 +619,77 @@ class FillPatchIterator
     std::vector< std::pair<int,int> > m_range;
     MultiFab                          m_fabs;
     int                               m_ncomp;
+
+public:
+#ifdef USE_PERILLA
+    RegionGraph*                      destGraph;
+    RegionGraph*                      csrcGraph;
+    RegionGraph*                      fsrcGraph;
+    RegionGraph*                      m_rg_crse_patch;
+
+
+
+    MultiFab*                         m_mf_crse_patch;
+    const FabArrayBase::FPinfo*       m_fpc;
+    MultiFab*                         dmf;
+    MultiFab*                         dmff;
+    Vector<MultiFab*>                 smf;
+    Geometry*                         geom;
+    StateDataPhysBCFunct*             physbcf;
+    bool                              isProperlyNested;
+    Vector<MultiFab*>                 smf_crse;
+    Vector<Real>                      stime_crse;
+    StateDataPhysBCFunct*             physbcf_crse;
+    Geometry*                         geom_crse;
+    Vector<MultiFab*>                 smf_fine;
+    Vector<Real>                      stime_fine;
+    StateDataPhysBCFunct*             physbcf_fine;
+    Geometry*                         geom_fine;
+
+    Vector<Real>                 stime;
+    void FillFromLevel0Push (Real time, int index, int scomp, int dcomp, int ncomp, int f);
+    void FillFromLevel0PushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
+    void FillFromLevel0Pull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
+    void FillFromTwoLevelsPush (Real time, int index, int scomp, int dcomp, int ncomp, int f);
+    void FillFromTwoLevelsPushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, unsigned char pushLevel, bool singleT);
+    void FillFromTwoLevelsPull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
+    void FillPatchTwoLevelsPush (Amr& amr, MultiFab& mf, Real time,
+                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
+                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
+                                 FillPatchIterator* fpIter,
+                                 MultiFab *dmf,
+                                 MultiFab *dmff,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Vector<BCRec>& bcs, unsigned char pushLevel, bool singleT);
+
+    void FillPatchTwoLevelsPull (MultiFab& mf, Real time,
+                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
+                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
+                                 FillPatchIterator* fpIter,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Vector<BCRec>& bcs, bool singleT);
+
+    void FillPatchSingleLevelPush (Amr& amr, MultiFab& mf, Real time,
+                                   Vector<MultiFab*>& smf, Vector<Real>& stime,
+                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
+                                   MultiFab *dmf,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
+    void FillPatchSingleLevelPull (MultiFab& mf, Real time,
+                                   Vector<MultiFab*>& smf, Vector<Real>& stime,
+                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
+
+#endif
 };
 
 class FillPatchIteratorHelper
