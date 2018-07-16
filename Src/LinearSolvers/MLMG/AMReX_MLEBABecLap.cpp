@@ -565,7 +565,7 @@ MLEBABecLap::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& 
 {
     const auto amrrr = AMRRefRatio(camrlev);
     const int ncomp = getNComp();
-    amrex::average_down(fine_sol, crse_sol, 0, ncomp, amrrr);
+    amrex::EB_average_down(fine_sol, crse_sol, 0, ncomp, amrrr);
     amrex::EB_average_down(fine_rhs, crse_rhs, 0, ncomp, amrrr);
 }
 

@@ -41,7 +41,7 @@ MyTest::solve ()
     }
 
     LPInfo info;
-    info.setMaxCoarseningLevel(std::min(max_coarsening_level,EB2::maxCoarseningLevel()));
+    info.setMaxCoarseningLevel(max_coarsening_level);
 
     MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
 

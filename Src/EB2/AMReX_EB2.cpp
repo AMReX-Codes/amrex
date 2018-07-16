@@ -11,6 +11,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 
+#include <AMReX_EBTower.H>
+
 namespace amrex { namespace EB2 {
 
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
@@ -49,14 +51,12 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
     }
     else if (geom_type == "box")
     {
-        std::vector<Real> vlo;
-        pp.getarr("box_lo", vlo);
-        RealArray lo{AMREX_D_DECL(vlo[0],vlo[1],vlo[2])};
+        RealArray lo;
+        pp.get("box_lo", lo);
 
-        std::vector<Real> vhi;
-        pp.getarr("box_hi", vhi);
-        RealArray hi{AMREX_D_DECL(vhi[0],vhi[1],vhi[2])};
-
+        RealArray hi;
+        pp.get("box_hi", hi);
+        
         bool has_fluid_inside;
         pp.get("box_has_fluid_inside", has_fluid_inside);
         
@@ -67,11 +67,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
     }
     else if (geom_type == "cylinder")
     {
-        std::vector<Real> vc;
-        pp.getarr("cylinder_center", vc);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(vc.size() >= AMREX_SPACEDIM,
-                                         "eb2.cylinder_center doesn't have enough items");
-        RealArray center{AMREX_D_DECL(vc[0],vc[1],vc[2])};
+        RealArray center;
+        pp.get("cylinder_center", center);
 
         Real radius;
         pp.get("cylinder_radius", radius);
@@ -94,13 +91,11 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
     }
     else if (geom_type == "plane")
     {
-        std::vector<Real> vpoint;
-        pp.getarr("plane_point", vpoint);
-        RealArray point{AMREX_D_DECL(vpoint[0],vpoint[1],vpoint[2])};
+        RealArray point;
+        pp.get("plane_point", point);
 
-        std::vector<Real> vnormal;
-        pp.getarr("plane_normal", vnormal);
-        RealArray normal{AMREX_D_DECL(vnormal[0],vnormal[1],vnormal[2])};
+        RealArray normal;
+        pp.get("plane_normal", normal);
 
         EB2::PlaneIF pf(point, normal);
 
@@ -109,11 +104,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
     }
     else if (geom_type == "sphere")
     {
-        std::vector<Real> vc;
-        pp.getarr("sphere_center", vc);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(vc.size() >= AMREX_SPACEDIM,
-                                         "eb2.sphere_center doesn't have enough items");
-        RealArray center{AMREX_D_DECL(vc[0],vc[1],vc[2])};
+        RealArray center;
+        pp.get("sphere_center", center);
 
         Real radius;
         pp.get("sphere_radius", radius);
@@ -139,9 +131,18 @@ getLevel (const Geometry& geom)
 }
 
 int
-maxCoarseningLevel ()
+maxCoarseningLevel (const Geometry& geom)
 {
-    return IndexSpace::top().maxCoarseningLevel();
+    const Box& domain = amrex::enclosedCells(geom.Domain());
+    Box cdomain = (EB2::use_eb2) ? IndexSpace::top().coarestDomain()
+                                 : EBTower::coarestDomain();
+    int ilev;
+    for (ilev = 0; ilev < 30; ++ilev) {
+        if (cdomain.contains(domain)) break;
+        cdomain.refine(2);
+    }
+    if (cdomain != domain) ilev = -1;
+    return ilev;
 }
 
 }}
