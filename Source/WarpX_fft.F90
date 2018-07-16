@@ -42,6 +42,9 @@ contains
 
 !> @brief
 !! Ask FFTW to do domain decomposition.
+!
+! This is always a 1d domain decomposition along z ; it is typically
+! done on the *FFT sub-groups*, not the all domain
   subroutine warpx_fft_domain_decomp (warpx_local_nz, warpx_local_z0, global_lo, global_hi) &
        bind(c,name='warpx_fft_domain_decomp')
     use picsar_precision, only : idp
