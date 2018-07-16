@@ -22,6 +22,10 @@
 #include <WarpXPML.H>
 #include <WarpXBoostedFrameDiagnostic.H>
 
+#ifdef WARPX_USE_PSATD
+#include <fftw3.h>
+#endif
+
 class NoOpPhysBC
     : public amrex::PhysBCFunctBase
 {
@@ -445,8 +449,8 @@ private:
         void* data[N] = { nullptr };
 
         ~FFTData () {
-            for (int i = 0; i < N; ++i) { // The memory is allocated by Fortran routines
-                std::free(data[i]);
+            for (int i = 0; i < N; ++i) { // The memory is allocated with fftw_alloc.
+                fftw_free(data[i]);
                 data[i] = nullptr;
             }
         }
