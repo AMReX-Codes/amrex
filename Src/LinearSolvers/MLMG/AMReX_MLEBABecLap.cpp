@@ -230,7 +230,8 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
                  const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
-
+    const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
+    
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
@@ -274,6 +275,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
                                                  BL_TO_FORTRAN_ANYD(byfab),
                                                  BL_TO_FORTRAN_ANYD(bzfab)),
+                                    BL_TO_FORTRAN_ANYD(ccmask[mfi]),
                                     BL_TO_FORTRAN_ANYD((*flags)[mfi]),
                                     BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
@@ -296,6 +298,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
                  const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
+    const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
     const auto& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals  = m_maskvals [amrlev][mglev];
 
@@ -445,6 +448,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
                                                 BL_TO_FORTRAN_ANYD(byfab),
                                                 BL_TO_FORTRAN_ANYD(bzfab)),
+                                   BL_TO_FORTRAN_ANYD(ccmask[mfi]),
                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD(m0),
                                                 BL_TO_FORTRAN_ANYD(m2),
                                                 BL_TO_FORTRAN_ANYD(m4)),
@@ -484,6 +488,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
                  const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
+    const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
@@ -527,6 +532,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
                                                      BL_TO_FORTRAN_ANYD(byfab),
                                                      BL_TO_FORTRAN_ANYD(bzfab)),
+                                        BL_TO_FORTRAN_ANYD(ccmask[mfi]),
                                         BL_TO_FORTRAN_ANYD((*flags)[mfi]),
                                         BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
                                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
