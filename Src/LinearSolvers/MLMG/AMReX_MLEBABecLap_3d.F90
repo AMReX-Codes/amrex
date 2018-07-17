@@ -62,10 +62,10 @@ contains
               else 
                 fxm = bX(i,j,k)*(x(i,j,k) - x(i-1,j,k))
                 if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
-                    fracy = abs(fcx(i,j,k,1))
-                    fracz = abs(fcx(i,j,k,2))
                     jj = j + int(sign(one, fcx(i,j,k,1)))
                     kk = k + int(sign(one, fcx(i,j,k,2)))
+                    fracy = abs(fcx(i,j,k,1))*real(ior(ccm(i-1,jj,k),ccm(i,jj,k)),amrex_real)
+                    fracz = abs(fcx(i,j,k,2))*real(ior(ccm(i-1,j,kk),ccm(i,j,kk)),amrex_real)
                     fxm = (one-fracy)*(one-fracz)*fxm + &
                          & fracy*(one-fracz)*bX(i,jj,k )*(x(i,jj,k )-x(i-1,jj,k )) + & 
                          & fracz*(one-fracy)*bX(i,j ,kk)*(x(i,j ,kk)-x(i-1,j ,kk)) + &
@@ -74,10 +74,10 @@ contains
 
                 fxp = bX(i+1,j,k)*(x(i+1,j,k) - x(i,j,k))
                 if (apx(i+1,j,k).ne.zero.and.apx(i+1,j,k).ne.one) then 
-                    fracy = abs(fcx(i+1,j,k,1))
-                    fracz = abs(fcx(i+1,j,k,2))
                     jj = j + int(sign(one,fcx(i+1,j,k,1)))
                     kk = k + int(sign(one,fcx(i+1,j,k,2)))
+                    fracy = abs(fcx(i+1,j,k,1))*real(ior(ccm(i,jj,k),ccm(i+1,jj,k)),amrex_real)
+                    fracz = abs(fcx(i+1,j,k,2))*real(ior(ccm(i,j,kk),ccm(i+1,j,kk)),amrex_real)
                     fxp = (one-fracy)*(one-fracz)*fxp + &
                          & fracy*(one-fracz)*bX(i+1,jj,k )*(x(i+1,jj,k )-x(i,jj,k )) + & 
                          & fracz*(one-fracy)*bX(i+1,j ,kk)*(x(i+1,j ,kk)-x(i,j ,kk)) + & 
@@ -86,10 +86,10 @@ contains
 
                 fym = bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
                 if (apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then 
-                    fracx = abs(fcy(i,j,k,1))
-                    fracz = abs(fcy(i,j,k,2))
                     ii = i + int(sign(one,fcy(i,j,k,1)))
                     kk = k + int(sign(one,fcy(i,j,k,2)))
+                    fracx = abs(fcy(i,j,k,1))*real(ior(ccm(ii,j-1,k),ccm(ii,j,k)),amrex_real)
+                    fracz = abs(fcy(i,j,k,2))*real(ior(ccm(i,j-1,kk),ccm(i,j,kk)),amrex_real)
                     fym = (one-fracx)*(one-fracz)*fym + &
                          & fracx*(one-fracz)*bY(ii,j,k )*(x(ii,j,k )-x(ii,j-1,k )) + & 
                          & fracz*(one-fracx)*bY(i ,j,kk)*(x(i ,j,kk)-x(i ,j-1,kk)) + &
@@ -98,10 +98,10 @@ contains
 
                 fyp = bY(i,j+1,k)*(x(i,j+1,k) - x(i,j,k))
                 if (apy(i,j+1,k).ne.zero.and.apy(i,j+1,k).ne.one) then 
-                    fracx = abs(fcy(i,j+1,k,1))
-                    fracz = abs(fcy(i,j+1,k,2))
                     ii = i + int(sign(one,fcy(i,j+1,k,1)))
                     kk = k + int(sign(one,fcy(i,j+1,k,2)))
+                    fracx = abs(fcy(i,j+1,k,1))*real(ior(ccm(ii,j,k),ccm(ii,j+1,k)),amrex_real)
+                    fracz = abs(fcy(i,j+1,k,2))*real(ior(ccm(i,j,kk),ccm(i,j+1,kk)),amrex_real)
                     fyp = (one-fracx)*(one-fracz)*fyp + &
                          & fracx*(one-fracz)*bY(ii,j+1,k )*(x(ii,j+1,k )-x(ii,j,k )) + &
                          & fracz*(one-fracx)*bY(i ,j+1,kk)*(x(i ,j+1,kk)-x(i ,j,kk)) + & 
@@ -110,10 +110,10 @@ contains
 
                 fzm = bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
                 if (apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
-                    fracx = abs(fcz(i,j,k,1))
-                    fracy = abs(fcz(i,j,k,2))
                     ii = i + int(sign(one,fcz(i,j,k,1)))
                     jj = j + int(sign(one,fcz(i,j,k,2)))
+                    fracx = abs(fcz(i,j,k,1))*real(ior(ccm(ii,j,k-1),ccm(ii,j,k)),amrex_real)
+                    fracy = abs(fcz(i,j,k,2))*real(ior(ccm(i,jj,k-1),ccm(i,jj,k)),amrex_real)
                     fzm = (one-fracx)*(one-fracy)*fzm + &
                          & fracx*(one-fracy)*bZ(ii,j ,k)*(x(ii,j ,k)-x(ii,j ,k-1)) + & 
                          & fracy*(one-fracx)*bZ(i ,jj,k)*(x(i ,jj,k)-x(i ,jj,k-1)) + &
@@ -122,10 +122,10 @@ contains
 
                 fzp = bZ(i,j,k+1)*(x(i,j,k+1) - x(i,j,k))
                 if (apz(i,j,k+1).ne.zero.and.apz(i,j,k+1).ne.one) then 
-                    fracx = abs(fcz(i,j,k+1,1))
-                    fracy = abs(fcz(i,j,k+1,2))
                     ii = i + int(sign(one,fcz(i,j,k+1,1)))
                     jj = j + int(sign(one,fcz(i,j,k+1,2)))
+                    fracx = abs(fcz(i,j,k+1,1))*real(ior(ccm(ii,j,k),ccm(ii,j,k+1)),amrex_real)
+                    fracy = abs(fcz(i,j,k+1,2))*real(ior(ccm(i,jj,k),ccm(i,jj,k+1)),amrex_real)
                     fzp = (one-fracx)*(one-fracy)*fzp + & 
                          & fracx*(one-fracy)*bZ(ii,j ,k+1)*(x(ii,j ,k+1)-x(ii,j ,k)) + &
                          & fracy*(one-fracx)*bZ(i ,jj,k+1)*(x(i ,jj,k+1)-x(i ,jj,k)) + &
@@ -237,10 +237,10 @@ contains
                    fxm = -bX(i,j,k)*phi(i-1,j,k) 
                    sxm =  bX(i,j,k) 
                    if(apx(i,j,k).ne.zero .and. apx(i,j,k).ne.one) then 
-                      fracy = abs(fcx(i,j,k,1))
-                      fracz = abs(fcx(i,j,k,2)) 
                       jj = j + int(sign(one, fcx(i,j,k,1)))
-                      kk = k + int(sign(one, fcx(i,j,k,2))) 
+                      kk = k + int(sign(one, fcx(i,j,k,2)))
+                      fracy = abs(fcx(i,j,k,1))*real(ior(ccm(i-1,jj,k),ccm(i,jj,k)),amrex_real)
+                      fracz = abs(fcx(i,j,k,2))*real(ior(ccm(i-1,j,kk),ccm(i,j,kk)),amrex_real)
                       fxm = (one-fracy)*(one-fracz)*fxm &
                            +     fracy *(one-fracz)*bX(i,jj,k )*(phi(i,jj,k )-phi(i-1,jj,k )) & 
                            +(one-fracy)*     fracz *bX(i,j ,kk)*(phi(i,j ,kk)-phi(i-1,j ,kk)) &
@@ -251,10 +251,10 @@ contains
                    fxp =  bX(i+1,j,k)*phi(i+1,j,k) 
                    sxp = -bX(i+1,j,k)
                    if(apx(i+1,j,k).ne.zero.and.apx(i+1,j,k).ne.one) then 
-                      fracy = abs(fcx(i+1,j,k,1)) 
-                      fracz = abs(fcx(i+1,j,k,2)) 
                       jj = j + int(sign(one, fcx(i+1,j,k,1)))
                       kk = k + int(sign(one, fcx(i+1,j,k,2)))
+                      fracy = abs(fcx(i+1,j,k,1))*real(ior(ccm(i,jj,k),ccm(i+1,jj,k)),amrex_real)
+                      fracz = abs(fcx(i+1,j,k,2))*real(ior(ccm(i,j,kk),ccm(i+1,j,kk)),amrex_real)
                       fxp = (one-fracy)*(one-fracz)*fxp &
                            +     fracy *(one-fracz)*bX(i+1,jj,k )*(phi(i+1,jj,k )-phi(i,jj,k )) & 
                            +(one-fracy)*     fracz *bX(i+1,j ,kk)*(phi(i+1,j ,kk)-phi(i,j ,kk)) & 
@@ -265,10 +265,10 @@ contains
                    fym = -bY(i,j,k)*phi(i,j-1,k)
                    sym =  bY(i,j,k)
                    if(apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then 
-                      fracx = abs(fcy(i,j,k,1))
-                      fracz = abs(fcy(i,j,k,2))
                       ii = i + int(sign(one,fcy(i,j,k,1)))
-                      kk = k + int(sign(one,fcy(i,j,k,2))) 
+                      kk = k + int(sign(one,fcy(i,j,k,2)))
+                      fracx = abs(fcy(i,j,k,1))*real(ior(ccm(ii,j-1,k),ccm(ii,j,k)),amrex_real)
+                      fracz = abs(fcy(i,j,k,2))*real(ior(ccm(i,j-1,kk),ccm(i,j,kk)),amrex_real)
                       fym = (one-fracx)*(one-fracz)*fym &
                            +     fracx *(one-fracz)*bY(ii,j,k )*(phi(ii,j,k )-phi(ii,j-1,k )) & 
                            +(one-fracx)*     fracz *bY(i ,j,kk)*(phi(i ,j,kk)-phi(i ,j-1,kk)) &
@@ -279,10 +279,10 @@ contains
                    fyp =  bY(i,j+1,k)*phi(i,j+1,k)
                    syp = -bY(i,j+1,k)
                    if(apy(i,j+1,k).ne.zero.and.apy(i,j+1,k).ne.one) then 
-                      fracx = abs(fcy(i,j+1,k,1))
-                      fracz = abs(fcy(i,j+1,k,2)) 
                       ii = i + int(sign(one,fcy(i,j+1,k,1)))
                       kk = k + int(sign(one,fcy(i,j+1,k,2)))
+                      fracx = abs(fcy(i,j+1,k,1))*real(ior(ccm(ii,j,k),ccm(ii,j+1,k)),amrex_real)
+                      fracz = abs(fcy(i,j+1,k,2))*real(ior(ccm(i,j,kk),ccm(i,j+1,kk)),amrex_real)
                       fyp = (one-fracx)*(one-fracz)*fyp &
                            +     fracx *(one-fracz)*bY(ii,j+1,k )*(phi(ii,j+1,k )-phi(ii,j,k )) &
                            +(one-fracx)*     fracz *bY(i ,j+1,kk)*(phi(i ,j+1,kk)-phi(i ,j,kk)) & 
@@ -293,10 +293,10 @@ contains
                    fzm = -bZ(i,j,k)*phi(i,j,k-1)
                    szm =  bZ(i,j,k)
                    if(apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
-                      fracx = abs(fcz(i,j,k,1))
-                      fracy = abs(fcz(i,j,k,2)) 
                       ii = i + int(sign(one,fcz(i,j,k,1)))
                       jj = j + int(sign(one,fcz(i,j,k,2)))
+                      fracx = abs(fcz(i,j,k,1))*real(ior(ccm(ii,j,k-1),ccm(ii,j,k)),amrex_real)
+                      fracy = abs(fcz(i,j,k,2))*real(ior(ccm(i,jj,k-1),ccm(i,jj,k)),amrex_real)
                       fzm = (one-fracx)*(one-fracy)*fzm &
                            +     fracx *(one-fracy)*bZ(ii,j ,k)*(phi(ii,j ,k)-phi(ii,j ,k-1)) & 
                            +(one-fracx)*     fracy *bZ(i ,jj,k)*(phi(i ,jj,k)-phi(i ,jj,k-1)) &
@@ -307,10 +307,10 @@ contains
                     fzp =  bZ(i,j,k+1)*phi(i,j,k+1) 
                     szp = -bZ(i,j,k+1)
                     if(apz(i,j,k+1).ne.zero.and.apz(i,j,k+1).ne.one) then 
-                       fracx = abs(fcz(i,j,k+1,1))
-                       fracy = abs(fcz(i,j,k+1,2))
                        ii = i + int(sign(one,fcz(i,j,k+1,1)))
                        jj = j + int(sign(one,fcz(i,j,k+1,2)))
+                       fracx = abs(fcz(i,j,k+1,1))*real(ior(ccm(ii,j,k),ccm(ii,j,k+1)),amrex_real)
+                       fracy = abs(fcz(i,j,k+1,2))*real(ior(ccm(i,jj,k),ccm(i,jj,k+1)),amrex_real)
                        fzp = (one-fracx)*(one-fracy)*fzp & 
                             +     fracx *(one-fracy)*bZ(ii,j ,k+1)*(phi(ii,j ,k+1)-phi(ii,j ,k)) &
                             +(one-fracx)*     fracy *bZ(i ,jj,k+1)*(phi(i ,jj,k+1)-phi(i ,jj,k)) &
@@ -364,8 +364,8 @@ contains
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
     real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
 
-    integer :: i, j, k
-    real(amrex_real) :: dhx, dhy, dhz, sxm, sxp, sym, syp, szm, szp, gamma
+    integer :: i, j, k, ii, jj, kk
+    real(amrex_real) :: dhx, dhy, dhz, sxm, sxp, sym, syp, szm, szp, gamma, fracx, fracy, fracz
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -379,12 +379,60 @@ contains
                   &                                + dhy*(bY(i,j,k)+bY(i,j+1,k)) &
                   &                                + dhz*(bZ(i,j,k)+bZ(i,j,k+1)))
           else if (is_single_valued_cell(flag(i,j,k))) then
-             sxm =  bX(i,j,k  ) * (one-abs(fcx(i  ,j,k,1)))*(one-abs(fcx(i  ,j,k,2)))
-             sxp = -bX(i+1,j,k) * (one-abs(fcx(i+1,j,k,1)))*(one-abs(fcx(i+1,j,k,2)))
-             sym =  bY(i,j,k  ) * (one-abs(fcy(i,j  ,k,1)))*(one-abs(fcy(i,j  ,k,2)))
-             syp = -bY(i,j+1,k) * (one-abs(fcy(i,j+1,k,1)))*(one-abs(fcy(i,j+1,k,2)))
-             szm =  bZ(i,j,k  ) * (one-abs(fcz(i,j,k  ,1)))*(one-abs(fcz(i,j,k  ,2)))
-             szp = -bZ(i,j,k+1) * (one-abs(fcz(i,j,k+1,1)))*(one-abs(fcz(i,j,k+1,2)))
+
+             sxm =  bX(i,j,k) 
+             if(apx(i,j,k).ne.zero .and. apx(i,j,k).ne.one) then 
+                jj = j + int(sign(one, fcx(i,j,k,1)))
+                kk = k + int(sign(one, fcx(i,j,k,2)))
+                fracy = abs(fcx(i,j,k,1))*real(ior(ccm(i-1,jj,k),ccm(i,jj,k)),amrex_real)
+                fracz = abs(fcx(i,j,k,2))*real(ior(ccm(i-1,j,kk),ccm(i,j,kk)),amrex_real)
+                sxm = (one-fracy)*(one-fracz)*sxm
+             end if
+                   
+             sxp = -bX(i+1,j,k)
+             if(apx(i+1,j,k).ne.zero.and.apx(i+1,j,k).ne.one) then 
+                jj = j + int(sign(one, fcx(i+1,j,k,1)))
+                kk = k + int(sign(one, fcx(i+1,j,k,2)))
+                fracy = abs(fcx(i+1,j,k,1))*real(ior(ccm(i,jj,k),ccm(i+1,jj,k)),amrex_real)
+                fracz = abs(fcx(i+1,j,k,2))*real(ior(ccm(i,j,kk),ccm(i+1,j,kk)),amrex_real)
+                sxp = (one-fracy)*(one-fracz)*sxp
+             end if
+                   
+             sym =  bY(i,j,k)
+             if(apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then 
+                ii = i + int(sign(one,fcy(i,j,k,1)))
+                kk = k + int(sign(one,fcy(i,j,k,2)))
+                fracx = abs(fcy(i,j,k,1))*real(ior(ccm(ii,j-1,k),ccm(ii,j,k)),amrex_real)
+                fracz = abs(fcy(i,j,k,2))*real(ior(ccm(i,j-1,kk),ccm(i,j,kk)),amrex_real)
+                sym = (one-fracx)*(one-fracz)*sym
+             endif
+ 
+             syp = -bY(i,j+1,k)
+             if(apy(i,j+1,k).ne.zero.and.apy(i,j+1,k).ne.one) then 
+                ii = i + int(sign(one,fcy(i,j+1,k,1)))
+                kk = k + int(sign(one,fcy(i,j+1,k,2)))
+                fracx = abs(fcy(i,j+1,k,1))*real(ior(ccm(ii,j,k),ccm(ii,j+1,k)),amrex_real)
+                fracz = abs(fcy(i,j+1,k,2))*real(ior(ccm(i,j,kk),ccm(i,j+1,kk)),amrex_real)
+                syp = (one-fracx)*(one-fracz)*syp
+             end if
+             
+             szm =  bZ(i,j,k)
+             if(apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
+                ii = i + int(sign(one,fcz(i,j,k,1)))
+                jj = j + int(sign(one,fcz(i,j,k,2)))
+                fracx = abs(fcz(i,j,k,1))*real(ior(ccm(ii,j,k-1),ccm(ii,j,k)),amrex_real)
+                fracy = abs(fcz(i,j,k,2))*real(ior(ccm(i,jj,k-1),ccm(i,jj,k)),amrex_real)
+                szm = (one-fracx)*(one-fracy)*szm
+             endif
+               
+             szp = -bZ(i,j,k+1)
+             if(apz(i,j,k+1).ne.zero.and.apz(i,j,k+1).ne.one) then 
+                ii = i + int(sign(one,fcz(i,j,k+1,1)))
+                jj = j + int(sign(one,fcz(i,j,k+1,2)))
+                fracx = abs(fcz(i,j,k+1,1))*real(ior(ccm(ii,j,k),ccm(ii,j,k+1)),amrex_real)
+                fracy = abs(fcz(i,j,k+1,2))*real(ior(ccm(i,jj,k),ccm(i,jj,k+1)),amrex_real)
+                szp = (one-fracx)*(one-fracy)*szp
+             end if
 
              gamma = alpha*a(i,j,k) + (one/vfrc(i,j,k)) * &
                   (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &

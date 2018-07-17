@@ -54,29 +54,29 @@ contains
           else
              fxm = bX(i,j)*(x(i,j)-x(i-1,j))
              if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
-                fracy = abs(fcx(i,j))
                 jj = j + int(sign(one,fcx(i,j)))
+                fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
                 fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(x(i,jj)-x(i-1,jj))
              end if
 
              fxp = bX(i+1,j)*(x(i+1,j)-x(i,j))
              if (apx(i+1,j).ne.zero .and. apx(i+1,j).ne.one) then
-                fracy = abs(fcx(i+1,j))
                 jj = j + int(sign(one,fcx(i+1,j)))
+                fracy = abs(fcx(i+1,j))*real(ior(ccm(i,jj),ccm(i+1,jj)),amrex_real)
                 fxp = (one-fracy)*fxp + fracy*bX(i+1,jj)*(x(i+1,jj)-x(i,jj))
              end if
 
              fym = bY(i,j)*(x(i,j)-x(i,j-1))
              if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
-                fracx = abs(fcy(i,j))
                 ii = i + int(sign(one,fcy(i,j)))
+                fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
                 fym = (one-fracx)*fym + fracx*bY(ii,j)*(x(ii,j)-x(ii,j-1))
              end if
 
              fyp = bY(i,j+1)*(x(i,j+1)-x(i,j))
              if (apy(i,j+1).ne.zero .and. apy(i,j+1).ne.one) then
-                fracx = abs(fcy(i,j+1))
                 ii = i + int(sign(one,fcy(i,j+1)))
+                fracx = abs(fcy(i,j+1))*real(ior(ccm(ii,j),ccm(ii,j+1)),amrex_real)
                 fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(x(ii,j+1)-x(ii,j))
              end if
 
@@ -131,7 +131,7 @@ contains
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
     real(amrex_real) :: sxm, sxp, sym, syp
-    real(amrex_real) :: omega = 1._amrex_real
+    real(amrex_real), parameter :: omega = 1._amrex_real
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -168,8 +168,8 @@ contains
                 fxm = -bX(i,j)*phi(i-1,j)
                 sxm =  bX(i,j)
                 if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
-                   fracy = abs(fcx(i,j))
                    jj = j + int(sign(one,fcx(i,j)))
+                   fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
                    fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(phi(i,jj)-phi(i-1,jj))
                    sxm = (one-fracy)*sxm
                 end if
@@ -177,8 +177,8 @@ contains
                 fxp =  bX(i+1,j)*phi(i+1,j)
                 sxp = -bX(i+1,j)
                 if (apx(i+1,j).ne.zero .and. apx(i+1,j).ne.one) then
-                   fracy = abs(fcx(i+1,j))
                    jj = j + int(sign(one,fcx(i+1,j)))
+                   fracy = abs(fcx(i+1,j))*real(ior(ccm(i,jj),ccm(i+1,jj)),amrex_real)
                    fxp = (one-fracy)*fxp + fracy*bX(i+1,jj)*(phi(i+1,jj)-phi(i,jj))
                    sxp = (one-fracy)*sxp
                 end if
@@ -186,8 +186,8 @@ contains
                 fym = -bY(i,j)*phi(i,j-1)
                 sym =  bY(i,j)
                 if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
-                   fracx = abs(fcy(i,j))
                    ii = i + int(sign(one,fcy(i,j)))
+                   fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
                    fym = (one-fracx)*fym + fracx*bY(ii,j)*(phi(ii,j)-phi(ii,j-1))
                    sym = (one-fracx)*sym
                 end if
@@ -195,8 +195,8 @@ contains
                 fyp =  bY(i,j+1)*phi(i,j+1)
                 syp = -bY(i,j+1)
                 if (apy(i,j+1).ne.zero .and. apy(i,j+1).ne.one) then
-                   fracx = abs(fcy(i,j+1))
                    ii = i + int(sign(one,fcy(i,j+1)))
+                   fracx = abs(fcy(i,j+1))*real(ior(ccm(ii,j),ccm(ii,j+1)),amrex_real)
                    fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
                    syp = (one-fracx)*syp
                 end if
@@ -237,8 +237,8 @@ contains
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
 
-    integer :: i,j
-    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma
+    integer :: i,j,ii,jj
+    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, fracx, fracy
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -250,10 +250,33 @@ contains
                   &                          + dhy*(bY(i,j)+bY(i,j+1)))
           else if (is_single_valued_cell(flag(i,j))) then
 
-             sxm =  bX(i,j)   * (one-abs(fcx(i,j)))
-             sxp = -bX(i+1,j) * (one-abs(fcx(i+1,j)))
-             sym =  bY(i,j)   * (one-abs(fcy(i,j)))
-             syp = -bY(i,j+1) * (one-abs(fcy(i,j+1)))
+             sxm =  bX(i,j)
+             if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
+                jj = j + int(sign(one,fcx(i,j)))
+                fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
+                sxm = (one-fracy)*sxm
+             end if
+                
+             sxp = -bX(i+1,j)
+             if (apx(i+1,j).ne.zero .and. apx(i+1,j).ne.one) then
+                jj = j + int(sign(one,fcx(i+1,j)))
+                fracy = abs(fcx(i+1,j))*real(ior(ccm(i,jj),ccm(i+1,jj)),amrex_real)
+                sxp = (one-fracy)*sxp
+             end if
+                
+             sym =  bY(i,j)
+             if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
+                ii = i + int(sign(one,fcy(i,j)))
+                fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
+                sym = (one-fracx)*sym
+             end if
+                
+             syp = -bY(i,j+1)
+             if (apy(i,j+1).ne.zero .and. apy(i,j+1).ne.one) then
+                ii = i + int(sign(one,fcy(i,j+1)))
+                fracx = abs(fcy(i,j+1))*real(ior(ccm(ii,j),ccm(ii,j+1)),amrex_real)
+                syp = (one-fracx)*syp
+             end if
 
              gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
                   (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
