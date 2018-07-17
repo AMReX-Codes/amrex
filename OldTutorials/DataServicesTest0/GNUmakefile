@@ -17,7 +17,7 @@ USE_PROFPARSER = TRUE
 DIM       = 3 
 USE_MPI   = FALSE
 USE_MPI   = TRUE
-COMP      = intel
+COMP      = gnu
 
 HERE = .
 

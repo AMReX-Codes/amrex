@@ -1,16 +1,21 @@
-#ifndef _ABec2_F_H_
-#define _ABec2_F_H_
+#ifndef AMREX_ABec2_F_H_
+#define AMREX_ABec2_F_H_
 
 #include <AMReX_BLFort.H>
 
-BL_FORT_PROC_DECL(AB2_BNDRYRLX, ab2_bndryrlx)
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    void amrex_ab2_bndryrlx
     ( const int lo[], const int hi[],
       BL_FORT_FAB_ARG(f),
       const BL_FORT_IFAB_ARG(m),
       const int* cdir, const int* bct,
       const amrex_real* bcl, const int* maxorder, const amrex_real dx[] );
 
-BL_FORT_PROC_DECL(AB2_GSRB, ab2_gsrb)
+    void amrex_ab2_gsrb
     ( const int tlo[], const int thi[],
       const int blo[], const int bhi[],
       BL_FORT_FAB_ARG(soln),
@@ -32,7 +37,7 @@ BL_FORT_PROC_DECL(AB2_GSRB, ab2_gsrb)
 #endif
       const int* nc, const amrex_real dx[], const int* redBlackFlag);
 
-BL_FORT_PROC_DECL(AB2_JACOBI, ab2_jacobi)
+    void amrex_ab2_jacobi
     ( const int lo[], const int hi[],
       BL_FORT_FAB_ARG(soln),
       const BL_FORT_FAB_ARG(res),
@@ -52,5 +57,9 @@ BL_FORT_PROC_DECL(AB2_JACOBI, ab2_jacobi)
       const BL_FORT_FAB_ARG(f5),const BL_FORT_IFAB_ARG(m5),
 #endif
       const int* nc, const amrex_real dx[]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_ABec2_F_H_*/

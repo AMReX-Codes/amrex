@@ -4,7 +4,7 @@ module amrex_fab_module
   use iso_c_binding
   use amrex_fort_module
   use amrex_box_module
-  use mempool_module
+  use amrex_mempool_module
 
   implicit none
   private

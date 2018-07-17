@@ -1,6 +1,6 @@
 
-#ifndef _ABec4_H_
-#define _ABec4_H_
+#ifndef AMREX_ABec4_H_
+#define AMREX_ABec4_H_
 
 #include <AMReX_Tuple.H>
 #include <AMReX_LinOp.H>

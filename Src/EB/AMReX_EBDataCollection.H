@@ -4,18 +4,24 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_EBSupport.H>
+#include <AMReX_Array.H>
 
 namespace amrex {
 
 template <class T> class FabArray;
 class MultiFab;
 class MultiCutFab;
+namespace EB2 { class Level; }
 
 class EBDataCollection
 {
 public:
 
     EBDataCollection (const Geometry& a_geom, const BoxArray& a_ba, const DistributionMapping& a_dm,
+                      const Vector<int>& a_ngrow, EBSupport a_support);
+
+    EBDataCollection (const EB2::Level& a_level, const Geometry& a_geom,
+                      const BoxArray& a_ba, const DistributionMapping& a_dm,
                       const Vector<int>& a_ngrow, EBSupport a_support);
 
     ~EBDataCollection ();
@@ -27,9 +33,10 @@ public:
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
     const MultiFab& getVolFrac () const;
+    const MultiCutFab& getCentroid () const;
     const MultiCutFab& getBndryCent () const;
-    std::array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
-    std::array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
+    Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
+    Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
 
 private:
 
@@ -42,11 +49,14 @@ private:
     // EBSupport::basic
     FabArray<EBCellFlagFab>* m_cellflags = nullptr;
 
-    // EBSupport::geometry
+    // EBSupport::volume
     MultiFab* m_volfrac = nullptr;
+    MultiCutFab* m_centroid = nullptr;
+
+    // EBSupport::full
     MultiCutFab* m_bndrycent = nullptr;
-    std::array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
-    std::array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    Array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    Array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
 };
 
 }

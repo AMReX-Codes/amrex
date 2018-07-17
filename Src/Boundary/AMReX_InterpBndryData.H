@@ -1,6 +1,6 @@
 
-#ifndef _INTERPBNDRYDATA_H_
-#define _INTERPBNDRYDATA_H_
+#ifndef AMREX_INTERPBNDRYDATA_H_
+#define AMREX_INTERPBNDRYDATA_H_
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_FArrayBox.H>
@@ -131,6 +131,8 @@ public:
 
     void updateBndryValues (BndryRegister& crse, int c_start, int bnd_start, int num_comp,
                             int ratio, int max_order = IBD_max_order_DEF);
+
+    void setHomogValues ();
     
     static int IBD_max_order_DEF;
 

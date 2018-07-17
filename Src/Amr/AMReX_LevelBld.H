@@ -1,6 +1,6 @@
 
-#ifndef _LEVELBLD_H_
-#define _LEVELBLD_H_
+#ifndef AMREX_LEVELBLD_H_
+#define AMREX_LEVELBLD_H_
 
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>

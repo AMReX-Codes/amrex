@@ -1,6 +1,11 @@
 
+#include <cmath>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_ParmParse.H>
+
+#ifdef AMREX_USE_EB
+#include <AMReX_EBTower.H>
+#endif
 
 namespace amrex {
 
@@ -22,7 +27,8 @@ void
 MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info)
+                 const LPInfo& a_info,
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLLinOp::define()");
 
@@ -34,7 +40,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
     info = a_info;
-    defineGrids(a_geom, a_grids, a_dmap);
+    defineGrids(a_geom, a_grids, a_dmap, a_factory);
     defineAuxData();
     defineBC();
 }
@@ -42,7 +48,8 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 void
 MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
-                      const Vector<DistributionMapping>& a_dmap)
+                      const Vector<DistributionMapping>& a_dmap,
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
@@ -54,8 +61,9 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
+    m_factory.resize(m_num_amr_levels);
 
-    m_default_comm = ParallelDescriptor::Communicator();
+    m_default_comm = ParallelContext::CommunicatorSub();
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -64,10 +72,15 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         m_geom[amrlev].push_back(a_geom[amrlev]);
         m_grids[amrlev].push_back(a_grids[amrlev]);
         m_dmap[amrlev].push_back(a_dmap[amrlev]);
+        if (amrlev < a_factory.size()) {
+            m_factory[amrlev].emplace_back(a_factory[amrlev]->clone());
+        } else {
+            m_factory[amrlev].emplace_back(new FArrayBoxFactory());
+        }
 
         int rr = mg_coarsen_ratio;
         const Box& dom = a_geom[amrlev].Domain();
-        for (int i = 0; i < 30; ++i)
+        for (int i = 0; i < info.max_coarsening_level; ++i)
         {
             if (!dom.coarsenable(rr)) amrex::Abort("MLLinOp: Uncoarsenable domain");
 
@@ -95,6 +108,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_geom[0].push_back(a_geom[0]);
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
+    if (a_factory.size() > 0) {
+        m_factory[0].emplace_back(a_factory[0]->clone());
+    } else {
+        m_factory[0].emplace_back(new FArrayBoxFactory());
+    }
 
     m_domain_covered.resize(m_num_amr_levels, false);
     auto npts0 = m_grids[0][0].numPts();
@@ -152,11 +170,49 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
         int first_agglev = std::distance(agg_flag.begin(),
                                          std::find(agg_flag.begin(),agg_flag.end(),1));
-        int nmaxlev = domainboxes.size();
+        int nmaxlev = std::min(static_cast<int>(domainboxes.size()),
+                               info.max_coarsening_level + 1);
         int rr = mg_coarsen_ratio;
-        for (int lev = 1; lev < nmaxlev; ++lev)
+
+        // We may have to agglomerate earlier because the original
+        // BoxArray has to be coarsenable to the first agglomerated
+        // level or the bottom level and in amrex::average_down the
+        // fine BoxArray needs to be coarsenable (unless we make
+        // average_down more general).
+        int last_coarsenableto_lev = 0;
+        for (int lev = std::min(nmaxlev,first_agglev); lev >= 1; --lev) {
+            int ratio = static_cast<int>(std::pow(rr,lev));
+            if (a_grids[0].coarsenable(ratio, mg_box_min_width)) {
+                last_coarsenableto_lev = lev;
+                break;
+            }
+        }
+
+        // We now know we could coarsen the original BoxArray to at
+        // least last_coarsenableto_lev.  last_coarsenableto_lev == 0
+        // means the original BoxArray is not coarsenable even once.
+
+        if (last_coarsenableto_lev > 0)
         {
-            if (lev >= first_agglev or !a_grids[0].coarsenable(rr,mg_box_min_width))
+            // last_coarsenableto_lev will be the first agglomeration level, except
+            if (last_coarsenableto_lev == nmaxlev-1 && first_agglev > nmaxlev-1) {
+                // then there is no reason to agglomerate
+                last_coarsenableto_lev = nmaxlev;
+            }
+
+            for (int lev = 1; lev < last_coarsenableto_lev; ++lev)
+            {
+                m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+                
+                m_grids[0].push_back(a_grids[0]);
+                m_grids[0].back().coarsen(rr);
+            
+                m_dmap[0].push_back(a_dmap[0]);
+                
+                rr *= mg_coarsen_ratio;
+            }
+
+            for (int lev = last_coarsenableto_lev; lev < nmaxlev; ++lev)
             {
                 m_geom[0].emplace_back(domainboxes[lev]);
             
@@ -166,18 +222,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 m_dmap[0].push_back(DistributionMapping());
                 agged = true;
             }
-            else
-            {
-                m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
-                
-                m_grids[0].push_back(a_grids[0]);
-                m_grids[0].back().coarsen(rr);
-            
-                m_dmap[0].push_back(a_dmap[0]);
-            }
 
-            ++(m_num_mg_levels[0]);
-            rr *= mg_coarsen_ratio;
+            m_num_mg_levels[0] = m_grids[0].size();
         }
     }
     else
@@ -185,12 +231,13 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         int rr = mg_coarsen_ratio;
         Real avg_npts, threshold_npts;
         if (info.do_consolidation) {
-            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
+            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
             threshold_npts = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
                                                             *info.con_grid_size,
                                                             *info.con_grid_size));
         }
-        while (a_geom[0].Domain().coarsenable(rr)
+        while (m_num_mg_levels[0] < info.max_coarsening_level + 1
+               and a_geom[0].Domain().coarsenable(rr)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
             m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
@@ -240,6 +287,20 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     m_do_agglomeration = agged;
     m_do_consolidation = coned;
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_factory[amrlev].emplace_back(new FArrayBoxFactory());
+        }
+    }
+
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        AMREX_ASSERT_WITH_MESSAGE(m_grids[amrlev][0].coarsenable(m_amr_ref_ratio[amrlev-1]),
+                                  "MLLinOp: grids not coarsenable between AMR levels");
+    }
 }
 
 void
@@ -310,7 +371,14 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
     
-    MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+    if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
+        MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+    } else {
+        Vector<int> local_newgrp_ranks(newgrp_ranks.size());
+        ParallelContext::global_to_local_rank(local_newgrp_ranks.data(),
+                                              newgrp_ranks.data(), newgrp_ranks.size());
+        MPI_Group_incl(defgrp, local_newgrp_ranks.size(), local_newgrp_ranks.data(), &newgrp);
+    }
 
     MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
     m_raii_comm.reset(new CommContainer(newcomm));
@@ -336,16 +404,17 @@ MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
         {
             const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
             
-            const int nprocs = ParallelDescriptor::NProcs();
+            const int nprocs = ParallelContext::NProcsSub();
             AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
             
             Vector<int> pmap(ba[i].size());
             for (int iproc = 0; iproc < nprocs; ++iproc) {
+                int grank = ParallelContext::local_to_global_rank(iproc);
                 for (int ibox : sfc[iproc]) {
-                    pmap[ibox] = iproc;
+                    pmap[ibox] = grank;
                 }
             }
-            dm[i].define(pmap);
+            dm[i].define(std::move(pmap));
         }
     }
 }
@@ -365,8 +434,10 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
         {
             factor *= ratio;
 
-            const int nprocs = ParallelDescriptor::NProcs();
-            Vector<int> pmap = dm[i-1].ProcessorMap();
+            const int nprocs = ParallelContext::NProcsSub();
+            const auto& pmap_fine = dm[i-1].ProcessorMap();
+            Vector<int> pmap(pmap_fine.size());
+            ParallelContext::global_to_local_rank(pmap.data(), pmap_fine.data(), pmap.size()); 
             if (strategy == 1) {
                 for (auto& x: pmap) {
                     x /= ratio;
@@ -391,7 +462,14 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
                     x /= ratio;
                 }
             }
-            dm[i].define(pmap);
+
+            if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
+                dm[i].define(std::move(pmap));
+            } else {
+                Vector<int> pmap_g(pmap.size());
+                ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
+                dm[i].define(std::move(pmap_g));
+            }
         }
     }
 }

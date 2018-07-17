@@ -1,16 +1,5 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-#ifndef _EBISLEVEL_H_
-#define _EBISLEVEL_H_
+#ifndef AMREX_EBISLEVEL_H_
+#define AMREX_EBISLEVEL_H_
 #include <map>
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"
@@ -82,9 +71,7 @@ namespace amrex
   {
   public:
 
-    EBISLevel()
-      {
-      }
+    EBISLevel() = default;
 
     ///
     /**
@@ -123,6 +110,22 @@ namespace amrex
         return m_domain;
       }
 
+    ///return true if this refinement contains multivalued cells.
+    /**
+       if this has not been called before, this generates a blocking communication
+     */
+    bool hasMultiValuedCells() const
+      {
+        if(!m_alreadyCheckedForMVCells)
+        {
+          checkForMultiValuedCells();
+        }
+        return m_hasMultiValuedCells;
+      }
+    
+    ///
+    void checkForMultiValuedCells() const;
+
     ///
     void fixRegularNextToMultiValued();
          
@@ -140,6 +143,9 @@ namespace amrex
     void  readHeader(const string& a_dirname);
 
     const FabArray<EBGraph>& getGraph () const { return m_graph; }
+
+    ///get dx
+    Real getDx () const { return m_dx; }
 
   protected:
 
@@ -173,6 +179,12 @@ namespace amrex
     ///
     bool m_build_eb_surface;
 
+    bool m_hasMoments;
+
+    //only generated if needed (ergo mutable).
+    mutable bool m_hasMultiValuedCells;
+
+    mutable bool m_alreadyCheckedForMVCells = false;
     void defineFromGeometryService(const GeometryService &  a_geoserver);
     void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);
 

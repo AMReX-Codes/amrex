@@ -12,7 +12,7 @@ Periodicity::shiftIntVect () const
     int per[3] = {0,0,0};
     int jmp[3] = {1,1,1};
 
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (isPeriodic(i)) {
 	    per[i] = jmp[i] = period[i];
 	}
@@ -33,7 +33,7 @@ Box
 Periodicity::Domain () const
 {
     Box pdomain;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (isPeriodic(i)) {
 	    pdomain.setSmall(i,0);
 	    pdomain.setBig  (i,period[i]-1);

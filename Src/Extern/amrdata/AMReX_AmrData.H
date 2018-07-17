@@ -100,6 +100,9 @@ class AmrData {
   void  LoNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const;
   void  HiNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const;
 
+  // Return grid spacing at level iLevel
+  Vector<Real> CellSize(int iLevel) const { return dxLevel[iLevel]; }
+
   // find the IntVect given a physical location
   // returns the intvect, the finest level it is contained on,
   // and the intvect at the given finest level
@@ -160,7 +163,9 @@ class AmrData {
   int NIntersectingGrids(int level, const Box &b) const;
   MultiFab &GetGrids(int level, int componentIndex);
   MultiFab &GetGrids(int level, int componentIndex, const Box &onBox);
-  void FlushGrids(int componentIndex);
+
+  void FlushGrids(); // Clear all internal field data
+  void FlushGrids(int componentIndex); // Clear all internal field data associated with this component
   
   // calculate the min and max values of derived on onBox at level
   // return false if onBox did not intersect any grids

@@ -1,6 +1,6 @@
 
-#ifndef _MULTIGRID_H_
-#define _MULTIGRID_H_
+#ifndef AMREX_MULTIGRID_H_
+#define AMREX_MULTIGRID_H_
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -103,8 +103,6 @@ public:
     // return the linear operator
     //
     LinOp& linOp () { return Lp; }
-    //
-    ParallelDescriptor::Color color() const { return Lp.color(); }
     //
     // set the maximum permitted multigrid iterations
     //

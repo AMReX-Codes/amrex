@@ -4,6 +4,7 @@ module my_amr_module
   use amrex_amr_module
   use amrex_fort_module, only : rt => amrex_real
 
+  use amrex_particlecontainer_module, only: amrex_particlecontainer_finalize
   use amr_data_module
 
   implicit none
@@ -93,13 +94,14 @@ contains
     end do
 
     allocate(dt(0:amrex_max_level))
-    dt = 1.e100
+    dt = huge(1._rt)
 
     call amr_data_init()
   end subroutine my_amr_init
 
 
   subroutine my_amr_finalize ()
+    call amrex_particlecontainer_finalize()
     call amr_data_finalize()
   end subroutine my_amr_finalize
 

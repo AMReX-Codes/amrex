@@ -116,7 +116,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 
             for (int n = 0; n < extradata; n++)
             {
-                ifs >> p.m_rdata.arr[BL_SPACEDIM+n];
+                ifs >> p.m_rdata.arr[AMREX_SPACEDIM+n];
             }
 
             if (!ifs.good())
@@ -132,12 +132,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 
                 if (!Where(p, pld))
                 {
-                    amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
-                                      << "BAD PARTICLE POS " 
-                                      << AMREX_D_TERM(   p.m_rdata.pos[0],
-                                                << p.m_rdata.pos[1],
-                                                << p.m_rdata.pos[2])
-                                      << "\n";
+                    if (m_verbose) {
+                        amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
+                                          << "BAD PARTICLE POS " 
+                                          << AMREX_D_TERM(   p.m_rdata.pos[0],
+                                                             << p.m_rdata.pos[1],
+                                                             << p.m_rdata.pos[2])
+                                          << "\n";
+                    }
                     amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid particle");
                 }
             }
@@ -150,12 +152,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
             how_many++;
             how_many_read++;
 
-            const Real DomSize[BL_SPACEDIM] = { AMREX_D_DECL((geom.ProbHi(0)-geom.ProbLo(0))/lNrep[0],
+            const Real DomSize[AMREX_SPACEDIM] = { AMREX_D_DECL((geom.ProbHi(0)-geom.ProbLo(0))/lNrep[0],
                                                        (geom.ProbHi(1)-geom.ProbLo(1))/lNrep[1],
                                                        (geom.ProbHi(2)-geom.ProbLo(2))/lNrep[2]) };
-            int rep[BL_SPACEDIM];
+            int rep[AMREX_SPACEDIM];
 
-#if BL_SPACEDIM==3
+#if AMREX_SPACEDIM==3
             for (rep[2] = 1; rep[2] <= lNrep[2]; rep[2]++)
             {
 #endif
@@ -168,7 +170,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
                             //
                             // Shift the position.
                             //
-                            for (int d=0; d<BL_SPACEDIM; ++d)
+                            for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
                                 p_rep.m_rdata.pos[d] = p.m_rdata.pos[d] + (rep[d]-1)*DomSize[d];
                             }
@@ -176,14 +178,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
                             // Copy the mass and velocity.
                             //
                             for (int n = 0; n < extradata; n++)
-                                p_rep.m_rdata.arr[BL_SPACEDIM+n] = p.m_rdata.arr[BL_SPACEDIM+n];
+                                p_rep.m_rdata.arr[AMREX_SPACEDIM+n] = p.m_rdata.arr[AMREX_SPACEDIM+n];
 
                             if (!Where(p_rep, pld))
                             {
                                 PeriodicShift(p_rep);
                                 if (!Where(p_rep, pld))
                                 {
-                                    amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
+                                    if (m_verbose) {
+                                        amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
+                                    }
                                     amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
@@ -202,7 +206,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
                         }
                     }
                 }
-#if BL_SPACEDIM==3
+#if AMREX_SPACEDIM==3
             }
 #endif
         }
@@ -467,10 +471,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
         if (NP <= 0)
             amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): NP <= 0");
         //
-        // DM must equal BL_SPACEDIM.
+        // DM must equal AMREX_SPACEDIM.
         //
-        if (DM != BL_SPACEDIM)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): DM != BL_SPACEDIM");
+        if (DM != AMREX_SPACEDIM)
+            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): DM != AMREX_SPACEDIM");
         //
         // NX MUST be in [0,N].
         //
@@ -582,9 +586,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                 //
                 if (RealSizeInFile == sizeof(float))
                 {
-                    float fpos[BL_SPACEDIM];
+                    float fpos[AMREX_SPACEDIM];
 
-                    ifs.read((char*)&fpos[0], BL_SPACEDIM*sizeof(float));
+                    ifs.read((char*)&fpos[0], AMREX_SPACEDIM*sizeof(float));
 
                     AMREX_D_TERM(p.m_rdata.pos[0] = fpos[0];,
                            p.m_rdata.pos[1] = fpos[1];,
@@ -593,9 +597,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                 }
                 else if (RealSizeInFile == sizeof(double))
                 {
-                    double dpos[BL_SPACEDIM];
+                    double dpos[AMREX_SPACEDIM];
 
-                    ifs.read((char*)&dpos[0], BL_SPACEDIM*sizeof(double));
+                    ifs.read((char*)&dpos[0], AMREX_SPACEDIM*sizeof(double));
 
                     AMREX_D_TERM(p.m_rdata.pos[0] = dpos[0];,
                            p.m_rdata.pos[1] = dpos[1];,
@@ -612,14 +616,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                         ifs.read((char*)&fxtra[0], extradata*sizeof(float));
 
                         for (int ii = 0; ii < extradata; ii++)
-                            p.m_rdata.arr[BL_SPACEDIM+ii] = fxtra[ii];
+                            p.m_rdata.arr[AMREX_SPACEDIM+ii] = fxtra[ii];
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
                         ifs.read((char*)&dxtra[0], extradata*sizeof(double));
 
                         for (int ii = 0; ii < extradata; ii++)
-                            p.m_rdata.arr[BL_SPACEDIM+ii] = dxtra[ii];
+                            p.m_rdata.arr[AMREX_SPACEDIM+ii] = dxtra[ii];
                     }
                 }
                 //
@@ -651,12 +655,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
                     if (!Where(p, pld))
                     {
-                        amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
-                                          << "BAD PARTICLE POS " 
-                                          << AMREX_D_TERM(   p.m_rdata.pos[0],
-                                                    << p.m_rdata.pos[2],
-                                                    << p.m_rdata.pos[3])
-                                          << "\n";
+                        if (m_verbose) {
+                            amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
+                                              << "BAD PARTICLE POS " 
+                                              << AMREX_D_TERM(   p.m_rdata.pos[0],
+                                                                 << p.m_rdata.pos[2],
+                                                                 << p.m_rdata.pos[3])
+                                              << "\n";
+                        }
                         amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
                     }
                 }
@@ -785,7 +791,7 @@ InitRandom (long                    icount,
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = Geom(0);
 
-    Real r, x, len[BL_SPACEDIM] = { AMREX_D_DECL(geom.ProbLength(0),
+    Real r, x, len[AMREX_SPACEDIM] = { AMREX_D_DECL(geom.ProbLength(0),
                                            geom.ProbLength(1),
                                            geom.ProbLength(2)) };
 
@@ -810,13 +816,13 @@ InitRandom (long                    icount,
         // very large numbers of particles.
         //
         //
-        Vector<typename ParticleType::RealType> pos(icount*BL_SPACEDIM);
+        Vector<typename ParticleType::RealType> pos(icount*AMREX_SPACEDIM);
 
         if (ParallelDescriptor::IOProcessor())
         {
             for (long j = 0; j < icount; j++)
             {
-                for (int i = 0; i < BL_SPACEDIM; i++)
+                for (int i = 0; i < AMREX_SPACEDIM; i++)
                 {
                     do
                     {
@@ -825,12 +831,12 @@ InitRandom (long                    icount,
                     }
                     while (x < xlo[i] || x > xhi[i]);
 
-                    pos[j*BL_SPACEDIM + i] = x;
+                    pos[j*AMREX_SPACEDIM + i] = x;
                 }
             }
         }
 
-        ParallelDescriptor::Bcast(pos.dataPtr(), icount*BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(pos.dataPtr(), icount*AMREX_SPACEDIM, IOProc);
 
         ParticleLocData pld;
 
@@ -840,12 +846,12 @@ InitRandom (long                    icount,
         {
             ParticleType p;
 
-            for (int i = 0; i < BL_SPACEDIM; i++) {
-                p.m_rdata.pos[i] = pos[j*BL_SPACEDIM + i];
+            for (int i = 0; i < AMREX_SPACEDIM; i++) {
+                p.m_rdata.pos[i] = pos[j*AMREX_SPACEDIM + i];
             }
 
             for (int i = 0; i < NStructReal; i++) {
-                p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
+                p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
             }
 
             if (!Where(p, pld)) {
@@ -899,7 +905,7 @@ InitRandom (long                    icount,
 
         for (long icnt = 0; icnt < M; icnt++) {
             ParticleType p;
-            for (int i = 0; i < BL_SPACEDIM; i++) {
+            for (int i = 0; i < AMREX_SPACEDIM; i++) {
                 do {
                     r = amrex::Random();
                     x = geom.ProbLo(i) + (r * len[i]);
@@ -912,7 +918,7 @@ InitRandom (long                    icount,
             }
             
             for (int i = 0; i < NStructReal; i++) {
-                p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
+                p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
             }
             
             // the int struct data
@@ -1007,12 +1013,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             p.pos(1) = grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box;
             p.pos(2) = grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box;
             
-            for (int i = 0; i < BL_SPACEDIM; i++)
+            for (int i = 0; i < AMREX_SPACEDIM; i++)
                 BL_ASSERT(p.pos(i) < grid_box.hi(i));
 
             // the real struct data
             for (int i = 0; i < NStructReal; i++) {
-                p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
+                p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
             }
 
             // the int struct data
@@ -1093,12 +1099,12 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
                    p.m_rdata.pos[1] = grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1];,
                    p.m_rdata.pos[2] = grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2];);
             
-            for (int d = 0; d < BL_SPACEDIM; ++d) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 BL_ASSERT(p.m_rdata.pos[d] < grid_box.hi(d));
             }
 
             for (int i = 0; i < NStructReal; i++) {
-                p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
+                p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
             }
 
             // the int struct data
@@ -1178,14 +1184,14 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
             for (int n = 0; n < n_per_cell; n++)
             {
                 // the real struct data
-                for (int i = 0; i < BL_SPACEDIM; i++) {
+                for (int i = 0; i < AMREX_SPACEDIM; i++) {
                     r = amrex::Random();
                     p.m_rdata.pos[i] = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
                     BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
                 }
                                 
                 for (int i = 0; i < NStructReal; i++) {
-                    p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
+                    p.m_rdata.arr[AMREX_SPACEDIM + i] = pdata.real_struct_data[i];
                 }
 
                 // the int struct data

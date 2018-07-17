@@ -17,6 +17,15 @@ extern "C" {
                              const amrex_real* dxinv,
                              const amrex_real alpha, const amrex_real beta);
 
+    void amrex_mlalap_normalize (const int* lo, const int* hi,
+                                 amrex_real* x, const int* xlo, const int* xhi,
+                                 const amrex_real* a, const int* alo, const int* ahi,
+#if (AMREX_SPACEDIM != 3)
+                                 const amrex_real* rc, const amrex_real* re, const int* rlo, const int* rhi,
+#endif
+                                 const amrex_real* dxinv,
+                                 const amrex_real alpha, const amrex_real beta);
+
     void amrex_mlalap_flux (const int* lo, const int* hi,
                             amrex_real* fx, const int* fxlo, const int* fxhi,
 #if (AMREX_SPACEDIM >= 2)

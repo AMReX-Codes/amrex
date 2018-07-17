@@ -18,7 +18,8 @@ public:
     MLABecLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
-                     const LPInfo& a_info = LPInfo());
+                     const LPInfo& a_info = LPInfo(),
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLABecLaplacian ();
 
     MLABecLaplacian (const MLABecLaplacian&) = delete;
@@ -29,7 +30,8 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo());
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
     void setScalars (Real a, Real b);
     void setACoeffs (int amrlev, const MultiFab& alpha);
@@ -45,7 +47,15 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
+
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final;
+
+    virtual Real getAScalar () const final { return m_a_scalar; }
     virtual Real getBScalar () const final { return m_b_scalar; }
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final
+        { return &(m_a_coeffs[amrlev][mglev]); }
+    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
+        { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final {
         amrex::Abort("MLABecLaplacian::makeNLinOp: Not implmented");

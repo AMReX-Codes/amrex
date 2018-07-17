@@ -1,6 +1,6 @@
 
-#ifndef _MCINTERPBNDRYDATA_H_
-#define _MCINTERPBNDRYDATA_H_
+#ifndef AMREX_MCINTERPBNDRYDATA_H_
+#define AMREX_MCINTERPBNDRYDATA_H_
 
 #include <AMReX_BLassert.H>
 #include <AMReX_BoxArray.H>

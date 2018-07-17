@@ -1,9 +1,10 @@
-#ifndef _NEIGHBORPARTICLES_H_
-#define _NEIGHBORPARTICLES_H_
+#ifndef AMREX_NEIGHBORPARTICLES_H_
+#define AMREX_NEIGHBORPARTICLES_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_Particles.H"
+#include "AMReX_Particles_F.H"
 
 namespace amrex {
 
@@ -21,7 +22,7 @@ namespace amrex {
 /// Note: For the neighbor particles, we don't communicate the integer components, only the
 /// real data.
 ///
-template <int NStructReal, int NStructInt, int NNeighborReal>
+template <int NStructReal, int NStructInt>
 class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
 {
@@ -120,10 +121,7 @@ public:
     ///
     /// This builds the internal data structure used for looking up neighbors
     ///
-    void BuildLevelMask(int lev, 
-                        const Geometry &geom, 
-                        const DistributionMapping &dmap, 
-                        const BoxArray &ba );
+    void BuildLevelMask(int lev);
 
     ///
     /// This fills the neighbor buffers for each tile with the proper data
@@ -145,7 +143,8 @@ public:
     ///
     /// Build a Neighbor List for each tile
     ///
-    void buildNeighborList(int lev, bool sort=false);
+    template <class CheckPair>
+    void buildNeighborList(int lev, CheckPair check_pair, bool sort=false);
 
     void buildNeighborListFort(int lev, bool sort=false);
 
@@ -172,14 +171,10 @@ protected:
     ///
     void getRcvCountsMPI();
 
-    virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
-        return false;
-    };
-
     size_t cdata_size;
     int num_neighbor_cells;
     amrex::Vector<NeighborCommTag> local_neighbors;
-    std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
+    std::unique_ptr<iMultiFab> mask_ptr;
 
     std::map<PairIndex, Vector<Vector<NeighborCopyTag> > > buffer_tag_cache;
     std::map<PairIndex, int> local_neighbor_sizes;
@@ -191,7 +186,7 @@ protected:
     long num_snds;
     std::map<int, Vector<char> > send_data;
 
-    std::array<bool, BL_SPACEDIM + NStructReal> rc; 
+    std::array<bool, AMREX_SPACEDIM + NStructReal> rc; 
     std::array<bool, 2 + NStructInt>  ic;
 };
 

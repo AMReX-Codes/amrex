@@ -20,7 +20,8 @@ int main(int argc, char* argv[])
     const Real strt_total = ParallelDescriptor::second();
 
     {
-	// declare an AmrCoreAdv object to manage multilevel data
+        // constructor - reads in parameters from inputs file
+        //             - sizes multilevel arrays and data structures
         AmrCoreAdv amr_core_adv;
 	
         // initialize AMR data

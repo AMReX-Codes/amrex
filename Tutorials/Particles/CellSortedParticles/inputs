@@ -1,0 +1,7 @@
+
+ncell = (32, 32, 32)
+nppc  = (4, 4, 4)
+
+max_grid_size = 16
+
+nsteps = 10

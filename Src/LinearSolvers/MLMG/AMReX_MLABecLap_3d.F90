@@ -5,7 +5,7 @@ module amrex_mlabeclap_3d_module
   implicit none
 
   private
-  public :: amrex_mlabeclap_adotx, amrex_mlabeclap_flux
+  public :: amrex_mlabeclap_adotx, amrex_mlabeclap_normalize, amrex_mlabeclap_flux
 
 contains
 
@@ -44,6 +44,39 @@ contains
        end do
     end do
   end subroutine amrex_mlabeclap_adotx
+
+
+  subroutine amrex_mlabeclap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
+       bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, dxinv, alpha, beta) &
+       bind(c,name='amrex_mlabeclap_normalize')
+    integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, alo, ahi, bxlo, bxhi, &
+         bylo, byhi, bzlo, bzhi
+    real(amrex_real), intent(in) :: dxinv(3)
+    real(amrex_real), value, intent(in) :: alpha, beta
+    real(amrex_real), intent(inout) ::  x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3))
+    real(amrex_real), intent(in   ) ::  a( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3))
+    real(amrex_real), intent(in   ) :: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3))
+    real(amrex_real), intent(in   ) :: by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
+    real(amrex_real), intent(in   ) :: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
+    
+    integer :: i,j,k
+    real(amrex_real) :: dhx, dhy, dhz
+
+    dhx = beta*dxinv(1)*dxinv(1)
+    dhy = beta*dxinv(2)*dxinv(2)
+    dhz = beta*dxinv(3)*dxinv(3)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             x(i,j,k) = x(i,j,k) / &
+                  (alpha*a(i,j,k) + dhx*(bX(i,j,k)+bX(i+1,j,k)) &
+                  &               + dhy*(bY(i,j,k)+bY(i,j+1,k)) &
+                  &               + dhz*(bZ(i,j,k)+bZ(i,j,k+1)))
+          end do
+       end do
+    end do
+  end subroutine amrex_mlabeclap_normalize
 
   
   subroutine amrex_mlabeclap_flux (lo, hi, fx, fxlo, fxhi, fy, fylo, fyhi, &

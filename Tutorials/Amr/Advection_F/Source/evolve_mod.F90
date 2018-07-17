@@ -2,6 +2,9 @@ module evolve_module
 
   use amrex_amr_module
 
+  use amrex_particlecontainer_module, only: amrex_particle_redistribute, &
+       amrex_get_particles, amrex_particle
+  
   implicit none
   private
 
@@ -69,7 +72,8 @@ contains
     
     integer, allocatable, save :: last_regrid_step(:)
     integer :: k, old_finest_level, finest_level, fine_substep
-
+    integer :: redistribute_ngrow
+    
     if (regrid_int .gt. 0) then
        if (.not.allocated(last_regrid_step)) then
           allocate(last_regrid_step(0:amrex_max_level))
@@ -89,8 +93,10 @@ contains
              end do
 
              do k = old_finest_level+1, finest_level
-                dt(k) = dt(k-1) / amrex_ref_ratio(k-1)             
+                dt(k) = dt(k-1) / amrex_ref_ratio(k-1)
              end do
+
+             call amrex_particle_redistribute(lev)
           end if
        end if
     end if
@@ -115,7 +121,17 @@ contains
        end if
 
        call averagedownto(lev)
-    end if    
+    end if
+
+    if ((substep < nsubsteps(lev)) .or. lev == 0) then
+       if (lev == 0) then
+          redistribute_ngrow = 0
+       else
+          redistribute_ngrow = substep
+       end if
+       call amrex_particle_redistribute(lev, amrex_get_finest_level(), redistribute_ngrow)
+    end if
+  
   end subroutine timestep
 
   ! update phi_new(lev)
@@ -123,7 +139,7 @@ contains
     use my_amr_module, only : verbose, do_reflux
     use amr_data_module, only : phi_new, flux_reg
     use face_velocity_module, only : get_face_velocity
-    use advect_module, only : advect
+    use advect_module, only : advect, advect_particles
     use fillpatch_module, only : fillpatch
     integer, intent(in) :: lev, step, substep, nsub
     real(amrex_real), intent(in) :: time, dt
@@ -139,7 +155,8 @@ contains
     type(amrex_fab) :: uface(amrex_spacedim)
     type(amrex_fab) ::  flux(amrex_spacedim)
     type(amrex_multifab) :: fluxes(amrex_spacedim)
-
+    type(amrex_particle), pointer :: particles(:)
+    
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, 1X, A, 1X, I0, A, 1X, G0)') &
             "[Level", lev, "step", step, "] ADVANCE with dt =", dt
@@ -159,7 +176,7 @@ contains
 
     call fillpatch(lev, time, phiborder)
 
-    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux)
+    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux,particles)
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
     do while(mfi%next())
        bx = mfi%tilebox()
@@ -171,7 +188,7 @@ contains
           tbx = bx
           call tbx%nodalize(idim)
           call flux(idim)%resize(tbx,ncomp)
-          call tbx%grow(1)
+          call tbx%grow(substep)
           call uface(idim)%resize(tbx,1)
        end do
 
@@ -216,6 +233,17 @@ contains
                   pfab(tbx%lo(1):tbx%hi(1),tbx%lo(2):tbx%hi(2),tbx%lo(3):tbx%hi(3),:)
           end do
        end if
+
+       ! advance particles on this tile
+       particles => amrex_get_particles(lev, mfi)
+       call advect_particles(particles, size(particles), &
+            pux, lbound(pux), ubound(pux), &
+            puy, lbound(puy), ubound(puy), &
+#if BL_SPACEDIM == 3
+            puz, lbound(puz), ubound(puz), &
+#endif
+            dt, amrex_geom(lev)%dx, amrex_problo)
+       
     end do
     call amrex_mfiter_destroy(mfi)
     do idim = 1, amrex_spacedim

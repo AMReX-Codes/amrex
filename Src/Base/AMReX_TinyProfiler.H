@@ -1,5 +1,5 @@
-#ifndef _TINY_PROFILER_H_
-#define _TINY_PROFILER_H_
+#ifndef AMREX_TINY_PROFILER_H_
+#define AMREX_TINY_PROFILER_H_
 
 #include <string>
 #include <stack>
@@ -26,7 +26,7 @@ public:
     void stop ();
 
     static void Initialize ();
-    static void Finalize ();
+    static void Finalize (bool bFlushing = false);
 
     static void StartRegion (std::string regname);
     static void StopRegion (const std::string& regname);

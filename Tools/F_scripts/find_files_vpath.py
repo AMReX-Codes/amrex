@@ -1,24 +1,29 @@
 #!/usr/bin/env python
 
+"""
+Take a vpath and a list of files and find where in the first vpath the
+first occurrence of the file.
+"""
+
 from __future__ import print_function
 
 import sys
 import os
 import argparse
 
-def find_files(args):
+def find_files(vpath, files_in):
 
     files = []
     not_found = []
 
-    if args.vpath is None:
+    if vpath is None:
         sys.exit("vpath is empty -- nothing to search")
 
-    if args.files is None:
+    if files_in is None:
         sys.exit("files is empty -- nothing to search")
 
-    filenames = args.files.split()
-    vpath = args.vpath.split()
+    filenames = files_in.split()
+    vpath = vpath.split()
 
     for f in filenames:
 
@@ -33,6 +38,23 @@ def find_files(args):
         if not found:
             not_found.append(f)
 
+    return files, not_found
+
+
+def standalone_run():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--vpath", type=str, default=None,
+                        metavar="'list of dirs in vpath'",
+                        help="the list of directories that make will look at to find source files (e.g. the vpath)")
+
+    parser.add_argument("--files", type=str, default=None,
+                        metavar="'list of files'",
+                        help="the list of source files")
+    args = parser.parse_args()
+
+    files, not_found = find_files(args.vpath, args.files)
+
     # output
     print("locations of source files:")
     for f, d in files:
@@ -45,15 +67,4 @@ def find_files(args):
 
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--vpath", type=str, default=None,
-                        metavar="'list of dirs in vpath'",
-                        help="the list of directories that make will look at to find source files (e.g. the vpath)")
-    parser.add_argument("--files", type=str, default=None,
-                        metavar="'list of files'",
-                        help="the list of source files")
-    args = parser.parse_args()
-
-    find_files(args)
+    standalone_run()

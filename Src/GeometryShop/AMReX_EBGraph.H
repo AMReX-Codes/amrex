@@ -1,17 +1,5 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
-#ifndef _EBGRAPH_H_
-#define _EBGRAPH_H_
+#ifndef AMREX_EBGRAPH_H_
+#define AMREX_EBGRAPH_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"
@@ -383,9 +371,10 @@ namespace amrex
            const int& a_dir,
            const Side::LoHiSide& a_sd,
            const int& a_steps) const;
-  private:
 
     void setCellFlags();
+
+  private:
 
     void fixCellFlagType();
 
@@ -482,6 +471,8 @@ namespace amrex
     ~EBGraph();
 
     EBGraph (EBGraph&& rhs) noexcept = default;
+
+      void setCellFlags () { m_implem->setCellFlags(); }
         
     ///
     /**
@@ -1085,6 +1076,6 @@ namespace amrex
   }
         
   /*******************************/
-        
+       
 }
 #endif

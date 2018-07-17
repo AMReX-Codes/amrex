@@ -1,21 +1,8 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #include "AMReX_EBFineInterp.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_EBCellFactory.H"
 #include "AMReX_EBLoHiCenter.H"
 #include "AMReX_EBFortND_F.H"
-
 
 namespace amrex
 {

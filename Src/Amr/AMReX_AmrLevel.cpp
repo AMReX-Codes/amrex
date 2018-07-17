@@ -18,9 +18,17 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_EB2.H>
+#endif
+
+#ifdef USE_PERILLA
+#include <WorkerThread.H>
 #endif
 
 namespace amrex {
+#ifdef USE_PERILLA
+using namespace perilla;
+#endif
 
 #ifdef AMREX_USE_EB
 int AmrLevel::m_eb_basic_grow_cells = 5;
@@ -104,9 +112,11 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, ba, dm,
-                                           {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
-                                           m_eb_support_level));
+    m_factory = makeEBFabFactory(geom, ba, dm,
+                                 {m_eb_basic_grow_cells,
+                                  m_eb_volume_grow_cells,
+                                  m_eb_full_grow_cells},
+                                 m_eb_support_level);
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -182,14 +192,14 @@ AmrLevel::writePlotFile (const std::string& dir,
 	    os << desc_lst[typ].name(comp) << '\n';
         }
 
-        os << BL_SPACEDIM << '\n';
+        os << AMREX_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (i = 0; i < AMREX_SPACEDIM; i++)
             os << Geometry::ProbLo(i) << ' ';
         os << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (i = 0; i < AMREX_SPACEDIM; i++)
             os << Geometry::ProbHi(i) << ' ';
         os << '\n';
         for (i = 0; i < f_lev; i++)
@@ -203,7 +213,7 @@ AmrLevel::writePlotFile (const std::string& dir,
         os << '\n';
         for (i = 0; i <= f_lev; i++)
         {
-            for (int k = 0; k < BL_SPACEDIM; k++)
+            for (int k = 0; k < AMREX_SPACEDIM; k++)
                 os << parent->Geom(i).CellSize()[k] << ' ';
             os << '\n';
         }
@@ -232,7 +242,6 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     if ( ! levelDirectoryCreated) {
       if (ParallelDescriptor::IOProcessor()) {
-        amrex::Print() << "IOIOIOIO:CD  AmrLevel::writePlotFile:  " << FullPath << "\n";
         if ( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
             amrex::CreateDirectoryFailed(FullPath);
 	}
@@ -249,7 +258,7 @@ AmrLevel::writePlotFile (const std::string& dir,
         for (i = 0; i < grids.size(); ++i)
         {
             RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-            for (n = 0; n < BL_SPACEDIM; n++)
+            for (n = 0; n < AMREX_SPACEDIM; n++)
                 os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
         }
         //
@@ -358,9 +367,9 @@ AmrLevel::restart (Amr&          papa,
     parent->SetDistributionMap(level, dmap);
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap,
-                                           {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
-                                           m_eb_support_level));
+    m_factory = makeEBFabFactory(geom, grids, dmap,
+                                 {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
+                                 m_eb_support_level);
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -557,7 +566,7 @@ AmrLevel::get_data (int  state_indx,
 const BoxArray&
 AmrLevel::getEdgeBoxArray (int dir) const
 {
-    BL_ASSERT(dir >=0 && dir < BL_SPACEDIM);
+    BL_ASSERT(dir >=0 && dir < AMREX_SPACEDIM);
     if (edge_grids[dir].empty()) {
 	edge_grids[dir] = grids;
 	edge_grids[dir].surroundingNodes(dir);
@@ -756,7 +765,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                     if (boxType.nodeCentered())
                     {
-                        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                         {
                             if (iv[dir] > 0)
                             {
@@ -834,7 +843,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                             if (boxType.nodeCentered())
                             {
-                                for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                                for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                                 {
                                     if (iv[dir] > 0)
                                     {
@@ -960,7 +969,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 		static bool first = true;
 		if (first) {
 		    first = false;
-		    if (ParallelDescriptor::IOProcessor()) {
+		    if (ParallelDescriptor::IOProcessor() && amrex::Verbose()) {
 			IntVect new_blocking_factor = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
                         new_blocking_factor *= 2;
 			for (int j = 0; j < 10; ++j) {
@@ -972,14 +981,13 @@ FillPatchIterator::Initialize (int  boxGrow,
 				new_blocking_factor *= 2;
 			    }
 			}
-			std::cout << "WARNING: Grids are not properly nested.  We might have to use\n"
-				  << "         two coarse levels to do fillpatch.  Consider using\n";
-			if (new_blocking_factor < IntVect{D_DECL(128,128,128)}) {
-			    std::cout << "         amr.blocking_factor=" << new_blocking_factor;
-			} else {
-			    std::cout << "         larger amr.blocking_factor. ";
-			}
-			std::cout << std::endl;
+                        amrex::Print() << "WARNING: Grids are not properly nested.  We might have to use\n"
+                                       << "         two coarse levels to do fillpatch.  Consider using\n";
+                        if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
+                            amrex::Print() << "         amr.blocking_factor=" << new_blocking_factor << "\n";
+                        } else {
+                            amrex::Print() << "         larger amr.blocking_factor.\n";
+                        }
 		    }
 		}
 
@@ -992,8 +1000,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 						  SComp,
 						  NComp,
 						  desc.interp(SComp));
-		
-#ifdef CRSEGRNDOMP
+	
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1082,7 +1090,7 @@ HasPhysBndry (const Box&      b,
               const Box&      dmn,
               const Geometry& geom)
 {
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         if (!geom.isPeriodic(i))
         {
@@ -1116,7 +1124,7 @@ FixUpPhysCorners (FArrayBox&      fab,
 
     Box GrownDomain = ProbDomain;
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         if (!TheGeom.isPeriodic(dir))
         {
@@ -1127,7 +1135,7 @@ FixUpPhysCorners (FArrayBox&      fab,
         }
     }
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         if (!TheGeom.isPeriodic(dir)) continue;
 
@@ -1461,7 +1469,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     const Geometry&         cgeom   = clev.geom;
 
     Box domain_g = pdomain;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (geom.isPeriodic(i)) {
 	    domain_g.grow(i,nghost);
 	}
@@ -1487,8 +1495,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         }
 
 #ifdef AMREX_USE_EB
-        MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),
-                        EBFArrayBoxFactory(cgeom, crseBA, mf_DM, {0,0,0}, EBSupport::basic));
+        auto cfactory = makeEBFabFactory(cgeom, crseBA, mf_DM, {0,0,0}, EBSupport::basic);
+        MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),*cfactory);
 #else
 	MultiFab crseMF(crseBA,mf_DM,NComp,0);
 #endif
@@ -1588,7 +1596,7 @@ AmrLevel::derive (const std::string& name,
 
         mf.reset(new MultiFab(dstBA, dmap, rec->numDerive(), ngrow, MFInfo(), *m_factory));
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1615,18 +1623,18 @@ AmrLevel::derive (const std::string& name,
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
 			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
 			       &level,&grid_no);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
-				 ARLIM_3D(lo),ARLIM_3D(hi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1653,18 +1661,18 @@ AmrLevel::derive (const std::string& name,
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
 			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
 			       &level,&grid_no);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
-				 ARLIM_3D(dlo),ARLIM_3D(dhi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1724,7 +1732,7 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1751,18 +1759,18 @@ AmrLevel::derive (const std::string& name,
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
 			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
 			       &level,&idx);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
-				 ARLIM_3D(lo),ARLIM_3D(hi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1789,18 +1797,18 @@ AmrLevel::derive (const std::string& name,
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
 			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
 			       &level,&idx);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
-				 ARLIM_3D(dlo),ARLIM_3D(dhi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1843,7 +1851,7 @@ AmrLevel::getBCArray (int State_Type,
                       int strt_comp,
                       int ncomp)
 {
-    Vector<int> bc(2*BL_SPACEDIM*ncomp);
+    Vector<int> bc(2*AMREX_SPACEDIM*ncomp);
 
     BCRec bcr;
 
@@ -1851,8 +1859,8 @@ AmrLevel::getBCArray (int State_Type,
     {
         bcr = state[State_Type].getBC(strt_comp+n,gridno);
         const int* b_rec = bcr.vect();
-        for (int m = 0; m < 2*BL_SPACEDIM; m++)
-            bc[2*BL_SPACEDIM*n + m] = b_rec[m];
+        for (int m = 0; m < 2*AMREX_SPACEDIM; m++)
+            bc[2*AMREX_SPACEDIM*n + m] = b_rec[m];
     }
 
     return bc;
@@ -2115,74 +2123,6 @@ AmrLevel::FillPatchAdd(AmrLevel& amrlevel,
     MultiFab::Add(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
 
-
-
-void
-AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
-                         int ioProcNumSCS, int ioProcNumAll, int scsMyId,
-			 MPI_Comm scsComm)
-{
-#if BL_USE_MPI
-      if(scsMyId != ioProcNumSCS) {
-        parent = aptr;
-      }
-
-      // ---- ints
-      ParallelDescriptor::Bcast(&level, 1, ioProcNumAll, scsComm);
-
-      // ---- IntVects
-      Vector<int> allIntVects;
-      if(scsMyId == ioProcNumSCS) {
-        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
-        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
-      }
-      amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
-
-      if(scsMyId != ioProcNumSCS) {
-        int count(0);
-        for(int i(0); i < BL_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
-        for(int i(0); i < BL_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
-      }
-
-
-      // ---- Boxes
-      amrex::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);
-      
-      // ---- Geometry
-      Geometry::BroadcastGeometry(geom, ioProcNumSCS, scsComm);
-      
-      // ---- BoxArrays
-      amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
-      amrex::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
-
-      // ---- state
-      int stateSize(state.size());
-      ParallelDescriptor::Bcast(&stateSize, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        state.resize(stateSize);
-      }
-      for(int i(0); i < state.size(); ++i) {
-        state[i].AddProcsToComp(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-      }
-
-      // ---- bools
-      int ldc(levelDirectoryCreated);
-      ParallelDescriptor::Bcast(&ldc, 1, ioProcNumAll, scsComm);
-      levelDirectoryCreated = ldc;
-#endif
-}
-
-
-
-void
-AmrLevel::Check() const
-{
-    for(int i(0); i < state.size(); ++i) {
-      state[i].Check();
-    }
-}
-
-
 void
 AmrLevel::LevelDirectoryNames(const std::string &dir,
                               std::string &LevelDir,
@@ -2209,13 +2149,1045 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
     LevelDirectoryNames(dir, LevelDir, FullPath);
 
     if(ParallelDescriptor::IOProcessor()) {
-      amrex::Print() << "IOIOIOIO:CD  AmrLevel::CreateLevelDirectory:  " << FullPath << "\n";
       if( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
         amrex::CreateDirectoryFailed(FullPath);
       }
     }
     levelDirectoryCreated = true;
 }
+
+
+#ifdef USE_PERILLA
+    void FillPatchIterator::FillPatchSingleLevelPush (Amr& amr, MultiFab& mf, Real time,
+                                   Vector<MultiFab*>& smf, Vector<Real>& stime,
+                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
+                                   MultiFab *dmf,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT)
+      {
+
+        BL_PROFILE("FillPatchSingleLevel");
+
+        BL_ASSERT(scomp+ncomp <= smf[0]->nComp());
+        BL_ASSERT(dcomp+ncomp <= mf.nComp());
+        BL_ASSERT(smf.size() == stime.size());
+        BL_ASSERT(smf.size() != 0);
+
+        int tg = WorkerThread::perilla_wid();
+        int nt = WorkerThread::perilla_wtid();
+
+        if (smf.size() == 1)
+          {
+          //mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());        
+            Perilla::multifabCopyPushAsync( destGraph, srcGraph, &mf, smf[0],  f, dcomp, scomp, ncomp, mf.nGrow(), 0, singleT);
+          }
+        else if (smf.size() == 2)
+          {
+            BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
+            //PArray<MultiFab> raii(PArrayManage);
+            //MultiFab * dmf;
+            int destcomp;
+            bool sameba;
+            if (false && mf.boxArray() == smf[0]->boxArray())
+              {
+                //dmf = &mf;
+                destcomp = dcomp;
+                sameba = true;
+
+                int fis = smf[0]->IndexArray()[f];
+                int fid = mf.IndexArray()[f];
+                const Box& bx = mf[fid].box();
+                mf[fid].linInterp((*smf[0])[fis],
+                                scomp,
+                                (*smf[1])[fis],
+                                scomp,
+                                stime[0],
+                                stime[1],
+                                time,
+                                bx,
+                                destcomp,
+                                ncomp);
+                Perilla::fillBoundaryPush(destGraph, &mf, f);
+              }
+            else
+              {
+
+                //dmf = raii.push_back(new MultiFab(smf[0].boxArray(), ncomp, 0));
+                //MultiFab dmf(smf[0].boxArray(), ncomp, 0);
+                destcomp = 0;
+                sameba = false;
+
+                assert(smf[0]);
+                assert(smf[0]->IndexArray().size()>f);
+                assert(dmf);
+                assert(dmf->IndexArray().size()>f);
+                int fis = smf[0]->IndexArray()[f];
+                int fid = dmf->IndexArray()[f];
+
+                for(int t=0; t<srcGraph->fabTiles[f]->numTiles; t++)
+                  if( singleT || t % (perilla::NUM_THREADS_PER_TEAM-1) == nt)
+                    {
+                      const Box& bx = *(srcGraph->fabTiles[f]->tileBx[t]);
+
+                      //const Box& bx = (*dmf)[fid].box();
+                      (*dmf)[fid].linInterp((*smf[0])[fis],
+                                            scomp,
+                                            (*smf[1])[fis],
+                                            scomp,
+                                            stime[0],
+                                            stime[1],
+                                            time,
+                                            bx,
+                                            destcomp,
+                                            ncomp);
+                    }
+                if(!singleT)
+                  srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+                int src_ngrow = 0;
+                int dst_ngrow = mf.nGrow();
+                Perilla::multifabCopyPushAsync( destGraph, srcGraph, &mf, dmf, f, dcomp, 0, ncomp, mf.nGrow(), 0, singleT);
+              }
+          }
+        else
+          {
+            amrex::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
+          }
+      }
+    void FillPatchIterator::FillPatchTwoLevelsPush (Amr& amr, MultiFab& mf, Real time,
+                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
+                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
+                                 FillPatchIterator* fpIter,
+                                 MultiFab *dmf,
+                                 MultiFab *dmff,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Vector<BCRec>& bcs, unsigned char pushLevel,  bool singleT)
+    {
+        BL_PROFILE("FillPatchTwoLevels");
+
+        int ngrow = mf.nGrow();
+
+        if(f>=0){//fill only this fab
+            if(pushLevel & 0x01 )
+            {
+                if (ngrow > 0 || mf.getBDKey() != fmf[0]->getBDKey())
+                {
+
+                    if (!fpIter->m_fpc->ba_crse_patch.empty())
+                    {
+                        FillPatchSingleLevelPush(amr, *(fpIter->m_mf_crse_patch), time, cmf, ct, fpIter->m_rg_crse_patch, csrcGraph, f, dmf, scomp, 0, ncomp, cgeom, cbc, singleT);
+                    }
+                }
+            }
+            if((pushLevel & 0x02) && (pushLevel != 0x03))
+            {
+                 FillPatchSingleLevelPush(amr, mf, time, fmf, ft, destGraph, fsrcGraph, f, dmff, scomp, dcomp, ncomp, fgeom, fbc, singleT);
+            }
+        }else{ //fill the whole multifab
+            if(pushLevel & 0x01 && pushLevel & 0x02)
+            {
+                int tg = perilla::wid();
+                for(int fi=0; fi < fmf[0]->IndexArray().size(); fi++)
+                {
+                    if(WorkerThread::isMyRegion(tg,fi))
+                    {
+                      FillPatchSingleLevelPush(amr, mf, time, fmf, ft, destGraph, fsrcGraph, fi, dmff, scomp, dcomp, ncomp, fgeom, fbc, singleT);
+                    } 
+                }
+            }       
+            if(pushLevel & 0x04)
+            {
+                int tg = perilla::wid();
+                for(int fi=0; fi < fmf[0]->IndexArray().size(); fi++)
+                {
+                    if(WorkerThread::isMyRegion(tg,fi))
+                    {
+                        FillPatchSingleLevelPush(amr, mf, time, fmf, ft, destGraph, fsrcGraph, fi, dmff, scomp, dcomp, ncomp, fgeom, fbc, singleT);
+                    }   
+                }
+            }       
+        }       
+    }       
+
+    void FillPatchIterator::FillPatchSingleLevelPull (MultiFab& mf, Real time,
+                                   Vector<MultiFab*>& smf, Vector<Real>& stime,
+                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT)
+      {
+
+        BL_PROFILE("FillPatchSingleLevel");
+
+        BL_ASSERT(scomp+ncomp <= smf[0]->nComp());
+        BL_ASSERT(dcomp+ncomp <= mf.nComp());
+        BL_ASSERT(smf.size() == stime.size());
+        BL_ASSERT(smf.size() != 0);
+
+        if (smf.size() == 1)
+        {
+          //mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());      
+          Perilla::multifabCopyPull( destGraph, srcGraph, &mf, smf[0], f, dcomp, scomp, ncomp, mf.nGrow(), 0, singleT);
+
+        }
+        else if (smf.size() == 2)
+          {
+
+            BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
+            //Vector<MultiFab> raii(PArrayManage);
+            MultiFab * dmf;
+            int destcomp;
+            bool sameba;
+            if (false && mf.boxArray() == smf[0]->boxArray()) {
+              dmf = &mf;
+              destcomp = dcomp;
+              sameba = true;
+            } else {
+
+              //dmf = srcGraph->assocMF;              
+              destcomp = 0;
+              sameba = false;
+            }
+            if (sameba)
+            {
+                // Note that when sameba is true mf's BoxArray is nonoverlapping.
+                // So FillBoundary is safe.
+                //mf.FillBoundary(dcomp,ncomp,geom.periodicity());
+
+              Perilla::fillBoundaryPull(destGraph, dmf, f);
+
+            }
+            else
+            {
+                int src_ngrow = 0;
+                int dst_ngrow = mf.nGrow();
+                MultiFab* dummyMF;
+
+                //mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
+
+                Perilla::multifabCopyPull( destGraph, srcGraph, &mf, dummyMF, f, dcomp, 0, ncomp, mf.nGrow(), 0, singleT);
+
+            }
+        }
+        else {
+            amrex::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
+        }
+
+#if 0
+        physbcf.doit_fab(mf, f, dcomp, ncomp, time);
+#endif
+    }
+
+    void FillPatchIterator::FillPatchTwoLevelsPull (MultiFab& mf, Real time,
+                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
+                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
+                                 FillPatchIterator* fpIter,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Vector<BCRec>& bcs, bool singleT)
+    {
+        BL_PROFILE("FillPatchTwoLevels");
+
+        int ngrow = mf.nGrow();
+
+        int tg = WorkerThread::perilla_wid();
+        int nt = WorkerThread::perilla_wtid();
+
+        if (ngrow > 0 || mf.getBDKey() != fmf[0]->getBDKey())
+        {
+
+            if ( ! fpIter->m_fpc->ba_crse_patch.empty())
+            {
+
+                int idummy1=0, idummy2=0;
+                bool cc = fpIter->m_fpc->ba_crse_patch.ixType().cellCentered();
+                  {
+                    int gi = mf.IndexArray()[f];
+                    for(int i=0; i<destGraph->task[f]->depTaskIDs.size();i++)
+                      {
+                        int li = destGraph->task[f]->depTaskIDs[i];
+                        int mfi = fpIter->m_mf_crse_patch[0].IndexArray()[li];
+                        FillPatchSingleLevelPull(*(fpIter->m_mf_crse_patch), time, cmf, ct, fpIter->m_rg_crse_patch, csrcGraph, li, scomp, 0, ncomp, cgeom, cbc, singleT);
+                      }
+                    if(!singleT)
+                      destGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
+
+                    int nt = WorkerThread::perilla_wtid();
+                    Box fdomain = fgeom.Domain();
+                    for(int i=0; i<destGraph->task[f]->depTaskIDs.size();i++)
+                      {
+                        int li = destGraph->task[f]->depTaskIDs[i];
+                        int mfi = fpIter->m_mf_crse_patch[0].IndexArray()[li];
+                        if(singleT)
+                          {
+                            const Box& dbx = fpIter->m_fpc->dst_boxes[li];
+                            //Array<BCRec> bcr(ncomp);
+		            Vector<BCRec> bcr(ncomp);
+                            amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+
+                            mapper->interp(fpIter->m_mf_crse_patch[0][mfi],
+                                           0,
+                                           mf[gi],
+                                           dcomp,
+                                           ncomp,
+                                           dbx,
+                                           ratio,
+                                           cgeom,
+                                           fgeom,
+                                           bcr,
+                                           idummy1, idummy2);
+                          }
+                        else
+                          {
+                          if(!cc)
+                            {
+                              if(WorkerThread::perilla_isMasterWorkerThread())
+                                {
+                                  const Box& dbx = fpIter->m_fpc->dst_boxes[li];
+                                  //Box fdomain = fgeom.Domain();
+
+                                  Vector<BCRec> bcr(ncomp);
+                                  amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+
+                                mapper->interp(fpIter->m_mf_crse_patch[0][mfi],
+                                               0,
+                                               mf[gi],
+                                               dcomp,
+                                               ncomp,
+                                               dbx,
+                                               ratio,
+                                               cgeom,
+                                               fgeom,
+                                               bcr,
+                                               idummy1, idummy2);
+
+                                }
+                            }
+                          else
+                            {
+                              if(i % (perilla::NUM_THREADS_PER_TEAM-1) == nt-1)
+                                {
+
+                                  const Box& dbx = fpIter->m_fpc->dst_boxes[li];
+
+                                  Vector<BCRec> bcr(ncomp);
+                                  amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+
+                                  mapper->interp(fpIter->m_mf_crse_patch[0][mfi],
+                                                 0,
+                                                 mf[gi],
+                                                 dcomp,
+                                                 ncomp,
+                                                 dbx,
+                                                 ratio,
+                                                 cgeom,
+                                                 fgeom,
+                                                 bcr,
+                                                 idummy1, idummy2);
+
+                                }
+                            }
+                          }
+                        //destGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
+                      }
+                    if(!singleT)
+                      destGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
+                  }
+            }
+        }
+
+
+        FillPatchSingleLevelPull(mf, time, fmf, ft, destGraph, fsrcGraph, f, scomp, dcomp, ncomp, fgeom, fbc, singleT);
+    }
+
+void
+FillPatchIterator::FillFromTwoLevelsPushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, unsigned char pushLevel, bool singleT)
+{
+
+    int ilev_fine = m_amrlevel.level;
+    int ilev_crse = ilev_fine-1;
+
+    BL_ASSERT(ilev_crse >= 0);
+
+    AmrLevel& fine_level = m_amrlevel;
+    AmrLevel& crse_level = m_amrlevel.parent->getLevel(ilev_crse);
+
+    //if(physbcf_fine == NULL && physbcf_crse == NULL)
+    //{
+
+    Geometry* tgeom_fine = &fine_level.geom;
+    Geometry* tgeom_crse = &crse_level.geom;
+
+    Vector<MultiFab*> tsmf_crse;
+    Vector<MultiFab*> tsmf_fine;
+    Vector<Real> tstime_crse;
+    Vector<Real> tstime_fine;
+    StateData& statedata_crse = crse_level.state[index];
+    statedata_crse.getData(tsmf_crse,tstime_crse,time);
+    StateDataPhysBCFunct* tphysbcf_crse = new StateDataPhysBCFunct(statedata_crse,scomp,*geom_crse);
+
+    StateData& statedata_fine = fine_level.state[index];
+    statedata_fine.getData(tsmf_fine,tstime_fine,time);
+    StateDataPhysBCFunct* tphysbcf_fine = new StateDataPhysBCFunct(statedata_fine,scomp,*geom_fine);
+        //}
+
+    const StateDescriptor& desc = AmrLevel::desc_lst[index];
+
+    FillPatchTwoLevelsPush(*(m_amrlevel.parent), m_fabs, time,
+                                   tsmf_crse, tstime_crse,
+                                   tsmf_fine, tstime_fine,
+                                   destGraph, csrcGraph, fsrcGraph, f,
+                                   this,
+                                   dmf,
+                                   dmff,
+                                   scomp, dcomp, ncomp,
+                                   *tgeom_crse, *tgeom_fine,
+                                   *tphysbcf_crse, *tphysbcf_fine,
+                                   crse_level.fineRatio(),
+                                   desc.interp(scomp), desc.getBCs(), pushLevel, singleT);
+}
+
+void
+FillPatchIterator::FillFromTwoLevelsPull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT)
+{
+
+    int ilev_fine = m_amrlevel.level;
+    int ilev_crse = ilev_fine-1;
+
+    BL_ASSERT(ilev_crse >= 0);
+
+    AmrLevel& fine_level = m_amrlevel;
+    AmrLevel& crse_level = m_amrlevel.parent->getLevel(ilev_crse);
+
+    Geometry* tgeom_fine = &fine_level.geom;
+    Geometry* tgeom_crse = &crse_level.geom;
+
+    Vector<MultiFab*> tsmf_crse;
+    Vector<MultiFab*> tsmf_fine;
+    Vector<Real> tstime_crse;
+    Vector<Real> tstime_fine;
+    StateData& statedata_crse = crse_level.state[index];
+    statedata_crse.getData(tsmf_crse,tstime_crse,time);
+    StateDataPhysBCFunct* tphysbcf_crse = new StateDataPhysBCFunct(statedata_crse,scomp,*geom_crse);
+
+    StateData& statedata_fine = fine_level.state[index];
+    statedata_fine.getData(tsmf_fine,tstime_fine,time);
+    StateDataPhysBCFunct* tphysbcf_fine = new StateDataPhysBCFunct(statedata_fine,scomp,*geom_fine);
+
+
+    const StateDescriptor& desc = AmrLevel::desc_lst[index];
+
+    FillPatchTwoLevelsPull(m_fabs, time,
+                                   tsmf_crse, tstime_crse,
+                                   tsmf_fine, tstime_fine,
+                                   destGraph, csrcGraph, fsrcGraph, f,
+                                   this,
+                                   scomp, dcomp, ncomp,
+                                   *tgeom_crse, *tgeom_fine,
+                                   *tphysbcf_crse, *tphysbcf_fine,
+                                   crse_level.fineRatio(),
+                                   desc.interp(scomp), desc.getBCs(), singleT);
+}
+
+void
+FillPatchIterator::FillPatchPush (int  boxGrow,
+                             Real time,
+                             int  index,
+                             int  scomp,
+                             int  ncomp,
+                             int f,
+                             unsigned char pushLevel,
+                             bool singleT)
+{
+    BL_PROFILE("FillPatchIterator::InitializePush");
+
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
+
+    //const IndexType& boxType = m_leveldata.boxArray().ixType();
+    const int level = m_amrlevel.level;
+
+    for (int i = 0, DComp = 0; i < m_range.size(); i++)
+    {
+      if(i>0)
+        amrex::Abort("**** Error in FillPatchIterator::Initialize:  non contigeous components not implemented");
+
+      const int SComp = m_range[i].first;
+      const int NComp = m_range[i].second;
+
+      if (level == 0)
+        {
+          FillPatchSingleLevelPush (*(m_amrlevel.parent), m_fabs, time, smf, stime, destGraph, fsrcGraph, f, dmf, SComp, DComp, NComp, *geom, *physbcf, singleT);
+        }
+      else
+        {
+          if (level == 1 || isProperlyNested)
+            {
+              FillFromTwoLevelsPushOnly(time, index, SComp, DComp, NComp, f, pushLevel, singleT);
+            } else {
+            amrex::Abort("**** Error in FillPatchIterator::Initialize:  !ProperlyNested not implemented");
+          }
+        }
+      DComp += NComp;
+    }
+}
+
+void
+FillPatchIterator::FillPatchPull (int  boxGrow,
+                                   Real time,
+                                   int  index,
+                                   int  scomp,
+                                   int  ncomp,
+                                   int f,
+                                   bool singleT)
+{
+    BL_PROFILE("FillPatchIterator::InitializePull");
+
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
+
+    //const IndexType& boxType = m_leveldata.boxArray().ixType();
+    const int level = m_amrlevel.level;
+
+
+    for (int i = 0, DComp = 0; i < m_range.size(); i++)
+      {
+        if(i>0)
+          amrex::Abort("**** Error in FillPatchIterator::Initialize:  non contigeous components not implemented");
+
+        const int SComp = m_range[i].first;
+        const int NComp = m_range[i].second;
+
+        if (level == 0)
+          {
+            FillPatchSingleLevelPull (m_fabs, time, smf, stime, destGraph, fsrcGraph, f, SComp, DComp, NComp, *geom, *physbcf, singleT);
+          }
+        else
+          {
+            if (level == 1 || isProperlyNested)
+              {
+                FillFromTwoLevelsPull(time, index, SComp, DComp, NComp, f, singleT);
+              } else {
+              amrex::Abort("**** Error in FillPatchIterator::Initialize:  !ProperlyNested not implemented");
+            }
+          }
+        //if(WorkerThread::isTeamMasterThread(tid))
+          {
+            const MultiFab& mf_fillpatched = m_fabs;
+            
+            if(singleT)
+              {
+                for(int t=0; t<destGraph->fabTiles_gtbx[f]->numTiles; t++)
+                  {
+                    const Box& bx = *(destGraph->fabTiles_gtbx[f]->tileBx[t]);
+                    MultiFab::Copy(m_leveldata, mf_fillpatched, f, 0, DComp, ncomp, bx);
+                  } 
+              }   
+            else
+              {
+                perilla::syncAllWorkerThreads();
+                int nt = WorkerThread::perilla_wtid();
+                for(int t=0; t<destGraph->fabTiles_gtbx[f]->numTiles; t++)
+                  if(t % (perilla::NUM_THREADS_PER_TEAM-1) == nt-1)
+                    {
+                      const Box& bx = *(destGraph->fabTiles_gtbx[f]->tileBx[t]);
+                      MultiFab::Copy(m_leveldata, mf_fillpatched, f, 0, DComp, ncomp, bx);
+                    } 
+                perilla::syncAllWorkerThreads();
+              } 
+          }   
+        DComp += NComp;
+    }   
+    //
+    // Call hack to touch up fillPatched data.
+    //
+    /*m_amrlevel.set_preferred_boundary_values(m_fabs,
+                                             index,
+                                             scomp,
+                                             0,
+                                             ncomp,
+                                             time);*/
+
+    }
+
+void
+FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, int ncomp, int iter)
+{
+#ifdef USE_PERILLA_PTHREADS
+//    perilla::syncAllThreads();
+#endif
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
+
+
+    const StateDescriptor& desc = AmrLevel::desc_lst[index];
+#ifdef USE_PERILLA_PTHREADS
+//    if(perilla::isMasterThread())
+#endif
+    {
+        m_ncomp = ncomp;
+        m_range = desc.sameInterps(scomp,ncomp);
+
+        m_fabs.define(m_leveldata.boxArray(),m_leveldata.DistributionMap(), m_ncomp,boxGrow);
+
+        BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
+    }
+#ifdef USE_PERILLA_PTHREADS
+//    perilla::syncAllThreads();
+#endif
+
+    const IndexType& boxType = m_leveldata.boxArray().ixType();
+    const int level = m_amrlevel.level;
+
+    for (int i = 0, DComp = 0; i < m_range.size(); i++)
+    {
+        const int SComp = m_range[i].first;
+        const int NComp = m_range[i].second;
+        int dcomp = DComp;
+        if (level == 0)
+        {
+#if 1
+#ifdef USE_PERILLA_PTHREADS
+//            perilla::syncAllThreads();
+//            if(perilla::isMasterThread())
+#endif
+
+            {
+                BL_ASSERT(m_amrlevel.level == 0);
+                StateData& statedata = m_amrlevel.state[index];
+                statedata.getData(smf,stime,time);
+                geom = &m_amrlevel.geom;
+                physbcf = new StateDataPhysBCFunct(statedata,scomp,*geom);
+                BL_ASSERT(scomp+ncomp <= smf[0]->nComp());
+                BL_ASSERT(dcomp+ncomp <= m_fabs.nComp());
+                BL_ASSERT(smf.size() == stime.size());
+                BL_ASSERT(smf.size() != 0);
+            }
+#ifdef USE_PERILLA_PTHREADS
+//            perilla::syncAllThreads();
+#endif
+            if (smf.size() == 1)
+            {
+#ifdef USE_PERILLA_PTHREADS
+//                if(perilla::isMasterThread())
+#endif
+                {
+                    destGraph = new RegionGraph(m_fabs.IndexArray().size());
+                    fsrcGraph = new RegionGraph(smf[0]->IndexArray().size());
+                }
+#ifdef USE_PERILLA_PTHREADS
+//                perilla::syncAllThreads();
+#endif
+
+#if 1
+                Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *(smf[0]), (const int) ncomp, m_fabs.nGrow(), 0, geom->periodicity());
+#endif
+#ifdef USE_PERILLA_PTHREADS
+//                perilla::syncAllThreads();
+//                if(perilla::isMasterThread())
+#endif
+                {
+                    m_amrlevel.parent->graphArray.push_back(destGraph);
+                    m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+                }
+#ifdef USE_PERILLA_PTHREADS
+//              perilla::syncAllThreads();
+#endif
+            }
+            else if (smf.size() == 2)
+            {
+                BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
+
+                if (m_fabs.boxArray() == smf[0]->boxArray())
+                {
+#ifdef USE_PERILLA_PTHREADS
+//                    if(perilla::isMasterThread())
+#endif
+                    {
+                        dmf = &m_fabs;
+                        destGraph = new RegionGraph(m_fabs.IndexArray().size());
+                    }
+#ifdef USE_PERILLA_PTHREADS
+ //                   perilla::syncAllThreads();
+#endif
+                        Perilla::multifabBuildFabCon(destGraph, m_fabs, geom->periodicity());
+#ifdef USE_PERILLA_PTHREADS
+//                    perilla::syncAllThreads();
+//                    if(perilla::isMasterThread())
+#endif
+                    {
+                        m_amrlevel.parent->graphArray.push_back(destGraph);
+                    }
+                }
+                else
+                {
+#ifdef USE_PERILLA_PTHREADS
+//                    if(perilla::isMasterThread())
+#endif
+                    {
+                        dmf = new MultiFab(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, 0);
+                        //dmf->initVal(); // for Perilla NUMA
+                        destGraph = new RegionGraph(m_fabs.IndexArray().size());
+                        fsrcGraph = new RegionGraph(dmf->IndexArray().size());
+                        fsrcGraph->buildTileArray(*dmf);
+                    }
+#ifdef USE_PERILLA_PTHREADS
+//                    perilla::syncAllThreads();
+#endif
+
+                    Perilla::multifabExtractCopyAssoc(destGraph, fsrcGraph, m_fabs, *dmf, ncomp, m_fabs.nGrow(), 0, geom->periodicity());
+
+#ifdef USE_PERILLA_PTHREADS
+//                    perilla::syncAllThreads();
+//                    if(perilla::isMasterThread())
+#endif
+                    {
+                        m_amrlevel.parent->graphArray.push_back(destGraph);
+                        m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+                    }
+#ifdef USE_PERILLA_PTHREADS
+//                    perilla::syncAllThreads();
+#endif
+                }
+             }
+             else
+             {
+                //BoxLib::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
+             }
+#endif
+            //-------------------------------------------------- FillFromLevel0 initialization completed
+          }
+        else
+          {
+#ifdef USE_PERILLA_PTHREADS
+//             perilla::syncAllThreads();
+//             if(perilla::isMasterThread())
+#endif
+             {
+                isProperlyNested = amrex::ProperlyNested(m_amrlevel.crse_ratio,
+                                                      m_amrlevel.parent->blockingFactor(m_amrlevel.level),
+                                                      boxGrow, boxType, desc.interp(SComp));
+             }
+#ifdef USE_PERILLA_PTHREADS
+//           perilla::syncAllThreads();
+#endif
+             if (level == 1 || isProperlyNested)
+                {
+                  int ilev_fine = m_amrlevel.level;
+                  int ilev_crse = ilev_fine-1;
+                  BL_ASSERT(ilev_crse >= 0);
+                  AmrLevel& fine_level = m_amrlevel;
+                  AmrLevel& crse_level = m_amrlevel.parent->getLevel(ilev_crse);
+#ifdef USE_PERILLA_PTHREADS
+//                  if(perilla::isMasterThread())
+#endif
+                  {
+                      geom_fine = &fine_level.geom;
+                      geom_crse = &crse_level.geom;
+                  }
+                  StateData& statedata_crse = crse_level.state[index];
+                  StateData& statedata_fine = fine_level.state[index];
+#ifdef USE_PERILLA_PTHREADS
+//                  perilla::syncAllThreads();
+//                  if(perilla::isMasterThread())
+#endif
+                  {
+                      statedata_crse.getData(smf_crse,stime_crse,time);
+                      statedata_fine.getData(smf_fine,stime_fine,time);
+                      physbcf_crse = new StateDataPhysBCFunct(statedata_crse,scomp,*geom_crse);
+                      physbcf_fine = new StateDataPhysBCFunct(statedata_fine,scomp,*geom_fine);
+                  }
+#ifdef USE_PERILLA_PTHREADS
+//                perilla::syncAllThreads();
+#endif
+                  const StateDescriptor& desc = AmrLevel::desc_lst[index];
+                  int ngrow = m_fabs.nGrow();
+                  if (ngrow > 0 || m_fabs.getBDKey() != smf_fine[0]->getBDKey())
+                  {
+#ifdef USE_PERILLA_PTHREADS
+//                    if(perilla::isMasterThread())
+#endif
+                      {
+                          InterpolaterBoxCoarsener coarsener = desc.interp(scomp)->BoxCoarsener(crse_level.fineRatio());
+                          Box fdomain = geom_fine->Domain();
+                          fdomain.convert(m_fabs.boxArray().ixType());
+                          Box fdomain_g(fdomain);
+                          for (int i = 0; i < BL_SPACEDIM; ++i) {
+                             if (geom_fine->isPeriodic(i)) {
+                                 fdomain_g.grow(i,ngrow);
+                             }
+                          }
+			  Box c_dom= amrex::coarsen(geom_fine->Domain(), m_amrlevel.crse_ratio);
+                          m_fpc = &FabArrayBase::TheFPinfo(*(smf_fine[0]), m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom);
+                      }
+#ifdef USE_PERILLA_PTHREADS
+//                    perilla::syncAllThreads();
+#endif
+                      if (!m_fpc->ba_crse_patch.empty())
+                      {
+#ifdef USE_PERILLA_PTHREADS
+                          if(perilla::isMasterThread())
+#endif
+                          {
+                             m_mf_crse_patch = new MultiFab(m_fpc->ba_crse_patch, m_fpc->dm_crse_patch, ncomp, 0);
+                             //m_mf_crse_patch->initVal(); // for Perilla NUMA
+                             BL_ASSERT(scomp+ncomp <= smf_crse[0]->nComp());
+                             BL_ASSERT(dcomp+ncomp <= m_mf_crse_patch->nComp());
+                             BL_ASSERT(smf_crse.size() == stime_crse.size());
+                             BL_ASSERT(smf_crse.size() != 0);
+                          }
+#ifdef USE_PERILLA_PTHREADS
+//                        perilla::syncAllThreads();
+#endif
+                          if (iter == 1)
+                          {
+#ifdef USE_PERILLA_PTHREADS
+//                            if(perilla::isMasterThread())
+#endif
+                              {
+                                  m_rg_crse_patch = new RegionGraph(m_mf_crse_patch->IndexArray().size());
+                                  m_rg_crse_patch->isDepGraph = true;
+                                  csrcGraph = new RegionGraph(smf_crse[0]->IndexArray().size());
+                              }
+#ifdef USE_PERILLA_PTHREADS
+//                            perilla::syncAllThreads();
+#endif
+#if 1
+                              Perilla::multifabExtractCopyAssoc( m_rg_crse_patch, csrcGraph, *m_mf_crse_patch, *(smf_crse[0]), ncomp, m_mf_crse_patch->nGrow(), 0,geom_crse->periodicity());
+#endif
+#ifdef USE_PERILLA_PTHREADS
+//                              perilla::syncAllThreads();
+//                            if(perilla::isMasterThread())
+#endif
+                              {
+                                  m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
+                                  m_amrlevel.parent->graphArray.push_back(csrcGraph);
+                              }
+                          }
+                          else if (iter > 1)
+                          {
+#if 1
+                              //BL_ASSERT(smf_crse[0].boxArray() == smf_crse[1].boxArray());
+                              //PArray<MultiFab> raii(PArrayManage);
+                              //MultiFab * dmf;
+
+                              if (false && m_mf_crse_patch->boxArray() == smf_crse[0]->boxArray())
+                                {
+                                  //dmf = m_mf_crse_patch;
+                                  m_rg_crse_patch = new RegionGraph(m_mf_crse_patch->IndexArray().size());
+
+                                  //std::cout<< " level " << level  << " rg_crs_ptch ID " << m_rg_crse_patch->graphID << std::endl;
+
+                                  Perilla::multifabBuildFabCon(m_rg_crse_patch, *m_mf_crse_patch, geom->periodicity());
+                                  m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
+                                }
+                              else
+                              {
+#ifdef USE_PERILLA_PTHREADS
+//                                if(perilla::isMasterThread())
+#endif
+                                  {
+                                      //dmf = raii.push_back(new MultiFab(smf_crse[0].boxArray(), ncomp, 0));
+                                      dmf = new MultiFab(smf_crse[0]->boxArray(), smf_crse[0]->DistributionMap(), ncomp, 0);
+                                      //dmf->initVal(); // for Perilla NUMA
+                                      m_rg_crse_patch = new RegionGraph(m_mf_crse_patch->IndexArray().size());
+                                      m_rg_crse_patch->isDepGraph = true;
+                                      csrcGraph = new RegionGraph(dmf->IndexArray().size());
+                                      csrcGraph->buildTileArray(*dmf);
+                                  }
+#ifdef USE_PERILLA_PTHREADS
+//                                perilla::syncAllThreads();
+#endif
+
+#if 1
+                                  Perilla::multifabExtractCopyAssoc( m_rg_crse_patch, csrcGraph, *m_mf_crse_patch, *dmf, ncomp, m_mf_crse_patch->nGrow(), 0, geom_crse->periodicity());
+#endif
+#ifdef USE_PERILLA_PTHREADS
+//                                perilla::syncAllThreads();
+//                                if(perilla::isMasterThread())
+#endif
+                                  {
+                                      m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
+                                      m_amrlevel.parent->graphArray.push_back(csrcGraph);
+                                  }
+                              }
+#endif
+                           }
+                           else
+                           {
+                             // BoxLib::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
+                           }
+                        }
+                    }
+#if 1
+                  BL_ASSERT(scomp+ncomp <= smf_fine[0]->nComp());
+                  BL_ASSERT(dcomp+ncomp <= m_fabs.nComp());
+                  BL_ASSERT(smf_fine.size() == stime_fine.size());
+                  BL_ASSERT(smf_fine.size() != 0);
+
+                  if(true) // it will always be the case because same level comm and time will be available
+                  {
+#ifdef USE_PERILLA_PTHREADS
+//                    if(perilla::isMasterThread())
+#endif
+                      {
+                          dmff = new MultiFab(smf_fine[0]->boxArray(), smf_fine[0]->DistributionMap(), ncomp, 0);
+                          destGraph = new RegionGraph(m_fabs.IndexArray().size());
+                          //fsrcGraph = new RegionGraph(smf_fine[0]->IndexArray().size());
+                          fsrcGraph = new RegionGraph(dmff->IndexArray().size());
+
+                          if(m_rg_crse_patch != 0)
+                          {
+                             destGraph->srcLinkGraph = m_rg_crse_patch;
+                             //for(int lfi=0; lfi < destGraph->numTasks; lfi++ )
+                             {
+                                for (MFIter mfi(*(m_mf_crse_patch),false); mfi.isValid(); ++mfi)
+                                {
+                                  int li = mfi.LocalIndex();
+                                  int gi = m_fpc->dst_idxs[li];
+                                  //if(gi == m_mf_crse_patch->IndexArray()[li])
+                                    {
+                                      int lfi = m_fabs.localindex(gi);
+                                      destGraph->task[lfi]->depTasksCompleted = false;
+                                      destGraph->task[lfi]->depTaskIDs.push_back(li);
+                                    }
+                                }
+                             }
+                          }
+                      }
+#ifdef USE_PERILLA_PTHREADS
+//                    perilla::syncAllThreads();
+#endif
+
+                      //if(level == 2)
+                      //std::cout<< "Sending In "<<destGraph<<" "<< fsrcGraph << " myP " << ParallelDescriptor::MyProc()<<std::endl;                                      
+#if 1
+                      Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *(dmff), ncomp, m_fabs.nGrow(), 0, geom_fine->periodicity());
+#endif
+#ifdef USE_PERILLA_PTHREADS
+//                    perilla::syncAllThreads();
+//                    if(perilla::isMasterThread())
+#endif
+                      {
+                          m_amrlevel.parent->graphArray.push_back(destGraph);
+                          m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+                      }
+                  }
+                  else if (smf_fine.size() == 2)
+                  {
+                      if (false && m_fabs.boxArray() == smf_fine[0]->boxArray())
+                      {
+                          //dmf = &m_fabs;
+                          destGraph = new RegionGraph(m_fabs.IndexArray().size());
+                          Perilla::multifabBuildFabCon(destGraph, m_fabs, geom->periodicity());
+                          m_amrlevel.parent->graphArray.push_back(destGraph);
+                      }
+                      else
+                      {
+#ifdef USE_PERILLA_PTHREADS
+//                        if(perilla::isMasterThread())
+#endif
+                          {
+                              //dmf = raii.push_back(new MultiFab(smf_fine[0].boxArray(), ncomp, 0));
+                              dmff = new MultiFab(smf_fine[0]->boxArray(), smf_fine[0]->DistributionMap(), ncomp, 0);
+                              //dmff->initVal(); // for Perilla NUMA
+                              destGraph = new RegionGraph(m_fabs.IndexArray().size());
+                              fsrcGraph = new RegionGraph(dmff->IndexArray().size());
+                              fsrcGraph->buildTileArray(*dmff);
+                          }
+#ifdef USE_PERILLA_PTHREADS
+//                        perilla::syncAllThreads();
+#endif
+#if 1
+                          Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *dmff, ncomp, m_fabs.nGrow(), 0, geom_fine->periodicity());
+#endif
+#ifdef USE_PERILLA_PTHREADS
+//                        perilla::syncAllThreads();
+//                        if(perilla::isMasterThread())
+#endif
+                          {
+                              m_amrlevel.parent->graphArray.push_back(destGraph);
+                              m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+                          }
+                       }
+                  }
+                  else
+                  {
+                      amrex::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
+                  }
+#endif
+                  //-------------------- FillFromTwoLevels initialization completed
+                } // if(level==1 OR ProperlyNested)
+              else
+                {
+                  amrex::Abort("initFillPatch: level is not properly nested");
+                }
+          }
+
+        DComp += NComp;
+    }
+#if 1
+#ifdef USE_PERILLA_PTHREADS
+//    perilla::syncAllThreads();
+//    if(perilla::isMasterThread())
+#endif
+    {
+        destGraph->buildTileArray(m_fabs);
+        destGraph->buildTileArray_gtbx(m_leveldata,boxGrow);
+    }
+#ifdef USE_PERILLA_PTHREADS
+//    perilla::syncAllThreads();
+#endif
+#endif
+}
+FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
+                                      MultiFab& leveldata,
+                                      int       boxGrow,
+                                      Real      time,
+                                      int       index,
+                                      int       scomp,
+                                      int       ncomp,
+                                      int       f)
+    :
+    MFIter(leveldata),
+    m_amrlevel(amrlevel),
+    m_leveldata(leveldata),
+    m_ncomp(ncomp),
+    physbcf(0),
+    physbcf_crse(0),
+    physbcf_fine(0),
+    destGraph(0),
+    fsrcGraph(0),
+    csrcGraph(0),
+    m_rg_crse_patch(NULL),
+    //raii(PArrayManage)
+    dmf(NULL),
+    dmff(NULL)
+{
+#if 1
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(AmrLevel::desc_lst[index].inRange(scomp,ncomp));
+    BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
+
+    //InitializePush(boxGrow,time,index,scomp,ncomp,f,tid);
+
+#if BL_USE_TEAM
+    ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
+
+#endif
+}
+//end USE_PERILLA
+#endif
 
 }
 

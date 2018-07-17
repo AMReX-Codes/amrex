@@ -1,22 +1,22 @@
 
-max_step  = 10000
+max_step  = 1000
 stop_time = 1.2e-5
 
 geometry.is_periodic = 0 0 0
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =   0.0      0.0      0.0
 
-geometry.prob_hi     =   7.5      3.75     0.1171875
+geometry.prob_hi = 7.5  3.75  0.1171875
 
-#amr.n_cell           =   512      256      8
-amr.n_cell           =   1024      512      16
+amr.n_cell           =   512      256      8
+#amr.n_cell           =   1024      512      16
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 # 0 = Interior           3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-cns.lo_bc       =  2   5   2
+cns.lo_bc       =  2   5   2 
 cns.hi_bc       =  2   2   2
 
 cns.cfl = 0.3  # cfl number for hyperbolic system
@@ -30,7 +30,7 @@ amr.loadbalance_level0_int = 1000
 
 # REFINEMENT / REGRIDDING 
 amr.check_input     = 0       # 
-amr.max_level       = 0       # maximum level number allowed
+amr.max_level       = 1       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2 2 2 2 # how often to regrid
 amr.blocking_factor = 16
@@ -50,11 +50,10 @@ amr.plot_int          = 50      # number of timesteps between plotfiles
 amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 # EB
-geom_type = ramp
-up_dir = 1
-indep_var = 0
-ramp_slope = 1.1503684072210092   # tan(49 degree)
-start_pt = 5.2
+eb2.use_eb2 = 1
+eb2.geom_type = plane
+eb2.plane_point = 5.2 0.0 0.0
+eb2.plane_normal = 0.7547095802227719  -0.6560590289905074  0.0   # slope: 49 degree
 
 physics.gamma  = 1.6666666666666667
 physics.eos_mu = 41.57255

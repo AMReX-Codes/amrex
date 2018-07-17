@@ -25,7 +25,8 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo());
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final {}
 
@@ -81,6 +82,7 @@ protected:
     Vector<std::unique_ptr<iMultiFab> > m_nd_fine_mask; // nodal mask: 0: this level node, 1: c/f boudnary, 2: fine node
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contains c/f boundary?
     MultiFab m_bottom_dot_mask;
+    MultiFab m_coarse_dot_mask;
 };
 
 }
