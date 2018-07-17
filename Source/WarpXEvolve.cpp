@@ -13,137 +13,16 @@ void
 WarpX::Evolve (int numsteps) {
     BL_PROFILE_REGION("WarpX::Evolve()");
 
+#ifdef WARPX_DO_ELECTROSTATIC
     if (do_electrostatic) {
         EvolveES(numsteps);
     } else {
       EvolveEM(numsteps);
     }
-}
-
-void
-WarpX::EvolveES (int numsteps) {
-
-    amrex::Print() << "Running in electrostatic mode \n";
-
-    BL_PROFILE("WarpX::EvolveES()");
-    Real cur_time = t_new[0];
-    static int last_plot_file_step = 0;
-    static int last_check_file_step = 0;
-
-    int numsteps_max;
-    if (numsteps < 0) {  // Note that the default argument is numsteps = -1
-        numsteps_max = max_step;
-    } else {
-        numsteps_max = std::min(istep[0]+numsteps, max_step);
-    }
-
-    bool max_time_reached = false;
-
-    // nodal storage for thee electrostatic case
-    const int num_levels = max_level + 1;
-    Vector<std::unique_ptr<MultiFab> > rhoNodal(num_levels);
-    Vector<std::unique_ptr<MultiFab> > phiNodal(num_levels);
-    Vector<std::array<std::unique_ptr<MultiFab>, 3> > eFieldNodal(num_levels);
-    const int ng = 1;
-    for (int lev = 0; lev <= max_level; lev++) {
-        BoxArray nba = boxArray(lev);
-        nba.surroundingNodes();
-        rhoNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, ng));
-        phiNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, 2));
-
-        eFieldNodal[lev][0].reset(new MultiFab(nba, dmap[lev], 1, ng));
-        eFieldNodal[lev][1].reset(new MultiFab(nba, dmap[lev], 1, ng));
-        eFieldNodal[lev][2].reset(new MultiFab(nba, dmap[lev], 1, ng));
-    }
-
-    const int lev = 0;
-    for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
-    {
-
-	// Start loop on time steps
-        amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
-
-        // At initialization, particles have p^{n-1/2} and x^{n-1/2}.
-        // Beyond one step, particles have p^{n-1/2} and x^{n}.
-        if (is_synchronized) {
-            // on first step, push X by 0.5*dt
-            mypc->PushXES(0.5*dt[lev]);
-            UpdatePlasmaInjectionPosition(0.5*dt[lev]);
-            mypc->Redistribute();
-            mypc->DepositCharge(rhoNodal);
-            computePhi(rhoNodal, phiNodal);
-            computeE(eFieldNodal, phiNodal);
-            is_synchronized = false;
-        }
-
-        mypc->FieldGatherES(eFieldNodal, gather_masks);
-
-        const std::string& ppltfile = amrex::Concatenate("particles", istep[0], 5);
-        auto& pc = mypc->GetParticleContainer(0);
-        pc.WriteAsciiFile(ppltfile);
-
-        // Evolve particles to p^{n+1/2} and x^{n+1}
-        mypc->EvolveES(eFieldNodal, rhoNodal, cur_time, dt[lev]);
-
-        mypc->DepositCharge(rhoNodal);
-
-        computePhi(rhoNodal, phiNodal);
-        computeE(eFieldNodal, phiNodal);
-
-        if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
-            // on last step, push by only 0.5*dt to synchronize all at n+1/2
-            mypc->PushXES(-0.5*dt[lev]);
-            UpdatePlasmaInjectionPosition(-0.5*dt[lev]);
-            is_synchronized = true;
-        }
-
-        mypc->Redistribute();
-
-        ++istep[0];
-
-        cur_time += dt[0];
-
-        bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
-
-        amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = "
-                      << cur_time << " DT = " << dt[0] << "\n";
-
-	// sync up time
-	for (int i = 0; i <= finest_level; ++i) {
-	    t_new[i] = cur_time;
-	}
-
-	if (to_make_plot) {
-            // replace with ES field Gather
-            mypc->DepositCharge(rhoNodal);
-            computePhi(rhoNodal, phiNodal);
-            phiNodal[0]->FillBoundary(Geom(0).periodicity());
-            computeE(eFieldNodal, phiNodal);
-            mypc->FieldGatherES(eFieldNodal, gather_masks);
-	    last_plot_file_step = step+1;
-	    WritePlotFileES(rhoNodal, phiNodal, eFieldNodal);
-	}
-
-	if (check_int > 0 && (step+1) % check_int == 0) {
-	    last_check_file_step = step+1;
-	    WriteCheckPointFile();
-	}
-
-	if (cur_time >= stop_time - 1.e-3*dt[0]) {
-	    max_time_reached = true;
-	    break;
-	}
-
-	// End loop on time steps
-    }
-
-    if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
-        WritePlotFileES(rhoNodal, phiNodal, eFieldNodal);
-    }
-
-    if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
-	WriteCheckPointFile();
-    }
+#else
+    EvolveEM(numsteps);
+#endif // WARPX_DO_ELECTROSTATIC
+    
 }
 
 void
