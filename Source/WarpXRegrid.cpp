@@ -33,9 +33,11 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
     {
         if (ParallelDescriptor::NProcs() == 1) return;
 
+#ifdef WARPX_DO_ELECTROSTATIC        
         AMREX_ALWAYS_ASSERT(masks[lev] == nullptr);
         AMREX_ALWAYS_ASSERT(gather_masks[lev] == nullptr);
-
+#endif // WARPX_DO_ELECTROSTATIC
+        
         // Fine patch
 
         for (int idim=0; idim < 3; ++idim)
