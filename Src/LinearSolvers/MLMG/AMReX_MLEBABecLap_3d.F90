@@ -17,11 +17,11 @@ contains
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, & 
        a, alo, ahi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, flag, flo, fhi, & 
        vfrc, vlo, vhi, apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, &
-       fcy, cylo, cyhi, fcz, czlo, czhi, cntr, ctlo, cthi, dxinv, alpha, beta) & 
+       fcy, cylo, cyhi, fcz, czlo, czhi, dxinv, alpha, beta) & 
        bind(c, name='amrex_mlebabeclap_adotx') 
    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo,&
       bxhi, bylo, byhi, bzlo, bzhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, azlo, azhi, & 
-      cxlo, cxhi, cylo, cyhi, czlo, czhi, ctlo, cthi
+      cxlo, cxhi, cylo, cyhi, czlo, czhi
    real(amrex_real), intent(in) :: dxinv(3) 
    real(amrex_real), value, intent(in) :: alpha, beta
    real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2), ylo(3): yhi(3))
@@ -38,7 +38,6 @@ contains
    real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
    real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2) 
    real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2) 
-   real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),ctlo(3):cthi(3),3)
    integer  :: i, j, k, ii, jj, kk 
    real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
 
@@ -132,29 +131,10 @@ contains
                          & fracx*     fracy *bZ(ii,jj,k+1)*(x(ii,jj,k+1)-x(ii,jj,k))
                 endif 
 
-                y(i,j,k) = (one/vfrc(i,j,k))*&
+                y(i,j,k) = alpha*a(i,j,k)*x(i,j,k) + (one/vfrc(i,j,k))*&
                        (dhx*(apx(i,j,k)*fxm - apx(i+1,j,k)*fxp) + &
                         dhy*(apy(i,j,k)*fym - apy(i,j+1,k)*fyp) + &
                         dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp))
-
-                if(alpha .ne. zero) then
-                   fracx = abs(cntr(i,j,k,1))
-                   fracy = abs(cntr(i,j,k,2))
-                   fracz = abs(cntr(i,j,k,3))
-                   ii = i + int(sign(one,cntr(i,j,k,1)))
-                   jj = j + int(sign(one,cntr(i,j,k,2)))
-                   kk = k + int(sign(one,cntr(i,j,k,3)))
-
-                   y(i,j,k) = y(i,j,k) + alpha* &
-                        ((one-fracx)*(one-fracy)*(one-fracz)*a(i ,j ,k )*x(i ,j ,k ) &
-                        +     fracx *(one-fracy)*(one-fracz)*a(ii,j ,k )*x(ii,j ,k ) &
-                        +(one-fracx)*     fracy *(one-fracz)*a(i ,jj,k )*x(i ,jj,k ) &
-                        +     fracx *     fracy *(one-fracz)*a(ii,jj,k )*x(ii,jj,k ) &
-                        +(one-fracx)*(one-fracy)*     fracz *a(i ,j ,kk)*x(i ,j ,kk) &
-                        +     fracx *(one-fracy)*     fracz *a(ii,j ,kk)*x(ii,j ,kk) &
-                        +(one-fracx)*     fracy *     fracz *a(i ,jj,kk)*x(i ,jj,kk) &
-                        +     fracx *     fracy *     fracz *a(ii,jj,kk)*x(ii,jj,kk))
-                endif
               endif 
           enddo
        enddo 
@@ -169,13 +149,13 @@ contains
      f1, f1lo, f1hi, f3, f3lo, f3hi, f5, f5lo, f5hi, & 
      flag, flo, fhi, vfrc, vlo, vhi, & 
      apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-     fcz, czlo, czhi, cntr, ctlo, cthi, dxinv, alpha, beta, redblack) & 
+     fcz, czlo, czhi, dxinv, alpha, beta, redblack) & 
      bind(c,name='amrex_mlebabeclap_gsrb') 
 
     integer, dimension(3), intent(in) :: lo, hi, hlo, hhi, rlo, rhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
          bzlo, bzhi, m0lo, m0hi, m1lo, m1hi, m2lo, m2hi, m3lo, m3hi, m4lo, m4hi, m5lo, m5hi,  &
          f0lo, f0hi, f1lo, f1hi, f2lo, f2hi, f3lo, f3hi, f4lo, f4hi ,f5lo, f5hi, flo, fhi, vlo, vhi,&
-         axlo, axhi, aylo, ayhi, azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi, ctlo, cthi
+         axlo, axhi, aylo, ayhi, azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), value, intent(in) :: alpha, beta
     integer         , value, intent(in) :: redblack
@@ -205,7 +185,6 @@ contains
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
     real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
-    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),ctlo(3):cthi(3),3)
 
     integer :: i, j, k, ioff, ii, jj, kk
     real(amrex_real) :: cf0, cf1, cf2, cf3, cf4, cf5,  delta, gamma, rho, res
@@ -336,7 +315,7 @@ contains
                        szp = (one-fracx)*(one-fracy)*szp
                     end if 
  
-                    gamma = (one/vfrc(i,j,k)) * & 
+                    gamma = alpha*a(i,j,k)*phi(i,j,k) + (one/vfrc(i,j,k)) * & 
                             (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
                              dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + &
                              dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
@@ -345,29 +324,10 @@ contains
                            (dhx*(apx(i,j,k)*fxm-apx(i+1,j,k)*fxp) + &
                             dhy*(apy(i,j,k)*fym-apy(i,j+1,k)*fyp) + &
                             dhz*(apz(i,j,k)*fzm-apz(i,j,k+1)*fzp))
+                 end if
 
-                    if (alpha .ne. zero) then
-                       fracx = abs(cntr(i,j,k,1))
-                       fracy = abs(cntr(i,j,k,2))
-                       fracz = abs(cntr(i,j,k,3))
-                       ii = i + int(sign(one,cntr(i,j,k,1)))
-                       jj = j + int(sign(one,cntr(i,j,k,2)))
-                       kk = k + int(sign(one,cntr(i,j,k,3)))
-
-                       gamma = gamma + alpha*(one-fracx)*(one-fracy)*(one-fracz)*a(i ,j ,k )
-                       rho = rho - alpha* &
-                            (     fracx *(one-fracy)*(one-fracz)*a(ii,j ,k )*phi(ii,j ,k ) &
-                            +(one-fracx)*     fracy *(one-fracz)*a(i ,jj,k )*phi(i ,jj,k ) &
-                            +     fracx *     fracy *(one-fracz)*a(ii,jj,k )*phi(ii,jj,k ) &
-                            +(one-fracx)*(one-fracy)*     fracz *a(i ,j ,kk)*phi(i ,j ,kk) &
-                            +     fracx *(one-fracy)*     fracz *a(ii,j ,kk)*phi(ii,j ,kk) &
-                            +(one-fracx)*     fracy *     fracz *a(i ,jj,kk)*phi(i ,jj,kk) &
-                            +     fracx *     fracy *     fracz *a(ii,jj,kk)*phi(ii,jj,kk))
-                    end if
-                  end if
-
-                  res = rhs(i,j,k) - (gamma*phi(i,j,k) - rho)
-                  phi(i,j,k) = phi(i,j,k) + omega*res/(gamma-delta)
+                 res = rhs(i,j,k) - (gamma*phi(i,j,k) - rho)
+                 phi(i,j,k) = phi(i,j,k) + omega*res/(gamma-delta)
               endif
           end do 
        end do 
@@ -378,12 +338,11 @@ contains
   subroutine amrex_mlebabeclap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi,apz, azlo, azhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       fcz, czlo, czhi, cntr, ctlo, cthi, dxinv, alpha, beta) &
+       fcz, czlo, czhi, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_normalize')
 
     integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, bzlo, bzhi, &
-              flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi,azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi, &
-              ctlo, cthi 
+              flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi,azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3)  )
@@ -399,10 +358,9 @@ contains
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
     real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
-    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),ctlo(3):cthi(3),3)
 
-    integer :: i, j, k, ii, jj, kk
-    real(amrex_real) :: dhx, dhy, dhz, sxm, sxp, sym, syp, szm, szp, gamma, fracx, fracy, fracz
+    integer :: i, j, k
+    real(amrex_real) :: dhx, dhy, dhz, sxm, sxp, sym, syp, szm, szp, gamma
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -423,20 +381,10 @@ contains
              szm =  bZ(i,j,k  ) * (one-abs(fcz(i,j,k  ,1)))*(one-abs(fcz(i,j,k  ,2)))
              szp = -bZ(i,j,k+1) * (one-abs(fcz(i,j,k+1,1)))*(one-abs(fcz(i,j,k+1,2)))
 
-             gamma =  (one/vfrc(i,j,k)) * &
+             gamma = alpha*a(i,j,k) + (one/vfrc(i,j,k)) * &
                   (dhx*(apx(i,j,k)*sxm-apx(i+1,j,k)*sxp) + &
                    dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + & 
                    dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
-
-             if (alpha .ne. zero) then
-                fracx = abs(cntr(i,j,k,1))
-                fracy = abs(cntr(i,j,k,2))
-                fracz = abs(cntr(i,j,k,3))
-                ii = i + int(sign(one,cntr(i,j,k,1)))
-                jj = j + int(sign(one,cntr(i,j,k,2)))
-                kk = k + int(sign(one,cntr(i,j,k,3)))
-                gamma = gamma + alpha*(one-fracx)*(one-fracy)*(one-fracz)*a(i,j,k)
-             end if
 
              x(i,j,k) = x(i,j,k) / gamma
           end if

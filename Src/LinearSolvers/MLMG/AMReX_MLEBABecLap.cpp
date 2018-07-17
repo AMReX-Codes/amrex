@@ -53,15 +53,14 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
         m_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            const int ng = 1;
             m_a_coeffs[amrlev][mglev].define(m_grids[amrlev][mglev],
                                              m_dmap[amrlev][mglev],
-                                             1, ng, MFInfo(), *m_factory[amrlev][mglev]);
-            m_a_coeffs[amrlev][mglev].setVal(0.0);
+                                             1, 0, MFInfo(), *m_factory[amrlev][mglev]);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& ba = amrex::convert(m_grids[amrlev][mglev],
                                                     IntVect::TheDimensionVector(idim));
+                const int ng = 1;
                 m_b_coeffs[amrlev][mglev][idim].define(ba,
                                                        m_dmap[amrlev][mglev],
                                                        1, ng, MFInfo(), *m_factory[amrlev][mglev]);
@@ -111,7 +110,6 @@ MLEBABecLap::averageDownCoeffs ()
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-            m_a_coeffs[amrlev][mglev].FillBoundary(m_geom[amrlev][mglev].periodicity());
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 m_b_coeffs[amrlev][mglev][idim].FillBoundary(m_geom[amrlev][mglev].periodicity());
             }
@@ -205,7 +203,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* centroid = (factory) ? &(factory->getCentroid()) : nullptr; 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -248,7 +245,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                    BL_TO_FORTRAN_ANYD((*centroid)[mfi]),
                                     dxinv, m_a_scalar, m_b_scalar);
         }
     }
@@ -301,7 +297,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* centroid = (factory) ? &(factory->getCentroid()) : nullptr; 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -433,7 +428,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                 BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                 BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                   BL_TO_FORTRAN_ANYD((*centroid)[mfi]),
                                    dxinv, m_a_scalar, m_b_scalar, redblack);
         }
     }
@@ -463,7 +457,6 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* centroid = (factory) ? &(factory->getCentroid()) : nullptr; 
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -505,7 +498,6 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                      BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                      BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                        BL_TO_FORTRAN_ANYD((*centroid)[mfi]), 
                                         dxinv, m_a_scalar, m_b_scalar);
         }
     }
