@@ -230,6 +230,7 @@ int main(int argc, char* argv[])
 
     ParmParse pp;    
     TestParams parms;    
+
     pp.get("ncell", parms.ncell);
     pp.get("nppc",  parms.nppc);
     pp.get("max_grid_size", parms.max_grid_size);

@@ -11,7 +11,7 @@ There are three ways to use AMReX.
     install`.  Type `./configure -h` to show help message.  An
     application code uses its build system to compile and link to the
     AMReX library.  Because AMReX uses C++11 and Fortran, the linker
-    needs to link the libraries.  See `Tutorials/libamrex_C` for an
+    needs to link the libraries.  See `OldTutorials/libamrex_C` for an
     example of this approach.  Note that this approach relies the make
     system in `Tools/GNUMake/`.  See `Tools/GNUMake/README.md` for
     more details on the make system.

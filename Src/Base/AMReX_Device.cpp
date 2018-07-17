@@ -16,6 +16,9 @@ cudaStream_t amrex::Device::cuda_stream;
 
 dim3 amrex::Device::numThreadsMin = dim3(1, 1, 1);
 
+dim3 amrex::Device::numThreadsOverride = dim3(0, 0, 0);
+dim3 amrex::Device::numBlocksOverride = dim3(0, 0, 0);
+
 cudaDeviceProp amrex::Device::device_prop;
 #endif
 
@@ -26,6 +29,32 @@ amrex::Device::initialize_cuda_c () {
         CudaAPICheck(cudaStreamCreate(&cuda_streams[i]));
 
     cuda_stream = cuda_streams[0];
+
+    ParmParse pp("device");
+
+    int nx = 0;
+    int ny = 0;
+    int nz = 0;
+
+    pp.query("numThreads.x", nx);
+    pp.query("numThreads.y", ny);
+    pp.query("numThreads.z", nz);
+
+    numThreadsOverride.x = (int) nx;
+    numThreadsOverride.y = (int) ny;
+    numThreadsOverride.z = (int) nz;
+
+    nx = 0;
+    ny = 0;
+    nz = 0;
+
+    pp.query("numBlocks.x", nx);
+    pp.query("numBlocks.y", ny);
+    pp.query("numBlocks.z", nz);
+
+    numBlocksOverride.x = (int) nx;
+    numBlocksOverride.y = (int) ny;
+    numBlocksOverride.z = (int) nz;
 
     cudaGetDeviceProperties(&device_prop, device_id);
 
@@ -377,24 +406,18 @@ void
 amrex::Device::mem_advise_set_preferred(void* p, const std::size_t sz, const int device) {
 
 #ifdef AMREX_USE_CUDA
-#ifndef NO_CUDA_8
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
         CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
-#endif
 #endif
 
 }
 
 void
 amrex::Device::mem_advise_set_readonly(void* p, const std::size_t sz) {
-
-#ifdef AMReX_USE_CUDA
-#ifndef NO_CUDA_8
+#ifdef AMREX_USE_CUDA
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
         CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
 #endif
-#endif
-
 }
 
 void
@@ -443,4 +466,52 @@ amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& n
     numBlocks = (np + 256 - 1) / 256;
 }
 
+void
+amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads) {
+
+    int num_SMs;
+
+    int SM_mult_factor = 32;
+
+    get_num_SMs(&num_SMs);
+
+    if (num_SMs > 0) {
+
+
+        numBlocks.x = 1;
+        numBlocks.y = SM_mult_factor;
+        numBlocks.z = num_SMs;
+
+    } else {
+
+        // Arbitrarily set this to a somewhat large number.
+
+        numBlocks.x = 1000;
+        numBlocks.y = 1;
+        numBlocks.z = 1;
+
+    }
+
+    numThreads.x = std::max((int) numThreadsMin.x, 16);
+    numThreads.y = std::max((int) numThreadsMin.y, 16);
+    numThreads.z = std::max((int) numThreadsMin.z, 1);
+
+    // Allow the user to override these at runtime.
+
+    if (numBlocksOverride.x > 0)
+        numBlocks.x = numBlocksOverride.x;
+    if (numBlocksOverride.y > 0)
+        numBlocks.y = numBlocksOverride.y;
+    if (numBlocksOverride.z > 0)
+        numBlocks.z = numBlocksOverride.z;
+
+    if (numThreadsOverride.x > 0)
+        numThreads.x = numThreadsOverride.x;
+    if (numThreadsOverride.y > 0)
+        numThreads.y = numThreadsOverride.y;
+    if (numThreadsOverride.z > 0)
+        numThreads.z = numThreadsOverride.z;
+
+}
 #endif
+

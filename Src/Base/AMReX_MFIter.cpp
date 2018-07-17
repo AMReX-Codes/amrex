@@ -165,6 +165,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 {
     if (dynamic) {
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp single
         nextDynamicIndex = omp_get_num_threads();
         // yes omp single has an implicit barrier and we need it because nextDynamicIndex is static.
@@ -401,6 +402,23 @@ MFIter::growntilebox (int ng) const
 	}
 	if (bx.bigEnd(d) == vbx.bigEnd(d)) {
 	    bx.growHi(d, ng);
+	}
+    }
+    registerBox(bx);
+    return bx;
+}
+
+Box
+MFIter::growntilebox (const IntVect& ng) const
+{
+    Box bx = tilebox();
+    const Box& vbx = validbox();
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+	    bx.growLo(d, ng[d]);
+	}
+	if (bx.bigEnd(d) == vbx.bigEnd(d)) {
+	    bx.growHi(d, ng[d]);
 	}
     }
     registerBox(bx);

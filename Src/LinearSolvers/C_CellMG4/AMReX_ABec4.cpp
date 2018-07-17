@@ -142,7 +142,7 @@ ABec4::applyBC (MultiFab&     inout,
             FArrayBox&       ffab  = f[gn];
             const FArrayBox& fsfab = fs[gn];
 
-            FORT_APPLYBC4(&flagden, &flagbc, &maxorder,
+            amrex_ab4_applybc4(&flagden, &flagbc, &maxorder,
 			  iofab.dataPtr(src_comp),
 			  ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
 			  &cdr, &bct, &bcl,
@@ -179,7 +179,7 @@ ABec4::applyBC (MultiFab&     inout,
     const Box& vbx   = inout.box(gn);
     FArrayBox& iofab = inout[gn];
 
-    FORT_APPLYBC4_TOUCHUP(
+    amrex_ab4_applybc4_touchup(
       iofab.dataPtr(src_comp),ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
       vbx.loVect(), vbx.hiVect(), &num_comp);
   }
@@ -199,7 +199,7 @@ ABec4::ca2cc(const MultiFab& ca, MultiFab& cc,
     FArrayBox& ccf = cc[mfi];
     const Box& box = mfi.tilebox();
     BL_ASSERT(caf.box().contains(amrex::grow(box,1)));
-    FORT_CA2CC(box.loVect(), box.hiVect(),
+    amrex_ab4_ca2cc(box.loVect(), box.hiVect(),
                caf.dataPtr(sComp), ARLIM(caf.box().loVect()), ARLIM(caf.box().hiVect()),
                ccf.dataPtr(dComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
                &nComp);
@@ -218,7 +218,7 @@ ABec4::cc2ca(const MultiFab& cc, MultiFab& ca,
     FArrayBox& caf = ca[mfi];
     const Box& box = mfi.growntilebox();
     BL_ASSERT(ccf.box().contains(amrex::grow(box,1)));
-    FORT_CC2CA(box.loVect(), box.hiVect(),
+    amrex_ab4_cc2ca(box.loVect(), box.hiVect(),
                ccf.dataPtr(sComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
                caf.dataPtr(dComp), ARLIM(caf.box().loVect()), ARLIM(caf.box().hiVect()),
                &nComp);
@@ -238,7 +238,7 @@ ABec4::lo_cc2ec(const MultiFab& cc, MultiFab& ec,
     const Box& box = mfi.growntilebox();
     BL_ASSERT(ccf.box().contains(Box(box).enclosedCells().grow(dir,1)));
     int iharm = (int)do_harm;
-    FORT_LO_CC2EC(box.loVect(), box.hiVect(),
+    amrex_ab4_lo_cc2ec(box.loVect(), box.hiVect(),
                   ccf.dataPtr(sComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
                   ecf.dataPtr(dComp), ARLIM(ecf.box().loVect()), ARLIM(ecf.box().hiVect()),
                   &nComp,&dir,&iharm);
@@ -433,7 +433,7 @@ ABec4::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux)
                FArrayBox& yfluxfab = yflux[inmfi];,
                FArrayBox& zfluxfab = zflux[inmfi];);
 
-        FORT_FLUX(infab.dataPtr(src_comp),
+        amrex_ab4_flux(infab.dataPtr(src_comp),
 		  ARLIM(infab.loVect()), ARLIM(infab.hiVect()),
 		  &alpha, &beta, a[inmfi].dataPtr(), 
 		  ARLIM(a[inmfi].loVect()), ARLIM(a[inmfi].hiVect()),
@@ -557,7 +557,7 @@ ABec4::Fapply (MultiFab&       y,
         const FArrayBox& afab = a[ymfi];
 	const FArrayBox& bfab = b[ymfi];
 
-        FORT_ADOTX(yfab.dataPtr(dst_comp),
+        amrex_ab4_adotx(yfab.dataPtr(dst_comp),
                    ARLIM(yfab.loVect()),ARLIM(yfab.hiVect()),
                    xfab.dataPtr(src_comp),
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),

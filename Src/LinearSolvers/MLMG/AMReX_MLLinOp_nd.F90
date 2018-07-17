@@ -1,10 +1,10 @@
 
-#include "AMReX_LO_BCTYPES.H"
-
 module amrex_mllinop_nd_module
 
   use amrex_error_module
   use amrex_fort_module, only : amrex_real, amrex_spacedim
+  use amrex_lo_util_module, only : polyInterpCoeff
+  use amrex_lo_bctypes_module
   implicit none
 
 #if (AMREX_SPACEDIM == 1)
@@ -53,9 +53,9 @@ contains
     inhomogeneous = (inhomog .ne. 0)
 
     do n = 1, nc
-       if (bct == LO_NEUMANN .or. bct == LO_REFLECT_ODD) then
+       if (bct == amrex_lo_neumann .or. bct == amrex_lo_reflect_odd) then
 
-          if (bct == LO_NEUMANN) then
+          if (bct == amrex_lo_neumann) then
              fac = 1.d0
           else
              fac = -1.d0
@@ -116,7 +116,7 @@ contains
 #endif
           end select
 
-       else if (bct == LO_DIRICHLET) then
+       else if (bct == amrex_lo_dirichlet) then
 
           idim = mod(cdir,amrex_spacedim) + 1 ! cdir starts with 0; idim starts with 1
           lenx = MIN(hi(idim)-lo(idim), maxorder-2)
@@ -209,41 +209,101 @@ contains
        end if
 
        ! Fill corners with averages for non-cross stencil
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM > 1)
        if (cross .eq. 0) then
           ! The iteration over faces is always in the order of xlo, xhi, ylo and yhi.
           ! No need to do anything for xlo and xhi, because at that time, ylo and yhi
           ! have not been filled.
-          select case (cdir)
-          case (ylo_dir)
-             do k = lo(3), hi(3)
-                if (mask(lo(1)-1,lo(2)-1,k) .gt. 0) then
-                   phi(lo(1)-1,lo(2)-1,k,n) = & ! Southwest
-                        0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
-                        0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n))
-                end if
 
-                if (mask(hi(1)+1,lo(2)-1,k) .gt. 0) then
-                   phi(hi(1)+1,lo(2)-1,k,n) = & ! Southeast
-                        0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
-                        0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n))
-                end if
-             end do
-          case (yhi_dir)
+          ! Corners in XY plane
+          if (cdir==xlo_dir .or. cdir==ylo_dir) then
              do k = lo(3), hi(3)
-                if (mask(lo(1)-1,hi(2)+1,k) .gt. 0) then
-                   phi(lo(1)-1,hi(2)+1,k,n) = & ! Northwest
-                        0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
-                        0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n))
-                end if
-
-                if (mask(hi(1)+1,hi(2)+1,k) .gt. 0) then
-                   phi(hi(1)+1,hi(2)+1,k,n) = & ! Northeast
-                        0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
-                        0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n))
-                end if
+                phi(lo(1)-1,lo(2)-1,k,n) = & 
+                     0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
+                     0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n))
              end do
-          end select
+          end if
+          if (cdir==xhi_dir .or. cdir==ylo_dir) then
+             do k = lo(3), hi(3)
+                phi(hi(1)+1,lo(2)-1,k,n) = & 
+                     0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
+                     0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n))
+             end do
+          end if
+          if (cdir==xlo_dir .or. cdir==yhi_dir) then
+             do k = lo(3), hi(3)
+                phi(lo(1)-1,hi(2)+1,k,n) = & 
+                     0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
+                     0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n))
+             end do
+          end if
+          if (cdir==xhi_dir .or. cdir==yhi_dir) then
+             do k = lo(3), hi(3)
+                phi(hi(1)+1,hi(2)+1,k,n) = & 
+                     0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
+                     0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n))
+             end do
+          end if
+#if (AMREX_SPACEDIM > 2)
+          ! Corners in YZ plane
+          if (cdir==zlo_dir .or. cdir==ylo_dir) then
+             do i = lo(1), hi(1)
+                phi(i,lo(2)-1,lo(3)-1,n) = & 
+                     0.5d0*(2.d0*phi(i,lo(2)-1,lo(3),n) - phi(i,lo(2)-1,lo(3)+1,n)) + &
+                     0.5d0*(2.d0*phi(i,lo(2),lo(3)-1,n) - phi(i,lo(2)+1,lo(3)-1,n))
+             end do
+          end if
+          if (cdir==zhi_dir .or. cdir==ylo_dir) then
+             do i = lo(1), hi(1)
+                phi(i,lo(2)-1,hi(3)+1,n) = & 
+                     0.5d0*(2.d0*phi(i,lo(2)-1,hi(3),n) - phi(i,lo(2)-1,hi(3)-1,n)) + &
+                     0.5d0*(2.d0*phi(i,lo(2),hi(3)+1,n) - phi(i,lo(2)+1,hi(3)+1,n))
+             end do
+          end if
+          if (cdir==zlo_dir .or. cdir==yhi_dir) then
+             do i = lo(1), hi(1)
+                phi(i,hi(2)+1,lo(3)-1,n) = & 
+                     0.5d0*(2.d0*phi(i,hi(2)+1,lo(3),n) - phi(i,hi(2)+1,lo(3)+1,n)) + &
+                     0.5d0*(2.d0*phi(i,hi(2),lo(3)-1,n) - phi(i,hi(2)-1,lo(3)-1,n))
+             end do
+          end if
+          if (cdir==zhi_dir .or. cdir==yhi_dir) then
+             do i = lo(1), hi(1)
+                phi(i,hi(2)+1,hi(3)+1,n) = & 
+                     0.5d0*(2.d0*phi(i,hi(2)+1,hi(3),n) - phi(i,hi(2)+1,hi(3)-1,n)) + &
+                     0.5d0*(2.d0*phi(i,hi(2),hi(3)+1,n) - phi(i,hi(2)-1,hi(3)+1,n))
+             end do
+          end if
+          ! Corners in XZ plane
+          if (cdir==xlo_dir .or. cdir==zlo_dir) then
+             do j = lo(2), hi(2)
+                phi(lo(1)-1,j,lo(3)-1,n) = & 
+                     0.5d0*(2.d0*phi(lo(1),  j,lo(3)-1,n) - phi(lo(1)+1,j,lo(3)-1,n)) + &
+                     0.5d0*(2.d0*phi(lo(1)-1,j,lo(3),n) - phi(lo(1)-1,j,lo(3)+1,n))
+             end do
+          end if
+          if (cdir==xhi_dir .or. cdir==zlo_dir) then
+             do j = lo(2), hi(2)
+                phi(hi(1)+1,j,lo(3)-1,n) = & 
+                     0.5d0*(2.d0*phi(hi(1),j,lo(3)-1,n) - phi(hi(1)-1,j,lo(3)-1,n)) + &
+                     0.5d0*(2.d0*phi(hi(1)+1,j,lo(3),n) - phi(hi(1)+1,j,lo(3)+1,n))
+             end do
+          end if
+          if (cdir==xlo_dir .or. cdir==zhi_dir) then
+             do j = lo(2), hi(2)
+                phi(lo(1)-1,j,hi(3)+1,n) = & 
+                     0.5d0*(2.d0*phi(lo(1),j,hi(3)+1,n) - phi(lo(1)+1,j,hi(3)+1,n)) + &
+                     0.5d0*(2.d0*phi(lo(1)-1,j,hi(3),n) - phi(lo(1)-1,j,hi(3)-1,n))
+             end do
+          end if
+          if (cdir==xhi_dir .or. cdir==zhi_dir) then
+             do j = lo(2), hi(2)
+                phi(hi(1)+1,j,hi(3)+1,n) = & 
+                     0.5d0*(2.d0*phi(hi(1),j,hi(3)+1,n) - phi(hi(1)-1,j,hi(3)+1,n)) + &
+                     0.5d0*(2.d0*phi(hi(1)+1,j,hi(3),n) - phi(hi(1)+1,j,hi(3)-1,n))
+             end do
+          end if
+#endif
        end if
 #endif
 
@@ -270,7 +330,7 @@ contains
     real(amrex_real) :: c0
     
     do n = 1, nc
-       if (bct == LO_NEUMANN) then
+       if (bct == amrex_lo_neumann) then
 
           select case (cdir)
           case (xlo_dir)
@@ -315,9 +375,9 @@ contains
 #endif
           end select
 
-       else if (bct == LO_REFLECT_ODD .or. bct == LO_DIRICHLET) then
+       else if (bct == amrex_lo_reflect_odd .or. bct == amrex_lo_dirichlet) then
 
-          if (bct == LO_REFLECT_ODD) then
+          if (bct == amrex_lo_reflect_odd) then
              c0 = 1.d0
           else
              idim = mod(cdir,amrex_spacedim) + 1 ! cdir starts with 0; idim starts with 1

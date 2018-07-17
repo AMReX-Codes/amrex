@@ -43,8 +43,8 @@
 // not copies, are stored.  Therefore, these MultiFabs must still be alive
 // when solve is called.
 
-#ifndef _FMultiGrid_H_
-#define _FMultiGrid_H_
+#ifndef AMREX_FMultiGrid_H_
+#define AMREX_FMultiGrid_H_
 
 #include <AMReX_MGT_Solver.H>
 #include <AMReX_stencil_types.H>

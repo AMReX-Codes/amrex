@@ -18,6 +18,7 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_EB2.H>
 #endif
 
 namespace amrex {
@@ -104,9 +105,11 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, ba, dm,
-                                           {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
-                                           m_eb_support_level));
+    m_factory = makeEBFabFactory(geom, ba, dm,
+                                 {m_eb_basic_grow_cells,
+                                  m_eb_volume_grow_cells,
+                                  m_eb_full_grow_cells},
+                                 m_eb_support_level);
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -357,9 +360,9 @@ AmrLevel::restart (Amr&          papa,
     parent->SetDistributionMap(level, dmap);
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap,
-                                           {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
-                                           m_eb_support_level));
+    m_factory = makeEBFabFactory(geom, grids, dmap,
+                                 {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
+                                 m_eb_support_level);
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -985,7 +988,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 		static bool first = true;
 		if (first) {
 		    first = false;
-		    if (ParallelDescriptor::IOProcessor()) {
+		    if (ParallelDescriptor::IOProcessor() && amrex::Verbose()) {
 			IntVect new_blocking_factor = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
                         new_blocking_factor *= 2;
 			for (int j = 0; j < 10; ++j) {
@@ -997,14 +1000,13 @@ FillPatchIterator::Initialize (int  boxGrow,
 				new_blocking_factor *= 2;
 			    }
 			}
-			std::cout << "WARNING: Grids are not properly nested.  We might have to use\n"
-				  << "         two coarse levels to do fillpatch.  Consider using\n";
-			if (new_blocking_factor < IntVect{D_DECL(128,128,128)}) {
-			    std::cout << "         amr.blocking_factor=" << new_blocking_factor;
-			} else {
-			    std::cout << "         larger amr.blocking_factor. ";
-			}
-			std::cout << std::endl;
+                        amrex::Print() << "WARNING: Grids are not properly nested.  We might have to use\n"
+                                       << "         two coarse levels to do fillpatch.  Consider using\n";
+                        if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
+                            amrex::Print() << "         amr.blocking_factor=" << new_blocking_factor << "\n";
+                        } else {
+                            amrex::Print() << "         larger amr.blocking_factor.\n";
+                        }
 		    }
 		}
 
@@ -1017,8 +1019,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 						  SComp,
 						  NComp,
 						  desc.interp(SComp));
-		
-#ifdef CRSEGRNDOMP
+	
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1512,8 +1514,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         }
 
 #ifdef AMREX_USE_EB
-        MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),
-                        EBFArrayBoxFactory(cgeom, crseBA, mf_DM, {0,0,0}, EBSupport::basic));
+        auto cfactory = makeEBFabFactory(cgeom, crseBA, mf_DM, {0,0,0}, EBSupport::basic);
+        MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),*cfactory);
 #else
 	MultiFab crseMF(crseBA,mf_DM,NComp,0);
 #endif
@@ -1613,7 +1615,7 @@ AmrLevel::derive (const std::string& name,
 
         mf.reset(new MultiFab(dstBA, dmap, rec->numDerive(), ngrow, MFInfo(), *m_factory));
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1662,18 +1664,18 @@ AmrLevel::derive (const std::string& name,
 #endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
-			       cdat,ARLIM(clo),ARLIM(chi),n_state_f,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),n_der_f,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),n_state_f,
 			       lo,hi,dom_lo,dom_hi,dx,xlo,time_f,dt_f,bcr_f,
 			       level_f,grid_no_f);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),n_der_f,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),n_state_f,
-				 ARLIM_3D(lo),ARLIM_3D(hi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),n_der_f,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),n_state_f,
+				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 time_f,dt_f,
-				 BCREC_3D(bcr_f),
+				 AMREX_BCREC_3D(bcr_f),
 				 level_f,grid_no_f);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
@@ -1723,18 +1725,18 @@ AmrLevel::derive (const std::string& name,
 #endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
-			       cdat,ARLIM(clo),ARLIM(chi),n_state_f,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),n_der_f,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),n_state_f,
 			       dlo,dhi,dom_lo,dom_hi,dx,xlo,time_f,dt_f,bcr_f,
 			       level_f,grid_no_f);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),n_der_f,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),n_state_f,
-				 ARLIM_3D(dlo),ARLIM_3D(dhi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),n_der_f,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),n_state_f,
+				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 time_f,dt_f,
-				 BCREC_3D(bcr_f),
+				 AMREX_BCREC_3D(bcr_f),
 				 level_f,grid_no_f);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
@@ -1795,7 +1797,7 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1844,18 +1846,18 @@ AmrLevel::derive (const std::string& name,
 #endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
-			       cdat,ARLIM(clo),ARLIM(chi),n_state_f,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),n_der_f,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),n_state_f,
 			       lo,hi,dom_lo,dom_hi,dx,xlo,time_f,dt_f,bcr_f,
 			       level_f,idx_f);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),n_der_f,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),n_state_f,
-				 ARLIM_3D(lo),ARLIM_3D(hi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),n_der_f,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),n_state_f,
+				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 time_f,dt_f,
-				 BCREC_3D(bcr_f),
+				 AMREX_BCREC_3D(bcr_f),
 				 level_f,idx_f);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
@@ -1905,19 +1907,19 @@ AmrLevel::derive (const std::string& name,
 #endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
-			       cdat,ARLIM(clo),ARLIM(chi),n_state_f,
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),n_der_f,
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),n_state_f,
 			       dlo,dhi,dom_lo,dom_hi,dx,xlo,time_f,dt_f,bcr_f,
 			       level_f,idx_f);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),n_der_f,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),n_state_f,
-				 ARLIM_3D(dlo),ARLIM_3D(dhi),
-				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-				 ZFILL(dx),ZFILL(xlo),
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),n_der_f,
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),n_state_f,
+				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
+				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
 				 time_f,dt_f,
-				 BCREC_3D(bcr_f),
-				 level_f,idx_f);
+				 AMREX_BCREC_3D(bcr_f),
+				 level,idx_f);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
@@ -2232,74 +2234,6 @@ AmrLevel::FillPatchAdd(AmrLevel& amrlevel,
     const MultiFab& mf_fillpatched = fpi.get_mf();
     MultiFab::Add(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
-
-
-
-void
-AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
-                         int ioProcNumSCS, int ioProcNumAll, int scsMyId,
-			 MPI_Comm scsComm)
-{
-#if BL_USE_MPI
-      if(scsMyId != ioProcNumSCS) {
-        parent = aptr;
-      }
-
-      // ---- ints
-      ParallelDescriptor::Bcast(&level, 1, ioProcNumAll, scsComm);
-
-      // ---- IntVects
-      Vector<int> allIntVects;
-      if(scsMyId == ioProcNumSCS) {
-        for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
-        for(int i(0); i < AMREX_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
-      }
-      amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
-
-      if(scsMyId != ioProcNumSCS) {
-        int count(0);
-        for(int i(0); i < AMREX_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
-        for(int i(0); i < AMREX_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
-      }
-
-
-      // ---- Boxes
-      amrex::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);
-      
-      // ---- Geometry
-      Geometry::BroadcastGeometry(geom, ioProcNumSCS, scsComm);
-      
-      // ---- BoxArrays
-      amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
-      amrex::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
-
-      // ---- state
-      int stateSize(state.size());
-      ParallelDescriptor::Bcast(&stateSize, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        state.resize(stateSize);
-      }
-      for(int i(0); i < state.size(); ++i) {
-        state[i].AddProcsToComp(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-      }
-
-      // ---- bools
-      int ldc(levelDirectoryCreated);
-      ParallelDescriptor::Bcast(&ldc, 1, ioProcNumAll, scsComm);
-      levelDirectoryCreated = ldc;
-#endif
-}
-
-
-
-void
-AmrLevel::Check() const
-{
-    for(int i(0); i < state.size(); ++i) {
-      state[i].Check();
-    }
-}
-
 
 void
 AmrLevel::LevelDirectoryNames(const std::string &dir,

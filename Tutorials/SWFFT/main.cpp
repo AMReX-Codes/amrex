@@ -1,5 +1,5 @@
 #include <AMReX.H>
-#include <SWFFT_Solver.H>
+#include <SWFFT_Test.H>
 
 int main (int argc, char* argv[])
 {
@@ -7,8 +7,8 @@ int main (int argc, char* argv[])
     
     {
         BL_PROFILE("main()");
-        SWFFT_Solver sw_solver;
-        sw_solver.solve();
+        SWFFT_Test sw_test;
+        sw_test.solve();
     }
     
     amrex::Finalize();

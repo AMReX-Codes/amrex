@@ -12,13 +12,13 @@ namespace {
     getIndexBox(const RealBox& real_box, const Geometry& geom) {
         IntVect slice_lo, slice_hi;
         
-        D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
-               slice_lo[1]=floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
-               slice_lo[2]=floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
+        AMREX_D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
+                     slice_lo[1]=floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
+                     slice_lo[2]=floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
         
-        D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
-               slice_hi[1]=floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
-               slice_hi[2]=floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
+        AMREX_D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
+                     slice_hi[1]=floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
+                     slice_hi[2]=floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
         
         return Box(slice_lo, slice_hi) & geom.Domain();
     }
@@ -47,7 +47,7 @@ namespace {
             slice_to_full_ba_map.push_back(isects[i].first);
         }
         BoxArray slice_ba(&boxes[0], boxes.size());
-        DistributionMapping slice_dmap(procs);
+        DistributionMapping slice_dmap(std::move(procs));
         std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, ncomp, 0,
                                                      MFInfo(), cell_centered_data.Factory()));
         return slice;
@@ -303,8 +303,8 @@ namespace amrex
                        int scomp, int ncomp, const IntVect& ratio)
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(S_crse.is_cell_centered() && S_fine.is_cell_centered() ||
-                  S_crse.is_nodal()         && S_fine.is_nodal());
+        BL_ASSERT((S_crse.is_cell_centered() && S_fine.is_cell_centered()) ||
+                  (S_crse.is_nodal()         && S_fine.is_nodal()));
 
         bool is_cell_centered = S_crse.is_cell_centered();
         
@@ -551,9 +551,16 @@ namespace amrex
         return mf;
     }
 
-    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp) {
+    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {
 
         BL_PROFILE("amrex::get_slice_data");
+
+        if (interpolate) {
+            AMREX_ASSERT(cc.nGrow() >= 1);
+        }
+
+        const Real* dx  = geom.CellSize();
+        const Real* plo = geom.ProbLo();
         
         Vector<int> slice_to_full_ba_map;
         std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);
@@ -567,12 +574,51 @@ namespace amrex
             int full_gid = slice_to_full_ba_map[slice_gid];
         
             const Box& tile_box  = mfi.tilebox();
-            amrex_fill_slice(BL_TO_FORTRAN_BOX(tile_box),
-                             BL_TO_FORTRAN_ANYD(cc[full_gid]),
-                             BL_TO_FORTRAN_ANYD((*slice)[slice_gid]),
-                             &start_comp, &nf, &ncomp);
+
+            if (interpolate)
+            {
+                amrex_fill_slice_interp(BL_TO_FORTRAN_BOX(tile_box),
+                                        BL_TO_FORTRAN_ANYD(cc[full_gid]),
+                                        BL_TO_FORTRAN_ANYD((*slice)[slice_gid]),
+                                        &start_comp, &nf, &ncomp, &dir, 
+                                        &coord, AMREX_ZFILL(plo), AMREX_ZFILL(dx));
+            }
+            else
+            {
+                amrex_fill_slice(BL_TO_FORTRAN_BOX(tile_box),
+                                 BL_TO_FORTRAN_ANYD(cc[full_gid]),
+                                 BL_TO_FORTRAN_ANYD((*slice)[slice_gid]),
+                                 &start_comp, &nf, &ncomp);
+            }
         }
         
         return slice;
+    }
+
+    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio)
+    {
+        iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, 0);
+        const BoxArray& cfba = amrex::coarsen(fba,ratio);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            std::vector< std::pair<int,Box> > isects;
+
+            for (MFIter mfi(mask); mfi.isValid(); ++mfi)
+            {
+                IArrayBox& fab = mask[mfi];
+                const Box& bx = fab.box();
+                fab.setVal(0);
+                cfba.intersections(bx, isects);
+                for (auto const& is : isects)
+                {
+                    fab.setVal(1, is.second, 0, 1);
+                }
+            }
+        }
+
+        return mask;
     }
 }

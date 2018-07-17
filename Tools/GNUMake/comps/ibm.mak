@@ -52,22 +52,7 @@ CFLAGS   += $(GENERIC_IBM_FLAGS)
 CPP_PREFIX = -WF,
 
 ifeq ($(USE_CUDA),TRUE)
-  include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
-
-  # Force immediate expansion of the GCC defines,
-  # since after this point GCC will no longer be
-  # the actual compiler defined in CXX.
-
-  DEFINES := $(DEFINES)
-
-  CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
-  CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
-
-  HOST_CXX := $(CXX)
-  HOST_CC := $(CC)
-
-  CXX := nvcc
-  CC := nvcc
+  include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
 endif
 
 
@@ -108,7 +93,7 @@ FFLAGS   += -qfixed=72
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
-override XTRALIBS = -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
+override XTRALIBS = -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
 
 ifeq ($(USE_OMP),TRUE)
   override XTRALIBS += -lxlsmp
@@ -128,4 +113,8 @@ ifeq ($(USE_CUDA),TRUE)
     F90FLAGS += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
     FFLAGS   += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
   endif
+
+  LINK_WITH_FORTRAN_COMPILER = TRUE
 endif
+
+LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)

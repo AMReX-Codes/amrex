@@ -62,9 +62,7 @@ contains
 #endif
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
                        cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -108,7 +106,7 @@ contains
     have_prop = .true.
 
     if (prop%major < 3) then
-       call bl_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
+       call amrex_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
     end if
 
     max_threads_dim = prop%maxThreadsDim
@@ -255,9 +253,7 @@ contains
   subroutine threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     use cudafor, only: dim3
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -308,24 +304,32 @@ contains
 
     numThreadsTotal = numThreads % x * numThreads % y * numThreads % z
 
-    ! Should not exceed CUDA_MAX_THREADS or maximum allowable threads per block.
+    ! Should not exceed maximum allowable threads per block.
 
-    if (numThreadsTotal > CUDA_MAX_THREADS) then
-       call bl_error("Too many CUDA threads per block requested compared to CUDA_MAX_THREADS.")
+    if (numThreads % x > max_threads_dim(1)) then
+       call amrex_error("Too many CUDA threads per block in x-dimension.")
+    end if
+
+    if (numThreads % y > max_threads_dim(2)) then
+       call amrex_error("Too many CUDA threads per block in y-dimension.")
+    end if
+
+    if (numThreads % z > max_threads_dim(3)) then
+       call amrex_error("Too many CUDA threads per block in z-dimension.")
     end if
 
     if (numThreadsTotal > prop % maxThreadsPerBlock) then
-       call bl_error("Too many CUDA threads per block requested compared to device limit.")
+       call amrex_error("Too many CUDA threads per block requested compared to device limit.")
     end if
 
     ! Blocks or threads should be at least one in every dimension.
 
     if (min(numThreads % x, numThreads % y, numThreads % z) < 1) then
-       call bl_error("Number of CUDA threads per block must be positive.")
+       call amrex_error("Number of CUDA threads per block must be positive.")
     end if
 
     if (min(numBlocks % x, numBlocks % y, numBlocks % z) < 1) then
-       call bl_error("Number of CUDA threadblocks must be positive.")
+       call amrex_error("Number of CUDA threadblocks must be positive.")
     end if
 
   end subroutine threads_and_blocks
@@ -381,6 +385,23 @@ contains
 
 
 
+  subroutine get_num_SMs(num) bind(c, name='get_num_SMs')
+
+    implicit none
+
+    integer, intent(inout) :: num
+
+    if (have_prop) then
+       num = prop % multiProcessorCount
+    else
+       ! Return an invalid number if we have no data.
+       num = -1
+    end if
+
+  end subroutine get_num_SMs
+
+
+
   subroutine gpu_malloc(x, sz) bind(c, name='gpu_malloc')
 
     use cudafor, only: cudaMalloc, c_devptr
@@ -423,9 +444,7 @@ contains
 
     use cudafor, only: cudaMallocManaged, cudaMemAttachGlobal, c_devptr
     use iso_c_binding, only: c_size_t
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -441,7 +460,7 @@ contains
 
     else
 
-       call bl_error("The GPU does not support managed memory allocations")
+       call amrex_error("The GPU does not support managed memory allocations")
 
     end if
 
@@ -563,14 +582,12 @@ contains
 
     integer :: cudaResult
 
-#ifndef NO_CUDA_8
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1 .and. prop%concurrentManagedAccess == 1)) then
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(stream_from_index(idx)))
        call gpu_error_test(cudaResult)
 
     end if
-#endif
 
   end subroutine gpu_htod_memprefetch_async
 
@@ -589,14 +606,12 @@ contains
 
     integer :: cudaResult
 
-#ifndef NO_CUDA_8
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(stream_from_index(idx)))
        call gpu_error_test(cudaResult)
 
     end if
-#endif
 
   end subroutine gpu_dtoh_memprefetch_async
 
@@ -656,9 +671,7 @@ contains
 
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
 
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error, bl_warn
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -680,13 +693,9 @@ contains
     error_string = "CUDA Error " // trim(adjustl(cudaResultStr)) // ": " // cudaGetErrorString(cudaResult)
 
     if (abort == 1) then
-       call bl_error(error_string)
+       call amrex_error(error_string)
     else
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-       call bl_warn(error_string)
-#else
-       call bl_warning(error_string)
-#endif
+       print *, error_string
     end if
 
   end subroutine gpu_error

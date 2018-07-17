@@ -11,6 +11,12 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
+ifdef AMREX_XSDK
+  AMREX_XSDK := $(strip $(AMREX_XSDK))
+else
+  AMREX_XSDK := FALSE
+endif
+
 ifdef PRECISION
   PRECISION := $(strip $(PRECISION))
 else
@@ -57,6 +63,12 @@ ifdef USE_PROFPARSER
   USE_PROFPARSER := $(strip $(USE_PROFPARSER))
 else
   USE_PROFPARSER := FALSE
+endif
+
+ifdef THIRD_PARTY_PROFILING
+  TP_PROFILING := $(strip $(THIRD_PARTY_PROFILING))
+else
+  TP_PROFILING := FALSE
 endif
 
 ifdef TEST
@@ -126,27 +138,25 @@ ifndef USE_CUDA_UM
   USE_CUDA_UM = TRUE
 endif
 
+ifndef NO_DEVICE_LAUNCH
+  NO_DEVICE_LAUNCH = FALSE
+endif
+
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA version.
   CUDA_VERSION ?= cuda9.0
 
   # Maximum number of CUDA threads per block.
-  CUDA_MAX_THREADS ?= 512
+  CUDA_MAX_THREADS ?= 256
 
   # Limit the maximum number of registers available.
-  CUDA_MAXREGCOUNT ?= 128
+  CUDA_MAXREGCOUNT ?= 255
 endif
 
 ifdef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
 else
   DIMENSION_AGNOSTIC := FALSE
-endif
-
-ifdef STRICT
-  STRICT := $(strip $(STRICT))
-else
-  STRICT := FALSE
 endif
 
 ifdef USE_EB
@@ -217,10 +227,12 @@ ifeq ($(MAKECMDGOALS),check_fortran)
 endif
 
 ifeq ($(DEBUG),TRUE)
-    CPPFLAGS	+= -DDEBUG
+    CPPFLAGS	+= -DAMREX_DEBUG
     DebugSuffix := .DEBUG
 else
-    CPPFLAGS	+= -DNDEBUG
+    ifneq ($(AMREX_XSDK),TRUE)
+        CPPFLAGS += -DNDEBUG
+    endif
     DebugSuffix :=
 endif
 
@@ -228,24 +240,24 @@ ifeq ($(USE_PROFPARSER),TRUE)
   PROFILE := TRUE
   TRACE_PROFILE := TRUE
 
-  CPPFLAGS += -DBL_USE_PROFPARSER
+  CPPFLAGS += -DBL_USE_PROFPARSER -DAMREX_USE_PROFPARSER
   include $(AMREX_HOME)/Src/Extern/ProfParser/Make.package
   include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
 endif
 
 ifeq ($(PROFILE),TRUE)
-    CPPFLAGS    += -DBL_PROFILING
+    CPPFLAGS    += -DBL_PROFILING -DAMREX_PROFILING
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUETRUE)
-        CPPFLAGS    += -DBL_TRACE_PROFILING
-        CPPFLAGS    += -DBL_COMM_PROFILING
+        CPPFLAGS    += -DBL_TRACE_PROFILING -DAMREX_TRACE_PROFILING
+        CPPFLAGS    += -DBL_COMM_PROFILING -DAMREX_COMM_PROFILING
         ProfSuffix	:= .COMTR_PROF
     endif
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUEFALSE)
-        CPPFLAGS    += -DBL_TRACE_PROFILING
+        CPPFLAGS    += -DBL_TRACE_PROFILING -DAMREX_TRACE_PROFILING
         ProfSuffix	:= .TRACE_PROF
     endif
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSETRUE)
-        CPPFLAGS    += -DBL_COMM_PROFILING
+        CPPFLAGS    += -DBL_COMM_PROFILING -DAMREX_COMM_PROFILING
         ProfSuffix	:= .COMM_PROF
     endif
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSEFALSE)
@@ -256,7 +268,7 @@ else
         TINY_PROFILE = FALSE
     endif
     ifeq ($(TINY_PROFILE),TRUE)
-        CPPFLAGS    += -DBL_TINY_PROFILING
+        CPPFLAGS    += -DBL_TINY_PROFILING -DAMREX_TINY_PROFILING
         ProfSuffix	:= .TPROF
     else
         ProfSuffix	:=
@@ -264,21 +276,21 @@ else
 endif
 
 ifeq ($(MEM_PROFILE),TRUE)
-  CPPFLAGS += -DBL_MEM_PROFILING
+  CPPFLAGS += -DBL_MEM_PROFILING -DAMREX_MEM_PROFILING
   MProfSuffix := .MPROF
 else
   MProfSuffix :=
 endif
 
 ifeq ($(TEST),TRUE)
-    CPPFLAGS += -DBL_TESTING
+    CPPFLAGS += -DBL_TESTING -DAMREX_TESTING
     ifneq ($(DEBUG),TRUE)
         DebugSuffix := .TEST
     endif
 endif
 
 ifeq ($(BACKTRACE),TRUE)
-    CPPFLAGS += -DBL_BACKTRACING -DBL_TESTING
+    CPPFLAGS += -DBL_BACKTRACING -DBL_TESTING -DAMREX_BACKTRACING -DAMREX_TESTING
     BTSuffix := .BT
 else
     BTSuffix :=
@@ -289,11 +301,11 @@ ifdef CRAY_CPU_TARGET
 endif
 
 ifeq ($(LAZY),TRUE)
-    CPPFLAGS += -DBL_LAZY
+    CPPFLAGS += -DBL_LAZY -DAMREX_LAZY
 endif
 
 ifeq ($(USE_ARRAYVIEW), TRUE)
-  DEFINES += -DBL_USE_ARRAYVIEW
+  DEFINES += -DBL_USE_ARRAYVIEW -DAMREX_USE_ARRAYVIEW
   ARRAYVIEWDIR ?= $(AMREX_HOME)/../ArrayView
   INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
   LIBRARY_LOCATIONS += $(ARRAYVIEWDIR)
@@ -303,34 +315,34 @@ endif
 
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI
-    CPPFLAGS	+= -DBL_USE_MPI
+    CPPFLAGS	+= -DBL_USE_MPI -DAMREX_USE_MPI
 else
     MPISuffix	:=
 endif
 
 ifeq ($(USE_MPI3),TRUE)
     MPISuffix := .MPI3
-    CPPFLAGS  += -DBL_USE_MPI3
+    CPPFLAGS  += -DBL_USE_MPI3 -DAMREX_USE_MPI3
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
     UPCXXSuffix := .UPCXX
-    CPPFLAGS    += -DBL_USE_UPCXX
+    CPPFLAGS    += -DBL_USE_UPCXX -DAMREX_USE_UPCXX
 else
     UPCXXSuffix :=
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
-    CPPFLAGS  += -DBL_USE_TEAM 
+    CPPFLAGS  += -DBL_USE_TEAM -DAMREX_USE_TEAM
 else
   ifeq ($(USE_MPI3),TRUE)
-    CPPFLAGS  += -DBL_USE_TEAM 
+    CPPFLAGS  += -DBL_USE_TEAM -DAMREX_USE_TEAM
   endif
 endif
 
 ifeq ($(USE_OMP),TRUE)
     OMPSuffix	:= .OMP
-    CPPFLAGS	+= -DBL_USE_OMP
+    CPPFLAGS	+= -DBL_USE_OMP -DAMREX_USE_OMP
 else
     OMPSuffix	:=
 endif
@@ -339,6 +351,7 @@ ifeq ($(USE_ACC),TRUE)
 
   ACCSuffix := .ACC
   DEFINES += -DAMREX_USE_ACC
+  DEFINES += -DAMREX_USE_GPU
 
 endif
 
@@ -353,8 +366,28 @@ ifeq ($(USE_CUDA),TRUE)
         $(error The CUDA implementation is not thread-safe; do not try to use OpenMP)
     endif
 
+    ifeq ($(USE_MPI),TRUE)
+      # Make sure that the C/C++ MPI
+      # wrappers are calling nvcc to compile the code.
+      # Right now we handle OpenMPI/Spectrum MPI and MPICH.
+      # Other MPI implementations could be added later.
+
+      export OMPI_CC := $(CC)
+      export OMPI_CXX := $(CXX)
+      export OMPI_F77 := $(FC)
+      export OMPI_FC  := $(F90)
+
+      export MPICH_CC  := $(CC)
+      export MPICH_CXX := $(CXX)
+      export MPICH_F77 := $(FC)
+      export MPICH_FC  := $(F90)
+
+      LINK_WITH_FORTRAN_COMPILER=TRUE
+    endif
+
     DEFINES += -DCUDA
     DEFINES += -DAMREX_USE_CUDA
+    DEFINES += -DAMREX_USE_GPU
 
     USE_DEVICE := TRUE
     DEFINES += -DAMREX_USE_DEVICE
@@ -366,8 +399,15 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     CUDASuffix := .CUDA
-    DEFINES += -DAMREX_LAUNCH='attributes(global)'
-    DEFINES += -DAMREX_DEVICE='attributes(device)'
+
+    ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+      DEFINES += -DAMREX_LAUNCH='attributes(global)'
+      DEFINES += -DAMREX_DEVICE='attributes(device)'
+    else
+      DEFINES += -DAMREX_LAUNCH=""
+      DEFINES += -DAMREX_DEVICE=""
+      DEFINES += -DAMREX_NO_DEVICE_LAUNCH
+    endif
 
 else
     DEFINES += -DAMREX_LAUNCH=""
@@ -376,14 +416,14 @@ else
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
-  DEFINES += -DBL_SINGLE_PRECISION_PARTICLES
+  DEFINES += -DBL_SINGLE_PRECISION_PARTICLES -DAMREX_SINGLE_PRECISION_PARTICLES
   amrex_particle_real = float
 else
   amrex_particle_real = double
 endif
 
 ifeq ($(PRECISION),FLOAT)
-    DEFINES += -DBL_USE_FLOAT
+    DEFINES += -DBL_USE_FLOAT -DAMREX_USE_FLOAT
     PrecisionSuffix := .$(PRECISION)
     amrex_real = float
 else
@@ -427,36 +467,35 @@ fortran_fdecl_headers_cppd = $(addprefix $(tmpEXETempDir)/, $(fortran_fdecl_head
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
            -DAMREX_SPACEDIM=$(DIM)                      \
            -DBL_FORT_USE_$(FORTLINK)			\
-           -DBL_$(shell uname)
+           -DAMREX_FORT_USE_$(FORTLINK)			\
+           -DBL_$(shell uname)                          \
+           -DAMREX_$(shell uname)
 
 
 ifeq ($(DIMENSION_AGNOSTIC),TRUE)
-DEFINES += -DDIMENSION_AGNOSTIC
+DEFINES += -DAMREX_DIMENSION_AGNOSTIC
 endif
 
 ifeq ($(DEBUG),TRUE)
-  DEFINES += -DBL_USE_ASSERTION
+  DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 else
 ifeq ($(USE_ASSERTION),TRUE)
-  DEFINES += -DBL_USE_ASSERTION
+  DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 endif
 endif
 
 ifeq ($(USE_PARTICLES),TRUE)
-  DEFINES += -DUSE_PARTICLES -DPARTICLES
-endif
-
-ifeq ($(STRICT),TRUE)
-  DEFINES += -DAMREX_STRICT_MODE
+  DEFINES += -DAMREX_PARTICLES
 endif
 
 ifeq ($(USE_EB),TRUE)
-    CPPFLAGS += -DAMREX_USE_EB
+    DEFINES += -DAMREX_USE_EB
 endif
 
-includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-fincludes	= $(includes)
-fmoddir         = $(objEXETempDir)
+ifeq ($(AMREX_XSDK),TRUE)
+   DEFINES += -DAMREX_XSDK
+endif
+
 
 CPPFLAGS	+= $(DEFINES)
 
@@ -471,10 +510,15 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
 TmpBuildDir     = tmp_build_dir
+srcTempDir      = $(TmpBuildDir)/s/$(optionsSuffix).EXE
 depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
 objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
+
+includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+fincludes	= $(includes)
+fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
@@ -504,14 +548,19 @@ endif
 # place holder
 F90CACHE =
 
-ifeq ($(USE_VTUNE),TRUE)
+ifeq ($(TP_PROFILING),VTUNE)
   $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
 endif
 
-ifeq ($(USE_CRAYPAT),TRUE)
+ifeq ($(TP_PROFILING),CRAYPAT)
   $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+endif
+
+ifeq ($(TP_PROFILING),FORGE)
+  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
 endif
 
 # Use Sam Williams's HPGMG
@@ -594,14 +643,6 @@ ifeq ($(USE_CUDA),TRUE)
        LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
        DEFINES += -DAMREX_USE_NVML
 
-    endif
-
-    ifeq ($(NO_CUDA_8_SUPPORT),TRUE)
-      DEFINES += -DNO_CUDA_8
-      ifeq ($(lowercase_comp),pgi)
-        F90FLAGS := $(subst cuda8.0,cuda7.5,$(F90FLAGS))
-        FFLAGS := $(subst cuda8.0,cuda7.5,$(FFLAGS))
-      endif
     endif
 
     # Set the CUDA threads define in case the user updated it.

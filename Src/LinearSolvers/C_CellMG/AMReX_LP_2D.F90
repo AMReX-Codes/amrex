@@ -1,13 +1,11 @@
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
+module amrex_lp_module
 
-#include <AMReX_CONSTANTS.H>
-#include <AMReX_REAL.H>
+  use amrex_fort_module
+  use amrex_constants_module
 
-#include "AMReX_LP_F.H"
-#include "AMReX_ArrayLim.H"
+  implicit none
+
+contains
 
 !-----------------------------------------------------------------------
 !      
@@ -32,49 +30,49 @@
 !     element.
 !     
 !-----------------------------------------------------------------------
-    subroutine FORT_GSRB ( &
-           phi, DIMS(phi), &
-           rhs, DIMS(rhs), &
-           f0, DIMS(f0), m0, DIMS(m0), &
-           f1, DIMS(f1), m1, DIMS(m1), &
-           f2, DIMS(f2), m2, DIMS(m2), &
-           f3, DIMS(f3), m3, DIMS(m3), &
+    subroutine amrex_lp_gsrb ( &
+           phi, phi_l1,phi_l2,phi_h1,phi_h2, &
+           rhs, rhs_l1,rhs_l2,rhs_h1,rhs_h2, &
+           f0, f0_l1,f0_l2,f0_h1,f0_h2, m0, m0_l1,m0_l2,m0_h1,m0_h2, &
+           f1, f1_l1,f1_l2,f1_h1,f1_h2, m1, m1_l1,m1_l2,m1_h1,m1_h2, &
+           f2, f2_l1,f2_l2,f2_h1,f2_h2, m2, m2_l1,m2_l2,m2_h1,m2_h2, &
+           f3, f3_l1,f3_l2,f3_h1,f3_h2, m3, m3_l1,m3_l2,m3_h1,m3_h2, &
            lo, hi, blo, bhi, &
            nc, h, redblack &
-           )
+           ) bind(c,name='amrex_lp_gsrb')
 
       implicit none
 
       integer nc
-      integer DIMDEC(phi)
-      REAL_T phi(DIMV(phi),nc)
-      integer DIMDEC(rhs)
-      REAL_T rhs(DIMV(rhs),nc)
+      integer phi_l1,phi_l2,phi_h1,phi_h2
+      real(amrex_real) phi(phi_l1:phi_h1,phi_l2:phi_h2,nc)
+      integer rhs_l1,rhs_l2,rhs_h1,rhs_h2
+      real(amrex_real) rhs(rhs_l1:rhs_h1,rhs_l2:rhs_h2,nc)
       integer  lo(BL_SPACEDIM),  hi(BL_SPACEDIM)
       integer blo(BL_SPACEDIM), bhi(BL_SPACEDIM)
-      integer DIMDEC(f0)
-      integer DIMDEC(f1)
-      integer DIMDEC(f2)
-      integer DIMDEC(f3)
-      REAL_T f0(DIMV(f0))
-      REAL_T f1(DIMV(f1))
-      REAL_T f2(DIMV(f2))
-      REAL_T f3(DIMV(f3))
-      integer DIMDEC(m0)
-      integer DIMDEC(m1)
-      integer DIMDEC(m2)
-      integer DIMDEC(m3)
-      integer m0(DIMV(m0))
-      integer m1(DIMV(m1))
-      integer m2(DIMV(m2))
-      integer m3(DIMV(m3))
+      integer f0_l1,f0_l2,f0_h1,f0_h2
+      integer f1_l1,f1_l2,f1_h1,f1_h2
+      integer f2_l1,f2_l2,f2_h1,f2_h2
+      integer f3_l1,f3_l2,f3_h1,f3_h2
+      real(amrex_real) f0(f0_l1:f0_h1,f0_l2:f0_h2)
+      real(amrex_real) f1(f1_l1:f1_h1,f1_l2:f1_h2)
+      real(amrex_real) f2(f2_l1:f2_h1,f2_l2:f2_h2)
+      real(amrex_real) f3(f3_l1:f3_h1,f3_l2:f3_h2)
+      integer m0_l1,m0_l2,m0_h1,m0_h2
+      integer m1_l1,m1_l2,m1_h1,m1_h2
+      integer m2_l1,m2_l2,m2_h1,m2_h2
+      integer m3_l1,m3_l2,m3_h1,m3_h2
+      integer m0(m0_l1:m0_h1,m0_l2:m0_h2)
+      integer m1(m1_l1:m1_h1,m1_l2:m1_h2)
+      integer m2(m2_l1:m2_h1,m2_l2:m2_h2)
+      integer m3(m3_l1:m3_h1,m3_l2:m3_h2)
       integer redblack
-      REAL_T  h
+      real(amrex_real)  h
 
       integer  i, j, ioff, n
 
-      REAL_T cf0, cf1, cf2, cf3
-      REAL_T delta, gamma, rho
+      real(amrex_real) cf0, cf1, cf2, cf3
+      real(amrex_real) delta, gamma, rho
 
       gamma = 4.0D0
       do n = 1, nc
@@ -103,31 +101,31 @@
          end do
       end do
       
-    end subroutine FORT_GSRB
+    end subroutine amrex_lp_gsrb
 !-----------------------------------------------------------------------
 !
 !     Fill in a matrix x vector operator here
 !
-    subroutine FORT_ADOTX( &
-           y, DIMS(y), &
-           x, DIMS(x), &
+    subroutine amrex_lp_adotx( &
+           y, y_l1,y_l2,y_h1,y_h2, &
+           x, x_l1,x_l2,x_h1,x_h2, &
            lo, hi, nc, &
            h &
-           )
+           ) bind(c,name='amrex_lp_adotx')
 
       implicit none
 
       integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      integer DIMDEC(y)
-      REAL_T y(DIMV(y),nc)
-      integer DIMDEC(x)
-      REAL_T x(DIMV(x),nc)
-      REAL_T h
+      integer y_l1,y_l2,y_h1,y_h2
+      real(amrex_real) y(y_l1:y_h1,y_l2:y_h2,nc)
+      integer x_l1,x_l2,x_h1,x_h2
+      real(amrex_real) x(x_l1:x_h1,x_l2:x_h2,nc)
+      real(amrex_real) h
 
       integer i, j, n
-      REAL_T scal
+      real(amrex_real) scal
 
       scal = 1.0D0/h**2
 
@@ -142,36 +140,36 @@
          end do
       end do
 
-    end subroutine FORT_ADOTX
+    end subroutine amrex_lp_adotx
 
 !-----------------------------------------------------------------------
 !
 !     Fill in fluxes
 !
-    subroutine FORT_FLUX( &
-           x,DIMS(x), &
+    subroutine amrex_lp_flux( &
+           x,x_l1,x_l2,x_h1,x_h2, &
            xlo,xhi, &
            ylo,yhi, &
            nc, &
            h, &
-           xflux,DIMS(xflux), &
-           yflux,DIMS(yflux) &
-           )
+           xflux,xflux_l1,xflux_l2,xflux_h1,xflux_h2, &
+           yflux,yflux_l1,yflux_l2,yflux_h1,yflux_h2 &
+           ) bind(c,name='amrex_lp_flux')
 
       implicit none
 
       integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
       integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
       integer nc
-      integer DIMDEC(x)
-      integer DIMDEC(xflux)
-      integer DIMDEC(yflux)
-      REAL_T  x(DIMV(x),nc)
-      REAL_T xflux(DIMV(xflux),nc)
-      REAL_T yflux(DIMV(yflux),nc)
-      REAL_T h(BL_SPACEDIM)
+      integer x_l1,x_l2,x_h1,x_h2
+      integer xflux_l1,xflux_l2,xflux_h1,xflux_h2
+      integer yflux_l1,yflux_l2,yflux_h1,yflux_h2
+      real(amrex_real)  x(x_l1:x_h1,x_l2:x_h2,nc)
+      real(amrex_real) xflux(xflux_l1:xflux_h1,xflux_l2:xflux_h2,nc)
+      real(amrex_real) yflux(yflux_l1:yflux_h1,yflux_l2:yflux_h2,nc)
+      real(amrex_real) h(BL_SPACEDIM)
 
-      REAL_T dhx, dhy
+      real(amrex_real) dhx, dhy
       integer i,j,n
 
       dhx = one/h(1)
@@ -192,4 +190,6 @@
          end do
       end do
 
-    end subroutine FORT_FLUX
+    end subroutine amrex_lp_flux
+
+end module amrex_lp_module

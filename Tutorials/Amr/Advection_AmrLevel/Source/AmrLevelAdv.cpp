@@ -14,7 +14,7 @@ int      AmrLevelAdv::do_reflux       = 1;
 int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
 int      AmrLevelAdv::NUM_GROW        = 3;  // number of ghost cells
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
 int AmrLevelAdv::do_tracers                       =  0;
 #endif
@@ -74,7 +74,7 @@ AmrLevelAdv::checkPoint (const std::string& dir,
                          bool               dump_old) 
 {
   AmrLevel::checkPoint(dir, os, how, dump_old);
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
   if (do_tracers and level == 0) {
     TracerPC->Checkpoint(dir, "Tracer", true);
   }
@@ -92,7 +92,7 @@ AmrLevelAdv::writePlotFile (const std::string& dir,
 
     AmrLevel::writePlotFile (dir,os,how);
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (do_tracers and level == 0) {
       TracerPC->Checkpoint(dir, "Tracer", true);
     }
@@ -117,7 +117,7 @@ AmrLevelAdv::variableSetUp ()
     int lo_bc[BL_SPACEDIM];
     int hi_bc[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
+	lo_bc[i] = hi_bc[i] = BCType::int_dir;   // periodic boundaries
     }
     
     BCRec bc(lo_bc, hi_bc);
@@ -133,7 +133,7 @@ void
 AmrLevelAdv::variableCleanUp () 
 {
     desc_lst.clear();
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     TracerPC.reset();
 #endif
 }
@@ -162,12 +162,12 @@ AmrLevelAdv::initData ()
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-          initdata(&level, &cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
-		   BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
-		   ZFILL(prob_lo));
+          initdata(&level, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
+		   BL_TO_FORTRAN_3D(S_new[mfi]), AMREX_ZFILL(dx),
+		   AMREX_ZFILL(prob_lo));
     }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     init_particles();
 #endif
 
@@ -228,7 +228,7 @@ AmrLevelAdv::advance (Real time,
     Real maxval = S_mm.max(0);
     Real minval = S_mm.min(0);
 
-    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
+    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << std::endl;
     for (int k = 0; k < NUM_STATE_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
@@ -343,7 +343,7 @@ AmrLevelAdv::advance (Real time,
 	}
     }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (TracerPC) {
       TracerPC->AdvectWithUmac(Umac, level, dt);
     }
@@ -553,7 +553,7 @@ AmrLevelAdv::post_timestep (int iteration)
     if (level < finest_level)
         avgDown();
 
-#ifdef PARTICLES    
+#ifdef AMREX_PARTICLES    
     if (TracerPC)
       {
         const int ncycle = parent->nCycle(level);
@@ -573,7 +573,7 @@ AmrLevelAdv::post_timestep (int iteration)
 //
 void
 AmrLevelAdv::post_regrid (int lbase, int new_finest) {
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
   if (TracerPC && level == lbase) {
       TracerPC->Redistribute(lbase);
   }
@@ -586,7 +586,7 @@ AmrLevelAdv::post_regrid (int lbase, int new_finest) {
 void
 AmrLevelAdv::post_restart() 
 {
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (do_tracers and level == 0) {
       BL_ASSERT(TracerPC == 0);
       TracerPC.reset(new AmrTracerParticleContainer(parent));
@@ -649,11 +649,11 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 	    const int*  tlo     = tilebx.loVect();
 	    const int*  thi     = tilebx.hiVect();
 
-	    state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+	    state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
 			BL_TO_FORTRAN_3D(S_new[mfi]),
 			&tagval, &clearval, 
-			ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-			ZFILL(dx), ZFILL(prob_lo), &time, &level);
+			AMREX_ARLIM_3D(tilebx.loVect()), AMREX_ARLIM_3D(tilebx.hiVect()), 
+			AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &level);
 	    //
 	    // Now update the tags in the TagBox.
 	    //
@@ -687,7 +687,7 @@ AmrLevelAdv::read_params ()
 	amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     pp.query("do_tracers", do_tracers);
 #endif 
 
@@ -756,7 +756,7 @@ AmrLevelAdv::avgDown (int state_indx)
                          0,S_fine.nComp(),parent->refRatio(level));
 }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 void
 AmrLevelAdv::init_particles ()
 {
@@ -771,7 +771,7 @@ AmrLevelAdv::init_particles ()
       const BoxArray& ba = TracerPC->ParticleBoxArray(0);
       const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
 
-      AmrTracerParticleContainer::ParticleInitData pdata = {1.0};
+      AmrTracerParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
 
       TracerPC->SetVerbose(0);
       TracerPC->InitOnePerCell(0.5, 0.5, 0.5, pdata);

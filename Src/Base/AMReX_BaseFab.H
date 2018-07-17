@@ -1797,8 +1797,12 @@ BaseFab<T>::setComplement (T          x,
                            int        num)
 {
     BoxList b_lst = amrex::boxDiff(domain,b);
-    for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli)
+    for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli) {
         performSetVal(x, *bli, ns, num);
+#ifdef AMREX_USE_CUDA
+        CudaAPICheck(cudaDeviceSynchronize());
+#endif
+    }
 }
 
 template <class T>
@@ -2585,6 +2589,6 @@ private:
 
 }
 
-static amrex::BF_init file_scope_BF_init_object;
+static amrex::BF_init amrex_file_scope_BF_init_object;
 
 #endif /*BL_BASEFAB_H*/

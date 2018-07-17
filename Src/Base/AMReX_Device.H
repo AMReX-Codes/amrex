@@ -66,12 +66,13 @@ extern "C" {
     void gpu_synchronize();
     void gpu_start_profiler();
     void gpu_stop_profiler();
+    void get_num_SMs(int* num);
     void set_threads_and_blocks(const int* lo, const int* hi,
                                 const int* txmin, const int* tymin, const int* tzmin);
     void get_threads_and_blocks(const int* lo, const int* hi,
                                 int* bx, int* by, int* bz, int* tx, int* ty, int* tz,
                                 const int* txmin, const int* tymin, const int* tzmin);
-    void get_loop_bounds(int* blo, int* bhi, const int* lo, const int* hi);
+    __device__ void get_loop_bounds(int* blo, int* bhi, const int* lo, const int* hi);
     void gpu_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t* sz, const int* idx);
     void gpu_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t* sz, const int* idx);
     void gpu_htod_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
@@ -143,6 +144,8 @@ public:
 
     static void particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks);
 
+    static void grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads);
+
     static cudaStream_t stream_from_index (int idx);
 
     static void initialize_cuda_c ();
@@ -170,6 +173,8 @@ private:
     static cudaStream_t cuda_stream;
 
     static dim3 numThreadsMin;
+
+    static dim3 numBlocksOverride, numThreadsOverride;
 
     static cudaDeviceProp device_prop;
 #endif

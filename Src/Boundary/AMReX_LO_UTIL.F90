@@ -1,11 +1,11 @@
 
-#undef  BL_LANG_CC
-#ifndef BL_LANG_FORT
-#define BL_LANG_FORT
-#endif
-      
-#include <AMReX_CONSTANTS.H>
-#include <AMReX_REAL.H>
+module amrex_lo_util_module
+
+  use amrex_fort_module
+  use amrex_constants_module
+  implicit none
+
+contains
 
 !     polyInterpCoeff:
 !  
@@ -24,7 +24,7 @@
       implicit none
 
       integer N, i, j
-      REAL_T xInt, x(N), c(N), num, den
+      real(amrex_real) xInt, x(N), c(N), num, den
 
       do j=1,N
          num = one
@@ -37,10 +37,12 @@
             num = num*(xInt - x(i))
             den = den*(x(j) - x(i))
          end do
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
          if (den .eq. zero) STOP 'polyInterpCoeff::invalid data'
 #endif         
          c(j) = num/den
       end do
 
     end subroutine polyInterpCoeff
+
+end module amrex_lo_util_module

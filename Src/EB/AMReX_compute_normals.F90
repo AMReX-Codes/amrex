@@ -1,10 +1,10 @@
 
   subroutine amrex_eb_compute_normals ( lo, hi,           &
-                               flag, fglo, fghi, &
-                               normal, nlo, nhi, &
-                               apx, axlo, axhi,  &
-                               apy, aylo, ayhi,  &
-                               apz, azlo, azhi ) &
+                                        flag, fglo, fghi, &
+                                        normal, nlo, nhi, &
+                                        apx, axlo, axhi,  &
+                                        apy, aylo, ayhi,  &
+                                        apz, azlo, azhi ) &
              bind(C, name="amrex_eb_compute_normals")
 
     use amrex_fort_module, only: c_real => amrex_real

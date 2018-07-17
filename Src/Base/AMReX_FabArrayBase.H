@@ -47,8 +47,15 @@ public:
                  int                        nvar,
                  int                        ngrow);
 
+    void define (const BoxArray&            bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 const IntVect&             ngrow);
+
     //! Return the grow factor that defines the region of definition.
-    int nGrow () const { return n_grow; }
+    int nGrow () const { return n_grow[0]; }
+
+    IntVect nGrowVect () const { return n_grow; }
 
     //! Return number of variables (aka components) associated with each point.
     int nComp () const { return n_comp; }
@@ -56,9 +63,6 @@ public:
     //! Return index type.
     IndexType ixType () const { return boxarray.ixType(); }
     
-    //! Return the communicator associated with this FabArray
-    ParallelDescriptor::Color color () const { return distributionMap.color(); }
-
     //Return whether this FabArray is empty
     bool empty () const { return boxarray.empty(); }
 
@@ -294,19 +298,13 @@ public:
     // their maximum size.
     //
     static IntVect comm_tile_size;  // communication tile size
-    //
-    // The number of FabArrays that have been defined during this run
-    //
-    static int nFabArrays;
-    static int NFabArrays() { return nFabArrays; }
-    int AllocatedFAPtrID() const  { return aFAPId; }
 
     struct FPinfo
     {
 	FPinfo (const FabArrayBase& srcfa,
 		const FabArrayBase& dstfa,
 		const Box&          dstdomain,
-		int                 dstng,
+		const IntVect&      dstng,
 		const BoxConverter& coarsener,
                 const Box&          cdomain);
 	~FPinfo ();
@@ -322,7 +320,7 @@ public:
 	BDKey               m_srcbdk;
 	BDKey               m_dstbdk;
 	Box                 m_dstdomain;
-	int                 m_dstng;
+	IntVect             m_dstng;
 	BoxConverter*       m_coarsener;
 	//
 	int                 m_nuse;
@@ -338,7 +336,7 @@ public:
     static const FPinfo& TheFPinfo (const FabArrayBase& srcfa,
 				    const FabArrayBase& dstfa,
 				    const Box&          dstdomain,
-				    int                 dstng,
+				    const IntVect&      dstng,
 				    const BoxConverter& coarsener,
                                     const Box&          cdomain);
 
@@ -351,13 +349,13 @@ public:
     {
         CFinfo (const FabArrayBase& finefa,
                 const Geometry&     finegm,
-                int                 ng,
+                const IntVect&      ng,
                 bool                include_periodic,
                 bool                include_physbndry);
 
         long bytes () const;
 
-        static Box Domain (const Geometry& geom, int ng,
+        static Box Domain (const Geometry& geom, const IntVect& ng,
                            bool include_periodic, bool include_physbndry);
 
         BoxArray            ba_cfb;
@@ -366,7 +364,7 @@ public:
         //
         BDKey               m_fine_bdk;
         Box                 m_fine_domain;
-        int                 m_ng;
+        IntVect             m_ng;
         bool                m_include_periodic;
         bool                m_include_physbndry;
         //
@@ -382,7 +380,7 @@ public:
 
     static const CFinfo& TheCFinfo (const FabArrayBase& finefa,
                                     const Geometry&     finegm,
-                                    int                 ng,
+                                    const IntVect&      ng,
                                     bool                include_periodic,
                                     bool                include_physbndry);
 
@@ -430,10 +428,8 @@ protected:
     DistributionMapping distributionMap;
     Vector<int>         indexArray;
     std::vector<bool>   ownership;
-    int                 n_grow;
+    IntVect             n_grow;
     int                 n_comp;
-    int                 aFAPId;      // ---- id of currently allocated fab array pointers
-    int                 aFAPIdLock;  // ---- lock for resizing sidecars
     mutable BDKey       m_bdkey;
 
     //
@@ -458,13 +454,14 @@ protected:
     //
     struct FB
     {
-        FB (const FabArrayBase& fa, bool cross, const Periodicity& period,
+        FB (const FabArrayBase& fa, const IntVect& nghost,
+            bool cross, const Periodicity& period,
 	    bool enforce_periodicity_only);
         ~FB ();
 
 	IndexType    m_typ;
         IntVect      m_crse_ratio; // BoxArray in FabArrayBase may have crse_ratio.
-        int          m_ngrow;
+        IntVect      m_ngrow;
         bool         m_cross;
 	bool         m_epo;
 	Periodicity  m_period;
@@ -493,7 +490,8 @@ protected:
     static FBCache    m_TheFBCache;
     static CacheStats m_FBC_stats;
     //
-    const FB& getFB (const Periodicity& period, bool cross=false, bool enforce_periodicity_only = false) const;
+    const FB& getFB (const IntVect& nghost, const Periodicity& period,
+                     bool cross=false, bool enforce_periodicity_only = false) const;
     //
     void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
@@ -503,22 +501,24 @@ protected:
     //
     struct CPC
     {
-	CPC (const FabArrayBase& dstfa, int dstng,
-	     const FabArrayBase& srcfa, int srcng,
+	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
+	     const FabArrayBase& srcfa, const IntVect& srcng,
 	     const Periodicity& period);
 	CPC (const BoxArray& dstba, const DistributionMapping& dstdm, 
-	     const Vector<int>& dstidx, int dstng,
+	     const Vector<int>& dstidx, const IntVect& dstng,
 	     const BoxArray& srcba, const DistributionMapping& srcdm, 
-	     const Vector<int>& srcidx, int srcng,
+	     const Vector<int>& srcidx, const IntVect& srcng,
 	     const Periodicity& period, int myproc);
+        CPC (const BoxArray& ba, const IntVect& ng,
+             const DistributionMapping& dstdm, const DistributionMapping& srcdm);
         ~CPC ();
 
         long bytes () const;	
 
 	BDKey       m_srcbdk;
 	BDKey       m_dstbdk;
-	int         m_srcng;
-	int         m_dstng;
+	IntVect     m_srcng;
+	IntVect     m_dstng;
 	Periodicity m_period;
 	BoxArray    m_srcba;
 	BoxArray    m_dstba;
@@ -549,7 +549,8 @@ protected:
     static CPCache    m_TheCPCache;
     static CacheStats m_CPC_stats;
     //
-    const CPC& getCPC (int dstng, const FabArrayBase& src, int srcng, const Periodicity& period) const;
+    const CPC& getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng,
+                       const Periodicity& period) const;
     // 
     void flushCPC (bool no_assertion=false) const;      // This flushes its own CPC.
     static void flushCPCache (); // This flusheds the entire cache.

@@ -256,7 +256,8 @@ namespace amrex
     Real sum = a_value;
 #ifdef BL_USE_MPI
     Real sendBuf = a_value;
-    int result = MPI_Allreduce(&sendBuf, &sum, 1, MPI_CH_REAL,MPI_SUM, MPI_COMM_WORLD);
+    int result = MPI_Allreduce(&sendBuf, &sum, 1, ParallelDescriptor::Mpi_typemap<Real>::type(),
+                               MPI_SUM, MPI_COMM_WORLD);
 
     if (result != MPI_SUCCESS)
     {
@@ -346,7 +347,8 @@ namespace amrex
     Real val = a_value;
 #ifdef BL_USE_MPI
     Real sendBuf = a_value;
-    int result = MPI_Allreduce(&sendBuf, &val, 1, MPI_CH_REAL,MPI_MIN, MPI_COMM_WORLD);
+    int result = MPI_Allreduce(&sendBuf, &val, 1, ParallelDescriptor::Mpi_typemap<Real>::type(),
+                               MPI_MIN, MPI_COMM_WORLD);
 
     if (result != MPI_SUCCESS)
     {
@@ -364,7 +366,8 @@ namespace amrex
     Real val = a_value;
 #ifdef BL_USE_MPI
     Real sendBuf = a_value;
-    int result = MPI_Allreduce(&sendBuf, &val, 1, MPI_CH_REAL,MPI_MAX, MPI_COMM_WORLD);
+    int result = MPI_Allreduce(&sendBuf, &val, 1, ParallelDescriptor::Mpi_typemap<Real>::type(),
+                               MPI_MAX, MPI_COMM_WORLD);
 
     if (result != MPI_SUCCESS)
     {
@@ -599,16 +602,17 @@ namespace amrex
 //   a_accum = accum[0];
 #ifdef BL_USE_MPI
     Real tmp=a_volume;
-    MPI_Allreduce(&tmp, &a_volume, 1, MPI_CH_REAL, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&tmp, &a_volume, 1, ParallelDescriptor::Mpi_typemap<Real>::type(),
+                  MPI_SUM, MPI_COMM_WORLD);
     tmp = a_accum;
     if (a_p==0)
     {
-      MPI_Allreduce(&tmp, &a_accum, 1, MPI_CH_REAL,
+      MPI_Allreduce(&tmp, &a_accum, 1, ParallelDescriptor::Mpi_typemap<Real>::type(),
                     MPI_MAX, MPI_COMM_WORLD);
     }
     else
     {
-      MPI_Allreduce(&tmp, &a_accum, 1, MPI_CH_REAL,
+      MPI_Allreduce(&tmp, &a_accum, 1, ParallelDescriptor::Mpi_typemap<Real>::type(),
                     MPI_SUM, MPI_COMM_WORLD);
     }
 #endif

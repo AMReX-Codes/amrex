@@ -1,9 +1,3 @@
-#include "AMReX_NeighborParticles.H"
-
-#include "AMReX_Particles.H"
-#include "AMReX_Particles_F.H"
-
-using namespace amrex;
 
 template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
@@ -143,6 +137,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::cacheNeighborInfo(int lev) {
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
+
     BL_ASSERT(lev == 0);
     BL_ASSERT(this->OK());
 
@@ -298,7 +293,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                                           tmp_local_map[index][i].end());
         }
     }
-    
+
     // do the same for the remote neighbors
     typename std::map<NeighborCommTag, Vector<Vector<NeighborIndexMap> > >::iterator it;
 #ifdef _OPENMP
@@ -327,8 +322,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
         const Vector<NeighborIndexMap>& map = local_map[dst_index];
         const int num_ghosts = map.size();
         neighbors[dst_index].resize(num_ghosts * pdata_size);
+        local_neighbor_sizes[dst_index] = neighbors[dst_index].size();  // store this for later
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
         for (int i = 0; i < num_ghosts; ++i) {
             const NeighborIndexMap& nim = map[i];
@@ -338,13 +334,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
             tags[nim.src_index].dst_offset = i * pdata_size;
             BL_ASSERT(tags[nim.src_index].dst_offset < neighbors[dst_index].size());
         }
-    }
-    
-    for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const int grid = mfi.index();
-        const int tile = mfi.LocalTileIndex();
-        PairIndex dst_index(grid, tile);
-        local_neighbor_sizes[dst_index] = neighbors[dst_index].size();
     }
 
     // now we allocate the send buffers and cache the remotes
@@ -464,6 +453,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
         }
     }
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const int grid = mfi.index();
         const int tile = mfi.LocalTileIndex();
@@ -659,9 +651,10 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
 }
 
 template <int NStructReal, int NStructInt>
+template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-buildNeighborList(int lev, bool sort) {
+buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
     BL_ASSERT(lev == 0);

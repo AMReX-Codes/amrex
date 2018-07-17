@@ -9,8 +9,6 @@ C$(AMRLIB_BASE)_headers += AMReX_Amr.H AMReX_AmrLevel.H AMReX_Derive.H AMReX_Lev
 
 f90$(AMRLIB_BASE)_sources += AMReX_extrapolater_$(DIM)d.f90
 
-F90$(AMRLIB_BASE)_sources += AMReX_ARRAYLIM_$(DIM)D.F90
-
 ifeq ($(USE_ARRAYVIEW),TRUE)
   C$(AMRLIB_BASE)_headers += AMReX_DatasetClient.H
   C$(AMRLIB_BASE)_sources += AMReX_DatasetClient.cpp

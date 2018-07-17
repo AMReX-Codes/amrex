@@ -3,6 +3,7 @@
 #define BL_FACOPYDESCRIPTOR_H_
 
 #include <AMReX_FabArray.H>
+#include <sstream>
 
 namespace amrex {
 
@@ -237,8 +238,6 @@ FabArrayCopyDescriptor<FAB>::RegisterFabArray(FabArray<FAB>* fabarray)
 {
     BL_ASSERT(fabArrays.size() == fabCopyDescList.size());
 
-    BL_ASSERT(fabarray==nullptr || fabarray->DistributionMap().Check());
-
     FabArrayId result(fabArrays.size());
 
     fabArrays.push_back(fabarray);  /* Bump size() by one */
@@ -264,8 +263,6 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
     FabArray<FAB>* fabArray = fabArrays[fabarrayid.Id()];
 
-    fabArray->DistributionMap().Check();
-
     BL_ASSERT(faindex >= 0 && faindex < fabArray->size());
 
     Box intersect = destFabBox;
@@ -285,9 +282,10 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
 	if(remoteProc >= ParallelDescriptor::NProcs()) {
-	    amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
-					  << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
-	    amrex::Abort("Bad remoteProc");
+            std::ostringstream ss;
+            ss << ParallelDescriptor::MyProc() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
+               << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
+	    amrex::Abort("Bad remoteProc: "+ss.str());
 	}
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;
@@ -1148,13 +1146,13 @@ FabArrayCopyDescriptor<FAB>::PrintStats () const
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
-    std::cout << "----- "
+    amrex::AllPrint() << "----- "
          << MyProc
          << ":  Parallel stats for FabArrayCopyDescriptor:" << '\n';
 
     for (int fa = 0; fa < fabArrays.size(); ++fa)
     {
-      std::cout << "fabArrays["
+      amrex::AllPrint() << "fabArrays["
              << fa
              << "]->boxArray() = "
              << fabArrays[fa]->boxArray()

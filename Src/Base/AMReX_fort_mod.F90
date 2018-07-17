@@ -1,6 +1,6 @@
 module amrex_fort_module
 
-  use iso_c_binding, only : c_float, c_double, c_size_t, c_ptr
+  use iso_c_binding, only : c_char, c_short, c_int, c_long, c_float, c_double, c_size_t, c_ptr
 
   implicit none
 
@@ -34,6 +34,17 @@ module amrex_fort_module
        import
        type(c_ptr), value :: p
      end subroutine amrex_free
+
+     function amrex_random () bind(c,name='amrex_random')
+       import
+       real(c_double) :: amrex_random
+     end function amrex_random
+
+     function amrex_random_int (n) bind(c,name='amrex_random_int')
+       import
+       integer(c_long), intent(in), value :: n
+       integer(c_long) :: amrex_random_int
+     end function amrex_random_int
   end interface
 
 contains
@@ -54,14 +65,16 @@ contains
 
 
 
-  AMREX_DEVICE subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='get_loop_bounds')
+  subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='get_loop_bounds')
 
     implicit none
 
     integer, intent(in   ) :: lo(3), hi(3)
     integer, intent(inout) :: blo(3), bhi(3)
 
-#ifdef AMREX_USE_CUDA
+    !$gpu
+
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     ! Get our spatial index based on the CUDA thread index
 
     blo(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
@@ -85,7 +98,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine amrex_add(x, y)
+  subroutine amrex_add(x, y)
 
     implicit none
 
@@ -96,7 +109,9 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef AMREX_USE_CUDA
+    !$gpu
+
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicAdd(x, y)
 #else
     x = x + y
@@ -106,7 +121,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine amrex_subtract(x, y)
+  subroutine amrex_subtract(x, y)
 
     implicit none
 
@@ -117,7 +132,9 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef AMREX_USE_CUDA
+    !$gpu
+
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicSub(x, y)
 #else
     x = x - y
@@ -127,7 +144,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine amrex_max(x, y)
+  subroutine amrex_max(x, y)
 
     implicit none
 
@@ -138,7 +155,9 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef AMREX_USE_CUDA
+    !$gpu
+
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicMax(x, y)
 #else
     x = max(x, y)
@@ -148,7 +167,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine amrex_min(x, y)
+  subroutine amrex_min(x, y)
 
     implicit none
 
@@ -159,7 +178,9 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef AMREX_USE_CUDA
+    !$gpu
+
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicMin(x, y)
 #else
     x = min(x, y)

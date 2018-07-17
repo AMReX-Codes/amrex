@@ -3622,7 +3622,7 @@ contains
   end function tilearray_check
 
   subroutine tilearray_build(la, tilesize, tid, nthreads)
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use amrex_mempool_module, only : bl_allocate, bl_deallocate
     type(layout), intent(inout) :: la
     integer, intent(in) :: tilesize(:), tid, nthreads
 
@@ -3767,7 +3767,7 @@ contains
   end subroutine tilearray_build
 
   subroutine tilearray_destroy(ta)
-    use mempool_module, only : bl_deallocate
+    use amrex_mempool_module, only : bl_deallocate
     type(tilearray), intent(inout) :: ta
     if (associated(ta%gidx)) then
        tilearray_total_bytes = tilearray_total_bytes - tilearray_bytes(ta)

@@ -30,7 +30,7 @@ contains
     knapsack_verbose = yesorno
   end subroutine knapsack_set_verbose
 
-  pure function greater_d(a,b) result(r)
+  function greater_d(a,b) result(r)
     logical :: r
     real(kind=dp_t), intent(in) :: a, b
     r = a > b

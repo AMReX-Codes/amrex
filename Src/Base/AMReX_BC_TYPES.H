@@ -1,5 +1,5 @@
-#ifndef _BC_TYPES_H_
-#define _BC_TYPES_H_ 
+#ifndef AMREX_BC_TYPES_H_
+#define AMREX_BC_TYPES_H_
 
 #if 0
 ---------------------------------------------------------------------
@@ -57,11 +57,14 @@ REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
 #ifdef __cplusplus
 namespace amrex {
 
-enum physicalBndryTypes {Interior,Inflow,Outflow,Symmetry,
-                         SlipWall,NoSlipWall};
+namespace PhysBCType {
+enum physicalBndryTypes : int {interior=0,inflow,outflow,symmetry,
+                               slipwall,noslipwall};
+}
 
 namespace BCType {
-enum mathematicalBndryTypes {
+enum mathematicalBndryTypes : int {
+    bogus        = -666,
     reflect_odd  = -1,
     int_dir      =  0,
     reflect_even =  1,
@@ -73,6 +76,8 @@ enum mathematicalBndryTypes {
 
 }
 #endif
+
+#ifndef AMREX_XSDK
 
 #define BOGUS_BC -666
 
@@ -89,6 +94,8 @@ enum mathematicalBndryTypes {
 #define Symmetry 3
 #define SlipWall 4
 #define NoSlipWall 5
+
+#endif
 
 #endif
 

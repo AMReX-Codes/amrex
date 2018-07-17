@@ -4,9 +4,9 @@ module advance_module
 
 contains
 
-  AMREX_LAUNCH subroutine compute_flux (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir) bind(c, name='compute_flux')
+  subroutine compute_flux (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir) bind(c, name='compute_flux')
 
-    use amrex_fort_module, only: rt => amrex_real, get_loop_bounds
+    use amrex_fort_module, only: rt => amrex_real
 
     implicit none
 
@@ -18,12 +18,11 @@ contains
 
     ! local variables
     integer :: i, j
-    integer :: blo(3), bhi(3)
 
-    call get_loop_bounds(blo, bhi, [lo(1), lo(2), 0], [hi(1), hi(2), 0])
+    !$gpu
 
-    do    j = blo(2), bhi(2)
-       do i = blo(1), bhi(1)
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
           if (idir .eq. 1) then
              ! x-flux
              flx(i,j) = ( phi(i,j) - phi(i-1,j) ) / dx(1)
@@ -38,10 +37,10 @@ contains
 
 
 
-  AMREX_LAUNCH subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-                                                 fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt) bind(c, name='update_phi')
+  subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
+                         fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt) bind(c, name='update_phi')
 
-    use amrex_fort_module, only: rt => amrex_real, get_loop_bounds
+    use amrex_fort_module, only: rt => amrex_real
 
     implicit none
 
@@ -55,15 +54,14 @@ contains
 
     ! local variables
     integer i,j
-    integer :: blo(3), bhi(3)
     real(rt) :: dtdx(2)
 
-    call get_loop_bounds(blo, bhi, [lo(1), lo(2), 0], [hi(1), hi(2), 0])
+    !$gpu
 
     dtdx = dt/dx
 
-    do    j = blo(2), bhi(2)
-       do i = blo(1), bhi(1)
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
 
           phinew(i,j) = phiold(i,j) &
                + dtdx(1) * (fluxx(i+1,j  ) - fluxx(i,j)) &

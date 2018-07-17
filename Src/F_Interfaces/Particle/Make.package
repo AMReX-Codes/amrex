@@ -1,0 +1,7 @@
+
+F90EXE_sources += AMReX_particlecontainer_mod.F90
+
+CEXE_sources += AMReX_particlecontainer_fi.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Particle
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Particle

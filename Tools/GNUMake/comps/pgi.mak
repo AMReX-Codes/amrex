@@ -63,35 +63,8 @@ endif
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)
 
-
-
-#
-# If we are using CUDA, pull in the gcc compiler first
-# and override it as necessary. This is done because the
-# nvcc compiler driver does not work optimally with pgc++
-# as a host compiler at present.
-#
-
 ifeq ($(USE_CUDA),TRUE)
-  include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
-
-  # Force immediate expansion of the GCC defines,
-  # since after this point GCC will no longer be
-  # the actual compiler defined in CXX.
-
-  DEFINES := $(DEFINES)
-
-  # -Xptxas=-v provides too much info when using Thrust
-  CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)' -gencode=arch=compute_60,code=sm_60 -lineinfo
-  CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)' -gencode=arch=compute_60,code=sm_60 -lineinfo
-
-  HOST_CXX := $(CXX)
-  HOST_CC := $(CC)
-
-  CXX := nvcc
-  CC := nvcc
-
-  override XTRALIBS :=
+  include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
 endif
 
 override XTRALIBS += -lstdc++
@@ -133,8 +106,8 @@ ifeq ($(USE_CUDA),TRUE)
   F90FLAGS += -Mcuda=$(CUDA_VERSION),cuda9.0,lineinfo,ptxinfo
   FFLAGS   += -Mcuda=$(CUDA_VERSION),cuda9.0,lineinfo,ptxinfo
 
-  F90FLAGS += CUDAROOT=$(COMPILE_CUDA_PATH)
-  FFLAGS   += CUDAROOT=$(COMPILE_CUDA_PATH)
+  F90FLAGS += CUDA_HOME=$(COMPILE_CUDA_PATH)
+  FFLAGS   += CUDA_HOME=$(COMPILE_CUDA_PATH)
 
   ifdef CUDA_MAXREGCOUNT
     F90FLAGS += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)

@@ -8,6 +8,8 @@
 
 #include "AMReX_KDTree_F.H"
 
+namespace amrex {
+
 class KDTree {
 
     struct KDNode {
@@ -119,6 +121,8 @@ namespace loadBalanceKD {
         tree.GetBoxes(new_bl, box_costs);
         new_ba.define(new_bl);
     }
+}
+
 }
 
 #endif // AMREX_LOADBALANCEKD_H_

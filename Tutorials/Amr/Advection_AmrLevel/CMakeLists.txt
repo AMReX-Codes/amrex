@@ -53,7 +53,8 @@ file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
 add_executable ( ${EXENAME} EXCLUDE_FROM_ALL
    ${F90SRC_SV} ${F77SRC} ${CXXSRC} ${ALLHEADERS} )
 
-target_link_libraries ( ${EXENAME} amrex ${AMREX_EXTRA_CXX_LINK_LINE} )
+target_link_libraries ( ${EXENAME} amrex ${AMREX_EXTRA_CXX_LINK_LINE}
+   ${AMREX_EXTRA_Fortran_LINK_LINE} )
 
 # Fortran modules for the target will not be added to the amrex mod_files folder 
 set ( MOD_DIR ${CMAKE_CURRENT_BINARY_DIR}/mod_files )
@@ -96,7 +97,8 @@ file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/UniformVelocity )
 add_executable ( ${EXENAME} EXCLUDE_FROM_ALL
    ${F90SRC_UV} ${F77SRC} ${CXXSRC} ${ALLHEADERS} )
 
-target_link_libraries ( ${EXENAME} amrex ${AMREX_EXTRA_CXX_LINK_LINE} )
+target_link_libraries ( ${EXENAME} amrex ${AMREX_EXTRA_CXX_LINK_LINE}
+   ${AMREX_EXTRA_Fortran_LINK_LINE} )
 
 
 # Fortran modules for the target will not be added to the amrex mod_files folder 

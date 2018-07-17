@@ -1,9 +1,10 @@
-#ifndef _NEIGHBORPARTICLES_H_
-#define _NEIGHBORPARTICLES_H_
+#ifndef AMREX_NEIGHBORPARTICLES_H_
+#define AMREX_NEIGHBORPARTICLES_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_Particles.H"
+#include "AMReX_Particles_F.H"
 
 namespace amrex {
 
@@ -144,7 +145,8 @@ public:
     ///
     /// Build a Neighbor List for each tile
     ///
-    void buildNeighborList(int lev, bool sort=false);
+    template <class CheckPair>
+    void buildNeighborList(int lev, CheckPair check_pair, bool sort=false);
 
     void buildNeighborListFort(int lev, bool sort=false);
 
@@ -171,10 +173,6 @@ protected:
     /// Perform handshake to figure out how many bytes each proc should receive
     ///
     void getRcvCountsMPI();
-
-    virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
-        return false;
-    };
 
     size_t cdata_size;
     int num_neighbor_cells;

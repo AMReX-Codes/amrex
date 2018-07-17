@@ -1,3 +1,4 @@
+#include <AMReX.H>
 #include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;

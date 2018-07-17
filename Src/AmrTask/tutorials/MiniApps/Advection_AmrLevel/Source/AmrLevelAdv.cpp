@@ -14,7 +14,7 @@ int      AmrLevelAdv::do_reflux       = 1;
 int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
 int      AmrLevelAdv::NUM_GROW        = 3;  // number of ghost cells
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
 int AmrLevelAdv::do_tracers                       =  0;
 #endif
@@ -74,7 +74,7 @@ AmrLevelAdv::checkPoint (const std::string& dir,
                          bool               dump_old) 
 {
   AmrLevel::checkPoint(dir, os, how, dump_old);
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
   if (do_tracers and level == 0) {
     TracerPC->Checkpoint(dir, "Tracer", true);
   }
@@ -92,7 +92,7 @@ AmrLevelAdv::writePlotFile (const std::string& dir,
 
     AmrLevel::writePlotFile (dir,os,how);
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (do_tracers and level == 0) {
       TracerPC->Checkpoint(dir, "Tracer", true);
     }
@@ -133,7 +133,7 @@ void
 AmrLevelAdv::variableCleanUp () 
 {
     desc_lst.clear();
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     TracerPC.reset();
 #endif
 }
@@ -167,7 +167,7 @@ AmrLevelAdv::initData ()
 		   ZFILL(prob_lo));
     }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     init_particles();
 #endif
 
@@ -343,7 +343,7 @@ AmrLevelAdv::advance (Real time,
 	}
     }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (TracerPC) {
       TracerPC->AdvectWithUmac(Umac, level, dt);
     }
@@ -553,7 +553,7 @@ AmrLevelAdv::post_timestep (int iteration)
     if (level < finest_level)
         avgDown();
 
-#ifdef PARTICLES    
+#ifdef AMREX_PARTICLES    
     if (TracerPC)
       {
         const int ncycle = parent->nCycle(level);
@@ -573,7 +573,7 @@ AmrLevelAdv::post_timestep (int iteration)
 //
 void
 AmrLevelAdv::post_regrid (int lbase, int new_finest) {
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
   if (TracerPC && level == lbase) {
       TracerPC->Redistribute(lbase);
   }
@@ -586,7 +586,7 @@ AmrLevelAdv::post_regrid (int lbase, int new_finest) {
 void
 AmrLevelAdv::post_restart() 
 {
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (do_tracers and level == 0) {
       BL_ASSERT(TracerPC == 0);
       TracerPC.reset(new AmrTracerParticleContainer(parent));
@@ -687,7 +687,7 @@ AmrLevelAdv::read_params ()
 	amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     pp.query("do_tracers", do_tracers);
 #endif 
 
@@ -756,7 +756,7 @@ AmrLevelAdv::avgDown (int state_indx)
                          0,S_fine.nComp(),parent->refRatio(level));
 }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 void
 AmrLevelAdv::init_particles ()
 {

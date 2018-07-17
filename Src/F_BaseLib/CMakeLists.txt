@@ -1,9 +1,20 @@
+#
+# WARNING: this file is styled after GPackage.mak, i.e. the old makefile
+#          for the Fortran version of BoxLib. If AMReX is build as shared
+#          library, the symbols provided by BLProfiler_f90.f90 clash with
+#          the ones in Base/AMReX_BLProfiler.cpp. The workaround would be
+#          to style this file as FParallelMG.mak that provides F90 calls
+#          from C++. However, this would break stuff like fcompare
+#          ( used in MFIX ). Therefore, for now, we retain the
+#          "GPackage.mak-version" of this file. F_Baselib is obsolete anyway
+#          and disabled by default, so chances are that no harm will de done.
+# 
+#
 set (CXXSRC "")
 set (F90SRC "")
 set (F77SRC "")
 set (ALLHEADERS "")
 set (ALLSRC "")
-
 
 list ( APPEND ALLHEADERS )
 list ( APPEND F90SRC     boxlib_f.f90 f2kcli.f90 BLProfiler_f90.f90 )

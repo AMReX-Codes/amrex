@@ -1,6 +1,6 @@
 
-#ifndef _LINOP_H_
-#define _LINOP_H_
+#ifndef AMREX_LINOP_H_
+#define AMREX_LINOP_H_
 
 #include <memory>
 
@@ -164,9 +164,7 @@ public:
     // Return the boundary data object.
     //
     const BndryData& bndryData () const { return *bgb; }
-    //
-    ParallelDescriptor::Color color () const { return bgb->color(); }
-    //
+
     const DistributionMapping& DistributionMap () const { return bgb->DistributionMap(); }
     //
     // Set the boundary data object.

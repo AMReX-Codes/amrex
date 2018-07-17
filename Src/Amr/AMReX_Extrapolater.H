@@ -1,5 +1,5 @@
-#ifndef _EXTRAPOLATER_H_
-#define _EXTRAPOLATER_H_
+#ifndef AMREX_EXTRAPOLATER_H_
+#define AMREX_EXTRAPOLATER_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>

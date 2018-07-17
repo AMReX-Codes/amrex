@@ -40,11 +40,13 @@ namespace amrex
 
             if (! grown_domain_box.contains(fab_box))
             {
-                FORT_LAUNCH(fab_box, amrex_fab_filcc,
-                            BL_TO_FORTRAN_FAB(fab),
-                            BL_TO_FORTRAN_BOX(domain_box),
-                            dx, prob_lo,
-                            bcrs_d);
+#pragma gpu
+                amrex_fab_filcc
+                    (AMREX_ARLIM_ARG(fab_box.loVect()), AMREX_ARLIM_ARG(fab_box.hiVect()),
+                     BL_TO_FORTRAN_FAB(fab),
+                     BL_TO_FORTRAN_BOX(domain_box),
+                     dx, prob_lo,
+                     bcrs_d);
             }
         }
     }
