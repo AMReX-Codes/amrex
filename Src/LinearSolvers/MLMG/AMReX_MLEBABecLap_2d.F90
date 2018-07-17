@@ -130,7 +130,7 @@ contains
     integer :: i,j,ioff,ii,jj
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
-    real(amrex_real) :: sxm, sxp, sym, syp
+    real(amrex_real) :: sxm, sxp, sym, syp, oxm, oxp, oym, oyp
     real(amrex_real), parameter :: omega = 1._amrex_real
 
     dhx = beta*dxinv(1)*dxinv(1)
@@ -152,9 +152,6 @@ contains
              cf3 = merge(f3(i,hi(2)), 0.0D0, &
                   (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
              
-             delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2) &
-                  +  dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
-             
              if (is_regular_cell(flag(i,j))) then
                 
                 gamma = alpha*a(i,j) &
@@ -164,40 +161,51 @@ contains
                 rho =  dhx * (bX(i+1,j)*phi(i+1,j) + bX(i,j)*phi(i-1,j)) &
                      + dhy * (bY(i,j+1)*phi(i,j+1) + bY(i,j)*phi(i,j-1))
 
+                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2) &
+                     +  dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
+             
              else
                 fxm = -bX(i,j)*phi(i-1,j)
+                oxm = -bX(i,j)*cf0
                 sxm =  bX(i,j)
                 if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
                    jj = j + int(sign(one,fcx(i,j)))
                    fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
                    fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(phi(i,jj)-phi(i-1,jj))
+                   oxm = (one-fracy)*oxm
                    sxm = (one-fracy)*sxm
                 end if
                 
                 fxp =  bX(i+1,j)*phi(i+1,j)
+                oxp =  bX(i+1,j)*cf2
                 sxp = -bX(i+1,j)
                 if (apx(i+1,j).ne.zero .and. apx(i+1,j).ne.one) then
                    jj = j + int(sign(one,fcx(i+1,j)))
                    fracy = abs(fcx(i+1,j))*real(ior(ccm(i,jj),ccm(i+1,jj)),amrex_real)
                    fxp = (one-fracy)*fxp + fracy*bX(i+1,jj)*(phi(i+1,jj)-phi(i,jj))
+                   oxp = (one-fracy)*oxp
                    sxp = (one-fracy)*sxp
                 end if
                 
                 fym = -bY(i,j)*phi(i,j-1)
+                oym = -bY(i,j)*cf1
                 sym =  bY(i,j)
                 if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
                    ii = i + int(sign(one,fcy(i,j)))
                    fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
                    fym = (one-fracx)*fym + fracx*bY(ii,j)*(phi(ii,j)-phi(ii,j-1))
+                   oym = (one-fracx)*oym
                    sym = (one-fracx)*sym
                 end if
                 
                 fyp =  bY(i,j+1)*phi(i,j+1)
+                oyp =  bY(i,j+1)*cf3
                 syp = -bY(i,j+1)
                 if (apy(i,j+1).ne.zero .and. apy(i,j+1).ne.one) then
                    ii = i + int(sign(one,fcy(i,j+1)))
                    fracx = abs(fcy(i,j+1))*real(ior(ccm(ii,j),ccm(ii,j+1)),amrex_real)
                    fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
+                   oyp = (one-fracx)*fyp
                    syp = (one-fracx)*syp
                 end if
                 
@@ -205,6 +213,9 @@ contains
                      (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
                 rho = -(one/vfrc(i,j)) * &
                      (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
+
+                delta = -(one/vfrc(i,j)) * &
+                     (dhx*(apx(i,j)*oxm-apx(i+1,j)*oxp) + dhy*(apy(i,j)*oym-apy(i,j+1)*oyp))
              end if
 
              res = rhs(i,j) - (gamma*phi(i,j) - rho)
