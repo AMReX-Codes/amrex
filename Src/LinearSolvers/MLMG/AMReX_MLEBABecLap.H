@@ -81,6 +81,7 @@ private:
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
+    Vector<Vector<iMultiFab> > m_cc_mask;
 
     Vector<int> m_is_singular;
 
