@@ -441,8 +441,8 @@ FMultiGrid::init_mgt_solver (const Vector<MultiFab*>& phi)
             }
             else
             {
-                mg_bc[i*2 + 0] = m_bndry->phys_bc_lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-                mg_bc[i*2 + 1] = m_bndry->phys_bc_hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+                mg_bc[i*2 + 0] = m_bndry->phys_bc_lo(i)==PhysBCType::outflow? MGT_BC_DIR : MGT_BC_NEU;
+                mg_bc[i*2 + 1] = m_bndry->phys_bc_hi(i)==PhysBCType::outflow? MGT_BC_DIR : MGT_BC_NEU;
             }
         }
     }

@@ -75,7 +75,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     {
         Box dmn = geom.Domain();
 
-        for (int d = 0; d < BL_SPACEDIM; d++) {
+        for (int d = 0; d < AMREX_SPACEDIM; d++) {
             if (!geom.isPeriodic(d)) {
                 dmn.grow(d,n_grow);
             }
@@ -88,7 +88,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     if (gcells.size() < NProcs)
     {
-        gcells.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
+        gcells.maxSize(AMREX_SPACEDIM == 3 ? 64 : 128);
     }
 
     BoxArray nba(gcells);

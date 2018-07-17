@@ -17,7 +17,7 @@
 
 namespace amrex {
 
-#if !defined(NDEBUG)
+#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
 bool IArrayBox::do_initval = true;
 #else
 bool IArrayBox::do_initval = false;
@@ -52,11 +52,10 @@ IArrayBox::IArrayBox (const Box& b,
     :
     BaseFab<int>(b,n,alloc,shared)
 {
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
-    if ( alloc && do_initval )
-	setVal(0);
+    // For debugging purposes
+    if ( alloc && do_initval ) {
+	setVal(std::numeric_limits<int>::max());
+    }
 }
 
 IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp)
@@ -77,11 +76,10 @@ IArrayBox::resize (const Box& b,
                    int        N)
 {
     BaseFab<int>::resize(b,N);
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
-    if ( do_initval )
-        setVal(0);
+    // For debugging purposes
+    if ( do_initval ) {
+        setVal(std::numeric_limits<int>::max());
+    }
 }
 
 int

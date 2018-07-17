@@ -1,5 +1,6 @@
 
 DEBUG     = TRUE
+DEBUG     = FALSE
 
 USE_MPI   = TRUE
 USE_OMP   = FALSE
@@ -12,6 +13,9 @@ COMP      = gnu
 
 DIM       = 2
 #DIM       = 3
+
+USE_PARTICLES = TRUE
+USE_F_INTERFACES = TRUE
 
 Bpack   := ./Make.package 
 Blocs   := . 

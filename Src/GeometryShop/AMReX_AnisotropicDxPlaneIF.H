@@ -1,16 +1,5 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-#ifndef _AnisotropicPLANEIF_H_
-#define _AnisotropicPLANEIF_H_
+#ifndef AMREX_AnisotropicPLANEIF_H_
+#define AMREX_AnisotropicPLANEIF_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"
@@ -57,7 +46,6 @@ namespace amrex
         for(int idir = 0; idir < SpaceDim; idir++)
         {
           Real ratio = m_dxVector[idir]/m_dxVector[0];
-//          Real ratio = m_dxVector[0]/m_dxVector[idir];
           scaledPt[idir] = ratio*a_point[idir];
         }
         Real retval = PlaneIF::value(scaledPt);

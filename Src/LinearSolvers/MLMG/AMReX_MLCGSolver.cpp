@@ -1,4 +1,5 @@
 
+#include <limits>
 #include <algorithm>
 #include <iomanip>
 #include <cmath>
@@ -14,8 +15,6 @@
 #include <omp.h>
 #endif
 
-#define CG_USE_OLD_CONVERGENCE_CRITERIA 1
-
 namespace amrex {
 
 namespace {
@@ -30,7 +29,7 @@ sxay (MultiFab&       ss,
 {
     BL_PROFILE("CGSolver::sxay()");
 
-    const int ncomp  = 1;
+    const int ncomp  = ss.nComp();
     const int sscomp = 0;
     const int xxcomp = 0;
     MultiFab::LinComb(ss, 1.0, xx, xxcomp, a, yy, yycomp, sscomp, ncomp, 0);
@@ -48,8 +47,9 @@ sxay (MultiFab&       ss,
 
 }
 
-MLCGSolver::MLCGSolver (MLLinOp& _lp)
+MLCGSolver::MLCGSolver (MLLinOp& _lp, Type _typ)
     : Lp(_lp),
+      solver_type(_typ),
       amrlev(0),
       mglev(_lp.NMGLevels(0)-1)
 {
@@ -65,52 +65,65 @@ MLCGSolver::solve (MultiFab&       sol,
                    Real            eps_rel,
                    Real            eps_abs)
 {
-    BL_PROFILE_REGION("MLCGSolver::solve()");
+    if (solver_type == Type::BiCGStab) {
+        return solve_bicgstab(sol,rhs,eps_rel,eps_abs);
+    } else {
+        return solve_cg(sol,rhs,eps_rel,eps_abs);
+    }
+}
 
-    const int nghost = sol.nGrow(), ncomp = 1;
+int
+MLCGSolver::solve_bicgstab (MultiFab&       sol,
+                            const MultiFab& rhs,
+                            Real            eps_rel,
+                            Real            eps_abs)
+{
+    BL_PROFILE_REGION("MLCGSolver::bicgstab");
+
+    const int nghost = sol.nGrow(), ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
+    const auto& factory = sol.Factory();
 
-    BL_ASSERT(sol.nComp() == ncomp);
-
-    MultiFab ph(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
-    MultiFab sh(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
+    MultiFab ph(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab sh(ba, dm, ncomp, nghost, MFInfo(), factory);
     ph.setVal(0.0);
     sh.setVal(0.0);
 
-    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab p    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab s    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab rh   (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab v    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
-    MultiFab t    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
+    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab p    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab s    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab rh   (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab v    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab t    (ba, dm, ncomp, 0, MFInfo(), factory);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
+    Lp.normalize(amrlev, mglev, r);
 
-    MultiFab::Copy(sorig,sol,0,0,1,0);
-    MultiFab::Copy(rh,   r,  0,0,1,0);
+    MultiFab::Copy(sorig,sol,0,0,ncomp,0);
+    MultiFab::Copy(rh,   r,  0,0,ncomp,0);
 
     sol.setVal(0);
 
     Real rnorm = norm_inf(r);
     const Real rnorm0   = rnorm;
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
+    if ( verbose > 0 )
     {
-        std::cout << "MLCGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
+        amrex::Print() << "MLCGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
     }
     int ret = 0, nit = 1;
     Real rho_1 = 0, alpha = 0, omega = 0;
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
+        if ( verbose > 0 )
 	{
-            std::cout << "MLCGSolver_BiCGStab: niter = 0,"
-                      << ", rnorm = " << rnorm 
-                      << ", eps_abs = " << eps_abs << std::endl;
+            amrex::Print() << "MLCGSolver_BiCGStab: niter = 0,"
+                           << ", rnorm = " << rnorm 
+                           << ", eps_abs = " << eps_abs << std::endl;
 	}
         return ret;
     }
@@ -124,7 +137,7 @@ MLCGSolver::solve (MultiFab&       sol,
 	}
         if ( nit == 1 )
         {
-            MultiFab::Copy(p,r,0,0,1,0);
+            MultiFab::Copy(p,r,0,0,ncomp,0);
         }
         else
         {
@@ -132,8 +145,9 @@ MLCGSolver::solve (MultiFab&       sol,
             sxay(p, p, -omega, v);
             sxay(p, r,   beta, p);
         }
-        MultiFab::Copy(ph,p,0,0,1,0);
+        MultiFab::Copy(ph,p,0,0,ncomp,0);
         Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous);
+        Lp.normalize(amrlev, mglev, v);
 
         if ( Real rhTv = dotxy(rh,v) )
 	{
@@ -148,18 +162,19 @@ MLCGSolver::solve (MultiFab&       sol,
 
         rnorm = norm_inf(s);
 
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
+        if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
-            std::cout << "MLCGSolver_BiCGStab: Half Iter "
-                      << std::setw(11) << nit
-                      << " rel. err. "
-                      << rnorm/(rnorm0) << '\n';
+            amrex::Print() << "MLCGSolver_BiCGStab: Half Iter "
+                           << std::setw(11) << nit
+                           << " rel. err. "
+                           << rnorm/(rnorm0) << '\n';
         }
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 
-        MultiFab::Copy(sh,s,0,0,1,0);
+        MultiFab::Copy(sh,s,0,0,ncomp,0);
         Lp.apply(amrlev, mglev, t, sh, MLLinOp::BCMode::Homogeneous);
+        Lp.normalize(amrlev, mglev, t);
         //
         // This is a little funky.  I want to elide one of the reductions
         // in the following two dotxy()s.  We do that by calculating the "local"
@@ -182,12 +197,12 @@ MLCGSolver::solve (MultiFab&       sol,
 
         rnorm = norm_inf(r);
 
-        if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
+        if ( verbose > 2 )
         {
-            std::cout << "MLCGSolver_BiCGStab: Iteration "
-                      << std::setw(11) << nit
-                      << " rel. err. "
-                      << rnorm/(rnorm0) << '\n';
+            amrex::Print() << "MLCGSolver_BiCGStab: Iteration "
+                           << std::setw(11) << nit
+                           << " rel. err. "
+                           << rnorm/(rnorm0) << '\n';
         }
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
@@ -199,29 +214,162 @@ MLCGSolver::solve (MultiFab&       sol,
         rho_1 = rho;
     }
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor(p.color()) )
+    if ( verbose > 0 )
     {
-        std::cout << "MLCGSolver_BiCGStab: Final: Iteration "
-                  << std::setw(4) << nit
-                  << " rel. err. "
-                  << rnorm/(rnorm0) << '\n';
+        amrex::Print() << "MLCGSolver_BiCGStab: Final: Iteration "
+                       << std::setw(4) << nit
+                       << " rel. err. "
+                       << rnorm/(rnorm0) << '\n';
     }
 
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
-        if ( ParallelDescriptor::IOProcessor(p.color()) )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
             amrex::Warning("MLCGSolver_BiCGStab:: failed to converge!");
         ret = 8;
     }
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.plus(sorig, 0, 1, 0);
+        sol.plus(sorig, 0, ncomp, 0);
     } 
     else 
     {
         sol.setVal(0);
-        sol.plus(sorig, 0, 1, 0);
+        sol.plus(sorig, 0, ncomp, 0);
+    }
+
+    return ret;
+}
+
+int
+MLCGSolver::solve_cg (MultiFab&       sol,
+                      const MultiFab& rhs,
+                      Real            eps_rel,
+                      Real            eps_abs)
+{
+    BL_PROFILE_REGION("MLCGSolver::cg");
+
+    const int nghost = sol.nGrow(), ncomp = sol.nComp();
+
+    const BoxArray& ba = sol.boxArray();
+    const DistributionMapping& dm = sol.DistributionMap();
+    const auto& factory = sol.Factory();
+
+    MultiFab p(ba, dm, ncomp, nghost, MFInfo(), factory);
+    p.setVal(0.0);
+
+    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab z    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab q    (ba, dm, ncomp, 0, MFInfo(), factory);
+
+    MultiFab::Copy(sorig,sol,0,0,ncomp,0);
+
+    Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
+
+    sol.setVal(0);
+
+    Real       rnorm    = norm_inf(r);
+    const Real rnorm0   = rnorm;
+
+    if ( verbose > 0 )
+    {
+        amrex::Print() << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
+    }
+
+    Real rho_1         = 0;
+    int  ret           = 0;
+    int  nit           = 1;
+
+    if ( rnorm0 == 0 || rnorm0 < eps_abs )
+    {
+        if ( verbose > 0 ) {
+            amrex::Print() << "MLCGSolver_CG: niter = 0,"
+                           << ", rnorm = " << rnorm 
+                           << ", eps_abs = " << eps_abs << std::endl;
+        } 
+        return ret;
+    }
+
+    for (; nit <= maxiter; ++nit)
+    {
+        MultiFab::Copy(z,r,0,0,ncomp,0);
+
+        Real rho = dotxy(z,r);
+
+        if ( rho == 0 )
+        {
+            ret = 1; break;
+        }
+        if (nit == 1)
+        {
+            MultiFab::Copy(p,z,0,0,ncomp,0);
+        }
+        else
+        {
+            Real beta = rho/rho_1;
+            sxay(p, z, beta, p);
+        }
+        Lp.apply(amrlev, mglev, q, p, MLLinOp::BCMode::Homogeneous);
+
+        Real alpha;
+        if ( Real pw = dotxy(p,q) )
+	{
+            alpha = rho/pw;
+	}
+        else
+	{
+            ret = 1; break;
+	}
+        
+        if ( verbose > 2 )
+        {
+            amrex::Print() << "MLCGSolver_cg:"
+                           << " nit " << nit
+                           << " rho " << rho
+                           << " alpha " << alpha << '\n';
+        }
+        sxay(sol, sol, alpha, p);
+        sxay(  r,   r,-alpha, q);
+        rnorm = norm_inf(r);
+
+        if ( verbose > 2 )
+        {
+            amrex::Print() << "MLCGSolver_cg:       Iteration"
+                           << std::setw(4) << nit
+                           << " rel. err. "
+                           << rnorm/(rnorm0) << '\n';
+        }
+
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+
+        rho_1 = rho;
+    }
+    
+    if ( verbose > 0 )
+    {
+        amrex::Print() << "MLCGSolver_cg: Final Iteration"
+                       << std::setw(4) << nit
+                       << " rel. err. "
+                       << rnorm/(rnorm0) << '\n';
+    }
+
+    if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
+    {
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
+            amrex::Warning("MLCGSolver_cg: failed to converge!");
+        ret = 8;
+    }
+
+    if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
+    {
+        sol.plus(sorig, 0, ncomp, 0);
+    } 
+    else 
+    {
+        sol.setVal(0);
+        sol.plus(sorig, 0, ncomp, 0);
     }
 
     return ret;
@@ -236,7 +384,11 @@ MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
 Real
 MLCGSolver::norm_inf (const MultiFab& res, bool local)
 {
-    Real result = res.norm0(0,0,true);
+    int ncomp = res.nComp();
+    Real result = std::numeric_limits<Real>::lowest();
+    for (int n=0; n<ncomp; n++)
+      result = std::max(result,res.norm0(n,0,true));
+
     if (!local) {
         ParallelAllReduce::Max(result, Lp.BottomCommunicator());
     }

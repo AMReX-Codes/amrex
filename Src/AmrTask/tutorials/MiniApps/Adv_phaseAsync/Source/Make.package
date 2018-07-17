@@ -1,0 +1,9 @@
+CEXE_sources += Adv.cpp Adv_advance.cpp Adv_setup.cpp 
+CEXE_sources += AdvBld.cpp Adv_io.cpp Adv_dt.cpp
+CEXE_sources += main.cpp 
+
+CEXE_headers += Adv.H
+
+FEXE_headers += Adv_F.H
+
+

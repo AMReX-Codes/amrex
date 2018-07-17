@@ -46,6 +46,7 @@ program fextract3d
   integer, allocatable :: var_indices(:)
 
   real(kind=dp_t) :: xmin, xmax, ymin, ymax, zmin, zmax
+  real(kind=dp_t) :: ycoord, yc
 
   logical :: ji_exist, valid, center
   integer :: io
@@ -59,6 +60,7 @@ program fextract3d
   center = .true.
   coarse_level = 1
   fine_level = -1 ! This will be fixed later if the user doesn't select one
+  ycoord = -1.0   ! maybe we need a better default?
 
   narg = command_argument_count()
 
@@ -84,6 +86,11 @@ program fextract3d
      case ('-v', '--variable')
         farg = farg + 1
         call get_command_argument(farg, value = varnames)
+
+     case ('-y')
+        farg = farg + 1
+        call get_command_argument(farg, value = fname)
+        read(fname, *) ycoord
 
      case ('-l', '--lower_left')
         center = .false.
@@ -115,7 +122,7 @@ program fextract3d
      print *, "Works with 1-, 2-, or 3-d datasets."
      print *, " "
      print *, "Usage:"
-     print *, "   fextract [-p plotfile] [-s outfile] [-d dir] [-v variable] [-c coarse_level] [-f fine_level] plotfile"
+     print *, "   fextract [-p plotfile] [-s outfile] [-d dir] [-v variable] [-y ycood] [-c coarse_level] [-f fine_level] plotfile"
      print *, " "
      print *, "args [-p|--pltfile]   plotfile        : plot file directory (depreciated, optional)"
      print *, "     [-s|--slicefile] slice file      : slice file          (optional)"
@@ -123,6 +130,7 @@ program fextract3d
      print *, "     [-v|--variable]  varname(s)      : only output the values of variable varname"
      print *, "                                        (space separated string for multiple variables)"
      print *, "     [-l|--lower_left]                : slice through lower left corner instead of center"
+     print *, "     [-y]                             : y-coordinate to pass through (overrides center/lower-left)"
      print *, "     [-c|--coarse_level] coarse level : coarsest level to extract from"
      print *, "     [-f|--fine_level]   fine level   : finest level to extract from"
      print *, " "
@@ -218,13 +226,25 @@ program fextract3d
   ! coarse grid.  These are used to set the position of the slice in
   ! the transverse direction.
 
+  jloc = -1
+  if (ycoord /= -1.0) then
+     ! we specified the y value to pass through
+     do j = lo(2), hi(2)
+        yc = ymin + dble(j + HALF)*dx(2)
+        if (yc > ycoord) then
+           jloc = j
+           exit
+        endif
+     enddo
+  endif
+
   if (center) then
      iloc = (hi(1)-lo(1)+1)/2 + lo(1)
-     if (dim > 1) jloc = (hi(2)-lo(2)+1)/2 + lo(2)
+     if (jloc == -1 .and. dim > 1) jloc = (hi(2)-lo(2)+1)/2 + lo(2)
      if (dim > 2) kloc = (hi(3)-lo(3)+1)/2 + lo(3)
   else
      iloc = 0
-     if (dim > 1) jloc = 0
+     if (jloc == -1 .and. dim > 1) jloc = 0
      if (dim > 2) kloc = 0
   endif
 

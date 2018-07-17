@@ -20,9 +20,9 @@ F90FLAGS =
 
 ########################################################################
 
-ibm_version       := $(shell $(CXX) --version | head -1)
+ibm_version  = $(shell $(CXX) --version | head -1)
 
-COMP_VERSION := $(ibm_version)
+COMP_VERSION = $(ibm_version)
 
 
 ########################################################################
@@ -51,17 +51,17 @@ CXXFLAGS += -std=c++1y
 CFLAGS   += -std=gnu99
 F90FLAGS += -qlanglvl=extended -qxlf2003=polymorphic
 
-FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
-F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
+FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
+F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir) -WF,-C!
 
 ########################################################################
 
 GENERIC_COMP_FLAGS =
 
 
-#ifeq ($(USE_OMP),TRUE)
-#  GENERIC_COMP_FLAGS += -fopenmp
-#endif
+ifeq ($(USE_OMP),TRUE)
+  GENERIC_COMP_FLAGS += -qsmp=omp
+endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)
 CFLAGS   += $(GENERIC_COMP_FLAGS)
@@ -73,4 +73,4 @@ CPP_PREFIX = -WF,
 #override XTRALIBS += 
 override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath
 
-FORTLINK := LOWERCASE
+FORTLINK = LOWERCASE

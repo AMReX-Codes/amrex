@@ -92,11 +92,7 @@ void NFilesIter::SetDynamic(int deciderproc)
     currentDeciderIndex = 0;
   }
   if(myProc == deciderProc) {
-    int wsp(NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets));
-#ifdef DEBUG
-    std::cout << myProc << "::DDDDDDDD:  idecide:  currentDeciderIndex setpos nSets = " << currentDeciderIndex
-              << "  " << wsp << "  " << nSets  << std::endl;
-#endif
+    NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   }
 
   deciderTag = ParallelDescriptor::SeqNum();
@@ -287,9 +283,6 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
       BL_PROFILE("NFI::ReadyToWrite:decider");
       // ---- the first message received is the coordinator
       ParallelDescriptor::Recv(&coordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
-#ifdef DEBUG
-      std::cout << myProc << ":: coordinatorProc = " << coordinatorProc << std::endl;
-#endif
       for(int i(0); i < setZeroProcs.size(); ++i) {  // ---- tell the set zero ranks  who is coordinating
         ParallelDescriptor::Send(&coordinatorProc, 1, setZeroProcs[i], coordinatorTag);
       }
@@ -452,7 +445,7 @@ NFilesIter &NFilesIter::operator++() {
             }
 	    if(nextProcToWrite == -1) {
               --remainingWriters;
-	      amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << std::endl;
+//	      amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << std::endl;
 	    } else {
 
 	    fileNumbersWriteOrder[nextFileNumberToWrite].push_back(nextProcToWrite);
@@ -512,10 +505,10 @@ bool NFilesIter::CheckNFiles(int nProcs, int nOutFiles, bool groupSets)
     for(int i(0); i < nProcs; ++i) {
       fileNumbers.insert(FileNumber(nOutFiles, i, groupSets));
     }
-    std::cout << "nOutFiles fileNumbers.size() = " << nOutFiles
-              << "  " << fileNumbers.size() << std::endl;
+//    amrex::Print() << "nOutFiles fileNumbers.size() = " << nOutFiles
+//              << "  " << fileNumbers.size() << std::endl;
     if(nOutFiles != static_cast<int>(fileNumbers.size())) {
-      std::cout << "**** Different number of files." << std::endl;
+//      amrex::Print() << "**** Different number of files." << std::endl;
       return false;
     }
   }
@@ -530,7 +523,7 @@ Vector<int> NFilesIter::FileNumbersWritten()
 
   if(myProc == coordinatorProc) {
 
-#ifdef DEBUG
+#if 0
     int total(0);
     std::set<int> procSet;
     for(int f(0); f < fileNumbersWriteOrder.size(); ++f) {
@@ -540,7 +533,7 @@ Vector<int> NFilesIter::FileNumbersWritten()
       }
     }
     if(total != nProcs || static_cast<int>(procSet.size()) != nProcs) {
-      std::cout << "**** Error in NFilesIter::FileNumbersWritten():  "
+      amrex::AllPrint() << "**** Error in NFilesIter::FileNumbersWritten():  "
                 << " coordinatorProc nProcs total procSet.size() = "
                 << coordinatorProc << "  " << nProcs << "  "
 		<< total << "  " << procSet.size() << std::endl;
@@ -565,8 +558,8 @@ void NFilesIter::CleanUpMessages() {
   for(int i(0); i < unreadMessages.size(); ++i) {
     std::pair<int, int> & pii = unreadMessages[i];
     int fromProc, tag(pii.first), nMessages(pii.second);
-#ifdef DEBUG
-    std::cout << ParallelDescriptor::MyProc() << ":: cleaning up " << nMessages
+#if 0
+    amrex::AllPrint() << ParallelDescriptor::MyProc() << ":: cleaning up " << nMessages
               << " messages for tag " << tag << std::endl;
 #endif
     for(int n(0); n < nMessages; ++n) {

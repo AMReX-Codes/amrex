@@ -101,7 +101,7 @@ subroutine mgt_flush_copyassoc_cache()
 end subroutine mgt_flush_copyassoc_cache
 
 subroutine mgt_flush_output()
-  call flush(6)
+  flush(6)
 end subroutine mgt_flush_output
 
 subroutine mgt_cc_alloc(dm, nlevel, stencil_type)

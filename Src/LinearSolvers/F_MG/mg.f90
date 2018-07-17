@@ -376,11 +376,15 @@ contains
        if (.not. contains(get_boxarray(old_coarse_la),bounding_box) &
             .or.  (nboxes(old_coarse_la) .lt. 2**mgt%dim) ) then
 
-          mgt%bottom_solver = 1
+          if (present(fancy_bottom_type)) then
+             mgt%bottom_solver = fancy_bottom_type
+          else
+             mgt%bottom_solver = 1
+          end if
 
           if ( parallel_IOProcessor() .and. verbose > 1 ) then
               print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
-              print *,'F90mg: Using bottom_solver = 1 instead'
+              print *,'F90mg: Using bottom_solver = ',mgt%bottom_solver,'instead'
           end if
 
        else

@@ -18,7 +18,8 @@ public:
     MLPoisson (const Vector<Geometry>& a_geom,
                const Vector<BoxArray>& a_grids,
                const Vector<DistributionMapping>& a_dmap,
-               const LPInfo& a_info = LPInfo());
+               const LPInfo& a_info = LPInfo(),
+               const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLPoisson ();
 
     MLPoisson (const MLPoisson&) = delete;
@@ -29,7 +30,8 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo());
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
 protected:
 
@@ -41,6 +43,8 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
+
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
     virtual Real getAScalar () const final { return  0.0; }
     virtual Real getBScalar () const final { return -1.0; }

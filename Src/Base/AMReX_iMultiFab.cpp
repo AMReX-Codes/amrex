@@ -227,14 +227,24 @@ void
 iMultiFab::define (const BoxArray&            bxs,
 		   const DistributionMapping& dm,
 		   int                        nvar,
-		   int                        ngrow,
+		   const IntVect&             ngrow,
 		   const MFInfo&              info,
                    const FabFactory<IArrayBox>& factory)
 {
     this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
 }
 
-
+void
+iMultiFab::define (const BoxArray&            bxs,
+		   const DistributionMapping& dm,
+		   int                        nvar,
+		   int                        ngrow,
+		   const MFInfo&              info,
+                   const FabFactory<IArrayBox>& factory)
+{
+    this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
+}
+    
 const IArrayBox&
 iMultiFab::operator[] (int K) const
 {
@@ -260,7 +270,7 @@ iMultiFab::min (int comp,
 		int nghost,
 		bool local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mn = std::numeric_limits<int>::max();
 
@@ -274,7 +284,7 @@ iMultiFab::min (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMin(mn, this->color());
+	ParallelDescriptor::ReduceIntMin(mn);
 
     return mn;
 }
@@ -285,7 +295,7 @@ iMultiFab::min (const Box& region,
                 int        nghost,
 		bool       local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mn = std::numeric_limits<int>::max();
 
@@ -301,7 +311,7 @@ iMultiFab::min (const Box& region,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMin(mn, this->color());
+	ParallelDescriptor::ReduceIntMin(mn);
 
     return mn;
 }
@@ -311,7 +321,7 @@ iMultiFab::max (int comp,
 		int nghost,
 		bool local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mx = -std::numeric_limits<int>::max();
 
@@ -324,7 +334,7 @@ iMultiFab::max (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMax(mx, this->color());
+	ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
 }
@@ -335,7 +345,7 @@ iMultiFab::max (const Box& region,
 		int        nghost,
 		bool       local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mx = -std::numeric_limits<int>::max();
 
@@ -351,7 +361,7 @@ iMultiFab::max (const Box& region,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMax(mx, this->color());
+	ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
 }
@@ -360,8 +370,7 @@ IntVect
 iMultiFab::minIndex (int comp,
                     int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
-    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     IntVect loc;
 
@@ -407,16 +416,16 @@ iMultiFab::minIndex (int comp,
         if (ParallelDescriptor::IOProcessor())
         {
             mns.resize(NProcs);
-            locs.resize(NProcs*BL_SPACEDIM);
+            locs.resize(NProcs*AMREX_SPACEDIM);
         }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
         ParallelDescriptor::Gather(&mn, 1, mns.dataPtr(), 1, IOProc);
 
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*BL_SPACEDIM);
+        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
 
-        ParallelDescriptor::Gather(loc.getVect(), BL_SPACEDIM, locs.dataPtr(), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -429,14 +438,14 @@ iMultiFab::minIndex (int comp,
                 {
                     mn = mns[i];
 
-                    const int j = BL_SPACEDIM * i;
+                    const int j = AMREX_SPACEDIM * i;
 
                     loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
             }
         }
 
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
 
     return loc;
@@ -446,8 +455,7 @@ IntVect
 iMultiFab::maxIndex (int comp,
                     int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
-    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     IntVect loc;
 
@@ -493,16 +501,16 @@ iMultiFab::maxIndex (int comp,
         if (ParallelDescriptor::IOProcessor())
         {
             mxs.resize(NProcs);
-            locs.resize(NProcs*BL_SPACEDIM);
+            locs.resize(NProcs*AMREX_SPACEDIM);
         }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
         ParallelDescriptor::Gather(&mx, 1, mxs.dataPtr(), 1, IOProc);
 
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*BL_SPACEDIM);
+        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
 
-        ParallelDescriptor::Gather(loc.getVect(), BL_SPACEDIM, locs.dataPtr(), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -515,14 +523,14 @@ iMultiFab::maxIndex (int comp,
                 {
                     mx = mxs[i];
 
-                    const int j = BL_SPACEDIM * i;
+                    const int j = AMREX_SPACEDIM * i;
 
                     loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
             }
         }
 
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
 
     return loc;
@@ -551,7 +559,7 @@ iMultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
     }
  
     if (!local)
-	ParallelDescriptor::ReduceIntMax(nm0, this->color());
+	ParallelDescriptor::ReduceIntMax(nm0);
  
     return nm0;
 }
@@ -570,7 +578,7 @@ iMultiFab::norm0 (int comp, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMax(nm0, this->color());
+	ParallelDescriptor::ReduceIntMax(nm0);
 
     return nm0;
 }
@@ -590,7 +598,7 @@ iMultiFab::norm2 (int comp) const
         nm2 += nm_grid*nm_grid;
     }
 
-    ParallelDescriptor::ReduceIntSum(nm2, this->color());
+    ParallelDescriptor::ReduceIntSum(nm2);
 
     nm2 = std::sqrt(double(nm2));
 
@@ -611,7 +619,7 @@ iMultiFab::norm1 (int comp, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntSum(nm1, this->color());
+	ParallelDescriptor::ReduceIntSum(nm1);
 
     return nm1;
 }
@@ -627,7 +635,7 @@ iMultiFab::minus (const iMultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -650,7 +658,7 @@ iMultiFab::divide (const iMultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -669,7 +677,7 @@ iMultiFab::plus (int val,
                  int  num_comp,
                  int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -689,7 +697,7 @@ iMultiFab::plus (int       val,
                  int        num_comp,
                  int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -715,7 +723,7 @@ iMultiFab::plus (const iMultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
+    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -734,7 +742,7 @@ iMultiFab::mult (int val,
                  int  num_comp,
                  int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -754,7 +762,7 @@ iMultiFab::mult (int       val,
                  int        num_comp,
                  int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -775,7 +783,7 @@ iMultiFab::negate (int comp,
                   int num_comp,
                   int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
@@ -793,7 +801,7 @@ iMultiFab::negate (const Box& region,
                   int        num_comp,
                   int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP

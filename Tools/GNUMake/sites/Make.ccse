@@ -1,11 +1,5 @@
 #
-# CCSE machines
+# CCSE machines just use the default now
 #
 
-ifeq ($(USE_MPI),TRUE)
-
-  INCLUDE_LOCATIONS += /usr/include/mpich
-  # LIBRARY_LOCATIONS +=  # not needed for CCSE machines
-  LIBRARIES += -lmpich -lmpichf90
-
-endif
+include $(AMREX_HOME)/Tools/GNUMake/sites/Make.unknown

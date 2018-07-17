@@ -9,17 +9,19 @@
 
 namespace amrex {
 
+enum class Direction : int { AMREX_D_DECL(x = 0, y = 1, z = 2) };
+
 class OrientationIter;
 
 /**
 * \brief Encapsulation of the Orientation of the Faces of a Box
 *
 * This class encapsulates the orientation of the faces of a Box by
-* providing an ordering of each of the faces of a Box in BL_SPACEDIM
+* providing an ordering of each of the faces of a Box in AMREX_SPACEDIM
 * dimensions.  This allows iterating over all the faces of a Box.  The
-* ordering first traverses the BL_SPACEDIM low sides from direction 0 ..
-* BL_SPACEDIM-1 and then the BL_SPACEDIM high sides from direction 0 ..
-* BL_SPACEDIM-1.
+* ordering first traverses the AMREX_SPACEDIM low sides from direction 0 ..
+* AMREX_SPACEDIM-1 and then the AMREX_SPACEDIM high sides from direction 0 ..
+* AMREX_SPACEDIM-1.
 */
 
 class Orientation
@@ -36,9 +38,9 @@ public:
     //! Set the orientation of a side.
     Orientation (int dir, Side side)
         :
-        val(BL_SPACEDIM*side + dir)
+        val(AMREX_SPACEDIM*side + dir)
     {
-        BL_ASSERT(0 <= dir && dir < BL_SPACEDIM);
+        BL_ASSERT(0 <= dir && dir < AMREX_SPACEDIM);
     }
     //! Logical equality.
     bool operator== (const Orientation& o) const { return val == o.val; }
@@ -54,23 +56,23 @@ public:
     bool operator>= (const Orientation& o) const { return val >= o.val; }
     /**
     * \brief This conversion operator maps an orientation into a
-    * unique integer in the range [0 .. 2*BL_SPACEDIM-1]
+    * unique integer in the range [0 .. 2*AMREX_SPACEDIM-1]
     * according to the above ordering.
     */
     operator int () const { return val; }
     //! Return opposite orientation.
     Orientation flip () const
     {
-        return Orientation(val < BL_SPACEDIM ? val+BL_SPACEDIM : val-BL_SPACEDIM);
+        return Orientation(val < AMREX_SPACEDIM ? val+AMREX_SPACEDIM : val-AMREX_SPACEDIM);
     }
     //! Returns the coordinate direction.
-    int coordDir () const { return val%BL_SPACEDIM; }
+    int coordDir () const { return val%AMREX_SPACEDIM; }
     //! Returns the orientation of the face -- low or high.
-    Side faceDir () const { return Side(val/BL_SPACEDIM); }
+    Side faceDir () const { return Side(val/AMREX_SPACEDIM); }
     //! Returns true if Orientation is low.
-    bool isLow () const { return val < BL_SPACEDIM; }
+    bool isLow () const { return val < AMREX_SPACEDIM; }
     //! Returns true if Orientation is high.
-    bool isHigh () const { return val >= BL_SPACEDIM; }
+    bool isHigh () const { return val >= AMREX_SPACEDIM; }
     //! Read from an istream.
     friend std::istream& operator>> (std::istream& os, Orientation& o);
 
@@ -105,7 +107,7 @@ public:
     //! Return the orientation of the face.
     Orientation operator() () const { BL_ASSERT(ok()); return Orientation(face); }
     //! Cast to void*.  Used to test if iterator is valid.
-    operator void* () { return 0 <= face && face < 2*BL_SPACEDIM ? this : 0; }
+    operator void* () { return 0 <= face && face < 2*AMREX_SPACEDIM ? this : 0; }
     //! Pre-decrement.
     OrientationIter& operator-- () { BL_ASSERT(ok()); --face; return *this; }
     //! Pre-increment.
@@ -137,7 +139,7 @@ private:
     //! Construct an iterator on the face.
     OrientationIter (int _face) : face(_face) {}
     //! Is the iterator valid?
-    bool ok () const { return 0 <= face && face < 2*BL_SPACEDIM; }
+    bool ok () const { return 0 <= face && face < 2*AMREX_SPACEDIM; }
 };
 
 }
