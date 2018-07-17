@@ -174,7 +174,10 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                              &(b[mglev][1]),
                                              &(b[mglev][2]))};
         IntVect ratio {mg_coarsen_ratio};
-        amrex::average_down_faces(fine, crse, ratio, 0);
+//        amrex::Print()<<"intering avg down faces!"; 
+//        amrex::EB_average_down_faces(fine, crse, ratio, 0);
+            amrex::average_down_faces(fine, crse, ratio, 0);
+        
     }
 }
 
