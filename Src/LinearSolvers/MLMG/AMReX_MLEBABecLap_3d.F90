@@ -15,13 +15,13 @@ module amrex_mlebabeclap_3d_module
 contains
 
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, & 
-       a, alo, ahi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, flag, flo, fhi, & 
+       a, alo, ahi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, & 
        vfrc, vlo, vhi, apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, &
        fcy, cylo, cyhi, fcz, czlo, czhi, dxinv, alpha, beta) & 
        bind(c, name='amrex_mlebabeclap_adotx') 
    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo,&
-      bxhi, bylo, byhi, bzlo, bzhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, azlo, azhi, & 
-      cxlo, cxhi, cylo, cyhi, czlo, czhi
+        bxhi, bylo, byhi, bzlo, bzhi, cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, &
+        azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi
    real(amrex_real), intent(in) :: dxinv(3) 
    real(amrex_real), value, intent(in) :: alpha, beta
    real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2), ylo(3): yhi(3))
@@ -30,6 +30,7 @@ contains
    real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3))
    real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
    real(amrex_real), intent(in   ) ::   bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
+   integer         , intent(in   ) ::  ccm(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3)) 
    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3)) 
    real(amrex_real), intent(in   ) :: vfrc( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3)) 
    real(amrex_real), intent(in   ) ::  apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3)) 
@@ -143,6 +144,7 @@ contains
 
   subroutine amrex_mlebabeclap_gsrb(lo, hi, phi, hlo, hhi, rhs, rlo, rhi, a, alo, ahi, & 
      bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, & 
+     ccm, cmlo, cmhi, &
      m0, m0lo, m0hi, m2, m2lo, m2hi, m4, m4lo, m4hi, & 
      m1, m1lo, m1hi, m3, m3lo, m3hi, m5, m5lo, m5hi, & 
      f0, f0lo, f0hi, f2, f2lo, f2hi, f4, f4lo, f4hi, & 
@@ -153,7 +155,7 @@ contains
      bind(c,name='amrex_mlebabeclap_gsrb') 
 
     integer, dimension(3), intent(in) :: lo, hi, hlo, hhi, rlo, rhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
-         bzlo, bzhi, m0lo, m0hi, m1lo, m1hi, m2lo, m2hi, m3lo, m3hi, m4lo, m4hi, m5lo, m5hi,  &
+         bzlo, bzhi, cmlo, cmhi, m0lo, m0hi, m1lo, m1hi, m2lo, m2hi, m3lo, m3hi, m4lo, m4hi, m5lo, m5hi,  &
          f0lo, f0hi, f1lo, f1hi, f2lo, f2hi, f3lo, f3hi, f4lo, f4hi ,f5lo, f5hi, flo, fhi, vlo, vhi,&
          axlo, axhi, aylo, ayhi, azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi
     real(amrex_real), intent(in) :: dxinv(3)
@@ -165,6 +167,7 @@ contains
     real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3)  )
     real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3)  )
     real(amrex_real), intent(in   ) ::   bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3)  )
+    integer         , intent(in   ) ::  ccm(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3)  ) 
     integer         , intent(in   ) ::   m0(m0lo(1):m0hi(1),m0lo(2):m0hi(2),m0lo(3):m0hi(3)  )
     integer         , intent(in   ) ::   m1(m1lo(1):m1hi(1),m1lo(2):m1hi(2),m1lo(3):m1hi(3)  )
     integer         , intent(in   ) ::   m2(m2lo(1):m2hi(1),m2lo(2):m2hi(2),m2lo(3):m2hi(3)  )
@@ -336,13 +339,14 @@ contains
 
 
   subroutine amrex_mlebabeclap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
-       bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, flag, flo, fhi, vfrc, vlo, vhi, &
+       bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi,apz, azlo, azhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
        fcz, czlo, czhi, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_normalize')
 
     integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, bzlo, bzhi, &
-              flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi,azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi
+         cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi,azlo, azhi, &
+         cxlo, cxhi, cylo, cyhi, czlo, czhi
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3)  )
@@ -350,6 +354,7 @@ contains
     real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bzhi(3)  )
     real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3)  )
     real(amrex_real), intent(in   ) ::   bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3)  )
+    integer         , intent(in   ) ::  ccm(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3)  ) 
     integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3)  )
     real(amrex_real), intent(in   ) :: vfrc( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3)  )
     real(amrex_real), intent(in   ) ::  apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3)  )

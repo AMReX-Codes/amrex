@@ -18,6 +18,7 @@ extern "C" {
                                   const amrex_real* bz, const int* bzlo, const int* bzhi,
 #endif
 #endif
+                                  const int* ccmask, const int* cmlo, const int* cmhi,
                                   const void* flag, const int* flo, const int* fhi,
                                   const amrex_real* vfrac, const int* vlo, const int* vhi,
                                   const amrex_real* apx, const int* axlo, const int* axhi,
@@ -48,6 +49,7 @@ extern "C" {
                                   const amrex_real* bz, const int* bzlo, const int* bzhi,
 #endif
 #endif
+                                  const int* ccmask, const int* cmlo, const int* cmhi,
                                   const int* m0, const int* m0lo, const int* m0hi,
 #if (AMREX_SPACEDIM >= 2)
                                   const int* m2, const int* m2lo, const int* m2hi,
@@ -106,6 +108,7 @@ extern "C" {
                                       const amrex_real* bz, const int* bzlo, const int* bzhi,
 #endif
 #endif
+                                      const int* ccmask, const int* cmlo, const int* cmhi,
                                       const void* flag, const int* flo, const int* fhi,
                                       const amrex_real* vfrac, const int* vlo, const int* vhi,
                                       const amrex_real* apx, const int* axlo, const int* axhi,
