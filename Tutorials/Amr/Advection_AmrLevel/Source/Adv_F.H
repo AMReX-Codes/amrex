@@ -23,18 +23,18 @@ extern "C"
 		   const amrex_real* dx, const amrex_real* problo,
 		   const amrex_real* time, const int* level);
   
-  void initdata(const int& level, const amrex_real& time, 
+  void initdata(const int* level, const amrex_real* time, 
 		const int* lo, const int* hi,
 		BL_FORT_FAB_ARG_3D(state),
 		const amrex_real* dx, const amrex_real* problo);
   
-  void get_face_velocity(const int& level, const amrex_real& time, 
+  void get_face_velocity(const int* level, const amrex_real* time, 
 			 AMREX_D_DECL(BL_FORT_FAB_ARG(xvel),
 				BL_FORT_FAB_ARG(yvel),
 				BL_FORT_FAB_ARG(zvel)),
 			 const amrex_real* dx, const amrex_real* problo);
   
-  void advect(const amrex_real& time, const int* lo, const int*hi,
+  void advect(const amrex_real* time, const int* lo, const int* hi,
 	      const BL_FORT_FAB_ARG_3D(statein),
 	      BL_FORT_FAB_ARG_3D(stateout),
 	      AMREX_D_DECL(const BL_FORT_FAB_ARG_3D(xvel),
@@ -43,7 +43,7 @@ extern "C"
 	      AMREX_D_DECL(BL_FORT_FAB_ARG_3D(fx),
 		     BL_FORT_FAB_ARG_3D(fy),
 		     BL_FORT_FAB_ARG_3D(fz)),
-	      const amrex_real* dx, const amrex_real& dt);
+	      const amrex_real* dx, const amrex_real* dt);
 
 #ifdef __cplusplus
 }

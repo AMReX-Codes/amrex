@@ -1,6 +1,6 @@
 
-#ifndef _FABSET_H_
-#define _FABSET_H_
+#ifndef AMREX_FABSET_H_
+#define AMREX_FABSET_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
@@ -77,8 +77,6 @@ public:
     const DistributionMapping& DistributionMap () const 
 	{ return m_mf.DistributionMap(); }
 
-    ParallelDescriptor::Color color() const { return m_mf.color(); }
-
     int nComp () const { return m_mf.nComp(); }
 
     void clear () { m_mf.clear(); }
@@ -122,13 +120,6 @@ public:
 
     // Local copy function
     static void Copy (FabSet& dst, const FabSet& src);
-
-    void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-			 int scsMyId, MPI_Comm scsComm)
-	{ 
-	  m_mf.AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-          // ---- MoveAllFabs should handle this
-	}
 
 private:
     MultiFab m_mf;

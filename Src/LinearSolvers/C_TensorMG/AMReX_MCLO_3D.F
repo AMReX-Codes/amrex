@@ -434,7 +434,7 @@ c ::: ::: ::: Z
                enddo
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(1)
-               call polyInterpCoeff(xInt, x, lenx+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, lenx+2, coef)
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
                      do j = lo(2), hi(2)
@@ -716,7 +716,7 @@ c ::: ::: ::: Z
                enddo
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(1)
-               call polyInterpCoeff(xInt, x, lenx+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, lenx+2, coef)
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
                      do j = lo(2), hi(2)
@@ -999,7 +999,7 @@ c ::: ::: ::: ::: interior part of south face
                enddo
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(2)
-               call polyInterpCoeff(xInt, x, leny+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, leny+2, coef)
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
                      do i = lo(1), hi(1)
@@ -1281,7 +1281,7 @@ c ::: ::: ::: ::: interior part of south face
                enddo
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(2)
-               call polyInterpCoeff(xInt, x, leny+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, leny+2, coef)
                do k = lo(3), hi(3)
                   if ( flagbc .eq. 1 ) then
                      do i = lo(1), hi(1)
@@ -1563,7 +1563,7 @@ c ::: ::: ::: interior part of bottom face
                enddo
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(3)
-               call polyInterpCoeff(xInt, x, lenz+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, lenz+2, coef)
                do j = lo(2), hi(2)
                   if ( flagbc .eq. 1 ) then
                      do i = lo(1), hi(1)
@@ -1845,7 +1845,7 @@ c ::: ::: ::: interior part of bottom face
                enddo
             else if (is_dirichlet(bct(n))) then
                x(-1) = - bcl/h(3)
-               call polyInterpCoeff(xInt, x, lenz+2, coef)
+               call amrex_tmg_polyInterpCoeff(xInt, x, lenz+2, coef)
                do j = lo(2), hi(2)
                   if ( flagbc .eq. 1 ) then
                      do i = lo(1), hi(1)

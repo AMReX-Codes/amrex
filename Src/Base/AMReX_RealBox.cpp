@@ -12,7 +12,7 @@ RealBox::RealBox (const Box&  bx,
 {
     const int* blo = bx.loVect();
     const int* bhi = bx.hiVect();
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         xlo[i] = base[i] + dx[i]*blo[i];
         int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
@@ -33,8 +33,8 @@ RealBox::RealBox (const Real* a_lo,
     AMREX_D_EXPR(xhi[0] = a_hi[0] , xhi[1] = a_hi[1] , xhi[2] = a_hi[2]);
 }
 
-RealBox::RealBox (const std::array<Real,BL_SPACEDIM>& a_lo,
-                  const std::array<Real,BL_SPACEDIM>& a_hi)
+RealBox::RealBox (const std::array<Real,AMREX_SPACEDIM>& a_lo,
+                  const std::array<Real,AMREX_SPACEDIM>& a_hi)
 {
     AMREX_D_EXPR(xlo[0] = a_lo[0] , xlo[1] = a_lo[1] , xlo[2] = a_lo[2]);
     AMREX_D_EXPR(xhi[0] = a_hi[0] , xhi[1] = a_hi[1] , xhi[2] = a_hi[2]);
@@ -57,10 +57,10 @@ bool
 RealBox::ok () const
 {
     return (length(0) >= 0.0)
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
         && (length(1) >= 0.0)
 #endif   
-#if (BL_SPACEDIM > 2)
+#if (AMREX_SPACEDIM > 2)
         && (length(2) >= 0.0)
 #endif
    ;
@@ -81,11 +81,19 @@ RealBox::contains (const Real* point, Real eps) const
                    && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
 }
 
+bool
+RealBox::intersects (const RealBox& bx) const
+{
+    return  ! (AMREX_D_TERM((xlo[0] > bx.xhi[0]) || (xhi[0] < bx.xlo[0]),
+                         || (xlo[1] > bx.xhi[1]) || (xhi[1] < bx.xlo[1]),
+                         || (xlo[2] > bx.xhi[2]) || (xhi[2] < bx.xlo[2])));
+}
+    
 std::ostream&
 operator << (std::ostream &os, const RealBox& b)
 {
     os << "(RealBox ";
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
         os << b.lo(i) << ' ' << b.hi(i) << ' ';
     os << ')';
     return os;
@@ -107,21 +115,21 @@ operator >> (std::istream &is, RealBox& b)
 
     if (s != "RealBox")
     {
-        std::cerr << "unexpected token in RealBox: " << s << '\n';
+        amrex::ErrorStream() << "unexpected token in RealBox: " << s << '\n';
         amrex::Abort();
     }
 
-    Real lo[BL_SPACEDIM];
-    Real hi[BL_SPACEDIM];
+    Real lo[AMREX_SPACEDIM];
+    Real hi[AMREX_SPACEDIM];
 #ifdef BL_USE_FLOAT
     double dlotemp, dhitemp;
-    for (int i = 0; i < BL_SPACEDIM; i++) {
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         is >> dlotemp >> dhitemp;
         lo[i] = dlotemp;
         hi[i] = dhitemp;
     }
 #else
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
         is >> lo[i] >> hi[i];
 #endif
 

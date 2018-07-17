@@ -1,6 +1,6 @@
 
-#ifndef _StateDescriptor_H_
-#define _StateDescriptor_H_ 
+#ifndef AMREX_StateDescriptor_H_
+#define AMREX_StateDescriptor_H_
 
 #include <utility>
 #include <memory>

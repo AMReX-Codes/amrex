@@ -1,5 +1,6 @@
-#ifndef _Derive_H_
-#define _Derive_H_
+#ifndef AMREX_Derive_H_
+#define AMREX_Derive_H_
+
 #include <list>
 #include <string>
 
@@ -8,15 +9,17 @@
 #include <AMReX_Box.H>
 #include <AMReX_Interpolater.H>
 
+namespace amrex {
+
 extern "C"
 {
     //
     // Type of extern "C" function called by DeriveRec to compute derived quantity.
     //
-    // Note that ARLIM_P will be preprocessed into DIM const int&'s.
-    typedef void (*DeriveFunc)(amrex::Real* data, ARLIM_P(dlo), ARLIM_P(dhi),
+    // Note that AMREX_ARLIM_P will be preprocessed into DIM const int&'s.
+    typedef void (*DeriveFunc)(amrex::Real* data, AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
                                const int* nvar, const amrex::Real* compdat,
-                               ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
+                               AMREX_ARLIM_P(compdat_lo), AMREX_ARLIM_P(compdat_hi),
                                const int* ncomp,
                                const int* lo, const int* hi,
                                const int* domain_lo, const int* domain_hi,
@@ -34,8 +37,6 @@ extern "C"
 				 const int* bcrec,
 				 const int* level, const int* grid_no) ;
 }
-
-namespace amrex {
 
 class DescriptorList;
 

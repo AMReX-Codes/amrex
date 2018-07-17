@@ -1,6 +1,6 @@
 
-#ifndef _AuxBoundaryData_H_
-#define _AuxBoundaryData_H_
+#ifndef AMREX_AuxBoundaryData_H_
+#define AMREX_AuxBoundaryData_H_
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>

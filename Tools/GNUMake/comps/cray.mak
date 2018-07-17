@@ -13,13 +13,15 @@ F90FLAGS =
 
 ########################################################################
 
-cray_version := $(shell $(CXX) -V 2>&1 | grep 'Version')
+cray_version = $(shell $(CXX) -V 2>&1 | grep 'Version')
 
-COMP_VERSION := $(cray_version)
+COMP_VERSION = $(cray_version)
 
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
+
+  GENERIC_COMP_FLAGS += -K trap=fp
 
   CXXFLAGS += -g -O0
   CFLAGS   += -g -O0
@@ -27,6 +29,8 @@ ifeq ($(DEBUG),TRUE)
   F90FLAGS += -g -O0 -e i
 
 else
+
+  GENERIC_COMP_FLAGS += -h list=a
 
   CXXFLAGS += -O2
   CFLAGS   += -O2
@@ -44,8 +48,6 @@ F90FLAGS += -N 255 -I $(fmoddir) -J $(fmoddir) -em
 FFLAGS   += -N 255 -I $(fmoddir) -J $(fmoddir) -em
 
 ########################################################################
-
-GENERIC_COMP_FLAGS = -h list=a
 
 ifneq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -h noomp

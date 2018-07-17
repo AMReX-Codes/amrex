@@ -13,18 +13,19 @@ extern "C" {
                                  const int cdir, const int bct, const amrex_real bcl,
                                  const amrex_real* bcval, const int* blo, const int* bhi,
                                  const int maxorder, const amrex_real* dxinv,
-                                 const int inhomog);
+                                 const int inhomog, const int nc, const int cross);
 
 
     void amrex_mllinop_comp_interp_coef0 (const int* lo, const int* hi,
                                           amrex_real* den, const int* dlo, const int* dhi,
                                           const int* mask, const int* mlo, const int* mhi,
                                           const int cdir, const int bct, const amrex_real bcl,
-                                          const int maxorder, const amrex_real* dxinv);
+                                          const int maxorder, const amrex_real* dxinv, const int nc);
 
     void amrex_mllinop_apply_metric (const int* lo, const int* hi,
                                      amrex_real* d, const int* dlo, const int* dhi,
-                                     const amrex_real* r, const int* rlo, const int* rhi);
+                                     const amrex_real* r, const int* rlo, const int* rhi,
+				     const int nc);
 
 
     void amrex_mllinop_grad (const int* xlo, const int* xhi,

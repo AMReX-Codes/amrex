@@ -1,5 +1,5 @@
-#ifndef _PARTICLES_H_
-#define _PARTICLES_H_ 
+#ifndef AMREX_PARTICLES_H_
+#define AMREX_PARTICLES_H_
 
 #include <cstring>
 #include <map>
@@ -29,11 +29,10 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_Print.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_Interpolater.H>
-#include <AMReX_FillPatchUtil.H>
 #include <AMReX_NFiles.H>
 #include <AMReX_VectorIO.H>
 #include <AMReX_Particles_F.H>
+#include <AMReX_ParticleMPIUtil.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -68,7 +67,7 @@ struct ParticleCommData
   int     m_lev;
   int     m_grid;
   IntVect m_cell;
-  RealType m_data[1 + BL_SPACEDIM];
+  RealType m_data[1 + AMREX_SPACEDIM];
 };
 
 
@@ -85,7 +84,6 @@ struct ParticleLocData
   Box     m_tilebox;
   Box     m_grown_gridbox;
 };
-
 
 //
 // The struct used to store particles.
@@ -108,8 +106,8 @@ struct Particle
     //
     union rm_t
     {
-      RealType pos[BL_SPACEDIM];
-      RealType arr[BL_SPACEDIM+NReal];
+      RealType pos[AMREX_SPACEDIM];
+      RealType arr[AMREX_SPACEDIM+NReal];
     };
 
     //
@@ -135,8 +133,8 @@ struct Particle
     RealType& pos(int index)       & {return m_rdata.pos[index];}
     RealType  pos(int index) const & {return m_rdata.pos[index];}
 
-    RealType& rdata(int index)       & {return m_rdata.arr[BL_SPACEDIM + index];}
-    RealType  rdata(int index) const & {return m_rdata.arr[BL_SPACEDIM + index];}
+    RealType& rdata(int index)       & {return m_rdata.arr[AMREX_SPACEDIM + index];}
+    RealType  rdata(int index) const & {return m_rdata.arr[AMREX_SPACEDIM + index];}
 
     int& idata(int index)       & {return m_idata.arr[2 + index];}
     int  idata(int index) const & {return m_idata.arr[2 + index];}
@@ -468,8 +466,7 @@ public:
       communicate_real_comp(NArrayReal, true),
       communicate_int_comp(NArrayInt, true),
       m_verbose(0), 
-      m_gdb(nullptr),
-      allow_particles_near_boundary(false)
+      m_gdb(nullptr)
     {
         Initialize ();
     }
@@ -479,8 +476,7 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
 	m_verbose(0),
-	m_gdb(gdb), 
-	allow_particles_near_boundary(false)
+	m_gdb(gdb)
     {
         Initialize ();
         reserveData();
@@ -494,7 +490,6 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
         m_verbose(0), 
-	allow_particles_near_boundary(false),
 	m_gdb_object(geom,dmap,ba)
     {
         Initialize ();
@@ -511,7 +506,6 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
         m_verbose(0), 
-	allow_particles_near_boundary(false),
 	m_gdb_object(geom,dmap,ba,rr)
     {
         Initialize ();
@@ -520,7 +514,7 @@ public:
         resizeData();
     }
 
-    ~ParticleContainer () {}
+    virtual ~ParticleContainer () {}
 
     void Define (ParGDBBase* gdb)
     {
@@ -642,11 +636,7 @@ public:
     // rho_index: rho index in rdata
     Real sumParticleMass (int rho_index, int level, bool local = false) const;
 
-    // Set the flag that allows particles to live near the domain boundary and throw away 
-    //     the part of their contribution in AssignDensity that is outside the domain.
-    void SetAllowParticlesNearBoundary(bool value);
- 
-    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0);
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -739,12 +729,6 @@ public:
     // 
     // Functions depending the layout of the data.  Use with caution.
     //
-    // Multi-level version
-    void AssignDensity (int rho_index, bool sub_cycle, Vector<std::unique_ptr<MultiFab> >& mf, 
-			int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
-    // Single-level version
-    void AssignDensitySingleLevel (int rho_index, MultiFab& mf, int level,
-				   int ncomp=1, int particle_lvl_offset = 0) const;
     
     void AssignDensityFort (int rho_index,
                             Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
@@ -757,11 +741,7 @@ public:
 
     void AssignCellDensitySingleLevelFort (int rho_index, MultiFab& mf, int level,
 					   int ncomp=1, int particle_lvl_offset = 0) const;
-    void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
-				       int ncomp=1, int particle_lvl_offset = 0) const;
-    void NodalDepositionSingleLevel   (int rho_index, MultiFab& mf, int level,
-				       int ncomp=1, int particle_lvl_offset = 0) const;
-    //
+
     void moveKick (MultiFab& acceleration, int level, Real timestep, 
 		   Real a_new = 1.0, Real a_half = 1.0,
 		   int start_comp_for_accel = -1);
@@ -780,37 +760,6 @@ public:
     // Returns true if the particle was shifted.
     //
     bool PeriodicShift (ParticleType& prt) const;
-
-    //
-    // Used by AssignDensity.
-    //
-    bool CrseToFine (const BoxArray&       cfba, 
-		     const Vector<IntVect>& cells, 
-		     Vector<IntVect>&       cfshifts, 
-		     const Geometry&       gm, 
-		     Vector<int>&           which, 
-		     Vector<IntVect>&       pshifts) const;
-
-    bool FineToCrse (const ParticleType&                p,
-		     int                                flev,
-		     const Vector<IntVect>&              fcells,
-		     const BoxArray&                    fvalid,
-		     const BoxArray&                    compfvalid_grown,
-		     Vector<IntVect>&                    ccells,
-		     Vector<Real>&                       cfracs,
-		     Vector<int>&                        which,
-		     Vector<int>&                        cgrid,
-		     Vector<IntVect>&                    pshifts,
-		     std::vector< std::pair<int,Box> >& isects) const;
-
-    void FineCellsToUpdateFromCrse (const ParticleType&                p,
-				    int                                lev,
-				    const IntVect&                     ccell,
-				    const IntVect&                     cshift,
-				    Vector<int>&                        fgrid,
-				    Vector<Real>&                       ffrac,
-				    Vector<IntVect>&                    fcells,
-				    std::vector< std::pair<int,Box> >& isects) const;
 
     MFIter MakeMFIter (int lev) const {
         BL_ASSERT(m_dummy_mf[lev] != nullptr);
@@ -848,7 +797,6 @@ public:
       return doUnlink;
     }
 
-
 protected:
 
     //
@@ -858,14 +806,14 @@ protected:
     // nGrow ghost cells).
     //
     bool Where (const ParticleType& prt, ParticleLocData& pld, 
-		int lev_min = 0, int lev_max = -1, int nGrow=0) const;
+		int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
 
     //
     // Checks whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     //
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
-                               int lev_min = 0, int lev_max = -1) const;
+                               int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
@@ -886,12 +834,18 @@ protected:
 			bool           is_checkpoint,
 			std::ifstream& ifs);
 
+
+    void SetParticleSize ();
+    
+    void BuildRedistributeMask(int lev, int nghost=1);
+    std::unique_ptr<iMultiFab> redistribute_mask_ptr;
+    amrex::Vector<int> neighbor_procs;
+
     //
     // The member data.
     //
     int         m_verbose;
     ParGDBBase* m_gdb;
-    bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
 
     // ---- variables for i/o optimization saved for pre and post checkpoint
@@ -910,18 +864,13 @@ protected:
 
     
 private:
-    void AssignDensityDoit (int rho_index, 
-			    Vector<std::unique_ptr<MultiFab> >& mf, 
-			    std::map<int, Vector<ParticleCommData> >& data,
-			    int ncomp, int lev_min = 0) const;
-
     std::pair<long,long> StartIndexInGlobalArray () const;
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-			  int lev_min = 0, int lev_max = 0, int nGrow = 0);
+			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
-                        int lev_min, int lev_max, int nGrow) const;
+                        int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
     static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 

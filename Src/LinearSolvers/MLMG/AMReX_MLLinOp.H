@@ -9,6 +9,10 @@
 #include <AMReX_MLMGBndry.H>
 #include <AMReX_VisMF.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_MultiCutFab.H>
+#endif
+
 namespace amrex {
 
 struct LPInfo
@@ -18,12 +22,14 @@ struct LPInfo
     int agg_grid_size = AMREX_D_PICK(32, 16, 8);
     int con_grid_size = AMREX_D_PICK(32, 16, 8);
     bool has_metric_term = true;
+    int max_coarsening_level = 30;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
+    LPInfo& setMaxCoarseningLevel (int n) { max_coarsening_level = n; return *this; }
 };
 
 class MLLinOp
@@ -49,7 +55,8 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info);
+                 const LPInfo& a_info,
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory);
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.
@@ -85,6 +92,8 @@ public:
 
     void setMaxOrder (int o) { maxorder = o; }
 
+    virtual int getNComp() const { return 1;};
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
@@ -111,6 +120,7 @@ protected:
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
+    Vector<Vector<std::unique_ptr<FabFactory<FArrayBox> > > > m_factory;
     Vector<int>                          m_domain_covered;
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
@@ -183,6 +193,9 @@ protected:
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                          bool skip_fillboundary=false) const = 0;
 
+    // Divide mf by the diagonal component of the operator. Used by bicgstab.
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const {}
+
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) = 0;
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
@@ -201,8 +214,12 @@ protected:
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
-    virtual Real getBScalar () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
+
+    virtual Real getAScalar () const = 0;
+    virtual Real getBScalar () const = 0;
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const = 0;
+    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
@@ -213,7 +230,8 @@ private:
 
     void defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
-                      const Vector<DistributionMapping>& a_dmap);
+                      const Vector<DistributionMapping>& a_dmap,
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory);
     void defineAuxData ();
     void defineBC ();
     static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);

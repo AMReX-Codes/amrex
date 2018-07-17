@@ -1,16 +1,3 @@
-/*
- *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
- *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
- *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
- *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
- *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
- * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
- *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
- *
- */
-
-
-
 #include "AMReX_SPACE.H"
 #include "AMReX_RealVect.H"
 #include "AMReX_Utility.H"
@@ -21,7 +8,6 @@ using std::ws;
 namespace amrex
 {
 
-  RealVect tm;
   const RealVect RealVect::Unit(AMREX_D_DECL(1.0,1.0,1.0));
 
   const RealVect RealVect::Zero(AMREX_D_DECL(0.0,0.0,0.0));

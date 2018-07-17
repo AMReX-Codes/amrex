@@ -29,6 +29,7 @@ MyTest::solvePoisson ()
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    info.setMaxCoarseningLevel(max_coarsening_level);
 
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
@@ -60,6 +61,7 @@ MyTest::solvePoisson ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setCGVerbose(cg_verbose);
+        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -67,7 +69,7 @@ MyTest::solvePoisson ()
     {
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
-            MLPoisson mlpoisson({geom[ilev]}, {grids[ilev]}, {dmap[ilev]});
+            MLPoisson mlpoisson({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
             
             mlpoisson.setMaxOrder(linop_maxorder);
             
@@ -90,6 +92,7 @@ MyTest::solvePoisson ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setCGVerbose(cg_verbose);
+            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
             
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
@@ -102,6 +105,7 @@ MyTest::solveABecLaplacian ()
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    info.setMaxCoarseningLevel(max_coarsening_level);
 
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
@@ -154,6 +158,7 @@ MyTest::solveABecLaplacian ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setCGVerbose(cg_verbose);
+        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -161,7 +166,7 @@ MyTest::solveABecLaplacian ()
     {
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
-            MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]});
+            MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
             
             mlabec.setMaxOrder(linop_maxorder);
             
@@ -202,7 +207,8 @@ MyTest::solveABecLaplacian ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setCGVerbose(cg_verbose);
-            
+            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
     }
@@ -239,6 +245,10 @@ MyTest::readParameters ()
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
+    pp.query("max_coarsening_level", max_coarsening_level);
+#ifdef AMREX_USE_HYPRE
+    pp.query("use_hypre", use_hypre);
+#endif
 }
 
 void

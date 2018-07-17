@@ -9,21 +9,23 @@ namespace amrex {
 MLALaplacian::MLALaplacian (const Vector<Geometry>& a_geom,
                             const Vector<BoxArray>& a_grids,
                             const Vector<DistributionMapping>& a_dmap,
-                            const LPInfo& a_info)
+                            const LPInfo& a_info,
+                            const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3, "MLALaplacian: only 3d is supported");
-    define(a_geom, a_grids, a_dmap, a_info);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 void
 MLALaplacian::define (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
-                      const LPInfo& a_info)
+                      const LPInfo& a_info,
+                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLALaplacian::define()");
 
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
     m_a_coeffs.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -172,6 +174,41 @@ MLALaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) 
                            rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
 #endif
                            dxinv, m_a_scalar, m_b_scalar);
+
+    }
+}
+
+void
+MLALaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
+{
+    BL_PROFILE("MLALaplacian::normalize()");
+
+    const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+        const FArrayBox& afab = acoef[mfi];
+
+#if (AMREX_SPACEDIM != 3)
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+#endif
+
+        amrex_mlalap_normalize(BL_TO_FORTRAN_BOX(bx),
+                               BL_TO_FORTRAN_ANYD(fab),
+                               BL_TO_FORTRAN_ANYD(afab),
+#if (AMREX_SPACEDIM != 3)
+                               rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
+#endif
+                               dxinv, m_a_scalar, m_b_scalar);
 
     }
 }

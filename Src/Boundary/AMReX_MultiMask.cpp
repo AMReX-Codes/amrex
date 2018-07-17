@@ -46,7 +46,9 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		
 	    m.setVal(BndryData::outside_domain);
 	    const Box& dbox = geom.Domain() & face_box;
-	    m.setVal(BndryData::not_covered,dbox,0,ncomp);
+            if (dbox.ok()) {
+                m.setVal(BndryData::not_covered,dbox,0,ncomp);
+            }
 	    //
 	    // Now have to set as not_covered the periodic translates as well.
 	    //
@@ -61,7 +63,9 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		    const IntVect& iv = *it;
 		    m.shift(iv);
 		    const Box& target = geom.Domain() & m.box();
-		    m.setVal(BndryData::not_covered,target,0,ncomp);
+                    if (target.ok()) {
+                        m.setVal(BndryData::not_covered,target,0,ncomp);
+                    }
 		    m.shift(-iv);
 		}
 	    }

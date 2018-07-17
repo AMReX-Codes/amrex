@@ -1,5 +1,5 @@
-#ifndef _MULTIMASK_H_
-#define _MULTIMASK_H_
+#ifndef AMREX_MULTIMASK_H_
+#define AMREX_MULTIMASK_H_
 
 #include <AMReX_Mask.H>
 #include <AMReX_FabArray.H>

@@ -16,6 +16,7 @@ module amrex_multifab_module
   private
 
   public :: amrex_multifab_build, amrex_multifab_swap, amrex_multifab_destroy, amrex_multifab_write
+  public :: amrex_multifab_build_alias, amrex_imultifab_build_alias
   public :: amrex_imultifab_build_owner_mask
   public :: amrex_imultifab_build, amrex_imultifab_destroy
   public :: amrex_mfiter_build, amrex_mfiter_destroy
@@ -133,6 +134,14 @@ module amrex_multifab_module
        integer(c_int), intent(in) :: nodal(3)
      end subroutine amrex_fi_new_multifab
      
+     subroutine amrex_fi_new_multifab_alias (mf, srcmf, comp, ncomp) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: mf
+       type(c_ptr), value :: srcmf
+       integer(c_int), value :: comp, ncomp
+     end subroutine amrex_fi_new_multifab_alias
+
      subroutine amrex_fi_delete_multifab (mf) bind(c)
        import
        implicit none
@@ -367,7 +376,15 @@ module amrex_multifab_module
        integer(c_int), value :: nc, ng
        integer(c_int), intent(in) :: nodal(3)
      end subroutine amrex_fi_new_imultifab
-     
+
+     subroutine amrex_fi_new_imultifab_alias (mf, srcmf, comp, ncomp) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: mf
+       type(c_ptr), value :: srcmf
+       integer(c_int), value :: comp, ncomp
+     end subroutine amrex_fi_new_imultifab_alias
+
      subroutine amrex_fi_delete_imultifab (imf) bind(c)
        import
        implicit none
@@ -528,6 +545,19 @@ contains
     mf%dm = dm
     call amrex_fi_new_multifab(mf%p, mf%ba%p, mf%dm%p, mf%nc, mf%ng, inodal)
   end subroutine amrex_multifab_build
+
+  subroutine amrex_multifab_build_alias (mf, srcmf, comp, ncomp)
+    type(amrex_multifab), intent(inout) :: mf
+    type(amrex_multifab), intent(in   ) :: srcmf
+    integer, intent(in) :: comp, ncomp
+    call amrex_multifab_destroy(mf)
+    mf%owner = .true.
+    mf%nc    = ncomp
+    mf%ng    = srcmf%ng
+    mf%ba    = srcmf%ba
+    mf%dm    = srcmf%dm
+    call amrex_fi_new_multifab_alias(mf%p, srcmf%p, comp-1, ncomp)
+  end subroutine amrex_multifab_build_alias
 
   impure elemental subroutine amrex_multifab_destroy (this)
     type(amrex_multifab), intent(inout) :: this
@@ -897,6 +927,19 @@ contains
     imf%dm = dm
     call amrex_fi_new_imultifab(imf%p, imf%ba%p, imf%dm%p, imf%nc, imf%ng, inodal)
   end subroutine amrex_imultifab_build
+
+  subroutine amrex_imultifab_build_alias (imf, srcimf, comp, ncomp)
+    type(amrex_imultifab), intent(inout) :: imf
+    type(amrex_imultifab), intent(in   ) :: srcimf
+    integer, intent(in) :: comp, ncomp
+    call amrex_imultifab_destroy(imf)
+    imf%owner = .true.
+    imf%nc    = ncomp
+    imf%ng    = srcimf%ng
+    imf%ba    = srcimf%ba
+    imf%dm    = srcimf%dm
+    call amrex_fi_new_imultifab_alias(imf%p, srcimf%p, comp-1, ncomp)
+  end subroutine amrex_imultifab_build_alias
 
   impure elemental subroutine amrex_imultifab_destroy (this)
     type(amrex_imultifab), intent(inout) :: this

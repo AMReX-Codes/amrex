@@ -11,7 +11,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
 #include <TV_TempWrite.H>
 #endif
 

@@ -1,19 +1,7 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_EBNormalizeByVolumeFraction.H"
 #include "AMReX_EBArith.H"
 #include "AMReX_EBISLayout.H"
 #include "AMReX_EBCellFactory.H"
-
 
 namespace amrex
 {
@@ -64,7 +52,7 @@ namespace amrex
     FabArray<EBCellFAB> dummy(m_eblg.getDBL(),m_eblg.getDM(), nvar, m_ghost, MFInfo(), fact);
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
-      BL_PROFILE("vof stencil definition");
+//      BL_PROFILE("vof stencil definition");
       const     Box& grid = m_eblg.getDBL()  [mfi];
       const EBISBox& ebis = m_eblg.getEBISL()[mfi];
  

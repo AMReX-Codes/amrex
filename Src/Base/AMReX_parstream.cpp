@@ -1,23 +1,13 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include <cstdio>
 #include <fstream>
-#include "AMReX_parstream.H"
-#include "AMReX_SPMD.H"
+#include <AMReX_parstream.H>
+#include <AMReX_SPMD.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex
 {
 //
-// pout() returns the standard output stream for Chombo codes.
+// pout() returns a standard output stream.
 //
 // In parallel, each proc sends the stream to a separate file,
 //  distinguished by having the proc num in the filename.
@@ -66,16 +56,11 @@ namespace amrex
   static void setFileName()
   {
     int outInterv = 1;
+    ParmParse pp("amrex");
+    pp.query("pout_int", outInterv);
+    if (outInterv == 0) outInterv=ParallelDescriptor::NProcs();
 
-    char* charInterv = getenv("CH_OUTPUT_INTERVAL");
-    if (charInterv != NULL)
-    {
-      outInterv =  atoi(charInterv);
-      // If zero specified, change it to numProc() which should give pout.0 only
-      if (outInterv == 0) outInterv=numProc();
-    }
-
-    int thisProc = procID();
+    int thisProc = ParallelDescriptor::MyProc();
     if ((thisProc % outInterv) != 0)
     {
       s_pout_filename = std::string("/dev/null");
@@ -84,7 +69,7 @@ namespace amrex
     {
       static const size_t ProcnumSize = 1 + 10 + 1 ;  //'.' + 10digits + '\0'
       char procnum[ProcnumSize] ;
-      snprintf( procnum ,ProcnumSize ,".%d" ,procID() );
+      snprintf( procnum ,ProcnumSize ,".%d" ,ParallelDescriptor::MyProc() );
       s_pout_filename = s_pout_basename + procnum ;
     }
   }
@@ -136,7 +121,7 @@ namespace amrex
       // app hasn't set a basename yet, so set the default
       if ( ! s_pout_init )
       {
-        s_pout_basename = "pout" ;
+        s_pout_basename = "amrex_pout" ;
         s_pout_init = true ;
       }
       // if MPI not initialized, we cant open the file so return cout
@@ -201,7 +186,7 @@ namespace amrex
       {
         if ( ! s_pout_init )
         {
-          s_pout_basename = "pout" ;
+          s_pout_basename = "amrex_pout" ;
           s_pout_init = true ;
         }
         setFileName() ;

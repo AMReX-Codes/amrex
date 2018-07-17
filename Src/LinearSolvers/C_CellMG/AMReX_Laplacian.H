@@ -1,6 +1,6 @@
 
-#ifndef _LAPLACIAN_H_
-#define _LAPLACIAN_H_
+#ifndef AMREX_LAPLACIAN_H_
+#define AMREX_LAPLACIAN_H_
 
 #include <AMReX_LinOp.H>
 
