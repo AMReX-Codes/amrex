@@ -47,10 +47,12 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
+    m_cc_mask.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_a_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         m_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
+        m_cc_mask[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             m_a_coeffs[amrlev][mglev].define(m_grids[amrlev][mglev],
@@ -65,6 +67,38 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
                                                        m_dmap[amrlev][mglev],
                                                        1, ng, MFInfo(), *m_factory[amrlev][mglev]);
                 m_b_coeffs[amrlev][mglev][idim].setVal(0.0);
+            }
+
+            m_cc_mask[amrlev][mglev].define(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1);
+            m_cc_mask[amrlev][mglev].setVal(0);
+        }
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+        {
+            for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+            {
+                const std::vector<IntVect>& pshifts = m_geom[amrlev][mglev].periodicity().shiftIntVect();
+                iMultiFab& mask = m_cc_mask[amrlev][mglev];
+                const BoxArray& ba = mask.boxArray();
+                for (MFIter mfi(mask); mfi.isValid(); ++mfi)
+                {
+                    IArrayBox& fab = mask[mfi];
+                    const Box& bx = fab.box();
+                    for (const auto& iv : pshifts)
+                    {
+                        ba.intersections(bx+iv, isects);
+                        for (const auto& is : isects)
+                        {
+                            fab.setVal(1, is.second-iv);
+                        }
+                    }
+                }
             }
         }
     }
