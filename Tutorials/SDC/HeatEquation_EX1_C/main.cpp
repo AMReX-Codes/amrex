@@ -182,7 +182,7 @@ void main_main ()
       }
 
     MultiFab::Copy(phi_old,phi_new, 0, 0, 1, 0);
-    nsweeps =4;
+    nsweeps =8;
     for (int n = 1; n <= nsteps; ++n)
     {
 
@@ -197,7 +197,7 @@ void main_main ()
       	  const Box& bx = mfi.validbox();
       	  err_phi(BL_TO_FORTRAN_BOX(bx),
       		  BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-      		  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+      		  geom.CellSize(), geom.ProbLo(), geom.ProbHi(),&time);
       	}
       // Tell the I/O Processor to write out which step we're doing
       amrex::Print() << "Advanced step " << n << "\n";

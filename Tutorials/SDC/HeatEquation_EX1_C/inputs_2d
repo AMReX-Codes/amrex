@@ -2,4 +2,3 @@ nsteps = 8
 plot_int = 8
 n_cell = 64
 max_grid_size = 64
-nsweeps = 8
