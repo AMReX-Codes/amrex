@@ -80,16 +80,7 @@ void sweep (MultiFab& phi_old,
 	  // Fill the ghost cells of each grid from the other grids
 	  // includes periodic domain boundaries
 	  
-	  
-	  // Advance the solution one grid at a time
-	  //      MultiFab::Copy(phi_sdc[sdc_m+1],phi_sdc[sdc_m], 0, 0, 1, 0);
-	  //      for ( MFIter mfi(phi_sdc[sdc_m+1]); mfi.isValid(); ++mfi )
-	  //      	{
-	  //      	  const Box& bx = mfi.validbox();
-	  //      	  phi_sdc[sdc_m+1][mfi].saxpy(dt_m,f_sdc[1][sdc_m][mfi]);
-	  //      	}
-
-	  // Add the linear combination of function values
+	  // Add the linear combination of function values from this sweep
 	  MultiFab::Copy(phi_sdc[sdc_m+1],phi_sdc[0], 0, 0, 1, 0);
 	  for ( MFIter mfi(phi_sdc[sdc_m+1]); mfi.isValid(); ++mfi )
 	    {
@@ -98,10 +89,6 @@ void sweep (MultiFab& phi_old,
 	      for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
 		{
 		  qij = dt*qmats[1][sdc_m][sdc_n];
-		  //      	      amrex::Print() << "sdc_n " << sdc_n << "\n";
-		  //amrex::Print() << "qij " << qij << "\n";
-		  //amrex::Print() << "dt_m " << dt_m << "\n";	      
-		  
 		  phi_sdc[sdc_m+1][mfi].saxpy(qij,f_sdc[1][sdc_n][mfi]);
 		}
 	    }
