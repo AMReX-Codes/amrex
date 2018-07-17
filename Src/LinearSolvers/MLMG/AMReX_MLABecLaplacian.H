@@ -18,7 +18,8 @@ public:
     MLABecLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
-                     const LPInfo& a_info = LPInfo());
+                     const LPInfo& a_info = LPInfo(),
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLABecLaplacian ();
 
     MLABecLaplacian (const MLABecLaplacian&) = delete;
@@ -29,7 +30,8 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo());
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
     void setScalars (Real a, Real b);
     void setACoeffs (int amrlev, const MultiFab& alpha);
@@ -41,10 +43,12 @@ protected:
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
     virtual bool isBottomSingular () const final { return m_is_singular[0]; }
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const final;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
+
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
     virtual Real getAScalar () const final { return m_a_scalar; }
     virtual Real getBScalar () const final { return m_b_scalar; }

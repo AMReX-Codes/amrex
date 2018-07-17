@@ -108,15 +108,30 @@ MultiCutFab::setVal (Real val)
 }
 
 void
-MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng)
-{
-    m_data.ParallelCopy(src.m_data, scomp, dcomp, ncomp, sng, dng);
-}
-
-void
 MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng, const Periodicity& period)
 {
     m_data.ParallelCopy(src.m_data, scomp, dcomp, ncomp, sng, dng, period);
+}
+
+MultiFab
+MultiCutFab::ToMultiFab (Real regular_value, Real covered_value) const
+{
+    MultiFab mf(boxArray(), DistributionMap(), nComp(), nGrow());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        auto t = (*m_cellflags)[mfi].getType();
+        if (t == FabType::singlevalued) {
+            mf[mfi].copy(m_data[mfi]);
+        } else if (t == FabType::regular) {
+            mf[mfi].setVal(regular_value);
+        } else {
+            mf[mfi].setVal(covered_value);
+        }
+    }
+    return mf;
 }
 
 }

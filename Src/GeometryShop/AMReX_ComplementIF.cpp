@@ -1,16 +1,3 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #include "AMReX_ComplementIF.H"
 
 namespace amrex
@@ -41,6 +28,15 @@ namespace amrex
     return retval;
   }
 
+   Real 
+   ComplementIF::
+   derivative(const  IntVect& a_deriv,
+              const RealVect& a_point) const
+   {
+     Real retval = m_impFunc->derivative(a_deriv, a_point);
+     retval = -retval;
+     return retval;
+   }
 
   BaseIF* ComplementIF::newImplicitFunction() const
   {

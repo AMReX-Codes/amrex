@@ -1,17 +1,5 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-#ifndef _TRANSFORMIF_H_
-#define _TRANSFORMIF_H_
+#ifndef AMREX_TRANSFORMIF_H_
+#define AMREX_TRANSFORMIF_H_
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"

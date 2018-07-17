@@ -13,23 +13,23 @@ F90FLAGS =
 
 ########################################################################
 
-gcc_version       := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
-gcc_major_version := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-gcc_minor_version := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+gcc_version       = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
+gcc_major_version = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+gcc_minor_version = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
-COMP_VERSION := $(gcc_version)
+COMP_VERSION = $(gcc_version)
 
-DEFINES += -DBL_GCC_VERSION='$(gcc_version)'
+DEFINES += -DBL_GCC_VERSION=$(gcc_version)
 DEFINES += -DBL_GCC_MAJOR_VERSION=$(gcc_major_version)
 DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
 
 ########################################################################
 
-gcc_major_le_4 := $(shell expr $(gcc_major_version) \<= 4)
-gcc_minor_lt_8 := $(shell expr $(gcc_minor_version) \< 8)
+gcc_major_le_4 = $(shell expr $(gcc_major_version) \<= 4)
+gcc_minor_lt_8 = $(shell expr $(gcc_minor_version) \< 8)
 ifeq ($(gcc_major_le_4),1)
   ifeq ($(gcc_minor_lt_8),1)
-    $(error GCC >= 4.8 required! Your version is $(gcc_version))
+    $(warning Your default GCC is version $(gcc_version). This might break during build. We therefore recommend that you specify a GCC >= 4.8 in your Make.local. The the docs on building AMReX for an example.)
   endif
 endif
 
@@ -83,11 +83,17 @@ F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(
 
 GENERIC_COMP_FLAGS =
 
+gcc_major_gt_8 = $(shell expr $(gcc_major_version) \>= 8)
+
 ifeq ($(THREAD_SANITIZER),TRUE)
   GENERIC_COMP_FLAGS += -fsanitize=thread
 endif
 ifeq ($(FSANITIZER),TRUE)
   GENERIC_COMP_FLAGS += -fsanitize=address -fsanitize=undefined
+  ifeq ($(gcc_major_gt_8),1)
+    GENERIC_COMP_FLAGS += -fsanitize=pointer-compare -fsanitize=pointer-subtract
+    GENERIC_COMP_FLAGS += -fsanitize=builtin -fsanitize=pointer-overflow
+  endif
 endif
 
 ifeq ($(USE_OMP),TRUE)
@@ -104,8 +110,8 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 # ask gfortran the name of the library to link in.  First check for the
 # static version.  If it returns only the name w/o a path, then it
 # was not found.  In that case, ask for the shared-object version.
-gfortran_liba  := $(shell $(F90) -print-file-name=libgfortran.a)
-gfortran_libso := $(shell $(F90) -print-file-name=libgfortran.so)
+gfortran_liba  = $(shell $(F90) -print-file-name=libgfortran.a)
+gfortran_libso = $(shell $(F90) -print-file-name=libgfortran.so)
 
 ifneq ($(gfortran_liba),libgfortran.a)  # if found the full path is printed, thus `neq`.
   LIBRARY_LOCATIONS += $(dir $(gfortran_liba))

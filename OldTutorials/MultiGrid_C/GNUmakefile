@@ -112,6 +112,7 @@ vpath %.H   : . $(vpathdir)
 vpath %.F   : . $(vpathdir)
 vpath %.f   : . $(vpathdir)
 vpath %.f90 : . $(vpathdir)
+vpath %.F90 : . $(vpathdir)
 
 # The HPGMG hooks in Make.defs populate VPATH_LOCATIONS, not vpathdir, so we
 # need to grab these too. In fact everything in Make.defs uses VPATH_LOCATIONS
@@ -123,6 +124,7 @@ vpath %.H   : . $(VPATH_LOCATIONS)
 vpath %.F   : . $(VPATH_LOCATIONS)
 vpath %.f   : . $(VPATH_LOCATIONS)
 vpath %.f90 : . $(VPATH_LOCATIONS)
+vpath %.F90 : . $(VPATH_LOCATIONS)
 
 all: $(executable)
 	@echo SUCCESS

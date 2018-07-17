@@ -1,15 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
 #include <AMReX_MeshRefine.H>
 #include <AMReX.H>
 #include <AMReX_RealBox.H>
@@ -18,9 +6,6 @@
 #include <AMReX_AmrMesh.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BoxIterator.H>
-
-
-
 
 /// Factory class to produce EBCellFABs.
 /**

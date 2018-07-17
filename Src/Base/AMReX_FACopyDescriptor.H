@@ -3,6 +3,7 @@
 #define BL_FACOPYDESCRIPTOR_H_
 
 #include <AMReX_FabArray.H>
+#include <sstream>
 
 namespace amrex {
 
@@ -237,8 +238,6 @@ FabArrayCopyDescriptor<FAB>::RegisterFabArray(FabArray<FAB>* fabarray)
 {
     BL_ASSERT(fabArrays.size() == fabCopyDescList.size());
 
-    BL_ASSERT(fabarray==nullptr || fabarray->DistributionMap().Check());
-
     FabArrayId result(fabArrays.size());
 
     fabArrays.push_back(fabarray);  /* Bump size() by one */
@@ -264,8 +263,6 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
     FabArray<FAB>* fabArray = fabArrays[fabarrayid.Id()];
 
-    fabArray->DistributionMap().Check();
-
     BL_ASSERT(faindex >= 0 && faindex < fabArray->size());
 
     Box intersect = destFabBox;
@@ -285,9 +282,10 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
 	if(remoteProc >= ParallelDescriptor::NProcs()) {
-	    amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
-					  << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
-	    amrex::Abort("Bad remoteProc");
+            std::ostringstream ss;
+            ss << ParallelDescriptor::MyProc() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
+               << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
+	    amrex::Abort("Bad remoteProc: "+ss.str());
 	}
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;
@@ -480,7 +478,7 @@ FabArrayCopyDescriptor<FAB>::CollectData_AM_handler(uint32_t src_rank,
                                                     int numboxes,
                                                     int isAsync)
 {
-  const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
+  const int Nints = 4 + 3*AMREX_SPACEDIM;  // # of ints in a meta-data
   typedef typename FAB::value_type value_type;
   int *p = (int *)payload;
 
@@ -501,8 +499,8 @@ FabArrayCopyDescriptor<FAB>::CollectData_AM_handler(uint32_t src_rank,
     scomp[i] = md[2];
     ncomp[i] = md[3];
     bxs.push_back(Box(IntVect(&md[4]),
-                      IntVect(&md[4+BL_SPACEDIM]),
-                      IntVect(&md[4+BL_SPACEDIM*2])));
+                      IntVect(&md[4+AMREX_SPACEDIM]),
+                      IntVect(&md[4+AMREX_SPACEDIM*2])));
     npts[i] = bxs.back().numPts()*ncomp[i];
     N += npts[i];
   }
@@ -610,7 +608,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
   const int N_rcvs = Rcvs.size();
 
-  const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
+  const int Nints = 4 + 3*AMREX_SPACEDIM;  // # of ints in a meta-data
 
   // for meta-data
   Vector<int> md_offset, md_icnts, md_bcnts;
@@ -653,12 +651,12 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         AMREX_D_EXPR(md[4] = lo[0],
                md[5] = lo[1],
                md[6] = lo[2]);
-        AMREX_D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
-               md[5+  BL_SPACEDIM] = hi[1],
-               md[6+  BL_SPACEDIM] = hi[2]);
-        AMREX_D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
-               md[5+2*BL_SPACEDIM] = tp[1],
-               md[6+2*BL_SPACEDIM] = tp[2]);
+        AMREX_D_EXPR(md[4+  AMREX_SPACEDIM] = hi[0],
+               md[5+  AMREX_SPACEDIM] = hi[1],
+               md[6+  AMREX_SPACEDIM] = hi[2]);
+        AMREX_D_EXPR(md[4+2*AMREX_SPACEDIM] = tp[0],
+               md[5+2*AMREX_SPACEDIM] = tp[1],
+               md[6+2*AMREX_SPACEDIM] = tp[2]);
       }
 
       data_sender.push_back(rank);
@@ -858,7 +856,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
     if ( N_snds == 0 && N_rcvs == 0 ) return;
 
-    const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
+    const int Nints = 4 + 3*AMREX_SPACEDIM;  // # of ints in a meta-data
 
     // for meta-data
     Vector<int> md_sender, md_offset, md_icnts, md_bcnts;
@@ -926,12 +924,12 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		AMREX_D_EXPR(md[4] = lo[0],
 		       md[5] = lo[1],
 		       md[6] = lo[2]);
-		AMREX_D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
-		       md[5+  BL_SPACEDIM] = hi[1],
-		       md[6+  BL_SPACEDIM] = hi[2]);
-		AMREX_D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
-		       md[5+2*BL_SPACEDIM] = tp[1],
-		       md[6+2*BL_SPACEDIM] = tp[2]);
+		AMREX_D_EXPR(md[4+  AMREX_SPACEDIM] = hi[0],
+		       md[5+  AMREX_SPACEDIM] = hi[1],
+		       md[6+  AMREX_SPACEDIM] = hi[2]);
+		AMREX_D_EXPR(md[4+2*AMREX_SPACEDIM] = tp[0],
+		       md[5+2*AMREX_SPACEDIM] = tp[1],
+		       md[6+2*AMREX_SPACEDIM] = tp[2]);
 	    }
 
 	    md_send_reqs.push_back(ParallelDescriptor::Asend(p,cnt,rank,SeqNum_md).req());
@@ -966,7 +964,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	{
 	    MPI_Status status;
 	    int index;
-	    MPI_Waitany(N_snds, md_recv_reqs.dataPtr(), &index, &status);
+            ParallelDescriptor::Waitany(md_recv_reqs, index, status);
 
 	    int rank = status.MPI_SOURCE;
 	    BL_ASSERT(status.MPI_TAG == SeqNum_md);
@@ -989,8 +987,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		scomp[i] = md[2];
 		ncomp[i] = md[3];
 		bxs.push_back(Box(IntVect(&md[4]),
-				  IntVect(&md[4+BL_SPACEDIM]), 
-				  IntVect(&md[4+BL_SPACEDIM*2]))); 
+				  IntVect(&md[4+AMREX_SPACEDIM]), 
+				  IntVect(&md[4+AMREX_SPACEDIM*2]))); 
 		npts[i] = bxs.back().numPts()*ncomp[i];
 		N += npts[i];
 	    }
@@ -1018,12 +1016,12 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     {
 	Vector<MPI_Status> stats(N_rcvs);
 
-	BL_MPI_REQUIRE (MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr()) );
+        ParallelDescriptor::Waitall(md_send_reqs, stats);
 	for (int i = 0; i < N_rcvs; ++i) {
             amrex::The_Arena()->free(md_send_data[i]);	    
 	}
 
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, data_recv_reqs.dataPtr(), stats.dataPtr()) );
+        ParallelDescriptor::Waitall(data_recv_reqs, stats);
 
 	std::pair<FCDMapIter,FCDMapIter> match;
 	std::map< int,FabComTagIterContainer >::const_iterator found;
@@ -1077,9 +1075,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     if (N_snds > 0)
     {
 	Vector<MPI_Status> stats(N_snds);
-        BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::BeforeCall(), N_snds);
-	BL_MPI_REQUIRE( MPI_Waitall(N_snds, data_send_reqs.dataPtr(), stats.dataPtr()) );
-        BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::AfterCall(), N_snds);
+        ParallelDescriptor::Waitall(data_send_reqs, stats);
 
 	for (int i = 0; i < N_snds; ++i) {
             amrex::The_Arena()->free(send_data[i]);
@@ -1150,13 +1146,13 @@ FabArrayCopyDescriptor<FAB>::PrintStats () const
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
-    std::cout << "----- "
+    amrex::AllPrint() << "----- "
          << MyProc
          << ":  Parallel stats for FabArrayCopyDescriptor:" << '\n';
 
     for (int fa = 0; fa < fabArrays.size(); ++fa)
     {
-      std::cout << "fabArrays["
+      amrex::AllPrint() << "fabArrays["
              << fa
              << "]->boxArray() = "
              << fabArrays[fa]->boxArray()

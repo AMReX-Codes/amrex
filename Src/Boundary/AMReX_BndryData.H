@@ -1,6 +1,6 @@
 
-#ifndef _BNDRYDATA_H_
-#define _BNDRYDATA_H_
+#ifndef AMREX_BNDRYDATA_H_
+#define AMREX_BNDRYDATA_H_
 
 #include <AMReX_BLassert.H>
 #include <AMReX_BoxArray.H>
@@ -88,7 +88,7 @@ public:
     const FabSet& bndryValues (Orientation face) const { return bndry[face]; }
 
     //! Some useful typedefs
-    using RealTuple = Tuple<Real,2*BL_SPACEDIM>;
+    using RealTuple = Tuple<Real,2*AMREX_SPACEDIM>;
 
     /**
     * \brief Return boundary location on given face for grids we own.

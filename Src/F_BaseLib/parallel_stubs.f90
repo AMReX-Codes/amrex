@@ -44,22 +44,8 @@ module parallel
 
   integer, parameter, private :: io_processor_node = 0
   integer, private :: m_nprocs = 1
-  integer, private :: m_nprocs_all     = 1
-  integer, private :: m_nprocs_comp    = 1
-  integer, private :: m_nprocs_sidecar(0:0) = 0
-  integer, private :: m_nsidecar_procs = 0
   integer, private :: m_myproc = 0
-  integer, private :: m_myproc_all     = 0
-  integer, private :: m_myproc_comp    = 0
-  integer, private :: m_myproc_sidecar = -1
   integer, private :: m_comm   = -1
-  integer, private :: m_comm_all     = -1
-  integer, private :: m_comm_comp    = -1
-  integer, private :: m_comm_sidecar(0:0) = -1
-  integer, private :: m_comm_inter(0:0)   = -1
-  integer, private :: m_group_all     = -1
-  integer, private :: m_group_comp    = -1
-  integer, private :: m_group_sidecar(0:0) = -1
 
   integer, private :: m_thread_support_level = 0
 
@@ -198,11 +184,13 @@ module parallel
      module procedure parallel_bcast_i
      module procedure parallel_bcast_cl
      module procedure parallel_bcast_l
+     module procedure parallel_bcast_ch
      module procedure parallel_bcast_dv
      module procedure parallel_bcast_rv
      module procedure parallel_bcast_iv
      module procedure parallel_bcast_clv
      module procedure parallel_bcast_lv
+     module procedure parallel_bcast_chv
      module procedure parallel_bcast_d2v
      module procedure parallel_bcast_r2v
      module procedure parallel_bcast_i2v
@@ -320,44 +308,23 @@ contains
     integer :: r
     r = m_comm
   end function parallel_communicator
+
   pure function parallel_nprocs() result(r)
     integer r
     r = m_nprocs
   end function parallel_nprocs
-  pure function parallel_nprocs_all() result(r)
-    integer r
-    r = m_nprocs_all
-  end function parallel_nprocs_all
-  pure function parallel_nprocs_comp() result(r)
-    integer r
-    r = m_nprocs_comp
-  end function parallel_nprocs_comp
-  pure function parallel_nprocs_sidecar(whichsidecar) result(r)
-    integer, intent(in) :: whichsidecar
-    integer r
-    r = 0
-  end function parallel_nprocs_sidecar
+
   pure function parallel_myproc() result(r)
     integer r
     r = m_myproc
   end function parallel_myproc
-  pure function parallel_myproc_all() result(r)
-    integer r
-    r = m_myproc_all
-  end function parallel_myproc_all
-  pure function parallel_myproc_comp() result(r)
-    integer r
-    r = m_myproc_comp
-  end function parallel_myproc_comp
-  pure function parallel_myproc_sidecar() result(r)
-    integer r
-    r = m_myproc_sidecar
-  end function parallel_myproc_sidecar
+
   pure function parallel_IOProcessor(comm) result(r)
     logical :: r
     integer, intent(in), optional :: comm
     r = (parallel_myproc() == io_processor_node)
   end function parallel_IOProcessor
+
   pure function parallel_IOProcessorNode() result(r)
     integer :: r
     r = io_processor_node
@@ -1404,6 +1371,16 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_l
+  subroutine parallel_bcast_ch(a, root, comm)
+    character(len=*), intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer l_comm, l_root
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_ch
   ! vector versions
   subroutine parallel_bcast_dv(a, root, comm)
     real(kind=dp_t), intent(in) :: a(:)
@@ -1456,6 +1433,16 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_lv
+  subroutine parallel_bcast_chv(a, root, comm)
+    character(len=*), intent(in) :: a(:)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer l_comm, l_root
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_chv
   subroutine parallel_bcast_d2v(a, root, comm)
     real(kind=dp_t) :: a(:,:)
     integer, intent(in), optional :: root

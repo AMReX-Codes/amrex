@@ -5,7 +5,7 @@ module amrex_mlpoisson_1d_module
   implicit none
 
   private
-  public :: amrex_mlpoisson_adotx, amrex_mlpoisson_flux, amrex_mlpoisson_gsrb
+  public :: amrex_mlpoisson_adotx, amrex_mlpoisson_normalize, amrex_mlpoisson_flux, amrex_mlpoisson_gsrb
 
 contains
 
@@ -28,6 +28,26 @@ contains
        y(i) = dhx * (re(i)*x(i-1) - (re(i)+re(i+1))*x(i) + re(i+1)*x(i+1))
     end do
   end subroutine amrex_mlpoisson_adotx
+
+
+  subroutine amrex_mlpoisson_normalize (lo, hi, x, xlo, xhi, rc, re, rlo, rhi, dxinv) &
+       bind(c,name='amrex_mlpoisson_normalize')
+    integer, dimension(1), intent(in) :: lo, hi, xlo, xhi
+    integer, intent(in) :: rlo, rhi
+    real(amrex_real), intent(in) :: dxinv(1)
+    real(amrex_real), intent(inout) :: x(xlo(1):xhi(1))
+    real(amrex_real), intent(in) :: rc(rlo:rhi)
+    real(amrex_real), intent(in) :: re(rlo:rhi+1)
+    
+    integer :: i
+    real(amrex_real) :: dhx
+
+    dhx = dxinv(1)*dxinv(1)
+
+    do i = lo(1), hi(1)
+       x(i) = x(i) / (-dhx*(re(i)+re(i+1)))
+    end do
+  end subroutine amrex_mlpoisson_normalize
 
   
   subroutine amrex_mlpoisson_flux (lo, hi, fx, fxlo, fxhi, sol, slo, shi, rc, re, rlo, rhi, &

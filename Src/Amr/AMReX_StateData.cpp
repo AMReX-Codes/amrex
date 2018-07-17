@@ -16,10 +16,10 @@
 
 namespace amrex {
 
-const Real INVALID_TIME = -1.0e200;
+static constexpr Real INVALID_TIME = -1.0e200;
 
-const int MFNEWDATA = 0;
-const int MFOLDDATA = 1;
+static constexpr int MFNEWDATA = 0;
+static constexpr int MFOLDDATA = 1;
 
 Vector<std::string> StateData::fabArrayHeaderNames;
 std::map<std::string, Vector<char> > *StateData::faHeaderMap;
@@ -458,11 +458,11 @@ StateData::FillBoundary (FArrayBox&     dest,
 
     Vector<int> bcrs;
 
-    Real xlo[BL_SPACEDIM];
+    Real xlo[AMREX_SPACEDIM];
     BCRec bcr;
     const Real* problo = prob_domain.lo();
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
     }
@@ -483,7 +483,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Can do the whole group at once.
                 //
-                bcrs.resize(2*BL_SPACEDIM*groupsize);
+                bcrs.resize(2*AMREX_SPACEDIM*groupsize);
 
                 int* bci  = bcrs.dataPtr();
 
@@ -493,10 +493,10 @@ StateData::FillBoundary (FArrayBox&     dest,
 
                     const int* bc = bcr.vect();
 
-                    for (int k = 0; k < 2*BL_SPACEDIM; k++)
+                    for (int k = 0; k < 2*AMREX_SPACEDIM; k++)
                         bci[k] = bc[k];
 
-                    bci += 2*BL_SPACEDIM;
+                    bci += 2*AMREX_SPACEDIM;
                 }
                 //
                 // Use the "group" boundary fill routine.
@@ -814,7 +814,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
     const Real*    dx          = geom.CellSize();
     const RealBox& prob_domain = geom.ProbDomain();
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -829,7 +829,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 	    
 	    bool has_phys_bc = false;
 	    bool is_periodic = false;
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 		bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
 		if (geom.isPeriodic(i)) {
 		    is_periodic = is_periodic || touch;
@@ -846,7 +846,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 		{
 		    Box GrownDomain = domain;
 		    
-		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 		    {
 			if (!geom.isPeriodic(dir))
 			{
@@ -857,7 +857,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			}
 		    }
 		    
-		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 		    {
 			if (!geom.isPeriodic(dir)) continue;
 			
@@ -900,74 +900,6 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 	    }
 	}
     }
-}
-
-
-void StateData::AddProcsToComp(const StateDescriptor &sdPtr,
-                               int ioProcNumSCS, int ioProcNumAll,
-                               int scsMyId, MPI_Comm scsComm)
-{
-#if BL_USE_MPI
-      // ---- StateDescriptor
-      desc = &sdPtr;
-
-      // ---- TimeIntervals
-      ParallelDescriptor::Bcast(&new_time.start, 1, ioProcNumSCS, scsComm);
-      ParallelDescriptor::Bcast(&new_time.stop,  1, ioProcNumSCS, scsComm);
-      ParallelDescriptor::Bcast(&old_time.start, 1, ioProcNumSCS, scsComm);
-      ParallelDescriptor::Bcast(&old_time.stop,  1, ioProcNumSCS, scsComm);
-
-      // ---- Boxes
-      amrex::BroadcastBox(domain, scsMyId, ioProcNumSCS, scsComm);
-
-      // ---- BoxArrays
-      amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
-
-      // ---- MultiFabs
-      int makeNewDataId(-7), makeOldDataId(-7);
-      if(new_data != 0) {
-	makeNewDataId = new_data->AllocatedFAPtrID();
-      }
-      ParallelDescriptor::Bcast(&makeNewDataId, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        if(makeNewDataId >= 0) {
-          new_data = new MultiFab;
-        } else {
-          new_data = 0;
-	}
-      }
-      if(new_data != 0) {
-        new_data->AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-      }
-
-      if(old_data != 0) {
-	makeOldDataId = old_data->AllocatedFAPtrID();
-      }
-      ParallelDescriptor::Bcast(&makeOldDataId, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        if(makeOldDataId >= 0) {
-          old_data = new MultiFab;
-        } else {
-          old_data = 0;
-	}
-      }
-      if(old_data != 0) {
-        old_data->AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-      }
-
-      ParallelDescriptor::Barrier(scsComm);
-#endif
-}
-
-
-void StateData::Check() const
-{
-      if(new_data != 0) {
-        new_data->DistributionMap().Check();
-      }
-      if(old_data != 0) {
-        old_data->DistributionMap().Check();
-      }
 }
 
 }

@@ -16,7 +16,7 @@ contains
                      flux3, fd3_lo, fd3_hi, &
                      flag, fg_lo, fg_hi)
 
-    use mempool_module, only : amrex_allocate, amrex_deallocate
+    use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
     use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar, &
          qrho,qu,qv,qw,qp,qc,qeint,qtemp,qvar, smallp, smallr
     use cns_physics_module, only : gamma

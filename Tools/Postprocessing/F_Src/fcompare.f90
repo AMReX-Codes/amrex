@@ -182,7 +182,6 @@ program fcompare
         read(fname, *) norm
 
      case ('-g','--ghost')
-        farg = farg + 1
         do_ghost = .true.
 
      case ('-z','--zone_info')
@@ -640,7 +639,10 @@ program fcompare
 
   deallocate(ivar_b)
 
-  if (global_error == ZERO .and. .not. any_nans .and. all_variables_found) then
+  if (global_error == ZERO .and. .not. any_nans) then
+     if (.not. all_variables_found) then
+        print *, "WARNING: not all variables present in both files"
+     endif
      print *, "PLOTFILES AGREE"
      call send_success_return_code()
   else

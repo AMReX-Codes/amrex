@@ -12,12 +12,13 @@
 
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
+#include <AMReX_Vector.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
-#ifndef FORTRAN_BOXLIB
+#ifndef AMREX_FORTRAN_BOXLIB
 #include <AMReX_ParmParse.H>
 #endif
 
@@ -26,23 +27,23 @@ using namespace amrex;
 namespace
 {
     static Vector<std::unique_ptr<CArena> > the_memory_pool;
-#if defined(BL_TESTING) || defined(DEBUG)
+#if defined(AMREX_TESTING) || defined(AMREX_DEBUG)
     static int init_snan = 1;
 #else
     static int init_snan = 0;
 #endif
+    static bool initialized = false;
 }
 
 extern "C" {
 
-void amrex_mempool_init()
+void amrex_mempool_init ()
 {
-    static bool initialized = false;
     if (!initialized)
     {
 	initialized = true;
 
-#ifndef FORTRAN_BOXLIB
+#ifndef AMREX_FORTRAN_BOXLIB
         ParmParse pp("fab");
 	pp.query("init_snan", init_snan);
 #endif
@@ -76,6 +77,12 @@ void amrex_mempool_init()
 			 }));
 #endif
     }
+}
+
+void amrex_mempool_finalize ()
+{
+    initialized = false;
+    the_memory_pool.clear();
 }
 
 void* amrex_mempool_alloc (size_t nbytes)

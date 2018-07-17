@@ -13,9 +13,9 @@ F90FLAGS =
 
 ########################################################################
 
-intel_version := $(shell $(CXX) -dumpversion)
+intel_version = $(shell $(CXX) -dumpversion)
 
-COMP_VERSION := $(intel_version)
+COMP_VERSION = $(intel_version)
 
 ########################################################################
 
@@ -70,4 +70,10 @@ override XTRALIBS += -lifcore
 
 ifeq ($(USE_OMP),TRUE)
   override XTRALIBS += -lifcoremt
+endif
+
+LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
+
+ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+  override XTRALIBS += -lstdc++
 endif

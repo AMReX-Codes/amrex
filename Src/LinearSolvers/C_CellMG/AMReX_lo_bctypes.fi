@@ -1,11 +1,11 @@
-c-----------------------------------------------------------------------
-c     Should reflect the same contents as LO_BCTYPES.H
-c
+!-----------------------------------------------------------------------
+!     Should reflect the same contents as LO_BCTYPES.H
+!
       integer LO_DIRICHLET
       integer LO_NEUMANN
       integer LO_REFLECT_ODD
-      parameter (
-     &     LO_DIRICHLET   = 101,
-     &     LO_NEUMANN     = 102,
-     &     LO_REFLECT_ODD = 103
+      parameter ( &
+     &     LO_DIRICHLET   = 101, &
+     &     LO_NEUMANN     = 102, &
+     &     LO_REFLECT_ODD = 103  &
      &     )

@@ -17,7 +17,7 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class BottomSolver : int { smoother, bicgstab, hypre };
+    enum class BottomSolver : int { smoother, bicgstab, cg, hypre };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -29,6 +29,10 @@ public:
     void getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
+    // out = L(in). Note that, if no acutal solve is needed, one could
+    // turn off multigrid coarsening by constructing a MLLinOp object
+    // with an appropriate LPInfo object (e.g., with LPInfo().setMaxCoarseningLevel(0)).
+    void apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& in);
 
     void setVerbose (int v) { verbose = v; }
     void setMaxIter (int n) { max_iters = n; }
@@ -70,7 +74,7 @@ private:
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  bottom_verbose        = 0;
-    int  bottom_maxiter        = 100;
+    int  bottom_maxiter        = 200;
 
     int always_use_bnorm = 0;
 
@@ -79,6 +83,8 @@ private:
     MLLinOp& linop;
     int namrlevs;
     int finest_amr_lev;
+
+    bool linop_prepared = false;
 
     // N Solve
     int do_nsolve = false;
@@ -96,7 +102,7 @@ private:
 
     // To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     // in the frame of the original equation, not the correction form
-
+    Vector<std::unique_ptr<MultiFab> > sol_raii;
     Vector<MultiFab*>         sol;  // alias to argument a_sol
     Vector<MultiFab>          rhs;  // Copy of original rhs
                                     // L(sol) = rhs
@@ -143,9 +149,9 @@ private:
     Real MLRhsNormInf (bool local = false);
     void buildFineMask ();
 
-    void fillSolutionBC ();
-
     void averageDownAndSync ();
+
+    Real getNodalSum (int amrlve, int mglev, MultiFab& mf) const;
 
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
 };

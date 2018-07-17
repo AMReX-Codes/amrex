@@ -3,7 +3,9 @@
 #define BL_AMREX_H
 
 #include <AMReX_ccse-mpi.H>
+#include <AMReX_Exception.H>
 
+#include <iostream>
 #include <functional>
 #include <string>
 #include <cstdio>
@@ -24,9 +26,15 @@ namespace amrex
 
     std::string Version ();
 
+    void Initialize (MPI_Comm mpi_comm,
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
+
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
-                     const std::function<void()>& func_parm_parse = {});
+                     const std::function<void()>& func_parm_parse = {},
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
 
     void Finalize(bool finalize_parallel = true);
     /**
@@ -75,12 +83,19 @@ namespace amrex
     */
     void write_to_stderr_without_buffering (const char* str);
 
+    std::ostream& OutStream ();
+    std::ostream& ErrorStream ();
+
+    int Verbose ();
+
     namespace system
     {
-#ifdef NDEBUG
+#ifndef AMREX_DEBUG
 	constexpr bool NDebug = true;
+        constexpr bool  Debug = false;
 #else
 	constexpr bool NDebug = false;
+        constexpr bool  Debug = true;
 #endif
 
 	extern std::string exename;
@@ -88,6 +103,20 @@ namespace amrex
 	extern int verbose;
 
         extern int signal_handling;
+        extern int call_addr2line;
+        extern int throw_exception;
+
+        extern std::ostream* osout;
+        extern std::ostream* oserr;
+    }
+
+    inline void GccPlacater ()
+    {
+        std::allocator<char> a1;
+        std::allocator<int> a2;
+        std::allocator<float> a3;
+        std::allocator<double> a4;
+        std::allocator<std::string> a5;
     }
 }
 

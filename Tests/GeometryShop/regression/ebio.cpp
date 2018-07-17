@@ -1,13 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
 
 #include "AMReX_BaseIVFactory.H"
 #include "AMReX_EBIndexSpace.H"
@@ -15,6 +5,7 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_GeometryShop.H"
+#include "AMReX_WrappedGShop.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
@@ -36,11 +27,109 @@
 #include "AMReX_FabArrayIO.H"
 #include "AMReX_parstream.H"
 
+
 namespace amrex
 {
+void
+dumpIFFAB(const BaseIFFAB<Real>* a_iffab)
+{
+  int ncomp = a_iffab->nComp();
+  const Vector<FaceIndex>& faces = a_iffab->getFaces();
+  for(int iface = 0; iface < faces.size(); iface++)
+  {
+    amrex::Print() << iface << " " << faces[iface] << ":";
+
+    for(int icomp = 0; icomp < ncomp; icomp++)
+    {
+      amrex::Print() << (*a_iffab)(faces[iface], icomp) << " ";
+    }
+
+    amrex::Print() << endl;
+  }
+}
+
+void
+dumpFaces(Vector<FaceIndex>* a_iffab)
+{
+  const Vector<FaceIndex>& faces = *a_iffab;
+  for(int iface = 0; iface < faces.size(); iface++)
+  {
+    amrex::Print() << faces[iface];
+    amrex::Print() << endl;
+  }
+}
+//[((14,5)):0; ((15,5)):0]
+void 
+pointFAData( FabArray<EBData>*  a_data)
+{
+  IntVect ivlo(D_DECL(14, 5, 0));
+  IntVect ivhi(D_DECL(15, 5, 0));
+
+  FaceIndex debface(VolIndex(ivlo, 0),  VolIndex(ivhi,0));
+
+  FabArray<EBData>& datamf = *a_data;
+  int ibox =0;
+  for(MFIter mfi(datamf); mfi.isValid(); ++mfi)
+  {
+    EBData& ebdata = datamf[mfi];
+    const BaseIFFAB<Real>& facefab = ebdata.getFaceData(0);
+    const Vector<FaceIndex>& faces = facefab.getFaces();
+    for(int iface = 0; iface < faces.size(); iface++)
+    {
+      if(faces[iface] == debface)
+      {
+        amrex::Print() << "ibox = " << ibox << ", iface = " << iface << " " << faces[iface] << ":";
+
+        int ncomp = facefab.nComp();
+        for(int icomp = 0; icomp < ncomp; icomp++)
+        {
+          amrex::Print() << facefab(faces[iface], icomp) << " ";
+        }
+
+        amrex::Print() << endl;
+      }
+    }
+    ibox++;
+  }
+}
+void 
+pointData( EBData*  a_data)
+{
+  IntVect ivlo(D_DECL(14, 5, 0));
+  IntVect ivhi(D_DECL(15, 5, 0));
+
+  FaceIndex debface(VolIndex(ivlo, 0),  VolIndex(ivhi,0));
+
+  EBData& ebdata = *a_data;
+  const BaseIFFAB<Real>& facefab = ebdata.getFaceData(0);
+  const Vector<FaceIndex>& faces = facefab.getFaces();
+  for(int iface = 0; iface < faces.size(); iface++)
+  {
+    if(faces[iface] == debface)
+    {
+      amrex::Print()  << " iface = " << iface << " " << faces[iface] << ":";
+
+      int ncomp = facefab.nComp();
+      for(int icomp = 0; icomp < ncomp; icomp++)
+      {
+        amrex::Print() << facefab(faces[iface], icomp) << " ";
+      }
+      amrex::Print() << endl;
+    }
+  }
+}
+void
+donotcallpls()
+{
+  dumpIFFAB(NULL);
+  dumpFaces(NULL);
+  pointData(NULL);
+  pointFAData(NULL);
+}
 /***************/
   int makeGeometry(Box& a_domain,
-                   Real& a_dx)
+                   Real& a_dx,
+                   int igeom)
   {
     int eekflag =  0;
     int maxbox;
@@ -105,10 +194,22 @@ namespace amrex
       PlaneIF ramp(normal,point,normalInside);
 
 
-      GeometryShop workshop(ramp,0, a_dx);
-      //this generates the new EBIS
-      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      if(igeom == 0)
+      {
+        amrex::Print() << "using GeometryShop for geom gen" << endl;
+        GeometryShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
+      else
+      {
+        amrex::Print() << "using WrappedGShop for geom gen" << endl;
+        WrappedGShop workshop(ramp,0, a_dx);
+        //this generates the new EBIS
+        EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+        ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
+      }
     }
     else
     {
@@ -188,7 +289,7 @@ namespace amrex
                   const FabArray<EBData> & a_ebd2,
                   const EBLevelGrid      & a_eblg)
   {
-    
+    int ibox = 0;
     for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       EBData ebd1 = a_ebd1[mfi];
@@ -235,6 +336,8 @@ namespace amrex
         }
       }
       //check the face data
+//int idir = 0;
+//if(0)
       for(int idir = 0; idir < SpaceDim; idir++)
       {
         BaseIFFAB<Real>& fdata1 = ebd1.getFaceData(idir);
@@ -270,7 +373,9 @@ namespace amrex
               if(std::abs(val1-val2) > tol)
               {
                 amrex::Print() << "bad face = "  << vfac1[ivec] << endl;
-                amrex::Print() << "eblg domain = " << a_eblg.getDomain() << endl;
+                amrex::Print() << "eblg domain   = " << a_eblg.getDomain() << endl;
+                amrex::Print() << "ebd1  region = " << ebd1.getRegion() << endl;
+                amrex::Print() << "ebd2  region = " << ebd2.getRegion() << endl;
                 amrex::Print() << "val1 = "  << val1 << ", val2 =" << val2 << endl;
                 amrex::Print() << "checkvof: face value mismatch at ivec, ivar = "<< ivec  << ","<< icomp<< endl;
                 return -10;
@@ -279,18 +384,19 @@ namespace amrex
           }
         }
       }
+      ibox++;
     }        
 
     return 0;
   }
   /***************/
-  int testEBIO()
+  int testEBIO(int igeom)
   {
     Box domain;
     Real dx;
     //make the initial geometry
     amrex::AllPrint() << "making EBIS" << endl;
-    makeGeometry(domain, dx);
+    makeGeometry(domain, dx, igeom);
     //extract all the info we can from the singleton
     EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
     int numLevelsIn = ebisPtr->getNumLevels();
@@ -323,6 +429,7 @@ namespace amrex
     vector<EBLevelGrid> eblgOut(numLevelsOut);
     for(int ilev = 0; ilev < numLevelsOut; ilev++)
     {
+
       Box domlev = domainsOut[ilev];
       BoxArray ba(domlev);
       ba.maxSize(nCellMaxOut);
@@ -375,15 +482,16 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::testEBIO();
-  if(retval != 0)
+  for(int igeom = 0; igeom <= 1; igeom++)
   {
-    amrex::Print() << "EBIndexSpace I/O test failed with code " << retval << "\n";
+    retval = amrex::testEBIO(igeom);
+    if(retval != 0)
+    {
+      amrex::Print() << "EBIndexSpace I/O test failed with code " << retval << "\n";
+    }
   }
-  else
-  {
-    amrex::Print() << "EBIndexSpace I/O test passed \n";
-  }
+  amrex::Print() << "EBIndexSpace I/O test passed \n";
+
   amrex::Finalize();
   return retval;
 }

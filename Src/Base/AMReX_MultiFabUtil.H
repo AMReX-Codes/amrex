@@ -1,5 +1,5 @@
-#ifndef _MultiFabUtil_H_
-#define _MultiFabUtil_H_
+#ifndef AMREX_MultiFabUtil_H_
+#define AMREX_MultiFabUtil_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
@@ -53,11 +53,15 @@ namespace amrex
     //! Output state data for a single zone
     void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
 
+    //! Write each fab individually
+    void writeFabs (const MultiFab& mf, const std::string& name);
+    void writeFabs (const MultiFab& mf, int comp, int ncomp, const std::string& name);
+
     //! Convert iMultiFab to MultiFab
     MultiFab ToMultiFab (const iMultiFab& imf);
 
     //! Extract a slice from the given cell-centered MultiFab at coordinate "coord" along direction "dir". 
-    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int fstart, int ncomp);
+    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int fstart, int ncomp, bool interpolate=false);
 
     // Is it safe to have these two MultiFabs in the same MFiter?
     // Ture means safe; false means maybe.
@@ -65,6 +69,12 @@ namespace amrex
         return x.DistributionMap() == y.DistributionMap()
             && BoxArray::SameRefs(x.boxArray(), y.boxArray());
     }
+
+    // Return an iMultiFab that has the same BoxArray and
+    // DistributionMapping as the coarse MultiFab cmf.  Cells covered
+    // by the coarsened fine grids are set to one, whereas other cells
+    // are set to zero.
+    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio);
 }
 
 

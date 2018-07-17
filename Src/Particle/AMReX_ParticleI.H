@@ -7,18 +7,18 @@ void
 Particle<NReal, NInt>::CIC_Fracs (const Real* frac, Real* fracs)
 {
     //
-    // "frac"  should be dimensioned: Real frac[BL_SPACEDIM]
+    // "frac"  should be dimensioned: Real frac[AMREX_SPACEDIM]
     //
     // "fracs" should be dimensioned: Real fracs[AMREX_D_TERM(2,+2,+4)]
     //
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
     // High
     fracs[0] = frac[0];
 
     // Low
     fracs[1] = (1-frac[0]);
 
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     // HH
     fracs[0] = frac[0] * frac[1] ;
     
@@ -31,7 +31,7 @@ Particle<NReal, NInt>::CIC_Fracs (const Real* frac, Real* fracs)
     // HL
     fracs[3] = frac[0] * (1-frac[1]);
 
-#elif (BL_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
     // HHH
     fracs[0] = frac[0] * frac[1] * frac[2];
 
@@ -68,7 +68,7 @@ Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
     //
     IntVect cell = hicell;
 
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
     // High
     cells[0] = cell;
 
@@ -76,7 +76,7 @@ Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
     cell[0]  = cell[0] - 1;
     cells[1] = cell;
 
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     // HH
     cells[0] = cell;
     
@@ -92,7 +92,7 @@ Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
     cell[0]  = cell[0] + 1;
     cells[3] = cell;
 
-#elif (BL_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
     // HHH
     cells[0] = cell;
 
@@ -154,13 +154,13 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
     //
     // "cells" should be dimensioned: IntVect cells[AMREX_D_TERM(2,+2,+4)]
     //
-    const Real len[BL_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
+    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
                                            (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
                                            (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
     const IntVect cell(AMREX_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-    const Real frac[BL_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
+    const Real frac[AMREX_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
     Particle<NReal, NInt>::CIC_Fracs(frac, fracs);
     Particle<NReal, NInt>::CIC_Cells(cell, cells);
@@ -187,11 +187,11 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
     //
     // The first element in fracs and cells is the lowest corner, the last is the highest.
     //
-    const Real hilen[BL_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+    const Real hilen[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
                                              (p.m_rdata.pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
                                              (p.m_rdata.pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
 
-    const Real lolen[BL_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+    const Real lolen[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
                                              (p.m_rdata.pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
                                              (p.m_rdata.pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
@@ -209,14 +209,14 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
     // This portion might be slightly inefficient. Feel free to redo it if need be.
     //
     int i = 0;
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
     for (int xi = locell[0]; xi <= hicell[0]; xi++)
     {
         cells[i][0] = xi;
         fracs[i] = (std::min(hilen[0]-xi,Real(1))-std::max(lolen[0]-xi,Real(0)))*cell_density;
         i++;
     }
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     for (int yi = locell[1]; yi <= hicell[1]; yi++)
     {
         const Real yf = std::min(hilen[1]-yi,Real(1))-std::max(lolen[1]-yi,Real(0));
@@ -228,7 +228,7 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
             i++;
         }
     }
-#elif (BL_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
     for (int zi = locell[2]; zi <= hicell[2]; zi++)
     {
         const Real zf = std::min(hilen[2]-zi,Real(1))-std::max(lolen[2]-zi,Real(0));
@@ -460,9 +460,9 @@ Particle<NReal, NInt>::GetGravity (const FArrayBox&    gfab,
     BL_PROFILE("Particle<NReal, NInt>::GetGravity()");
     BL_ASSERT(grav != 0);
 
-    int idx[BL_SPACEDIM] = { AMREX_D_DECL(0,1,2) };
+    int idx[AMREX_SPACEDIM] = { AMREX_D_DECL(0,1,2) };
 
-    Particle<NReal, NInt>::Interp(p,geom,gfab,idx,grav,BL_SPACEDIM);
+    Particle<NReal, NInt>::Interp(p,geom,gfab,idx,grav,AMREX_SPACEDIM);
 }
 
 template <int NReal, int NInt>
@@ -472,7 +472,7 @@ operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
     os << p.m_idata.id   << ' '
        << p.m_idata.cpu  << ' ';
 
-    for (int i = 0; i < BL_SPACEDIM + NReal; i++)
+    for (int i = 0; i < AMREX_SPACEDIM + NReal; i++)
         os << p.m_rdata.arr[i] << ' ';
 
     for (int i = 2; i < 2 + NInt; i++)

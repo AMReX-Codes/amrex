@@ -62,7 +62,6 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
 
         const auto& gm = m_gdb->Geom(lev);
         const auto& ba = m_gdb->ParticleBoxArray(lev);
-        const auto& dm = m_gdb->DistributionMap(lev);
     
         const Real* dx  = gm.CellSize();
         const Real* plo = gm.ProbLo();
@@ -281,23 +280,14 @@ ElectrostaticParticleContainer::
 Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
     
     const int num_levels = E.size();
-    const int ng = E[0][0]->nGrow();
 
     for (int lev = 0; lev < num_levels; ++lev) {
         
         const auto& gm = m_gdb->Geom(lev);
         const RealBox& prob_domain = gm.ProbDomain();
-        const auto& ba = m_gdb->ParticleBoxArray(lev);
-        const Real* dx  = gm.CellSize();
-        const Real* plo = gm.ProbLo();
     
-        BoxArray nba = ba;
-        nba.surroundingNodes();
-    
-        const int ng = 1;
         BL_ASSERT(OnSameGrids(lev, *rho[lev]));
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-            const Box& box = nba[pti];
             
             // Particle structs
             auto& particles = pti.GetArrayOfStructs();
@@ -306,7 +296,6 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
             
             // Particle attributes
             auto& attribs = pti.GetAttribs();
-            auto&  wp = attribs[PIdx::w];
             auto& vxp = attribs[PIdx::vx];
             auto& vyp = attribs[PIdx::vy];
 
@@ -321,13 +310,6 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
             auto& Ezp = attribs[PIdx::Ez];
 #endif
             
-            // Data on the grid
-            const FArrayBox& exfab  = (*E[lev][0])[pti];
-            const FArrayBox& eyfab  = (*E[lev][1])[pti];
-#if BL_SPACEDIM == 3
-            const FArrayBox& ezfab  = (*E[lev][2])[pti];
-#endif            
-
             //
             // Particle Push
             //
@@ -347,8 +329,6 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
 }
 
 void ElectrostaticParticleContainer::pushX(const Real& dt) {
-
-    int finest_level = finestLevel();
     for (int lev = 0; lev <= finestLevel(); ++lev) {    
         const auto& gm = m_gdb->Geom(lev);
         const RealBox& prob_domain = gm.ProbDomain();

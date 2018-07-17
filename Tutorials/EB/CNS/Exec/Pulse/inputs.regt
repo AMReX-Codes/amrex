@@ -46,11 +46,13 @@ amr.plot_int          = 100     # number of timesteps between plotfiles
 amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 # EB
-geom_type = sphere
-sphere_radius = 0.125
-sphere_center = 0.45  0.65  0.53
+eb2.use_eb2 = 1
+eb2.geom_type = sphere
+eb2.sphere_radius = 0.125
+eb2.sphere_center = 0.45  0.65  0.53
+eb2.sphere_has_fluid_inside = 0
 
-#geom_type = all_regular
+#eb2.geom_type = all_regular
 
 # problem specific parameter
 prob.drho = 1.2e-4

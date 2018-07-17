@@ -18,10 +18,10 @@ namespace amrex
 			 const IndexType& boxType, Interpolater* mapper)
     {
 	int ratio_max = ratio[0];
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
 	ratio_max = std::max(ratio_max, ratio[1]);
 #endif
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	ratio_max = std::max(ratio_max, ratio[2]);
 #endif
 	// There are at least this many coarse cells outside fine grids 
@@ -122,12 +122,14 @@ namespace amrex
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const BCRec& bcs)
+			     Interpolater* mapper, const BCRec& bcs,
+                             const InterpHook& pre_interp,
+                             const InterpHook& post_interp)
     {
         Vector<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
 
         FillPatchTwoLevels(mf,time,cmf,ct,fmf,ft,scomp,dcomp,ncomp,cgeom,fgeom,
-                           cbc,fbc,ratio,mapper,bcs_array);
+                           cbc,fbc,ratio,mapper,bcs_array,pre_interp,post_interp);
     }
 
 
@@ -138,7 +140,9 @@ namespace amrex
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const Vector<BCRec>& bcs)
+			     Interpolater* mapper, const Vector<BCRec>& bcs,
+                             const InterpHook& pre_interp,
+                             const InterpHook& post_interp)
     {
 	BL_PROFILE("FillPatchTwoLevels");
 
@@ -151,14 +155,15 @@ namespace amrex
 	    Box fdomain = fgeom.Domain();
 	    fdomain.convert(mf.boxArray().ixType());
 	    Box fdomain_g(fdomain);
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 		if (fgeom.isPeriodic(i)) {
 		    fdomain_g.grow(i,ngrow);
 		}
 	    }
 	    
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
-                                                                      ngrow, coarsener, 
+                                                                      IntVect(ngrow),
+                                                                      coarsener, 
                                                                       amrex::coarsen(fgeom.Domain(),ratio));
 
 	    if ( ! fpc.ba_crse_patch.empty())
@@ -169,7 +174,7 @@ namespace amrex
                 mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
-		
+
 		int idummy1=0, idummy2=0;
 		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
                 ignore_unused(cc);
@@ -178,16 +183,20 @@ namespace amrex
 #endif
 		for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
 		{
+                    FArrayBox& sfab = mf_crse_patch[mfi];
 		    int li = mfi.LocalIndex();
-		    int gi = fpc.dst_idxs[li];		
+		    int gi = fpc.dst_idxs[li];	
+                    FArrayBox& dfab = mf[gi];
 		    const Box& dbx = fpc.dst_boxes[li];
 		    
 		    Vector<BCRec> bcr(ncomp);
 		    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+
+                    pre_interp(sfab, sfab.box(), 0, ncomp);
 		    
-		    mapper->interp(mf_crse_patch[mfi],
+		    mapper->interp(sfab,
 				   0,
-				   mf[gi],
+				   dfab,
 				   dcomp,
 				   ncomp,
 				   dbx,
@@ -196,6 +205,8 @@ namespace amrex
 				   fgeom,
 				   bcr,
 				   idummy1, idummy2);
+
+                    post_interp(dfab, dbx, dcomp, ncomp);
 		}
 	    }
 	}
@@ -207,12 +218,15 @@ namespace amrex
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
-				Interpolater* mapper, const BCRec& bcs)
+				Interpolater* mapper, const BCRec& bcs,
+                                const InterpHook& pre_interp,
+                                const InterpHook& post_interp)
     {
 
         Vector<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
         InterpFromCoarseLevel(mf,time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
-                              cbc,fbc,ratio,mapper,bcs_array);
+                              cbc,fbc,ratio,mapper,bcs_array,
+                              pre_interp, post_interp);
 
     }
 
@@ -221,7 +235,9 @@ namespace amrex
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
-				Interpolater* mapper, const Vector<BCRec>& bcs)
+				Interpolater* mapper, const Vector<BCRec>& bcs,
+                                const InterpHook& pre_interp,
+                                const InterpHook& post_interp)
     {
 	const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
@@ -237,7 +253,7 @@ namespace amrex
 	fdomain.convert(typ);
 
 	Box fdomain_g(fdomain);
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	    if (fgeom.isPeriodic(i)) {
 		fdomain_g.grow(i,ngrow);
 	    }
@@ -254,12 +270,11 @@ namespace amrex
 	}
 
 #ifdef AMREX_USE_EB
-        const EBFArrayBoxFactory factory{cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic};
+        auto factory = makeEBFabFactory(cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic);
+	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(), *factory);
 #else
-        const FArrayBoxFactory factory{};
+	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
 #endif
-
-	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(), factory);
 
         mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 
@@ -277,14 +292,17 @@ namespace amrex
 
             for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
             {
+                FArrayBox& sfab = mf_crse_patch[mfi];
                 FArrayBox& dfab = mf[mfi];
                 const Box& dbx = dfab.box() & fdomain_g;
                 
                 amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+
+                pre_interp(sfab, sfab.box(), 0, ncomp);
                 
-                mapper->interp(mf_crse_patch[mfi],
+                mapper->interp(sfab,
                                0,
-                               mf[mfi],
+                               dfab,
                                dcomp,
                                ncomp,
                                dbx,
@@ -292,7 +310,9 @@ namespace amrex
                                cgeom,
                                fgeom,
                                bcr,
-                               idummy1, idummy2);	    
+                               idummy1, idummy2);
+
+                post_interp(dfab, dbx, dcomp, ncomp);
             }
 	}
 
@@ -301,15 +321,15 @@ namespace amrex
 
     // B fields are assumed to be on staggered grids.
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
-                                     const std::array<MultiFab,BL_SPACEDIM>& crse,
-                                     std::array<MultiFab,BL_SPACEDIM>& fine,
+                                     const std::array<MultiFab,AMREX_SPACEDIM>& crse,
+                                     std::array<MultiFab,AMREX_SPACEDIM>& fine,
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio)
     {
         BL_ASSERT(ref_ratio == 2);
 
         int ngrow = fine[0].nGrow();
-        for (int idim = 1; idim < BL_SPACEDIM; ++idim) {
+        for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
             BL_ASSERT(ngrow == fine[idim].nGrow());
         }
 
@@ -317,13 +337,13 @@ namespace amrex
 
         bool include_periodic = true;
         bool include_physbndry = false;
-        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, ngrow,
+        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, IntVect(ngrow),
                                                      include_periodic, include_physbndry);
 
         if (! cfinfo.ba_cfb.empty())
         {
-            std::array<MultiFab, BL_SPACEDIM> cmf;
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+            std::array<MultiFab, AMREX_SPACEDIM> cmf;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& fine_ba = fine[idim].boxArray();
                 BoxArray fba = cfinfo.ba_cfb;
@@ -349,7 +369,7 @@ namespace amrex
 #pragma omp parallel
 #endif
             {
-                std::array<FArrayBox,BL_SPACEDIM> bfab;
+                std::array<FArrayBox,AMREX_SPACEDIM> bfab;
                 for (MFIter mfi(cmf[0]); mfi.isValid(); ++mfi)
                 {
                     const int fi = cfinfo.fine_grid_idx[mfi.LocalIndex()];
@@ -360,11 +380,11 @@ namespace amrex
 
                     const FArrayBox& cxfab = cmf[0][mfi];
                     bfab[0].resize(amrex::convert(ccbx,fine[0].ixType()));
-#if (BL_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
                     const FArrayBox& cyfab = cmf[1][mfi];
                     bfab[1].resize(amrex::convert(ccbx,fine[1].ixType()));
 #endif
-#if (BL_SPACEDIM > 2)
+#if (AMREX_SPACEDIM > 2)
                     const FArrayBox& czfab = cmf[2][mfi];
                     bfab[2].resize(amrex::convert(ccbx,fine[2].ixType()));
 #endif
@@ -372,23 +392,23 @@ namespace amrex
                     if (interp_type == InterpB)
                     {
                         amrex_interp_div_free_bfield(BL_TO_FORTRAN_BOX(ccbx),
-                                                     D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                            BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                            BL_TO_FORTRAN_ANYD(bfab[2])),
-                                                     D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
-                                                            BL_TO_FORTRAN_ANYD(cyfab),
-                                                            BL_TO_FORTRAN_ANYD(czfab)),
+                                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                                  BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                                  BL_TO_FORTRAN_ANYD(bfab[2])),
+                                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                                  BL_TO_FORTRAN_ANYD(cyfab),
+                                                                  BL_TO_FORTRAN_ANYD(czfab)),
                                                      dx, &ref_ratio, &use_limiter);
                     }
                     else if (interp_type == InterpE)
                     {
                         amrex_interp_efield(BL_TO_FORTRAN_BOX(ccbx),
-                                            D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                   BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                   BL_TO_FORTRAN_ANYD(bfab[2])),
-                                            D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
-                                                   BL_TO_FORTRAN_ANYD(cyfab),
-                                                   BL_TO_FORTRAN_ANYD(czfab)),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[2])),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                         BL_TO_FORTRAN_ANYD(cyfab),
+                                                         BL_TO_FORTRAN_ANYD(czfab)),
                                             &ref_ratio, &use_limiter);
                     }
                     else
@@ -396,7 +416,7 @@ namespace amrex
                         amrex::Abort("InterpCrseFineBndryEMfield: unknown interp_type");
                     }
                     
-                    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
                         const BoxArray& fine_ba = fine[idim].boxArray();
                         const Box& fine_valid_box = fine_ba[fi];

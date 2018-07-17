@@ -4,6 +4,18 @@ endif
 
 os_type := $(shell uname)
 
+# Use automatic CPU dispatch for max 
+# vectorization with Intel compilers
+# since Peregrine has haswell and
+# ivybridge nodes. We're leaving out the
+# really old sandybridge nodes here.
+ifeq ($(COMP), intel)
+  CXXFLAGS += -axCORE-AVX2,CORE-AVX-I
+  CFLAGS   += -axCORE-AVX2,CORE-AVX-I
+  FFLAGS   += -axCORE-AVX2,CORE-AVX-I
+  F90FLAGS += -axCORE-AVX2,CORE-AVX-I
+endif
+
 ifeq ($(USE_MPI),TRUE)
   ifeq ($(COMP), intel)
     CXX := mpiicpc
