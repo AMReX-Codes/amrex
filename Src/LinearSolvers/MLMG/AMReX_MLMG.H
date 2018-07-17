@@ -6,6 +6,7 @@
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_HypreABecLap2.H>
+#include <AMReX_HypreABecLap3.H>
 #endif
 
 namespace amrex {
@@ -89,7 +90,7 @@ private:
 
     // Hypre
 #ifdef AMREX_USE_HYPRE
-    std::unique_ptr<HypreABecLap2> hypre_solver;
+    std::unique_ptr<HypreABecLap3> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
 #endif
 

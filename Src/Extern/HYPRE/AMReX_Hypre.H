@@ -3,6 +3,7 @@
 
 #include <AMReX_HypreABecLap.H>
 #include <AMReX_HypreABecLap2.H>
+#include <AMReX_HypreABecLap3.H>
 
 #include <memory>
 
@@ -31,6 +32,7 @@ private:
 
     std::unique_ptr<HypreABecLap> struct_solver;
     std::unique_ptr<HypreABecLap2> semi_struct_solver;
+    std::unique_ptr<HypreABecLap3> IJ_solver;
 };
 
 }
