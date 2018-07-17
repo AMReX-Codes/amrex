@@ -17,11 +17,10 @@ contains
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       cntr, ctlo, cthi, &
        dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_adotx')
     integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
-         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, ctlo, cthi
+         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2))
@@ -35,13 +34,12 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
-    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)
     integer :: i,j, ii, jj
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
-
+    
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (is_covered_cell(flag(i,j))) then
@@ -81,20 +79,8 @@ contains
                 fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(x(ii,j+1)-x(ii,j))
              end if
 
-             y(i,j) = (one/vfrc(i,j)) * &
+             y(i,j) = alpha*a(i,j)*x(i,j) + (one/vfrc(i,j)) * &
                   (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
-
-             if (alpha .ne. zero) then
-                fracx = abs(cntr(i,j,1))
-                ii = i + int(sign(one,cntr(i,j,1)))
-                fracy = abs(cntr(i,j,2))
-                jj = j + int(sign(one,cntr(i,j,2)))
-
-                y(i,j) = y(i,j) + alpha*((one-fracx)*(one-fracy)*a(i ,j )*x(i ,j ) &
-                     &                  +     fracx *(one-fracy)*a(ii,j )*x(ii,j ) &
-                     &                  +(one-fracx)*     fracy *a(i ,jj)*x(i ,jj) &
-                     &                  +     fracx *     fracy *a(ii,jj)*x(ii,jj))
-            end if
           end if
        end do
     end do
@@ -109,12 +95,12 @@ contains
        f1, f1lo, f1hi, f3, f3lo, f3hi, &
        flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       cntr, ctlo, cthi, dxinv, alpha, beta, redblack) &
+       dxinv, alpha, beta, redblack) &
        bind(c,name='amrex_mlebabeclap_gsrb')
     integer, dimension(2), intent(in) :: lo, hi, hlo, hhi, rlo, rhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
          m0lo, m0hi, m1lo, m1hi, m2lo, m2hi, m3lo, m3hi, &
          f0lo, f0hi, f1lo, f1hi, f2lo, f2hi, f3lo, f3hi, &
-         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, ctlo, cthi 
+         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), value, intent(in) :: alpha, beta
     integer, value, intent(in) :: redblack
@@ -137,7 +123,6 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
-    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)
 
     integer :: i,j,ioff,ii,jj
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res
@@ -155,85 +140,73 @@ contains
           if (is_covered_cell(flag(i,j))) then
              phi(i,j) = zero
           else
-               cf0 = merge(f0(lo(1),j), 0.0D0, &
-                    (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = merge(f1(i,lo(2)), 0.0D0, &
-                    (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = merge(f2(hi(1),j), 0.0D0, &
-                    (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = merge(f3(i,hi(2)), 0.0D0, &
-                    (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+             cf0 = merge(f0(lo(1),j), 0.0D0, &
+                  (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
+             cf1 = merge(f1(i,lo(2)), 0.0D0, &
+                  (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
+             cf2 = merge(f2(hi(1),j), 0.0D0, &
+                  (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
+             cf3 = merge(f3(i,hi(2)), 0.0D0, &
+                  (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+             
+             delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2) &
+                  +  dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
+             
+             if (is_regular_cell(flag(i,j))) then
+                
+                gamma = alpha*a(i,j) &
+                     + dhx * (bX(i+1,j) + bX(i,j)) &
+                     + dhy * (bY(i,j+1) + bY(i,j))
+                
+                rho =  dhx * (bX(i+1,j)*phi(i+1,j) + bX(i,j)*phi(i-1,j)) &
+                     + dhy * (bY(i,j+1)*phi(i,j+1) + bY(i,j)*phi(i,j-1))
 
-               delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2) &
-                    +  dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
+             else
+                fxm = -bX(i,j)*phi(i-1,j)
+                sxm =  bX(i,j)
+                if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
+                   fracy = abs(fcx(i,j))
+                   jj = j + int(sign(one,fcx(i,j)))
+                   fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(phi(i,jj)-phi(i-1,jj))
+                   sxm = (one-fracy)*sxm
+                end if
+                
+                fxp =  bX(i+1,j)*phi(i+1,j)
+                sxp = -bX(i+1,j)
+                if (apx(i+1,j).ne.zero .and. apx(i+1,j).ne.one) then
+                   fracy = abs(fcx(i+1,j))
+                   jj = j + int(sign(one,fcx(i+1,j)))
+                   fxp = (one-fracy)*fxp + fracy*bX(i+1,jj)*(phi(i+1,jj)-phi(i,jj))
+                   sxp = (one-fracy)*sxp
+                end if
+                
+                fym = -bY(i,j)*phi(i,j-1)
+                sym =  bY(i,j)
+                if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
+                   fracx = abs(fcy(i,j))
+                   ii = i + int(sign(one,fcy(i,j)))
+                   fym = (one-fracx)*fym + fracx*bY(ii,j)*(phi(ii,j)-phi(ii,j-1))
+                   sym = (one-fracx)*sym
+                end if
+                
+                fyp =  bY(i,j+1)*phi(i,j+1)
+                syp = -bY(i,j+1)
+                if (apy(i,j+1).ne.zero .and. apy(i,j+1).ne.one) then
+                   fracx = abs(fcy(i,j+1))
+                   ii = i + int(sign(one,fcy(i,j+1)))
+                   fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
+                   syp = (one-fracx)*syp
+                end if
+                
+                gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
+                     (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
+                rho = -(one/vfrc(i,j)) * &
+                     (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
+             end if
 
-               if (is_regular_cell(flag(i,j))) then
-
-                  gamma = alpha*a(i,j) &
-                       + dhx * (bX(i+1,j) + bX(i,j)) &
-                       + dhy * (bY(i,j+1) + bY(i,j))
-
-                  rho =  dhx * (bX(i+1,j)*phi(i+1,j) + bX(i,j)*phi(i-1,j)) &
-                       + dhy * (bY(i,j+1)*phi(i,j+1) + bY(i,j)*phi(i,j-1))
-
-               else
-                  fxm = -bX(i,j)*phi(i-1,j)
-                  sxm =  bX(i,j)
-                  if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
-                     fracy = abs(fcx(i,j))
-                     jj = j + int(sign(one,fcx(i,j)))
-                     fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(phi(i,jj)-phi(i-1,jj))
-                     sxm = (one-fracy)*sxm
-                  end if
-                  
-                  fxp =  bX(i+1,j)*phi(i+1,j)
-                  sxp = -bX(i+1,j)
-                  if (apx(i+1,j).ne.zero .and. apx(i+1,j).ne.one) then
-                     fracy = abs(fcx(i+1,j))
-                     jj = j + int(sign(one,fcx(i+1,j)))
-                     fxp = (one-fracy)*fxp + fracy*bX(i+1,jj)*(phi(i+1,jj)-phi(i,jj))
-                     sxp = (one-fracy)*sxp
-                  end if
-                  
-                  fym = -bY(i,j)*phi(i,j-1)
-                  sym =  bY(i,j)
-                  if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
-                     fracx = abs(fcy(i,j))
-                     ii = i + int(sign(one,fcy(i,j)))
-                     fym = (one-fracx)*fym + fracx*bY(ii,j)*(phi(ii,j)-phi(ii,j-1))
-                     sym = (one-fracx)*sym
-                  end if
-                  
-                  fyp =  bY(i,j+1)*phi(i,j+1)
-                  syp = -bY(i,j+1)
-                  if (apy(i,j+1).ne.zero .and. apy(i,j+1).ne.one) then
-                     fracx = abs(fcy(i,j+1))
-                     ii = i + int(sign(one,fcy(i,j+1)))
-                     fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
-                     syp = (one-fracx)*syp
-                  end if
- 
-                  gamma = (one/vfrc(i,j)) * &
-                       (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
-                  rho = -(one/vfrc(i,j)) * &
-                       (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
-
-                  if (alpha .ne. zero) then
-                     fracx = abs(cntr(i,j,1))
-                     ii = i + int(sign(one,cntr(i,j,1)))
-                     fracy = abs(cntr(i,j,2))
-                     jj = j + int(sign(one,cntr(i,j,2)))
-
-                     gamma = gamma + alpha*(one-fracx)*(one-fracy)*a(i ,j )
-                     rho = rho - alpha*(     fracx *(one-fracy)*a(ii,j )*phi(ii,j ) &
-                          &            +(one-fracx)*     fracy *a(i ,jj)*phi(i ,jj) &
-                          &            +     fracx *     fracy *a(ii,jj)*phi(ii,jj))
-                  end if
-               end if
-
-               res = rhs(i,j) - (gamma*phi(i,j) - rho)
-               phi(i,j) = phi(i,j) + omega*res/(gamma-delta)
-            end if
+             res = rhs(i,j) - (gamma*phi(i,j) - rho)
+             phi(i,j) = phi(i,j) + omega*res/(gamma-delta)
+          end if
        end do
     end do
 
@@ -243,10 +216,10 @@ contains
   subroutine amrex_mlebabeclap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       cntr, ctlo, cthi, dxinv, alpha, beta) &
+       dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_normalize')
     integer, dimension(2), intent(in) :: lo, hi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
-         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, ctlo, cthi 
+         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    x( xlo(1): xhi(1), xlo(2): xhi(2))
@@ -259,10 +232,9 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
-    real(amrex_real), intent(in   ) :: cntr(ctlo(1):cthi(1),ctlo(2):cthi(2),2)     
 
-    integer :: i,j,ii,jj
-    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, fracx, fracy
+    integer :: i,j
+    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -279,16 +251,8 @@ contains
              sym =  bY(i,j)   * (one-abs(fcy(i,j)))
              syp = -bY(i,j+1) * (one-abs(fcy(i,j+1)))
 
-             gamma = (one/vfrc(i,j)) * &
+             gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
                   (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
-
-             if (alpha .ne. zero) then
-                fracx = abs(cntr(i,j,1))
-                ii = i + int(sign(one,cntr(i,j,1)))
-                fracy = abs(cntr(i,j,2))
-                jj = j + int(sign(one,cntr(i,j,2)))
-                gamma = gamma + alpha*(one-fracx)*(one-fracy)*a(i ,j )
-             end if
 
              x(i,j) = x(i,j) / gamma
           end if
