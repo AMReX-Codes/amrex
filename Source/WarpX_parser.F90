@@ -478,7 +478,22 @@ do j=jtot,1,-1
 end do
 do j=jtot,1,-1
   IF(what(j)==w_operator) then
-    IF(op(j)==multiply.or.op(j)==divide) then
+    IF(op(j)==divide) then
+      res%operation(jop)%op = op(j)
+      ja=j/2
+      do WHILE(.not.l_res(ja))
+        ja=ja-1
+      end do
+      res%operation(jop)%a = ja
+      res%operation(jop)%b = j/2+1
+      l_res(j/2+1)=.false.
+      jop = jop+1
+    END if
+  END if
+end do
+do j=jtot,1,-1
+  IF(what(j)==w_operator) then
+    IF(op(j)==multiply) then
       res%operation(jop)%op = op(j)
       ja=j/2
       do WHILE(.not.l_res(ja))
@@ -702,7 +717,22 @@ do j=jtot,1,-1
 end do
 do j=jtot,1,-1
   IF(what(j)==w_operator) then
-    IF(op(j)==multiply.or.op(j)==divide) then
+    IF(op(j)==divide) then
+      res%operation(jop)%op = op(j)
+      ja=j/2
+      do WHILE(.not.l_res(ja))
+        ja=ja-1
+      end do
+      res%operation(jop)%a = ja
+      res%operation(jop)%b = j/2+1
+      l_res(j/2+1)=.false.
+      jop = jop+1
+    END if
+  END if
+end do
+do j=jtot,1,-1
+  IF(what(j)==w_operator) then
+    IF(op(j)==multiply) then
       res%operation(jop)%op = op(j)
       ja=j/2
       do WHILE(.not.l_res(ja))
