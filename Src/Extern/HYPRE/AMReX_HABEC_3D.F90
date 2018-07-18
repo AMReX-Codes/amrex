@@ -1,6 +1,3 @@
-#include "AMReX_LO_BCTYPES.H"
-
-
 module amrex_habec_module
 
   ! habec is Hypre abec, where abec is the form of the linear equation
@@ -8,11 +5,320 @@ module amrex_habec_module
   ! 
   ! alpha*phi - div(beta*grad phi) + div(\vec{c}*phi) 
 
+  use iso_c_binding
   use amrex_fort_module, only : rt => amrex_real
+  use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
+  use amrex_error_module, only : amrex_error
+  use amrex_constants_module, only : zero, half
   implicit none
 
 contains
 
+  subroutine amrex_hpacoef (lo, hi, mat, a, alo, ahi, sa) bind(c,name='amrex_hpacoef')
+    integer, intent(in) :: lo(3), hi(3), alo(3), ahi(3)
+    real(rt), intent(inout) :: mat(0:6, lo(1): hi(1), lo(2): hi(2), lo(3): hi(3))
+    real(rt), intent(in   ) ::   a(    alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
+    real(rt), intent(in) :: sa
+    integer :: i, j, k    
+    do k = lo(3), hi(3)
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             mat(6,i,j,k) = sa * a(i,j,k)
+          enddo
+       enddo
+    enddo  
+  end subroutine amrex_hpacoef
+
+  subroutine amrex_hpbcoef (lo, hi, mat, b, blo, bhi, sb, dx, idim) &
+       bind(c,name='amrex_hpbcoef')
+    integer, intent(in) :: lo(3), hi(3), blo(3), bhi(3), idim
+    real(rt), intent(inout) :: mat(0:6, lo(1): hi(1), lo(2): hi(2), lo(3): hi(3))
+    real(rt), intent(in   ) ::   b(    blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
+    real(rt), intent(in) :: sb, dx(3)
+
+    integer :: i, j, k
+    real(rt) :: fac
+
+    fac = sb / dx(idim+1)**2 
+
+    if (idim .eq. 0) then
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                mat(0,i,j,k) = - fac * b(i,j,k)
+                mat(3,i,j,k) = - fac * b(i+1,j,k)
+                mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i+1,j,k))
+             enddo
+          enddo
+       enddo
+    else if (idim .eq. 1) then
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                mat(1,i,j,k) = - fac * b(i,j,k)
+                mat(4,i,j,k) = - fac * b(i,j+1,k)
+                mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i,j+1,k))
+             enddo
+          enddo
+       enddo
+    else
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                mat(2,i,j,k) = - fac * b(i,j,k)
+                mat(5,i,j,k) = - fac * b(i,j,k+1)
+                mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i,j,k+1))
+             enddo
+          enddo
+       enddo
+    endif
+    
+  end subroutine amrex_hpbcoef
+
+  subroutine amrex_hpbmat3 (lo, hi, mat, b, blo, bhi, mask, mlo, mhi, &
+       sb, dx, cdir, bct, bcl) bind(c,name='amrex_hpbmat3')
+    integer, intent(in) :: lo(3), hi(3), blo(3), bhi(3), mlo(3), mhi(3), cdir, bct
+    real(rt), intent(inout) ::  mat(0:6, lo(1): hi(1), lo(2): hi(2), lo(3): hi(3))
+    real(rt), intent(in   ) ::    b(    blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
+    integer , intent(in   ) :: mask(    mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+    real(rt), intent(in) :: sb, dx(3), bcl
+
+    integer :: i, j, k
+    real(rt) :: fac, h, bfm, bfv
+
+    if (cdir .eq. 0 .or. cdir .eq. 3) then
+       h = dx(1)
+    elseif (cdir .eq. 1 .or. cdir .eq. 4) then
+       h = dx(2)
+    else
+       h = dx(3)
+    endif
+    fac = sb / (h**2)
+
+    if (bct .eq. amrex_lo_dirichlet) then
+       bfv = fac * (half * h - bcl) / (half * h + bcl)       
+    else if (bct .eq. amrex_lo_neumann) then
+       bfv = -fac
+    else
+       call amrex_error("hpmat3: unsupported boundary type")       
+    end if
+    
+    if (cdir .eq. 0) then
+       i = lo(1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             if (mask(i-1,j,k) .gt. 0) then
+                mat(0,i,j,k) = 0.d0
+                mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j,k)
+             endif
+          enddo
+       enddo
+    else if (cdir .eq. 3) then
+         i = hi(1)
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               if (mask(i+1,j,k) .gt. 0) then
+                  mat(3,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i+1,j,k)
+               endif
+            enddo
+         enddo
+      else if (cdir .eq. 1) then
+         j = lo(2)
+         do k = lo(3), hi(3)
+            do i = lo(1), hi(1)
+               if (mask(i,j-1,k) .gt. 0) then
+                  mat(1,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j,k)
+               endif
+            enddo
+         enddo
+      else if (cdir .eq. 4) then
+         j = hi(2)
+         do k = lo(3), hi(3)
+            do i = lo(1), hi(1)
+               if (mask(i,j+1,k) .gt. 0) then
+                  mat(4,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j+1,k)
+               endif
+            enddo
+         enddo
+      else if (cdir .eq. 2) then
+         k = lo(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               if (mask(i,j,k-1) .gt. 0) then
+                  mat(2,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j,k)
+               endif
+            enddo
+         enddo
+      else if (cdir .eq. 5) then
+         k = hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               if (mask(i,j,k+1) .gt. 0) then
+                  mat(5,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j,k+1)
+               endif
+            enddo
+         enddo
+      else
+         call amrex_error("hpmat3: impossible face orientation")
+      endif
+      
+    end subroutine amrex_hpbmat3
+
+
+    subroutine amrex_hpbvec3 (lo, hi, vec, b, blo, bhi, mask, mlo, mhi, &
+         bcv, clo, chi, sb, dx, cdir, bct, bcl) bind(c,name='amrex_hpbvec3')
+      integer, intent(in) :: lo(3), hi(3), blo(3), bhi(3), mlo(3), mhi(3), clo(3), chi(3), cdir, bct
+      real(rt), intent(inout) ::  vec(     lo(1): hi(1), lo(2): hi(2), lo(3): hi(3))
+      real(rt), intent(in   ) ::    b(    blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
+      integer , intent(in   ) :: mask(    mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+      real(rt), intent(in   ) ::  bcv(    clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+      real(rt), intent(in) :: sb, dx(3), bcl
+
+      integer :: i, j, k
+      real(rt) :: h, bfv
+
+      if (cdir .eq. 0 .or. cdir .eq. 3) then
+         h = dx(1)
+      elseif (cdir .eq. 1 .or. cdir .eq. 4) then
+         h = dx(2)
+      else
+         h = dx(3)
+      endif
+
+      if (bct .eq. amrex_lo_dirichlet) then
+         bfv = (sb / h) / (0.5d0 * h + bcl)
+      else if (bct .eq. amrex_lo_neumann) then
+         bfv = sb / h
+      else
+         call amrex_error("hpbvec3: unsupported boundary type")
+      endif
+      
+      if (cdir .eq. 0) then
+         i = lo(1)
+         if (bct .eq. amrex_lo_dirichlet) then
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  if (mask(i-1,j,k) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j,k) * bcv(i-1,j,k)
+                  endif
+               enddo
+            enddo
+         else
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  if (mask(i-1,j,k) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i-1,j,k)
+                  endif
+               enddo
+            enddo
+         end if
+      else if (cdir .eq. 3) then
+         i = hi(1)
+         if (bct .eq. amrex_lo_dirichlet) then
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  if (mask(i+1,j,k) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * b(i+1,j,k) * bcv(i+1,j,k)
+                  endif
+               enddo
+            enddo
+         else
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  if (mask(i+1,j,k) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i+1,j,k)
+                  endif
+               enddo
+            enddo
+         end if
+      else if (cdir .eq. 1) then
+         j = lo(2)
+         if (bct .eq. amrex_lo_dirichlet) then
+            do k = lo(3), hi(3)
+               do i = lo(1), hi(1)
+                  if (mask(i,j-1,k) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j,k) * bcv(i,j-1,k)
+                  endif
+               enddo
+            enddo
+         else
+            do k = lo(3), hi(3)
+               do i = lo(1), hi(1)
+                  if (mask(i,j-1,k) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i,j-1,k)
+                  endif
+               enddo
+            enddo
+         end if
+      else if (cdir .eq. 4) then
+         j = hi(2)
+         if (bct .eq. amrex_lo_dirichlet) then
+            do k = lo(3), hi(3)
+               do i = lo(1), hi(1)
+                  if (mask(i,j+1,k) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j+1,k) * bcv(i,j+1,k)
+                  endif
+               enddo
+            enddo
+         else
+            do k = lo(3), hi(3)
+               do i = lo(1), hi(1)
+                  if (mask(i,j+1,k) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i,j+1,k)
+                  endif
+               enddo
+            enddo
+         end if
+      else if (cdir .eq. 2) then
+         k = lo(3)
+         if (bct .eq. amrex_lo_dirichlet) then
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  if (mask(i,j,k-1) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j,k) * bcv(i,j,k-1)
+                  endif
+               enddo
+            enddo
+         else
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  if (mask(i,j,k-1) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i,j,k-1)
+                  endif
+               enddo
+            enddo
+         end if
+      else if (cdir .eq. 5) then
+         k = hi(3)
+         if (bct .eq. amrex_lo_dirichlet) then
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  if (mask(i,j,k+1) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j,k+1) * bcv(i,j,k+1)
+                  endif
+               enddo
+            enddo
+         else
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  if (mask(i,j,k+1) .gt. 0) then
+                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i,j,k+1)
+                  endif
+               enddo
+            enddo
+         end if
+      else
+         call amrex_error("hpbvec3: impossible face orientation")
+      endif
+
+    end subroutine amrex_hpbvec3
+
+  
 subroutine amrex_hbvec(vec, &
                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
@@ -21,7 +327,6 @@ subroutine amrex_hbvec(vec, &
                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                  beta, dx) bind(C, name="amrex_hbvec")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3
   integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
@@ -42,7 +347,7 @@ subroutine amrex_hbvec(vec, &
   else
      h = dx(3)
   endif
-  if (bct == LO_DIRICHLET) then
+  if (bct == amrex_lo_dirichlet) then
      if (bho >= 1) then
         h2 = 0.5e0_rt * h
         th2 = 3.e0_rt * h2
@@ -50,7 +355,7 @@ subroutine amrex_hbvec(vec, &
      else
         bfv = (beta / h) / (0.5e0_rt * h + bcl)
      endif
-  else if (bct == LO_NEUMANN) then
+  else if (bct == amrex_lo_neumann) then
      bfv = beta / h
   else
      print *, "hbvec: unsupported boundary type"
@@ -129,7 +434,6 @@ subroutine amrex_hbvec3(vec, &
                   b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                   beta, dx) bind(C, name="amrex_hbvec3")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3
   integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
@@ -156,7 +460,7 @@ subroutine amrex_hbvec3(vec, &
      do k = reg_l3, reg_h3
         do j = reg_l2, reg_h2
            if (mask(i-1,j,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -165,7 +469,7 @@ subroutine amrex_hbvec3(vec, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                  endif
                  bfv = bfv * b(i,j,k)
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfv = beta / h
               else
                  print *, "hbvec3: unsupported boundary type"
@@ -180,7 +484,7 @@ subroutine amrex_hbvec3(vec, &
      do k = reg_l3, reg_h3
         do j = reg_l2, reg_h2
            if (mask(i+1,j,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -189,7 +493,7 @@ subroutine amrex_hbvec3(vec, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                  endif
                  bfv = bfv * b(i+1,j,k)
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfv = beta / h
               else
                  print *, "hbvec3: unsupported boundary type"
@@ -204,7 +508,7 @@ subroutine amrex_hbvec3(vec, &
      do k = reg_l3, reg_h3
         do i = reg_l1, reg_h1
            if (mask(i,j-1,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -213,7 +517,7 @@ subroutine amrex_hbvec3(vec, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                  endif
                  bfv = bfv * b(i,j,k)
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfv = beta / h
               else
                  print *, "hbvec3: unsupported boundary type"
@@ -228,7 +532,7 @@ subroutine amrex_hbvec3(vec, &
      do k = reg_l3, reg_h3
         do i = reg_l1, reg_h1
            if (mask(i,j+1,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -237,7 +541,7 @@ subroutine amrex_hbvec3(vec, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                  endif
                  bfv = bfv * b(i,j+1,k)
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfv = beta / h
               else
                  print *, "hbvec3: unsupported boundary type"
@@ -252,7 +556,7 @@ subroutine amrex_hbvec3(vec, &
      do j = reg_l2, reg_h2
         do i = reg_l1, reg_h1
            if (mask(i,j,k-1) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -261,7 +565,7 @@ subroutine amrex_hbvec3(vec, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                  endif
                  bfv = bfv * b(i,j,k)
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfv = beta / h
               else
                  print *, "hbvec3: unsupported boundary type"
@@ -276,7 +580,7 @@ subroutine amrex_hbvec3(vec, &
      do j = reg_l2, reg_h2
         do i = reg_l1, reg_h1
            if (mask(i,j,k+1) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -285,7 +589,7 @@ subroutine amrex_hbvec3(vec, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                  endif
                  bfv = bfv * b(i,j,k+1)
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfv = beta / h
               else
                  print *, "hbvec3: unsupported boundary type"
@@ -306,7 +610,6 @@ subroutine amrex_hmac(mat, a, &
                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                 alpha) bind(C, name="amrex_hmac")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   real(rt)         :: a(abox_l1:abox_h1,abox_l2:abox_h2,abox_l3:abox_h3)
@@ -339,7 +642,6 @@ subroutine amrex_hmac_ij(a,abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3, &
      reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3,alpha, &
      Amat,Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) bind(C, name="amrex_hmac_ij")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   real(rt)         :: a(abox_l1:abox_h1,abox_l2:abox_h2,abox_l3:abox_h3)
@@ -347,7 +649,7 @@ subroutine amrex_hmac_ij(a,abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3, &
   integer :: Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3
   integer :: Index(Gbox_l1:Gbox_h1,Gbox_l2:Gbox_h2,Gbox_l3:Gbox_h3)
   ! HYPRE objects
-  integer(kind=8) :: Amat
+  integer(c_long) :: Amat
   integer :: i, j, k, ierr, count
   integer :: nrows
   integer,  dimension(:), pointer :: cols
@@ -412,7 +714,6 @@ subroutine amrex_hmbc(mat, b, &
                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                 beta, dx, n) bind(C, name="amrex_hmbc")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: n
@@ -463,7 +764,6 @@ subroutine amrexhmbc_ij(b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, reg_
                    beta, dx, n, &
                    Amat, Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) bind(C, name="amrex_hmbc_ij")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: n
@@ -472,7 +772,7 @@ subroutine amrexhmbc_ij(b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, reg_
   integer :: Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3
   integer :: Index(Gbox_l1:Gbox_h1,Gbox_l2:Gbox_h2,Gbox_l3:Gbox_h3)
   ! HYPRE objects
-  integer(kind=8) :: Amat
+  integer(c_long) :: Amat
 
   integer :: nrows, ncols, rows
   integer, dimension(3) :: cols
@@ -568,7 +868,6 @@ subroutine amrex_hmmat(mat, &
                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                  beta, dx) bind(C, name="amrex_hmmat")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
@@ -591,7 +890,7 @@ subroutine amrex_hmmat(mat, &
 
   fac = beta / (h**2)
 
-  if (bct == LO_DIRICHLET) then
+  if (bct == amrex_lo_dirichlet) then
      if (bho >= 1) then
         h2 = 0.5e0_rt * h
         th2 = 3.e0_rt * h2
@@ -601,7 +900,7 @@ subroutine amrex_hmmat(mat, &
         bfv = (beta / h) / (0.5e0_rt * h + bcl)
         bfm = bfv - fac
      endif
-  else if (bct == LO_NEUMANN) then
+  else if (bct == amrex_lo_neumann) then
      bfm = -fac
      bfm2 = 0.e0_rt
   else
@@ -697,9 +996,9 @@ subroutine amrex_hmmat_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
                  mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
-                 beta, dx, Amat, Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) bind(C, name="amrex_hmmat_ij")
+                 beta, dx, Amat, Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) &
+                 bind(C, name="amrex_hmmat_ij")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
@@ -710,7 +1009,7 @@ subroutine amrex_hmmat_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
   integer :: Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3
   integer :: Index(Gbox_l1:Gbox_h1,Gbox_l2:Gbox_h2,Gbox_l3:Gbox_h3)
   ! HYPRE objects
-  integer(kind=8) :: Amat
+  integer(c_long) :: Amat
   real(rt)         :: h, fac, bfm, bfv
   real(rt)         :: bfm2, h2, th2
   integer :: i, j, k, ierr
@@ -729,7 +1028,7 @@ subroutine amrex_hmmat_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
   endif
   
   fac = beta / (h**2)
-  if (bct == LO_DIRICHLET) then
+  if (bct == amrex_lo_dirichlet) then
      if (bho >= 1) then
         h2 = 0.5e0_rt * h
         th2 = 3.e0_rt * h2
@@ -739,7 +1038,7 @@ subroutine amrex_hmmat_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
         bfv = (beta / h) / (0.5e0_rt * h + bcl)
         bfm = bfv - fac
      endif
-  else if (bct == LO_NEUMANN) then
+  else if (bct == amrex_lo_neumann) then
      bfm = -fac
      bfm2 = 0.e0_rt
   else
@@ -952,7 +1251,6 @@ subroutine amrex_hmmat3(mat, &
                   b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                   beta, dx) bind(C, name="amrex_hmmat3")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
@@ -980,7 +1278,7 @@ subroutine amrex_hmmat3(mat, &
      do k = reg_l3, reg_h3
         do j = reg_l2, reg_h2
            if (mask(i-1,j,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -990,7 +1288,7 @@ subroutine amrex_hmmat3(mat, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1010,7 +1308,7 @@ subroutine amrex_hmmat3(mat, &
      do k = reg_l3, reg_h3
         do j = reg_l2, reg_h2
            if (mask(i+1,j,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1020,7 +1318,7 @@ subroutine amrex_hmmat3(mat, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i+1,j,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1040,7 +1338,7 @@ subroutine amrex_hmmat3(mat, &
      do k = reg_l3, reg_h3
         do i = reg_l1, reg_h1
            if (mask(i,j-1,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1050,7 +1348,7 @@ subroutine amrex_hmmat3(mat, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1070,7 +1368,7 @@ subroutine amrex_hmmat3(mat, &
      do k = reg_l3, reg_h3
         do i = reg_l1, reg_h1
            if (mask(i,j+1,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1080,7 +1378,7 @@ subroutine amrex_hmmat3(mat, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j+1,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1100,7 +1398,7 @@ subroutine amrex_hmmat3(mat, &
      do j = reg_l2, reg_h2
         do i = reg_l1, reg_h1
            if (mask(i,j,k-1) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1110,7 +1408,7 @@ subroutine amrex_hmmat3(mat, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1130,7 +1428,7 @@ subroutine amrex_hmmat3(mat, &
      do j = reg_l2, reg_h2
         do i = reg_l1, reg_h1
            if (mask(i,j,k+1) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1140,7 +1438,7 @@ subroutine amrex_hmmat3(mat, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j,k+1)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1166,9 +1464,8 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                   mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
                   b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                   beta, dx,      &
-                  Amat, Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) bind(C, name="amrex_hmmat3_ij")
-
-  use amrex_fort_module, only : rt => amrex_real
+                  Amat, Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) &
+                  bind(C, name="amrex_hmmat3_ij")
   
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
@@ -1180,7 +1477,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
   integer  :: Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3
   integer  :: Index(Gbox_l1:Gbox_h1,Gbox_l2:Gbox_h2,Gbox_l3:Gbox_h3)
   ! HYPRE objects
-  integer(kind=8) :: Amat
+  integer(c_long) :: Amat
   real(rt)  :: h, fac, bfm, bfv
   real(rt)  :: bfm2, h2, th2
   integer :: i, j, k, bct, ierr
@@ -1221,7 +1518,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
            
            if (mask(i-1,j,k) > 0) then
 
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1231,7 +1528,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1271,7 +1568,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
            values(2) = -fac*b(i,j,k)
 
            if (mask(i+1,j,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1281,7 +1578,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i+1,j,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1318,7 +1615,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
            values(2) = - fac * b(i,j+1,k)
            
            if (mask(i,j-1,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1328,7 +1625,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1367,7 +1664,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
            values(2) = - fac * b(i,j,k)
            
            if (mask(i,j+1,k) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1377,7 +1674,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j+1,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1415,7 +1712,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
            values(2) = - fac * b(i,j,k+1)
 
            if (mask(i,j,k-1) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1425,7 +1722,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j,k)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1462,7 +1759,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
            values(2) = - fac * b(i,j,k)
            
            if (mask(i,j,k+1) > 0) then
-              if (bct == LO_DIRICHLET) then
+              if (bct == amrex_lo_dirichlet) then
                  if (bho >= 1) then
                     h2 = 0.5e0_rt * h
                     th2 = 3.e0_rt * h2
@@ -1472,7 +1769,7 @@ subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                     bfv = (beta / h) / (0.5e0_rt * h + bcl)
                     bfm = bfv * b(i,j,k+1)
                  endif
-              else if (bct == LO_NEUMANN) then
+              else if (bct == amrex_lo_neumann) then
                  bfm  = 0.e0_rt
                  bfm2 = 0.e0_rt
               else
@@ -1505,7 +1802,6 @@ subroutine amrex_buildglobalindex(Index, &
      reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
      GIndex) bind(C, name="amrex_BuildGlobalIndex")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: Index(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
@@ -1526,15 +1822,15 @@ end subroutine amrex_buildglobalindex
 
 
 subroutine amrex_conv_Vec_Local_Global(X, vec, nRows, &
-     reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, Index, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3) bind(C, name="amrex_conv_Vec_Local_Global")
+     reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, Index, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3) &
+     bind(C, name="amrex_conv_Vec_Local_Global")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: Index(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   integer :: nRows
   real(rt) :: vec(reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
-  integer(kind=8) :: X
+  integer(c_long) :: X
   real(rt) :: VecGB(0:(nRows-1))
   integer  :: Indices(0:(nRows-1))
   integer :: i, j, k, count, ierr
@@ -1562,7 +1858,6 @@ end subroutine amrex_conv_Vec_Local_Global
 subroutine amrex_conv_Vec_Global_Local(vec, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, VecGB, nRows, &
      reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3) bind(C, name="amrex_conv_Vec_Global_Local")
 
-  use amrex_fort_module, only : rt => amrex_real
   integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: nRows
   real(rt) :: VecGB(0:(nRows-1))
