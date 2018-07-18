@@ -1,6 +1,6 @@
-subroutine compute_f(lo, hi, domlo, domhi, phi, philo, phihi, &
+subroutine evaluate_f(lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi,f, flo,fhi, &
-                         dx,npiece) bind(C, name="compute_f")
+                         dx,v,nu,npiece) bind(C, name="evaluate_f")
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -11,7 +11,7 @@ subroutine compute_f(lo, hi, domlo, domhi, phi, philo, phihi, &
   real(amrex_real), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2))
   real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
   real(amrex_real), intent(inout) :: f   (flo(1):fhi(1),flo(2):fhi(2))
-  real(amrex_real), intent(in)    :: dx(2)
+  real(amrex_real), intent(in)    :: dx(2),v,nu
 
 
   !  Decide which piece it is we are doing
@@ -20,26 +20,26 @@ subroutine compute_f(lo, hi, domlo, domhi, phi, philo, phihi, &
   !  npiece = 2 means 2nd implicit in misdc
   select case (npiece)
   case(0)
-    call compute_fexp (lo, hi, domlo, domhi, phi, philo, phihi, &
+    call evaluate_fexp (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi,f, flo,fhi, &
-                         dx)
+                         dx,v)
   case(1)
-    call compute_fimp (lo, hi, domlo, domhi, phi, philo, phihi, &
+    call evaluate_fimp (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi,f, flo,fhi, &
-                         dx)
+                         dx,nu)
   case(2)
-    call compute_fimp (lo, hi, domlo, domhi, phi, philo, phihi, &
+    call evaluate_fimp (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi,f, flo,fhi, &
-                         dx)
+                         dx,nu)
   case default
      print *, 'error statement here'
   end select   
 
-end subroutine compute_f
+end subroutine evaluate_f
 
-subroutine compute_fexp (lo, hi, domlo, domhi, phi, philo, phihi, &
+subroutine evaluate_fexp (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi,f, flo,fhi, &
-                         dx) bind(C, name="compute_fexp")
+                         dx,v) bind(C, name="evaluate_fexp")
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -51,13 +51,13 @@ subroutine compute_fexp (lo, hi, domlo, domhi, phi, philo, phihi, &
   real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
   real(amrex_real), intent(inout) :: f   (flo(1):fhi(1),flo(2):fhi(2))
   real(amrex_real), intent(in)    :: dx(2)
+  real(amrex_real), intent(in)    :: v
 
 
   
   ! local variables
   integer i,j
-  real(amrex_real) v
-  v=0.5d0
+
   ! x-fluxes
   do j = lo(2), hi(2)
   do i = lo(1), hi(1)+1
@@ -80,12 +80,12 @@ subroutine compute_fexp (lo, hi, domlo, domhi, phi, philo, phihi, &
   end do
   end do
 
-end subroutine compute_fexp
+end subroutine evaluate_fexp
 
 !  Subroutine to return the value of the implicit part of the function
-subroutine compute_fimp (lo, hi, domlo, domhi, phi, philo, phihi, &
+subroutine evaluate_fimp (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi,f, flo,fhi, &
-                         dx) bind(C, name="compute_fimp")
+                         dx,nu) bind(C, name="evaluate_fimp")
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -97,7 +97,7 @@ subroutine compute_fimp (lo, hi, domlo, domhi, phi, philo, phihi, &
   real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
   real(amrex_real), intent(inout) :: f   (flo(1):fhi(1),flo(2):fhi(2))
   real(amrex_real), intent(in)    :: dx(2)
-
+  real(amrex_real), intent(in)    :: nu
 
   
   ! local variables
@@ -120,45 +120,13 @@ subroutine compute_fimp (lo, hi, domlo, domhi, phi, philo, phihi, &
   !  Function value
   do j = lo(2), hi(2)
      do i = lo(1), hi(1)
-        f(i,j) =  0.1d0*((fluxx(i+1,j  ) - fluxx(i,j))/dx(1) &
+        f(i,j) =  nu*((fluxx(i+1,j  ) - fluxx(i,j))/dx(1) &
           + (fluxy(i  ,j+1) - fluxy(i,j))/dx(2))
 
   end do
   end do
 
-end subroutine compute_fimp
+end subroutine evaluate_fimp
 
 
-subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-                       fluxx, fxlo, fxhi, fluxy, fylo, fyhi, &
-                       dx, dt) bind(C, name="update_phi")
-
-  use amrex_fort_module, only : amrex_real
-  implicit none
-
-  integer lo(2), hi(2), polo(2), pohi(2), pnlo(2), pnhi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2)
-  real(amrex_real), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2))
-  real(amrex_real), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
-  real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
-  real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
-  real(amrex_real), intent(in)    :: dx(2)
-  real(amrex_real), value         :: dt
-
-  ! local variables
-  integer i,j
-  real(amrex_real) :: dtdx(2)
-
-  dtdx = dt/dx
-
-  do j = lo(2), hi(2)
-  do i = lo(1), hi(1)
-
-     phinew(i,j) = phiold(i,j) &
-          + dtdx(1) * (fluxx(i+1,j  ) - fluxx(i,j)) &
-          + dtdx(2) * (fluxy(i  ,j+1) - fluxy(i,j))
-
-  end do
-  end do
-
-end subroutine update_phi
 

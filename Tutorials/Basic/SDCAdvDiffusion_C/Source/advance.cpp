@@ -15,23 +15,27 @@ void sweep(MultiFab& phi_old,
 	   Vector<MultiFab>& phi_sdc,
 	   Vector<MultiFab>& res_sdc,
 	   Vector<Vector<MultiFab> >& f_sdc,
-	   Real dt,
+	   Real dt,Real v,Real nu,
 	   const Geometry& geom,
 	   const BoxArray& grids, 
 	   const DistributionMapping& dmap, 
 	   const Vector<BCRec>& bc,
            SDCstuff sdcmats)
 {
-  /*  We use an MLABecLaplacian operator:
+  /*  SDC example for advection diffusion
+
+      An IMEX or semi-implicit SDC method is used
+     
+      We use an MLABecLaplacian operator:
 
       (ascalar*acoef - bscalar div bcoef grad) phi = RHS
       
-      for an implicit discretization of the heat equation
+      for an implicit discretization of the diffusion part
       
-      (I - div dt grad) phi^{n+1} = phi^n
+      (I - div dt grad) phi^{m+1} = rhs
   */
-  Real dt_m,nudt_m;
-  Real qij;
+  Real dt_m;    //  Substep size 
+  Real qij;     //  temp for quadrature coefficients
 
   const Box& domain_bx = geom.Domain();
   const Real* dx = geom.CellSize();
@@ -46,35 +50,14 @@ void sweep(MultiFab& phi_old,
   
   //  Compute the first function value
   int sdc_m=0;
-  for (int nf = 0; nf < SDC_NPIECES; nf++)
-    {
-      for ( MFIter mfi(phi_sdc[sdc_m]); mfi.isValid(); ++mfi )
-	{
-	  const Box& bx = mfi.validbox();
-	  
-	  compute_f(BL_TO_FORTRAN_BOX(bx),
-		    BL_TO_FORTRAN_BOX(domain_bx),
-		    BL_TO_FORTRAN_ANYD(phi_sdc[sdc_m][mfi]),
-		    BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-		    BL_TO_FORTRAN_ANYD(flux[1][mfi]),
-#if (AMREX_SPACEDIM == 3)   
-		    BL_TO_FORTRAN_ANYD(flux[2][mfi]),
-#endif		       
-		    BL_TO_FORTRAN_ANYD(f_sdc[nf][sdc_m][mfi]),
-		    dx,&nf);
-	}
-    }
+  evaluate_f_m(phi_sdc,f_sdc, flux, geom, v, nu,sdc_m);
 
 
   // Copy first function value to all nodes
   for (int nf = 0; nf < SDC_NPIECES; nf++)
-    {
-      
-      for (int sdc_n = 1; sdc_n < SDC_NNODES; sdc_n++)
-	{
-	  MultiFab::Copy(f_sdc[nf][sdc_n],f_sdc[nf][0], 0, 0, 1, 0);
-	}
-    }
+    for (int sdc_n = 1; sdc_n < SDC_NNODES; sdc_n++)
+      MultiFab::Copy(f_sdc[nf][sdc_n],f_sdc[nf][0], 0, 0, 1, 0);
+
   // assorment of solver and parallization options and parameters
   // see AMReX_MLLinOp.H for the defaults, accessors, and mutators
   LPInfo info;
@@ -171,27 +154,11 @@ void sweep(MultiFab& phi_old,
   // relative and absolute tolerances for linear solve
   const Real tol_rel = 1.e-10;
   const Real tol_abs = 0.0;
-  
   for (int k=1; k <= sdcmats.nsweeps; ++k)
     {
       amrex::Print() << "sweep " << k << "\n";
-      // Compute the quadrature term
-      for (int sdc_m = 0; sdc_m < SDC_NNODES-1; sdc_m++)
-	{
-	  for ( MFIter mfi(res_sdc[sdc_m]); mfi.isValid(); ++mfi )
-	    {
-	      const Box& bx = mfi.validbox();
-	      res_sdc[sdc_m].setVal(0.0);
-	      for (int sdc_n = 0; sdc_n < SDC_NNODES; sdc_n++)
-		{
-		  for (int nf = 0; nf < SDC_NPIECES; nf++)
-		    {
-		      qij = dt*(sdcmats.qmats[0][sdc_m][sdc_n]-sdcmats.qmats[nf+1][sdc_m][sdc_n]);
-		      res_sdc[sdc_m][mfi].saxpy(qij,f_sdc[nf][sdc_n][mfi],bx,bx,0,0,1);
-		    }
-		}
-	    }
-	}
+      
+      compute_integral_term(phi_sdc, res_sdc, f_sdc, dt, sdcmats);
       
       //  Substep over SDC nodes
       for (int sdc_m = 0; sdc_m < SDC_NNODES-1; sdc_m++)
@@ -200,18 +167,18 @@ void sweep(MultiFab& phi_old,
 	  
 	  // use phi_new as rhs
 	  MultiFab::Copy(phi_new,phi_sdc[0], 0, 0, 1, 0);
+
+	  // Collect all contributions from function values at this iteration
 	  for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
 	    {
 	      const Box& bx = mfi.validbox();
 	      phi_new[mfi].saxpy(1.0,res_sdc[sdc_m][mfi],bx,bx,0,0,1);
 	      for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
-		{
-		  for (int nf = 0; nf < SDC_NPIECES; nf++)
-		    {
-		      qij = dt*sdcmats.qmats[nf+1][sdc_m][sdc_n];
-		      phi_new[mfi].saxpy(qij,f_sdc[nf][sdc_n][mfi],bx,bx,0,0,1);
-		    }
-		}
+		for (int nf = 0; nf < SDC_NPIECES; nf++)
+		  {
+		    qij = dt*sdcmats.qmats[nf+1][sdc_m][sdc_n];
+		    phi_new[mfi].saxpy(qij,f_sdc[nf][sdc_n][mfi],bx,bx,0,0,1);
+		  }
 	    }
 	  
 	  // Fill the ghost cells of each grid from the other grids
@@ -226,14 +193,14 @@ void sweep(MultiFab& phi_old,
 	      //		const BoxArray& ba = amrex::convert(acoef.boxArray(),
 	      //					    IntVect::TheDimensionVector(idim));
 	      //		face_bcoef[idim].define(ba, acoef.DistributionMap(), 1, 0);
-	      face_bcoef[idim].setVal(0.1*dt_m);
+	      face_bcoef[idim].setVal(nu*dt_m);
 	    }
 	  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
 	  
 	  // set the boundary conditions
 	  mlabec.setLevelBC(0, &phi_new);
 	  
-	  // get the best initial guess
+	  // get the best initial guess in the next phi
 	  MultiFab::Copy(phi_sdc[sdc_m+1],phi_new, 0, 0, 1, 0);
 	  for ( MFIter mfi(phi_sdc[sdc_m+1]); mfi.isValid(); ++mfi )
 	    {
@@ -241,32 +208,12 @@ void sweep(MultiFab& phi_old,
 	      qij = dt*sdcmats.qmats[2][sdc_m][sdc_m+1];
 	      phi_sdc[sdc_m+1][mfi].saxpy(qij,f_sdc[1][sdc_m+1][mfi],bx,bx,0,0,1);
 	    }
-	  phi_sdc[sdc_m+1].FillBoundary(geom.periodicity());
-	  phi_new.FillBoundary(geom.periodicity());
+
 	  // Solve linear system
 	  mlmg.solve({&phi_sdc[sdc_m+1]}, {&phi_new}, tol_rel, tol_abs);
 
-	  // Compute the fluxes at node sdc_m+1
-	  phi_sdc[sdc_m+1].FillBoundary(geom.periodicity());
-	  for (int nf = 0; nf < SDC_NPIECES; nf++)
-	    {
-	      for ( MFIter mfi(phi_sdc[sdc_m+1]); mfi.isValid(); ++mfi )
-		{
-		  const Box& bx = mfi.validbox();
-		  
-		  compute_f(BL_TO_FORTRAN_BOX(bx),
-			    BL_TO_FORTRAN_BOX(domain_bx),
-			    BL_TO_FORTRAN_ANYD(phi_sdc[sdc_m+1][mfi]),
-			    BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-			    BL_TO_FORTRAN_ANYD(flux[1][mfi]),
-#if (AMREX_SPACEDIM == 3)   
-			    BL_TO_FORTRAN_ANYD(flux[2][mfi]),
-#endif		       
-			    BL_TO_FORTRAN_ANYD(f_sdc[nf][sdc_m+1][mfi]),
-			    dx,&nf);
-		}
-	    }
-	  
+	  // Evaluate the function values at node sdc_m+1
+	  evaluate_f_m(phi_sdc,f_sdc, flux, geom, v, nu,sdc_m+1);	  
 
 	  
 	} // end SDC substep loop
@@ -277,3 +224,59 @@ void sweep(MultiFab& phi_old,
 
 }
 
+void evaluate_f_m(Vector<MultiFab>& phi_sdc,
+		  Vector<Vector<MultiFab> >& f_sdc,
+		  std::array<MultiFab, AMREX_SPACEDIM>& flux,
+		  const Geometry& geom,Real v,Real nu,
+		  int sdc_m)
+// Evaluate the function values at SDC node sdc_m
+{
+  
+  const Box& domain_bx = geom.Domain();
+  const Real* dx = geom.CellSize();
+  
+  phi_sdc[sdc_m].FillBoundary(geom.periodicity());
+  for (int nf = 0; nf < SDC_NPIECES; nf++)
+    {
+      for ( MFIter mfi(phi_sdc[sdc_m]); mfi.isValid(); ++mfi )
+	{
+	  const Box& bx = mfi.validbox();
+	  
+	  evaluate_f(BL_TO_FORTRAN_BOX(bx),
+		     BL_TO_FORTRAN_BOX(domain_bx),
+		     BL_TO_FORTRAN_ANYD(phi_sdc[sdc_m][mfi]),
+		     BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+		     BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+#if (AMREX_SPACEDIM == 3)   
+		     BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+#endif		       
+		     BL_TO_FORTRAN_ANYD(f_sdc[nf][sdc_m][mfi]),
+		     dx,&v,&nu,&nf);
+	}
+    }
+  
+}
+void compute_integral_term(Vector<MultiFab>& phi_sdc,
+	   Vector<MultiFab>& res_sdc,
+	   Vector<Vector<MultiFab> >& f_sdc,
+	   Real dt,
+           SDCstuff sdcmats)
+{
+  Real qij;     //  temp for quadrature coefficients
+  
+  // Compute the quadrature terms from previous SDC iteration
+  for (int sdc_m = 0; sdc_m < SDC_NNODES-1; sdc_m++)
+    for ( MFIter mfi(res_sdc[sdc_m]); mfi.isValid(); ++mfi )
+	{
+	  const Box& bx = mfi.validbox();
+	  res_sdc[sdc_m][mfi].setVal(0.0);
+	  for (int sdc_n = 0; sdc_n < SDC_NNODES; sdc_n++)
+	    for (int nf = 0; nf < SDC_NPIECES; nf++)
+	      {
+		qij = dt*(sdcmats.qmats[0][sdc_m][sdc_n]-sdcmats.qmats[nf+1][sdc_m][sdc_n]);
+		res_sdc[sdc_m][mfi].saxpy(qij,f_sdc[nf][sdc_n][mfi],bx,bx,0,0,1);
+	      }
+	}
+}
+    
+  
