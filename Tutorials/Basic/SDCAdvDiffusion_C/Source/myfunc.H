@@ -41,11 +41,22 @@ void sweep (MultiFab& phi_old,
 	    Vector<MultiFab>& phi_sdc,
 	    Vector<MultiFab>& res_sdc,
 	    Vector<Vector<MultiFab> >& f_sdc,
-	    Real dt,
+	    Real dt,Real v,Real nu,
 	    const Geometry& geom, 
 	    const BoxArray& grids,
 	    const DistributionMapping& dmap, 
 	    const Vector<BCRec>& bc,
             SDCstuff sdcmats);
+
+void compute_integral_term(Vector<MultiFab>& phi_sdc,
+			     Vector<MultiFab>& res_sdc,
+			     Vector<Vector<MultiFab> >& f_sdc,
+			     Real dt, SDCstuff sdcmats);
+
+void evaluate_f_m(Vector<MultiFab>& phi_sdc,
+		    Vector<Vector<MultiFab> >& f_sdc,
+		    std::array<MultiFab, AMREX_SPACEDIM>& flux,
+		    const Geometry& geom, Real v,Real nu,
+		    int m);
 
 #endif

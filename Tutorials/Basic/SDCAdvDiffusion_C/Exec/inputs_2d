@@ -1,8 +1,10 @@
-# Implicit time step is set to 10 * (explicit time step)
-nsteps = 20
+# Inputs for advection diffusion example
+nsteps = 6
 plot_int = 1
 n_cell = 128
-max_grid_size = 32
+max_grid_size = 64
+nu = 0.1
+v = 1.0
 
 ! 0 = periodic
 ! 2 = homogeneous Neumann (zero flux)

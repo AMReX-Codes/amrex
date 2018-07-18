@@ -20,7 +20,8 @@ void main_main ()
 {
     // What time is it now?  We'll use this to compute total run time.
     Real strt_time = ParallelDescriptor::second();
-
+    Real nu;
+    Real v;    
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
     Vector<int> bc_lo(AMREX_SPACEDIM,0);
@@ -47,6 +48,8 @@ void main_main ()
         // Default nsteps to 0, allow us to set it to something else in the inputs file
         nsteps = 10;
         pp.query("nsteps",nsteps);
+	pp.query("nu",nu);
+	pp.query("v",v);
 
         // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
         pp.queryarr("bc_lo", bc_lo);
@@ -196,31 +199,30 @@ void main_main ()
     for (int n = 1; n <= nsteps; ++n)
     {
 
-
-        // Do sdc sweeps
-        sweep(phi_old, phi_new,flux, phi_sdc,res_sdc,f_sdc, dt, geom,ba, dm, bc,sdcmats); 
-        time = time + dt;
-	MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);    
-
-	// Turn the solution into the error
-	int plot_err = 1;
-	if (plot_err == 1) 
-	  for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
-	    {
-	      const Box& bx = mfi.validbox();
-	      err_phi(BL_TO_FORTRAN_BOX(bx),
-		      BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-		      geom.CellSize(), geom.ProbLo(), geom.ProbHi(),&time);
-	    }
-
-        // Tell the I/O Processor to write out which step we're doing
-        amrex::Print() << "Advanced step " << n << "\n";
-
-        // Write a plotfile of the current data (plot_int was defined in the inputs file)
-        if (plot_int > 0 && n%plot_int == 0)
+      // Do sdc sweeps
+      sweep(phi_old, phi_new,flux, phi_sdc,res_sdc,f_sdc, dt,v,nu, geom,ba, dm, bc,sdcmats); 
+      time = time + dt;
+      MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);    
+      
+      // Turn the solution into the error
+      int plot_err = 1;
+      if (plot_err == 1) 
+	for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+	  {
+	    const Box& bx = mfi.validbox();
+	    err_phi(BL_TO_FORTRAN_BOX(bx),
+		    BL_TO_FORTRAN_ANYD(phi_new[mfi]),
+		    geom.CellSize(), geom.ProbLo(), geom.ProbHi(),&time,&v,&nu);
+	  }
+      
+      // Tell the I/O Processor to write out which step we're doing
+      amrex::Print() << "Advanced step " << n << "\n";
+      
+      // Write a plotfile of the current data (plot_int was defined in the inputs file)
+      if (plot_int > 0 && n%plot_int == 0)
         {
-            const std::string& pltfile = amrex::Concatenate("plt",n,5);
-            WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
+	  const std::string& pltfile = amrex::Concatenate("plt",n,5);
+	  WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
         }
     }
 

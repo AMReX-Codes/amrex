@@ -16,18 +16,14 @@ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, nam
   do j = lo(2), hi(2)
      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
      do i = lo(1), hi(1)
-        x = prob_lo(1) + (dble(i)) * dx(1)
-
-        r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
-
-
+        x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
         phi(i,j) = sin(x*tupi)*sin(y*tupi)
      end do
   end do
 
 end subroutine init_phi
 
-subroutine err_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi,time) bind(C, name="err_phi")
+subroutine err_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi,time,v,nu) bind(C, name="err_phi")
 
   use amrex_fort_module, only : amrex_real
 
@@ -39,13 +35,18 @@ subroutine err_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi,time) bind(C,
   real(amrex_real), intent(in   ) :: prob_lo(2) 
   real(amrex_real), intent(in   ) :: prob_hi(2) 
   real(amrex_real), intent(in   ) :: time
+  real(amrex_real), intent(in   ) :: v !  Velocity
+  real(amrex_real), intent(in   ) :: nu !  diffusion coefficient
 
   integer          :: i,j
-  double precision :: x,y,r2,sym,tupi,v, tranx,trany
+  double precision :: x,y, tranx,trany
+  double precision :: sym,tupi
 
   tupi=3.14159265358979323846d0*2d0
   sym=(-4.0d0+2.0d0*cos(tupi*dx(1))+2.0d0*cos(tupi*dx(2)))/(dx(1)*dx(1))
-  v=0.5d0
+
+
+  
   !  print *,Tfin,tupi,sym
   trany = v*(1.0d0-dx(2)*dx(2)*tupi*tupi/6)*time
   tranx = v*(1.0d0-dx(1)*dx(1)*tupi*tupi/6)*time          
@@ -54,12 +55,9 @@ subroutine err_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi,time) bind(C,
   do j = lo(2), hi(2)
      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)+trany
      do i = lo(1), hi(1)
-        !        x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
-        x = prob_lo(1) + (dble(i)) * dx(1) + tranx
+        x = prob_lo(1) + (dble(i)+0.5d0) * dx(1) + tranx
 
-        r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
-
-        phi(i,j) = phi(i,j)-sin(x*tupi)*sin(y*tupi)*exp(0.1d0*time*sym)
+        phi(i,j) = phi(i,j)-sin(x*tupi)*sin(y*tupi)*exp(nu*time*sym)
      end do
   end do
 
