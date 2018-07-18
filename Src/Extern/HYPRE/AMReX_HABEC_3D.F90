@@ -335,17 +335,17 @@ subroutine amrex_hmac(mat, a, &
 end subroutine amrex_hmac
 
 
-subroutine amrex_hmac_ij(a,DIMS(abox), &
-     DIMS(reg),alpha, &
-     Amat,Index, DIMS(Gbox)) bind(C, name="amrex_hmac_ij")
+subroutine amrex_hmac_ij(a,abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3, &
+     reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3,alpha, &
+     Amat,Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) bind(C, name="amrex_hmac_ij")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(abox)
-  integer :: DIMDEC(reg)
-  real(rt)         :: a(DIMV(abox))
+  integer :: abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  real(rt)         :: a(abox_l1:abox_h1,abox_l2:abox_h2,abox_l3:abox_h3)
   real(rt)         :: alpha
-  integer :: DIMDEC(Gbox)
-  integer :: Index(DIMV(Gbox))
+  integer :: Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3
+  integer :: Index(Gbox_l1:Gbox_h1,Gbox_l2:Gbox_h2,Gbox_l3:Gbox_h3)
   ! HYPRE objects
   integer(kind=8) :: Amat
   integer :: i, j, k, ierr, count
@@ -459,18 +459,18 @@ subroutine amrex_hmbc(mat, b, &
 end subroutine amrex_hmbc
 
 
-subroutine amrexhmbc_ij(b, DIMS(bbox), DIMS(reg), &
+subroutine amrexhmbc_ij(b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                    beta, dx, n, &
-                   Amat, Index, DIMS(Gbox)) bind(C, name="amrex_hmbc_ij")
+                   Amat, Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) bind(C, name="amrex_hmbc_ij")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(bbox)
-  integer :: DIMDEC(reg)
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: n
-  real(rt)  :: b(DIMV(bbox))
+  real(rt)  :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   real(rt)  :: beta, dx(3)
-  integer :: DIMDEC(Gbox)
-  integer :: Index(DIMV(Gbox))
+  integer :: Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3
+  integer :: Index(Gbox_l1:Gbox_h1,Gbox_l2:Gbox_h2,Gbox_l3:Gbox_h3)
   ! HYPRE objects
   integer(kind=8) :: Amat
 
@@ -693,22 +693,22 @@ subroutine amrex_hmmat(mat, &
 
 end subroutine amrex_hmmat
 
-subroutine amrex_hmmat_ij(DIMS(reg), &
+subroutine amrex_hmmat_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                  cdir, bct, bho, bcl, &
-                 mask, DIMS(msk), &
-                 b, DIMS(bbox), &
-                 beta, dx, Amat, Index, DIMS(Gbox)) bind(C, name="amrex_hmmat_ij")
+                 mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                 b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
+                 beta, dx, Amat, Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) bind(C, name="amrex_hmmat_ij")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer :: cdir, bct, bho
   real(rt) :: bcl, beta, dx(3)
-  integer :: mask(DIMV(msk))
-  real(rt) :: b(DIMV(bbox))
-  integer :: DIMDEC(Gbox)
-  integer :: Index(DIMV(Gbox))
+  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt) :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
+  integer :: Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3
+  integer :: Index(Gbox_l1:Gbox_h1,Gbox_l2:Gbox_h2,Gbox_l3:Gbox_h3)
   ! HYPRE objects
   integer(kind=8) :: Amat
   real(rt)         :: h, fac, bfm, bfv
@@ -1161,24 +1161,24 @@ subroutine amrex_hmmat3(mat, &
   endif
 end subroutine amrex_hmmat3
 
-subroutine amrex_hmmat3_ij(DIMS(reg), &
+subroutine amrex_hmmat3_ij(reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
                   cdir, bctype, bho, bcl, &
-                  mask, DIMS(msk), &
-                  b, DIMS(bbox), &
+                  mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
+                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
                   beta, dx,      &
-                  Amat, Index, DIMS(Gbox)) bind(C, name="amrex_hmmat3_ij")
+                  Amat, Index, Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3) bind(C, name="amrex_hmmat3_ij")
 
   use amrex_fort_module, only : rt => amrex_real
   
-  integer :: DIMDEC(reg)
-  integer :: DIMDEC(msk)
-  integer :: DIMDEC(bbox)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
   integer  :: cdir, bctype, bho
   real(rt) :: bcl, beta, dx(3)
-  integer  :: mask(DIMV(msk))
-  real(rt) :: b(DIMV(bbox))
-  integer  :: DIMDEC(Gbox)
-  integer  :: Index(DIMV(Gbox))
+  integer  :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
+  real(rt) :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
+  integer  :: Gbox_l1,Gbox_l2,Gbox_l3,Gbox_h1,Gbox_h2,Gbox_h3
+  integer  :: Index(Gbox_l1:Gbox_h1,Gbox_l2:Gbox_h2,Gbox_l3:Gbox_h3)
   ! HYPRE objects
   integer(kind=8) :: Amat
   real(rt)  :: h, fac, bfm, bfv
@@ -1501,14 +1501,14 @@ subroutine amrex_hmmat3_ij(DIMS(reg), &
 end subroutine amrex_hmmat3_ij
 
 subroutine amrex_buildglobalindex(Index, &
-     DIMS(bbox), &
-     DIMS(reg), &
+     bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
+     reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
      GIndex) bind(C, name="amrex_BuildGlobalIndex")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(bbox)
-  integer :: DIMDEC(reg)
-  integer :: Index(DIMV(bbox))
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: Index(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   integer :: GIndex
   integer :: i, j, k,count
 
@@ -1526,14 +1526,14 @@ end subroutine amrex_buildglobalindex
 
 
 subroutine amrex_conv_Vec_Local_Global(X, vec, nRows, &
-     DIMS(reg), Index, DIMS(bbox)) bind(C, name="amrex_conv_Vec_Local_Global")
+     reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, Index, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3) bind(C, name="amrex_conv_Vec_Local_Global")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(bbox)
-  integer :: DIMDEC(reg)
-  integer :: Index(DIMV(bbox))
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
+  integer :: Index(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   integer :: nRows
-  real(rt) :: vec(DIMV(reg))
+  real(rt) :: vec(reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
   integer(kind=8) :: X
   real(rt) :: VecGB(0:(nRows-1))
   integer  :: Indices(0:(nRows-1))
@@ -1559,15 +1559,15 @@ subroutine amrex_conv_Vec_Local_Global(X, vec, nRows, &
 end subroutine amrex_conv_Vec_Local_Global
 
 
-subroutine amrex_conv_Vec_Global_Local(vec, DIMS(bbox), VecGB, nRows, &
-     DIMS(reg)) bind(C, name="amrex_conv_Vec_Global_Local")
+subroutine amrex_conv_Vec_Global_Local(vec, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, VecGB, nRows, &
+     reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3) bind(C, name="amrex_conv_Vec_Global_Local")
 
   use amrex_fort_module, only : rt => amrex_real
-  integer :: DIMDEC(reg)
+  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
   integer :: nRows
   real(rt) :: VecGB(0:(nRows-1))
-  integer :: DIMDEC(bbox)
-  real(rt) :: vec(DIMV(bbox))
+  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
+  real(rt) :: vec(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
   integer :: i, j, k, count
 
   count = 0
