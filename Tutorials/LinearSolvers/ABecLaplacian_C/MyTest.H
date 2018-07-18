@@ -32,7 +32,7 @@ private:
 
     // For MLMG solver
     int verbose = 2;
-    int cg_verbose = 0;
+    int bottom_verbose = 0;
     int max_iter = 100;
     int max_fmg_iter = 0;
     int linop_maxorder = 2;

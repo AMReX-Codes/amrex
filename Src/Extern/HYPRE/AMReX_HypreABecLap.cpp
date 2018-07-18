@@ -286,14 +286,16 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     // build matrix interior
     const int* alo = (*acoefs)[mfi].loVect();
     const int* ahi = (*acoefs)[mfi].hiVect();
-    FORT_HPACOEF(mat, (*acoefs)[mfi].dataPtr(), ARLIM(alo), ARLIM(ahi),
-		 reg.loVect(), reg.hiVect(), scalar_a);
+    amrex_hpacoef(BL_TO_FORTRAN_BOX(reg),
+                  mat,
+                  BL_TO_FORTRAN_ANYD((*acoefs)[mfi]),
+                  &scalar_a);
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++) {
-      const int* blo = (*bcoefs[idim])[mfi].loVect();
-      const int* bhi = (*bcoefs[idim])[mfi].hiVect();
-      FORT_HPBCOEF(mat, (*bcoefs[idim])[mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		   reg.loVect(), reg.hiVect(), scalar_b, dx, idim);
+        amrex_hpbcoef(BL_TO_FORTRAN_BOX(reg),
+                      mat,
+                      BL_TO_FORTRAN_ANYD((*bcoefs[idim])[mfi]),
+                      &scalar_b, dx, &idim);
     }
 
     const Vector< Vector<BoundCond> > & bcs_i = bndry.bndryConds(i);
@@ -308,22 +310,21 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
       const Real      &bcl = bcl_i[cdir];
       const Mask      &msk = bndry.bndryMasks(oitr())[mfi];
       const FArrayBox &bcv = bndry.bndryValues(oitr())[mfi];
-      const int* blo = (*bcoefs[idim])[mfi].loVect();
-      const int* bhi = (*bcoefs[idim])[mfi].hiVect();
-      const int* mlo = msk.loVect();
-      const int* mhi = msk.hiVect();
-      const int* bvlo = bcv.loVect();
-      const int* bvhi = bcv.hiVect();
       
       if (reg[oitr()] == domain[oitr()] && is_periodic[idim] == 0) {
 	int bctype = bct;
-	FORT_HPBVEC3(vec, (*bcoefs[idim])[mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
-		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi),
-		     bcv.dataPtr(), ARLIM(bvlo), ARLIM(bvhi));
-	FORT_HPBMAT3(mat, (*bcoefs[idim])[mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
-		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));
+        amrex_hpbvec3(BL_TO_FORTRAN_BOX(reg),
+                      vec,
+                      BL_TO_FORTRAN_ANYD((*bcoefs[idim])[mfi]),
+                      BL_TO_FORTRAN_ANYD(msk),
+                      BL_TO_FORTRAN_ANYD(bcv),
+                      &scalar_b, dx, &cdir, &bctype, &bcl);
+
+        amrex_hpbmat3(BL_TO_FORTRAN_BOX(reg),
+                      mat,
+                      BL_TO_FORTRAN_ANYD((*bcoefs[idim])[mfi]),
+                      BL_TO_FORTRAN_ANYD(msk),
+                      &scalar_b, dx, &cdir, &bctype, &bcl);
       }
     }
 

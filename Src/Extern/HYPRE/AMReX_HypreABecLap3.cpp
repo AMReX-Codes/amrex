@@ -255,12 +255,12 @@ void HypreABecLap3::loadMatrix() {
 
     amrex_hmac_ij(BL_TO_FORTRAN(acoefs[mfi]), ARLIM(reg.loVect()),
                   ARLIM(reg.hiVect()), scalar_a,
-                  A, BL_TO_FORTRAN(GbInd[mfi]));
+                  &A, BL_TO_FORTRAN(GbInd[mfi]));
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++) {
       amrex_hmbc_ij(BL_TO_FORTRAN(bcoefs[idim][mfi]),
                     ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_b,
-                    geom.CellSize(), idim, A, BL_TO_FORTRAN(GbInd[mfi]));
+                    geom.CellSize(), idim, &A, BL_TO_FORTRAN(GbInd[mfi]));
     }
 
     // add b.c.'s to matrix diagonal, and
@@ -285,13 +285,13 @@ void HypreABecLap3::loadMatrix() {
                         cdir, bctype, bho, bcl,
                         BL_TO_FORTRAN(msk),
                         BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                        scalar_b, dx, A, BL_TO_FORTRAN(GbInd[mfi]));
+                        scalar_b, dx, &A, BL_TO_FORTRAN(GbInd[mfi]));
       } else {
         amrex_hmmat_ij(ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
                        cdir, bctype, bho, bcl,
                        BL_TO_FORTRAN(msk),
                        BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                       scalar_b, dx, A, BL_TO_FORTRAN(GbInd[mfi]));
+                       scalar_b, dx, &A, BL_TO_FORTRAN(GbInd[mfi]));
       }
     }
   }
@@ -329,7 +329,7 @@ void HypreABecLap3::loadVectors(MultiFab& soln, const MultiFab& rhs) {
 
     // Convert the 3D vec array to 1D array with indices
     // corresponding to row indices in the matrix
-    amrex_conv_Vec_Local_Global(x, vec, reg.numPts(),
+    amrex_conv_Vec_Local_Global(&x, vec, reg.numPts(),
                                 ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
                                 BL_TO_FORTRAN(GbInd[mfi]));
 
@@ -370,7 +370,7 @@ void HypreABecLap3::loadVectors(MultiFab& soln, const MultiFab& rhs) {
     }
 
     // initialize rhs
-    amrex_conv_Vec_Local_Global(b, vec, reg.numPts(),
+    amrex_conv_Vec_Local_Global(&b, vec, reg.numPts(),
                                 ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
                                 BL_TO_FORTRAN(GbInd[mfi]));
   }
