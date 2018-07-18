@@ -1,0 +1,17 @@
+Advection_Helmholtz_F: The features of this code are
+
+1. Multicomponent advection - Advects a specified number of scalar fields with a velocity field that is specified on faces with Neumann BC. The number of components is taken as an input - ncomp from the input file. The initial conditions for the components can be specified in Prob.f90.
+
+2. Helmholtz solver with Neumann BC integrated within the time loop. The Helmholtz problem (same as in LinearSolvers/ABecLaplacian_F) is constructed on the adapted grid and solved for within the time loop.
+
+3. Works in both 2d and 3d. make DIM=2 or DIM=3 to compile.
+
+4. Can be used as a starting template for CFD solvers.
+ 
+It is a AMReX based code designed to run in parallel using MPI.
+It uses the Fortran interfaces of AMReX.
+
+The directory Exec/SingleVortex includes a makefile and a sample inputs file.  
+Plotfiles are generated that can be viewed with amrvis2d / amrvis3d. 
+(CCSE's native vis / spreadsheet tool, downloadable separately from ccse.lbl.gov)
+or with Visit.
