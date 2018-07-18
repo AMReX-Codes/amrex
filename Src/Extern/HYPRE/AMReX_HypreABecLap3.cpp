@@ -468,7 +468,7 @@ void HypreABecLap3::getSolution(MultiFab& soln) {
     int i = mfi.index();
 
     // Storage for the solution vector returned by HYPRE
-    Real *VecGB = hypre_CTAlloc(double, reg.numPts(), HYPRE_MEMORY_HOST);
+    Real *VecGB = hypre_CTAlloc(double, reg.numPts());
 
     // Generate indices corresponding to all the boxes
     VecIndices.resize(reg.numPts());
@@ -487,7 +487,7 @@ void HypreABecLap3::getSolution(MultiFab& soln) {
       soln[mfi].copy(*f, 0, 0, 1);
     }
 
-    hypre_TFree(VecGB, HYPRE_MEMORY_HOST);
+    hypre_TFree(VecGB);
   }
 }
 

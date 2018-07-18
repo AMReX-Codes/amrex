@@ -13,12 +13,13 @@ static bool composite_solve = true;
 static bool fine_leve_solve_only = false;
 static int max_iter = 100;
 static int max_fmg_iter = 20;
+static int max_coarsening_level = 30;
 static int verbose  = 2;
 static int cg_verbose = 0;
 static int linop_maxorder = 2;
 static bool agglomeration = false;
 static bool consolidation = false;
-static int  hypreBottomSolver = 1;  // 1 is for Hypre solver
+static int  use_hypre = 0;
 }
 
 void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
@@ -33,17 +34,19 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
     pp.query("fine_leve_solve_only", fine_leve_solve_only);
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
+    pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("verbose", verbose);
     pp.query("cg_verbose", cg_verbose);
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
-    pp.query("Hypre_bottom_solve", hypreBottomSolver);
+    pp.query("use_hypre", use_hypre);
   }
 
   LPInfo info;
   info.setAgglomeration(agglomeration);
   info.setConsolidation(consolidation);
+  info.setMaxCoarseningLevel(max_coarsening_level);
 
   const Real tol_rel = 1.e-10;
   const Real tol_abs = 0.0;
@@ -89,9 +92,9 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
     MLMG mlmg(mlabec);
     mlmg.setMaxIter(max_iter);
     mlmg.setMaxFmgIter(max_fmg_iter);
-    if (hypreBottomSolver == 1) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+    if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
     mlmg.setVerbose(verbose);
-    if (hypreBottomSolver == 0) mlmg.setCGVerbose(cg_verbose);
+    mlmg.setBottomVerbose(cg_verbose);
 
     mlmg.solve(psoln, prhs, tol_rel, tol_abs);
   } else {
@@ -103,7 +106,8 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
     for (int ilev = levbegin; ilev < nlevels; ++ilev) {
       MLABecLaplacian mlabec({geom[ilev]},
                              {soln[ilev].boxArray()},
-                             {soln[ilev].DistributionMap()});
+                             {soln[ilev].DistributionMap()},
+                             info);
 
       mlabec.setMaxOrder(linop_maxorder);
 
@@ -134,7 +138,7 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
       mlmg.setMaxIter(max_iter);
       mlmg.setMaxFmgIter(max_fmg_iter);
       mlmg.setVerbose(verbose);
-      if (hypreBottomSolver == 0) mlmg.setCGVerbose(cg_verbose);
+      mlmg.setBottomVerbose(cg_verbose);
 
       mlmg.solve({&soln[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
     }
