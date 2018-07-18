@@ -559,7 +559,7 @@ subroutine amrexhmbc_ij(b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, reg_
      
   endif
   
-end subroutine hmbc_ij
+end subroutine amrexhmbc_ij
 
 subroutine amrex_hmmat(mat, &
                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
