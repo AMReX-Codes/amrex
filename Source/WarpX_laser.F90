@@ -3,8 +3,8 @@ module warpx_laser_module
 
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
-  use constants
-  use parser_wrapper
+  use constants, only : clight, pi
+  use parser_wrapper, only : parser_evaluate_function
 
   implicit none
 
@@ -43,9 +43,9 @@ contains
     ! Because diffract_factor is a complex, the code below takes into
     ! account the impact of the dimensionality on both the Gouy phase
     ! and the amplitude of the laser
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     prefactor = prefactor / diffract_factor
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     prefactor = prefactor / sqrt(diffract_factor)
 #endif
 

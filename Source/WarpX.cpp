@@ -10,10 +10,6 @@
 #endif
 
 #include <AMReX_ParmParse.H>
-
-#include <AMReX_MGT_Solver.H>
-#include <AMReX_stencil_types.H>
-
 #include <AMReX_MultiFabUtil.H>
 
 #include <WarpX.H>
@@ -35,6 +31,7 @@ long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
+int WarpX::maxwell_fdtd_solver_id = 0;
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
@@ -52,31 +49,31 @@ bool WarpX::do_boosted_frame_particles = true;
 
 bool WarpX::do_dynamic_scheduling = true;
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
 IntVect WarpX::Bz_nodal_flag(0,0,1);
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
 IntVect WarpX::Bx_nodal_flag(1,0);  // x is the first dimension to AMReX
 IntVect WarpX::By_nodal_flag(0,0);  // y is the missing dimension to 2D AMReX
 IntVect WarpX::Bz_nodal_flag(0,1);  // z is the second dimension to 2D AMReX
 #endif
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 IntVect WarpX::Ex_nodal_flag(0,1,1);
 IntVect WarpX::Ey_nodal_flag(1,0,1);
 IntVect WarpX::Ez_nodal_flag(1,1,0);
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
 IntVect WarpX::Ex_nodal_flag(0,1);  // x is the first dimension to AMReX
 IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
 IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 #endif
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 IntVect WarpX::jx_nodal_flag(0,1,1);
 IntVect WarpX::jy_nodal_flag(1,0,1);
 IntVect WarpX::jz_nodal_flag(1,1,0);
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
 IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to AMReX
 IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
 IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
@@ -146,9 +143,11 @@ WarpX::WarpX ()
 
     pml.resize(nlevs_max);
 
+#ifdef WARPX_DO_ELECTROSTATIC    
     masks.resize(nlevs_max);
     gather_masks.resize(nlevs_max);
-
+#endif // WARPX_DO_ELECTROSTATIC
+    
     costs.resize(nlevs_max);
 
 #ifdef WARPX_USE_PSATD
@@ -227,7 +226,7 @@ WarpX::ReadParameters ()
 	    if (s == "x" || s == "X") {
 		   boost_direction[0] = 1.;
 	     }
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	    else if (s == "y" || s == "Y") {
 		   boost_direction[1] = 1.;
 	    }
@@ -251,13 +250,13 @@ WarpX::ReadParameters ()
 	    if (s == "x" || s == "X") {
 		moving_window_dir = 0;
 	    }
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 	    else if (s == "y" || s == "Y") {
 		moving_window_dir = 1;
 	    }
 #endif
 	    else if (s == "z" || s == "Z") {
-		moving_window_dir = BL_SPACEDIM-1;
+		moving_window_dir = AMREX_SPACEDIM-1;
 	    }
 	    else {
 		const std::string msg = "Unknown moving_window_dir: "+s;
@@ -396,6 +395,20 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
+	std::string s_solver = "";
+	pp.query("maxwell_fdtd_solver", s_solver);
+	// if maxwell_fdtd_solver is specified, set the value
+	// of maxwell_fdtd_solver_id accordingly.
+      // Otherwise keep the default value maxwell_fdtd_solver_id=0
+      if (s_solver != "") {
+        if (s_solver == "yee") {
+            maxwell_fdtd_solver_id = 0;
+        } else if (s_solver == "ckc") {
+            maxwell_fdtd_solver_id = 1;
+        } else {
+            amrex::Abort("Unknown FDTD Solver type " + s_solver);
+        }
+      }
     }
 
 #ifdef WARPX_USE_PSATD
@@ -495,11 +508,11 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         ngz = ngz_nonci;
     }
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
     IntVect ngJ(ngx,ngy,ngz_nonci);
     IntVect ngRho = ngJ;
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     IntVect ngE(ngx,ngz);
     IntVect ngJ(ngx,ngz_nonci);
     IntVect ngRho = ngJ;
@@ -589,12 +602,12 @@ WarpX::CellSize (int lev)
 {
     const auto& gm = GetInstance().Geom(lev);
     const Real* dx = gm.CellSize();
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     return { dx[0], dx[1], dx[2] };
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     return { dx[0], 1.0, dx[1] };
 #else
-    static_assert(BL_SPACEDIM != 1, "1D is not supported");
+    static_assert(AMREX_SPACEDIM != 1, "1D is not supported");
 #endif
 }
 
@@ -611,9 +624,9 @@ WarpX::LowerCorner(const Box& bx, int lev)
 {
     const RealBox grid_box = getRealBox( bx, lev );
     const Real* xyzmin = grid_box.lo();
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     return { xyzmin[0], -1.e100, xyzmin[1] };
 #endif
 }
@@ -623,190 +636,11 @@ WarpX::UpperCorner(const Box& bx, int lev)
 {
     const RealBox grid_box = getRealBox( bx, lev );
     const Real* xyzmax = grid_box.hi();
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     return { xyzmax[0], xyzmax[1], xyzmax[2] };
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     return { xyzmax[0], 1.e100, xyzmax[1] };
 #endif
-}
-
-void WarpX::zeroOutBoundary(amrex::MultiFab& input_data,
-                            amrex::MultiFab& bndry_data,
-                            const FabArray<BaseFab<int> >& mask) const {
-    bndry_data.setVal(0.0, 1);
-    for (MFIter mfi(input_data); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        WRPX_ZERO_OUT_BNDRY(bx.loVect(), bx.hiVect(),
-                            input_data[mfi].dataPtr(),
-                            bndry_data[mfi].dataPtr(),
-                            mask[mfi].dataPtr());
-    }
-    bndry_data.FillBoundary();
-}
-
-void WarpX::sumFineToCrseNodal(const amrex::MultiFab& fine,
-                               amrex::MultiFab& crse,
-                               const amrex::Geometry& cgeom,
-                               const amrex::IntVect& ratio) {
-    const BoxArray& fine_BA = fine.boxArray();
-    const DistributionMapping& fine_dm = fine.DistributionMap();
-    BoxArray coarsened_fine_BA = fine_BA;
-    coarsened_fine_BA.coarsen(ratio);
-
-    MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
-    coarsened_fine_data.setVal(0.0);
-
-    for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        const Box& crse_box = coarsened_fine_data[mfi].box();
-        const Box& fine_box = fine[mfi].box();
-        WRPX_SUM_FINE_TO_CRSE_NODAL(bx.loVect(), bx.hiVect(), ratio.getVect(),
-                                    coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
-                                    fine[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
-    }
-
-    crse.copy(coarsened_fine_data, cgeom.periodicity(), FabArrayBase::ADD);
-}
-
-void
-WarpX::fixRHSForSolve(Vector<std::unique_ptr<MultiFab> >& rhs,
-                      const Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) const {
-    int num_levels = rhs.size();
-    for (int lev = 0; lev < num_levels; ++lev) {
-        MultiFab& fine_rhs = *rhs[lev];
-        const FabArray<BaseFab<int> >& mask = *masks[lev];
-        const BoxArray& fine_ba = fine_rhs.boxArray();
-        const DistributionMapping& fine_dm = fine_rhs.DistributionMap();
-        MultiFab fine_bndry_data(fine_ba, fine_dm, 1, 1);
-        zeroOutBoundary(fine_rhs, fine_bndry_data, mask);
-    }
-}
-
-void WarpX::getLevelMasks(Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
-                          const int nnodes) {
-    int num_levels = grids.size();
-    BL_ASSERT(num_levels == dmap.size());
-
-    int covered = 0;
-    int notcovered = 1;
-    int physbnd = 1;
-    int interior = 0;
-
-    for (int lev = 0; lev < num_levels; ++lev) {
-        BoxArray nba = grids[lev];
-        nba.surroundingNodes();
-
-        FabArray<BaseFab<int> > tmp_mask(nba, dmap[lev], 1, nnodes);
-        tmp_mask.BuildMask(geom[lev].Domain(), geom[lev].periodicity(),
-                           covered, notcovered, physbnd, interior);
-        masks[lev].reset(new FabArray<BaseFab<int> >(nba, dmap[lev], 1, 0));
-        for (MFIter mfi(tmp_mask); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.validbox();
-            WRPX_BUILD_MASK(bx.loVect(), bx.hiVect(),
-                            tmp_mask[mfi].dataPtr(), (*masks[lev])[mfi].dataPtr(), &nnodes);
-        }
-    }
-}
-
-
-void WarpX::computePhi(const Vector<std::unique_ptr<MultiFab> >& rho,
-                             Vector<std::unique_ptr<MultiFab> >& phi) const {
-
-
-    int num_levels = rho.size();
-    Vector<std::unique_ptr<MultiFab> > rhs(num_levels);
-    for (int lev = 0; lev < num_levels; ++lev) {
-        phi[lev]->setVal(0.0, 2);
-        rhs[lev].reset(new MultiFab(rho[lev]->boxArray(), dmap[lev], 1, 0));
-        MultiFab::Copy(*rhs[lev], *rho[lev], 0, 0, 1, 0);
-        rhs[lev]->mult(-1.0/PhysConst::ep0, 0);
-    }
-
-    fixRHSForSolve(rhs, masks);
-
-    bool nodal = true;
-    bool have_rhcc = false;
-    int  nc = 0;
-    int Ncomp = 1;
-    int stencil = ND_CROSS_STENCIL;
-    int verbose = 0;
-    Vector<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
-    Real rel_tol = 1.0e-14;
-    Real abs_tol = 1.0e-14;
-
-    Vector<Geometry>            level_geom(1);
-    Vector<BoxArray>            level_grids(1);
-    Vector<DistributionMapping> level_dm(1);
-    Vector<MultiFab*>           level_phi(1);
-    Vector<MultiFab*>           level_rhs(1);
-
-    for (int lev = 0; lev < num_levels; ++lev) {
-        level_phi[0]   = phi[lev].get();
-        level_rhs[0]   = rhs[lev].get();
-        level_geom[0]  = geom[lev];
-        level_grids[0] = grids[lev];
-        level_dm[0]    = dmap[lev];
-
-        MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids,
-                          level_dm, nodal,
-                          stencil, have_rhcc, nc, Ncomp, verbose);
-
-        solver.set_nodal_const_coefficients(1.0);
-
-        solver.solve_nodal(level_phi, level_rhs, rel_tol, abs_tol);
-
-        if (lev < num_levels-1) {
-
-            NoOpPhysBC cphysbc, fphysbc;
-#if BL_SPACEDIM == 3
-            int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-            int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-#else
-            int lo_bc[] = {BCType::int_dir, BCType::int_dir};
-            int hi_bc[] = {BCType::int_dir, BCType::int_dir};
-#endif
-            Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-            NodeBilinear mapper;
-
-            amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
-                                         0, 0, 1, geom[lev], geom[lev+1],
-                                         cphysbc, fphysbc,
-                                         IntVect(AMREX_D_DECL(2, 2, 2)), &mapper, bcs);
-        }
-    }
-
-    for (int lev = 0; lev < num_levels; ++lev) {
-        const Geometry& gm = geom[lev];
-        phi[lev]->FillBoundary(gm.periodicity());
-    }
-}
-
-void WarpX::computeE(Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
-                     const Vector<std::unique_ptr<MultiFab> >& phi) const {
-
-    const int num_levels = E.size();
-    for (int lev = 0; lev < num_levels; ++lev) {
-        const auto& gm = GetInstance().Geom(lev);
-        const Real* dx = gm.CellSize();
-        for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.validbox();
-
-            WRPX_COMPUTE_E_NODAL(bx.loVect(), bx.hiVect(),
-                                 (*phi[lev] )[mfi].dataPtr(),
-                                 (*E[lev][0])[mfi].dataPtr(),
-                                 (*E[lev][1])[mfi].dataPtr(),
-#if BL_SPACEDIM == 3
-                                 (*E[lev][2])[mfi].dataPtr(),
-#endif
-                                 dx);
-        }
-
-        E[lev][0]->FillBoundary(gm.periodicity());
-        E[lev][1]->FillBoundary(gm.periodicity());
-#if BL_SPACEDIM == 3
-        E[lev][2]->FillBoundary(gm.periodicity());
-#endif
-    }
 }
 
 void

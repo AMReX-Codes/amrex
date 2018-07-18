@@ -1,6 +1,8 @@
 
 #include <WarpX.H>
 #include <WarpX_f.H>
+#include <AMReX_BaseFab_f.H>
+#include <AMReX_iMultiFab.H>
 
 using namespace amrex;
 
@@ -8,21 +10,105 @@ constexpr int WarpX::FFTData::N;
 
 namespace {
 
-static void
-CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba_valid_fft)
+/** \brief Returns an "owner mask" which 1 for all cells, except
+ *  for the duplicated (physical) cells of a nodal grid.
+ *
+ *  More precisely, for these cells (which are represented on several grids)
+ *  the owner mask is 1 only if these cells are at the lower left end of
+ *  the local grid - or if these cells are at the end of the physical domain
+ *  Therefore, there for these cells, there will be only one grid for
+ *  which the owner mask is non-zero.
+ */
+static iMultiFab
+BuildFFTOwnerMask (const MultiFab& mf, const Geometry& geom)
 {
-    auto idx_type = mf_fft.ixType();
-    MultiFab mftmp(amrex::convert(ba_valid_fft,idx_type), mf_fft.DistributionMap(), 1, 0);
-    for (MFIter mfi(mftmp,true); mfi.isValid(); ++mfi)
+    const BoxArray& ba = mf.boxArray();
+    const DistributionMapping& dm = mf.DistributionMap();
+    iMultiFab mask(ba, dm, 1, 0);
+    const int owner = 1;
+    const int nonowner = 0;
+    mask.setVal(owner);
+
+    const Box& domain_box = amrex::convert(geom.Domain(), ba.ixType());
+
+    AMREX_ASSERT(ba.complementIn(domain_box).isEmpty());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mask); mfi.isValid(); ++mfi)
     {
-        const Box& bx = mfi.tilebox();
-        if (mf_fft[mfi].box().contains(bx))
-        {
-            mftmp[mfi].copy(mf_fft[mfi], bx, 0, bx, 0, 1);
+        IArrayBox& fab = mask[mfi];
+        const Box& bx = fab.box();
+        Box bx2 = bx;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            // Detect nodal dimensions
+            if (bx2.type(idim) == IndexType::NODE) {
+                // Make sure that this grid does not touch the end of
+                // the physical domain.
+                if (bx2.bigEnd(idim) < domain_box.bigEnd(idim)) {
+                    bx2.growHi(idim, -1);
+                }
+            }
+        }
+        const BoxList& bl = amrex::boxDiff(bx, bx2);
+        // Set owner mask in these cells
+        for (const auto& b : bl) {
+            fab.setVal(nonowner, b, 0, 1);
         }
     }
 
-    mf.ParallelCopy(mftmp);
+    return mask;
+}
+
+/** \brief Copy the data from the FFT grid to the regular grid
+ *
+ * Because, for nodal grid, some cells are duplicated on several boxes,
+ * special care has to be taken in order to have consistent values on
+ * each boxes when copying this data. Here this is done by setting a
+ * mask, where, for these duplicated cells, the mask is non-zero on only
+ * one box.
+ */
+static void
+CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba_valid_fft, const Geometry& geom)
+{
+    auto idx_type = mf_fft.ixType();
+    MultiFab mftmp(amrex::convert(ba_valid_fft,idx_type), mf_fft.DistributionMap(), 1, 0);
+
+    const iMultiFab& mask = BuildFFTOwnerMask(mftmp, geom);
+
+    // Local copy: whenever an MPI rank owns both the data from the FFT
+    // grid and from the regular grid, for overlapping region, copy it locally
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mftmp,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& dstfab = mftmp[mfi];
+
+        const FArrayBox& srcfab = mf_fft[mfi];
+        const Box& srcbox = srcfab.box();
+
+        if (srcbox.contains(bx))
+        {
+            // Copy the interior region (without guard cells)
+            dstfab.copy(srcfab, bx, 0, bx, 0, 1);
+            // Set the value to 0 whenever the mask is 0
+            // (i.e. for nodal duplicated cells, there is a single box
+            // for which the mask is different than 0)
+            amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_FAB(dstfab),
+                                    BL_TO_FORTRAN_ANYD(mask[mfi]),
+                                    0.0); // if mask == 0, set value to zero
+        }
+    }
+
+    // Global copy: Get the remaining the data from other procs
+    // Use ParallelAdd instead of ParallelCopy, so that the value from
+    // the cell that has non-zero mask is the one which is retained.
+    mf.setVal(0.0, 0);
+    mf.ParallelAdd(mftmp);
 }
 
 }
@@ -146,7 +232,7 @@ WarpX::InitFFTComm (int lev)
     // # of processes in the subcommunicator
     int np_fft = nprocs / ngroups_fft;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(np_fft*ngroups_fft == nprocs,
-                                     "Number of processes must be divisilbe by number of FFT groups");
+        "Number of processes must be divisible by number of FFT groups");
 
     int myproc = ParallelDescriptor::MyProc();
     // my color in ngroups_fft subcommunicators.  0 <= color_fft < ngroups_fft
@@ -180,57 +266,50 @@ void
 WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm_fft,
                               BoxArray& ba_valid, Box& domain_fft, const Box& domain)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3, "PSATD only works in 3D");
+
     IntVect nguards_fft(AMREX_D_DECL(nox_fft/2,noy_fft/2,noz_fft/2));
 
     int nprocs = ParallelDescriptor::NProcs();
-    int np_fft;
-    MPI_Comm_size(comm_fft[lev], &np_fft);
-
-    BoxList bl_fft; // List of boxes: will be filled by the boxes attributed to each proc
-    bl_fft.reserve(nprocs);
-    Vector<int> gid_fft; // List of group ID: will be filled with the FFT group ID of each box
-    gid_fft.reserve(nprocs);
 
     BoxList bl(domain, ngroups_fft);  // This does a multi-D domain decomposition for groups
     AMREX_ALWAYS_ASSERT(bl.size() == ngroups_fft);
     const Vector<Box>& bldata = bl.data();
-    // Fill bl_fft and gid_fft ; loop over FFT groups
-    for (int igroup = 0; igroup < ngroups_fft; ++igroup)
-    {
-        // Within the group, 1d domain decomposition is performed.
-        const Box& bx = amrex::grow(bldata[igroup], nguards_fft);
-        // chop in z-direction into np_fft for FFTW
-        BoxList tbl(bx, np_fft, Direction::z);
-        bl_fft.join(tbl);
-        for (int i = 0; i < np_fft; ++i) {
-            gid_fft.push_back(igroup);
-        }
-        // Determine the sub-domain associated with the FFT group of the local proc
-        if (igroup == color_fft[lev]) {
-            domain_fft = bx;
-        }
+
+    // This is the domain for the FFT sub-group (including guard cells)
+    domain_fft = amrex::grow(bldata[color_fft[lev]], nguards_fft);
+    // Ask FFTW to chop the current FFT sub-group domain in the z-direction
+    // and give a chunk to each MPI rank in the current sub-group.
+    int nz_fft, z0_fft;
+    warpx_fft_domain_decomp(&nz_fft, &z0_fft, BL_TO_FORTRAN_BOX(domain_fft));
+    // Each MPI rank adds a box with its chunk of the FFT grid
+    // (given by the above decomposition) to the list `bx_fft`,
+    // then list is shared among all MPI ranks via AllGather
+    Vector<Box> bx_fft;
+    if (nz_fft > 0) {
+        Box b = domain_fft;
+        b.setRange(2, z0_fft+domain_fft.smallEnd(2), nz_fft);
+        bx_fft.push_back(b);
     }
+    amrex::AllGatherBoxes(bx_fft);
 
-    // This BoxArray contains local FFT domains for each process
-    ba_fft.define(std::move(bl_fft));
+    // Define the AMReX objects for the FFT grid: BoxArray and DistributionMapping
+    ba_fft.define(BoxList(std::move(bx_fft)));
     AMREX_ALWAYS_ASSERT(ba_fft.size() == ParallelDescriptor::NProcs());
-
     Vector<int> pmap(ba_fft.size());
     std::iota(pmap.begin(), pmap.end(), 0);
     dm_fft.define(std::move(pmap));
 
-    //
     // For communication between WarpX normal domain and FFT domain, we need to create a
     // special BoxArray ba_valid
-    //
-
     const Box foobox(-nguards_fft-2, -nguards_fft-2);
 
     BoxList bl_valid; // List of boxes: will be filled by the valid part of the subdomains of ba_fft
     bl_valid.reserve(ba_fft.size());
+    int np_fft = nprocs / ngroups_fft;
     for (int i = 0; i < ba_fft.size(); ++i)
     {
-        int igroup = gid_fft[i];
+        int igroup = dm_fft[i] / np_fft; // This should be consistent with InitFFTComm
         const Box& bx = ba_fft[i] & bldata[igroup]; // Intersection with the domain of
                                                     // the FFT group *without* guard cells
         if (bx.ok())
@@ -262,9 +341,7 @@ WarpX::InitFFTDataPlan (int lev)
     for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
     {
         const Box& local_domain = amrex::enclosedCells(mfi.fabbox());
-        warpx_fft_dataplan_init(BL_TO_FORTRAN_BOX(domain_fp_fft[lev]),
-                                BL_TO_FORTRAN_BOX(local_domain),
-                                &nox_fft, &noy_fft, &noz_fft,
+        warpx_fft_dataplan_init(&nox_fft, &noy_fft, &noz_fft,
                                 (*dataptr_fp_fft[lev])[mfi].data, &FFTData::N,
                                 dx_fp.data(), &dt[lev], &fftw_plan_measure );
     }
@@ -335,12 +412,12 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     BL_PROFILE_VAR_STOP(blp_push_eb);
 
     BL_PROFILE_VAR_START(blp_copy);
-    CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Efield_fp[lev][1], *Efield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Efield_fp[lev][2], *Efield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Bfield_fp[lev][0], *Bfield_fp_fft[lev][0], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Bfield_fp[lev][1], *Bfield_fp_fft[lev][1], ba_valid_fp_fft[lev]);
-    CopyDataFromFFTToValid(*Bfield_fp[lev][2], *Bfield_fp_fft[lev][2], ba_valid_fp_fft[lev]);
+    CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Efield_fp[lev][1], *Efield_fp_fft[lev][1], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Efield_fp[lev][2], *Efield_fp_fft[lev][2], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][0], *Bfield_fp_fft[lev][0], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][1], *Bfield_fp_fft[lev][1], ba_valid_fp_fft[lev], geom[lev]);
+    CopyDataFromFFTToValid(*Bfield_fp[lev][2], *Bfield_fp_fft[lev][2], ba_valid_fp_fft[lev], geom[lev]);
     BL_PROFILE_VAR_STOP(blp_copy);
 
     if (lev > 0)

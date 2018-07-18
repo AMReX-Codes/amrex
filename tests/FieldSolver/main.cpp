@@ -146,6 +146,8 @@ int main(int argc, char* argv[])
 #endif
 
 	    const int norder = 2;
+	    // FDT Yee solver
+        const int maxwell_fdtd_solver_id = 0;
 
 	    for ( MFIter mfi(*Bfield[0],true); mfi.isValid(); ++mfi )
 	    {
@@ -154,7 +156,7 @@ int main(int argc, char* argv[])
                 const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
                 
                 // Call picsar routine for each tile
-                WRPX_PXR_PUSH_BVEC(
+                warpx_push_bvec(
                     tbx.loVect(), tbx.hiVect(),
                     tby.loVect(), tby.hiVect(),
                     tbz.loVect(), tbz.hiVect(),
@@ -165,7 +167,7 @@ int main(int argc, char* argv[])
                     BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
                     BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
                     &dtsdx[0], &dtsdx[1], &dtsdx[2],
-                    &norder);
+                    &maxwell_fdtd_solver_id);
 	    }	    
 	}
 
@@ -192,7 +194,7 @@ int main(int argc, char* argv[])
                 const Box& tez  = mfi.tilebox(Ez_nodal_flag);
                 
                 // Call picsar routine for each tile
-                WRPX_PXR_PUSH_EVEC(
+                warpx_push_evec(
                     tex.loVect(), tex.hiVect(),
                     tey.loVect(), tey.hiVect(),
                     tez.loVect(), tez.hiVect(),
@@ -206,8 +208,7 @@ int main(int argc, char* argv[])
                     BL_TO_FORTRAN_3D((*current[1])[mfi]),
                     BL_TO_FORTRAN_3D((*current[2])[mfi]),
                     &mu_c2_dt,
-                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
-                    &norder);
+                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
 	    }
 	}
 

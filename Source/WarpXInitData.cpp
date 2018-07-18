@@ -88,12 +88,14 @@ WarpX::InitFromScratch ()
 
     InitPML();
 
+#ifdef WARPX_DO_ELECTROSTATIC    
     if (do_electrostatic) {
         getLevelMasks(masks);
         
         // the plus one is to convert from num_cells to num_nodes
         getLevelMasks(gather_masks, n_buffer + 1);
     }
+#endif // WARPX_DO_ELECTROSTATIC
 }
 
 void
@@ -134,7 +136,7 @@ WarpX::InitNCICorrector ()
         const Real* dx = gm.CellSize();
         const int l_lower_order_in_v = warpx_l_lower_order_in_v();
         amrex::Real dz, cdtodz;
-        if (BL_SPACEDIM == 3){ 
+        if (AMREX_SPACEDIM == 3){ 
             dz = dx[2]; 
         }else{ 
             dz = dx[1]; 
@@ -164,7 +166,7 @@ WarpX::InitOpenbc ()
     static_assert(false, "must use MPI");
 #endif
 
-    static_assert(BL_SPACEDIM == 3, "Openbc is 3D only");
+    static_assert(AMREX_SPACEDIM == 3, "Openbc is 3D only");
     BL_ASSERT(finestLevel() == 0);
 
     const int lev = 0;

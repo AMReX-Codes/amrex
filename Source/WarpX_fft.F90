@@ -1,12 +1,15 @@
 
 module warpx_fft_module
-  use amrex_error_module
-  use amrex_fort_module
+  use amrex_error_module, only : amrex_error, amrex_abort
+  use amrex_fort_module, only : amrex_real
   use iso_c_binding
   implicit none
 
+  include 'fftw3-mpi.f03'
+
   private
-  public :: warpx_fft_mpi_init, warpx_fft_dataplan_init, warpx_fft_nullify, warpx_fft_push_eb
+  public :: warpx_fft_mpi_init, warpx_fft_domain_decomp, warpx_fft_dataplan_init, warpx_fft_nullify, &
+       warpx_fft_push_eb
 
 contains
 
@@ -25,7 +28,52 @@ contains
 
     call mpi_comm_rank(comm, lrank, ierr)
     rank = lrank
+
+#ifdef _OPENMP
+    ierr = fftw_init_threads()
+    if (ierr.eq.0) call amrex_error("fftw_init_threads failed")
+#endif
+    call fftw_mpi_init()
+#ifdef _OPENMP
+    call dfftw_init_threads(ierr)
+    if (ierr.eq.0) call amrex_error("dfftw_init_threads failed")
+#endif
   end subroutine warpx_fft_mpi_init
+
+!> @brief
+!! Ask FFTW to do domain decomposition.
+!
+! This is always a 1d domain decomposition along z ; it is typically
+! done on the *FFT sub-groups*, not the all domain
+  subroutine warpx_fft_domain_decomp (warpx_local_nz, warpx_local_z0, global_lo, global_hi) &
+       bind(c,name='warpx_fft_domain_decomp')
+    use picsar_precision, only : idp
+    use shared_data, only : comm, &
+         nx_global, ny_global, nz_global, & ! size of global FFT
+         nx, ny, nz ! size of local subdomains
+    use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
+
+    integer, intent(out) :: warpx_local_nz, warpx_local_z0
+    integer, dimension(3), intent(in) :: global_lo, global_hi
+
+    nx_global = INT(global_hi(1)-global_lo(1)+1,idp)
+    ny_global = INT(global_hi(2)-global_lo(2)+1,idp)
+    nz_global = INT(global_hi(3)-global_lo(3)+1,idp)
+
+    alloc_local = fftw_mpi_local_size_3d( &
+         INT(nz_global,C_INTPTR_T), &
+         INT(ny_global,C_INTPTR_T), &
+         INT(nx_global,C_INTPTR_T)/2+1, &
+         comm, local_nz, local_z0)
+
+    nx = nx_global
+    ny = ny_global
+    nz = local_nz
+
+    warpx_local_nz = local_nz
+    warpx_local_z0 = local_z0
+  end subroutine warpx_fft_domain_decomp
+
 
 !> @brief
 !! Set all the flags and metadata of the PICSAR FFT module.
@@ -33,13 +81,11 @@ contains
 !!
 !! Note: fft_data is a stuct containing 22 pointers to arrays
 !! 1-11: padded arrays in real space ; 12-22 arrays for the fields in Fourier space
-  subroutine warpx_fft_dataplan_init (global_lo, global_hi, local_lo, local_hi, &
-       nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx, fftw_measure) &
+  subroutine warpx_fft_dataplan_init (nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx, fftw_measure) &
        bind(c,name='warpx_fft_dataplan_init')
     USE picsar_precision, only: idp
-    use shared_data, only : comm, c_dim,  p3dfft_flag, fftw_plan_measure, &
+    use shared_data, only : c_dim,  p3dfft_flag, fftw_plan_measure, &
          fftw_with_mpi, fftw_threads_ok, fftw_hybrid, fftw_mpi_transpose, &
-         nx_global, ny_global, nz_global, & ! size of global FFT
          nx, ny, nz, & ! size of local subdomains
          nkx, nky, nkz, & ! size of local ffts
          iz_min_r, iz_max_r, iy_min_r, iy_max_r, ix_min_r, ix_max_r, & ! loop bounds
@@ -50,13 +96,12 @@ contains
          exf, eyf, ezf, bxf, byf, bzf, &
          jxf, jyf, jzf, rhof, rhooldf, &
          l_spectral, l_staggered, norderx, nordery, norderz
-    use mpi_fftw3, only : local_nz, local_z0, fftw_mpi_local_size_3d, alloc_local
+    use mpi_fftw3, only : alloc_local
     use omp_lib, only: omp_get_max_threads
     USE gpstd_solver, only: init_gpstd
     USE fourier_psaotd, only: init_plans_fourier_mpi
     use params, only : dt
 
-    integer, dimension(3), intent(in) :: global_lo, global_hi, local_lo, local_hi
     integer, intent(in) :: nox, noy, noz, ndata
     integer, intent(in) :: fftw_measure
     type(c_ptr), intent(inout) :: fft_data(ndata)
@@ -67,27 +112,12 @@ contains
     integer :: nx_padded
     integer, dimension(3) :: shp
     integer(kind=c_size_t) :: sz
-    real(c_double) :: realfoo
-    complex(c_double_complex) :: complexfoo
 
-    ! Define size of domains: necessary for the initialization of the global FFT
-    nx_global = INT(global_hi(1)-global_lo(1)+1,idp)
-    ny_global = INT(global_hi(2)-global_lo(2)+1,idp)
-    nz_global = INT(global_hi(3)-global_lo(3)+1,idp)
-    nx = INT(local_hi(1)-local_lo(1)+1,idp)
-    ny = INT(local_hi(2)-local_lo(2)+1,idp)
-    nz = INT(local_hi(3)-local_lo(3)+1,idp)
     ! No need to distinguish physical and guard cells for the global FFT;
     ! only nx+2*nxguards counts. Thus we declare 0 guard cells for simplicity
     nxguards = 0_idp
     nyguards = 0_idp
     nzguards = 0_idp
-    ! Find the decomposition that FFTW imposes in kspace
-    alloc_local = fftw_mpi_local_size_3d( &
-         INT(nz_global,C_INTPTR_T), &
-         INT(ny_global,C_INTPTR_T), &
-         INT(nx_global,C_INTPTR_T)/2+1, &
-         comm, local_nz, local_z0)
 
     ! For the calculation of the modified [k] vectors
     l_staggered = .TRUE.
@@ -103,7 +133,6 @@ contains
     p3dfft_flag = .FALSE.
     l_spectral  = .TRUE.   ! Activate spectral Solver, using FFT
 #ifdef _OPENMP
-    CALL DFFTW_INIT_THREADS(iret)
     fftw_threads_ok = .TRUE.
     nopenmp = OMP_GET_MAX_THREADS()
 #else
@@ -114,28 +143,28 @@ contains
     ! Allocate padded arrays for MPI FFTW
     nx_padded = 2*(nx/2 + 1)
     shp = [nx_padded, int(ny), int(nz)]
-    sz = c_sizeof(realfoo) * int(shp(1),c_size_t) * int(shp(2),c_size_t) * int(shp(3),c_size_t)
-    fft_data(1) = amrex_malloc(sz)
+    sz = 2*alloc_local
+    fft_data(1) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(1), ex_r, shp)
-    fft_data(2) = amrex_malloc(sz)
+    fft_data(2) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(2), ey_r, shp)
-    fft_data(3) = amrex_malloc(sz)
+    fft_data(3) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(3), ez_r, shp)
-    fft_data(4) = amrex_malloc(sz)
+    fft_data(4) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(4), bx_r, shp)
-    fft_data(5) = amrex_malloc(sz)
+    fft_data(5) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(5), by_r, shp)
-    fft_data(6) = amrex_malloc(sz)
+    fft_data(6) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(6), bz_r, shp)
-    fft_data(7) = amrex_malloc(sz)
+    fft_data(7) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(7), jx_r, shp)
-    fft_data(8) = amrex_malloc(sz)
+    fft_data(8) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(8), jy_r, shp)
-    fft_data(9) = amrex_malloc(sz)
+    fft_data(9) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(9), jz_r, shp)
-    fft_data(10) = amrex_malloc(sz)
+    fft_data(10) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(10), rho_r, shp)
-    fft_data(11) = amrex_malloc(sz)
+    fft_data(11) = fftw_alloc_real(sz)
     call c_f_pointer(fft_data(11), rhoold_r, shp)
 
     ! Set array bounds when copying ex to ex_r in PICSAR
@@ -147,28 +176,28 @@ contains
     nky = ny
     nkz = nz
     shp = [int(nkx), int(nky), int(nkz)]
-    sz = c_sizeof(complexfoo) * int(shp(1),c_size_t) * int(shp(2),c_size_t) * int(shp(3),c_size_t)
-    fft_data(12) = amrex_malloc(sz)
+    sz = alloc_local
+    fft_data(12) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(12), exf, shp)
-    fft_data(13) = amrex_malloc(sz)
+    fft_data(13) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(13), eyf, shp)
-    fft_data(14) = amrex_malloc(sz)
+    fft_data(14) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(14), ezf, shp)
-    fft_data(15) = amrex_malloc(sz)
+    fft_data(15) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(15), bxf, shp)
-    fft_data(16) = amrex_malloc(sz)
+    fft_data(16) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(16), byf, shp)
-    fft_data(17) = amrex_malloc(sz)
+    fft_data(17) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(17), bzf, shp)
-    fft_data(18) = amrex_malloc(sz)
+    fft_data(18) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(18), jxf, shp)
-    fft_data(19) = amrex_malloc(sz)
+    fft_data(19) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(19), jyf, shp)
-    fft_data(20) = amrex_malloc(sz)
+    fft_data(20) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(20), jzf, shp)
-    fft_data(21) = amrex_malloc(sz)
+    fft_data(21) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(21), rhof, shp)
-    fft_data(22) = amrex_malloc(sz)
+    fft_data(22) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(22), rhooldf, shp)
 
     if (ndata < 22) then
@@ -193,6 +222,7 @@ contains
          jx_r, jy_r, jz_r, rho_r, rhoold_r, &
          exf, eyf, ezf, bxf, byf, bzf, &
          jxf, jyf, jzf, rhof, rhooldf
+    use mpi_fftw3, only : plan_r2c_mpi, plan_c2r_mpi
     nullify(ex_r)
     nullify(ey_r)
     nullify(ez_r)
@@ -215,6 +245,9 @@ contains
     nullify(jzf)
     nullify(rhof)
     nullify(rhooldf)
+    call fftw_destroy_plan(plan_r2c_mpi)
+    call fftw_destroy_plan(plan_c2r_mpi)
+    call fftw_mpi_cleanup()
   end subroutine warpx_fft_nullify
 
 

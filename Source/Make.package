@@ -35,5 +35,9 @@ ifeq ($(USE_PSATD),TRUE)
   F90EXE_sources += WarpX_fft.F90
 endif
 
+ifeq ($(DO_ELECTROSTATIC),TRUE)
+  CEXE_sources += WarpXElectrostatic.cpp
+endif
+
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source
