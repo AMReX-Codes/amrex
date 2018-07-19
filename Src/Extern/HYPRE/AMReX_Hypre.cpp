@@ -79,14 +79,14 @@ Hypre::setVerbose (int _verbose) {
 
 void
 Hypre::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-              int max_iter, const BndryData& _bndry)
+              int max_iter, const BndryData& _bndry, int max_bndry_order)
 {
     if (struct_solver) {
-        struct_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, _bndry);
+        struct_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, _bndry, max_bndry_order);
     } else if (semi_struct_solver) {
-        semi_struct_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, _bndry);
+        semi_struct_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, _bndry, max_bndry_order);
     } else if (IJ_solver) {
-        IJ_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, _bndry);
+        IJ_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, _bndry, max_bndry_order);
     } else {
         amrex::Abort("Hypre::solve: How did this happen?");
     }

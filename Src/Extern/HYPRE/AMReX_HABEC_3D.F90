@@ -97,8 +97,8 @@ contains
 
   
   subroutine amrex_hpmat (lo, hi, mat, b, blo, bhi, mask, mlo, mhi, &
-       sb, dx, cdir, bct, bcl) bind(c,name='amrex_hpmat')
-    integer, intent(in) :: lo(3), hi(3), blo(3), bhi(3), mlo(3), mhi(3), cdir, bct
+       sb, dx, cdir, bct, bcl, bho) bind(c,name='amrex_hpmat')
+    integer, intent(in) :: lo(3), hi(3), blo(3), bhi(3), mlo(3), mhi(3), cdir, bct, bho
     real(rt), intent(inout) ::  mat(0:6, lo(1): hi(1), lo(2): hi(2), lo(3): hi(3))
     real(rt), intent(in   ) ::    b(    blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
     integer , intent(in   ) :: mask(    mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
@@ -118,9 +118,14 @@ contains
 
     if (bct .eq. amrex_lo_dirichlet) then
        h2 = half * h
-       h3 = three * h2
-       bf1 = fac * ((h3 - bcl) / (bcl + h2) - one)
-       bf2 = fac * (bcl - h2) / (bcl + h3)
+       if (bho.ge.1) then
+          h3 = three * h2
+          bf1 = fac * ((h3 - bcl) / (bcl + h2) - one)
+          bf2 = fac * (bcl - h2) / (bcl + h3)
+       else
+          bf1 = fac * ( h / (bcl + h2) - one)          
+          bf2 = zero
+       end if
     else if (bct .eq. amrex_lo_neumann) then
        bf1 = -fac
        bf2 = zero

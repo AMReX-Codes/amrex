@@ -135,7 +135,7 @@ HypreABecLap::setVerbose(int _verbose)
 
 void
 HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
-                    int maxiter, const BndryData& bndry)
+                    int maxiter, const BndryData& bndry, int max_bndry_order)
 {
     // set up solver
     const BoxArray& grids = acoefs->boxArray();
@@ -145,6 +145,8 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
     FArrayBox fab;
 
     const Real* dx = geom.CellSize();
+
+    const int bho = (max_bndry_order > 2) ? 1 : 0;
     
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
@@ -204,7 +206,7 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
                         mat,
                         BL_TO_FORTRAN_ANYD((*bcoefs[idim])[mfi]),
                         BL_TO_FORTRAN_ANYD(msk),
-                        &scalar_b, dx, &cdir, &bctype, &bcl);
+                        &scalar_b, dx, &cdir, &bctype, &bcl, &bho);
         }
 
         // initialize matrix & vectors

@@ -140,7 +140,7 @@ void HypreABecLap3::setVerbose(int _verbose) {
 void
 HypreABecLap3::solve(MultiFab& soln, const MultiFab& rhs,
                      Real rel_tol_, Real abs_tol_,
-                     int max_iter_, const BndryData& _bndry) {
+                     int max_iter_, const BndryData& _bndry, int max_bndry_order) {
   bd = _bndry;
 
   loadMatrix();

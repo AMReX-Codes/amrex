@@ -31,7 +31,7 @@ public:
     void setBCoeffs (const Array<const MultiFab*,AMREX_SPACEDIM>& beta);
     void setVerbose (int _verbose);
     void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-                int max_iter, const BndryData& bndry);
+                int max_iter, const BndryData& bndry, int max_bndry_order);
     
 protected:
 
@@ -49,9 +49,6 @@ protected:
     Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> bcoefs;
 
     Real scalar_a, scalar_b;
-    
-    int maxiter;
-    Real reltol, abstol;
     
     HYPRE_StructGrid grid;
     HYPRE_StructMatrix A;
