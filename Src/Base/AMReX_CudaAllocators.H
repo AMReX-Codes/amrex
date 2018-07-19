@@ -1,12 +1,8 @@
 #ifndef CUDAALLOCATORS_H_
 #define CUDAALLOCATORS_H_
 
+#include <map>
 #include <memory>
-
-namespace amrex {
-
-#ifdef AMREX_USE_CUDA
-
 #include <iostream>
 #include <limits>
 #include <cuda.h>
@@ -15,6 +11,9 @@ namespace amrex {
 #include <AMReX_Print.H>
 #include <AMReX.H>
 
+namespace amrex {
+
+#ifdef AMREX_USE_CUDA
 
 template<typename T>
 class CudaManagedAllocator {
