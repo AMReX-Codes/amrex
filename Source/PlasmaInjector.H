@@ -159,6 +159,29 @@ private:
     amrex::Real _u_over_r;
 };
 
+///
+/// This describes a momentum distribution function parsed in the input file. 
+///
+class ParseMomentumFunction : public PlasmaMomentumDistribution
+{
+public:
+    ParseMomentumFunction(const std::string _parse_momentum_function_ux,
+                          const std::string _parse_momentum_function_uy,
+                          const std::string _parse_momentum_function_uz);
+    virtual void getMomentum(vec3& u, 
+                             amrex::Real x,
+                             amrex::Real y,
+                             amrex::Real z) override;
+    UserConstants my_constants;
+private:
+    std::string _parse_momentum_function_ux;
+    std::string _parse_momentum_function_uy;
+    std::string _parse_momentum_function_uz;
+    int parser_instance_number_ux=0;
+    int parser_instance_number_uy=0;
+    int parser_instance_number_uz=0;
+};
+
 
 ///
 /// PlasmaParticlePosition describes how particles are initialized
@@ -251,6 +274,9 @@ public:
     long npart;
 
     std::string str_density_function;
+    std::string str_momentum_function_ux;
+    std::string str_momentum_function_uy;
+    std::string str_momentum_function_uz;
 
 protected:
 
