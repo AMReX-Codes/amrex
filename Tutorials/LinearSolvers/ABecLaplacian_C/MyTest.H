@@ -40,6 +40,7 @@ private:
     bool consolidation = true;
     int max_coarsening_level = 30;
     bool use_hypre = false;
+    int hypre_interface = 1;  // 1. structed, 2. semi-structed, 3. ij
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

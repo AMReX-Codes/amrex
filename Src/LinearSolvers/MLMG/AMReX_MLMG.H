@@ -58,6 +58,10 @@ public:
     void setNSolve (int flag) { do_nsolve = flag; }
     void setNSolveGridSize (int s) { nsolve_grid_size = s; }
 
+#ifdef AMREX_USE_HYPRE
+    void setHypreInterface (Hypre::Interface f) { hypre_interface = f; }
+#endif
+    
 private:
 
     int verbose = 1;

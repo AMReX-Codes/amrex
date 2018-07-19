@@ -61,7 +61,18 @@ MyTest::solvePoisson ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setBottomVerbose(bottom_verbose);
-        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+#ifdef AMREX_USE_HYPRE
+        if (use_hypre) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            if (hypre_interface == 0) {
+                mlmg.setHypreInterface(Hypre::Interface::structed);
+            } else if (hypre_interface == 1) {
+                mlmg.setHypreInterface(Hypre::Interface::semi_structed);
+            } else {
+                mlmg.setHypreInterface(Hypre::Interface::ij);
+            }
+        }
+#endif
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -92,7 +103,18 @@ MyTest::solvePoisson ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setBottomVerbose(bottom_verbose);
-            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+#ifdef AMREX_USE_HYPRE
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+                if (hypre_interface == 0) {
+                    mlmg.setHypreInterface(Hypre::Interface::structed);
+                } else if (hypre_interface == 1) {
+                    mlmg.setHypreInterface(Hypre::Interface::semi_structed);
+                } else {
+                    mlmg.setHypreInterface(Hypre::Interface::ij);
+                }
+            }
+#endif
             
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
@@ -158,7 +180,18 @@ MyTest::solveABecLaplacian ()
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
         mlmg.setBottomVerbose(bottom_verbose);
-        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+#ifdef AMREX_USE_HYPRE
+        if (use_hypre) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            if (hypre_interface == 0) {
+                mlmg.setHypreInterface(Hypre::Interface::structed);
+            } else if (hypre_interface == 1) {
+                mlmg.setHypreInterface(Hypre::Interface::semi_structed);
+            } else {
+                mlmg.setHypreInterface(Hypre::Interface::ij);
+            }
+        }
+#endif
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -207,7 +240,18 @@ MyTest::solveABecLaplacian ()
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
             mlmg.setBottomVerbose(bottom_verbose);
-            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+#ifdef AMREX_USE_HYPRE
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+                if (hypre_interface == 0) {
+                    mlmg.setHypreInterface(Hypre::Interface::structed);
+                } else if (hypre_interface == 1) {
+                    mlmg.setHypreInterface(Hypre::Interface::semi_structed);
+                } else {
+                    mlmg.setHypreInterface(Hypre::Interface::ij);
+                }
+            }
+#endif
 
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
@@ -248,6 +292,7 @@ MyTest::readParameters ()
     pp.query("max_coarsening_level", max_coarsening_level);
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
+    pp.query("hypre_interface", hypre_interface);
 #endif
 }
 
