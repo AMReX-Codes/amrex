@@ -23,39 +23,40 @@ public:
                    MPI_Comm comm_);
     ~HypreABecLap2 ();
 
-    void setScalars(Real sa, Real sb);
-    void setACoeffs(const MultiFab& alpha);
-    void setBCoeffs(const Array<const MultiFab*,BL_SPACEDIM>& beta);
-    void setVerbose(int _verbose);
-    void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-               int max_iter, const BndryData& _bndry, int max_bndry_order);
+    void setScalars (Real sa, Real sb);
+    void setACoeffs (const MultiFab& alpha);
+    void setBCoeffs (const Array<const MultiFab*,BL_SPACEDIM>& beta);
+    void setVerbose (int _verbose);
+    void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+                int max_iter, const BndryData& bndry, int max_bndry_order);
 
 private :
 
-    MPI_Comm comm;
+    static constexpr int stencil_size = 2*AMREX_SPACEDIM+1;
+
+    MPI_Comm comm = MPI_COMM_NULL;
     Geometry geom;
 
-    int verbose;
+    int verbose = 0;
 
     int is_periodic[AMREX_SPACEDIM];
 
     MultiFab acoefs;
-    std::array<MultiFab,BL_SPACEDIM> bcoefs;
+    Array<MultiFab,BL_SPACEDIM> bcoefs;
     Real scalar_a, scalar_b;
-    BndryData bd;
 
-    HYPRE_SStructGrid     hgrid;
-    HYPRE_SStructStencil  stencil;
-    HYPRE_SStructGraph    graph;
-    HYPRE_SStructMatrix   A, A0;
-    HYPRE_SStructVector   b;
-    HYPRE_SStructVector   x;
-    HYPRE_Solver          solver;
+    HYPRE_SStructGrid     hgrid = NULL;
+    HYPRE_SStructStencil  stencil = NULL;
+    HYPRE_SStructGraph    graph = NULL;
+    HYPRE_SStructMatrix   A = NULL, A0 = NULL;
+    HYPRE_SStructVector   b = NULL;
+    HYPRE_SStructVector   x = NULL;
+    HYPRE_Solver          solver = NULL;
 
     Real rel_tol, abs_tol;
     int max_iter;
 
-    void loadMatrix ();
+    void loadMatrix (const BndryData& bndry, int max_bndry_order);
     void finalizeMatrix ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void finalizeVectors ();
