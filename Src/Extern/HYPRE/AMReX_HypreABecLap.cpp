@@ -15,7 +15,6 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
                            const Geometry& geom_,
                            MPI_Comm comm_)
     : comm(comm_),
-      verbose(0),
       geom(geom_)
 {
     int num_procs, myid;
@@ -36,15 +35,8 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
         HYPRE_StructGridSetPeriodic(grid, is_periodic);
     }
 
-    if (num_procs != 1) {
-        for (int i = 0; i < grids.size(); i++) {
-            if (dmap[i] == myid) {
-                HYPRE_StructGridSetExtents(grid, Hypre::loV(grids[i]), Hypre::hiV(grids[i]));
-            }
-        }
-    }
-    else {
-        for (int i = 0; i < grids.size(); i++) {
+    for (int i = 0; i < grids.size(); i++) {
+        if (dmap[i] == myid) {
             HYPRE_StructGridSetExtents(grid, Hypre::loV(grids[i]), Hypre::hiV(grids[i]));
         }
     }
@@ -101,9 +93,13 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
 HypreABecLap::~HypreABecLap ()
 {
     HYPRE_StructGridDestroy(grid);
+    grid = NULL;
     HYPRE_StructMatrixDestroy(A);
+    A = NULL;
     HYPRE_StructVectorDestroy(b);
+    b = NULL;
     HYPRE_StructVectorDestroy(x);
+    x = NULL;
 }
 
 void
@@ -137,6 +133,9 @@ void
 HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
                     int maxiter, const BndryData& bndry, int max_bndry_order)
 {
+    Array<int,stencil_size> stencil_indices;
+    std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
+
     // set up solver
     const BoxArray& grids = acoefs->boxArray();
     
@@ -157,8 +156,8 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
             xfab = &soln[mfi];
         } else {
-            fab.resize(reg);
             xfab = &fab;
+            xfab->resize(reg);
             xfab->copy(soln[mfi], 0, 0, 1);
         }
 
@@ -169,7 +168,8 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         if (rhs.nGrow() == 0) {
             bfab = const_cast<FArrayBox*>(&(rhs[mfi]));
         } else {
-            fab.resize(reg);
+            bfab = &fab;
+            bfab->resize(reg);
             bfab->copy(rhs[mfi], 0, 0, 1);
         }
         
@@ -190,7 +190,7 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         }
 
         const Vector< Vector<BoundCond> > & bcs_i = bndry.bndryConds(i);
-        const BndryData::RealTuple      & bcl_i = bndry.bndryLocs(i);
+        const BndryData::RealTuple        & bcl_i = bndry.bndryLocs(i);
 
         // add b.c.'s for A matrix and b vector
         for (OrientationIter oit; oit; oit++)
@@ -210,8 +210,6 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         }
 
         // initialize matrix & vectors
-        Array<int,stencil_size> stencil_indices;
-        std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
         HYPRE_StructMatrixSetBoxValues(A, Hypre::loV(reg), Hypre::hiV(reg),
                                        stencil_size, stencil_indices.data(), mat);
         HYPRE_StructVectorSetBoxValues(b, Hypre::loV(reg), Hypre::hiV(reg),
@@ -225,10 +223,14 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
     HYPRE_StructVectorAssemble(b); 
 
     HYPRE_StructPFMGCreate(comm, &solver);
+
+    HYPRE_StructPFMGSetMaxIter(solver, 1);
     HYPRE_StructPFMGSetMaxIter(solver, maxiter);
     HYPRE_StructPFMGSetTol(solver, reltol);
+
     int logging = (verbose >= 2) ? 1 : 0;
-    HYPRE_StructPFMGSetLogging(solver, 1);
+    HYPRE_StructPFMGSetLogging(solver, logging);
+
     HYPRE_StructPFMGSetup(solver, A, b, x);
 
     if (abstol > 0.0)
@@ -239,10 +241,7 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         bnorm = std::sqrt(bnorm);
 
         Real volume = grids.d_numPts();
-
-        Real reltol_new = (bnorm > 0.0
-                           ? abstol / bnorm * std::sqrt(volume)
-                           : reltol);
+        Real reltol_new = bnorm > 0.0 ? abstol / (bnorm+1.e-100) * std::sqrt(volume) : reltol;
 
         if (reltol_new > reltol) {
             HYPRE_StructPFMGSetTol(solver, reltol_new);
@@ -279,11 +278,12 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         HYPRE_StructPFMGGetFinalRelativeResidualNorm(solver, &res);
         
         amrex::Print() << "\n" << num_iterations
-                       << " Hypre Multigrid Iterations, Relative Residual "
+                       << " Hypre PFMG Iterations, Relative Residual "
                        << res << std::endl;
     }
 
     HYPRE_StructPFMGDestroy(solver);
+    solver = NULL;
 }
 
 }

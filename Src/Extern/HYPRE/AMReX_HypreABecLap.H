@@ -37,9 +37,9 @@ protected:
 
     static constexpr int stencil_size = 2*AMREX_SPACEDIM+1;
     
-    MPI_Comm comm;
+    MPI_Comm comm = MPI_COMM_NULL;
     
-    int verbose;
+    int verbose = 0;
     
     int is_periodic[AMREX_SPACEDIM];
     
@@ -50,10 +50,11 @@ protected:
 
     Real scalar_a, scalar_b;
     
-    HYPRE_StructGrid grid;
-    HYPRE_StructMatrix A;
-    HYPRE_StructVector b, x;
-    HYPRE_StructSolver solver, precond;
+    HYPRE_StructGrid grid = NULL;
+    HYPRE_StructMatrix A = NULL;
+    HYPRE_StructVector b = NULL;
+    HYPRE_StructVector x = NULL;
+    HYPRE_StructSolver solver = NULL;
 };
 
 }
