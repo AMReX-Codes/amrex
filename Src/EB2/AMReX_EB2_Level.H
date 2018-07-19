@@ -28,25 +28,43 @@ class Level
 public:
 
     bool isAllRegular () const { return m_allregular; }
+    bool isOK () const { return m_ok; }
     void fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const;
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
     void fillCentroid (MultiCutFab& centroid, const Geometry& geom) const;
+    void fillCentroid (   MultiFab& centroid, const Geometry& geom) const;
+    void fillBndryArea (MultiCutFab& bndryarea, const Geometry& geom) const;
+    void fillBndryArea (   MultiFab& bndryarea, const Geometry& geom) const;
     void fillBndryCent (MultiCutFab& bndrycent, const Geometry& geom) const;
-    void fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM>& areafrac, const Geometry& geom) const;
-    void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM>& facefrac, const Geometry& geom) const;
-
-protected:
+    void fillBndryCent (   MultiFab& bndrycent, const Geometry& geom) const;
+    void fillBndryNorm (MultiCutFab& bndrynorm, const Geometry& geom) const;
+    void fillBndryNorm (   MultiFab& bndrynorm, const Geometry& geom) const;
+    void fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& areafrac, const Geometry& geom) const;
+    void fillAreaFrac (Array<   MultiFab*,AMREX_SPACEDIM> const& areafrac, const Geometry& geom) const;
+    void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
+    void fillFaceCent (Array<   MultiFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
 
     Level (const Geometry& geom) : m_geom(geom) {}
+    void prepareForCoarsening (const Level& rhs, int max_grid_size);
+    
+protected:
+
+    Level (Level && rhs) = default;
+
+    Level (Level const& rhs) = delete;
+    Level& operator=(Level const& rhs) = delete;
+    Level& operator=(Level && rhs) = delete;
  
-    void coarsenFromFine (Level& fineLevel);
+    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     void buildCellFlag ();
+    void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
 
     Geometry m_geom;    
     BoxArray m_grids;
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
     MultiGFab m_mgf;
+    MultiFab m_levelset;
     FabArray<EBCellFlagFab> m_cellflag;
     MultiFab m_volfrac;
     MultiFab m_centroid;
@@ -56,6 +74,7 @@ protected:
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
     bool m_allregular = false;
+    bool m_ok = false;
 };
 
 template <typename G>
@@ -73,6 +92,7 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
 {
     if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
         m_allregular = true;
+        m_ok = true;
         return;
     }
 
@@ -107,6 +127,8 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
     if (cut_boxes.empty()) {
         m_grids = BoxArray();
         m_dmap = DistributionMapping();
+        m_allregular = true;
+        m_ok = true;
         return;
     }
 
@@ -287,6 +309,10 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
 #endif
         }
     }
+
+    m_levelset = m_mgf.getLevelSet();
+
+    m_ok = true;
 }
 
 
@@ -296,6 +322,7 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
 {
     if (fineLevel.isAllRegular()) {
         m_allregular = true;
+        m_ok = true;
         return;
     }
 
@@ -311,15 +338,17 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
 
     if (coarsenable)
     {
-        coarsenFromFine(fineLevel);
+        int ierr = coarsenFromFine(fineLevel, true);
+        m_ok = (ierr == 0);
     }
     else
     {
-        amrex::Abort("GShopLevel: todo");
+        Level fine_level_2(fineLevel.m_geom);
+        fine_level_2.prepareForCoarsening(fineLevel, max_grid_size);
+        int ierr = coarsenFromFine(fine_level_2, false);
+        m_ok = (ierr == 0);
     }
 }
-
-
 
 }}
 

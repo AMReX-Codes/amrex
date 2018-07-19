@@ -111,8 +111,8 @@ CellSortedParticleContainer::UpdateCellVectors()
     BL_PROFILE("CellSortedParticleContainer::UpdateCellVectors");
     
     const int lev = 0;
-    
-    bool needs_update = false;
+
+    bool needs_update = true;
     if (not m_vectors_initialized)
     {
         // this is the first call, so we must update
@@ -196,7 +196,7 @@ CellSortedParticleContainer::MoveParticles()
     
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
-    const Real* plo = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
     const Real dt = 0.1;
 
 #ifdef _OPENMP
@@ -206,20 +206,21 @@ CellSortedParticleContainer::MoveParticles()
     {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
-
+        const Box& tile_box  = pti.tilebox();
+        
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
                 
         move_particles(particles.data(), &np,
+                       tile_box.loVect(), tile_box.hiVect(),
                        m_vector_ptrs[grid_id].dataPtr(),
-                       m_vector_size[grid_id].dataPtr(),    
+                       m_vector_size[grid_id].dataPtr(),
                        m_vector_ptrs[grid_id].loVect(),
                        m_vector_ptrs[grid_id].hiVect(),
                        plo, dx, &dt);
 
         // resize particle vectors after call to move_particles
-        const Box& tile_box  = pti.tilebox();
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
         {
             const auto new_size = m_vector_size[grid_id](iv);

@@ -113,8 +113,8 @@ namespace amrex
       {
         retval = true;
         a_areaFracLo = (m_plateLocation - loclo)/a_dx;
-        a_areaFracLo = std::max(a_areaFracLo, 0.0);
-        a_areaFracLo = std::min(a_areaFracLo, 1.0);
+        a_areaFracLo = std::max(a_areaFracLo*1.0, 0.0);
+        a_areaFracLo = std::min(a_areaFracLo*1.0, 1.0);
         a_areaFracHi = 1.0 - a_areaFracLo;
       }
     }

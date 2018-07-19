@@ -23,6 +23,12 @@
 #include <AMReX_Managed.H>
 #include <AMReX_BArena.H>
 
+#ifdef USE_PERILLA
+#include <LocalConnection.H>
+#include <RemoteConnection.H>
+#endif
+
+
 namespace amrex
 {
     extern long private_total_bytes_allocated_in_fabs;     // total bytes at any given time
@@ -974,6 +980,15 @@ protected:
     T*      dptr;     // The data pointer.
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
+
+#ifdef USE_PERILLA
+public:
+    LocalConnection l_con;
+    RemoteConnection r_con;
+    bool fireable;
+    int padding[1024];
+#endif
+
 };
 
 

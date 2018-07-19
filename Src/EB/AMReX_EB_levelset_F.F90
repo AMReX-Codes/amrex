@@ -105,7 +105,128 @@ contains
             end do
         end do
 
-    contains
+    !contains
+    end subroutine amrex_eb_fill_levelset
+
+
+    pure subroutine amrex_eb_fill_levelset_bcs( phi,      philo, phihi, &
+                                                valid,    vlo,   vhi,   &
+                                                periodic, domlo, domhi, &
+                                                eb_list, l_eb,          &
+                                                dx, dx_eb              )&
+                    bind(C, name="amrex_eb_fill_levelset_bcs")
+
+        implicit none
+
+        integer,      dimension(3), intent(in   ) :: philo, phihi, vlo, vhi, periodic, domlo, domhi
+        real(c_real),               intent(  out) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
+        integer,                    intent(  out) :: valid(vlo(1):vhi(1),     vlo(2):vhi(2),     vlo(3):vhi(3))
+
+        ! ** extra data used by fill levelset operation
+        real(c_real), dimension(3),    intent(in   ) :: dx, dx_eb
+        integer,                       intent(in   ) :: l_eb
+        real(c_real), dimension(l_eb), intent(in   ) :: eb_list
+
+
+        integer, dimension(3) :: lo, hi
+
+        !-------------------------------------------------------------------------------------------------------------!
+        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
+        !-------------------------------------------------------------------------------------------------------------!
+
+        ! 2 i-j faces => k is in [philo(3), domlo(3)) U (domhi(3), phihi(3)]
+
+        if ( (periodic(3).eq.0) .and. (philo(3).lt.domlo(3)) ) then
+            lo(:) = philo(:)      ! k = philo(3), domlo(3) - 1
+            hi(:) = phihi(:)      ! j = philo(2), phihi(2)
+            hi(3) = domlo(3) - 1  ! i = philo(1), phihi(1)
+
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
+        end if
+
+        if ( (periodic(3).eq.0) .and. (phihi(3).gt.domhi(3)) ) then
+            lo(:) = philo(:)      ! k = domhi(3) + 1, phihi(3)
+            hi(:) = phihi(:)      ! j = philo(2), phihi(2)
+            lo(3) = domhi(3) + 1  ! i = philo(1), phihi(1)
+
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
+        end if
+
+
+        ! 2 i-k faces => j is in [philo(2), domlo(2)) U (domhi(2), phihi(2)]
+
+        if ( (periodic(2).eq.0) .and. (philo(2).lt.domlo(2)) ) then
+            lo(:) = philo(:)      ! k = philo(3), phihi(3)
+            hi(:) = phihi(:)      ! j = philo(2), domlo(2) - 1
+            hi(2) = domlo(2) - 1  ! i = philo(1), phihi(1)
+
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
+        end if
+
+        if ( (periodic(2).eq.0) .and. (phihi(2).gt.domhi(2)) ) then
+            lo(:) = philo(:)      ! k = philo(3), phihi(3)
+            hi(:) = phihi(:)      ! j = domhi(2) + 1, phihi(2)
+            lo(2) = domhi(2) + 1  ! i = philo(1), phihi(1)
+
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
+        end if
+
+
+        ! 2 j-k faces => i is in [philo(1), domlo(1)) U (domhi(1), phihi(1)]
+
+        if ( (periodic(1).eq.0) .and. (philo(1).lt.domlo(1)) ) then
+            lo(:) = philo(:)      ! k = philo(3), phihi(3)
+            hi(:) = phihi(:)      ! j = philo(2), phihi(2)
+            hi(1) = domlo(1) - 1  ! i = philo(1), domlo(1) - 1
+
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
+        end if
+
+        if ( (periodic(1).eq.0) .and. (phihi(1).gt.domhi(1)) ) then
+            lo(:) = philo(:)      ! k = philo(3), phihi(3)
+            hi(:) = phihi(:)      ! j = philo(2), phihi(2)
+            lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phihi(1)
+
+            call amrex_eb_fill_levelset ( &
+                lo, hi,                   &
+                eb_list, l_eb,            &
+                valid, vlo,   vhi,        &
+                phi,   philo, phihi,      &
+                dx, dx_eb                 &
+            )
+        end if
+
+    end subroutine amrex_eb_fill_levelset_bcs
 
 
         !------------------------------------------------------------------------------------------------------------!
@@ -201,7 +322,7 @@ contains
 
         end subroutine closest_dist
 
-    end subroutine amrex_eb_fill_levelset
+    !end subroutine amrex_eb_fill_levelset
 
 
 
@@ -239,7 +360,7 @@ contains
             do jj = lo(2), hi(2)
                 do ii = lo(1), hi(1)
                     if ( valid(ii, jj, kk)  == 0 ) then
-                        levelset_node = dabs( phi(ii, jj, kk) )
+                        levelset_node = abs( phi(ii, jj, kk) )
                         if ( impf(ii, jj, kk) <= 0 ) then
                             phi(ii, jj, kk) = levelset_node
                         else
@@ -252,6 +373,112 @@ contains
 
     end subroutine amrex_eb_validate_levelset
 
+
+    pure subroutine amrex_eb_validate_levelset_bcs( phi,      phlo,  phhi,  &
+                                                    valid,    vlo,   vhi,   &
+                                                    periodic, domlo, domhi, &
+                                                    impf,     imlo,  imhi ) &
+                    bind(C, name="amrex_eb_validate_levelset_bcs")
+
+        implicit none
+
+        integer, dimension(3), intent(in   ) :: phlo, phhi, vlo, vhi, periodic, domlo, domhi, imlo, imhi
+        integer,               intent(in   ) :: valid (  vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3)  )
+        real(c_real),          intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(c_real),          intent(in   ) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
+
+        integer, dimension(3) :: lo, hi
+        !-------------------------------------------------------------------------------------------------------------!
+        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
+        !-------------------------------------------------------------------------------------------------------------!
+
+        ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
+
+        if ( (periodic(3).eq.0) .and. (phlo(3).lt.domlo(3)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), domlo(3) - 1
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(3) = domlo(3) - 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
+        end if
+
+        if ( (periodic(3).eq.0) .and. (phhi(3).gt.domhi(3)) ) then
+            lo(:) = phlo(:)       ! k = domhi(3) + 1, phihi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(3) = domhi(3) + 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
+        end if
+
+
+        ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
+
+        if ( (periodic(2).eq.0) .and. (phlo(2).lt.domlo(2)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), domlo(2) - 1
+            hi(2) = domlo(2) - 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
+        end if
+
+        if ( (periodic(2).eq.0) .and. (phhi(2).gt.domhi(2)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = domhi(2) + 1, phhi(2)
+            lo(2) = domhi(2) + 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
+        end if
+
+
+        ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
+
+        if ( (periodic(1).eq.0) .and. (phlo(1).lt.domlo(1)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(1) = domlo(1) - 1  ! i = phlo(1), domlo(1) - 1
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
+        end if
+
+        if ( (periodic(1).eq.0) .and. (phhi(1).gt.domhi(1)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phhi(1)
+
+            call amrex_eb_validate_levelset ( &
+                lo, hi, 0,                    &
+                impf,  imlo, imhi,            &
+                valid, vlo,  vhi,             &
+                phi,   phlo, phhi             &
+            )
+        end if
+
+    end subroutine amrex_eb_validate_levelset_bcs
 
 
     !----------------------------------------------------------------------------------------------------------------!
@@ -269,8 +496,7 @@ contains
                                                           v_in,  vilo, vihi,   &
                                                           ls_in, lslo, lshi,   &
                                                           valid, vlo,  vhi,    &
-                                                          phi,   phlo, phhi,   &
-                                                          dx,    n_pad       ) &
+                                                          phi,   phlo, phhi  ) &
                     bind(C, name="amrex_eb_update_levelset_intersection")
 
         implicit none
@@ -280,12 +506,9 @@ contains
         real(c_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,                    intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
         real(c_real),               intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
-        real(c_real), dimension(3), intent(in   ) :: dx
-        integer,                    intent(in   ) :: n_pad
 
         real(c_real) :: ls_node, in_node
-        integer      :: i, j, k, ii, jj, kk
-        logical      :: valid_cell
+        integer      :: ii, jj, kk
 
         do kk = lo(3), hi(3)
             do jj = lo(2), hi(2)
@@ -307,18 +530,124 @@ contains
             end do
         end do
 
-        ! do k = lo(3), hi(3)
-        !     do j = lo(2), hi(2)
-        !         do i = lo(1), hi(1)
-        !             valid_cell = neighbour_is_valid(phi, phlo, phhi, i, j, k, n_pad)
-        !             if ( valid_cell ) then
-        !                 valid(i, j, k) = 1
-        !             end if
-        !         end do
-        !     end do
-        ! end do
-
     end subroutine amrex_eb_update_levelset_intersection
+
+
+
+    pure subroutine amrex_eb_update_levelset_intersection_bcs( v_in,     vilo,  vihi,   &
+                                                               ls_in,    lslo,  lshi,   &
+                                                               valid,    vlo,   vhi,    &
+                                                               phi,      phlo,  phhi,   &
+                                                               periodic, domlo, domhi ) &
+                    bind(C, name="amrex_eb_update_levelset_intersection_bcs")
+
+        implicit none
+
+        integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, periodic, domlo, domhi
+        integer,               intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
+        real(c_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        integer,               intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
+        real(c_real),          intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+
+        integer, dimension(3) :: lo, hi
+
+        !-------------------------------------------------------------------------------------------------------------!
+        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
+        !-------------------------------------------------------------------------------------------------------------!
+
+        ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
+
+        if ( (periodic(3).eq.0) .and. (phlo(3).lt.domlo(3)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), domlo(3) - 1
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(3) = domlo(3) - 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
+        end if
+
+        if ( (periodic(3).eq.0) .and. (phhi(3).gt.domhi(3)) ) then
+            lo(:) = phlo(:)       ! k = domhi(3) + 1, phihi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(3) = domhi(3) + 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
+        end if
+
+
+        ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
+
+        if ( (periodic(2).eq.0) .and. (phlo(2).lt.domlo(2)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), domlo(2) - 1
+            hi(2) = domlo(2) - 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
+        end if
+
+        if ( (periodic(2).eq.0) .and. (phhi(2).gt.domhi(2)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = domhi(2) + 1, phhi(2)
+            lo(2) = domhi(2) + 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
+        end if
+
+
+        ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
+
+        if ( (periodic(1).eq.0) .and. (phlo(1).lt.domlo(1)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(1) = domlo(1) - 1  ! i = phlo(1), domlo(1) - 1
+
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
+        end if
+
+        if ( (periodic(1).eq.0) .and. (phhi(1).gt.domhi(1)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phhi(1)
+
+            call amrex_eb_update_levelset_intersection ( &
+                lo,    hi,                               &
+                v_in,  vilo, vihi,                       &
+                ls_in, lslo, lshi,                       &
+                valid, vlo,  vhi,                        &
+                phi,   phlo, phhi                        &
+            )
+        end if
+
+    end subroutine amrex_eb_update_levelset_intersection_bcs
 
 
 
@@ -337,8 +666,7 @@ contains
                                                    v_in,  vilo, vihi,   &
                                                    ls_in, lslo, lshi,   &
                                                    valid, vlo,  vhi,    &
-                                                   phi,   phlo, phhi,   &
-                                                   dx,    n_pad       ) &
+                                                   phi,   phlo, phhi  ) &
                     bind(C, name="amrex_eb_update_levelset_union")
 
         implicit none
@@ -348,12 +676,9 @@ contains
         real(c_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,                    intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
         real(c_real),               intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
-        real(c_real), dimension(3), intent(in   ) :: dx
-        integer,                    intent(in   ) :: n_pad
 
         real(c_real) :: ls_node, in_node
-        integer      :: i, j, k, ii, jj, kk
-        logical      :: valid_cell
+        integer      :: ii, jj, kk
 
         do kk = lo(3), hi(3)
             do jj = lo(2), hi(2)
@@ -375,20 +700,124 @@ contains
             end do
         end do
 
-        ! do k = lo(3), hi(3)
-        !     do j = lo(2), hi(2)
-        !         do i = lo(1), hi(1)
-        !             valid_cell = neighbour_is_valid(phi, phlo, phhi, i, j, k, n_pad)
-        !             if ( valid_cell ) then
-        !                 valid(i, j, k) = 1
-        !             end if
-        !         end do
-        !     end do
-        ! end do
-
     end subroutine amrex_eb_update_levelset_union
 
+    pure subroutine amrex_eb_update_levelset_union_bcs( v_in,     vilo,  vihi,   &
+                                                        ls_in,    lslo,  lshi,   &
+                                                        valid,    vlo,   vhi,    &
+                                                        phi,      phlo,  phhi,   &
+                                                        periodic, domlo, domhi ) &
+                    bind(C, name="amrex_eb_update_levelset_union_bcs")
 
+        implicit none
+
+        integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, periodic, domlo, domhi
+        integer,               intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
+        real(c_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        integer,               intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
+        real(c_real),          intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+
+        !integer      :: i, j, k
+        !real(c_real) :: ls_node, in_node
+
+        integer, dimension(3) :: lo, hi
+
+        !-------------------------------------------------------------------------------------------------------------!
+        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
+        !-------------------------------------------------------------------------------------------------------------!
+
+        ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
+        if ( (periodic(3).eq.0) .and. (phlo(3).lt.domlo(3)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), domlo(3) - 1
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(3) = domlo(3) - 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_update_levelset_union ( &
+                lo,    hi,                        &
+                v_in,  vilo, vihi,                &
+                ls_in, lslo, lshi,                &
+                valid, vlo,  vhi,                 &
+                phi,   phlo, phhi                 &
+            )
+        end if
+
+        if ( (periodic(3).eq.0) .and. (phhi(3).gt.domhi(3)) ) then
+            lo(:) = phlo(:)       ! k = domhi(3) + 1, phihi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(3) = domhi(3) + 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_update_levelset_union ( &
+                lo,    hi,                        &
+                v_in,  vilo, vihi,                &
+                ls_in, lslo, lshi,                &
+                valid, vlo,  vhi,                 &
+                phi,   phlo, phhi                 &
+            )
+        end if
+
+
+        ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
+
+        if ( (periodic(2).eq.0) .and. (phlo(2).lt.domlo(2)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), domlo(2) - 1
+            hi(2) = domlo(2) - 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_update_levelset_union ( &
+                lo,    hi,                        &
+                v_in,  vilo, vihi,                &
+                ls_in, lslo, lshi,                &
+                valid, vlo,  vhi,                 &
+                phi,   phlo, phhi                 &
+            )
+        end if
+
+        if ( (periodic(2).eq.0) .and. (phhi(2).gt.domhi(2)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = domhi(2) + 1, phhi(2)
+            lo(2) = domhi(2) + 1  ! i = phlo(1), phhi(1)
+
+            call amrex_eb_update_levelset_union ( &
+                lo,    hi,                        &
+                v_in,  vilo, vihi,                &
+                ls_in, lslo, lshi,                &
+                valid, vlo,  vhi,                 &
+                phi,   phlo, phhi                 &
+            )
+        end if
+
+
+        ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
+
+        if ( (periodic(1).eq.0) .and. (phlo(1).lt.domlo(1)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            hi(1) = domlo(1) - 1  ! i = phlo(1), domlo(1) - 1
+
+            call amrex_eb_update_levelset_union ( &
+                lo,    hi,                        &
+                v_in,  vilo, vihi,                &
+                ls_in, lslo, lshi,                &
+                valid, vlo,  vhi,                 &
+                phi,   phlo, phhi                 &
+            )
+        end if
+
+        if ( (periodic(1).eq.0) .and. (phhi(1).gt.domhi(1)) ) then
+            lo(:) = phlo(:)       ! k = phlo(3), phhi(3)
+            hi(:) = phhi(:)       ! j = phlo(2), phhi(2)
+            lo(1) = domhi(1) + 1  ! i = domhi(1) + 1, phhi(1)
+
+            call amrex_eb_update_levelset_union ( &
+                lo,    hi,                        &
+                v_in,  vilo, vihi,                &
+                ls_in, lslo, lshi,                &
+                valid, vlo,  vhi,                 &
+                phi,   phlo, phhi                 &
+            )
+        end if
+
+    end subroutine amrex_eb_update_levelset_union_bcs
 
     !----------------------------------------------------------------------------------------------------------------!
     !                                                                                                                !
@@ -431,6 +860,102 @@ contains
 
 
 
+    !----------------------------------------------------------------------------------------------------------------!
+    !                                                                                                                !
+    !   pure subroutine FILL_VALID_BCS                                                                               !
+    !                                                                                                                !
+    !   Purpose: Fills elements of valid with 1 whenever it corresponds to a position with n_pad of the level set    !
+    !   value being negative (i.e. phi < 0), and 0 otherwise. For all ghost cells outside the domain                 !
+    !                                                                                                                !
+    !----------------------------------------------------------------------------------------------------------------!
+
+
+    pure subroutine amrex_eb_fill_valid_bcs( valid, vlo, vhi, periodic, domlo, domhi ) &
+                    bind(C, name="amrex_eb_fill_valid_bcs")
+
+        implicit none
+
+        integer, dimension(3), intent(in   ) :: vlo, vhi, periodic, domlo, domhi
+        integer,               intent(  out) :: valid(vlo(1):vhi(1), vlo(2):vhi(2), vlo(3):vhi(3))
+
+        integer :: i, j, k
+
+        !-------------------------------------------------------------------------------------------------------------!
+        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
+        !-------------------------------------------------------------------------------------------------------------!
+
+        ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
+
+        if ( periodic(3).eq.0 ) then
+            do k = vlo(3), domlo(3) - 1
+                do j = vlo(2), vhi(2)
+                    do i = vlo(1), vhi(1)
+                        valid(i, j, k) = 1
+                    end do
+                end do
+            end do
+
+            do k = domhi(3) + 1, vhi(3)
+                do j = vlo(2), vhi(2)
+                    do i = vlo(1), vhi(1)
+                        valid(i, j, k) = 1
+                    end do
+                end do
+            end do
+        end if
+
+        ! 2 i-k faces => j is in [vlo(2), domlo(2)) U (domhi(2), vhi(2)]
+
+        if ( periodic(2).eq.0 ) then
+            if ( vlo(2).lt.domlo(2) ) then
+                do k = vlo(3), vhi(3)
+                    do j = vlo(2), domlo(2) - 1
+                        do i = vlo(1), vhi(1)
+                            valid(i, j, k) = 1
+                        end do
+                    end do
+                end do
+            end if
+
+            if (vhi(2).gt.domhi(2) ) then
+                do k = vlo(3), vhi(3)
+                    do j = domhi(2) + 1, vhi(2)
+                        do i = vlo(1), vhi(1)
+                            valid(i, j, k) = 1
+                        end do
+                    end do
+                end do
+            end if
+        end if
+
+        ! 2 j-k faces => i is in [vlo(1), domlo(1)) U (domhi(1), vhi(1)]
+
+        if ( periodic(1).eq.0 ) then
+            if ( vlo(1).lt.domlo(1) ) then
+                do k = vlo(3), vhi(3)
+                    do j = vlo(2), vhi(2)
+                        do i = vlo(1), domlo(1) - 1
+                            valid(i, j, k) = 1
+                        end do
+                    end do
+                end do
+            end if
+
+            if ( vhi(1).gt.domhi(1) ) then
+                do k = vlo(3), vhi(3)
+                    do j = vlo(2), vhi(2)
+                        do i = domhi(1) + 1, vhi(1)
+                            valid(i, j, k) = 1
+                        end do
+                    end do
+                end do
+            end if
+        end if
+
+    end subroutine amrex_eb_fill_valid_bcs
+
+
+
     pure function neighbour_is_valid(phi, phlo, phhi, i, j, k, n_pad)
         implicit none
 
@@ -452,38 +977,17 @@ contains
 
         !----------------------------------------------------------------------------------------------------!
         ! build neighbour stencil of size n_pad                                                              !
-        ! note: stencil could be out-of-bounds (due to fudge factor) => bounds-checking                      !
+        ! note: stencil could be out-of-bounds  => bounds-checking                                           !
         !----------------------------------------------------------------------------------------------------!
 
-        klo = k - n_pad
-        if ( klo .lt. phlo(3) ) then
-            klo = phlo(3)
-        end if
+        ilo = max(i-n_pad, phlo(1))
+        ihi = min(i+n_pad, phhi(1))
 
-        khi = k + n_pad
-        if ( khi .gt. phhi(3) ) then
-            khi = phhi(3)
-        end if
+        jlo = max(j-n_pad, phlo(2))
+        jhi = min(j+n_pad, phhi(2))
 
-        jlo = j - n_pad
-        if ( jlo .lt. phlo(2) ) then
-            jlo = phlo(2)
-        end if
-
-        jhi = j + n_pad
-        if ( jhi .gt. phhi(2) ) then
-            jhi = phhi(2)
-        end if
-
-        ilo = i - n_pad
-        if ( ilo .lt. phlo(1) ) then
-            ilo = phlo(1)
-        end if
-
-        ihi = i + n_pad
-        if ( ihi .gt. phhi(1) ) then
-            ihi = phhi(1)
-        end if
+        klo = max(k-n_pad, phlo(3))
+        khi = min(k+n_pad, phhi(3))
 
 
         !---------------------------------------------------------------------------------------------------!
