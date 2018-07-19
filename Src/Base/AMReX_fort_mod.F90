@@ -65,7 +65,30 @@ contains
 
 
 
-  subroutine get_loop_bounds(blo, bhi, lo, hi)
+  AMREX_CUDA_FORT_DEVICE subroutine get_loop_bounds_device(blo, bhi, lo, hi) bind(c,name='get_loop_bounds_device')
+
+    implicit none
+
+    integer, intent(in   ) :: lo(3), hi(3)
+    integer, intent(inout) :: blo(3), bhi(3)
+
+    ! Get our spatial index based on the CUDA thread index
+    blo(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
+    blo(2) = lo(2) + (threadIdx%y - 1) + blockDim%y * (blockIdx%y - 1)
+    blo(3) = lo(3) + (threadIdx%z - 1) + blockDim%z * (blockIdx%z - 1)
+
+    ! If we have more threads than zones, set hi < lo so that the
+    ! loop iteration gets skipped.
+
+    if (blo(1) .gt. hi(1) .or. blo(2) .gt. hi(2) .or. blo(3) .gt. hi(3)) then
+       bhi = blo - 1
+    else
+       bhi = blo
+    endif
+
+  end subroutine get_loop_bounds_device
+
+  AMREX_CUDA_FORT_HOST subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c,name='get_loop_bounds')
 
     implicit none
 
@@ -76,8 +99,6 @@ contains
     bhi = hi
 
   end subroutine get_loop_bounds
-
-
 
   subroutine amrex_add(x, y)
 
