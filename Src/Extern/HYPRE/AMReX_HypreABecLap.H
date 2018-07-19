@@ -42,7 +42,6 @@ protected:
     int verbose;
     
     int is_periodic[AMREX_SPACEDIM];
-    Real dx[AMREX_SPACEDIM];
     
     Geometry geom;
     

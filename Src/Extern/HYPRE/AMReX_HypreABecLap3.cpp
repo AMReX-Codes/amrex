@@ -321,39 +321,6 @@ void HypreABecLap3::loadVectors(MultiFab& soln, const MultiFab& rhs) {
     // Copy the rhs vector
     f->copy(rhs[mfi], 0, 0, 1);
 
-    // add b.c.'s to rhs
-    const Vector< Vector<BoundCond> > & bcs_i = bd.bndryConds(i);
-    const BndryData::RealTuple      & bcl_i = bd.bndryLocs(i);
-
-    const Box& domain = geom.Domain();
-    for (OrientationIter oitr; oitr; oitr++) {
-      int cdir(oitr());
-      int idim = oitr().coordDir();
-      const int bctype = bcs_i[cdir][0];
-      const Real &bcl  = bcl_i[cdir];
-
-      const Mask &msk  = bd.bndryMasks(oitr())[mfi];
-      const FArrayBox &fs = bd.bndryValues(oitr())[mfi];
-
-      // Treat an exposed grid edge here as a boundary condition
-      // for the linear solver:
-      if (reg[oitr()] == domain[oitr()]) {
-        amrex_hbvec3(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                     cdir, bctype, bho, bcl,
-                     BL_TO_FORTRAN(fs),
-                     BL_TO_FORTRAN(msk),
-                     BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                     scalar_b, dx);
-      } else {
-        amrex_hbvec(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                    cdir, bctype, bho, bcl,
-                    BL_TO_FORTRAN(fs),
-                    BL_TO_FORTRAN(msk),
-                    BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                    scalar_b, dx);
-      }
-    }
-
     // initialize rhs
     amrex_conv_Vec_Local_Global(&b, vec, reg.numPts(),
                                 ARLIM(reg.loVect()), ARLIM(reg.hiVect()),

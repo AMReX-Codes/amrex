@@ -37,6 +37,8 @@ private :
 
     int verbose;
 
+    int is_periodic[AMREX_SPACEDIM];
+
     MultiFab acoefs;
     std::array<MultiFab,BL_SPACEDIM> bcoefs;
     Real scalar_a, scalar_b;

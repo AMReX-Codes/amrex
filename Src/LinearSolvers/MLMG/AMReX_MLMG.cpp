@@ -1338,6 +1338,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 #else
 
     const int ncomp = linop.getNComp();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithHypre doesn't work with ncomp > 1");
 
     if (hypre_solver == nullptr)  // We should reuse the setup
     {
@@ -1347,7 +1348,8 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         const auto& factory = *(linop.m_factory[0].back());
         MPI_Comm comm = linop.BottomCommunicator();
 
-        hypre_solver.reset(new Hypre(ba, dm, geom, comm, hypre_interface));
+//        hypre_solver.reset(new Hypre(ba, dm, geom, comm, hypre_interface));
+        hypre_solver.reset(new Hypre(ba, dm, geom, comm, Hypre::Interface::structed));
         hypre_solver->setVerbose(bottom_verbose);
 
         hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());

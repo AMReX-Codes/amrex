@@ -9,7 +9,7 @@ module amrex_habec_module
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
-  use amrex_constants_module, only : zero, half
+  use amrex_constants_module, only : zero, one, half, three
   implicit none
 
 contains
@@ -19,14 +19,28 @@ contains
     real(rt), intent(inout) :: mat(0:6, lo(1): hi(1), lo(2): hi(2), lo(3): hi(3))
     real(rt), intent(in   ) ::   a(    alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
     real(rt), intent(in) :: sa
-    integer :: i, j, k    
-    do k = lo(3), hi(3)
-       do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             mat(6,i,j,k) = sa * a(i,j,k)
+    integer :: i, j, k
+    if (sa .eq. zero) then
+       !$omp parallel do private(i,j,k) collapse(2)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                mat(0,i,j,k) = zero
+             enddo
           enddo
        enddo
-    enddo  
+       !$omp end parallel do
+    else
+       !$omp parallel do private(i,j,k) collapse(2)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                mat(0,i,j,k) = sa * a(i,j,k)
+             enddo
+          enddo
+       enddo
+       !$omp end parallel do
+    end if
   end subroutine amrex_hpacoef
 
   subroutine amrex_hpbcoef (lo, hi, mat, b, blo, bhi, sb, dx, idim) &
@@ -42,41 +56,48 @@ contains
     fac = sb / dx(idim+1)**2 
 
     if (idim .eq. 0) then
+       !$omp parallel do private(i,j,k) collapse(2)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                mat(0,i,j,k) = - fac * b(i,j,k)
-                mat(3,i,j,k) = - fac * b(i+1,j,k)
-                mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i+1,j,k))
-             enddo
-          enddo
-       enddo
-    else if (idim .eq. 1) then
-       do k = lo(3), hi(3)
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
+                mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i+1,j,k))
                 mat(1,i,j,k) = - fac * b(i,j,k)
-                mat(4,i,j,k) = - fac * b(i,j+1,k)
-                mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i,j+1,k))
+                mat(2,i,j,k) = - fac * b(i+1,j,k)
              enddo
           enddo
        enddo
-    else
+       !$omp end parallel do
+    else if (idim .eq. 1) then
+       !$omp parallel do private(i,j,k) collapse(2)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                mat(2,i,j,k) = - fac * b(i,j,k)
-                mat(5,i,j,k) = - fac * b(i,j,k+1)
-                mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i,j,k+1))
+                mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i,j+1,k))
+                mat(3,i,j,k) = - fac * b(i,j,k)
+                mat(4,i,j,k) = - fac * b(i,j+1,k)
              enddo
           enddo
        enddo
+       !$omp end parallel do
+    else
+       !$omp parallel do private(i,j,k) collapse(2)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i,j,k+1))
+                mat(5,i,j,k) = - fac * b(i,j,k)
+                mat(6,i,j,k) = - fac * b(i,j,k+1)
+             enddo
+          enddo
+       enddo
+       !$omp end parallel do
     endif
     
   end subroutine amrex_hpbcoef
 
-  subroutine amrex_hpbmat3 (lo, hi, mat, b, blo, bhi, mask, mlo, mhi, &
-       sb, dx, cdir, bct, bcl) bind(c,name='amrex_hpbmat3')
+  
+  subroutine amrex_hpmat (lo, hi, mat, b, blo, bhi, mask, mlo, mhi, &
+       sb, dx, cdir, bct, bcl) bind(c,name='amrex_hpmat')
     integer, intent(in) :: lo(3), hi(3), blo(3), bhi(3), mlo(3), mhi(3), cdir, bct
     real(rt), intent(inout) ::  mat(0:6, lo(1): hi(1), lo(2): hi(2), lo(3): hi(3))
     real(rt), intent(in   ) ::    b(    blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
@@ -84,7 +105,7 @@ contains
     real(rt), intent(in) :: sb, dx(3), bcl
 
     integer :: i, j, k
-    real(rt) :: fac, h, bfm, bfv
+    real(rt) :: fac, h, h2, h3, bf1, bf2
 
     if (cdir .eq. 0 .or. cdir .eq. 3) then
        h = dx(1)
@@ -96,514 +117,97 @@ contains
     fac = sb / (h**2)
 
     if (bct .eq. amrex_lo_dirichlet) then
-       bfv = fac * (half * h - bcl) / (half * h + bcl)       
+       h2 = half * h
+       h3 = three * h2
+       bf1 = fac * ((h3 - bcl) / (bcl + h2) - one)
+       bf2 = fac * (bcl - h2) / (bcl + h3)
     else if (bct .eq. amrex_lo_neumann) then
-       bfv = -fac
+       bf1 = -fac
+       bf2 = zero
     else
-       call amrex_error("hpmat3: unsupported boundary type")       
+       call amrex_error("hpmat: unsupported boundary type")       
     end if
     
     if (cdir .eq. 0) then
        i = lo(1)
+       !$omp parallel do private(j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              if (mask(i-1,j,k) .gt. 0) then
-                mat(0,i,j,k) = 0.d0
-                mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j,k)
+                mat(0,i,j,k) = mat(0,i,j,k) + bf1 * b(i,j,k)
+                mat(1,i,j,k) = zero
+                mat(2,i,j,k) = mat(2,i,j,k) + bf2 * b(i,j,k)
              endif
           enddo
        enddo
     else if (cdir .eq. 3) then
-         i = hi(1)
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               if (mask(i+1,j,k) .gt. 0) then
-                  mat(3,i,j,k) = 0.d0
-                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i+1,j,k)
-               endif
-            enddo
-         enddo
-      else if (cdir .eq. 1) then
-         j = lo(2)
-         do k = lo(3), hi(3)
-            do i = lo(1), hi(1)
-               if (mask(i,j-1,k) .gt. 0) then
-                  mat(1,i,j,k) = 0.d0
-                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j,k)
-               endif
-            enddo
-         enddo
-      else if (cdir .eq. 4) then
-         j = hi(2)
-         do k = lo(3), hi(3)
-            do i = lo(1), hi(1)
-               if (mask(i,j+1,k) .gt. 0) then
-                  mat(4,i,j,k) = 0.d0
-                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j+1,k)
-               endif
-            enddo
-         enddo
-      else if (cdir .eq. 2) then
-         k = lo(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               if (mask(i,j,k-1) .gt. 0) then
-                  mat(2,i,j,k) = 0.d0
-                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j,k)
-               endif
-            enddo
-         enddo
-      else if (cdir .eq. 5) then
-         k = hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               if (mask(i,j,k+1) .gt. 0) then
-                  mat(5,i,j,k) = 0.d0
-                  mat(6,i,j,k) = mat(6,i,j,k) + bfv * b(i,j,k+1)
-               endif
-            enddo
-         enddo
-      else
-         call amrex_error("hpmat3: impossible face orientation")
-      endif
-      
-    end subroutine amrex_hpbmat3
-
-
-    subroutine amrex_hpbvec3 (lo, hi, vec, b, blo, bhi, mask, mlo, mhi, &
-         bcv, clo, chi, sb, dx, cdir, bct, bcl) bind(c,name='amrex_hpbvec3')
-      integer, intent(in) :: lo(3), hi(3), blo(3), bhi(3), mlo(3), mhi(3), clo(3), chi(3), cdir, bct
-      real(rt), intent(inout) ::  vec(     lo(1): hi(1), lo(2): hi(2), lo(3): hi(3))
-      real(rt), intent(in   ) ::    b(    blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
-      integer , intent(in   ) :: mask(    mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-      real(rt), intent(in   ) ::  bcv(    clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
-      real(rt), intent(in) :: sb, dx(3), bcl
-
-      integer :: i, j, k
-      real(rt) :: h, bfv
-
-      if (cdir .eq. 0 .or. cdir .eq. 3) then
-         h = dx(1)
-      elseif (cdir .eq. 1 .or. cdir .eq. 4) then
-         h = dx(2)
-      else
-         h = dx(3)
-      endif
-
-      if (bct .eq. amrex_lo_dirichlet) then
-         bfv = (sb / h) / (0.5d0 * h + bcl)
-      else if (bct .eq. amrex_lo_neumann) then
-         bfv = sb / h
-      else
-         call amrex_error("hpbvec3: unsupported boundary type")
-      endif
-      
-      if (cdir .eq. 0) then
-         i = lo(1)
-         if (bct .eq. amrex_lo_dirichlet) then
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  if (mask(i-1,j,k) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j,k) * bcv(i-1,j,k)
-                  endif
-               enddo
-            enddo
-         else
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  if (mask(i-1,j,k) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i-1,j,k)
-                  endif
-               enddo
-            enddo
-         end if
-      else if (cdir .eq. 3) then
-         i = hi(1)
-         if (bct .eq. amrex_lo_dirichlet) then
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  if (mask(i+1,j,k) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * b(i+1,j,k) * bcv(i+1,j,k)
-                  endif
-               enddo
-            enddo
-         else
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  if (mask(i+1,j,k) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i+1,j,k)
-                  endif
-               enddo
-            enddo
-         end if
-      else if (cdir .eq. 1) then
-         j = lo(2)
-         if (bct .eq. amrex_lo_dirichlet) then
-            do k = lo(3), hi(3)
-               do i = lo(1), hi(1)
-                  if (mask(i,j-1,k) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j,k) * bcv(i,j-1,k)
-                  endif
-               enddo
-            enddo
-         else
-            do k = lo(3), hi(3)
-               do i = lo(1), hi(1)
-                  if (mask(i,j-1,k) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i,j-1,k)
-                  endif
-               enddo
-            enddo
-         end if
-      else if (cdir .eq. 4) then
-         j = hi(2)
-         if (bct .eq. amrex_lo_dirichlet) then
-            do k = lo(3), hi(3)
-               do i = lo(1), hi(1)
-                  if (mask(i,j+1,k) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j+1,k) * bcv(i,j+1,k)
-                  endif
-               enddo
-            enddo
-         else
-            do k = lo(3), hi(3)
-               do i = lo(1), hi(1)
-                  if (mask(i,j+1,k) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i,j+1,k)
-                  endif
-               enddo
-            enddo
-         end if
-      else if (cdir .eq. 2) then
-         k = lo(3)
-         if (bct .eq. amrex_lo_dirichlet) then
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  if (mask(i,j,k-1) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j,k) * bcv(i,j,k-1)
-                  endif
-               enddo
-            enddo
-         else
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  if (mask(i,j,k-1) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i,j,k-1)
-                  endif
-               enddo
-            enddo
-         end if
-      else if (cdir .eq. 5) then
-         k = hi(3)
-         if (bct .eq. amrex_lo_dirichlet) then
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  if (mask(i,j,k+1) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * b(i,j,k+1) * bcv(i,j,k+1)
-                  endif
-               enddo
-            enddo
-         else
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  if (mask(i,j,k+1) .gt. 0) then
-                     vec(i,j,k) = vec(i,j,k) + bfv * bcv(i,j,k+1)
-                  endif
-               enddo
-            enddo
-         end if
-      else
-         call amrex_error("hpbvec3: impossible face orientation")
-      endif
-
-    end subroutine amrex_hpbvec3
-
+       i = hi(1)
+       !$omp parallel do private(j,k)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             if (mask(i+1,j,k) .gt. 0) then
+                mat(0,i,j,k) = mat(0,i,j,k) + bf1 * b(i+1,j,k)
+                mat(2,i,j,k) = zero
+                mat(1,i,j,k) = mat(1,i,j,k) + bf2 * b(i+1,j,k)
+             endif
+          enddo
+       enddo
+    else if (cdir .eq. 1) then
+       j = lo(2)
+       !$omp parallel do private(i,k)
+       do k = lo(3), hi(3)
+          do i = lo(1), hi(1)
+             if (mask(i,j-1,k) .gt. 0) then
+                mat(0,i,j,k) = mat(0,i,j,k) + bf1 * b(i,j,k)
+                mat(3,i,j,k) = zero
+                mat(4,i,j,k) = mat(4,i,j,k) + bf2 * b(i,j,k)
+             endif
+          enddo
+       enddo
+    else if (cdir .eq. 4) then
+       j = hi(2)
+       !$omp parallel do private(i,k)
+       do k = lo(3), hi(3)
+          do i = lo(1), hi(1)
+             if (mask(i,j+1,k) .gt. 0) then
+                mat(0,i,j,k) = mat(0,i,j,k) + bf1 * b(i,j+1,k)
+                mat(4,i,j,k) = zero
+                mat(3,i,j,k) = mat(3,i,j,k) + bf2 * b(i,j+1,k)
+             endif
+          enddo
+       enddo
+    else if (cdir .eq. 2) then
+       k = lo(3)
+       !$omp parallel do private(i,j)
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (mask(i,j,k-1) .gt. 0) then
+                mat(0,i,j,k) = mat(0,i,j,k) + bf1 * b(i,j,k)
+                mat(5,i,j,k) = zero
+                mat(6,i,j,k) = mat(6,i,j,k) + bf2 * b(i,j,k)
+             endif
+          enddo
+       enddo
+    else if (cdir .eq. 5) then
+       k = hi(3)
+       !$omp parallel do private(i,j)
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (mask(i,j,k+1) .gt. 0) then
+                mat(0,i,j,k) = mat(0,i,j,k) + bf1 * b(i,j,k+1)
+                mat(6,i,j,k) = zero
+                mat(5,i,j,k) = mat(5,i,j,k) + bf2 * b(i,j,k+1)
+             endif
+          enddo
+       enddo
+       !$omp end parallel do
+    else
+       call amrex_error("hpmat: impossible face orientation")
+    endif
+    
+  end subroutine amrex_hpmat
+    
   
-subroutine amrex_hbvec(vec, &
-                 reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
-                 cdir, bct, bho, bcl, &
-                 bcval, bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3, &
-                 mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
-                 b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
-                 beta, dx) bind(C, name="amrex_hbvec")
-
-  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
-  integer :: bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3
-  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
-  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
-  integer :: cdir, bct, bho
-  real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: vec(reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
-  real(rt)         :: bcval(bcv_l1:bcv_h1,bcv_l2:bcv_h2,bcv_l3:bcv_h3)
-  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
-  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
-  real(rt)         :: h, bfv
-  real(rt)         :: h2, th2
-  integer :: i, j, k
-  if (cdir == 0 .OR. cdir == 3) then
-     h = dx(1)
-  elseif (cdir == 1 .OR. cdir == 4) then
-     h = dx(2)
-  else
-     h = dx(3)
-  endif
-  if (bct == amrex_lo_dirichlet) then
-     if (bho >= 1) then
-        h2 = 0.5e0_rt * h
-        th2 = 3.e0_rt * h2
-        bfv = 2.e0_rt * beta / ((bcl + h2) * (bcl + th2))
-     else
-        bfv = (beta / h) / (0.5e0_rt * h + bcl)
-     endif
-  else if (bct == amrex_lo_neumann) then
-     bfv = beta / h
-  else
-     print *, "hbvec: unsupported boundary type"
-     stop
-  endif
-  if (cdir == 0) then
-     i = reg_l1
-     do k = reg_l3, reg_h3
-        do j = reg_l2, reg_h2
-           if (mask(i-1,j,k) > 0) then
-              vec(i,j,k) = vec(i,j,k) + &
-                   bfv * b(i,j,k) * bcval(i-1,j,k)
-           endif
-        enddo
-     enddo
-  else if (cdir == 3) then
-     i = reg_h1
-     do k = reg_l3, reg_h3
-        do j = reg_l2, reg_h2
-           if (mask(i+1,j,k) > 0) then
-              vec(i,j,k) = vec(i,j,k) + &
-                   bfv * b(i+1,j,k) * bcval(i+1,j,k)
-           endif
-        enddo
-     enddo
-  else if (cdir == 1) then
-     j = reg_l2
-     do k = reg_l3, reg_h3
-        do i = reg_l1, reg_h1
-           if (mask(i,j-1,k) > 0) then
-              vec(i,j,k) = vec(i,j,k) + &
-                   bfv * b(i,j,k) * bcval(i,j-1,k)
-           endif
-        enddo
-     enddo
-  else if (cdir == 4) then
-     j = reg_h2
-     do k = reg_l3, reg_h3
-        do i = reg_l1, reg_h1
-           if (mask(i,j+1,k) > 0) then
-              vec(i,j,k) = vec(i,j,k) + &
-                   bfv * b(i,j+1,k) * bcval(i,j+1,k)
-           endif
-        enddo
-     enddo
-  else if (cdir == 2) then
-     k = reg_l3
-     do j = reg_l2, reg_h2
-        do i = reg_l1, reg_h1
-           if (mask(i,j,k-1) > 0) then
-              vec(i,j,k) = vec(i,j,k) + &
-                   bfv * b(i,j,k) * bcval(i,j,k-1)
-           endif
-        enddo
-     enddo
-  else if (cdir == 5) then
-     k = reg_h3
-     do j = reg_l2, reg_h2
-        do i = reg_l1, reg_h1
-           if (mask(i,j,k+1) > 0) then
-              vec(i,j,k) = vec(i,j,k) + &
-                   bfv * b(i,j,k+1) * bcval(i,j,k+1)
-           endif
-        enddo
-     enddo
-  else
-     print *, "hbvec: impossible face orientation"
-  endif
-end subroutine amrex_hbvec
-
-subroutine amrex_hbvec3(vec, &
-                  reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
-                  cdir, bctype, bho, bcl, &
-                  bcval, bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3, &
-                  mask, msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3, &
-                  b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
-                  beta, dx) bind(C, name="amrex_hbvec3")
-
-  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
-  integer :: bcv_l1,bcv_l2,bcv_l3,bcv_h1,bcv_h2,bcv_h3
-  integer :: msk_l1,msk_l2,msk_l3,msk_h1,msk_h2,msk_h3
-  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
-  integer :: cdir, bctype, bho
-  real(rt)         :: bcl, beta, dx(3)
-  real(rt)         :: vec(reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
-  real(rt)         :: bcval(bcv_l1:bcv_h1,bcv_l2:bcv_h2,bcv_l3:bcv_h3)
-  integer :: mask(msk_l1:msk_h1,msk_l2:msk_h2,msk_l3:msk_h3)
-  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
-  real(rt)         :: h, bfv
-  real(rt)         :: h2, th2
-  integer :: i, j, k, bct
-  if (cdir == 0 .OR. cdir == 3) then
-     h = dx(1)
-  elseif (cdir == 1 .OR. cdir == 4) then
-     h = dx(2)
-  else
-     h = dx(3)
-  endif
-  bct = bctype
-  if (cdir == 0) then
-     i = reg_l1
-     do k = reg_l3, reg_h3
-        do j = reg_l2, reg_h2
-           if (mask(i-1,j,k) > 0) then
-              if (bct == amrex_lo_dirichlet) then
-                 if (bho >= 1) then
-                    h2 = 0.5e0_rt * h
-                    th2 = 3.e0_rt * h2
-                    bfv = 2.e0_rt * beta / ((bcl + h2) * (bcl + th2))
-                 else
-                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
-                 endif
-                 bfv = bfv * b(i,j,k)
-              else if (bct == amrex_lo_neumann) then
-                 bfv = beta / h
-              else
-                 print *, "hbvec3: unsupported boundary type"
-                 stop
-              endif
-              vec(i,j,k) = vec(i,j,k) + bfv * bcval(i-1,j,k)
-           endif
-        enddo
-     enddo
-  else if (cdir == 3) then
-     i = reg_h1
-     do k = reg_l3, reg_h3
-        do j = reg_l2, reg_h2
-           if (mask(i+1,j,k) > 0) then
-              if (bct == amrex_lo_dirichlet) then
-                 if (bho >= 1) then
-                    h2 = 0.5e0_rt * h
-                    th2 = 3.e0_rt * h2
-                    bfv = 2.e0_rt * beta / ((bcl + h2) * (bcl + th2))
-                 else
-                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
-                 endif
-                 bfv = bfv * b(i+1,j,k)
-              else if (bct == amrex_lo_neumann) then
-                 bfv = beta / h
-              else
-                 print *, "hbvec3: unsupported boundary type"
-                 stop
-              endif
-              vec(i,j,k) = vec(i,j,k) + bfv * bcval(i+1,j,k)
-           endif
-        enddo
-     enddo
-  else if (cdir == 1) then
-     j = reg_l2
-     do k = reg_l3, reg_h3
-        do i = reg_l1, reg_h1
-           if (mask(i,j-1,k) > 0) then
-              if (bct == amrex_lo_dirichlet) then
-                 if (bho >= 1) then
-                    h2 = 0.5e0_rt * h
-                    th2 = 3.e0_rt * h2
-                    bfv = 2.e0_rt * beta / ((bcl + h2) * (bcl + th2))
-                 else
-                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
-                 endif
-                 bfv = bfv * b(i,j,k)
-              else if (bct == amrex_lo_neumann) then
-                 bfv = beta / h
-              else
-                 print *, "hbvec3: unsupported boundary type"
-                 stop
-              endif
-              vec(i,j,k) = vec(i,j,k) + bfv * bcval(i,j-1,k)
-           endif
-        enddo
-     enddo
-  else if (cdir == 4) then
-     j = reg_h2
-     do k = reg_l3, reg_h3
-        do i = reg_l1, reg_h1
-           if (mask(i,j+1,k) > 0) then
-              if (bct == amrex_lo_dirichlet) then
-                 if (bho >= 1) then
-                    h2 = 0.5e0_rt * h
-                    th2 = 3.e0_rt * h2
-                    bfv = 2.e0_rt * beta / ((bcl + h2) * (bcl + th2))
-                 else
-                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
-                 endif
-                 bfv = bfv * b(i,j+1,k)
-              else if (bct == amrex_lo_neumann) then
-                 bfv = beta / h
-              else
-                 print *, "hbvec3: unsupported boundary type"
-                 stop
-              endif
-              vec(i,j,k) = vec(i,j,k) + bfv * bcval(i,j+1,k)
-           endif
-        enddo
-     enddo
-  else if (cdir == 2) then
-     k = reg_l3
-     do j = reg_l2, reg_h2
-        do i = reg_l1, reg_h1
-           if (mask(i,j,k-1) > 0) then
-              if (bct == amrex_lo_dirichlet) then
-                 if (bho >= 1) then
-                    h2 = 0.5e0_rt * h
-                    th2 = 3.e0_rt * h2
-                    bfv = 2.e0_rt * beta / ((bcl + h2) * (bcl + th2))
-                 else
-                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
-                 endif
-                 bfv = bfv * b(i,j,k)
-              else if (bct == amrex_lo_neumann) then
-                 bfv = beta / h
-              else
-                 print *, "hbvec3: unsupported boundary type"
-                 stop
-              endif
-              vec(i,j,k) = vec(i,j,k) + bfv * bcval(i,j,k-1)
-           endif
-        enddo
-     enddo
-  else if (cdir == 5) then
-     k = reg_h3
-     do j = reg_l2, reg_h2
-        do i = reg_l1, reg_h1
-           if (mask(i,j,k+1) > 0) then
-              if (bct == amrex_lo_dirichlet) then
-                 if (bho >= 1) then
-                    h2 = 0.5e0_rt * h
-                    th2 = 3.e0_rt * h2
-                    bfv = 2.e0_rt * beta / ((bcl + h2) * (bcl + th2))
-                 else
-                    bfv = (beta / h) / (0.5e0_rt * h + bcl)
-                 endif
-                 bfv = bfv * b(i,j,k+1)
-              else if (bct == amrex_lo_neumann) then
-                 bfv = beta / h
-              else
-                 print *, "hbvec3: unsupported boundary type"
-                 stop
-              endif
-              vec(i,j,k) = vec(i,j,k) + bfv * bcval(i,j,k+1)
-           endif
-        enddo
-     enddo
-  else
-     print *, "hbvec3: impossible face orientation"
-  endif
-end subroutine amrex_hbvec3
-
 
 subroutine amrex_hmac(mat, a, &
                 abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3, &
@@ -707,57 +311,6 @@ subroutine amrex_hmac_ij(a,abox_l1,abox_l2,abox_l3,abox_h1,abox_h2,abox_h3, &
   deallocate(ncols)
  
 end subroutine amrex_hmac_ij
-
-
-subroutine amrex_hmbc(mat, b, &
-                bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, &
-                reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
-                beta, dx, n) bind(C, name="amrex_hmbc")
-
-  integer :: bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3
-  integer :: reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3
-  integer :: n
-  real(rt)         :: b(bbox_l1:bbox_h1,bbox_l2:bbox_h2,bbox_l3:bbox_h3)
-  real(rt)         :: mat(0:6, reg_l1:reg_h1,reg_l2:reg_h2,reg_l3:reg_h3)
-  real(rt)         :: beta, dx(3)
-  real(rt)         :: fac
-  integer :: i, j, k
-
-  if (n == 0) then
-     fac = beta / (dx(1)**2)
-     do k = reg_l3, reg_h3
-        do j = reg_l2, reg_h2
-           do i = reg_l1, reg_h1
-              mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i+1,j,k))
-              mat(1,i,j,k) = - fac * b(i,j,k)
-              mat(2,i,j,k) = - fac * b(i+1,j,k)
-           enddo
-        enddo
-     enddo
-  elseif (n == 1) then
-     fac = beta / (dx(2)**2)
-     do k = reg_l3, reg_h3
-        do j = reg_l2, reg_h2
-           do i = reg_l1, reg_h1
-              mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i,j+1,k))
-              mat(3,i,j,k) = - fac * b(i,j,k)
-              mat(4,i,j,k) = - fac * b(i,j+1,k)
-           enddo
-        enddo
-     enddo
-  else
-     fac = beta / (dx(3)**2)
-     do k = reg_l3, reg_h3
-        do j = reg_l2, reg_h2
-           do i = reg_l1, reg_h1
-              mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i,j,k+1))
-              mat(5,i,j,k) = - fac * b(i,j,k)
-              mat(6,i,j,k) = - fac * b(i,j,k+1)
-           enddo
-        enddo
-     enddo
-  endif
-end subroutine amrex_hmbc
 
 
 subroutine amrexhmbc_ij(b, bbox_l1,bbox_l2,bbox_l3,bbox_h1,bbox_h2,bbox_h3, reg_l1,reg_l2,reg_l3,reg_h1,reg_h2,reg_h3, &
