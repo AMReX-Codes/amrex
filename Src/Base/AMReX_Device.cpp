@@ -515,8 +515,18 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
 void 
 amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks) {
-    numThreads = 256;
-    numBlocks = (np + 256 - 1) / 256;
+
+    if (np > 256)  // More than 1 block
+    {
+       numThreads = 256;
+       numBlocks = (np + 256 - 1) / 256;
+    }
+    else // Less than 1 full block
+    {
+       numThreads = np;
+       numBlocks = 1;
+    }
+
 }
 
 #endif
