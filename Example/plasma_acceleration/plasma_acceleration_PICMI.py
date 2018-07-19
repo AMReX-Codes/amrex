@@ -1,6 +1,6 @@
 import numpy as np
-from pywarpx import PICMI
-#from warp import PICMI
+from pywarpx import picmi
+#from warp import picmi
 
 nx = 64
 ny = 64
@@ -13,47 +13,49 @@ ymax = +200.e-6
 zmin = -200.e-6
 zmax = +200.e-6
 
-moving_window_velocity = [0., 0., PICMI.c]
+moving_window_velocity = [0., 0., picmi.c]
 
 number_per_cell_each_dim = [2, 2, 1]
 
-grid = PICMI.Grid(nx=nx, ny=ny, nz=nz, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax,
-                  bcxmin='periodic', bcxmax='periodic', bcymin='periodic', bcymax='periodic', bczmin='open', bczmax='open',
-                  moving_window_velocity = moving_window_velocity,
-                  max_grid_size=32, max_level=0, coord_sys=0)
+grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
+                             lower_bound = [xmin, ymin, zmin],
+                             upper_bound = [xmax, ymax, zmax],
+                             lower_boundary_conditions = ['periodic', 'periodic', 'open'],
+                             upper_boundary_conditions = ['periodic', 'periodic', 'open'],
+                             moving_window_velocity = moving_window_velocity,
+                             max_grid_size=32, max_level=0, coord_sys=0)
 
-solver = PICMI.EM_solver(current_deposition_algo = 3,
-                         charge_deposition_algo = 0,
-                         field_gathering_algo = 0,
-                         particle_pusher_algo = 0)
+solver = picmi.ElectromagneticSolver(grid=grid, cfl=1)
 
-beam = PICMI.Species(type='electron', name='beam')
-plasma = PICMI.Species(type='electron', name='plasma')
+beam_distribution = picmi.UniformDistribution(density = 1.e23,
+                                              lower_bound = [-20.e-6, -20.e-6, -150.e-6],
+                                              upper_bound = [+20.e-6, +20.e-6, -100.e-6],
+                                              directed_velocity = [0., 0., 1.e9])
 
-beam_distribution = PICMI.Plasma(species = beam,
-                                 density = 1.e23,
-                                 xmin = -20.e-6, xmax = +20.e-6,
-                                 ymin = -20.e-6, ymax = +20.e-6,
-                                 zmin = -150.e-6, zmax = -100.e-6,
-                                 vzmean = 1.e9,
-                                 number_per_cell_each_dim = number_per_cell_each_dim)
+plasma_distribution = picmi.UniformDistribution(density = 1.e22,
+                                                lower_bound = [-200.e-6, -200.e-6, 0.],
+                                                upper_bound = [+200.e-6, +200.e-6, None],
+                                                fill_in = True)
 
-plasma_distribution = PICMI.Plasma(species = plasma,
-                                   density = 1.e22,
-                                   xmin = -200.e-6, xmax = +200.e-6,
-                                   ymin = -200.e-6, ymax = +200.e-6,
-                                   zmin = 0.,
-                                   number_per_cell_each_dim = number_per_cell_each_dim,
-                                   fill_in = True)
+beam = picmi.Species(particle_type='electron', name='beam', initial_distribution=beam_distribution)
+plasma = picmi.Species(particle_type='electron', name='plasma', initial_distribution=plasma_distribution)
 
-sim = PICMI.Simulation(plot_int = 2,
+sim = picmi.Simulation(solver = solver,
+                       plot_int = 2,
                        verbose = 1,
                        cfl = 1.0,
-                       max_step = 1000)
+                       max_steps = 1000,
+                       current_deposition_algo = 3,
+                       charge_deposition_algo = 0,
+                       field_gathering_algo = 0,
+                       particle_pusher_algo = 0)
+
+sim.add_species(beam, layout=picmi.GriddedLayout(grid=grid, n_macroparticle_per_cell=number_per_cell_each_dim))
+sim.add_species(plasma, layout=picmi.GriddedLayout(grid=grid, n_macroparticle_per_cell=number_per_cell_each_dim))
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
-sim.write_inputs(inputs_name = 'inputs_from_PICMI')
+sim.write_input_file(inputs_name = 'inputs_from_PICMI')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
 #sim.step()
