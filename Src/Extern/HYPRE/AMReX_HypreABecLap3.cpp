@@ -126,8 +126,8 @@ HypreABecLap3::setACoeffs(const MultiFab& alpha) {
   MultiFab::Copy(acoefs, alpha, 0, 0, 1, 0);
 }
 
-void HypreABecLap3::setBCoeffs(const std::array<const MultiFab*,
-                          BL_SPACEDIM>& beta) {
+void HypreABecLap3::setBCoeffs(const Array<const MultiFab*, BL_SPACEDIM>& beta)
+{
   for (int idim=0; idim < BL_SPACEDIM; idim++) {
     MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, 0);
   }
@@ -135,21 +135,6 @@ void HypreABecLap3::setBCoeffs(const std::array<const MultiFab*,
 
 void HypreABecLap3::setVerbose(int _verbose) {
   verbose = _verbose;
-}
-
-void
-HypreABecLap3::solve(MultiFab& soln, const MultiFab& rhs,
-                     Real rel_tol_, Real abs_tol_,
-                     int max_iter_, LinOpBCType bc_type, Real bc_value) {
-  loadBndryData(bc_type, bc_value);
-  loadMatrix();
-  finalizeMatrix();
-  loadVectors(soln, rhs);
-  finalizeVectors();
-  setupSolver(rel_tol_, abs_tol_, max_iter_);
-  solveDoIt();
-  getSolution(soln);
-  clearSolver();
 }
 
 void
