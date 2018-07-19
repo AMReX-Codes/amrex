@@ -329,6 +329,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
     }
 }
 
+#ifdef WARPX_DO_ELECTROSTATIC
 void
 PhysicalParticleContainer::
 FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
@@ -489,6 +490,58 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
 }
 
 void
+PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                                           Vector<std::unique_ptr<MultiFab> >& rho,
+                                     Real t, Real dt)
+{
+    BL_PROFILE("PPC::EvolveES()");
+
+    int num_levels = rho.size();
+    for (int lev = 0; lev < num_levels; ++lev) {
+        BL_ASSERT(OnSameGrids(lev, *rho[lev]));
+        const auto& gm = m_gdb->Geom(lev);
+        const RealBox& prob_domain = gm.ProbDomain();
+	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
+            // Particle structs
+            auto& particles = pti.GetArrayOfStructs();
+            int nstride = particles.dataShape().first;
+            const long np  = pti.numParticles();
+
+            // Particle attributes
+            auto& attribs = pti.GetAttribs();
+            auto& uxp = attribs[PIdx::ux];
+            auto& uyp = attribs[PIdx::uy];
+
+#if AMREX_SPACEDIM == 3
+            auto& uzp = attribs[PIdx::uz];
+#endif
+
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+
+#if AMREX_SPACEDIM == 3
+            auto& Ezp = attribs[PIdx::Ez];
+#endif
+            //
+            // Particle Push
+            //
+            WRPX_PUSH_LEAPFROG(particles.data(), nstride, np,
+                               uxp.data(), uyp.data(),
+#if AMREX_SPACEDIM == 3
+                               uzp.data(),
+#endif
+                               Exp.data(), Eyp.data(),
+#if AMREX_SPACEDIM == 3
+                               Ezp.data(),
+#endif
+                               &this->charge, &this->mass, &dt,
+                               prob_domain.lo(), prob_domain.hi());
+        }
+    }
+}
+#endif // WARPX_DO_ELECTROSTATIC
+
+void
 PhysicalParticleContainer::FieldGather (int lev,
                                         const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                         const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
@@ -576,57 +629,6 @@ PhysicalParticleContainer::FieldGather (int lev,
                 wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
-        }
-    }
-}
-
-void
-PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
-                                           Vector<std::unique_ptr<MultiFab> >& rho,
-                                     Real t, Real dt)
-{
-    BL_PROFILE("PPC::EvolveES()");
-
-    int num_levels = rho.size();
-    for (int lev = 0; lev < num_levels; ++lev) {
-        BL_ASSERT(OnSameGrids(lev, *rho[lev]));
-        const auto& gm = m_gdb->Geom(lev);
-        const RealBox& prob_domain = gm.ProbDomain();
-	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
-            // Particle structs
-            auto& particles = pti.GetArrayOfStructs();
-            int nstride = particles.dataShape().first;
-            const long np  = pti.numParticles();
-
-            // Particle attributes
-            auto& attribs = pti.GetAttribs();
-            auto& uxp = attribs[PIdx::ux];
-            auto& uyp = attribs[PIdx::uy];
-
-#if AMREX_SPACEDIM == 3
-            auto& uzp = attribs[PIdx::uz];
-#endif
-
-            auto& Exp = attribs[PIdx::Ex];
-            auto& Eyp = attribs[PIdx::Ey];
-
-#if AMREX_SPACEDIM == 3
-            auto& Ezp = attribs[PIdx::Ez];
-#endif
-            //
-            // Particle Push
-            //
-            WRPX_PUSH_LEAPFROG(particles.data(), nstride, np,
-                               uxp.data(), uyp.data(),
-#if AMREX_SPACEDIM == 3
-                               uzp.data(),
-#endif
-                               Exp.data(), Eyp.data(),
-#if AMREX_SPACEDIM == 3
-                               Ezp.data(),
-#endif
-                               &this->charge, &this->mass, &dt,
-                               prob_domain.lo(), prob_domain.hi());
         }
     }
 }

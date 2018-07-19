@@ -22,15 +22,9 @@
 #include <WarpXPML.H>
 #include <WarpXBoostedFrameDiagnostic.H>
 
-class NoOpPhysBC
-    : public amrex::PhysBCFunctBase
-{
-public:
-    NoOpPhysBC () {}
-    virtual ~NoOpPhysBC () {}
-    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time) override { }
-    using amrex::PhysBCFunctBase::FillBoundary;
-};
+#ifdef WARPX_USE_PSATD
+#include <fftw3.h>
+#endif
 
 enum struct DtType : int
 {
@@ -72,6 +66,7 @@ public:
     static long charge_deposition_algo;
     static long field_gathering_algo;
     static long particle_pusher_algo;
+    static int maxwell_fdtd_solver_id;
 
     // Interpolation order
     static long nox;
@@ -219,6 +214,7 @@ private:
     ///
     void EvolveEM(int numsteps);
 
+#ifdef WARPX_DO_ELECTROSTATIC
     ///
     /// Advance the simulation by numsteps steps, electrostatic case.
     ///
@@ -240,6 +236,30 @@ private:
     void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                   const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
+    //
+    // This stuff is needed by the nodal multigrid solver when running in
+    // electrostatic mode.
+    //
+    void zeroOutBoundary(amrex::MultiFab& input_data, amrex::MultiFab& bndry_data,
+                         const amrex::FabArray<amrex::BaseFab<int> >& mask) const;
+
+    void sumFineToCrseNodal(const amrex::MultiFab& fine, amrex::MultiFab& crse,
+                            const amrex::Geometry& cgeom, const amrex::IntVect& ratio);
+
+    void fixRHSForSolve(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhs,
+                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) const ;
+
+    void getLevelMasks(amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks,
+                       const int nnodes = 1);
+
+    // used to zero out fine level data on points shared with the coarse grid
+    // in electrostatic mode
+    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > masks;
+
+    // used to gather the field from the coarse level in electrostatic mode.
+    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
+#endif // WARPX_DO_ELECTROSTATIC
+    
     void ReadParameters ();
 
     void InitFromScratch ();
@@ -285,30 +305,7 @@ private:
     void ExchangeWithPmlB (int lev);
     void ExchangeWithPmlE (int lev);
 
-    //
-    // This stuff is needed by the nodal multigrid solver when running in
-    // electrostatic mode.
-    //
-    void zeroOutBoundary(amrex::MultiFab& input_data, amrex::MultiFab& bndry_data,
-                         const amrex::FabArray<amrex::BaseFab<int> >& mask) const;
-
-    void sumFineToCrseNodal(const amrex::MultiFab& fine, amrex::MultiFab& crse,
-                            const amrex::Geometry& cgeom, const amrex::IntVect& ratio);
-
-    void fixRHSForSolve(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhs,
-                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) const ;
-
-    void getLevelMasks(amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks,
-                       const int nnodes = 1);
-
     void LoadBalance ();
-
-    // used to zero out fine level data on points shared with the coarse grid
-    // in electrostatic mode
-    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > masks;
-
-    // used to gather the field from the coarse level in electrostatic mode.
-    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
 
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
@@ -444,8 +441,8 @@ private:
         void* data[N] = { nullptr };
 
         ~FFTData () {
-            for (int i = 0; i < N; ++i) { // The memory is allocated by Fortran routines
-                std::free(data[i]);
+            for (int i = 0; i < N; ++i) { // The memory is allocated with fftw_alloc.
+                fftw_free(data[i]);
                 data[i] = nullptr;
             }
         }
