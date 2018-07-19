@@ -2,6 +2,7 @@
 #include <AMReX_HypreABec_F.H>
 
 #include <cmath>
+#include <numeric>
 #include <algorithm>
 #include <type_traits>
 
@@ -18,6 +19,7 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
       geom(geom_)
 {
     static_assert(std::is_same<Real,double>::value, "double precision only");
+    static_assert(AMREX_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
     
     const int ncomp = 1;
     const int ngrow = 0;
@@ -31,8 +33,7 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
         bcoefs[i].setVal(0.0);
     }
 
-    int num_procs, myid;
-    MPI_Comm_size(comm, &num_procs );
+    int myid;
     MPI_Comm_rank(comm, &myid );
  
     HYPRE_SStructGridCreate(comm, AMREX_SPACEDIM, 1, &hgrid);
@@ -65,7 +66,6 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
     HYPRE_SStructGridAssemble(hgrid);
 
     // Setup stencils
-    static_assert(AMREX_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
 #if (AMREX_SPACEDIM == 2)
     int offsets[5][2] = {{ 0,  0},
                          {-1,  0},
@@ -99,10 +99,6 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
     HYPRE_SStructMatrixSetObjectType(A, HYPRE_PARCSR);
     HYPRE_SStructMatrixInitialize(A);
 
-    HYPRE_SStructMatrixCreate(comm, graph, &A0);
-    HYPRE_SStructMatrixSetObjectType(A0, HYPRE_PARCSR);
-    HYPRE_SStructMatrixInitialize(A0);
-
     HYPRE_SStructVectorCreate(comm, hgrid, &b);
     HYPRE_SStructVectorSetObjectType(b, HYPRE_PARCSR);
     
@@ -122,8 +118,6 @@ HypreABecLap2::~HypreABecLap2 ()
     
     HYPRE_SStructMatrixDestroy(A);
     A = NULL;
-    HYPRE_SStructMatrixDestroy(A0);
-    A0 = NULL;
     
     HYPRE_SStructGraphDestroy(graph);
     graph = NULL;

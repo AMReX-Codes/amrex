@@ -29,44 +29,48 @@ public:
                    MPI_Comm comm_);
     ~HypreABecLap3 ();
 
-    void setScalars(Real sa, Real sb);
-    void setACoeffs(const MultiFab& alpha);
-    void setBCoeffs(const Array<const MultiFab*,BL_SPACEDIM>& beta);
-    void setVerbose(int _verbose);
-    void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-               int max_iter, const BndryData& _bndry, int max_bndry_order);
+    void setScalars (Real sa, Real sb);
+    void setACoeffs (const MultiFab& alpha);
+    void setBCoeffs (const Array<const MultiFab*,AMREX_SPACEDIM>& beta);
+    void setVerbose (int _verbose);
+    void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+                int max_iter, const BndryData& bndry, int max_bndry_order);
 
 private :
 
-    MPI_Comm comm;
+    static constexpr int regular_stencil_size = 2*AMREX_SPACEDIM + 1;
+    static constexpr int eb_stencil_size = AMREX_D_TERM(3, *3, *3);
+    
+    MPI_Comm comm = MPI_COMM_NULL;
     Geometry geom;
 
-    int verbose;
+    int verbose = 0;
 
     MultiFab acoefs;
-    std::array<MultiFab,BL_SPACEDIM> bcoefs;
+    Array<MultiFab,AMREX_SPACEDIM> bcoefs;
     Real scalar_a, scalar_b;
-    BndryData bd;
 
     iMultiFab GbInd;
 
-    std::vector<int> CellsGIndex;
-    std::vector<int> numCellsProc;
-    std::vector<int> StartIndex;
+    Vector<int> CellsGIndex;
+    Vector<int> numCellsProc;
+    Vector<int> StartIndex;
     
-    HYPRE_IJMatrix A;
-    HYPRE_ParCSRMatrix par_A;
-    HYPRE_IJVector b;
-    HYPRE_ParVector par_b;
-    HYPRE_IJVector x;
-    HYPRE_ParVector par_x;
-    HYPRE_Solver solver;
+    HYPRE_IJMatrix A = NULL;
+    HYPRE_ParCSRMatrix par_A = NULL;
+    HYPRE_IJVector b = NULL;
+    HYPRE_ParVector par_b = NULL;
+    HYPRE_IJVector x = NULL;
+    HYPRE_ParVector par_x = NULL;
+    HYPRE_Solver solver = NULL;
 
     Real rel_tol, abs_tol;
     int max_iter;
 
-    void loadBndryData (LinOpBCType bc_type, Real bc_value);
-    void loadMatrix ();
+//    iMultiFab
+    void buildIJIndices ();
+
+    void loadMatrix (const BndryData& bndry, int max_bndry_order);
     void finalizeMatrix ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void finalizeVectors ();

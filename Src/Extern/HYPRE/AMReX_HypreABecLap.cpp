@@ -17,8 +17,7 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
     : comm(comm_),
       geom(geom_)
 {
-    int num_procs, myid;
-    MPI_Comm_size(comm, &num_procs );
+    int myid;
     MPI_Comm_rank(comm, &myid );
 
     HYPRE_StructGridCreate(comm, AMREX_SPACEDIM, &grid);

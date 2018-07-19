@@ -48,7 +48,7 @@ private :
     HYPRE_SStructGrid     hgrid = NULL;
     HYPRE_SStructStencil  stencil = NULL;
     HYPRE_SStructGraph    graph = NULL;
-    HYPRE_SStructMatrix   A = NULL, A0 = NULL;
+    HYPRE_SStructMatrix   A = NULL;
     HYPRE_SStructVector   b = NULL;
     HYPRE_SStructVector   x = NULL;
     HYPRE_Solver          solver = NULL;
