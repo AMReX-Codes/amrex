@@ -1,8 +1,6 @@
 #ifndef AMREX_MANAGED_H_
 #define AMREX_MANAGED_H_
 
-#include <AMReX.H>
-
 namespace amrex {
 
 // ************************************************
