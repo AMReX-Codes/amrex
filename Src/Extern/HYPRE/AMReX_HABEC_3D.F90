@@ -145,6 +145,7 @@ contains
              endif
           enddo
        enddo
+       !$omp end parallel do
     else if (cdir .eq. 3) then
        i = hi(1)
        !$omp parallel do private(j,k)
@@ -157,6 +158,7 @@ contains
              endif
           enddo
        enddo
+       !$omp end parallel do
     else if (cdir .eq. 1) then
        j = lo(2)
        !$omp parallel do private(i,k)
@@ -169,6 +171,7 @@ contains
              endif
           enddo
        enddo
+       !$omp end parallel do
     else if (cdir .eq. 4) then
        j = hi(2)
        !$omp parallel do private(i,k)
@@ -181,6 +184,7 @@ contains
              endif
           enddo
        enddo
+       !$omp end parallel do
     else if (cdir .eq. 2) then
        k = lo(3)
        !$omp parallel do private(i,j)
@@ -193,6 +197,7 @@ contains
              endif
           enddo
        enddo
+       !$omp end parallel do
     else if (cdir .eq. 5) then
        k = hi(3)
        !$omp parallel do private(i,j)
