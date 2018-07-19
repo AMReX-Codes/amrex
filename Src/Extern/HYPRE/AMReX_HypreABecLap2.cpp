@@ -9,7 +9,7 @@
 namespace amrex
 {
 
-constexpr int HypreABecLap2::stencil_size;
+constexpr HYPRE_Int HypreABecLap2::stencil_size;
 
 HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
                               const DistributionMapping& dmap,
@@ -18,7 +18,6 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
     : comm(comm_),
       geom(geom_)
 {
-    static_assert(std::is_same<Real,double>::value, "double precision only");
     static_assert(AMREX_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
     
     const int ncomp = 1;
@@ -38,24 +37,23 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
  
     HYPRE_SStructGridCreate(comm, AMREX_SPACEDIM, 1, &hgrid);
 
+    Array<HYPRE_Int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(0,0,0)};
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
-        is_periodic[i] = 0;
         if (geom.isPeriodic(i)) {
             is_periodic[i] = geom.period(i);
-            AMREX_ASSERT(Hypre::ispow2(is_periodic[i]));
-            AMREX_ASSERT(geom.Domain().smallEnd(i) == 0);
+            BL_ASSERT(Hypre::ispow2(is_periodic[i]));
+            BL_ASSERT(geom.Domain().smallEnd(i) == 0);
         }
     }
     if (geom.isAnyPeriodic()) {
-        HYPRE_SStructGridSetPeriodic(hgrid, 0, is_periodic);
+        HYPRE_SStructGridSetPeriodic(hgrid, 0, is_periodic.data());
     }
 
     for (int i = 0; i < grids.size(); i++) {
         if (dmap[i] == myid) {
-            const Box& bx = grids[i];
-            HYPRE_SStructGridSetExtents(hgrid, 0,
-                                        const_cast<int*>(bx.loVect()),
-                                        const_cast<int*>(bx.hiVect()));
+            auto lo = Hypre::loV(grids[i]);
+            auto hi = Hypre::hiV(grids[i]);
+            HYPRE_SStructGridSetExtents(hgrid, 0, lo.data(), hi.data());
         }
     }
 
@@ -67,19 +65,19 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
 
     // Setup stencils
 #if (AMREX_SPACEDIM == 2)
-    int offsets[5][2] = {{ 0,  0},
-                         {-1,  0},
-                         { 1,  0},
-                         { 0, -1},
-                         { 0,  1}};
+    HYPRE_Int offsets[5][2] = {{ 0,  0},
+                               {-1,  0},
+                               { 1,  0},
+                               { 0, -1},
+                               { 0,  1}};
 #elif (AMREX_SPACEDIM == 3)
-    int offsets[7][3] = {{ 0,  0,  0},
-                         {-1,  0,  0},
-                         { 1,  0,  0},
-                         { 0, -1,  0},
-                         { 0,  1,  0},
-                         { 0,  0, -1},
-                         { 0,  0,  1}};
+    HYPRE_Int offsets[7][3] = {{ 0,  0,  0},
+                               {-1,  0,  0},
+                               { 1,  0,  0},
+                               { 0, -1,  0},
+                               { 0,  1,  0},
+                               { 0,  0, -1},
+                               { 0,  0,  1}};
 #endif
 
     HYPRE_SStructStencilCreate(AMREX_SPACEDIM, stencil_size, &stencil);
@@ -173,10 +171,10 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real a
 void
 HypreABecLap2::loadMatrix (const BndryData& bndry, int max_bndry_order)
 {
-    Array<int,stencil_size> stencil_indices;
+    Array<HYPRE_Int,stencil_size> stencil_indices;
     std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
 
-    const int part = 0;
+    const HYPRE_Int part = 0;
     const Real* dx = geom.CellSize();
     const int bho = (max_bndry_order > 2) ? 1 : 0;
 
@@ -185,8 +183,8 @@ HypreABecLap2::loadMatrix (const BndryData& bndry, int max_bndry_order)
         int i = mfi.index();
         const Box &reg = mfi.validbox();
 
-        int volume = reg.numPts();
-        Real* mat = hypre_CTAlloc(double, stencil_size*volume);
+        HYPRE_Int volume = reg.numPts();
+        Real* mat = hypre_CTAlloc(HYPRE_Real, stencil_size*volume);
 
         // build matrix interior
         amrex_hpacoef(BL_TO_FORTRAN_BOX(reg),
@@ -223,9 +221,9 @@ HypreABecLap2::loadMatrix (const BndryData& bndry, int max_bndry_order)
         }
 
         // initialize matrix
-        HYPRE_SStructMatrixSetBoxValues(A, part,
-                                        const_cast<int*>(reg.loVect()), 
-                                        const_cast<int*>(reg.hiVect()),
+        auto reglo = Hypre::loV(reg);
+        auto reghi = Hypre::hiV(reg);
+        HYPRE_SStructMatrixSetBoxValues(A, part, reglo.data(), reghi.data(),
                                         0, stencil_size, stencil_indices.data(), mat);
 
         hypre_TFree(mat);
@@ -241,7 +239,7 @@ HypreABecLap2::finalizeMatrix ()
 void
 HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
 {
-    const int part = 0;
+    const HYPRE_Int part = 0;
 
     FArrayBox fab;
 
@@ -263,9 +261,9 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
             xfab->copy(soln[mfi], 0, 0, 1);
         }
 
-        HYPRE_SStructVectorSetBoxValues(x, part,
-                                        const_cast<int*>(reg.loVect()),
-                                        const_cast<int*>(reg.hiVect()),
+        auto reglo = Hypre::loV(reg);
+        auto reghi = Hypre::hiV(reg);
+        HYPRE_SStructVectorSetBoxValues(x, part, reglo.data(), reghi.data(),
                                         0, xfab->dataPtr());
 
         FArrayBox *bfab;
@@ -277,9 +275,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
             bfab->copy(rhs[mfi], 0, 0, 1);
         }
 
-        HYPRE_SStructVectorSetBoxValues(b, part,
-                                        const_cast<int*>(reg.loVect()),
-                                        const_cast<int*>(reg.hiVect()),
+        HYPRE_SStructVectorSetBoxValues(b, part, reglo.data(), reghi.data(),
                                         0, bfab->dataPtr());
     }
 }
@@ -359,7 +355,7 @@ HypreABecLap2::solveDoIt ()
 
     if (verbose >= 2)
     {
-        int num_iterations;
+        HYPRE_Int num_iterations;
         Real res;
         HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
         HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
@@ -373,7 +369,7 @@ HypreABecLap2::solveDoIt ()
 void
 HypreABecLap2::getSolution (MultiFab& soln)
 {
-    const int part = 0;
+    const HYPRE_Int part = 0;
 
     FArrayBox fab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
@@ -389,9 +385,9 @@ HypreABecLap2::getSolution (MultiFab& soln)
             xfab->resize(reg);
         }
 
-        HYPRE_SStructVectorGetBoxValues(x, part,
-                                        const_cast<int*>(reg.loVect()),
-                                        const_cast<int*>(reg.hiVect()),
+        auto reglo = Hypre::loV(reg);
+        auto reghi = Hypre::hiV(reg);
+        HYPRE_SStructVectorGetBoxValues(x, part, reglo.data(), reghi.data(),
                                         0, xfab->dataPtr());
 
         if (soln.nGrow() != 0) {

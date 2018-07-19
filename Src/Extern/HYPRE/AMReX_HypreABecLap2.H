@@ -32,14 +32,12 @@ public:
 
 private :
 
-    static constexpr int stencil_size = 2*AMREX_SPACEDIM+1;
+    static constexpr HYPRE_Int stencil_size = 2*AMREX_SPACEDIM+1;
 
     MPI_Comm comm = MPI_COMM_NULL;
     Geometry geom;
 
     int verbose = 0;
-
-    int is_periodic[AMREX_SPACEDIM];
 
     MultiFab acoefs;
     Array<MultiFab,BL_SPACEDIM> bcoefs;

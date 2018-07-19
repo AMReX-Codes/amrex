@@ -8,8 +8,8 @@
 
 namespace amrex {
 
-constexpr int HypreABecLap3::regular_stencil_size;
-constexpr int HypreABecLap3::eb_stencil_size;
+constexpr HYPRE_Int HypreABecLap3::regular_stencil_size;
+constexpr HYPRE_Int HypreABecLap3::eb_stencil_size;
 
 HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
                               const DistributionMapping& dmap,
@@ -18,7 +18,6 @@ HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
     : comm(comm_),
       geom(geom_)
 {
-    static_assert(std::is_same<Real,double>::value, "double precision only");
     static_assert(AMREX_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
 
     const int ncomp = 1;
@@ -35,7 +34,7 @@ HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
 
     buildIJIndices();
     
-#if 1
+#if 0
 
     int num_procs, myid;
     MPI_Comm_size(comm, &num_procs);
@@ -90,7 +89,6 @@ HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
     
     // Fill the global indices in the ghost cells along the grid edges
     GbInd.FillBoundary(geom.periodicity());
-#endif
     
     // Create the HYPRE matrix object
     HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
@@ -105,6 +103,7 @@ HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
     HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
     HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
     HYPRE_IJVectorInitialize(x);
+#endif
 }
     
 HypreABecLap3::~HypreABecLap3 ()
@@ -308,7 +307,7 @@ void HypreABecLap3::solveDoIt() {
 
   HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
   if (verbose >= 2 && ParallelDescriptor::IOProcessor()) {
-    int num_iterations;
+      HYPRE_Int num_iterations;
     Real res;
     HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
     HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
@@ -321,7 +320,10 @@ void HypreABecLap3::solveDoIt() {
   }
 }
 
-void HypreABecLap3::getSolution(MultiFab& soln) {
+void
+HypreABecLap3::getSolution (MultiFab& soln)
+{
+#if 0
   const int part = 0;
 
   std::vector<int> VecIndices;
@@ -342,7 +344,7 @@ void HypreABecLap3::getSolution(MultiFab& soln) {
     int i = mfi.index();
 
     // Storage for the solution vector returned by HYPRE
-    Real *VecGB = hypre_CTAlloc(double, reg.numPts());
+    Real *VecGB = hypre_CTAlloc(HYPRE_Real, reg.numPts());
 
     // Generate indices corresponding to all the boxes
     VecIndices.resize(reg.numPts());
@@ -363,6 +365,7 @@ void HypreABecLap3::getSolution(MultiFab& soln) {
 
     hypre_TFree(VecGB);
   }
+#endif
 }
 
 void
