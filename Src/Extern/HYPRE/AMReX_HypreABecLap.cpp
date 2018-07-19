@@ -227,6 +227,8 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
     HYPRE_StructPFMGCreate(comm, &solver);
     HYPRE_StructPFMGSetMaxIter(solver, maxiter);
     HYPRE_StructPFMGSetTol(solver, reltol);
+    int logging = (verbose >= 2) ? 1 : 0;
+    HYPRE_StructPFMGSetLogging(solver, 1);
     HYPRE_StructPFMGSetup(solver, A, b, x);
 
     if (abstol > 0.0)

@@ -50,6 +50,11 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     BL_PROFILE_REGION("MLMG::solve()");
     BL_PROFILE("MLMG::solve()");
 
+    if (bottom_solver == BottomSolver::hypre) {
+        int mo = linop.getMaxOrder();
+        linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+    }
+    
     bool is_nsolve = linop.m_parent;
 
     Real solve_start_time = amrex::second();
