@@ -51,7 +51,7 @@ Hypre::setACoeffs (const MultiFab& alpha)
 }
 
 void
-Hypre::setBCoeffs (const std::array<const MultiFab*, BL_SPACEDIM>& beta)
+Hypre::setBCoeffs (const Array<const MultiFab*, BL_SPACEDIM>& beta)
 {
     if (struct_solver) {
         struct_solver->setBCoeffs(beta);
@@ -74,21 +74,6 @@ Hypre::setVerbose (int _verbose) {
         IJ_solver->setVerbose(_verbose);
     } else {
         amrex::Abort("Hypre::setVerbose: How did this happen?");
-    }
-}
-
-void
-Hypre::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-              int max_iter, LinOpBCType bc_type, Real bc_value)
-{
-    if (struct_solver) {
-        struct_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, bc_type, bc_value);
-    } else if (semi_struct_solver) {
-        semi_struct_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, bc_type, bc_value);
-    } else if (IJ_solver) {
-        IJ_solver->solve(soln, rhs, rel_tol, abs_tol, max_iter, bc_type, bc_value);
-    } else {
-        amrex::Abort("Hypre::solve: How did this happen?");
     }
 }
 

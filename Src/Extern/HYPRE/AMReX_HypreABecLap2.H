@@ -25,10 +25,8 @@ public:
 
     void setScalars(Real sa, Real sb);
     void setACoeffs(const MultiFab& alpha);
-    void setBCoeffs(const std::array<const MultiFab*,BL_SPACEDIM>& beta);
+    void setBCoeffs(const Array<const MultiFab*,BL_SPACEDIM>& beta);
     void setVerbose(int _verbose);
-    void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-               int max_iter, LinOpBCType bc_type, Real bc_value);
     void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                int max_iter, const BndryData& _bndry);
 
@@ -55,7 +53,6 @@ private :
     Real rel_tol, abs_tol;
     int max_iter;
 
-    void loadBndryData (LinOpBCType bc_type, Real bc_value);
     void loadMatrix ();
     void finalizeMatrix ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
