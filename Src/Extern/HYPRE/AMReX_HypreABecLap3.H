@@ -38,8 +38,8 @@ public:
 
 private :
 
-    static constexpr int regular_stencil_size = 2*AMREX_SPACEDIM + 1;
-    static constexpr int eb_stencil_size = AMREX_D_TERM(3, *3, *3);
+    static constexpr HYPRE_Int regular_stencil_size = 2*AMREX_SPACEDIM + 1;
+    static constexpr HYPRE_Int eb_stencil_size = AMREX_D_TERM(3, *3, *3);
     
     MPI_Comm comm = MPI_COMM_NULL;
     Geometry geom;

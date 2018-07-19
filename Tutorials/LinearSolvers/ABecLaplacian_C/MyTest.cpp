@@ -64,9 +64,9 @@ MyTest::solvePoisson ()
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-            if (hypre_interface == 0) {
+            if (hypre_interface == 1) {
                 mlmg.setHypreInterface(Hypre::Interface::structed);
-            } else if (hypre_interface == 1) {
+            } else if (hypre_interface == 2) {
                 mlmg.setHypreInterface(Hypre::Interface::semi_structed);
             } else {
                 mlmg.setHypreInterface(Hypre::Interface::ij);

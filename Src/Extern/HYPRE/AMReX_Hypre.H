@@ -31,17 +31,23 @@ public:
     void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                 int max_iter, const BndryData& bndry, int max_bndry_order);
 
-    static int ispow2 (int i)
+    static HYPRE_Int ispow2 (HYPRE_Int i)
     {
         return (i == 1) ? 1 : (((i <= 0) || (i & 1)) ? 0 : ispow2(i / 2));
     }
-    
-    static int* loV (const Box& b) {
-        return (int*) b.loVect();
+
+    static Array<HYPRE_Int,AMREX_SPACEDIM> loV (const Box& b) {
+        const auto& v = b.loVect();
+        return {AMREX_D_DECL(static_cast<HYPRE_Int>(v[0]),
+                             static_cast<HYPRE_Int>(v[1]),
+                             static_cast<HYPRE_Int>(v[2]))};
     }
-    
-    static int* hiV (const Box& b) {
-        return (int*) b.hiVect();
+
+    static Array<HYPRE_Int,AMREX_SPACEDIM> hiV (const Box& b) {
+        const auto& v = b.hiVect();
+        return {AMREX_D_DECL(static_cast<HYPRE_Int>(v[0]),
+                             static_cast<HYPRE_Int>(v[1]),
+                             static_cast<HYPRE_Int>(v[2]))};
     }
     
 private:

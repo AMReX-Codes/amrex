@@ -1,5 +1,7 @@
 
 #include <AMReX_Hypre.H>
+#include <HYPRE_config.h>
+#include <type_traits>
 
 namespace amrex {
 
@@ -8,6 +10,13 @@ Hypre::Hypre (const BoxArray& grids,
               const Geometry& geom,
               MPI_Comm comm_, Interface interface)
 {
+    static_assert(std::is_same<Real, HYPRE_Real>::value, "amrex::Real != HYPRE_Real");
+#ifdef HYPRE_BIGINT
+    static_assert(std::is_same<long long int, HYPRE_Int>::value, "long long int != HYPRE_Int");
+#else
+    static_assert(std::is_same<int, HYPRE_Int>::value, "int != HYPRE_Int");
+#endif
+    
     if (interface == Interface::structed) {
         struct_solver.reset(new HypreABecLap(grids, dmap, geom, comm_));
     } else if (interface == Interface::semi_structed) {

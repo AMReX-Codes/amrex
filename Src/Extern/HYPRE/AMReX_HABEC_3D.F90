@@ -6,6 +6,7 @@ module amrex_habec_module
   ! alpha*phi - div(beta*grad phi) + div(\vec{c}*phi) 
 
   use iso_c_binding
+  use amrex_hypre_fort_module, only : hypre_int
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
