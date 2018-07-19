@@ -19,7 +19,7 @@ extern "C" {
                       const amrex_real* bcoefs, const int* blo, const int* bhi,
                       const int* mask, const int* mlo, const int* mhi,
                       const amrex_real* sb, const amrex_real* dx, const int* cdir,
-                      const int* bct, const amrex_real* bcl);
+                      const int* bct, const amrex_real* bcl, const int* bho);
 
     void amrex_hmac_ij(BL_FORT_FAB_ARG(acoefs),
                 ARLIM_P(reglo), ARLIM_P(reghi),

@@ -514,6 +514,7 @@ MLMG::interpCorrection (int alev)
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
 
     bool isEB = fine_cor.hasEBFabFactory();
+    ignore_unused(isEB);
 
     if (linop.isCellCentered())
     {
@@ -618,6 +619,7 @@ MLMG::interpCorrection (int alev, int mglev)
     }
 
     bool isEB = fine_cor.hasEBFabFactory();
+    ignore_unused(isEB);
 
     if (linop.isCellCentered())
     {
@@ -1394,7 +1396,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
     }
 
-    hypre_solver->solve(x, b, 1.e-4, -1., bottom_maxiter, *hypre_bndry);
+    hypre_solver->solve(x, b, 1.e-4, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
 
 #endif
 }

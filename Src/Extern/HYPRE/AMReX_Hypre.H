@@ -29,7 +29,7 @@ public:
     void setBCoeffs (const Array<const MultiFab*,BL_SPACEDIM>& beta);
     void setVerbose (int _verbose);
     void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-                int max_iter, const BndryData& _bndry);
+                int max_iter, const BndryData& _bndry, int max_bndry_order);
 
     static int ispow2 (int i)
     {

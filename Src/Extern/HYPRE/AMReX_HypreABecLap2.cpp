@@ -161,7 +161,7 @@ HypreABecLap2::setVerbose (int _verbose)
 
 void
 HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real abs_tol_, 
-                      int max_iter_, const BndryData& _bndry)
+                      int max_iter_, const BndryData& _bndry, int max_bndry_order)
 {
     bd = _bndry;
 
@@ -191,6 +191,7 @@ HypreABecLap2::loadMatrix ()
     
     const int part = 0;
     const Real* dx = geom.CellSize();
+    const int bho = 0;
 
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
@@ -231,7 +232,7 @@ HypreABecLap2::loadMatrix ()
                         mat,
                         BL_TO_FORTRAN_ANYD(bcoefs[idim][mfi]),
                         BL_TO_FORTRAN_ANYD(msk),
-                        &scalar_b, dx, &cdir, &bctype, &bcl);
+                        &scalar_b, dx, &cdir, &bctype, &bcl, &bho);
         }
 
         // initialize matrix
