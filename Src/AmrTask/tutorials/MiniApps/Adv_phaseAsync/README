@@ -1,0 +1,9 @@
+AMR_Adv_C: This code advects a single scalar field with a velocity
+field that is specified on faces.
+
+It is a BoxLib based code designed to run in parallel using MPI/OMP.
+
+The directory Exec/SingleVortex includes a makefile and a sample inputs file.  
+Plotfiles are generated that can be viewed with amrvis2d / amrvis3d. 
+(CCSE's native vis / spreadsheet tool, downloadable separately from ccse.lbl.gov)
+or with Visit.

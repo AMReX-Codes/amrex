@@ -15,6 +15,11 @@
 
 #include <AMReX_AmrCore.H>
 
+#ifdef USE_PERILLA
+#include <RegionGraph.H>
+#include <Perilla.H>
+#endif
+
 namespace amrex {
 
 class AmrLevel;
@@ -455,6 +460,10 @@ protected:
     static Vector<BoxArray> regrid_ba;
 
 public:
+#ifdef USE_PERILLA
+    std::vector<RegionGraph*> graphArray;
+    std::vector<RegionGraph*> &get_graphArray(){return graphArray;}
+#endif
 
     BoundaryPointList intersect_lox;
     BoundaryPointList intersect_loy;
