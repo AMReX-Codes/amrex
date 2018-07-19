@@ -30,14 +30,6 @@ extern "C" {
                     const amrex_real& beta, const amrex_real* dx, const int& n, 
                     void* A, BL_FORT_IFAB_ARG(Index));
 
-    void amrex_hmmat_ij(ARLIM_P(reglo), ARLIM_P(reghi),
-                     const int& cdir, const int& bct,
-                     const int& bho, const amrex_real& bcl,
-                     const BL_FORT_IFAB_ARG(mask),
-                     BL_FORT_FAB_ARG(bcoefs),
-                     const amrex_real& beta, const amrex_real* dx,
-                     void* A, BL_FORT_IFAB_ARG(Index));
-
     void amrex_hmmat3_ij(ARLIM_P(reglo), ARLIM_P(reghi),
                       const int& cdir, const int& bctype,
                       const int& bho, const amrex_real& bcl,

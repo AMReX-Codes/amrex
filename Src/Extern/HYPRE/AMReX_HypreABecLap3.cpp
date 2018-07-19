@@ -1,285 +1,208 @@
-#include <AMReX_HypreABecLap3.H>
+#include <AMReX_Hypre.H>
 #include <AMReX_HypreABec_F.H>
+
 #include <cmath>
 #include <numeric>
-
-namespace {
-static int ispow2(int i) {
-  return (i == 1) ? 1 : (((i <= 0) || (i & 1)) ? 0 : ispow2(i / 2));
-}
-}
+#include <algorithm>
+#include <type_traits>
 
 namespace amrex {
 
-HypreABecLap3::HypreABecLap3(const BoxArray& grids,
-                             const DistributionMapping& dmap,
-                             const Geometry& geom_,
-                             MPI_Comm comm_)
+constexpr int HypreABecLap3::regular_stencil_size;
+constexpr int HypreABecLap3::eb_stencil_size;
+
+HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
+                              const DistributionMapping& dmap,
+                              const Geometry& geom_,
+                              MPI_Comm comm_)
     : comm(comm_),
-      geom(geom_),
-      verbose(1),
-      A(NULL), b(NULL), x(NULL) {
-
-  const int ncomp = 1;
-  int ngrow = 0;
-  acoefs.define(grids, dmap, ncomp, ngrow);
-  acoefs.setVal(0.0);
-
-  for (int i = 0; i < BL_SPACEDIM; ++i) {
-    BoxArray edge_boxes(grids);
-    edge_boxes.surroundingNodes(i);
-    bcoefs[i].define(edge_boxes, dmap, ncomp, ngrow);
-    bcoefs[i].setVal(0.0);
-  }
-
-  bd.define(grids, dmap, ncomp, geom);
-
-  int num_procs, myid;
-  MPI_Comm_size(comm, &num_procs);
-  MPI_Comm_rank(comm, &myid);
-
-  // initialize with ngrow = 1
-  ngrow = 1;
-
-  // Store the global integer index
-  GbInd.define(grids, dmap, ncomp, ngrow);
-  GbInd.setVal(0);
-
-  // Arrays needed to build the global indices for all procs
-  CellsGIndex.resize(grids.size(), 0);
-  numCellsProc.resize(num_procs+1, 0);
-
-  // These arrays store the starting global indices of all the boxes involved
-  StartIndex.resize(grids.size(), 0);
-
-  // Fill the numpoints in the box and in the proc where this box resides
-  for (int i = 0; i < grids.size(); i++) {
-    const Box& bx = grids[i];
-    CellsGIndex[i] = numCellsProc[ dmap[i]+1 ];
-    numCellsProc[ dmap[i]+1 ] = numCellsProc[ dmap[i]+1 ] + bx.numPts();
-  }
-
-  // making sure that counting starts from 0 for procId = 0
-  std::partial_sum(numCellsProc.begin(), numCellsProc.end(),
-                   numCellsProc.begin());
-
-  // Box starting index starting from the proc offset
-  for (int i = 0; i < grids.size(); i++) {
-    CellsGIndex[i] = CellsGIndex[i] + numCellsProc[dmap[i]];
-  }
-
-  // Starting and ending global index for each box
-  for (int i = 0; i <= (grids.size()-1); i++) {
-    StartIndex[i] = CellsGIndex[i];
-  }
-
-  // Fill up the imultifab with global indices
-  for (MFIter mfi(GbInd); mfi.isValid(); ++mfi) {
-    int i = mfi.index();
-    const Box &reg = mfi.validbox();
-
-    // build the global index for all cells on this level
-    amrex_BuildGlobalIndex(BL_TO_FORTRAN(GbInd[mfi]), ARLIM(reg.loVect()),
-                           ARLIM(reg.hiVect()), CellsGIndex[i]);
-  }
-
-  const int nghost = 0;
-  bool local = true;
-  int ilower = GbInd.min(0, nghost, local);
-  int iupper = GbInd.max(0, nghost, local);
-
-  // Fill the global indices in the ghost cells along the grid edges
-  GbInd.FillBoundary(geom.periodicity());
-
-  // Create the HYPRE matrix object
-  HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
-
-  // Parallel csr format storage
-  HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
-
-  // Initialize before setting coefficients
-  HYPRE_IJMatrixInitialize(A);
-
-  // Create the RHS and solution vector object
-  HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
-  HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
-  HYPRE_IJVectorInitialize(b);
-
-  HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
-  HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
-  HYPRE_IJVectorInitialize(x);
-}
-
-HypreABecLap3::~HypreABecLap3() {
-  HYPRE_IJMatrixDestroy(A);
-  HYPRE_IJVectorDestroy(b);
-  HYPRE_IJVectorDestroy(x);
-}
-
-void HypreABecLap3::setScalars(Real sa, Real sb) {
-  scalar_a = sa;
-  scalar_b = sb;
-}
-
-void
-HypreABecLap3::setACoeffs(const MultiFab& alpha) {
-  MultiFab::Copy(acoefs, alpha, 0, 0, 1, 0);
-}
-
-void HypreABecLap3::setBCoeffs(const Array<const MultiFab*, BL_SPACEDIM>& beta)
+      geom(geom_)
 {
-  for (int idim=0; idim < BL_SPACEDIM; idim++) {
-    MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, 0);
-  }
-}
+    static_assert(std::is_same<Real,double>::value, "double precision only");
+    static_assert(AMREX_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
 
-void HypreABecLap3::setVerbose(int _verbose) {
-  verbose = _verbose;
+    const int ncomp = 1;
+    int ngrow = 0;
+    acoefs.define(grids, dmap, ncomp, ngrow);
+    acoefs.setVal(0.0);
+
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        BoxArray edge_boxes(grids);
+        edge_boxes.surroundingNodes(i);
+        bcoefs[i].define(edge_boxes, dmap, ncomp, ngrow);
+        bcoefs[i].setVal(0.0);
+    }
+
+    buildIJIndices();
+    
+#if 1
+
+    int num_procs, myid;
+    MPI_Comm_size(comm, &num_procs);
+    MPI_Comm_rank(comm, &myid);
+
+    // Store the global integer index
+    GbInd.define(grids, dmap, ncomp, 1);
+    GbInd.setVal(0);
+
+    // Arrays needed to build the global indices for all procs
+    CellsGIndex.resize(grids.size(), 0);
+    numCellsProc.resize(num_procs+1, 0);
+
+    // These arrays store the starting global indices of all the boxes involved
+    StartIndex.resize(grids.size(), 0);
+
+    // Fill the numpoints in the box and in the proc where this box resides
+    for (int i = 0; i < grids.size(); i++) {
+        const Box& bx = grids[i];
+        CellsGIndex[i] = numCellsProc[ dmap[i]+1 ];
+        numCellsProc[ dmap[i]+1 ] = numCellsProc[ dmap[i]+1 ] + bx.numPts();
+    }
+    
+    // making sure that counting starts from 0 for procId = 0
+    std::partial_sum(numCellsProc.begin(), numCellsProc.end(),
+                     numCellsProc.begin());
+    
+    // Box starting index starting from the proc offset
+    for (int i = 0; i < grids.size(); i++) {
+        CellsGIndex[i] = CellsGIndex[i] + numCellsProc[dmap[i]];
+    }
+    
+    // Starting and ending global index for each box
+    for (int i = 0; i <= (grids.size()-1); i++) {
+        StartIndex[i] = CellsGIndex[i];
+    }
+    
+    // Fill up the imultifab with global indices
+    for (MFIter mfi(GbInd); mfi.isValid(); ++mfi) {
+        int i = mfi.index();
+        const Box &reg = mfi.validbox();
+        
+        // build the global index for all cells on this level
+        amrex_BuildGlobalIndex(BL_TO_FORTRAN(GbInd[mfi]), ARLIM(reg.loVect()),
+                               ARLIM(reg.hiVect()), CellsGIndex[i]);
+    }
+    
+    const int nghost = 0;
+    bool local = true;
+    int ilower = GbInd.min(0, nghost, local);
+    int iupper = GbInd.max(0, nghost, local);
+    
+    // Fill the global indices in the ghost cells along the grid edges
+    GbInd.FillBoundary(geom.periodicity());
+#endif
+    
+    // Create the HYPRE matrix object
+    HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
+    HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
+    HYPRE_IJMatrixInitialize(A);
+    
+    // Create the RHS and solution vector object
+    HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
+    HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
+    HYPRE_IJVectorInitialize(b);
+    
+    HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
+    HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
+    HYPRE_IJVectorInitialize(x);
+}
+    
+HypreABecLap3::~HypreABecLap3 ()
+{
+    HYPRE_IJMatrixDestroy(A);
+    A= NULL;
+    HYPRE_IJVectorDestroy(b);
+    b = NULL;
+    HYPRE_IJVectorDestroy(x);
+    x = NULL;
 }
 
 void
-HypreABecLap3::solve(MultiFab& soln, const MultiFab& rhs,
-                     Real rel_tol_, Real abs_tol_,
-                     int max_iter_, const BndryData& _bndry, int max_bndry_order) {
-  bd = _bndry;
-
-  loadMatrix();
-  finalizeMatrix();
-  loadVectors(soln, rhs);
-  finalizeVectors();
-  setupSolver(rel_tol_, abs_tol_, max_iter_);
-  solveDoIt();
-  getSolution(soln);
-  clearSolver();
+HypreABecLap3::setScalars (Real sa, Real sb)
+{
+    scalar_a = sa;
+    scalar_b = sb;
 }
 
-void HypreABecLap3::loadBndryData(LinOpBCType bc_type, Real bc_value) {
-  const int comp = 0;
-  const Real* dx = geom.CellSize();
-
-  for (int n=0; n< BL_SPACEDIM; ++n) {
-    for (MFIter mfi(acoefs); mfi.isValid(); ++mfi) {
-      int i = mfi.index();
-
-      const Box& bx = mfi.validbox();
-
-      // Our default will be that the face of this grid is
-      // either touching another grid
-      // across an interior boundary or a periodic boundary.
-      // We will test for the other
-      // cases below.
-      {
-        // Define the type of boundary conditions to be Dirichlet
-        // (even for periodic)
-        bd.setBoundCond(Orientation(n, Orientation::low), i,
-                        comp, LO_DIRICHLET);
-        bd.setBoundCond(Orientation(n, Orientation::high), i,
-                        comp, LO_DIRICHLET);
-
-        // Set the boundary conditions to the
-        // cell centers outside the domain
-        bd.setBoundLoc(Orientation(n, Orientation::low), i, 0.5*dx[n]);
-        bd.setBoundLoc(Orientation(n, Orientation::high), i, 0.5*dx[n]);
-      }
-
-      // Now test to see if we should override
-      // the above with Dirichlet or Neumann physical bc's
-      if(bc_type != LinOpBCType::interior) {
-        int ibnd = static_cast<int>(bc_type);
-        // either LO_DIRICHLET or LO_NEUMANN
-
-        // We are on the low side of the
-        // domain in coordinate direction n
-
-        if (bx.smallEnd(n) == geom.Domain().smallEnd(n)) {
-          // Set the boundary conditions to
-          // live exactly on the faces of the domain
-          bd.setBoundLoc(Orientation(n, Orientation::low), i, 0.0);
-
-          // Set the Dirichlet/Neumann boundary values
-          bd.setValue(Orientation(n, Orientation::low), i, bc_value);
-
-          // Define the type of boundary conditions
-          bd.setBoundCond(Orientation(n, Orientation::low),
-                          i, comp, ibnd);
-        }
-
-        // We are on the high side of the
-        // domain in coordinate direction n
-        if (bx.bigEnd(n) == geom.Domain().bigEnd(n)) {
-          // Set the boundary conditions to
-          // live exactly on the faces of the domain
-          bd.setBoundLoc(Orientation(n, Orientation::high), i, 0.0);
-
-          // Set the Dirichlet/Neumann boundary values
-          bd.setValue(Orientation(n, Orientation::high), i, bc_value);
-
-          // Define the type of boundary conditions
-          bd.setBoundCond(Orientation(n, Orientation::high),
-                          i, comp, ibnd);
-        }
-      }
-    }
-  }
+void
+HypreABecLap3::setACoeffs (const MultiFab& alpha)
+{
+    MultiFab::Copy(acoefs, alpha, 0, 0, 1, 0);
 }
 
-void HypreABecLap3::loadMatrix() {
-  static_assert(BL_SPACEDIM > 1, "HypreABecLap3: 1D not supported");
-
-  const int size = 2 * BL_SPACEDIM + 1;
-  const int bho = 0;
-  const Real* dx = geom.CellSize();
-
-  for (MFIter mfi(acoefs); mfi.isValid(); ++mfi) {
-    int i = mfi.index();
-    const Box &reg = mfi.validbox();
-
-    int volume = reg.numPts();
-
-    // build matrix interior
-
-    amrex_hmac_ij(BL_TO_FORTRAN(acoefs[mfi]), ARLIM(reg.loVect()),
-                  ARLIM(reg.hiVect()), scalar_a,
-                  &A, BL_TO_FORTRAN(GbInd[mfi]));
-
-    for (int idim = 0; idim < BL_SPACEDIM; idim++) {
-      amrex_hmbc_ij(BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                    ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_b,
-                    geom.CellSize(), idim, &A, BL_TO_FORTRAN(GbInd[mfi]));
+void
+HypreABecLap3::setBCoeffs (const Array<const MultiFab*, AMREX_SPACEDIM>& beta)
+{
+    for (int idim=0; idim < AMREX_SPACEDIM; idim++) {
+        MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, 0);
     }
+}
 
-    // add b.c.'s to matrix diagonal, and
-    // zero out offdiag values at domain boundaries
+void
+HypreABecLap3::setVerbose (int _verbose)
+{
+    verbose = _verbose;
+}
 
-    const Vector< Vector<BoundCond> > & bcs_i = bd.bndryConds(i);
-    const BndryData::RealTuple      & bcl_i = bd.bndryLocs(i);
+void
+HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
+                      Real rel_tol_, Real abs_tol_,
+                      int max_iter_, const BndryData& bndry, int max_bndry_order)
+{
+    loadMatrix(bndry, max_bndry_order);
+    finalizeMatrix();
+    loadVectors(soln, rhs);
+    finalizeVectors();
+    setupSolver(rel_tol_, abs_tol_, max_iter_);
+    solveDoIt();
+    getSolution(soln);
+    clearSolver();
+}
 
-    const Box& domain = geom.Domain();
-    for (OrientationIter oitr; oitr; oitr++) {
-      int cdir(oitr());
-      int idim = oitr().coordDir();
-      const int bctype = bcs_i[cdir][0];
-      const Real &bcl  = bcl_i[cdir];
-      const Mask &msk  = bd.bndryMasks(oitr())[mfi];
+void
+HypreABecLap3::loadMatrix(const BndryData& bndry, int max_bndry_order)
+{
+    const Real* dx = geom.CellSize();
+    const int bho = (max_bndry_order > 2) ? 1 : 0;
 
-      // Treat an exposed grid edge here as a boundary condition
-      // for the linear solver:
+    LayoutData<int> nrows;
+    
+    for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
+    {
+        int i = mfi.index();
+        const Box &reg = mfi.validbox();
 
-      if (reg[oitr()] == domain[oitr()]) {
-        amrex_hmmat3_ij(ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                        cdir, bctype, bho, bcl,
-                        BL_TO_FORTRAN(msk),
-                        BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                        scalar_b, dx, &A, BL_TO_FORTRAN(GbInd[mfi]));
-      } else {
-        amrex_hmmat_ij(ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                       cdir, bctype, bho, bcl,
-                       BL_TO_FORTRAN(msk),
-                       BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                       scalar_b, dx, &A, BL_TO_FORTRAN(GbInd[mfi]));
-      }
+        // build matrix interior
+        amrex_hmac_ij(BL_TO_FORTRAN(acoefs[mfi]), ARLIM(reg.loVect()),
+                      ARLIM(reg.hiVect()), scalar_a,
+                      &A, BL_TO_FORTRAN(GbInd[mfi]));
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
+            amrex_hmbc_ij(BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                          ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_b,
+                          geom.CellSize(), idim, &A, BL_TO_FORTRAN(GbInd[mfi]));
+        }
+
+        // add b.c.'s to matrix diagonal, and
+        // zero out offdiag values at boundaries
+
+        const Vector< Vector<BoundCond> > & bcs_i = bndry.bndryConds(i);
+        const BndryData::RealTuple        & bcl_i = bndry.bndryLocs(i);
+
+        for (OrientationIter oitr; oitr; oitr++) {
+            int cdir(oitr());
+            int idim = oitr().coordDir();
+            const int bctype = bcs_i[cdir][0];
+            const Real &bcl  = bcl_i[cdir];
+            const Mask &msk  = bndry.bndryMasks(oitr())[mfi];
+
+            amrex_hmmat3_ij(ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
+                            cdir, bctype, bho, bcl,
+                            BL_TO_FORTRAN(msk),
+                            BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                            scalar_b, dx, &A, BL_TO_FORTRAN(GbInd[mfi]));
+        }
     }
-  }
 }
 
 void HypreABecLap3::finalizeMatrix() {
@@ -296,7 +219,6 @@ void HypreABecLap3::loadVectors(MultiFab& soln, const MultiFab& rhs) {
   soln.setVal(0.0);
 
   for (MFIter mfi(soln); mfi.isValid(); ++mfi) {
-    int i = mfi.index();
     const Box &reg = mfi.validbox();
 
     // initialize soln, since we will reuse the space to set up rhs below:
@@ -443,4 +365,10 @@ void HypreABecLap3::getSolution(MultiFab& soln) {
   }
 }
 
+void
+HypreABecLap3::buildIJIndices ()
+{
+//    static_assert(sizeof(HYPRE_Int) == 8, "xxx"); 
+}
+    
 }  // namespace amrex
