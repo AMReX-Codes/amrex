@@ -22,10 +22,6 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
     MPI_Comm_size(comm, &num_procs );
     MPI_Comm_rank(comm, &myid );
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++) {
-        dx[i] = geom.CellSize(i);
-    }
-
     HYPRE_StructGridCreate(comm, AMREX_SPACEDIM, &grid);
 
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
@@ -56,19 +52,19 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
     HYPRE_StructGridAssemble(grid);
 
 #if (AMREX_SPACEDIM == 2)
-    int offsets[stencil_size][2] = {{-1,  0},      // 0
-                                    { 0, -1},      // 1
-                                    { 1,  0},      // 2
-                                    { 0,  1},      // 3
-                                    { 0,  0}};     // 4
+    int offsets[stencil_size][2] = {{ 0,  0},    // 0
+                                    {-1,  0},    // 1
+                                    { 1,  0},    // 2
+                                    { 0, -1},    // 3
+                                    { 0,  1}};   // 4
 #elif (AMREX_SPACEDIM == 3)
-    int offsets[stencil_size][3] = {{-1,  0,  0},  // 0
-                                    { 0, -1,  0},  // 1
-                                    { 0,  0, -1},  // 2
-                                    { 1,  0,  0},  // 3
-                                    { 0,  1,  0},  // 4
-                                    { 0,  0,  1},  // 5
-                                    { 0,  0,  0}}; // 6
+    int offsets[stencil_size][3] = {{ 0,  0,  0},   // 0
+                                    {-1,  0,  0},   // 1
+                                    { 1,  0,  0},   // 2
+                                    { 0, -1,  0},   // 3
+                                    { 0,  1,  0},   // 4
+                                    { 0,  0, -1},   // 5
+                                    { 0,  0,  1}};  // 6
 #endif
 
     HYPRE_StructStencil stencil;
@@ -148,26 +144,33 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
 
     FArrayBox fab;
 
+    const Real* dx = geom.CellSize();
+    
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         int i = mfi.index();
         const Box &reg = grids[i];
 
-        FArrayBox *f;
+        FArrayBox *xfab;
         if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
-            f = &soln[mfi];
+            xfab = &soln[mfi];
         } else {
             fab.resize(reg);
-            f = &fab;
-            f->copy(soln[mfi], 0, 0, 1);
+            xfab = &fab;
+            xfab->copy(soln[mfi], 0, 0, 1);
         }
-        Real* vec = f->dataPtr(); // sharing space, soln will be overwritten below
 
-        HYPRE_StructVectorSetBoxValues(x, Hypre::loV(reg), Hypre::hiV(reg), vec);
+        HYPRE_StructVectorSetBoxValues(x, Hypre::loV(reg), Hypre::hiV(reg),
+                                       xfab->dataPtr());
 
-        f->copy(rhs[mfi], 0, 0, 1); 
-        // vec now contains rhs, but we need to add bc's before SetBoxValues
-
+        FArrayBox *bfab;
+        if (rhs.nGrow() == 0) {
+            bfab = const_cast<FArrayBox*>(&(rhs[mfi]));
+        } else {
+            fab.resize(reg);
+            bfab->copy(rhs[mfi], 0, 0, 1);
+        }
+        
         int volume = reg.numPts();
         Real* mat = hypre_CTAlloc(double, stencil_size*volume);
 
@@ -188,32 +191,20 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         const BndryData::RealTuple      & bcl_i = bndry.bndryLocs(i);
 
         // add b.c.'s for A matrix and b vector
-        const Box& domain = bndry.getDomain();
-        for (OrientationIter oitr; oitr; oitr++)
+        for (OrientationIter oit; oit; oit++)
         {
-            int cdir(oitr());
-            int idim = oitr().coordDir();
-            const BoundCond &bct = bcs_i[cdir][0];
-            const Real      &bcl = bcl_i[cdir];
-            const Mask      &msk = bndry.bndryMasks(oitr())[mfi];
-            const FArrayBox &bcv = bndry.bndryValues(oitr())[mfi];
+            Orientation ori = oit();
+            int cdir(ori);
+            int idim = ori.coordDir();
+            const int bctype = bcs_i[cdir][0];
+            const Real  &bcl = bcl_i[cdir];
+            const Mask  &msk = bndry.bndryMasks(ori)[mfi];
       
-            if (reg[oitr()] == domain[oitr()] && is_periodic[idim] == 0)
-            {
-                int bctype = bct;
-                amrex_hpbvec3(BL_TO_FORTRAN_BOX(reg),
-                              vec,
-                              BL_TO_FORTRAN_ANYD((*bcoefs[idim])[mfi]),
-                              BL_TO_FORTRAN_ANYD(msk),
-                              BL_TO_FORTRAN_ANYD(bcv),
-                              &scalar_b, dx, &cdir, &bctype, &bcl);
-                
-                amrex_hpbmat3(BL_TO_FORTRAN_BOX(reg),
-                              mat,
-                              BL_TO_FORTRAN_ANYD((*bcoefs[idim])[mfi]),
-                              BL_TO_FORTRAN_ANYD(msk),
-                              &scalar_b, dx, &cdir, &bctype, &bcl);
-            }
+            amrex_hpmat(BL_TO_FORTRAN_BOX(reg),
+                        mat,
+                        BL_TO_FORTRAN_ANYD((*bcoefs[idim])[mfi]),
+                        BL_TO_FORTRAN_ANYD(msk),
+                        &scalar_b, dx, &cdir, &bctype, &bcl);
         }
 
         // initialize matrix & vectors
@@ -221,7 +212,8 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
         HYPRE_StructMatrixSetBoxValues(A, Hypre::loV(reg), Hypre::hiV(reg),
                                        stencil_size, stencil_indices.data(), mat);
-        HYPRE_StructVectorSetBoxValues(b, Hypre::loV(reg), Hypre::hiV(reg), vec);
+        HYPRE_StructVectorSetBoxValues(b, Hypre::loV(reg), Hypre::hiV(reg),
+                                       bfab->dataPtr());
 
         hypre_TFree(mat);
     }
