@@ -17,6 +17,8 @@ include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(PICSAR_HOME)/src/Make.package
 
+DEFINES += -DWARPX
+
 default: $(executable)
 	@echo SUCCESS
 
