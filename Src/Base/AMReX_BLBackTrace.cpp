@@ -27,6 +27,9 @@ BLBackTrace::handler(int s)
     case SIGFPE:
 	amrex::ErrorStream() << "Erroneous arithmetic operation\n";
 	break;
+    case SIGTERM:
+	amrex::ErrorStream() << "SIGTERM\n";
+	break;
     case SIGINT:
 	amrex::ErrorStream() << "SIGINT\n";
 	break;

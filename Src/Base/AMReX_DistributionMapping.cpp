@@ -908,16 +908,9 @@ void
 Distribute (const std::vector<SFCToken>&     tokens,
             int                              nprocs,
             Real                             volpercpu,
-            std::vector< std::vector<int> >& v,
-            int                              nmax = std::numeric_limits<int>::max())
+            std::vector< std::vector<int> >& v)
 
 {
-#ifdef _CRAYC
-    // Without this, we get segfault with Cray.
-    std::stringstream ss;
-    amrex::Print(ss) << nmax << std::endl;
-#endif
-
     BL_ASSERT(static_cast<int>(v.size()) == nprocs);
 
     int  K        = 0;
@@ -929,7 +922,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
         Real vol = 0;
 
         for ( int TSZ = static_cast<int>(tokens.size());
-              K < TSZ && (i == (nprocs-1) || (vol < volpercpu && cnt <= nmax));
+              K < TSZ && (i == (nprocs-1) || (vol < volpercpu));
               ++K)
         {
             vol += tokens[K].m_vol;
@@ -963,7 +956,6 @@ void
 DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
                                           int                   /*   nprocs */,
-                                          int                      nmax,
                                           bool                     sort)
 {
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
@@ -1028,7 +1020,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     std::vector< std::vector<int> > vec(nteams);
 
-    Distribute(tokens,nteams,volperteam,vec,nmax);
+    Distribute(tokens,nteams,volperteam,vec);
 
     // vec has a size of nteams and vec[] holds a vector of box ids.
 
@@ -1184,7 +1176,6 @@ void
 DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
                                       const std::vector<long>& wgts,
                                       int                      nprocs,
-                                      int                      nmax,
                                       bool                     sort)
 {
     BL_ASSERT(boxes.size() > 0);
@@ -1198,7 +1189,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     }
     else
     {
-        SFCProcessorMapDoIt(boxes,wgts,nprocs,nmax,sort);
+        SFCProcessorMapDoIt(boxes,wgts,nprocs,sort);
     }
 }
 
@@ -1363,7 +1354,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
 }
 
 DistributionMapping
-DistributionMapping::makeSFC (const MultiFab& weight, bool sort, int nmax)
+DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 {
     DistributionMapping r;
 
@@ -1392,7 +1383,7 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort, int nmax)
 
     int nprocs = ParallelContext::NProcsSub();
 
-    r.SFCProcessorMap(weight.boxArray(), cost, nprocs, nmax, sort);
+    r.SFCProcessorMap(weight.boxArray(), cost, nprocs, sort);
 
     return r;
 }

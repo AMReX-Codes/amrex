@@ -265,7 +265,7 @@ contains
     real(amrex_real) :: err, avg1, avg2, offset
     type(amrex_multifab), allocatable :: beta(:,:)
     logical :: nodal(3)
-    type(amrex_multifab) :: null
+    type(amrex_multifab) :: nullmf
 
     ! For ABecLaplacian, the b coefficents are on faces
     allocate(beta(amrex_spacedim,0:max_level))
@@ -292,7 +292,7 @@ contains
 
        do ilev = 0, max_level
           ! for problem with pure homogeneous Neumann BC, we could pass an empty multifab
-          call abeclap % set_level_bc(ilev, null)
+          call abeclap % set_level_bc(ilev, nullmf)
        end do
 
        call abeclap % set_scalars(ascalar, bscalar)
@@ -332,7 +332,7 @@ contains
        end if
 
        ! for problem with pure homogeneous Neumann BC, we could pass an empty multifab
-       call abeclap % set_level_bc(0, null)
+       call abeclap % set_level_bc(0, nullmf)
 
        call abeclap % set_scalars(ascalar, bscalar)
        call abeclap % set_acoeffs(0, acoef(ilev))
