@@ -5,7 +5,9 @@
 #include <vector>
 #include <memory>
 #include <AMReX_BLassert.H>
+#ifdef AMREX_SPACEDIM
 #include <AMReX_Array.H>
+#endif
 
 namespace amrex {
 /**
@@ -107,6 +109,7 @@ namespace amrex
 
     /////////////////////////////////////////////////////////////
 
+#ifdef AMREX_SPACEDIM
     template <class T>
     Vector<std::array<T*,AMREX_SPACEDIM> >
     GetVecOfArrOfPtrs (const Vector<std::array<std::unique_ptr<T>,AMREX_SPACEDIM> >& a)
@@ -116,6 +119,7 @@ namespace amrex
         for (const auto& x : a)  r.push_back(GetArrOfPtrs(x));
         return r;
     }
+#endif
 
     /////////////////////////////////////////////////////////////
 
