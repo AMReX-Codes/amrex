@@ -3,6 +3,7 @@
 #include "myfunc_F.H"
 #include <AMReX_CUDA_Utility.H>
 #include <AMReX_Managed.H>
+#include <AMReX_Device.H>
 
 AMREX_CUDA_GLOBAL
 void compute_flux (Box bx, GeometryData geom, BaseFab<Real> &phi_old,
@@ -73,10 +74,39 @@ void advance (MultiFab& phi_old,
     {
         const Box& vbx = mfi.validbox();
 
+        dim3 numBlocks, numThreads;
+        Device::c_threads_and_blocks(vbx.loVect(), vbx.hiVect(), numBlocks, numThreads);
+
+        [] __device__ (Box bx, GeometryData gd, BaseFab<Real> & phifab,
+	               BaseFab<Real>& fluxX, BaseFab<Real>& fluxY, BaseFab<Real>& fluxZ) 
+        {
+             Box threadBox = getThreadBox(bx);
+
+             if (threadBox.ok())
+             {
+                compute_flux(BL_TO_FORTRAN_BOX(threadBox),
+                             BL_TO_FORTRAN_BOX(gd.Domain()),
+                             BL_TO_FORTRAN_ANYD(phifab),
+                             BL_TO_FORTRAN_ANYD(fluxX),
+                             BL_TO_FORTRAN_ANYD(fluxY),
+#if (AMREX_SPACEDIM == 3)   
+                             BL_TO_FORTRAN_ANYD(fluxZ),
+#endif
+                             gd.CellSize());
+             }
+        }
+        <<<numBlocks, numThreads, 0, Device::cudaStream()>>>(vbx, geom.data(), phi_old[mfi], flux[0][mfi], flux[1][mfi], flux[2][mfi]);
+        CudaErrorCheck();
+
+
+
+
+/*
         AMREX_BOX_LAUNCH(vbx,
                           compute_flux, vbx, 
                           geom.data(), phi_old[mfi],
                           AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]));
+*/
     }
     Device::synchronize();
 
