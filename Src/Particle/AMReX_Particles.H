@@ -44,7 +44,7 @@
 #include <omp.h>
 #endif
 
-#if CUDA
+#ifdef AMREX_USE_CUDA
 #include "AMReX_CudaManagedAllocator.H"
 #endif
 
@@ -217,7 +217,7 @@ public:
     using ParticleType  = Particle<NReal, NInt>;
     using RealType      = typename ParticleType::RealType;
 
-#if CUDA
+#ifdef AMREX_USE_CUDA
     using ParticleVector = Vector<ParticleType, CudaManagedAllocator<ParticleType> >;
 #else
     using ParticleVector = Vector<ParticleType>;
@@ -275,7 +275,7 @@ template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeIn
 template <int NReal, int NInt>
 struct StructOfArrays {
   
-#if CUDA
+#ifdef AMREX_USE_CUDA
     using RealVector = Vector<Real, CudaManagedAllocator<Real>>;
     using  IntVector = Vector<int , CudaManagedAllocator<int >>;
 #else
@@ -484,7 +484,7 @@ public:
     using RealVector     = typename SoA::RealVector;
     using IntVector      = typename SoA::IntVector;
     using ParticleVector = typename AoS::ParticleVector;
-#if CUDA
+#ifdef AMREX_USE_CUDA
     using CharVector = Vector<char, CudaManagedAllocator<char>>;
 #else
     using CharVector = Vector<char>;
