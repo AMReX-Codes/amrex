@@ -34,29 +34,29 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const Box& tby  = mfi.tilebox(YeeGrid::Ey_nodal_flag);
         const Box& tbz  = mfi.tilebox(YeeGrid::Ez_nodal_flag);
 
-        FORT_LAUNCH(tbx, push_electric_field_x,
-                    BL_TO_FORTRAN_BOX(tbx),
-                    BL_TO_FORTRAN_3D(Ex[mfi]),
-                    BL_TO_FORTRAN_3D(By[mfi]),
-                    BL_TO_FORTRAN_3D(Bz[mfi]),
-                    BL_TO_FORTRAN_3D(jx[mfi]),
-                    mu_c2_dt, dtsdx_c2[1], dtsdx_c2[2]);
+        AMREX_FORT_LAUNCH(tbx, push_electric_field_x,
+                          BL_TO_FORTRAN_BOX(tbx),
+                          BL_TO_FORTRAN_3D(Ex[mfi]),
+                          BL_TO_FORTRAN_3D(By[mfi]),
+                          BL_TO_FORTRAN_3D(Bz[mfi]),
+                          BL_TO_FORTRAN_3D(jx[mfi]),
+                          mu_c2_dt, dtsdx_c2[1], dtsdx_c2[2]);
 
-        FORT_LAUNCH(tby, push_electric_field_y,
-                    BL_TO_FORTRAN_BOX(tby),
-                    BL_TO_FORTRAN_3D(Ey[mfi]),
-                    BL_TO_FORTRAN_3D(Bx[mfi]),
-                    BL_TO_FORTRAN_3D(Bz[mfi]),
-                    BL_TO_FORTRAN_3D(jy[mfi]),
-                    mu_c2_dt, dtsdx_c2[0], dtsdx_c2[2]);
+        AMREX_FORT_LAUNCH(tby, push_electric_field_y,
+                          BL_TO_FORTRAN_BOX(tby),
+                          BL_TO_FORTRAN_3D(Ey[mfi]),
+                          BL_TO_FORTRAN_3D(Bx[mfi]),
+                          BL_TO_FORTRAN_3D(Bz[mfi]),
+                          BL_TO_FORTRAN_3D(jy[mfi]),
+                          mu_c2_dt, dtsdx_c2[0], dtsdx_c2[2]);
 
-        FORT_LAUNCH(tbz, push_electric_field_z,
-                    BL_TO_FORTRAN_BOX(tbz),
-                    BL_TO_FORTRAN_3D(Ez[mfi]),
-                    BL_TO_FORTRAN_3D(Bx[mfi]),
-                    BL_TO_FORTRAN_3D(By[mfi]),
-                    BL_TO_FORTRAN_3D(jz[mfi]),
-                    mu_c2_dt, dtsdx_c2[0], dtsdx_c2[1]);
+        AMREX_FORT_LAUNCH(tbz, push_electric_field_z,
+                          BL_TO_FORTRAN_BOX(tbz),
+                          BL_TO_FORTRAN_3D(Ez[mfi]),
+                          BL_TO_FORTRAN_3D(Bx[mfi]),
+                          BL_TO_FORTRAN_3D(By[mfi]),
+                          BL_TO_FORTRAN_3D(jz[mfi]),
+                          mu_c2_dt, dtsdx_c2[0], dtsdx_c2[1]);
     }
 }
 
@@ -75,26 +75,26 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         const Box& tby = mfi.tilebox(YeeGrid::By_nodal_flag);
         const Box& tbz = mfi.tilebox(YeeGrid::Bz_nodal_flag);
 
-        FORT_LAUNCH(tbx, push_magnetic_field_x,
-                    BL_TO_FORTRAN_BOX(tbx),
-                    BL_TO_FORTRAN_3D(Bx[mfi]),
-                    BL_TO_FORTRAN_3D(Ey[mfi]),
-                    BL_TO_FORTRAN_3D(Ez[mfi]),
-                    dtsdx[1], dtsdx[2]);
-
-        FORT_LAUNCH(tby, push_magnetic_field_y,
-                    BL_TO_FORTRAN_BOX(tby),
-                    BL_TO_FORTRAN_3D(By[mfi]),
-                    BL_TO_FORTRAN_3D(Ex[mfi]),
-                    BL_TO_FORTRAN_3D(Ez[mfi]),
-                    dtsdx[0], dtsdx[2]);
-
-        FORT_LAUNCH(tbz, push_magnetic_field_z,
-                    BL_TO_FORTRAN_BOX(tbz),
-                    BL_TO_FORTRAN_3D(Bz[mfi]),
-                    BL_TO_FORTRAN_3D(Ex[mfi]),
-                    BL_TO_FORTRAN_3D(Ey[mfi]),
-                    dtsdx[0], dtsdx[1]);
+        AMREX_FORT_LAUNCH(tbx, push_magnetic_field_x,
+                          BL_TO_FORTRAN_BOX(tbx),
+                          BL_TO_FORTRAN_3D(Bx[mfi]),
+                          BL_TO_FORTRAN_3D(Ey[mfi]),
+                          BL_TO_FORTRAN_3D(Ez[mfi]),
+                          dtsdx[1], dtsdx[2]);
+        
+        AMREX_FORT_LAUNCH(tby, push_magnetic_field_y,
+                          BL_TO_FORTRAN_BOX(tby),
+                          BL_TO_FORTRAN_3D(By[mfi]),
+                          BL_TO_FORTRAN_3D(Ex[mfi]),
+                          BL_TO_FORTRAN_3D(Ez[mfi]),
+                          dtsdx[0], dtsdx[2]);
+        
+        AMREX_FORT_LAUNCH(tbz, push_magnetic_field_z,
+                          BL_TO_FORTRAN_BOX(tbz),
+                          BL_TO_FORTRAN_3D(Bz[mfi]),
+                          BL_TO_FORTRAN_3D(Ex[mfi]),
+                          BL_TO_FORTRAN_3D(Ey[mfi]),
+                          dtsdx[0], dtsdx[1]);
     }    
 }
 
