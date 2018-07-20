@@ -26,7 +26,7 @@ std::map<int, std::map<int, std::map<int, std::map<int, int> > > > Perilla::myTa
 void Perilla::communicateTags(std::vector<RegionGraph*> ga)
 {
     int myProc = ParallelDescriptor::MyProc();
-    int nPs = ParallelDescriptor::NProcsAll();
+    int nPs = ParallelDescriptor::NProcs();
     typedef std::map<int, int> tags_t;
     typedef std::map<int, std::map<int,int>> stags_t;
     typedef std::map<int, std::map<int,std::map<int,int>>> dstags_t; 
@@ -227,17 +227,17 @@ int Perilla::tagGen(int src, int dest, int channelID, int nFabs, int nChannels)
 
 void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Periodicity& period)
 {
-    int np = ParallelDescriptor::NProcsAll();
+    int np = ParallelDescriptor::NProcs();
     int myProc = ParallelDescriptor::MyProc();
     int numfabs = mf.IndexArray().size();
     bool cross = false;
-    const FabArrayBase::FB& TheFB = mf.getFB(period, false, false);
+    const FabArrayBase::FB& TheFB = mf.getFB(mf.nGrowVect(), period, false, false);
     const int n_loc_mf = TheFB.m_LocTags->size();
     const int n_snds_mf = TheFB.m_SndTags->size();
     const int n_rcvs_mf = TheFB.m_RcvTags->size();
 
-    Array<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-    Array<int> send_pr;
+    Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
+    Vector<int> send_pr;
     send_cctc.reserve(n_snds_mf);
 
     for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_SndTags->begin(),
@@ -252,8 +252,8 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 	}
     }
 
-    Array<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
-    Array<int> recv_pr;
+    Vector<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
+    Vector<int> recv_pr;
     recv_cctc.reserve(n_rcvs_mf);
 
     for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_RcvTags->begin(),
@@ -853,7 +853,7 @@ assert(doublechecked==false);
 void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 {
     bool nextsReq, nextrReq;
-    int np = ParallelDescriptor::NProcsAll();
+    int np = ParallelDescriptor::NProcs();
     int myProc = ParallelDescriptor::MyProc();
     int numfabs = rg->rMap.size();
 
@@ -1029,7 +1029,7 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg)
 
 void Perilla::serviceSingleGraphComm(RegionGraph* graph, int tid)
 {
-    int np = ParallelDescriptor::NProcsAll();
+    int np = ParallelDescriptor::NProcs();
     int tg = WorkerThread::perilla_wid();
     while(true)
     {
@@ -1064,7 +1064,7 @@ void Perilla::serviceSingleGraphComm(RegionGraph* graph, int tid)
 void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bool cpyAcross, int tid)
 {
     int tg = WorkerThread::perilla_wid();
-    int np = ParallelDescriptor::NProcsAll();    
+    int np = ParallelDescriptor::NProcs();    
     int graphFinishCnt = 0;
     while(true)
     {
@@ -1107,7 +1107,7 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArray, bool cpyAcross, int tid)
 {
     int tg = WorkerThread::perilla_wid();
-    int np = ParallelDescriptor::NProcsAll();    
+    int np = ParallelDescriptor::NProcs();    
     int myProc = ParallelDescriptor::MyProc();
     int graphFinishCnt = 0;
     int nGraphs;
@@ -1289,7 +1289,7 @@ void Perilla::fillBoundaryPush(RegionGraph* graph, MultiFab* mf, int f)
 	graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
     } // if(LAZY_PUSH) - else
 
-    int np = ParallelDescriptor::NProcsAll();
+    int np = ParallelDescriptor::NProcs();
     if (np==1) return;
 
     if(ntid==0)
@@ -1378,7 +1378,7 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
     }
     graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
-    int np = ParallelDescriptor::NProcsAll();
+    int np = ParallelDescriptor::NProcs();
     if (np==1) return;
 
     if(ntid==0)
@@ -1424,7 +1424,7 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
     //    MultiFab* mfSrc = gSrc->assocMF;
     //    MultiFab* mfDst = gDst->assocMF;
     int myProc = ParallelDescriptor::MyProc();
-    int np = ParallelDescriptor::NProcsAll();
+    int np = ParallelDescriptor::NProcs();
 
     try{
 
@@ -1482,14 +1482,14 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 	    int nfabsSrc = mfSrc.IndexArray().size();
 	    int nfabsDst = mfDst.IndexArray().size();
 
-	    const FabArrayBase::CPC& TheCPC = mfDst.getCPC(ng, mfSrc, ngSrc, period);
+            const FabArrayBase::CPC& TheCPC = mfDst.getCPC(IntVect(ng), mfSrc, IntVect(ngSrc), period);
 
 	    const int nloc_cpAsc = TheCPC.m_LocTags->size();
 	    const int nsnds_cpAsc = TheCPC.m_SndTags->size();
 	    const int nrcvs_cpAsc = TheCPC.m_RcvTags->size();     
 
-	    Array<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-	    Array<int> send_pr;
+	    Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
+	    Vector<int> send_pr;
 	    send_cctc.reserve(nsnds_cpAsc);
 
 	    for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheCPC.m_SndTags->begin(),
@@ -1506,8 +1506,8 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 
 	    //	std::cout<< "Loop 1" <<std::endl;
 
-	    Array<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
-	    Array<int> recv_pr;
+	    Vector<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
+	    Vector<int> recv_pr;
 	    recv_cctc.reserve(nrcvs_cpAsc);
 
 	    for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheCPC.m_RcvTags->begin(),
@@ -2121,7 +2121,7 @@ void Perilla::multifabCopyPushAsync(RegionGraph* destGraph, RegionGraph* srcGrap
 	    srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
 	}
 
-	int np = ParallelDescriptor::NProcsAll();
+	int np = ParallelDescriptor::NProcs();
 	if(np == 1)
 	    return;
 
@@ -2263,7 +2263,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
 	    destGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
 	}
 
-	int np = ParallelDescriptor::NProcsAll();
+	int np = ParallelDescriptor::NProcs();
 	if(np == 1)
 	    return;
 
@@ -2419,7 +2419,7 @@ assert(doublechecked==false);
 void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int nGraphs, int tg)
 {
     bool nextsReq, nextrReq;
-    int np = ParallelDescriptor::NProcsAll();
+    int np = ParallelDescriptor::NProcs();
     int myProc = ParallelDescriptor::MyProc();
     int numfabs = graphArray[g]->numTasks;
     //MultiFab* mf = graphArray[g]->assocMF;
@@ -2622,7 +2622,7 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 
 void Perilla::resetRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int nGraphs, int tg)
 {
-    int np = ParallelDescriptor::NProcsAll();
+    int np = ParallelDescriptor::NProcs();
     int myProc = ParallelDescriptor::MyProc();
     int numfabs = graphArray[g]->numTasks;
     //MultiFab* mf = graphArray[g]->assocMF;
