@@ -97,15 +97,16 @@ Math parser and user-defined constants
 --------------------------------------
 
 WarpX provides a math parser that reads expressions in the input file.
-It can be used to define the plasma density profile or the laser field
-(see below `Particle initialization` and `Laser initialization`).
+It can be used to define the plasma density profile, the plasma momentum 
+distribution or the laser field (see below `Particle initialization` and 
+`Laser initialization`).
 
 The parser reads python-style expressions between double quotes, for instance
 ``"a0*x**2 * (1-y*1.e2) * (x>0)"`` is a valid expression where ``a0`` is a
 user-defined constant and ``x`` and ``y`` are variables. The factor
 ``(x>0)`` is `1` where `x>0` and `0` where `x<=0`. It allows the user to
- define functions by intervals. User-defined constants can be used in parsed
- functions only (i.e., ``density_function(x,y,z)`` and ``field_function(x,y,t)``,
+define functions by intervals. User-defined constants can be used in parsed
+functions only (i.e., ``density_function(x,y,z)`` and ``field_function(x,y,t)``,
 see below). They are specified with:
 
 * ``constants.use_my_constants`` (`bool`)
@@ -158,6 +159,29 @@ Particle initialization
       mathematical expression for the density of the species, e.g.
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
       user-defined constant, see above. Note that using this density profile will turn
+      ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
+
+* ``<species_name>.momentum_distribution_type`` (`string`)
+    Distribution of the normalized momentum (`u=p/mc`) for this species. The options are:
+    
+    * ``constant``: constant momentum profile. This requires additional parameters 
+      ``<species_name>.ux``, ``<species_name>.uy`` and ``<species_name>.uz``, the normalized 
+      momenta in the x, y and z direction respectively.
+
+    * ``gaussian``: gaussian momentum distribution in all 3 directions. This requires 
+      additional arguments for the average momenta along each direction 
+      ``<species_name>.ux_m``, ``<species_name>.uy_m`` and ``<species_name>.uz_m`` as 
+      well as standard deviations along each direction ``<species_name>.ux_th``, 
+      ``<species_name>.uy_th`` and ``<species_name>.uz_th``.
+
+    * ``radial_expansion``: momentum depends on the radial coordinate linearly. This 
+      requires additional parameter ``u_over_r`` which is the slope.
+    
+    * ``parse_momentum_function``: the momentum is given by a function in the input
+      file. It requires additional arguments ``<species_name>.momentum_function_ux(x,y,z)``, 
+      ``<species_name>.momentum_function_uy(x,y,z)`` and ``<species_name>.momentum_function_uz(x,y,z)``, 
+      which gives the distribution of each component of the momentum as a function of space.    
+      Note that using this momentum distribution type will turn 
       ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
 
 * ``warpx.serialize_ics`` (`0 or 1`)

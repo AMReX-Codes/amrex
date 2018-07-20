@@ -132,6 +132,40 @@ void RadialExpansionMomentumDistribution::getMomentum(vec3& u, Real x, Real y, R
   u[2] = _u_over_r * z;
 }
 
+ParseMomentumFunction::ParseMomentumFunction(std::string parse_momentum_function_ux,
+                                             std::string parse_momentum_function_uy,
+                                             std::string parse_momentum_function_uz)
+    : _parse_momentum_function_ux(parse_momentum_function_ux),
+      _parse_momentum_function_uy(parse_momentum_function_uy),
+      _parse_momentum_function_uz(parse_momentum_function_uz)
+{
+    const std::string s_var = "x,y,z";
+    my_constants.ReadParameters();
+    parse_momentum_function_ux = my_constants.replaceStringValue(parse_momentum_function_ux);
+    parse_momentum_function_uy = my_constants.replaceStringValue(parse_momentum_function_uy);
+    parse_momentum_function_uz = my_constants.replaceStringValue(parse_momentum_function_uz);
+    parser_instance_number_ux = parser_initialize_function(parse_momentum_function_ux.c_str(),
+                                                           parse_momentum_function_ux.length(),
+                                                           s_var.c_str(),
+                                                           s_var.length());
+    parser_instance_number_uy = parser_initialize_function(parse_momentum_function_uy.c_str(),
+                                                           parse_momentum_function_uy.length(),
+                                                           s_var.c_str(),
+                                                           s_var.length());
+    parser_instance_number_uz = parser_initialize_function(parse_momentum_function_uz.c_str(),
+                                                           parse_momentum_function_uz.length(),
+                                                           s_var.c_str(),
+                                                           s_var.length());
+}
+
+void ParseMomentumFunction::getMomentum(vec3& u, Real x, Real y, Real z)
+{
+    std::array<amrex::Real, 3> list_var = {x,y,z};
+        u[0] = parser_evaluate_function(list_var.data(), 3, parser_instance_number_ux);
+        u[1] = parser_evaluate_function(list_var.data(), 3, parser_instance_number_uy);
+        u[2] = parser_evaluate_function(list_var.data(), 3, parser_instance_number_uz);
+}
+
 RandomPosition::RandomPosition(int num_particles_per_cell):
   _num_particles_per_cell(num_particles_per_cell)
 {}
@@ -300,8 +334,17 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
                                                               ux_th, uy_th, uz_th));
     } else if (mom_dist_s == "radial_expansion") {
         Real u_over_r = 0.;
-	pp.query("u_over_r", u_over_r);
+        pp.query("u_over_r", u_over_r);
         mom_dist.reset(new RadialExpansionMomentumDistribution(u_over_r));
+    } else if (mom_dist_s == "parse_momentum_function") {
+        // Serialize particle initialization
+        WarpX::serialize_ics = true;
+        pp.get("momentum_function_ux(x,y,z)", str_momentum_function_ux);
+        pp.get("momentum_function_uy(x,y,z)", str_momentum_function_uy);
+        pp.get("momentum_function_uz(x,y,z)", str_momentum_function_uz);
+        mom_dist.reset(new ParseMomentumFunction(str_momentum_function_ux, 
+                                                 str_momentum_function_uy, 
+                                                 str_momentum_function_uz));
     } else {
         StringParseAbortMessage("Momentum distribution type", mom_dist_s);
     }

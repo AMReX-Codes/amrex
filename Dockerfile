@@ -44,7 +44,7 @@ RUN git clone https://github.com/AMReX-Codes/amrex.git \
     && cd ..
 
 # Clone their regression test utility
-RUN git clone https://github.com/AMReX-Codes/regression_testing.git
+RUN git clone https://github.com/RemiLehe/regression_testing.git
 
 # Clone picsar
 RUN git clone https://bitbucket.org/berkeleylab/picsar.git

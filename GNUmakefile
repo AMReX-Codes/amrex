@@ -28,5 +28,7 @@ WarpxBinDir = Bin
 
 USE_PSATD = FALSE
 
+DO_ELECTROSTATIC = FALSE
+
 WARPX_HOME := .
 include $(WARPX_HOME)/Source/Make.WarpX
