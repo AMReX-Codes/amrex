@@ -107,7 +107,6 @@ contains
     type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
-    integer :: iret
     integer(idp) :: nopenmp
     integer :: nx_padded
     integer, dimension(3) :: shp
@@ -297,7 +296,11 @@ contains
     rhoold => rhoold_wrpx
 
     ! Call the corresponding PICSAR function
+#if (BL_SPACEDIM == 3)
     CALL push_psatd_ebfield_3d()
+#elif (BL_SPACEDIM == 2)
+    CALL push_psatd_ebfield_2d()
+#endif
 
     ex => null()
     ey => null()
