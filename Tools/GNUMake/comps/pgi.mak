@@ -54,8 +54,7 @@ ifeq ($(USE_OMP),TRUE)
 endif
 
 ifeq ($(USE_ACC),TRUE)
-  # GENERIC_PGI_FLAGS += -acc -Minfo=acc -ta=nvidia -mcmodel=medium
-  GENERIC_PGI_FLAGS += -acc -ta=tesla:$(CUDA_VERSION),cuda9.0,lineinfo,ptxinfo -Minfo=accel
+  GENERIC_PGI_FLAGS += -acc -ta=tesla:$(CUDA_VERSION),lineinfo,ptxinfo -Minfo=accel -mcmodel=medium
 else
   GENERIC_PGI_FLAGS += -noacc
 endif
@@ -103,8 +102,8 @@ FFLAGS   += -Mnomain
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -Mcuda=$(CUDA_VERSION),cuda9.0,lineinfo,ptxinfo
-  FFLAGS   += -Mcuda=$(CUDA_VERSION),cuda9.0,lineinfo,ptxinfo
+  F90FLAGS += -Mcuda=$(CUDA_VERSION),lineinfo,ptxinfo
+  FFLAGS   += -Mcuda=$(CUDA_VERSION),lineinfo,ptxinfo
 
   F90FLAGS += CUDA_HOME=$(COMPILE_CUDA_PATH)
   FFLAGS   += CUDA_HOME=$(COMPILE_CUDA_PATH)
