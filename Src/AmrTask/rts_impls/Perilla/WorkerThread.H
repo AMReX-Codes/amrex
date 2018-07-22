@@ -43,6 +43,7 @@ namespace perilla{
     static int wid(){return WorkerThread::perilla_wid();}
     static int nWorkerThreads(){return WorkerThread::perilla_nWorkerThreads();}
     static int nWorkers(){return WorkerThread::perilla_nWorkers();}
+    static int nThreads(){return perilla::NUM_THREAD_TEAMS*perilla::NUM_THREADS_PER_TEAM;}
     static bool isMasterWorkerThread(){return WorkerThread::perilla_isMasterWorkerThread();}
     static bool isMasterThread(){return WorkerThread::perilla_isMasterThread();}
     static bool isCommunicationThread(){return WorkerThread::perilla_isCommunicationThread();}
@@ -57,10 +58,12 @@ namespace perilla{
     static void syncComputeWorkerThreads(int numthreads){WorkerThread::syncComputeWorkerThreads(numthreads);}
     static void syncWorkerThreads(){WorkerThread::syncWorkerThreads();}
     static void syncWorkerThreads(int numthreads){WorkerThread::syncWorkerThreads(numthreads);}
-    static void syncAllThreads(){
+    static void syncAllThreads()
+    {
 	WorkerThread::syncAllThreads();
     }
-    static void syncAllWorkerThreads(){
+    static void syncAllWorkerThreads()
+    {
         WorkerThread::syncWorkerThreads();
         WorkerThread::syncWorkers();
     }
