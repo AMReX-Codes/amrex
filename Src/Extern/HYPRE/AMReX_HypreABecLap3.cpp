@@ -1,8 +1,13 @@
 #include <AMReX_Hypre.H>
 #include <AMReX_HypreABec_F.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#endif
+
 #include <cmath>
 #include <numeric>
+#include <limits>
 #include <algorithm>
 #include <type_traits>
 
@@ -31,79 +36,6 @@ HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
         bcoefs[i].define(edge_boxes, dmap, ncomp, ngrow);
         bcoefs[i].setVal(0.0);
     }
-
-    buildIJIndices();
-    
-#if 0
-
-    int num_procs, myid;
-    MPI_Comm_size(comm, &num_procs);
-    MPI_Comm_rank(comm, &myid);
-
-    // Store the global integer index
-    GbInd.define(grids, dmap, ncomp, 1);
-    GbInd.setVal(0);
-
-    // Arrays needed to build the global indices for all procs
-    CellsGIndex.resize(grids.size(), 0);
-    numCellsProc.resize(num_procs+1, 0);
-
-    // These arrays store the starting global indices of all the boxes involved
-    StartIndex.resize(grids.size(), 0);
-
-    // Fill the numpoints in the box and in the proc where this box resides
-    for (int i = 0; i < grids.size(); i++) {
-        const Box& bx = grids[i];
-        CellsGIndex[i] = numCellsProc[ dmap[i]+1 ];
-        numCellsProc[ dmap[i]+1 ] = numCellsProc[ dmap[i]+1 ] + bx.numPts();
-    }
-    
-    // making sure that counting starts from 0 for procId = 0
-    std::partial_sum(numCellsProc.begin(), numCellsProc.end(),
-                     numCellsProc.begin());
-    
-    // Box starting index starting from the proc offset
-    for (int i = 0; i < grids.size(); i++) {
-        CellsGIndex[i] = CellsGIndex[i] + numCellsProc[dmap[i]];
-    }
-    
-    // Starting and ending global index for each box
-    for (int i = 0; i <= (grids.size()-1); i++) {
-        StartIndex[i] = CellsGIndex[i];
-    }
-    
-    // Fill up the imultifab with global indices
-    for (MFIter mfi(GbInd); mfi.isValid(); ++mfi) {
-        int i = mfi.index();
-        const Box &reg = mfi.validbox();
-        
-        // build the global index for all cells on this level
-        amrex_BuildGlobalIndex(BL_TO_FORTRAN(GbInd[mfi]), ARLIM(reg.loVect()),
-                               ARLIM(reg.hiVect()), CellsGIndex[i]);
-    }
-    
-    const int nghost = 0;
-    bool local = true;
-    int ilower = GbInd.min(0, nghost, local);
-    int iupper = GbInd.max(0, nghost, local);
-    
-    // Fill the global indices in the ghost cells along the grid edges
-    GbInd.FillBoundary(geom.periodicity());
-    
-    // Create the HYPRE matrix object
-    HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
-    HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
-    HYPRE_IJMatrixInitialize(A);
-    
-    // Create the RHS and solution vector object
-    HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
-    HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
-    HYPRE_IJVectorInitialize(b);
-    
-    HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
-    HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
-    HYPRE_IJVectorInitialize(x);
-#endif
 }
     
 HypreABecLap3::~HypreABecLap3 ()
@@ -114,6 +46,8 @@ HypreABecLap3::~HypreABecLap3 ()
     b = NULL;
     HYPRE_IJVectorDestroy(x);
     x = NULL;
+    HYPRE_BoomerAMGDestroy(solver);
+    solver = NULL;
 }
 
 void
@@ -148,230 +82,212 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
                       Real rel_tol_, Real abs_tol_,
                       int max_iter_, const BndryData& bndry, int max_bndry_order)
 {
-    loadMatrix(bndry, max_bndry_order);
-    finalizeMatrix();
-    loadVectors(soln, rhs);
-    finalizeVectors();
-    setupSolver(rel_tol_, abs_tol_, max_iter_);
-    solveDoIt();
-    getSolution(soln);
-    clearSolver();
-}
-
-void
-HypreABecLap3::loadMatrix(const BndryData& bndry, int max_bndry_order)
-{
-    const Real* dx = geom.CellSize();
-    const int bho = (max_bndry_order > 2) ? 1 : 0;
-
-    LayoutData<int> nrows;
-    
-    for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
+    if (solver == NULL)
     {
-        int i = mfi.index();
-        const Box &reg = mfi.validbox();
+        prepareSolver(rhs.Factory());
+    }
 
-        // build matrix interior
-        amrex_hmac_ij(BL_TO_FORTRAN(acoefs[mfi]), ARLIM(reg.loVect()),
-                      ARLIM(reg.hiVect()), scalar_a,
-                      &A, BL_TO_FORTRAN(GbInd[mfi]));
+    // x.SetValues() and x.assemble
+    // b.SetValues() and b.assemble
 
-        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
-            amrex_hmbc_ij(BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                          ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_b,
-                          geom.CellSize(), idim, &A, BL_TO_FORTRAN(GbInd[mfi]));
-        }
+    HYPRE_ParCSRMatrix par_A = NULL;
+    HYPRE_ParVector par_b = NULL;
+    HYPRE_ParVector par_x = NULL;
+    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
+    HYPRE_IJVectorGetObject(b, (void **) &par_b);
+    HYPRE_IJVectorGetObject(x, (void **) &par_x);
+    
+    HYPRE_BoomerAMGSetMinIter(solver, 1);
+    HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
+    HYPRE_BoomerAMGSetTol(solver, rel_tol);
+    if (abs_tol > 0.0)
+    {
+        Real bnorm = hypre_ParVectorInnerProd(par_b, par_b);
+        bnorm = std::sqrt(bnorm);
+        
+        const BoxArray& grids = rhs.boxArray();
+        Real volume = grids.numPts();
+        Real rel_tol_new = bnorm > 0.0 ?
+            abs_tol / bnorm * std::sqrt(volume) : rel_tol;
 
-        // add b.c.'s to matrix diagonal, and
-        // zero out offdiag values at boundaries
-
-        const Vector< Vector<BoundCond> > & bcs_i = bndry.bndryConds(i);
-        const BndryData::RealTuple        & bcl_i = bndry.bndryLocs(i);
-
-        for (OrientationIter oitr; oitr; oitr++) {
-            int cdir(oitr());
-            int idim = oitr().coordDir();
-            const int bctype = bcs_i[cdir][0];
-            const Real &bcl  = bcl_i[cdir];
-            const Mask &msk  = bndry.bndryMasks(oitr())[mfi];
-
-            amrex_hmmat3_ij(ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                            cdir, bctype, bho, bcl,
-                            BL_TO_FORTRAN(msk),
-                            BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                            scalar_b, dx, &A, BL_TO_FORTRAN(GbInd[mfi]));
+        if (rel_tol_new > rel_tol) {
+            HYPRE_BoomerAMGSetTol(solver, rel_tol_new);
         }
     }
-}
 
-void HypreABecLap3::finalizeMatrix() {
-  // Assemble after setting the coefficients
-  HYPRE_IJMatrixAssemble(A);
-}
+    HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
 
-void HypreABecLap3::loadVectors(MultiFab& soln, const MultiFab& rhs) {
-  const int bho = 0;
-  const Real* dx = geom.CellSize();
+    if (verbose >= 2)
+    {
+        HYPRE_Int num_iterations;
+        Real res;
+        HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
+        HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
 
-  FArrayBox fnew;
-
-  soln.setVal(0.0);
-
-  for (MFIter mfi(soln); mfi.isValid(); ++mfi) {
-    const Box &reg = mfi.validbox();
-
-    // initialize soln, since we will reuse the space to set up rhs below:
-
-    FArrayBox *f;
-    if (soln.nGrow() == 0) {  // need a temporary if soln is the wrong size
-      f = &soln[mfi];
-    } else {
-      f = &fnew;
-      f->resize(reg);
-      f->copy(soln[mfi], 0, 0, 1);
+        amrex::Print() <<"\n" <<  num_iterations
+                       << " Hypre BoomerAMG Iterations, Relative Residual "
+                       << res << std::endl;
     }
-    // sharing space, soln will be overwritten below
-    Real* vec = f->dataPtr();
 
-    // Convert the 3D vec array to 1D array with indices
-    // corresponding to row indices in the matrix
-    amrex_conv_Vec_Local_Global(&x, vec, reg.numPts(),
-                                ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                                BL_TO_FORTRAN(GbInd[mfi]));
-
-    // Copy the rhs vector
-    f->copy(rhs[mfi], 0, 0, 1);
-
-    // initialize rhs
-    amrex_conv_Vec_Local_Global(&b, vec, reg.numPts(),
-                                ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                                BL_TO_FORTRAN(GbInd[mfi]));
-  }
-}
-
-void HypreABecLap3::finalizeVectors() {
-  HYPRE_IJVectorAssemble(x);
-  HYPRE_IJVectorAssemble(b);
-}
-
-void HypreABecLap3::setupSolver(Real rel_tol_, Real abs_tol_, int max_iter_) {
-  rel_tol = rel_tol_;
-  abs_tol = abs_tol_;
-  max_iter = max_iter_;
-
-  HYPRE_BoomerAMGCreate(&solver);
-
-  HYPRE_BoomerAMGSetMinIter(solver, 1);
-  HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
-  HYPRE_BoomerAMGSetTol(solver, rel_tol);
-
-  // Set some parameters (See Reference Manual for more parameters)
-  // Falgout coarsening with modified classical interpolation
-  HYPRE_BoomerAMGSetOldDefault(solver);
-  HYPRE_BoomerAMGSetCoarsenType(solver, 6);
-  HYPRE_BoomerAMGSetCycleType(solver, 1);
-  HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
-  HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
-  HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-  HYPRE_BoomerAMGSetMaxLevels(solver, 20);  /* maximum number of levels */
-  HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
-
-  // Get the parcsr matrix object to use
-
-  HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
-  HYPRE_IJVectorGetObject(b, (void **) &par_b);
-  HYPRE_IJVectorGetObject(x, (void **) &par_x);
-
-  HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
-}
-
-void HypreABecLap3::clearSolver() {
-  HYPRE_BoomerAMGDestroy(solver);
-}
-
-void HypreABecLap3::solveDoIt() {
-  if (abs_tol > 0.0) {
-    Real bnorm;
-    bnorm = hypre_ParVectorInnerProd(par_b, par_b);
-    bnorm = std::sqrt(bnorm);
-
-    const BoxArray& grids = acoefs.boxArray();
-    Real volume = grids.numPts();
-    Real rel_tol_new = bnorm > 0.0 ? abs_tol / bnorm *
-        std::sqrt(volume) : rel_tol;
-
-    if (rel_tol_new > rel_tol) {
-      HYPRE_BoomerAMGSetTol(solver, rel_tol_new);
-    }
-  }
-
-  HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
-  if (verbose >= 2 && ParallelDescriptor::IOProcessor()) {
-      HYPRE_Int num_iterations;
-    Real res;
-    HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
-    HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
-
-    int oldprec = std::cout.precision(17);
-    std::cout <<"\n" <<  num_iterations
-              << " Hypre Multigrid Iterations, Relative Residual "
-              << res << std::endl;
-    std::cout.precision(oldprec);
-  }
+    getSolution(soln);
 }
 
 void
 HypreABecLap3::getSolution (MultiFab& soln)
 {
-#if 0
-  const int part = 0;
+    amrex::Print() << "getSolution: todo" << std::endl;
 
-  std::vector<int> VecIndices;
-
-  FArrayBox fnew;
-  for (MFIter mfi(soln); mfi.isValid(); ++mfi) {
-    const Box &reg = mfi.validbox();
-
-    FArrayBox *f;
-    if (soln.nGrow() == 0) {
-      // need a temporary if soln is the wrong size
-      f = &soln[mfi];
-    } else {
-      f = &fnew;
-      f->resize(reg);
-    }
-
-    int i = mfi.index();
-
-    // Storage for the solution vector returned by HYPRE
-    Real *VecGB = hypre_CTAlloc(HYPRE_Real, reg.numPts());
-
-    // Generate indices corresponding to all the boxes
-    VecIndices.resize(reg.numPts());
-    std::iota(VecIndices.begin(), VecIndices.end(), StartIndex[i]);
-    int* RowIndices = VecIndices.data();
-
-    // Get the solution from HYPRE
-    HYPRE_IJVectorGetValues(x, reg.numPts(), RowIndices, VecGB);
-
-    // Move the solution vector back to the soln multifab
-    amrex_conv_Vec_Global_Local(BL_TO_FORTRAN(*f), VecGB,
-                                reg.numPts(), ARLIM(reg.loVect()),
-                                ARLIM(reg.hiVect()));
-
-    if (soln.nGrow() != 0) {
-      soln[mfi].copy(*f, 0, 0, 1);
-    }
-
-    hypre_TFree(VecGB);
-  }
-#endif
+    //    HYPRE_IJVectorGetValues(x, reg.numPts(), RowIndices, VecGB);
 }
-
+   
 void
-HypreABecLap3::buildIJIndices ()
+HypreABecLap3::prepareSolver (FabFactory<FArrayBox> const& factory)
 {
-//    static_assert(sizeof(HYPRE_Int) == 8, "xxx"); 
+    int num_procs, myid;
+    MPI_Comm_size(comm, &num_procs);
+    MPI_Comm_rank(comm, &myid);
+
+    const BoxArray& ba = acoefs.boxArray();
+    const DistributionMapping& dm = acoefs.DistributionMap();
+    
+#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
+    if (sizeof(HYPRE_Int) < sizeof(long)) {
+        long ncells_grids = ba.numPts();
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncells_grids < static_cast<long>(std::numeric_limits<HYPRE_Int>::max()),
+                                         "You might need to configure Hypre with --enable-bigint");
+    }
+#endif
+    
+    // how many non-covered cells do we have?
+    ncells_grid.define(ba,dm);
+    cell_id.define(ba,dm,1,1);
+
+#ifdef AMREX_USE_EB
+    EBFArrayBoxFactory* ebfactory = dynamic_cast<EBFArrayBoxFactory*>(&factory);
+    const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
+    HYPRE_Int ncells_proc = 0;
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:ncells_proc)
+#endif
+    for (MFIter mfi(cell_id); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        BaseFab<HYPRE_Int>& cid_fab = cell_id[mfi];
+        cid_fab.setVal(std::numeric_limits<HYPRE_Int>::lowest());
+#ifdef AMREX_USE_EB
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        if (fabtyp == FabType::covered)
+        {
+        }
+        else if (fabtyp == FabType::singlevalued)
+        {
+        }
+        else
+#endif
+        {
+            ncells_grid[mfi] = bx.numPts();
+            ncells_proc += ncells_grid[mfi];
+
+            const IntVect& len = bx.size();
+            const IntVect& lo  = bx.smallEnd();
+            cid_fab.ForEachIV (bx, 0, 1, [&](HYPRE_Int& id, const IntVect& iv)
+                               {
+#if (AMREX_SPACEDIM == 1)
+                                   id = iv[0]-lo[0];
+#elif (AMREX_SPACEDIM == 2)
+                                   id = iv[0]-lo[0] + (iv[1]-lo[1])*len[0];
+#else
+                                   id = iv[0]-lo[0] + (iv[1]-lo[1])*len[0]
+                                       + (iv[2]-lo[2])*len[0]*len[1];
+#endif
+                               });
+        }
+    }
+
+    Vector<HYPRE_Int> ncells_allprocs(num_procs);
+    MPI_Allgather(&ncells_proc, sizeof(HYPRE_Int), MPI_CHAR,
+                  ncells_allprocs.data(), sizeof(HYPRE_Int), MPI_CHAR,
+                  comm);
+    HYPRE_Int proc_begin = 0;
+    for (int i = 0; i < myid; ++i) {
+        proc_begin += ncells_allprocs[i];
+    }
+
+    LayoutData<HYPRE_Int> offset(ba,dm);
+    HYPRE_Int proc_end = proc_begin;
+    for (MFIter mfi(ncells_grid); mfi.isValid(); ++mfi)
+    {
+        offset[mfi] = proc_end;
+        proc_end += ncells_grid[mfi];
+    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
+                                     "HypreABecLap3::prepareSolver: how did this happend?");
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(cell_id,true); mfi.isValid(); ++mfi)
+    {
+        cell_id[mfi].plus(offset[mfi], mfi.tilebox());
+    }    
+
+    cell_id.FillBoundary(geom.periodicity());
+
+    {
+        // Create and initialize A, b & x
+        HYPRE_Int ilower = proc_begin;
+        HYPRE_Int iupper = proc_end-1;
+        //
+        HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
+        HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
+        HYPRE_IJMatrixInitialize(A);
+        //
+        HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
+        HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
+        HYPRE_IJVectorInitialize(b);
+        //
+        HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
+        HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
+        HYPRE_IJVectorInitialize(x);
+        
+        // Create solver
+        HYPRE_BoomerAMGCreate(&solver);
+
+#if 0
+        // Set some parameters (See Reference Manual for more parameters)
+        // Falgout coarsening with modified classical interpolation
+        HYPRE_BoomerAMGSetOldDefault(solver);
+        HYPRE_BoomerAMGSetCoarsenType(solver, 6);
+        HYPRE_BoomerAMGSetCycleType(solver, 1);
+        HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
+        HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
+        HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
+        HYPRE_BoomerAMGSetMaxLevels(solver, 20);  /* maximum number of levels */
+#endif
+        
+        HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
+    }
+
+    // Get the parcsr matrix object to use
+    HYPRE_ParCSRMatrix par_A = NULL;
+    HYPRE_ParVector par_b = NULL;
+    HYPRE_ParVector par_x = NULL;
+    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
+    HYPRE_IJVectorGetObject(b, (void **) &par_b);
+    HYPRE_IJVectorGetObject(x, (void **) &par_x);
+
+    int logging = (verbose >= 2) ? 1 : 0;
+    HYPRE_BoomerAMGSetLogging(solver, logging);
+    
+    HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
+
+    // A.SetValues() & A.assemble()
+    {
+
+        HYPRE_IJMatrixAssemble(A);
+    }
 }
     
 }  // namespace amrex

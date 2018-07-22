@@ -8,6 +8,7 @@
 #include <AMReX_MacBndry.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_LO_BCTYPES.H>
+#include <AMReX_LayoutData.H>
 
 #include "_hypre_utilities.h"
 #include "HYPRE_krylov.h"
@@ -50,35 +51,18 @@ private :
     Array<MultiFab,AMREX_SPACEDIM> bcoefs;
     Real scalar_a, scalar_b;
 
-    iMultiFab GbInd;
-
-    Vector<int> CellsGIndex;
-    Vector<int> numCellsProc;
-    Vector<int> StartIndex;
-    
     HYPRE_IJMatrix A = NULL;
-    HYPRE_ParCSRMatrix par_A = NULL;
     HYPRE_IJVector b = NULL;
-    HYPRE_ParVector par_b = NULL;
     HYPRE_IJVector x = NULL;
-    HYPRE_ParVector par_x = NULL;
     HYPRE_Solver solver = NULL;
 
     Real rel_tol, abs_tol;
     int max_iter;
 
-//    iMultiFab
-    void buildIJIndices ();
-
-    void loadMatrix (const BndryData& bndry, int max_bndry_order);
-    void finalizeMatrix ();
-    void loadVectors (MultiFab& soln, const MultiFab& rhs);
-    void finalizeVectors ();
-
-    void setupSolver (Real rel_tol_, Real abs_tol_, int max_iter_);
-    void solveDoIt ();
-    void clearSolver ();
-
+    LayoutData<HYPRE_Int> ncells_grid;
+    FabArray<BaseFab<HYPRE_Int> > cell_id;
+    
+    void prepareSolver (FabFactory<FArrayBox> const& factory);
     void getSolution (MultiFab& soln);
 };
 
