@@ -59,6 +59,9 @@ private :
     Real rel_tol, abs_tol;
     int max_iter;
 
+    BndryData const* m_bndry = nullptr;
+    int m_maxorder = -1;
+    
     LayoutData<HYPRE_Int> ncells_grid;
     FabArray<BaseFab<HYPRE_Int> > cell_id;
     

@@ -48,6 +48,8 @@ HypreABecLap3::~HypreABecLap3 ()
     x = NULL;
     HYPRE_BoomerAMGDestroy(solver);
     solver = NULL;
+    m_bndry = nullptr;
+    m_maxorder = -1;
 }
 
 void
@@ -82,8 +84,10 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
                       Real rel_tol_, Real abs_tol_,
                       int max_iter_, const BndryData& bndry, int max_bndry_order)
 {
-    if (solver == NULL)
+    if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
     {
+        m_bndry = &bndry;
+        m_maxorder = max_bndry_order;
         prepareSolver(rhs.Factory());
     }
 
@@ -235,40 +239,37 @@ HypreABecLap3::prepareSolver (FabFactory<FArrayBox> const& factory)
 
     cell_id.FillBoundary(geom.periodicity());
 
-    {
-        // Create and initialize A, b & x
-        HYPRE_Int ilower = proc_begin;
-        HYPRE_Int iupper = proc_end-1;
-        //
-        HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
-        HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
-        HYPRE_IJMatrixInitialize(A);
-        //
-        HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
-        HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
-        HYPRE_IJVectorInitialize(b);
-        //
-        HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
-        HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
-        HYPRE_IJVectorInitialize(x);
-        
-        // Create solver
-        HYPRE_BoomerAMGCreate(&solver);
+    // Create and initialize A, b & x
+    HYPRE_Int ilower = proc_begin;
+    HYPRE_Int iupper = proc_end-1;
+    //
+    HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
+    HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
+    HYPRE_IJMatrixInitialize(A);
+    //
+    HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
+    HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
+    HYPRE_IJVectorInitialize(b);
+    //
+    HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
+    HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
+    HYPRE_IJVectorInitialize(x);
+    
+    // Create solver
+    HYPRE_BoomerAMGCreate(&solver);
 
 #if 0
-        // Set some parameters (See Reference Manual for more parameters)
-        // Falgout coarsening with modified classical interpolation
-        HYPRE_BoomerAMGSetOldDefault(solver);
-        HYPRE_BoomerAMGSetCoarsenType(solver, 6);
-        HYPRE_BoomerAMGSetCycleType(solver, 1);
-        HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
-        HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
-        HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-        HYPRE_BoomerAMGSetMaxLevels(solver, 20);  /* maximum number of levels */
+    // Set some parameters (See Reference Manual for more parameters)
+    // Falgout coarsening with modified classical interpolation
+    HYPRE_BoomerAMGSetOldDefault(solver);
+    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
+    HYPRE_BoomerAMGSetCycleType(solver, 1);
+    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
+    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
+    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
+    HYPRE_BoomerAMGSetMaxLevels(solver, 20);  /* maximum number of levels */
+    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
 #endif
-        
-        HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
-    }
 
     // Get the parcsr matrix object to use
     HYPRE_ParCSRMatrix par_A = NULL;
@@ -284,10 +285,72 @@ HypreABecLap3::prepareSolver (FabFactory<FArrayBox> const& factory)
     HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
 
     // A.SetValues() & A.assemble()
+    const Real* dx = geom.CellSize();
+    const int bho = (m_maxorder > 2) ? 1 : 0;
+    for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
+        const int i = mfi.index();
+        const Box& bx = mfi.validbox();
+        
+#ifdef AMREX_USE_EB
+        const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+#else
+        const auto fabtyp = FabType::regular;
+#endif
+        if (fabtyp != FabType::covered)
+        {
+            const HYPRE_Int max_stencil_size = (fabtyp == FabType::regular) ?
+                regular_stencil_size : eb_stencil_size;
+            
+            const HYPRE_Int nrows = ncells_grid[mfi];
+            HYPRE_Int* ncols = hypre_CTAlloc(HYPRE_Int, nrows);
+            HYPRE_Int* rows = hypre_CTAlloc(HYPRE_Int, nrows);
+            HYPRE_Int* cols = hypre_CTAlloc(HYPRE_Int, nrows*max_stencil_size);
+            Real* mat = hypre_CTAlloc(Real, nrows*max_stencil_size);
 
-        HYPRE_IJMatrixAssemble(A);
+            Array<int,AMREX_SPACEDIM*2> bctype;
+            Array<Real,AMREX_SPACEDIM*2> bcl;
+            const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(i);
+            const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(i);
+            for (OrientationIter oit; oit; oit++) {
+                Orientation ori = oit();
+                int cdir(ori);
+                int idim = ori.coordDir();
+                bctype[cdir] = bcs_i[cdir][0];
+                bcl[cdir]  = bcl_i[cdir];
+            }
+            
+            if (fabtyp == FabType::regular)
+            {
+#if 0
+                amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
+                                 nrows, ncols, rows, cols, mat,
+                                 BL_TO_FORTRAN_ANYD(cell_id),
+                                 offset[mfi],
+                                 BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
+                                              BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
+                                              BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
+                                 scalar_a, scalar_b, dx,
+                                 bctype, bcl, bho);
+#endif
+
+            }
+#ifdef AMREX_USE_EB
+            else
+            {
+                amrex::Print() << "HypreABecLap3: set mat todo\n";
+            }
+#endif
+
+            HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
+            hypre_TFree(mat);
+            hypre_TFree(cols);
+            hypre_TFree(rows);
+            hypre_TFree(ncols);
+        }
     }
+    HYPRE_IJMatrixAssemble(A);
 }
     
 }  // namespace amrex
