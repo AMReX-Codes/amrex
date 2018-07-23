@@ -12,9 +12,15 @@ namespace amrex {
 #define AMREX_CUDA_DEVICE __device__
 #define AMREX_CUDA_GLOBAL __global__
 
-#define AMREX_SIMPLE_LAUNCH(function, numBlocks, numThreads, ...)  \
+#define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...)  \
     { \
       function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+      CudaErrorCheck(); \
+    }
+
+#define AMREX_SIMPLE_L_LAUNCH(numBlocks, numThreads, ...)  \
+    { \
+      launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
     }
 
@@ -26,11 +32,27 @@ namespace amrex {
       CudaErrorCheck(); \
     }
 
+#define AMREX_BOX_L_LAUNCH(box, ...)  \
+    { \
+      dim3 numBlocks, numThreads; \
+      Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
+      launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+      CudaErrorCheck(); \
+    }
+
 #define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) \
     { \
       int numThreads, numBlocks; \
       Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
       function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+      CudaErrorCheck(); \
+    }
+
+#define AMREX_PARTICLES_L_LAUNCH(num_particles, ...) \
+    { \
+      int numThreads, numBlocks; \
+      Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+      launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
     }
 
@@ -79,9 +101,14 @@ struct Pinned  { };
 // CPU versions
 #else
 
-#define AMREX_SIMPLE_LAUNCH(function, numBlocks, numThreads, ...) function(__VA_ARGS__)
-#define AMREX_BOX_LAUNCH(box, function, ...) function (__VA_ARGS__) 
-#define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) function (__VA_ARGS__)
+#define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...) function(__VA_ARGS__);
+#define AMREX_BOX_LAUNCH(box, function, ...) function (__VA_ARGS__);
+#define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) function (__VA_ARGS__);
+
+#define AMREX_SIMPLE_L_LAUNCH(numBlocks, numThreads, ...) launch_global(__VA_ARGS__);
+#define AMREX_BOX_L_LAUNCH(box, ...) launch_global(__VA_ARGS__); 
+#define AMREX_PARTICLES_L_LAUNCH(num_particles, ...) launch_global(__VA_ARGS__);
+
 #define AMREX_CUDA_HOST
 #define AMREX_CUDA_DEVICE
 #define AMREX_CUDA_GLOBAL
@@ -94,8 +121,24 @@ struct Pinned  {};
 
 #endif
 
-}  //namespace
+// ************************************************
+//  Variadic lambda function wrappers for C++ CUDA Kernel calls.
+
+template<class L>
+AMREX_CUDA_GLOBAL void launch_global (L f0) { f0(); }
+
+template<class L, class... Lambdas>
+AMREX_CUDA_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); launch_device(fs...); }
+
+template<class L>
+AMREX_CUDA_DEVICE void launch_device (L f0) { f0(); }
+
+template<class L, class... Lambdas>
+AMREX_CUDA_DEVICE void launch_device (L f0, Lambdas... fs) { f0(); launch_device(fs...); }
 
 // ************************************************
+
+}  //namespace
+
 
 #endif

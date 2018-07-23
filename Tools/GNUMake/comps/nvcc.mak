@@ -12,7 +12,7 @@ include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
 # the actual compiler defined in CXX.
 
 DEFINES := $(DEFINES)
-MANAGED := --expt-relaxed-constexpr
+MANAGED := --expt-relaxed-constexpr --expt-extended-lambda
 
 CXXFLAGS := $(MANAGED) -Wno-deprecated-gpu-targets -dc -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
 CFLAGS := $(MANAGED) -Wno-deprecated-gpu-targets -dc -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
