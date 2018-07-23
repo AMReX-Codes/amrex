@@ -62,10 +62,29 @@
 
 #define AMREX_FORT_LAUNCHABLE(func) __global__ func
 
+#define AMREX_FORT_LAUNCH_PARTICLES(num_particles, function, ...) \
+    { \
+        int numThreads; int numBlocks; \
+        Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+        function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+        CudaErrorCheck(); \
+    }
+
+#define AMREX_FORT_LAUNCH_PARTICLES_STREAM(num_particles, stream, function, ...)      \
+    { \
+        int numThreads; int numBlocks; \
+        Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+        amrex::Print() << Device::stream_from_index(stream) << std::endl; \
+        function<<<numBlocks, numThreads, 0, Device::stream_from_index(stream)>>>(__VA_ARGS__); \
+        CudaErrorCheck(); \
+    }
+
 #else
 
 #define AMREX_FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
 #define AMREX_FORT_LAUNCHABLE(func) func
+#define AMREX_FORT_LAUNCH_PARTICLES(num_particles, function, ...) function(__VA_ARGS__)
+#define AMREX_FORT_LAUNCH_PARTICLES_STREAM(num_particles, stream, function, ...) function(__VA_ARGS__)
 
 #endif
 

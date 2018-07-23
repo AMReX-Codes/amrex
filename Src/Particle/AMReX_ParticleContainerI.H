@@ -853,7 +853,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArrayData 
           for (auto& kv : pmap) {
               const auto& pbx = kv.second.GetArrayOfStructs();
               const auto& soa = kv.second.GetStructOfArrays();
-              const Vector<Real>& arr = soa[start_comp + comp];
+              const RealVector& arr = soa[start_comp + comp];
               for (unsigned i = 0; i < arr.size(); ++i) {
                   if (pbx[i].m_idata.id > 0) {
                       part_data[start++] = arr[i];
@@ -1176,7 +1176,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   
   // these are temporary buffers for each thread
   std::map<int, Vector<Vector<char> > > tmp_remote;
-  Vector<std::map<std::pair<int, int>, Vector<Vector<ParticleType> > > > tmp_local;
+  Vector<std::map<std::pair<int, int>, Vector<ParticleVector> > > tmp_local;
   Vector<std::map<std::pair<int, int>, Vector<StructOfArrays<NArrayReal, NArrayInt> > > > soa_local;
   tmp_local.resize(theEffectiveFinestLevel+1);
   soa_local.resize(theEffectiveFinestLevel+1);
@@ -1246,11 +1246,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               BL_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
                               tmp_local[pld.m_lev][index][thread_num].push_back(p);
                               for (int comp = 0; comp < NArrayReal; ++comp) {
-                                  Vector<Real>& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
+                                  RealVector& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
                                   arr.push_back(soa.GetRealData(comp)[pindex]);
                               }
                               for (int comp = 0; comp < NArrayInt; ++comp) {
-                                  Vector<int>& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
+                                  IntVector& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
                                   arr.push_back(soa.GetIntData(comp)[pindex]);
                               }
                               
@@ -1300,17 +1300,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 		  //		  BL_PROFILE_VAR_START(blp_erase);
                   aos().erase(aos().begin() + first, aos().begin() + npart);
                   for (int comp = 0; comp < NArrayReal; comp++) {
-                      Vector<Real>& rdata = soa.GetRealData(comp);
+                      RealVector& rdata = soa.GetRealData(comp);
                       rdata.erase(rdata.begin() + first, rdata.begin() + npart);
                   }
                   for (int comp = 0; comp < NArrayInt; comp++) {
-                      Vector<int>& idata = soa.GetIntData(comp);
+                      IntVector& idata = soa.GetIntData(comp);
                       idata.erase(idata.begin() + first, idata.begin() + npart);
                   }
 		  //		  BL_PROFILE_VAR_STOP(blp_erase);
               }
            }
-        }
+       }
     }
 
     for (int lev = lev_min; lev <= lev_max; lev++) {
@@ -1330,8 +1330,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     //    BL_PROFILE_VAR_START(blp_second_pass);
     // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
     for (int lev = lev_min; lev <= lev_max; lev++) {
-        typename std::map<std::pair<int, int>, Vector<Vector<ParticleType> > >::iterator pmap_it;
-      
+
+        typename std::map<std::pair<int, int>, Vector<ParticleVector> >::iterator pmap_it;
+
         // we need to create any missing map entries in serial here
         for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
             m_particles[lev][pmap_it->first];
@@ -1354,14 +1355,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                   aos.insert(aos.end(), aos_tmp[i].begin(), aos_tmp[i].end());
                   aos_tmp[i].erase(aos_tmp[i].begin(), aos_tmp[i].end());
                   for (int comp = 0; comp < NArrayReal; ++comp) {
-                      Vector<Real>& arr = soa.GetRealData(comp);
-                      Vector<Real>& tmp = soa_tmp[i].GetRealData(comp);
+                      RealVector& arr = soa.GetRealData(comp);
+                      RealVector& tmp = soa_tmp[i].GetRealData(comp);
                       arr.insert(arr.end(), tmp.begin(), tmp.end());
                       tmp.erase(tmp.begin(), tmp.end());
                   }
                   for (int comp = 0; comp < NArrayInt; ++comp) {
-                      Vector<int>& arr = soa.GetIntData(comp);
-                      Vector<int>& tmp = soa_tmp[i].GetIntData(comp);
+                      IntVector& arr = soa.GetIntData(comp);
+                      IntVector& tmp = soa_tmp[i].GetIntData(comp);
                       arr.insert(arr.end(), tmp.begin(), tmp.end());
                       tmp.erase(tmp.begin(), tmp.end());
                   }
