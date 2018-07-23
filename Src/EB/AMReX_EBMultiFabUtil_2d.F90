@@ -92,16 +92,14 @@ contains
 
     integer :: i, j, ii, jj, n, iref, jref, facx, facy
     real(amrex_real) :: fa 
-   
+  
     facx = lrat(1) 
     facy = lrat(2)
-    print*, "Inside avgdown faces", " clo = ",clo, "lo = ",lo, "chi = ", chi,  "hi = ",hi, ncomp, lrat
-    print*, "idir", idir 
-    if(idir.eq.0) then           
+    if(idir == 0) then
       do n = 1, ncomp 
          do j       = lo(2), hi(2) 
             jj      = j*facy
-            do i    = lo(1),hi(1)
+            do i    = lo(1), hi(1)
                ii   = i*facx
                crse(i,j,n) = 0.d0 
                fa          = 0.d0 
@@ -118,7 +116,6 @@ contains
          enddo 
       enddo
     else
-      print*, idir
       do n = 1, ncomp
          do j       = lo(2), hi(2)
             jj      = j*facy
@@ -127,7 +124,6 @@ contains
                crse(i,j,n) = 0.d0
                fa          = 0.d0 
                do    iref  = 0, facx-1
-                     print*, " index = ", ii+iref, "fhi(1) = ", fhi(1), "aphi(1) = ", aphi(1)
                      fa          = fa + ap(ii+iref, jj) 
                      crse(i,j,n) = crse(i,j,n) + ap(ii+iref,jj)*fine(ii+iref,jj,n)
                enddo
@@ -140,7 +136,6 @@ contains
          enddo
       enddo 
    endif
-  print*, "End Avgdown Faces"
   end subroutine amrex_eb_avgdown_faces 
 
 end module amrex_eb_avgdown_module

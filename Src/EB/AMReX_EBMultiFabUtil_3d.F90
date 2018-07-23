@@ -166,7 +166,7 @@ contains
                         crse(i,j,k,n) = crse(i,j,k,n) + ap(ii+iref,jj+jref,kk)*fine(ii+iref,jj+jref,kk,n)
                     enddo
                   enddo
-                  if(fa.gt.1.d0-30) then
+                  if(fa.gt.1.d-30) then
                     crse(i,j,k,n) = crse(i,j,k,n)/fa
                   else
                     crse(i,j,k,n) = fine(ii,jj,kk,n) !covered face
