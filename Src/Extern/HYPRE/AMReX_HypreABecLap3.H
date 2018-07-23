@@ -56,9 +56,6 @@ private :
     HYPRE_IJVector x = NULL;
     HYPRE_Solver solver = NULL;
 
-    Real rel_tol, abs_tol;
-    int max_iter;
-
     FabFactory<FArrayBox> const* m_factory = nullptr;
     BndryData const* m_bndry = nullptr;
     int m_maxorder = -1;

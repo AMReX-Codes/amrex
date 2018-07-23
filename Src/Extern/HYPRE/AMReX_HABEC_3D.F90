@@ -224,7 +224,8 @@ contains
        bind(c,name='amrex_hpijmatrix')
     integer(hypre_int), intent(in) :: nrows, cell_id_begin;
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
-    integer(hypre_int), dimension(0:nrows*7-1), intent(out) :: cols, mat
+    integer(hypre_int), dimension(0:nrows*7-1), intent(out) :: cols
+    real(rt)          , dimension(0:nrows*7-1), intent(out) :: mat
     integer, dimension(3), intent(in) :: lo, hi, clo, chi, alo, ahi, xlo, xhi, ylo, yhi, zlo, zhi
     integer(hypre_int), intent(in) :: cell_id(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(rt)          , intent(in) :: a      (alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
@@ -234,7 +235,8 @@ contains
     integer, intent(in) :: bct(0:5), bho
     real(rt), intent(in) :: sa, sb, dx(3), bcl(0:5)
 
-    integer :: i,j,k, irow, imat, ic, cols_tmp(0:6), cdir, idim
+    integer :: i,j,k, irow, imat, ic, cdir, idim
+    integer(hypre_int) :: cols_tmp(0:6)
     real(rt) :: dxinv(3), fac(3), mat_tmp(0:6)
     real(rt) :: bf1(0:5), bf2(0:5), h, h2, h3
 
@@ -268,7 +270,7 @@ contains
     
     irow = 0
     imat = 0
-    do       k = lo(2), hi(2)
+    do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
              rows(irow) = cell_id(i,j,k)
@@ -291,10 +293,10 @@ contains
              cols_tmp(4) = cell_id(i,j+1,k)
              mat_tmp(4) = -fac(2)*by(i,j+1,k)
 
-             cols_tmp(5) = cell_id(i,j,k)
+             cols_tmp(5) = cell_id(i,j,k-1)
              mat_tmp(5) = -fac(3)*bz(i,j,k)
 
-             cols_tmp(6) = cell_id(i,j,k)
+             cols_tmp(6) = cell_id(i,j,k+1)
              mat_tmp(6) = -fac(3)*bz(i,j,k+1)
 
              if (i.eq.lo(1) .and. cell_id(i-1,j,k).lt.0) then
@@ -342,6 +344,7 @@ contains
                 end if
              end do
              irow = irow+1
+
           end do
        end do
     end do

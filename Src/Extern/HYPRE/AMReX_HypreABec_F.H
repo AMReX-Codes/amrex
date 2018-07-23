@@ -3,8 +3,6 @@
 
 #include <AMReX_BLFort.H>
 
-#include "HYPRE.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,10 +22,10 @@ extern "C" {
                       const int* bct, const amrex_real* bcl, const int* bho);
 
     void amrex_hpijmatrix (const int* lo, const int* hi,
-                           const HYPRE_Int* nrows, HYPRE_Int* ncols,
-                           HYPRE_Int* rows, HYPRE_Int* cols, amrex_real* mat,
-                           const HYPRE_Int* cell_id, const int* clo, const int* chi,
-                           const HYPRE_Int* cell_id_begin,
+                           const void* nrows, void* ncols,
+                           void* rows, void* cols, amrex_real* mat,
+                           const void* cell_id, const int* clo, const int* chi,
+                           const void* cell_id_begin,
                            const amrex_real* ac, const int* alo, const int* ahi,
                            const amrex_real* bx, const int* bxlo, const int* bxhi,
 #if (AMREX_SPACEDIM >= 2)
