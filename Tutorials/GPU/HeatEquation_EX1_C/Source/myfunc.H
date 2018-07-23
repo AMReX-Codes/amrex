@@ -14,8 +14,4 @@ void advance (MultiFab& phi_old,
 	      Real dt,
               Geometry& geom);
 
-
-template<Lambda f>
-__global__ void magic () { f(); }
-
 #endif
