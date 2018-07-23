@@ -8,7 +8,7 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/device_ptr.h>
 
-#include <CudaManagedAllocator.H>
+#include <AMReX_CudaAllocators.H>
 
 namespace detail {
     
@@ -63,8 +63,8 @@ auto to_thrust_tuple(const std::tuple<Args...>& t)
 template <int NReal, int NInt>
 struct StructOfArrays {
     
-    using RealVector = std::vector<double, CudaManagedAllocator<double> >;
-    using IntVector  = std::vector<int,    CudaManagedAllocator<int   > >;
+    using RealVector = std::vector<double, amrex::CudaManagedAllocator<double> >;
+    using IntVector  = std::vector<int,    amrex::CudaManagedAllocator<int   > >;
     
     using real_tuple_t = detail::tuple_of<NReal, RealVector*>;
     using int_tuple_t  = detail::tuple_of<NInt,  IntVector* >;
