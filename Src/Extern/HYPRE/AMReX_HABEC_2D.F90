@@ -6,6 +6,7 @@ module amrex_habec_module
   ! alpha*phi - div(beta*grad phi) + div(\vec{c}*phi) 
 
   use iso_c_binding
+  use amrex_hypre_fort_module, only : hypre_int
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
@@ -155,5 +156,113 @@ contains
     endif
     
   end subroutine amrex_hpmat
+
+
+  subroutine amrex_hpijmatrix (lo, hi, nrows, ncols, rows, cols, mat, &
+       cell_id, clo, chi, cell_id_begin, a , alo, ahi, bx, xlo, xhi, &
+       by, ylo, yhi, sa, sb, dx, bct, bcl, bho) &
+       bind(c,name='amrex_hpijmatrix')
+    integer(hypre_int), intent(in) :: nrows, cell_id_begin;
+    integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
+    integer(hypre_int), dimension(0:nrows*5-1), intent(out) :: cols
+    real(rt)          , dimension(0:nrows*5-1), intent(out) :: mat
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, alo, ahi, xlo, xhi, ylo, yhi
+    integer(hypre_int), intent(in) :: cell_id(clo(1):chi(1),clo(2):chi(2))
+    real(rt)          , intent(in) :: a      (alo(1):ahi(1),alo(2):ahi(2))
+    real(rt)          , intent(in) :: bx     (xlo(1):xhi(1),xlo(2):xhi(2))
+    real(rt)          , intent(in) :: by     (ylo(1):yhi(1),ylo(2):yhi(2))
+    integer, intent(in) :: bct(0:3), bho
+    real(rt), intent(in) :: sa, sb, dx(2), bcl(0:3)
+
+    integer :: i,j, irow, imat, ic, cdir, idim
+    integer(hypre_int) :: cols_tmp(0:4)
+    real(rt) :: fac(2), mat_tmp(0:4)
+    real(rt) :: bf1(0:3), bf2(0:3), h, h2, h3
+
+    fac = sb/dx**2
+
+    do cdir = 0, 3
+       if (cdir .eq. 0 .or. cdir .eq. 2) then
+          idim = 1
+       else
+          idim = 2
+       end if
+       h = dx(idim)
+       if (bct(idim) .eq. amrex_lo_dirichlet) then
+          h2 = half * h
+          if (bho.ge.1) then
+             h3 = three * h2
+             bf1(cdir) = fac(idim) * ((h3 - bcl(idim)) / (bcl(idim) + h2) - one)
+             bf2(cdir) = fac(idim) * (bcl(idim) - h2) / (bcl(idim) + h3)
+          else
+             bf1(cdir) = fac(idim) * ( h / (bcl(idim) + h2) - one)          
+             bf2(cdir) = zero
+          end if
+       else if (bct(idim) .eq. amrex_lo_neumann) then
+          bf1(cdir) = -fac(idim)
+          bf2(cdir) = zero
+       end if
+    end do
+    
+    irow = 0
+    imat = 0
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          rows(irow) = cell_id(i,j)
+          ncols(irow) = 0
+          
+          cols_tmp(0) = cell_id(i,j)
+          mat_tmp(0) = sa * a(i,j) + fac(1)*(bx(i,j)+bx(i+1,j)) &
+               &                     + fac(2)*(by(i,j)+by(i,j+1))
+
+          cols_tmp(1) = cell_id(i-1,j)
+          mat_tmp(1) = -fac(1)*bx(i,j)
+
+          cols_tmp(2) = cell_id(i+1,j)
+          mat_tmp(2) = -fac(1)*bx(i+1,j)
+
+          cols_tmp(3) = cell_id(i,j-1)
+          mat_tmp(3) = -fac(2)*by(i,j)
+
+          cols_tmp(4) = cell_id(i,j+1)
+          mat_tmp(4) = -fac(2)*by(i,j+1)
+
+          if (i.eq.lo(1) .and. cell_id(i-1,j).lt.0) then
+             cdir = 0
+             mat_tmp(0) = mat_tmp(0) + bf1(cdir)*bx(i,j)
+             mat_tmp(2) = mat_tmp(2) + bf2(cdir)*bx(i,j)
+          end if
+          
+          if (i.eq.hi(1) .and. cell_id(i+1,j).lt.0) then
+             cdir = 2
+             mat_tmp(0) = mat_tmp(0) + bf1(cdir)*bx(i+1,j)
+             mat_tmp(1) = mat_tmp(1) + bf2(cdir)*bx(i+1,j)
+          end if
+          
+          if (j.eq.lo(2) .and. cell_id(i,j-1).lt.0) then
+             cdir = 1
+             mat_tmp(0) = mat_tmp(0) + bf1(cdir)*by(i,j)
+             mat_tmp(4) = mat_tmp(4) + bf2(cdir)*by(i,j)
+          end if
+
+          if (j.eq.hi(2) .and. cell_id(i,j+1).lt.0) then
+             cdir = 3
+             mat_tmp(0) = mat_tmp(0) + bf1(cdir)*by(i,j+1)
+             mat_tmp(3) = mat_tmp(3) + bf2(cdir)*by(i,j+1)
+          end if
+          
+          do ic = 0, 4
+             if (cols_tmp(ic) .ge. 0) then
+                ncols(irow) = ncols(irow) + 1
+                cols(imat) = cols_tmp(ic)
+                mat(imat) = mat_tmp(ic)
+                imat = imat + 1
+             end if
+          end do
+          irow = irow+1
+
+       end do
+    end do
+  end subroutine amrex_hpijmatrix
 
 end module amrex_habec_module
