@@ -3,6 +3,8 @@
 
 #include <AMReX_BLFort.H>
 
+#include "HYPRE.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,43 +23,22 @@ extern "C" {
                       const amrex_real* sb, const amrex_real* dx, const int* cdir,
                       const int* bct, const amrex_real* bcl, const int* bho);
 
-    void amrex_hmac_ij(BL_FORT_FAB_ARG(acoefs),
-                ARLIM_P(reglo), ARLIM_P(reghi),
-                const amrex_real& alpha, void *A, BL_FORT_IFAB_ARG(Index));
-    
-    void amrex_hmbc_ij(BL_FORT_FAB_ARG(bcoefs),
-                    ARLIM_P(reglo), ARLIM_P(reghi),
-                    const amrex_real& beta, const amrex_real* dx, const int& n, 
-                    void* A, BL_FORT_IFAB_ARG(Index));
-
-    void amrex_hmmat3_ij(ARLIM_P(reglo), ARLIM_P(reghi),
-                      const int& cdir, const int& bctype,
-                      const int& bho, const amrex_real& bcl,
-                      const BL_FORT_IFAB_ARG(mask),
-                      BL_FORT_FAB_ARG(bcoefs),
-                      const amrex_real& beta, const amrex_real* dx,
-                      void* A, BL_FORT_IFAB_ARG(Index));
-
-    
-    void amrex_BuildGlobalIndex(BL_FORT_IFAB_ARG(Index),
-                                ARLIM_P(reglo), ARLIM_P(reghi),
-                                const int& numCellsProc);
-    
-    void amrex_MatConvertGlobal(amrex_real* mat, int* rows, int* cols,
-                                amrex_real* values, int* numCols,
-                                const int& nCSR, const int& nRows,
-                                ARLIM_P(reglo), ARLIM_P(reghi),
-                                BL_FORT_IFAB_ARG(Index), const int& nDim);
-    
-    void amrex_conv_Vec_Local_Global(void* x, amrex_real* vec,
-                                   const int& nRows,
-                                   ARLIM_P(reglo), ARLIM_P(reghi),
-                                   BL_FORT_IFAB_ARG(Index) );
-
-    void amrex_conv_Vec_Global_Local(BL_FORT_FAB_ARG(vec), amrex_real* VecGB,
-                                     const int& nRows,
-                                     ARLIM_P(reglo), ARLIM_P(reghi));
-
+    void amrex_hpijmatrix (const int* lo, const int* hi,
+                           const HYPRE_Int* nrows, HYPRE_Int* ncols,
+                           HYPRE_Int* rows, HYPRE_Int* cols, amrex_real* mat,
+                           const HYPRE_Int* cell_id, const int* clo, const int* chi,
+                           const HYPRE_Int* cell_id_begin,
+                           const amrex_real* ac, const int* alo, const int* ahi,
+                           const amrex_real* bx, const int* bxlo, const int* bxhi,
+#if (AMREX_SPACEDIM >= 2)
+                           const amrex_real* by, const int* bylo, const int* byhi,
+#if (AMREX_SPACEDIM == 3)
+                           const amrex_real* bz, const int* bzlo, const int* bzhi,
+#endif
+#endif
+                           const amrex_real* sa, const amrex_real* sb, const amrex_real* dx,
+                           const int* bct, const amrex_real* bcl, const int* bho);
+                           
     
 #ifdef __cplusplus
 };

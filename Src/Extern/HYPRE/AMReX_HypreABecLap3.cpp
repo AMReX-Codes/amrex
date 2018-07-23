@@ -175,6 +175,7 @@ HypreABecLap3::prepareSolver (FabFactory<FArrayBox> const& factory)
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:ncells_proc)
 #endif
+    {  BaseFab<HYPRE_Int> ifab;
     for (MFIter mfi(cell_id); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -191,24 +192,18 @@ HypreABecLap3::prepareSolver (FabFactory<FArrayBox> const& factory)
         else
 #endif
         {
-            ncells_grid[mfi] = bx.numPts();
-            ncells_proc += ncells_grid[mfi];
+            long npts = bx.numPts();
+            ncells_grid[mfi] = npts;
+            ncells_proc += npts;
 
-            const IntVect& len = bx.size();
-            const IntVect& lo  = bx.smallEnd();
-            cid_fab.ForEachIV (bx, 0, 1, [&](HYPRE_Int& id, const IntVect& iv)
-                               {
-#if (AMREX_SPACEDIM == 1)
-                                   id = iv[0]-lo[0];
-#elif (AMREX_SPACEDIM == 2)
-                                   id = iv[0]-lo[0] + (iv[1]-lo[1])*len[0];
-#else
-                                   id = iv[0]-lo[0] + (iv[1]-lo[1])*len[0]
-                                       + (iv[2]-lo[2])*len[0]*len[1];
-#endif
-                               });
+            ifab.resize(bx);
+            HYPRE_Int* p = ifab.dataPtr();
+            for (long i = 0; i < npts; ++i) {
+                *p++ = i;
+            }
+            cid_fab.copy(ifab,bx);
         }
-    }
+    }}
 
     Vector<HYPRE_Int> ncells_allprocs(num_procs);
     MPI_Allgather(&ncells_proc, sizeof(HYPRE_Int), MPI_CHAR,
@@ -287,6 +282,8 @@ HypreABecLap3::prepareSolver (FabFactory<FArrayBox> const& factory)
     // A.SetValues() & A.assemble()
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
+    FArrayBox rfab;
+    BaseFab<HYPRE_Int> ifab;
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const int i = mfi.index();
@@ -301,40 +298,38 @@ HypreABecLap3::prepareSolver (FabFactory<FArrayBox> const& factory)
         {
             const HYPRE_Int max_stencil_size = (fabtyp == FabType::regular) ?
                 regular_stencil_size : eb_stencil_size;
+
+            ifab.resize(bx,(max_stencil_size+2));
+            rfab.resize(bx,max_stencil_size);
             
             const HYPRE_Int nrows = ncells_grid[mfi];
-            HYPRE_Int* ncols = hypre_CTAlloc(HYPRE_Int, nrows);
-            HYPRE_Int* rows = hypre_CTAlloc(HYPRE_Int, nrows);
-            HYPRE_Int* cols = hypre_CTAlloc(HYPRE_Int, nrows*max_stencil_size);
-            Real* mat = hypre_CTAlloc(Real, nrows*max_stencil_size);
+            HYPRE_Int* ncols = ifab.dataPtr(0);
+            HYPRE_Int* rows  = ifab.dataPtr(1);
+            HYPRE_Int* cols  = ifab.dataPtr(2);
+            Real*      mat   = rfab.dataPtr();
 
             Array<int,AMREX_SPACEDIM*2> bctype;
             Array<Real,AMREX_SPACEDIM*2> bcl;
             const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(i);
             const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(i);
             for (OrientationIter oit; oit; oit++) {
-                Orientation ori = oit();
-                int cdir(ori);
-                int idim = ori.coordDir();
+                int cdir(oit());
                 bctype[cdir] = bcs_i[cdir][0];
                 bcl[cdir]  = bcl_i[cdir];
             }
             
             if (fabtyp == FabType::regular)
             {
-#if 0
                 amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
-                                 nrows, ncols, rows, cols, mat,
-                                 BL_TO_FORTRAN_ANYD(cell_id),
-                                 offset[mfi],
+                                 &nrows, ncols, rows, cols, mat,
+                                 BL_TO_FORTRAN_ANYD(cell_id[mfi]),
+                                 &(offset[mfi]),
                                  BL_TO_FORTRAN_ANYD(acoefs[mfi]),
                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
                                               BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
                                               BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
-                                 scalar_a, scalar_b, dx,
-                                 bctype, bcl, bho);
-#endif
-
+                                 &scalar_a, &scalar_b, dx,
+                                 bctype.data(), bcl.data(), &bho);
             }
 #ifdef AMREX_USE_EB
             else
@@ -342,12 +337,7 @@ HypreABecLap3::prepareSolver (FabFactory<FArrayBox> const& factory)
                 amrex::Print() << "HypreABecLap3: set mat todo\n";
             }
 #endif
-
-            HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
-            hypre_TFree(mat);
-            hypre_TFree(cols);
-            hypre_TFree(rows);
-            hypre_TFree(ncols);
+            HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
         }
     }
     HYPRE_IJMatrixAssemble(A);
