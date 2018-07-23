@@ -237,11 +237,10 @@ contains
 
     integer :: i,j,k, irow, imat, ic, cdir, idim
     integer(hypre_int) :: cols_tmp(0:6)
-    real(rt) :: dxinv(3), fac(3), mat_tmp(0:6)
+    real(rt) :: fac(3), mat_tmp(0:6)
     real(rt) :: bf1(0:5), bf2(0:5), h, h2, h3
 
-    dxinv = one/dx
-    fac = sb/dxinv**2
+    fac = sb/dx**2
 
     do cdir = 0, 5
        if (cdir .eq. 0 .or. cdir .eq. 3) then

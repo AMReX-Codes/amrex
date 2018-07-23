@@ -189,7 +189,7 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
         HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
 
         amrex::Print() <<"\n" <<  num_iterations
-                       << " Hypre BoomerAMG Iterations, Relative Residual "
+                       << " Hypre IJ BoomerAMG Iterations, Relative Residual "
                        << res << std::endl;
     }
 
