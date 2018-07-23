@@ -1,5 +1,6 @@
 #include <AMReX_Hypre.H>
 #include <AMReX_HypreABec_F.H>
+#include <AMReX_VisMF.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -82,8 +83,8 @@ HypreABecLap3::setVerbose (int _verbose)
 
 void
 HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
-                      Real rel_tol_, Real abs_tol_,
-                      int max_iter_, const BndryData& bndry, int max_bndry_order)
+                      Real rel_tol, Real abs_tol,
+                      int max_iter, const BndryData& bndry, int max_bndry_order)
 {
     if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
     {
@@ -91,6 +92,9 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
         m_maxorder = max_bndry_order;
         m_factory = &(rhs.Factory());
         prepareSolver();
+    } else {
+        HYPRE_IJVectorInitialize(b);
+        HYPRE_IJVectorInitialize(x);
     }
 
 #ifdef AMREX_USE_EB
@@ -154,7 +158,9 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
     HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
     HYPRE_IJVectorGetObject(b, (void **) &par_b);
     HYPRE_IJVectorGetObject(x, (void **) &par_x);
-    
+
+    HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
+
     HYPRE_BoomerAMGSetMinIter(solver, 1);
     HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
     HYPRE_BoomerAMGSetTol(solver, rel_tol);
@@ -317,7 +323,7 @@ HypreABecLap3::prepareSolver ()
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
                                      "HypreABecLap3::prepareSolver: how did this happend?");
-    
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -331,6 +337,7 @@ HypreABecLap3::prepareSolver ()
     // Create and initialize A, b & x
     HYPRE_Int ilower = proc_begin;
     HYPRE_Int iupper = proc_end-1;
+
     //
     HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
     HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
@@ -344,35 +351,6 @@ HypreABecLap3::prepareSolver ()
     HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
     HYPRE_IJVectorInitialize(x);
     
-    // Create solver
-    HYPRE_BoomerAMGCreate(&solver);
-
-#if 0
-    // Set some parameters (See Reference Manual for more parameters)
-    // Falgout coarsening with modified classical interpolation
-    HYPRE_BoomerAMGSetOldDefault(solver);
-    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
-    HYPRE_BoomerAMGSetCycleType(solver, 1);
-    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
-    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
-    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-    HYPRE_BoomerAMGSetMaxLevels(solver, 20);  /* maximum number of levels */
-    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
-#endif
-
-    // Get the parcsr matrix object to use
-    HYPRE_ParCSRMatrix par_A = NULL;
-    HYPRE_ParVector par_b = NULL;
-    HYPRE_ParVector par_x = NULL;
-    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
-    HYPRE_IJVectorGetObject(b, (void **) &par_b);
-    HYPRE_IJVectorGetObject(x, (void **) &par_x);
-
-    int logging = (verbose >= 2) ? 1 : 0;
-    HYPRE_BoomerAMGSetLogging(solver, logging);
-    
-    HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
-
     // A.SetValues() & A.assemble()
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
@@ -435,6 +413,25 @@ HypreABecLap3::prepareSolver ()
         }
     }
     HYPRE_IJMatrixAssemble(A);
+
+    // Create solver
+    HYPRE_BoomerAMGCreate(&solver);
+
+#if 0
+    // Set some parameters (See Reference Manual for more parameters)
+    // Falgout coarsening with modified classical interpolation
+    HYPRE_BoomerAMGSetOldDefault(solver);
+    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
+    HYPRE_BoomerAMGSetCycleType(solver, 1);
+    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
+    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
+    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
+    HYPRE_BoomerAMGSetMaxLevels(solver, 20);  /* maximum number of levels */
+    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
+#endif
+
+    int logging = (verbose >= 2) ? 1 : 0;
+    HYPRE_BoomerAMGSetLogging(solver, logging);
 }
     
 }  // namespace amrex
