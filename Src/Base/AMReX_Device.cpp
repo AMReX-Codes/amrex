@@ -414,12 +414,10 @@ amrex::Device::mem_advise_set_preferred(void* p, const std::size_t sz, const int
 
 void
 amrex::Device::mem_advise_set_readonly(void* p, const std::size_t sz) {
-
 #ifdef AMREX_USE_CUDA
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
         CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
 #endif
-
 }
 
 void
@@ -460,6 +458,12 @@ amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlock
     numThreads.y = ty;
     numThreads.z = tz;
 
+}
+
+void 
+amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks) {
+    numThreads = 256;
+    numBlocks = (np + 256 - 1) / 256;
 }
 
 void

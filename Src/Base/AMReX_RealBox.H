@@ -105,7 +105,7 @@ public:
 
     //! Does the specified RealBox intersect with this RealBox?
     bool intersects (const RealBox& bx) const;
-    
+
 private:
     //
     // The data.

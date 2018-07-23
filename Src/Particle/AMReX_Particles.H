@@ -44,6 +44,10 @@
 #include <omp.h>
 #endif
 
+#ifdef AMREX_USE_CUDA
+#include "AMReX_CudaManagedAllocator.H"
+#endif
+
 namespace amrex {
   
 namespace
@@ -212,13 +216,20 @@ class ArrayOfStructs {
 public:
     using ParticleType  = Particle<NReal, NInt>;
     using RealType      = typename ParticleType::RealType;
-    using Iterator      = typename Vector<ParticleType>::iterator;
-    using ConstIterator = typename Vector<ParticleType>::const_iterator;
+
+#ifdef AMREX_USE_CUDA
+    using ParticleVector = Vector<ParticleType, CudaManagedAllocator<ParticleType> >;
+#else
+    using ParticleVector = Vector<ParticleType>;
+#endif
+
+    using Iterator      = typename ParticleVector::iterator;
+    using ConstIterator = typename ParticleVector::const_iterator;
 
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
 
-    const Vector<ParticleType>& operator()() const { return m_data; }
-    Vector      <ParticleType>& operator()()       { return m_data; }
+    const ParticleVector& operator()() const { return m_data; }
+          ParticleVector& operator()()       { return m_data; }
 
     std::size_t size () const { return m_data.size(); }
     int numParticles () const { return m_data.size(); }
@@ -247,16 +258,16 @@ public:
     template< class InputIt >
     void insert( Iterator pos, InputIt first, InputIt last ) { m_data.insert(pos, first, last); }
 
-    typename Vector<ParticleType>::iterator begin () { return m_data.begin(); }
-    typename Vector<ParticleType>::const_iterator begin () const { return m_data.begin(); }
-    typename Vector<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }
+    typename ParticleVector::iterator begin () { return m_data.begin(); }
+    typename ParticleVector::const_iterator begin () const { return m_data.begin(); }
+    typename ParticleVector::const_iterator cbegin () const { return m_data.cbegin(); }
         
-    typename Vector<ParticleType>::iterator end () { return m_data.end(); }
-    typename Vector<ParticleType>::const_iterator end () const { return m_data.end(); }
-    typename Vector<ParticleType>::const_iterator cend () const { return m_data.cend(); }
+    typename ParticleVector::iterator end () { return m_data.end(); }
+    typename ParticleVector::const_iterator end () const { return m_data.end(); }
+    typename ParticleVector::const_iterator cend () const { return m_data.cend(); }
 
 private:
-    Vector<ParticleType> m_data;
+    ParticleVector m_data;
 };
 template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeInReal;
 
@@ -264,28 +275,36 @@ template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeIn
 template <int NReal, int NInt>
 struct StructOfArrays {
   
-    std::array<Vector<Real>, NReal>& GetRealData () { return m_rdata; }
-    std::array<Vector<int>,   NInt>& GetIntData  () { return m_idata; }
+#ifdef AMREX_USE_CUDA
+    using RealVector = Vector<Real, CudaManagedAllocator<Real>>;
+    using  IntVector = Vector<int , CudaManagedAllocator<int >>;
+#else
+    using RealVector = Vector<Real>;
+    using  IntVector = Vector<int >;
+#endif
 
-    const std::array<Vector<Real>, NReal>& GetRealData () const { return m_rdata; }
-    const std::array<Vector<int>,   NInt>& GetIntData  () const { return m_idata; }
+    std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
+    std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
 
-    Vector<Real>& GetRealData (const int index) {
+    const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
+    const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
+
+    RealVector& GetRealData (const int index) {
         BL_ASSERT(index < NReal);
         return m_rdata[index];
     }
     
-    const Vector<Real>& GetRealData (const int index) const {
+    const RealVector& GetRealData (const int index) const {
         BL_ASSERT(index < NReal);
         return m_rdata[index];
     }
 
-    Vector<int>& GetIntData (const int index) {
+    IntVector& GetIntData (const int index) {
         BL_ASSERT(index < NInt);
         return m_idata[index];
     }
     
-    const Vector<int>& GetIntData (const int index) const {
+    const IntVector& GetIntData (const int index) const {
         BL_ASSERT(index < NInt);
         return m_idata[index];
     }
@@ -300,9 +319,8 @@ struct StructOfArrays {
     }
 
 private:
-
-    std::array<Vector<Real>, NReal> m_rdata;
-    std::array<Vector<int>,  NInt>  m_idata;
+    std::array<RealVector, NReal> m_rdata;
+    std::array< IntVector,  NInt> m_idata;    
 };
 
 
@@ -462,6 +480,15 @@ public:
     using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     using AoS = typename ParticleTileType::AoS;
     using SoA = typename ParticleTileType::SoA;
+
+    using RealVector     = typename SoA::RealVector;
+    using IntVector      = typename SoA::IntVector;
+    using ParticleVector = typename AoS::ParticleVector;
+#ifdef AMREX_USE_CUDA
+    using CharVector = Vector<char, CudaManagedAllocator<char>>;
+#else
+    using CharVector = Vector<char>;
+#endif
 
     ParticleContainer ()
       : 

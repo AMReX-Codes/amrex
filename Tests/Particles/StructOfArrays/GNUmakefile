@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../
+AMREX_HOME ?= ../amrex/
 
 DEBUG	= TRUE
 DEBUG	= FALSE
@@ -8,15 +8,14 @@ DIM	= 3
 COMP    = pgi
 
 TINY_PROFILE  = TRUE
-USE_PARTICLES = TRUE
 
 PRECISION     = DOUBLE
 
-USE_MPI       = TRUE
+USE_MPI       = FALSE
 USE_OMP       = FALSE
 USE_CUDA      = TRUE
-USE_ACC       = FALSE
 
+CUDA_VERSION = 9.0
 
 ###################################################
 

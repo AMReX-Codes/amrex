@@ -1,41 +1,31 @@
-module electromagnetic_constants_module
+module constants
   use amrex_fort_module, only : amrex_real
   
   real(amrex_real), parameter :: clight  = 2.99792458d8
+  real(amrex_real), parameter :: epsilon_0 = 8.85418782d-12
+  real(amrex_real), parameter :: electron_charge = 1.60217662d-19
+  real(amrex_real), parameter :: electron_mass = 9.10938356d-31
 
 end module
 
-module electromagnetic_particle_module
-  use amrex_fort_module, only: amrex_real, amrex_particle_real
-  use iso_c_binding ,    only: c_int
-  
-  implicit none
-  private
-  
-  public  particle_t
-  
-  type, bind(C) :: particle_t
-     real(amrex_particle_real) :: pos(3)     !< Position
-     integer(c_int)            :: id         !< Particle id
-     integer(c_int)            :: cpu        !< Particle cpu
-  end type particle_t
-    
-end module electromagnetic_particle_module
-
+#ifdef AMREX_USE_ACC
+subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
+     ex, ey, ez, bx, by, bz, q, m, dt)
+#else
 AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
      ex, ey, ez, bx, by, bz, q, m, dt) &
      bind(c,name='push_momentum_boris')
-  
-  use amrex_fort_module, only : amrex_real
-  use electromagnetic_constants_module, only : clight
+#endif
 
+  use amrex_fort_module, only : amrex_real
+  use constants, only : clight
   implicit none
 
-  integer,      intent(in), value :: np
-  real(amrex_real), intent(inout) :: uxp(np), uyp(np), uzp(np), gaminv(np)
-  real(amrex_real), intent(in)    :: ex(np), ey(np), ez(np)
-  real(amrex_real), intent(in)    :: bx(np), by(np), bz(np)
-  real(amrex_real), value         :: q, m, dt
+  integer,          intent(in), value :: np
+  real(amrex_real), intent(inout)     :: uxp(np), uyp(np), uzp(np), gaminv(np)
+  real(amrex_real), intent(in)        :: ex(np), ey(np), ez(np)
+  real(amrex_real), intent(in)        :: bx(np), by(np), bz(np)
+  real(amrex_real), intent(in), value :: q, m, dt
 
   integer                         :: ip
   real(amrex_real)                :: const
@@ -48,8 +38,16 @@ AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
   const = q*dt*0.5d0/m
   clghtisq = 1.d0/clight**2
 
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  if (ip .le. np) then 
+#else
+# ifdef AMREX_USE_ACC
+!$acc parallel deviceptr(uxp, uyp, uzp, gaminv, ex, ey, ez, bx, by, bz)
+!$acc loop gang vector
+# endif
   do ip = 1, np
-
+#endif
     ! Push using the electric field
     uxp(ip) = uxp(ip) + ex(ip)*const
     uyp(ip) = uyp(ip) + ey(ip)*const
@@ -83,32 +81,60 @@ AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
     usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
 
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  end if
+#else
   end do
+# ifdef AMREX_USE_ACC
+!$acc end loop
+!$acc end parallel
+# endif
+#endif
   
 end subroutine push_momentum_boris
 
-AMREX_LAUNCH subroutine push_position_boris(np, particles, uxp, uyp, uzp, gaminv, dt) &
-     bind(c,name='push_position_boris')
-  
-  use amrex_fort_module, only : amrex_real
-  use electromagnetic_particle_module, only : particle_t
 
+#ifdef AMREX_USE_ACC
+subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt)
+#else
+AMREX_LAUNCH subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt) &
+     bind(c,name='push_position_boris')
+#endif
+
+  use amrex_fort_module, only : amrex_real  
   implicit none
 
-  integer,   intent(in), value      :: np
-  type(particle_t), intent(inout)   :: particles(np)
-  real(amrex_real), intent(in)      :: uxp(np), uyp(np), uzp(np), gaminv(np)
-  real(amrex_real), value           :: dt
+  integer,          intent(in), value  :: np
+  real(amrex_real), intent(inout)      :: xp(np), yp(np), zp(np)
+  real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
+  real(amrex_real), intent(in), value  :: dt
   
-  integer                           :: ip
+  integer                              :: ip
 
-  do ip = 1, np
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  if (ip .le. np) then 
+#else
+# ifdef AMREX_USE_ACC
+!$acc parallel deviceptr(xp, yp, zp, uxp, uyp, uzp, gaminv)
+!$acc loop gang vector
+# endif
+   do ip = 1, np
+#endif
 
-    particles(ip)%pos(1) = particles(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
-    particles(ip)%pos(2) = particles(ip)%pos(2) + uyp(ip)*gaminv(ip)*dt
-    particles(ip)%pos(3) = particles(ip)%pos(3) + uzp(ip)*gaminv(ip)*dt
+    xp(ip) = xp(ip) + uxp(ip)*gaminv(ip)*dt
+    yp(ip) = yp(ip) + uyp(ip)*gaminv(ip)*dt
+    zp(ip) = zp(ip) + uzp(ip)*gaminv(ip)*dt
 
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  end if
+#else
   end do
+# ifdef AMREX_USE_ACC
+!$acc end loop
+!$acc end parallel
+# endif
+#endif
 
 end subroutine push_position_boris
 
@@ -116,77 +142,105 @@ AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
      bind(c,name='set_gamma')
   
   use amrex_fort_module, only : amrex_real
-  use electromagnetic_constants_module, only : clight 
-
+  use constants, only : clight 
   implicit none
   
-  integer,   intent(in), value      :: np
-  real(amrex_real), intent(in)      :: uxp(np), uyp(np), uzp(np)
-  real(amrex_real), intent(inout)   :: gaminv(np)
+  integer,          intent(in), value :: np
+  real(amrex_real), intent(in)        :: uxp(np), uyp(np), uzp(np)
+  real(amrex_real), intent(inout)     :: gaminv(np)
   
   integer                           :: ip
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
 
+#ifdef AMREX_USE_CUDA
+  ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  if (ip .le. np) then 
+#else
   do ip = 1, np
+#endif
 
     usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
 
+#ifdef AMREX_USE_CUDA
+  end if
+#else
   end do
+#endif
 
 end subroutine set_gamma
 
-AMREX_LAUNCH subroutine enforce_periodic(np, particles, plo, phi) &
+AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
      bind(c,name='enforce_periodic')
   
   use amrex_fort_module, only : amrex_real
-  use electromagnetic_particle_module, only : particle_t
-
   implicit none
   
-  integer,   intent(in), value      :: np
-  type(particle_t), intent(inout)   :: particles(np)
+  integer,          intent(in), value      :: np
+  real(amrex_real), intent(inout)   :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(in)      :: plo(3), phi(3)
   
-  integer                           :: ip, idim
+  integer                           :: ip
   real(amrex_real)                  :: domain_size(3)
 
   domain_size = phi - plo
 
+#ifdef AMREX_USE_CUDA
+  ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  if (ip .le. np) then 
+#else
   do ip = 1, np
+#endif
      
-     do idim = 1, 3
-        if (particles(ip)%pos(idim) .gt. phi(idim)) then
-           particles(ip)%pos(idim) = particles(ip)%pos(idim) - domain_size(idim)
-        else if (particles(ip)%pos(idim) .lt. plo(idim)) then
-           particles(ip)%pos(idim) = particles(ip)%pos(idim) + domain_size(idim)
-        end if
-     end do
+     if (xp(ip) .gt. phi(1)) then
+        xp(ip) = xp(ip) - domain_size(1)
+     else if (xp(ip) .lt. plo(1)) then
+        xp(ip) = xp(ip) + domain_size(1)
+     end if
 
+     if (yp(ip) .gt. phi(2)) then
+        yp(ip) = yp(ip) - domain_size(2)
+     else if (yp(ip) .lt. plo(2)) then
+        yp(ip) = yp(ip) + domain_size(2)
+     end if
+
+     if (zp(ip) .gt. phi(3)) then
+        zp(ip) = zp(ip) - domain_size(3)
+     else if (zp(ip) .lt. plo(3)) then
+        zp(ip) = zp(ip) + domain_size(3)
+     end if
+
+#ifdef AMREX_USE_CUDA
+  end if
+#else
   end do
+#endif
 
 end subroutine enforce_periodic
 
-AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
-     np, particles, uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) & 
+#ifdef AMREX_USE_ACC
+subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
+     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx)
+#else
+AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
+     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) & 
      bind(c,name="deposit_current")
-  
-  use amrex_fort_module, only : amrex_real
-  use electromagnetic_constants_module, only : clight
-  use electromagnetic_particle_module, only : particle_t
+#endif
 
+  use amrex_fort_module, only : amrex_real
+  use constants, only : clight
   implicit none
   
-  integer,   intent(in), value    :: np
-  type(particle_t), intent(in)    :: particles(np)
+  integer,          intent(in), value    :: np
   integer,          intent(in)    :: jxlo(3), jxhi(3)
   integer,          intent(in)    :: jylo(3), jyhi(3)
   integer,          intent(in)    :: jzlo(3), jzhi(3)
   real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1), jxlo(2):jxhi(2), jxlo(3):jxhi(3))
   real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1), jylo(2):jyhi(2), jylo(3):jyhi(3))
   real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1), jzlo(2):jzhi(2), jzlo(3):jzhi(3))
-  real(amrex_real), intent(in)    :: uxp(np), uyp(np), uzp(np), w(np), gaminv(np)
+  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np), uxp(np), uyp(np), uzp(np)
+  real(amrex_real), intent(in)    :: w(np), gaminv(np)
   real(amrex_real), value         :: q, dt  
   real(amrex_real), intent(in)    :: dx(3), plo(3)
   
@@ -206,15 +260,30 @@ AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo
   dts2dy = 0.5d0*dt*dyi
   dts2dz = 0.5d0*dt*dzi
   clightsq = 1.d0/clight**2
-  sx=0.d0; sy=0.d0; sz=0.d0;
-  sx0=0.d0;sy0=0.d0;sz0=0.d0;
+  ! CD: Not needed - initialized in parallel loop. It must be done this way
+  ! because firstprivate is not supported on a loop construct.
+  !sx=0.d0; sy=0.d0; sz=0.d0;
+  !sx0=0.d0;sy0=0.d0;sz0=0.d0;
 
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  if (ip .le. np) then 
+#else
+# ifdef AMREX_USE_ACC
+! CD: The "private" clause is placed on the loop construct (containing a
+! vector schedule) to ensure that there is a private copy of the data
+! per thread - see 2.9.10. If "private" was applied to the parallel
+! construct then there would be a private copy per gang - see 2.5.10.
+!$acc parallel deviceptr(jxlo, jxhi, jylo, jyhi, jzlo, jzhi, jx, jy, jz, xp, yp, zp, uxp, uyp, uzp, w, gaminv, dx, plo) 
+!$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
+# endif
   do ip = 1, np
+#endif
 
     ! --- computes position in grid units at (n+1)
-    x = (particles(ip)%pos(1)-plo(1))*dxi
-    y = (particles(ip)%pos(2)-plo(2))*dyi
-    z = (particles(ip)%pos(3)-plo(3))*dzi
+    x = (xp(ip)-plo(1))*dxi
+    y = (yp(ip)-plo(2))*dyi
+    z = (zp(ip)-plo(3))*dzi
 
     ! Computes velocity
     vx = uxp(ip)*gaminv(ip)
@@ -263,6 +332,91 @@ AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo
     sz0( 1) = zint
 
     ! --- add current contributions in the form rho(n+1/2)v(n+1/2)
+#ifdef AMREX_USE_CUDA
+
+# ifdef AMREX_USE_ACC
+    !$acc atomic update
+    jx(j0, k, l  )      = jx(j0, k, l      )  +   sx0(0)*sy(0)*sz(0)*wqx
+    !$acc atomic update
+    jx(j0+1, k, l  )    = jx(j0+1, k, l    )  +   sx0(1)*sy(0)*sz(0)*wqx
+    !$acc atomic update
+    jx(j0, k+1, l  )    = jx(j0, k+1, l    )  +   sx0(0)*sy(1)*sz(0)*wqx
+    !$acc atomic update
+    jx(j0+1, k+1, l  )  = jx(j0+1, k+1, l  )  +   sx0(1)*sy(1)*sz(0)*wqx
+    !$acc atomic update
+    jx(j0, k, l+1)      = jx(j0, k, l+1    )  +   sx0(0)*sy(0)*sz(1)*wqx
+    !$acc atomic update
+    jx(j0+1, k, l+1)    = jx(j0+1, k, l+1  )  +   sx0(1)*sy(0)*sz(1)*wqx
+    !$acc atomic update
+    jx(j0, k+1, l+1)    = jx(j0, k+1, l+1  )  +   sx0(0)*sy(1)*sz(1)*wqx
+    !$acc atomic update
+    jx(j0+1, k+1, l+1)  = jx(j0+1, k+1, l+1)  +   sx0(1)*sy(1)*sz(1)*wqx
+
+    !$acc atomic update
+    jy(j, k0, l  )      = jy(j, k0, l      )  +   sx(0)*sy0(0)*sz(0)*wqy
+    !$acc atomic update
+    jy(j+1, k0, l  )    = jy(j+1, k0, l    )  +   sx(1)*sy0(0)*sz(0)*wqy
+    !$acc atomic update
+    jy(j, k0+1, l  )    = jy(j, k0+1, l    )  +   sx(0)*sy0(1)*sz(0)*wqy
+    !$acc atomic update
+    jy(j+1, k0+1, l  )  = jy(j+1, k0+1, l  )  +   sx(1)*sy0(1)*sz(0)*wqy
+    !$acc atomic update
+    jy(j, k0, l+1)      = jy(j, k0, l+1    )  +   sx(0)*sy0(0)*sz(1)*wqy
+    !$acc atomic update
+    jy(j+1, k0, l+1)    = jy(j+1, k0, l+1  )  +   sx(1)*sy0(0)*sz(1)*wqy
+    !$acc atomic update
+    jy(j, k0+1, l+1)    = jy(j, k0+1, l+1  )  +   sx(0)*sy0(1)*sz(1)*wqy
+    !$acc atomic update
+    jy(j+1, k0+1, l+1)  = jy(j+1, k0+1, l+1)  +   sx(1)*sy0(1)*sz(1)*wqy
+
+    !$acc atomic update
+    jz(j, k, l0  )      = jz(j, k, l0      )  +   sx(0)*sy(0)*sz0(0)*wqz
+    !$acc atomic update
+    jz(j+1, k, l0  )    = jz(j+1, k, l0    )  +   sx(1)*sy(0)*sz0(0)*wqz
+    !$acc atomic update
+    jz(j, k+1, l0  )    = jz(j, k+1, l0    )  +   sx(0)*sy(1)*sz0(0)*wqz
+    !$acc atomic update
+    jz(j+1, k+1, l0  )  = jz(j+1, k+1, l0  )  +   sx(1)*sy(1)*sz0(0)*wqz
+    !$acc atomic update
+    jz(j, k, l0+1)      = jz(j, k, l0+1    )  +   sx(0)*sy(0)*sz0(1)*wqz
+    !$acc atomic update
+    jz(j+1, k, l0+1)    = jz(j+1, k, l0+1  )  +   sx(1)*sy(0)*sz0(1)*wqz
+    !$acc atomic update
+    jz(j, k+1, l0+1)    = jz(j, k+1, l0+1  )  +   sx(0)*sy(1)*sz0(1)*wqz
+    !$acc atomic update
+    jz(j+1, k+1, l0+1)  = jz(j+1, k+1, l0+1)  +   sx(1)*sy(1)*sz0(1)*wqz
+# else
+    ! https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomicadd
+    retval = atomicadd(jx(j0  , k  , l  ), sx0(0)*sy(0)*sz(0)*wqx)
+    retval = atomicadd(jx(j0+1, k  , l  ), sx0(1)*sy(0)*sz(0)*wqx)
+    retval = atomicadd(jx(j0  , k+1, l  ), sx0(0)*sy(1)*sz(0)*wqx)
+    retval = atomicadd(jx(j0+1, k+1, l  ), sx0(1)*sy(1)*sz(0)*wqx)
+    retval = atomicadd(jx(j0  , k  , l+1), sx0(0)*sy(0)*sz(1)*wqx)
+    retval = atomicadd(jx(j0+1, k  , l+1), sx0(1)*sy(0)*sz(1)*wqx)
+    retval = atomicadd(jx(j0  , k+1, l+1), sx0(0)*sy(1)*sz(1)*wqx)
+    retval = atomicadd(jx(j0+1, k+1, l+1), sx0(1)*sy(1)*sz(1)*wqx)
+
+    retval = atomicadd(jy(j  , k0  , l  ), sx(0)*sy0(0)*sz(0)*wqy)
+    retval = atomicadd(jy(j+1, k0  , l  ), sx(1)*sy0(0)*sz(0)*wqy)
+    retval = atomicadd(jy(j,   k0+1, l  ), sx(0)*sy0(1)*sz(0)*wqy)
+    retval = atomicadd(jy(j+1, k0+1, l  ), sx(1)*sy0(1)*sz(0)*wqy)
+    retval = atomicadd(jy(j  , k0  , l+1), sx(0)*sy0(0)*sz(1)*wqy)
+    retval = atomicadd(jy(j+1, k0  , l+1), sx(1)*sy0(0)*sz(1)*wqy)
+    retval = atomicadd(jy(j  , k0+1, l+1), sx(0)*sy0(1)*sz(1)*wqy)
+    retval = atomicadd(jy(j+1, k0+1, l+1), sx(1)*sy0(1)*sz(1)*wqy)
+
+    retval = atomicadd(jz(j  , k  , l0  ), sx(0)*sy(0)*sz0(0)*wqz)
+    retval = atomicadd(jz(j+1, k  , l0  ), sx(1)*sy(0)*sz0(0)*wqz)
+    retval = atomicadd(jz(j  , k+1, l0  ), sx(0)*sy(1)*sz0(0)*wqz)
+    retval = atomicadd(jz(j+1, k+1, l0  ), sx(1)*sy(1)*sz0(0)*wqz)
+    retval = atomicadd(jz(j  , k  , l0+1), sx(0)*sy(0)*sz0(1)*wqz)
+    retval = atomicadd(jz(j+1, k  , l0+1), sx(1)*sy(0)*sz0(1)*wqz)
+    retval = atomicadd(jz(j  , k+1, l0+1), sx(0)*sy(1)*sz0(1)*wqz)
+    retval = atomicadd(jz(j+1, k+1, l0+1), sx(1)*sy(1)*sz0(1)*wqz)
+# endif
+
+#else
+
     jx(j0, k, l  )      = jx(j0, k, l      )  +   sx0(0)*sy(0)*sz(0)*wqx
     jx(j0+1, k, l  )    = jx(j0+1, k, l    )  +   sx0(1)*sy(0)*sz(0)*wqx
     jx(j0, k+1, l  )    = jx(j0, k+1, l    )  +   sx0(0)*sy(1)*sz(0)*wqx
@@ -290,27 +444,40 @@ AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo
     jz(j, k+1, l0+1)    = jz(j, k+1, l0+1  )  +   sx(0)*sy(1)*sz0(1)*wqz
     jz(j+1, k+1, l0+1)  = jz(j+1, k+1, l0+1)  +   sx(1)*sy(1)*sz0(1)*wqz
 
+#endif
+
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  end if
+#else
   end do
+# ifdef AMREX_USE_ACC
+!$acc end loop
+!$acc end parallel
+# endif
+#endif
 
 end subroutine deposit_current
 
-AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
+#ifdef AMREX_USE_ACC
+subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
+     bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx)
+#else
+AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx) & 
      bind(c,name="gather_magnetic_field")
-  
-  use amrex_fort_module, only : amrex_real
-  use electromagnetic_particle_module, only : particle_t
+#endif
 
+  use amrex_fort_module, only : amrex_real
   implicit none
   
-  integer,   intent(in), value    :: np
-  type(particle_t), intent(in)    :: particles(np)
+  integer,          intent(in), value    :: np
   integer,          intent(in)    :: bxglo(3), bxghi(3)
   integer,          intent(in)    :: byglo(3), byghi(3)
   integer,          intent(in)    :: bzglo(3), bzghi(3)
   real(amrex_real), intent(in)    :: bxg(bxglo(1):bxghi(1), bxglo(2):bxghi(2), bxglo(3):bxghi(3))
   real(amrex_real), intent(in)    :: byg(byglo(1):byghi(1), byglo(2):byghi(2), byglo(3):byghi(3))
   real(amrex_real), intent(in)    :: bzg(bzglo(1):bzghi(1), bzglo(2):bzghi(2), bzglo(3):bzghi(3))
+  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(inout) :: bx(np), by(np), bz(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
   
@@ -325,12 +492,13 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
   dyi = 1.d0 / dx(2)
   dzi = 1.d0 / dx(3)
 
-  sx  = 0.d0
-  sy  = 0.d0
-  sz  = 0.d0
-  sx0 = 0.d0
-  sy0 = 0.d0
-  sz0 = 0.d0
+  ! CD: Not needed - initialized in parallel loop
+  !sx  = 0.d0
+  !sy  = 0.d0
+  !sz  = 0.d0
+  !sx0 = 0.d0
+  !sy0 = 0.d0
+  !sz0 = 0.d0
 
   ixmin = 0
   ixmax = 0
@@ -346,11 +514,24 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
   izmin0 = 0
   izmax0 = 0
 
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  if (ip .le. np) then 
+#else
+# ifdef AMREX_USE_ACC
+!$acc parallel deviceptr(bxglo, bxghi, byglo, byghi, bzglo, bzghi, bxg, byg, bzg, xp, yp, zp, bx, by, bz, dx, plo)
+!$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
+# endif
   do ip = 1, np
+#endif
      
-     x = (particles(ip)%pos(1)-plo(1))*dxi
-     y = (particles(ip)%pos(2)-plo(2))*dyi
-     z = (particles(ip)%pos(3)-plo(3))*dzi
+     bx(ip) = 0.d0
+     by(ip) = 0.d0
+     bz(ip) = 0.d0
+
+     x = (xp(ip)-plo(1))*dxi
+     y = (yp(ip)-plo(2))*dyi
+     z = (zp(ip)-plo(3))*dzi
      
      ! Compute index of particle
      j  = floor(x)
@@ -379,7 +560,16 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
      sx0(0) = 1.d0
      sy0(0) = 1.d0
      sz0(0) = 1.d0
+     sx0(1) = 0.d0 ! Added by CD
+     sy0(1) = 0.d0 ! Added by CD
+     sz0(1) = 0.d0 ! Added by CD
      
+#ifdef AMREX_USE_ACC
+! CD: The independent clause silences the compiler about the loop
+! carried dependence of bx. There is no loop carried dependence
+! because each bx index is only ever accessed by 1 thread.
+!$acc loop seq independent collapse(3)
+#endif
      do ll = izmin0, izmax0
         do kk = iymin0, iymax0
            do jj = ixmin, ixmax+1
@@ -387,7 +577,13 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
            end do
         end do
      end do
-     
+#ifdef AMREX_USE_ACC
+!$acc end loop    
+#endif
+
+#ifdef AMREX_USE_ACC
+!$acc loop seq independent collapse(3)
+#endif
      do ll = izmin0, izmax0
         do kk = iymin, iymax+1
            do jj = ixmin0, ixmax0
@@ -395,7 +591,13 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
            end do
         end do
      end do
-     
+#ifdef AMREX_USE_ACC
+!$acc end loop
+#endif
+
+#ifdef AMREX_USE_ACC
+!$acc loop seq independent collapse(3)
+#endif
      do ll = izmin, izmax+1
         do kk = iymin0, iymax0
            do jj = ixmin0, ixmax0
@@ -403,29 +605,43 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, particles, bx, by, bz, &
            end do
         end do
      end do
+#ifdef AMREX_USE_ACC
+!$acc end loop
+#endif
 
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  end if
+#else
   end do
+# ifdef AMREX_USE_ACC
+!$acc end loop
+!$acc end parallel
+# endif
+#endif
 
 end subroutine gather_magnetic_field
 
-AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
+#ifdef AMREX_USE_ACC
+subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
+     exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx)
+#else
+AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx) & 
      bind(c,name="gather_electric_field")
-  
-  use amrex_fort_module, only : amrex_real
-  use electromagnetic_constants_module, only : clight
-  use electromagnetic_particle_module, only : particle_t
+#endif
 
+  use amrex_fort_module, only : amrex_real
+  use constants, only : clight
   implicit none
   
-  integer,   intent(in), value    :: np
-  type(particle_t), intent(in)    :: particles(np)
+  integer,          intent(in), value    :: np
   integer,          intent(in)    :: exglo(3), exghi(3)
   integer,          intent(in)    :: eyglo(3), eyghi(3)
   integer,          intent(in)    :: ezglo(3), ezghi(3)
   real(amrex_real), intent(in)    :: exg(exglo(1):exghi(1), exglo(2):exghi(2), exglo(3):exghi(3))
   real(amrex_real), intent(in)    :: eyg(eyglo(1):eyghi(1), eyglo(2):eyghi(2), eyglo(3):eyghi(3))
   real(amrex_real), intent(in)    :: ezg(ezglo(1):ezghi(1), ezglo(2):ezghi(2), ezglo(3):ezghi(3))
+  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(inout) :: ex(np), ey(np), ez(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
   
@@ -447,12 +663,13 @@ AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
   izmin = 0
   izmax = 0
 
-  sx  = 0.d0
-  sy  = 0.d0
-  sz  = 0.d0
-  sx0 = 0.d0
-  sy0 = 0.d0
-  sz0 = 0.d0
+  ! CD: Not needed - initialized in parallel loop
+  !sx  = 0.d0
+  !sy  = 0.d0
+  !sz  = 0.d0
+  !sx0 = 0.d0
+  !sy0 = 0.d0
+  !sz0 = 0.d0
 
   ixmin0 = 0
   ixmax0 = 0
@@ -461,13 +678,26 @@ AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
   izmin0 = 0
   izmax0 = 0
 
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  if (ip .le. np) then 
+#else
+# ifdef AMREX_USE_ACC
+!$acc parallel deviceptr(exglo, exghi, eyglo, eyghi, ezglo, ezghi, exg, eyg, ezg, xp, yp, zp, ex, ey, ez, dx, plo)
+!$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
+# endif
   do ip = 1, np
+#endif
      
-     x = (particles(ip)%pos(1)-plo(1))*dxi
-     y = (particles(ip)%pos(2)-plo(2))*dyi
-     z = (particles(ip)%pos(3)-plo(3))*dzi
+     ex(ip) = 0.d0
+     ey(ip) = 0.d0
+     ez(ip) = 0.d0
+
+     x = (xp(ip)-plo(1))*dxi
+     y = (yp(ip)-plo(2))*dyi
+     z = (zp(ip)-plo(3))*dzi
      
-     ! Compute index of particle     
+     ! Compute index of particle
      j  = floor(x)
      j0 = floor(x)
      k  = floor(y)
@@ -494,7 +724,13 @@ AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
      sx0(0) = 1.d0
      sy0(0) = 1.d0
      sz0(0) = 1.d0
+     sx0(1) = 0.d0 ! Added by CD
+     sy0(1) = 0.d0 ! Added by CD
+     sz0(1) = 0.d0 ! Added by CD
      
+#ifdef AMREX_USE_ACC
+!$acc loop seq independent collapse(3)
+#endif
      do ll = izmin, izmax+1
         do kk = iymin, iymax+1
            do jj = ixmin0, ixmax0
@@ -502,7 +738,13 @@ AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
            end do
         end do
      end do
+#ifdef AMREX_USE_ACC
+!$acc end loop    
+#endif
 
+#ifdef AMREX_USE_ACC
+!$acc loop seq independent collapse(3)
+#endif
      do ll = izmin, izmax+1
         do kk = iymin0, iymax0
            do jj = ixmin, ixmax+1
@@ -510,7 +752,13 @@ AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
            end do
         end do
      end do
+#ifdef AMREX_USE_ACC
+!$acc end loop    
+#endif
      
+#ifdef AMREX_USE_ACC
+!$acc loop seq independent collapse(3)
+#endif
      do ll = izmin0, izmax0
         do kk = iymin, iymax+1
            do jj = ixmin, ixmax+1
@@ -518,8 +766,19 @@ AMREX_LAUNCH subroutine gather_electric_field(np, particles, ex, ey, ez, &
            end do
         end do
      end do
+#ifdef AMREX_USE_ACC
+!$acc end loop    
+#endif
 
+#if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
+  end if
+#else
   end do
+# ifdef AMREX_USE_ACC
+!$acc end loop
+!$acc end parallel
+# endif
+#endif
    
 end subroutine gather_electric_field
 
@@ -719,3 +978,49 @@ AMREX_LAUNCH subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo
   end do
   
 end subroutine push_magnetic_field_z
+
+subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi, & 
+     time, max_error) bind(c,name='check_langmuir_solution')
+  
+  use amrex_fort_module, only : amrex_real
+  use constants
+
+  implicit none
+  
+  integer,          intent(in)    :: boxlo(3),  boxhi(3)
+  integer,          intent(in)    :: testlo(3), testhi(3)
+  integer,          intent(in)    :: jxlo(3),   jxhi(3)
+  real(amrex_real), intent(in)    :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
+  real(amrex_real), intent(in), value :: time
+  real(amrex_real), intent(inout) :: max_error
+
+  integer :: j,k,l
+  integer :: lo(3), hi(3)
+
+  real(amrex_real) error
+  real(amrex_real) exact
+
+  real(amrex_real), parameter :: u  = 0.01
+  real(amrex_real), parameter :: n0 = 1.d25
+  real(amrex_real) wp
+
+  wp = sqrt(n0*electron_charge**2/(electron_mass*epsilon_0))
+
+  error = 0.0
+  exact = -n0*electron_charge*clight*u*cos(wp*time)
+
+  lo = max(boxlo, testlo)
+  hi = min(boxhi, testhi)
+
+  do l       = lo(3), hi(3)
+     do k    = lo(2), hi(2)
+        do j = lo(1), hi(1)
+           error = max(error, abs(jx(j,k,l) - exact) / abs(exact))
+        end do
+     end do
+  end do
+
+  max_error = error
+  
+end subroutine check_langmuir_solution
+
