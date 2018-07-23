@@ -188,17 +188,17 @@ contains
           idim = 2
        end if
        h = dx(idim)
-       if (bct(idim) .eq. amrex_lo_dirichlet) then
+       if (bct(cdir) .eq. amrex_lo_dirichlet) then
           h2 = half * h
           if (bho.ge.1) then
              h3 = three * h2
-             bf1(cdir) = fac(idim) * ((h3 - bcl(idim)) / (bcl(idim) + h2) - one)
-             bf2(cdir) = fac(idim) * (bcl(idim) - h2) / (bcl(idim) + h3)
+             bf1(cdir) = fac(idim) * ((h3 - bcl(cdir)) / (bcl(cdir) + h2) - one)
+             bf2(cdir) = fac(idim) * (bcl(cdir) - h2) / (bcl(cdir) + h3)
           else
-             bf1(cdir) = fac(idim) * ( h / (bcl(idim) + h2) - one)          
+             bf1(cdir) = fac(idim) * ( h / (bcl(cdir) + h2) - one)
              bf2(cdir) = zero
           end if
-       else if (bct(idim) .eq. amrex_lo_neumann) then
+       else if (bct(cdir) .eq. amrex_lo_neumann) then
           bf1(cdir) = -fac(idim)
           bf2(cdir) = zero
        end if
@@ -250,7 +250,7 @@ contains
              mat_tmp(0) = mat_tmp(0) + bf1(cdir)*by(i,j+1)
              mat_tmp(3) = mat_tmp(3) + bf2(cdir)*by(i,j+1)
           end if
-          
+
           do ic = 0, 4
              if (cols_tmp(ic) .ge. 0) then
                 ncols(irow) = ncols(irow) + 1
