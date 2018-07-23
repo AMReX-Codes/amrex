@@ -59,13 +59,14 @@ private :
     Real rel_tol, abs_tol;
     int max_iter;
 
+    FabFactory<FArrayBox> const* m_factory = nullptr;
     BndryData const* m_bndry = nullptr;
     int m_maxorder = -1;
     
     LayoutData<HYPRE_Int> ncells_grid;
     FabArray<BaseFab<HYPRE_Int> > cell_id;
     
-    void prepareSolver (FabFactory<FArrayBox> const& factory);
+    void prepareSolver ();
     void getSolution (MultiFab& soln);
 };
 
