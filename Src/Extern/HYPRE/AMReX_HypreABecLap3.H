@@ -64,6 +64,7 @@ private :
     FabArray<BaseFab<HYPRE_Int> > cell_id;
     
     void prepareSolver ();
+    void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);
 };
 

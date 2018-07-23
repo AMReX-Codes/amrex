@@ -97,61 +97,8 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
         HYPRE_IJVectorInitialize(x);
     }
 
-#ifdef AMREX_USE_EB
-    EBFArrayBoxFactory* ebfactory = dynamic_cast<EBFArrayBoxFactory*>(m_factory);
-    const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
-#endif
-
-    soln.setVal(0.0);
+    loadVectors(soln, rhs);
     
-    FArrayBox rfab;
-    BaseFab<HYPRE_Int> ifab;
-    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.validbox();
-        const HYPRE_Int nrows = ncells_grid[mfi];
-        
-#ifdef AMREX_USE_EB
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered)
-        {
-        }
-        else if (fabtyp == FabType::singlevalued)
-        {
-        }
-        else
-#endif
-        {
-            ifab.resize(bx);
-            ifab.copy(cell_id[mfi],bx);
-            
-            FArrayBox *xfab;
-            if (soln.nGrow() == 0) {
-                xfab = &soln[mfi];
-            } else {
-                xfab = &rfab;
-                xfab->resize(bx);
-                xfab->setVal(0.0);
-            }
-
-            HYPRE_IJVectorSetValues(x, nrows, ifab.dataPtr(), xfab->dataPtr());
-
-            FArrayBox* bfab;
-            if (rhs.nGrow() == 0) {
-                bfab = const_cast<FArrayBox*>(&rhs[mfi]);
-            } else {
-                bfab = &rfab;
-                bfab->resize(bx);
-                bfab->copy(rhs[mfi],bx);
-            }
-
-            HYPRE_IJVectorSetValues(b, nrows, ifab.dataPtr(), bfab->dataPtr());
-        }
-    }
-
-    HYPRE_IJVectorAssemble(x);
-    HYPRE_IJVectorAssemble(b);
-
     HYPRE_ParCSRMatrix par_A = NULL;
     HYPRE_ParVector par_b = NULL;
     HYPRE_ParVector par_x = NULL;
@@ -432,6 +379,65 @@ HypreABecLap3::prepareSolver ()
 
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_BoomerAMGSetLogging(solver, logging);
+}
+
+void
+HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
+{
+#ifdef AMREX_USE_EB
+    EBFArrayBoxFactory* ebfactory = dynamic_cast<EBFArrayBoxFactory*>(m_factory);
+    const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
+    soln.setVal(0.0);
+    
+    FArrayBox rfab;
+    BaseFab<HYPRE_Int> ifab;
+    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        const HYPRE_Int nrows = ncells_grid[mfi];
+        
+#ifdef AMREX_USE_EB
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        if (fabtyp == FabType::covered)
+        {
+        }
+        else if (fabtyp == FabType::singlevalued)
+        {
+        }
+        else
+#endif
+        {
+            ifab.resize(bx);
+            ifab.copy(cell_id[mfi],bx);
+            
+            FArrayBox *xfab;
+            if (soln.nGrow() == 0) {
+                xfab = &soln[mfi];
+            } else {
+                xfab = &rfab;
+                xfab->resize(bx);
+                xfab->setVal(0.0);
+            }
+
+            HYPRE_IJVectorSetValues(x, nrows, ifab.dataPtr(), xfab->dataPtr());
+
+            FArrayBox* bfab;
+            if (rhs.nGrow() == 0) {
+                bfab = const_cast<FArrayBox*>(&rhs[mfi]);
+            } else {
+                bfab = &rfab;
+                bfab->resize(bx);
+                bfab->copy(rhs[mfi],bx);
+            }
+
+            HYPRE_IJVectorSetValues(b, nrows, ifab.dataPtr(), bfab->dataPtr());
+        }
+    }
+
+    HYPRE_IJVectorAssemble(x);
+    HYPRE_IJVectorAssemble(b);
 }
     
 }  // namespace amrex
