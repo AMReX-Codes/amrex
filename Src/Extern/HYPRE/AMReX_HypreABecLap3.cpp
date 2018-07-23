@@ -106,8 +106,6 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
     HYPRE_IJVectorGetObject(b, (void **) &par_b);
     HYPRE_IJVectorGetObject(x, (void **) &par_x);
 
-    HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
-
     HYPRE_BoomerAMGSetMinIter(solver, 1);
     HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
     HYPRE_BoomerAMGSetTol(solver, rel_tol);
@@ -379,6 +377,10 @@ HypreABecLap3::prepareSolver ()
 
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_BoomerAMGSetLogging(solver, logging);
+
+    HYPRE_ParCSRMatrix par_A = NULL;
+    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
+    HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
 }
 
 void
