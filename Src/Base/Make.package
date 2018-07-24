@@ -171,7 +171,8 @@ ifeq ($(USE_DEVICE),TRUE)
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  F90$(AMREX_BASE)_sources += AMReX_CUDA.F90 AMReX_CudaAllocators.H
+  F90$(AMREX_BASE)_sources += AMReX_CUDA.F90 
+  C$(AMREX_BASE)_headers += AMReX_CudaAllocators.H
 endif
 
 ifeq ($(LAZY),TRUE)
