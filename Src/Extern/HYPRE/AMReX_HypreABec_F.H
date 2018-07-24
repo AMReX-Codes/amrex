@@ -37,6 +37,55 @@ extern "C" {
                            const amrex_real* sa, const amrex_real* sb, const amrex_real* dx,
                            const int* bct, const amrex_real* bcl, const int* bho);
                            
+
+#ifdef AMREX_USE_EB
+    void amrex_hpeb_fill_cellid (const int* lo, const int* hi,
+                                 void* nrows, const void* cell_id, const int* clo, const int* chi,
+                                 const void* flag, const int* flo, const int* fhi);
+
+    void amrex_hpeb_copy_from_vec (const int* lo, const int* hi,
+                                   amrex_real* a, const int* alo, const int* ahi,
+                                   const amrex_real* v, const void* nv,
+                                   const void* flag, const int* flo, const int* fhi);
+
+    void amrex_hpeb_copy_to_vec (const int* lo, const int* hi,
+                                 const amrex_real* a, const int* alo, const int* ahi,
+                                 amrex_real* v, const void* nv,
+                                 const void* flag, const int* flo, const int* fhi);
+
+    void amrex_hpeb_ijmatrix (const int* lo, const int* hi,
+                              const void* nrows, void* ncols,
+                              void* rows, void* cols, amrex_real* mat,
+                              const void* cell_id, const int* clo, const int* chi,
+                              const void* cell_id_begin,
+                              const amrex_real* ac, const int* alo, const int* ahi,
+                              const amrex_real* bx, const int* bxlo, const int* bxhi,
+#if (AMREX_SPACEDIM >= 2)
+                              const amrex_real* by, const int* bylo, const int* byhi,
+#if (AMREX_SPACEDIM == 3)
+                              const amrex_real* bz, const int* bzlo, const int* bzhi,
+#endif
+#endif
+                              const void* flag, const int* flo, const int* fhi,
+                              const amrex_real* vfrc, const int* vlo, const int* vhi,
+                              const amrex_real* apx, const int* axlo, const int* axhi,
+#if (AMREX_SPACEDIM >= 2)
+                              const amrex_real* apy, const int* aylo, const int* ayhi,
+#if (AMREX_SPACEDIM == 3)
+                              const amrex_real* apz, const int* azlo, const int* azhi,
+#endif
+#endif
+                              const amrex_real* fcx, const int* fxlo, const int* fxhi,
+#if (AMREX_SPACEDIM >= 2)
+                              const amrex_real* fcy, const int* fylo, const int* fyhi,
+#if (AMREX_SPACEDIM == 3)
+                              const amrex_real* fcz, const int* fzlo, const int* fzhi,
+#endif
+#endif                              
+                              const amrex_real* sa, const amrex_real* sb, const amrex_real* dx,
+                              const int* bct, const amrex_real* bcl, const int* bho);
+
+#endif
     
 #ifdef __cplusplus
 };
