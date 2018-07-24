@@ -4,7 +4,7 @@ add_sources ( AMReX_Particles.H AMReX_ParGDB.H AMReX_TracerParticles.H )
 add_sources ( AMReX_NeighborParticles.H AMReX_NeighborParticlesI.H )
 add_sources ( AMReX_ParticleI.H AMReX_ParticleInit.H AMReX_ParticleContainerI.H )
 add_sources ( AMReX_LoadBalanceKD.H AMReX_KDTree_F.H )
-add_sources ( AMReX_ParIterI.H AMReX_Particles_F.H AMReX_ParticleMPIUtil.H)
+add_sources ( AMReX_ParIterI.H AMReX_Particles_F.H AMReX_ParticleMPIUtil.H AMReX_StuctOfArrays.H)
 
 ##### list ( APPEND F77SRC      AMReX_Particles_${DIM}D.F )
 add_sources ( AMReX_Particle_mod_${DIM}d.F90 AMReX_KDTree_${DIM}d.F90)

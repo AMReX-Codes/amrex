@@ -1,14 +1,18 @@
-#include <tuple>
-#include <iostream>
-#include <array>
-#include <vector>
-#include <cassert>
+#ifndef AMREX_STRUCTOFARRAYS_H_
+#define AMREX_STRUCTOFARRAYS_H_
 
+#include <array>
+#include <tuple>
+
+#include <AMReX_REAL.H>
+#include <AMReX_Vector.H>
+#include <AMReX_CudaAllocators.H>
+
+#ifdef AMREX_USE_CUDA
 #include <thrust/tuple.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/device_ptr.h>
-
-#include <AMReX_CudaAllocators.H>
+#endif
 
 namespace detail {
     
@@ -53,6 +57,8 @@ namespace detail {
     }
 };
 
+namespace amrex {
+
 template<typename... Args>
 auto to_thrust_tuple(const std::tuple<Args...>& t)
     -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
@@ -62,61 +68,64 @@ auto to_thrust_tuple(const std::tuple<Args...>& t)
 
 template <int NReal, int NInt>
 struct StructOfArrays {
-    
-    using RealVector = std::vector<double, amrex::CudaManagedAllocator<double> >;
-    using IntVector  = std::vector<int,    amrex::CudaManagedAllocator<int   > >;
-    
+  
+#ifdef AMREX_USE_CUDA
+    using RealVector = Vector<Real, CudaManagedAllocator<Real>>;
+    using  IntVector = Vector<int , CudaManagedAllocator<int >>;
+#else
+    using RealVector = Vector<Real>;
+    using  IntVector = Vector<int >;
+#endif
+
+#ifdef AMREX_USE_CUDA
     using real_tuple_t = detail::tuple_of<NReal, RealVector*>;
     using int_tuple_t  = detail::tuple_of<NInt,  IntVector* >;
     using tuple_t = decltype(std::tuple_cat(real_tuple_t(), int_tuple_t()));
     using thrust_zip_iterator_t = decltype(thrust::make_zip_iterator(to_thrust_tuple(tuple_t())));
+#endif
 
     std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
-    std::array<IntVector,  NInt>&  GetIntData  () { return m_idata; }
-    
+    std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
+
     const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
-    const std::array<IntVector,  NInt >& GetIntData  () const { return m_idata; }
-    
-    RealVector& GetRealData (const int index)
-    {
-        assert(index < NReal);
+    const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
+
+    RealVector& GetRealData (const int index) {
+        AMREX_ASSERT(index < NReal);
         return m_rdata[index];
     }
     
-    const RealVector& GetRealData (const int index) const 
-    {
-        assert(index < NReal);
+    const RealVector& GetRealData (const int index) const {
+        AMREX_ASSERT(index < NReal);
         return m_rdata[index];
     }
-    
-    IntVector& GetIntData (const int index) 
-    {
-        assert(index < NInt);
+
+    IntVector& GetIntData (const int index) {
+        AMREX_ASSERT(index < NInt);
         return m_idata[index];
     }
     
-    const IntVector& GetIntData (const int index) const 
-    {
-        assert(index < NInt);
+    const IntVector& GetIntData (const int index) const {
+        AMREX_ASSERT(index < NInt);
         return m_idata[index];
     }
-    
-    int size () const
-    {
+
+    int numParticles () const { 
         if (NReal > 0)
             return m_rdata[0].size();
-        else if (NInt > 0)
+        else if (NInt > 0) 
             return m_idata[0].size();
         else
             return 0;
     }
-    
+
     void resize(size_t count)
     {
         for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
         for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count); 
     }
-    
+
+#ifdef AMREX_USE_CUDA    
     tuple_t data()
     {
         auto real_tuple = detail::make_pointer_tuple(m_rdata);
@@ -132,12 +141,16 @@ struct StructOfArrays {
     thrust_zip_iterator_t end()
     {
         auto it = begin();
-        thrust::advance(it, size());
+        thrust::advance(it, numParticles());
         return it;
     }
-    
+#endif
+
 private:
-    
     std::array<RealVector, NReal> m_rdata;
-    std::array<IntVector,  NInt>  m_idata;
+    std::array< IntVector,  NInt> m_idata;    
 };
+
+} // namespace amrex
+
+#endif // AMREX_STRUCTOFARRAYS_H_
