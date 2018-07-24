@@ -19,7 +19,7 @@ module amrex_eb2_2d_moudle
 
   private
   public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
-       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap
+       amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap, amrex_eb2_check_mvmc
 
 contains
 
@@ -176,7 +176,7 @@ contains
                 if (fy(i,j).eq.irregular) ncuts = ncuts+1
                 if (fy(i,j+1).eq.irregular) ncuts = ncuts+1
                 if (ncuts .gt. 2) then
-                   call amrex_error("amrex_eb2_build_faces: wrong number of cuts")
+                   call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 end if
              end if
           end if
@@ -366,7 +366,7 @@ contains
        cbn, cbnlo, cbnhi, fbn, fbnlo, fbnhi, capx, caxlo, caxhi, fapx, faxlo, faxhi, &
        capy, caylo, cayhi, fapy, faylo, fayhi, &
        cfcx, cfxlo, cfxhi, ffcx, ffxlo, ffxhi, cfcy, cfylo, cfyhi, ffcy, ffylo, ffyhi, &
-       cflag, cflo, cfhi, fflag, fflo, ffhi) &
+       cflag, cflo, cfhi, fflag, fflo, ffhi, ierr) &
        bind(c, name='amrex_eb2_coarsen_from_fine')
     integer, dimension(2), intent(in) :: lo, hi, xlo, xhi, ylo, yhi, &
          cvlo, cvhi,  fvlo, fvhi, cclo, cchi, fclo, fchi, &
@@ -375,6 +375,7 @@ contains
          caylo, cayhi, faylo, fayhi, &
          cfxlo, cfxhi, ffxlo, ffxhi, cfylo, cfyhi, ffylo, ffyhi, &
          cflo, cfhi, fflo, ffhi
+    integer, intent(inout) :: ierr
     real(amrex_real), intent(inout) :: cvol ( cvlo(1): cvhi(1), cvlo(2): cvhi(2))
     real(amrex_real), intent(in   ) :: fvol ( fvlo(1): fvhi(1), fvlo(2): fvhi(2))
     real(amrex_real), intent(inout) :: ccent( cclo(1): cchi(1), cclo(2): cchi(2),2)
@@ -396,9 +397,8 @@ contains
     integer         , intent(inout) :: cflag( cflo(1): cfhi(1), cflo(2): cfhi(2))
     integer         , intent(in   ) :: fflag( fflo(1): ffhi(1), fflo(2): ffhi(2))
 
-    integer :: i,j, ii,jj, ftype(2,2), flg
+    integer :: i,j, ii,jj, ftype(2,2)
     real(amrex_real) :: cvolinv, cbainv, nx, ny, nfac, apinv
-
 
     do    j = lo(2), hi(2)
        jj = j*2
@@ -412,7 +412,6 @@ contains
              call set_covered_cell(cflag(i,j))
              cvol(i,j) = zero
           else
-
              call set_single_valued_cell(cflag(i,j))
 
              cvol(i,j) = fourth*sum(fvol(ii:ii+1,jj:jj+1))
@@ -452,7 +451,8 @@ contains
                   + fbn(ii  ,jj+1,2)*fba(ii  ,jj+1) &
                   + fbn(ii+1,jj+1,2)*fba(ii+1,jj+1)
              if (nx.eq.zero .and. ny.eq.zero) then
-                call amrex_error("amrex_eb2_coarsen_from_fine: undefined boundary normal")
+                ierr = 1
+                return
              end if
              nfac = one/sqrt(nx*nx+ny*ny)
              cbn(i,j,1) = nx*nfac
@@ -542,5 +542,48 @@ contains
        end do
     end do
   end subroutine amrex_eb2_build_cellflag_from_ap
+
+  
+  subroutine amrex_eb2_check_mvmc (cclo, cchi, ndlo, ndhi, cls, clo, chi, fls, flo, fhi, ierr) &
+       bind(c,name='amrex_eb2_check_mvmc')
+    integer, dimension(2), intent(in) :: cclo, cchi, ndlo, ndhi, clo, chi, flo, fhi
+    real(amrex_real), intent(inout) :: cls(clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fls(flo(1):fhi(1),flo(2):fhi(2))
+    integer, intent(inout) :: ierr
+
+    integer :: i,j, ii, jj, ncuts
+
+    do    j = ndlo(2), ndhi(2)
+       do i = ndlo(1), ndhi(1)
+          cls(i,j) = fls(2*i,2*j)
+       end do
+    end do
+
+    do    j = cclo(2), cchi(2)
+       jj = 2*j
+       do i = cclo(1), cchi(1)
+          ii = 2*i
+          ncuts = 0
+          if (has_cut(fls(ii  ,jj  ),fls(ii+1,jj  ))) ncuts = ncuts+1
+          if (has_cut(fls(ii+1,jj  ),fls(ii+2,jj  ))) ncuts = ncuts+1
+          if (has_cut(fls(ii  ,jj+2),fls(ii+1,jj+2))) ncuts = ncuts+1
+          if (has_cut(fls(ii+1,jj+2),fls(ii+2,jj+2))) ncuts = ncuts+1
+          if (has_cut(fls(ii  ,jj  ),fls(ii  ,jj+1))) ncuts = ncuts+1
+          if (has_cut(fls(ii  ,jj+1),fls(ii  ,jj+2))) ncuts = ncuts+1
+          if (has_cut(fls(ii+2,jj  ),fls(ii+2,jj+1))) ncuts = ncuts+1
+          if (has_cut(fls(ii+2,jj+1),fls(ii+2,jj+2))) ncuts = ncuts+1
+          if (ncuts .ne. 0 .and. ncuts .ne. 2) then
+             ierr = 2
+             return
+          end if
+       end do
+    end do
+  contains
+    pure function has_cut(a,b)
+      real(amrex_real), intent(in) :: a,b
+      logical has_cut
+      has_cut = (a.ge.zero .and. b.lt.zero) .or. (b.ge.zero .and. a.lt.zero)
+    end function has_cut
+  end subroutine amrex_eb2_check_mvmc
 
 end module amrex_eb2_2d_moudle
