@@ -45,7 +45,7 @@
 #endif
 
 #ifdef AMREX_USE_CUDA
-#include "AMReX_CudaManagedAllocator.H"
+#include "AMReX_CudaAllocators.H"
 #endif
 
 namespace amrex {
