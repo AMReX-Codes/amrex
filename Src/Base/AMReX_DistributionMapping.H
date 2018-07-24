@@ -18,7 +18,8 @@ namespace amrex {
 class BoxArray;
 class MultiFab;
 template <typename T> class FabArray;
-
+class FabArrayBase;
+    
 /**
 * \brief Calculates the distribution of FABs to MPI processes.
 *
@@ -39,6 +40,7 @@ class DistributionMapping
   public:
 
     template <typename T> friend class FabArray;
+    friend class FabArrayBase;
 
     //! The distribution strategies
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, RRSFC };
@@ -128,6 +130,7 @@ class DistributionMapping
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
     void RoundRobinProcessorMap(const std::vector<long>& wgts, int nprocs);
+
     /**
     * \brief Initializes distribution strategy from ParmParse.
     *
@@ -157,6 +160,9 @@ class DistributionMapping
 
 private:
 
+    const Vector<int>& getIndexArray ();
+    const std::vector<bool>& getOwnerShip ();
+    
     //! Ways to create the processor map.
     void RoundRobinProcessorMap (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
@@ -237,8 +243,11 @@ private:
 
 	//! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
-	//! Local data -- our processor map.
-        Vector<int> m_pmap;
+        void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
+        
+        Vector<int> m_pmap; // index array for all boxes
+        Vector<int> m_index_array;  // index array for local boxes owned by the team
+        std::vector<bool> m_ownership; // true ownership
     };
     //
     // The data -- a reference-counted pointer to a Ref.
