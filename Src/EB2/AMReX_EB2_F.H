@@ -128,7 +128,8 @@ extern "C" {
                                       const amrex_real* ffcz, const int* ffzlo, const int* ffzhi,
 #endif
                                       const void* cflag, const int* cflo, const int* cfhi,
-                                      const void* fflag, const int* fflo, const int* ffhi);
+                                      const void* fflag, const int* fflo, const int* ffhi,
+                                      int* tile_error);
 
 
     void amrex_eb2_build_cellflag_from_ap (const int* lo, const int*hi,
@@ -139,6 +140,15 @@ extern "C" {
 #endif
                                            void* flag, const int* flo, const int* fhi);
     
+
+    void amrex_eb2_check_mvmc (const int* cclo, const int* cchi,
+                               const int* ndlo, const int* ndhi,
+                               amrex_real* cls, const int* clo, const int* chi,
+                               const amrex_real* fls, const int* flo, const int* fhi,
+#if (AMREX_SPACEDIM == 3)
+                               int* ncuts, const int* tlo, const int* thi,
+#endif
+                               int* error);
 
 #ifdef __cplusplus
 }

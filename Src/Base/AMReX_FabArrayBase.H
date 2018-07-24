@@ -24,12 +24,18 @@ class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
 class AmrTask;
+#ifdef USE_PERILLA
+class Perilla;
+#endif
 
 class FabArrayBase
 {
     friend class MFIter;
     friend class MFGhostIter;
     friend class AmrTask;
+#ifdef USE_PERILLA
+    friend class Perilla;
+#endif
 
 public:
 

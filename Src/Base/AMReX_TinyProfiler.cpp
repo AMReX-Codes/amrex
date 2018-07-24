@@ -394,7 +394,7 @@ TinyProfiler::StopRegion (const std::string& regname)
 
 TinyProfileRegion::TinyProfileRegion (std::string a_regname)
     : regname(std::move(a_regname)),
-      tprof(regname, false)
+      tprof(std::string("REG::")+regname, false)
 {
     TinyProfiler::StartRegion(regname);
     tprof.start();
@@ -402,7 +402,7 @@ TinyProfileRegion::TinyProfileRegion (std::string a_regname)
 
 TinyProfileRegion::TinyProfileRegion (const char* a_regname)
     : regname(a_regname),
-      tprof(a_regname, false)
+      tprof(std::string("REG::")+std::string(a_regname), false)
 {
     TinyProfiler::StartRegion(a_regname);
     tprof.start();

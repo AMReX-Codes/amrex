@@ -63,8 +63,6 @@ PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
 {
     BL_PROFILE("PhysBCFunct::FillBoundary");
 
-    if (mf.nGrow() == 0) return;
-    
     if (m_geom.isAllPeriodic()) return;
 
     const Box&     domain      = m_geom.Domain();

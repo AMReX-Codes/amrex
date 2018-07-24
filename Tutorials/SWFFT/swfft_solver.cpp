@@ -42,6 +42,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
     int nboxes = nbx * nby * nbz;
     if (nboxes != ba.size()) 
        amrex::Error("NBOXES NOT COMPUTED CORRECTLY");
+    amrex::Print() << "Number of boxes:\t" << nboxes << std::endl;
 
     Vector<int> rank_mapping;
     rank_mapping.resize(nboxes);
