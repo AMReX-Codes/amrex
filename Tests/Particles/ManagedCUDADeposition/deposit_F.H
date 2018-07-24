@@ -4,7 +4,7 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_SPACE.H>
 
-#ifdef USE_PARTICLES
+#ifdef AMREX_PARTICLES
 
 #ifdef __cplusplus
 extern "C"
