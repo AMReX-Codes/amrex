@@ -2,8 +2,7 @@ module evolve_module
 
   use amrex_amr_module
 
-  use amrex_particlecontainer_module, only: amrex_particle_redistribute, &
-       amrex_get_particles, amrex_particle
+  use amrex_particlecontainer_module, only : amrex_particle
   
   implicit none
   private
@@ -14,7 +13,7 @@ contains
 
   subroutine evolve ()
     use my_amr_module, only : stepno, max_step, stop_time, dt, plot_int
-    use amr_data_module, only : phi_old, phi_new, t_new
+    use amr_data_module, only : phi_old, phi_new, t_new, pc
     use compute_dt_module, only : compute_dt
     use plotfile_module, only : writeplotfile
     real(amrex_real) :: cur_time
@@ -65,7 +64,7 @@ contains
 
   recursive subroutine timestep (lev, time, substep)
     use my_amr_module, only : regrid_int, stepno, nsubsteps, dt, do_reflux
-    use amr_data_module, only : t_old, t_new, phi_old, phi_new, flux_reg
+    use amr_data_module, only : t_old, t_new, phi_old, phi_new, flux_reg, pc
     use averagedown_module, only : averagedownto
     integer, intent(in) :: lev, substep
     real(amrex_real), intent(in) :: time
@@ -96,7 +95,7 @@ contains
                 dt(k) = dt(k-1) / amrex_ref_ratio(k-1)
              end do
 
-             call amrex_particle_redistribute(lev)
+             call pc%redistribute(lev)
           end if
        end if
     end if
@@ -129,7 +128,7 @@ contains
        else
           redistribute_ngrow = substep
        end if
-       call amrex_particle_redistribute(lev, amrex_get_finest_level(), redistribute_ngrow)
+       call pc%redistribute(lev, amrex_get_finest_level(), redistribute_ngrow)
     end if
   
   end subroutine timestep
@@ -137,7 +136,7 @@ contains
   ! update phi_new(lev)
   subroutine advance (lev, time, dt, step, substep, nsub)
     use my_amr_module, only : verbose, do_reflux
-    use amr_data_module, only : phi_new, flux_reg
+    use amr_data_module, only : phi_new, flux_reg, pc
     use face_velocity_module, only : get_face_velocity
     use advect_module, only : advect, advect_particles
     use fillpatch_module, only : fillpatch
@@ -235,7 +234,7 @@ contains
        end if
 
        ! advance particles on this tile
-       particles => amrex_get_particles(lev, mfi)
+       particles => pc%get_particles(lev, mfi)
        call advect_particles(particles, size(particles), &
             pux, lbound(pux), ubound(pux), &
             puy, lbound(puy), ubound(puy), &
