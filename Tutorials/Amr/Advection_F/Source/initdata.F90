@@ -2,8 +2,8 @@ module initdata_module
 
   use amrex_amr_module
 
-  use amrex_particlecontainer_module, only: amrex_particlecontainer_init, &
-       amrex_init_particles_one_per_cell, amrex_particle_redistribute
+  use amr_data_module, only : pc
+  use amrex_particlecontainer_module, only: amrex_particlecontainer, amrex_particlecontainer_build
   use my_amr_module, only : restart, plot_int
   use plotfile_module, only : writeplotfile
   use averagedown_module, only : averagedown
@@ -23,9 +23,9 @@ contains
        call averagedown()
 
        amrcore = amrex_get_amrcore()
-       call amrex_particlecontainer_init(amrcore)
-       call amrex_init_particles_one_per_cell()
-       call amrex_particle_redistribute()
+       call amrex_particlecontainer_build(pc, amrcore)       
+       call pc%init_particles_one_per_cell()
+       call pc%redistribute()
        
        if (plot_int .gt. 0) call writeplotfile
     else

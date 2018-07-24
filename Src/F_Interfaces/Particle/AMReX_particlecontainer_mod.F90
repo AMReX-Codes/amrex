@@ -10,8 +10,7 @@ module amrex_particlecontainer_module
   private
 
   ! public routines
-  public :: amrex_particlecontainer_init, amrex_particlecontainer_finalize
-  public :: amrex_init_particles_one_per_cell, amrex_write_particles, amrex_particle_redistribute
+  public :: amrex_particlecontainer_build, amrex_particlecontainer_destroy
   public :: amrex_get_particles, amrex_num_particles
   
   type, bind(C), public :: amrex_particle
@@ -20,6 +19,21 @@ module amrex_particlecontainer_module
      integer(c_int)               :: id
      integer(c_int)               :: cpu
   end type amrex_particle
+
+  type, public :: amrex_particlecontainer
+     type(c_ptr) :: p = c_null_ptr
+   contains
+     procedure :: init_particles_one_per_cell => amrex_init_particles_one_per_cell
+     procedure :: write                       => amrex_write_particles
+     procedure :: redistribute                => amrex_particle_redistribute
+     procedure :: get_particles               => amrex_get_particles
+     procedure :: num_particles               => amrex_num_particles     
+#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
+     final :: amrex_particlecontainer_destroy
+#endif
+  end type amrex_particlecontainer
+
+  ! interfaces to c++ functions
 
   interface
      subroutine amrex_fi_new_particlecontainer (pc,amrcore) bind(c)
@@ -76,25 +90,27 @@ module amrex_particlecontainer_module
      
   end interface
 
-  type(c_ptr) :: particlecontainer = c_null_ptr
-  
 contains
 
-  subroutine amrex_particlecontainer_init (amrcore)
-    type(c_ptr), intent(in) :: amrcore
-    call amrex_fi_new_particlecontainer(particlecontainer, amrcore)
-  end subroutine amrex_particlecontainer_init
+  subroutine amrex_particlecontainer_build (pc, amrcore)
+    type(amrex_particlecontainer), intent(inout) :: pc
+    type(c_ptr),                   intent(in)    :: amrcore
+    call amrex_fi_new_particlecontainer(pc%p, amrcore)
+  end subroutine amrex_particlecontainer_build
 
-  subroutine amrex_particlecontainer_finalize ()
-    call amrex_fi_delete_particlecontainer(particlecontainer)
-    particlecontainer = c_null_ptr
-  end subroutine amrex_particlecontainer_finalize
+  subroutine amrex_particlecontainer_destroy (this)
+    type(amrex_particlecontainer), intent(inout) :: this
+    call amrex_fi_delete_particlecontainer(this%p)
+    this%p = c_null_ptr
+  end subroutine amrex_particlecontainer_destroy
 
-  subroutine amrex_init_particles_one_per_cell ()
-    call amrex_fi_init_particles_one_per_cell(particlecontainer)
+  subroutine amrex_init_particles_one_per_cell (this)
+    class(amrex_particlecontainer), intent(inout) :: this    
+    call amrex_fi_init_particles_one_per_cell(this%p)
   end subroutine amrex_init_particles_one_per_cell
 
-  subroutine amrex_write_particles (dirname, pname, is_checkpoint)
+  subroutine amrex_write_particles (this, dirname, pname, is_checkpoint)
+    class(amrex_particlecontainer), intent(inout) :: this    
     character(len=*), intent(in) :: dirname
     character(len=*), intent(in) :: pname
     logical, intent(in)          :: is_checkpoint
@@ -106,11 +122,12 @@ contains
        is_check_flag = 0
     end if
     
-    call amrex_fi_write_particles(particlecontainer, &
-         amrex_string_f_to_c(dirname), amrex_string_f_to_c(pname), is_check_flag)
+    call amrex_fi_write_particles(this%p, amrex_string_f_to_c(dirname), &
+         amrex_string_f_to_c(pname), is_check_flag)
   end subroutine amrex_write_particles
 
-  subroutine amrex_particle_redistribute (lev_min,lev_max,nghost)
+  subroutine amrex_particle_redistribute (this, lev_min,lev_max,nghost)
+    class(amrex_particlecontainer), intent(inout) :: this    
     integer, optional, intent(in) :: lev_min, lev_max, nghost
     integer(c_int) :: default_min, default_max, default_ng
     default_min = 0
@@ -119,25 +136,27 @@ contains
     if(present(lev_min)) default_min = lev_min
     if(present(lev_max)) default_max = lev_max
     if(present(nghost )) default_ng = nghost
-    call amrex_fi_particle_redistribute(particlecontainer, &
+    call amrex_fi_particle_redistribute(this%p, &
          default_min, default_max, default_ng)
   end subroutine amrex_particle_redistribute
 
-  function amrex_get_particles(lev, mfi) result(particles)
+  function amrex_get_particles(this, lev, mfi) result(particles)
+    class(amrex_particlecontainer), intent(inout) :: this
     integer(c_int),     intent(in) :: lev
     type(amrex_mfiter), intent(in) :: mfi
     type(amrex_particle),  pointer :: particles(:)
     type(c_ptr)                    :: data
     integer(c_long)                :: np
-    call amrex_fi_get_particles(particlecontainer, lev, mfi%p, data, np)
+    call amrex_fi_get_particles(this%p, lev, mfi%p, data, np)
     call c_f_pointer(data, particles, [np])
   end function amrex_get_particles
 
-  function amrex_num_particles(lev, mfi) result(np)
+  function amrex_num_particles(this, lev, mfi) result(np)
+    class(amrex_particlecontainer), intent(inout) :: this
     integer(c_int), intent(in)     :: lev
     type(amrex_mfiter), intent(in) :: mfi
     integer(c_long) :: np
-    call amrex_fi_num_particles(particlecontainer, lev, mfi%p, np)
+    call amrex_fi_num_particles(this%p, lev, mfi%p, np)
   end function amrex_num_particles
   
 end module amrex_particlecontainer_module
