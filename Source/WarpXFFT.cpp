@@ -266,7 +266,6 @@ void
 WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm_fft,
                               BoxArray& ba_valid, Box& domain_fft, const Box& domain)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3, "PSATD only works in 3D");
 
     IntVect nguards_fft(AMREX_D_DECL(nox_fft/2,noy_fft/2,noz_fft/2));
 
@@ -281,14 +280,15 @@ WarpX::FFTDomainDecompsition (int lev, BoxArray& ba_fft, DistributionMapping& dm
     // Ask FFTW to chop the current FFT sub-group domain in the z-direction
     // and give a chunk to each MPI rank in the current sub-group.
     int nz_fft, z0_fft;
-    warpx_fft_domain_decomp(&nz_fft, &z0_fft, BL_TO_FORTRAN_BOX(domain_fft));
+
+    warpx_fft_domain_decomp(&nz_fft, &z0_fft, WARPX_TO_FORTRAN_BOX(domain_fft));
     // Each MPI rank adds a box with its chunk of the FFT grid
     // (given by the above decomposition) to the list `bx_fft`,
     // then list is shared among all MPI ranks via AllGather
     Vector<Box> bx_fft;
     if (nz_fft > 0) {
         Box b = domain_fft;
-        b.setRange(2, z0_fft+domain_fft.smallEnd(2), nz_fft);
+        b.setRange(AMREX_SPACEDIM-1, z0_fft+domain_fft.smallEnd(AMREX_SPACEDIM-1), nz_fft);
         bx_fft.push_back(b);
     }
     amrex::AllGatherBoxes(bx_fft);
@@ -397,17 +397,17 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     BL_PROFILE_VAR_START(blp_push_eb);
     for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
     {
-        warpx_fft_push_eb(BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
-                          BL_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]));
+        warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
+                          WARPX_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]));
     }
     BL_PROFILE_VAR_STOP(blp_push_eb);
 

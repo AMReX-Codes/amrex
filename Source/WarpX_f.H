@@ -1,6 +1,19 @@
 
 #include <AMReX_BLFort.H>
 
+#ifdef __cplusplus
+
+#if AMREX_SPACEDIM==2
+#define WARPX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, (x)[1]}.data()
+#else
+#define WARPX_ARLIM_ANYD(x) x
+#endif
+
+#define WARPX_TO_FORTRAN_BOX(x) WARPX_ARLIM_ANYD((x).loVect()), WARPX_ARLIM_ANYD((x).hiVect())
+#define WARPX_TO_FORTRAN_ANYD(x) (x).dataPtr(), WARPX_ARLIM_ANYD((x).loVect()), WARPX_ARLIM_ANYD((x).hiVect())
+
+#endif
+
 #if (AMREX_SPACEDIM == 3)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_3d
