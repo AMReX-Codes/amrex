@@ -20,10 +20,10 @@ struct TestParams {
 };
 
 // declare routines below
-void solve_for_accel(const Array<MultiFab*>& rhs,
-		     const Array<MultiFab*>& phi,
-		     const Array<MultiFab*>& grad_phi,
-                     const Array<Geometry>& geom,
+void solve_for_accel(const Vector<MultiFab*>& rhs,
+		     const Vector<MultiFab*>& phi,
+		     const Vector<MultiFab*>& grad_phi,
+                     const Vector<Geometry>& geom,
 		     int base_level, int finest_level, Real offset);
 
 void field_solve(MultiFab& density, MultiFab& phi, MultiFab& E, const Geometry& geom, Real offset) {
@@ -33,10 +33,10 @@ void field_solve(MultiFab& density, MultiFab& phi, MultiFab& E, const Geometry& 
   MultiFab tmp(density.boxArray(), density.DistributionMap(), 1, 0);
   MultiFab::Copy(tmp, density, 0, 0, 1, 0);
   
-  Array<MultiFab*> rhs_in(1);
-  Array<MultiFab*> phi_in(1);
-  Array<MultiFab*> gradphi_in(1);
-  Array<Geometry> geom_in(1);
+  Vector<MultiFab*> rhs_in(1);
+  Vector<MultiFab*> phi_in(1);
+  Vector<MultiFab*> gradphi_in(1);
+  Vector<Geometry> geom_in(1);
   
   rhs_in[0]     = &tmp;
   phi_in[0]     = &phi;
