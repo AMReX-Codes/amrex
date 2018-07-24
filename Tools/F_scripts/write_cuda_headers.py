@@ -80,6 +80,7 @@ class HeaderFile(object):
         self.cpp_name = None
 
 
+# this routine is deprecated and will be removed
 def find_fortran_targets(fortran_names):
     """read through the Fortran files and look for those marked up with
     attributes(device) or AMREX_DEVICE"""
@@ -105,6 +106,52 @@ def find_fortran_targets(fortran_names):
                     targets.append(m.group(5).lower().replace("_device",""))
 
             line = fin.readline()
+
+    return targets
+
+
+def find_targets_from_pragmas(cxx_files):
+    """read through the C++ files and look for the functions marked with
+    #pragma gpu -- these are the routines we intend to offload (the targets),
+    so make a list of them"""
+
+    targets = []
+
+    for c in cxx_files:
+        cxx = "/".join([c[1], c[0]])
+
+        # open the original C++ file
+        try:
+            hin = open(cxx, "r")
+        except IOError:
+            sys.exit("Cannot open header {}".format(cxx))
+
+        # look for the appropriate pragma, and once found, capture the
+        # function call following it
+        line = hin.readline()
+        while line:
+
+            # if the line starts with "#pragma gpu", then we need
+            # to take action
+            if line.startswith("#pragma gpu"):
+                # we don't need to reproduce the pragma line in the
+                # output, but we need to capture the whole function
+                # call that follows
+                func_call = ""
+                line = hin.readline()
+                while not line.strip().endswith(";"):
+                    func_call += line
+                    line = hin.readline()
+                # last line -- remove the semi-colon
+                func_call += line.rstrip()[:-1]
+
+                # now split it into the function name and the
+                # arguments
+                dd = decls_re.search(func_call)
+                func_name = dd.group(1).strip().replace(" ", "")
+                targets.append(func_name)
+
+            line = hin.readline()
 
     return targets
 
@@ -460,16 +507,21 @@ if __name__ == "__main__":
     else:
         cpp_pass = None
 
-    # part I: for each Fortran routine marked with
-    # !$gpu, we need to append a new header in the
-    # corresponding *_F.H file
-
-    # find the names of the Fortran subroutines that are marked as
-    # device
-    targets = find_fortran_targets(args.fortran)
-
-    # find the location of the headers
     headers, _ = ffv.find_files(args.vpath, args.headers)
+    cxx, _ = ffv.find_files(args.vpath, args.cxx)
+
+
+    # part I: we need to find the names of the Fortran routines that
+    # are called from C++ so we can modify the header in the
+    # corresponding *_F.H file.
+
+    # old way -- this is deprecated: finfd each Fortran routine marked
+    # with !$gpu
+    #targets = find_fortran_targets(args.fortran)
+
+    # new way -- look through the C++ for routines launched with
+    # #pragma gpu
+    targets = find_targets_from_pragmas(cxx)
 
     # copy the headers to the output directory, replacing the
     # signatures of the target Fortran routines with the CUDA pair
@@ -477,6 +529,5 @@ if __name__ == "__main__":
 
 
     # part II: for each C++ file, we need to expand the `#pragma gpu`
-    cxx, _ = ffv.find_files(args.vpath, args.cxx)
 
     convert_cxx(args.output_dir, cxx)
