@@ -80,36 +80,6 @@ class HeaderFile(object):
         self.cpp_name = None
 
 
-# this routine is deprecated and will be removed
-def find_fortran_targets(fortran_names):
-    """read through the Fortran files and look for those marked up with
-    attributes(device) or AMREX_DEVICE"""
-
-    targets = []
-
-    for f in fortran_names.split():
-        # open the Fortran file
-        try:
-            fin = open(f, "r")
-        except IOError:
-            sys.exit("Cannot open Fortran file {}".format(f))
-
-        # loop through the file and look for the target subroutines
-        line = fin.readline()
-        while line:
-            m = fortran_re.search(line)
-            if m is not None:
-                targets.append(m.group(5).lower().replace("_device",""))
-            else:
-                m = fortran_attributes_re.search(line)
-                if m is not None:
-                    targets.append(m.group(5).lower().replace("_device",""))
-
-            line = fin.readline()
-
-    return targets
-
-
 def find_targets_from_pragmas(cxx_files):
     """read through the C++ files and look for the functions marked with
     #pragma gpu -- these are the routines we intend to offload (the targets),
@@ -375,14 +345,13 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
                 vars.append(var)
 
             if not has_lo or not has_hi:
-                sys.exit("ERROR: function signature must have variables lo and hi defined:\n--- function name:\n {} \n--- function signature:\n {}\n---".format(name,func_sig))
+                sys.exit("ERROR: function signature must have variables lo and hi defined:\n--- function name:\n {} \n--- function signature:\n {}\n---".format(name, func_sig))
 
             # reassemble the function sig
             all_vars = ", ".join(vars)
             new_call = "{}({})".format(case_name + "_device", all_vars)
 
-
-            hout.write(TEMPLATE.format(func_sig[idx:].replace(';',''), new_call))
+            hout.write(TEMPLATE.format(func_sig[idx:].replace(';', ''), new_call))
             hout.write("\n")
 
 
@@ -515,12 +484,7 @@ if __name__ == "__main__":
     # are called from C++ so we can modify the header in the
     # corresponding *_F.H file.
 
-    # old way -- this is deprecated: finfd each Fortran routine marked
-    # with !$gpu
-    #targets = find_fortran_targets(args.fortran)
-
-    # new way -- look through the C++ for routines launched with
-    # #pragma gpu
+    # look through the C++ for routines launched with #pragma gpu
     targets = find_targets_from_pragmas(cxx)
 
     # copy the headers to the output directory, replacing the
