@@ -213,7 +213,7 @@ contains
           
           cols_tmp(0) = cell_id(i,j)
           mat_tmp(0) = sa * a(i,j) + fac(1)*(bx(i,j)+bx(i+1,j)) &
-               &                     + fac(2)*(by(i,j)+by(i,j+1))
+               &                   + fac(2)*(by(i,j)+by(i,j+1))
 
           cols_tmp(1) = cell_id(i-1,j)
           mat_tmp(1) = -fac(1)*bx(i,j)
@@ -265,4 +265,146 @@ contains
     end do
   end subroutine amrex_hpijmatrix
 
+
+#ifdef AMREX_USE_EB
+
+  subroutine amrex_hpeb_fill_cellid (lo, hi, nrows, cell_id, clo, chi, flag, flo, fhi) &
+       bind(c,name='amrex_hpeb_fill_cellid')
+    use amrex_ebcellflag_module, only : is_covered_cell
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi
+    integer(hypre_int), intent(  out) :: nrows
+    integer(hypre_int), intent(inout) :: cell_id(clo(1):chi(1),clo(2):chi(2))
+    integer           , intent(in   ) :: flag   (flo(1):fhi(1),flo(2):fhi(2))
+
+    integer :: i,j
+
+    nrows = 0
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (.not.is_covered_cell(flag(i,j))) then
+             cell_id(i,j) = nrows
+             nrows = nrows+1
+          end if
+       end do
+    end do
+  end subroutine amrex_hpeb_fill_cellid
+
+  subroutine amrex_hpeb_copy_from_vec (lo, hi, a, alo, ahi, v, nv, flag, flo, fhi) &
+       bind(c,name='amrex_hpeb_copy_from_vec')
+    use amrex_ebcellflag_module, only : is_covered_cell
+    integer, dimension(2), intent(in) :: lo, hi, alo, ahi, flo, fhi
+    integer(hypre_int), intent(in) :: nv
+    real(rt), intent(inout) :: a   (alo(1):ahi(1),alo(2):ahi(2))
+    integer , intent(in   ) :: flag(flo(1):fhi(1),flo(2):fhi(2))
+    real(rt), intent(in) :: v(0:nv-1)
+    
+    integer :: i,j, nrows
+
+    nrows = 0
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (.not.is_covered_cell(flag(i,j))) then
+             a(i,j) = v(nrows)
+             nrows = nrows+1
+          end if
+       end do
+    end do
+  end subroutine amrex_hpeb_copy_from_vec
+
+  subroutine amrex_hpeb_copy_to_vec (lo, hi, a, alo, ahi, v, nv, flag, flo, fhi) &
+       bind(c,name='amrex_hpeb_copy_to_vec')
+    use amrex_ebcellflag_module, only : is_covered_cell
+    integer, dimension(2), intent(in) :: lo, hi, alo, ahi, flo, fhi
+    integer(hypre_int), intent(in) :: nv
+    real(rt), intent(in) :: a   (alo(1):ahi(1),alo(2):ahi(2))
+    integer , intent(in) :: flag(flo(1):fhi(1),flo(2):fhi(2))
+    real(rt), intent(out) :: v(0:nv-1)
+    
+    integer :: i,j, nrows
+
+    nrows = 0
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (.not.is_covered_cell(flag(i,j))) then
+             v(nrows) = a(i,j)
+             nrows = nrows+1
+          end if
+       end do
+    end do
+  end subroutine amrex_hpeb_copy_to_vec
+
+  subroutine amrex_hpeb_ijmatrix (lo, hi, nrows, ncols, rows, cols, mat, &
+       cell_id, clo, chi, cell_id_begin, a, alo, ahi, bx, bxlo, bxhi, &
+       by, bylo, byhi, flag, flo, fhi, vfrc, vlo, vhi, apx, axlo, axhi, apy, aylo, ayhi, &
+       fcx, fxlo, fxhi, fcy, fylo, fyhi, &
+       sa, sb, dx, bct, bcl, bho) &
+       bind(c,name='amrex_hpeb_ijmatrix')
+    use amrex_ebcellflag_module, only : is_covered_cell
+    integer(hypre_int), intent(in) :: nrows, cell_id_begin;
+    integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
+    integer(hypre_int), dimension(0:nrows*9-1), intent(out) :: cols
+    real(rt)          , dimension(0:nrows*9-1), intent(out) :: mat
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, alo, ahi, bxlo, bxhi, bylo, byhi, &
+         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, fxlo, fxhi, fylo, fyhi
+    integer(hypre_int), intent(in) :: cell_id( clo(1): chi(1), clo(2): chi(2))
+    real(rt)          , intent(in) :: a      ( alo(1): ahi(1), alo(2): ahi(2))
+    real(rt)          , intent(in) :: bx     (bxlo(1):bxhi(1),bxlo(2):bxhi(2))
+    real(rt)          , intent(in) :: by     (bylo(1):byhi(1),bylo(2):byhi(2))
+    integer           , intent(in) :: flag   ( flo(1): fhi(1), flo(2): fhi(2))
+    real(rt)          , intent(in) :: vfrc   ( vlo(1): vhi(1), vlo(2): vhi(2))
+    real(rt)          , intent(in) :: apx    (axlo(1):axhi(1),axlo(2):axhi(2))
+    real(rt)          , intent(in) :: apy    (aylo(1):ayhi(1),aylo(2):ayhi(2))
+    real(rt)          , intent(in) :: fcx    (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
+    real(rt)          , intent(in) :: fcy    (fylo(1):fyhi(1),fylo(2):fyhi(2))
+    integer, intent(in) :: bct(0:3), bho
+    real(rt), intent(in) :: sa, sb, dx(2), bcl(0:3)
+
+    integer :: i,j, irow, imat, ic, cdir, idim
+    integer(hypre_int) :: cols_tmp(-1:1,-1:1)
+    real(rt) :: fac(2), mat_tmp(-1:1,-1:1)
+    real(rt) :: bf1(0:3), bf2(0:3), h, h2, h3
+
+    fac = sb/dx**2
+
+    do cdir = 0, 3
+       if (cdir .eq. 0 .or. cdir .eq. 2) then
+          idim = 1
+       else
+          idim = 2
+       end if
+       h = dx(idim)
+       if (bct(cdir) .eq. amrex_lo_dirichlet) then
+          h2 = half * h
+          if (bho.ge.1) then
+             h3 = three * h2
+             bf1(cdir) = fac(idim) * ((h3 - bcl(cdir)) / (bcl(cdir) + h2) - one)
+             bf2(cdir) = fac(idim) * (bcl(cdir) - h2) / (bcl(cdir) + h3)
+          else
+             bf1(cdir) = fac(idim) * ( h / (bcl(cdir) + h2) - one)
+             bf2(cdir) = zero
+          end if
+       else if (bct(cdir) .eq. amrex_lo_neumann) then
+          bf1(cdir) = -fac(idim)
+          bf2(cdir) = zero
+       end if
+    end do
+
+    irow = 0
+    imat = 0
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (.not.is_covered_cell(flag(i,j))) then
+             rows(irow) = cell_id(i,j)
+             ncols(irow) = 0
+             cols_tmp = cell_id(i-1:i+1,j-1:j+1)
+             mat_tmp = zero
+
+
+          end if
+       end do
+    end do
+  end subroutine amrex_hpeb_ijmatrix
+
+#endif
+  
 end module amrex_habec_module

@@ -61,6 +61,7 @@ private :
     int m_maxorder = -1;
     
     LayoutData<HYPRE_Int> ncells_grid;
+    LayoutData<Vector<HYPRE_Int> > cell_id_vec;
     FabArray<BaseFab<HYPRE_Int> > cell_id;
     
     void prepareSolver ();

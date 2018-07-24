@@ -4,6 +4,7 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_MultiCutFab.H>
 #endif
 
 #include <cmath>
@@ -86,6 +87,8 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
                       Real rel_tol, Real abs_tol,
                       int max_iter, const BndryData& bndry, int max_bndry_order)
 {
+    BL_PROFILE("HypreABecLap3::solve()");
+    
     if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
     {
         m_bndry = &bndry;
@@ -144,14 +147,12 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
 void
 HypreABecLap3::getSolution (MultiFab& soln)
 {
-
 #ifdef AMREX_USE_EB
-    EBFArrayBoxFactory* ebfactory = dynamic_cast<EBFArrayBoxFactory*>(m_factory);
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 
     FArrayBox rfab;
-    BaseFab<HYPRE_Int> ifab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -159,31 +160,44 @@ HypreABecLap3::getSolution (MultiFab& soln)
         
 #ifdef AMREX_USE_EB
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered)
-        {
-        }
-        else if (fabtyp == FabType::singlevalued)
-        {
-        }
-        else
+#else
+        auto fabtyp = FabType::regular;
 #endif
+        if (fabtyp != FabType::covered)
         {
-            ifab.resize(bx);
-            ifab.copy(cell_id[mfi],bx);
-            
             FArrayBox *xfab;
-            if (soln.nGrow() == 0) {
-                xfab = &soln[mfi];
-            } else {
+#ifdef AMREX_USE_EB
+            if (fabtyp != FabType::regular)
+            {
                 xfab = &rfab;
                 xfab->resize(bx);
             }
+            else
+#endif
+            {
+                if (soln.nGrow() == 0) {
+                    xfab = &soln[mfi];
+                } else {
+                    xfab = &rfab;
+                    xfab->resize(bx);
+                }
+            }
+                
+            HYPRE_IJVectorGetValues(x, nrows, cell_id_vec[mfi].data(), xfab->dataPtr());
 
-            HYPRE_IJVectorGetValues(x, nrows, ifab.dataPtr(), xfab->dataPtr());
-
-            if (soln.nGrow() != 0) {
+            if (fabtyp == FabType::regular && soln.nGrow() != 0)
+            {
                 soln[mfi].copy(*xfab,bx);
             }
+#ifdef AMREX_USE_EB
+            else if (fabtyp != FabType::regular)
+            {
+                amrex_hpeb_copy_from_vec(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(soln[mfi]),
+                                         xfab->dataPtr(), &nrows,
+                                         BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+            }
+#endif
         }
     }
 }
@@ -191,6 +205,8 @@ HypreABecLap3::getSolution (MultiFab& soln)
 void
 HypreABecLap3::prepareSolver ()
 {
+    BL_PROFILE("HypreABecLap3::prepareSolver()");
+    
     int num_procs, myid;
     MPI_Comm_size(comm, &num_procs);
     MPI_Comm_rank(comm, &myid);
@@ -209,10 +225,16 @@ HypreABecLap3::prepareSolver ()
     // how many non-covered cells do we have?
     ncells_grid.define(ba,dm);
     cell_id.define(ba,dm,1,1);
+    cell_id_vec.define(ba,dm);
 
 #ifdef AMREX_USE_EB
-    EBFArrayBoxFactory* ebfactory = dynamic_cast<EBFArrayBoxFactory*>(m_factory);
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
+    const MultiFab* vfrac = (ebfactory) ? &(ebfactory->getVolFrac()) : nullptr;
+    auto area = (ebfactory) ? ebfactory->getAreaFrac()
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    auto fcent = (ebfactory) ? ebfactory->getFaceCent()
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
 #endif
 
     HYPRE_Int ncells_proc = 0;
@@ -233,6 +255,11 @@ HypreABecLap3::prepareSolver ()
         }
         else if (fabtyp == FabType::singlevalued)
         {
+            amrex_hpeb_fill_cellid(BL_TO_FORTRAN_BOX(bx),
+                                   &ncells_grid[mfi],
+                                   BL_TO_FORTRAN_ANYD(cid_fab),
+                                   BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+            ncells_proc += ncells_grid[mfi];
         }
         else
 #endif
@@ -316,13 +343,14 @@ HypreABecLap3::prepareSolver ()
             const HYPRE_Int max_stencil_size = (fabtyp == FabType::regular) ?
                 regular_stencil_size : eb_stencil_size;
 
-            ifab.resize(bx,(max_stencil_size+2));
+            ifab.resize(bx,(max_stencil_size+1));
             rfab.resize(bx,max_stencil_size);
-            
+
             const HYPRE_Int nrows = ncells_grid[mfi];
+            cell_id_vec[mfi].resize(nrows);
+            HYPRE_Int* rows = cell_id_vec[mfi].data();
             HYPRE_Int* ncols = ifab.dataPtr(0);
-            HYPRE_Int* rows  = ifab.dataPtr(1);
-            HYPRE_Int* cols  = ifab.dataPtr(2);
+            HYPRE_Int* cols  = ifab.dataPtr(1);
             Real*      mat   = rfab.dataPtr();
 
             Array<int,AMREX_SPACEDIM*2> bctype;
@@ -351,7 +379,24 @@ HypreABecLap3::prepareSolver ()
 #ifdef AMREX_USE_EB
             else
             {
-                amrex::Print() << "HypreABecLap3: set mat todo\n";
+                amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
+                                    &nrows, ncols, rows, cols, mat,
+                                    BL_TO_FORTRAN_ANYD(cell_id[mfi]),
+                                    &(offset[mfi]),
+                                    BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
+                                                 BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
+                                                 BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
+                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    &scalar_a, &scalar_b, dx,
+                                    bctype.data(), bcl.data(), &bho);
             }
 #endif
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
@@ -386,55 +431,55 @@ HypreABecLap3::prepareSolver ()
 void
 HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
 {
+    BL_PROFILE("HypreABecLap3::loadVectors()");
+    
 #ifdef AMREX_USE_EB
-    EBFArrayBoxFactory* ebfactory = dynamic_cast<EBFArrayBoxFactory*>(m_factory);
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 
     soln.setVal(0.0);
     
     FArrayBox rfab;
-    BaseFab<HYPRE_Int> ifab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
         const HYPRE_Int nrows = ncells_grid[mfi];
         
 #ifdef AMREX_USE_EB
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered)
-        {
-        }
-        else if (fabtyp == FabType::singlevalued)
-        {
-        }
-        else
+        const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+#else
+        const auto fabtyp = FabType::regular;
 #endif
+        if (fabtyp != FabType::covered)
         {
-            ifab.resize(bx);
-            ifab.copy(cell_id[mfi],bx);
-            
-            FArrayBox *xfab;
-            if (soln.nGrow() == 0) {
-                xfab = &soln[mfi];
-            } else {
-                xfab = &rfab;
-                xfab->resize(bx);
-                xfab->setVal(0.0);
-            }
+            // soln has been set to zero.
+            HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr());
 
-            HYPRE_IJVectorSetValues(x, nrows, ifab.dataPtr(), xfab->dataPtr());
-
-            FArrayBox* bfab;
-            if (rhs.nGrow() == 0) {
-                bfab = const_cast<FArrayBox*>(&rhs[mfi]);
-            } else {
+            FArrayBox* bfab;                            
+#ifdef AMREX_USE_EB
+            if (fabtyp != FabType::regular)
+            {
                 bfab = &rfab;
                 bfab->resize(bx);
-                bfab->copy(rhs[mfi],bx);
+                amrex_hpeb_copy_to_vec(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                       bfab->dataPtr(), &nrows,
+                                       BL_TO_FORTRAN_ANYD((*flags)[mfi]));
             }
-
-            HYPRE_IJVectorSetValues(b, nrows, ifab.dataPtr(), bfab->dataPtr());
+            else
+#else
+            {
+                if (rhs.nGrow() == 0) {
+                    bfab = const_cast<FArrayBox*>(&rhs[mfi]);
+                } else {
+                    bfab = &rfab;
+                    bfab->resize(bx);
+                    bfab->copy(rhs[mfi],bx);
+                }
+            }
+#endif
+            HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr());
         }
     }
 
