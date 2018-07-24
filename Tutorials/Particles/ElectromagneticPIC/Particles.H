@@ -4,7 +4,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 
-#include <StructOfArrays.H>
+#include <AMReX_StructOfArrays.H>
 
 /**
 
@@ -33,10 +33,10 @@ struct TIdx
 
 struct Particles {
 
-    using RealVector = StructOfArrays<PIdx::nattribs, 0>::RealVector;
+    using RealVector = amrex::StructOfArrays<PIdx::nattribs, 0>::RealVector;
 
-    StructOfArrays<PIdx::nattribs, 0> attribs;
-    StructOfArrays<TIdx::ntemp, 0> temp;
+    amrex::StructOfArrays<PIdx::nattribs, 0> attribs;
+    amrex::StructOfArrays<TIdx::ntemp, 0> temp;
     
     amrex::Real charge;
     amrex::Real mass;
@@ -85,7 +85,7 @@ struct Particles {
 
     const RealVector& ginv() const {return temp.GetRealData(TIdx::ginv);}
 
-    int size() {return attribs.size();}
+    int numParticles() {return attribs.numParticles();}
 };
 
 #endif

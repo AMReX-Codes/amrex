@@ -33,6 +33,7 @@
 #include <AMReX_VectorIO.H>
 #include <AMReX_Particles_F.H>
 #include <AMReX_ParticleMPIUtil.H>
+#include <AMReX_StructOfArrays.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -268,59 +269,6 @@ private:
     ParticleVector m_data;
 };
 template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeInReal;
-
-
-template <int NReal, int NInt>
-struct StructOfArrays {
-  
-#ifdef AMREX_USE_CUDA
-    using RealVector = Vector<Real, CudaManagedAllocator<Real>>;
-    using  IntVector = Vector<int , CudaManagedAllocator<int >>;
-#else
-    using RealVector = Vector<Real>;
-    using  IntVector = Vector<int >;
-#endif
-
-    std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
-    std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
-
-    const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
-    const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
-
-    RealVector& GetRealData (const int index) {
-        BL_ASSERT(index < NReal);
-        return m_rdata[index];
-    }
-    
-    const RealVector& GetRealData (const int index) const {
-        BL_ASSERT(index < NReal);
-        return m_rdata[index];
-    }
-
-    IntVector& GetIntData (const int index) {
-        BL_ASSERT(index < NInt);
-        return m_idata[index];
-    }
-    
-    const IntVector& GetIntData (const int index) const {
-        BL_ASSERT(index < NInt);
-        return m_idata[index];
-    }
-
-    int numParticles () const { 
-        if (NReal > 0)
-            return m_rdata[0].size();
-        else if (NInt > 0) 
-            return m_idata[0].size();
-        else
-            return 0;
-    }
-
-private:
-    std::array<RealVector, NReal> m_rdata;
-    std::array< IntVector,  NInt> m_idata;    
-};
-
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTile

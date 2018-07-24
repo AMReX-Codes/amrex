@@ -3,6 +3,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_StructOfArrays.H>
 
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
@@ -259,7 +260,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
         auto& particles = m_particles[mfi.index()];
-        const int np    = particles.size();
+        const int np    = particles.numParticles();
 
         if (np == 0) continue;
 
@@ -350,7 +351,7 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
         auto& particles = m_particles[mfi.index()];
-        const int np    = particles.size();
+        const int np    = particles.numParticles();
 
         if (np == 0) continue;
 
@@ -406,7 +407,7 @@ PushParticlePositions(amrex::Real dt)
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
         auto& particles = m_particles[mfi.index()];
-        const int np    = particles.size();
+        const int np    = particles.numParticles();
         
         if (np == 0) continue;
 
@@ -437,7 +438,7 @@ EnforcePeriodicBCs()
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
         auto& particles = m_particles[mfi.index()];
-        const int np    = particles.size();
+        const int np    = particles.numParticles();
 
         if (np == 0) continue;
 
@@ -464,7 +465,7 @@ OK ()
         int i = mfi.index();
         
         auto& particles = m_particles[i];
-        const int np = particles.size();
+        const int np = particles.numParticles();
         auto& soa = particles.attribs;
 
         total_np += np;
@@ -497,7 +498,7 @@ Redistribute()
 {
     BL_PROFILE("ElectromagneticParticleContainer::Redistribute");
     
-    StructOfArrays<PIdx::nattribs, 0> particles_to_redistribute;
+    amrex::StructOfArrays<PIdx::nattribs, 0> particles_to_redistribute;
     
     thrust::device_vector<int> grids;
     thrust::device_vector<int> grids_copy;    
@@ -507,7 +508,7 @@ Redistribute()
         int src_grid = mfi.index();
         
         auto& attribs = m_particles[src_grid].attribs;
-        const size_t old_num_particles = attribs.size();
+        const size_t old_num_particles = attribs.numParticles();
         
         grids.resize(old_num_particles);
         grids_copy.resize(old_num_particles);
@@ -527,7 +528,7 @@ Redistribute()
         const size_t num_to_redistribute = thrust::distance(mid, end);
         const size_t new_num_particles   = old_num_particles - num_to_redistribute;
         
-        const size_t old_size = particles_to_redistribute.size();
+        const size_t old_size = particles_to_redistribute.numParticles();
         const size_t new_size = old_size + num_to_redistribute;
         
         particles_to_redistribute.resize(new_size);
@@ -592,11 +593,11 @@ Redistribute()
 
         if (dest_proc == ParallelDescriptor::MyProc())
         {
-            const size_t old_size = m_particles[i].attribs.size();
+            const size_t old_size = m_particles[i].attribs.numParticles();
             const size_t new_size = old_size + num_to_add;
             m_particles[i].attribs.resize(new_size);
             thrust::copy(begin, end, m_particles[i].attribs.begin() + old_size);
-            m_particles[i].temp.resize(m_particles[i].attribs.size());
+            m_particles[i].temp.resize(m_particles[i].attribs.numParticles());
         }
         else
         {           
@@ -739,11 +740,11 @@ RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
                 
                 if (num_particles == 0) continue;
 
-                StructOfArrays<PIdx::nattribs, 0> redistributed_particles;
+                amrex::StructOfArrays<PIdx::nattribs, 0> redistributed_particles;
 
                 AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
                 {
-                    const size_t old_size = redistributed_particles.size();
+                    const size_t old_size = redistributed_particles.numParticles();
                     const size_t new_size = old_size + num_particles;        
                     redistributed_particles.resize(new_size);
                     
@@ -755,13 +756,13 @@ RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
                 }
             
                 {
-                    const size_t old_size = m_particles[gid].attribs.size();
+                    const size_t old_size = m_particles[gid].attribs.numParticles();
                     const size_t new_size = old_size + num_particles;
                     m_particles[gid].attribs.resize(new_size);
                     thrust::copy(redistributed_particles.begin(),
                                  redistributed_particles.end(),
                                  m_particles[gid].attribs.begin() + old_size);
-                    m_particles[gid].temp.resize(m_particles[gid].attribs.size());
+                    m_particles[gid].temp.resize(m_particles[gid].attribs.numParticles());
                 }
             }
         }
