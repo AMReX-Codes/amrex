@@ -16,7 +16,7 @@ m_p = 1.6726231e-27
 
 
 class Species(PICMI_Base.PICMI_Species):
-    def init(self, **kw):
+    def init(self, kw):
 
         if self.particle_type == 'electron':
             if self.charge is None: self.charge = '-q_e'
@@ -56,7 +56,7 @@ class MultiSpecies(PICMI_Base.PICMI_MultiSpecies):
 
 
 class GaussianBunchDistribution(PICMI_Base.PICMI_GaussianBunchDistribution):
-    def init(self, **kw):
+    def init(self, kw):
         if self.seed is not None:
             print('Warning: WarpX does not support specifying the random number seed')
 
@@ -169,7 +169,7 @@ class AnalyticDistribution(PICMI_Base.PICMI_AnalyticDistribution):
 
 
 class ParticleList(PICMI_Base.PICMI_ParticleList):
-    def init(self, **kw):
+    def init(self, kw):
 
         if len(x) > 1:
             raise Exception('Only a single particle can be loaded')
@@ -204,15 +204,15 @@ class BinomialSmoother(PICMI_Base.PICMI_BinomialSmoother):
 
 
 class CylindricalGrid(PICMI_Base.PICMI_CylindricalGrid):
-    def init(self, **kw):
+    def init(self, kw):
         raise Exception('WarpX does not support CylindricalGrid')
 
 
 class Cartesian2DGrid(PICMI_Base.PICMI_Cartesian2DGrid):
-    def init(self, **kw):
-        self.max_grid_size = kw.get('max_grid_size', 32)
-        self.max_level = kw.get('max_level', 0)
-        self.coord_sys = kw.get('coord_sys', 0)
+    def init(self, kw):
+        self.max_grid_size = kw.pop('max_grid_size', 32)
+        self.max_level = kw.pop('max_level', 0)
+        self.coord_sys = kw.pop('coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -241,10 +241,10 @@ class Cartesian2DGrid(PICMI_Base.PICMI_Cartesian2DGrid):
 
 
 class Cartesian3DGrid(PICMI_Base.PICMI_Cartesian3DGrid):
-    def init(self, **kw):
-        self.max_grid_size = kw.get('max_grid_size', 32)
-        self.max_level = kw.get('max_level', 0)
-        self.coord_sys = kw.get('coord_sys', 0)
+    def init(self, kw):
+        self.max_grid_size = kw.pop('max_grid_size', 32)
+        self.max_level = kw.pop('max_level', 0)
+        self.coord_sys = kw.pop('coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -276,7 +276,7 @@ class Cartesian3DGrid(PICMI_Base.PICMI_Cartesian3DGrid):
 
 
 class ElectromagneticSolver(PICMI_Base.PICMI_ElectromagneticSolver):
-    def init(self, **kw):
+    def init(self, kw):
         assert self.method is None or self.method in ['Yee'], Exception("Only 'Yee' FDTD is supported")
 
     def initialize_inputs(self):
@@ -319,13 +319,13 @@ class LaserAntenna(PICMI_Base.PICMI_LaserAntenna):
 
 
 class Simulation(PICMI_Base.PICMI_Simulation):
-    def init(self, **kw):
+    def init(self, kw):
 
-        self.plot_int = kw.get('plot_int', None)
-        self.current_deposition_algo = kw.get('current_deposition_algo', None)
-        self.charge_deposition_algo = kw.get('charge_deposition_algo', None)
-        self.field_gathering_algo = kw.get('field_gathering_algo', None)
-        self.particle_pusher_algo = kw.get('particle_pusher_algo', None)
+        self.plot_int = kw.pop('plot_int', None)
+        self.current_deposition_algo = kw.pop('current_deposition_algo', None)
+        self.charge_deposition_algo = kw.pop('charge_deposition_algo', None)
+        self.field_gathering_algo = kw.pop('field_gathering_algo', None)
+        self.particle_pusher_algo = kw.pop('particle_pusher_algo', None)
 
         self.inputs_initialized = False
         self.warpx_initialized = False
