@@ -32,6 +32,10 @@ HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
     acoefs.define(grids, dmap, ncomp, ngrow);
     acoefs.setVal(0.0);
 
+#ifdef AMREX_USE_EB
+    ngrow = 1;
+#endif
+    
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         BoxArray edge_boxes(grids);
         edge_boxes.surroundingNodes(i);
@@ -72,7 +76,8 @@ void
 HypreABecLap3::setBCoeffs (const Array<const MultiFab*, AMREX_SPACEDIM>& beta)
 {
     for (int idim=0; idim < AMREX_SPACEDIM; idim++) {
-        MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, 0);
+        const int ng = std::min(bcoefs[idim].nGrow(), beta[idim]->nGrow());
+        MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, ng);
     }
 }
 
