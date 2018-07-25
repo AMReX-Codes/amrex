@@ -784,6 +784,18 @@ contains
                             mat_tmp(0, 0,koff) = mat_tmp(0, 0,koff) + tmp*(f+bflo(cdir))
                          end if
                       end if
+
+                      if (fracx.gt.zero .and. fracz.gt.zero) then
+                         tmp = fracx*fracz*area*by(ii,j,kk)
+                         if (cell_id(ii,j-1,kk).ge.0 .and. cell_id(ii,j,kk).ge.0) then
+                            mat_tmp(ioff,-1,koff) = mat_tmp(ioff,-1,koff) - tmp*f
+                            mat_tmp(ioff, 0,koff) = mat_tmp(ioff, 0,koff) + tmp*f
+                         else if (cell_id(ii,j-1,kk).ge.0) then
+                            mat_tmp(ioff,-1,koff) = mat_tmp(ioff,-1,koff) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff, 0,koff) = mat_tmp(ioff, 0,koff) + tmp*(f+bflo(cdir))
+                         end if
+                      end if
                    end if
                    
                    cdir = 4
@@ -851,6 +863,18 @@ contains
                             mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*(f+bflo(cdir))
                          else
                             mat_tmp(0,1,koff) = mat_tmp(0,1,koff) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracx.gt. zero .and. fracz.gt.zero) then
+                         tmp = fracx*fracz*area*by(ii,j+1,kk)
+                         if (cell_id(ii,j,kk).ge.0 .and. cell_id(ii,j+1,kk).ge.0) then
+                            mat_tmp(ioff,1,koff) = mat_tmp(ioff,1,koff) - tmp*f
+                            mat_tmp(ioff,0,koff) = mat_tmp(ioff,0,koff) + tmp*f
+                         else if (cell_id(ii,j+1,kk).ge.0) then
+                            mat_tmp(ioff,1,koff) = mat_tmp(ioff,1,koff) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff,0,koff) = mat_tmp(ioff,0,koff) + tmp*(f+bflo(cdir))
                          end if
                       end if
                    end if
@@ -922,6 +946,18 @@ contains
                             mat_tmp(0,joff, 0) = mat_tmp(0,joff, 0) + tmp*(f+bflo(cdir))
                          end if
                       end if
+
+                      if (fracx.gt.zero .and. fracy.gt.zero) then
+                         tmp = fracx*fracy*area*bz(ii,jj,k)
+                         if (cell_id(ii,jj,k-1).ge.0 .and. cell_id(ii,jj,k).ge.0) then
+                            mat_tmp(ioff,joff,-1) = mat_tmp(ioff,joff,-1) - tmp*f
+                            mat_tmp(ioff,joff, 0) = mat_tmp(ioff,joff, 0) + tmp*f
+                         else if (cell_id(ii,jj,k-1).ge.0) then
+                            mat_tmp(ioff,joff,-1) = mat_tmp(ioff,joff,-1) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff,joff, 0) = mat_tmp(ioff,joff, 0) + tmp*(f+bflo(cdir))
+                         end if
+                      end if
                    end if
 
                    cdir = 5
@@ -989,6 +1025,18 @@ contains
                             mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*(f+bflo(cdir))
                          else
                             mat_tmp(0,joff,1) = mat_tmp(0,joff,1) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracx.gt.zero .and. fracy.gt.zero) then
+                         tmp = fracx*fracy*area*bz(ii,jj,k+1)
+                         if (cell_id(ii,jj,k+1).ge.0 .and. cell_id(ii,jj,k).ge.0) then
+                            mat_tmp(ioff,joff,1) = mat_tmp(ioff,joff,1) - tmp*f
+                            mat_tmp(ioff,joff,0) = mat_tmp(ioff,joff,0) + tmp*f
+                         else if (cell_id(ii,jj,k+1).ge.0) then
+                            mat_tmp(ioff,joff,1) = mat_tmp(ioff,joff,1) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff,joff,0) = mat_tmp(ioff,joff,0) + tmp*(f+bflo(cdir))
                          end if
                       end if
                    end if
