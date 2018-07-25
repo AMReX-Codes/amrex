@@ -1075,15 +1075,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 
   BL_PROFILE("ParticleContainer::Redistribute()");
-  // BL_PROFILE_VAR_NS("locate", blp_locate);
-  // BL_PROFILE_VAR_NS("copy", blp_copy);
-  // BL_PROFILE_VAR_NS("partition", blp_partition);
-  // BL_PROFILE_VAR_NS("second_pass", blp_second_pass);
-  // BL_PROFILE_VAR_NS("map_clear", blp_map_clear);
-  // BL_PROFILE_VAR_NS("erase", blp_erase);
-  // BL_PROFILE_VAR_NS("setup", blp_setup);
-  
-  // BL_PROFILE_VAR_START(blp_setup);
 
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = ParallelDescriptor::second();
@@ -1099,7 +1090,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
   if (int(m_particles.size()) < theEffectiveFinestLevel+1) {
       if (Verbose()) {
-          amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing containers from "
+          amrex::Print() << "ParticleContainer::Redistribute() resizing containers from "
                          << m_particles.size() << " to " 
                          << theEffectiveFinestLevel + 1 << '\n';
       }
@@ -1154,7 +1145,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
       tmp_remote[i].resize(num_threads);
   }
-  //  BL_PROFILE_VAR_STOP(blp_setup);
 
   // first pass: for each tile in parallel, in each thread copies the particles that
   // need to be moved into it's own, temporary buffer.
@@ -1179,22 +1169,38 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
               int tile = pmap_it->first.second;
               auto& aos = pmap_it->second.GetArrayOfStructs();
               auto& soa = pmap_it->second.GetStructOfArrays();
-              unsigned first = 0;
               unsigned npart = aos.numParticles();              
               ParticleLocData pld;
               if (npart != 0) {
-                  for (unsigned pindex = 0; pindex < npart; ++pindex) {
+                  long last = npart - 1;
+                  unsigned pindex = 0;
+                  while (pindex <= last) {
                       ParticleType& p = aos[pindex];
-                      
-                      if (p.m_idata.id < 0) continue;                      
-		      //		      BL_PROFILE_VAR_START(blp_locate);
-                      locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
-		      //		      BL_PROFILE_VAR_STOP(blp_locate);
-                      if (p.m_idata.id < 0) continue;                      
 
-		      //		      BL_PROFILE_VAR_START(blp_copy);                      
-                      // The owner of the particle is the CPU owning the finest grid
-                      // in state data that contains the particle.
+		      if (p.m_idata.id < 0)
+		      {
+                          aos[pindex] = aos[last];
+                          for (int comp = 0; comp < NArrayReal; comp++)
+                              soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
+                          for (int comp = 0; comp < NArrayInt; comp++)
+                              soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+                          --last;
+                          continue;
+		      }
+                      
+                      locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
+                      
+		      if (p.m_idata.id < 0)
+                      {
+                          aos[pindex] = aos[last];
+                          for (int comp = 0; comp < NArrayReal; comp++)
+                              soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
+                          for (int comp = 0; comp < NArrayInt; comp++)
+                              soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+                          --last;
+                          continue;
+		      }
+
                       const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
                       if (who == MyProc) {
                           if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
@@ -1211,8 +1217,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                   arr.push_back(soa.GetIntData(comp)[pindex]);
                               }
                               
-                              // Invalidate the particle so we can reclaim its space.
-                              p.m_idata.id = -p.m_idata.id;
+                              p.m_idata.id = -p.m_idata.id; // Invalidate the particle
                           }
                       }
                       else {
@@ -1234,46 +1239,42 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                   dst += sizeof(int);
                               }
                           }
-                          // Invalidate the particle so we can reclaim its space.
-                          p.m_idata.id = -p.m_idata.id;
-                      }
-		      //		      BL_PROFILE_VAR_STOP(blp_copy);
 
-		      //		      BL_PROFILE_VAR_START(blp_partition);
-                      // this is a valid particle
-                      if (p.m_idata.id > 0) {
-                          if (pindex != first) {
-                              aos[first] = p;
-                              for (int comp = 0; comp < NArrayReal; comp++)
-                                  soa.GetRealData(comp)[first] = soa.GetRealData(comp)[pindex];
-                              for (int comp = 0; comp < NArrayInt; comp++)
-                                  soa.GetIntData(comp)[first] = soa.GetIntData(comp)[pindex];
-                          }
-                          ++first;
+                          p.m_idata.id = -p.m_idata.id; // Invalidate the particle
                       }
-		      //		      BL_PROFILE_VAR_STOP(blp_partition);
+
+		      if (p.m_idata.id < 0)
+		      {
+                          aos[pindex] = aos[last];
+                          for (int comp = 0; comp < NArrayReal; comp++)
+                              soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
+                          for (int comp = 0; comp < NArrayInt; comp++)
+                              soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+                          --last;
+                          continue;
+		      }
+
+                      ++pindex;
                   }
               
-		  //		  BL_PROFILE_VAR_START(blp_erase);
-                  aos().erase(aos().begin() + first, aos().begin() + npart);
+                  aos().erase(aos().begin() + last + 1, aos().begin() + npart);
                   for (int comp = 0; comp < NArrayReal; comp++) {
                       Vector<Real>& rdata = soa.GetRealData(comp);
-                      rdata.erase(rdata.begin() + first, rdata.begin() + npart);
+                      rdata.erase(rdata.begin() + last + 1, rdata.begin() + npart);
                   }
                   for (int comp = 0; comp < NArrayInt; comp++) {
                       Vector<int>& idata = soa.GetIntData(comp);
-                      idata.erase(idata.begin() + first, idata.begin() + npart);
+                      idata.erase(idata.begin() + last + 1, idata.begin() + npart);
                   }
-		  //		  BL_PROFILE_VAR_STOP(blp_erase);
               }
-           }
-        }
-    }
-
-    for (int lev = lev_min; lev <= lev_max; lev++) {
-        auto& pmap = m_particles[lev];
-        for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
-
+          }
+      }
+  }
+  
+  for (int lev = lev_min; lev <= lev_max; lev++) {
+      auto& pmap = m_particles[lev];
+      for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
+          
           // Remove any map entries for which the particle container is now empty.
           if (pmap_it->second.empty()) {
               pmap.erase(pmap_it++);
@@ -1281,18 +1282,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           else {
               ++pmap_it;
           }
-        }
-    }
-    
-    //    BL_PROFILE_VAR_START(blp_second_pass);
-    // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
-    for (int lev = lev_min; lev <= lev_max; lev++) {
-        typename std::map<std::pair<int, int>, Vector<Vector<ParticleType> > >::iterator pmap_it;
+      }
+  }
+  
+  // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
+  for (int lev = lev_min; lev <= lev_max; lev++) {
+      typename std::map<std::pair<int, int>, Vector<Vector<ParticleType> > >::iterator pmap_it;
       
-        // we need to create any missing map entries in serial here
-        for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
-            m_particles[lev][pmap_it->first];
-
+      // we need to create any missing map entries in serial here
+      for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
+          m_particles[lev][pmap_it->first];
+      
 #ifdef _OPENMP
 #pragma omp parallel
 #pragma omp single nowait
@@ -1330,7 +1330,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   for (auto& map_it : tmp_remote) {
       int who = map_it.first;
       not_ours[who];
-  }  
+  }
 
   std::map<int, Vector<Vector<char> > >::iterator it;
 #ifdef _OPENMP
@@ -1350,9 +1350,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           }
       }
   }
-  //  BL_PROFILE_VAR_STOP(blp_second_pass);
 
-  //  BL_PROFILE_VAR_START(blp_map_clear);  
   // remove any empty map entries from not_ours
   for (auto pmap_it = not_ours.begin(); pmap_it != not_ours.end(); /* no ++ */) {        
       if (pmap_it->second.empty()) {
@@ -1362,12 +1360,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           ++pmap_it;
       }
   }
-  //  BL_PROFILE_VAR_STOP(blp_map_clear);
 
   if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
       // Looks like we lost an AmrLevel on a regrid.
       if (m_verbose > 0) {
-          amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing m_particles from "
+          amrex::Print() << "ParticleContainer::Redistribute() resizing m_particles from "
                          << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
       }
       BL_ASSERT(int(m_particles.size()) >= 2);
