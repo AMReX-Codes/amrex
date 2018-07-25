@@ -592,9 +592,9 @@ contains
                          mat_tmp(ioff,0) = mat_tmp(ioff,0) + fracx*area*fac(2)*bx(ii,j+1)
                          mat_tmp(ioff,1) = mat_tmp(ioff,1) - fracx*area*fac(2)*bx(ii,j+1)
                       else if (cell_id(ii,j).ge.0) then
-                         mat_tmp(ioff,0) = mat_tmp(ioff,0) + fracx*area*(fac(2)+bflo(cdir))*bx(ii,j+1)
+                         mat_tmp(ioff,0) = mat_tmp(ioff,0) + fracx*area*(fac(2)+bflo(cdir))*by(ii,j+1)
                       else
-                         mat_tmp(ioff,1) = mat_tmp(ioff,1) - fracx*area*(fac(2)+bflo(cdir))*bx(ii,j+1)
+                         mat_tmp(ioff,1) = mat_tmp(ioff,1) - fracx*area*(fac(2)+bflo(cdir))*by(ii,j+1)
                       end if
                    end if
                 end if
