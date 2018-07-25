@@ -459,7 +459,7 @@ contains
     integer :: i,j,k, irow, imat, cdir, idim, ii,jj,kk, ioff, joff, koff
     real(rt) :: fac(3), mat_tmp(-1:1,-1:1,-1:1)
     real(rt) :: bf1(0:5), bf2(0:5), h, h2, h3, bflo(0:5)
-    real(rt) :: fracx, fracy, fracz, area, bc
+    real(rt) :: fracx, fracy, fracz, area, abc, tmp, f
 
     fac = sb/dx**2
 
@@ -554,6 +554,447 @@ contains
                    end if
                    
                 else
+
+                   cdir = 0
+                   f = fac(1)
+                   area = apx(i,j,k)
+                   abc = area*bx(i,j,k)
+                   if (area.ge.zero) then
+                      if (area.ne.one) then
+                         joff = int(sign(one,fcx(i,j,k,1)))
+                         koff = int(sign(one,fcx(i,j,k,2)))
+                         jj = j+joff
+                         kk = k+koff
+                         if (cell_id(i-1,jj,k).lt.0 .and. cell_id(i,jj,k).lt.0) then
+                            fracy = zero
+                         else
+                            fracy = abs(fcx(i,j,k,1))
+                         end if
+                         if (cell_id(i-1,j,kk).lt.0 .and. cell_id(i,j,kk).lt.0) then
+                            fracz = zero
+                         else
+                            fracz = abs(fcx(i,j,k,2))
+                         end if
+                         if (cell_id(i-1,jj,kk).lt.0 .and. cell_id(i,jj,kk).lt.0) then
+                            fracy = zero
+                            fracz = zero
+                         end if
+                      else
+                         joff = 0
+                         koff = 0
+                         jj = j
+                         kk = k
+                         fracy = zero
+                         fracz = zero
+                      end if
+
+                      tmp = (one-fracy)*(one-fracz)*abc
+                      if (cell_id(i-1,j,k).ge.0) then
+                         mat_tmp( 0,0,0) = mat_tmp( 0,0,0) + tmp*f
+                         mat_tmp(-1,0,0) = mat_tmp(-1,0,0) - tmp*f
+                      else if (cell_id(i+1,j,k).lt.0 .or. apx(i+1,j,k).eq.zero .or. bho.eq.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bflo(cdir))
+                      else
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bf1(cdir))
+                         mat_tmp(1,0,0) = mat_tmp(1,0,0) + tmp*   bf2(cdir)
+                      end if
+
+                      if (fracy.gt.zero) then
+                         tmp = fracy*(one-fracz)*area*bx(i,jj,k)
+                         if (cell_id(i-1,jj,k).ge.0 .and. cell_id(i,jj,k).ge.0) then
+                            mat_tmp(-1,joff,0) = mat_tmp(-1,joff,0) - tmp*f
+                            mat_tmp( 0,joff,0) = mat_tmp( 0,joff,0) + tmp*f
+                         else if (cell_id(i-1,jj,k).ge.0) then
+                            mat_tmp(-1,joff,0) = mat_tmp(-1,joff,0) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp( 0,joff,0) = mat_tmp( 0,joff,0) + tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracz.gt.zero) then
+                         tmp = fracz*(one-fracy)*area*bx(i,j,kk)
+                         if (cell_id(i-1,j,kk).ge.0 .and. cell_id(i,j,kk).ge.0) then
+                            mat_tmp(-1,0,koff) = mat_tmp(-1,0,koff) - tmp*f
+                            mat_tmp( 0,0,koff) = mat_tmp( 0,0,koff) + tmp*f
+                         else if (cell_id(i-1,j,kk).ge.0) then
+                            mat_tmp(-1,0,koff) = mat_tmp(-1,0,koff) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp( 0,0,koff) = mat_tmp( 0,0,koff) + tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracy.gt.zero .and. fracz.gt.zero) then
+                         tmp = fracy*fracz*area*bx(i,jj,kk)
+                         if (cell_id(i-1,jj,kk).ge.0 .and. cell_id(i,jj,kk).ge.0) then
+                            mat_tmp(-1,joff,koff) = mat_tmp(-1,joff,koff) - tmp*f
+                            mat_tmp( 0,joff,koff) = mat_tmp( 0,joff,koff) + tmp*f
+                         else if (cell_id(i-1,jj,kk).ge.0) then
+                            mat_tmp(-1,joff,koff) = mat_tmp(-1,joff,koff) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp( 0,joff,koff) = mat_tmp( 0,joff,koff) + tmp*(f+bflo(cdir))
+                         end if
+                      end if                      
+                   end if
+
+                   cdir = 3
+                   f = fac(1)
+                   area = apx(i+1,j,k)
+                   abc = area*bx(i+1,j,k)
+                   if (area.ge.zero) then
+                      if (area.ne.one) then
+                         joff = int(sign(one,fcx(i,j,k,1)))
+                         koff = int(sign(one,fcx(i,j,k,2)))
+                         jj = j+joff
+                         kk = k+koff
+                         if (cell_id(i,jj,k).lt.0 .and. cell_id(i+1,jj,k).lt.0) then
+                            fracy = zero
+                         else
+                            fracy = abs(fcx(i,j,k,1))
+                         end if
+                         if (cell_id(i,j,kk).lt.0 .and. cell_id(i+1,j,kk).lt.0) then
+                            fracz = zero
+                         else
+                            fracz = abs(fcx(i,j,k,2))
+                         end if
+                         if (cell_id(i,jj,kk).lt.0 .and. cell_id(i+1,jj,kk).lt.0) then
+                            fracy = zero
+                            fracz = zero
+                         end if
+                      else
+                         joff = 0
+                         koff = 0
+                         jj = j
+                         kk = k
+                         fracy = zero
+                         fracz = zero
+                      end if
+
+                      tmp = (one-fracy)*(one-fracz)*abc
+                      if (cell_id(i+1,j,k).ge.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*f
+                         mat_tmp(1,0,0) = mat_tmp(1,0,0) - tmp*f
+                      else if (cell_id(i-1,j,k).lt.0 .or. apx(i-1,j,k).eq.zero .or. bho.eq.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bflo(cdir))
+                      else
+                         mat_tmp( 0,0,0) = mat_tmp( 0,0,0) + tmp*(f+bf1(cdir))
+                         mat_tmp(-1,0,0) = mat_tmp(-1,0,0) + tmp*   bf2(cdir)
+                      end if
+
+                      if (fracy.gt. zero) then
+                         tmp = fracy*(one-fracz)*area*bx(i+1,jj,k)
+                         if (cell_id(i,jj,k).ge.0 .and. cell_id(i+1,jj,k).ge.0) then
+                            mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*f
+                            mat_tmp(1,joff,0) = mat_tmp(1,joff,0) - tmp*f
+                         else if (cell_id(i,jj,k).ge.0) then
+                            mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(1,joff,0) = mat_tmp(1,joff,0) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracz.gt.zero) then
+                         tmp = fracz*(one-fracy)*area*bx(i+1,j,kk)
+                         if (cell_id(i,j,kk).ge.0 .and. cell_id(i+1,j,kk).ge.0) then
+                            mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*f
+                            mat_tmp(1,0,koff) = mat_tmp(1,0,koff) - tmp*f
+                         else if (cell_id(i,j,kk).ge.0) then
+                            mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(1,0,koff) = mat_tmp(1,0,koff) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracy.gt.zero .and. fracz.gt.zero) then
+                         tmp = fracy*fracz*area*bx(i+1,jj,kk)
+                         if (cell_id(i,jj,kk).ge.0 .and. cell_id(i+1,jj,kk).ge.0) then
+                            mat_tmp(0,joff,koff) = mat_tmp(0,joff,koff) + tmp*f
+                            mat_tmp(1,joff,koff) = mat_tmp(1,joff,koff) - tmp*f
+                         else if (cell_id(i,jj,kk).ge.0) then
+                            mat_tmp(0,joff,koff) = mat_tmp(0,joff,koff) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(1,joff,koff) = mat_tmp(1,joff,koff) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+                   end if
+                   
+                   cdir = 1
+                   f = fac(2)
+                   area = apy(i,j,k)
+                   abc = area*by(i,j,k)
+                   if (area.ge.zero) then
+                      if (area.ne.one) then
+                         ioff = int(sign(one,fcy(i,j,k,1)))
+                         koff = int(sign(one,fcy(i,j,k,2)))
+                         ii = i+ioff
+                         kk = k+koff
+                         if (cell_id(ii,j-1,k).lt.0 .and. cell_id(ii,j,k).lt.0) then
+                            fracx = zero
+                         else
+                            fracx = abs(fcy(i,j,k,1))
+                         end if
+                         if (cell_id(i,j-1,kk).lt.0 .and. cell_id(i,j,kk).lt.0) then
+                            fracz = zero
+                         else
+                            fracz = abs(fcy(i,j,k,2))
+                         end if
+                         if (cell_id(ii,j-1,kk).lt.0 .and. cell_id(ii,j,kk).lt.0) then
+                            fracx = zero
+                            fracz = zero
+                         end if
+                      else
+                         ioff = 0
+                         koff = 0
+                         ii = i
+                         kk = k
+                         fracx = zero
+                         fracz = zero
+                      end if
+
+                      tmp = (one-fracx)*(one-fracz)*abc
+                      if (cell_id(i,j-1,k).ge.0) then
+                         mat_tmp(0, 0,0) = mat_tmp(0, 0,0) + tmp*f
+                         mat_tmp(0,-1,0) = mat_tmp(0,-1,0) - tmp*f
+                      else if (cell_id(i,j+1,k).lt.0 .or. apy(i,j+1,k).eq.zero .or. bho.eq.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bflo(cdir))
+                      else
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bf1(cdir))
+                         mat_tmp(0,1,0) = mat_tmp(0,1,0) + tmp*   bf2(cdir)
+                      end if
+                      
+                      if (fracx.gt.zero) then
+                         tmp = fracx*(one-fracz)*area*by(ii,j,k)
+                         if (cell_id(ii,j-1,k).ge.0 .and. cell_id(ii,j,k).ge.0) then
+                            mat_tmp(ioff,-1,0) = mat_tmp(ioff,-1,0) - tmp*f
+                            mat_tmp(ioff, 0,0) = mat_tmp(ioff, 0,0) + tmp*f
+                         else if (cell_id(ii,j-1,k).ge.0) then
+                            mat_tmp(ioff,-1,0) = mat_tmp(ioff,-1,0) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff, 0,0) = mat_tmp(ioff, 0,0) + tmp*(f+bflo(cdir))
+                         end if
+                      end if
+                      
+                      if (fracz.gt.zero) then
+                         tmp = fracz*(one-fracx)*area*by(i,j,kk)
+                         if (cell_id(i,j-1,kk).ge.0 .and. cell_id(i,j,kk).ge.0) then
+                            mat_tmp(0,-1,koff) = mat_tmp(0,-1,koff) - tmp*f
+                            mat_tmp(0, 0,koff) = mat_tmp(0, 0,koff) + tmp*f
+                         else if (cell_id(i,j-1,kk).ge.0) then
+                            mat_tmp(0,-1,koff) = mat_tmp(0,-1,koff) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(0, 0,koff) = mat_tmp(0, 0,koff) + tmp*(f+bflo(cdir))
+                         end if
+                      end if
+                   end if
+                   
+                   cdir = 4
+                   f = fac(2)
+                   area = apy(i,j+1,k)
+                   abc = area*by(i,j+1,k)
+                   if (area.ge.zero) then
+                      if (area.ne.one) then
+                         ioff = int(sign(one,fcy(i,j+1,k,1)))
+                         koff = int(sign(one,fcy(i,j+1,k,2)))
+                         ii = i+ioff
+                         kk = k+koff
+                         if (cell_id(ii,j,k).lt.0 .and. cell_id(ii,j+1,k).lt.0) then
+                            fracx = zero
+                         else
+                            fracx = abs(fcy(i,j+1,k,1))
+                         end if
+                         if (cell_id(i,j,kk).lt.0 .and. cell_id(i,j+1,kk).lt.0) then
+                            fracz = zero
+                         else
+                            fracz = abs(fcy(i,j,k,2))
+                         end if
+                         if (cell_id(ii,j,kk).lt.0 .and. cell_id(ii,j+1,kk).lt.0) then
+                            fracx = zero
+                            fracz = zero
+                         end if
+                      else
+                         ioff = 0
+                         koff = 0
+                         ii = i
+                         kk = k
+                         fracx = zero
+                         fracz = zero
+                      end if
+
+                      tmp = (one-fracx)*(one-fracz)*abc
+                      if (cell_id(i,j+1,k).ge.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*f
+                         mat_tmp(0,1,0) = mat_tmp(0,1,0) - tmp*f
+                      else if (cell_id(i,j-1,k).lt.0 .or. apy(i,j-1,k).eq.zero .or. bho.eq.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bflo(cdir))
+                      else
+                         mat_tmp(0, 0,0) = mat_tmp(0, 0,0) + tmp*(f+bf1(cdir))
+                         mat_tmp(0,-1,0) = mat_tmp(0,-1,0) + tmp*   bf2(cdir)
+                      end if
+
+                      if (fracx.gt.zero) then
+                         tmp = fracx*(one-fracz)*area*by(ii,j+1,k)
+                         if (cell_id(ii,j,k).ge.0 .and. cell_id(ii,j+1,k).ge.0) then
+                            mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*f
+                            mat_tmp(ioff,1,0) = mat_tmp(ioff,1,0) - tmp*f
+                         else if (cell_id(ii,j,k).ge.0) then
+                            mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff,1,0) = mat_tmp(ioff,1,0) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracz.gt.zero) then
+                         tmp = fracz*(one-fracx)*area*by(i,j+1,kk)
+                         if (cell_id(i,j,kk).ge.0 .and. cell_id(i,j+1,kk).ge.0) then
+                            mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*f
+                            mat_tmp(0,1,koff) = mat_tmp(0,1,koff) - tmp*f
+                         else if (cell_id(i,j,kk).ge.0) then
+                            mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(0,1,koff) = mat_tmp(0,1,koff) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+                   end if
+
+                   cdir = 2
+                   f = fac(3)
+                   area = apz(i,j,k)
+                   abc = area*bz(i,j,k)
+                   if (area.ge.zero) then
+                      if (area.ne.one) then
+                         ioff = int(sign(one,fcz(i,j,k,1)))
+                         joff = int(sign(one,fcz(i,j,k,2)))
+                         ii = i+ioff
+                         jj = j+joff
+                         if (cell_id(ii,j,k-1).lt.0 .and. cell_id(ii,j,k).lt.0) then
+                            fracx = zero
+                         else
+                            fracx = abs(fcz(i,j,k,1))
+                         end if
+                         if (cell_id(i,jj,k-1).lt.0 .and. cell_id(i,jj,k).lt.0) then
+                            fracy = zero
+                         else
+                            fracy = abs(fcz(i,j,k,2))
+                         end if
+                         if (cell_id(ii,jj,k-1).lt.0 .and. cell_id(ii,jj,k).lt.0) then
+                            fracx = zero
+                            fracy = zero
+                         end if
+                      else
+                         ioff = 0
+                         joff = 0
+                         ii = i
+                         jj = j
+                         fracx = zero
+                         fracy = zero
+                      end if
+
+                      tmp = (one-fracx)*(one-fracy)*abc
+                      if (cell_id(i,j,k-1).ge.0) then
+                         mat_tmp(0,0, 0) = mat_tmp(0,0, 0) + tmp*f
+                         mat_tmp(0,0,-1) = mat_tmp(0,0,-1) - tmp*f
+                      else if (cell_id(i,j,k+1).lt.0 .or. apz(i,j,k+1).eq.zero .or. bho.eq.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bflo(cdir))
+                      else
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bf1(cdir))
+                         mat_tmp(0,0,1) = mat_tmp(0,0,1) + tmp*   bf2(cdir)
+                      end if
+
+                      if (fracx.gt.zero) then
+                         tmp = fracx*(one-fracy)*area*bz(ii,j,k)
+                         if (cell_id(ii,j,k-1).ge.0 .and. cell_id(ii,j,k).ge.0) then
+                            mat_tmp(ioff,0,-1) = mat_tmp(ioff,0,-1) - tmp*f
+                            mat_tmp(ioff,0, 0) = mat_tmp(ioff,0, 0) + tmp*f
+                         else if (cell_id(ii,j,k-1).ge.0) then
+                            mat_tmp(ioff,0,-1) = mat_tmp(ioff,0,-1) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff,0, 0) = mat_tmp(ioff,0, 0) + tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracy.gt.zero) then
+                         tmp = fracy*(one-fracx)*area*bz(i,jj,k)
+                         if (cell_id(i,jj,k-1).ge.0 .and. cell_id(i,jj,k).ge.0) then
+                            mat_tmp(0,joff,-1) = mat_tmp(0,joff,-1) - tmp*f
+                            mat_tmp(0,joff, 0) = mat_tmp(0,joff, 0) + tmp*f
+                         else if (cell_id(i,jj,k-1).ge.0) then
+                            mat_tmp(0,joff,-1) = mat_tmp(0,joff,-1) - tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(0,joff, 0) = mat_tmp(0,joff, 0) + tmp*(f+bflo(cdir))
+                         end if
+                      end if
+                   end if
+
+                   cdir = 5
+                   f = fac(3)
+                   area = apz(i,j,k+1)
+                   abc = area*bz(i,j,k+1)
+                   if (area.ge.zero) then
+                      if (area.ne.one) then
+                         ioff = int(sign(one,fcz(i,j,k+1,1)))
+                         joff = int(sign(one,fcz(i,j,k+1,2)))
+                         ii = i+ioff
+                         jj = j+joff
+                         if (cell_id(ii,j,k).lt.0 .and. cell_id(ii,j,k+1).lt.0) then
+                            fracx = zero
+                         else
+                            fracx = abs(fcz(i,j,k+1,1))
+                         end if
+                         if (cell_id(i,jj,k).lt.0 .and. cell_id(i,jj,k+1).lt.0) then
+                            fracy = zero
+                         else
+                            fracy = abs(fcz(i,j,k+1,2))
+                         end if
+                         if (cell_id(ii,jj,k).lt.0 .and. cell_id(ii,jj,k+1).lt.0) then
+                            fracx = zero
+                            fracy = zero
+                         end if
+                      else
+                         ioff = 0
+                         joff = 0
+                         ii = i
+                         jj = j
+                         fracx = zero
+                         fracy = zero
+                      end if
+
+                      tmp = (one-fracx)*(one-fracy)*abc
+                      if (cell_id(i,j,k+1).ge.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*f
+                         mat_tmp(0,0,1) = mat_tmp(0,0,1) - tmp*f
+                      else if (cell_id(i,j,k-1).lt.0 .or. apz(i,j,k-1).eq.zero .or.bho.eq.0) then
+                         mat_tmp(0,0,0) = mat_tmp(0,0,0) + tmp*(f+bflo(cdir))
+                      else
+                         mat_tmp(0,0, 0) = mat_tmp(0,0, 0) + tmp*(f+bf1(cdir))
+                         mat_tmp(0,0,-1) = mat_tmp(0,0,-1) + tmp*   bf2(cdir)
+                      end if
+
+                      if (fracx.gt.zero) then
+                         tmp = fracx*(one-fracy)*area*bz(ii,j,k+1)
+                         if (cell_id(ii,j,k).ge.0 .and. cell_id(ii,j,k+1).ge.0) then
+                            mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*f
+                            mat_tmp(ioff,0,1) = mat_tmp(ioff,0,1) - tmp*f
+                         else if (cell_id(ii,j,k).ge.0) then
+                            mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff,0,1) = mat_tmp(ioff,0,1) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+
+                      if (fracy.gt.zero) then
+                         tmp = fracy*(one-fracx)*area*bz(i,jj,k+1)
+                         if (cell_id(i,jj,k).ge.0 .and. cell_id(i,jj,k+1).ge.0) then
+                            mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*f
+                            mat_tmp(0,joff,1) = mat_tmp(0,joff,1) - tmp*f
+                         else if (cell_id(i,jj,k).ge.0) then
+                            mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(0,joff,1) = mat_tmp(0,joff,1) - tmp*(f+bflo(cdir))
+                         end if
+                      end if
+                   end if
+                   
+                   mat_tmp = mat_tmp * (one/vfrc(i,j,k))
+                   mat_tmp(0,0,0) = mat_tmp(0,0,0) + sa*a(i,j,k)
                 end if
                 
                 do koff = -1, 1
@@ -566,9 +1007,9 @@ contains
                             imat = imat + 1
                          end if
                       end do
+                   end do
                 end do
-             end do
-             irow = irow + 1
+                irow = irow + 1
                 
              end if
           end do
