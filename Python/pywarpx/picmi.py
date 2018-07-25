@@ -279,9 +279,13 @@ class ElectromagneticSolver(PICMI_Base.PICMI_ElectromagneticSolver):
     def init(self, kw):
         assert self.method is None or self.method in ['Yee'], Exception("Only 'Yee' FDTD is supported")
 
+        self.do_pml = kw.pop('do_pml', None)
+
     def initialize_inputs(self):
 
         self.grid.initialize_inputs()
+
+        pywarpx.warpx.do_pml = self.do_pml
 
         if self.cfl is not None:
             pywarpx.warpx.cfl = self.cfl
@@ -322,10 +326,16 @@ class Simulation(PICMI_Base.PICMI_Simulation):
     def init(self, kw):
 
         self.plot_int = kw.pop('plot_int', None)
+        self.plot_file = kw.pop('plot_file', None)
         self.current_deposition_algo = kw.pop('current_deposition_algo', None)
         self.charge_deposition_algo = kw.pop('charge_deposition_algo', None)
         self.field_gathering_algo = kw.pop('field_gathering_algo', None)
         self.particle_pusher_algo = kw.pop('particle_pusher_algo', None)
+        self.use_filter = kw.pop('use_filter', None)
+        self.serialize_ics = kw.pop('serialize_ics', None)
+        self.do_dynamic_scheduling = kw.pop('do_dynamic_scheduling', None)
+        self.load_balance_int = kw.pop('load_balance_int', None)
+        self.load_balance_with_sfc = kw.pop('load_balance_with_sfc', None)
 
         self.inputs_initialized = False
         self.warpx_initialized = False
@@ -341,17 +351,34 @@ class Simulation(PICMI_Base.PICMI_Simulation):
             pywarpx.warpx.const_dt = self.timestep
 
         pywarpx.amr.plot_int = self.plot_int
+        pywarpx.amr.plot_file = self.plot_file
         pywarpx.algo.current_deposition = self.current_deposition_algo
         pywarpx.algo.charge_deposition = self.charge_deposition_algo
         pywarpx.algo.field_gathering = self.field_gathering_algo
         pywarpx.algo.particle_pusher = self.particle_pusher_algo
 
+        pywarpx.warpx.use_filter = self.use_filter
+        pywarpx.warpx.serialize_ics = self.serialize_ics
+
+        pywarpx.warpx.do_dynamic_scheduling = self.do_dynamic_scheduling
+        pywarpx.warpx.load_balance_int = self.load_balance_int
+        pywarpx.warpx.load_balance_with_sfc = self.load_balance_with_sfc
+
+        if self.particle_shape is not None:
+            if isinstance(self.particle_shape, str):
+                interpolation_order = {'NGP':0, 'linear':1, 'quadratic':2, 'cubic':3}[self.particle_shape]
+            else:
+                interpolation_order = self.particle_shape
+            pywarpx.interpolation.nox = interpolation_order
+            pywarpx.interpolation.noy = interpolation_order
+            pywarpx.interpolation.noz = interpolation_order
+
         self.solver.initialize_inputs()
 
         for i in range(len(self.species)):
-            assert self.calculate_self_fields[i], Exception('WarpX does not support species without self fields')
+            assert not self.initialize_self_fields[i], Exception('WarpX does not support initializing self fields')
             self.species[i].initialize_inputs(self.layouts[i])
-            
+
         for i in range(len(self.lasers)):
             self.lasers[i].initialize_inputs()
             self.laser_injection_methods[i].initialize_inputs(self.lasers[i])
