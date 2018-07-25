@@ -18,4 +18,6 @@ eb2.geom_type = two_spheres_one_box
 
 eb2.geom_type = flower
 
+eb2.geom_type = rotated_box
+
 eb2.geom_type = sphere
