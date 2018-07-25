@@ -5,7 +5,7 @@ from .Geometry import geometry
 from .Algo import algo
 from .Langmuirwave import langmuirwave
 from .Interpolation import interpolation
-from .Particles import particles, electrons, positrons, protons
+from .Particles import particles, electrons, positrons, protons, newspecies
 from .Laser import laser
 
 #from .timestepper import TimeStepper

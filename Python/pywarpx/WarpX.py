@@ -29,10 +29,10 @@ class WarpX(Bucket):
         argv += particles.attrlist()
         argv += laser.attrlist()
 
-        if not particles_list:
-            # --- This is needed in case only species_names has been set,
-            # --- assuming that only the built in particle types are being used.
-            for pstring in particles.species_names.split(' '):
+        # --- Search through species_names and add any predefined particle objects in the list.
+        # --- assuming that only the built in particle types are being used.
+        for pstring in particles.species_names.split(' '):
+            if hasattr(Particles, pstring):
                 particles_list.append(getattr(Particles, pstring))
 
         for particle in particles_list:

@@ -22,3 +22,8 @@ particle_dict = {'electrons':electrons,
                  'positrons':positrons,
                  'protons':protons
                  }
+
+def newspecies(name):
+    result = Bucket(name)
+    particles_list.append(result)
+    return result
