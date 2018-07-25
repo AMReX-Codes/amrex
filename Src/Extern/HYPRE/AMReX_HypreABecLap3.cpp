@@ -468,7 +468,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                                        BL_TO_FORTRAN_ANYD((*flags)[mfi]));
             }
             else
-#else
+#endif
             {
                 if (rhs.nGrow() == 0) {
                     bfab = const_cast<FArrayBox*>(&rhs[mfi]);
@@ -478,7 +478,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     bfab->copy(rhs[mfi],bx);
                 }
             }
-#endif
+
             HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr());
         }
     }
