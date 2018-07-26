@@ -418,7 +418,8 @@ HypreABecLap3::prepareSolver ()
     HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
     HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
     HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
+//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
+    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.8);
 
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_BoomerAMGSetLogging(solver, logging);
