@@ -575,7 +575,7 @@ contains
                          else
                             fracz = abs(fcx(i,j,k,2))
                          end if
-                         if (cell_id(i-1,jj,kk).lt.0 .and. cell_id(i,jj,kk).lt.0) then
+                         if (cell_id(i-1,jj,kk).lt.0 .and. cell_id(i,jj,kk).lt.0 .and. fracy*fracz.gt.zero) then
                             fracy = zero
                             fracz = zero
                          end if
@@ -656,7 +656,7 @@ contains
                          else
                             fracz = abs(fcx(i+1,j,k,2))
                          end if
-                         if (cell_id(i,jj,kk).lt.0 .and. cell_id(i+1,jj,kk).lt.0) then
+                         if (cell_id(i,jj,kk).lt.0 .and. cell_id(i+1,jj,kk).lt.0 .and. fracy*fracz.gt.zero) then
                             fracy = zero
                             fracz = zero
                          end if
@@ -737,7 +737,7 @@ contains
                          else
                             fracz = abs(fcy(i,j,k,2))
                          end if
-                         if (cell_id(ii,j-1,kk).lt.0 .and. cell_id(ii,j,kk).lt.0) then
+                         if (cell_id(ii,j-1,kk).lt.0 .and. cell_id(ii,j,kk).lt.0 .and. fracx*fracz.gt.zero) then
                             fracx = zero
                             fracz = zero
                          end if
@@ -818,7 +818,7 @@ contains
                          else
                             fracz = abs(fcy(i,j+1,k,2))
                          end if
-                         if (cell_id(ii,j,kk).lt.0 .and. cell_id(ii,j+1,kk).lt.0) then
+                         if (cell_id(ii,j,kk).lt.0 .and. cell_id(ii,j+1,kk).lt.0 .and. fracx*fracz.gt.zero) then
                             fracx = zero
                             fracz = zero
                          end if
@@ -899,7 +899,7 @@ contains
                          else
                             fracy = abs(fcz(i,j,k,2))
                          end if
-                         if (cell_id(ii,jj,k-1).lt.0 .and. cell_id(ii,jj,k).lt.0) then
+                         if (cell_id(ii,jj,k-1).lt.0 .and. cell_id(ii,jj,k).lt.0 .and. fracx*fracy.gt.zero) then
                             fracx = zero
                             fracy = zero
                          end if
@@ -980,7 +980,7 @@ contains
                          else
                             fracy = abs(fcz(i,j,k+1,2))
                          end if
-                         if (cell_id(ii,jj,k).lt.0 .and. cell_id(ii,jj,k+1).lt.0) then
+                         if (cell_id(ii,jj,k).lt.0 .and. cell_id(ii,jj,k+1).lt.0 .and. fracx*fracy.gt.zero) then
                             fracx = zero
                             fracy = zero
                          end if
