@@ -285,6 +285,10 @@ private:
 
     std::unique_ptr<amrex::MultiFab> GetCellCenteredData();
 
+    std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedE(int lev) const;
+
+    std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
+
     static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 

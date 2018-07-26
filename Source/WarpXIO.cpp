@@ -658,77 +658,12 @@ WarpX::WritePlotFile () const
                 }
                 else
                 {
-                    MultiFab Ex_fine(Efield_aux[lev][0]->boxArray(), dmap[lev], 1, ngrow);
-                    MultiFab Ey_fine(Efield_aux[lev][1]->boxArray(), dmap[lev], 1, ngrow);
-                    MultiFab Ez_fine(Efield_aux[lev][2]->boxArray(), dmap[lev], 1, ngrow);
-
-                    Ex_fine.setVal(0.0); Ey_fine.setVal(0.0); Ez_fine.setVal(0.0);
-                    
-                    const int r_ratio = refRatio(lev-1)[0];
-                    const int use_limiter = 0;
-#ifdef _OPEMP
-#pragma omp parallel
-#endif
-                    {
-                        std::array<FArrayBox,3> efab;
-                        for (MFIter mfi(Ex_fine); mfi.isValid(); ++mfi)
-                        {
-                            Box ccbx = mfi.fabbox();
-                            ccbx.enclosedCells();
-                            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
-                            
-                            const FArrayBox& cxfab = (*Efield_cp[lev][0])[mfi];
-                            const FArrayBox& cyfab = (*Efield_cp[lev][1])[mfi];
-                            const FArrayBox& czfab = (*Efield_cp[lev][2])[mfi];
-
-                            efab[0].resize(amrex::convert(ccbx,Ex_nodal_flag));
-                            efab[1].resize(amrex::convert(ccbx,Ey_nodal_flag));
-                            efab[2].resize(amrex::convert(ccbx,Ez_nodal_flag));
-
-#if (AMREX_SPACEDIM == 3)
-                            amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
-                                                BL_TO_FORTRAN_ANYD(efab[0]),
-                                                BL_TO_FORTRAN_ANYD(efab[1]),
-                                                BL_TO_FORTRAN_ANYD(efab[2]),
-                                                BL_TO_FORTRAN_ANYD(cxfab),
-                                                BL_TO_FORTRAN_ANYD(cyfab),
-                                                BL_TO_FORTRAN_ANYD(czfab),
-                                                &r_ratio,&use_limiter);
-#else
-                            amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
-                                                BL_TO_FORTRAN_ANYD(efab[0]),
-                                                BL_TO_FORTRAN_ANYD(efab[2]),
-                                                BL_TO_FORTRAN_ANYD(cxfab),
-                                                BL_TO_FORTRAN_ANYD(czfab),
-                                                &r_ratio,&use_limiter);
-                            amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
-                                                   BL_TO_FORTRAN_ANYD(efab[1]),
-                                                   BL_TO_FORTRAN_ANYD(cyfab),
-                                                   &r_ratio);
-#endif
-
-                            Ex_fine[mfi].plus(efab[0], Ex_fine[mfi].box(), Ex_fine[mfi].box(), 0, 0, 1);
-                            Ey_fine[mfi].plus(efab[1], Ey_fine[mfi].box(), Ey_fine[mfi].box(), 0, 0, 1);
-                            Ez_fine[mfi].plus(efab[2], Ez_fine[mfi].box(), Ez_fine[mfi].box(), 0, 0, 1);
-                        }
-                    }                    
-
-#if (AMREX_SPACEDIM == 3)
-                    srcmf[0] = &Ex_fine;
-                    srcmf[1] = &Ey_fine;
-                    srcmf[2] = &Ez_fine;
-#elif (AMREX_SPACEDIM == 2)
-                    srcmf[0] = &Ex_fine;;
-                    srcmf[1] = &Ez_fine;;
-#endif
-                    
+                    std::array<std::unique_ptr<MultiFab>, 3> E = getInterpolatedE(lev);
+                    PackPlotDataPtrs(srcmf, E);
                     amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
-
-                    VisMF::Write(*mf[lev], "test");
-                    
 #if (AMREX_SPACEDIM == 2)
                     MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, Ey_fine, 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *E[1], 0, 1);
 #endif
                 }
                 if (lev == 0)
@@ -746,76 +681,12 @@ WarpX::WritePlotFile () const
                 }
                 else
                 {
-
-                    MultiFab Bx_fine(Bfield_aux[lev][0]->boxArray(), dmap[lev], 1, ngrow);
-                    MultiFab By_fine(Bfield_aux[lev][1]->boxArray(), dmap[lev], 1, ngrow);
-                    MultiFab Bz_fine(Bfield_aux[lev][2]->boxArray(), dmap[lev], 1, ngrow);
-
-                    Bx_fine.setVal(0.0); By_fine.setVal(0.0); Bz_fine.setVal(0.0);
-
-                    const Real* dx = Geom(lev-1).CellSize();
-                    const int r_ratio = refRatio(lev-1)[0];
-                    const int use_limiter = 0;
-#ifdef _OPEMP
-#pragma omp parallel
-#endif
-                    {
-                        std::array<FArrayBox,3> bfab;
-                        for (MFIter mfi(Bx_fine); mfi.isValid(); ++mfi)
-                        {
-                            Box ccbx = mfi.fabbox();
-                            ccbx.enclosedCells();
-                            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
-                            
-                            const FArrayBox& cxfab = (*Bfield_cp[lev][0])[mfi];
-                            const FArrayBox& cyfab = (*Bfield_cp[lev][1])[mfi];
-                            const FArrayBox& czfab = (*Bfield_cp[lev][2])[mfi];
-
-                            bfab[0].resize(amrex::convert(ccbx,Bx_nodal_flag));
-                            bfab[1].resize(amrex::convert(ccbx,By_nodal_flag));
-                            bfab[2].resize(amrex::convert(ccbx,Bz_nodal_flag));
-
-#if (AMREX_SPACEDIM == 3)
-                            amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                         BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                         BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                         BL_TO_FORTRAN_ANYD(bfab[2]),
-                                                         BL_TO_FORTRAN_ANYD(cxfab),
-                                                         BL_TO_FORTRAN_ANYD(cyfab),
-                                                         BL_TO_FORTRAN_ANYD(czfab),
-                                                         dx, &r_ratio, &use_limiter);
-#else
-                            amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                         BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                         BL_TO_FORTRAN_ANYD(bfab[2]),
-                                                         BL_TO_FORTRAN_ANYD(cxfab),
-                                                         BL_TO_FORTRAN_ANYD(czfab),
-                                                         dx, &r_ratio, &use_limiter);
-                            amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                   BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                   BL_TO_FORTRAN_ANYD(cyfab),
-                                                   &r_ratio, &use_limiter);
-#endif
-
-                            Bx_fine[mfi].plus(bfab[0], Bx_fine[mfi].box(), Bx_fine[mfi].box(), 0, 0, 1);
-                            By_fine[mfi].plus(bfab[1], By_fine[mfi].box(), By_fine[mfi].box(), 0, 0, 1);
-                            Bz_fine[mfi].plus(bfab[2], Bz_fine[mfi].box(), Bz_fine[mfi].box(), 0, 0, 1);
-                        }
-                    }                    
-
-#if (AMREX_SPACEDIM == 3)
-                    srcmf[0] = &Bx_fine;
-                    srcmf[1] = &By_fine;
-                    srcmf[2] = &Bz_fine;
-#elif (AMREX_SPACEDIM == 2)
-                    srcmf[0] = &Bx_fine;
-                    srcmf[1] = &Bz_fine;
-#endif
-
+                    std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
+                    PackPlotDataPtrs(srcmf, B);
                     amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
                     MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                    MultiFab::Copy(*mf[lev], By_fine, 0, dcomp+1, 1, ngrow);
+                    MultiFab::Copy(*mf[lev], *B[1], 0, dcomp+1, 1, ngrow);
 #endif
                 }
                 if (lev == 0)
@@ -939,9 +810,8 @@ WarpX::WritePlotFile () const
             }
 
             // Plot coarse patch
-            if (plot_crsepatch) {
-                const int ngrow = 0;
-
+            if (plot_crsepatch)
+            {
                 if (lev == 0)
                 {
                     const DistributionMapping& dm = DistributionMap(lev);
@@ -971,122 +841,15 @@ WarpX::WritePlotFile () const
                         VisMF::Write(*Bfield_cp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
                         VisMF::Write(*Bfield_cp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
                     } else {
-                        MultiFab Ex_fine(Efield_aux[lev][0]->boxArray(), dmap[lev], 1, ngrow);
-                        MultiFab Ey_fine(Efield_aux[lev][1]->boxArray(), dmap[lev], 1, ngrow);
-                        MultiFab Ez_fine(Efield_aux[lev][2]->boxArray(), dmap[lev], 1, ngrow);
+                        std::array<std::unique_ptr<MultiFab>, 3> E = getInterpolatedE(lev);
+                        std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
 
-                        Ex_fine.setVal(0.0); Ey_fine.setVal(0.0); Ez_fine.setVal(0.0);
-                    
-                        const int r_ratio = refRatio(lev-1)[0];
-                        const int use_limiter = 0;
-#ifdef _OPEMP
-#pragma omp parallel
-#endif
-                        {
-                            std::array<FArrayBox,3> efab;
-                            for (MFIter mfi(Ex_fine); mfi.isValid(); ++mfi)
-                            {
-                                Box ccbx = mfi.fabbox();
-                                ccbx.enclosedCells();
-                                ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
-                                
-                                const FArrayBox& cxfab = (*Efield_cp[lev][0])[mfi];
-                                const FArrayBox& cyfab = (*Efield_cp[lev][1])[mfi];
-                                const FArrayBox& czfab = (*Efield_cp[lev][2])[mfi];
-                                
-                                efab[0].resize(amrex::convert(ccbx,Ex_nodal_flag));
-                                efab[1].resize(amrex::convert(ccbx,Ey_nodal_flag));
-                                efab[2].resize(amrex::convert(ccbx,Ez_nodal_flag));
-                                
-#if (AMREX_SPACEDIM == 3)
-                                amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
-                                                BL_TO_FORTRAN_ANYD(efab[0]),
-                                                    BL_TO_FORTRAN_ANYD(efab[1]),
-                                                    BL_TO_FORTRAN_ANYD(efab[2]),
-                                                    BL_TO_FORTRAN_ANYD(cxfab),
-                                                    BL_TO_FORTRAN_ANYD(cyfab),
-                                                    BL_TO_FORTRAN_ANYD(czfab),
-                                                    &r_ratio,&use_limiter);
-#else
-                                amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
-                                                    BL_TO_FORTRAN_ANYD(efab[0]),
-                                                    BL_TO_FORTRAN_ANYD(efab[2]),
-                                                    BL_TO_FORTRAN_ANYD(cxfab),
-                                                    BL_TO_FORTRAN_ANYD(czfab),
-                                                    &r_ratio,&use_limiter);
-                                amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
-                                                       BL_TO_FORTRAN_ANYD(efab[1]),
-                                                       BL_TO_FORTRAN_ANYD(cyfab),
-                                                       &r_ratio);
-#endif
-                                
-                                Ex_fine[mfi].plus(efab[0], Ex_fine[mfi].box(), Ex_fine[mfi].box(), 0, 0, 1);
-                                Ey_fine[mfi].plus(efab[1], Ey_fine[mfi].box(), Ey_fine[mfi].box(), 0, 0, 1);
-                                Ez_fine[mfi].plus(efab[2], Ez_fine[mfi].box(), Ez_fine[mfi].box(), 0, 0, 1);
-                            }
-                        }
-
-                        MultiFab Bx_fine(Bfield_aux[lev][0]->boxArray(), dmap[lev], 1, ngrow);
-                        MultiFab By_fine(Bfield_aux[lev][1]->boxArray(), dmap[lev], 1, ngrow);
-                        MultiFab Bz_fine(Bfield_aux[lev][2]->boxArray(), dmap[lev], 1, ngrow);
-
-                        Bx_fine.setVal(0.0); By_fine.setVal(0.0); Bz_fine.setVal(0.0);
-                        
-                        const Real* dx = Geom(lev-1).CellSize();
-#ifdef _OPEMP
-#pragma omp parallel
-#endif
-                        {
-                            std::array<FArrayBox,3> bfab;
-                            for (MFIter mfi(Bx_fine); mfi.isValid(); ++mfi)
-                            {
-                                Box ccbx = mfi.fabbox();
-                                ccbx.enclosedCells();
-                                ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
-                                
-                                const FArrayBox& cxfab = (*Bfield_cp[lev][0])[mfi];
-                                const FArrayBox& cyfab = (*Bfield_cp[lev][1])[mfi];
-                                const FArrayBox& czfab = (*Bfield_cp[lev][2])[mfi];
-                                
-                                bfab[0].resize(amrex::convert(ccbx,Bx_nodal_flag));
-                                bfab[1].resize(amrex::convert(ccbx,By_nodal_flag));
-                                bfab[2].resize(amrex::convert(ccbx,Bz_nodal_flag));
-                                
-#if (AMREX_SPACEDIM == 3)
-                                amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                             BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                             BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                             BL_TO_FORTRAN_ANYD(bfab[2]),
-                                                             BL_TO_FORTRAN_ANYD(cxfab),
-                                                             BL_TO_FORTRAN_ANYD(cyfab),
-                                                             BL_TO_FORTRAN_ANYD(czfab),
-                                                             dx, &r_ratio, &use_limiter);
-#else
-                                amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                             BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                             BL_TO_FORTRAN_ANYD(bfab[2]),
-                                                             BL_TO_FORTRAN_ANYD(cxfab),
-                                                             BL_TO_FORTRAN_ANYD(czfab),
-                                                             dx, &r_ratio, &use_limiter);
-                                amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                       BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                       BL_TO_FORTRAN_ANYD(cyfab),
-                                                       &r_ratio, &use_limiter);
-#endif
-                                
-                                Bx_fine[mfi].plus(bfab[0], Bx_fine[mfi].box(), Bx_fine[mfi].box(), 0, 0, 1);
-                                By_fine[mfi].plus(bfab[1], By_fine[mfi].box(), By_fine[mfi].box(), 0, 0, 1);
-                                Bz_fine[mfi].plus(bfab[2], Bz_fine[mfi].box(), Bz_fine[mfi].box(), 0, 0, 1);
-                            }
-                        }
-
-
-                        VisMF::Write(Ex_fine, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_cp"));
-                        VisMF::Write(Ey_fine, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_cp"));
-                        VisMF::Write(Ez_fine, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_cp"));
-                        VisMF::Write(Bx_fine, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_cp"));
-                        VisMF::Write(By_fine, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
-                        VisMF::Write(Bz_fine, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
+                        VisMF::Write(*E[0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_cp"));
+                        VisMF::Write(*E[1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_cp"));
+                        VisMF::Write(*E[2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_cp"));
+                        VisMF::Write(*B[0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_cp"));
+                        VisMF::Write(*B[1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
+                        VisMF::Write(*B[2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
                     }
                 }
             }
@@ -1249,6 +1012,133 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
 	jobInfoFile.close();
     }
+}
+
+std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedE(int lev) const
+{
+
+    const int ngrow = 0;
+    
+    std::array<std::unique_ptr<MultiFab>, 3> interpolated_E;
+    for (int i = 0; i < 3; ++i) {
+        interpolated_E[i].reset( new MultiFab(Efield_aux[lev][i]->boxArray(), dmap[lev], 1, ngrow) );
+        interpolated_E[i]->setVal(0.0);
+    }
+    
+    const int r_ratio = refRatio(lev-1)[0];
+    const int use_limiter = 0;
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+    {
+        std::array<FArrayBox,3> efab;
+        for (MFIter mfi(*interpolated_E[0]); mfi.isValid(); ++mfi)
+        {
+            Box ccbx = mfi.fabbox();
+            ccbx.enclosedCells();
+            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+            
+            const FArrayBox& cxfab = (*Efield_cp[lev][0])[mfi];
+            const FArrayBox& cyfab = (*Efield_cp[lev][1])[mfi];
+            const FArrayBox& czfab = (*Efield_cp[lev][2])[mfi];
+            
+            efab[0].resize(amrex::convert(ccbx,Ex_nodal_flag));
+            efab[1].resize(amrex::convert(ccbx,Ey_nodal_flag));
+            efab[2].resize(amrex::convert(ccbx,Ez_nodal_flag));
+            
+#if (AMREX_SPACEDIM == 3)
+            amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                BL_TO_FORTRAN_ANYD(efab[0]),
+                                BL_TO_FORTRAN_ANYD(efab[1]),
+                                BL_TO_FORTRAN_ANYD(efab[2]),
+                                BL_TO_FORTRAN_ANYD(cxfab),
+                                BL_TO_FORTRAN_ANYD(cyfab),
+                                BL_TO_FORTRAN_ANYD(czfab),
+                                &r_ratio,&use_limiter);
+#else
+            amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                BL_TO_FORTRAN_ANYD(efab[0]),
+                                BL_TO_FORTRAN_ANYD(efab[2]),
+                                BL_TO_FORTRAN_ANYD(cxfab),
+                                BL_TO_FORTRAN_ANYD(czfab),
+                                &r_ratio,&use_limiter);
+            amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
+                                   BL_TO_FORTRAN_ANYD(efab[1]),
+                                   BL_TO_FORTRAN_ANYD(cyfab),
+                                   &r_ratio);
+#endif
+
+            for (int i = 0; i < 3; ++i) {
+                const Box& bx = (*interpolated_E[i])[mfi].box();
+                (*interpolated_E[i])[mfi].plus(efab[i], bx, bx, 0, 0, 1);
+            }
+        }
+    }
+
+    return interpolated_E;
+}
+
+std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedB(int lev) const
+{
+    const int ngrow = 0;
+    
+    std::array<std::unique_ptr<MultiFab>, 3> interpolated_B;
+    for (int i = 0; i < 3; ++i) {
+        interpolated_B[i].reset( new MultiFab(Bfield_aux[lev][i]->boxArray(), dmap[lev], 1, ngrow) );
+        interpolated_B[i]->setVal(0.0);
+    }
+    
+    const Real* dx = Geom(lev-1).CellSize();
+    const int r_ratio = refRatio(lev-1)[0];
+    const int use_limiter = 0;
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+    {
+        std::array<FArrayBox,3> bfab;
+        for (MFIter mfi(*interpolated_B[0]); mfi.isValid(); ++mfi)
+        {
+            Box ccbx = mfi.fabbox();
+            ccbx.enclosedCells();
+            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+            
+            const FArrayBox& cxfab = (*Bfield_cp[lev][0])[mfi];
+            const FArrayBox& cyfab = (*Bfield_cp[lev][1])[mfi];
+            const FArrayBox& czfab = (*Bfield_cp[lev][2])[mfi];
+            
+            bfab[0].resize(amrex::convert(ccbx,Bx_nodal_flag));
+            bfab[1].resize(amrex::convert(ccbx,By_nodal_flag));
+            bfab[2].resize(amrex::convert(ccbx,Bz_nodal_flag));
+            
+#if (AMREX_SPACEDIM == 3)
+            amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                         BL_TO_FORTRAN_ANYD(bfab[0]),
+                                         BL_TO_FORTRAN_ANYD(bfab[1]),
+                                         BL_TO_FORTRAN_ANYD(bfab[2]),
+                                         BL_TO_FORTRAN_ANYD(cxfab),
+                                         BL_TO_FORTRAN_ANYD(cyfab),
+                                         BL_TO_FORTRAN_ANYD(czfab),
+                                         dx, &r_ratio, &use_limiter);
+#else
+            amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                         BL_TO_FORTRAN_ANYD(bfab[0]),
+                                         BL_TO_FORTRAN_ANYD(bfab[2]),
+                                         BL_TO_FORTRAN_ANYD(cxfab),
+                                         BL_TO_FORTRAN_ANYD(czfab),
+                                         dx, &r_ratio, &use_limiter);
+            amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                   BL_TO_FORTRAN_ANYD(bfab[1]),
+                                   BL_TO_FORTRAN_ANYD(cyfab),
+                                   &r_ratio, &use_limiter);
+#endif
+
+            for (int i = 0; i < 3; ++i) {
+                const Box& bx = (*interpolated_B[i])[mfi].box();
+                (*interpolated_B[i])[mfi].plus(bfab[i], bx, bx, 0, 0, 1);
+            }
+        }
+    }
+    return interpolated_B;
 }
 
 void
