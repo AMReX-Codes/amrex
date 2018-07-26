@@ -1,4 +1,3 @@
-
 #include <AMReX_MLMG.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
@@ -16,7 +15,7 @@
 // sol: full solution
 // rhs: rhs of the original equation L(sol) = rhs
 // res: rhs of the residual equation L(cor) = res
-//      usually res is the result of rhs-L(sol), but is the result of res-L(cor).
+// usually res is the result of rhs-L(sol), but is the result of res-L(cor).
 // cor/cor_hold: correction
 // rescor: res - L(cor)
 
@@ -51,6 +50,11 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     BL_PROFILE_REGION("MLMG::solve()");
     BL_PROFILE("MLMG::solve()");
 
+    if (bottom_solver == BottomSolver::hypre) {
+        int mo = linop.getMaxOrder();
+        linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+    }
+    
     bool is_nsolve = linop.m_parent;
 
     Real solve_start_time = amrex::second();
@@ -87,15 +91,12 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
     const Real res_target = std::max(a_tol_abs, std::max(a_tol_rel,1.e-13)*max_norm);
 
-    if (!is_nsolve && resnorm0 <= res_target)
-    {
+    if (!is_nsolve && resnorm0 <= res_target) {
         composite_norminf = resnorm0;
         if (verbose >= 1) {
             amrex::Print() << "MLMG: No iterations needed\n";
         }
-    }
-    else
-    {
+    } else {
         Real iter_start_time = amrex::second();
         bool converged = false;
 
@@ -119,12 +120,9 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             }
             bool fine_converged = (fine_norminf <= res_target);
 
-            if (namrlevs == 1 and fine_converged)
-            {
+            if (namrlevs == 1 and fine_converged) {
                 converged = true;
-            }
-            else if (fine_converged)
-            {
+            } else if (fine_converged) {
                 // finest level is converged, but we still need to test the coarse levels
                 computeMLResidual(finest_amr_lev-1);
                 Real crse_norminf = MLResNormInf(finest_amr_lev-1);
@@ -135,14 +133,11 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                 }
                 converged = (crse_norminf <= res_target);
                 composite_norminf = std::max(fine_norminf, crse_norminf);
-            }
-            else
-            {
+            } else {
                 converged = false;
             }
 
-            if (converged)
-            {
+            if (converged) {
                 if (verbose >= 1) {
                     amrex::Print() << "MLMG: Final Iter. " << iter+1
                                    << " resid, resid/" << norm_name << " = "
@@ -190,8 +185,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
 // in  : Residual (res) on the finest AMR level
 // out : sol on all AMR levels
-void
-MLMG::oneIter (int iter)
+void MLMG::oneIter (int iter)
 {
     BL_PROFILE("MLMG::oneIter()");
 
@@ -525,6 +519,7 @@ MLMG::interpCorrection (int alev)
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
 
     bool isEB = fine_cor.hasEBFabFactory();
+    ignore_unused(isEB);
 
     if (linop.isCellCentered())
     {
@@ -629,6 +624,7 @@ MLMG::interpCorrection (int alev, int mglev)
     }
 
     bool isEB = fine_cor.hasEBFabFactory();
+    ignore_unused(isEB);
 
     if (linop.isCellCentered())
     {
@@ -793,7 +789,8 @@ MLMG::actualBottomSolve ()
 
     if (bottom_solver == BottomSolver::smoother)
     {
-        bool skip_fillboundary = true;
+
+      bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
             linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
             skip_fillboundary = false;
@@ -832,7 +829,7 @@ MLMG::actualBottomSolve ()
 
         if (bottom_solver == BottomSolver::hypre)
         {
-            bottomSolveWithHypre(x, *bottom_b);
+          bottomSolveWithHypre(x, *bottom_b);
         }
         else
         {
@@ -1348,6 +1345,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 #else
 
     const int ncomp = linop.getNComp();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithHypre doesn't work with ncomp > 1");
 
     if (hypre_solver == nullptr)  // We should reuse the setup
     {
@@ -1357,7 +1355,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         const auto& factory = *(linop.m_factory[0].back());
         MPI_Comm comm = linop.BottomCommunicator();
 
-        hypre_solver.reset(new HypreABecLap2(ba, dm, geom, comm));
+        hypre_solver.reset(new Hypre(ba, dm, geom, comm, hypre_interface));
         hypre_solver->setVerbose(bottom_verbose);
 
         hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());
@@ -1402,7 +1400,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
     }
 
-    hypre_solver->solve(x, b, 1.e-4, -1., bottom_maxiter, *hypre_bndry);
+    hypre_solver->solve(x, b, 1.e-4, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
 
 #endif
 }

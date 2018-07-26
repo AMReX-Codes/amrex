@@ -173,9 +173,10 @@ contains
     real(amrex_real), intent(inout) :: ff(fflo(1):ffhi(1),fflo(2):ffhi(2),fflo(3):ffhi(3),nc)
     integer         , intent(in   ) :: flag(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
 
+#ifdef AMREX_USE_EB
+
     integer :: i,j,k,n, ic, jc, kc, ioff, joff, koff
 
-#ifdef AMREX_USE_EB
     do n = 1, nc
        do k = lo(3), hi(3)
           kc = k/ratio

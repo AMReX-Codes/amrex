@@ -32,7 +32,7 @@ private:
 
     // For MLMG solver
     int verbose = 2;
-    int cg_verbose = 0;
+    int bottom_verbose = 0;
     int max_iter = 100;
     int max_fmg_iter = 0;
     int linop_maxorder = 2;
@@ -40,6 +40,7 @@ private:
     bool consolidation = true;
     int max_coarsening_level = 30;
     bool use_hypre = false;
+    int hypre_interface = 1;  // 1. structed, 2. semi-structed, 3. ij
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
