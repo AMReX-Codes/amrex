@@ -842,7 +842,7 @@ MLMG::actualBottomSolve ()
             cg_solver.setVerbose(bottom_verbose);
             cg_solver.setMaxIter(bottom_maxiter);
             
-            const Real cg_rtol = 1.e-4;
+            const Real cg_rtol = bottom_reltol;
             const Real cg_atol = -1.0;
             int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
             if (ret != 0 && verbose >= 1) {
@@ -1400,7 +1400,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
     }
 
-    hypre_solver->solve(x, b, 1.e-4, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
+    hypre_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
 
 #endif
 }

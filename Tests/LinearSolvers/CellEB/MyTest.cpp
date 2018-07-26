@@ -63,11 +63,12 @@ MyTest::solve ()
     mlmg.setMaxIter(max_iter);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setBottomMaxIter(max_bottom_iter);
+    mlmg.setBottomTolerance(bottom_reltol);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
     if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
 
-    const Real tol_rel = 1.e-12;
+    const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
 
@@ -89,6 +90,8 @@ MyTest::readParameters ()
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("max_bottom_iter", max_bottom_iter);
+    pp.query("bottom_reltol", bottom_reltol);
+    pp.query("reltol", reltol);
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("max_coarsening_level", max_coarsening_level);
 #ifdef AMREX_USE_HYPRE
