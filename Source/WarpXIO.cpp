@@ -660,7 +660,7 @@ WarpX::WritePlotFile () const
                     amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
                     MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_cp[lev][1], 0, 1);
 #endif
                 }
                 if (lev == 0)
@@ -681,7 +681,7 @@ WarpX::WritePlotFile () const
                     amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
                     MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                    MultiFab::Copy(*mf[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
+                    MultiFab::Copy(*mf[lev], *Bfield_cp[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
                 }
                 if (lev == 0)
