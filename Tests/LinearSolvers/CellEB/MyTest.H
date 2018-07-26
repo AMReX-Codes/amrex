@@ -31,6 +31,8 @@ private:
     int max_iter = 100;
     int max_fmg_iter = 0;
     int max_bottom_iter = 1000;
+    amrex::Real reltol        = 1.e-12;
+    amrex::Real bottom_reltol = 1.e-4;
     int linop_maxorder = 3;
     int max_coarsening_level = 30;
     bool use_hypre = false;

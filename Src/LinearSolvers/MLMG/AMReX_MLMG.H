@@ -46,9 +46,11 @@ public:
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
     void setBottomVerbose (int v) { bottom_verbose = v; }
     void setBottomMaxIter (int n) { bottom_maxiter = n; }
+    void setBottomTolerance (Real t) { bottom_reltol = t; }
     void setCGVerbose (int v) { bottom_verbose = v; }
     void setCGMaxIter (int n) { bottom_maxiter = n; }
-
+    void setCGTolerance (Real t) { bottom_reltol = t; }
+    
     void setAlwaysUseBNorm (int flag) { always_use_bnorm = flag; }
 
     void setFinalFillBC (int flag) { final_fill_bc = flag; }
@@ -78,6 +80,7 @@ private:
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
+    Real bottom_reltol         = 1.e-4;
 
     int always_use_bnorm = 0;
 
