@@ -7,6 +7,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_CudaAllocators.H>
+#include <AMReX_IndexSequence.H>
 
 #ifdef AMREX_USE_CUDA
 #include <thrust/tuple.h>
@@ -28,17 +29,8 @@ namespace detail {
     
     template <size_t I, typename T> using tuple_of = typename tuple_n<I,T>::template type<>;
     
-    template<int... Is>
-    struct seq { };
-    
-    template<int N, int... Is>
-    struct gen_seq : gen_seq<N - 1, N - 1, Is...> { };
-    
-    template<int... Is>
-    struct gen_seq<0, Is...> : seq<Is...> { };
-    
-    template<size_t N, typename T, int... Is>
-    tuple_of<N, T*> make_pointer_tuple(std::array<T, N>& arr, seq<Is...>)
+    template<size_t N, typename T, std::size_t... Is>
+    tuple_of<N, T*> make_pointer_tuple(std::array<T, N>& arr, amrex::IndexSequence<Is...>)
     {
         return std::make_tuple(&arr[Is]...);
     }
@@ -46,11 +38,11 @@ namespace detail {
     template<size_t N, typename T>
     tuple_of<N, T*> make_pointer_tuple(std::array<T, N>& arr)
     {
-        return make_pointer_tuple(arr, gen_seq<N>());
+        return make_pointer_tuple(arr, amrex::makeIndexSequence<N>());
     }    
     
-    template<typename... Args, int... Is>
-    auto to_thrust_tuple(const std::tuple<Args...>& t, seq<Is...>)
+    template<typename... Args, std::size_t... Is>
+    auto to_thrust_tuple(const std::tuple<Args...>& t, amrex::IndexSequence<Is...>)
         -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
     {
         return thrust::make_tuple(thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>(std::get<Is>(t)->data())...);
@@ -63,7 +55,7 @@ template<typename... Args>
 auto to_thrust_tuple(const std::tuple<Args...>& t)
     -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
 {
-    return detail::to_thrust_tuple(t, detail::gen_seq<sizeof...(Args)>());
+    return detail::to_thrust_tuple(t, amrex::makeIndexSequence<sizeof...(Args)>());
 }
 
 template <int NReal, int NInt>
