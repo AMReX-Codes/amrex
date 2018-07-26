@@ -15,6 +15,8 @@
 #include <thrust/device_ptr.h>
 #endif
 
+namespace amrex {
+
 namespace detail {
     
     template <size_t I, typename T>
@@ -30,7 +32,7 @@ namespace detail {
     template <size_t I, typename T> using tuple_of = typename tuple_n<I,T>::template type<>;
     
     template<size_t N, typename T, std::size_t... Is>
-    tuple_of<N, T*> make_pointer_tuple(std::array<T, N>& arr, amrex::IndexSequence<Is...>)
+    tuple_of<N, T*> make_pointer_tuple(std::array<T, N>& arr, IndexSequence<Is...>)
     {
         return std::make_tuple(&arr[Is]...);
     }
@@ -38,24 +40,22 @@ namespace detail {
     template<size_t N, typename T>
     tuple_of<N, T*> make_pointer_tuple(std::array<T, N>& arr)
     {
-        return make_pointer_tuple(arr, amrex::makeIndexSequence<N>());
+        return make_pointer_tuple(arr, makeIndexSequence<N>());
     }    
     
     template<typename... Args, std::size_t... Is>
-    auto to_thrust_tuple(const std::tuple<Args...>& t, amrex::IndexSequence<Is...>)
+    auto to_thrust_tuple(const std::tuple<Args...>& t, IndexSequence<Is...>)
         -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
     {
         return thrust::make_tuple(thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>(std::get<Is>(t)->data())...);
     }
 };
 
-namespace amrex {
-
 template<typename... Args>
 auto to_thrust_tuple(const std::tuple<Args...>& t)
     -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
 {
-    return detail::to_thrust_tuple(t, amrex::makeIndexSequence<sizeof...(Args)>());
+    return detail::to_thrust_tuple(t, makeIndexSequence<sizeof...(Args)>());
 }
 
 template <int NReal, int NInt>
