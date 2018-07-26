@@ -1,6 +1,7 @@
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_FillPatchUtil_F.H>
 
 #include <WarpX.H>
 
@@ -650,17 +651,84 @@ WarpX::WritePlotFile () const
 
             if (plot_crsepatch)
             {
+                // First the electric field
                 if (lev == 0)
                 {
                     mf[lev]->setVal(0.0, dcomp, AMREX_SPACEDIM, ngrow);
                 }
                 else
                 {
-                    PackPlotDataPtrs(srcmf, Efield_cp[lev]);
+                    MultiFab Ex_fine(Efield_aux[lev][0]->boxArray(), dmap[lev], 1, ngrow);
+                    MultiFab Ey_fine(Efield_aux[lev][1]->boxArray(), dmap[lev], 1, ngrow);
+                    MultiFab Ez_fine(Efield_aux[lev][2]->boxArray(), dmap[lev], 1, ngrow);
+
+                    Ex_fine.setVal(0.0); Ey_fine.setVal(0.0); Ez_fine.setVal(0.0);
+                    
+                    const int r_ratio = refRatio(lev-1)[0];
+                    const int use_limiter = 0;
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+                    {
+                        std::array<FArrayBox,3> efab;
+                        for (MFIter mfi(Ex_fine); mfi.isValid(); ++mfi)
+                        {
+                            Box ccbx = mfi.fabbox();
+                            ccbx.enclosedCells();
+                            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+                            
+                            const FArrayBox& cxfab = (*Efield_cp[lev][0])[mfi];
+                            const FArrayBox& cyfab = (*Efield_cp[lev][1])[mfi];
+                            const FArrayBox& czfab = (*Efield_cp[lev][2])[mfi];
+
+                            efab[0].resize(amrex::convert(ccbx,Ex_nodal_flag));
+                            efab[1].resize(amrex::convert(ccbx,Ey_nodal_flag));
+                            efab[2].resize(amrex::convert(ccbx,Ez_nodal_flag));
+
+#if (AMREX_SPACEDIM == 3)
+                            amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                                BL_TO_FORTRAN_ANYD(efab[0]),
+                                                BL_TO_FORTRAN_ANYD(efab[1]),
+                                                BL_TO_FORTRAN_ANYD(efab[2]),
+                                                BL_TO_FORTRAN_ANYD(cxfab),
+                                                BL_TO_FORTRAN_ANYD(cyfab),
+                                                BL_TO_FORTRAN_ANYD(czfab),
+                                                &r_ratio,&use_limiter);
+#else
+                            amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                                BL_TO_FORTRAN_ANYD(efab[0]),
+                                                BL_TO_FORTRAN_ANYD(efab[2]),
+                                                BL_TO_FORTRAN_ANYD(cxfab),
+                                                BL_TO_FORTRAN_ANYD(czfab),
+                                                &r_ratio,&use_limiter);
+                            amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
+                                                   BL_TO_FORTRAN_ANYD(efab[1]),
+                                                   BL_TO_FORTRAN_ANYD(cyfab),
+                                                   &r_ratio);
+#endif
+
+                            Ex_fine[mfi].plus(efab[0], Ex_fine[mfi].box(), Ex_fine[mfi].box(), 0, 0, 1);
+                            Ey_fine[mfi].plus(efab[1], Ey_fine[mfi].box(), Ey_fine[mfi].box(), 0, 0, 1);
+                            Ez_fine[mfi].plus(efab[2], Ez_fine[mfi].box(), Ez_fine[mfi].box(), 0, 0, 1);
+                        }
+                    }                    
+
+#if (AMREX_SPACEDIM == 3)
+                    srcmf[0] = &Ex_fine;
+                    srcmf[1] = &Ey_fine;
+                    srcmf[2] = &Ez_fine;
+#elif (AMREX_SPACEDIM == 2)
+                    srcmf[0] = &Ex_fine;;
+                    srcmf[1] = &Ez_fine;;
+#endif
+                    
                     amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+
+                    VisMF::Write(*mf[lev], "test");
+                    
 #if (AMREX_SPACEDIM == 2)
                     MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_cp[lev][1], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, Ey_fine, 0, 1);
 #endif
                 }
                 if (lev == 0)
@@ -671,17 +739,83 @@ WarpX::WritePlotFile () const
                 }
                 dcomp += 3;
 
+                // now the magnetic field                
                 if (lev == 0)
                 {
                     mf[lev]->setVal(0.0, dcomp, AMREX_SPACEDIM, ngrow);
                 }
                 else
                 {
-                    PackPlotDataPtrs(srcmf, Bfield_cp[lev]);
+
+                    MultiFab Bx_fine(Bfield_aux[lev][0]->boxArray(), dmap[lev], 1, ngrow);
+                    MultiFab By_fine(Bfield_aux[lev][1]->boxArray(), dmap[lev], 1, ngrow);
+                    MultiFab Bz_fine(Bfield_aux[lev][2]->boxArray(), dmap[lev], 1, ngrow);
+
+                    Bx_fine.setVal(0.0); By_fine.setVal(0.0); Bz_fine.setVal(0.0);
+
+                    const Real* dx = Geom(lev-1).CellSize();
+                    const int r_ratio = refRatio(lev-1)[0];
+                    const int use_limiter = 0;
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+                    {
+                        std::array<FArrayBox,3> bfab;
+                        for (MFIter mfi(Bx_fine); mfi.isValid(); ++mfi)
+                        {
+                            Box ccbx = mfi.fabbox();
+                            ccbx.enclosedCells();
+                            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+                            
+                            const FArrayBox& cxfab = (*Bfield_cp[lev][0])[mfi];
+                            const FArrayBox& cyfab = (*Bfield_cp[lev][1])[mfi];
+                            const FArrayBox& czfab = (*Bfield_cp[lev][2])[mfi];
+
+                            bfab[0].resize(amrex::convert(ccbx,Bx_nodal_flag));
+                            bfab[1].resize(amrex::convert(ccbx,By_nodal_flag));
+                            bfab[2].resize(amrex::convert(ccbx,Bz_nodal_flag));
+
+#if (AMREX_SPACEDIM == 3)
+                            amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                                         BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[2]),
+                                                         BL_TO_FORTRAN_ANYD(cxfab),
+                                                         BL_TO_FORTRAN_ANYD(cyfab),
+                                                         BL_TO_FORTRAN_ANYD(czfab),
+                                                         dx, &r_ratio, &use_limiter);
+#else
+                            amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                                         BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                         BL_TO_FORTRAN_ANYD(bfab[2]),
+                                                         BL_TO_FORTRAN_ANYD(cxfab),
+                                                         BL_TO_FORTRAN_ANYD(czfab),
+                                                         dx, &r_ratio, &use_limiter);
+                            amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                                   BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                   BL_TO_FORTRAN_ANYD(cyfab),
+                                                   &r_ratio, &use_limiter);
+#endif
+
+                            Bx_fine[mfi].plus(bfab[0], Bx_fine[mfi].box(), Bx_fine[mfi].box(), 0, 0, 1);
+                            By_fine[mfi].plus(bfab[1], By_fine[mfi].box(), By_fine[mfi].box(), 0, 0, 1);
+                            Bz_fine[mfi].plus(bfab[2], Bz_fine[mfi].box(), Bz_fine[mfi].box(), 0, 0, 1);
+                        }
+                    }                    
+
+#if (AMREX_SPACEDIM == 3)
+                    srcmf[0] = &Bx_fine;
+                    srcmf[1] = &By_fine;
+                    srcmf[2] = &Bz_fine;
+#elif (AMREX_SPACEDIM == 2)
+                    srcmf[0] = &Bx_fine;
+                    srcmf[1] = &Bz_fine;
+#endif
+
                     amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
                     MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                    MultiFab::Copy(*mf[lev], *Bfield_cp[lev][1], 0, dcomp+1, 1, ngrow);
+                    MultiFab::Copy(*mf[lev], By_fine, 0, dcomp+1, 1, ngrow);
 #endif
                 }
                 if (lev == 0)
