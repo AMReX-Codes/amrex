@@ -642,19 +642,19 @@ contains
                    abc = area*bx(i+1,j,k)
                    if (area.ge.zero) then
                       if (area.ne.one) then
-                         joff = int(sign(one,fcx(i,j,k,1)))
-                         koff = int(sign(one,fcx(i,j,k,2)))
+                         joff = int(sign(one,fcx(i+1,j,k,1)))
+                         koff = int(sign(one,fcx(i+1,j,k,2)))
                          jj = j+joff
                          kk = k+koff
                          if (cell_id(i,jj,k).lt.0 .and. cell_id(i+1,jj,k).lt.0) then
                             fracy = zero
                          else
-                            fracy = abs(fcx(i,j,k,1))
+                            fracy = abs(fcx(i+1,j,k,1))
                          end if
                          if (cell_id(i,j,kk).lt.0 .and. cell_id(i+1,j,kk).lt.0) then
                             fracz = zero
                          else
-                            fracz = abs(fcx(i,j,k,2))
+                            fracz = abs(fcx(i+1,j,k,2))
                          end if
                          if (cell_id(i,jj,kk).lt.0 .and. cell_id(i+1,jj,kk).lt.0) then
                             fracy = zero
@@ -816,7 +816,7 @@ contains
                          if (cell_id(i,j,kk).lt.0 .and. cell_id(i,j+1,kk).lt.0) then
                             fracz = zero
                          else
-                            fracz = abs(fcy(i,j,k,2))
+                            fracz = abs(fcy(i,j+1,k,2))
                          end if
                          if (cell_id(ii,j,kk).lt.0 .and. cell_id(ii,j+1,kk).lt.0) then
                             fracx = zero
