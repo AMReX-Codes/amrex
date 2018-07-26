@@ -91,7 +91,8 @@ public:
     void setVerbose (int v) { verbose = v; }
 
     void setMaxOrder (int o) { maxorder = o; }
-
+    int getMaxOrder () const { return maxorder; }
+    
     virtual int getNComp() const { return 1;};
 
 protected:

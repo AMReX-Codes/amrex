@@ -44,6 +44,7 @@ MyTest::solve ()
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
+    mleb.setMaxOrder(linop_maxorder);
 
     mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
 
@@ -88,6 +89,7 @@ MyTest::readParameters ()
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("max_bottom_iter", max_bottom_iter);
+    pp.query("linop_maxorder", linop_maxorder);
     pp.query("max_coarsening_level", max_coarsening_level);
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);

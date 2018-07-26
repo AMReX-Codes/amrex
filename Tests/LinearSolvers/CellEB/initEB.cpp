@@ -3,6 +3,7 @@
 #include <AMReX_EB2_IF_Union.H>
 #include <AMReX_EB2_IF_Intersection.H>
 #include <AMReX_EB2_IF_Complement.H>
+#include <AMReX_EB2_IF_Rotation.H>
 #include <AMReX_EB2_IF_Scale.H>
 #include <AMReX_EB2_IF_Translation.H>
 #include <AMReX_EB2_IF_Lathe.H>
@@ -32,6 +33,17 @@ MyTest::initializeEB ()
     if (geom_type == "combustor")
     {
         amrex::Abort("initializeEB: todo");
+    }
+    else if (geom_type == "rotated_box")
+    {
+        EB2::BoxIF box({AMREX_D_DECL(0.25,0.25,0.25)},
+                       {AMREX_D_DECL(0.75,0.75,0.75)}, false);
+        auto gshop = EB2::makeShop(EB2::translate(
+                                       EB2::rotate(
+                                           EB2::translate(box, {AMREX_D_DECL(-0.5,-0.5,-0.5)}),
+                                           std::atan(1.0)*0.3, 2),
+                                       {AMREX_D_DECL(0.5,0.5,0.5)}));
+        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);        
     }
     else if (geom_type == "two_spheres")
     {

@@ -5,7 +5,7 @@
 #include <AMReX_iMultiFab.H>
 
 #ifdef AMREX_USE_HYPRE
-#include <AMReX_HypreABecLap2.H>
+#include <AMReX_Hypre.H>
 #endif
 
 namespace amrex {
@@ -58,6 +58,10 @@ public:
     void setNSolve (int flag) { do_nsolve = flag; }
     void setNSolveGridSize (int s) { nsolve_grid_size = s; }
 
+#ifdef AMREX_USE_HYPRE
+    void setHypreInterface (Hypre::Interface f) { hypre_interface = f; }
+#endif
+    
 private:
 
     int verbose = 1;
@@ -95,7 +99,12 @@ private:
 
     // Hypre
 #ifdef AMREX_USE_HYPRE
-    std::unique_ptr<HypreABecLap2> hypre_solver;
+#ifdef AMREX_USE_EB
+    Hypre::Interface hypre_interface = Hypre::Interface::ij;
+#else
+    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+#endif
+    std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
 #endif
 
