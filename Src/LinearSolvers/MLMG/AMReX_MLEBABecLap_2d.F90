@@ -172,7 +172,8 @@ contains
                    jj = j + int(sign(one,fcx(i,j)))
                    fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
                    fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(phi(i,jj)-phi(i-1,jj))
-                   oxm = (one-fracy)*oxm
+                   ! oxm = (one-fracy)*oxm
+                   oxm = zero
                    sxm = (one-fracy)*sxm
                 end if
                 
@@ -183,7 +184,8 @@ contains
                    jj = j + int(sign(one,fcx(i+1,j)))
                    fracy = abs(fcx(i+1,j))*real(ior(ccm(i,jj),ccm(i+1,jj)),amrex_real)
                    fxp = (one-fracy)*fxp + fracy*bX(i+1,jj)*(phi(i+1,jj)-phi(i,jj))
-                   oxp = (one-fracy)*oxp
+                   ! oxp = (one-fracy)*oxp
+                   oxp = zero
                    sxp = (one-fracy)*sxp
                 end if
                 
@@ -194,7 +196,8 @@ contains
                    ii = i + int(sign(one,fcy(i,j)))
                    fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
                    fym = (one-fracx)*fym + fracx*bY(ii,j)*(phi(ii,j)-phi(ii,j-1))
-                   oym = (one-fracx)*oym
+                   ! oym = (one-fracx)*oym
+                   oym = zero
                    sym = (one-fracx)*sym
                 end if
                 
@@ -205,7 +208,8 @@ contains
                    ii = i + int(sign(one,fcy(i,j+1)))
                    fracx = abs(fcy(i,j+1))*real(ior(ccm(ii,j),ccm(ii,j+1)),amrex_real)
                    fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(phi(ii,j+1)-phi(ii,j))
-                   oyp = (one-fracx)*fyp
+                   ! oyp = (one-fracx)*fyp
+                   oyp = zero
                    syp = (one-fracx)*syp
                 end if
                 

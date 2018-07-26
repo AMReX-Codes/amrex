@@ -248,7 +248,8 @@ contains
                            +     fracy *(one-fracz)*bX(i,jj,k )*(phi(i,jj,k )-phi(i-1,jj,k )) & 
                            +(one-fracy)*     fracz *bX(i,j ,kk)*(phi(i,j ,kk)-phi(i-1,j ,kk)) &
                            +     fracy *     fracz *bX(i,jj,kk)*(phi(i,jj,kk)-phi(i-1,jj,kk))
-                      oxm = (one-fracy)*(one-fracz)*oxm
+                      ! oxm = (one-fracy)*(one-fracz)*oxm
+                      oxm = zero
                       sxm = (one-fracy)*(one-fracz)*sxm
                    end if
                    
@@ -264,7 +265,8 @@ contains
                            +     fracy *(one-fracz)*bX(i+1,jj,k )*(phi(i+1,jj,k )-phi(i,jj,k )) & 
                            +(one-fracy)*     fracz *bX(i+1,j ,kk)*(phi(i+1,j ,kk)-phi(i,j ,kk)) & 
                            +     fracy *     fracz *bX(i+1,jj,kk)*(phi(i+1,jj,kk)-phi(i,jj,kk))
-                      oxp = (one-fracy)*(one-fracz)*oxp
+                      ! oxp = (one-fracy)*(one-fracz)*oxp
+                      oxp = zero
                       sxp = (one-fracy)*(one-fracz)*sxp
                    end if 
                    
@@ -280,7 +282,8 @@ contains
                            +     fracx *(one-fracz)*bY(ii,j,k )*(phi(ii,j,k )-phi(ii,j-1,k )) & 
                            +(one-fracx)*     fracz *bY(i ,j,kk)*(phi(i ,j,kk)-phi(i ,j-1,kk)) &
                            +     fracx *     fracz *bY(ii,j,kk)*(phi(ii,j,kk)-phi(ii,j-1,kk))
-                      oym = (one-fracx)*(one-fracz)*oym
+                      ! oym = (one-fracx)*(one-fracz)*oym
+                      oym = zero
                       sym = (one-fracx)*(one-fracz)*sym
                    endif
  
@@ -296,7 +299,8 @@ contains
                            +     fracx *(one-fracz)*bY(ii,j+1,k )*(phi(ii,j+1,k )-phi(ii,j,k )) &
                            +(one-fracx)*     fracz *bY(i ,j+1,kk)*(phi(i ,j+1,kk)-phi(i ,j,kk)) & 
                            +     fracx *     fracz *bY(ii,j+1,kk)*(phi(ii,j+1,kk)-phi(ii,j,kk))
-                      oyp = (one-fracx)*(one-fracz)*oyp
+                      ! oyp = (one-fracx)*(one-fracz)*oyp
+                      oyp = zero
                       syp = (one-fracx)*(one-fracz)*syp
                    end if 
  
@@ -312,7 +316,8 @@ contains
                            +     fracx *(one-fracy)*bZ(ii,j ,k)*(phi(ii,j ,k)-phi(ii,j ,k-1)) & 
                            +(one-fracx)*     fracy *bZ(i ,jj,k)*(phi(i ,jj,k)-phi(i ,jj,k-1)) &
                            +     fracx *     fracy *bZ(ii,jj,k)*(phi(ii,jj,k)-phi(ii,jj,k-1))
-                      ozm = (one-fracx)*(one-fracy)*ozm
+                      ! ozm = (one-fracx)*(one-fracy)*ozm
+                      ozm = zero
                       szm = (one-fracx)*(one-fracy)*szm
                     endif
                
@@ -328,7 +333,8 @@ contains
                             +     fracx *(one-fracy)*bZ(ii,j ,k+1)*(phi(ii,j ,k+1)-phi(ii,j ,k)) &
                             +(one-fracx)*     fracy *bZ(i ,jj,k+1)*(phi(i ,jj,k+1)-phi(i ,jj,k)) &
                             +     fracx *     fracy *bZ(ii,jj,k+1)*(phi(ii,jj,k+1)-phi(ii,jj,k))
-                       ozp = (one-fracx)*(one-fracy)*ozp
+                       ! ozp = (one-fracx)*(one-fracy)*ozp
+                       ozp = zero
                        szp = (one-fracx)*(one-fracy)*szp
                     end if 
  
