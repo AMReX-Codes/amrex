@@ -520,7 +520,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::MoveRandom (int lev)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::MoveRandom(lev)");
+    BL_PROFILE("ParticleContainer::MoveRandom(lev)");
     BL_ASSERT(OK());
     BL_ASSERT(m_gdb != 0);
     // 
@@ -565,7 +565,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 long
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::IncrementWithTotal(lev)");
+  BL_PROFILE("ParticleContainer::IncrementWithTotal(lev)");
   BL_ASSERT(OK());
   
   if (m_particles.empty()) return 0;
@@ -626,7 +626,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 Real
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::sumParticleMass (int rho_index, int lev, bool local) const
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::sumParticleMass(lev)");
+  BL_PROFILE("ParticleContainer::sumParticleMass(lev)");
   BL_ASSERT(NStructReal >= 1);
   BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
   
@@ -684,7 +684,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetParticleIDs (Vector<int>& part_ids)
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::GetParticleIDs()");
+  BL_PROFILE("ParticleContainer::GetParticleIDs()");
 
   long start, npart;
   std::tie(start,npart) = StartIndexInGlobalArray();
@@ -711,7 +711,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetParticleCPU (Vector<int>& part_cpu)
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::GetParticleCPU()");
+  BL_PROFILE("ParticleContainer::GetParticleCPU()");
 
   long start, npart;
   std::tie(start,npart) = StartIndexInGlobalArray();
@@ -738,7 +738,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetParticleLocations (Vector<Real>& part_data)
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::GetParticleLocations()");
+  BL_PROFILE("ParticleContainer::GetParticleLocations()");
  
   long start, npart;
   std::tie(start,npart) = StartIndexInGlobalArray();
@@ -771,7 +771,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetParticleData (Vector<Real>& part_data, int start_comp, int num_comp)
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::GetParticleData()");
+  BL_PROFILE("ParticleContainer::GetParticleData()");
 
   long start, npart;
   std::tie(start,npart) = StartIndexInGlobalArray();
@@ -802,7 +802,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArrayData (Vector<Real>& part_data, int start_comp, int num_comp)
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::GetArrayData()");
+  BL_PROFILE("ParticleContainer::GetArrayData()");
 
   long start, npart;
   std::tie(start,npart) = StartIndexInGlobalArray();  
@@ -834,7 +834,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetParticleLocations (Vector<Real>& part_data)
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::SetParticleLocations()");
+  BL_PROFILE("ParticleContainer::SetParticleLocations()");
 
   long start, npart;
   std::tie(start,npart) = StartIndexInGlobalArray();
@@ -866,7 +866,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticlesAtLevel (int level)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::RemoveParticlesAtLevel()");
+    BL_PROFILE("ParticleContainer::RemoveParticlesAtLevel()");
     if (level >= int(this->m_particles.size())) return;
     
     if (!this->m_particles[level].empty())
@@ -879,7 +879,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticlesNotAtFinestLevel ()
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::RemoveParticlesNotAtFinestLevel()");
+  BL_PROFILE("ParticleContainer::RemoveParticlesNotAtFinestLevel()");
   BL_ASSERT(this->finestLevel()+1 == int(this->m_particles.size()));
   
   long cnt = 0;
@@ -909,7 +909,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CreateVirtualParticles (int level, AoS& virts) const
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CreateVirtualParticles()");
+    BL_PROFILE("ParticleContainer::CreateVirtualParticles()");
     BL_ASSERT(level > 0);
     BL_ASSERT(virts.empty());
     
@@ -1035,7 +1035,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CreateGhostParticles (int level, int nGrow, AoS& ghosts) const
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CreateGhostParticles()");
+    BL_PROFILE("ParticleContainer::CreateGhostParticles()");
     BL_ASSERT(ghosts.empty());
     BL_ASSERT(level < finestLevel());
   
@@ -1613,14 +1613,12 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_min, int lev_max, int nGrow) const
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::OK()");
+    BL_PROFILE("ParticleContainer::OK()");
     if (lev_max == -1)
         lev_max = finestLevel();
 
     BL_ASSERT(lev_max <= finestLevel());
-    //
-    // Check that each valid particle is in the proper container.
-    //
+
     ParticleLocData pld;
     for (int lev = lev_min; lev <= lev_max; lev++)
     {
@@ -1692,7 +1690,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtLevel (AoS& particles, int level, int nGrow)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::AddParticlesAtLevel()");
+    BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
     if (int(m_particles.size()) < level+1)
         {
             if (Verbose())
@@ -1763,7 +1761,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
               const Vector<std::string>& real_comp_names,
               const Vector<std::string>& int_comp_names) const
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::Checkpoint()");
+    BL_PROFILE("ParticleContainer::Checkpoint()");
     BL_ASSERT(OK());
 
     BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 || sizeof(typename ParticleType::RealType) == 8);
@@ -2205,7 +2203,7 @@ WritePlotFile ( const std::string&        dir,
                 const Vector<std::string>& real_comp_names,
                 const Vector<std::string>& int_comp_names) const
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::WritePlotFile()");
+    BL_PROFILE("ParticleContainer::WritePlotFile()");
     BL_ASSERT(OK());
     bool is_checkpoint = false;
 
@@ -2245,7 +2243,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                                                                                    Vector<long>&   where,
                                                                                    bool           is_checkpoint) const
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::WriteParticles()");
+    BL_PROFILE("ParticleContainer::WriteParticles()");
 
     // For a each grid, the tiles it contains
     std::map<int, Vector<int> > tile_map;
@@ -2346,7 +2344,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
                                                                             const std::string& file,
                                                                             bool is_checkpoint)
 {
-  BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::Restart()");
+  BL_PROFILE("ParticleContainer::Restart()");
   BL_ASSERT(!dir.empty());
   BL_ASSERT(!file.empty());
   
@@ -2563,7 +2561,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
                                                                                   bool           is_checkpoint,
                                                                                   std::ifstream& ifs) 
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::ReadParticles()");
+    BL_PROFILE("ParticleContainer::ReadParticles()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < int(m_particles.size()));
 
@@ -2644,7 +2642,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFile (const std::string& filename)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::WriteAsciiFile()");
+    BL_PROFILE("ParticleContainer::WriteAsciiFile()");
     BL_ASSERT(!filename.empty());
 
     const Real strttime = ParallelDescriptor::second();
@@ -2787,7 +2785,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile (const std::string& filename)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::WriteCoarsenedAsciiFile()");
+    BL_PROFILE("ParticleContainer::WriteCoarsenedAsciiFile()");
     BL_ASSERT(!filename.empty());
 
     const Real strttime = ParallelDescriptor::second();
@@ -2941,7 +2939,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
                                   int       ncomp,
                                   int       particle_lvl_offset) const
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::AssignCellDensitySingleLevelFort()");
+    BL_PROFILE("ParticleContainer::AssignCellDensitySingleLevelFort()");
     
     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
     
@@ -3070,7 +3068,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InterpolateFort (Vector<std::unique_ptr<MultiFab> >& mesh_data, 
                                                                                     int lev_min, int lev_max)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InterpolateFort()");
+    BL_PROFILE("ParticleContainer::InterpolateFort()");
     for (int lev = lev_min; lev <= lev_max; ++lev) {
         InterpolateSingleLevelFort(*mesh_data[lev], lev); 
     }
@@ -3081,7 +3079,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InterpolateSingleLevelFort()");
+    BL_PROFILE("ParticleContainer::InterpolateSingleLevelFort()");
     
     if (mesh_data.nGrow() < 1)
         amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
