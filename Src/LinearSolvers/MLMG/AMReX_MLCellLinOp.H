@@ -103,8 +103,8 @@ protected:
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
     void updateCorBC (int amrlev, const MultiFab& crse_bcdata) const;
 
-    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
-                  const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
+    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
 
     BoxArray makeNGrids (int grid_size) const;
 

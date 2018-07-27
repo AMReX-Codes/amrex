@@ -31,6 +31,7 @@ if (ENABLE_EB)
     add_sources ( AMReX_MLEBABecLap.cpp )
     add_sources ( AMReX_MLEBABecLap_F.H )
     add_sources ( AMReX_MLEBABecLap_${DIM}d.F90 )
+    add_sources ( AMReX_MLEBABecLap_nd.F90 )
 endif ()
 
 add_sources ( MLMG/AMReX_MLALaplacian.H )

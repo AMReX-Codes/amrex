@@ -5,6 +5,7 @@
 #include <AMReX_EBFArrayBox.H>
 
 #include <AMReX_MLEBABecLap_F.H>
+#include <AMReX_MLLinOp_F.H>
 #include <AMReX_MLABecLap_F.H>
 #include <AMReX_ABec_F.H>
 #include <AMReX_MG_F.H>
@@ -598,4 +599,90 @@ MLEBABecLap::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& 
     amrex::EB_average_down(fine_rhs, crse_rhs, 0, ncomp, amrrr);
 }
 
+void
+MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+                      const MLMGBndry* bndry, bool skip_fillboundary) const
+{
+    BL_PROFILE("MLEBABecLap::Fsmooth()");
+
+    // No coarsened boundary values, cannot apply inhomog at mglev>0.
+    BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
+    BL_ASSERT(bndry != nullptr || bc_mode == BCMode::Homogeneous);
+
+    const int ncomp = getNComp();
+    if (!skip_fillboundary) {
+        const int cross = false;
+        in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross); 
+    }
+
+    int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+    const auto& maskvals = m_maskvals[amrlev][mglev];
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+
+    const auto& ccmask = m_cc_mask[amrlev][mglev];
+    
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+    auto area = (factory) ? factory->getAreaFrac()
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    
+    FArrayBox foo(Box::TheUnitBox(),ncomp);
+    foo.setVal(10.0);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(in, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx   = mfi.validbox();
+        FArrayBox& iofab = in[mfi];
+
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
+        if (fabtyp != FabType::covered)
+        {
+            const RealTuple & bdl = bcondloc.bndryLocs(mfi);
+            const BCTuple   & bdc = bcondloc.bndryConds(mfi);
+            
+            for (OrientationIter oitr; oitr; ++oitr)
+            {
+                const Orientation ori = oitr();
+                
+                int  cdr = ori;
+                Real bcl = bdl[ori];
+                int  bct = bdc[ori];
+                
+                const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
+                
+                if (fabtyp == FabType::regular)
+                {
+                    const Mask& m = maskvals[ori][mfi];
+                    const int cross = 0;
+                    amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
+                                           BL_TO_FORTRAN_ANYD(iofab),
+                                           BL_TO_FORTRAN_ANYD(m),
+                                           cdr, bct, bcl,
+                                           BL_TO_FORTRAN_ANYD(fsfab),
+                                           maxorder, dxinv, flagbc, ncomp, cross);
+                }
+                else
+                {
+                    amrex_mlebabeclap_apply_bc(BL_TO_FORTRAN_BOX(vbx),
+                                               BL_TO_FORTRAN_ANYD(iofab),
+                                               BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                            BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                            BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                               BL_TO_FORTRAN_ANYD(ccmask[mfi]),
+                                               cdr, bct, bcl,
+                                               BL_TO_FORTRAN_ANYD(fsfab),
+                                               maxorder, dxinv, flagbc, ncomp);
+                }
+            }
+        }
+    }
+}
+    
 }

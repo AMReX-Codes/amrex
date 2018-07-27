@@ -45,6 +45,9 @@ protected:
 
     virtual bool isCrossStencil () const { return false; }
 
+    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+                          const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
+
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
     virtual bool isBottomSingular () const final { return m_is_singular[0]; }

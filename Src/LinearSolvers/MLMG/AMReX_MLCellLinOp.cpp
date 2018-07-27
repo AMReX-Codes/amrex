@@ -56,11 +56,11 @@ MLCellLinOp::defineAuxData ()
             {
                 const Orientation face = oitr();
                 const int ngrow = 1;
-//                const int extent = isCrossStencil() ? 0 : 1; // extend to corners
+                const int extent = isCrossStencil() ? 0 : 1; // extend to corners
                 m_maskvals[amrlev][mglev][face].define(m_grids[amrlev][mglev],
                                                        m_dmap[amrlev][mglev],
                                                        m_geom[amrlev][mglev],
-                                                       face, 0, ngrow, 0, ncomp, true);
+                                                       face, 0, ngrow, extent, ncomp, true);
             }
         }
     }
