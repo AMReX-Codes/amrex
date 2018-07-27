@@ -259,7 +259,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const Box&      dmn     = geom.Domain();
     const IntVect&  iv      = Index(p, 0);    
     bool            shifted = false;  
-    IntVect         new_iv  = iv;
     
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
