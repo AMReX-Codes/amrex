@@ -2933,13 +2933,13 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-AssignCellDensitySingleLevelFort (int rho_index,
-                                  MultiFab& mf_to_be_filled,
-                                  int       lev,
-                                  int       ncomp,
-                                  int       particle_lvl_offset) const
+AssignCellDensitySingleLevel (int rho_index,
+                              MultiFab& mf_to_be_filled,
+                              int       lev,
+                              int       ncomp,
+                              int       particle_lvl_offset) const
 {
-    BL_PROFILE("ParticleContainer::AssignCellDensitySingleLevelFort()");
+    BL_PROFILE("ParticleContainer::AssignCellDensitySingleLevel()");
     
     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
     
@@ -3065,24 +3065,24 @@ AssignCellDensitySingleLevelFort (int rho_index,
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InterpolateFort (Vector<std::unique_ptr<MultiFab> >& mesh_data, 
-                                                                                    int lev_min, int lev_max)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data, 
+                                                                                int lev_min, int lev_max)
 {
-    BL_PROFILE("ParticleContainer::InterpolateFort()");
+    BL_PROFILE("ParticleContainer::Interpolate()");
     for (int lev = lev_min; lev <= lev_max; ++lev) {
-        InterpolateSingleLevelFort(*mesh_data[lev], lev); 
+        InterpolateSingleLevel(*mesh_data[lev], lev); 
     }
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
+InterpolateSingleLevel (MultiFab& mesh_data, int lev)
 {
-    BL_PROFILE("ParticleContainer::InterpolateSingleLevelFort()");
+    BL_PROFILE("ParticleContainer::InterpolateSingleLevel()");
     
     if (mesh_data.nGrow() < 1)
-        amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
+        amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevel");
     
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
