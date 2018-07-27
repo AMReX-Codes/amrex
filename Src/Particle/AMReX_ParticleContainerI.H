@@ -393,7 +393,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
 
     if (!success)
     {
-        amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle(): invalid particle.");
+        amrex::Abort("ParticleContainer::locateParticle(): invalid particle.");
     }
 }
 
@@ -491,7 +491,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ByteSpread ()
     ParallelDescriptor::ReduceLongMax(mx, IOProc);
     ParallelDescriptor::ReduceLongSum(cnt,IOProc);
 
-    amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> byte spread across MPI nodes: ["
+    amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
                    << mn*sz
                    << " (" << mn << ")"
                    << " ... "
@@ -1697,7 +1697,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
         {
             if (Verbose())
             {
-                amrex::Print() << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtLevel resizing m_particles from "
+                amrex::Print() << "ParticleContainer::AddParticlesAtLevel resizing m_particles from "
                                << m_particles.size()
                                << " to "
                                << level+1 << '\n';
@@ -1717,7 +1717,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
         if (p.id() > 0)
         {
             if (!Where(p, pld, level, level, nGrow))
-                amrex::Abort("ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtLevel(): Can't add outside of domain\n");
+                amrex::Abort("ParticleContainerAddParticlesAtLevel(): Can't add outside of domain\n");
             m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }
 
@@ -2071,7 +2071,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       HdrFile.close();
       if ( ! HdrFile.good())
       {
-        amrex::Abort("ParticleContainer<NSR, NSI, NAR, NAI>::Checkpoint(): problem writing HdrFile");
+        amrex::Abort("ParticleContainer::Checkpoint(): problem writing HdrFile");
       }
     }
 
@@ -2081,8 +2081,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         ParallelDescriptor::ReduceRealMax(stoptime, IOProcNumber);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, "
-	               << "NArrayInt>::Checkpoint() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer::Checkpoint() time: " << stoptime << '\n';
     }
 }
 
@@ -2096,7 +2095,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       return;
     }
 
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPre()");
+    BL_PROFILE("ParticleContainer::CheckpointPre()");
 
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     long nparticles = 0;
@@ -2151,7 +2150,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       return;
     }
 
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPost()");
+    BL_PROFILE("ParticleContainer::CheckpointPost()");
 
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     std::ofstream HdrFile;
@@ -2192,7 +2191,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       HdrFile.flush();
       HdrFile.close();
       if( ! HdrFile.good()) {
-        amrex::Abort("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPost(): problem writing HdrFile");
+        amrex::Abort("ParticleContainer::CheckpointPost(): problem writing HdrFile");
       }
     }
 }
@@ -2394,13 +2393,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
       how = "double";
     }
     else {
-      std::string msg("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): bad version string: ");
+      std::string msg("ParticleContainer::Restart(): bad version string: ");
       msg += version;
       amrex::Error(version.c_str());
     }
   }
   else {
-    std::string msg("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): unknown version string: ");
+    std::string msg("ParticleContainer::Restart(): unknown version string: ");
     msg += version;
     amrex::Abort(msg.c_str());
   }
@@ -2408,12 +2407,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   int dm;
   HdrFile >> dm;
   if (dm != AMREX_SPACEDIM)
-    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): dm != AMREX_SPACEDIM");
+    amrex::Abort("ParticleContainer::Restart(): dm != AMREX_SPACEDIM");
   
   int nr;
   HdrFile >> nr;
   if (nr != NStructReal + NArrayReal)
-    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): nr != NStructReal + NArrayReal");
+    amrex::Abort("ParticleContainer::Restart(): nr != NStructReal + NArrayReal");
 
   std::string comp_name;
   for (int i = 0; i < nr; ++i)
@@ -2422,7 +2421,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   int ni;
   HdrFile >> ni;
   if (ni != NStructInt + NArrayInt)
-    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): ni != NStructInt");
+    amrex::Abort("ParticleContainer::Restart(): ni != NStructInt");
   
   for (int i = 0; i < ni; ++i)
       HdrFile >> comp_name;
@@ -2531,7 +2530,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
             ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile);
         }
         else {
-            std::string msg("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): bad parameter: ");
+            std::string msg("ParticleContainer::Restart(): bad parameter: ");
             msg += how;
             amrex::Error(msg.c_str());
         }
@@ -2539,7 +2538,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
         ParticleFile.close();
         
         if (!ParticleFile.good())
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart(): problem reading particles");
+            amrex::Abort("ParticleContainer::Restart(): problem reading particles");
     }
   }
   
@@ -2550,7 +2549,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   if (m_verbose > 1) {
     Real stoptime = ParallelDescriptor::second() - strttime;	
     ParallelDescriptor::ReduceRealMax(stoptime, ParallelDescriptor::IOProcessorNumber());
-    amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart() time: " << stoptime << '\n';
+    amrex::Print() << "ParticleContainer::Restart() time: " << stoptime << '\n';
   }
 }
 
@@ -2696,7 +2695,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
         File.close();
 
         if (!File.good())
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFile(): problem writing file");
+            amrex::Abort("ParticleContainer::WriteAsciiFile(): problem writing file");
     }
 
     ParallelDescriptor::Barrier();
@@ -2767,7 +2766,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
             File.close();
             
             if (!File.good())
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFile(): problem writing file");
+                amrex::Abort("ParticleContainer::WriteAsciiFile(): problem writing file");
 	    
         }
 	
@@ -2780,7 +2779,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
             
             ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
             
-            amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFile() time: " << stoptime << '\n';
+            amrex::Print() << "ParticleContainer::WriteAsciiFile() time: " << stoptime << '\n';
         }
 }
 
@@ -2836,7 +2835,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
         File.close();
 
         if (!File.good())
-            amrex::Abort("ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile(): problem writing file");
+            amrex::Abort("ParticleContainer::WriteCoarsenedAsciiFile(): problem writing file");
     }
 
     ParallelDescriptor::Barrier();
@@ -2915,7 +2914,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
             File.close();
 
             if (!File.good())
-                amrex::Abort("ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile(): problem writing file");
+                amrex::Abort("ParticleContainer::WriteCoarsenedAsciiFile(): problem writing file");
 
         }
 
@@ -2928,7 +2927,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
-        amrex::Print() << "ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
     }
 }
 
@@ -3062,7 +3061,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
       
       ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
       
-      amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity(single-level) time: " << stoptime << '\n';
+      amrex::Print() << "ParticleContainer::AssignDensity(single-level) time: " << stoptime << '\n';
     }
 }
 
@@ -3203,9 +3202,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (Mul
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer::moveKick() time: " << stoptime << '\n';
     }
-    //
-    // No need for Redistribute(), we only change the velocity.
-    //
 }
