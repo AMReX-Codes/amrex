@@ -195,6 +195,14 @@ main (int argc, char* argv[])
                     if (ParallelDescriptor::IOProcessor())
                         std::cout << "Vorticity found in plotfile, skipping." << '\n';
                 }
+
+    if ((add_divu == false ) && (add_vort == false)) {
+      if (ParallelDescriptor::IOProcessor())
+                        std::cout << "Nothing to do, escaping.." << '\n';
+      return 0;
+    }
+
+
     Vector<std::string> newCompNames = {};
     if (add_divu)
         newCompNames = concatVectorsDestructive(newCompNames, divuCompNames);

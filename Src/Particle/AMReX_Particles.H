@@ -705,17 +705,17 @@ public:
     // Functions depending the layout of the data.  Use with caution.
     //
     
-    void AssignDensityFort (int rho_index,
-                            Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
-                            int lev_min, int ncomp, int finest_level) const;
+    void AssignDensity (int rho_index,
+                        Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                        int lev_min, int ncomp, int finest_level) const;
 
-    void InterpolateFort (Vector<std::unique_ptr<MultiFab> >& mesh_data, 
-                          int lev_min, int lev_max);
+    void Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data, 
+                      int lev_min, int lev_max);
 
-    void InterpolateSingleLevelFort (MultiFab& mesh_data, int lev);
+    void InterpolateSingleLevel (MultiFab& mesh_data, int lev);
 
-    void AssignCellDensitySingleLevelFort (int rho_index, MultiFab& mf, int level,
-					   int ncomp=1, int particle_lvl_offset = 0) const;
+    void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
+                                       int ncomp=1, int particle_lvl_offset = 0) const;
 
     void moveKick (MultiFab& acceleration, int level, Real timestep, 
 		   Real a_new = 1.0, Real a_half = 1.0,
