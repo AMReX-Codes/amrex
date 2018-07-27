@@ -13,7 +13,7 @@ contains
 
   subroutine evolve ()
     use my_amr_module, only : stepno, max_step, stop_time, dt, plot_int
-    use amr_data_module, only : phi_old, phi_new, t_new, pc
+    use amr_data_module, only : phi_old, phi_new, t_new
     use compute_dt_module, only : compute_dt
     use plotfile_module, only : writeplotfile
     real(amrex_real) :: cur_time
