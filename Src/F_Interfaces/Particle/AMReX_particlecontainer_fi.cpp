@@ -25,12 +25,6 @@ extern "C" {
 	delete particlecontainer;
     }
 
-    void amrex_fi_init_particles_one_per_cell (FParticleContainer* particlecontainer)
-    {
-        FParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
-	particlecontainer->InitOnePerCell(0.5, 0.5, 0.5, pdata);
-    }
-
     void amrex_fi_write_particles(FParticleContainer* particlecontainer,
                                   const char* dirname, const char* pname, int is_checkpoint)
     {
