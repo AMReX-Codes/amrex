@@ -58,13 +58,23 @@ extern "C" {
                 dp = aos.data();
             } else {
                 dp = nullptr;
-            }            
+            }
         } else {
             np = 0;
             dp = nullptr;
         }
     }
-
+    
+    void amrex_fi_add_particle(FParticleContainer* particlecontainer,
+                               int lev, MFIter* mfi, FParticleContainer::ParticleType* p)
+    {
+        const int grid = mfi->index();
+        const int tile = mfi->LocalTileIndex();
+        auto& particle_level = particlecontainer->GetParticles(lev);
+        auto& particle_tile  = particle_level[std::make_pair(grid, tile)];
+        particle_tile.push_back(*p);
+    }
+    
     void amrex_fi_num_particles(FParticleContainer* particlecontainer,
                                 int lev, MFIter* mfi, long& np)
     {
