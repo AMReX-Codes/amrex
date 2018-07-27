@@ -22,7 +22,6 @@ module amrex_particlecontainer_module
   type, public :: amrex_particlecontainer
      type(c_ptr) :: p = c_null_ptr
    contains
-     procedure :: init_particles_one_per_cell => amrex_init_particles_one_per_cell
      procedure :: write                       => amrex_write_particles
      procedure :: redistribute                => amrex_particle_redistribute
      procedure :: get_particles               => amrex_get_particles
@@ -48,12 +47,6 @@ module amrex_particlecontainer_module
        implicit none
        type(c_ptr), value :: pc
      end subroutine amrex_fi_delete_particlecontainer
-
-     subroutine amrex_fi_init_particles_one_per_cell (pc) bind(c)
-       import
-       implicit none
-       type(c_ptr), value :: pc
-     end subroutine amrex_fi_init_particles_one_per_cell
 
      subroutine amrex_fi_write_particles (pc, dirname, pname, is_checkpoint) bind(c)
        import
@@ -111,11 +104,6 @@ contains
     call amrex_fi_delete_particlecontainer(this%p)
     this%p = c_null_ptr
   end subroutine amrex_particlecontainer_destroy
-
-  subroutine amrex_init_particles_one_per_cell (this)
-    class(amrex_particlecontainer), intent(inout) :: this    
-    call amrex_fi_init_particles_one_per_cell(this%p)
-  end subroutine amrex_init_particles_one_per_cell
 
   subroutine amrex_write_particles (this, dirname, pname, is_checkpoint)
     class(amrex_particlecontainer), intent(inout) :: this    
