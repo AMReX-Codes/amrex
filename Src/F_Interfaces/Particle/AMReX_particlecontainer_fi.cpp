@@ -1,6 +1,7 @@
 
 #include <AMReX_AmrParticles.H>
 #include <AMReX_AmrCore.H>
+#include <AMReX_ParallelDescriptor.H>
 
 using namespace amrex;
 
@@ -25,6 +26,16 @@ extern "C" {
 	delete particlecontainer;
     }
 
+    void amrex_fi_get_next_particle_id (int& id)
+    {
+        id = FParticleContainer::ParticleType::NextID();
+    }
+
+    void amrex_fi_get_cpu (int& cpu)
+    {
+        cpu = ParallelDescriptor::MyProc();
+    }
+    
     void amrex_fi_write_particles(FParticleContainer* particlecontainer,
                                   const char* dirname, const char* pname, int is_checkpoint)
     {

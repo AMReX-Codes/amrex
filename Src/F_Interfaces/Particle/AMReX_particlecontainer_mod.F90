@@ -11,6 +11,7 @@ module amrex_particlecontainer_module
 
   ! public routines
   public :: amrex_particlecontainer_build, amrex_particlecontainer_destroy
+  public :: amrex_get_next_particle_id, amrex_get_cpu
   
   type, bind(C), public :: amrex_particle
      real(amrex_particle_real)    :: pos(AMREX_SPACEDIM) !< Position
@@ -48,6 +49,18 @@ module amrex_particlecontainer_module
        type(c_ptr), value :: pc
      end subroutine amrex_fi_delete_particlecontainer
 
+     subroutine amrex_fi_get_next_particle_id (id) bind(c)
+       import
+       implicit none
+       integer(c_int) id
+     end subroutine amrex_fi_get_next_particle_id
+
+     subroutine amrex_fi_get_cpu (cpu) bind(c)
+       import
+       implicit none
+       integer(c_int) cpu
+     end subroutine amrex_fi_get_cpu
+     
      subroutine amrex_fi_write_particles (pc, dirname, pname, is_checkpoint) bind(c)
        import
        implicit none
@@ -104,6 +117,16 @@ contains
     call amrex_fi_delete_particlecontainer(this%p)
     this%p = c_null_ptr
   end subroutine amrex_particlecontainer_destroy
+
+  function amrex_get_next_particle_id() result(id)
+    integer(c_int) :: id
+    call amrex_fi_get_next_particle_id(id)
+  end function amrex_get_next_particle_id
+
+  function amrex_get_cpu() result(cpu)
+    integer(c_int) :: cpu
+    call amrex_fi_get_cpu(cpu)
+  end function amrex_get_cpu
 
   subroutine amrex_write_particles (this, dirname, pname, is_checkpoint)
     class(amrex_particlecontainer), intent(inout) :: this    
