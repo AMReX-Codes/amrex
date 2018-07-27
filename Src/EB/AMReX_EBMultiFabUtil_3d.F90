@@ -137,7 +137,7 @@ contains
                   fa            = 0.d0
                   do    kref    = 0, lrat(3)-1
                     do  iref    = 0, lrat(1)-1
-                        fa            = fa + ap(ii+iref, jj, k+kref)
+                        fa            = fa + ap(ii+iref, jj, kk+kref)
                         crse(i,j,k,n) = crse(i,j,k,n) + ap(ii+iref,jj,kk+kref)*fine(ii+iref,jj,kk+kref,n)
                     enddo
                   enddo
