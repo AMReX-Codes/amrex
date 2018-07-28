@@ -14,8 +14,6 @@ eb2.box_has_fluid_inside = 0
 
 eb2.geom_type = two_spheres
 
-eb2.geom_type = two_spheres_one_box
-
 eb2.geom_type = flower
 
 eb2.geom_type = rotated_box

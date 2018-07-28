@@ -47,16 +47,16 @@ MyTest::initializeEB ()
     }
     else if (geom_type == "two_spheres")
     {
-        EB2::SphereIF sphere1(0.18, {AMREX_D_DECL(0.45, 0.38, 0.5)}, false);
-        EB2::SphereIF sphere2(0.15, {AMREX_D_DECL(0.55, 0.68, 0.5)}, false);
+        EB2::SphereIF sphere1(0.2, {AMREX_D_DECL(0.45, 0.4, 0.58)}, false);
+        EB2::SphereIF sphere2(0.2, {AMREX_D_DECL(0.55, 0.42, 0.6)}, false);
         auto twospheres = EB2::makeUnion(sphere1, sphere2);
         auto gshop = EB2::makeShop(twospheres);
         EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
     }
     else if (geom_type == "two_spheres_one_box")
     {
-        EB2::SphereIF sphere1(0.18, {AMREX_D_DECL(0.45, 0.38, 0.5)}, false);
-        EB2::SphereIF sphere2(0.15, {AMREX_D_DECL(0.55, 0.68, 0.5)}, false);
+        EB2::SphereIF sphere1(0.2, {AMREX_D_DECL(0.5, 0.48, 0.5)}, false);
+        EB2::SphereIF sphere2(0.2, {AMREX_D_DECL(0.55, 0.58, 0.5)}, false);
         EB2::BoxIF box({AMREX_D_DECL(0.25,0.75,0.5)}, {AMREX_D_DECL(0.75,0.8,0.75)}, false);
         auto twospheres = EB2::makeUnion(sphere1, sphere2, box);
         auto gshop = EB2::makeShop(twospheres);
