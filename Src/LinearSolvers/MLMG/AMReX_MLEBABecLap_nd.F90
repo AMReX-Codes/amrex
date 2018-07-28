@@ -316,7 +316,7 @@ contains
                    if (mask(i,j,hi(3)+1) .eq. 0 .and. mask(i,j,hi(3)) .eq. 1) then
                       iorder = 1
                       do m = 0, maxorder-2
-                         if (apz(i,j,hi(2)+1-m) .gt. zero) then
+                         if (apz(i,j,hi(3)+1-m) .gt. zero) then
                             iorder = iorder + 1
                          else
                             exit
