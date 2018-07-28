@@ -18,7 +18,7 @@ class ElectromagneticParticleContainer
     amrex::Geometry m_geom;
     amrex::DistributionMapping m_dmap;
 
-    std::map<int, Particles> m_particles;
+    amrex::CudaMap<int, Particles> m_particles;
     std::unique_ptr<amrex::MultiFab> m_mask_ptr;
 
 public:

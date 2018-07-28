@@ -3,6 +3,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_CUDA_Utility.H>
 
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
@@ -88,14 +89,14 @@ namespace {
         DeviceBox box;
         const Real* mask_ptr;
         
-        __host__ __device__
+        AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
         assignParticle(const DeviceDomain& a_domain,
                        const DeviceBox&    a_box,
                        const Real*         a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Tuple>
-        __host__ __device__
+        AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
         int operator()(Tuple tup) const {
             int i = floor((thrust::get<0>(tup) - domain.left_edge[0]) * domain.inverse_dx[0]);
             int j = floor((thrust::get<1>(tup) - domain.left_edge[1]) * domain.inverse_dx[1]);
@@ -116,10 +117,10 @@ namespace {
     {
         int grid_id;
         
-        __host__ __device__
+        AMREX_CUDA_HOST AMREX_CUDA_DEVICE
         grid_is(int a_grid_id) : grid_id(a_grid_id) {}
         
-        __host__ __device__
+        AMREX_CUDA_HOST AMREX_CUDA_DEVICE
         bool operator()(int grid) const
         {
             return grid_id == grid;
@@ -130,10 +131,10 @@ namespace {
     {
         int grid_id;
         
-        __host__ __device__
+        AMREX_CUDA_HOST AMREX_CUDA_DEVICE
         grid_is_not(int a_grid_id) : grid_id(a_grid_id) {}
     
-        __host__ __device__
+        AMREX_CUDA_HOST AMREX_CUDA_DEVICE
         bool operator()(int grid) const
         {
             return grid_id != grid;
@@ -238,6 +239,69 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     }
 }
 
+AMREX_CUDA_GLOBAL
+void
+PushAndDeposeParticles(const amrex::BaseFab<Real>& Ex,
+                       const amrex::BaseFab<Real>& Ey,
+                       const amrex::BaseFab<Real>& Ez,
+                       const amrex::BaseFab<Real>& Bx,
+                       const amrex::BaseFab<Real>& By,
+                       const amrex::BaseFab<Real>& Bz,
+                             amrex::BaseFab<Real>& jx,
+                             amrex::BaseFab<Real>& jy, 
+                             amrex::BaseFab<Real>& jz,
+                             Particles &particles,
+                       const amrex::GeometryData geom,
+                       const amrex::Real m_charge,
+                       const amrex::Real m_mass,
+                       const amrex::Real dt)
+{
+    int index, np;
+    getThreadIndex(index, np, particles.size());
+
+    if (np == 0) return;
+
+    const Real *plo = geom.ProbLo();
+    const Real *dx  = geom.CellSize();
+
+    gather_magnetic_field(np, 
+                          particles.x().data(),  particles.y().data(),  particles.z().data(),
+                          particles.bx().data(), particles.by().data(), particles.bz().data(),
+                          BL_TO_FORTRAN_3D(Bx),
+                          BL_TO_FORTRAN_3D(By),
+                          BL_TO_FORTRAN_3D(Bz),
+                          plo, dx);
+        
+    gather_electric_field(np, 
+                          particles.x().data(),  particles.y().data(),  particles.z().data(),
+                          particles.ex().data(), particles.ey().data(), particles.ez().data(),
+                          BL_TO_FORTRAN_3D(Ex),
+                          BL_TO_FORTRAN_3D(Ey),
+                          BL_TO_FORTRAN_3D(Ez),
+                          plo, dx);
+        
+    push_momentum_boris(np,
+                        particles.ux().data(), particles.uy().data(), particles.uz().data(),
+                        particles.ginv().data(),
+                        particles.ex().data(), particles.ey().data(), particles.ez().data(),
+                        particles.bx().data(), particles.by().data(), particles.bz().data(),
+                        m_charge, m_mass, dt);
+         
+    push_position_boris(np,
+                        particles.x().data(),  particles.y().data(),  particles.z().data(),
+                        particles.ux().data(), particles.uy().data(), particles.uz().data(),
+                        particles.ginv().data(), dt);
+        
+    deposit_current(BL_TO_FORTRAN_3D(jx),
+                    BL_TO_FORTRAN_3D(jy),
+                    BL_TO_FORTRAN_3D(jz),
+                    np,
+                    particles.x().data(),  particles.y().data(),  particles.z().data(),
+                    particles.ux().data(), particles.uy().data(), particles.uz().data(),
+                    particles.ginv().data(), particles.w().data(),
+                    m_charge, plo, dt, dx);
+}
+
 void
 ElectromagneticParticleContainer::
 PushAndDeposeParticles(const amrex::MultiFab& Ex,
@@ -253,9 +317,6 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 {   
     BL_PROFILE("ElectromagneticParticleContainer::PushAndDeposeParticles");
     
-    const Real* dx  = m_geom.CellSize();
-    const Real* plo = m_geom.ProbLo();
-    
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
         auto& particles = m_particles[mfi.index()];
@@ -263,73 +324,62 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 
         if (np == 0) continue;
 
-#ifdef AMREX_USE_ACC
-	FTOC(gather_magnetic_field)(
-#else
-        FORT_LAUNCH_PARTICLES(np,
-                              gather_magnetic_field,
-#endif
-                              np, 
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              particles.bx().data(), particles.by().data(), particles.bz().data(),
-                              BL_TO_FORTRAN_3D(Bx[mfi]),
-                              BL_TO_FORTRAN_3D(By[mfi]),
-                              BL_TO_FORTRAN_3D(Bz[mfi]),
-                              plo, dx);
-        
-#ifdef AMREX_USE_ACC
-	FTOC(gather_electric_field)(
-#else
-        FORT_LAUNCH_PARTICLES(np,
-                              gather_electric_field,
-#endif
-                              np, 
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              particles.ex().data(), particles.ey().data(), particles.ez().data(),
-                              BL_TO_FORTRAN_3D(Ex[mfi]),
-                              BL_TO_FORTRAN_3D(Ey[mfi]),
-                              BL_TO_FORTRAN_3D(Ez[mfi]),
-                              plo, dx);
-        
-#ifdef AMREX_USE_ACC
-        FTOC(push_momentum_boris)(
-#else
-        FORT_LAUNCH_PARTICLES(np, 
-                              push_momentum_boris,
-#endif
-                              np,
-                              particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                              particles.ginv().data(),
-                              particles.ex().data(), particles.ey().data(), particles.ez().data(),
-                              particles.bx().data(), particles.by().data(), particles.bz().data(),
-                              m_charge, m_mass, dt);
-        
-#ifdef AMREX_USE_ACC
-        FTOC(push_position_boris)(
-#else
-        FORT_LAUNCH_PARTICLES(np,
-                              push_position_boris,
-#endif
-                              np,
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                              particles.ginv().data(), dt);
-        
-#ifdef AMREX_USE_ACC
-        FTOC(deposit_current)(
-#else
-        FORT_LAUNCH_PARTICLES(np, 
-                              deposit_current,
-#endif
-                              BL_TO_FORTRAN_3D(jx[mfi]),
-                              BL_TO_FORTRAN_3D(jy[mfi]),
-                              BL_TO_FORTRAN_3D(jz[mfi]),
-                              np,
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                              particles.ginv().data(), particles.w().data(),
-                              m_charge, plo, dt, dx);
+        AMREX_PARTICLES_LAUNCH(np,
+                               ::PushAndDeposeParticles,
+                               Ex[mfi], Ey[mfi], Ez[mfi],
+                               Bx[mfi], By[mfi], Bz[mfi],
+                               jx[mfi], jy[mfi], jz[mfi],
+                               particles, m_geom.data(),
+                               m_charge, m_mass, dt);
     }
+    Device::synchronize();
+}
+
+AMREX_CUDA_GLOBAL
+void
+PushParticleMomenta(const amrex::BaseFab<Real>& Ex,
+                    const amrex::BaseFab<Real>& Ey,
+                    const amrex::BaseFab<Real>& Ez,
+                    const amrex::BaseFab<Real>& Bx,
+                    const amrex::BaseFab<Real>& By,
+                    const amrex::BaseFab<Real>& Bz,
+                    Particles &particles,
+                    const amrex::GeometryData geom,
+                    const amrex::Real m_charge,
+                    const amrex::Real m_mass,
+                    const amrex::Real dt)
+{
+    int index, np;
+    getThreadIndex(index, np, particles.size());
+
+    if (np == 0) return;
+
+    const Real *plo = geom.ProbLo();
+    const Real *dx  = geom.CellSize();
+
+    gather_magnetic_field(np, 
+                          particles.x().data(),  particles.y().data(),  particles.z().data(),
+                          particles.bx().data(), particles.by().data(), particles.bz().data(),
+                          BL_TO_FORTRAN_3D(Bx),
+                          BL_TO_FORTRAN_3D(By),
+                          BL_TO_FORTRAN_3D(Bz),
+                          plo, dx);
+        
+    gather_electric_field(np, 
+                          particles.x().data(),  particles.y().data(),  particles.z().data(),
+                          particles.ex().data(), particles.ey().data(), particles.ez().data(),
+                          BL_TO_FORTRAN_3D(Ex),
+                          BL_TO_FORTRAN_3D(Ey),
+                          BL_TO_FORTRAN_3D(Ez),
+                          plo, dx);
+        
+    push_momentum_boris(np,
+                        particles.ux().data(), particles.uy().data(), particles.uz().data(),
+                        particles.ginv().data(),
+                        particles.ex().data(), particles.ey().data(), particles.ez().data(),
+                        particles.bx().data(), particles.by().data(), particles.bz().data(),
+                        m_charge, m_mass, dt);
+
 }
 
 void
@@ -344,9 +394,6 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
 {   
     BL_PROFILE("ElectromagneticParticleContainer::PushParticleMomenta");
     
-    const Real* dx  = m_geom.CellSize();
-    const Real* plo = m_geom.ProbLo();
-    
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
         auto& particles = m_particles[mfi.index()];
@@ -354,48 +401,35 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
 
         if (np == 0) continue;
 
-#ifdef AMREX_USE_ACC
-	FTOC(gather_magnetic_field)(
-#else
-        FORT_LAUNCH_PARTICLES(np,
-                              gather_magnetic_field,
-#endif
-                              np, 
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              particles.bx().data(), particles.by().data(), particles.bz().data(),
-                              BL_TO_FORTRAN_3D(Bx[mfi]),
-                              BL_TO_FORTRAN_3D(By[mfi]),
-                              BL_TO_FORTRAN_3D(Bz[mfi]),
-                              plo, dx);
-        
-#ifdef AMREX_USE_ACC
-	FTOC(gather_electric_field)(
-#else
-        FORT_LAUNCH_PARTICLES(np,
-                              gather_electric_field,
-#endif
-                              np, 
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              particles.ex().data(), particles.ey().data(), particles.ez().data(),
-                              BL_TO_FORTRAN_3D(Ex[mfi]),
-                              BL_TO_FORTRAN_3D(Ey[mfi]),
-                              BL_TO_FORTRAN_3D(Ez[mfi]),
-                              plo, dx);
-        
-#ifdef AMREX_USE_ACC
-        FTOC(push_momentum_boris)(
-#else
-        FORT_LAUNCH_PARTICLES(np, 
-                              push_momentum_boris,
-#endif
-                              np,
-                              particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                              particles.ginv().data(),
-                              particles.ex().data(), particles.ey().data(), particles.ez().data(),
-                              particles.bx().data(), particles.by().data(), particles.bz().data(),
-                              m_charge, m_mass, dt);
+        AMREX_PARTICLES_LAUNCH(np, ::PushParticleMomenta, 
+                                   Ex[mfi], Ey[mfi], Ez[mfi],
+                                   Bx[mfi], By[mfi], Bz[mfi],
+                                   particles, m_geom.data(),
+                                   m_charge, m_mass, dt);
+
     }
 }
+
+AMREX_CUDA_GLOBAL
+void 
+PushParticlePositions(Particles &particles,
+                      const amrex::Real dt)
+{
+    int index, np;
+    getThreadIndex(index, np, particles.size());
+
+    if (np == 0) return;
+
+    set_gamma(np, 
+              particles.ux().data(), particles.uy().data(), particles.uz().data(),
+              particles.ginv().data());
+        
+    push_position_boris(np,
+                        particles.x().data(),  particles.y().data(),  particles.z().data(),
+                        particles.ux().data(), particles.uy().data(), particles.uz().data(),
+                        particles.ginv().data(), dt);
+}
+
 
 void 
 ElectromagneticParticleContainer::
@@ -409,23 +443,28 @@ PushParticlePositions(amrex::Real dt)
         const int np    = particles.size();
         
         if (np == 0) continue;
-
-        FORT_LAUNCH_PARTICLES(np, set_gamma,
-                              np, 
-                              particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                              particles.ginv().data());
-        
-#ifdef AMREX_USE_ACC
-        FTOC(push_position_boris)(
-#else
-        FORT_LAUNCH_PARTICLES(np, 
-                              push_position_boris,
-#endif
-                              np,
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                              particles.ginv().data(), dt);
+        AMREX_PARTICLES_LAUNCH(np,
+                               ::PushParticlePositions,
+                               particles, dt);
     }
+}
+
+AMREX_CUDA_GLOBAL
+void
+EnforcePeriodicBCs(Particles &particles,
+                   const amrex::GeometryData m_geom)
+{
+    int index, np;
+    getThreadIndex(index, np, particles.size());
+
+    if (np == 0) return;
+
+    const Real *plo = m_geom.ProbLo();
+    const Real *phi = m_geom.ProbHi();
+        
+    enforce_periodic(np,
+                     particles.x().data(),  particles.y().data(),  particles.z().data(),
+                     plo, phi);
 }
 
 void
@@ -441,13 +480,11 @@ EnforcePeriodicBCs()
 
         if (np == 0) continue;
 
-        const Real* plo = m_geom.ProbLo();
-        const Real* phi = m_geom.ProbHi();
-        
-        FORT_LAUNCH_PARTICLES(np, enforce_periodic,
-                              np,
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              plo, phi);
+        const Real* plo = m_geom.data().ProbLo();
+        const Real* phi = m_geom.data().ProbHi();
+
+        AMREX_PARTICLES_LAUNCH(np, ::EnforcePeriodicBCs,
+                               particles, m_geom.data());
     }
 }
 

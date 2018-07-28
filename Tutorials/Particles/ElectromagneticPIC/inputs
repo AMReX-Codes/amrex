@@ -4,8 +4,8 @@ nppc  = (4, 4, 4)
 
 max_grid_size = 64
 
-#problem_type = Langmuir
-problem_type = UniformPlasma
+problem_type = Langmuir
+#problem_type = UniformPlasma
 
 nsteps = 10
 

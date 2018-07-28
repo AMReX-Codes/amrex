@@ -12,7 +12,7 @@ end module
 subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
      ex, ey, ez, bx, by, bz, q, m, dt)
 #else
-AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
+AMREX_CUDA_FORT_GLOBAL subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
      ex, ey, ez, bx, by, bz, q, m, dt) &
      bind(c,name='push_momentum_boris')
 #endif
@@ -97,7 +97,7 @@ end subroutine push_momentum_boris
 #ifdef AMREX_USE_ACC
 subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt)
 #else
-AMREX_LAUNCH subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt) &
+AMREX_CUDA_FORT_GLOBAL subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt) &
      bind(c,name='push_position_boris')
 #endif
 
@@ -138,7 +138,7 @@ AMREX_LAUNCH subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gamin
 
 end subroutine push_position_boris
 
-AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
+AMREX_CUDA_FORT_GLOBAL subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
      bind(c,name='set_gamma')
   
   use amrex_fort_module, only : amrex_real
@@ -171,7 +171,7 @@ AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
 
 end subroutine set_gamma
 
-AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
+AMREX_CUDA_FORT_GLOBAL subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
      bind(c,name='enforce_periodic')
   
   use amrex_fort_module, only : amrex_real
@@ -223,7 +223,7 @@ end subroutine enforce_periodic
 subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
      uxp, uyp, uzp, gaminv, w, q, plo, dt, dx)
 #else
-AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
+AMREX_CUDA_FORT_GLOBAL subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
      uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) & 
      bind(c,name="deposit_current")
 #endif
@@ -462,7 +462,7 @@ end subroutine deposit_current
 subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx)
 #else
-AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
+AMREX_CUDA_FORT_GLOBAL subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx) & 
      bind(c,name="gather_magnetic_field")
 #endif
@@ -625,7 +625,7 @@ end subroutine gather_magnetic_field
 subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx)
 #else
-AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
+AMREX_CUDA_FORT_GLOBAL subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx) & 
      bind(c,name="gather_electric_field")
 #endif
@@ -782,11 +782,11 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
    
 end subroutine gather_electric_field
 
-AMREX_LAUNCH subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
+AMREX_CUDA_FORT_GLOBAL subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
      by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) & 
      bind(c,name="push_electric_field_x")
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
   implicit none
   
   integer,          intent(in)    :: xlo(3),  xhi(3)
@@ -802,7 +802,7 @@ AMREX_LAUNCH subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,         
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, xlo, xhi)
+  call get_loop_bounds_device(blo, bhi, xlo, xhi)
 
   do l       = blo(3), bhi(3)
      do k    = blo(2), bhi(2)
@@ -816,12 +816,12 @@ AMREX_LAUNCH subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,         
     
 end subroutine push_electric_field_x
 
-AMREX_LAUNCH subroutine push_electric_field_y(ylo, yhi, &
+AMREX_CUDA_FORT_GLOBAL subroutine push_electric_field_y(ylo, yhi, &
      ey, eylo, eyhi, bx, bxlo, bxhi, bz, bzlo, bzhi, &
      jy, jylo, jyhi, mudt, dtsdx, dtsdz)     & 
      bind(c,name="push_electric_field_y")
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
   implicit none
   
   integer,          intent(in)    :: ylo(3), yhi(3)
@@ -837,7 +837,7 @@ AMREX_LAUNCH subroutine push_electric_field_y(ylo, yhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, ylo, yhi)
+  call get_loop_bounds_device(blo, bhi, ylo, yhi)
 
   do l       = blo(3), bhi(3)
      do k    = blo(2), bhi(2)
@@ -851,12 +851,12 @@ AMREX_LAUNCH subroutine push_electric_field_y(ylo, yhi, &
 
 end subroutine push_electric_field_y
 
-AMREX_LAUNCH subroutine push_electric_field_z(zlo, zhi, &
+AMREX_CUDA_FORT_GLOBAL subroutine push_electric_field_z(zlo, zhi, &
      ez,ezlo, ezhi, bx, bxlo, bxhi, by, bylo, byhi, &
      jz, jzlo, jzhi, mudt, dtsdx, dtsdy)     & 
      bind(c,name="push_electric_field_z")
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
   implicit none
   
   integer,          intent(in)    :: zlo(3), zhi(3)
@@ -872,7 +872,7 @@ AMREX_LAUNCH subroutine push_electric_field_z(zlo, zhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, zlo, zhi)
+  call get_loop_bounds_device(blo, bhi, zlo, zhi)
 
   do l       = blo(3), bhi(3)
      do k    = blo(2), bhi(2)
@@ -886,11 +886,11 @@ AMREX_LAUNCH subroutine push_electric_field_z(zlo, zhi, &
   
 end subroutine push_electric_field_z
 
-AMREX_LAUNCH subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, & 
+AMREX_CUDA_FORT_GLOBAL subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, & 
      ez, ezlo, ezhi, dtsdy, dtsdz)    & 
      bind(c,name='push_magnetic_field_x')
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
   implicit none
   
   integer,          intent(in)    :: xlo(3), xhi(3)
@@ -904,7 +904,7 @@ AMREX_LAUNCH subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, xlo, xhi)
+  call get_loop_bounds_device(blo, bhi, xlo, xhi)
 
   do l       = blo(3), bhi(3)
      do k    = blo(2), bhi(2)
@@ -917,11 +917,11 @@ AMREX_LAUNCH subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo
 
 end subroutine push_magnetic_field_x
   
-AMREX_LAUNCH subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, & 
+AMREX_CUDA_FORT_GLOBAL subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, & 
      ez, ezlo, ezhi, dtsdx, dtsdz)    & 
      bind(c,name='push_magnetic_field_y')
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
   implicit none
   
   integer,          intent(in)    :: ylo(3), yhi(3)
@@ -935,7 +935,7 @@ AMREX_LAUNCH subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, ylo, yhi)
+  call get_loop_bounds_device(blo, bhi, ylo, yhi)
   
   do l       = blo(3), bhi(3)
      do k    = blo(2), bhi(2)
@@ -948,11 +948,11 @@ AMREX_LAUNCH subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo
 
 end subroutine push_magnetic_field_y
 
-AMREX_LAUNCH subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, & 
+AMREX_CUDA_FORT_GLOBAL subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, & 
      ey, eylo, eyhi, dtsdx, dtsdy)    & 
      bind(c,name='push_magnetic_field_z')
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
   implicit none
   
   integer,          intent(in)    :: zlo(3), zhi(3)
@@ -966,7 +966,7 @@ AMREX_LAUNCH subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo
   integer :: j,k,l
   integer :: blo(3), bhi(3)
   
-  call get_loop_bounds(blo, bhi, zlo, zhi)
+  call get_loop_bounds_device(blo, bhi, zlo, zhi)
   
   do l       = blo(3), bhi(3)
      do k    = blo(2), bhi(2)
