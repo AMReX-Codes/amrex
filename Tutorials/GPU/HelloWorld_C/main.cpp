@@ -1,23 +1,51 @@
 #include <cuda_device_runtime_api.h>
+#include <thrust/device_vector.h>
 
 #include <iostream>
 #include <AMReX.H>
 #include <AMReX_Print.H>
 
+#include <AMReX_Device.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_BaseFab_f.H>
+#include <AMReX_CudaAllocators.H>
+
 
 #define RLIM_3D(x) &((int []){x[0], x[1], 0, x[2], 0}[0])
+AMREX_CUDA_GLOBAL
+void vector_kernel( thrust::device_vector<int, amrex::CudaManagedAllocator<int>> &vect )
+{
+   printf("vect.size = %i", vect.size());
+
+   for (int i=0; i<vect.size(); ++i)
+   {
+      printf("vect[%i] = %i", i, vect[i]);
+      vect[i] += i;
+   }
+
+   for (int i=0; i<vect.size(); ++i)
+   {
+      printf("vect[%i] = %i", i, vect[i]);
+   }
+}
+
 
 AMREX_CUDA_DEVICE
 void myf(int* a)
 {
    printf("a[1] = %i", a[1]);
 }
+
+AMREX_CUDA_HOST
+void myf(int* a)
+{
+   cout << "a[1] = " << a[1] << std::endl;
+}
+
 
 AMREX_CUDA_GLOBAL
 void passBoxByValue(amrex::Box bx)
@@ -113,7 +141,7 @@ int main (int argc, char* argv[])
     amrex::Print() << "**********************************\n"; 
     // ===================================
     // IntVect
-
+/*
     {
       amrex::IntVect host(1,1,1);
       amrex::IntVect *device1 = new amrex::IntVect(1,1,1);
@@ -222,7 +250,7 @@ int main (int argc, char* argv[])
                         "bf2 Max Val = "  << val_new << std::endl; 
 
     }
-/*
+
     // GeomData test
     {
       amrex::Print() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl << std::endl;
@@ -268,11 +296,78 @@ int main (int argc, char* argv[])
       cudaFree(off);
     }
 */
+/*
     {
       amrex::Box vbx(amrex::IntVect(-12,-13,-14), amrex::IntVect(23,24,25));
       passBoxByValue<<<1,1>>>(vbx);
       cudaDeviceSynchronize();
     }
+*/
+/*
+    {
+      std::cout << "=========Map==========" << std::endl;
+
+      using RealVector = std::vector<double, amrex::CudaManagedAllocator<double>>;
+
+      RealVector vect_test;
+      vect_test.resize(10, 15);
+      std::cout << "vect<double>[9].isManaged: " << amrex::Device::checkManaged(&vect_test[9]) << std::endl << std::endl;
+
+      std::map<int, double, std::less<int>, amrex::CudaManagedAllocator<std::pair<int, double> > > map_test;
+      map_test[0] = 4;
+      map_test[4] = 17;
+
+//      std::cout << "map.isManaged: " << amrex::Device::checkManaged(&map_test) << std::endl;
+      std::cout << "map<int, double>[0].isManaged: " << amrex::Device::checkManaged(&map_test[0]) << std::endl;
+      std::cout << "map<int, double>[4].isManaged: " << amrex::Device::checkManaged(&map_test[4]) << std::endl << std::endl;
+
+      std::map<int, RealVector, std::less<int>, amrex::CudaManagedAllocator<std::pair<int, RealVector>>> map_vect;
+
+      RealVector rv = RealVector(4,7);
+      map_vect[0] = rv;
+
+      auto& data = map_vect[2];
+      data.push_back(17);
+      data.push_back(14.0);
+
+//    Need to fix??
+//    map_vect[0] = RealVector(5, 14);
+
+      std::cout << "map<vector>[0][0].isManaged: " << amrex::Device::checkManaged(&(map_vect[0][0])) << std::endl;
+      std::cout << "map<vector>[0][3].isManaged: " << amrex::Device::checkManaged(&(map_vect[0][3])) << std::endl << std::endl;
+      std::cout << "map<vector>[2][0].isManaged: " << amrex::Device::checkManaged(&(map_vect[2][0])) << std::endl;
+      std::cout << "map<vector>[2][1].isManaged: " << amrex::Device::checkManaged(&(map_vect[2][1])) << std::endl << std::endl;
+
+    }
+
+    {
+      thrust::device_vector<int, amrex::CudaManagedAllocator<int>> device_vect(4,0);
+      for (int i=0; i<device_vect.size(); ++i)
+      {
+        std::cout << device_vect[i] << " ";
+      } 
+
+      vector_kernel<<<1,1>>>(device_vect);
+      cudaDeviceSynchronize();
+
+      for (int i=0; i<device_vect.size(); ++i)
+      {
+        std::cout << device_vect[i] << " ";
+      } 
+    }    
+*/
+    {
+      std::vector<int, amrex::CudaManagedAllocator<int> vector(4,0);
+      for (int i=0; i<device_vect.size(); ++i)
+      {
+        myf(vector.data()[i];
+      } 
+
+//      vector_kernel<<<1,1>>>(device_vect);
+//      cudaDeviceSynchronize();
+
+    }
+
 
     amrex::Print() << std::endl << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl << std::endl;
 
