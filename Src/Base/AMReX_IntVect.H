@@ -178,6 +178,7 @@ public:
     }
 
     //! Returns true if any component is not equal to the argument val.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool operator!= (int val) const
     {
         return AMREX_D_TERM(vect[0] != val, || vect[1] != val, || vect[2] != val);
@@ -259,11 +260,13 @@ public:
     //! Unary Minus -- negates all components.
     IntVect operator- () const { return IntVect(AMREX_D_DECL(-vect[0], -vect[1], -vect[2] )); }
     //! Modifies IntVect by addition of a scalar to each component.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& operator+= (int s)
     {
         AMREX_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
     }
     //! Modifies IntVect by component-wise addition with argument.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& operator+= (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]); return *this;
@@ -310,6 +313,7 @@ public:
         return IntVect(AMREX_D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
     }
     //! Returns component-wise difference of IntVect and argument.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect operator- (const IntVect& p) const
     {
         return IntVect(AMREX_D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
@@ -370,11 +374,13 @@ public:
         return *this;
     }
     //! Modify IntVect by adding s to given coordinate.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& shift (int coord, int s)
     {
         BL_ASSERT(coord >= 0 && coord < AMREX_SPACEDIM); vect[coord] += s; return *this;
     }
     //! Equivalent to shift(0,iv[0]).shift(1,iv[1]) ...
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect& shift (const IntVect& iv) { *this += iv; return *this; }
     //! Modify IntVect by adding s to each coordinate.
     IntVect& diagShift (int s)
@@ -559,6 +565,7 @@ IntVect operator+ (int s, const IntVect& p)
 }
 //! Returns -p + s.
 inline
+AMREX_CUDA_HOST AMREX_CUDA_DEVICE
 IntVect operator- (int s, const IntVect& p)
 {
     return IntVect(AMREX_D_DECL(s - p[0], s - p[1], s - p[2]));

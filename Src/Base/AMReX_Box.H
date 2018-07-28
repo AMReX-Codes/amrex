@@ -108,6 +108,7 @@ public:
     IndexType ixType () const { return btype; }
 
     //! Returns the indexing type.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect type () const { return btype.ixType(); }
 
     //! Returns the indexing type in the specified direction.
@@ -326,6 +327,7 @@ public:
                    int n_cells = 1);
 
     //! Set indexing type
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& setType (const IndexType& t) { btype = t; return *this; }
 
     //! Shift this Box nzones indexing positions in coordinate direction dir.
@@ -471,6 +473,7 @@ public:
     * direction idir.  NOTE: n_cell negative shrinks the Box by that
     * number of cells.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); return *this; }
 
     //! Grow in the direction of the given face.
