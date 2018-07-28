@@ -82,6 +82,7 @@ public:
     //! Return an integer representing the IndexType in direction dir.
     int operator[] (int dir) const { return test(dir); }
     //! Fill an IntVect of size AMREX_SPACEDIM with IndexTypes.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IntVect ixType () const { return IntVect(AMREX_D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1)); }
     /**
     * \brief This static member function returns an IndexType object of value
