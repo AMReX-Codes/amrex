@@ -8,7 +8,8 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/device_ptr.h>
 
-#include <CudaManagedAllocator.H>
+#include <AMReX_Array.H>
+#include <AMReX_CudaAllocators.H>
 
 namespace detail {
     
@@ -63,44 +64,53 @@ auto to_thrust_tuple(const std::tuple<Args...>& t)
 template <int NReal, int NInt>
 struct StructOfArrays {
     
-    using RealVector = std::vector<double, CudaManagedAllocator<double> >;
-    using IntVector  = std::vector<int,    CudaManagedAllocator<int   > >;
+    using RealVector = std::vector<double, amrex::CudaManagedAllocator<double> >;
+    using IntVector  = std::vector<int,    amrex::CudaManagedAllocator<int   > >;
     
     using real_tuple_t = detail::tuple_of<NReal, RealVector*>;
     using int_tuple_t  = detail::tuple_of<NInt,  IntVector* >;
     using tuple_t = decltype(std::tuple_cat(real_tuple_t(), int_tuple_t()));
     using thrust_zip_iterator_t = decltype(thrust::make_zip_iterator(to_thrust_tuple(tuple_t())));
 
-    std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
-    std::array<IntVector,  NInt>&  GetIntData  () { return m_idata; }
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
+    amrex::CudaArray<RealVector, NReal>& GetRealData () { return m_rdata; }
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
+    amrex::CudaArray<IntVector,  NInt>&  GetIntData  () { return m_idata; }
     
-    const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
-    const std::array<IntVector,  NInt >& GetIntData  () const { return m_idata; }
-    
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
+    const amrex::CudaArray<RealVector, NReal>& GetRealData () const { return m_rdata; }
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
+    const amrex::CudaArray<IntVector,  NInt >& GetIntData  () const { return m_idata; }
+   
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     RealVector& GetRealData (const int index)
     {
         assert(index < NReal);
         return m_rdata[index];
     }
-    
+
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     const RealVector& GetRealData (const int index) const 
     {
         assert(index < NReal);
         return m_rdata[index];
     }
-    
+
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     IntVector& GetIntData (const int index) 
     {
         assert(index < NInt);
         return m_idata[index];
     }
-    
+
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
     const IntVector& GetIntData (const int index) const 
     {
         assert(index < NInt);
         return m_idata[index];
     }
-    
+
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE    
     int size () const
     {
         if (NReal > 0)
@@ -137,7 +147,7 @@ struct StructOfArrays {
     }
     
 private:
-    
-    std::array<RealVector, NReal> m_rdata;
-    std::array<IntVector,  NInt>  m_idata;
+
+    amrex::CudaArray<RealVector, NReal> m_rdata;
+    amrex::CudaArray<IntVector,  NInt>  m_idata;
 };

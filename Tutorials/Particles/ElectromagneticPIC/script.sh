@@ -1,19 +1,19 @@
 #!/bin/bash
-#BSUB -P CSC249ADCD03
-#BSUB -W 2:00
+#BSUB -P CSC190PORT
+#BSUB -W 10 
 #BSUB -nnodes 1
-#BSUB -J ElectromagneticPIC
-#BSUB -o ElectromagneticPICo.%J
-#BSUB -e ElectromagneticPICe.%J
+#BSUB -J PIC
+#BSUB -o PICo.%J
+#BSUB -e PICe.%J
 
 module load pgi
-module load cuda
+module load cuda/9.1.85
 module list
 set -x
 
 omp=1
 export OMP_NUM_THREADS=${omp}
-EXE="../main3d.pgi.TPROF.MPI.CUDA.ex"
+EXE="../main3d.pgi.MPI.CUDA.ex"
 JSRUN="jsrun -n 4 -a 1 -g 1 -c 1 --bind=packed:${omp} "
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
@@ -23,7 +23,8 @@ cp inputs $rundir
 cd $rundir
 
 # 1. Run normally
-${JSRUN} --smpiargs="-gpu" ${EXE} inputs
+${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} inputs
+#${JSRUN} ${EXE} inputs
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprof.txt
 #${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes ${EXE} inputs &> nvprof.txt
