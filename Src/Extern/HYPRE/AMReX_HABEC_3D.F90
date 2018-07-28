@@ -559,7 +559,7 @@ contains
                    f = fac(1)
                    area = apx(i,j,k)
                    abc = area*bx(i,j,k)
-                   if (area.ge.zero) then
+                   if (area.gt.zero) then
                       if (area.ne.one) then
                          joff = int(sign(one,fcx(i,j,k,1)))
                          koff = int(sign(one,fcx(i,j,k,2)))
@@ -589,6 +589,7 @@ contains
                       end if
 
                       tmp = (one-fracy)*(one-fracz)*abc
+                      ! cell(i-1,j,k) is not covered because area > 0
                       if (cell_id(i-1,j,k).ge.0) then
                          mat_tmp( 0,0,0) = mat_tmp( 0,0,0) + tmp*f
                          mat_tmp(-1,0,0) = mat_tmp(-1,0,0) - tmp*f
@@ -604,10 +605,11 @@ contains
                          if (cell_id(i-1,jj,k).ge.0 .and. cell_id(i,jj,k).ge.0) then
                             mat_tmp(-1,joff,0) = mat_tmp(-1,joff,0) - tmp*f
                             mat_tmp( 0,joff,0) = mat_tmp( 0,joff,0) + tmp*f
-                         else if (cell_id(i-1,jj,k).ge.0) then
-                            mat_tmp(-1,joff,0) = mat_tmp(-1,joff,0) - tmp*(f+bflo(cdir))
-                         else
+                         else if (cell_id(i+1,jj,k).lt.0 .or. apx(i+1,jj,k).eq.zero .or. bho.eq.0) then
                             mat_tmp( 0,joff,0) = mat_tmp( 0,joff,0) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp( 0,joff,0) = mat_tmp( 0,joff,0) + tmp*(f+bf1(cdir))
+                            mat_tmp( 1,joff,0) = mat_tmp( 1,joff,0) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -616,10 +618,11 @@ contains
                          if (cell_id(i-1,j,kk).ge.0 .and. cell_id(i,j,kk).ge.0) then
                             mat_tmp(-1,0,koff) = mat_tmp(-1,0,koff) - tmp*f
                             mat_tmp( 0,0,koff) = mat_tmp( 0,0,koff) + tmp*f
-                         else if (cell_id(i-1,j,kk).ge.0) then
-                            mat_tmp(-1,0,koff) = mat_tmp(-1,0,koff) - tmp*(f+bflo(cdir))
-                         else
+                         else if (cell_id(i+1,j,kk).lt.0 .or. apx(i+1,j,kk).eq.zero .or. bho.eq.0) then
                             mat_tmp( 0,0,koff) = mat_tmp( 0,0,koff) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp( 0,0,koff) = mat_tmp( 0,0,koff) + tmp*(f+bf1(cdir))
+                            mat_tmp( 1,0,koff) = mat_tmp( 1,0,koff) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -628,10 +631,11 @@ contains
                          if (cell_id(i-1,jj,kk).ge.0 .and. cell_id(i,jj,kk).ge.0) then
                             mat_tmp(-1,joff,koff) = mat_tmp(-1,joff,koff) - tmp*f
                             mat_tmp( 0,joff,koff) = mat_tmp( 0,joff,koff) + tmp*f
-                         else if (cell_id(i-1,jj,kk).ge.0) then
-                            mat_tmp(-1,joff,koff) = mat_tmp(-1,joff,koff) - tmp*(f+bflo(cdir))
-                         else
+                         else if (cell_id(i+1,jj,kk).lt.0 .or. apx(i+1,jj,kk).eq.zero .or. bho.eq.0) then
                             mat_tmp( 0,joff,koff) = mat_tmp( 0,joff,koff) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp( 0,joff,koff) = mat_tmp( 0,joff,koff) + tmp*(f+bf1(cdir))
+                            mat_tmp( 1,joff,koff) = mat_tmp( 1,joff,koff) + tmp*   bf2(cdir)
                          end if
                       end if                      
                    end if
@@ -640,7 +644,7 @@ contains
                    f = fac(1)
                    area = apx(i+1,j,k)
                    abc = area*bx(i+1,j,k)
-                   if (area.ge.zero) then
+                   if (area.gt.zero) then
                       if (area.ne.one) then
                          joff = int(sign(one,fcx(i+1,j,k,1)))
                          koff = int(sign(one,fcx(i+1,j,k,2)))
@@ -685,10 +689,11 @@ contains
                          if (cell_id(i,jj,k).ge.0 .and. cell_id(i+1,jj,k).ge.0) then
                             mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*f
                             mat_tmp(1,joff,0) = mat_tmp(1,joff,0) - tmp*f
-                         else if (cell_id(i,jj,k).ge.0) then
+                         else if (cell_id(i-1,jj,k).lt.0 .or. apx(i-1,jj,k).eq.zero .or. bho.eq.0) then
                             mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(1,joff,0) = mat_tmp(1,joff,0) - tmp*(f+bflo(cdir))
+                            mat_tmp( 0,joff,0) = mat_tmp( 0,joff,0) + tmp*(f+bf1(cdir))
+                            mat_tmp(-1,joff,0) = mat_tmp(-1,joff,0) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -697,10 +702,11 @@ contains
                          if (cell_id(i,j,kk).ge.0 .and. cell_id(i+1,j,kk).ge.0) then
                             mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*f
                             mat_tmp(1,0,koff) = mat_tmp(1,0,koff) - tmp*f
-                         else if (cell_id(i,j,kk).ge.0) then
+                         else if (cell_id(i-1,j,kk).lt.0 .or. apx(i-1,j,kk).eq.zero .or. bho.eq.0) then
                             mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(1,0,koff) = mat_tmp(1,0,koff) - tmp*(f+bflo(cdir))
+                            mat_tmp( 0,0,koff) = mat_tmp( 0,0,koff) + tmp*(f+bf1(cdir))
+                            mat_tmp(-1,0,koff) = mat_tmp(-1,0,koff) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -709,10 +715,11 @@ contains
                          if (cell_id(i,jj,kk).ge.0 .and. cell_id(i+1,jj,kk).ge.0) then
                             mat_tmp(0,joff,koff) = mat_tmp(0,joff,koff) + tmp*f
                             mat_tmp(1,joff,koff) = mat_tmp(1,joff,koff) - tmp*f
-                         else if (cell_id(i,jj,kk).ge.0) then
+                         else if (cell_id(i-1,jj,kk).lt.0 .or. apx(i-1,jj,kk).eq.zero .or. bho.eq.0) then
                             mat_tmp(0,joff,koff) = mat_tmp(0,joff,koff) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(1,joff,koff) = mat_tmp(1,joff,koff) - tmp*(f+bflo(cdir))
+                            mat_tmp( 0,joff,koff) = mat_tmp( 0,joff,koff) + tmp*(f+bf1(cdir))
+                            mat_tmp(-1,joff,koff) = mat_tmp(-1,joff,koff) + tmp*   bf2(cdir)
                          end if
                       end if
                    end if
@@ -721,7 +728,7 @@ contains
                    f = fac(2)
                    area = apy(i,j,k)
                    abc = area*by(i,j,k)
-                   if (area.ge.zero) then
+                   if (area.gt.zero) then
                       if (area.ne.one) then
                          ioff = int(sign(one,fcy(i,j,k,1)))
                          koff = int(sign(one,fcy(i,j,k,2)))
@@ -766,10 +773,11 @@ contains
                          if (cell_id(ii,j-1,k).ge.0 .and. cell_id(ii,j,k).ge.0) then
                             mat_tmp(ioff,-1,0) = mat_tmp(ioff,-1,0) - tmp*f
                             mat_tmp(ioff, 0,0) = mat_tmp(ioff, 0,0) + tmp*f
-                         else if (cell_id(ii,j-1,k).ge.0) then
-                            mat_tmp(ioff,-1,0) = mat_tmp(ioff,-1,0) - tmp*(f+bflo(cdir))
+                         else if (cell_id(ii,j+1,k).lt.0 .or. apy(ii,j+1,k).eq.zero .or. bho.eq.0) then
+                            mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(ioff, 0,0) = mat_tmp(ioff, 0,0) + tmp*(f+bflo(cdir))
+                            mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*(f+bf1(cdir))
+                            mat_tmp(ioff,1,0) = mat_tmp(ioff,1,0) + tmp*   bf2(cdir)
                          end if
                       end if
                       
@@ -778,10 +786,11 @@ contains
                          if (cell_id(i,j-1,kk).ge.0 .and. cell_id(i,j,kk).ge.0) then
                             mat_tmp(0,-1,koff) = mat_tmp(0,-1,koff) - tmp*f
                             mat_tmp(0, 0,koff) = mat_tmp(0, 0,koff) + tmp*f
-                         else if (cell_id(i,j-1,kk).ge.0) then
-                            mat_tmp(0,-1,koff) = mat_tmp(0,-1,koff) - tmp*(f+bflo(cdir))
+                         else if (cell_id(i,j+1,kk).lt.0 .or. apy(i,j+1,kk).eq.zero .or. bho.eq.0) then
+                            mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(0, 0,koff) = mat_tmp(0, 0,koff) + tmp*(f+bflo(cdir))
+                            mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*(f+bf1(cdir))
+                            mat_tmp(0,1,koff) = mat_tmp(0,1,koff) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -790,10 +799,11 @@ contains
                          if (cell_id(ii,j-1,kk).ge.0 .and. cell_id(ii,j,kk).ge.0) then
                             mat_tmp(ioff,-1,koff) = mat_tmp(ioff,-1,koff) - tmp*f
                             mat_tmp(ioff, 0,koff) = mat_tmp(ioff, 0,koff) + tmp*f
-                         else if (cell_id(ii,j-1,kk).ge.0) then
-                            mat_tmp(ioff,-1,koff) = mat_tmp(ioff,-1,koff) - tmp*(f+bflo(cdir))
+                         else if (cell_id(ii,j+1,kk).lt.0 .or. apy(ii,j+1,kk).eq.zero .or. bho.eq.0) then
+                            mat_tmp(ioff,0,koff) = mat_tmp(ioff,0,koff) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(ioff, 0,koff) = mat_tmp(ioff, 0,koff) + tmp*(f+bflo(cdir))
+                            mat_tmp(ioff,0,koff) = mat_tmp(ioff,0,koff) + tmp*(f+bf1(cdir))
+                            mat_tmp(ioff,1,koff) = mat_tmp(ioff,1,koff) + tmp*   bf2(cdir)
                          end if
                       end if
                    end if
@@ -802,7 +812,7 @@ contains
                    f = fac(2)
                    area = apy(i,j+1,k)
                    abc = area*by(i,j+1,k)
-                   if (area.ge.zero) then
+                   if (area.gt.zero) then
                       if (area.ne.one) then
                          ioff = int(sign(one,fcy(i,j+1,k,1)))
                          koff = int(sign(one,fcy(i,j+1,k,2)))
@@ -847,10 +857,11 @@ contains
                          if (cell_id(ii,j,k).ge.0 .and. cell_id(ii,j+1,k).ge.0) then
                             mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*f
                             mat_tmp(ioff,1,0) = mat_tmp(ioff,1,0) - tmp*f
-                         else if (cell_id(ii,j,k).ge.0) then
+                         else if (cell_id(ii,j-1,k).lt.0 .or. apy(ii,j-1,k).eq.zero .or. bho.eq.0) then
                             mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(ioff,1,0) = mat_tmp(ioff,1,0) - tmp*(f+bflo(cdir))
+                            mat_tmp(ioff, 0,0) = mat_tmp(ioff, 0,0) + tmp*(f+bf1(cdir))
+                            mat_tmp(ioff,-1,0) = mat_tmp(ioff,-1,0) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -859,10 +870,11 @@ contains
                          if (cell_id(i,j,kk).ge.0 .and. cell_id(i,j+1,kk).ge.0) then
                             mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*f
                             mat_tmp(0,1,koff) = mat_tmp(0,1,koff) - tmp*f
-                         else if (cell_id(i,j,kk).ge.0) then
+                         else if (cell_id(i,j-1,kk).lt.0 .or. apy(i,j-1,kk).eq.zero .or. bho.eq.0) then
                             mat_tmp(0,0,koff) = mat_tmp(0,0,koff) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(0,1,koff) = mat_tmp(0,1,koff) - tmp*(f+bflo(cdir))
+                            mat_tmp(0, 0,koff) = mat_tmp(0, 0,koff) + tmp*(f+bf1(cdir))
+                            mat_tmp(0,-1,koff) = mat_tmp(0,-1,koff) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -871,10 +883,11 @@ contains
                          if (cell_id(ii,j,kk).ge.0 .and. cell_id(ii,j+1,kk).ge.0) then
                             mat_tmp(ioff,1,koff) = mat_tmp(ioff,1,koff) - tmp*f
                             mat_tmp(ioff,0,koff) = mat_tmp(ioff,0,koff) + tmp*f
-                         else if (cell_id(ii,j+1,kk).ge.0) then
-                            mat_tmp(ioff,1,koff) = mat_tmp(ioff,1,koff) - tmp*(f+bflo(cdir))
-                         else
+                         else if (cell_id(ii,j-1,kk).lt.0 .or. apy(ii,j-1,kk).eq.zero .or. bho.eq.0) then
                             mat_tmp(ioff,0,koff) = mat_tmp(ioff,0,koff) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff, 0,koff) = mat_tmp(ioff, 0,koff) + tmp*(f+bf1(cdir))
+                            mat_tmp(ioff,-1,koff) = mat_tmp(ioff,-1,koff) + tmp*   bf2(cdir)
                          end if
                       end if
                    end if
@@ -883,7 +896,7 @@ contains
                    f = fac(3)
                    area = apz(i,j,k)
                    abc = area*bz(i,j,k)
-                   if (area.ge.zero) then
+                   if (area.gt.zero) then
                       if (area.ne.one) then
                          ioff = int(sign(one,fcz(i,j,k,1)))
                          joff = int(sign(one,fcz(i,j,k,2)))
@@ -928,10 +941,11 @@ contains
                          if (cell_id(ii,j,k-1).ge.0 .and. cell_id(ii,j,k).ge.0) then
                             mat_tmp(ioff,0,-1) = mat_tmp(ioff,0,-1) - tmp*f
                             mat_tmp(ioff,0, 0) = mat_tmp(ioff,0, 0) + tmp*f
-                         else if (cell_id(ii,j,k-1).ge.0) then
-                            mat_tmp(ioff,0,-1) = mat_tmp(ioff,0,-1) - tmp*(f+bflo(cdir))
+                         else if (cell_id(ii,j,k+1).lt.0 .or. apz(ii,j,k+1).eq.zero .or. bho.eq.0) then
+                            mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(ioff,0, 0) = mat_tmp(ioff,0, 0) + tmp*(f+bflo(cdir))
+                            mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*(f+bf1(cdir))
+                            mat_tmp(ioff,0,1) = mat_tmp(ioff,0,1) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -940,10 +954,11 @@ contains
                          if (cell_id(i,jj,k-1).ge.0 .and. cell_id(i,jj,k).ge.0) then
                             mat_tmp(0,joff,-1) = mat_tmp(0,joff,-1) - tmp*f
                             mat_tmp(0,joff, 0) = mat_tmp(0,joff, 0) + tmp*f
-                         else if (cell_id(i,jj,k-1).ge.0) then
-                            mat_tmp(0,joff,-1) = mat_tmp(0,joff,-1) - tmp*(f+bflo(cdir))
+                         else if (cell_id(i,jj,k+1).lt.0 .or. apz(i,jj,k+1).eq.zero .or. bho.eq.0) then
+                            mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(0,joff, 0) = mat_tmp(0,joff, 0) + tmp*(f+bflo(cdir))
+                            mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*(f+bf1(cdir))
+                            mat_tmp(0,joff,1) = mat_tmp(0,joff,1) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -952,10 +967,11 @@ contains
                          if (cell_id(ii,jj,k-1).ge.0 .and. cell_id(ii,jj,k).ge.0) then
                             mat_tmp(ioff,joff,-1) = mat_tmp(ioff,joff,-1) - tmp*f
                             mat_tmp(ioff,joff, 0) = mat_tmp(ioff,joff, 0) + tmp*f
-                         else if (cell_id(ii,jj,k-1).ge.0) then
-                            mat_tmp(ioff,joff,-1) = mat_tmp(ioff,joff,-1) - tmp*(f+bflo(cdir))
+                         else if (cell_id(ii,jj,k+1).lt.0 .or. apz(ii,jj,k+1).eq.zero .or. bho.eq.0) then
+                            mat_tmp(ioff,joff,0) = mat_tmp(ioff,joff,0) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(ioff,joff, 0) = mat_tmp(ioff,joff, 0) + tmp*(f+bflo(cdir))
+                            mat_tmp(ioff,joff,0) = mat_tmp(ioff,joff,0) + tmp*(f+bf1(cdir))
+                            mat_tmp(ioff,joff,1) = mat_tmp(ioff,joff,1) + tmp*   bf2(cdir)
                          end if
                       end if
                    end if
@@ -964,7 +980,7 @@ contains
                    f = fac(3)
                    area = apz(i,j,k+1)
                    abc = area*bz(i,j,k+1)
-                   if (area.ge.zero) then
+                   if (area.gt.zero) then
                       if (area.ne.one) then
                          ioff = int(sign(one,fcz(i,j,k+1,1)))
                          joff = int(sign(one,fcz(i,j,k+1,2)))
@@ -1008,11 +1024,12 @@ contains
                          tmp = fracx*(one-fracy)*area*bz(ii,j,k+1)
                          if (cell_id(ii,j,k).ge.0 .and. cell_id(ii,j,k+1).ge.0) then
                             mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*f
-                            mat_tmp(ioff,0,1) = mat_tmp(ioff,0,1) - tmp*f
-                         else if (cell_id(ii,j,k).ge.0) then
+                            mat_tmp(ioff,0,1) = mat_tmp(ioff,0,1) - tmp*f                            
+                         else if (cell_id(ii,j,k-1).lt.0 .or. apz(ii,j,k-1).eq.zero .or.bho.eq.0) then
                             mat_tmp(ioff,0,0) = mat_tmp(ioff,0,0) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(ioff,0,1) = mat_tmp(ioff,0,1) - tmp*(f+bflo(cdir))
+                            mat_tmp(ioff,0, 0) = mat_tmp(ioff,0, 0) + tmp*(f+bf1(cdir))
+                            mat_tmp(ioff,0,-1) = mat_tmp(ioff,0,-1) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -1021,10 +1038,11 @@ contains
                          if (cell_id(i,jj,k).ge.0 .and. cell_id(i,jj,k+1).ge.0) then
                             mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*f
                             mat_tmp(0,joff,1) = mat_tmp(0,joff,1) - tmp*f
-                         else if (cell_id(i,jj,k).ge.0) then
+                         else if (cell_id(i,jj,k-1).lt.0 .or. apz(i,jj,k-1).eq.zero .or.bho.eq.0) then
                             mat_tmp(0,joff,0) = mat_tmp(0,joff,0) + tmp*(f+bflo(cdir))
                          else
-                            mat_tmp(0,joff,1) = mat_tmp(0,joff,1) - tmp*(f+bflo(cdir))
+                            mat_tmp(0,joff, 0) = mat_tmp(0,joff, 0) + tmp*(f+bf1(cdir))
+                            mat_tmp(0,joff,-1) = mat_tmp(0,joff,-1) + tmp*   bf2(cdir)
                          end if
                       end if
 
@@ -1033,10 +1051,11 @@ contains
                          if (cell_id(ii,jj,k+1).ge.0 .and. cell_id(ii,jj,k).ge.0) then
                             mat_tmp(ioff,joff,1) = mat_tmp(ioff,joff,1) - tmp*f
                             mat_tmp(ioff,joff,0) = mat_tmp(ioff,joff,0) + tmp*f
-                         else if (cell_id(ii,jj,k+1).ge.0) then
-                            mat_tmp(ioff,joff,1) = mat_tmp(ioff,joff,1) - tmp*(f+bflo(cdir))
-                         else
+                         else if (cell_id(ii,jj,k-1).lt.0 .or. apz(ii,jj,k-1).eq.zero .or.bho.eq.0) then
                             mat_tmp(ioff,joff,0) = mat_tmp(ioff,joff,0) + tmp*(f+bflo(cdir))
+                         else
+                            mat_tmp(ioff,joff, 0) = mat_tmp(ioff,joff, 0) + tmp*(f+bf1(cdir))
+                            mat_tmp(ioff,joff,-1) = mat_tmp(ioff,joff,-1) + tmp*   bf2(cdir)
                          end if
                       end if
                    end if
