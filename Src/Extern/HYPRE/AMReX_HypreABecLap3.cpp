@@ -226,6 +226,8 @@ HypreABecLap3::prepareSolver ()
                                          "You might need to configure Hypre with --enable-bigint");
     }
 #endif
+
+    diaginv.define(ba,dm,1,0);
     
     // how many non-covered cells do we have?
     ncells_grid.define(ba,dm);
@@ -374,6 +376,7 @@ HypreABecLap3::prepareSolver ()
                                  &nrows, ncols, rows, cols, mat,
                                  BL_TO_FORTRAN_ANYD(cell_id[mfi]),
                                  &(offset[mfi]),
+                                 BL_TO_FORTRAN_ANYD(diaginv[mfi]),
                                  BL_TO_FORTRAN_ANYD(acoefs[mfi]),
                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
                                               BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
@@ -388,6 +391,7 @@ HypreABecLap3::prepareSolver ()
                                     &nrows, ncols, rows, cols, mat,
                                     BL_TO_FORTRAN_ANYD(cell_id[mfi]),
                                     &(offset[mfi]),
+                                    BL_TO_FORTRAN_ANYD(diaginv[mfi]),
                                     BL_TO_FORTRAN_ANYD(acoefs[mfi]),
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
                                                  BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
@@ -418,8 +422,7 @@ HypreABecLap3::prepareSolver ()
     HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
     HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
     HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6);
-    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.8);
+//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
 
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_BoomerAMGSetLogging(solver, logging);
@@ -441,7 +444,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     soln.setVal(0.0);
     
-    FArrayBox rfab;
+    FArrayBox vecfab, rhsfab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -457,27 +460,25 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
             // soln has been set to zero.
             HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr());
 
+            rhsfab.resize(bx);
+            rhsfab.copy(rhs[mfi],bx);
+            rhsfab.mult(diaginv[mfi]);
+            
             FArrayBox* bfab;                            
 #ifdef AMREX_USE_EB
             if (fabtyp != FabType::regular)
             {
-                bfab = &rfab;
+                bfab = &vecfab;
                 bfab->resize(bx);
                 amrex_hpeb_copy_to_vec(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                       BL_TO_FORTRAN_ANYD(rhsfab),
                                        bfab->dataPtr(), &nrows,
                                        BL_TO_FORTRAN_ANYD((*flags)[mfi]));
             }
             else
 #endif
             {
-                if (rhs.nGrow() == 0) {
-                    bfab = const_cast<FArrayBox*>(&rhs[mfi]);
-                } else {
-                    bfab = &rfab;
-                    bfab->resize(bx);
-                    bfab->copy(rhs[mfi],bx);
-                }
+                bfab = &rhsfab;
             }
 
             HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr());

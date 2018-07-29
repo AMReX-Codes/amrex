@@ -26,6 +26,7 @@ extern "C" {
                            void* rows, void* cols, amrex_real* mat,
                            const void* cell_id, const int* clo, const int* chi,
                            const void* cell_id_begin,
+                           amrex_real* diaginv, const int* dlo, const int* dhi,
                            const amrex_real* ac, const int* alo, const int* ahi,
                            const amrex_real* bx, const int* bxlo, const int* bxhi,
 #if (AMREX_SPACEDIM >= 2)
@@ -58,6 +59,7 @@ extern "C" {
                               void* rows, void* cols, amrex_real* mat,
                               const void* cell_id, const int* clo, const int* chi,
                               const void* cell_id_begin,
+                              amrex_real* diaginv, const int* dlo, const int* dhi,
                               const amrex_real* ac, const int* alo, const int* ahi,
                               const amrex_real* bx, const int* bxlo, const int* bxhi,
 #if (AMREX_SPACEDIM >= 2)

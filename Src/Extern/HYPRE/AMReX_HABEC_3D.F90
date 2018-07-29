@@ -219,15 +219,17 @@ contains
 
 
   subroutine amrex_hpijmatrix (lo, hi, nrows, ncols, rows, cols, mat, &
-       cell_id, clo, chi, cell_id_begin, a , alo, ahi, bx, xlo, xhi, &
-       by, ylo, yhi, bz, zlo, zhi, sa, sb, dx, bct, bcl, bho) &
+       cell_id, clo, chi, cell_id_begin, diag, dlo, dhi, a, alo, ahi, &
+       bx, xlo, xhi, by, ylo, yhi, bz, zlo, zhi, sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpijmatrix')
     integer(hypre_int), intent(in) :: nrows, cell_id_begin;
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(hypre_int), dimension(0:nrows*7-1), intent(out) :: cols
     real(rt)          , dimension(0:nrows*7-1), intent(out) :: mat
-    integer, dimension(3), intent(in) :: lo, hi, clo, chi, alo, ahi, xlo, xhi, ylo, yhi, zlo, zhi
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, dlo, dhi, alo, ahi,&
+         xlo, xhi, ylo, yhi, zlo, zhi
     integer(hypre_int), intent(in) :: cell_id(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(rt)          , intent(inout) :: diag(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
     real(rt)          , intent(in) :: a      (alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
     real(rt)          , intent(in) :: bx     (xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
     real(rt)          , intent(in) :: by     (ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3))
@@ -333,12 +335,14 @@ contains
                 mat_tmp(0) = mat_tmp(0) + bf1(cdir)*bz(i,j,k+1)
                 mat_tmp(5) = mat_tmp(5) + bf2(cdir)*bz(i,j,k+1)
              end if
-             
+
+             diag(i,j,k) = one/mat_tmp(0)
+
              do ic = 0, 6
                 if (cols_tmp(ic) .ge. 0) then
                    ncols(irow) = ncols(irow) + 1
                    cols(imat) = cols_tmp(ic)
-                   mat(imat) = mat_tmp(ic)
+                   mat(imat) = mat_tmp(ic)*diag(i,j,k)
                    imat = imat + 1
                 end if
              end do
@@ -425,7 +429,7 @@ contains
 
 
   subroutine amrex_hpeb_ijmatrix (lo, hi, nrows, ncols, rows, cols, mat, &
-       cell_id, clo, chi, cell_id_begin, a, alo, ahi, &
+       cell_id, clo, chi, cell_id_begin, diag, dlo, dhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, &
        flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, &
@@ -437,10 +441,12 @@ contains
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(hypre_int), dimension(0:nrows*27-1), intent(out) :: cols
     real(rt)          , dimension(0:nrows*27-1), intent(out) :: mat
-    integer, dimension(3), intent(in) :: lo, hi, clo, chi, alo, ahi, bxlo, bxhi, bylo, byhi, &
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, dlo, dhi, &
+         alo, ahi, bxlo, bxhi, bylo, byhi, &
          bzlo, bzhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, azlo, azhi, &
          fxlo, fxhi, fylo, fyhi, fzlo, fzhi
     integer(hypre_int), intent(in) :: cell_id( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))
+    real(rt)          , intent(inout) :: diag( dlo(1): dhi(1), dlo(2): dhi(2), dlo(3): dhi(3))
     real(rt)          , intent(in) :: a      ( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3))
     real(rt)          , intent(in) :: bx     (bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3))
     real(rt)          , intent(in) :: by     (bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
@@ -495,7 +501,9 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             if (.not.is_covered_cell(flag(i,j,k))) then
+             if (is_covered_cell(flag(i,j,k))) then
+                diag(i,j,k) = zero
+             else
                 rows(irow) = cell_id(i,j,k)
                 ncols(irow) = 0
                 mat_tmp = zero
@@ -1064,13 +1072,15 @@ contains
                    mat_tmp(0,0,0) = mat_tmp(0,0,0) + sa*a(i,j,k)
                 end if
                 
+                diag(i,j,k) = one/mat_tmp(0,0,0)
+
                 do koff = -1, 1
                    do joff = -1, 1
                       do ioff = -1, 1
                          if (mat_tmp(ioff,joff,koff) .ne. zero) then
                             ncols(irow) = ncols(irow) + 1
                             cols(imat) = cell_id(i+ioff,j+joff,k+koff)
-                            mat(imat) = mat_tmp(ioff,joff,koff)
+                            mat(imat) = mat_tmp(ioff,joff,koff)*diag(i,j,k)
                             imat = imat + 1
                          end if
                       end do

@@ -59,7 +59,8 @@ private :
     FabFactory<FArrayBox> const* m_factory = nullptr;
     BndryData const* m_bndry = nullptr;
     int m_maxorder = -1;
-    
+
+    MultiFab diaginv;
     LayoutData<HYPRE_Int> ncells_grid;
     LayoutData<Vector<HYPRE_Int> > cell_id_vec;
     FabArray<BaseFab<HYPRE_Int> > cell_id;
