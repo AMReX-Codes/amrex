@@ -159,15 +159,17 @@ contains
 
 
   subroutine amrex_hpijmatrix (lo, hi, nrows, ncols, rows, cols, mat, &
-       cell_id, clo, chi, cell_id_begin, a , alo, ahi, bx, xlo, xhi, &
-       by, ylo, yhi, sa, sb, dx, bct, bcl, bho) &
+       cell_id, clo, chi, cell_id_begin, diag, dlo, dhi, a, alo, ahi, &
+       bx, xlo, xhi, by, ylo, yhi, sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpijmatrix')
     integer(hypre_int), intent(in) :: nrows, cell_id_begin;
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(hypre_int), dimension(0:nrows*5-1), intent(out) :: cols
     real(rt)          , dimension(0:nrows*5-1), intent(out) :: mat
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, alo, ahi, xlo, xhi, ylo, yhi
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, dlo, dhi, &
+         alo, ahi, xlo, xhi, ylo, yhi
     integer(hypre_int), intent(in) :: cell_id(clo(1):chi(1),clo(2):chi(2))
+    real(rt)          , intent(inout)::  diag(dlo(1):dhi(1),dlo(2):dhi(2))
     real(rt)          , intent(in) :: a      (alo(1):ahi(1),alo(2):ahi(2))
     real(rt)          , intent(in) :: bx     (xlo(1):xhi(1),xlo(2):xhi(2))
     real(rt)          , intent(in) :: by     (ylo(1):yhi(1),ylo(2):yhi(2))
@@ -251,11 +253,13 @@ contains
              mat_tmp(3) = mat_tmp(3) + bf2(cdir)*by(i,j+1)
           end if
 
+          diag(i,j) = one/mat_tmp(0)
+
           do ic = 0, 4
              if (cols_tmp(ic) .ge. 0) then
                 ncols(irow) = ncols(irow) + 1
                 cols(imat) = cols_tmp(ic)
-                mat(imat) = mat_tmp(ic)
+                mat(imat) = mat_tmp(ic)*diag(i,j)
                 imat = imat + 1
              end if
           end do
@@ -334,8 +338,9 @@ contains
   end subroutine amrex_hpeb_copy_to_vec
 
   subroutine amrex_hpeb_ijmatrix (lo, hi, nrows, ncols, rows, cols, mat, &
-       cell_id, clo, chi, cell_id_begin, a, alo, ahi, bx, bxlo, bxhi, &
-       by, bylo, byhi, flag, flo, fhi, vfrc, vlo, vhi, apx, axlo, axhi, apy, aylo, ayhi, &
+       cell_id, clo, chi, cell_id_begin, diag, dlo, dhi, a, alo, ahi, &
+       bx, bxlo, bxhi, by, bylo, byhi, flag, flo, fhi, vfrc, vlo, vhi, &
+       apx, axlo, axhi, apy, aylo, ayhi, &
        fcx, fxlo, fxhi, fcy, fylo, fyhi, &
        sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpeb_ijmatrix')
@@ -344,9 +349,11 @@ contains
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(hypre_int), dimension(0:nrows*9-1), intent(out) :: cols
     real(rt)          , dimension(0:nrows*9-1), intent(out) :: mat
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, alo, ahi, bxlo, bxhi, bylo, byhi, &
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, dlo, dhi, &
+         alo, ahi, bxlo, bxhi, bylo, byhi, &
          flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, fxlo, fxhi, fylo, fyhi
     integer(hypre_int), intent(in) :: cell_id( clo(1): chi(1), clo(2): chi(2))
+    real(rt)          , intent(inout) :: diag( dlo(1): dhi(1), dlo(2): dhi(2))
     real(rt)          , intent(in) :: a      ( alo(1): ahi(1), alo(2): ahi(2))
     real(rt)          , intent(in) :: bx     (bxlo(1):bxhi(1),bxlo(2):bxhi(2))
     real(rt)          , intent(in) :: by     (bylo(1):byhi(1),bylo(2):byhi(2))
@@ -395,7 +402,9 @@ contains
     imat = 0
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (.not.is_covered_cell(flag(i,j))) then
+          if (is_covered_cell(flag(i,j))) then
+             diag(i,j) = zero
+          else
              rows(irow) = cell_id(i,j)
              ncols(irow) = 0
              mat_tmp = zero
@@ -607,12 +616,14 @@ contains
                 mat_tmp(0,0) = mat_tmp(0,0) + sa*a(i,j)
              end if
 
+             diag(i,j) = one/mat_tmp(0,0)
+
              do joff = -1, 1
                 do ioff = -1, 1
                    if (mat_tmp(ioff,joff) .ne. zero) then
                       ncols(irow) = ncols(irow) + 1
                       cols(imat) = cell_id(i+ioff,j+joff)
-                      mat(imat) = mat_tmp(ioff,joff)
+                      mat(imat) = mat_tmp(ioff,joff)*diag(i,j)
                       imat = imat + 1
                    end if
                 end do
