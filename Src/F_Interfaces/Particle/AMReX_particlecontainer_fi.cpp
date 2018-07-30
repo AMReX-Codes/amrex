@@ -1,6 +1,7 @@
 
 #include <AMReX_AmrParticles.H>
 #include <AMReX_AmrCore.H>
+#include <AMReX_ParallelDescriptor.H>
 
 using namespace amrex;
 
@@ -25,12 +26,16 @@ extern "C" {
 	delete particlecontainer;
     }
 
-    void amrex_fi_init_particles_one_per_cell (FParticleContainer* particlecontainer)
+    void amrex_fi_get_next_particle_id (int& id)
     {
-        FParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
-	particlecontainer->InitOnePerCell(0.5, 0.5, 0.5, pdata);
+        id = FParticleContainer::ParticleType::NextID();
     }
 
+    void amrex_fi_get_cpu (int& cpu)
+    {
+        cpu = ParallelDescriptor::MyProc();
+    }
+    
     void amrex_fi_write_particles(FParticleContainer* particlecontainer,
                                   const char* dirname, const char* pname, int is_checkpoint)
     {
@@ -58,13 +63,23 @@ extern "C" {
                 dp = aos.data();
             } else {
                 dp = nullptr;
-            }            
+            }
         } else {
             np = 0;
             dp = nullptr;
         }
     }
-
+    
+    void amrex_fi_add_particle(FParticleContainer* particlecontainer,
+                               int lev, MFIter* mfi, FParticleContainer::ParticleType* p)
+    {
+        const int grid = mfi->index();
+        const int tile = mfi->LocalTileIndex();
+        auto& particle_level = particlecontainer->GetParticles(lev);
+        auto& particle_tile  = particle_level[std::make_pair(grid, tile)];
+        particle_tile.push_back(*p);
+    }
+    
     void amrex_fi_num_particles(FParticleContainer* particlecontainer,
                                 int lev, MFIter* mfi, long& np)
     {
