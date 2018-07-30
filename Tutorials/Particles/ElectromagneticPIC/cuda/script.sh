@@ -14,6 +14,7 @@ set -x
 omp=1
 export OMP_NUM_THREADS=${omp}
 EXE="../main3d.pgi.TPROF.MPI.CUDA.ex"
+#EXE="../main3d.pgi.TPROF.MPI.CUDA.ex"
 JSRUN="jsrun -n 4 -a 1 -g 1 -c 1 --bind=packed:${omp} "
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
