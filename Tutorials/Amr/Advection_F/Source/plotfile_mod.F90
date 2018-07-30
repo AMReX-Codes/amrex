@@ -1,7 +1,7 @@
 module plotfile_module
 
   use amrex_amr_module
-  use amrex_particlecontainer_module, only: amrex_write_particles
+  use amr_data_module, only : pc
   use my_amr_module, only : plot_file, phi_new, t_new, stepno
 
   implicit none
@@ -39,7 +39,7 @@ contains
     call amrex_write_plotfile(name, nlevs, phi_new, varname, amrex_geom, &
          t_new(0), stepno, amrex_ref_ratio)
 
-    call amrex_write_particles(name, "Tracer", .true.)
+    call pc%write(name, "Tracer", .true.)
     
   end subroutine writeplotfile
 
