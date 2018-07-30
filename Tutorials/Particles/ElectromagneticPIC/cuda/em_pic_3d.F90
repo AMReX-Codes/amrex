@@ -112,21 +112,13 @@ AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
 
-#ifdef AMREX_USE_CUDA
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
   if (ip .le. np) then 
-#else
-  do ip = 1, np
-#endif
 
     usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
 
-#ifdef AMREX_USE_CUDA
   end if
-#else
-  end do
-#endif
 
 end subroutine set_gamma
 
@@ -145,12 +137,8 @@ AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
 
   domain_size = phi - plo
 
-#ifdef AMREX_USE_CUDA
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
   if (ip .le. np) then 
-#else
-  do ip = 1, np
-#endif
      
      if (xp(ip) .gt. phi(1)) then
         xp(ip) = xp(ip) - domain_size(1)
@@ -170,11 +158,7 @@ AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
         zp(ip) = zp(ip) + domain_size(3)
      end if
 
-#ifdef AMREX_USE_CUDA
   end if
-#else
-  end do
-#endif
 
 end subroutine enforce_periodic
 
