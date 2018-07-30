@@ -55,7 +55,7 @@ sim.add_species(plasma, layout=picmi.GriddedLayout(grid=grid, n_macroparticle_pe
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
-sim.write_input_file(inputs_name = 'inputs_from_PICMI')
+sim.write_input_file(file_name = 'inputs_from_PICMI')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
 #sim.step()

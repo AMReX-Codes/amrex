@@ -115,14 +115,14 @@ class GaussianBunchDistribution(PICMI_Base.PICMI_GaussianBunchDistribution):
 
 
 class UniformDistribution(PICMI_Base.PICMI_UniformDistribution):
-
     def initialize_inputs(self, species_number, layout, species):
 
         if isinstance(layout, GriddedLayout):
+            # --- Note that the grid attribute of GriddedLayout is ignored
             species.injection_style = "nuniformpercell"
             species.num_particles_per_cell_each_dim = layout.n_macroparticle_per_cell
         elif isinstance(layout, PseudoRandomLayout):
-            assert (layout.n_macroparticles_per_cell is not None), Exception('WarpX only supports n_macroparticles_per_cell for the GriddedLayout with UniformDistribution')
+            assert (layout.n_macroparticles_per_cell is not None), Exception('WarpX only supports n_macroparticles_per_cell for the PseudoRandomLayout with UniformDistribution')
             species.injection_style = "nrandompercell"
             species.num_particles_per_cell = layout.n_macroparticles_per_cell
         else:
@@ -163,7 +163,6 @@ class UniformDistribution(PICMI_Base.PICMI_UniformDistribution):
 
 
 class AnalyticDistribution(PICMI_Base.PICMI_AnalyticDistribution):
-
     def initialize_inputs(self, species_number, layout, species):
         raise Exception('WarpX does not support AnalyticDistribution')
 
@@ -302,7 +301,6 @@ class Electrostatic_solver(PICMI_Base.PICMI_Electrostatic_solver):
 
 
 class GaussianLaser(PICMI_Base.PICMI_GaussianLaser):
-
     def initialize_inputs(self):
         pywarpx.warpx.use_laser = 1
         pywarpx.laser.profile = "Gaussian"
@@ -314,7 +312,6 @@ class GaussianLaser(PICMI_Base.PICMI_GaussianLaser):
 
 
 class LaserAntenna(PICMI_Base.PICMI_LaserAntenna):
-
     def initialize_inputs(self, laser):
         pywarpx.laser.position = self.position  # This point is on the laser plane
         pywarpx.laser.direction = self.normal_vector  # The plane normal direction
@@ -364,11 +361,18 @@ class Simulation(PICMI_Base.PICMI_Simulation):
         pywarpx.warpx.load_balance_int = self.load_balance_int
         pywarpx.warpx.load_balance_with_sfc = self.load_balance_with_sfc
 
-        if self.particle_shape is not None:
-            if isinstance(self.particle_shape, str):
-                interpolation_order = {'NGP':0, 'linear':1, 'quadratic':2, 'cubic':3}[self.particle_shape]
+        particle_shape = self.particle_shape
+        for s in self.species:
+            if s.particle_shape is not None:
+                assert particle_shape is None or particle_shape == s.particle_shape, Exception('WarpX only supports one particle shape for all species')
+                # --- If this was set for any species, use that value.
+                particle_shape = s.particle_shape
+
+        if particle_shape is not None:
+            if isinstance(particle_shape, str):
+                interpolation_order = {'NGP':0, 'linear':1, 'quadratic':2, 'cubic':3}[particle_shape]
             else:
-                interpolation_order = self.particle_shape
+                interpolation_order = particle_shape
             pywarpx.interpolation.nox = interpolation_order
             pywarpx.interpolation.noy = interpolation_order
             pywarpx.interpolation.noz = interpolation_order
@@ -383,21 +387,21 @@ class Simulation(PICMI_Base.PICMI_Simulation):
             self.lasers[i].initialize_inputs()
             self.laser_injection_methods[i].initialize_inputs(self.lasers[i])
 
-    def initialize_warpx(self, inputs_name=None):
+    def initialize_warpx(self):
         if self.warpx_initialized:
             return
 
         self.warpx_initialized = True
         pywarpx.warpx.init()
 
-    def write_input_file(self, inputs_name='inputs'):
+    def write_input_file(self, file_name='inputs'):
         self.initialize_inputs()
         kw = {}
         if self.max_steps is not None:
             kw['max_step'] = self.max_steps
         if self.max_time is not None:
             kw['stop_time'] = self.max_time
-        pywarpx.warpx.write_inputs(inputs_name, **kw)
+        pywarpx.warpx.write_inputs(file_name, **kw)
 
     def step(self, nsteps=None):
         self.initialize_inputs()
