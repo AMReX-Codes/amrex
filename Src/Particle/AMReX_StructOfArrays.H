@@ -43,20 +43,24 @@ namespace detail {
         return make_pointer_tuple(arr, makeIndexSequence<N>());
     }    
     
+#ifdef AMREX_USE_CUDA
     template<typename... Args, std::size_t... Is>
     auto to_thrust_tuple(const std::tuple<Args...>& t, IndexSequence<Is...>)
         -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
     {
         return thrust::make_tuple(thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>(std::get<Is>(t)->data())...);
     }
+#endif // AMREX_USE_CUDA
 };
 
+#ifdef AMREX_USE_CUDA
 template<typename... Args>
 auto to_thrust_tuple(const std::tuple<Args...>& t)
     -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
 {
     return detail::to_thrust_tuple(t, makeIndexSequence<sizeof...(Args)>());
 }
+#endif // AMREX_USE_CUDA
 
 template <int NReal, int NInt>
 struct StructOfArrays {
