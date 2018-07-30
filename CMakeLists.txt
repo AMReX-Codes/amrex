@@ -64,6 +64,9 @@ unset (TMP)
 add_subdirectory (Src)
 
 #
-# Tutorials
+# Tutorials and "test_install" target)
 #
 add_subdirectory (Tutorials)
+
+
+
