@@ -4,7 +4,8 @@ import PICMI_Base
 import numpy as np
 import pywarpx
 
-codename = 'WarpX'
+codename = 'warpx'
+PICMI_Base.register_codename(codename)
 
 # --- Values from WarpXConst.H
 c = 299792458.
@@ -209,9 +210,9 @@ class CylindricalGrid(PICMI_Base.PICMI_CylindricalGrid):
 
 class Cartesian2DGrid(PICMI_Base.PICMI_Cartesian2DGrid):
     def init(self, kw):
-        self.max_grid_size = kw.pop('max_grid_size', 32)
-        self.max_level = kw.pop('max_level', 0)
-        self.coord_sys = kw.pop('coord_sys', 0)
+        self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
+        self.max_level = kw.pop('warpx_max_level', 0)
+        self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -241,9 +242,9 @@ class Cartesian2DGrid(PICMI_Base.PICMI_Cartesian2DGrid):
 
 class Cartesian3DGrid(PICMI_Base.PICMI_Cartesian3DGrid):
     def init(self, kw):
-        self.max_grid_size = kw.pop('max_grid_size', 32)
-        self.max_level = kw.pop('max_level', 0)
-        self.coord_sys = kw.pop('coord_sys', 0)
+        self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
+        self.max_level = kw.pop('warpx_max_level', 0)
+        self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -278,7 +279,7 @@ class ElectromagneticSolver(PICMI_Base.PICMI_ElectromagneticSolver):
     def init(self, kw):
         assert self.method is None or self.method in ['Yee'], Exception("Only 'Yee' FDTD is supported")
 
-        self.do_pml = kw.pop('do_pml', None)
+        self.do_pml = kw.pop('warpx_do_pml', None)
 
     def initialize_inputs(self):
 
@@ -322,17 +323,17 @@ class LaserAntenna(PICMI_Base.PICMI_LaserAntenna):
 class Simulation(PICMI_Base.PICMI_Simulation):
     def init(self, kw):
 
-        self.plot_int = kw.pop('plot_int', None)
-        self.plot_file = kw.pop('plot_file', None)
-        self.current_deposition_algo = kw.pop('current_deposition_algo', None)
-        self.charge_deposition_algo = kw.pop('charge_deposition_algo', None)
-        self.field_gathering_algo = kw.pop('field_gathering_algo', None)
-        self.particle_pusher_algo = kw.pop('particle_pusher_algo', None)
-        self.use_filter = kw.pop('use_filter', None)
-        self.serialize_ics = kw.pop('serialize_ics', None)
-        self.do_dynamic_scheduling = kw.pop('do_dynamic_scheduling', None)
-        self.load_balance_int = kw.pop('load_balance_int', None)
-        self.load_balance_with_sfc = kw.pop('load_balance_with_sfc', None)
+        self.plot_int = kw.pop('warpx_plot_int', None)
+        self.plot_file = kw.pop('warpx_plot_file', None)
+        self.current_deposition_algo = kw.pop('warpx_current_deposition_algo', None)
+        self.charge_deposition_algo = kw.pop('warpx_charge_deposition_algo', None)
+        self.field_gathering_algo = kw.pop('warpx_field_gathering_algo', None)
+        self.particle_pusher_algo = kw.pop('warpx_particle_pusher_algo', None)
+        self.use_filter = kw.pop('warpx_use_filter', None)
+        self.serialize_ics = kw.pop('warpx_serialize_ics', None)
+        self.do_dynamic_scheduling = kw.pop('warpx_do_dynamic_scheduling', None)
+        self.load_balance_int = kw.pop('warpx_load_balance_int', None)
+        self.load_balance_with_sfc = kw.pop('warpx_load_balance_with_sfc', None)
 
         self.inputs_initialized = False
         self.warpx_initialized = False

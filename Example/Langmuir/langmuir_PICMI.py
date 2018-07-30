@@ -22,7 +22,7 @@ grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
                              lower_boundary_conditions = ['periodic', 'periodic', 'periodic'],
                              upper_boundary_conditions = ['periodic', 'periodic', 'periodic'],
                              moving_window_velocity = [0., 0., 0.],
-                             max_grid_size=32, max_level=0, coord_sys=0)
+                             warpx_max_grid_size=32, warpx_max_level=0, warpx_coord_sys=0)
 
 solver = picmi.ElectromagneticSolver(grid=grid, cfl=1.)
 
@@ -30,10 +30,10 @@ sim = picmi.Simulation(solver = solver,
                        verbose = 1,
                        max_steps = 40,
                        plot_int = 1,
-                       current_deposition_algo = 3,
-                       charge_deposition_algo = 0,
-                       field_gathering_algo = 0,
-                       particle_pusher_algo = 0)
+                       warpx_current_deposition_algo = 3,
+                       warpx_charge_deposition_algo = 0,
+                       warpx_field_gathering_algo = 0,
+                       warpx_particle_pusher_algo = 0)
 
 sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,2,2], grid=grid))
 
