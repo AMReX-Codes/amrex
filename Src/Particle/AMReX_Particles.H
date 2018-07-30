@@ -594,14 +594,6 @@ public:
     ///
     void InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata);
 
-    void GetParticleIDs        (Vector<int> & part_ids);
-    void GetParticleCPU        (Vector<int> & part_cpu);
-    void GetParticleLocations  (Vector<Real>& part_locs);
-    void GetParticleData       (Vector<Real>& part_data, int start_comp, int num_comp);
-    void GetArrayData          (Vector<Real>& part_data, int start_comp, int num_comp);
-
-    void SetParticleLocations  (Vector<Real>& part_locs);
-
     void MoveRandom ();
     void MoveRandom (int level);
 
