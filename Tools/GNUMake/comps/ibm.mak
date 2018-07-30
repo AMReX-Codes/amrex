@@ -40,7 +40,7 @@ CFLAGS   += -std=gnu99
 
 ########################################################################
 
-GENERIC_IBM_FLAGS = -qmoddir=$(fmoddir) -I $(fmoddir)
+GENERIC_IBM_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -qsmp=omp
@@ -89,6 +89,9 @@ FFLAGS   += -WF,-C!
 F90FLAGS += -WF,-C!
 
 FFLAGS   += -qfixed=72
+
+F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
+FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
 
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
