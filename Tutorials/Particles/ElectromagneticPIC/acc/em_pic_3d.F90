@@ -101,8 +101,7 @@ subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt)
 
 end subroutine push_position_boris
 
-subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
-     bind(c,name='set_gamma')
+subroutine set_gamma(np, uxp, uyp, uzp, gaminv)
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
@@ -129,8 +128,7 @@ subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
 
 end subroutine set_gamma
 
-subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
-     bind(c,name='enforce_periodic')
+subroutine enforce_periodic(np, xp, yp, zp, plo, phi)
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -592,8 +590,7 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
 end subroutine gather_electric_field
 
 subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
-     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) &
-     bind(c,name="push_electric_field_x")
+     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz)
 
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
@@ -628,8 +625,7 @@ end subroutine push_electric_field_x
 
 subroutine push_electric_field_y(ylo, yhi, &
      ey, eylo, eyhi, bx, bxlo, bxhi, bz, bzlo, bzhi, &
-     jy, jylo, jyhi, mudt, dtsdx, dtsdz)     &
-     bind(c,name="push_electric_field_y")
+     jy, jylo, jyhi, mudt, dtsdx, dtsdz)
 
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
@@ -664,8 +660,7 @@ end subroutine push_electric_field_y
 
 subroutine push_electric_field_z(zlo, zhi, &
      ez,ezlo, ezhi, bx, bxlo, bxhi, by, bylo, byhi, &
-     jz, jzlo, jzhi, mudt, dtsdx, dtsdy)     &
-     bind(c,name="push_electric_field_z")
+     jz, jzlo, jzhi, mudt, dtsdx, dtsdy)
 
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
@@ -685,9 +680,9 @@ subroutine push_electric_field_z(zlo, zhi, &
 
 !$acc parallel deviceptr(zlo,zhi,ez,bx,by,jz)
 !$acc loop gang vector
-  do l       = xlo(3), xhi(3)
-     do k    = xlo(2), xhi(2)
-        do j = xlo(1), xhi(1)
+  do l       = zlo(3), zhi(3)
+     do k    = zlo(2), zhi(2)
+        do j = zlo(1), zhi(1)
            Ez(j,k,l) = Ez(j,k,l) + dtsdx * (By(j,k,l) - By(j-1,k  ,l)) &
                 - dtsdy * (Bx(j,k,l) - Bx(j  ,k-1,l)) &
                 - mudt  * jz(j,k,l)
@@ -700,8 +695,7 @@ subroutine push_electric_field_z(zlo, zhi, &
 end subroutine push_electric_field_z
 
 subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
-     ez, ezlo, ezhi, dtsdy, dtsdz)    &
-     bind(c,name='push_magnetic_field_x')
+     ez, ezlo, ezhi, dtsdy, dtsdz)
 
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
@@ -733,8 +727,7 @@ subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
 end subroutine push_magnetic_field_x
 
 subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
-     ez, ezlo, ezhi, dtsdx, dtsdz)    &
-     bind(c,name='push_magnetic_field_y')
+     ez, ezlo, ezhi, dtsdx, dtsdz)
 
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
@@ -766,8 +759,7 @@ subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
 end subroutine push_magnetic_field_y
 
 subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
-     ey, eylo, eyhi, dtsdx, dtsdy)    &
-     bind(c,name='push_magnetic_field_z')
+     ey, eylo, eyhi, dtsdx, dtsdy)
 
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
