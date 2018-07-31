@@ -5,7 +5,7 @@
 
 using namespace amrex;
 
-Real compute_dt(const Geometry& geom) 
+Real compute_dt(const Geometry& geom)
 {
     const static Real cfl = 1.0;
     const Real* dx = geom.CellSize();
@@ -21,13 +21,13 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
                            const Geometry& geom, Real dt)
 {
     BL_PROFILE("evolve_electric_field");
-    
+
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
     const Real foo = (PhysConst::c*PhysConst::c) * dt;
-    
-    const Real* dx = geom.CellSize();    
+
+    const Real* dx = geom.CellSize();
     const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
-    
+
     for (MFIter mfi(Ex); mfi.isValid(); ++mfi)
     {
         const Box& tbx  = mfi.tilebox(YeeGrid::Ex_nodal_flag);
@@ -65,7 +65,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
                            const Geometry& geom, Real dt)
 {
     BL_PROFILE("evolve_magnetic_field");
-    
+
     const Real* dx = geom.CellSize();
     const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
 
@@ -81,35 +81,35 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
                           BL_TO_FORTRAN_3D(Ey[mfi]),
                           BL_TO_FORTRAN_3D(Ez[mfi]),
                           dtsdx[1], dtsdx[2]);
-        
+
         AMREX_FORT_LAUNCH(tby, push_magnetic_field_y,
                           BL_TO_FORTRAN_BOX(tby),
                           BL_TO_FORTRAN_3D(By[mfi]),
                           BL_TO_FORTRAN_3D(Ex[mfi]),
                           BL_TO_FORTRAN_3D(Ez[mfi]),
                           dtsdx[0], dtsdx[2]);
-        
+
         AMREX_FORT_LAUNCH(tbz, push_magnetic_field_z,
                           BL_TO_FORTRAN_BOX(tbz),
                           BL_TO_FORTRAN_3D(Bz[mfi]),
                           BL_TO_FORTRAN_3D(Ex[mfi]),
                           BL_TO_FORTRAN_3D(Ey[mfi]),
                           dtsdx[0], dtsdx[1]);
-    }    
+    }
 }
 
 void fill_boundary_electric_field(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez, const Geometry& geom)
-{    
+{
     const auto& period = geom.periodicity();
     Ex.FillBoundary(period);
     Ey.FillBoundary(period);
-    Ez.FillBoundary(period);    
+    Ez.FillBoundary(period);
 }
 
 void fill_boundary_magnetic_field(MultiFab& Bx, MultiFab& By, MultiFab& Bz, const Geometry& geom)
-{    
+{
     const auto& period = geom.periodicity();
     Bx.FillBoundary(period);
     By.FillBoundary(period);
-    Bz.FillBoundary(period);    
+    Bz.FillBoundary(period);
 }

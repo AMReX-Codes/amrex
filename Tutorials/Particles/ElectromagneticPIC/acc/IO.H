@@ -8,8 +8,8 @@
 
 void
 WritePlotFile (const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-               const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz, 
-               const amrex::MultiFab& jx, const amrex::MultiFab& jy, const amrex::MultiFab& jz, 
+               const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+               const amrex::MultiFab& jx, const amrex::MultiFab& jy, const amrex::MultiFab& jz,
                const amrex::Geometry& geom, amrex::Real time, int step);
 
 #endif

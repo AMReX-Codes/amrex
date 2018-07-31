@@ -37,7 +37,7 @@ struct Particles {
 
     amrex::StructOfArrays<PIdx::nattribs, 0> attribs;
     amrex::StructOfArrays<TIdx::ntemp, 0> temp;
-    
+
     amrex::Real charge;
     amrex::Real mass;
 
@@ -63,7 +63,7 @@ struct Particles {
     RealVector& by() {return temp.GetRealData(TIdx::By);}
     RealVector& bz() {return temp.GetRealData(TIdx::Bz);}
 
-    RealVector& ginv() {return temp.GetRealData(TIdx::ginv);}    
+    RealVector& ginv() {return temp.GetRealData(TIdx::ginv);}
 
     const RealVector& x() const {return attribs.GetRealData(PIdx::x);}
     const RealVector& y() const {return attribs.GetRealData(PIdx::y);}
