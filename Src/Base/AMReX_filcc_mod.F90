@@ -18,7 +18,10 @@ module amrex_filcc_module
 #endif
 
   private
-  public :: amrex_filcc, amrex_fab_filcc, amrex_filccn, amrex_hoextraptocc
+#ifndef AMREX_USE_CUDA
+  public :: amrex_filcc
+#endif
+  public :: amrex_fab_filcc, amrex_filccn, amrex_hoextraptocc
 #if (AMREX_SPACEDIM == 3)
   public :: amrex_hoextraptocc_3d
 #endif
