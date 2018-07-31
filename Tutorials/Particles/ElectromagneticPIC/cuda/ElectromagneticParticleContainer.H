@@ -7,19 +7,12 @@
 #include <AMReX_REAL.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_IntVect.H>
-
-#include <thrust/device_vector.h>
+#include <AMReX_RedistributeStrategy.H>
 
 #include <Particles.H>
 
 class ElectromagneticParticleContainer
 {
-    amrex::BoxArray m_ba;
-    amrex::Geometry m_geom;
-    amrex::DistributionMapping m_dmap;
-
-    std::map<int, Particles> m_particles;
-    std::unique_ptr<amrex::MultiFab> m_mask_ptr;
 
 public:
 
@@ -66,14 +59,18 @@ public:
 
 protected:
 
-    void RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours);
-
     int m_species_id;
-
+    
     amrex::Real m_charge;
     amrex::Real m_mass;
 
-    size_t superparticle_size;
+    amrex::BoxArray m_ba;
+    amrex::Geometry m_geom;
+    amrex::DistributionMapping m_dmap;
+
+    std::map<std::pair<int, int>, Particles> m_particles;
+    std::unique_ptr<amrex::MultiFab> m_mask_ptr;
+    std::unique_ptr<RedistributeStrategyBase> m_redistribute_strategy;
 };
 
 #endif
