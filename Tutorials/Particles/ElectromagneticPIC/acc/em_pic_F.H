@@ -45,13 +45,13 @@ extern "C"
          const amrex::Real* gaminv,
          const amrex::Real dt);
     
-    AMREX_FORT_LAUNCHABLE(void set_gamma)(const int np,
+    void FTOC(set_gamma)(const int np,
                                           const amrex::Real* uxp,
                                           const amrex::Real* uyp,
                                           const amrex::Real* uzp,
                                           amrex::Real* gaminv);
 
-    AMREX_FORT_LAUNCHABLE(void enforce_periodic)(const int np,
+    void FTOC(enforce_periodic)(const int np,
                                                  amrex::Real* xp,
                                                  amrex::Real* yp,
                                                  amrex::Real* zp,
