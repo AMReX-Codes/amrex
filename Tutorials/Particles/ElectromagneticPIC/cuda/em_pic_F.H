@@ -19,10 +19,10 @@ extern "C"
 #endif
 
     AMREX_FORT_LAUNCHABLE(void push_momentum_boris)
-        (const int np, 
+        (const int np,
          amrex::Real* uxp,
          amrex::Real* uyp,
-         amrex::Real* uzp, 
+         amrex::Real* uzp,
          amrex::Real* gaminv,
          const amrex::Real* exp,
          const amrex::Real* eyp,
@@ -44,7 +44,7 @@ extern "C"
          const amrex::Real* uzp,
          const amrex::Real* gaminv,
          const amrex::Real dt);
-    
+
     AMREX_FORT_LAUNCHABLE(void set_gamma)(const int np,
                                           const amrex::Real* uxp,
                                           const amrex::Real* uyp,
@@ -57,12 +57,12 @@ extern "C"
                                                  amrex::Real* zp,
                                                  const amrex::Real* plo,
                                                  const amrex::Real* phi);
-    
+
     AMREX_FORT_LAUNCHABLE(void deposit_current)
                                          (BL_FORT_FAB_ARG_3D(jx),
                                           BL_FORT_FAB_ARG_3D(jy),
                                           BL_FORT_FAB_ARG_3D(jz),
-                                          const int np, 
+                                          const int np,
                                           const amrex::Real* x,
                                           const amrex::Real* y,
                                           const amrex::Real* z,
@@ -75,29 +75,29 @@ extern "C"
                                           const amrex::Real* plo,
                                           const amrex::Real dt,
                                           const amrex::Real* dx);
-    
+
     AMREX_FORT_LAUNCHABLE(void gather_magnetic_field)
-                                               (const int np, 
+                                               (const int np,
                                                 const amrex::Real* xp,
                                                 const amrex::Real* yp,
-                                                const amrex::Real* zp, 
+                                                const amrex::Real* zp,
                                                 amrex::Real* bx,
                                                 amrex::Real* by,
-                                                amrex::Real* bz, 
+                                                amrex::Real* bz,
                                                 const BL_FORT_FAB_ARG_3D(bxg),
                                                 const BL_FORT_FAB_ARG_3D(byg),
                                                 const BL_FORT_FAB_ARG_3D(bzg),
                                                 const amrex::Real* plo, const amrex::Real* dx);
-    
+
 
     AMREX_FORT_LAUNCHABLE(void gather_electric_field)
-                                               (const int np, 
+                                               (const int np,
                                                 const amrex::Real* xp,
                                                 const amrex::Real* yp,
                                                 const amrex::Real* zp,
                                                 amrex::Real* ex,
                                                 amrex::Real* ey,
-                                                amrex::Real* ez, 
+                                                amrex::Real* ez,
                                                 const BL_FORT_FAB_ARG_3D(exg),
                                                 const BL_FORT_FAB_ARG_3D(eyg),
                                                 const BL_FORT_FAB_ARG_3D(ezg),
@@ -111,7 +111,7 @@ extern "C"
                                                       const amrex::Real mudt,
                                                       const amrex::Real dtsdy,
                                                       const amrex::Real dtsdz);
-    
+
     AMREX_FORT_LAUNCHABLE(void push_electric_field_y)(const int* ylo, const int* yhi,
                                                       BL_FORT_FAB_ARG_3D(ey),
                                                       const BL_FORT_FAB_ARG_3D(bx),
@@ -120,7 +120,7 @@ extern "C"
                                                       const amrex::Real mudt,
                                                       const amrex::Real dtsdx,
                                                       const amrex::Real dtsdz);
-    
+
     AMREX_FORT_LAUNCHABLE(void push_electric_field_z)(const int* zlo, const int* zhi,
                                                       BL_FORT_FAB_ARG_3D(ez),
                                                       const BL_FORT_FAB_ARG_3D(bx),
@@ -138,17 +138,17 @@ extern "C"
                                                       const amrex::Real dtsdz);
 
     AMREX_FORT_LAUNCHABLE(void push_magnetic_field_y)(const int* ylo, const int* yhi,
-                                                      BL_FORT_FAB_ARG_3D(by),                               
+                                                      BL_FORT_FAB_ARG_3D(by),
                                                       const BL_FORT_FAB_ARG_3D(ex),
                                                       const BL_FORT_FAB_ARG_3D(ez),
-                                                      const amrex::Real dtsdx, 
+                                                      const amrex::Real dtsdx,
                                                       const amrex::Real dtsdz);
-    
+
     AMREX_FORT_LAUNCHABLE(void push_magnetic_field_z)(const int* zlo, const int* zhi,
-                                                      BL_FORT_FAB_ARG_3D(bz),                               
+                                                      BL_FORT_FAB_ARG_3D(bz),
                                                       const BL_FORT_FAB_ARG_3D(ex),
                                                       const BL_FORT_FAB_ARG_3D(ey),
-                                                      const amrex::Real dtsdx, 
+                                                      const amrex::Real dtsdx,
                                                       const amrex::Real dtsdy);
 
     void check_langmuir_solution(const int* boxlo,  const int* boxhi,
