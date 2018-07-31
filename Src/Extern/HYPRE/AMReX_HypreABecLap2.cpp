@@ -132,9 +132,6 @@ HypreABecLap2::prepareSolver ()
 {
     BL_PROFILE("HypreABecLap2::prepareSolver()");
 
-    int myid;
-    MPI_Comm_rank(comm, &myid );
- 
     HYPRE_SStructGridCreate(comm, AMREX_SPACEDIM, 1, &hgrid);
 
     Array<HYPRE_Int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(0,0,0)};
@@ -251,6 +248,10 @@ HypreABecLap2::prepareSolver ()
                         &scalar_b, dx, &cdir, &bctype, &bcl, &bho);
         }
 
+        amrex_hpdiag(BL_TO_FORTRAN_BOX(reg),
+                     mat,
+                     BL_TO_FORTRAN_ANYD(diaginv[mfi]));
+
         // initialize matrix
         auto reglo = Hypre::loV(reg);
         auto reghi = Hypre::hiV(reg);
@@ -281,7 +282,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
     soln.setVal(0.0);
 
     const HYPRE_Int part = 0;
-    FArrayBox fab;
+    FArrayBox rhsfab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();
@@ -291,17 +292,12 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
         HYPRE_SStructVectorSetBoxValues(x, part, reglo.data(), reghi.data(),
                                         0, soln[mfi].dataPtr());
 
-        FArrayBox *bfab;
-        if (rhs.nGrow() == 0) {
-            bfab = const_cast<FArrayBox*>(&(rhs[mfi]));
-        } else {
-            bfab = &fab;
-            bfab->resize(reg);
-            bfab->copy(rhs[mfi], 0, 0, 1);
-        }
+        rhsfab.resize(reg);
+        rhsfab.copy(rhs[mfi],reg);
+        rhsfab.mult(diaginv[mfi]);
 
         HYPRE_SStructVectorSetBoxValues(b, part, reglo.data(), reghi.data(),
-                                        0, bfab->dataPtr());
+                                        0, rhsfab.dataPtr());
     }
 
     HYPRE_SStructVectorAssemble(b);

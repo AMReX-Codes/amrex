@@ -53,6 +53,8 @@ Hypre::Hypre (const BoxArray& grids, const DistributionMapping& dmap,
         bcoefs[i].define(edge_boxes, dmap, ncomp, ngrow);
         bcoefs[i].setVal(0.0);
     }
+
+    diaginv.define(grids,dmap,ncomp,0);
 }
 
 Hypre::~Hypre ()

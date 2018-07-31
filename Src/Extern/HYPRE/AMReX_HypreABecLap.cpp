@@ -112,9 +112,6 @@ HypreABecLap::prepareSolver ()
 {
     BL_PROFILE("HypreABecLap::prepareSolver()");
 
-    int myid;
-    MPI_Comm_rank(comm, &myid );
-
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
 
@@ -222,6 +219,10 @@ HypreABecLap::prepareSolver ()
                         &scalar_b, dx, &cdir, &bctype, &bcl, &bho);
         }
 
+        amrex_hpdiag(BL_TO_FORTRAN_BOX(reg),
+                     mat,
+                     BL_TO_FORTRAN_ANYD(diaginv[mfi]));
+
         auto reglo = Hypre::loV(reg);
         auto reghi = Hypre::hiV(reg);
         HYPRE_StructMatrixSetBoxValues(A, reglo.data(), reghi.data(),
@@ -245,7 +246,7 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     soln.setVal(0.0);
 
-    FArrayBox fab;
+    FArrayBox rhsfab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();
@@ -254,16 +255,11 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         auto reghi = Hypre::hiV(reg);
         HYPRE_StructVectorSetBoxValues(x, reglo.data(), reghi.data(), soln[mfi].dataPtr());
         
-        FArrayBox* bfab;
-        if (rhs.nGrow() == 0) {
-            bfab = const_cast<FArrayBox*>(&(rhs[mfi]));
-        } else {
-            bfab = &fab;
-            bfab->resize(reg);
-            bfab->copy(rhs[mfi], 0, 0, 1);
-        }
+        rhsfab.resize(reg);
+        rhsfab.copy(rhs[mfi],reg);
+        rhsfab.mult(diaginv[mfi]);
 
-        HYPRE_StructVectorSetBoxValues(b, reglo.data(), reghi.data(), bfab->dataPtr());
+        HYPRE_StructVectorSetBoxValues(b, reglo.data(), reghi.data(), rhsfab.dataPtr());
     }
 
     HYPRE_StructVectorAssemble(x); 
