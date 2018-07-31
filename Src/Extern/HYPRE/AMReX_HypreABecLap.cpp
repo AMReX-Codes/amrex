@@ -20,10 +20,10 @@ HypreABecLap::~HypreABecLap ()
     solver = NULL;
     HYPRE_StructMatrixDestroy(A);
     A = NULL;
-    HYPRE_StructVectorDestroy(b);
-    b = NULL;
-    HYPRE_StructVectorDestroy(x);
-    x = NULL;
+//    HYPRE_StructVectorDestroy(b);
+//    b = NULL;
+//    HYPRE_StructVectorDestroy(x);
+//    x = NULL;
     HYPRE_StructGridDestroy(grid);
     grid = NULL;
 }
@@ -38,11 +38,15 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         m_maxorder = max_bndry_order;
         m_factory = &(rhs.Factory());
         prepareSolver();
-    } else {
-        HYPRE_StructVectorInitialize(b);
-        HYPRE_StructVectorInitialize(x);
     }
     
+    // do this repeatedly to avoid memory leak
+    HYPRE_StructVectorCreate(comm, grid, &b);
+    HYPRE_StructVectorCreate(comm, grid, &x);
+
+    HYPRE_StructVectorInitialize(b);
+    HYPRE_StructVectorInitialize(x);
+
     loadVectors(soln, rhs);
     
     HYPRE_StructPFMGSetMaxIter(solver, maxiter);
@@ -78,6 +82,12 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
     }
 
     getSolution(soln);
+
+    // do this repeatedly to avoid memory leak
+    HYPRE_StructVectorDestroy(b);
+    b = NULL;
+    HYPRE_StructVectorDestroy(x);
+    x = NULL;
 }
 
 void
@@ -236,6 +246,11 @@ HypreABecLap::prepareSolver ()
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_StructPFMGSetLogging(solver, logging);
     HYPRE_StructPFMGSetup(solver, A, b, x);
+
+    HYPRE_StructVectorDestroy(b);
+    b = NULL;
+    HYPRE_StructVectorDestroy(x);
+    x = NULL;
 }
 
 
