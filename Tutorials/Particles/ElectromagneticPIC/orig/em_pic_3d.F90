@@ -1,6 +1,6 @@
 module constants
   use amrex_fort_module, only : amrex_real
-  
+
   real(amrex_real), parameter :: clight  = 2.99792458d8
   real(amrex_real), parameter :: epsilon_0 = 8.85418782d-12
   real(amrex_real), parameter :: electron_charge = 1.60217662d-19
@@ -40,7 +40,7 @@ AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
 
 #if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
-  if (ip .le. np) then 
+  if (ip .le. np) then
 #else
 # ifdef AMREX_USE_ACC
 !$acc parallel deviceptr(uxp, uyp, uzp, gaminv, ex, ey, ez, bx, by, bz)
@@ -90,7 +90,7 @@ AMREX_LAUNCH subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
 !$acc end parallel
 # endif
 #endif
-  
+
 end subroutine push_momentum_boris
 
 
@@ -101,19 +101,19 @@ AMREX_LAUNCH subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gamin
      bind(c,name='push_position_boris')
 #endif
 
-  use amrex_fort_module, only : amrex_real  
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer,          intent(in), value  :: np
   real(amrex_real), intent(inout)      :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
   real(amrex_real), intent(in), value  :: dt
-  
+
   integer                              :: ip
 
 #if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
-  if (ip .le. np) then 
+  if (ip .le. np) then
 #else
 # ifdef AMREX_USE_ACC
 !$acc parallel deviceptr(xp, yp, zp, uxp, uyp, uzp, gaminv)
@@ -140,22 +140,22 @@ end subroutine push_position_boris
 
 AMREX_LAUNCH subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
      bind(c,name='set_gamma')
-  
+
   use amrex_fort_module, only : amrex_real
-  use constants, only : clight 
+  use constants, only : clight
   implicit none
-  
+
   integer,          intent(in), value :: np
   real(amrex_real), intent(in)        :: uxp(np), uyp(np), uzp(np)
   real(amrex_real), intent(inout)     :: gaminv(np)
-  
+
   integer                           :: ip
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
 
 #ifdef AMREX_USE_CUDA
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
-  if (ip .le. np) then 
+  if (ip .le. np) then
 #else
   do ip = 1, np
 #endif
@@ -173,14 +173,14 @@ end subroutine set_gamma
 
 AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
      bind(c,name='enforce_periodic')
-  
+
   use amrex_fort_module, only : amrex_real
   implicit none
-  
+
   integer,          intent(in), value      :: np
   real(amrex_real), intent(inout)   :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(in)      :: plo(3), phi(3)
-  
+
   integer                           :: ip
   real(amrex_real)                  :: domain_size(3)
 
@@ -188,11 +188,11 @@ AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
 
 #ifdef AMREX_USE_CUDA
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
-  if (ip .le. np) then 
+  if (ip .le. np) then
 #else
   do ip = 1, np
 #endif
-     
+
      if (xp(ip) .gt. phi(1)) then
         xp(ip) = xp(ip) - domain_size(1)
      else if (xp(ip) .lt. plo(1)) then
@@ -220,18 +220,18 @@ AMREX_LAUNCH subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
 end subroutine enforce_periodic
 
 #ifdef AMREX_USE_ACC
-subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
+subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, &
      uxp, uyp, uzp, gaminv, w, q, plo, dt, dx)
 #else
-AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
-     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) & 
+AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, &
+     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) &
      bind(c,name="deposit_current")
 #endif
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
   implicit none
-  
+
   integer,          intent(in), value    :: np
   integer,          intent(in)    :: jxlo(3), jxhi(3)
   integer,          intent(in)    :: jylo(3), jyhi(3)
@@ -241,17 +241,17 @@ AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo
   real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1), jzlo(2):jzhi(2), jzlo(3):jzhi(3))
   real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np), uxp(np), uyp(np), uzp(np)
   real(amrex_real), intent(in)    :: w(np), gaminv(np)
-  real(amrex_real), value         :: q, dt  
+  real(amrex_real), value         :: q, dt
   real(amrex_real), intent(in)    :: dx(3), plo(3)
-  
+
   real(amrex_real)                :: dxi, dyi, dzi, xint, yint, zint, retval
   real(amrex_real)                :: x, y, z, xmid, ymid, zmid, vx, vy, vz
   real(amrex_real)                :: invvol, dts2dx, dts2dy, dts2dz
-  real(amrex_real)                :: wq, wqx, wqy, wqz, clightsq  
+  real(amrex_real)                :: wq, wqx, wqy, wqz, clightsq
   real(amrex_real), dimension(2)  :: sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1)
   real(amrex_real), parameter     :: onesixth=1.d0/6.d0, twothird=2.d0/3.d0
   integer                         :: j, k, l, j0, k0, l0, ip
-  
+
   dxi = 1.d0/dx(1)
   dyi = 1.d0/dx(2)
   dzi = 1.d0/dx(3)
@@ -267,14 +267,14 @@ AMREX_LAUNCH subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo
 
 #if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
-  if (ip .le. np) then 
+  if (ip .le. np) then
 #else
 # ifdef AMREX_USE_ACC
 ! CD: The "private" clause is placed on the loop construct (containing a
 ! vector schedule) to ensure that there is a private copy of the data
 ! per thread - see 2.9.10. If "private" was applied to the parallel
 ! construct then there would be a private copy per gang - see 2.5.10.
-!$acc parallel deviceptr(jxlo, jxhi, jylo, jyhi, jzlo, jzhi, jx, jy, jz, xp, yp, zp, uxp, uyp, uzp, w, gaminv, dx, plo) 
+!$acc parallel deviceptr(jxlo, jxhi, jylo, jyhi, jzlo, jzhi, jx, jy, jz, xp, yp, zp, uxp, uyp, uzp, w, gaminv, dx, plo)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
 # endif
   do ip = 1, np
@@ -463,13 +463,13 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx)
 #else
 AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
-     bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx) & 
+     bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx) &
      bind(c,name="gather_magnetic_field")
 #endif
 
   use amrex_fort_module, only : amrex_real
   implicit none
-  
+
   integer,          intent(in), value    :: np
   integer,          intent(in)    :: bxglo(3), bxghi(3)
   integer,          intent(in)    :: byglo(3), byghi(3)
@@ -480,7 +480,7 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
   real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(inout) :: bx(np), by(np), bz(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
-  
+
   real(amrex_real)                :: x, y, z, dxi, dyi, dzi, xint, yint, zint
   real(amrex_real), dimension(2)  :: sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1)
   real(amrex_real), parameter     :: onesixth=1.d0/6.d0, twothird=2.d0/3.d0
@@ -516,7 +516,7 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
 
 #if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
-  if (ip .le. np) then 
+  if (ip .le. np) then
 #else
 # ifdef AMREX_USE_ACC
 !$acc parallel deviceptr(bxglo, bxghi, byglo, byghi, bzglo, bzghi, bxg, byg, bzg, xp, yp, zp, bx, by, bz, dx, plo)
@@ -524,7 +524,7 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
 # endif
   do ip = 1, np
 #endif
-     
+
      bx(ip) = 0.d0
      by(ip) = 0.d0
      bz(ip) = 0.d0
@@ -532,7 +532,7 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      x = (xp(ip)-plo(1))*dxi
      y = (yp(ip)-plo(2))*dyi
      z = (zp(ip)-plo(3))*dzi
-     
+
      ! Compute index of particle
      j  = floor(x)
      j0 = floor(x)
@@ -540,11 +540,11 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      k0 = floor(y)
      l  = floor(z)
      l0 = floor(z)
-     
+
      xint = x - j
      yint = y - k
      zint = z - l
-     
+
      ! Compute shape factors
      sx(0) = 1.d0-xint
      sx(1) = xint
@@ -552,18 +552,18 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      sy(1) = yint
      sz(0) = 1.d0-zint
      sz(1) = zint
-     
+
      xint=x-0.5d0-j0
      yint=y-0.5d0-k0
      zint=z-0.5d0-l0
-     
+
      sx0(0) = 1.d0
      sy0(0) = 1.d0
      sz0(0) = 1.d0
      sx0(1) = 0.d0 ! Added by CD
      sy0(1) = 0.d0 ! Added by CD
      sz0(1) = 0.d0 ! Added by CD
-     
+
 #ifdef AMREX_USE_ACC
 ! CD: The independent clause silences the compiler about the loop
 ! carried dependence of bx. There is no loop carried dependence
@@ -578,7 +578,7 @@ AMREX_LAUNCH subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
         end do
      end do
 #ifdef AMREX_USE_ACC
-!$acc end loop    
+!$acc end loop
 #endif
 
 #ifdef AMREX_USE_ACC
@@ -626,14 +626,14 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx)
 #else
 AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
-     exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx) & 
+     exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx) &
      bind(c,name="gather_electric_field")
 #endif
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
   implicit none
-  
+
   integer,          intent(in), value    :: np
   integer,          intent(in)    :: exglo(3), exghi(3)
   integer,          intent(in)    :: eyglo(3), eyghi(3)
@@ -644,7 +644,7 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
   real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(inout) :: ex(np), ey(np), ez(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
-  
+
   real(amrex_real)                :: x, y, z, dxi, dyi, dzi, xint, yint, zint
   real(amrex_real), dimension(2)  :: sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1)
   real(amrex_real), parameter     :: onesixth=1.d0/6.d0, twothird=2.d0/3.d0
@@ -680,7 +680,7 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
 
 #if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
   ip = blockDim%x * (blockIdx%x - 1) + threadIdx%x
-  if (ip .le. np) then 
+  if (ip .le. np) then
 #else
 # ifdef AMREX_USE_ACC
 !$acc parallel deviceptr(exglo, exghi, eyglo, eyghi, ezglo, ezghi, exg, eyg, ezg, xp, yp, zp, ex, ey, ez, dx, plo)
@@ -688,7 +688,7 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
 # endif
   do ip = 1, np
 #endif
-     
+
      ex(ip) = 0.d0
      ey(ip) = 0.d0
      ez(ip) = 0.d0
@@ -696,7 +696,7 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      x = (xp(ip)-plo(1))*dxi
      y = (yp(ip)-plo(2))*dyi
      z = (zp(ip)-plo(3))*dzi
-     
+
      ! Compute index of particle
      j  = floor(x)
      j0 = floor(x)
@@ -704,11 +704,11 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      k0 = floor(y)
      l  = floor(z)
      l0 = floor(z)
-     
+
      xint = x - j
      yint = y - k
      zint = z - l
-     
+
      ! Compute shape factors
      sx(0) = 1.d0-xint
      sx(1) = xint
@@ -716,18 +716,18 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      sy(1) = yint
      sz(0) = 1.d0-zint
      sz(1) = zint
-     
+
      xint=x-0.5d0-j0
      yint=y-0.5d0-k0
      zint=z-0.5d0-l0
-     
+
      sx0(0) = 1.d0
      sy0(0) = 1.d0
      sz0(0) = 1.d0
      sx0(1) = 0.d0 ! Added by CD
      sy0(1) = 0.d0 ! Added by CD
      sz0(1) = 0.d0 ! Added by CD
-     
+
 #ifdef AMREX_USE_ACC
 !$acc loop seq independent collapse(3)
 #endif
@@ -739,7 +739,7 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
         end do
      end do
 #ifdef AMREX_USE_ACC
-!$acc end loop    
+!$acc end loop
 #endif
 
 #ifdef AMREX_USE_ACC
@@ -753,9 +753,9 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
         end do
      end do
 #ifdef AMREX_USE_ACC
-!$acc end loop    
+!$acc end loop
 #endif
-     
+
 #ifdef AMREX_USE_ACC
 !$acc loop seq independent collapse(3)
 #endif
@@ -767,7 +767,7 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
         end do
      end do
 #ifdef AMREX_USE_ACC
-!$acc end loop    
+!$acc end loop
 #endif
 
 #if defined (AMREX_USE_CUDA) && !defined(AMREX_USE_ACC)
@@ -779,16 +779,16 @@ AMREX_LAUNCH subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
 !$acc end parallel
 # endif
 #endif
-   
+
 end subroutine gather_electric_field
 
 AMREX_LAUNCH subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
-     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) & 
+     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) &
      bind(c,name="push_electric_field_x")
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: xlo(3),  xhi(3)
   integer,          intent(in)    :: exlo(3),exhi(3)
   integer,          intent(in)    :: bylo(3),byhi(3),bzlo(3),bzhi(3)
@@ -798,7 +798,7 @@ AMREX_LAUNCH subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,         
   real(amrex_real), intent(in)    :: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
   real(amrex_real), intent(in)    :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
   real(amrex_real), value         :: mudt,dtsdy,dtsdz
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
@@ -813,17 +813,17 @@ AMREX_LAUNCH subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,         
         end do
      end do
   end do
-    
+
 end subroutine push_electric_field_x
 
 AMREX_LAUNCH subroutine push_electric_field_y(ylo, yhi, &
      ey, eylo, eyhi, bx, bxlo, bxhi, bz, bzlo, bzhi, &
-     jy, jylo, jyhi, mudt, dtsdx, dtsdz)     & 
+     jy, jylo, jyhi, mudt, dtsdx, dtsdz)     &
      bind(c,name="push_electric_field_y")
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: ylo(3), yhi(3)
   integer,          intent(in)    :: eylo(3),eyhi(3)
   integer,          intent(in)    :: bxlo(3),bxhi(3), bzlo(3),bzhi(3)
@@ -833,7 +833,7 @@ AMREX_LAUNCH subroutine push_electric_field_y(ylo, yhi, &
   real(amrex_real), intent(in)    :: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
   real(amrex_real), intent(in)    :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2),jylo(3):jyhi(3))
   real(amrex_real), value         :: mudt,dtsdx,dtsdz
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
@@ -853,12 +853,12 @@ end subroutine push_electric_field_y
 
 AMREX_LAUNCH subroutine push_electric_field_z(zlo, zhi, &
      ez,ezlo, ezhi, bx, bxlo, bxhi, by, bylo, byhi, &
-     jz, jzlo, jzhi, mudt, dtsdx, dtsdy)     & 
+     jz, jzlo, jzhi, mudt, dtsdx, dtsdy)     &
      bind(c,name="push_electric_field_z")
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: zlo(3), zhi(3)
   integer,          intent(in)    :: ezlo(3),ezhi(3)
   integer,          intent(in)    :: bxlo(3),bxhi(3),bylo(3),byhi(3)
@@ -868,7 +868,7 @@ AMREX_LAUNCH subroutine push_electric_field_z(zlo, zhi, &
   real(amrex_real), intent(in)    :: by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
   real(amrex_real), intent(in)    :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2),jzlo(3):jzhi(3))
   real(amrex_real), value         :: mudt,dtsdx,dtsdy
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
@@ -883,16 +883,16 @@ AMREX_LAUNCH subroutine push_electric_field_z(zlo, zhi, &
         end do
      end do
   end do
-  
+
 end subroutine push_electric_field_z
 
-AMREX_LAUNCH subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, & 
-     ez, ezlo, ezhi, dtsdy, dtsdz)    & 
+AMREX_LAUNCH subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
+     ez, ezlo, ezhi, dtsdy, dtsdz)    &
      bind(c,name='push_magnetic_field_x')
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: xlo(3), xhi(3)
   integer,          intent(in)    :: bxlo(3),bxhi(3)
   integer,          intent(in)    :: eylo(3),eyhi(3),ezlo(3),ezhi(3)
@@ -900,7 +900,7 @@ AMREX_LAUNCH subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo
   real(amrex_real), intent(in)    :: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
   real(amrex_real), intent(in)    :: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),ezlo(3):ezhi(3))
   real(amrex_real), value         :: dtsdy,dtsdz
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
@@ -916,14 +916,14 @@ AMREX_LAUNCH subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo
   end do
 
 end subroutine push_magnetic_field_x
-  
-AMREX_LAUNCH subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, & 
-     ez, ezlo, ezhi, dtsdx, dtsdz)    & 
+
+AMREX_LAUNCH subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
+     ez, ezlo, ezhi, dtsdx, dtsdz)    &
      bind(c,name='push_magnetic_field_y')
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: ylo(3), yhi(3)
   integer,          intent(in)    :: bylo(3),byhi(3)
   integer,          intent(in)    :: exlo(3),exhi(3),ezlo(3),ezhi(3)
@@ -931,12 +931,12 @@ AMREX_LAUNCH subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo
   real(amrex_real), intent(in)    :: ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
   real(amrex_real), intent(in)    :: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),ezlo(3):ezhi(3))
   real(amrex_real), value         :: dtsdx,dtsdz
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
   call get_loop_bounds(blo, bhi, ylo, yhi)
-  
+
   do l       = blo(3), bhi(3)
      do k    = blo(2), bhi(2)
         do j = blo(1), bhi(1)
@@ -948,13 +948,13 @@ AMREX_LAUNCH subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo
 
 end subroutine push_magnetic_field_y
 
-AMREX_LAUNCH subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, & 
-     ey, eylo, eyhi, dtsdx, dtsdy)    & 
+AMREX_LAUNCH subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
+     ey, eylo, eyhi, dtsdx, dtsdy)    &
      bind(c,name='push_magnetic_field_z')
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: zlo(3), zhi(3)
   integer,          intent(in)    :: bzlo(3),bzhi(3)
   integer,          intent(in)    :: exlo(3),exhi(3),eylo(3),eyhi(3)
@@ -962,12 +962,12 @@ AMREX_LAUNCH subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo
   real(amrex_real), intent(in)    :: ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
   real(amrex_real), intent(in)    :: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
   real(amrex_real), value         :: dtsdx,dtsdy
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
-  
+
   call get_loop_bounds(blo, bhi, zlo, zhi)
-  
+
   do l       = blo(3), bhi(3)
      do k    = blo(2), bhi(2)
         do j = blo(1), bhi(1)
@@ -976,17 +976,17 @@ AMREX_LAUNCH subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo
         end do
      end do
   end do
-  
+
 end subroutine push_magnetic_field_z
 
-subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi, & 
+subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi, &
      time, max_error) bind(c,name='check_langmuir_solution')
-  
+
   use amrex_fort_module, only : amrex_real
   use constants
 
   implicit none
-  
+
   integer,          intent(in)    :: boxlo(3),  boxhi(3)
   integer,          intent(in)    :: testlo(3), testhi(3)
   integer,          intent(in)    :: jxlo(3),   jxhi(3)
@@ -1021,6 +1021,6 @@ subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi,
   end do
 
   max_error = error
-  
+
 end subroutine check_langmuir_solution
 

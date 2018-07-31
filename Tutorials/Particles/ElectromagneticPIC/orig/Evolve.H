@@ -19,8 +19,8 @@ void evolve_electric_field(amrex::MultiFab& Ex, amrex::MultiFab& Ey, amrex::Mult
                            const amrex::MultiFab& jz,
                            const amrex::Geometry& geom, amrex::Real dt);
 
-void evolve_magnetic_field(const amrex::MultiFab& Ex, 
-                           const amrex::MultiFab& Ey, 
+void evolve_magnetic_field(const amrex::MultiFab& Ex,
+                           const amrex::MultiFab& Ey,
                            const amrex::MultiFab& Ez,
                            amrex::MultiFab& Bx, amrex::MultiFab& By, amrex::MultiFab& Bz,
                            const amrex::Geometry& geom, amrex::Real dt);
