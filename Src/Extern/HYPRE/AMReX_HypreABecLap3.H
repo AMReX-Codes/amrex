@@ -33,7 +33,6 @@ private :
     HYPRE_IJVector x = NULL;
     HYPRE_Solver solver = NULL;
 
-    MultiFab diaginv;
     LayoutData<HYPRE_Int> ncells_grid;
     LayoutData<Vector<HYPRE_Int> > cell_id_vec;
     FabArray<BaseFab<HYPRE_Int> > cell_id;

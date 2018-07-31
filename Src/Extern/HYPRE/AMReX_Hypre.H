@@ -66,6 +66,8 @@ protected:
     Array<MultiFab,AMREX_SPACEDIM> bcoefs;
     Real scalar_a, scalar_b;
 
+    MultiFab diaginv;
+    
     FabFactory<FArrayBox> const* m_factory = nullptr;
     BndryData const* m_bndry = nullptr;
     int m_maxorder = -1;

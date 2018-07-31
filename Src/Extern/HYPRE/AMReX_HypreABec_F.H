@@ -21,6 +21,9 @@ extern "C" {
                       const amrex_real* sb, const amrex_real* dx, const int* cdir,
                       const int* bct, const amrex_real* bcl, const int* bho);
 
+    void amrex_hpdiag (const int* lo, const int* hi, amrex_real* mat,
+                       amrex_real* diag, const int* dlo, const int* dhi);
+
     void amrex_hpijmatrix (const int* lo, const int* hi,
                            const void* nrows, void* ncols,
                            void* rows, void* cols, amrex_real* mat,

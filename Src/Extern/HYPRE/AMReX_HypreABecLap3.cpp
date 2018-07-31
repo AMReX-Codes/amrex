@@ -171,8 +171,6 @@ HypreABecLap3::prepareSolver ()
     }
 #endif
 
-    diaginv.define(ba,dm,1,0);
-    
     // how many non-covered cells do we have?
     ncells_grid.define(ba,dm);
     cell_id.define(ba,dm,1,1);
