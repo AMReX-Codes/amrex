@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../
+AMREX_HOME ?= ../../../../
 
 DEBUG	= TRUE
 DEBUG	= FALSE
@@ -14,8 +14,8 @@ PRECISION     = DOUBLE
 
 USE_MPI       = TRUE
 USE_OMP       = FALSE
-USE_CUDA      = TRUE
 USE_ACC       = FALSE
+USE_CUDA      = TRUE
 
 
 ###################################################
