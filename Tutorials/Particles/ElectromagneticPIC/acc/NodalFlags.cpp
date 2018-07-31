@@ -12,4 +12,4 @@ IntVect YeeGrid::Ez_nodal_flag(1,1,0);
 
 IntVect YeeGrid::jx_nodal_flag(0,1,1);
 IntVect YeeGrid::jy_nodal_flag(1,0,1);
-IntVect YeeGrid::jz_nodal_flag(1,1,0);   
+IntVect YeeGrid::jz_nodal_flag(1,1,0);

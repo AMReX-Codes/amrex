@@ -1,6 +1,6 @@
 module constants
   use amrex_fort_module, only : amrex_real
-  
+
   real(amrex_real), parameter :: clight  = 2.99792458d8
   real(amrex_real), parameter :: epsilon_0 = 8.85418782d-12
   real(amrex_real), parameter :: electron_charge = 1.60217662d-19
@@ -71,20 +71,20 @@ subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
   end do
 !$acc end loop
 !$acc end parallel
-  
+
 end subroutine push_momentum_boris
 
 
 subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt)
 
-  use amrex_fort_module, only : amrex_real  
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer,          intent(in), value  :: np
   real(amrex_real), intent(inout)      :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
   real(amrex_real), intent(in), value  :: dt
-  
+
   integer                              :: ip
 
 !$acc parallel deviceptr(xp, yp, zp, uxp, uyp, uzp, gaminv)
@@ -103,15 +103,15 @@ end subroutine push_position_boris
 
 subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
      bind(c,name='set_gamma')
-  
+
   use amrex_fort_module, only : amrex_real
-  use constants, only : clight 
+  use constants, only : clight
   implicit none
-  
+
   integer,          intent(in), value :: np
   real(amrex_real), intent(in)        :: uxp(np), uyp(np), uzp(np)
   real(amrex_real), intent(inout)     :: gaminv(np)
-  
+
   integer                           :: ip
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
@@ -131,14 +131,14 @@ end subroutine set_gamma
 
 subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
      bind(c,name='enforce_periodic')
-  
+
   use amrex_fort_module, only : amrex_real
   implicit none
-  
+
   integer,          intent(in), value      :: np
   real(amrex_real), intent(inout)   :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(in)      :: plo(3), phi(3)
-  
+
   integer                           :: ip
   real(amrex_real)                  :: domain_size(3)
 
@@ -147,7 +147,7 @@ subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
 !$acc parallel deviceptr(xp, yp, zp, plo, phi)
 !$acc loop gang vector
   do ip = 1, np
-     
+
      if (xp(ip) .gt. phi(1)) then
         xp(ip) = xp(ip) - domain_size(1)
      else if (xp(ip) .lt. plo(1)) then
@@ -172,13 +172,13 @@ subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
 
 end subroutine enforce_periodic
 
-subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, & 
+subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, &
      uxp, uyp, uzp, gaminv, w, q, plo, dt, dx)
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
   implicit none
-  
+
   integer,          intent(in), value    :: np
   integer,          intent(in)    :: jxlo(3), jxhi(3)
   integer,          intent(in)    :: jylo(3), jyhi(3)
@@ -188,17 +188,17 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, x
   real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1), jzlo(2):jzhi(2), jzlo(3):jzhi(3))
   real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np), uxp(np), uyp(np), uzp(np)
   real(amrex_real), intent(in)    :: w(np), gaminv(np)
-  real(amrex_real), value         :: q, dt  
+  real(amrex_real), value         :: q, dt
   real(amrex_real), intent(in)    :: dx(3), plo(3)
-  
+
   real(amrex_real)                :: dxi, dyi, dzi, xint, yint, zint, retval
   real(amrex_real)                :: x, y, z, xmid, ymid, zmid, vx, vy, vz
   real(amrex_real)                :: invvol, dts2dx, dts2dy, dts2dz
-  real(amrex_real)                :: wq, wqx, wqy, wqz, clightsq  
+  real(amrex_real)                :: wq, wqx, wqy, wqz, clightsq
   real(amrex_real), dimension(2)  :: sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1)
   real(amrex_real), parameter     :: onesixth=1.d0/6.d0, twothird=2.d0/3.d0
   integer                         :: j, k, l, j0, k0, l0, ip
-  
+
   dxi = 1.d0/dx(1)
   dyi = 1.d0/dx(2)
   dzi = 1.d0/dx(3)
@@ -216,7 +216,7 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, x
 ! vector schedule) to ensure that there is a private copy of the data
 ! per thread - see 2.9.10. If "private" was applied to the parallel
 ! construct then there would be a private copy per gang - see 2.5.10.
-!$acc parallel deviceptr(jxlo, jxhi, jylo, jyhi, jzlo, jzhi, jx, jy, jz, xp, yp, zp, uxp, uyp, uzp, w, gaminv, dx, plo) 
+!$acc parallel deviceptr(jxlo, jxhi, jylo, jyhi, jzlo, jzhi, jx, jy, jz, xp, yp, zp, uxp, uyp, uzp, w, gaminv, dx, plo)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
   do ip = 1, np
 
@@ -334,7 +334,7 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
 
   use amrex_fort_module, only : amrex_real
   implicit none
-  
+
   integer,          intent(in), value    :: np
   integer,          intent(in)    :: bxglo(3), bxghi(3)
   integer,          intent(in)    :: byglo(3), byghi(3)
@@ -345,7 +345,7 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
   real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(inout) :: bx(np), by(np), bz(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
-  
+
   real(amrex_real)                :: x, y, z, dxi, dyi, dzi, xint, yint, zint
   real(amrex_real), dimension(2)  :: sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1)
   real(amrex_real), parameter     :: onesixth=1.d0/6.d0, twothird=2.d0/3.d0
@@ -382,7 +382,7 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
 !$acc parallel deviceptr(bxglo, bxghi, byglo, byghi, bzglo, bzghi, bxg, byg, bzg, xp, yp, zp, bx, by, bz, dx, plo)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
   do ip = 1, np
-     
+
      bx(ip) = 0.d0
      by(ip) = 0.d0
      bz(ip) = 0.d0
@@ -390,7 +390,7 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      x = (xp(ip)-plo(1))*dxi
      y = (yp(ip)-plo(2))*dyi
      z = (zp(ip)-plo(3))*dzi
-     
+
      ! Compute index of particle
      j  = floor(x)
      j0 = floor(x)
@@ -398,11 +398,11 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      k0 = floor(y)
      l  = floor(z)
      l0 = floor(z)
-     
+
      xint = x - j
      yint = y - k
      zint = z - l
-     
+
      ! Compute shape factors
      sx(0) = 1.d0-xint
      sx(1) = xint
@@ -410,18 +410,18 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      sy(1) = yint
      sz(0) = 1.d0-zint
      sz(1) = zint
-     
+
      xint=x-0.5d0-j0
      yint=y-0.5d0-k0
      zint=z-0.5d0-l0
-     
+
      sx0(0) = 1.d0
      sy0(0) = 1.d0
      sz0(0) = 1.d0
      sx0(1) = 0.d0 ! Added by CD
      sy0(1) = 0.d0 ! Added by CD
      sz0(1) = 0.d0 ! Added by CD
-     
+
 ! CD: The independent clause silences the compiler about the loop
 ! carried dependence of bx. There is no loop carried dependence
 ! because each bx index is only ever accessed by 1 thread.
@@ -433,7 +433,7 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
            end do
         end do
      end do
-!$acc end loop    
+!$acc end loop
 
 !$acc loop seq independent collapse(3)
      do ll = izmin0, izmax0
@@ -467,7 +467,7 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
   implicit none
-  
+
   integer,          intent(in), value    :: np
   integer,          intent(in)    :: exglo(3), exghi(3)
   integer,          intent(in)    :: eyglo(3), eyghi(3)
@@ -478,7 +478,7 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
   real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
   real(amrex_real), intent(inout) :: ex(np), ey(np), ez(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
-  
+
   real(amrex_real)                :: x, y, z, dxi, dyi, dzi, xint, yint, zint
   real(amrex_real), dimension(2)  :: sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1)
   real(amrex_real), parameter     :: onesixth=1.d0/6.d0, twothird=2.d0/3.d0
@@ -523,7 +523,7 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      x = (xp(ip)-plo(1))*dxi
      y = (yp(ip)-plo(2))*dyi
      z = (zp(ip)-plo(3))*dzi
-     
+
      ! Compute index of particle
      j  = floor(x)
      j0 = floor(x)
@@ -531,11 +531,11 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      k0 = floor(y)
      l  = floor(z)
      l0 = floor(z)
-     
+
      xint = x - j
      yint = y - k
      zint = z - l
-     
+
      ! Compute shape factors
      sx(0) = 1.d0-xint
      sx(1) = xint
@@ -543,18 +543,18 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      sy(1) = yint
      sz(0) = 1.d0-zint
      sz(1) = zint
-     
+
      xint=x-0.5d0-j0
      yint=y-0.5d0-k0
      zint=z-0.5d0-l0
-     
+
      sx0(0) = 1.d0
      sy0(0) = 1.d0
      sz0(0) = 1.d0
      sx0(1) = 0.d0 ! Added by CD
      sy0(1) = 0.d0 ! Added by CD
      sz0(1) = 0.d0 ! Added by CD
-     
+
 !$acc loop seq independent collapse(3)
      do ll = izmin, izmax+1
         do kk = iymin, iymax+1
@@ -563,7 +563,7 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
            end do
         end do
      end do
-!$acc end loop    
+!$acc end loop
 
 !$acc loop seq independent collapse(3)
      do ll = izmin, izmax+1
@@ -573,8 +573,8 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
            end do
         end do
      end do
-!$acc end loop    
-     
+!$acc end loop
+
 !$acc loop seq independent collapse(3)
      do ll = izmin0, izmax0
         do kk = iymin, iymax+1
@@ -583,21 +583,21 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
            end do
         end do
      end do
-!$acc end loop    
+!$acc end loop
 
   end do
 !$acc end loop
 !$acc end parallel
-   
+
 end subroutine gather_electric_field
 
 subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
-     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) & 
+     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) &
      bind(c,name="push_electric_field_x")
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: xlo(3),  xhi(3)
   integer,          intent(in)    :: exlo(3),exhi(3)
   integer,          intent(in)    :: bylo(3),byhi(3),bzlo(3),bzhi(3)
@@ -607,32 +607,33 @@ subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
   real(amrex_real), intent(in)    :: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
   real(amrex_real), intent(in)    :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
   real(amrex_real), value         :: mudt,dtsdy,dtsdz
-  
+
   integer :: j,k,l
-  integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, xlo, xhi)
-
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+!$acc parallel deviceptr(xlo,xhi,ex,by,bz,jx)
+!$acc loop gang vector
+  do l       = xlo(3), xhi(3)
+     do k    = xlo(2), xhi(2)
+        do j = xlo(1), xhi(1)
            Ex(j,k,l) = Ex(j,k,l) + dtsdy * (Bz(j,k,l) - Bz(j,k-1,l  )) &
                 - dtsdz * (By(j,k,l) - By(j,k  ,l-1)) &
                 - mudt  * jx(j,k,l)
         end do
      end do
   end do
-    
+!$acc end loop
+!$acc end parallel
+
 end subroutine push_electric_field_x
 
 subroutine push_electric_field_y(ylo, yhi, &
      ey, eylo, eyhi, bx, bxlo, bxhi, bz, bzlo, bzhi, &
-     jy, jylo, jyhi, mudt, dtsdx, dtsdz)     & 
+     jy, jylo, jyhi, mudt, dtsdx, dtsdz)     &
      bind(c,name="push_electric_field_y")
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: ylo(3), yhi(3)
   integer,          intent(in)    :: eylo(3),eyhi(3)
   integer,          intent(in)    :: bxlo(3),bxhi(3), bzlo(3),bzhi(3)
@@ -642,32 +643,33 @@ subroutine push_electric_field_y(ylo, yhi, &
   real(amrex_real), intent(in)    :: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
   real(amrex_real), intent(in)    :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2),jylo(3):jyhi(3))
   real(amrex_real), value         :: mudt,dtsdx,dtsdz
-  
+
   integer :: j,k,l
-  integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, ylo, yhi)
-
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+!$acc parallel deviceptr(ylo,yhi,ey,bx,bz,jy)
+!$acc loop gang vector
+  do l       = ylo(3), yhi(3)
+     do k    = ylo(2), yhi(2)
+        do j = ylo(1), yhi(1)
            Ey(j,k,l) = Ey(j,k,l) - dtsdx * (Bz(j,k,l) - Bz(j-1,k,l)) &
                 + dtsdz * (Bx(j,k,l) - Bx(j,k,l-1)) &
                 - mudt  * jy(j,k,l)
         end do
      end do
   end do
+!$acc end loop
+!$acc end parallel
 
 end subroutine push_electric_field_y
 
 subroutine push_electric_field_z(zlo, zhi, &
      ez,ezlo, ezhi, bx, bxlo, bxhi, by, bylo, byhi, &
-     jz, jzlo, jzhi, mudt, dtsdx, dtsdy)     & 
+     jz, jzlo, jzhi, mudt, dtsdx, dtsdy)     &
      bind(c,name="push_electric_field_z")
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: zlo(3), zhi(3)
   integer,          intent(in)    :: ezlo(3),ezhi(3)
   integer,          intent(in)    :: bxlo(3),bxhi(3),bylo(3),byhi(3)
@@ -677,10 +679,12 @@ subroutine push_electric_field_z(zlo, zhi, &
   real(amrex_real), intent(in)    :: by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
   real(amrex_real), intent(in)    :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2),jzlo(3):jzhi(3))
   real(amrex_real), value         :: mudt,dtsdx,dtsdy
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
+!$acc parallel deviceptr(zlo,zhi,ez,bx,by,jz)
+!$acc loop gang vector
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
         do j = xlo(1), xhi(1)
@@ -690,16 +694,18 @@ subroutine push_electric_field_z(zlo, zhi, &
         end do
      end do
   end do
-  
+!$acc end loop
+!$acc end parallel
+
 end subroutine push_electric_field_z
 
-subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, & 
-     ez, ezlo, ezhi, dtsdy, dtsdz)    & 
+subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
+     ez, ezlo, ezhi, dtsdy, dtsdz)    &
      bind(c,name='push_magnetic_field_x')
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: xlo(3), xhi(3)
   integer,          intent(in)    :: bxlo(3),bxhi(3)
   integer,          intent(in)    :: eylo(3),eyhi(3),ezlo(3),ezhi(3)
@@ -707,30 +713,32 @@ subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
   real(amrex_real), intent(in)    :: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
   real(amrex_real), intent(in)    :: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),ezlo(3):ezhi(3))
   real(amrex_real), value         :: dtsdy,dtsdz
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, xlo, xhi)
-
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+!$acc parallel deviceptr(xlo,xhi,bx,ey,ez)
+!$acc loop gang vector
+  do l       = xlo(3), xhi(3)
+     do k    = xlo(2), xhi(2)
+        do j = xlo(1), xhi(1)
            Bx(j,k,l) = Bx(j,k,l) - dtsdy * (Ez(j  ,k+1,l  ) - Ez(j,k,l)) &
                 + dtsdz * (Ey(j  ,k  ,l+1) - Ey(j,k,l))
         end do
      end do
   end do
+!$acc end loop
+!$acc end parallel
 
 end subroutine push_magnetic_field_x
-  
-subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, & 
-     ez, ezlo, ezhi, dtsdx, dtsdz)    & 
+
+subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
+     ez, ezlo, ezhi, dtsdx, dtsdz)    &
      bind(c,name='push_magnetic_field_y')
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: ylo(3), yhi(3)
   integer,          intent(in)    :: bylo(3),byhi(3)
   integer,          intent(in)    :: exlo(3),exhi(3),ezlo(3),ezhi(3)
@@ -738,30 +746,32 @@ subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
   real(amrex_real), intent(in)    :: ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
   real(amrex_real), intent(in)    :: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),ezlo(3):ezhi(3))
   real(amrex_real), value         :: dtsdx,dtsdz
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, ylo, yhi)
-  
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+!$acc parallel deviceptr(ylo,yhi,by,ex,ez)
+!$acc loop gang vector
+  do l       = ylo(3), yhi(3)
+     do k    = ylo(2), yhi(2)
+        do j = ylo(1), yhi(1)
            By(j,k,l) = By(j,k,l) + dtsdx * (Ez(j+1,k  ,l  ) - Ez(j,k,l)) &
                 - dtsdz * (Ex(j  ,k  ,l+1) - Ex(j,k,l))
         end do
      end do
   end do
+!$acc end loop
+!$acc end parallel
 
 end subroutine push_magnetic_field_y
 
-subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, & 
-     ey, eylo, eyhi, dtsdx, dtsdy)    & 
+subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
+     ey, eylo, eyhi, dtsdx, dtsdy)    &
      bind(c,name='push_magnetic_field_z')
-  
+
   use amrex_fort_module, only : amrex_real, get_loop_bounds
   implicit none
-  
+
   integer,          intent(in)    :: zlo(3), zhi(3)
   integer,          intent(in)    :: bzlo(3),bzhi(3)
   integer,          intent(in)    :: exlo(3),exhi(3),eylo(3),eyhi(3)
@@ -769,31 +779,35 @@ subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
   real(amrex_real), intent(in)    :: ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
   real(amrex_real), intent(in)    :: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
   real(amrex_real), value         :: dtsdx,dtsdy
-  
+
   integer :: j,k,l
   integer :: blo(3), bhi(3)
-  
+
   call get_loop_bounds(blo, bhi, zlo, zhi)
-  
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+
+!$acc parallel deviceptr(zlo,zhi,bz,ex,ey)
+!$acc loop gang vector
+  do l       = zlo(3), zhi(3)
+     do k    = zlo(2), zhi(2)
+        do j = zlo(1), zhi(1)
            Bz(j,k,l) = Bz(j,k,l) - dtsdx * (Ey(j+1,k  ,l  ) - Ey(j,k,l)) &
                 + dtsdy * (Ex(j  ,k+1,l  ) - Ex(j,k,l))
         end do
      end do
   end do
-  
+!$acc end loop
+!$acc end parallel
+
 end subroutine push_magnetic_field_z
 
-subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi, & 
+subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi, &
      time, max_error) bind(c,name='check_langmuir_solution')
-  
+
   use amrex_fort_module, only : amrex_real
   use constants
 
   implicit none
-  
+
   integer,          intent(in)    :: boxlo(3),  boxhi(3)
   integer,          intent(in)    :: testlo(3), testhi(3)
   integer,          intent(in)    :: jxlo(3),   jxhi(3)
@@ -828,6 +842,6 @@ subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi,
   end do
 
   max_error = error
-  
+
 end subroutine check_langmuir_solution
 
