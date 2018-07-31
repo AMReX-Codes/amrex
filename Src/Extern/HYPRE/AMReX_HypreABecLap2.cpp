@@ -21,10 +21,10 @@ HypreABecLap2::~HypreABecLap2 ()
     solver = NULL;
     HYPRE_SStructMatrixDestroy(A);
     A = NULL;
-    HYPRE_SStructVectorDestroy(b);
-    b = NULL;
-    HYPRE_SStructVectorDestroy(x);
-    x = NULL;
+//    HYPRE_SStructVectorDestroy(b);  // done in solve()
+//    b = NULL;
+//    HYPRE_SStructVectorDestroy(x);
+//    x = NULL;
     HYPRE_SStructGraphDestroy(graph);
     graph = NULL;
     HYPRE_SStructStencilDestroy(stencil);
@@ -43,10 +43,16 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
         m_maxorder = max_bndry_order;
         m_factory = &(rhs.Factory());
         prepareSolver();
-    } else {
-        HYPRE_SStructVectorInitialize(b);
-        HYPRE_SStructVectorInitialize(x);
     }
+
+    // We have to do this repeatedly to avoid memory leak due to Hypre bug
+    HYPRE_SStructVectorCreate(comm, hgrid, &b);
+    HYPRE_SStructVectorSetObjectType(b, HYPRE_PARCSR);
+    HYPRE_SStructVectorInitialize(b);
+    
+    HYPRE_SStructVectorCreate(comm, hgrid, &x);
+    HYPRE_SStructVectorSetObjectType(x, HYPRE_PARCSR);
+    HYPRE_SStructVectorInitialize(x);
     
     loadVectors(soln, rhs);
 
@@ -93,6 +99,12 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
     }
 
     getSolution(soln);
+
+    // We have to do this repeatedly to avoid memory leak due to Hypre bug
+    HYPRE_SStructVectorDestroy(b);
+    b = NULL;
+    HYPRE_SStructVectorDestroy(x);
+    x = NULL;
 }
 
 void
@@ -194,14 +206,6 @@ HypreABecLap2::prepareSolver ()
     HYPRE_SStructMatrixSetObjectType(A, HYPRE_PARCSR);
     HYPRE_SStructMatrixInitialize(A);
 
-    HYPRE_SStructVectorCreate(comm, hgrid, &b);
-    HYPRE_SStructVectorSetObjectType(b, HYPRE_PARCSR);
-    HYPRE_SStructVectorInitialize(b);
-    
-    HYPRE_SStructVectorCreate(comm, hgrid, &x);
-    HYPRE_SStructVectorSetObjectType(x, HYPRE_PARCSR);
-    HYPRE_SStructVectorInitialize(x);
-
     // A.SetValues() & A.assemble()
     Array<HYPRE_Int,regular_stencil_size> stencil_indices;
     std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
@@ -263,15 +267,11 @@ HypreABecLap2::prepareSolver ()
 
     // create solver
     HYPRE_ParCSRMatrix par_A;
-    HYPRE_ParVector par_b;
-    HYPRE_ParVector par_x;
     HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
-    HYPRE_SStructVectorGetObject(b, (void**) &par_b);
-    HYPRE_SStructVectorGetObject(x, (void**) &par_x);
     HYPRE_BoomerAMGCreate(&solver);
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_BoomerAMGSetLogging(solver, logging);
-    HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
+    HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
 }
 
 void

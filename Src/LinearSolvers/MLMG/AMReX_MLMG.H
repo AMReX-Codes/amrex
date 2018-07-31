@@ -110,8 +110,8 @@ private:
 #ifdef AMREX_USE_EB
     Hypre::Interface hypre_interface = Hypre::Interface::ij;
 #else
-    Hypre::Interface hypre_interface = Hypre::Interface::structed;
-//    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+//    Hypre::Interface hypre_interface = Hypre::Interface::structed;
+    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
 //    Hypre::Interface hypre_interface = Hypre::Interface::ij;
 #endif
     std::unique_ptr<Hypre> hypre_solver;
