@@ -61,7 +61,12 @@ public:
     void setNSolveGridSize (int s) { nsolve_grid_size = s; }
 
 #ifdef AMREX_USE_HYPRE
-    void setHypreInterface (Hypre::Interface f) { hypre_interface = f; }
+    void setHypreInterface (Hypre::Interface f) {
+        // must use ij interface for EB
+#ifndef AMREX_USE_EB
+        hypre_interface = f;
+#endif
+    }
 #endif
     
 private:
@@ -105,7 +110,9 @@ private:
 #ifdef AMREX_USE_EB
     Hypre::Interface hypre_interface = Hypre::Interface::ij;
 #else
-    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+    Hypre::Interface hypre_interface = Hypre::Interface::structed;
+//    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+//    Hypre::Interface hypre_interface = Hypre::Interface::ij;
 #endif
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;

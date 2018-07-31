@@ -1355,7 +1355,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         const auto& factory = *(linop.m_factory[0].back());
         MPI_Comm comm = linop.BottomCommunicator();
 
-        hypre_solver.reset(new Hypre(ba, dm, geom, comm, hypre_interface));
+        hypre_solver = makeHypre(ba, dm, geom, comm, hypre_interface);
         hypre_solver->setVerbose(bottom_verbose);
 
         hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());

@@ -1,11 +1,14 @@
 #ifndef AMREX_HYPRE_H_
 #define AMREX_HYPRE_H_
 
-#include <AMReX_HypreABecLap.H>
-#include <AMReX_HypreABecLap2.H>
-#include <AMReX_HypreABecLap3.H>
-
 #include <memory>
+
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_BndryData.H>
+
+#include "HYPRE.h"
+#include "_hypre_utilities.h"
 
 namespace amrex
 {
@@ -19,17 +22,16 @@ public:
     Hypre (const BoxArray& grids,
            const DistributionMapping& dmap,
            const Geometry& geom,
-           MPI_Comm comm_,
-           Interface interface);
+           MPI_Comm comm_);
 
-    ~Hypre ();
+    virtual ~Hypre ();
 
     void setScalars (Real sa, Real sb);
     void setACoeffs (const MultiFab& alpha);
     void setBCoeffs (const Array<const MultiFab*,BL_SPACEDIM>& beta);
     void setVerbose (int _verbose);
-    void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-                int max_iter, const BndryData& bndry, int max_bndry_order);
+    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+                        int max_iter, const BndryData& bndry, int max_bndry_order) = 0;
 
     static HYPRE_Int ispow2 (HYPRE_Int i)
     {
@@ -50,12 +52,27 @@ public:
                              static_cast<HYPRE_Int>(v[2]))};
     }
     
-private:
+protected:
 
-    std::unique_ptr<HypreABecLap> struct_solver;
-    std::unique_ptr<HypreABecLap2> semi_struct_solver;
-    std::unique_ptr<HypreABecLap3> IJ_solver;
+    static constexpr HYPRE_Int regular_stencil_size = 2*AMREX_SPACEDIM + 1;
+    static constexpr HYPRE_Int eb_stencil_size = AMREX_D_TERM(3, *3, *3);
+    
+    MPI_Comm comm = MPI_COMM_NULL;
+    Geometry geom;
+
+    int verbose = 0;
+
+    MultiFab acoefs;
+    Array<MultiFab,AMREX_SPACEDIM> bcoefs;
+    Real scalar_a, scalar_b;
+
+    FabFactory<FArrayBox> const* m_factory = nullptr;
+    BndryData const* m_bndry = nullptr;
+    int m_maxorder = -1;
 };
+
+std::unique_ptr<Hypre> makeHypre (const BoxArray& grids, const DistributionMapping& damp,
+                                  const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface);
 
 }
 
