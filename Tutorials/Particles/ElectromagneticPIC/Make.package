@@ -1,12 +1,5 @@
 CEXE_sources += main.cpp IO.cpp Evolve.cpp NodalFlags.cpp ElectromagneticParticleContainer.cpp 
 CEXE_headers += Constants.H Particles.H IO.H NodalFlags.H Evolve.H ElectromagneticParticleContainer.H
 
-CEXE_headers += AMReX_RedistributeStrategy.H
-CEXE_sources += AMReX_RedistributeStrategyCPU.cpp
-
-ifeq ($(USE_CUDA),TRUE)
-    CEXE_sources += AMReX_RedistributeStrategyGPU.cpp
-endif
-
 CEXE_headers += em_pic_F.H
 F90EXE_sources += em_pic_$(DIM)d.F90

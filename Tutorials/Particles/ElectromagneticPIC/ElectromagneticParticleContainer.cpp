@@ -63,7 +63,11 @@ ElectromagneticParticleContainer(const Geometry            & a_geom,
     }
     m_mask_ptr->FillBoundary(m_geom.periodicity());
     
+#ifdef AMREX_USE_CUDA
+    m_redistribute_strategy.reset(new RedistributeStrategyGPU() );
+#else
     m_redistribute_strategy.reset(new RedistributeStrategyCPU() );
+#endif    
 }
 
 void

@@ -8,6 +8,8 @@
 
 #include <AMReX_RedistributeStrategy.H>
 
+using namespace amrex;
+
 namespace {
     
     struct DeviceBox
@@ -184,7 +186,7 @@ void RedistributeStrategyGPU::Redistribute (std::map<std::pair<int, int>, Partic
     thrust::host_vector<int> stop(grid_end);
 
     thrust::host_vector<int> proc_map(num_grids);
-    for (int i = 0; i < num_grids; ++i) proc_map[i] = m_dmap[i];
+    for (int i = 0; i < num_grids; ++i) proc_map[i] = a_dm[i];
  
     std::map<int, thrust::device_vector<char> > not_ours;
 
@@ -200,6 +202,9 @@ void RedistributeStrategyGPU::Redistribute (std::map<std::pair<int, int>, Partic
 
     for (int i = 0; i < num_grids; ++i)
     {
+        const int tid = 0;
+        auto pair_index = std::make_pair(i, tid);
+
         auto begin = particles_to_redistribute.begin();
         thrust::advance(begin, start[i]);
         
@@ -211,11 +216,11 @@ void RedistributeStrategyGPU::Redistribute (std::map<std::pair<int, int>, Partic
 
         if (dest_proc == ParallelDescriptor::MyProc())
         {
-            const size_t old_size = m_particles[i].attribs.numParticles();
+            const size_t old_size = a_particles[pair_index].attribs.numParticles();
             const size_t new_size = old_size + num_to_add;
-            m_particles[i].attribs.resize(new_size);
-            thrust::copy(begin, end, m_particles[i].attribs.begin() + old_size);
-            m_particles[i].temp.resize(m_particles[i].attribs.numParticles());
+            a_particles[pair_index].attribs.resize(new_size);
+            thrust::copy(begin, end, a_particles[pair_index].attribs.begin() + old_size);
+            a_particles[pair_index].temp.resize(a_particles[pair_index].attribs.numParticles());
         }
         else
         {           
@@ -252,7 +257,7 @@ void RedistributeStrategyGPU::Redistribute (std::map<std::pair<int, int>, Partic
         }
     }
     
-    RedistributeMPI(not_ours);
+    RedistributeMPI(not_ours, a_particles);
 }
 
 void RedistributeStrategyGPU::OK (std::map<std::pair<int, int>, Particles>&         a_particles,
