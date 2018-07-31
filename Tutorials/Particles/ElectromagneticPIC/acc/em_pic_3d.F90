@@ -116,12 +116,16 @@ subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
 
+!$acc parallel deviceptr(uxp, uyp, uzp, gaminv)
+!$acc loop gang vector
   do ip = 1, np
 
     usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
 
   end do
+!$acc end loop
+!$acc end parallel
 
 end subroutine set_gamma
 
@@ -140,6 +144,8 @@ subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
 
   domain_size = phi - plo
 
+!$acc parallel deviceptr(xp, yp, zp, plo, phi)
+!$acc loop gang vector
   do ip = 1, np
      
      if (xp(ip) .gt. phi(1)) then
@@ -161,6 +167,8 @@ subroutine enforce_periodic(np, xp, yp, zp, plo, phi) &
      end if
 
   end do
+!$acc end loop
+!$acc end parallel
 
 end subroutine enforce_periodic
 
@@ -673,11 +681,9 @@ subroutine push_electric_field_z(zlo, zhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, zlo, zhi)
-
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+  do l       = xlo(3), xhi(3)
+     do k    = xlo(2), xhi(2)
+        do j = xlo(1), xhi(1)
            Ez(j,k,l) = Ez(j,k,l) + dtsdx * (By(j,k,l) - By(j-1,k  ,l)) &
                 - dtsdy * (Bx(j,k,l) - Bx(j  ,k-1,l)) &
                 - mudt  * jz(j,k,l)

@@ -363,10 +363,9 @@ PushParticlePositions(amrex::Real dt)
         
         if (np == 0) continue;
 
-        AMREX_FORT_LAUNCH_PARTICLES(np, set_gamma,
-                                    np, 
-                                    particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                                    particles.ginv().data());
+        FTOC(set_gamma)(np,
+                        particles.ux().data(), particles.uy().data(), particles.uz().data(),
+                        particles.ginv().data());
         
         FTOC(push_position_boris)(np,
                                   particles.x().data(),  particles.y().data(),  particles.z().data(),
@@ -391,10 +390,9 @@ EnforcePeriodicBCs()
         const Real* plo = m_geom.ProbLo();
         const Real* phi = m_geom.ProbHi();
         
-        AMREX_FORT_LAUNCH_PARTICLES(np, enforce_periodic,
-                                    np,
-                                    particles.x().data(),  particles.y().data(),  particles.z().data(),
-                                    plo, phi);
+        FTOC(enforce_periodic)(np,
+                               particles.x().data(),  particles.y().data(),  particles.z().data(),
+                               plo, phi);
     }
 }
 
