@@ -286,7 +286,7 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(F90EXE_sources) $(FEXE_sources)
              --fortran "$(patsubst %,$(srcTempDir)/%,$(^F))" \
              --cxx "$(CEXE_sources)" \
              --cpp "$(HOST_CC) -E -P -std=c99" \
-             --defines "$(FINAL_CPPFLAGS) $(includes)" \
+             --defines "$(CPPFLAGS) $(includes)" \
              --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI"
 endif
 endif
