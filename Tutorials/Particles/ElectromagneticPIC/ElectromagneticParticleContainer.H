@@ -67,7 +67,7 @@ protected:
     amrex::Geometry m_geom;
     amrex::DistributionMapping m_dmap;
 
-    std::map<int, Particles> m_particles;
+    std::map<std::pair<int, int>, Particles> m_particles;
     std::unique_ptr<amrex::MultiFab> m_mask_ptr;
     std::unique_ptr<RedistributeStrategyBase> m_redistribute_strategy;
 };

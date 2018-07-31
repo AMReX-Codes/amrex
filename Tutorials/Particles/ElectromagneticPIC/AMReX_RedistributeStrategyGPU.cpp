@@ -107,7 +107,7 @@ namespace {
     };
 }
 
-void RedistributeStrategyGPU::Redistribute (std::map<int, Particles>&         a_particles,
+void RedistributeStrategyGPU::Redistribute (std::map<std::pair<int, int>, Particles>&         a_particles,
                                             const amrex::BoxArray&            a_ba,
                                             const amrex::DistributionMapping& a_dm,
                                             const amrex::Geometry&            a_geom,
@@ -123,8 +123,9 @@ void RedistributeStrategyGPU::Redistribute (std::map<int, Particles>&         a_
     
     for(MFIter mfi(*a_mask_ptr); mfi.isValid(); ++mfi) {
         int src_grid = mfi.index();
+        const int tid = 0;
         
-        auto& attribs = a_particles[src_grid].attribs;
+        auto& attribs = a_particles[std::make_pair(src_grid, tid)].attribs;
         const size_t old_num_particles = attribs.numParticles();
         
         grids.resize(old_num_particles);
@@ -254,7 +255,7 @@ void RedistributeStrategyGPU::Redistribute (std::map<int, Particles>&         a_
     RedistributeMPI(not_ours);
 }
 
-void RedistributeStrategyGPU::OK (std::map<int, Particles>&         a_particles,
+void RedistributeStrategyGPU::OK (std::map<std::pair<int, int>, Particles>&         a_particles,
                                   const amrex::BoxArray&            a_ba,
                                   const amrex::DistributionMapping& a_dm,
                                   const amrex::Geometry&            a_geom,
@@ -267,8 +268,9 @@ void RedistributeStrategyGPU::OK (std::map<int, Particles>&         a_particles,
     long total_np = 0;
     for(MFIter mfi(*a_mask_ptr); mfi.isValid(); ++mfi) {
         int i = mfi.index();
+        const int tid = 0;
         
-        auto& particles = a_particles[i];
+        auto& particles = a_particles[std::make_pair(i, tid)];
         const int np = particles.numParticles();
         auto& soa = particles.attribs;
 
@@ -297,7 +299,7 @@ void RedistributeStrategyGPU::OK (std::map<int, Particles>&         a_particles,
 }
 
 void RedistributeStrategyGPU::RedistributeMPI (std::map<int, thrust::device_vector<char> >& not_ours,
-                                               std::map<int, Particles>& a_particles)
+                                               std::map<std::pair<int, int>, Particles>& a_particles)
 {
     BL_PROFILE("RedistributeStrategyGPU::RedistributeMPI()");
     
@@ -415,13 +417,15 @@ void RedistributeStrategyGPU::RedistributeMPI (std::map<int, thrust::device_vect
                 }
             
                 {
-                    const size_t old_size = a_particles[gid].attribs.numParticles();
+                    const int tid = 0;
+                    auto pair_index = std::make_pair(gid, tid);
+                    const size_t old_size = a_particles[pair_index].attribs.numParticles();
                     const size_t new_size = old_size + num_particles;
-                    a_particles[gid].attribs.resize(new_size);
+                    a_particles[pair_index].attribs.resize(new_size);
                     thrust::copy(redistributed_particles.begin(),
                                  redistributed_particles.end(),
-                                 a_particles[gid].attribs.begin() + old_size);
-                    a_particles[gid].temp.resize(a_particles[gid].attribs.numParticles());
+                                 a_particles[pair_index].attribs.begin() + old_size);
+                    a_particles[pair_index].temp.resize(a_particles[pair_index].attribs.numParticles());
                 }
             }
         }

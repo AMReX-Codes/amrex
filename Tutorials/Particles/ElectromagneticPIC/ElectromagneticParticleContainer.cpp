@@ -89,7 +89,8 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         const Box& tile_box  = mfi.tilebox();
         const Real* plo = m_geom.ProbLo();
         const int grid_id = mfi.index();
-        auto& particles = m_particles[grid_id];
+        const int tile_id = mfi.LocalTileIndex();
+        auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             for (int i_part=0; i_part<num_ppc;i_part++) {
                 Real r[3];
@@ -149,7 +150,9 @@ void ElectromagneticParticleContainer::PushAndDeposeParticles(const MultiFab& Ex
     
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        auto& particles = m_particles[mfi.index()];
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
         const int np    = particles.numParticles();
 
         if (np == 0) continue;
@@ -233,7 +236,9 @@ void ElectromagneticParticleContainer::PushParticleMomenta(const MultiFab& Ex, c
     
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        auto& particles = m_particles[mfi.index()];
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
         const int np    = particles.numParticles();
 
         if (np == 0) continue;
@@ -287,7 +292,9 @@ void ElectromagneticParticleContainer::PushParticlePositions(Real dt)
     
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        auto& particles = m_particles[mfi.index()];
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.index();
+        auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
         const int np    = particles.numParticles();
         
         if (np == 0) continue;
@@ -316,7 +323,9 @@ void ElectromagneticParticleContainer::EnforcePeriodicBCs()
 
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        auto& particles = m_particles[mfi.index()];
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
         const int np    = particles.numParticles();
 
         if (np == 0) continue;

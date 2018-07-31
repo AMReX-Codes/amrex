@@ -24,13 +24,13 @@ public:
     
     virtual ~RedistributeStrategyBase () {}
 
-    virtual void Redistribute (std::map<int, Particles>&         a_particles,
+    virtual void Redistribute (std::map<std::pair<int, int>, Particles>&         a_particles,
                                const amrex::BoxArray&            a_ba,
                                const amrex::DistributionMapping& a_dm,
                                const amrex::Geometry&            a_geom,
                                const amrex::MultiFab*            a_mask_ptr) = 0;
     
-    virtual void OK (std::map<int, Particles>&         a_particles,
+    virtual void OK (std::map<std::pair<int, int>, Particles>&         a_particles,
                      const amrex::BoxArray&            a_ba,
                      const amrex::DistributionMapping& a_dm,
                      const amrex::Geometry&            a_geom,
@@ -49,13 +49,13 @@ public:
     
     ~RedistributeStrategyCPU () final {}
     
-    void Redistribute (std::map<int, Particles>&         a_particles,
+    void Redistribute (std::map<std::pair<int, int>, Particles>&         a_particles,
                        const amrex::BoxArray&            a_ba,
                        const amrex::DistributionMapping& a_dm,
                        const amrex::Geometry&            a_geom,
                        const amrex::MultiFab*            a_mask_ptr) final;
     
-    void OK (std::map<int, Particles>&         a_particles,
+    void OK (std::map<std::pair<int, int>, Particles>& a_particles,
              const amrex::BoxArray&            a_ba,
              const amrex::DistributionMapping& a_dm,
              const amrex::Geometry&            a_geom,
@@ -64,7 +64,7 @@ public:
 private:
 
     void RedistributeMPI (std::map<int, amrex::Vector<char> >& not_ours,
-                          std::map<int, Particles>& a_particles);
+                          std::map<std::pair<int, int>, Particles>& a_particles);
 };
 
 #ifdef AMREX_USE_CUDA
@@ -76,13 +76,13 @@ public:
     
     ~RedistributeStrategyGPU () final {}
     
-    void Redistribute (std::map<int, Particles>&         a_particles,
+    void Redistribute (std::map<std::pair<int, int>, Particles>&         a_particles,
                        const amrex::BoxArray&            a_ba,
                        const amrex::DistributionMapping& a_dm,
                        const amrex::Geometry&            a_geom,
                        const amrex::MultiFab*            a_mask_ptr) final;
     
-    void OK (std::map<int, Particles>&         a_particles,
+    void OK (std::map<std::pair<int, int>, Particles>& a_particles,
              const amrex::BoxArray&            a_ba,
              const amrex::DistributionMapping& a_dm,
              const amrex::Geometry&            a_geom,
@@ -90,7 +90,7 @@ public:
 private:
 
     void RedistributeMPI (std::map<int, thrust::device_vector<char> >& not_ours,
-                          std::map<int, Particles>& a_particles);
+                          std::map<std::pair<int, int>, Particles>& a_particles);
 };
 #endif // AMREX_USE_CUDA
 
