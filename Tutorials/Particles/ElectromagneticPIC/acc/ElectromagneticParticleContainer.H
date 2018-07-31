@@ -25,26 +25,26 @@ public:
 
     ElectromagneticParticleContainer (const amrex::Geometry            & a_geom,
                                       const amrex::DistributionMapping & a_dmap,
-                                      const amrex::BoxArray            & a_ba, 
+                                      const amrex::BoxArray            & a_ba,
                                       const int                         a_species_id,
                                       const amrex::Real                 a_charge,
                                       const amrex::Real                 a_mass);
-    
+
     void InitParticles(const amrex::IntVect& a_num_particles_per_cell,
-                       const amrex::Real     a_thermal_momentum_std, 
+                       const amrex::Real     a_thermal_momentum_std,
                        const amrex::Real     a_thermal_momentum_mean,
                        const amrex::Real     a_density,
-                       const amrex::RealBox& a_bounds, 
+                       const amrex::RealBox& a_bounds,
                        const int             a_problem);
-    
+
     void PushAndDeposeParticles(const amrex::MultiFab& Ex,
                                 const amrex::MultiFab& Ey,
                                 const amrex::MultiFab& Ez,
                                 const amrex::MultiFab& Bx,
                                 const amrex::MultiFab& By,
                                 const amrex::MultiFab& Bz,
-                                      amrex::MultiFab& jx, 
-                                      amrex::MultiFab& jy, 
+                                      amrex::MultiFab& jx,
+                                      amrex::MultiFab& jy,
                                       amrex::MultiFab& jz,
                                       amrex::Real      dt);
 
@@ -55,7 +55,7 @@ public:
                              const amrex::MultiFab& By,
                              const amrex::MultiFab& Bz,
                                    amrex::Real      dt);
-    
+
     void PushParticlePositions(amrex::Real dt);
 
     void EnforcePeriodicBCs();
@@ -67,9 +67,9 @@ public:
 protected:
 
     void RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours);
-    
+
     int m_species_id;
-    
+
     amrex::Real m_charge;
     amrex::Real m_mass;
 
