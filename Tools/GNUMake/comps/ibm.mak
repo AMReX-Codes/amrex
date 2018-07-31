@@ -43,7 +43,7 @@ CFLAGS   += -std=gnu99
 GENERIC_IBM_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
-  GENERIC_COMP_FLAGS += -qsmp=omp
+  GENERIC_IBM_FLAGS += -qsmp=omp
 endif
 
 CXXFLAGS += $(GENERIC_IBM_FLAGS)
