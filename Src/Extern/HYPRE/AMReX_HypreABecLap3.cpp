@@ -1,4 +1,4 @@
-#include <AMReX_Hypre.H>
+#include <AMReX_HypreABecLap3.H>
 #include <AMReX_HypreABec_F.H>
 #include <AMReX_VisMF.H>
 
@@ -15,33 +15,10 @@
 
 namespace amrex {
 
-constexpr HYPRE_Int HypreABecLap3::regular_stencil_size;
-constexpr HYPRE_Int HypreABecLap3::eb_stencil_size;
-
-HypreABecLap3::HypreABecLap3 (const BoxArray& grids,
-                              const DistributionMapping& dmap,
-                              const Geometry& geom_,
-                              MPI_Comm comm_)
-    : comm(comm_),
-      geom(geom_)
+HypreABecLap3::HypreABecLap3 (const BoxArray& grids, const DistributionMapping& dmap,
+                              const Geometry& geom_, MPI_Comm comm_)
+    : Hypre(grids, dmap, geom_, comm_)
 {
-    static_assert(AMREX_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
-
-    const int ncomp = 1;
-    int ngrow = 0;
-    acoefs.define(grids, dmap, ncomp, ngrow);
-    acoefs.setVal(0.0);
-
-#ifdef AMREX_USE_EB
-    ngrow = 1;
-#endif
-    
-    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        BoxArray edge_boxes(grids);
-        edge_boxes.surroundingNodes(i);
-        bcoefs[i].define(edge_boxes, dmap, ncomp, ngrow);
-        bcoefs[i].setVal(0.0);
-    }
 }
     
 HypreABecLap3::~HypreABecLap3 ()
@@ -54,42 +31,10 @@ HypreABecLap3::~HypreABecLap3 ()
     x = NULL;
     HYPRE_BoomerAMGDestroy(solver);
     solver = NULL;
-    m_factory = nullptr;
-    m_bndry = nullptr;
-    m_maxorder = -1;
 }
 
 void
-HypreABecLap3::setScalars (Real sa, Real sb)
-{
-    scalar_a = sa;
-    scalar_b = sb;
-}
-
-void
-HypreABecLap3::setACoeffs (const MultiFab& alpha)
-{
-    MultiFab::Copy(acoefs, alpha, 0, 0, 1, 0);
-}
-
-void
-HypreABecLap3::setBCoeffs (const Array<const MultiFab*, AMREX_SPACEDIM>& beta)
-{
-    for (int idim=0; idim < AMREX_SPACEDIM; idim++) {
-        const int ng = std::min(bcoefs[idim].nGrow(), beta[idim]->nGrow());
-        MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, ng);
-    }
-}
-
-void
-HypreABecLap3::setVerbose (int _verbose)
-{
-    verbose = _verbose;
-}
-
-void
-HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
-                      Real rel_tol, Real abs_tol,
+HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                       int max_iter, const BndryData& bndry, int max_bndry_order)
 {
     BL_PROFILE("HypreABecLap3::solve()");
@@ -124,8 +69,7 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs,
         
         const BoxArray& grids = rhs.boxArray();
         Real volume = grids.numPts();
-        Real rel_tol_new = bnorm > 0.0 ?
-            abs_tol / bnorm * std::sqrt(volume) : rel_tol;
+        Real rel_tol_new = (bnorm > 0.0) ? (abs_tol / bnorm * std::sqrt(volume)) : rel_tol;
 
         if (rel_tol_new > rel_tol) {
             HYPRE_BoomerAMGSetTol(solver, rel_tol_new);

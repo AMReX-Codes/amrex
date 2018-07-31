@@ -64,13 +64,7 @@ MyTest::solvePoisson ()
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-            if (hypre_interface == 1) {
-                mlmg.setHypreInterface(Hypre::Interface::structed);
-            } else if (hypre_interface == 2) {
-                mlmg.setHypreInterface(Hypre::Interface::semi_structed);
-            } else {
-                mlmg.setHypreInterface(Hypre::Interface::ij);
-            }
+            mlmg.setHypreInterface(hypre_interface);
         }
 #endif
 
@@ -106,13 +100,7 @@ MyTest::solvePoisson ()
 #ifdef AMREX_USE_HYPRE
             if (use_hypre) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-                if (hypre_interface == 1) {
-                    mlmg.setHypreInterface(Hypre::Interface::structed);
-                } else if (hypre_interface == 2) {
-                    mlmg.setHypreInterface(Hypre::Interface::semi_structed);
-                } else {
-                    mlmg.setHypreInterface(Hypre::Interface::ij);
-                }
+                mlmg.setHypreInterface(hypre_interface);
             }
 #endif
             
@@ -183,13 +171,7 @@ MyTest::solveABecLaplacian ()
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-            if (hypre_interface == 1) {
-                mlmg.setHypreInterface(Hypre::Interface::structed);
-            } else if (hypre_interface == 2) {
-                mlmg.setHypreInterface(Hypre::Interface::semi_structed);
-            } else {
-                mlmg.setHypreInterface(Hypre::Interface::ij);
-            }
+            mlmg.setHypreInterface(hypre_interface);
         }
 #endif
 
@@ -243,13 +225,7 @@ MyTest::solveABecLaplacian ()
 #ifdef AMREX_USE_HYPRE
             if (use_hypre) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-                if (hypre_interface == 1) {
-                    mlmg.setHypreInterface(Hypre::Interface::structed);
-                } else if (hypre_interface == 2) {
-                    mlmg.setHypreInterface(Hypre::Interface::semi_structed);
-                } else {
-                    mlmg.setHypreInterface(Hypre::Interface::ij);
-                }
+                mlmg.setHypreInterface(hypre_interface);
             }
 #endif
 
@@ -290,9 +266,17 @@ MyTest::readParameters ()
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("max_coarsening_level", max_coarsening_level);
+
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
-    pp.query("hypre_interface", hypre_interface);
+    pp.query("hypre_interface", hypre_interface_i);
+    if (hypre_interface_i == 1) {
+        hypre_interface = Hypre::Interface::structed;
+    } else if (hypre_interface_i == 2) {
+        hypre_interface = Hypre::Interface::semi_structed;
+    } else {
+        hypre_interface = Hypre::Interface::ij;
+    }
 #endif
 }
 
