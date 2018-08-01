@@ -218,7 +218,6 @@ HypreABecLap2::prepareSolver ()
     FArrayBox rfab;
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
-        int i = mfi.index();
         const Box &reg = mfi.validbox();
 
         rfab.resize(reg,regular_stencil_size);
@@ -236,8 +235,8 @@ HypreABecLap2::prepareSolver ()
                           &scalar_b, dx, &idim);
         }
 
-        const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(i);
-        const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(i);
+        const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
+        const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
         
         for (OrientationIter oit; oit; oit++)
         {

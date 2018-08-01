@@ -280,7 +280,6 @@ HypreABecLap3::prepareSolver ()
     BaseFab<HYPRE_Int> ifab;
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
-        const int i = mfi.index();
         const Box& bx = mfi.validbox();
         
 #ifdef AMREX_USE_EB
@@ -305,8 +304,8 @@ HypreABecLap3::prepareSolver ()
 
             Array<int,AMREX_SPACEDIM*2> bctype;
             Array<Real,AMREX_SPACEDIM*2> bcl;
-            const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(i);
-            const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(i);
+            const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
+            const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
             for (OrientationIter oit; oit; oit++) {
                 int cdir(oit());
                 bctype[cdir] = bcs_i[cdir][0];
