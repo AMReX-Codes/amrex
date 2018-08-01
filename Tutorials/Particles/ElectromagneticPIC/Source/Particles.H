@@ -35,6 +35,8 @@ struct Particles {
 
     using RealVector = amrex::StructOfArrays<PIdx::nattribs, 0>::RealVector;
 
+    static constexpr int nattribs = PIdx::nattribs;
+
     amrex::StructOfArrays<PIdx::nattribs, 0> attribs;
     amrex::StructOfArrays<TIdx::ntemp, 0> temp;
 

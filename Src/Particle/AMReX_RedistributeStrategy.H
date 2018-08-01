@@ -9,6 +9,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
+#include <AMReX_StructOfArrays.H>
 
 #ifdef AMREX_USE_CUDA
 #include <thrust/device_vector.h>
@@ -17,6 +18,8 @@
 #include <thrust/device_ptr.h>
 #include <thrust/tuple.h>
 #endif
+
+namespace amrex {
 
 template <typename PTile>
 class RedistributeStrategyBase {
@@ -28,16 +31,16 @@ public:
     virtual ~RedistributeStrategyBase () {}
 
     virtual void Redistribute (std::map<std::pair<int, int>, PTile>& a_particles,
-                               const amrex::BoxArray&                a_ba,
-                               const amrex::DistributionMapping&     a_dm,
-                               const amrex::Geometry&                a_geom,
-                               const amrex::MultiFab*                a_mask_ptr) = 0;
+                               const BoxArray&                a_ba,
+                               const DistributionMapping&     a_dm,
+                               const Geometry&                a_geom,
+                               const MultiFab*                a_mask_ptr) = 0;
     
     virtual void OK (std::map<std::pair<int, int>, PTile>& a_particles,
-                     const amrex::BoxArray&            a_ba,
-                     const amrex::DistributionMapping& a_dm,
-                     const amrex::Geometry&            a_geom,
-                     const amrex::MultiFab*            a_mask_ptr) = 0;
+                     const BoxArray&            a_ba,
+                     const DistributionMapping& a_dm,
+                     const Geometry&            a_geom,
+                     const MultiFab*            a_mask_ptr) = 0;
 };
 
 template <typename PTile>
@@ -50,20 +53,20 @@ public:
     ~RedistributeStrategyCPU () final {}
     
     void Redistribute (std::map<std::pair<int, int>, PTile>& a_particles,
-                       const amrex::BoxArray&            a_ba,
-                       const amrex::DistributionMapping& a_dm,
-                       const amrex::Geometry&            a_geom,
-                       const amrex::MultiFab*            a_mask_ptr) final;
+                       const BoxArray&            a_ba,
+                       const DistributionMapping& a_dm,
+                       const Geometry&            a_geom,
+                       const MultiFab*            a_mask_ptr) final;
     
     void OK (std::map<std::pair<int, int>, PTile>& a_particles,
-             const amrex::BoxArray&            a_ba,
-             const amrex::DistributionMapping& a_dm,
-             const amrex::Geometry&            a_geom,
-             const amrex::MultiFab*            a_mask_ptr) final;
+             const BoxArray&            a_ba,
+             const DistributionMapping& a_dm,
+             const Geometry&            a_geom,
+             const MultiFab*            a_mask_ptr) final;
 
 private:
 
-    void RedistributeMPI (std::map<int, amrex::Vector<char> >& not_ours,
+    void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                           std::map<std::pair<int, int>, PTile>& a_particles);
 };
 
@@ -78,16 +81,16 @@ public:
     ~RedistributeStrategyGPU () final {}
     
     void Redistribute (std::map<std::pair<int, int>, PTile>&         a_particles,
-                       const amrex::BoxArray&            a_ba,
-                       const amrex::DistributionMapping& a_dm,
-                       const amrex::Geometry&            a_geom,
-                       const amrex::MultiFab*            a_mask_ptr) final;
+                       const BoxArray&            a_ba,
+                       const DistributionMapping& a_dm,
+                       const Geometry&            a_geom,
+                       const MultiFab*            a_mask_ptr) final;
     
     void OK (std::map<std::pair<int, int>, PTile>& a_particles,
-             const amrex::BoxArray&            a_ba,
-             const amrex::DistributionMapping& a_dm,
-             const amrex::Geometry&            a_geom,
-             const amrex::MultiFab*            a_mask_ptr) final;
+             const BoxArray&            a_ba,
+             const DistributionMapping& a_dm,
+             const Geometry&            a_geom,
+             const MultiFab*            a_mask_ptr) final;
 private:
 
     void RedistributeMPI (std::map<int, thrust::device_vector<char> >& not_ours,
@@ -97,24 +100,24 @@ private:
 
 template <typename PTile>
 void RedistributeStrategyCPU<PTile>::Redistribute(std::map<std::pair<int, int>, PTile>&         a_particles,
-                                                  const amrex::BoxArray&            a_ba,
-                                                  const amrex::DistributionMapping& a_dm,
-                                                  const amrex::Geometry&            a_geom,
-                                                  const amrex::MultiFab*            a_mask_ptr)
+                                                  const BoxArray&            a_ba,
+                                                  const DistributionMapping& a_dm,
+                                                  const Geometry&            a_geom,
+                                                  const MultiFab*            a_mask_ptr)
 {
 }
 
 template <typename PTile>
 void RedistributeStrategyCPU<PTile>::OK (std::map<std::pair<int, int>, PTile>&         a_particles,
-                                  const amrex::BoxArray&            a_ba,
-                                  const amrex::DistributionMapping& a_dm,
-                                  const amrex::Geometry&            a_geom,
-                                  const amrex::MultiFab*            a_mask_ptr)
+                                  const BoxArray&            a_ba,
+                                  const DistributionMapping& a_dm,
+                                  const Geometry&            a_geom,
+                                  const MultiFab*            a_mask_ptr)
 {
 }
 
 template <typename PTile>
-void RedistributeStrategyCPU<PTile>::RedistributeMPI (std::map<int, amrex::Vector<char> >& not_ours,
+void RedistributeStrategyCPU<PTile>::RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                                                       std::map<std::pair<int, int>, PTile>& a_particles)
 {
 }
@@ -222,14 +225,16 @@ namespace {
 
 template <typename PTile>
 void RedistributeStrategyGPU<PTile>::Redistribute (std::map<std::pair<int, int>, PTile>& a_particles,
-                                                   const amrex::BoxArray&            a_ba,
-                                                   const amrex::DistributionMapping& a_dm,
-                                                   const amrex::Geometry&            a_geom,
-                                                   const amrex::MultiFab*            a_mask_ptr)
+                                                   const BoxArray&            a_ba,
+                                                   const DistributionMapping& a_dm,
+                                                   const Geometry&            a_geom,
+                                                   const MultiFab*            a_mask_ptr)
 {
     BL_PROFILE("RedistributeStrategyGPU::Redistribute");
+
+    constexpr Real superparticle_size = PTile::nattribs * sizeof(Real);
     
-    amrex::StructOfArrays<PTile::nattribs, 0> particles_to_redistribute;
+    StructOfArrays<PTile::nattribs, 0> particles_to_redistribute;
     
     thrust::device_vector<int> grids;
     thrust::device_vector<int> grids_copy;    
@@ -339,7 +344,7 @@ void RedistributeStrategyGPU<PTile>::Redistribute (std::map<std::pair<int, int>,
             char* dst;
             const size_t old_size = not_ours[dest_proc].size();
             const size_t new_size 
-                = old_size + num_to_add*m_superparticle_size + sizeof(size_t) + 2*sizeof(int);
+                = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
             if (old_size == 0) {
                 not_ours[dest_proc].resize(new_size + sizeof(size_t));
                 cudaMemcpy(thrust::raw_pointer_cast(not_ours[dest_proc].data()), 
@@ -374,10 +379,10 @@ void RedistributeStrategyGPU<PTile>::Redistribute (std::map<std::pair<int, int>,
 
 template <typename PTile>
 void RedistributeStrategyGPU<PTile>::OK (std::map<std::pair<int, int>, PTile>&         a_particles,
-                                         const amrex::BoxArray&            a_ba,
-                                         const amrex::DistributionMapping& a_dm,
-                                         const amrex::Geometry&            a_geom,
-                                         const amrex::MultiFab*            a_mask_ptr)
+                                         const BoxArray&            a_ba,
+                                         const DistributionMapping& a_dm,
+                                         const Geometry&            a_geom,
+                                         const MultiFab*            a_mask_ptr)
 {
     BL_PROFILE("RedistributeStrategyGPU::OK");
 
@@ -413,7 +418,7 @@ void RedistributeStrategyGPU<PTile>::OK (std::map<std::pair<int, int>, PTile>&  
     }
 
     ParallelDescriptor::ReduceLongMax(total_np);
-    amrex::Print() << "I have " << total_np << " particles." << std::endl;
+    Print() << "I have " << total_np << " particles." << std::endl;
 }
 
 template <typename PTile>
@@ -520,7 +525,7 @@ void RedistributeStrategyGPU<PTile>::RedistributeMPI (std::map<int, thrust::devi
                 
                 if (num_particles == 0) continue;
 
-                amrex::StructOfArrays<PTile::nattribs, 0> redistributed_particles;
+                StructOfArrays<PTile::nattribs, 0> redistributed_particles;
 
                 AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
                 {
@@ -553,5 +558,7 @@ void RedistributeStrategyGPU<PTile>::RedistributeMPI (std::map<int, thrust::devi
 #endif // MPI    
 }
 #endif // CUDA
+
+}
 
 #endif // AMREX_REDISTRIBUTESTRATEGY_H_
