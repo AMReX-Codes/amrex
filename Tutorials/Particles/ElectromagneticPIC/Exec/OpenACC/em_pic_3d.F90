@@ -608,7 +608,7 @@ subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
   integer :: j,k,l
 
 !$acc parallel deviceptr(xlo,xhi,ex,by,bz,jx)
-!$acc loop gang vector
+!$acc loop gang vector collapse(3)
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
         do j = xlo(1), xhi(1)
@@ -643,7 +643,7 @@ subroutine push_electric_field_y(ylo, yhi, &
   integer :: j,k,l
 
 !$acc parallel deviceptr(ylo,yhi,ey,bx,bz,jy)
-!$acc loop gang vector
+!$acc loop gang vector collapse(3)
   do l       = ylo(3), yhi(3)
      do k    = ylo(2), yhi(2)
         do j = ylo(1), yhi(1)
@@ -679,7 +679,7 @@ subroutine push_electric_field_z(zlo, zhi, &
   integer :: blo(3), bhi(3)
 
 !$acc parallel deviceptr(zlo,zhi,ez,bx,by,jz)
-!$acc loop gang vector
+!$acc loop gang vector collapse(3)
   do l       = zlo(3), zhi(3)
      do k    = zlo(2), zhi(2)
         do j = zlo(1), zhi(1)
@@ -712,7 +712,7 @@ subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
   integer :: blo(3), bhi(3)
 
 !$acc parallel deviceptr(xlo,xhi,bx,ey,ez)
-!$acc loop gang vector
+!$acc loop gang vector collapse(3)
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
         do j = xlo(1), xhi(1)
@@ -744,7 +744,7 @@ subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
   integer :: blo(3), bhi(3)
 
 !$acc parallel deviceptr(ylo,yhi,by,ex,ez)
-!$acc loop gang vector
+!$acc loop gang vector collapse(3)
   do l       = ylo(3), yhi(3)
      do k    = ylo(2), yhi(2)
         do j = ylo(1), yhi(1)
@@ -778,7 +778,7 @@ subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
   call get_loop_bounds(blo, bhi, zlo, zhi)
 
 !$acc parallel deviceptr(zlo,zhi,bz,ex,ey)
-!$acc loop gang vector
+!$acc loop gang vector collapse(3)
   do l       = zlo(3), zhi(3)
      do k    = zlo(2), zhi(2)
         do j = zlo(1), zhi(1)
