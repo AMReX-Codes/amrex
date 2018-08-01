@@ -45,12 +45,15 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real ab
         m_maxorder = max_bndry_order;
         m_factory = &(rhs.Factory());
         prepareSolver();
-    } else {
-        HYPRE_IJVectorInitialize(b);
-        HYPRE_IJVectorInitialize(x);
     }
-
+    
+    HYPRE_IJVectorInitialize(b);
+    HYPRE_IJVectorInitialize(x);
+    //
     loadVectors(soln, rhs);
+    //
+    HYPRE_IJVectorAssemble(x);
+    HYPRE_IJVectorAssemble(b);
     
     HYPRE_ParCSRMatrix par_A = NULL;
     HYPRE_ParVector par_b = NULL;
@@ -266,11 +269,9 @@ HypreABecLap3::prepareSolver ()
     //
     HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
     HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
-    HYPRE_IJVectorInitialize(b);
     //
     HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
     HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
-    HYPRE_IJVectorInitialize(x);
     
     // A.SetValues() & A.assemble()
     const Real* dx = geom.CellSize();
@@ -426,9 +427,6 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
             HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr());
         }
     }
-
-    HYPRE_IJVectorAssemble(x);
-    HYPRE_IJVectorAssemble(b);
 }
     
 }  // namespace amrex
