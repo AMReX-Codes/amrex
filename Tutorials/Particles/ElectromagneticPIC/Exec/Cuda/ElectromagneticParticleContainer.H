@@ -70,7 +70,7 @@ protected:
 
     std::map<std::pair<int, int>, Particles> m_particles;
     std::unique_ptr<amrex::MultiFab> m_mask_ptr;
-    std::unique_ptr<RedistributeStrategyBase<Particles> > m_redistribute_strategy;
+    std::unique_ptr<amrex::RedistributeStrategyBase<Particles> > m_redistribute_strategy;
 };
 
 #endif
