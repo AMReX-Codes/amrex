@@ -1,7 +1,0 @@
-
-n_cell = 128
-max_grid_size = 64
-
-bc_type = Dirichlet  # Dirichlet, Neumann, or periodic
-
-hypre.solver_flag = PFMG  # SMG, or PFMG, or BoomerAMG

@@ -13,6 +13,13 @@ namespace amrex
     void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                           const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio);
 
+    void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
+                          int ratio);
+    void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
+                          const IntVect& ratio);
+    void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
+                                const IntVect& ratio, int ngcrse);
+
 }
 
 #endif

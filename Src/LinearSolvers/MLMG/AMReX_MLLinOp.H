@@ -91,7 +91,8 @@ public:
     void setVerbose (int v) { verbose = v; }
 
     void setMaxOrder (int o) { maxorder = o; }
-
+    int getMaxOrder () const { return maxorder; }
+    
     virtual int getNComp() const { return 1;};
 
 protected:
@@ -159,6 +160,9 @@ protected:
     int AMRRefRatio (int amr_lev) const { return m_amr_ref_ratio[amr_lev]; }
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
+    FabFactory<FArrayBox> const* Factory (int amr_lev, int mglev=0) const {
+        return m_factory[amr_lev][mglev].get();
+    }
 
 #ifdef BL_USE_MPI
     bool isBottomActive () const { return m_bottom_comm != MPI_COMM_NULL; }
@@ -182,6 +186,10 @@ protected:
     bool isCellCentered () const { return m_ixtype == 0; }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
+
+    virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const {
+        return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
+    }
 
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const = 0;
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const = 0;

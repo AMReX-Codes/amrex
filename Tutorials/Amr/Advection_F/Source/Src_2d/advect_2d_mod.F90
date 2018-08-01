@@ -144,7 +144,7 @@ contains
     integer cc_cell(2)
     integer e_cell(2)
     
-    integer ipass, n, d, j
+    integer ipass, n, d
     real(amrex_real) w_lo(2), w_hi(2)
     real(amrex_real) e_lo(2), e_hi(2)
     real(amrex_real) length(2)

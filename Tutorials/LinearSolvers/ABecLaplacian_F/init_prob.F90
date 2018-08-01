@@ -67,7 +67,7 @@ contains
     bscalar = b
 
     do ilev = 0, size(rhs)-1
-       !$omp parallel private(rlo,rhi,elo,ehi,alo,ahi,blo,bhi,bx,mfi,prhs,pexact,pa,pb)
+       !$omp parallel private(rlo,rhi,elo,ehi,alo,ahi,blo,bhi,bx,gbx,mfi,prhs,pexact,pa,pb)
        call amrex_mfiter_build(mfi, rhs(ilev), tiling=.true.)
        
        do while (mfi%next())
