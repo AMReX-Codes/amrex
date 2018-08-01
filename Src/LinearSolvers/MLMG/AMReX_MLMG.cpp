@@ -871,12 +871,13 @@ MLMG::ResNormInf (int alev, bool local)
       {
 	Real newnorm = 0.0;
 	if (fine_mask[alev]) {
-	  newnorm = res[alev][mglev].norm0(*fine_mask[alev],n,0,local);
+	  newnorm = res[alev][mglev].norm0(*fine_mask[alev],n,0,true);
 	} else {
-	  newnorm = res[alev][mglev].norm0(n,0,local);
+	  newnorm = res[alev][mglev].norm0(n,0,true);
 	}
 	if (newnorm > norm) norm = newnorm;
       }
+    if (!local) ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub());
     return norm;
 }
 
