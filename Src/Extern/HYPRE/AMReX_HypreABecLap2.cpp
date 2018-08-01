@@ -49,12 +49,15 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
     HYPRE_SStructVectorCreate(comm, hgrid, &b);
     HYPRE_SStructVectorSetObjectType(b, HYPRE_PARCSR);
     HYPRE_SStructVectorInitialize(b);
-    
+    //
     HYPRE_SStructVectorCreate(comm, hgrid, &x);
     HYPRE_SStructVectorSetObjectType(x, HYPRE_PARCSR);
     HYPRE_SStructVectorInitialize(x);
-    
+    //
     loadVectors(soln, rhs);
+    //
+    HYPRE_SStructVectorAssemble(b);
+    HYPRE_SStructVectorAssemble(x);
 
     HYPRE_BoomerAMGSetMinIter(solver, 1);
     HYPRE_BoomerAMGSetMaxIter(solver, maxiter);
@@ -299,9 +302,6 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
         HYPRE_SStructVectorSetBoxValues(b, part, reglo.data(), reghi.data(),
                                         0, rhsfab.dataPtr());
     }
-
-    HYPRE_SStructVectorAssemble(b);
-    HYPRE_SStructVectorAssemble(x);
 }
 
 }

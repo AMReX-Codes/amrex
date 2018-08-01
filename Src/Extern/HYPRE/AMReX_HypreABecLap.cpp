@@ -43,12 +43,15 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
     // do this repeatedly to avoid memory leak
     HYPRE_StructVectorCreate(comm, grid, &b);
     HYPRE_StructVectorCreate(comm, grid, &x);
-
+    //
     HYPRE_StructVectorInitialize(b);
     HYPRE_StructVectorInitialize(x);
-
+    //
     loadVectors(soln, rhs);
-    
+    //
+    HYPRE_StructVectorAssemble(x); 
+    HYPRE_StructVectorAssemble(b); 
+
     HYPRE_StructPFMGSetMaxIter(solver, maxiter);
     HYPRE_StructPFMGSetTol(solver, reltol);
     if (abstol > 0.0)
@@ -276,9 +279,6 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
         HYPRE_StructVectorSetBoxValues(b, reglo.data(), reghi.data(), rhsfab.dataPtr());
     }
-
-    HYPRE_StructVectorAssemble(x); 
-    HYPRE_StructVectorAssemble(b); 
 }
 
 }
