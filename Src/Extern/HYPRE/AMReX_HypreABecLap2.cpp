@@ -269,11 +269,21 @@ HypreABecLap2::prepareSolver ()
     HYPRE_SStructMatrixAssemble(A);   
 
     // create solver
-    HYPRE_ParCSRMatrix par_A;
-    HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
     HYPRE_BoomerAMGCreate(&solver);
+
+    HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
+//    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
+//    HYPRE_BoomerAMGSetCycleType(solver, 1);
+    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
+    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
+    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
+//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
+
     int logging = (verbose >= 2) ? 1 : 0;
     HYPRE_BoomerAMGSetLogging(solver, logging);
+
+    HYPRE_ParCSRMatrix par_A;
+    HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
     HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
 }
 
