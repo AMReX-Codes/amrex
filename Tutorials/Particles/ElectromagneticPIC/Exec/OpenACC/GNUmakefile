@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../../
+AMREX_HOME ?= ../../../../..
 
 DEBUG	= TRUE
 DEBUG	= FALSE
@@ -15,18 +15,9 @@ PRECISION     = DOUBLE
 USE_MPI       = TRUE
 USE_OMP       = FALSE
 USE_ACC       = TRUE
-# USE_CUDA MUST(!) be set to TRUE
 USE_CUDA      = TRUE
 
+Bpack   := ./Make.package 
+Blocs   := . 
 
-###################################################
-
-EBASE     = main
-
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
-
-include ./Make.package
-include $(AMREX_HOME)/Src/Base/Make.package
-include $(AMREX_HOME)/Src/Particle/Make.package
-
-include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+include ../../Make.EMPIC
