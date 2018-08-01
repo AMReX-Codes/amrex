@@ -51,12 +51,13 @@ module amrex_mlnodelap_1d_module
   public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
        amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
        amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
-       amrex_mlndlap_interpolation_rap, amrex_mlndlap_interpolation_rap_sp, &
+       amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
-       amrex_mlndlap_stencil_rap, amrex_mlndlap_stencil_rap_sp
+       amrex_mlndlap_stencil_rap
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+  public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
+       amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
 #endif
 
@@ -493,16 +494,6 @@ contains
   end subroutine amrex_mlndlap_interpolation_rap
 
 
-  subroutine amrex_mlndlap_interpolation_rap_sp (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap_sp')
-    integer, dimension(1), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
-    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1))
-    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1))
-    real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),3)
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_interpolation_rap_sp
-
-
   subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
        sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_restriction_rap')
     integer, dimension(1), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, mlo, mhi
@@ -521,26 +512,33 @@ contains
   end subroutine amrex_mlndlap_stencil_rap
 
 
-  subroutine amrex_mlndlap_stencil_rap_sp (lo, hi, csten, clo, chi, fsten, flo, fhi) &
-       bind(c,name='amrex_mlndlap_stencil_rap_sp')
-    integer, dimension(1), intent(in) :: lo, hi, clo, chi, flo, fhi
-    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),3)
-    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),3)
-  end subroutine amrex_mlndlap_stencil_rap_sp
-
-
 #ifdef AMREX_USE_EB
 
-  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
-       vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, bcen, blo, bhi) &
-       bind(c,name='amrex_mlndlap_set_connection')
+  subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
+       bind(c,name='amrex_mlndlap_set_integral')
+    integer, dimension(1) :: lo, hi, glo, ghi
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
+  end subroutine amrex_mlndlap_set_integral
+
+  subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
+       vol, vlo, vhi, ax, axlo, axhi, bcen, blo, bhi) &
+       bind(c,name='amrex_mlndlap_set_integral_eb')
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(1) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
-    real(amrex_real), intent(inout) :: conn( clo(1): chi(1),2)
+    integer, dimension(1) :: lo, hi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, blo, bhi
     real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1))
     real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1))
     real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1))
+    integer         , intent(in   ) :: flag( flo(1): fhi(1))
+  end subroutine amrex_mlndlap_set_integral_eb
+
+  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+       vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')
+    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
+    integer, dimension(1) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi
+    real(amrex_real), intent(inout) :: conn( clo(1): chi(1),2)
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
+    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1))
     integer         , intent(in   ) :: flag( flo(1): fhi(1))
   end subroutine amrex_mlndlap_set_connection
 

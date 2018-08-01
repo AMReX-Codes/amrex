@@ -48,7 +48,6 @@ contains
     real(amrex_real) :: fac
 
     integer :: n
-    
 
     inhomogeneous = (inhomog .ne. 0)
 
@@ -211,9 +210,7 @@ contains
        ! Fill corners with averages for non-cross stencil
 #if (AMREX_SPACEDIM > 1)
        if (cross .eq. 0) then
-          ! The iteration over faces is always in the order of xlo, xhi, ylo and yhi.
-          ! No need to do anything for xlo and xhi, because at that time, ylo and yhi
-          ! have not been filled.
+          ! The iteration over faces is always in the order of xlo, ylo, zlo, xhi, yhi and zhi.
 
           ! Corners in XY plane
           if (cdir==xlo_dir .or. cdir==ylo_dir) then

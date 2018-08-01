@@ -19,6 +19,18 @@ extern "C"
                               const amrex_real* vol, const int* vlo, const int* vhi,
                               const amrex_real* vfol, const int* vflo, const int* vfhi,
                               const int* ratio, const int* ncomp);
+
+    void amrex_eb_avgdown (const int* lo, const int* hi,
+                           const amrex_real* fine, const int* flo, const int* fhi,
+                           amrex_real* crse, const int* clo, const int* chi,
+                           const amrex_real* vfol, const int* vflo, const int* vfhi,
+                           const int* ratio, const int* ncomp);
+   
+    void amrex_eb_avgdown_faces (const int* lo, const int* hi, 
+                                 const amrex_real* fine, const int* flo, const int* fhi, 
+                                 amrex_real* crse, const int* clo, const int* chi,
+                                 const amrex_real* ap, const int* aplo, const int* aphi, 
+                                 const int* ratio, const int* idir, const int* ncomp);
     
 #ifdef __cplusplus
 }

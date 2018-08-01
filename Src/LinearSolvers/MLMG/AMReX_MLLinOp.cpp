@@ -1,10 +1,12 @@
 
 #include <cmath>
+#include <algorithm>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_ParmParse.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBTower.H>
+#include <AMReX_EB2.H>
 #endif
 
 namespace amrex {
@@ -40,6 +42,10 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
     info = a_info;
+#if AMREX_USE_EB
+    info.max_coarsening_level = std::min(info.max_coarsening_level,
+                                         EB2::maxCoarseningLevel(a_geom[0]));
+#endif
     defineGrids(a_geom, a_grids, a_dmap, a_factory);
     defineAuxData();
     defineBC();
@@ -80,7 +86,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
         int rr = mg_coarsen_ratio;
         const Box& dom = a_geom[amrlev].Domain();
-        for (int i = 0; i < info.max_coarsening_level; ++i)
+        for (int i = 0; i < 2; ++i)
         {
             if (!dom.coarsenable(rr)) amrex::Abort("MLLinOp: Uncoarsenable domain");
 
@@ -292,7 +298,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     {
         for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            m_factory[amrlev].emplace_back(new FArrayBoxFactory());
+            m_factory[amrlev].emplace_back(makeFactory(amrlev,mglev));
         }
     }
 
@@ -325,7 +331,7 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
         for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev)
         {
             const auto& ba = amrex::convert(m_grids[alev][mlev], m_ixtype);
-            mf[alev][mlev].define(ba, m_dmap[alev][mlev], nc, ng);
+            mf[alev][mlev].define(ba, m_dmap[alev][mlev], nc, ng, MFInfo(), *m_factory[alev][mlev]);
         }
     }
 }

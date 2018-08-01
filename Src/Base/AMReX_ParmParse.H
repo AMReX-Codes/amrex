@@ -7,6 +7,7 @@
 #include <iosfwd>
 #include <vector>
 #include <list>
+#include <array>
 
 namespace amrex {
 
@@ -809,6 +810,30 @@ public:
     //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<Box>&  ptr);
+
+    template <typename T, std::size_t N>
+    void get (const char* name, std::array<T,N>& ref) const {
+        std::vector<T> v;
+        this->getarr(name, v);
+        AMREX_ALWAYS_ASSERT(v.size() >= N);
+        for (std::size_t i = 0; i < N; ++i) {
+            ref[i] = v[i];
+        }
+    }
+
+    template <typename T, std::size_t N>
+    int query (const char* name, std::array<T,N>& ref) const {
+        std::vector<T> v;
+        int exist = this->queryarr(name, v);
+        if (exist) {
+            AMREX_ALWAYS_ASSERT(v.size() >= N);
+            for (std::size_t i = 0; i < N; ++i) {
+                ref[i] = v[i];
+            }
+        }
+        return exist;
+    }
+
     /**
     * \brief Construct an initial ParmParse object from the argc and argv
     * passed in to main().  An error will be signalled if another
