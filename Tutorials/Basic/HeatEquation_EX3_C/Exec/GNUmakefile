@@ -12,6 +12,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ../Source/Make.package
 VPATH_LOCATIONS  += ../Source
+INCLUDE_LOCATIONS += ../Source
 
 Pdirs 	:= Base Boundary LinearSolvers/C_CellMG LinearSolvers/MLMG
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
