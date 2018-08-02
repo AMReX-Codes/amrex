@@ -1,5 +1,3 @@
-from six import iteritems
-
 class Bucket(object):
     """
     The purpose of this class is to be a named bucket for holding attributes.
@@ -25,7 +23,7 @@ class Bucket(object):
     def attrlist(self):
         "Concatenate the attributes into a string"
         result = []
-        for attr, value in iteritems(self.argvattrs):
+        for attr, value in self.argvattrs.items():
             if value is None:
                 continue
             # --- repr is applied to value so that for floats, all of the digits are included.

@@ -30,10 +30,17 @@ class WarpX(Bucket):
         argv += laser.attrlist()
 
         # --- Search through species_names and add any predefined particle objects in the list.
-        # --- assuming that only the built in particle types are being used.
+        particles_list_names = [p.instancename for p in particles_list]
         for pstring in particles.species_names.split(' '):
-            if hasattr(Particles, pstring):
+            if pstring in particles_list_names:
+                # --- The species is already included in particles_list
+                continue
+            elif hasattr(Particles, pstring):
+                # --- Add the predefined species to particles_list
                 particles_list.append(getattr(Particles, pstring))
+                particles_list_names.append(pstring)
+            else:
+                raise Exception('Species %s listed in species_names not defined'%pstring)
 
         for particle in particles_list:
             argv += particle.attrlist()
