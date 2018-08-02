@@ -2,6 +2,8 @@
 #include <petscksp.h>
 #include <AMReX_PETSc.H>
 
+#include <AMReX_HypreABec_F.H>
+
 #include <cmath>
 #include <numeric>
 #include <limits>
@@ -129,8 +131,8 @@ void
 PETScABecLap::prepareSolver ()
 {
     int num_procs, myid;
-    MPI_Comm_size(comm, &num_procs);
-    MPI_Comm_rank(comm, &myid);
+    MPI_Comm_size(PETSC_COMM_WORLD, &num_procs);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &myid);
 
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
@@ -201,10 +203,14 @@ PETScABecLap::prepareSolver ()
     Vector<HYPRE_Int> ncells_allprocs(num_procs);
     MPI_Allgather(&ncells_proc, sizeof(HYPRE_Int), MPI_CHAR,
                   ncells_allprocs.data(), sizeof(HYPRE_Int), MPI_CHAR,
-                  comm);
+                  PETSC_COMM_WORLD);
     HYPRE_Int proc_begin = 0;
     for (int i = 0; i < myid; ++i) {
         proc_begin += ncells_allprocs[i];
+    }
+    HYPRE_Int ncells_world = 0;
+    for (auto i : ncells_allprocs) {
+        ncells_world += i;
     }
 
     LayoutData<HYPRE_Int> offset(ba,dm);
@@ -215,7 +221,7 @@ PETScABecLap::prepareSolver ()
         proc_end += ncells_grid[mfi];
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
-                                     "HypreABecLap3::prepareSolver: how did this happend?");
+                                     "PETScABecLap::prepareSolver: how did this happend?");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -227,20 +233,108 @@ PETScABecLap::prepareSolver ()
 
     cell_id.FillBoundary(geom.periodicity());
 
-    // Create and initialize A, b & x
-    HYPRE_Int ilower = proc_begin;
-    HYPRE_Int iupper = proc_end-1;
+    // Create A
+    MatCreateAIJ(PETSC_COMM_WORLD, ncells_proc, ncells_proc, ncells_world, ncells_world,
+        0, nullptr, 0, nullptr, &A);
 
+    // A.SetValues
+    const Real* dx = geom.CellSize();
+    const int bho = (m_maxorder > 2) ? 1 : 0;
+    FArrayBox rfab;
+    BaseFab<HYPRE_Int> ifab;
+    for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        
+#ifdef AMREX_USE_EB
+        const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+#else
+        const auto fabtyp = FabType::regular;
+#endif
+        if (fabtyp != FabType::covered)
+        {
+            const HYPRE_Int max_stencil_size = (fabtyp == FabType::regular) ?
+                regular_stencil_size : eb_stencil_size;
 
-    KSPCreate(comm, &solver);
+            ifab.resize(bx,(max_stencil_size+1));
+            rfab.resize(bx,max_stencil_size);
 
-    // create A
+            const HYPRE_Int nrows = ncells_grid[mfi];
+            cell_id_vec[mfi].resize(nrows);
+            HYPRE_Int* rows = cell_id_vec[mfi].data();
+            HYPRE_Int* ncols = ifab.dataPtr(0);
+            HYPRE_Int* cols  = ifab.dataPtr(1);
+            Real*      mat   = rfab.dataPtr();
 
+            Array<int,AMREX_SPACEDIM*2> bctype;
+            Array<Real,AMREX_SPACEDIM*2> bcl;
+            const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
+            const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
+            for (OrientationIter oit; oit; oit++) {
+                int cdir(oit());
+                bctype[cdir] = bcs_i[cdir][0];
+                bcl[cdir]  = bcl_i[cdir];
+            }
+            
+            if (fabtyp == FabType::regular)
+            {
+                amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
+                                 &nrows, ncols, rows, cols, mat,
+                                 BL_TO_FORTRAN_ANYD(cell_id[mfi]),
+                                 &(offset[mfi]),
+                                 BL_TO_FORTRAN_ANYD(diaginv[mfi]),
+                                 BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
+                                              BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
+                                              BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
+                                 &scalar_a, &scalar_b, dx,
+                                 bctype.data(), bcl.data(), &bho);
+            }
+#ifdef AMREX_USE_EB
+            else
+            {
+                amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
+                                    &nrows, ncols, rows, cols, mat,
+                                    BL_TO_FORTRAN_ANYD(cell_id[mfi]),
+                                    &(offset[mfi]),
+                                    BL_TO_FORTRAN_ANYD(diaginv[mfi]),
+                                    BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
+                                                 BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
+                                                 BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
+                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    &scalar_a, &scalar_b, dx,
+                                    bctype.data(), bcl.data(), &bho);
+            }
+#endif
+
+//            MatSetValues(A, nrows, rows, 
+//
+//            HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
+        }
+    }
+
+    MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
+
+    // create solver
+    KSPCreate(PETSC_COMM_WORLD, &solver);
     KSPSetOperators(solver, A, A);
     PC pc;
     KSPGetPC(solver, &pc);
     PCSetType(pc, PCGAMG);
     KSPSetUp(solver);
+
+    // create b & x
+    VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x);
+    VecDuplicate(x, &b);
 }
 
 void
