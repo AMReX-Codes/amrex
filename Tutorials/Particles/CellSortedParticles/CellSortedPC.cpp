@@ -112,7 +112,7 @@ CellSortedParticleContainer::UpdateCellVectors()
     
     const int lev = 0;
 
-    bool needs_update = true;
+    bool needs_update = false;
     if (not m_vectors_initialized)
     {
         // this is the first call, so we must update
@@ -157,6 +157,9 @@ CellSortedParticleContainer::UpdateCellVectors()
             ParticleType& p = particles[pindex];
             const IntVect& iv = this->Index(p, lev);
             p.idata(IntData::sorted) = 1;
+            p.idata(IntData::i) = iv[0];
+            p.idata(IntData::j) = iv[1];
+            p.idata(IntData::k) = iv[2];
             // note - use 1-based indexing for convenience with Fortran
             m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
         }
@@ -250,14 +253,55 @@ CellSortedParticleContainer::ReBin()
         const int np = particles.numParticles();
         for(int pindex = 0; pindex < np; ++pindex)
         {
-            ParticleType& p = particles[pindex];
-            if (p.idata(IntData::sorted)) continue;
+	    ParticleType& p = particles[pindex];
+	    if (p.idata(IntData::sorted)) continue;
             const IntVect& iv = this->Index(p, lev);
             p.idata(IntData::sorted) = 1;
+            p.idata(IntData::i) = iv[0];
+            p.idata(IntData::j) = iv[1];
+            p.idata(IntData::k) = iv[2];
             // note - use 1-based indexing for convenience with Fortran
             m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
         }
     }
 
     UpdateFortranStructures();
+}
+
+void
+CellSortedParticleContainer::correctCellVectors(int old_index, int new_index, 
+						int grid, const ParticleType& p)
+{
+  IntVect iv(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k));
+  auto& cell_vector = m_cell_vectors[grid](iv);
+  for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
+    if (cell_vector[i] == old_index) {
+      cell_vector[i] == new_index;
+      break;
+    }
+  }
+}
+
+int
+CellSortedParticleContainer::SumCellVectors()
+{
+  if (not m_vectors_initialized) return 0;
+
+  const int lev = 0;
+  int np;
+  
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:np)
+#endif    
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const Box& tile_box  = pti.tilebox();
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+	{	  
+	    np += m_vector_size[pti.index()](iv);
+        }
+    }
+    
+    ParallelDescriptor::ReduceIntSum(np,ParallelDescriptor::IOProcessorNumber());
+    return np;
 }
