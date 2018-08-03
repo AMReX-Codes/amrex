@@ -290,6 +290,9 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         BaseFab<Real>* currDenZ = &(jz[mfi]);
         const GeometryData& geomData = m_geom.data();
 
+        Real charge = m_charge;
+        Real mass = m_mass;
+
         auto depose = [=] AMREX_CUDA_DEVICE ()
         {
             int index, threadSize;
@@ -321,7 +324,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                                 &(ginv[index]),
                                 &(ex[index]), &(ey[index]), &(ez[index]),
                                 &(bx[index]), &(by[index]), &(bz[index]),
-                                m_charge, m_mass, dt);
+                                charge, mass, dt);
          
             push_position_boris(threadSize,
                                 &(x[index]),  &(y[index]),  &(z[index]),
@@ -335,12 +338,11 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                             &(x[index]),  &(y[index]),  &(z[index]),
                             &(ux[index]), &(uy[index]), &(uz[index]),
                             &(ginv[index]), &(w[index]),
-                            m_charge, plo, dt, dx);
+                            charge, plo, dt, dx);
 
         };
 
         AMREX_PARTICLES_L_LAUNCH(np, depose); 
-
     }
     Device::synchronize();
 }
@@ -385,6 +387,9 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
         const BaseFab<Real>* magZ = &(Bz[mfi]);
         const GeometryData& geomData = m_geom.data();
 
+        Real charge = m_charge;
+        Real mass = m_mass;
+
         auto pushMom = [=] AMREX_CUDA_DEVICE ()
         {
             int index, threadSize;
@@ -417,11 +422,11 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
                                 &(ginv[index]),
                                 &(ex[index]), &(ey[index]), &(ez[index]),
                                 &(bx[index]), &(by[index]), &(bz[index]),
-                                m_charge, m_mass, dt);
+                                charge, mass, dt);
+
         };
 
         AMREX_PARTICLES_L_LAUNCH(np, pushMom); 
-
     }
 }
 
@@ -548,6 +553,7 @@ void
 ElectromagneticParticleContainer::
 Redistribute()
 {
+
     BL_PROFILE("ElectromagneticParticleContainer::Redistribute");
     
     StructOfArrays<PIdx::nattribs, 0> particles_to_redistribute;
@@ -685,7 +691,7 @@ Redistribute()
             }
         }
     }
-    
+
     RedistributeMPI(not_ours);
 }
  
@@ -693,6 +699,8 @@ void
 ElectromagneticParticleContainer::
 RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
 {
+
+
     BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
@@ -761,6 +769,7 @@ RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
         
         rreqs[i] = ParallelDescriptor::Arecv(thrust::raw_pointer_cast(recvdata.data() + offset),
                                              Cnt, Who, SeqNum).req();
+
     }
     
     // Send.
@@ -774,6 +783,7 @@ RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
         
         ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
                                  Cnt, Who, SeqNum);
+
     }
 
     if (nrcvs > 0) {
@@ -821,4 +831,5 @@ RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
     }
         
 #endif // MPI
+ 
 }
