@@ -2226,8 +2226,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   if (dual_grid) {
       for (int lev = 0; lev <= finestLevel(); lev++) {
           SetParticleBoxArray(lev, particle_box_arrays[lev]);
-          DistributionMapping dm(particle_box_arrays[lev]);
-          SetParticleDistributionMap(lev, dm);
+          DistributionMapping pdm(particle_box_arrays[lev]);
+          SetParticleDistributionMap(lev, pdm);
       }
   }
   
