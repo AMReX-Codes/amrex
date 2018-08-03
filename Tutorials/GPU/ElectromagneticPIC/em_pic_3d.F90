@@ -804,9 +804,9 @@ AMREX_CUDA_FORT_DEVICE subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi
 
 !  call get_loop_bounds_device(blo, bhi, xlo, xhi)
 
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+  do l       = xlo(3), xhi(3)
+     do k    = xlo(2), xhi(2)
+        do j = xlo(1), xhi(1)
            Ex(j,k,l) = Ex(j,k,l) + dtsdy * (Bz(j,k,l) - Bz(j,k-1,l  )) &
                 - dtsdz * (By(j,k,l) - By(j,k  ,l-1)) &
                 - mudt  * jx(j,k,l)
@@ -839,9 +839,9 @@ AMREX_CUDA_FORT_DEVICE subroutine push_electric_field_y(ylo, yhi, &
 
 !  call get_loop_bounds_device(blo, bhi, ylo, yhi)
 
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+  do l       = ylo(3), yhi(3)
+     do k    = ylo(2), yhi(2)
+        do j = ylo(1), yhi(1)
            Ey(j,k,l) = Ey(j,k,l) - dtsdx * (Bz(j,k,l) - Bz(j-1,k,l)) &
                 + dtsdz * (Bx(j,k,l) - Bx(j,k,l-1)) &
                 - mudt  * jy(j,k,l)
@@ -874,9 +874,9 @@ AMREX_CUDA_FORT_DEVICE subroutine push_electric_field_z(zlo, zhi, &
 
 !  call get_loop_bounds_device(blo, bhi, zlo, zhi)
 
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+  do l       = zlo(3), zhi(3)
+     do k    = zlo(2), zhi(2)
+        do j = zlo(1), zhi(1)
            Ez(j,k,l) = Ez(j,k,l) + dtsdx * (By(j,k,l) - By(j-1,k  ,l)) &
                 - dtsdy * (Bx(j,k,l) - Bx(j  ,k-1,l)) &
                 - mudt  * jz(j,k,l)
@@ -906,11 +906,11 @@ AMREX_CUDA_FORT_DEVICE subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi
 
 !  call get_loop_bounds_device(blo, bhi, xlo, xhi)
 
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
-           Bx(j,k,l) = Bx(j,k,l) - dtsdy * (Ez(j  ,k+1,l  ) - Ez(j,k,l)) &
-                + dtsdz * (Ey(j  ,k  ,l+1) - Ey(j,k,l))
+  do l       = xlo(3), xhi(3)
+     do k    = xlo(2), xhi(2)
+        do j = xlo(1), xhi(1)
+           Bx(j,k,l) = Bx(j,k,l) - dtsdy *(Ez(j, k+1, l) - Ez(j,k,l)) &
+                + dtsdz *(Ey(j  ,k  ,l+1) - Ey(j,k,l))
         end do
      end do
   end do
@@ -937,9 +937,9 @@ AMREX_CUDA_FORT_DEVICE subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi
 
 !  call get_loop_bounds_device(blo, bhi, ylo, yhi)
   
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+  do l       = ylo(3), yhi(3)
+     do k    = ylo(2), yhi(2)
+        do j = ylo(1), yhi(1)
            By(j,k,l) = By(j,k,l) + dtsdx * (Ez(j+1,k  ,l  ) - Ez(j,k,l)) &
                 - dtsdz * (Ex(j  ,k  ,l+1) - Ex(j,k,l))
         end do
@@ -968,9 +968,9 @@ AMREX_CUDA_FORT_DEVICE subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi
   
 !  call get_loop_bounds_device(blo, bhi, zlo, zhi)
   
-  do l       = blo(3), bhi(3)
-     do k    = blo(2), bhi(2)
-        do j = blo(1), bhi(1)
+  do l       = zlo(3), zhi(3)
+     do k    = zlo(2), zhi(2)
+        do j = zlo(1), zhi(1)
            Bz(j,k,l) = Bz(j,k,l) - dtsdx * (Ey(j+1,k  ,l  ) - Ey(j,k,l)) &
                 + dtsdy * (Ex(j  ,k+1,l  ) - Ex(j,k,l))
         end do

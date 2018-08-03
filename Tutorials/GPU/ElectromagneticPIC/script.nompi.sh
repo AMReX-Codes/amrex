@@ -8,17 +8,16 @@
 
 module load pgi
 module load cuda/9.1.85
-#module load cuda
 module list
 set -x
 
-#export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
-#export MPICH_RDMA_ENABLED_CUDA=1
+export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
+export MPICH_RDMA_ENABLED_CUDA=1
 
 omp=1
 export OMP_NUM_THREADS=${omp}
-EXE="../main3d.pgi.MPI.CUDA.ex"
-JSRUN="jsrun -n 4 -a 1 -g 1 -c 1 --bind=packed:${omp} "
+EXE="../main3d.pgi.CUDA.ex"
+JSRUN="jsrun -n 1 -a 1 -g 1 -c 1 --bind=packed:${omp} "
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 mkdir $rundir
@@ -45,4 +44,4 @@ ${JSRUN} cuda-memcheck ${EXE} inputs
 # 5. Run under nvprof and collect metrics for all kernels -- much slower!
 #${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes --analysis-metrics -o nvprof-metrics-%p.nvvp ${EXE} inputs
 
-#cp ../ElectromagneticPIC*.${LSB_JOBID} .
+cp ../ElectromagneticPIC*.${LSB_JOBID} .

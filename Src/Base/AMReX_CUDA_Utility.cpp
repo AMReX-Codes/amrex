@@ -29,22 +29,35 @@ Box getThreadBox(const Box& bx, const IntVect& typ)
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
      Box threadBox; 
      threadBox = getThreadBox(bx);
-     if (AMREX_D_TERM(typ[0] == 1, || typ[1] == 1, || typ[2] == 1))    // Cell Centered
-     {
-         IntVect shft(typ - bx.type());
-         threadBox.setBig(threadBox.bigEnd() + shft);
-         threadBox.setType(IndexType(typ));
 
-         //threadBox.convert(typ);
-         const IntVect& Big = bx.bigEnd();
-         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-             if (typ[d]) {      // Nodal 
-                 if (threadBox.bigEnd(d) < Big[d]) {
-                     threadBox.growHi(d,-1);
+     if (threadBox.ok())
+     {
+         if (AMREX_D_TERM(typ[0] == 1, || typ[1] == 1, || typ[2] == 1))    // Cell Centered
+         {
+             IntVect shft(typ - bx.type());
+             threadBox.setBig(threadBox.bigEnd() + shft);
+             threadBox.setType(IndexType(typ));
+
+             //threadBox.convert(typ);
+             const IntVect& Big = bx.bigEnd();
+             for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                 if (typ[d]) {      // Nodal 
+                     if (threadBox.bigEnd(d) <= Big[d]) {
+                         threadBox.growHi(d,-1);
+                     }
                  }
              }
          }
+      }
+/*
+     if (!(threadBox.ok()))
+     { 
+        IntVect small = threadBox.smallEnd();
+        IntVect big   = threadBox.bigEnd();
+        IntVect type  = threadBox.type();
+        printf(" TBC -> (%i, %i, %i):(%i, %i %i) = (%i, %i, %i), (%i, %i, %i), (%i, %i, %i)\n", threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y, blockIdx.z, small[0], small[1], small[2], big[0], big[1], big[2], type[0], type[1], type[2] );
      }
+*/
      return threadBox;
 #else
      Box threadBox(bx);
@@ -59,8 +72,8 @@ AMREX_CUDA_HOST AMREX_CUDA_DEVICE
 void getThreadIndex(int &index, int &size, const int num_particles)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
-     index = blockDim.x * (blockIdx.x - 1) + threadIdx.x;
-     size = (index > num_particles) ? 0 : 1;
+     index = blockDim.x*blockIdx.x + threadIdx.x;
+     size  = (index > num_particles) ? 0 : 1;
 #else
      index = 1;
      size = num_particles;
