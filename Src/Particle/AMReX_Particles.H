@@ -856,7 +856,9 @@ protected:
 
     
 private:
-    std::pair<long,long> StartIndexInGlobalArray () const;
+
+    virtual void correctCellVectors(int old_index, int new_index,
+				    int grid, const ParticleType& p) {};
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);

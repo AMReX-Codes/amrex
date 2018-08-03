@@ -5,7 +5,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = f
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size   { AMREX_D_DECL(1024000,8,8) };
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size { AMREX_D_DECL(1024000,8,8) };
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
@@ -968,6 +968,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                           for (int comp = 0; comp < NArrayInt; comp++)
                               soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+			  correctCellVectors(last, pindex, grid, aos[pindex]);
                           --last;
                           continue;
 		      }
@@ -981,6 +982,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                           for (int comp = 0; comp < NArrayInt; comp++)
                               soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+			  correctCellVectors(last, pindex, grid, aos[pindex]);
                           --last;
                           continue;
 		      }
@@ -1034,6 +1036,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                           for (int comp = 0; comp < NArrayInt; comp++)
                               soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+			  correctCellVectors(last, pindex, grid, aos[pindex]);
                           --last;
                           continue;
 		      }
