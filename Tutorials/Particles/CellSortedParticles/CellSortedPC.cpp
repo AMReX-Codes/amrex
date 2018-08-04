@@ -61,9 +61,6 @@ InitParticles(const IntVect& a_num_particles_per_cell)
                                      *a_num_particles_per_cell[1], 
                                      *a_num_particles_per_cell[2]);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif    
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
@@ -281,7 +278,6 @@ CellSortedParticleContainer::correctCellVectors(int old_index, int new_index,
             return;
         }
     }
-    //    amrex::Print() << "bad \n";
 }
 
 int
@@ -290,7 +286,7 @@ CellSortedParticleContainer::SumCellVectors()
   if (not m_vectors_initialized) return 0;
 
   const int lev = 0;
-  int np;
+  int np = 0;
   
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:np)
