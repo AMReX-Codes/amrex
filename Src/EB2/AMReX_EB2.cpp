@@ -11,6 +11,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 
+#include <AMReX_EBTower.H>
+
 namespace amrex { namespace EB2 {
 
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
@@ -129,9 +131,18 @@ getLevel (const Geometry& geom)
 }
 
 int
-maxCoarseningLevel ()
+maxCoarseningLevel (const Geometry& geom)
 {
-    return IndexSpace::top().maxCoarseningLevel();
+    const Box& domain = amrex::enclosedCells(geom.Domain());
+    Box cdomain = (EB2::use_eb2) ? IndexSpace::top().coarestDomain()
+                                 : EBTower::coarestDomain();
+    int ilev;
+    for (ilev = 0; ilev < 30; ++ilev) {
+        if (cdomain.contains(domain)) break;
+        cdomain.refine(2);
+    }
+    if (cdomain != domain) ilev = -1;
+    return ilev;
 }
 
 }}

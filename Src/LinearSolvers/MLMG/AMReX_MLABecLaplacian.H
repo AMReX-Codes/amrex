@@ -43,7 +43,7 @@ protected:
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
     virtual bool isBottomSingular () const final { return m_is_singular[0]; }
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const final;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;

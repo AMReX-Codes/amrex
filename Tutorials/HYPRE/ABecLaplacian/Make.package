@@ -1,6 +1,0 @@
-
-CEXE_sources += main.cpp ABL.cpp
-CEXE_headers += ABL.H ABL_F.H
-
-F90EXE_sources += ABL_F.F90
-
