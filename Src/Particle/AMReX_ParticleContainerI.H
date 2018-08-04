@@ -5,7 +5,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = f
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size   { AMREX_D_DECL(1024000,8,8) };
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size { AMREX_D_DECL(1024000,8,8) };
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
@@ -968,6 +968,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                           for (int comp = 0; comp < NArrayInt; comp++)
                               soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+			  correctCellVectors(last, pindex, grid, aos[pindex]);
                           --last;
                           continue;
 		      }
@@ -981,6 +982,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                           for (int comp = 0; comp < NArrayInt; comp++)
                               soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+			  correctCellVectors(last, pindex, grid, aos[pindex]);
                           --last;
                           continue;
 		      }
@@ -1034,6 +1036,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                           for (int comp = 0; comp < NArrayInt; comp++)
                               soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
+			  correctCellVectors(last, pindex, grid, aos[pindex]);
                           --last;
                           continue;
 		      }
@@ -1539,9 +1542,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Checkpoint (const std::string&        dir,
-              const std::string&        name,
-              bool                      is_checkpoint,
+::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
               const Vector<std::string>& real_comp_names,
               const Vector<std::string>& int_comp_names) const
 {
@@ -1553,32 +1554,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const int  NProcs   = ParallelDescriptor::NProcs();
     const int  IOProcNumber   = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = ParallelDescriptor::second();
-    //
-    // We store the particles in a subdirectory of "dir".
-    //
+
     std::string pdir = dir;
-
-    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') {
-        pdir += '/';
-    }
-
+    if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
-    //
-    // Make the particle directories if they don't already exist.
-    //
+    
     if ( ! levelDirectoriesCreated) {
-      if (ParallelDescriptor::IOProcessor()) 
-        if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
-            amrex::CreateDirectoryFailed(pdir);
-      // Force other processors to wait until directory is built.
-      ParallelDescriptor::Barrier();
+        if (ParallelDescriptor::IOProcessor()) 
+            if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
+                amrex::CreateDirectoryFailed(pdir);
+        ParallelDescriptor::Barrier();
     }
-
-    //
-    // The header contains the info we need to read back in the particles.
-    //
-    // Only the I/O processor writes to the header file.
-    //
+    
     std::ofstream HdrFile;
 
     long nparticles = 0;
@@ -1596,12 +1583,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
             for (const auto& p : aos) {
-                if (p.m_idata.id > 0) {
-                    //
-                    // Only count (and checkpoint) valid particles.
-                    //
-                    nparticles++;
-		}
+                // Only count (and checkpoint) valid particles.
+                if (p.m_idata.id > 0) nparticles++;
             }
         }
       }
@@ -1613,7 +1596,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
 
     if (ParallelDescriptor::IOProcessor())
-      {
+    {
         std::string HdrFileName = pdir;
 	
         if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/') {
@@ -1874,15 +1857,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CheckpointPre ()
 {
     if( ! usePrePost) {
-      return;
+        return;
     }
 
     BL_PROFILE("ParticleContainer::CheckpointPre()");
-
+    
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     long nparticles = 0;
     int  maxnextid  = ParticleType::NextID();
-
+    
     for (int lev = 0; lev < m_particles.size();  lev++) {
         const auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
@@ -1901,23 +1884,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     ParticleType::NextID(maxnextid);
     ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
-
+    
     nparticlesPrePost = nparticles;
     maxnextidPrePost  = maxnextid;
-
+    
     nParticlesAtLevelPrePost.clear();
     nParticlesAtLevelPrePost.resize(finestLevel() + 1, 0);
     for(int lev(0); lev <= finestLevel(); ++lev) {
-      nParticlesAtLevelPrePost[lev] = NumberOfParticlesAtLevel(lev);
+        nParticlesAtLevelPrePost[lev] = NumberOfParticlesAtLevel(lev);
     }
-
+    
     whichPrePost.clear();
     whichPrePost.resize(finestLevel() + 1);
     countPrePost.clear();
     countPrePost.resize(finestLevel() + 1);
     wherePrePost.clear();
     wherePrePost.resize(finestLevel() + 1);
-
+    
     filePrefixPrePost.clear();
     filePrefixPrePost.resize(finestLevel() + 1);
 }
@@ -2124,9 +2107,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (const std::string& dir,
-                                                                            const std::string& file,
-                                                                            bool is_checkpoint)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Restart (const std::string& dir, const std::string& file, bool is_checkpoint)
 {
   BL_PROFILE("ParticleContainer::Restart()");
   BL_ASSERT(!dir.empty());
@@ -2223,14 +2205,39 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   int finest_level_in_file;
   HdrFile >> finest_level_in_file;
   BL_ASSERT(finest_level_in_file >= 0);
+
+  // Determine whether this is a dual-grid restart or not.
+  Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
+  bool dual_grid = false;
+  for (int lev = 0; lev <= finest_level_in_file; lev++) {
+      std::string phdr_name = fullname;
+      phdr_name = amrex::Concatenate(phdr_name + "/Level_", lev, 1);
+      phdr_name += "/Particle_H";
+
+      Vector<char> phdr_chars;
+      ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
+      std::string phdr_string(phdr_chars.dataPtr());
+      std::istringstream phdr_file(phdr_string, std::istringstream::in);
+
+      particle_box_arrays[lev].readFrom(phdr_file);
+      if (not particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) dual_grid = true;
+  }
+  
+  if (dual_grid) {
+      for (int lev = 0; lev <= finestLevel(); lev++) {
+          SetParticleBoxArray(lev, particle_box_arrays[lev]);
+          DistributionMapping pdm(particle_box_arrays[lev]);
+          SetParticleDistributionMap(lev, pdm);
+      }
+  }
   
   Vector<int> ngrids(finest_level_in_file+1);
   for (int lev = 0; lev <= finest_level_in_file; lev++) {
-    HdrFile >> ngrids[lev];
-    BL_ASSERT(ngrids[lev] > 0);
-    if (lev <= finestLevel()) {
-        BL_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
-    }
+      HdrFile >> ngrids[lev];
+      BL_ASSERT(ngrids[lev] > 0);
+      if (lev <= finestLevel()) {
+          BL_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
+      }
   }
 
   resizeData();
@@ -2240,98 +2247,98 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   }
 
   for (int lev = 0; lev <= finest_level_in_file; lev++) {
-    Vector<int>  which(ngrids[lev]);
-    Vector<int>  count(ngrids[lev]);
-    Vector<long> where(ngrids[lev]);
-    for (int i = 0; i < ngrids[lev]; i++) {
-      HdrFile >> which[i] >> count[i] >> where[i];
-    }
+      Vector<int>  which(ngrids[lev]);
+      Vector<int>  count(ngrids[lev]);
+      Vector<long> where(ngrids[lev]);
+      for (int i = 0; i < ngrids[lev]; i++) {
+          HdrFile >> which[i] >> count[i] >> where[i];
+      }
     
-    Vector<int> grids_to_read;
-    if (lev <= finestLevel()) {
-        for (MFIter mfi(*m_dummy_mf[lev]); mfi.isValid(); ++mfi) {
-            grids_to_read.push_back(mfi.index());
-        }
-    } else {
+      Vector<int> grids_to_read;
+      if (lev <= finestLevel()) {
+          for (MFIter mfi(*m_dummy_mf[lev]); mfi.isValid(); ++mfi) {
+              grids_to_read.push_back(mfi.index());
+          }
+      } else {
+          
+          // we lost a level on restart. we still need to read in particles
+          // on finer levels, and put them in the right place via Redistribute()
+          
+          const int rank = ParallelDescriptor::MyProc();
+          const int NReaders = ParticleType::MaxReaders();
+          if (rank >= NReaders) return;
+          
+          const int Navg = ngrids[lev] / NReaders;
+          const int Nleft = ngrids[lev] - Navg * NReaders;
+          
+          int lo, hi;
+          if (rank < Nleft) {
+              lo = rank*(Navg + 1);
+              hi = lo + Navg + 1;
+          } 
+          else {
+              lo = rank * Navg + Nleft;
+              hi = lo + Navg;
+          }
+          
+          for (int i = lo; i < hi; ++i) {
+              grids_to_read.push_back(i);
+          }
+      }
 
-        // we lost a level on restart. we still need to read in particles
-        // on finer levels, and put them in the right place via Redistribute()
-
-        const int rank = ParallelDescriptor::MyProc();
-        const int NReaders = ParticleType::MaxReaders();
-        if (rank >= NReaders) return;
-        
-        const int Navg = ngrids[lev] / NReaders;
-        const int Nleft = ngrids[lev] - Navg * NReaders;
-        
-        int lo, hi;
-        if (rank < Nleft) {
-            lo = rank*(Navg + 1);
-            hi = lo + Navg + 1;
-        } 
-        else {
-            lo = rank * Navg + Nleft;
-            hi = lo + Navg;
-        }
-        
-        for (int i = lo; i < hi; ++i) {
-            grids_to_read.push_back(i);
-        }
-    }
-
-    for(int igrid = 0; igrid < static_cast<int>(grids_to_read.size()); ++igrid) {
-        const int grid = grids_to_read[igrid];
-        
-        if (count[grid] <= 0) continue;
-        
-        // The file names in the header file are relative.
-        std::string name = fullname;
-    
-        if (!name.empty() && name[name.size()-1] != '/')
-            name += '/';
-      
-        name += "Level_";
-        name += amrex::Concatenate("", lev, 1);
-        name += '/';
-        name += ParticleType::DataPrefix();
-        name += amrex::Concatenate("", which[grid], DATA_Digits_Read);
-        
-        std::ifstream ParticleFile;
-        
-        ParticleFile.open(name.c_str(), std::ios::in);
-        
-        if (!ParticleFile.good())
-            amrex::FileOpenFailed(name);
-        
-        ParticleFile.seekg(where[grid], std::ios::beg);
-        
-        if (how == "single") {
-            ReadParticles<float>(count[grid], grid, lev, is_checkpoint, ParticleFile);
-        }
-        else if (how == "double") {
-            ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile);
-        }
-        else {
-            std::string msg("ParticleContainer::Restart(): bad parameter: ");
-            msg += how;
-            amrex::Error(msg.c_str());
-        }
-        
-        ParticleFile.close();
-        
-        if (!ParticleFile.good())
-            amrex::Abort("ParticleContainer::Restart(): problem reading particles");
-    }
+      for(int igrid = 0; igrid < static_cast<int>(grids_to_read.size()); ++igrid) {
+          const int grid = grids_to_read[igrid];
+          
+          if (count[grid] <= 0) continue;
+          
+          // The file names in the header file are relative.
+          std::string name = fullname;
+          
+          if (!name.empty() && name[name.size()-1] != '/')
+              name += '/';
+          
+          name += "Level_";
+          name += amrex::Concatenate("", lev, 1);
+          name += '/';
+          name += ParticleType::DataPrefix();
+          name += amrex::Concatenate("", which[grid], DATA_Digits_Read);
+          
+          std::ifstream ParticleFile;
+          
+          ParticleFile.open(name.c_str(), std::ios::in);
+          
+          if (!ParticleFile.good())
+              amrex::FileOpenFailed(name);
+          
+          ParticleFile.seekg(where[grid], std::ios::beg);
+          
+          if (how == "single") {
+              ReadParticles<float>(count[grid], grid, lev, is_checkpoint, ParticleFile);
+          }
+          else if (how == "double") {
+              ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile);
+          }
+          else {
+              std::string msg("ParticleContainer::Restart(): bad parameter: ");
+              msg += how;
+              amrex::Error(msg.c_str());
+          }
+          
+          ParticleFile.close();
+          
+          if (!ParticleFile.good())
+              amrex::Abort("ParticleContainer::Restart(): problem reading particles");
+      }
   }
   
   Redistribute();
-
+  
   BL_ASSERT(OK());
   
   if (m_verbose > 1) {
-    Real stoptime = ParallelDescriptor::second() - strttime;	
-    ParallelDescriptor::ReduceRealMax(stoptime, ParallelDescriptor::IOProcessorNumber());
-    amrex::Print() << "ParticleContainer::Restart() time: " << stoptime << '\n';
+      Real stoptime = ParallelDescriptor::second() - strttime;	
+      ParallelDescriptor::ReduceRealMax(stoptime, ParallelDescriptor::IOProcessorNumber());
+      amrex::Print() << "ParticleContainer::Restart() time: " << stoptime << '\n';
   }
 }
 

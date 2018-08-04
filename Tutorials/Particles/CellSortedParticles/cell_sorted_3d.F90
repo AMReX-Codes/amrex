@@ -13,6 +13,9 @@ module cell_sorted_particle_module
      integer(c_int)            :: id         !< Particle id
      integer(c_int)            :: cpu        !< Particle cpu
      integer(c_int)            :: sorted     !< Particle is in the right cell
+     integer(c_int)            :: i          !< Particle cell x
+     integer(c_int)            :: j          !< Particle cell y
+     integer(c_int)            :: k          !< Particle cell z
   end type particle_t
 
 contains
@@ -23,8 +26,8 @@ contains
     
     implicit none
     
-    integer(c_int), intent(inout) :: cell_parts(cell_np)
     integer(c_int), intent(in   ) :: cell_np
+    integer(c_int), intent(inout) :: cell_parts(cell_np)
     integer(c_int), intent(inout) :: new_np
     integer(c_int), intent(in   ) :: i 
 
