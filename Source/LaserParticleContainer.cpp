@@ -57,6 +57,9 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	   pp.get("profile_duration", profile_duration);
 	   pp.get("profile_t_peak", profile_t_peak);
 	   pp.get("profile_focal_distance", profile_focal_distance);
+	   pp.get("zeta", zeta);
+	   pp.get("beta", beta);
+	   pp.get("phi2", phi2);
 	}
 
   if ( profile == laser_t::Harris ) {
@@ -440,7 +443,8 @@ LaserParticleContainer::Evolve (int lev,
 	    if (profile == laser_t::Gaussian) {
 		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
 				      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-				      &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
+				      &profile_t_peak, &profile_focal_distance, amplitude_E.data(),
+				      &zeta, &beta, &phi2 );
 	    }
 
             if (profile == laser_t::Harris) {

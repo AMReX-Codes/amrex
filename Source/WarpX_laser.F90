@@ -11,18 +11,20 @@ module warpx_laser_module
 contains
 
   subroutine warpx_gaussian_laser( np, Xp, Yp, t, &
-      wavelength, e_max, waist, duration, t_peak, f, amplitude ) &
-       bind(C, name="warpx_gaussian_laser")
+      wavelength, e_max, waist, duration, t_peak, f, amplitude, &
+      zeta, beta, phi2 ) bind(C, name="warpx_gaussian_laser")
 
     integer(c_long), intent(in) :: np
     real(amrex_real), intent(in)    :: Xp(np),Yp(np)
     real(amrex_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
+    real(amrex_real), intent(in)    :: zeta, beta, phi2
     real(amrex_real), intent(inout) :: amplitude(np)
 
     integer(c_long)  :: i
-    real(amrex_real) :: k0, oscillation_phase, temporal_exponent
+    real(amrex_real) :: k0, oscillation_phase, inv_tau2
     complex*16       :: diffract_factor, exp_argument, prefactor, &
-                        inv_complex_waist_2
+                        inv_complex_waist_2, stretch_factor, &
+                        temporal_exponent
     complex*16, parameter :: j=cmplx(0., 1.)
 
     ! This function uses the complex expression of a Gaussian laser
@@ -30,15 +32,21 @@ contains
 
     ! Calculate a few factors which are independent of the macroparticle
     k0 = 2*pi/wavelength
+    inv_tau2 = 1. / duration**2
     oscillation_phase = k0 * clight * ( t - t_peak )
-    temporal_exponent = ( (t - t_peak) / duration )**2
     ! The coefficients below contain info about Gouy phase,
     ! laser diffraction, and phase front curvature
     diffract_factor = 1 + j * f * 2./(k0*waist**2)
     inv_complex_waist_2 = 1./( waist**2 * diffract_factor )
+    
+    ! Time stretching due to STCs and phi2 complex envelope
+    ! (1 if zeta=0, beta=0, phi2=0)
+    stretch_factor = 1. \
+        + 4*(zeta + beta*f)**2 * (inv_tau2*inv_complex_waist_2) \
+        + 2*j*(phi2 - beta**2*k0*f) * inv_tau2
 
-    ! Calculate amplitude prefactor
-    prefactor = e_max * exp( j * oscillation_phase - temporal_exponent )
+    ! Amplitude and monochromatic oscillations
+    prefactor = e_max * exp( j * oscillation_phase )
 
     ! Because diffract_factor is a complex, the code below takes into
     ! account the impact of the dimensionality on both the Gouy phase
@@ -51,8 +59,17 @@ contains
 
     ! Loop through the macroparticle to calculate the proper amplitude
     do i = 1, np
+      ! Exp argument for the temporal gaussian envelope + STCs
+      temporal_exponent = 1./stretch_factor * inv_tau2 * \
+          (t - t_peak - beta*k0*Xp(i) - 2*j*Xp(i)*( zeta - beta*f ) * \
+          inv_complex_waist_2)**2 
+      ! prefactor = amplitude + oscillations + temporal envelope with STCs
+      prefactor = prefactor * exp( - temporal_exponent )
+      ! Exp argument for transverse envelope
       exp_argument = - ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_complex_waist_2
+      ! prefactor * exp(argument transverse envelope)
       amplitude(i) = DREAL( prefactor * exp( exp_argument ) )
+      write(*,*) amplitude(i)
     enddo
 
   end subroutine warpx_gaussian_laser
