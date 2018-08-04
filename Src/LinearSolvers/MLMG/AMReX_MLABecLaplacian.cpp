@@ -37,13 +37,14 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
         {
             m_a_coeffs[amrlev][mglev].define(m_grids[amrlev][mglev],
                                              m_dmap[amrlev][mglev],
-                                             1, 0);
+                                             1, 0, MFInfo(), *m_factory[amrlev][mglev]);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
-                const BoxArray& ba = amrex::convert(m_grids[amrlev][mglev], IntVect::TheDimensionVector(idim));
+                const BoxArray& ba = amrex::convert(m_grids[amrlev][mglev],
+                                                    IntVect::TheDimensionVector(idim));
                 m_b_coeffs[amrlev][mglev][idim].define(ba,
                                                        m_dmap[amrlev][mglev],
-                                                       1, 0);
+                                                       1, 0, MFInfo(), *m_factory[amrlev][mglev]);
             }
         }
     }

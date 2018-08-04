@@ -5,7 +5,7 @@
 #include <AMReX_iMultiFab.H>
 
 #ifdef AMREX_USE_HYPRE
-#include <AMReX_HypreABecLap2.H>
+#include <AMReX_Hypre.H>
 #endif
 
 namespace amrex {
@@ -46,9 +46,11 @@ public:
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
     void setBottomVerbose (int v) { bottom_verbose = v; }
     void setBottomMaxIter (int n) { bottom_maxiter = n; }
+    void setBottomTolerance (Real t) { bottom_reltol = t; }
     void setCGVerbose (int v) { bottom_verbose = v; }
     void setCGMaxIter (int n) { bottom_maxiter = n; }
-
+    void setCGTolerance (Real t) { bottom_reltol = t; }
+    
     void setAlwaysUseBNorm (int flag) { always_use_bnorm = flag; }
 
     void setFinalFillBC (int flag) { final_fill_bc = flag; }
@@ -58,6 +60,15 @@ public:
     void setNSolve (int flag) { do_nsolve = flag; }
     void setNSolveGridSize (int s) { nsolve_grid_size = s; }
 
+#ifdef AMREX_USE_HYPRE
+    void setHypreInterface (Hypre::Interface f) {
+        // must use ij interface for EB
+#ifndef AMREX_USE_EB
+        hypre_interface = f;
+#endif
+    }
+#endif
+    
 private:
 
     int verbose = 1;
@@ -74,6 +85,7 @@ private:
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
+    Real bottom_reltol         = 1.e-4;
 
     int always_use_bnorm = 0;
 
@@ -95,7 +107,14 @@ private:
 
     // Hypre
 #ifdef AMREX_USE_HYPRE
-    std::unique_ptr<HypreABecLap2> hypre_solver;
+#ifdef AMREX_USE_EB
+    Hypre::Interface hypre_interface = Hypre::Interface::ij;
+#else
+//    Hypre::Interface hypre_interface = Hypre::Interface::structed;
+    Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+//    Hypre::Interface hypre_interface = Hypre::Interface::ij;
+#endif
+    std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
 #endif
 

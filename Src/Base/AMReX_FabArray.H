@@ -232,6 +232,15 @@ public:
 
     const FabFactory<FAB>& Factory () const { return *m_factory; }
 
+    bool hasEBFabFactory () const {
+#ifdef AMREX_USE_EB
+        const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
+        return (f != nullptr);
+#else
+        return false;
+#endif
+    }
+
     Box getDomain () const { return m_factory->getDomain(); }
 
     /**

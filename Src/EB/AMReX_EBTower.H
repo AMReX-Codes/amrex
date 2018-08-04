@@ -27,6 +27,8 @@ public:
 
     static bool validDomain (const Box& a_domain);
 
+    static Box const& coarestDomain ();
+    
 private:
 
     EBTower ();
