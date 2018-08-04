@@ -272,14 +272,16 @@ void
 CellSortedParticleContainer::correctCellVectors(int old_index, int new_index, 
 						int grid, const ParticleType& p)
 {
-  IntVect iv(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k));
-  auto& cell_vector = m_cell_vectors[grid](iv);
-  for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
-    if (cell_vector[i] == old_index) {
-      cell_vector[i] == new_index;
-      break;
+    if (not p.idata(IntData::sorted)) return;
+    IntVect iv(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k));
+    auto& cell_vector = m_cell_vectors[grid](iv);
+    for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
+        if (cell_vector[i] == old_index + 1) {
+            cell_vector[i] = new_index + 1;
+            return;
+        }
     }
-  }
+    //    amrex::Print() << "bad \n";
 }
 
 int
@@ -305,3 +307,80 @@ CellSortedParticleContainer::SumCellVectors()
     ParallelDescriptor::ReduceIntSum(np,ParallelDescriptor::IOProcessorNumber());
     return np;
 }
+
+int
+CellSortedParticleContainer::numUnsorted()
+{
+    const int lev = 0;
+    int num_unsorted = 0;
+    
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:num_unsorted)
+#endif    
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& particles = pti.GetArrayOfStructs();
+        const int np    = pti.numParticles();
+        for(int pindex = 0; pindex < np; ++pindex) {
+            const ParticleType& p = particles[pindex];
+            if (p.idata(IntData::sorted) == 0) {
+                num_unsorted += 1;
+            }
+        }
+    }
+    
+    ParallelDescriptor::ReduceIntSum(num_unsorted, ParallelDescriptor::IOProcessorNumber());
+    return num_unsorted;
+}
+
+int
+CellSortedParticleContainer::numWrongCell()
+{
+    const int lev = 0;
+    int num_wrong = 0;
+    
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:num_wrong)
+#endif    
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& particles = pti.GetArrayOfStructs();
+        const int np    = pti.numParticles();
+        for(int pindex = 0; pindex < np; ++pindex) {
+            const ParticleType& p = particles[pindex];
+            const IntVect& iv = this->Index(p, lev);
+            if ((iv[0] != p.idata(IntData::i)) or (iv[1] != p.idata(IntData::j)) or (iv[2] != p.idata(IntData::k))) {
+                num_wrong += 1;
+            }
+        }
+    }
+    
+    ParallelDescriptor::ReduceIntSum(num_wrong, ParallelDescriptor::IOProcessorNumber());
+    return num_wrong;
+}
+
+void
+CellSortedParticleContainer::visitAllParticles()
+{
+    const int lev = 0;
+
+    if (not m_vectors_initialized) return;
+    
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int np = pti.numParticles();
+        const int grid = pti.index();
+        Vector<int> times_visited(np, 0);
+        const Box& tile_box  = pti.tilebox();
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        {	  
+            auto& cell_vector = m_cell_vectors[grid](iv);
+            for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
+                times_visited[cell_vector[i]-1] += 1;
+            }
+        }
+        amrex::Print() << *std::min_element(times_visited.begin(), times_visited.end()) << std::endl;
+        amrex::Print() << *std::max_element(times_visited.begin(), times_visited.end()) << std::endl;   
+    }
+}
+

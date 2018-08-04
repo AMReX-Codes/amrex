@@ -42,6 +42,12 @@ public:
     void MoveParticles();
 
     int SumCellVectors();
+
+    int numUnsorted();
+
+    int numWrongCell();
+
+    void visitAllParticles();
     
 protected:
 
