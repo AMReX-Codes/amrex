@@ -24,7 +24,7 @@ contains
     real(amrex_real) :: k0, oscillation_phase, inv_tau2
     complex*16       :: diffract_factor, exp_argument, prefactor, &
                         inv_complex_waist_2, stretch_factor, &
-                        temporal_exponent
+                        temporal_exponent, stcfactor
     complex*16, parameter :: j=cmplx(0., 1.)
 
     ! This function uses the complex expression of a Gaussian laser
@@ -41,10 +41,24 @@ contains
     
     ! Time stretching due to STCs and phi2 complex envelope
     ! (1 if zeta=0, beta=0, phi2=0)
-    stretch_factor = 1. \
-        + 4*(zeta + beta*f)**2 * (inv_tau2*inv_complex_waist_2) \
-        + 2*j*(phi2 - beta**2*k0*f) * inv_tau2
+    stretch_factor = 1. + \
+        4*(zeta + beta*f)**2 * (inv_tau2*inv_complex_waist_2) + \
+        2*j*(phi2 - beta**2*k0*f) * inv_tau2
 
+    write(*,*) zeta, beta, phi2        
+!     write(*,*) "stretch_factor ",  DREAL( stretch_factor )
+!     write(*,*) "f ",  f
+!     write(*,*) "zeta ", zeta
+!     write(*,*) "duration ", duration, " inv_tau2 ", inv_tau2
+!     write(*,*) "waist ", waist, " inv_complex_waist_2 ", inv_complex_waist_2
+!     write(*,*) "diffract_factor ", diffract_factor
+
+
+!         stretch_factor = 1 + 
+!         4*(self.zeta + self.beta*focal_length)**2 * (self.inv_tau2*self.inv_waist2) / diffract_factor + 
+!         2j*(self.phi2 - self.beta**2*self.k0*focal_length) * self.inv_tau2
+
+    
     ! Amplitude and monochromatic oscillations
     prefactor = e_max * exp( j * oscillation_phase )
 
@@ -64,12 +78,12 @@ contains
           (t - t_peak - beta*k0*Xp(i) - 2*j*Xp(i)*( zeta - beta*f ) * \
           inv_complex_waist_2)**2 
       ! prefactor = amplitude + oscillations + temporal envelope with STCs
-      prefactor = prefactor * exp( - temporal_exponent )
+      stcfactor = prefactor * exp( - temporal_exponent )
+!       write(*,*) "stcfactor ", stcfactor
       ! Exp argument for transverse envelope
       exp_argument = - ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_complex_waist_2
       ! prefactor * exp(argument transverse envelope)
-      amplitude(i) = DREAL( prefactor * exp( exp_argument ) )
-      write(*,*) amplitude(i)
+      amplitude(i) = DREAL( stcfactor * exp( exp_argument ) )
     enddo
 
   end subroutine warpx_gaussian_laser
