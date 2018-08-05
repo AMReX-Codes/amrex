@@ -86,13 +86,13 @@ Distribution across MPI ranks and parallelization
     This relies on each MPI rank handling several (in fact many) subdomains
     (see ``max_grid_size``).
 
-* ``warpx.load_balance_with_sfc`` (`0` or `1`)
+* ``warpx.load_balance_with_sfc`` (`0` or `1`) optional (default `0`)
     If this is `1`: use a Space-Filling Curve (SFC) algorithm in order to perform load-balancing of the simulation.
-    If this is `0` (default): the Knapsack algorithm is used instead.
+    If this is `0`: the Knapsack algorithm is used instead.
 
-* ``warpx.do_dynamic_scheduling`` (`0` or `1`)
-    Whether to activate OpenMP dynamic scheduling. (Activated by default)
-
+* ``warpx.do_dynamic_scheduling`` (`0` or `1`) optional (default `1`)
+    Whether to activate OpenMP dynamic scheduling.
+    
 Math parser and user-defined constants
 --------------------------------------
 
@@ -315,6 +315,17 @@ Laser initialization
     ``laser.profile_focal_distance`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
+* ``laser.zeta`` (`float`; in meters.seconds) optional (default `0.`)
+    Spatial chirp at focus in the ``x`` direction. See definition in 
+    Akturk et al., Opt Express, vol 12, no 19 (2014).
+
+* ``laser.beta`` (`float`; in seconds) optional (default `0.`)
+    Angular dispersion (or angular chirp) at focus in the ``x`` direction. 
+    See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
+
+* ``laser.phi2`` (`float`; in seconds**2) optional (default `0.`)
+    Temporal chirp at focus in the ``x`` direction. 
+    See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 Numerics and algorithms
 -----------------------
@@ -375,9 +386,8 @@ Numerics and algorithms
     Note that the implementation in WarpX is more efficient when these 3 numbers are equal,
     and when they are between 1 and 3.
 
-* ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`)
+* ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`) optional (default `16` for all)
     The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
-    If this is not set, the default is ``psatd.nox = psatd.noy = psatd.noz = 16``.
 
 * ``psatd.ngroups_fft`` (`integer`)
     The number of MPI groups that are created for the FFT, when using the code compiled with a PSATD solver.
@@ -415,7 +425,7 @@ Diagnostics and output
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
 
-* ``warpx.plot_raw_fields`` (`0` or `1`)
+* ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)
     By default, the fields written in the plot files are averaged on the nodes.
     When ```warpx.plot_raw_fields`` is `1`, then the raw (i.e. unaveraged)
     fields are also saved in the plot files.
