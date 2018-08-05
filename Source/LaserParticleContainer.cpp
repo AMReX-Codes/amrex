@@ -57,9 +57,6 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	   pp.get("profile_duration", profile_duration);
 	   pp.get("profile_t_peak", profile_t_peak);
 	   pp.get("profile_focal_distance", profile_focal_distance);
-// 	   zeta = 0.;
-// 	   beta = 0.;
-// 	   phi2 = 0.;
 	   pp.query("zeta", zeta);
 	   pp.query("beta", beta);
 	   pp.query("phi2", phi2);
