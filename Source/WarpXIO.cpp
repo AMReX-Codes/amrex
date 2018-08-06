@@ -170,7 +170,7 @@ WarpX::WriteCheckPointFile() const
         }
     }
 
-    mypc->Checkpoint(checkpointname, "particle", true);
+    mypc->Checkpoint(checkpointname, true);
 
     VisMF::SetHeaderVersion(current_version);
 }
@@ -381,7 +381,7 @@ WarpX::InitFromCheckpoint ()
 
     // Initilize particles
     mypc->AllocData();
-    mypc->Restart(restart_chkfile, "particle");
+    mypc->Restart(restart_chkfile);
 
 #ifdef WARPX_DO_ELECTROSTATIC
     if (do_electrostatic) {
@@ -822,7 +822,7 @@ WarpX::WritePlotFile () const
     particle_varnames.push_back("uzold");    
 #endif
     
-    mypc->Checkpoint(plotfilename, "particle", true, particle_varnames);
+    mypc->Checkpoint(plotfilename, true, particle_varnames);
 
     WriteJobInfo(plotfilename);
 
