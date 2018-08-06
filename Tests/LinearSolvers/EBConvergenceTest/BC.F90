@@ -18,7 +18,6 @@ contains
   xh = probhi(1)
   yl = problo(2)
   yh = probhi(2)
-
   do j = lo(2)+1, hi(2)-1
     y = yl + (dble(j) + 0.5d0)*dx(2)
     denom = sqrt((xl-0.5d0)*(xl-0.5d0) + (y-0.5d0)*(y-0.5d0))
@@ -28,7 +27,7 @@ contains
   end do
  
   do i = lo(1)+1, hi(1)-1
-    x = xl + (dble(i) + 0.5d0)*dx(1) 
+    x = xl + (dble(i) + 0.5d0)*dx(1)
     denom = sqrt((x-0.5d0)*(x-0.5d0) + (yl-0.5d0)*(yl-0.5d0))
     phi(i,lo(2)) = (x-0.5d0)/denom
     denom = sqrt((x-0.5d0)*(x-0.5d0) + (yh-0.5d0)*(yh-0.5d0))
@@ -46,6 +45,5 @@ contains
 
   denom = sqrt((xh-0.5d0)*(xh-0.5d0) + (yl-0.5d0)*(yl-0.5d0))
   phi(hi(1),lo(2)) = (xh-0.5d0)/denom
-
   end subroutine apply_bc
 end module bc
