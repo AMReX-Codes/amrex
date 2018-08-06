@@ -9,7 +9,6 @@ using namespace amrex;
 constexpr int WarpX::FFTData::N;
 
 namespace {
-
 static std::unique_ptr<WarpX::FFTData> nullfftdata; // This for process with nz_fft=0
 
 /** \brief Returns an "owner mask" which 1 for all cells, except
@@ -293,10 +292,12 @@ WarpX::FFTDomainDecomposition (int lev, BoxArray& ba_fft, DistributionMapping& d
         b.setRange(AMREX_SPACEDIM-1, z0_fft+domain_fft.smallEnd(AMREX_SPACEDIM-1), nz_fft);
         bx_fft.push_back(b);
     } else {
+        // Add empty box for the AllGather call
         bx_fft.push_back(Box());
     }
     amrex::AllGatherBoxes(bx_fft);
     AMREX_ASSERT(bx_fft.size() == ParallelDescriptor::NProcs());
+    // Build pmap and bx_fft without the empty boxes
     Vector<int> pmap;
     for (int i = 0; i < bx_fft.size(); ++i) {
         if (bx_fft[i].ok()) {
@@ -349,6 +350,7 @@ WarpX::InitFFTDataPlan (int lev)
     auto dx_fp = CellSize(lev);
 
     if (Efield_fp_fft[lev][0]->local_size() == 1)
+      //Only one FFT patch on this MPI
     {
         for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
         {
@@ -358,6 +360,8 @@ WarpX::InitFFTDataPlan (int lev)
         }
     }
     else if (Efield_fp_fft[lev][0]->local_size() == 0)
+      // No FFT patch on this MPI rank (may happen with FFTW)
+      // Still need to call the MPI-FFT initialization routines
     {
 	nullfftdata.reset(new FFTData());
         warpx_fft_dataplan_init(&nox_fft, &noy_fft, &noz_fft,
@@ -366,6 +370,7 @@ WarpX::InitFFTDataPlan (int lev)
     }
     else
     {
+      // Multiple FFT patches on this MPI rank
         amrex::Abort("WarpX::InitFFTDataPlan: TODO");
     }
 
@@ -421,6 +426,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 
     BL_PROFILE_VAR_START(blp_push_eb);
     if (Efield_fp_fft[lev][0]->local_size() == 1)
+       //Only one FFT patch on this MPI
     {
 	for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
 	{
@@ -438,6 +444,8 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 	}
     }
     else if (Efield_fp_fft[lev][0]->local_size() == 0)
+      // No FFT patch on this MPI rank
+      // Still need to call the MPI-FFT routine.
     {
 	FArrayBox fab(Box(IntVect::TheZeroVector(), IntVect::TheUnitVector()));
 	warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD(fab),
@@ -453,6 +461,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 			  WARPX_TO_FORTRAN_ANYD(fab));	
     }
     else
+      // Multiple FFT patches on this MPI rank
     {
 	amrex::Abort("WarpX::PushPSATD: TODO");
     }
