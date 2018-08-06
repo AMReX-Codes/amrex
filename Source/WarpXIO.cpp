@@ -401,47 +401,55 @@ WarpX::GetCellCenteredData() {
 
     const int ng =  1;
     const int nc = 10;
-    const int lev = 0;
-    auto cc = std::unique_ptr<MultiFab>( new MultiFab(boxArray(lev),
-                                                      DistributionMap(lev),
-                                                      nc, ng) );
 
-    Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
-    int dcomp = 0;
-
-    // first the electric field
-    PackPlotDataPtrs(srcmf, Efield_aux[lev]);
-    amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
-#if (AMREX_SPACEDIM == 2)
-    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
-    amrex::average_node_to_cellcenter(*cc, dcomp+1, *Efield_aux[lev][1], 0, 1);
-#endif
-    dcomp += 3;
+    Vector<std::unique_ptr<MultiFab> > cc(finest_level+1);
     
-    // then the magnetic field
-    PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
-    amrex::average_face_to_cellcenter(*cc, dcomp, srcmf);
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        cc[lev].reset( new MultiFab(grids[lev], dmap[lev], nc, ng) );
+        
+        Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
+        int dcomp = 0;
+        
+        // first the electric field
+        PackPlotDataPtrs(srcmf, Efield_aux[lev]);
+        amrex::average_edge_to_cellcenter(*cc[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
-    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
-    MultiFab::Copy(*cc, *Bfield_aux[lev][1], 0, dcomp+1, 1, ng);
+        MultiFab::Copy(*cc[lev], *cc[lev], dcomp+1, dcomp+2, 1, ng);
+        amrex::average_node_to_cellcenter(*cc[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
 #endif
-    dcomp += 3;
-
-    // then the current density
-    PackPlotDataPtrs(srcmf, current_fp[lev]);
-    amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
+        dcomp += 3;
+        
+        // then the magnetic field
+        PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
+        amrex::average_face_to_cellcenter(*cc[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
-    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
-    amrex::average_node_to_cellcenter(*cc, dcomp+1, *current_fp[lev][1], 0, 1);
+        MultiFab::Copy(*cc[lev], *cc[lev], dcomp+1, dcomp+2, 1, ng);
+        MultiFab::Copy(*cc[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ng);
 #endif
-    dcomp += 3;
-
-    const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
-    amrex::average_node_to_cellcenter(*cc, dcomp, *charge_density, 0, 1);
-
-    cc->FillBoundary(geom[lev].periodicity());
+        dcomp += 3;
+        
+        // then the current density
+        PackPlotDataPtrs(srcmf, current_fp[lev]);
+        amrex::average_edge_to_cellcenter(*cc[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+        MultiFab::Copy(*cc[lev], *cc[lev], dcomp+1, dcomp+2, 1, ng);
+        amrex::average_node_to_cellcenter(*cc[lev], dcomp+1, *current_fp[lev][1], 0, 1);
+#endif
+        dcomp += 3;
+        
+        const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
+        amrex::average_node_to_cellcenter(*cc[lev], dcomp, *charge_density, 0, 1);
+        
+        cc[lev]->FillBoundary(geom[lev].periodicity());
+    }
     
-    return cc;
+    for (int lev = finest_level; lev > 0; --lev)
+    {
+        amrex::average_down(*cc[lev], *cc[lev-1], 0, nc, refRatio(lev-1));
+    }
+    
+    return std::move(cc[0]);
 }
 
 void

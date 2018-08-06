@@ -70,7 +70,7 @@ public:
     friend MultiParticleContainer;
 
     using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
-    using DiagnosticParticles = std::map<std::pair<int, int>, DiagnosticParticleData>;
+    using DiagnosticParticles = amrex::Vector<std::map<std::pair<int, int>, DiagnosticParticleData> >;
     
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
