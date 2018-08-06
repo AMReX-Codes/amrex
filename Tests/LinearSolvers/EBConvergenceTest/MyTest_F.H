@@ -15,6 +15,10 @@ extern "C" {
                    const amrex_real* dx, const amrex_real* prob_lo, 
                    const amrex_real* prob_hi);
 
+    void apply_bc(const int* lo, const int* hi, 
+                  amrex_real* phi, const int* phlo, const int* phhi, 
+                  const amrex_real* dx, const amrex_real* prob_lo, 
+                  const amrex_real* prob_hi); 
 #ifdef __cplusplus
 }
 #endif
