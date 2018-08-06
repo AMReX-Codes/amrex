@@ -126,7 +126,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
         pp.getarr("prob_lo",prob_lo,0,AMREX_SPACEDIM);
         BL_ASSERT(prob_lo.size() == AMREX_SPACEDIM);
         pp.getarr("prob_hi",prob_hi,0,AMREX_SPACEDIM);
-        BL_ASSERT(prob_lo.size() == AMREX_SPACEDIM);
+        BL_ASSERT(prob_hi.size() == AMREX_SPACEDIM);
         prob_domain.setLo(prob_lo);
         prob_domain.setHi(prob_hi);
         SetOffset(prob_lo.data());
