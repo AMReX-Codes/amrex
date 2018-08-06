@@ -182,15 +182,15 @@ MyTest::initData ()
         {
             FArrayBox& fab = phi[ilev][mfi];
             const Box& bx = fab.box();
-            fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
+/*            fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
                     Real rx = (iv[0]+0.5)*dx[0]-0.5;
                     Real ry = (iv[1]+0.5)*dx[1]-0.5;
                     p = rx/std::sqrt(rx*rx + ry*ry);
-                });
-/*            apply_bc(bx.loVect(), bx.hiVect(), 
+                }); */
+            apply_bc(bx.loVect(), bx.hiVect(), 
                       BL_TO_FORTRAN_ANYD(fab),
                       dx, geom[ilev].ProbLo(), 
-                      geom[ilev].ProbHi()); */ 
+                      geom[ilev].ProbHi());// */ 
         }
 
         phi[ilev].setVal(0.0, 0, 1, 0);
