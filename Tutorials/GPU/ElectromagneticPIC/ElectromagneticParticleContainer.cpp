@@ -44,7 +44,7 @@ namespace {
         u[1] = u_mean + uy_th;
         u[2] = u_mean + uz_th;
     }
-    
+/*    
     struct DeviceBox
     {
         int lo[AMREX_SPACEDIM];
@@ -82,16 +82,16 @@ namespace {
             }
         }
     };
-
+*/
     struct assignParticle
     {        
-        DeviceDomain domain;
-        DeviceBox box;
+        GeometryData domain;
+        Box box;
         const Real* mask_ptr;
         
         AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
-        assignParticle(const DeviceDomain& a_domain,
-                       const DeviceBox&    a_box,
+        assignParticle(const GeometryData& a_domain,
+                       const Box&          a_box,
                        const Real*         a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
@@ -99,20 +99,29 @@ namespace {
         AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
         int operator()(Tuple tup) const {
 //            i,j,k -> IntVect()
-            int i = floor((thrust::get<0>(tup) - domain.left_edge[0]) * domain.inverse_dx[0]);
-            int j = floor((thrust::get<1>(tup) - domain.left_edge[1]) * domain.inverse_dx[1]);
-            int k = floor((thrust::get<2>(tup) - domain.left_edge[2]) * domain.inverse_dx[2]);
-
+            int i = floor((thrust::get<0>(tup) - domain.ProbLo()[0]) / domain.CellSize()[0]);
+            int j = floor((thrust::get<1>(tup) - domain.ProbLo()[1]) / domain.CellSize()[1]);
+            int k = floor((thrust::get<2>(tup) - domain.ProbLo()[2]) / domain.CellSize()[2]);
+/*
+            long offset;
+            IntVect x = (floor((thrust::get<0>(tup) - domain.ProbLo()[0]) / domain.CellSize()[0]),
+                         floor((thrust::get<1>(tup) - domain.ProbLo()[1]) / domain.CellSize()[1]),
+                         floor((thrust::get<2>(tup) - domain.ProbLo()[2]) / domain.CellSize()[2]));
+            mask_ptr.getVal(offset, x);
+*/
 //            BaseFab.getVal(box.lo());
 //            a_mask_ptr -> BaseFab;
-            
-            long offset = i - box.lo[0];
+//            T* data;
+//            mask_ptr.getVal(data, x);
+
+            long offset = i - box.smallEnd(0);
 #if   AMREX_SPACEDIM==2
-            offset += (box.hi[0] - box.lo[0] + 1) * (j - box.lo[1]);
+            offset += (box.bigEnd(0) - box.smallEnd(0) + 1) * (j - box.smallEnd(1));
 #elif AMREX_SPACEDIM==3
-            offset += (box.hi[0] - box.lo[0] + 1) * (j - box.lo[1]
-                                                     + (k - box.lo[2]) * (box.hi[1] - box.lo[1] + 1));
+            offset += (box.bigEnd(0) - box.smallEnd(0) + 1) * (j - box.smallEnd(1)
+                                                               + (k - box.smallEnd(2)) * (box.bigEnd(1) - box.smallEnd(1) + 1));
 #endif
+
             return mask_ptr[offset];
         }
     };
@@ -534,8 +543,8 @@ OK ()
         thrust::transform(soa.begin(),
                           soa.end(),
                           grid_indices.begin(),
-                          assignParticle(DeviceDomain(m_geom),
-                                         DeviceBox((*m_mask_ptr)[i].box()),
+                          assignParticle(m_geom.data(),
+                                         (*m_mask_ptr)[i].box(),
                                          (*m_mask_ptr)[i].dataPtr()));
 
         int count = thrust::count_if(grid_indices.begin(),
@@ -573,9 +582,10 @@ Redistribute()
         
         thrust::transform(thrust::device, attribs.begin(), attribs.end(),
                           grids.begin(),
-                          assignParticle(DeviceDomain(m_geom),
-                                         DeviceBox((*m_mask_ptr)[src_grid].box()),
+                          assignParticle(m_geom.data(),
+                                         (*m_mask_ptr)[src_grid].box(),
                                          (*m_mask_ptr)[src_grid].dataPtr()));
+
                 
         thrust::copy(grids.begin(), grids.end(), grids_copy.begin());
 
@@ -757,7 +767,7 @@ RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
     
     // Allocate data for rcvs as one big chunk.
     thrust::device_vector<char> recvdata(TotRcvBytes);
-    
+
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];
@@ -766,12 +776,12 @@ RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
-        
+
         rreqs[i] = ParallelDescriptor::Arecv(thrust::raw_pointer_cast(recvdata.data() + offset),
                                              Cnt, Who, SeqNum).req();
 
     }
-    
+  
     // Send.
     for (const auto& kv : not_ours) {
         const auto Who = kv.first;
@@ -780,10 +790,9 @@ RedistributeMPI(std::map<int, thrust::device_vector<char> >& not_ours)
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-        
+
         ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
                                  Cnt, Who, SeqNum);
-
     }
 
     if (nrcvs > 0) {

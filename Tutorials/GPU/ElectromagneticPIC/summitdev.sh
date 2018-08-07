@@ -1,14 +1,14 @@
 #!/bin/bash
 #BSUB -P CSC190PORT
-#BSUB -W 10 
+#BSUB -W 10
 #BSUB -nnodes 1
 #BSUB -J PIC
 #BSUB -o PICo.%J
 #BSUB -e PICe.%J
 
 module load pgi
-module load cuda/9.1.85
-#module load cuda
+#module load cuda/9.1.85
+module load cuda
 module list
 set -x
 
@@ -27,12 +27,12 @@ cp inputs $rundir
 cd $rundir
 
 # 1. Run normally
-${JSRUN} cuda-memcheck ${EXE} inputs
-#${JSRUN} cuda-memcheck ${EXE} inputs > memcheck${LSB_JOBID}.txt 
+${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} inputs
+#${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} inputs > memcheck${LSB_JOBID}.txt 
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprof.txt
 #${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes ${EXE} inputs &> nvprof.txt
-#${JSRUN} nvprof ${EXE} inputs &> nvprof${LSB_JOBID}.txt
+#${JSRUN} --smpiargs="-gpu" nvprof ${EXE} inputs &> nvprof${LSB_JOBID}.txt
 
 # 3. Run under nvprof and store performance data in a nvvp file
 # Can be converted to text using nvprof -i nvprof-timeline-%p.nvvp
