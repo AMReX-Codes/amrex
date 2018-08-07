@@ -168,7 +168,7 @@ MyTest::initData ()
             FArrayBox& bfabx  = bcoef[ilev][0][mfi]; 
             FArrayBox& bfaby  = bcoef[ilev][1][mfi];
             const Box& bx = rhsfab.box(); 
-            build_rhs(bx.loVect(), bx.hiVect(), 
+            build_rhs_2d(bx.loVect(), bx.hiVect(), 
                       BL_TO_FORTRAN_ANYD(rhsfab), 
                       BL_TO_FORTRAN_ANYD(  afab), 
                       BL_TO_FORTRAN_ANYD( bfabx),
@@ -176,17 +176,31 @@ MyTest::initData ()
                       dx, geom[ilev].ProbLo(), 
                       geom[ilev].ProbHi()); 
         }
+#elif (AMREX_SPACEDIM ==3)
+        for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& rhsfab = rhs[ilev][mfi]; 
+            FArrayBox& afab   = acoef[ilev][mfi]; 
+            FArrayBox& bfabx  = bcoef[ilev][0][mfi]; 
+            FArrayBox& bfaby  = bcoef[ilev][1][mfi];
+            FArrayBox& bfabz  = bcoef[ilev][2][mfi];
+            const Box& bx = rhsfab.box(); 
+            build_rhs_3d(bx.loVect(), bx.hiVect(), 
+                      BL_TO_FORTRAN_ANYD(rhsfab), 
+                      BL_TO_FORTRAN_ANYD(  afab), 
+                      BL_TO_FORTRAN_ANYD( bfabx),
+                      BL_TO_FORTRAN_ANYD( bfaby),
+                      BL_TO_FORTRAN_ANYD( bfabz), 
+                      dx, geom[ilev].ProbLo(), 
+                      geom[ilev].ProbHi()); 
+        }
+
 #endif
         // Initialize Dirichlet boundary
         for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
         {
             FArrayBox& fab = phi[ilev][mfi];
             const Box& bx = fab.box();
-/*            fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
-                    Real rx = (iv[0]+0.5)*dx[0]-0.5;
-                    Real ry = (iv[1]+0.5)*dx[1]-0.5;
-                    p = rx/std::sqrt(rx*rx + ry*ry);
-                }); */
             apply_bc(bx.loVect(), bx.hiVect(), 
                       BL_TO_FORTRAN_ANYD(fab),
                       dx, geom[ilev].ProbLo(), 
