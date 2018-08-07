@@ -113,12 +113,12 @@ WarpX::EvolveEM (int numsteps)
         FillBoundaryE();
         FillBoundaryB();
 #else
-        EvolveF(dt[0], DtType::Full);
-        EvolveB(0.5*dt[0], DtType::SecondHalf); // We now have B^{n+1/2}
+        EvolveF(dt[0]);
+        EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
         FillBoundaryB();
-        EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
+        EvolveE(dt[0]); // We now have E^{n+1}
         FillBoundaryE();
-        EvolveB(0.5*dt[0], DtType::FirstHalf); // We now have B^{n+1}
+        EvolveB(0.5*dt[0]); // We now have B^{n+1}
         FillBoundaryB();
 #endif
 
@@ -222,15 +222,15 @@ WarpX::EvolveEM (int numsteps)
 }
 
 void
-WarpX::EvolveB (Real dt, DtType typ)
+WarpX::EvolveB (Real dt)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
-        EvolveB(lev, dt, typ);
+        EvolveB(lev, dt);
     }
 }
 
 void
-WarpX::EvolveB (int lev, Real dt, DtType typ)
+WarpX::EvolveB (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveB()");
 
@@ -303,6 +303,8 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
         }
     }
 
+// xxxxx
+#if 0
     if (do_pml && pml[lev]->ok())
     {
         const int dttype = static_cast<int>(typ);
@@ -341,18 +343,19 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
             }
         }
     }
+#endif
 }
 
 void
-WarpX::EvolveE (Real dt, DtType typ)
+WarpX::EvolveE (Real dt)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
-        EvolveE(lev, dt, typ);
+        EvolveE(lev, dt);
     }
 }
 
 void
-WarpX::EvolveE (int lev, Real dt, DtType typ)
+WarpX::EvolveE (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveE()");
 
@@ -450,6 +453,7 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
         }
     }
 
+#if 0
     if (do_pml && pml[lev]->ok())
     {
         pml[lev]->ExchangeF(F_fp[lev].get(), F_cp[lev].get());
@@ -501,20 +505,21 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
             }
         }
     }
+#endif
 }
 
 void
-WarpX::EvolveF (Real dt, DtType typ)
+WarpX::EvolveF (Real dt)
 {
     if (!do_dive_cleaning) return;
 
     for (int lev = 0; lev <= finest_level; ++lev) {
-        EvolveF(lev, dt, typ);
+        EvolveF(lev, dt);
     }
 }
 
 void
-WarpX::EvolveF (int lev, Real dt, DtType typ)
+WarpX::EvolveF (int lev, Real dt)
 {
     if (!do_dive_cleaning) return;
 
@@ -553,6 +558,8 @@ WarpX::EvolveF (int lev, Real dt, DtType typ)
         MultiFab::Saxpy(src, -mu_c2, *rho, 0, 0, 1, 0);
         MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
 
+// xxxxx
+#if 0
         if (do_pml && pml[lev]->ok())
         {
             const int dttype = static_cast<int>(typ);
@@ -578,6 +585,8 @@ WarpX::EvolveF (int lev, Real dt, DtType typ)
                                 &c2inv);
             }
         }
+#endif
+
     }
 }
 

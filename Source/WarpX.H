@@ -26,13 +26,6 @@
 #include <fftw3.h>
 #endif
 
-enum struct DtType : int
-{
-    Full = 0,
-    FirstHalf,
-    SecondHalf
-};
-
 class WarpX
     : public amrex::AmrCore
 {
@@ -115,12 +108,12 @@ public:
     void MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
-    void EvolveE (         amrex::Real dt, DtType typ);
-    void EvolveE (int lev, amrex::Real dt, DtType typ);
-    void EvolveB (         amrex::Real dt, DtType typ);
-    void EvolveB (int lev, amrex::Real dt, DtType typ);
-    void EvolveF (         amrex::Real dt, DtType typ);
-    void EvolveF (int lev, amrex::Real dt, DtType typ);
+    void EvolveE (         amrex::Real dt);
+    void EvolveE (int lev, amrex::Real dt);
+    void EvolveB (         amrex::Real dt);
+    void EvolveB (int lev, amrex::Real dt);
+    void EvolveF (         amrex::Real dt);
+    void EvolveF (int lev, amrex::Real dt);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
@@ -349,7 +342,6 @@ private:
     int do_pml = 1;
     int pml_ncell = 10;
     int pml_delta = 10;
-    std::string pml_type = "pml";   // or apml
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     // Moving window parameters

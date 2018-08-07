@@ -74,8 +74,8 @@ extern "C" {
   void warpx_ComputeDt ();
   void warpx_MoveWindow ();
 
-  void warpx_EvolveE (double dt, int dt_type);
-  void warpx_EvolveB (double dt, int dt_type);
+  void warpx_EvolveE (double dt);
+  void warpx_EvolveB (double dt);
   void warpx_FillBoundaryE ();
   void warpx_FillBoundaryB ();
   void warpx_SyncCurrent ();

@@ -52,22 +52,15 @@ struct SigmaBox
     SigmaBox (const amrex::Box& box, const amrex::BoxArray& grids,
               const amrex::Real* dx, int ncell, int delta);
 
-    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
-    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
+    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
+    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
 
     using SigmaVect = std::array<Sigma,AMREX_SPACEDIM>;
-    // 3: there are 3 types: full dt, first half and second half dt
-    using MTSigmaVect = std::array<SigmaVect,3>;
 
     SigmaVect sigma;      // sigma/epsilon
     SigmaVect sigma_star; // sigma_star/mu
-    MTSigmaVect sigma_fac1;
-    MTSigmaVect sigma_fac2;
-    MTSigmaVect sigma_star_fac1;
-    MTSigmaVect sigma_star_fac2;
-
-private:
-    static void ComputePMLFactorsHalfDt (MTSigmaVect& fac1, MTSigmaVect& fac2);
+    SigmaVect sigma_fac;
+    SigmaVect sigma_star_fac;
 };
 
 namespace amrex {
@@ -97,8 +90,8 @@ class MultiSigmaBox
 public:
     MultiSigmaBox(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
                   const amrex::BoxArray& grid_ba, const amrex::Real* dx, int ncell, int delta);
-    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
-    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
+    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
+    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
 private:
     amrex::Real dt_B = -1.e10;
     amrex::Real dt_E = -1.e10;
@@ -111,7 +104,7 @@ public:
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window);
 
-    void ComputePMLFactors (amrex::Real dt, const std::string& pml_type);
+    void ComputePMLFactors (amrex::Real dt);
 
     std::array<amrex::MultiFab*,3> GetE_fp ();
     std::array<amrex::MultiFab*,3> GetB_fp ();
