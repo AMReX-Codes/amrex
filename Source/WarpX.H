@@ -433,6 +433,7 @@ private:
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_cp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_cp_fft;
 
+public:
     // FFTData is a stuct containing a 22 pointers to auxiliary arrays
     // 1-11: padded arrays in real space (required by FFTW); 12-22: arrays in spectral space
     struct FFTData
@@ -460,6 +461,7 @@ private:
         void operator= (FFTData const&) = delete;
         void operator= (FFTData&&) = delete;
     };
+private:
 
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
@@ -484,9 +486,9 @@ private:
     void InitLevelDataFFT (int lev, amrex::Real time);
 
     void InitFFTComm (int lev);
-    void FFTDomainDecompsition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
-                                amrex::BoxArray& ba_valid, amrex::Box& domain_fft,
-                                const amrex::Box& domain);
+    void FFTDomainDecomposition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
+                                 amrex::BoxArray& ba_valid, amrex::Box& domain_fft,
+                                 const amrex::Box& domain);
     void InitFFTDataPlan (int lev);
     void FreeFFT (int lev);
 

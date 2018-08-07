@@ -20,22 +20,19 @@ WarpXParticleContainer::WriteHeader (std::ostream& os) const
 
 void
 MultiParticleContainer::Checkpoint (const std::string& dir, 
-				    const std::string& name,
 				    bool is_checkpoint,
                                     const Vector<std::string>& varnames) const
 {
-    for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
-	std::string namei = name + std::to_string(i);
-	allcontainers[i]->Checkpoint(dir, namei, is_checkpoint, varnames);
+    for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
+	allcontainers[i]->Checkpoint(dir, species_names[i], is_checkpoint, varnames);
     }
 }
 
 void
-MultiParticleContainer::Restart (const std::string& dir, const std::string& name)
+MultiParticleContainer::Restart (const std::string& dir)
 {
-    for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
-	std::string namei = name + std::to_string(i);
-	allcontainers[i]->Restart(dir, namei);
+    for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
+	allcontainers[i]->Restart(dir, species_names[i]);
     }
 }
 
