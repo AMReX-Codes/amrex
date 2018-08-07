@@ -8,35 +8,21 @@
 
 #if (AMREX_SPACEDIM == 3)
 
-#define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x,y)                              \
-    (x).sigma_star_fac1[y][0].data(), (x).sigma_star_fac1[y][0].m_lo, (x).sigma_star_fac1[y][0].m_hi, \
-    (x).sigma_star_fac2[y][0].data(), (x).sigma_star_fac2[y][0].m_lo, (x).sigma_star_fac2[y][0].m_hi, \
-    (x).sigma_star_fac1[y][1].data(), (x).sigma_star_fac1[y][1].m_lo, (x).sigma_star_fac1[y][1].m_hi, \
-    (x).sigma_star_fac2[y][1].data(), (x).sigma_star_fac2[y][1].m_lo, (x).sigma_star_fac2[y][1].m_hi, \
-    (x).sigma_star_fac1[y][2].data(), (x).sigma_star_fac1[y][2].m_lo, (x).sigma_star_fac1[y][2].m_hi, \
-    (x).sigma_star_fac2[y][2].data(), (x).sigma_star_fac2[y][2].m_lo, (x).sigma_star_fac2[y][2].m_hi
-
-#define WRPX_PML_SIGMA_TO_FORTRAN(x,y)                                   \
-    (x).sigma_fac1[y][0].data(), (x).sigma_fac1[y][0].m_lo, (x).sigma_fac1[y][0].m_hi, \
-    (x).sigma_fac2[y][0].data(), (x).sigma_fac2[y][0].m_lo, (x).sigma_fac2[y][0].m_hi, \
-    (x).sigma_fac1[y][1].data(), (x).sigma_fac1[y][1].m_lo, (x).sigma_fac1[y][1].m_hi, \
-    (x).sigma_fac2[y][1].data(), (x).sigma_fac2[y][1].m_lo, (x).sigma_fac2[y][1].m_hi, \
-    (x).sigma_fac1[y][2].data(), (x).sigma_fac1[y][2].m_lo, (x).sigma_fac1[y][2].m_hi, \
-    (x).sigma_fac2[y][2].data(), (x).sigma_fac2[y][2].m_lo, (x).sigma_fac2[y][2].m_hi
+#define WRPX_PML_TO_FORTRAN(x)                              \
+    (x).sigma_fac[0].data(), (x).sigma_fac[0].m_lo, (x).sigma_fac[0].m_hi, \
+    (x).sigma_fac[1].data(), (x).sigma_fac[1].m_lo, (x).sigma_fac[1].m_hi, \
+    (x).sigma_fac[2].data(), (x).sigma_fac[2].m_lo, (x).sigma_fac[2].m_hi, \
+    (x).sigma_star_fac[0].data(), (x).sigma_star_fac[0].m_lo, (x).sigma_star_fac[0].m_hi, \
+    (x).sigma_star_fac[1].data(), (x).sigma_star_fac[1].m_lo, (x).sigma_star_fac[1].m_hi, \
+    (x).sigma_star_fac[2].data(), (x).sigma_star_fac[2].m_lo, (x).sigma_star_fac[2].m_hi
 
 #else
 
-#define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x,y)                              \
-    (x).sigma_star_fac1[y][0].data(), (x).sigma_star_fac1[y][0].m_lo, (x).sigma_star_fac1[y][0].m_hi, \
-    (x).sigma_star_fac2[y][0].data(), (x).sigma_star_fac2[y][0].m_lo, (x).sigma_star_fac2[y][0].m_hi, \
-    (x).sigma_star_fac1[y][1].data(), (x).sigma_star_fac1[y][1].m_lo, (x).sigma_star_fac1[y][1].m_hi, \
-    (x).sigma_star_fac2[y][1].data(), (x).sigma_star_fac2[y][1].m_lo, (x).sigma_star_fac2[y][1].m_hi
-
-#define WRPX_PML_SIGMA_TO_FORTRAN(x,y)                                   \
-    (x).sigma_fac1[y][0].data(), (x).sigma_fac1[y][0].m_lo, (x).sigma_fac1[y][0].m_hi, \
-    (x).sigma_fac2[y][0].data(), (x).sigma_fac2[y][0].m_lo, (x).sigma_fac2[y][0].m_hi, \
-    (x).sigma_fac1[y][1].data(), (x).sigma_fac1[y][1].m_lo, (x).sigma_fac1[y][1].m_hi, \
-    (x).sigma_fac2[y][1].data(), (x).sigma_fac2[y][1].m_lo, (x).sigma_fac2[y][1].m_hi
+#define WRPX_PML_TO_FORTRAN(x)                              \
+    (x).sigma_fac[0].data(), (x).sigma_fac[0].m_lo, (x).sigma_fac[0].m_hi, \
+    (x).sigma_fac[1].data(), (x).sigma_fac[1].m_lo, (x).sigma_fac[1].m_hi, \
+    (x).sigma_star_fac[0].data(), (x).sigma_star_fac[0].m_lo, (x).sigma_star_fac[0].m_hi, \
+    (x).sigma_star_fac[1].data(), (x).sigma_star_fac[1].m_lo, (x).sigma_star_fac[1].m_hi
 
 #endif
 

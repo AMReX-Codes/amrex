@@ -115,6 +115,9 @@ public:
     void EvolveF (         amrex::Real dt);
     void EvolveF (int lev, amrex::Real dt);
 
+    void DampPML ();
+    void DampPML (int lev);
+
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
 

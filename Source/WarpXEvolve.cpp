@@ -119,6 +119,10 @@ WarpX::EvolveEM (int numsteps)
         EvolveE(dt[0]); // We now have E^{n+1}
         FillBoundaryE();
         EvolveB(0.5*dt[0]); // We now have B^{n+1}
+        if (do_pml) {
+            DampPML();
+            FillBoundaryE();
+        }
         FillBoundaryB();
 #endif
 
@@ -303,18 +307,12 @@ WarpX::EvolveB (int lev, Real dt)
         }
     }
 
-// xxxxx
-#if 0
     if (do_pml && pml[lev]->ok())
     {
-        const int dttype = static_cast<int>(typ);
-
         for (int ipatch = 0; ipatch < npatches; ++ipatch)
         {
             const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
-            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
-                                            : pml[lev]->GetMultiSigmaBox_cp();
 	    int patch_level = (ipatch == 0) ? lev : lev-1;
 	    const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
 	    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
@@ -337,13 +335,11 @@ WarpX::EvolveB (int lev, Real dt)
                     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-		    WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi],dttype),
 		    &dtsdx[0], &dtsdx[1], &dtsdx[2],
 		    &WarpX::maxwell_fdtd_solver_id);
             }
         }
     }
-#endif
 }
 
 void
@@ -363,7 +359,7 @@ WarpX::EvolveE (int lev, Real dt)
     const int norder = 2;
     static constexpr Real c2 = PhysConst::c*PhysConst::c;
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
-    const Real foo = (PhysConst::c*PhysConst::c) * dt;
+    const Real c2dt = (PhysConst::c*PhysConst::c) * dt;
 
     int npatches = (lev == 0) ? 1 : 2;
 
@@ -371,7 +367,7 @@ WarpX::EvolveE (int lev, Real dt)
     {
         int patch_level = (ipatch == 0) ? lev : lev-1;
         const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
-        const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
+        const std::array<Real,3> dtsdx_c2 {c2dt/dx[0], c2dt/dx[1], c2dt/dx[2]};
 
         MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz, *F;
         if (ipatch == 0)
@@ -453,21 +449,18 @@ WarpX::EvolveE (int lev, Real dt)
         }
     }
 
-#if 0
     if (do_pml && pml[lev]->ok())
     {
         pml[lev]->ExchangeF(F_fp[lev].get(), F_cp[lev].get());
-
-        const int dttype = static_cast<int>(typ);
 
         for (int ipatch = 0; ipatch < npatches; ++ipatch)
         {
             const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
-            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
-                                            : pml[lev]->GetMultiSigmaBox_cp();
-            const MultiFab* pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
-
+            const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+            int patch_level = (ipatch == 0) ? lev : lev-1;
+            const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
+            const std::array<Real,3> dtsdx_c2 {c2dt/dx[0], c2dt/dx[1], c2dt/dx[2]};
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -487,10 +480,12 @@ WarpX::EvolveE (int lev, Real dt)
                     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                    WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi],dttype));
+                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
 
                 if (pml_F)
                 {
+                    amrex::Abort("pml_F");
+#if 0
                     WRPX_PUSH_PML_EVEC_F(
                         tex.loVect(), tex.hiVect(),
                         tey.loVect(), tey.hiVect(),
@@ -501,11 +496,11 @@ WarpX::EvolveE (int lev, Real dt)
                         BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
                         WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi],dttype),
                         &c2);
+#endif
                 }
             }
         }
     }
-#endif
 }
 
 void
@@ -587,6 +582,65 @@ WarpX::EvolveF (int lev, Real dt)
         }
 #endif
 
+    }
+}
+
+void
+WarpX::DampPML ()
+{
+    if (!do_pml) return;
+
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        DampPML(lev);
+    }
+}
+
+void
+WarpX::DampPML (int lev)
+{
+    if (!do_pml) return;
+
+    BL_PROFILE("WarpX::DampPML()");
+
+    int npatches = (lev == 0) ? 1 : 2;
+
+    for (int ipatch = 0; ipatch < npatches; ++ipatch)
+    {
+        if (pml[lev]->ok())
+        {
+            const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+            const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
+            // xxxxx const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
+                                            : pml[lev]->GetMultiSigmaBox_cp();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
+            {
+                const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+                const Box& tey  = mfi.tilebox(Ey_nodal_flag);
+                const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+                const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+                const Box& tby  = mfi.tilebox(By_nodal_flag);
+                const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+
+                WRPX_DAMP_PML(tex.loVect(), tex.hiVect(),
+                              tey.loVect(), tey.hiVect(),
+                              tez.loVect(), tez.hiVect(),
+                              tbx.loVect(), tbx.hiVect(),
+                              tby.loVect(), tby.hiVect(),
+                              tbz.loVect(), tbz.hiVect(),
+                              BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                              BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                              BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                              BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                              BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                              BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                              WRPX_PML_TO_FORTRAN(sigba[mfi]));
+            }
+        }
     }
 }
 
