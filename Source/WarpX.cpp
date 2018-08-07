@@ -213,18 +213,6 @@ WarpX::ReadParameters ()
     {
 	ParmParse pp("warpx");
 
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            amrex::Print() << geom[0].ProbLo(idim) << " ";
-        }
-        amrex::Print() << std::endl;
-
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            amrex::Print() << geom[0].ProbHi(idim) << " ";
-        }
-        amrex::Print() << std::endl;
-        
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
