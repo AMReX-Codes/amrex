@@ -59,6 +59,7 @@ namespace system
     int signal_handling;
     int call_addr2line;
     int throw_exception;
+    int regtest_reduction;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
 }
@@ -310,6 +311,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 {
     system::exename.clear();
     system::verbose = 0;
+    system::regtest_reduction = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
     system::throw_exception = 0;
@@ -401,6 +403,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	ParmParse pp("amrex");
 	pp.query("v", system::verbose);
 	pp.query("verbose", system::verbose);
+
+        pp.query("regtest_reduction", system::regtest_reduction);
 
         pp.query("signal_handling", system::signal_handling);
         pp.query("throw_exception", system::throw_exception);
