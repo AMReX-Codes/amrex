@@ -179,9 +179,9 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor()) {
+      VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);      
       std::string HeaderFileName(plotfilename + "/Header");
       std::ofstream HeaderFile;
-      VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
       HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
       HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
 	                                      std::ofstream::trunc |
