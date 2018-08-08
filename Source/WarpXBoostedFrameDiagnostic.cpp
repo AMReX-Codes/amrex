@@ -277,18 +277,18 @@ writeMetaData()
         
         if (!UtilCreateDirectory(DiagnosticDirectory, 0755))
             CreateDirectoryFailed(DiagnosticDirectory);
-        
+
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+        std::ofstream HeaderFile;
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         std::string HeaderFileName(DiagnosticDirectory + "/Header");
-        std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
-                                 std::ofstream::trunc |
-                                 std::ofstream::binary);
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                                                std::ofstream::trunc |
+                                                std::ofstream::binary);
         if(!HeaderFile.good())
             FileOpenFailed(HeaderFileName);
         
         HeaderFile.precision(17);
-        
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         
         HeaderFile << N_snapshots_ << "\n";
         HeaderFile << dt_snapshots_lab_ << "\n";    
@@ -350,17 +350,17 @@ void
 BoostedFrameDiagnostic::LabSnapShot::
 writeSnapShotHeader() {
     if (ParallelDescriptor::IOProcessor()) {
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+        std::ofstream HeaderFile;
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         std::string HeaderFileName(file_name + "/Header");
-        std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
-                                 std::ofstream::trunc |
-                                 std::ofstream::binary);
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                                                std::ofstream::trunc |
+                                                std::ofstream::binary);
         if(!HeaderFile.good())
             FileOpenFailed(HeaderFileName);
         
         HeaderFile.precision(17);
-        
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         
         HeaderFile << t_lab << "\n";
         HeaderFile << zmin_lab << "\n";

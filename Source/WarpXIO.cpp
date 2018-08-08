@@ -25,18 +25,18 @@ WarpX::WriteWarpXHeader(const std::string& name) const
 {
    if (ParallelDescriptor::IOProcessor())
     {
+	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+	std::ofstream HeaderFile;
+	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 	std::string HeaderFileName(name + "/WarpXHeader");
-	std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
-				                         std::ofstream::trunc |
-				                         std::ofstream::binary);
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                                                std::ofstream::trunc |
+                                                std::ofstream::binary);
 	if( ! HeaderFile.good()) {
 	    amrex::FileOpenFailed(HeaderFileName);
 	}
 
 	HeaderFile.precision(17);
-
-	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
 	HeaderFile << "Checkpoint version: 1\n";
 
