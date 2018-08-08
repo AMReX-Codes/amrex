@@ -2018,6 +2018,10 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
   VisMF::PersistentIFStream &pifs = VisMF::persistentIFStreams[fileName];
   if( ! pifs.isOpen) {
     pifs.pstr = new std::ifstream;
+    if(setBuf) {
+      pifs.ioBuffer.resize(ioBufferSize);
+      pifs.pstr->rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
+    }
     pifs.pstr->open(fileName.c_str(), std::ios::in | std::ios::binary);
     if( ! pifs.pstr->good()) {
       delete pifs.pstr;
@@ -2025,10 +2029,6 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
     }
     pifs.isOpen = true;
     pifs.currentPosition = 0;
-    if(setBuf) {
-      pifs.ioBuffer.resize(ioBufferSize);
-      pifs.pstr->rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
-    }
   }
 
   return pifs.pstr;
