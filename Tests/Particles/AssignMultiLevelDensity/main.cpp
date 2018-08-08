@@ -104,9 +104,9 @@ void test_assign_density(TestParams& parms)
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
     //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
-    myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
+    myPC.AssignDensity(0, partMF, 0, 1, nlevs-1);
 
-    myPC.InterpolateFort(acceleration, 0, nlevs-1);
+    myPC.Interpolate(acceleration, 0, nlevs-1);
 
     for (int lev = 0; lev < nlevs; ++lev) {
         MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
