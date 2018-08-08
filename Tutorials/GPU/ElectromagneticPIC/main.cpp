@@ -3,6 +3,7 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_Utility.H>
 
 #include "ElectromagneticParticleContainer.H"
 #include "Evolve.H"
@@ -22,6 +23,7 @@ struct TestParams
     int nsteps;
     int problem_type;
     bool write_plot;
+    bool output_error;
 };
 
 enum ProblemType {UniformPlasma = 0, Langmuir};
@@ -131,7 +133,7 @@ void test_em_pic(const TestParams& parms)
     Real time = 0.0;
     for (int step = 0; step < nsteps; ++step)
     {         
-        amrex::Print() << "    Time step: " <<  step << std::endl;
+        amrex::Print() << "    Time step: " << (step+1) << std::endl;
 
         if (synchronized)
         {
@@ -176,6 +178,11 @@ void test_em_pic(const TestParams& parms)
         }
 
         time += dt;
+
+        if ((parms.problem_type == Langmuir) && (parms.output_error))
+        {
+            check_solution(jx, geom, time);
+        } 
     }
     
     amrex::Print() << "Done. " << std::endl;
@@ -229,12 +236,13 @@ int main(int argc, char* argv[])
     amrex::InitRandom(451);
 
     ParmParse pp;    
-    TestParams parms;    
+    TestParams parms; 
     pp.get("ncell", parms.ncell);
     pp.get("nppc",  parms.nppc);
     pp.get("max_grid_size", parms.max_grid_size);
     pp.get("nsteps", parms.nsteps);
     pp.get("write_plot", parms.write_plot);
+    pp.get("output_error", parms.output_error);
 
     std::string problem_name;
     pp.get("problem_type", problem_name);
@@ -251,7 +259,13 @@ int main(int argc, char* argv[])
         amrex::Abort("Problem not recognized");
     }
 
+    double timer = amrex::second();
+
     test_em_pic(parms);
-    
+
+    timer = amrex::second() - timer;
+
+    amrex::Print() << "Time to completion: " << timer << " seconds" << std::endl << std::endl;
+
     amrex::Finalize();
 }
