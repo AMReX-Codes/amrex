@@ -10,3 +10,4 @@ problem_type = Langmuir
 nsteps = 10
 
 write_plot = false
+output_error = true 

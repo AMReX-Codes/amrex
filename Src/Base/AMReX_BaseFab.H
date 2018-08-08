@@ -947,8 +947,10 @@ public:
                             ForEach (const Box& dstbox, int dstcomp, int numcomp,
                                      const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
     template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
-    template <class F> void Transform (T* dst, const Box& b, int c, int nc, F f) const;
-    template <class F> void Transform (const Box& b, int c, int nc, T const* src, F f);
+    template <class F> 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE void Transform (T* dst, const Box& b, int c, int nc, F f) const;
+    template <class F> 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE void Transform (const Box& b, int c, int nc, T const* src, F f);
 
 protected:
     //! Allocates memory for the BaseFab<T>.
@@ -1133,6 +1135,7 @@ BaseFab<T>::Accumulate (const Box& b, int c, int nc, P init, F f) const
 
 template <class T>
 template <class F>
+AMREX_CUDA_HOST AMREX_CUDA_DEVICE
 void
 BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
 {
@@ -1158,6 +1161,7 @@ BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
 
 template <class T>
 template <class F>
+AMREX_CUDA_HOST AMREX_CUDA_DEVICE
 void
 BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f)
 {
