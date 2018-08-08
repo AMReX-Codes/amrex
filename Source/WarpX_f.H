@@ -11,6 +11,7 @@
 
 #define WARPX_TO_FORTRAN_BOX(x) WARPX_ARLIM_ANYD((x).loVect()), WARPX_ARLIM_ANYD((x).hiVect())
 #define WARPX_TO_FORTRAN_ANYD(x) (x).dataPtr(), WARPX_ARLIM_ANYD((x).loVect()), WARPX_ARLIM_ANYD((x).hiVect())
+#define WARPX_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), WARPX_ARLIM_ANYD((x).loVect()), WARPX_ARLIM_ANYD((x).hiVect())
 
 #endif
 
@@ -415,8 +416,9 @@ extern "C"
                              const int* dir);
 
     void WRPX_SYNC_RHO (const int* lo, const int* hi,
-                         BL_FORT_FAB_ARG_ANYD(crse),
-                         const BL_FORT_FAB_ARG_ANYD(fine));
+                        BL_FORT_FAB_ARG_ANYD(crse),
+                        const BL_FORT_FAB_ARG_ANYD(fine),
+                        const int* ncomp);
 
     void WRPX_CLEAN_EVEC (const int* xlo, const int* xhi,
                            const int* ylo, const int* yhi,

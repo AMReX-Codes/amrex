@@ -276,8 +276,7 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* rho, MultiFab* rho2,
-                                Real t, Real dt)
+                                MultiFab* rho, Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
@@ -364,7 +363,7 @@ LaserParticleContainer::Evolve (int lev,
 
             long lvect = 8;
 
-            auto depositCharge = [&] (MultiFab* rhomf)
+            auto depositCharge = [&] (MultiFab* rhomf, int icomp)
             {
                 long ngRho = rhomf->nGrow();
                 long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
@@ -420,16 +419,16 @@ LaserParticleContainer::Evolve (int lev,
                                 ncomp);
 
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_rho),
-                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
+                                                BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
 
 
                 } else {
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
+                                                BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
                 }
             };
 
-            if (rho) depositCharge(rho);
+            if (rho) depositCharge(rho,0);
 
 	    //
 	    // Particle Push
@@ -609,7 +608,7 @@ LaserParticleContainer::Evolve (int lev,
 
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
-            if (rho2) depositCharge(rho2);
+            if (rho) depositCharge(rho,1);
 
 	    //
 	    // copy particle data back

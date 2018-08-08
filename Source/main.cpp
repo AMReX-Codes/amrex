@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     MPI_Init(&argc, &argv);
 #endif
 
-    amrex::Initialize(argc,argv,MPI_COMM_WORLD);
+    amrex::Initialize(argc,argv);
 
     BL_PROFILE_VAR("main()", pmain);
 

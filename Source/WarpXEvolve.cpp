@@ -102,9 +102,6 @@ WarpX::EvolveEM (int numsteps)
         SyncCurrent();
 
         SyncRho(rho_fp, rho_cp);
-#ifdef WARPX_USE_PSATD
-        SyncRho(rho2_fp, rho2_cp);
-#endif
 
         // Push E and B from {n} to {n+1}
         // (And update guard cells immediately afterwards)
@@ -657,17 +654,11 @@ WarpX::PushParticlesandDepose (Real cur_time)
 void
 WarpX::PushParticlesandDepose (int lev, Real cur_time)
 {
-#ifdef WARPX_USE_PSATD
-    MultiFab* prho2 = rho2_fp[lev].get();
-#else
-    MultiFab* prho2 = nullptr;
-#endif
-
     mypc->Evolve(lev,
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
                  *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
-                 rho_fp[lev].get(), prho2, cur_time, dt[lev]);
+                 rho_fp[lev].get(), cur_time, dt[lev]);
 }
 
 void

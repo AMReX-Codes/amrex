@@ -411,22 +411,17 @@ private:
     bool is_synchronized = true;
 
 #ifdef WARPX_USE_PSATD
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_fp;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_cp;
-
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
     // This includes data for the FFT guard cells (between FFT groups)
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_fp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_fp_fft;
 
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_cp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
 
 public:
     // FFTData is a stuct containing a 22 pointers to auxiliary arrays

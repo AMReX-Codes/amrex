@@ -129,17 +129,6 @@ WarpX::AllocLevelDataFFT (int lev)
     FFTDomainDecomposition(lev, ba_fp_fft, dm_fp_fft, ba_valid_fp_fft[lev], domain_fp_fft[lev],
                            geom[lev].Domain());
 
-    int ngRho = Efield_fp[lev][0]->nGrow();
-    if (rho_fp[lev] == nullptr)
-    {
-        const BoxArray& ba = Efield_fp[lev][0]->boxArray();
-        const DistributionMapping& dm = Efield_fp[lev][0]->DistributionMap();
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
-    }
-
-    rho2_fp[lev].reset(new MultiFab(rho_fp[lev]->boxArray(),
-                                    rho_fp[lev]->DistributionMap(),
-                                    1, ngRho+1));
     // rho2 has one extra ghost cell, so that it's safe to deposit charge density after
     // pushing particle.
 
@@ -161,10 +150,8 @@ WarpX::AllocLevelDataFFT (int lev)
                                               dm_fp_fft, 1, 0));
     current_fp_fft[lev][2].reset(new MultiFab(amrex::convert(ba_fp_fft,jz_nodal_flag),
                                               dm_fp_fft, 1, 0));
-    rho_prev_fp_fft[lev].reset(new MultiFab(amrex::convert(ba_fp_fft,IntVect::TheNodeVector()),
-                                            dm_fp_fft, 1, 0));
-    rho_next_fp_fft[lev].reset(new MultiFab(amrex::convert(ba_fp_fft,IntVect::TheNodeVector()),
-                                            dm_fp_fft, 1, 0));
+    rho_fp_fft[lev].reset(new MultiFab(amrex::convert(ba_fp_fft,IntVect::TheNodeVector()),
+                                       dm_fp_fft, 2, 0));
 
     dataptr_fp_fft[lev].reset(new LayoutData<FFTData>(ba_fp_fft, dm_fp_fft));
 
@@ -174,20 +161,6 @@ WarpX::AllocLevelDataFFT (int lev)
         DistributionMapping dm_cp_fft;
         FFTDomainDecomposition(lev, ba_cp_fft, dm_cp_fft, ba_valid_cp_fft[lev], domain_cp_fft[lev],
                                amrex::coarsen(geom[lev].Domain(),2));
-
-        int ngRho = Efield_cp[lev][0]->nGrow();
-        if (rho_cp[lev] == nullptr)
-        {
-            const BoxArray& ba = Efield_cp[lev][0]->boxArray();
-            const DistributionMapping& dm = Efield_cp[lev][0]->DistributionMap();
-            rho_cp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
-        }
-
-        rho2_cp[lev].reset(new MultiFab(rho_cp[lev]->boxArray(),
-                                        rho_cp[lev]->DistributionMap(),
-                                        1, ngRho));
-        // rho2 has one extra ghost cell, so that it's safe to deposit charge density after
-        // pushing particle.
 
         Efield_cp_fft[lev][0].reset(new MultiFab(amrex::convert(ba_cp_fft,Ex_nodal_flag),
                                                  dm_cp_fft, 1, 0));
@@ -207,10 +180,8 @@ WarpX::AllocLevelDataFFT (int lev)
                                                   dm_cp_fft, 1, 0));
         current_cp_fft[lev][2].reset(new MultiFab(amrex::convert(ba_cp_fft,jz_nodal_flag),
                                                   dm_cp_fft, 1, 0));
-        rho_prev_cp_fft[lev].reset(new MultiFab(amrex::convert(ba_cp_fft,IntVect::TheNodeVector()),
-                                                dm_cp_fft, 1, 0));
-        rho_next_cp_fft[lev].reset(new MultiFab(amrex::convert(ba_cp_fft,IntVect::TheNodeVector()),
-                                                dm_cp_fft, 1, 0));
+        rho_cp_fft[lev].reset(new MultiFab(amrex::convert(ba_cp_fft,IntVect::TheNodeVector()),
+                                           dm_cp_fft, 2, 0));
 
         dataptr_cp_fft[lev].reset(new LayoutData<FFTData>(ba_cp_fft, dm_cp_fft));
     }
@@ -420,8 +391,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     current_fp_fft[lev][0]->ParallelCopy(*current_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
     current_fp_fft[lev][1]->ParallelCopy(*current_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
     current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
-    rho_prev_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 1, 0, 0, period_fp);
-    rho_next_fp_fft[lev]->ParallelCopy(*rho2_fp[lev], 0, 0, 1, 0, 0, period_fp);
+    rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 1, 0, 0, period_fp);
     BL_PROFILE_VAR_STOP(blp_copy);
 
     BL_PROFILE_VAR_START(blp_push_eb);
@@ -439,8 +409,8 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
                               WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
                               WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
                               WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*rho_prev_fp_fft[lev])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*rho_next_fp_fft[lev])[mfi]));
+                              WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],0),
+                              WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],1));
 	}
     }
     else if (Efield_fp_fft[lev][0]->local_size() == 0)
