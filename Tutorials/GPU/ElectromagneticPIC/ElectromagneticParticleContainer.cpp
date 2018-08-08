@@ -44,85 +44,31 @@ namespace {
         u[1] = u_mean + uy_th;
         u[2] = u_mean + uz_th;
     }
-/*    
-    struct DeviceBox
-    {
-        int lo[AMREX_SPACEDIM];
-        int hi[AMREX_SPACEDIM];
-        
-        DeviceBox() 
-        {
-            for (int i = 0; i < AMREX_SPACEDIM; ++i) 
-            {
-                lo[i] = 0;
-                hi[i] = 0;
-            }
-        }
-        
-        DeviceBox(const Box& a_box)
-        {
-            for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            {
-                lo[i] = a_box.smallEnd(i);
-                hi[i] = a_box.bigEnd(i);
-            }
-        }
-    };
 
-    struct DeviceDomain
-    {
-        Real left_edge[AMREX_SPACEDIM];
-        Real inverse_dx[AMREX_SPACEDIM];
-        
-        DeviceDomain(const Geometry& geom) {
-            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-                left_edge[i] = geom.ProbLo(i);            
-                inverse_dx[i] = geom.InvCellSize(i);
 
-            }
-        }
-    };
-*/
     struct assignParticle
     {        
         GeometryData domain;
         Box box;
-        const Real* mask_ptr;
+        BaseFab<Real>* mask_ptr;
         
         AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
         assignParticle(const GeometryData& a_domain,
                        const Box&          a_box,
-                       const Real*         a_mask_ptr) 
+                       BaseFab<Real>*      a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Tuple>
         AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
         int operator()(Tuple tup) const {
-//            i,j,k -> IntVect()
-            int i = floor((thrust::get<0>(tup) - domain.ProbLo()[0]) / domain.CellSize()[0]);
-            int j = floor((thrust::get<1>(tup) - domain.ProbLo()[1]) / domain.CellSize()[1]);
-            int k = floor((thrust::get<2>(tup) - domain.ProbLo()[2]) / domain.CellSize()[2]);
-/*
-            long offset;
-            IntVect x = (floor((thrust::get<0>(tup) - domain.ProbLo()[0]) / domain.CellSize()[0]),
-                         floor((thrust::get<1>(tup) - domain.ProbLo()[1]) / domain.CellSize()[1]),
-                         floor((thrust::get<2>(tup) - domain.ProbLo()[2]) / domain.CellSize()[2]));
-            mask_ptr.getVal(offset, x);
-*/
-//            BaseFab.getVal(box.lo());
-//            a_mask_ptr -> BaseFab;
-//            T* data;
-//            mask_ptr.getVal(data, x);
 
-            long offset = i - box.smallEnd(0);
-#if   AMREX_SPACEDIM==2
-            offset += (box.bigEnd(0) - box.smallEnd(0) + 1) * (j - box.smallEnd(1));
-#elif AMREX_SPACEDIM==3
-            offset += (box.bigEnd(0) - box.smallEnd(0) + 1) * (j - box.smallEnd(1)
-                                                               + (k - box.smallEnd(2)) * (box.bigEnd(1) - box.smallEnd(1) + 1));
-#endif
+            IntVect offset = IntVect(floor((thrust::get<0>(tup) - domain.ProbLo()[0]) / domain.CellSize()[0]),
+                                     floor((thrust::get<1>(tup) - domain.ProbLo()[1]) / domain.CellSize()[1]),
+                                     floor((thrust::get<2>(tup) - domain.ProbLo()[2]) / domain.CellSize()[2]));
 
-            return mask_ptr[offset];
+            Real data;
+            mask_ptr->getVal(&data, offset);
+            return data;
         }
     };
     
@@ -543,9 +489,9 @@ OK ()
         thrust::transform(soa.begin(),
                           soa.end(),
                           grid_indices.begin(),
-                          assignParticle(m_geom.data(),
-                                         (*m_mask_ptr)[i].box(),
-                                         (*m_mask_ptr)[i].dataPtr()));
+                          assignParticle( m_geom.data(),
+                                          (*m_mask_ptr)[i].box(),
+                                          &((*m_mask_ptr)[i]) ));
 
         int count = thrust::count_if(grid_indices.begin(),
                                      grid_indices.end(),
@@ -582,9 +528,9 @@ Redistribute()
         
         thrust::transform(thrust::device, attribs.begin(), attribs.end(),
                           grids.begin(),
-                          assignParticle(m_geom.data(),
-                                         (*m_mask_ptr)[src_grid].box(),
-                                         (*m_mask_ptr)[src_grid].dataPtr()));
+                          assignParticle( m_geom.data(),
+                                          (*m_mask_ptr)[src_grid].box(),
+                                          &((*m_mask_ptr)[src_grid]) ));
 
                 
         thrust::copy(grids.begin(), grids.end(), grids_copy.begin());
