@@ -28,8 +28,8 @@ contains
       do j = lo(2)+1, hi(2)-1
       !xface
         y = yl + (dble(j) + 0.5d0)*dx(2)
-        phi(lo(1),j,k) = f3(x,y,z)
-        phi(hi(1),j,k) = f3(x,y,z)
+        phi(lo(1),j,k) = f3(xl,y,z)
+        phi(hi(1),j,k) = f3(xh,y,z)
       end do
       do i = lo(1)+1, hi(1)-1
       !yface
