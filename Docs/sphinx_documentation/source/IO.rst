@@ -178,10 +178,10 @@ can also be used. For example,
    // write Header file
    if (ParallelDescriptor::IOProcessor()) {
 
-       std::string HeaderFileName(checkpointname + "/Header");
-       std::ofstream HeaderFile;
        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+       std::ofstream HeaderFile;
        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+       std::string HeaderFileName(checkpointname + "/Header");
        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
 		                               std::ofstream::trunc |
                                                std::ofstream::binary);
