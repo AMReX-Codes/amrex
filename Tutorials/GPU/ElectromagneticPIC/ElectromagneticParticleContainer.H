@@ -19,7 +19,7 @@ class ElectromagneticParticleContainer
     amrex::DistributionMapping m_dmap;
 
     std::map<int, Particles> m_particles;
-    std::unique_ptr<amrex::MultiFab> m_mask_ptr;
+    std::unique_ptr<amrex::iMultiFab> m_mask_ptr;
 
 public:
 

@@ -3,6 +3,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_CUDA_Utility.H>
 
 #include <thrust/device_vector.h>
@@ -50,12 +51,12 @@ namespace {
     {        
         GeometryData domain;
         Box box;
-        BaseFab<Real>* mask_ptr;
+        BaseFab<int>* mask_ptr;
         
         AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
         assignParticle(const GeometryData& a_domain,
                        const Box&          a_box,
-                       BaseFab<Real>*      a_mask_ptr) 
+                       BaseFab<int>*       a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Tuple>
@@ -66,7 +67,7 @@ namespace {
                                      floor((thrust::get<1>(tup) - domain.ProbLo()[1]) / domain.CellSize()[1]),
                                      floor((thrust::get<2>(tup) - domain.ProbLo()[2]) / domain.CellSize()[2]));
 
-            Real data;
+            int data;
             mask_ptr->getVal(&data, offset);
             return data;
         }
@@ -114,7 +115,7 @@ ElectromagneticParticleContainer(const Geometry            & a_geom,
     BL_PROFILE("ElectromagneticParticleContainer::ElectromagneticParticleContainer");
     
     const int ng = 1;
-    m_mask_ptr.reset(new MultiFab(m_ba, m_dmap, 1, ng));
+    m_mask_ptr.reset(new iMultiFab(m_ba, m_dmap, 1, ng));
     m_mask_ptr->setVal(-1);
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi) {
         const Box& box = mfi.tilebox();
@@ -255,8 +256,8 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 
             if (np == 0) return;
 
-            const Real *plo = geomData.ProbLo();
-            const Real *dx  = geomData.CellSize();
+//            const Real *plo = geomData.ProbLo();
+//            const Real *dx  = geomData.CellSize();
 
             gather_magnetic_field(threadSize, 
                                   &(x[index]), &(y[index]), &(z[index]),
@@ -264,7 +265,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                                   BL_TO_FORTRAN_3D(*magX),
                                   BL_TO_FORTRAN_3D(*magY),
                                   BL_TO_FORTRAN_3D(*magZ),
-                                  plo, dx);
+                                  geomData.ProbLo(), geomData.CellSize());
         
             gather_electric_field(threadSize, 
                                   &(x[index]), &(y[index]), &(z[index]),
@@ -272,7 +273,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                                   BL_TO_FORTRAN_3D(*elecX),
                                   BL_TO_FORTRAN_3D(*elecY),
                                   BL_TO_FORTRAN_3D(*elecZ),
-                                  plo, dx);
+                                  geomData.ProbLo(), geomData.CellSize());
         
             push_momentum_boris(threadSize,
                                 &(ux[index]), &(uy[index]), &(uz[index]),
@@ -293,7 +294,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                             &(x[index]),  &(y[index]),  &(z[index]),
                             &(ux[index]), &(uy[index]), &(uz[index]),
                             &(ginv[index]), &(w[index]),
-                            charge, plo, dt, dx);
+                            charge, geomData.ProbLo(), dt, geomData.CellSize());
 
         };
 
@@ -352,8 +353,8 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
 
             if (np == 0) return;
 
-            const Real *plo = geomData.ProbLo();
-            const Real *dx  = geomData.CellSize();
+//            const Real *plo = geomData.ProbLo();
+//            const Real *dx  = geomData.CellSize();
 
 
             gather_magnetic_field(threadSize, 
@@ -362,7 +363,7 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
                                   BL_TO_FORTRAN_3D(*magX),
                                   BL_TO_FORTRAN_3D(*magY),
                                   BL_TO_FORTRAN_3D(*magZ),
-                                  plo, dx);
+                                  geomData.ProbLo(), geomData.CellSize());
 
             gather_electric_field(threadSize, 
                                   &(x[index]), &(y[index]), &(z[index]),
@@ -370,7 +371,7 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
                                   BL_TO_FORTRAN_3D(*elecX),
                                   BL_TO_FORTRAN_3D(*elecY),
                                   BL_TO_FORTRAN_3D(*elecZ),
-                                  plo, dx);
+                                  geomData.ProbLo(), geomData.CellSize());
         
             push_momentum_boris(threadSize,
                                 &(ux[index]), &(uy[index]), &(uz[index]),
@@ -443,6 +444,7 @@ EnforcePeriodicBCs()
         Real* x = particles.x().data();
         Real* y = particles.y().data();
         Real* z = particles.z().data();
+//        ParticlesData pData = particles.data();
         const GeometryData& geomData = m_geom.data();
 
         auto periodic = [=] AMREX_CUDA_DEVICE ()
@@ -452,12 +454,14 @@ EnforcePeriodicBCs()
 
             if (threadSize == 0) return;
 
-            const Real *plo = geomData.ProbLo();
-            const Real *phi = geomData.ProbHi();
+//              Real *i = pData.x();
+
+//            const Real *plo = geomData.ProbLo();
+//            const Real *phi = geomData.ProbHi();
         
             enforce_periodic(threadSize,
                              &(x[index]), &(y[index]), &(z[index]),
-                             plo, phi);
+                             geomData.ProbLo(), geomData.ProbLo());
         };
 
         AMREX_PARTICLES_L_LAUNCH(np, periodic);
