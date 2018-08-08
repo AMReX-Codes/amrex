@@ -57,11 +57,9 @@ WriteFab (std::ostream&         os,
 
 #elif (BL_SPACEDIM == 3)
     int nz = fab.box().length(2);
-    os.write((char*)&nz,sizeof(int));
-
-    for (int k = 0; k < nz; k++)
-     for (int i = 0; i < nx; i++)
-      for (int j = 0; j < ny; j++)
+    for (int i = 0; i < nx; i++)
+     for (int j = 0; j < ny; j++)
+      for (int k = 0; k < nz; k++)
       {
         int index = k*(nx*ny) + j*nx + i;
         const Real * ptr = fab.dataPtr();
