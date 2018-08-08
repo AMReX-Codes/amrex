@@ -179,17 +179,18 @@ can also be used. For example,
    if (ParallelDescriptor::IOProcessor()) {
 
        std::string HeaderFileName(checkpointname + "/Header");
-       std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
-				                        std::ofstream::trunc |
-				                        std::ofstream::binary);
+       std::ofstream HeaderFile;
+       VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+       HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+       HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+		                               std::ofstream::trunc |
+                                               std::ofstream::binary);
+
        if( ! HeaderFile.good()) {
            amrex::FileOpenFailed(HeaderFileName);
        }
 
        HeaderFile.precision(17);
-
-       VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-       HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
        // write out title line
        HeaderFile << "Checkpoint file for AmrCoreAdv\n";
