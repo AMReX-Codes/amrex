@@ -57,10 +57,6 @@ class MultiSpecies(PICMI_Base.PICMI_MultiSpecies):
 
 
 class GaussianBunchDistribution(PICMI_Base.PICMI_GaussianBunchDistribution):
-    def init(self, kw):
-        if self.seed is not None:
-            print('Warning: WarpX does not support specifying the random number seed')
-
     def initialize_inputs(self, species_number, layout, species):
         species.injection_style = "gaussian_beam"
         species.x_m = self.centroid_position[0]
@@ -79,7 +75,7 @@ class GaussianBunchDistribution(PICMI_Base.PICMI_GaussianBunchDistribution):
             charge = q_e
         elif charge == '-q_e':
             charge = -q_e
-        species.q_tot = self.number_real_particles*charge
+        species.q_tot = self.n_physical_particles*charge
 
         # --- These need to be defined even though they are not used
         species.profile = "constant"
@@ -196,7 +192,9 @@ class GriddedLayout(PICMI_Base.PICMI_GriddedLayout):
 
 
 class PseudoRandomLayout(PICMI_Base.PICMI_PseudoRandomLayout):
-    pass
+    def init(self, kw):
+        if self.seed is not None:
+            print('Warning: WarpX does not support specifying the random number seed')
 
 
 class BinomialSmoother(PICMI_Base.PICMI_BinomialSmoother):
@@ -277,7 +275,7 @@ class Cartesian3DGrid(PICMI_Base.PICMI_Cartesian3DGrid):
 
 class ElectromagneticSolver(PICMI_Base.PICMI_ElectromagneticSolver):
     def init(self, kw):
-        assert self.method is None or self.method in ['Yee'], Exception("Only 'Yee' FDTD is supported")
+        assert self.method is None or self.method in ['Yee', 'CKC'], Exception("Only 'Yee' and 'CKC' FDTD are supported")
 
         self.do_pml = kw.pop('warpx_do_pml', None)
 
@@ -286,6 +284,9 @@ class ElectromagneticSolver(PICMI_Base.PICMI_ElectromagneticSolver):
         self.grid.initialize_inputs()
 
         pywarpx.warpx.do_pml = self.do_pml
+
+        # --- Same method names are used, though mapped to lower case.
+        pywarpx.warpx.maxwell_fdtd_solver = self.method
 
         if self.cfl is not None:
             pywarpx.warpx.cfl = self.cfl
@@ -347,6 +348,10 @@ class Simulation(PICMI_Base.PICMI_Simulation):
         pywarpx.warpx.verbose = self.verbose
         if self.time_step_size is not None:
             pywarpx.warpx.const_dt = self.timestep
+
+        if self.gamma_boost is not None:
+            pywarpx.warpx.gamma_boost = self.gamma_boost
+            pywarpx.warpx.boost_direction = z
 
         pywarpx.amr.plot_int = self.plot_int
         pywarpx.amr.plot_file = self.plot_file
