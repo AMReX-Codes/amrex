@@ -134,6 +134,8 @@ private:
 
     Vector<std::unique_ptr<iMultiFab> > fine_mask;
 
+    Vector<Vector<Real> > volinv;  // used by makeSolvable
+
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
 
@@ -169,7 +171,10 @@ private:
 
     void averageDownAndSync ();
 
-    Real getNodalSum (int amrlve, int mglev, MultiFab& mf) const;
+    void computeVolInv ();
+    void makeSolvable ();
+    void makeSolvable (int amrlev, int mglev, MultiFab& mf);
+    Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
 
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
 };
