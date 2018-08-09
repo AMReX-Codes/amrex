@@ -161,7 +161,53 @@ class UniformDistribution(PICMI_Base.PICMI_UniformDistribution):
 
 class AnalyticDistribution(PICMI_Base.PICMI_AnalyticDistribution):
     def initialize_inputs(self, species_number, layout, species):
-        raise Exception('WarpX does not support AnalyticDistribution')
+
+        if isinstance(layout, GriddedLayout):
+            # --- Note that the grid attribute of GriddedLayout is ignored
+            species.injection_style = "nuniformpercell"
+            species.num_particles_per_cell_each_dim = layout.n_macroparticle_per_cell
+        elif isinstance(layout, PseudoRandomLayout):
+            assert (layout.n_macroparticles_per_cell is not None), Exception('WarpX only supports n_macroparticles_per_cell for the PseudoRandomLayout with UniformDistribution')
+            species.injection_style = "nrandompercell"
+            species.num_particles_per_cell = layout.n_macroparticles_per_cell
+        else:
+            raise Exception('WarpX does not support the specified layout for UniformDistribution')
+
+        species.xmin = self.lower_bound[0]
+        species.xmax = self.upper_bound[0]
+        species.ymin = self.lower_bound[1]
+        species.ymax = self.upper_bound[1]
+        species.zmin = self.lower_bound[2]
+        species.zmax = self.upper_bound[2]
+
+        # --- Only constant density is supported at this time
+        species.profile = "parse_density_function"
+        species.__setattr__('density_function(x,y,z)', self.density_expression)
+
+        for k,v in self.user_defined_kw.items():
+            setattr(pywarpx.constants, k, v)
+
+        if np.any(np.not_equal(self.rms_velocity, 0.)):
+            species.momentum_distribution_type = "gaussian"
+            species.ux_m = self.directed_velocity[0]
+            species.uy_m = self.directed_velocity[1]
+            species.uz_m = self.directed_velocity[2]
+            species.ux_th = self.rms_velocity[0]
+            species.uy_th = self.rms_velocity[1]
+            species.uz_th = self.rms_velocity[2]
+        else:
+            species.momentum_distribution_type = "constant"
+            species.ux = self.directed_velocity[0]
+            species.uy = self.directed_velocity[1]
+            species.uz = self.directed_velocity[2]
+
+        if self.fill_in:
+            pywarpx.warpx.do_plasma_injection = 1
+            if not hasattr(pywarpx.warpx, 'injected_plasma_species'):
+                pywarpx.warpx.injected_plasma_species = []
+
+            pywarpx.warpx.injected_plasma_species.append(species_number)
+            pywarpx.warpx.num_injected_species = len(pywarpx.warpx.injected_plasma_species)
 
 
 class ParticleList(PICMI_Base.PICMI_ParticleList):
