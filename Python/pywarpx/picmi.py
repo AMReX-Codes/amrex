@@ -31,6 +31,9 @@ class Species(PICMI_Base.PICMI_Species):
         elif self.particle_type == 'anti-proton':
             if self.charge is None: self.charge = '-q_e'
             if self.mass is None: self.mass = 'm_p'
+        elif self.particle_type == 'H' and self.charge_state == 1:
+            if self.charge is None: self.charge = 'q_e'
+            if self.mass is None: self.mass = 'm_p'
 
     def initialize_inputs(self, layout):
         self.species_number = pywarpx.particles.nspecies
