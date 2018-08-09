@@ -528,12 +528,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     if (do_dive_cleaning)
     {
         F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
     }
 #ifdef WARPX_USE_PSATD
     else
     {
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));        
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));        
     }
 #endif
 
@@ -584,12 +584,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         if (do_dive_cleaning)
         {
             F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, ngF));
-            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
         }
 #ifdef WARPX_USE_PSATD
         else
         {
-            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
         }
 #endif
     }

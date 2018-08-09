@@ -391,7 +391,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     current_fp_fft[lev][0]->ParallelCopy(*current_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
     current_fp_fft[lev][1]->ParallelCopy(*current_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
     current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
-    rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 1, 0, 0, period_fp);
+    rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 2, 0, 0, period_fp);
     BL_PROFILE_VAR_STOP(blp_copy);
 
     BL_PROFILE_VAR_START(blp_push_eb);

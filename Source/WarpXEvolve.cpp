@@ -110,11 +110,12 @@ WarpX::EvolveEM (int numsteps)
         FillBoundaryE();
         FillBoundaryB();
 #else
-        EvolveF(dt[0]);
+        EvolveF(0.5*dt[0], DtType::FirstHalf);
         EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
         FillBoundaryB();
         EvolveE(dt[0]); // We now have E^{n+1}
         FillBoundaryE();
+        EvolveF(0.5*dt[0], DtType::SecondHalf);
         EvolveB(0.5*dt[0]); // We now have B^{n+1}
         if (do_pml) {
             DampPML();
@@ -481,8 +482,6 @@ WarpX::EvolveE (int lev, Real dt)
 
                 if (pml_F)
                 {
-                    amrex::Abort("pml_F");
-#if 0
                     WRPX_PUSH_PML_EVEC_F(
                         tex.loVect(), tex.hiVect(),
                         tey.loVect(), tey.hiVect(),
@@ -491,9 +490,7 @@ WarpX::EvolveE (int lev, Real dt)
                         BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
                         BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
                         BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                        WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi],dttype),
-                        &c2);
-#endif
+                        &dtsdx_c2[0]);
                 }
             }
         }
@@ -501,17 +498,17 @@ WarpX::EvolveE (int lev, Real dt)
 }
 
 void
-WarpX::EvolveF (Real dt)
+WarpX::EvolveF (Real dt, DtType dt_type)
 {
     if (!do_dive_cleaning) return;
 
     for (int lev = 0; lev <= finest_level; ++lev) {
-        EvolveF(lev, dt);
+        EvolveF(lev, dt, dt_type);
     }
 }
 
 void
-WarpX::EvolveF (int lev, Real dt)
+WarpX::EvolveF (int lev, Real dt, DtType dt_type)
 {
     if (!do_dive_cleaning) return;
 
@@ -526,6 +523,7 @@ WarpX::EvolveF (int lev, Real dt)
     {
         int patch_level = (ipatch == 0) ? lev : lev-1;
         const auto& dx = WarpX::CellSize(patch_level);
+        const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
 
         MultiFab *Ex, *Ey, *Ez, *rho, *F;
         if (ipatch == 0)
@@ -545,22 +543,17 @@ WarpX::EvolveF (int lev, Real dt)
             F = F_cp[lev].get();
         }
 
+        const int rhocomp = (dt_type == DtType::FirstHalf) ? 0 : 1;
+
         MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
         ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
-        MultiFab::Saxpy(src, -mu_c2, *rho, 0, 0, 1, 0);
+        MultiFab::Saxpy(src, -mu_c2, *rho, rhocomp, 0, 1, 0);
         MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
 
-// xxxxx
-#if 0
         if (do_pml && pml[lev]->ok())
         {
-            const int dttype = static_cast<int>(typ);
-
             const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
-            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
-                                            : pml[lev]->GetMultiSigmaBox_cp();
-
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -573,12 +566,9 @@ WarpX::EvolveF (int lev, Real dt)
                                 BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
                                 BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
                                 BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
-                                WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi],dttype),
-                                &c2inv);
+                                &dtsdx[0], &dtsdx[1], &dtsdx[2]);
             }
         }
-#endif
-
     }
 }
 
@@ -607,7 +597,7 @@ WarpX::DampPML (int lev)
         {
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
             const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
-            // xxxxx const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+            const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
             const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
                                             : pml[lev]->GetMultiSigmaBox_cp();
 
@@ -636,6 +626,13 @@ WarpX::DampPML (int lev)
                               BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                               BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
                               WRPX_PML_TO_FORTRAN(sigba[mfi]));
+
+                if (pml_F) {
+                    const Box& tnd  = mfi.nodaltilebox();
+                    WRPX_DAMP_PML_F(tnd.loVect(), tnd.hiVect(),
+                                    BL_TO_FORTRAN_3D((*pml_F)[mfi]),
+                                    WRPX_PML_TO_FORTRAN(sigba[mfi]));
+                }
             }
         }
     }

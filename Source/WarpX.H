@@ -26,6 +26,13 @@
 #include <fftw3.h>
 #endif
 
+enum struct DtType : int
+{
+    Full = 0,
+    FirstHalf,
+    SecondHalf
+};
+
 class WarpX
     : public amrex::AmrCore
 {
@@ -112,8 +119,8 @@ public:
     void EvolveE (int lev, amrex::Real dt);
     void EvolveB (         amrex::Real dt);
     void EvolveB (int lev, amrex::Real dt);
-    void EvolveF (         amrex::Real dt);
-    void EvolveF (int lev, amrex::Real dt);
+    void EvolveF (         amrex::Real dt, DtType dt_type);
+    void EvolveF (int lev, amrex::Real dt, DtType dt_type);
 
     void DampPML ();
     void DampPML (int lev);
