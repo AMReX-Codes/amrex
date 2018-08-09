@@ -167,7 +167,20 @@ MyTest::initData ()
             FArrayBox& afab   = acoef[ilev][mfi]; 
             FArrayBox& bfabx  = bcoef[ilev][0][mfi]; 
             FArrayBox& bfaby  = bcoef[ilev][1][mfi];
-            const Box& bx = rhsfab.box(); 
+            const Box& bx = rhsfab.box();
+            build_a_2d(bx.loVect(), bx.hiVect(), 
+                       geom[ilev].ProbLo(), 
+                       geom[ilev].ProbHi(), 
+                       BL_TO_FORTRAN_ANYD(afab), 
+                       dx); 
+                       
+             build_b_2d(bx.loVect(), bx.hiVect(), 
+                       geom[ilev].ProbLo(), 
+                       geom[ilev].ProbHi(), 
+                       BL_TO_FORTRAN_ANYD( bfabx),
+                       BL_TO_FORTRAN_ANYD( bfaby),
+                       dx); 
+            
             build_rhs_2d(bx.loVect(), bx.hiVect(), 
                       BL_TO_FORTRAN_ANYD(rhsfab), 
                       BL_TO_FORTRAN_ANYD(  afab), 
@@ -184,7 +197,23 @@ MyTest::initData ()
             FArrayBox& bfabx  = bcoef[ilev][0][mfi]; 
             FArrayBox& bfaby  = bcoef[ilev][1][mfi];
             FArrayBox& bfabz  = bcoef[ilev][2][mfi];
-            const Box& bx = rhsfab.box(); 
+            const Box& bx = rhsfab.box();
+
+            build_a_3d(bx.loVect(), bx.hiVect(), 
+                       geom[ilev].ProbLo(), 
+                       geom[ilev].ProbHi(), 
+                       BL_TO_FORTRAN_ANYD(afab), 
+                       dx); 
+                       
+             build_b_3d(bx.loVect(), bx.hiVect(), 
+                       geom[ilev].ProbLo(), 
+                       geom[ilev].ProbHi(), 
+                       BL_TO_FORTRAN_ANYD( bfabx),
+                       BL_TO_FORTRAN_ANYD( bfaby),
+                       BL_TO_FORTRAN_ANYD( bfabz),
+                       dx); 
+
+ 
             build_rhs_3d(bx.loVect(), bx.hiVect(), 
                       BL_TO_FORTRAN_ANYD(rhsfab), 
                       BL_TO_FORTRAN_ANYD(  afab), 

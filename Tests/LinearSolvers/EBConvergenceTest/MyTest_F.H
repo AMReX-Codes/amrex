@@ -15,6 +15,20 @@ extern "C" {
                    const amrex_real* by, const int* bylo, const int* byhi, 
                    const amrex_real* dx, const amrex_real* prob_lo, 
                    const amrex_real* prob_hi);
+
+    void build_a_2d(const int* lo, const int* hi,
+                    const amrex_real* prob_lo, 
+                    const amrex_real* prob_hi,
+                    amrex_real* a, const int* alo, const int* ahi, 
+                    const amrex_real* dx);
+
+    void build_b_2d(const int* lo, const int* hi,
+                    const amrex_real* prob_lo, 
+                    const amrex_real* prob_hi,
+                    amrex_real* bx, const int* bxlo, const int* bxhi, 
+                    amrex_real* by, const int* bylo, const int* byhi, 
+                    const amrex_real* dx);
+
 #elif AMREX_SPACEDIM ==3
     void build_rhs_3d(const int* lo, const int* hi, 
                    amrex_real* rhs, const int* rlo, const int* rhi, 
@@ -24,6 +38,21 @@ extern "C" {
                    const amrex_real* bz, const int* bzlo, const int* bzhi, 
                    const amrex_real* dx, const amrex_real* prob_lo, 
                    const amrex_real* prob_hi);
+
+    void build_a_3d(const int* lo, const int* hi,
+                    const amrex_real* prob_lo, 
+                    const amrex_real* prob_hi,
+                    amrex_real* a, const int* alo, const int* ahi, 
+                    const amrex_real* dx);
+
+    void build_b_3d(const int* lo, const int* hi,
+                    const amrex_real* prob_lo, 
+                    const amrex_real* prob_hi,
+                    amrex_real* bx, const int* bxlo, const int* bxhi, 
+                    amrex_real* by, const int* bylo, const int* byhi, 
+                    amrex_real* bz, const int* bzlo, const int* bzhi, 
+                    const amrex_real* dx);
+
 #endif
     void apply_bc(const int* lo, const int* hi, 
                   amrex_real* phi, const int* phlo, const int* phhi, 

@@ -43,9 +43,9 @@ contains
       enddo
       !Boundary Case xlo and xhi, y inside
       b   = 0.25d0*(bx(lo(1)+1,j) + bx(lo(1),j) + by(lo(1),j+1) + by(lo(1),j))
-      dyb = (by(lo(1), j+1) - by(lo(1),j))*dyinv
+      dyb = (by(lo(1), j+1) - by(lo(1),j))*(dyinv)
       x = xl - 0.5d0
-      dxb = (bx(lo(1)+1,j)-bx(lo(1),j))*dxinv
+      dxb = (bx(lo(1)+1,j)-bx(lo(1),j))*dxinv 
       denom = sqrt(x**2 + y*y)
       term1 = a(lo(1),j)*x/denom
       term2 = (y*(y*dxb - x*dyb) - x*b)/(denom**3)
@@ -54,7 +54,7 @@ contains
       dyb = (by(hi(1), j+1) - by(hi(1), j))*dyinv
       x = xh - 0.5d0 
       b   = 0.25d0*(bx(hi(1)+1,j) + bx(hi(1),j) + by(hi(1),j+1) + by(hi(1),j))
-      dxb = (bx(hi(1)+1, j) - bx(hi(1),j))*dxinv
+      dxb = (bx(hi(1)+1, j) - bx(hi(1),j))*(dxinv*0.5)
       denom = sqrt((x)**2 + y*y)
       term1 = a(hi(1),j)*x/denom
       term2 = (y*(y*dxb - x*dyb) - x*b)/(denom**3)
