@@ -3,7 +3,8 @@
 # Center for Computational Science and Engineering
 # Lawrence Berkeley National Laboratory
 
-# Runs the EB Elliptic Test Solver for n_cell = 32 to 1024 
+# Runs the EB Elliptic Test Solver for n_cell = 32 to 1024 for 2D 
+# and n_cell = 16 to 256 for 3D. 
 # Then converts the multifabs into a .mat file 
 # After all processing it moves the mat files into the Results folder.
 # Within the Results folder there is an octave file for plotting the results 
