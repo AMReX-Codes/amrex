@@ -160,7 +160,6 @@ WarpX::WarpX ()
     Bfield_cp_fft.resize(nlevs_max);
     current_cp_fft.resize(nlevs_max);
     rho_cp_fft.resize(nlevs_max);
-    rho_next_cp_fft.resize(nlevs_max);
 
     dataptr_fp_fft.resize(nlevs_max);
     dataptr_cp_fft.resize(nlevs_max);
