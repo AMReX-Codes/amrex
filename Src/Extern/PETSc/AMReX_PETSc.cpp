@@ -108,6 +108,10 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs
         m_factory = &(rhs.Factory());
         prepareSolver();
     }
+    else
+    {
+        m_factory = &(rhs.Factory());
+    }
 
     loadVectors(soln, rhs);
 
