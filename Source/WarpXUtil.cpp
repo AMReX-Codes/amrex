@@ -1,5 +1,7 @@
-#include <WarpXUtil.H>
+#include <cmath>
 
+#include <WarpXUtil.H>
+#include <WarpXConst.H>
 #include <AMReX_ParmParse.H>
 
 using namespace amrex;
@@ -62,9 +64,12 @@ void ConvertLabParamsToBoost()
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (boost_direction[dim_map[idim]]) {
-            prob_lo[idim] += prob_lo[idim] * gamma_boost * (1.0 + beta_boost*beta_boost);
-            prob_hi[idim] += prob_hi[idim] * gamma_boost * (1.0 + beta_boost*beta_boost);
-            break;
+	  amrex::Real convert_factor;
+	  // Assume that the window travels with speed +c
+	  convert_factor = 1./( gamma_boost * ( 1 - beta_boost ) );
+          prob_lo[idim] *= convert_factor;
+	  prob_hi[idim] *= convert_factor;
+          break;
         }
     }
     
