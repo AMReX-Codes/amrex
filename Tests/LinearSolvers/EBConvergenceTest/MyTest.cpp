@@ -179,7 +179,7 @@ MyTest::initData ()
                        geom[ilev].ProbHi(), 
                        BL_TO_FORTRAN_ANYD( bfabx),
                        BL_TO_FORTRAN_ANYD( bfaby),
-                       dx); 
+                       dx); // */
             
             build_rhs_2d(bx.loVect(), bx.hiVect(), 
                       BL_TO_FORTRAN_ANYD(rhsfab), 
@@ -211,7 +211,7 @@ MyTest::initData ()
                        BL_TO_FORTRAN_ANYD( bfabx),
                        BL_TO_FORTRAN_ANYD( bfaby),
                        BL_TO_FORTRAN_ANYD( bfabz),
-                       dx); 
+                       dx); // */
 
  
             build_rhs_3d(bx.loVect(), bx.hiVect(), 

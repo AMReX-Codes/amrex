@@ -6,12 +6,12 @@
 % Lawrence Berkeley National Laboratory 
 
     num = [5 6 7 8 9 10]; %actually log2 num
-    [fab32  ,  dim32] = mfread( 'phi-0_32.mat' ); 
-    [fab64  ,  dim64] = mfread( 'phi-0_64.mat' ); 
-    [fab128 , dim128] = mfread('phi-0_128.mat' ); 
-    [fab256 , dim256] = mfread('phi-0_256.mat' );
-    [fab512 , dim512] = mfread('phi-0_512.mat' ); 
-    [fab1024,dim1024] = mfread('phi-0_1024.mat'); 
+    [fab32  ,  dim32] = mfread2( 'phi-0_32.mat' ); 
+    [fab64  ,  dim64] = mfread2( 'phi-0_64.mat' ); 
+    [fab128 , dim128] = mfread2('phi-0_128.mat' ); 
+    [fab256 , dim256] = mfread2('phi-0_256.mat' );
+    [fab512 , dim512] = mfread2('phi-0_512.mat' ); 
+    [fab1024,dim1024] = mfread2('phi-0_1024.mat'); 
    
     x32 = zeros(1,dim32(1)); 
     x32(2:end-1) = ([0:31] + 0.5)*1/32; 
