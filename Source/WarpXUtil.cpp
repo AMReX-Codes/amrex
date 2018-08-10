@@ -64,15 +64,14 @@ void ConvertLabParamsToBoost()
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (boost_direction[dim_map[idim]]) {
-	  amrex::Real convert_factor;
-	  // Assume that the window travels with speed +c
-	  convert_factor = 1./( gamma_boost * ( 1 - beta_boost ) );
-          prob_lo[idim] *= convert_factor;
-	  prob_hi[idim] *= convert_factor;
-          break;
+            amrex::Real convert_factor;
+            // Assume that the window travels with speed +c
+            convert_factor = 1./( gamma_boost * ( 1 - beta_boost ) );
+            prob_lo[idim] *= convert_factor;
+            prob_hi[idim] *= convert_factor;
+            break;
         }
-    }
-    
+    }    
     pp.addarr("prob_lo", prob_lo);
     pp.addarr("prob_hi", prob_hi);
 }
