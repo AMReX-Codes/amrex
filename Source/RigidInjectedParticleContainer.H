@@ -58,11 +58,12 @@ private:
 
     amrex::Real vzbeam_ave_boosted;
 
-    bool done_injecting = false;
+    amrex::Vector<int> done_injecting;
 
     // Temporary quantites
     amrex::Real zinject_plane_previous;
     amrex::Vector<int> done_injecting_temp;
+    bool done_injecting_lev;
 
 };
 
