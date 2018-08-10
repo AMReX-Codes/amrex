@@ -191,17 +191,17 @@ contains
           dxb = (bx(i+1,j,k) - bx(i,j,k))*dxinv
           rhs(i,j,k) = RHS3(a(i,j,k), b, x, y, z, dxb, dyb, dzb)
         enddo
-        !Xlow faces 
+        !Xlo faces 
         x = xl - 0.5d0
         b = bx(lo(1), j, k)
-        dxb = (bx(lo(1)+1,j,k) - b)*dxinv !Derivatives should be on the face, may need to reconsider dxb
+        dxb = (bx(lo(1)+1,j,k) - b)*dxinv 
         dyb = (by(lo(1),j+1,k) - by(lo(1),j,k))*dyinv
         dzb = (bz(lo(1),j,k+1) - bz(lo(1),j,k))*dzinv 
         rhs(lo(1), j, k) = RHS3(a(lo(1),j,k), b, x, y, z, dxb, dyb, dzb)
 
         !Xhi faces 
         x = xh - 0.5d0
-        b = bx(hi(1),j,k)
+        b = (bx(hi(1),j,k) + bx(hi(1)+1,j,k))*0.5d0
         dxb = (bx(hi(1)+1,j,k) - b)*dxinv 
         dyb = (by(hi(1),j+1,k) - by(hi(1),j,k))*dyinv
         dzb = (bz(hi(1),j,k+1) - bz(hi(1),j,k))*dzinv 
@@ -221,7 +221,7 @@ contains
 
       !Yhi Faces
         y = yh - 0.5d0 
-        b = by(i,hi(2),k)
+        b = (by(i,hi(2),k) + by(i,hi(2)+1,k))*0.5d0
         dxb = (bx(i+1,hi(2),k) - bx(i,hi(2),k))*dxinv
         dyb = (by(i,hi(2)+1,k) - by(i,hi(2),k))*dyinv
         dzb = (bz(i,hi(2),k+1) - bz(i,hi(2),k))*dzinv
@@ -277,7 +277,7 @@ contains
 
         !zhi face 
         z = zh - 0.5d0
-        b = bz(i,j,hi(3))
+        b = (bz(i,j,hi(3)) + bz(i,j,hi(3)+1))*0.5d0 
         dxb = (bx(i+1,j,hi(3))-bx(i,j,hi(3)))*dxinv
         dyb = (by(i,j+1,hi(3))-by(i,j,hi(3)))*dyinv
         dzb = (bz(i,j,hi(3)+1)-b)*dzinv
@@ -430,7 +430,7 @@ end subroutine build_rhs_3D
     real(amrex_real)             :: denom, term1, term2 
       denom = sqrt(x*x + y*y + z*z)
       term1 = a*(x+z)/denom 
-      term2 = (x*x - x*z + y*y)*dzb + (y*y + z*z)*dxb - 2.d0*(x+z)*b - x*y*dyb - y*z*dyb -x*z*dxb
+      term2 = (x*x - x*z + y*y)*dzb + (y*y - x*z + z*z)*dxb - 2.d0*(x+z)*b -(x*y + y*z)*dyb 
       term2 = term2/(denom**3)
       RHS3  = term1 - term2 
   end function 
