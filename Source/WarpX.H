@@ -87,7 +87,7 @@ public:
     // Boosted frame parameters
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
-    static amrex::Vector<amrex::Real> boost_direction;
+    static amrex::Vector<int> boost_direction;
 
     static bool do_dynamic_scheduling;
 
@@ -284,6 +284,10 @@ private:
     void WriteJobInfo (const std::string& dir) const;
 
     std::unique_ptr<amrex::MultiFab> GetCellCenteredData();
+
+    std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedE(int lev) const;
+
+    std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
 
     static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
