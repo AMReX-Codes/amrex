@@ -45,7 +45,7 @@ contains
     enddo
 
     yf = yl + dble(hi(2)+1)*dx(2)
-    do i = lo(1), hi(1)
+    do i = lo(1)+1, hi(1)-1
     !yfaces
       xc = xl + (dble(i) + 0.5d0)*dx(1)
       xf = xl + dble(i)*dx(1)
@@ -272,7 +272,26 @@ contains
       by(hi(1),hi(2),hi(3))   = f(xh,yf,zh)
       by(hi(1),hi(2)+1,hi(3)) = f(xh,yh,zh)
       bz(hi(1),hi(2),hi(3))   = f(xh,yh,zf)
-      bz(hi(1),hi(2),hi(3)+1) = f(xh,yh,zh) 
+      bz(hi(1),hi(2),hi(3)+1) = f(xh,yh,zh)
+
+!      do k = lo(3),hi(3)
+!        do j = lo(2),hi(2)
+!          do i = lo(1),hi(1) 
+!            if(isnan(bx(i,j,k))) then
+!               print*, "Bx is nan! at i, j, k =", i, j, k
+!               pause
+!            endif
+!            if(isnan(by(i,j,k))) then 
+!               print*, "By is nan! at i, j, k =", i, j, k 
+!               pause
+!            endif
+!            if(isnan(bz(i,j,k))) then 
+!               print*, "Bz is nan! at i, j, k =", i, j, k 
+!               pause
+!            endif
+!          enddo
+!        enddo
+!      enddo
   end subroutine build_b_3d
 
   function f2(x,y)

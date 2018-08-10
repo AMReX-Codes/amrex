@@ -1,8 +1,19 @@
 module rhs
  use amrex_fort_module, only : amrex_real
  
-private :: RHS3
+private :: RHS3, dbdx, dbdy, dbdz
 public :: build_rhs_2D, build_rhs_3D
+  interface dbdx 
+    module procedure dbdx2
+    module procedure dbdx3
+  end interface dbdx
+  interface dbdy
+    module procedure dbdy2
+    module procedure dbdy3
+  end interface dbdy
+  interface dbdz 
+    module procedure dbdz3
+  end interface dbdz
 
 contains 
   subroutine build_rhs_2D(lo, hi, rhs, rlo, rhi, &
@@ -33,9 +44,11 @@ contains
       do i  = lo(1)+1, hi(1)-1
         !Inside Domain
         dyb   = (by(i,j+1) - by(i,j))*dyinv
-        b  = 0.25d0*(bx(i+1,j) + bx(i,j) + by(i,j+1) + by(i,j))
-        dxb = (bx(i+1,j) - bx(i,j))*dxinv
-        x   = xl + (dble(i) + 0.5d0)*dx(1) - 0.5d0; 
+        b     = 0.25d0*(bx(i+1,j) + bx(i,j) + by(i,j+1) + by(i,j))
+        dxb   = (bx(i+1,j) - bx(i,j))*dxinv
+        x     = xl + (dble(i) + 0.5d0)*dx(1) - 0.5d0; 
+!        dxb   = dbdx(x,y)
+!        dyb   = dbdy(x,y)
         denom = sqrt(x*x + y*y) 
         term1 = a(i,j)*x/denom
         term2 = (y*(y*dxb -x*dyb) - x*b)/(denom**3)
@@ -45,16 +58,20 @@ contains
       b   = 0.25d0*(bx(lo(1)+1,j) + bx(lo(1),j) + by(lo(1),j+1) + by(lo(1),j))
       dyb = (by(lo(1), j+1) - by(lo(1),j))*(dyinv)
       x = xl - 0.5d0
-      dxb = (bx(lo(1)+1,j)-bx(lo(1),j))*dxinv 
-      denom = sqrt(x**2 + y*y)
+      dxb = (bx(lo(1)+1,j)-bx(lo(1),j))*(dxinv)  
+!      dxb   = dbdx(x,y)
+!      dyb   = dbdy(x,y)
+      denom = sqrt(x*x + y*y)
       term1 = a(lo(1),j)*x/denom
       term2 = (y*(y*dxb - x*dyb) - x*b)/(denom**3)
-      rhs(lo(1),j) = term1 + term2 
+      rhs(lo(1),j) = term1 - term2 
 
       dyb = (by(hi(1), j+1) - by(hi(1), j))*dyinv
       x = xh - 0.5d0 
       b   = 0.25d0*(bx(hi(1)+1,j) + bx(hi(1),j) + by(hi(1),j+1) + by(hi(1),j))
       dxb = (bx(hi(1)+1, j) - bx(hi(1),j))*(dxinv*0.5)
+!      dxb   = dbdx(x,y)
+!      dyb   = dbdy(x,y)
       denom = sqrt((x)**2 + y*y)
       term1 = a(hi(1),j)*x/denom
       term2 = (y*(y*dxb - x*dyb) - x*b)/(denom**3)
@@ -69,6 +86,8 @@ contains
       b   = 0.25d0*(bx(i+1,lo(2)) + bx(i,lo(2)) + by(i,lo(2)+1) + by(i,lo(2)))
       dyb = (by(i, lo(2)+1) - by(i,lo(2)))*dyinv
       dxb = (bx(i+1, lo(2)) - bx(i,lo(2)))*dxinv
+!      dxb   = dbdx(x,y)
+!      dyb   = dbdy(x,y)
       denom = sqrt(x**2 + y**2)
       term1 = a(i,lo(2))*x/denom
       term2 = (y*(y*dxb - x*dyb) - x*b)/(denom**3)
@@ -78,6 +97,8 @@ contains
       b   = 0.25d0*(bx(i+1,hi(2)) + bx(i,hi(2)) + by(i,hi(2)+1) + by(i,hi(2)))
       dyb = (by(i,hi(2)+1) - by(i,hi(2)))*dyinv
       dxb = (bx(i+1,hi(2)) - bx(i,hi(2)))*dxinv
+!      dxb   = dbdx(x,y)
+!      dyb   = dbdy(x,y)
       denom = sqrt(x**2 + y**2)
       term1 = a(i,hi(2))*x/denom
       term2 = (y*(y*dxb - x*dyb) - x*b)/(denom**3)
@@ -413,5 +434,35 @@ end subroutine build_rhs_3D
       term2 = term2/(denom**3)
       RHS3  = term1 - term2 
   end function 
+
+  function dbdx2(x,y)
+  real(amrex_real), intent(in) :: x, y 
+  real(amrex_real) :: dbdx2
+    dbdx2 = cos(x)*cos(y) 
+  end function dbdx2
+
+  function dbdy2(x,y)
+  real(amrex_real), intent(in) :: x, y
+  real(amrex_real) :: dbdy2
+    dbdy2 = -sin(x)*sin(y) 
+  end function dbdy2
+
+  function dbdx3(x,y,z)
+  real(amrex_real), intent(in) :: x,y,z
+  real(amrex_real) :: dbdx3
+    dbdx3 = cos(x)*sin(y)*cos(z)
+  end function dbdx3 
+
+  function dbdy3(x,y,z)
+  real(amrex_real), intent(in) :: x,y,z
+  real(amrex_real) :: dbdy3
+    dbdy3 = sin(x)*cos(y)*cos(z)
+  end function dbdy3
+
+  function dbdz3(x,y,z)
+  real(amrex_real), intent(in) :: x,y,z
+  real(amrex_real) :: dbdz3
+    dbdz3 = -sin(x)*sin(y)*sin(z)
+  end function dbdz3
 
 end module rhs
