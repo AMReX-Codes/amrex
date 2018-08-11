@@ -1,6 +1,10 @@
 /*
-  A very simple example of reading a plotfile and calling a function to an analysis.  Here, we want
-  to do a volume integral of a specified component.
+  A very simple example of reading a plotfile and doing a simple analysis.  Here, we want
+  to do a volume integral of a component specified by name.
+
+  The twist here is to demonstrate what this might look like if the amr data were coming down a 
+  pipe (such as SENSEI, e.g.).  So, we read the plotfile as usual, but mine it for the required
+  data, then put that data into a couple of structs that then are queried from that point forward.
 
   The output is an array of numbers. */
 #include <string>
@@ -22,6 +26,80 @@ print_usage (int,
   exit(1);
 }
 
+struct AMReXMeshHierarchy
+{
+/*
+  A minimal class to describe the AMR hierarchy for analysis routines
+ */
+public:
+  AMReXMeshHierarchy() {}
+  void define(const AmrData& ad) {
+    finestLevel = ad.FinestLevel();
+    int nlevs = finestLevel + 1;
+    ba.resize(nlevs);
+    probSize = ad.ProbSize();
+    probDomain = ad.ProbDomain();
+    refRatio = ad.RefRatio();
+    for (int lev=0; lev<nlevs; ++lev) {
+      ba[lev] = &ad.boxArray(lev);
+    }
+  }
+  int FinestLevel() const {return finestLevel;}
+  const BoxArray &boxArray(int level) const {return *ba[level];}
+  const Vector<int> &RefRatio() const {return refRatio;}
+  const Vector<Real> &ProbSize() const {return probSize;}
+  const Vector<Box> &ProbDomain() const {return probDomain;}
+
+protected:
+  int finestLevel;
+  std::vector<const BoxArray*> ba;
+  Vector<int> refRatio;
+  Vector<Real> probSize;
+  Vector<Box> probDomain;
+};
+
+struct AMReXDataHierarchy
+{
+/*
+  Data on a AMReXMeshHierarchy, currently pointing to MultiFabs of 
+  named variables managed by an AmrData object.
+*/
+public:
+  AMReXDataHierarchy(AmrData& ad, const Vector<std::string>& varNames) {
+    mesh.define(ad);
+    const Vector<std::string>& plotVarNames = ad.PlotVarNames();
+    int nComp = varNames.size();
+    int nlevs = mesh.FinestLevel() + 1;
+    for (int i=0; i<nComp; ++i) {
+      int idx = -1;
+      for (int j=0; j<plotVarNames.size() && idx<0; ++j) {
+        if (plotVarNames[j] == varNames[i]) {idx = j;}
+      }
+      if (ParallelDescriptor::IOProcessor() && idx<0) {
+        Abort("Cannot find variable="+varNames[i]+" in pltfile");
+      }
+      std::vector<MultiFab*> mfs(nlevs);
+      for (int lev=0; lev<nlevs; ++lev) {
+        mfs[lev] = &ad.GetGrids(lev,idx); // Note: This lazily triggers a MultiFab read in the AmrData
+      }
+      varMap[varNames[i]] = std::make_pair(0,mfs);
+    }
+  }
+
+  MultiFab &GetGrids(int level, const std::string& name) {
+    if (varMap.find(name) == varMap.end()) {
+      Abort("Unknown component requested");
+    }
+    return *(varMap[name].second[level]);
+  }
+
+  const AMReXMeshHierarchy& Mesh() const {return mesh;}
+
+protected:
+  AMReXMeshHierarchy mesh;
+  std::map<std::string,std::pair<int,std::vector<MultiFab*>>> varMap;
+};
+
 int
 main (int   argc,
       char* argv[])
@@ -36,6 +114,7 @@ main (int   argc,
   if (pp.contains("help"))
     print_usage(argc,argv);
 
+  // Create the AmrData object from a pltfile on disk
   std::string infile; pp.get("infile",infile);
   DataServices::SetBatchMode();
   Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -48,67 +127,73 @@ main (int   argc,
   int nv = pp.countval("varNames");
   Vector<std::string> varNames(nv); pp.getarr("varNames",varNames,0,nv);
 
-  const Vector<std::string>& plotVarNames = amrData.PlotVarNames();
-  int nCompIn = varNames.size();
+  // Make a data struct for just the variables needed
+  AMReXDataHierarchy data(amrData,varNames);
+  const AMReXMeshHierarchy& mesh = data.Mesh();
 
-  Vector<int> pComp(nCompIn,-1);
-  for (int i=0; i<nCompIn; ++i) {
-    for (int j=0; j<plotVarNames.size() && pComp[i]<0; ++j) {
-      if (plotVarNames[j] == varNames[i]) {pComp[i] = j;}
-    }
-    if (ParallelDescriptor::IOProcessor() && pComp[i]<0) {
-      Abort("Cannot find variable="+varNames[i]+" in pltfile");
-    }
-  }
 
+
+  // Compute the volume integrals
   const int nGrow = 0;
-  const int finestLevel = amrData.FinestLevel();
+  const int finestLevel = mesh.FinestLevel();
   const int nLev = finestLevel + 1;
+  const int nComp = varNames.size();
 
-  Vector<Real> integrals(nCompIn,0);
+  Vector<Real> integrals(nComp,0); // Results, initialized to zero
   for (int lev=0; lev<nLev; ++lev) {
-    const BoxArray ba = amrData.boxArray(lev);
+    const BoxArray ba = mesh.boxArray(lev);
 
+    // Make boxes that are projection of finer ones (if exist)
     const BoxArray baf = lev < finestLevel
-                               ? BoxArray(amrData.boxArray(lev+1)).coarsen(amrData.RefRatio()[lev])
+                               ? BoxArray(mesh.boxArray(lev+1)).coarsen(mesh.RefRatio()[lev])
                                : BoxArray();
+
+    // Compute volume of a cell at this level
     Real vol=1.0;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      vol *= amrData.ProbSize()[d] / amrData.ProbDomain()[lev].length(d);
+      vol *= mesh.ProbSize()[d] / mesh.ProbDomain()[lev].length(d);
     }
 
-    for (int n=0; n<nCompIn; ++n) {
-      const MultiFab &pfData = amrData.GetGrids(lev,pComp[n]);
+    // For each component listed...
+    for (int n=0; n<nComp; ++n) {
+
+      // Make copy of original data because we will modify here
+      const MultiFab &pfData = data.GetGrids(lev,varNames[n]);
       const DistributionMapping dmap(pfData.DistributionMap());
       MultiFab mf(ba,dmap,1,nGrow);
-
       MultiFab::Copy(mf,pfData,0,0,1,nGrow);
 
       Real sm = 0;
-
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:sm)
 #endif
       for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
         FArrayBox& myFab = mf[mfi];
         const Box& box = mfi.tilebox();
+
+        // Zero out covered cells
         if (lev < finestLevel) {
           std::vector< std::pair<int,Box> > isects = baf.intersections(box);                
           for (int ii = 0; ii < isects.size(); ii++) {
             myFab.setVal(0,isects[ii].second,0,1);
           }
         }
+
+        // Get sum over tile, including zeroed covered cells
         sm += myFab.sum(box,0,1);
       }
 
+      // Accumulate to this ranks total
       integrals[n] += sm * vol;
 
     }
   }
 
-  ParallelDescriptor::ReduceRealSum(&(integrals[0]),nCompIn);
+  // Accumulate over ranks
+  ParallelDescriptor::ReduceRealSum(&(integrals[0]),nComp);
 
-  for (int n=0; n<nCompIn; ++n) {
+  // Integrals to stdout
+  for (int n=0; n<nComp; ++n) {
     Print() << integrals[n] << " ";
   }
   Print() << std::endl;
