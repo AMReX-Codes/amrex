@@ -70,6 +70,10 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
   CUDA_VERSION = cc60
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
+ifeq ($(USE_OMP_OFFLOAD),TRUE)
+  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_60
+endif
+
 endif
 
 
@@ -103,5 +107,9 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
   CUDA_VERSION = cc70
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+
+ifeq ($(USE_OMP_OFFLOAD),TRUE)
+  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_70
+endif
 
 endif
