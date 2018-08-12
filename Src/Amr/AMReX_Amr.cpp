@@ -1285,7 +1285,7 @@ Amr::FinalizeInit (Real              strt_time,
     dt_min[0]  = dt_level[0];
     n_cycle[0] = 1;
 
-    for (int lev = 1; lev <= max_level; lev++)
+    for (int lev = 1; lev <= finest_level; lev++)
     {
         dt0           /= n_cycle[lev];
         dt_level[lev]  = dt0;
