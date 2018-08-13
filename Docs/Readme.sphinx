@@ -1,10 +1,10 @@
-(***) We no longer edit the latex at all -- we edit the .rst files in amrex/Docs/sphinx/source in the *development* branch
+(***) We no longer edit the latex at all -- we edit the .rst files in amrex/Docs/sphinx_documentation/source in the *development* branch
 
 To update the online AMReX documentation using sphinx:
 
       1. Checkout the development branch of AMReX
 
-      2. Go to amrex/Docs/sphinx/source and edit the relevant .rst file(s).
+      2. Go to amrex/Docs/sphinx_documentation/source and edit the relevant .rst file(s).
 
       3. Commit your changes.
 
@@ -13,7 +13,7 @@ preview the html locally, you can:
 
         4. Go back into amrex/Docs/sphinx.
 
-        5. Type "make html".  This will build new html files in amrex/Docs/sphinx/build/html
+        5. Type "make html".  This will build new html files in amrex/Docs/sphinx_documentation/build/html
 
 **********************************************************************************
 
@@ -50,4 +50,4 @@ make latexpdf
 (if you have the slimmed-down latex install, then you need to also install the following packages via TexLive Utility: tabulary, varwidth, framed, wrapfig, capt-of, needspace, courier)
 
 
-This will create amrex/Docs/sphinx/build/latex/amrex.pdf
+This will create amrex/Docs/sphinx_documentation/build/latex/amrex.pdf

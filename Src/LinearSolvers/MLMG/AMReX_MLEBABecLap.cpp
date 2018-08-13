@@ -603,7 +603,7 @@ void
 MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
-    BL_PROFILE("MLEBABecLap::Fsmooth()");
+    BL_PROFILE("MLEBABecLap::applyBC()");
 
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
