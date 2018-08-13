@@ -10,7 +10,7 @@ AMReX while compiling their own codes. This will be discussed in more detail in
 the section on :ref:`sec:build:make`.  The second approach is to build install
 AMReX as a library (cf. :ref:`sec:build:lib`).; an application code then uses
 its own build system and links to AMReX as an external library.  Finally, AMReX
-can also be built with Cmake, as detailed in the section on
+can also be built with CMake, as detailed in the section on
 :ref:`sec:build:cmake`.
 
 .. toctree::
