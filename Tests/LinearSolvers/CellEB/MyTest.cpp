@@ -52,7 +52,11 @@ MyTest::solve ()
         mleb.setLevelBC(ilev, &phi[ilev]);
     }
 
-    mleb.setScalars(1.0, 1.0);
+    if (is_periodic) {
+        mleb.setScalars(0.0, 1.0);
+    } else {
+        mleb.setScalars(1.0, 1.0);
+    }
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         mleb.setACoeffs(ilev, acoef[ilev]);
@@ -84,6 +88,7 @@ MyTest::readParameters ()
     pp.query("max_level", max_level);
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
+    pp.query("is_periodic", is_periodic);
 
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);
@@ -107,9 +112,8 @@ MyTest::initGrids ()
     grids.resize(nlevels);
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-    std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
-//    std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,0,0)};
-    Geometry::Setup(&rb, 0, is_periodic.data());
+    std::array<int,AMREX_SPACEDIM> isperiodic{AMREX_D_DECL(is_periodic,is_periodic,is_periodic)};
+    Geometry::Setup(&rb, 0, isperiodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
@@ -164,19 +168,37 @@ MyTest::initData ()
 
         const Real* dx = geom[ilev].CellSize();
 
-        // Initialize Dirichlet boundary
-        for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
+        if (is_periodic)
         {
-            FArrayBox& fab = phi[ilev][mfi];
-            const Box& bx = fab.box();
-            fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
-                    Real rx = (iv[0]+0.5)*dx[0];
-                    Real ry = (iv[1]+0.5)*dx[1];
-                    p = std::sqrt(0.5)*(rx + ry);
-                });
+            constexpr Real pi = 4.0*std::atan(1.0);
+
+            for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
+            {
+                FArrayBox& fab = rhs[ilev][mfi];
+                const Box& bx = fab.box();
+                fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
+                        Real rx = (iv[0]+0.5)*dx[0];
+                        Real ry = (iv[1]+0.5)*dx[1];
+                        p = std::sin(rx*2.*pi + 43.5)*std::sin(ry*2.*pi + 89.);
+                    });
+            }
+        }
+        else
+        {
+            // Initialize Dirichlet boundary
+            for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
+            {
+                FArrayBox& fab = phi[ilev][mfi];
+                const Box& bx = fab.box();
+                fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
+                        Real rx = (iv[0]+0.5)*dx[0];
+                        Real ry = (iv[1]+0.5)*dx[1];
+                        p = std::sqrt(0.5)*(rx + ry);
+                    });
+            }
+            phi[ilev].setVal(0.0, 0, 1, 0); // set interior to zero
         }
 
-        phi[ilev].setVal(0.0, 0, 1, 0);
     }
 }
 
