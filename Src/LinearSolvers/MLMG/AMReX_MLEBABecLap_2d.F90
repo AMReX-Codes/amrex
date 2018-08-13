@@ -410,13 +410,11 @@ contains
       end do
     else
       do   j = lo(2), hi(2)
-        do i = lo(1), hi(1)
+        do i = lo(1), hi(1)+1
           if (is_covered_cell(flag(i,j))) then
              fx(i,j) = zero
-             fy(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              fx(i,j) = -dhx*bx(i,j)*(sol(i,j) - sol(i-1,j))
-             fy(i,j) = -dhy*by(i,j)*(sol(i,j) - sol(i,j-1))
           else
              fxm = bX(i,j)*(sol(i,j)-sol(i-1,j))
              if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
@@ -425,7 +423,16 @@ contains
                 fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(sol(i,jj)-sol(i-1,jj))
              end if
              fx(i,j) = -fxm*dhx
-
+          end if
+        end do
+      end do
+      do   j = lo(2), hi(2)+1
+        do i = lo(1), hi(1)
+          if (is_covered_cell(flag(i,j))) then
+             fy(i,j) = zero
+          else if (is_regular_cell(flag(i,j))) then
+             fy(i,j) = -dhy*by(i,j)*(sol(i,j) - sol(i,j-1))
+          else
              fym = bY(i,j)*(sol(i,j)-sol(i,j-1))
              if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
                 ii = i + int(sign(one,fcy(i,j)))

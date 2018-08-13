@@ -274,24 +274,6 @@ contains
       bz(hi(1),hi(2),hi(3))   = f(xh,yh,zf)
       bz(hi(1),hi(2),hi(3)+1) = f(xh,yh,zh)
 
-!      do k = lo(3),hi(3)
-!        do j = lo(2),hi(2)
-!          do i = lo(1),hi(1) 
-!            if(isnan(bx(i,j,k))) then
-!               print*, "Bx is nan! at i, j, k =", i, j, k
-!               pause
-!            endif
-!            if(isnan(by(i,j,k))) then 
-!               print*, "By is nan! at i, j, k =", i, j, k 
-!               pause
-!            endif
-!            if(isnan(bz(i,j,k))) then 
-!               print*, "Bz is nan! at i, j, k =", i, j, k 
-!               pause
-!            endif
-!          enddo
-!        enddo
-!      enddo
   end subroutine build_b_3d
 
   function f2(x,y)

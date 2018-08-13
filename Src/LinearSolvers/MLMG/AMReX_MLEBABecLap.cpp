@@ -502,7 +502,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const std::array<FArrayBox*,A
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
         auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-       
+
         amrex_mlebabeclap_flux(BL_TO_FORTRAN_BOX(box), 
                                AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
                                             BL_TO_FORTRAN_ANYD(*flux[1]), 
@@ -518,7 +518,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const std::array<FArrayBox*,A
                                             BL_TO_FORTRAN_ANYD(by),
                                             BL_TO_FORTRAN_ANYD(bz)),
                                BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                               dxinv, m_b_scalar, face_only);
+                               dxinv, m_b_scalar, face_only); // */
     }
 }
 
