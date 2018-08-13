@@ -832,18 +832,31 @@ Real
 MLMG::ResNormInf (int alev, bool local)
 {
     BL_PROFILE("MLMG::ResNormInf()");
+    const int ncomp = linop.getNComp();
     const int mglev = 0;
     Real norm = 0.0;
-    for (int n = 0; n < linop.getNComp(); n++)
-      {
+    MultiFab* pmf = &(res[alev][mglev]);
+#ifdef AMREX_USE_EB
+    if (linop.isCellCentered() && scratch[alev]) {
+        pmf = scratch[alev].get();
+        MultiFab::Copy(*pmf, res[alev][mglev], 0, 0, ncomp, 0);
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
+        const MultiFab& vfrac = factory->getVolFrac();
+        for (int n=0; n < ncomp; ++n) {
+            MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+        }
+    }
+#endif
+    for (int n = 0; n < ncomp; n++)
+    {
 	Real newnorm = 0.0;
 	if (fine_mask[alev]) {
-	  newnorm = res[alev][mglev].norm0(*fine_mask[alev],n,0,true);
+            newnorm = pmf->norm0(*fine_mask[alev],n,0,true);
 	} else {
-	  newnorm = res[alev][mglev].norm0(n,0,true);
+            newnorm = pmf->norm0(n,0,true);
 	}
 	if (newnorm > norm) norm = newnorm;
-      }
+    }
     if (!local) ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub());
     return norm;
 }
@@ -867,15 +880,32 @@ Real
 MLMG::MLRhsNormInf (bool local)
 {
     BL_PROFILE("MLMG::MLRhsNormInf()");
+    const int ncomp = linop.getNComp();
     Real r = 0.0;
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
-        if (alev < finest_amr_lev) {
-            r = std::max(r, rhs[alev].norm0(*fine_mask[alev],0,0,local));
-        } else {
-            r = std::max(r, rhs[alev].norm0(0,0,local));
+        MultiFab* pmf = &(rhs[alev]);
+#ifdef AMREX_USE_EB
+        if (linop.isCellCentered() && scratch[alev]) {
+            pmf = scratch[alev].get();
+            MultiFab::Copy(*pmf, rhs[alev], 0, 0, ncomp, 0);
+            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
+            const MultiFab& vfrac = factory->getVolFrac();
+            for (int n=0; n < ncomp; ++n) {
+                MultiFab::Multiply(*pmf, vfrac, 0, n, 1, 0);
+            }
+        }
+#endif
+        for (int n=0; n<ncomp; ++n)
+        {
+            if (alev < finest_amr_lev) {
+                r = std::max(r, pmf->norm0(*fine_mask[alev],n,0,true));
+            } else {
+                r = std::max(r, pmf->norm0(n,0,true));
+            }
         }
     }
+    if (!local) ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
     return r;
 }
 
@@ -1040,6 +1070,19 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     }
 
     buildFineMask();
+
+    scratch.resize(namrlevs);
+#ifdef AMREX_USE_EB
+    if (linop.isCellCentered()) {
+        for (int alev=0; alev < namrlevs; ++alev) {
+            if (rhs[alev].hasEBFabFactory()) {
+                scratch[alev].reset(new MultiFab(rhs[alev].boxArray(),
+                                                 rhs[alev].DistributionMap(),
+                                                 ncomp, 0, MFInfo(), *linop.Factory(alev)));
+            }
+        }
+    }
+#endif
 
     if (linop.m_parent) do_nsolve = false;  // no embeded N-Solve
     if (linop.m_domain_covered[0]) do_nsolve = false;
