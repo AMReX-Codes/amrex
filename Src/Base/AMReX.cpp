@@ -529,7 +529,7 @@ amrex::Finalize (bool finalize_parallel)
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
 #ifndef BL_AMRPROF
-    if (amrex::system::verbose)
+    if (amrex::system::verbose > 1)
     {
 	int mp_min, mp_max, mp_tot;
 	amrex_mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
