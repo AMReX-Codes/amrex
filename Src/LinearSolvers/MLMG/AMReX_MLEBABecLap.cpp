@@ -476,7 +476,50 @@ void
 MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                     const FArrayBox& sol, const int face_only) const
 {
-    amrex::Abort("FFlux: todo");
+    BL_PROFILE("MLEBABecLap::FFlux()")
+    const int mglev = 0; 
+    const Box& box = mfi.tilebox();
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize(); 
+    AMREX_D_TERM(const auto& bx = m_b_coeffs[amrlev][mglev][0][mfi];,
+                 const auto& by = m_b_coeffs[amrlev][mglev][1][mfi];,
+                 const auto& bz = m_b_coeffs[amrlev][mglev][2][mfi];);
+    auto fabtyp = (flags) ? (*flags)[mfi].getType(box) : FabType::regular; 
+    if(fabtyp == FabType::regular || fabtyp == FabType::covered){
+        amrex_mlabeclap_flux(BL_TO_FORTRAN_BOX(box),
+                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
+                                          BL_TO_FORTRAN_ANYD(*flux[1]),
+                                          BL_TO_FORTRAN_ANYD(*flux[2])),
+                             BL_TO_FORTRAN_ANYD(sol),
+                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
+                                          BL_TO_FORTRAN_ANYD(by),
+                                          BL_TO_FORTRAN_ANYD(bz)),
+                             dxinv, m_b_scalar, face_only);
+    }
+    else{               
+        auto area = (factory) ? factory->getAreaFrac() 
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
+        auto fcent = (factory) ? factory->getFaceCent()
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+       
+        amrex_mlebabeclap_flux(BL_TO_FORTRAN_BOX(box), 
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
+                                            BL_TO_FORTRAN_ANYD(*flux[1]), 
+                                            BL_TO_FORTRAN_ANYD(*flux[2])),
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]), 
+                                            BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                               BL_TO_FORTRAN_ANYD(sol),
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
+                                            BL_TO_FORTRAN_ANYD(by),
+                                            BL_TO_FORTRAN_ANYD(bz)),
+                               BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                               dxinv, m_b_scalar, face_only);
+    }
 }
 
 void

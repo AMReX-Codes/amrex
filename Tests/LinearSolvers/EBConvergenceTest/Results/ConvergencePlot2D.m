@@ -114,24 +114,48 @@
     Err1024 = abs(f1024 - fab1024); 
     clear X1024 Y1024 x1024 y1024;
 
-    err(1) = sum(sum(Err32))/(32*32); 
-    err(2) = sum(sum(Err64))/(64*64); 
-    err(3) = sum(sum(Err128))/(128*128); 
-    err(4) = sum(sum(Err256))/(256*256); 
-    err(5) = sum(sum(Err512))/(512*512); 
-    err(6) = sum(sum(Err1024))/(1024*1024);
-    err = log2(err); 
+    err1(1) = sum(sum(Err32))/(32*32); 
+    err1(2) = sum(sum(Err64))/(64*64); 
+    err1(3) = sum(sum(Err128))/(128*128); 
+    err1(4) = sum(sum(Err256))/(256*256); 
+    err1(5) = sum(sum(Err512))/(512*512); 
+    err1(6) = sum(sum(Err1024))/(1024*1024);
     
-    P = polyfit(num, err, 1); 
-    scale = P(1)*num + P(2); 
+    err2(1) = sqrt(sum(sum((f32-fab32).^2))/(32*32));
+    err2(2) = sqrt(sum(sum((f64-fab64).^2))/(64*64)); 
+    err2(3) = sqrt(sum(sum((f128-fab128).^2))/(128*128)); 
+    err2(4) = sqrt(sum(sum((f256-fab256).^2))/(256*256)); 
+    err2(5) = sqrt(sum(sum((f512-fab512).^2))/(512*512)); 
+    err2(6) = sqrt(sum(sum((f1024-fab1024).^2))/(1024*1024));
+
+    errm(1) = max(max(Err32)); 
+    errm(2) = max(max(Err64)); 
+    errm(3) = max(max(Err128)); 
+    errm(4) = max(max(Err256)); 
+    errm(5) = max(max(Err512)); 
+    errm(6) = max(max(Err1024)); 
+
+    err1 = log2(err1); 
+    err2 = log2(err2); 
+    errm = log2(errm); 
+    
+    P1 = polyfit(num, err1, 1); 
+    P2 = polyfit(num, err2, 1);
+    Pm = polyfit(num, errm, 1); 
+    scale1 = P1(1)*num + P1(2); 
+    scale2 = P2(1)*num + P2(2);
+    scalem = Pm(1)*num + Pm(2);
     figure(1) 
-    plot(num, err, '.', 'markersize', 10)
+    plot(num, err1, '.', 'markersize', 10)
     hold on 
-    plot(num, scale, 'k-', 'linewidth', 2)
-    
+    plot(num, scale1, '-', 'linewidth', 2)
+    plot(num, err2, 'k.', 'markersize', 10)
+    plot(num, scale2, 'k-', 'linewidth', 2)
+    plot(num, errm, 'r.', 'markersize', 10)
+    plot(num, scalem, 'r-', 'linewidth', 2)
     xlabel('Log2(N)', 'fontsize', 14); 
-    ylabel('Log2(||sym - true||)','fontsize', 14); 
-    legend('Error', 'O(dx^2)')
+    ylabel('Log2(Err)','fontsize', 14); 
+    legend('1-norm', num2str(P1(1)), '2-norm', num2str(P2(1)), 'max-norm', num2str(Pm(1)))
     saveas(1,"EBConvergence.png"); 
 
             
