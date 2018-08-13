@@ -136,6 +136,8 @@ private:
 
     Vector<Vector<Real> > volinv;  // used by makeSolvable
 
+    Vector<std::unique_ptr<MultiFab> > scratch;
+
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
 
