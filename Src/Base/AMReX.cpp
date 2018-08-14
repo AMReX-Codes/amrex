@@ -348,6 +348,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     upcxx::init(&argc, &argv);
     if (upcxx::myrank() != ParallelDescriptor::MyProc())
 	amrex::Abort("UPC++ rank != MPI rank");
+#elif defined PERILLA_USE_UPCXX
+    upcxx::init();
 #endif
 
 #ifdef BL_USE_MPI3
