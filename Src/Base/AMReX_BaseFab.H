@@ -300,12 +300,14 @@ public:
     T& operator() (const IntVect& p, int N);
 
     //! Same as above, except returns component 0.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     T& operator() (const IntVect& p);
 
     //! Same as above except works on const FABs.
     const T& operator() (const IntVect& p, int N) const;
 
     //! Same as above, except returns component 0.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     const T& operator() (const IntVect& p) const;
 
     /**
