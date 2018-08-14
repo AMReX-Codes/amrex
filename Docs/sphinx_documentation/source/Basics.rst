@@ -23,13 +23,15 @@ preprocessing or do
 
 The coordinate directions are zero based.
 
-Vector
-======
+Vector and Array
+================
 
-:cpp:`Vector` class in AMReX_Vector.H is derived from :cpp:`std::vector`. The
-only difference between :cpp:`Vector` and :cpp:`std::vector` is that
+:cpp:`Vector` class in ``AMReX_Vector.H`` is derived from :cpp:`std::vector`. The
+main difference between :cpp:`Vector` and :cpp:`std::vector` is that
 :cpp:`Vector::operator[]` provides bound checking when compiled with
 :cpp:`DEBUG=TRUE`.
+
+:cpp:`Array` class in ``AMReX_Array.H`` is simply an alias to :cpp:`std::array`.
 
 Real
 ====
@@ -110,6 +112,8 @@ get mixed up. Below are some examples.
      Print(ofs) << "Print to a file" << std::endl;
      ofs.close();
 
+     AllPrintToFile("file.") << "Each process appends to its own file (e.g., file.3)\n";
+
 .. _sec:basics:parmparse:
 
 ParmParse
@@ -117,7 +121,7 @@ ParmParse
 
 :cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a database for the
 storage and retrieval of command-line and input-file arguments. When
-:cpp:`amrex::Initialize()` is called, the first command-line argument after the
+:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line argument after the
 executable name (if there is one and it does not contain character =) is taken
 to be the inputs file, and the contents in the file are used to initialize the
 :cpp:`ParmParse` database. The rest of the command-line arguments are also
@@ -189,6 +193,46 @@ run with
 to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
 
 
+.. _sec:basics:initialize:
+
+Initialize and Finalize
+=======================
+
+As we have mentioned, :cpp:`Initialize` must be called to initialize
+the execution environment for AMReX and :cpp:`Finalize` must be paired
+with :cpp:`Initialize` to release the resources used by AMReX.  There
+are two versions of :cpp:`Initialize`.
+
+.. highlight:: c++
+
+::
+
+    void Initialize (MPI_Comm mpi_comm,
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
+
+    void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
+                     MPI_Comm mpi_comm = MPI_COMM_WORLD,
+                     const std::function<void()>& func_parm_parse = {},
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
+
+:cpp:`Initialize` tests if MPI has been initialized.  If MPI has been
+initialized, AMReX will duplicate the ``MPI_Comm`` argument.  If not,
+AMReX will initialize MPI and ignore the ``MPI_Comm`` argument.
+
+Both versions have two optional :cpp:`std::ostream` parameters, one
+for standard output in :cpp:`Print` (section :ref:`sec:basics:print`)
+and the other for standard error, and they can be accessed with
+functions :cpp:`OutStream()` and :cpp:`ErrorStream()`.
+
+The first version of :cpp:`Initialize` does not parse the command line
+options, whereas the second version will build ParmParse database
+(section :ref:`sec:basics:parmparse`) unless ``build_parm_parse``
+parameter is :cpp:`false`.  In the second version, one can pass a
+function that adds ParmParse parameters to the database instead of
+reading from command line or input file.
+
 .. _sec:basics:amrgrids:
 
 Example of AMR Grids
@@ -233,7 +277,7 @@ domain in indexing space.  In :numref:`fig:basics:amrgrids`, there are 1, 2 and
 2 Boxes on levels 0, 1 and 2, respectively.  :cpp:`Box` is a
 dimension-dependent class. It has lower and upper corners (represented by
 :cpp:`IntVect`) and an index type (represented by :cpp:`IndexType`). A
-:cpp`Box` contains no floating-point data.
+:cpp:`Box` contains no floating-point data.
 
 IntVect
 -------
@@ -278,7 +322,7 @@ example,
 ::
 
      IntVect iv(AMREX_D_DECL(19, 0, 5));
-     IntVect iv2((AMREX_D_DECL(4, 8, 0));
+     IntVect iv2(AMREX_D_DECL(4, 8, 0));
      iv += iv2;  // iv is now (23,8,5)
      iv *= 2;    // iv is now (46,16,10);
 
@@ -298,7 +342,7 @@ towards zero behavior of integer division in Fortran, C and C++. For example
       iv.coarsen(2);                 // Coarsen each component by 2
       iv.coarsen(coarsening_ratio);  // Component-wise coarsening
       const auto& iv2 = amrex::coarsen(iv, 2); // Return an IntVect w/o modifying iv
-      IntVect iv3 = amrex::coarsen(iv, coarsening_return); // iv not modified
+      IntVect iv3 = amrex::coarsen(iv, coarsening_ratio); // iv not modified
 
 Finally, we note that :cpp:`operator<<` is overloaded for :cpp:`IntVect` and
 therefore one can call
@@ -468,14 +512,16 @@ the index type. Some examples are shown below.
       print() << uncoarsenable.refine(2);  // ({16,16,16}, {31,31,31});
                                            // Different from the original!
 
-Note that the behavior of refinement and coarsening depends on the index type.
-Note that in this context, the refined or coarsened :cpp:`Box` still covers the
-same physical domain. :cpp:`Box uncoarsenable` in the example above is
-considered uncoarsenable because its coarsened version does not cover the same
+Note that the behavior of refinement and coarsening depends on the
+index type.  A refined :cpp:`Box` covers the same physical domain as
+the original :cpp:`Box`, and a coarsened :cpp:`Box` also covers the
+same physical domain if the original :cpp:`Box` is coarsenable.
+:cpp:`Box uncoarsenable` in the example above is considered
+uncoarsenable because its coarsened version does not cover the same
 physical domain in the AMR context.
 
 Boxes can grow in one or all directions.  There are a number of grow functions.
-Some are member functions of the :cpp:`Box` class and others are non-member
+Some are member functions of the :cpp:`Box` class and others are free
 functions in the :cpp:`amrex` namespace.
 
 The :cpp:`Box` class provides the following member functions testing if a
@@ -530,10 +576,10 @@ be constructed with
 
 ::
 
-      explicit Geometry ( const Box&     dom,
-                            const RealBox* rb     = nullptr,
-                            int            coord  = -1,
-                            int*           is_per = nullptr);
+    explicit Geometry (const Box&     dom,
+                       const RealBox* rb     = nullptr,
+                       int            coord  = -1,
+                       int*           is_per = nullptr);
 
 Here the constructor takes a cell-centered :cpp:`Box` specifying the indexing
 space domain, an optional argument of :cpp:`RealBox` pointer specifying the
@@ -574,7 +620,7 @@ cells in each direction.
       int coord = 0;
       
       // This sets the boundary conditions to be doubly or triply periodic
-      std::array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
+      Array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
       
       // This defines a Geometry object
       Geometry geom(domain, &real_box, coord, is_periodic.data());
@@ -625,14 +671,14 @@ The output is like below,
       ((0,0,64) (63,63,127) (0,0,0)) ((64,0,64) (127,63,127) (0,0,0))
       ((0,64,64) (63,127,127) (0,0,0)) ((64,64,64) (127,127,127) (0,0,0)) )
 
-It shows that ba now has 8 Boxes, and it also prints out each Box.
+It shows that ``ba`` now has 8 Boxes, and it also prints out each Box.
 
 In AMReX, :cpp:`BoxArray` is a global data structure. It holds all the Boxes in
 a collection, even though a single process in a parallel run only owns some of
 the Boxes via domain decomposition. In the example above, a 4-process run may
-divide the work and each process owns say 2 Boxes (cf section
+divide the work and each process owns say 2 Boxes (see section
 on :ref:`sec:basics:dm`). Each process can then allocate memory for the
-floating point data on the Boxes it owns (cf sections
+floating point data on the Boxes it owns (see sections
 on :ref:`sec:basics:multifab` & :ref:`sec:basics:fab`).
 
 :cpp:`BoxArray` has an indexing type, just like :cpp:`Box`. Each Box in a

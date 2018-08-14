@@ -163,7 +163,7 @@ variables. See ``amrex/Tools/GNUMake/Make.local.template`` for an example.
 Specifying your own compiler / GCC on macOS
 -------------------------------------------
 
-The ``amrex/Tools/GNUMake/Make.local`` (cf. above for template) can also be
+The ``amrex/Tools/GNUMake/Make.local`` file can also be
 used to specify your own compile commands by setting the valiables ``CXX``,
 ``CC``, ``FC``, and ``F90``. This might be neccarry if your systems contains
 non-standard names for compiler commands.
