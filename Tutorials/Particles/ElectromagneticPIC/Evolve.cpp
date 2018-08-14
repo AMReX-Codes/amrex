@@ -6,61 +6,6 @@
 #include <AMReX_Device.H>
 
 using namespace amrex;
-/*
-AMREX_CUDA_GLOBAL
-void evolve_electric_field( )
-{
-
-    Box = getThreadBox( ); 
-
-    push_electric_field_x(BL_TO_FORTRAN_BOX(tbx),
-                          BL_TO_FORTRAN_3D(Ex[mfi]),
-                          BL_TO_FORTRAN_3D(By[mfi]),
-                          BL_TO_FORTRAN_3D(Bz[mfi]),
-                          BL_TO_FORTRAN_3D(jx[mfi]),
-                          mu_c2_dt, dtsdx_c2[1], dtsdx_c2[2]);
-
-    push_electric_field_y(BL_TO_FORTRAN_BOX(tby),
-                          BL_TO_FORTRAN_3D(Ey[mfi]),
-                          BL_TO_FORTRAN_3D(Bx[mfi]),
-                          BL_TO_FORTRAN_3D(Bz[mfi]),
-                          BL_TO_FORTRAN_3D(jy[mfi]),
-                          mu_c2_dt, dtsdx_c2[0], dtsdx_c2[2]);
-
-    push_electric_field_z(BL_TO_FORTRAN_BOX(tbz),
-                          BL_TO_FORTRAN_3D(Ez[mfi]),
-                          BL_TO_FORTRAN_3D(Bx[mfi]),
-                          BL_TO_FORTRAN_3D(By[mfi]),
-                          BL_TO_FORTRAN_3D(jz[mfi]),
-                          mu_c2_dt, dtsdx_c2[0], dtsdx_c2[1]);
-
-}
-
-AMREX_CUDA_GLOBAL
-void evolve_magnetic_field( )
-{
-
-    Box = getThreadBox( ); 
-
-    push_magnetic_field_x(BL_TO_FORTRAN_BOX(tbx),
-                          BL_TO_FORTRAN_3D(Bx[mfi]),
-                          BL_TO_FORTRAN_3D(Ey[mfi]),
-                          BL_TO_FORTRAN_3D(Ez[mfi]),
-                          dtsdx[1], dtsdx[2]);
-
-    push_magnetic_field_y(BL_TO_FORTRAN_BOX(tby),
-                          BL_TO_FORTRAN_3D(By[mfi]),
-                          BL_TO_FORTRAN_3D(Ex[mfi]),
-                          BL_TO_FORTRAN_3D(Ez[mfi]),
-                          dtsdx[0], dtsdx[2]);
-
-    push_magnetic_field_z(BL_TO_FORTRAN_BOX(tbz),
-                          BL_TO_FORTRAN_3D(Bz[mfi]),
-                          BL_TO_FORTRAN_3D(Ex[mfi]),
-                          BL_TO_FORTRAN_3D(Ey[mfi]),
-                          dtsdx[0], dtsdx[1]);
-}
-*/
 
 Real compute_dt(const Geometry& geom) 
 {
@@ -90,10 +35,6 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const Box& tbx  = mfi.tilebox(YeeGrid::Ex_nodal_flag);
         const Box& tby  = mfi.tilebox(YeeGrid::Ey_nodal_flag);
         const Box& tbz  = mfi.tilebox(YeeGrid::Ez_nodal_flag);
-
-        // enclosed(validBox)
-        // CC -> CellBox -> NC(avoid race [-1]) -> Fort
-        // If high end != whole high end, -1.
 
         AMREX_BOX_LAUNCH(tbx, push_electric_field_x,
                          BL_TO_FORTRAN_BOX(tbx),

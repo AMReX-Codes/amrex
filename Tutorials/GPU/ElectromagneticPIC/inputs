@@ -7,7 +7,7 @@ max_grid_size = 64
 problem_type = Langmuir
 #problem_type = UniformPlasma
 
-nsteps = 10
+nsteps = 100
 
 write_plot = false
 output_error = true 

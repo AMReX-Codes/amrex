@@ -1,6 +1,6 @@
 #!/bin/bash
 #BSUB -P CSC190PORT
-#BSUB -W 10
+#BSUB -W 15
 #BSUB -nnodes 1
 #BSUB -J PIC
 #BSUB -o PICo.%J
