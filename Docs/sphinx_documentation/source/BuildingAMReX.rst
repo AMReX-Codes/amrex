@@ -199,11 +199,13 @@ Building libamrex
 
 If an application code already has its own elaborated build system and wants to
 use AMReX an external library, this might be your choice. In this approach, one
-runs ``./configure``, followed by ``make`` and ``make install``. In the top
+runs ``./configure``, followed by ``make`` and ``make install``.
+Other make options include ``make distclean`` and ``make uninstall``.  In the top
 AMReX directory, one can run ``./configure -h`` to show the various options for
 the configure script. This approach is built on the AMReX GNU Make system. Thus
 the section on :ref:`sec:build:make` is recommended if any fine tuning is
-needed.
+needed.  The result of ``./configure`` is ``GNUmakefile`` in the AMReX
+top directory.  One can modify the make file for fine tuning.
 
 .. _sec:build:cmake:
 
