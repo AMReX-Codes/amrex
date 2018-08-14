@@ -136,7 +136,7 @@ def append_device_to_line(line, subs):
 
             elif sub_name + '(' in line and sub_name + '_device' not in line:
                 # Catch function calls here.
-                new_line = new_line.replace(sub_name, sub_name + '_device')
+                new_line = new_line.replace(sub_name + '(', sub_name + '_device' + '(')
                 break
 
     return new_line
