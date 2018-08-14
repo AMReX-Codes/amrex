@@ -408,8 +408,6 @@ EnforcePeriodicBCs()
                              &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
                              geomData.ProbLo(), geomData.ProbLo());
         };
-
-        AMREX_PARTICLES_L_LAUNCH(np, periodic);
     }
 }
 

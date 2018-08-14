@@ -18,7 +18,7 @@ Box getThreadBox(const Box& bx)
                       IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
                                            bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
                                            bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
-                      bx.ixType()));
+                      bx.type()));
 #else
      return bx;
 #endif

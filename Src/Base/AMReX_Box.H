@@ -105,6 +105,7 @@ public:
     int bigEnd (int dir) const { return bigend[dir]; }
 
     //! Returns the indexing type.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     IndexType ixType () const { return btype; }
 
     //! Returns the indexing type.
