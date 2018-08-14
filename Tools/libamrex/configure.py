@@ -47,6 +47,10 @@ def configure(argv):
                         help="Enable AMReX linear solvers [default=yes]",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-hypre",
+                        help="Enable Hypre as an option for bottom solver of AMReX linear solvers [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--enable-eb",
                         help="Enable AMReX embedded boundary capability [default=no]",
                         choices=["yes","no"],
@@ -89,6 +93,10 @@ def configure(argv):
         f.write("USE_LINEAR_SOLVERS = FALSE\n")
     else:
         f.write("USE_LINEAR_SOLVERS = TRUE\n")
+    if args.enable_hypre == "yes":
+        f.write("USE_HYPRE = TRUE\n")
+    else:
+        f.write("USE_HYPRE = FALSE\n")
     if args.enable_eb == "yes":
         f.write("USE_EB = TRUE\n")
     else:
