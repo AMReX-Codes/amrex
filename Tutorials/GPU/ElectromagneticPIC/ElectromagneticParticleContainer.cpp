@@ -239,7 +239,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
 
-            if (np == 0) return;
+            if (threadSize == 0) return;
 
             gather_magnetic_field(threadSize, 
                                   &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
@@ -319,7 +319,7 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
 
-            if (np == 0) return;
+            if (threadSize == 0) return;
 
             gather_magnetic_field(threadSize, 
                                   &(pData.x()[index]),  &(pData.y()[index]),  &(pData.z()[index]),
