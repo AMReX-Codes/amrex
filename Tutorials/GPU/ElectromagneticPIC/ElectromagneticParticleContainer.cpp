@@ -67,9 +67,7 @@ namespace {
                                      floor((thrust::get<1>(tup) - domain.ProbLo()[1]) / domain.CellSize()[1]),
                                      floor((thrust::get<2>(tup) - domain.ProbLo()[2]) / domain.CellSize()[2]));
 
-            int data;
-            mask_ptr->getVal(&data, offset);
-            return data;
+            return (*mask_ptr)(offset);
         }
     };
     
@@ -216,25 +214,9 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
     
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        auto& particles = m_particles[mfi.index()];
-        const int np    = particles.size();
-
+        const int np    = m_particles[mfi.index()].size();
         if (np == 0) continue;
 
-        Real* x  = particles.x().data();
-        Real* y  = particles.y().data();
-        Real* z  = particles.z().data();
-        Real* ux = particles.ux().data();
-        Real* uy = particles.uy().data();
-        Real* uz = particles.uz().data();
-        Real* ex = particles.ex().data();
-        Real* ey = particles.ey().data();
-        Real* ez = particles.ez().data();
-        Real* bx = particles.bx().data();
-        Real* by = particles.by().data();
-        Real* bz = particles.bz().data();
-        Real* w  = particles.w().data();
-        Real* ginv = particles.ginv().data();
         const BaseFab<Real>* elecX = &(Ex[mfi]);
         const BaseFab<Real>* elecY = &(Ey[mfi]);
         const BaseFab<Real>* elecZ = &(Ez[mfi]);
@@ -245,62 +227,62 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         BaseFab<Real>* currDenY = &(jy[mfi]);
         BaseFab<Real>* currDenZ = &(jz[mfi]);
         const GeometryData& geomData = m_geom.data();
+        ParticlesData&& pData = m_particles[mfi.index()].data();
 
+        // Create a copy of this class member to pass.
+        // this->m_charge shouldn't work, since it is not available on the GPU.
         Real charge = m_charge;
         Real mass = m_mass;
 
-        auto depose = [=] AMREX_CUDA_DEVICE ()
+        auto depose = [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
 
             if (np == 0) return;
 
-//            const Real *plo = geomData.ProbLo();
-//            const Real *dx  = geomData.CellSize();
-
             gather_magnetic_field(threadSize, 
-                                  &(x[index]), &(y[index]), &(z[index]),
-                                  &(bx[index]), &(by[index]), &(bz[index]),
+                                  &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
+                                  &(pData.bx()[index]), &(pData.by()[index]), &(pData.bz()[index]),
                                   BL_TO_FORTRAN_3D(*magX),
                                   BL_TO_FORTRAN_3D(*magY),
                                   BL_TO_FORTRAN_3D(*magZ),
                                   geomData.ProbLo(), geomData.CellSize());
         
             gather_electric_field(threadSize, 
-                                  &(x[index]), &(y[index]), &(z[index]),
-                                  &(ex[index]), &(ey[index]), &(ez[index]),
+                                  &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
+                                  &(pData.ex()[index]), &(pData.ey()[index]), &(pData.ez()[index]),
                                   BL_TO_FORTRAN_3D(*elecX),
                                   BL_TO_FORTRAN_3D(*elecY),
                                   BL_TO_FORTRAN_3D(*elecZ),
                                   geomData.ProbLo(), geomData.CellSize());
         
             push_momentum_boris(threadSize,
-                                &(ux[index]), &(uy[index]), &(uz[index]),
-                                &(ginv[index]),
-                                &(ex[index]), &(ey[index]), &(ez[index]),
-                                &(bx[index]), &(by[index]), &(bz[index]),
+                                &(pData.ux()[index]), &(pData.uy()[index]), &(pData.uz()[index]),
+                                &(pData.ginv()[index]),
+                                &(pData.ex()[index]), &(pData.ey()[index]), &(pData.ez()[index]),
+                                &(pData.bx()[index]), &(pData.by()[index]), &(pData.bz()[index]),
                                 charge, mass, dt);
          
             push_position_boris(threadSize,
-                                &(x[index]),  &(y[index]),  &(z[index]),
-                                &(ux[index]), &(uy[index]), &(uz[index]),
-                                &(ginv[index]), dt);
+                                &(pData.x()[index]),  &(pData.y()[index]),  &(pData.z()[index]),
+                                &(pData.ux()[index]), &(pData.uy()[index]), &(pData.uz()[index]),
+                                &(pData.ginv()[index]), dt);
         
             deposit_current(BL_TO_FORTRAN_3D(*currDenX),
                             BL_TO_FORTRAN_3D(*currDenY),
                             BL_TO_FORTRAN_3D(*currDenZ),
                             threadSize,
-                            &(x[index]),  &(y[index]),  &(z[index]),
-                            &(ux[index]), &(uy[index]), &(uz[index]),
-                            &(ginv[index]), &(w[index]),
+                            &(pData.x()[index]),  &(pData.y()[index]),  &(pData.z()[index]),
+                            &(pData.ux()[index]), &(pData.uy()[index]), &(pData.uz()[index]),
+                            &(pData.ginv()[index]), &(pData.w()[index]),
                             charge, geomData.ProbLo(), dt, geomData.CellSize());
 
         };
 
         AMREX_PARTICLES_L_LAUNCH(np, depose); 
     }
-    Device::synchronize();
+
 }
 
 void
@@ -317,24 +299,9 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
     
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        auto& particles = m_particles[mfi.index()];
-        const int np    = particles.size();
-
+        const int np    = m_particles[mfi.index()].size();
         if (np == 0) continue;
 
-        Real* x  = particles.x().data();
-        Real* y  = particles.y().data();
-        Real* z  = particles.z().data();
-        Real* ux = particles.ux().data();
-        Real* uy = particles.uy().data();
-        Real* uz = particles.uz().data();
-        Real* ex = particles.ex().data();
-        Real* ey = particles.ey().data();
-        Real* ez = particles.ez().data();
-        Real* bx = particles.bx().data();
-        Real* by = particles.by().data();
-        Real* bz = particles.bz().data();
-        Real* ginv = particles.ginv().data();
         const BaseFab<Real>* elecX = &(Ex[mfi]);
         const BaseFab<Real>* elecY = &(Ey[mfi]);
         const BaseFab<Real>* elecZ = &(Ez[mfi]);
@@ -342,42 +309,39 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
         const BaseFab<Real>* magY = &(By[mfi]);
         const BaseFab<Real>* magZ = &(Bz[mfi]);
         const GeometryData& geomData = m_geom.data();
+        ParticlesData&& pData = m_particles[mfi.index()].data(); 
 
         Real charge = m_charge;
         Real mass = m_mass;
 
-        auto pushMom = [=] AMREX_CUDA_DEVICE ()
+        auto pushMom = [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
 
             if (np == 0) return;
 
-//            const Real *plo = geomData.ProbLo();
-//            const Real *dx  = geomData.CellSize();
-
-
             gather_magnetic_field(threadSize, 
-                                  &(x[index]),  &(y[index]),  &(z[index]),
-                                  &(bx[index]), &(by[index]), &(bz[index]),
+                                  &(pData.x()[index]),  &(pData.y()[index]),  &(pData.z()[index]),
+                                  &(pData.bx()[index]), &(pData.by()[index]), &(pData.bz()[index]),
                                   BL_TO_FORTRAN_3D(*magX),
                                   BL_TO_FORTRAN_3D(*magY),
                                   BL_TO_FORTRAN_3D(*magZ),
                                   geomData.ProbLo(), geomData.CellSize());
 
             gather_electric_field(threadSize, 
-                                  &(x[index]), &(y[index]), &(z[index]),
-                                  &(ex[index]), &(ey[index]), &(ez[index]),
+                                  &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
+                                  &(pData.ex()[index]), &(pData.ey()[index]), &(pData.ez()[index]),
                                   BL_TO_FORTRAN_3D(*elecX),
                                   BL_TO_FORTRAN_3D(*elecY),
                                   BL_TO_FORTRAN_3D(*elecZ),
                                   geomData.ProbLo(), geomData.CellSize());
         
             push_momentum_boris(threadSize,
-                                &(ux[index]), &(uy[index]), &(uz[index]),
-                                &(ginv[index]),
-                                &(ex[index]), &(ey[index]), &(ez[index]),
-                                &(bx[index]), &(by[index]), &(bz[index]),
+                                &(pData.ux()[index]), &(pData.uy()[index]), &(pData.uz()[index]),
+                                &(pData.ginv()[index]),
+                                &(pData.ex()[index]), &(pData.ey()[index]), &(pData.ez()[index]),
+                                &(pData.bx()[index]), &(pData.by()[index]), &(pData.bz()[index]),
                                 charge, mass, dt);
 
         };
@@ -394,19 +358,11 @@ PushParticlePositions(amrex::Real dt)
     
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        auto& particles = m_particles[mfi.index()];
-        const int np    = particles.size();
+        const int np    = m_particles[mfi.index()].size();
         if (np == 0) continue;
 
-        Real* x = particles.x().data();
-        Real* y = particles.y().data();
-        Real* z = particles.z().data();
-        Real* ux = particles.ux().data();
-        Real* uy = particles.uy().data();
-        Real* uz = particles.uz().data();
-        Real* ginv = particles.ginv().data();
-
-        auto pushPos = [=] AMREX_CUDA_DEVICE ()
+        ParticlesData&& pData = m_particles[mfi.index()].data();
+        auto pushPos = [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
@@ -414,13 +370,13 @@ PushParticlePositions(amrex::Real dt)
             if (threadSize == 0) return;
 
             set_gamma(threadSize, 
-                      &(ux[index]), &(uy[index]), &(uz[index]),
-                      &(ginv[index]));
+                      &(pData.ux()[index]), &(pData.uy()[index]), &(pData.uz()[index]),
+                      &(pData.ginv()[index]));
 
             push_position_boris(threadSize,
-                                &(x[index]), &(y[index]), &(z[index]),
-                                &(ux[index]), &(uy[index]), &(uz[index]),
-                                &(ginv[index]), dt);
+                                &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
+                                &(pData.ux()[index]), &(pData.uy()[index]), &(pData.uz()[index]),
+                                &(pData.ginv()[index]), dt);
         };
 
         AMREX_PARTICLES_L_LAUNCH(np, pushPos);
@@ -435,32 +391,21 @@ EnforcePeriodicBCs()
 
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        auto& particles = m_particles[mfi.index()];
-        const int np = particles.size();
+        const int np = m_particles[mfi.index()].size();
         if (np == 0) continue;
 
-        const Real* plo = m_geom.data().ProbLo();
-        const Real* phi = m_geom.data().ProbHi();
-        Real* x = particles.x().data();
-        Real* y = particles.y().data();
-        Real* z = particles.z().data();
-//        ParticlesData pData = particles.data();
+        ParticlesData&& pData = m_particles[mfi.index()].data(); 
         const GeometryData& geomData = m_geom.data();
 
-        auto periodic = [=] AMREX_CUDA_DEVICE ()
+        auto periodic = [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
 
             if (threadSize == 0) return;
 
-//              Real *i = pData.x();
-
-//            const Real *plo = geomData.ProbLo();
-//            const Real *phi = geomData.ProbHi();
-        
             enforce_periodic(threadSize,
-                             &(x[index]), &(y[index]), &(z[index]),
+                             &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
                              geomData.ProbLo(), geomData.ProbLo());
         };
 

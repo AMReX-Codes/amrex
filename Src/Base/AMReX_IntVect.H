@@ -191,6 +191,7 @@ public:
         return AMREX_D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);
     }
     //! Returns true if this is different from rhs.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool operator!= (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
