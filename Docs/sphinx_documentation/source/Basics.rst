@@ -4,212 +4,6 @@
 .. role:: fortran(code)
    :language: fortran
 
-.. _sec:basics:heat1:
-
-Example: HeatEquation_EX1_C
-===========================
-
-The source code tree for the heat equation example is simple, as shown in
-:numref:`fig:Basics_Heat_flowchart`. We recommend you study ``main.cpp`` and
-``advance.cpp`` to see some of the classes described below in action.
-
-.. raw:: latex
-
-   \begin{center}
-
-.. _fig:Basics_Heat_flowchart:
-
-.. figure:: ./Basics/figs/flowchart.png
-   :width: 4in
-
-   Diagram of the source code structure for the HeatEquation_EX1_C example.
-
-.. raw:: latex
-
-   \end{center}
-
-Source code tree for the HeatEquation_EX1_C example
-
-    amrex/Src/Base
-        Contains source code for single-level simulations.  Note that in
-        ``amrex/Src`` there are many sub-directories, e.g., ``Base``, ``Amr``,
-        ``AmrCore``, ``LinearSolvers``, etc.  In this tutorial the only source
-        code directory we need is ``Base``.
-
-    amrex/Tutorials/HeatEquation_EX1_C/Source
-        Contains the following source code specific to this tutorial:
-        
-        #. ``Make.package``: lists the source code files
-        #. ``main.cpp``: contains the C++ ``main`` function
-        #. ``advance.cpp``: advance the solution by a time step
-        #. ``init_phi_Xd.f90, advance_Xd.f90``: fortran work functions used to
-           initialize and advance the solution
-        #. ``myfunc.H``: header file for C++ functions
-        #. ``myfunc_F.H``: header file for fortran90 functions that are called
-           in .cpp files
-
-    amrex/Tutorials/HeatEquation_EX1_C/Exec
-        This is where you build the code with make.  There is a a GNUmakefile
-        and inputs files, inputs_2d and inputs_3d.
-
-Now we highlight a few key sections of the code.  In ``main.cpp`` we
-demonstrate how to read in parameters from the inputs file:
-
-.. highlight:: c++
-
-::
-
-    // inputs parameters
-    {
-        // ParmParse is way of reading inputs from the inputs file
-        ParmParse pp;
-
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
-        //   a square (or cubic) domain.
-        pp.get("n_cell",n_cell);
-
-        // The domain is broken into boxes of size max_grid_size
-        pp.get("max_grid_size",max_grid_size);
-
-        // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be writtenq
-        plot_int = -1;
-        pp.query("plot_int",plot_int);
-
-        // Default nsteps to 0, allow us to set it to something else in the inputs file
-        nsteps = 10;
-        pp.query("nsteps",nsteps);
-
-        pp.queryarr("is_periodic", is_periodic);
-    }
-
-In ``main.cpp`` we demonstrate how to define a ``Box`` for the problem domain,
-and then how to chop that ``Box`` up into multiple boxes that define a
-``BoxArray``  We also define a ``Geometry`` object that knows about the problem
-domain, the physical coordinates of the box, and the periodicity:
-
-::
-
-    // make BoxArray and Geometry
-    BoxArray ba;
-    Geometry geom;
-    {
-        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
-        Box domain(dom_lo, dom_hi);
-
-        // Initialize the boxarray "ba" from the single box "bx"
-        ba.define(domain);
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        ba.maxSize(max_grid_size);
-
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
-                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-
-        // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    }
-
-In ``main.cpp`` we demonstrate how to build a ``DistributionMapping`` from the
-``BoxArray``, and then build ``MultiFabs`` with a desired number of components
-and ghost cells associated with each grid:
-
-::
-
-    // Nghost = number of ghost cells for each array 
-    int Nghost = 1;
-    
-    // Ncomp = number of components for each array
-    int Ncomp  = 1;
-  
-    // How Boxes are distrubuted among MPI processes
-    DistributionMapping dm(ba);
-
-    // we allocate two phi multifabs; one will store the old state, the other the new.
-    MultiFab phi_old(ba, dm, Ncomp, Nghost);
-    MultiFab phi_new(ba, dm, Ncomp, Nghost);
-
-We demonstrate how to build an array of face-based ``MultiFabs`` :
-
-::
-
-    // build the flux multifabs
-    std::array<MultiFab, AMREX_SPACEDIM> flux;
-    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-    {
-        // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
-        BoxArray edge_ba = ba;
-        edge_ba.surroundingNodes(dir);
-        flux[dir].define(edge_ba, dm, 1, 0);
-    }
-
-To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
-processor loops over grids it owns to access and/or modify data on that grid:
-
-::
-
-    // Initialize phi_new by calling a Fortran routine.
-    // MFIter = MultiFab Iterator
-    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
-    {
-        const Box& bx = mfi.validbox();
-
-        init_phi(BL_TO_FORTRAN_BOX(bx),
-                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
-    }
-
-Note that these calls to fortran subroutines require a header in
-``myfunc_F.H``:
-
-::
-
-    void init_phi(const int* lo, const int* hi,
-                  amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
-
-The associated fortran routines must shape the data accordinly:
-
-::
-
- subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
-
-   use amrex_fort_module, only : amrex_real
-
-   implicit none
-
-   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
-   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
-   real(amrex_real), intent(in   ) :: dx(2) 
-   real(amrex_real), intent(in   ) :: prob_lo(2) 
-   real(amrex_real), intent(in   ) :: prob_hi(2) 
-
-   integer          :: i,j
-   double precision :: x,y,r2
-
-   do j = lo(2), hi(2)
-      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
-      do i = lo(1), hi(1)
-         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
-
-         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
-
-         phi(i,j) = 1.d0 + exp(-r2)
-
-      end do
-   end do
-
- end subroutine init_phi
-
-Ghost cells are filled using the ``FillBoundary`` function:
-
-::
-
-    // Fill the ghost cells of each grid from the other grids
-    // includes periodic domain boundaries
-    phi_old.FillBoundary(geom.periodicity());
-
 .. _sec:basics:dim:
 
 Dimensionality
@@ -2174,3 +1968,209 @@ functionality to the single-level case described above, where
 :cpp:`FillDomainBoundary` fills the physical ghost cells. In fact you can have
 your BndryFunctBase point to the same :fortran:`filcc` routines called by the
 single-level routines.
+
+.. _sec:basics:heat1:
+
+Example: HeatEquation_EX1_C
+===========================
+
+The source code tree for the heat equation example is simple, as shown in
+:numref:`fig:Basics_Heat_flowchart`. We recommend you study ``main.cpp`` and
+``advance.cpp`` to see some of the classes described below in action.
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _fig:Basics_Heat_flowchart:
+
+.. figure:: ./Basics/figs/flowchart.png
+   :width: 4in
+
+   Diagram of the source code structure for the HeatEquation_EX1_C example.
+
+.. raw:: latex
+
+   \end{center}
+
+Source code tree for the HeatEquation_EX1_C example
+
+    amrex/Src/Base
+        Contains source code for single-level simulations.  Note that in
+        ``amrex/Src`` there are many sub-directories, e.g., ``Base``, ``Amr``,
+        ``AmrCore``, ``LinearSolvers``, etc.  In this tutorial the only source
+        code directory we need is ``Base``.
+
+    amrex/Tutorials/HeatEquation_EX1_C/Source
+        Contains the following source code specific to this tutorial:
+        
+        #. ``Make.package``: lists the source code files
+        #. ``main.cpp``: contains the C++ ``main`` function
+        #. ``advance.cpp``: advance the solution by a time step
+        #. ``init_phi_Xd.f90, advance_Xd.f90``: fortran work functions used to
+           initialize and advance the solution
+        #. ``myfunc.H``: header file for C++ functions
+        #. ``myfunc_F.H``: header file for fortran90 functions that are called
+           in .cpp files
+
+    amrex/Tutorials/HeatEquation_EX1_C/Exec
+        This is where you build the code with make.  There is a a GNUmakefile
+        and inputs files, inputs_2d and inputs_3d.
+
+Now we highlight a few key sections of the code.  In ``main.cpp`` we
+demonstrate how to read in parameters from the inputs file:
+
+.. highlight:: c++
+
+::
+
+    // inputs parameters
+    {
+        // ParmParse is way of reading inputs from the inputs file
+        ParmParse pp;
+
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        //   a square (or cubic) domain.
+        pp.get("n_cell",n_cell);
+
+        // The domain is broken into boxes of size max_grid_size
+        pp.get("max_grid_size",max_grid_size);
+
+        // Default plot_int to -1, allow us to set it to something else in the inputs file
+        //  If plot_int < 0 then no plot files will be writtenq
+        plot_int = -1;
+        pp.query("plot_int",plot_int);
+
+        // Default nsteps to 10, allow us to set it to something else in the inputs file
+        nsteps = 10;
+        pp.query("nsteps",nsteps);
+
+        pp.queryarr("is_periodic", is_periodic);
+    }
+
+In ``main.cpp`` we demonstrate how to define a ``Box`` for the problem domain,
+and then how to chop that ``Box`` up into multiple boxes that define a
+``BoxArray``  We also define a ``Geometry`` object that knows about the problem
+domain, the physical coordinates of the box, and the periodicity:
+
+::
+
+    // make BoxArray and Geometry
+    BoxArray ba;
+    Geometry geom;
+    {
+        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+        Box domain(dom_lo, dom_hi);
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba.define(domain);
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        ba.maxSize(max_grid_size);
+
+       // This defines the physical box, [-1,1] in each direction.
+        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+
+        // This defines a Geometry object
+        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    }
+
+In ``main.cpp`` we demonstrate how to build a ``DistributionMapping`` from the
+``BoxArray``, and then build ``MultiFabs`` with a desired number of components
+and ghost cells associated with each grid:
+
+::
+
+    // Nghost = number of ghost cells for each array 
+    int Nghost = 1;
+    
+    // Ncomp = number of components for each array
+    int Ncomp  = 1;
+  
+    // How Boxes are distrubuted among MPI processes
+    DistributionMapping dm(ba);
+
+    // we allocate two phi multifabs; one will store the old state, the other the new.
+    MultiFab phi_old(ba, dm, Ncomp, Nghost);
+    MultiFab phi_new(ba, dm, Ncomp, Nghost);
+
+We demonstrate how to build an array of face-based ``MultiFabs`` :
+
+::
+
+    // build the flux multifabs
+    std::array<MultiFab, AMREX_SPACEDIM> flux;
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+    {
+        // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
+        BoxArray edge_ba = ba;
+        edge_ba.surroundingNodes(dir);
+        flux[dir].define(edge_ba, dm, 1, 0);
+    }
+
+To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
+processor loops over grids it owns to access and/or modify data on that grid:
+
+::
+
+    // Initialize phi_new by calling a Fortran routine.
+    // MFIter = MultiFab Iterator
+    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+    {
+        const Box& bx = mfi.validbox();
+
+        init_phi(BL_TO_FORTRAN_BOX(bx),
+                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
+                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+    }
+
+Note that these calls to fortran subroutines require a header in
+``myfunc_F.H``:
+
+::
+
+    void init_phi(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+
+The associated fortran routines must shape the data accordinly:
+
+::
+
+ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
+
+   use amrex_fort_module, only : amrex_real
+
+   implicit none
+
+   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
+   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
+   real(amrex_real), intent(in   ) :: dx(2) 
+   real(amrex_real), intent(in   ) :: prob_lo(2) 
+   real(amrex_real), intent(in   ) :: prob_hi(2) 
+
+   integer          :: i,j
+   double precision :: x,y,r2
+
+   do j = lo(2), hi(2)
+      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
+      do i = lo(1), hi(1)
+         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
+
+         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
+
+         phi(i,j) = 1.d0 + exp(-r2)
+
+      end do
+   end do
+
+ end subroutine init_phi
+
+Ghost cells are filled using the ``FillBoundary`` function:
+
+::
+
+    // Fill the ghost cells of each grid from the other grids
+    // includes periodic domain boundaries
+    phi_old.FillBoundary(geom.periodicity());
