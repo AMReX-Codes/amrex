@@ -34,10 +34,10 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
     
     for (MFIter mfi(Ex); mfi.isValid(); ++mfi)
     {
-        const Box& tbx   = mfi.tilebox(YeeGrid::Ex_nodal_flag);
-        const Box& tby   = mfi.tilebox(YeeGrid::Ey_nodal_flag);
-        const Box& tbz   = mfi.tilebox(YeeGrid::Ez_nodal_flag);
-        const Box & cc = convert(mfi.validbox(), IntVect(0,0,0));
+        const Box& tbx = mfi.tilebox(YeeGrid::Ex_nodal_flag);
+        const Box& tby = mfi.tilebox(YeeGrid::Ey_nodal_flag);
+        const Box& tbz = mfi.tilebox(YeeGrid::Ez_nodal_flag);
+        const Box& vbx = mfi.validbox();
 
         BaseFab<Real>* elecX = &(Ex[mfi]);
         BaseFab<Real>* elecY = &(Ey[mfi]);
@@ -51,7 +51,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
 
         auto electric = [=] AMREX_CUDA_DEVICE ()
         {
-            Box threadBox = getThreadBox(cc, tbx.type()); 
+            Box threadBox = getThreadBox(vbx, tbx.type()); 
 
             if (threadBox.ok())
             {
@@ -63,7 +63,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
                                       mu_c2_dt, dtsdx_c2[1], dtsdx_c2[2]);
             }
 
-            threadBox = getThreadBox(cc, tby.type()); 
+            threadBox = getThreadBox(vbx, tby.type()); 
             if (threadBox.ok())
             {
                 push_electric_field_y(BL_TO_FORTRAN_BOX(threadBox),
@@ -74,7 +74,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
                                       mu_c2_dt, dtsdx_c2[0], dtsdx_c2[2]);
             }
 
-            threadBox = getThreadBox(cc, tbz.type()); 
+            threadBox = getThreadBox(vbx, tbz.type()); 
             if (threadBox.ok())
             {
                 push_electric_field_z(BL_TO_FORTRAN_BOX(threadBox),
@@ -86,7 +86,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
             }
         };
 
-        AMREX_BOX_L_LAUNCH(cc, electric);
+        AMREX_BOX_L_LAUNCH(vbx, electric);
 
     }
 }
@@ -105,7 +105,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         const Box& tbx = mfi.tilebox(YeeGrid::Bx_nodal_flag);
         const Box& tby = mfi.tilebox(YeeGrid::By_nodal_flag);
         const Box& tbz = mfi.tilebox(YeeGrid::Bz_nodal_flag);
-        const Box & cc = convert(mfi.validbox(), IntVect(0,0,0));
+        const Box& vbx = mfi.validbox();
 
         const BaseFab<Real>* elecX = &(Ex[mfi]);
         const BaseFab<Real>* elecY = &(Ey[mfi]);
@@ -116,7 +116,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
 
         auto magnetic = [=] AMREX_CUDA_DEVICE ()
         {
-            Box threadBox = getThreadBox(cc, tbx.type()); 
+            Box threadBox = getThreadBox(vbx, tbx.type()); 
 
             if (threadBox.ok())
             {
@@ -127,7 +127,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
                                       dtsdx[1], dtsdx[2]);
             }
 
-            threadBox = getThreadBox(cc, tby.type()); 
+            threadBox = getThreadBox(vbx, tby.type()); 
             if (threadBox.ok())
             {
                 push_magnetic_field_y(BL_TO_FORTRAN_BOX(threadBox),
@@ -137,7 +137,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
                                       dtsdx[0], dtsdx[2]);
             }
 
-            threadBox = getThreadBox(cc, tbz.type()); 
+            threadBox = getThreadBox(vbx, tbz.type()); 
             if (threadBox.ok())
             {
                 push_magnetic_field_z(BL_TO_FORTRAN_BOX(threadBox),
@@ -148,7 +148,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
             }
         };
 
-        AMREX_BOX_L_LAUNCH(cc, magnetic);
+        AMREX_BOX_L_LAUNCH(vbx, magnetic);
     } 
 }
 

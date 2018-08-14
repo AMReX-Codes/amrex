@@ -17,7 +17,8 @@ Box getThreadBox(const Box& bx)
                                            bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
                       IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
                                            bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
-                                           bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z)))));
+                                           bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
+                      bx.ixType()));
 #else
      return bx;
 #endif
@@ -32,24 +33,23 @@ Box getThreadBox(const Box& bx, const IntVect& typ)
 
      if (threadBox.ok())
      {
-         if (AMREX_D_TERM(typ[0] == 1, || typ[1] == 1, || typ[2] == 1))    // Cell Centered
-         {
-             IntVect shft(typ - bx.type());
-             threadBox.setBig(threadBox.bigEnd() + shft);
-             threadBox.setType(IndexType(typ));
-
-             //threadBox.convert(typ);
-             const IntVect& Big = bx.bigEnd();
-             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                 if (typ[d]) {      // Nodal 
-                     if (threadBox.bigEnd(d) <= Big[d]) {
-                         threadBox.growHi(d,-1);
-                     }
+         const IntVect& Big = bx.bigEnd();
+         for (int d=0; d<AMREX_SPACEDIM; ++d) {
+             if (bx.type()[d] < typ[d]) {        // Cell to Nodal (0 < 1)
+                 if (threadBox.bigEnd(d) == Big[d]) {
+                     threadBox.growHi(d, 1);     // Box on the big edge gets the extra work.
+                 }
+             }
+             else if (bx.type()[d] > typ[d]) {   // Nodal to Cell (1 > 0)
+                 if (threadBox.bigEnd(d) == Big[d]) {
+                     threadBox = Box();          // Thread on the node gets an empty box. 
+                     break;
                  }
              }
          }
-      }
+     }
 /*
+     // GPU output for debugging correctness by hand.
      if (!(threadBox.ok()))
      { 
         IntVect small = threadBox.smallEnd();
