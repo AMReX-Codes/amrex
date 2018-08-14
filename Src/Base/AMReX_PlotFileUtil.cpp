@@ -86,9 +86,6 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 
 	HeaderFile.precision(17);
 
-	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
 	// ---- this is the generic plot file type name
         HeaderFile << versionName << '\n';
 
@@ -182,10 +179,13 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor()) {
+      VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);      
       std::string HeaderFileName(plotfilename + "/Header");
-      std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
-	                                               std::ofstream::trunc |
-						       std::ofstream::binary);
+      std::ofstream HeaderFile;
+      HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+      HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+	                                      std::ofstream::trunc |
+                                              std::ofstream::binary);
       if( ! HeaderFile.good()) {
         FileOpenFailed(HeaderFileName);
       }

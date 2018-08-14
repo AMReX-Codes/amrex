@@ -4,212 +4,6 @@
 .. role:: fortran(code)
    :language: fortran
 
-.. _sec:basics:heat1:
-
-Example: HeatEquation_EX1_C
-===========================
-
-The source code tree for the heat equation example is simple, as shown in
-:numref:`fig:Basics_Heat_flowchart`. We recommend you study ``main.cpp`` and
-``advance.cpp`` to see some of the classes described below in action.
-
-.. raw:: latex
-
-   \begin{center}
-
-.. _fig:Basics_Heat_flowchart:
-
-.. figure:: ./Basics/figs/flowchart.png
-   :width: 4in
-
-   Diagram of the source code structure for the HeatEquation_EX1_C example.
-
-.. raw:: latex
-
-   \end{center}
-
-Source code tree for the HeatEquation_EX1_C example
-
-    amrex/Src/Base
-        Contains source code for single-level simulations.  Note that in
-        ``amrex/Src`` there are many sub-directories, e.g., ``Base``, ``Amr``,
-        ``AmrCore``, ``LinearSolvers``, etc.  In this tutorial the only source
-        code directory we need is ``Base``.
-
-    amrex/Tutorials/HeatEquation_EX1_C/Source
-        Contains the following source code specific to this tutorial:
-        
-        #. ``Make.package``: lists the source code files
-        #. ``main.cpp``: contains the C++ ``main`` function
-        #. ``advance.cpp``: advance the solution by a time step
-        #. ``init_phi_Xd.f90, advance_Xd.f90``: fortran work functions used to
-           initialize and advance the solution
-        #. ``myfunc.H``: header file for C++ functions
-        #. ``myfunc_F.H``: header file for fortran90 functions that are called
-           in .cpp files
-
-    amrex/Tutorials/HeatEquation_EX1_C/Exec
-        This is where you build the code with make.  There is a a GNUmakefile
-        and inputs files, inputs_2d and inputs_3d.
-
-Now we highlight a few key sections of the code.  In ``main.cpp`` we
-demonstrate how to read in parameters from the inputs file:
-
-.. highlight:: c++
-
-::
-
-    // inputs parameters
-    {
-        // ParmParse is way of reading inputs from the inputs file
-        ParmParse pp;
-
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
-        //   a square (or cubic) domain.
-        pp.get("n_cell",n_cell);
-
-        // The domain is broken into boxes of size max_grid_size
-        pp.get("max_grid_size",max_grid_size);
-
-        // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be writtenq
-        plot_int = -1;
-        pp.query("plot_int",plot_int);
-
-        // Default nsteps to 0, allow us to set it to something else in the inputs file
-        nsteps = 10;
-        pp.query("nsteps",nsteps);
-
-        pp.queryarr("is_periodic", is_periodic);
-    }
-
-In ``main.cpp`` we demonstrate how to define a ``Box`` for the problem domain,
-and then how to chop that ``Box`` up into multiple boxes that define a
-``BoxArray``  We also define a ``Geometry`` object that knows about the problem
-domain, the physical coordinates of the box, and the periodicity:
-
-::
-
-    // make BoxArray and Geometry
-    BoxArray ba;
-    Geometry geom;
-    {
-        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
-        Box domain(dom_lo, dom_hi);
-
-        // Initialize the boxarray "ba" from the single box "bx"
-        ba.define(domain);
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        ba.maxSize(max_grid_size);
-
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
-                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-
-        // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    }
-
-In ``main.cpp`` we demonstrate how to build a ``DistributionMapping`` from the
-``BoxArray``, and then build ``MultiFabs`` with a desired number of components
-and ghost cells associated with each grid:
-
-::
-
-    // Nghost = number of ghost cells for each array 
-    int Nghost = 1;
-    
-    // Ncomp = number of components for each array
-    int Ncomp  = 1;
-  
-    // How Boxes are distrubuted among MPI processes
-    DistributionMapping dm(ba);
-
-    // we allocate two phi multifabs; one will store the old state, the other the new.
-    MultiFab phi_old(ba, dm, Ncomp, Nghost);
-    MultiFab phi_new(ba, dm, Ncomp, Nghost);
-
-We demonstrate how to build an array of face-based ``MultiFabs`` :
-
-::
-
-    // build the flux multifabs
-    std::array<MultiFab, AMREX_SPACEDIM> flux;
-    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-    {
-        // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
-        BoxArray edge_ba = ba;
-        edge_ba.surroundingNodes(dir);
-        flux[dir].define(edge_ba, dm, 1, 0);
-    }
-
-To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
-processor loops over grids it owns to access and/or modify data on that grid:
-
-::
-
-    // Initialize phi_new by calling a Fortran routine.
-    // MFIter = MultiFab Iterator
-    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
-    {
-        const Box& bx = mfi.validbox();
-
-        init_phi(BL_TO_FORTRAN_BOX(bx),
-                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
-    }
-
-Note that these calls to fortran subroutines require a header in
-``myfunc_F.H``:
-
-::
-
-    void init_phi(const int* lo, const int* hi,
-                  amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
-
-The associated fortran routines must shape the data accordinly:
-
-::
-
- subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
-
-   use amrex_fort_module, only : amrex_real
-
-   implicit none
-
-   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
-   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
-   real(amrex_real), intent(in   ) :: dx(2) 
-   real(amrex_real), intent(in   ) :: prob_lo(2) 
-   real(amrex_real), intent(in   ) :: prob_hi(2) 
-
-   integer          :: i,j
-   double precision :: x,y,r2
-
-   do j = lo(2), hi(2)
-      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
-      do i = lo(1), hi(1)
-         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
-
-         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
-
-         phi(i,j) = 1.d0 + exp(-r2)
-
-      end do
-   end do
-
- end subroutine init_phi
-
-Ghost cells are filled using the ``FillBoundary`` function:
-
-::
-
-    // Fill the ghost cells of each grid from the other grids
-    // includes periodic domain boundaries
-    phi_old.FillBoundary(geom.periodicity());
-
 .. _sec:basics:dim:
 
 Dimensionality
@@ -229,13 +23,15 @@ preprocessing or do
 
 The coordinate directions are zero based.
 
-Vector
-======
+Vector and Array
+================
 
-:cpp:`Vector` class in AMReX_Vector.H is derived from :cpp:`std::vector`. The
-only difference between :cpp:`Vector` and :cpp:`std::vector` is that
+:cpp:`Vector` class in ``AMReX_Vector.H`` is derived from :cpp:`std::vector`. The
+main difference between :cpp:`Vector` and :cpp:`std::vector` is that
 :cpp:`Vector::operator[]` provides bound checking when compiled with
 :cpp:`DEBUG=TRUE`.
+
+:cpp:`Array` class in ``AMReX_Array.H`` is simply an alias to :cpp:`std::array`.
 
 Real
 ====
@@ -316,6 +112,8 @@ get mixed up. Below are some examples.
      Print(ofs) << "Print to a file" << std::endl;
      ofs.close();
 
+     AllPrintToFile("file.") << "Each process appends to its own file (e.g., file.3)\n";
+
 .. _sec:basics:parmparse:
 
 ParmParse
@@ -323,7 +121,7 @@ ParmParse
 
 :cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a database for the
 storage and retrieval of command-line and input-file arguments. When
-:cpp:`amrex::Initialize()` is called, the first command-line argument after the
+:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line argument after the
 executable name (if there is one and it does not contain character =) is taken
 to be the inputs file, and the contents in the file are used to initialize the
 :cpp:`ParmParse` database. The rest of the command-line arguments are also
@@ -395,6 +193,46 @@ run with
 to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
 
 
+.. _sec:basics:initialize:
+
+Initialize and Finalize
+=======================
+
+As we have mentioned, :cpp:`Initialize` must be called to initialize
+the execution environment for AMReX and :cpp:`Finalize` must be paired
+with :cpp:`Initialize` to release the resources used by AMReX.  There
+are two versions of :cpp:`Initialize`.
+
+.. highlight:: c++
+
+::
+
+    void Initialize (MPI_Comm mpi_comm,
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
+
+    void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
+                     MPI_Comm mpi_comm = MPI_COMM_WORLD,
+                     const std::function<void()>& func_parm_parse = {},
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
+
+:cpp:`Initialize` tests if MPI has been initialized.  If MPI has been
+initialized, AMReX will duplicate the ``MPI_Comm`` argument.  If not,
+AMReX will initialize MPI and ignore the ``MPI_Comm`` argument.
+
+Both versions have two optional :cpp:`std::ostream` parameters, one
+for standard output in :cpp:`Print` (section :ref:`sec:basics:print`)
+and the other for standard error, and they can be accessed with
+functions :cpp:`OutStream()` and :cpp:`ErrorStream()`.
+
+The first version of :cpp:`Initialize` does not parse the command line
+options, whereas the second version will build ParmParse database
+(section :ref:`sec:basics:parmparse`) unless ``build_parm_parse``
+parameter is :cpp:`false`.  In the second version, one can pass a
+function that adds ParmParse parameters to the database instead of
+reading from command line or input file.
+
 .. _sec:basics:amrgrids:
 
 Example of AMR Grids
@@ -439,7 +277,7 @@ domain in indexing space.  In :numref:`fig:basics:amrgrids`, there are 1, 2 and
 2 Boxes on levels 0, 1 and 2, respectively.  :cpp:`Box` is a
 dimension-dependent class. It has lower and upper corners (represented by
 :cpp:`IntVect`) and an index type (represented by :cpp:`IndexType`). A
-:cpp`Box` contains no floating-point data.
+:cpp:`Box` contains no floating-point data.
 
 IntVect
 -------
@@ -484,7 +322,7 @@ example,
 ::
 
      IntVect iv(AMREX_D_DECL(19, 0, 5));
-     IntVect iv2((AMREX_D_DECL(4, 8, 0));
+     IntVect iv2(AMREX_D_DECL(4, 8, 0));
      iv += iv2;  // iv is now (23,8,5)
      iv *= 2;    // iv is now (46,16,10);
 
@@ -504,7 +342,7 @@ towards zero behavior of integer division in Fortran, C and C++. For example
       iv.coarsen(2);                 // Coarsen each component by 2
       iv.coarsen(coarsening_ratio);  // Component-wise coarsening
       const auto& iv2 = amrex::coarsen(iv, 2); // Return an IntVect w/o modifying iv
-      IntVect iv3 = amrex::coarsen(iv, coarsening_return); // iv not modified
+      IntVect iv3 = amrex::coarsen(iv, coarsening_ratio); // iv not modified
 
 Finally, we note that :cpp:`operator<<` is overloaded for :cpp:`IntVect` and
 therefore one can call
@@ -674,14 +512,16 @@ the index type. Some examples are shown below.
       print() << uncoarsenable.refine(2);  // ({16,16,16}, {31,31,31});
                                            // Different from the original!
 
-Note that the behavior of refinement and coarsening depends on the index type.
-Note that in this context, the refined or coarsened :cpp:`Box` still covers the
-same physical domain. :cpp:`Box uncoarsenable` in the example above is
-considered uncoarsenable because its coarsened version does not cover the same
+Note that the behavior of refinement and coarsening depends on the
+index type.  A refined :cpp:`Box` covers the same physical domain as
+the original :cpp:`Box`, and a coarsened :cpp:`Box` also covers the
+same physical domain if the original :cpp:`Box` is coarsenable.
+:cpp:`Box uncoarsenable` in the example above is considered
+uncoarsenable because its coarsened version does not cover the same
 physical domain in the AMR context.
 
 Boxes can grow in one or all directions.  There are a number of grow functions.
-Some are member functions of the :cpp:`Box` class and others are non-member
+Some are member functions of the :cpp:`Box` class and others are free
 functions in the :cpp:`amrex` namespace.
 
 The :cpp:`Box` class provides the following member functions testing if a
@@ -736,10 +576,10 @@ be constructed with
 
 ::
 
-      explicit Geometry ( const Box&     dom,
-                            const RealBox* rb     = nullptr,
-                            int            coord  = -1,
-                            int*           is_per = nullptr);
+    explicit Geometry (const Box&     dom,
+                       const RealBox* rb     = nullptr,
+                       int            coord  = -1,
+                       int*           is_per = nullptr);
 
 Here the constructor takes a cell-centered :cpp:`Box` specifying the indexing
 space domain, an optional argument of :cpp:`RealBox` pointer specifying the
@@ -780,7 +620,7 @@ cells in each direction.
       int coord = 0;
       
       // This sets the boundary conditions to be doubly or triply periodic
-      std::array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
+      Array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
       
       // This defines a Geometry object
       Geometry geom(domain, &real_box, coord, is_periodic.data());
@@ -831,14 +671,14 @@ The output is like below,
       ((0,0,64) (63,63,127) (0,0,0)) ((64,0,64) (127,63,127) (0,0,0))
       ((0,64,64) (63,127,127) (0,0,0)) ((64,64,64) (127,127,127) (0,0,0)) )
 
-It shows that ba now has 8 Boxes, and it also prints out each Box.
+It shows that ``ba`` now has 8 Boxes, and it also prints out each Box.
 
 In AMReX, :cpp:`BoxArray` is a global data structure. It holds all the Boxes in
 a collection, even though a single process in a parallel run only owns some of
 the Boxes via domain decomposition. In the example above, a 4-process run may
-divide the work and each process owns say 2 Boxes (cf section
+divide the work and each process owns say 2 Boxes (see section
 on :ref:`sec:basics:dm`). Each process can then allocate memory for the
-floating point data on the Boxes it owns (cf sections
+floating point data on the Boxes it owns (see sections
 on :ref:`sec:basics:multifab` & :ref:`sec:basics:fab`).
 
 :cpp:`BoxArray` has an indexing type, just like :cpp:`Box`. Each Box in a
@@ -2174,3 +2014,209 @@ functionality to the single-level case described above, where
 :cpp:`FillDomainBoundary` fills the physical ghost cells. In fact you can have
 your BndryFunctBase point to the same :fortran:`filcc` routines called by the
 single-level routines.
+
+.. _sec:basics:heat1:
+
+Example: HeatEquation_EX1_C
+===========================
+
+The source code tree for the heat equation example is simple, as shown in
+:numref:`fig:Basics_Heat_flowchart`. We recommend you study ``main.cpp`` and
+``advance.cpp`` to see some of the classes described below in action.
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _fig:Basics_Heat_flowchart:
+
+.. figure:: ./Basics/figs/flowchart.png
+   :width: 4in
+
+   Diagram of the source code structure for the HeatEquation_EX1_C example.
+
+.. raw:: latex
+
+   \end{center}
+
+Source code tree for the HeatEquation_EX1_C example
+
+    amrex/Src/Base
+        Contains source code for single-level simulations.  Note that in
+        ``amrex/Src`` there are many sub-directories, e.g., ``Base``, ``Amr``,
+        ``AmrCore``, ``LinearSolvers``, etc.  In this tutorial the only source
+        code directory we need is ``Base``.
+
+    amrex/Tutorials/HeatEquation_EX1_C/Source
+        Contains the following source code specific to this tutorial:
+        
+        #. ``Make.package``: lists the source code files
+        #. ``main.cpp``: contains the C++ ``main`` function
+        #. ``advance.cpp``: advance the solution by a time step
+        #. ``init_phi_Xd.f90, advance_Xd.f90``: fortran work functions used to
+           initialize and advance the solution
+        #. ``myfunc.H``: header file for C++ functions
+        #. ``myfunc_F.H``: header file for fortran90 functions that are called
+           in .cpp files
+
+    amrex/Tutorials/HeatEquation_EX1_C/Exec
+        This is where you build the code with make.  There is a a GNUmakefile
+        and inputs files, inputs_2d and inputs_3d.
+
+Now we highlight a few key sections of the code.  In ``main.cpp`` we
+demonstrate how to read in parameters from the inputs file:
+
+.. highlight:: c++
+
+::
+
+    // inputs parameters
+    {
+        // ParmParse is way of reading inputs from the inputs file
+        ParmParse pp;
+
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        //   a square (or cubic) domain.
+        pp.get("n_cell",n_cell);
+
+        // The domain is broken into boxes of size max_grid_size
+        pp.get("max_grid_size",max_grid_size);
+
+        // Default plot_int to -1, allow us to set it to something else in the inputs file
+        //  If plot_int < 0 then no plot files will be writtenq
+        plot_int = -1;
+        pp.query("plot_int",plot_int);
+
+        // Default nsteps to 10, allow us to set it to something else in the inputs file
+        nsteps = 10;
+        pp.query("nsteps",nsteps);
+
+        pp.queryarr("is_periodic", is_periodic);
+    }
+
+In ``main.cpp`` we demonstrate how to define a ``Box`` for the problem domain,
+and then how to chop that ``Box`` up into multiple boxes that define a
+``BoxArray``  We also define a ``Geometry`` object that knows about the problem
+domain, the physical coordinates of the box, and the periodicity:
+
+::
+
+    // make BoxArray and Geometry
+    BoxArray ba;
+    Geometry geom;
+    {
+        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+        Box domain(dom_lo, dom_hi);
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba.define(domain);
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        ba.maxSize(max_grid_size);
+
+       // This defines the physical box, [-1,1] in each direction.
+        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+
+        // This defines a Geometry object
+        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    }
+
+In ``main.cpp`` we demonstrate how to build a ``DistributionMapping`` from the
+``BoxArray``, and then build ``MultiFabs`` with a desired number of components
+and ghost cells associated with each grid:
+
+::
+
+    // Nghost = number of ghost cells for each array 
+    int Nghost = 1;
+    
+    // Ncomp = number of components for each array
+    int Ncomp  = 1;
+  
+    // How Boxes are distrubuted among MPI processes
+    DistributionMapping dm(ba);
+
+    // we allocate two phi multifabs; one will store the old state, the other the new.
+    MultiFab phi_old(ba, dm, Ncomp, Nghost);
+    MultiFab phi_new(ba, dm, Ncomp, Nghost);
+
+We demonstrate how to build an array of face-based ``MultiFabs`` :
+
+::
+
+    // build the flux multifabs
+    std::array<MultiFab, AMREX_SPACEDIM> flux;
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+    {
+        // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
+        BoxArray edge_ba = ba;
+        edge_ba.surroundingNodes(dir);
+        flux[dir].define(edge_ba, dm, 1, 0);
+    }
+
+To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
+processor loops over grids it owns to access and/or modify data on that grid:
+
+::
+
+    // Initialize phi_new by calling a Fortran routine.
+    // MFIter = MultiFab Iterator
+    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+    {
+        const Box& bx = mfi.validbox();
+
+        init_phi(BL_TO_FORTRAN_BOX(bx),
+                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
+                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+    }
+
+Note that these calls to fortran subroutines require a header in
+``myfunc_F.H``:
+
+::
+
+    void init_phi(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+
+The associated fortran routines must shape the data accordinly:
+
+::
+
+ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
+
+   use amrex_fort_module, only : amrex_real
+
+   implicit none
+
+   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
+   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
+   real(amrex_real), intent(in   ) :: dx(2) 
+   real(amrex_real), intent(in   ) :: prob_lo(2) 
+   real(amrex_real), intent(in   ) :: prob_hi(2) 
+
+   integer          :: i,j
+   double precision :: x,y,r2
+
+   do j = lo(2), hi(2)
+      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
+      do i = lo(1), hi(1)
+         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
+
+         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
+
+         phi(i,j) = 1.d0 + exp(-r2)
+
+      end do
+   end do
+
+ end subroutine init_phi
+
+Ghost cells are filled using the ``FillBoundary`` function:
+
+::
+
+    // Fill the ghost cells of each grid from the other grids
+    // includes periodic domain boundaries
+    phi_old.FillBoundary(geom.periodicity());
