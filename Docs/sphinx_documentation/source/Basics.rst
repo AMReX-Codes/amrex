@@ -870,7 +870,7 @@ To get a pointer to the array data, one can call
 The typical usage of the returned pointer is then to pass it to a Fortran or C
 function that works on the array data (see the section on
 :ref:`sec:basics:fortran`).  :cpp:`BaseFab` has several functions that set the
-array data to a constant value (e.g., 0). Two examples are as follows.
+array data to a constant value. Two examples are as follows.
 
 .. highlight:: c++
 
@@ -927,7 +927,7 @@ FArrayBox.
       Real a = 3.0;
       fab2.saxpy(a, fab1); // For both components, fab2 <- a * fab1 + fab2
 
-For more complicated expressions that not supported, one can write Fortran or C
+For more complicated expressions that are not supported, one can write Fortran or C
 functions for those (see the section on :ref:`sec:basics:fortran`).  Note that
 BaseFab does provide operators for accessing the data directly in C++. For
 example, the :cpp:`saxpy` example above can be done with
@@ -1011,7 +1011,7 @@ only the FAB objects owned by this process, and the process operates only on
 its local data. For operations that require data owned by other processes,
 remote communications are involved. Thus, the construction of a :cpp:`FabArray`
 requires a :cpp:`DistributionMapping` (see the section on :ref:`sec:basics:dm`)
-that specifies which process owns which Box. For level 2 (*red*) in in
+that specifies which process owns which Box. For level 2 (*red*) in
 :numref:`fig:basics:amrgrids`, there are two Boxes. Suppose there are two
 parallel processes, and we use a DistributionMapping that assigns one Box to
 each process.  For :cpp:`FabArray` on each process, it is built on a
@@ -1120,7 +1120,7 @@ face averaged variables.
       MultiFab yflux(amrex::convert(ba, IntVect{0,1,0}), dm, ncomp, 0);
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
-Here all :cpp:`MultiFab` use the same :cpp:`DistributionMapping`, but their
+Here all :cpp:`MultiFabs` use the same :cpp:`DistributionMapping`, but their
 :cpp:`BoxArrays` have different index types. The state is cell-based, whereas
 the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
@@ -1150,7 +1150,7 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs` built with the
       // MultiFab mfsrc: source
       // int      sc   : starting component index in mfsrc for this operation
       // int      dc   : starting component index in mfdst for this operation
-      // int      sc   : number of components for this operation
+      // int      nc   : number of components for this operation
       // int      ng   : number of ghost cells involved in this operation
       //                 mfdst and mfsrc may have more ghost cells
 
@@ -1189,7 +1189,9 @@ boundaries can be filled as well. You might have noticed that a ghost cell
 could overlap with multiple valid cells from different FArrayBoxes in the case
 of nodal index type. In that case, it is unspecified that which valid cell’s
 value is used to fill the ghost cell. It ought to be the case the values in
-those overlapping valid cells are the same up to roundoff errors.
+those overlapping valid cells are the same up to roundoff errors.  If
+a ghost cell does not overlap with any valid cells, its value will not
+be modified by :cpp:`FillBoundary`.
 
 Another type of parallel communication is copying data from one :cpp:`MultiFab`
 to another :cpp:`MultiFab` with a different :cpp:`BoxArray` or the same
@@ -1214,10 +1216,12 @@ no periodic copy is performed. Like :cpp:`FillBoundary`, one can use
 :cpp:`Geometry::periodicity()` to provide the periodicity information. The last
 parameter is also optional and is set to :cpp:`FabArrayBase::COPY` by default.
 One could also use :cpp:`FabArrayBase::ADD`. This determines whether the
-function copies or adds data from the source to the destination. Same as
-:cpp:`FillBoundary`, if a destination cell has multiple cells as source, it is
-unspecified that which source cell is used. This function has two variants, in
-which the periodicity and operation type are also optional.
+function copies or adds data from the source to the
+destination. Similar to :cpp:`FillBoundary`, if a destination cell has
+multiple cells as source, it is unspecified that which source cell is used in
+:cpp:`FabArrayBase::COPY`, and, for :cpp:`FabArrayBase::ADD`, the multiple
+values are all added to the destination cell.  This function has two
+variants, in which the periodicity and operation type are also optional.
 
 .. highlight:: c++
 
@@ -1229,9 +1233,7 @@ which the periodicity and operation type are also optional.
 
 Here the number of ghost cells involved is zero, and the copy is performed on
 all components if unspecified (assuming the two MultiFabs have the same number
-of components). Similar to :cpp:`FillBoundary`, a destination cell may have
-multiple sources and which source is used is unspecified.
-
+of components).
 
 
 .. _sec:basics:mfiter:
@@ -1277,7 +1279,7 @@ together. In this section, we will show how you can operate on the
 
           // We can now pass the information to a function that does
           // work on the region (specified by box) of the data pointed to
-          // by Real* a.  The data should be viewed as a multidimensional
+          // by Real* a.  The data should be viewed as multidimensional
           // with bounds specified by abox.
           // Function f1 has the signature of
           // void f1(const int*, const int*, Real*, const int*, const int*);
@@ -1530,7 +1532,7 @@ size larger than the grid size simply means tiling is disable in that
 direction. AMReX has a default tile size :cpp:`IntVect{1024000,8,8}` in 3D and
 no tiling in 2D. This is used when tile size is not explicitly set but the
 tiling flag is on. One can change the default size using :cpp:`ParmParse`
-parameter ``fabarray.mfiter_tile_size.``
+(section :ref:`sec:basics:parmparse`) parameter ``fabarray.mfiter_tile_size.``
 
 .. |c| image:: ./Basics/ec_validbox.png
        :width: 90%
@@ -1616,8 +1618,7 @@ multi-threaded codes race conditions could occur.
 
 :numref:`fig:basics:growbox_comparison` illustrates an example of
 :cpp:`growntilebox`. These functions in :cpp:`MFIter` return :cpp:`Box` by
-value. There are two ways of using these
-functions.
+value. There are three ways of using these functions.
 
 .. highlight:: c++
 
@@ -1629,6 +1630,10 @@ functions.
       // Compilers can optimize away the temporary object.
       Box bx2 = mfi.validbox();
       bx2.surroundingNodes();
+
+      Box&& bx3 = mfi.validbox(); // bound to the return value
+      bx3.enclosedCells();
+
 
 But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
@@ -1777,6 +1782,76 @@ like below,
       integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),nu
       real(amrex_real),intent(inout)::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nu)
     end subroutine f
+
+There is a potential type safety issue when calling Fortran functions
+from C++.  If there is a mismatch between the function declaration on
+the C++ side and the function definition in Fortran, the compiler
+cannot catch it.  For example
+
+.. highlight:: c++
+
+::
+
+    // function declaration
+    extern "C" {
+        void f (amrex_real* x);
+    }
+    
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        f(mf[mfi].dataPtr()));
+    }
+
+    ! Fortra definition
+    subroutine f(x,y) bind(c)
+        implicit none
+        integer x, y
+    end subroutine f
+
+The code above will compile without errors even though the number of
+arguments and types don't match.  
+
+To help detect this kind of issues, AMReX provides a type check tool.
+Note that it only works when GCC is used.  In the directory an AMReX
+based code is compiled, type
+
+.. highlight:: console
+
+::
+
+    make typecheck
+
+Extra arguments used in a usual AMReX build (e.g., USE_MPI=TRUE DIM=2)
+can be added.  When it finishes, the output may look like,
+
+.. highlight:: console
+
+::
+
+    Function my_f in main_F.H vs. Fortran procedure in f.f90
+        number of arguments 1 does NOT match 2.
+        arg #1: C type ['double', 'pointer'] does NOT match Fortran type ('INTEGER 4', 'pointer', 'x').
+    22 functions checked, 1 error(s) found.  More details can be found in tmp_build_dir/t/3d.gnu.DEBUG.EXE/amrex_typecheck.ou.
+
+It should be noted that Fortran by default passes argument by
+reference.  In the example output above, ``pointer`` in ``Fortran type
+('INTEGER 4', 'pointer', 'x')`` means it's a reference to argument
+(i.e., C pointer), not a Fortran pointer.
+
+The type check tool has known limitations.  For a function to be
+checked by the tool in the GNU make build system, the declaration must
+be in a header file named ``*_f.H`` or ``*_F.H``, and the header file
+must be in the ``CEXE_headers`` make variable.  The headers are
+preprocessed first by cpp as C language, and is then parsed by
+pycparser (https://pypi.python.org/pypi/pycparser) that needs to be
+installed on your system.  Because pycparser is a C parser, C++ parts
+of the headers (e.g., :cpp:`extern "C" {`) need to be hidden with
+macro :cpp:`#ifdef __cplusplus`.  Headers like ``AMReX_BLFort.H`` can
+be used as a C header, but most other AMReX headers cannot and should
+be hidden by :cpp:`#ifdef __cplusplus` if they are included.  More
+details can be found at ``amrex/Docs/Readme.typecheck``.  Despite
+these limitations, it is recommended to use the type check tool and
+report issues to us.
 
 
 Ghost Cells
