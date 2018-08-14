@@ -42,7 +42,7 @@ Box getThreadBox(const Box& bx, const IntVect& typ)
              }
              else if (bx.type()[d] > typ[d]) {   // Nodal to Cell (1 > 0)
                  if (threadBox.bigEnd(d) == Big[d]) {
-                     threadBox = Box();          // Thread on the node gets an empty box. 
+                     threadBox.growHi(d, -1);    // Thread on the edge looses the nodal work. 
                      break;
                  }
              }
