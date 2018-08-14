@@ -2214,6 +2214,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       phdr_name = amrex::Concatenate(phdr_name + "/Level_", lev, 1);
       phdr_name += "/Particle_H";
 
+      if (not amrex::FileExists(phdr_name)) {
+          dual_grid = false;
+          break;
+      }
+
       Vector<char> phdr_chars;
       ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
       std::string phdr_string(phdr_chars.dataPtr());
@@ -2498,9 +2503,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
             //
             // Each CPU opens the file for appending and adds its particles.
             //
-            std::ofstream File;
-
             VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+            std::ofstream File;
 
             File.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
@@ -2638,9 +2643,9 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
             //
             // Each CPU opens the file for appending and adds its particles.
             //
-            std::ofstream File;
-
             VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+            std::ofstream File;
 
             File.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 

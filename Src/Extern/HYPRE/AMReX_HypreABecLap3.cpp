@@ -46,6 +46,10 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real ab
         m_factory = &(rhs.Factory());
         prepareSolver();
     }
+    else
+    {
+        m_factory = &(rhs.Factory());
+    }
     
     HYPRE_IJVectorInitialize(b);
     HYPRE_IJVectorInitialize(x);
