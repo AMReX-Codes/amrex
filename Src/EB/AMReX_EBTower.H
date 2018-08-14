@@ -31,13 +31,15 @@ public:
     
 private:
 
-    EBTower ();
     ~EBTower ();
 
+#ifndef AMREX_NO_DEPRECATED_EB
+    EBTower ();
     void initCellFlags (int lev, const EBLevelGrid& eblg);
     void initVolumeGeometry (int lev, const EBLevelGrid& eblg);
     void initBndryCent (int lev, const EBLevelGrid& eblg);
     void initFaceGeometry (int lev, const EBLevelGrid& eblg);
+#endif
 
     static Vector<Box> 
     getPeriodicGhostBoxes(const Box        & a_valid, 

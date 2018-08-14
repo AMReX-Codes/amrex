@@ -1,5 +1,7 @@
 #include "AMReX_EB_levelset.H"
 
+#ifndef AMREX_NO_DEPRECATED_EB
+
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_RealVect.H>
@@ -886,3 +888,5 @@ BaseIF * PolynomialDF::newImplicitFunction() const {
 }
 
 }
+
+#endif

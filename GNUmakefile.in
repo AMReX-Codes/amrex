@@ -16,6 +16,10 @@ ifeq ($(USE_LINEAR_SOLVERS),TRUE)
      Pdirs += F_Interfaces/LinearSolvers
    endif
 endif
+ifeq ($(USE_EB),TRUE)
+   DEFINES += -DAMREX_NO_DEPRECATED_EB
+   Pdirs += EB EB2
+endif
 Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 
