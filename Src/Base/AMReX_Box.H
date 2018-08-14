@@ -242,6 +242,7 @@ public:
     }
 
     //! Returns true if Box is cell-centered in all indexing directions.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     bool cellCentered () const { return !btype.any(); }
 
     /**
@@ -357,6 +358,7 @@ public:
     * type NODE -> CELL : reduce coordinate by one on high end
     * other type mappings make no change.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& convert (IndexType typ);
 
     /**
@@ -366,6 +368,7 @@ public:
     * type NODE -> CELL : reduce coordinate by one on high end
     * other type mappings make no change.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& convert (const IntVect& typ);
 
     //! Convert to NODE type in all directions.
@@ -623,6 +626,7 @@ Box::coarsen (const IntVect& ref_ratio)
 }
 
 inline
+AMREX_CUDA_HOST AMREX_CUDA_DEVICE
 Box&
 Box::convert (const IntVect& typ)
 {
@@ -634,6 +638,7 @@ Box::convert (const IntVect& typ)
 }
 
 inline
+AMREX_CUDA_HOST AMREX_CUDA_DEVICE
 Box&
 Box::convert (IndexType t)
 {
