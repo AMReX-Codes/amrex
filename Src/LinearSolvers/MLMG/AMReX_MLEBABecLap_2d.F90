@@ -376,7 +376,7 @@ contains
     if  (face_only .eq. 1) then 
       do   j = lo(2), hi(2)
         do i = lo(1), hi(1)+1, hi(1)+1-lo(1)
-          if (is_covered_cell(flag(i,j))) then
+          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i-1,j))) then
              fx(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              fx(i,j) = -dhx*bx(i,j)*(sol(i,j) - sol(i-1,j))
@@ -393,7 +393,7 @@ contains
       end do
       do   j = lo(2), hi(2)+1, hi(2)+1-lo(2)
         do i = lo(1), hi(1) 
-           if (is_covered_cell(flag(i,j))) then
+           if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i,j-1))) then
              fy(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              fy(i,j) = -dhy*by(i,j)*(sol(i,j) - sol(i,j-1))
@@ -411,7 +411,7 @@ contains
     else
       do   j = lo(2), hi(2)
         do i = lo(1), hi(1)+1
-          if (is_covered_cell(flag(i,j))) then
+          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i-1,j))) then
              fx(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              fx(i,j) = -dhx*bx(i,j)*(sol(i,j) - sol(i-1,j))
@@ -428,7 +428,7 @@ contains
       end do
       do   j = lo(2), hi(2)+1
         do i = lo(1), hi(1)
-          if (is_covered_cell(flag(i,j))) then
+          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i,j-1))) then
              fy(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              fy(i,j) = -dhy*by(i,j)*(sol(i,j) - sol(i,j-1))
@@ -467,10 +467,9 @@ contains
 
     dhx = dxinv(1)
     dhy = dxinv(2)
-
       do   j = xlo(2), xhi(2)
         do i = xlo(1), xhi(1)
-          if (is_covered_cell(flag(i,j))) then
+          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i-1,j))) then
              gx(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              gx(i,j) = dhx*(sol(i,j) - sol(i-1,j))
@@ -487,7 +486,7 @@ contains
       end do
       do   j = ylo(2), yhi(2)
         do i = ylo(1), yhi(1)
-          if (is_covered_cell(flag(i,j))) then
+          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i,j-1))) then
              gy(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              gy(i,j) = dhy*(sol(i,j) - sol(i,j-1))
