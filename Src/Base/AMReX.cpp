@@ -414,7 +414,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
-            prev_handler_sigsegv = signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+            prev_handler_sigsegv = signal(SIGSEGV, BLBackTrace::handler); // catch seg fault
             prev_handler_sigint = signal(SIGINT,  BLBackTrace::handler);
             prev_handler_sigabrt = signal(SIGABRT, BLBackTrace::handler);
 

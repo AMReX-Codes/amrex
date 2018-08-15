@@ -1728,6 +1728,8 @@ version of Fortran function interface works for any spatial dimensions. If one
 wants to write a special version just for 2D and would like to use 2D arrays,
 one can use
 
+.. highlight:: fortran
+
 ::
 
     subroutine f2d(lo, hi, u, ulo, uhi) bind(c)
@@ -1774,6 +1776,8 @@ have seen in the section on :ref:`sec:basics:mfiter`.  We can also use the
 except that it provides an additional :cpp:`int *` for the number of
 components. The Fortran function matching :cpp:`BL_TO_FORTRAN_FAB(fab)` is then
 like below,
+
+.. highlight:: fortran
 
 ::
 
@@ -1905,33 +1909,38 @@ examples of using the module.
 
 ::
 
-      use amrex_mempool_module, only : bl_allocate, bl_deallocate
+      use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
       real(amrex_real), pointer, contiguous :: a(:,:,:), b(:,:,:,:)
       integer :: lo1, hi1, lo2, hi2, lo3, hi3, lo(4), hi(4)
       ! lo1 = ...
       ! a(lo1:hi1, lo2:hi2, lo3:hi3)
-      call bl_allocate(a, lo1, hi1, lo2, hi2, lo3, hi3)
+      call amrex_allocate(a, lo1, hi1, lo2, hi2, lo3, hi3)
       ! b(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),lo(4):hi(4))
-      call bl_allocate(b, lo, hi)
+      call amrex_allocate(b, lo, hi)
       ! ......
-      call bl_deallocate(a)
-      call bl_deallocate(b)
+      call amrex_deallocate(a)
+      call amrex_deallocate(b)
 
 The downside of this is we have to use :fortran:`pointer` instead of
 :fortran:`allocatable`. This means we must explicitly free the memory via
-:fortran:`bl_deallocate` and we need to declare the pointers as
-:fortran:`contiguous` for performance reason.
+:fortran:`amrex_deallocate` and we need to declare the pointers as
+:fortran:`contiguous` for performance reason.  Also, we often
+pass the Fortran pointer to a procedure with explicit array argument
+to get rid of the pointerness completely.
 
-Abort and Assertion
-===================
+Abort, Assertion and Backtrace
+==============================
 
 :cpp:`amrex::Abort(const char * message)` is used to terminate a run usually
 when something goes wrong. This function takes a message and writes it to
-stderr. Files named like Backtrace.rg_1_rl_1 (where rg_1_rl_1 means process 1)
+stderr. Files named like ``Backtrace.1`` (where 1 means process 1)
 are produced containing backtrace information of the call stack. In Fortran, we
 can call :fortran:`amrex_abort` from the :fortran:`amrex_error_module`, which
 takes a Fortran character variable with assumed size (i.e., :fortran:`len=*`)
-as a message.
+as a message.  A ``ParmParse`` runtime boolean parameter
+``amrex.throw_handling`` (which is defaulted to 0, i.e., :cpp:`false`)
+can be set to 1 (i.e., :cpp:`true`) so that AMReX will throw an
+exception instead of aborting.
 
 :cpp:`AMREX_ASSERT` is a macro that takes a Boolean expression. For debug build
 (e.g., ``DEBUG=TRUE`` using the GNU Make build system), if the expression at
@@ -1950,7 +1959,69 @@ For example,
 
 Here for debug build we like to assert that :cpp:`MultiFab mf` has ghost cells
 and it also has the same number of components as :cpp:`MultiFab mf2`. If we
-always want the assertion, we can use :cpp:`AMREX_ALWAYS_ASSERT`.
+always want the assertion, we can use :cpp:`AMREX_ALWAYS_ASSERT`.  The
+assertion macros have a ``_WITH_MESSAGE`` variant that will print a
+message when assertion fails.  For example,
+
+.. highlight:: c++
+
+::
+
+      AMREX_ASSERT_WITH_MESSAGE(mf.boxArray() == mf2.boxArray(),
+                                "These two mfs must have the same BoxArray");
+
+
+Backtrace files are produced by AMReX signal handler by default when
+segfault occurs or ``Abort`` is called.  If the application does not
+want AMReX to handle this, ``ParmParse`` parameter
+`amrex.signal_handling=0` can be used to disable it.
+
+
+Debugging
+=========
+
+Debugging is an art.  Everyone has their own favorite method.  Here we
+offer a few tips we have found to be useful.
+
+Compiling in debug mode (e.g., ``make DEBUG=TRUE``) and running with
+``ParmParse`` parameter ``amrex.fpe_trap_invalid=1`` can be helpful.
+In debug mode, many compiler debugging flags are turned on and all
+``MultiFab`` data are initialized to signaling NaNs.  The
+``amrex.fpe_trap_invalid`` parameter will result in backtrace files
+when floating point exception occurs.  One can then examine those
+files to track down the origin of the issue.
+
+Writing a ``MultiFab`` to disk with
+
+.. highlight:: c++
+
+::
+
+    VisMF::Write(const FabArray<FArrayBox>& mf, const std::string& name)
+
+in ``AMReX_VisMF.H`` and examining it with ``Amrvis`` (section
+:ref:`sec:amrvis`) can be helpful as well.  In
+``AMReX_MultiFabUtil.H``, function
+
+.. highlight:: c++
+
+::
+
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
+
+can output the data for a single cell.
+
+Valgrind is one of our favorite debugging tool.  For MPI runs, one can
+tell valgrind to output to different files for different processes.
+For example,
+
+.. highlight:: console
+
+::
+
+    mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
+
+
 
 .. _sec:basics:boundary:
 
@@ -2056,48 +2127,44 @@ example).
     // fills interior (but not periodic domain boundary) ghost cells
     mf.FillBoundary();
 
-    // fills physical domain boundary ghost cells
+    // fills physical domain boundary ghost cells for a cell-centered multifab
+    // except for external Dirichlet
     FillDomainBoundary(mf, geom, bc);
 
-:cpp:`FillDomainBoundary()` is a function is in
-``amrex/Src/Base/AMReX_BCUtil.cpp``, and is essentially an interface to fortran
-subroutine :fortran:`amrex_fab_filcc()` in
-``amrex/Src/Base/AMReX_filcc_mod.F90``, which ultimately calls fortran
-subroutine :fortran:`filcc()` in ``amrex/Src/Base/AMReX_FILCC_XD.F``. To create
-more custom boundary conditions, create a local modified copy of
-``amrex/Src/Base/AMReX_FILCC_XD.F`` and put it your local source code.
+:cpp:`FillDomainBoundary()` is a function in
+``amrex/Src/Base/AMReX_BCUtil.cpp`` that fills the physical domain
+boundary ghost cells with Fortran function ``amrex_fab_filcc`` except
+for external Dirichlet (i.e., :cpp:`BCType:ext_dir`).  The user can
+use it as a template and insert their own function for
+:cpp:`BCType:ext_dir` like below
 
-For multi-level codes using the ``amrex/Src/AmrCore`` source code, the
-functions described above still work, however additional classes need to be set
-up since the :cpp:`FillPatch` routines call them.  In fact it is possible to
-avoid using the single-level calls directly if you fill all your grids and
-ghost cells using the :cpp:`FillPatch` routines.  Refer to
-``amrex/Tutorials/Amr/Advection_AmrCore/`` for an example.  The class
-:cpp:`PhysBCFunct` in ``amrex/Src/Base/AMReX_PhysBCFunct.cpp`` is derived from
-:cpp:`PhysBCFunctBase` and contains a :cpp:`BCRec`, :cpp:`Geometry`, and a
-pointer to a :cpp:`BndryFunctBase` function.
+.. highlight:: c++
 
-Note that :cpp:`PhyBCFunct` is an example of how to derive from
-:cpp:`PhysBCFunctBase` and is not meant to be a base class.
-:cpp:`PhysBCFunctBase` is the base class.  PhysBCFunctBase is designed for
-users to derive and extend.  You could/should write your own class derived from
-PhysBCFuncBase.  There you can make modifications such as storing a vector of
-BCRecs for, e.g., multiple component MultiFabs.
+::
 
-The function :cpp:`FillBoundary` fills physical ghost cells and has a similar
-functionality to the single-level case described above, where
-:cpp:`FillDomainBoundary` fills the physical ghost cells. In fact you can have
-your BndryFunctBase point to the same :fortran:`filcc` routines called by the
-single-level routines.
+    if (! grown_domain_box.contains(fab_box))
+    {
+        amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                        BL_TO_FORTRAN_BOX(domain_box),
+                        dx, prob_lo,
+                        bc[0].data());
+        user_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                       BL_TO_FORTRAN_BOX(domain_box),
+                       dx, prob_lo,
+                       bc[0].data());
+    }
+
 
 .. _sec:basics:heat1:
 
 Example: HeatEquation_EX1_C
 ===========================
 
-The source code tree for the heat equation example is simple, as shown in
-:numref:`fig:Basics_Heat_flowchart`. We recommend you study ``main.cpp`` and
-``advance.cpp`` to see some of the classes described below in action.
+We now present an example of solving the heat equation.  The source
+code tree for the heat equation example is simple, as shown in
+:numref:`fig:Basics_Heat_flowchart`. We recommend you study
+``main.cpp`` and ``advance.cpp`` to see some of the classes described
+below in action.
 
 .. raw:: latex
 
@@ -2135,7 +2202,7 @@ Source code tree for the HeatEquation_EX1_C example
            in .cpp files
 
     amrex/Tutorials/HeatEquation_EX1_C/Exec
-        This is where you build the code with make.  There is a a GNUmakefile
+        This is where you build the code with make.  There is a GNUmakefile
         and inputs files, inputs_2d and inputs_3d.
 
 Now we highlight a few key sections of the code.  In ``main.cpp`` we
