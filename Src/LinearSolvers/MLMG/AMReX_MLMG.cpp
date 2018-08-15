@@ -1130,7 +1130,7 @@ MLMG::prepareForNSolve ()
 }
 
 void
-MLMG::getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
+MLMG::getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
 {
     BL_PROFILE("MLMG::getGradSolution()");
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
@@ -1139,7 +1139,7 @@ MLMG::getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_gr
 }
 
 void
-MLMG::getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_flux)
+MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux)
 {
     BL_PROFILE("MLMG::getFluxes()");
     const Real betainv = 1.0 / linop.getBScalar();
@@ -1509,7 +1509,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         }
         else
         {
-            std::array<MultiFab,AMREX_SPACEDIM> beta;
+            Array<MultiFab,AMREX_SPACEDIM> beta;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
