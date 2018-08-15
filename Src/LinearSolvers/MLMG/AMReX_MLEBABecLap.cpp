@@ -522,6 +522,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const std::array<FArrayBox*,A
     }
 }
 
+
 void
 MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 {

@@ -131,7 +131,37 @@ extern "C" {
                                  const void* flag, const int* flo, const int* fhi,
                                  const amrex_real* dxinv, const amrex_real beta, const int face_only);
 
-
+    void amrex_mlebabeclap_grad( const int* xlo, const int* xhi, 
+#if (AMREX_SPACEDIM >= 2)
+                                 const int* ylo, const int* yhi,
+#if (AMREX_SPACEDIM == 3)
+                                 const int* zlo, const int* zhi,
+#endif
+#endif
+                                 const amrex_real* dat, const int* dlo, const int* dhi,
+                                 amrex_real* gx, const int* gxlo, const int* gxhi,
+#if (AMREX_SPACEDIM >= 2)
+                                 amrex_real* gy, const int* gylo, const int* gyhi,
+#if (AMREX_SPACEDIM == 3)
+                                 amrex_real* gz, const int* gzlo, const int* gzhi,
+#endif
+#endif
+                                 const amrex_real* ax, const int* axlo, const int* axhi, 
+#if (AMREX_SPACEDIM >= 2)
+                                 const amrex_real* ay, const int* aylo, const int* ayhi, 
+#if (AMREX_SPACEDIM == 3)
+                                 const amrex_real* az, const int* azlo, const int* azhi,
+#endif
+#endif
+                                 const amrex_real* fcx, const int* fcxlo, const int* fcxhi, 
+#if (AMREX_SPACEDIM >= 2)
+                                 const amrex_real* fcy, const int* fcylo, const int* fcyhi, 
+#if (AMREX_SPACEDIM == 3)
+                                 const amrex_real* fcz, const int* fczlo, const int* fczhi,
+#endif
+#endif
+                                 const void* flag, const int* flo, const int* fhi,
+                                 const amrex_real* dxinv);
 
     void amrex_mlebabeclap_normalize (const int* lo, const int* hi,
                                       amrex_real* y, const int* ylo, const int* yhi,
