@@ -582,7 +582,7 @@ contains
      do         k = lo(3), hi(3)  
          do     j = lo(2), hi(2) 
              do i = lo(1), hi(1)+1, hi(1)+1-lo(1) 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i-1,j,k))) then 
                    fx(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    fx(i,j,k) = - dhx*bX(i,j,k)*(x(i,j,k) - x(i-1,j,k)) 
@@ -607,7 +607,7 @@ contains
      do         k = lo(3), hi(3) 
          do     j = lo(2), hi(2)+1, hi(2)+1-lo(2) 
              do i = lo(1), hi(1) 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j-1,k))) then 
                    fy(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    fy(i,j,k) = - dhy*bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
@@ -631,7 +631,7 @@ contains
      do         k = lo(3), hi(3)+1, hi(3)+1-lo(3) 
          do     j = lo(2), hi(2) 
              do i = lo(1), hi(1) 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j,k-1))) then 
                    fz(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    fz(i,j,k) = - dhz*bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
@@ -656,7 +656,7 @@ contains
      do         k = lo(3), hi(3) 
          do     j = lo(2), hi(2) 
              do i = lo(1), hi(1)+1 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i-1,j,k))) then 
                    fx(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    fx(i,j,k) = - dhx*bX(i,j,k)*(x(i,j,k) - x(i-1,j,k)) 
@@ -681,7 +681,7 @@ contains
      do         k = lo(3), hi(3) 
          do     j = lo(2), hi(2)+1 
              do i = lo(1), hi(1) 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j-1,k))) then 
                    fy(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    fy(i,j,k) = - dhy*bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
@@ -706,7 +706,7 @@ contains
      do         k = lo(3), hi(3)+1 
          do     j = lo(2), hi(2) 
              do i = lo(1), hi(1) 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j,k-1))) then 
                    fz(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    fz(i,j,k) = - dhz*bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
@@ -760,11 +760,11 @@ contains
    dhx = dxinv(1) 
    dhy = dxinv(2)  
    dhz = dxinv(3) 
-
+   print*, "In get grad!" 
      do         k = xlo(3), xhi(3) 
          do     j = xlo(2), xhi(2) 
              do i = xlo(1), xhi(1) 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i-1,j,k))) then 
                    gx(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    gx(i,j,k) = dhx*(sol(i,j,k) - sol(i-1,j,k)) 
@@ -789,7 +789,7 @@ contains
      do         k = ylo(3), yhi(3) 
          do     j = ylo(2), yhi(2) 
              do i = ylo(1), yhi(1) 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j-1,k))) then 
                    gy(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    gy(i,j,k) = dhy*(sol(i,j,k) - sol(i,j-1,k))
@@ -814,7 +814,7 @@ contains
      do         k = zlo(3), zhi(3) 
          do     j = zlo(2), zhi(2) 
              do i = zlo(1), zhi(1) 
-               if(is_covered_cell(flag(i,j,k))) then 
+               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j,k-1))) then 
                    gz(i,j,k) = zero
                 else if (is_regular_cell(flag(i,j,k))) then 
                    gz(i,j,k) = dhz*(sol(i,j,k) - sol(i,j,k-1))

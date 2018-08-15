@@ -132,10 +132,10 @@ extern "C" {
                                  const amrex_real* dxinv, const amrex_real beta, const int face_only);
 
     void amrex_mlebabeclap_grad( const int* xlo, const int* xhi, 
-#if (AMREX_SPACEDIM >= 2)
-                                 const int* ylo, const int* yhi,
-#if (AMREX_SPACEDIM == 3)
-                                 const int* zlo, const int* zhi,
+#if (AMREX_SPACEDIM >= 2) 
+                                 const int* ylo, const int* yhi, 
+#if (AMREX_SPACEDIM == 3) 
+                                 const int* zlo, const int* zhi, 
 #endif
 #endif
                                  const amrex_real* dat, const int* dlo, const int* dhi,

@@ -3,6 +3,9 @@
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MG_F.H>
 #include <AMReX_MultiFabUtil.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_MLEBABecLap_F.H>
+#endif
 
 namespace amrex {
 
@@ -585,7 +588,7 @@ MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& g
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-#if(AMREX_USE_EB == TRUE)
+#ifdef AMREX_USE_EB
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
     auto area = (factory) ? factory->getAreaFrac() : 
@@ -602,7 +605,7 @@ MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& g
         AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
                      const Box& ybx = mfi.nodaltilebox(1);,
                      const Box& zbx = mfi.nodaltilebox(2););
-        if(fabtyp == FabType::regular || fabtype == FabType::covered){
+        if(fabtyp == FabType::regular || fabtyp == FabType::covered){
              amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
                                              BL_TO_FORTRAN_BOX(ybx),
                                              BL_TO_FORTRAN_BOX(zbx)),
@@ -613,7 +616,7 @@ MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& g
                                  dxinv);           
         } 
         else
-        {
+        { 
            amrex_mlebabeclap_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
                                                BL_TO_FORTRAN_BOX(ybx),
                                                BL_TO_FORTRAN_BOX(zbx)),
