@@ -371,8 +371,8 @@ contains
     integer :: i,j, ii, jj
     real(amrex_real) :: dhx, dhy, fxm, fym, fracx, fracy
 
-    dhx = beta*dxinv(1)*dxinv(1)
-    dhy = beta*dxinv(2)*dxinv(2)
+    dhx = beta*dxinv(1)
+    dhy = beta*dxinv(2)
     if  (face_only .eq. 1) then 
       do   j = lo(2), hi(2)
         do i = lo(1), hi(1)+1, hi(1)+1-lo(1)
