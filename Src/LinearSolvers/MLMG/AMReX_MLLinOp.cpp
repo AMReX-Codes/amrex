@@ -340,8 +340,8 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
 }
 
 void
-MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
-                      const std::array<BCType,AMREX_SPACEDIM>& a_hibc)
+MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
+                      const Array<BCType,AMREX_SPACEDIM>& a_hibc)
 {
     m_lobc = a_lobc;
     m_hibc = a_hibc;

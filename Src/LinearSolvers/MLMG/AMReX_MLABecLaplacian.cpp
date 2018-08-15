@@ -75,7 +75,7 @@ MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
 
 void
 MLABecLaplacian::setBCoeffs (int amrlev,
-                             const std::array<MultiFab const*,AMREX_SPACEDIM>& beta)
+                             const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
@@ -101,7 +101,7 @@ MLABecLaplacian::averageDownCoeffs ()
 
 void
 MLABecLaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                                Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b)
+                                                Vector<Array<MultiFab,AMREX_SPACEDIM> >& b)
 {
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -139,7 +139,7 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
         amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
     }
      
-    std::array<MultiFab,AMREX_SPACEDIM> bb;
+    Array<MultiFab,AMREX_SPACEDIM> bb;
     Vector<MultiFab*> crse(AMREX_SPACEDIM);
     Vector<MultiFab const*> fine(AMREX_SPACEDIM);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -421,7 +421,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
 void
 MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
-                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
+                        const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only) const
 {
     BL_PROFILE("MLABecLaplacian::FFlux()");

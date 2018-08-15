@@ -504,9 +504,9 @@ MLCellLinOp::reflux (int crse_amrlev,
 #pragma omp parallel
 #endif
     {
-        std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
-        std::array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox,AMREX_SPACEDIM> flux;
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
         for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
@@ -544,7 +544,7 @@ MLCellLinOp::reflux (int crse_amrlev,
 }
 
 void
-MLCellLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
+MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
 {
     BL_PROFILE("MLCellLinOp::compFlux()");
 
@@ -556,8 +556,8 @@ MLCellLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& f
 #pragma omp parallel
 #endif
     {
-        std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox,AMREX_SPACEDIM> flux;
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
         for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
@@ -574,7 +574,7 @@ MLCellLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& f
 }
 
 void
-MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
+MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
 {
     BL_PROFILE("MLCellLinOp::compGrad()");
 
@@ -672,8 +672,8 @@ MLCellLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionM
 
 void
 MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
-                                            const std::array<BCType,AMREX_SPACEDIM>& lobc,
-                                            const std::array<BCType,AMREX_SPACEDIM>& hibc,
+                                            const Array<BCType,AMREX_SPACEDIM>& lobc,
+                                            const Array<BCType,AMREX_SPACEDIM>& hibc,
                                             int ratio, const RealVect& a_loc)
 {
     const Box&  domain = geom.Domain();
