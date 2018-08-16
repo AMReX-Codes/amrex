@@ -137,7 +137,7 @@ extern "C" {
 #if (AMREX_SPACEDIM == 3) 
                                  const int* zlo, const int* zhi, 
 #endif
-#endif
+#endif // */
                                  const amrex_real* dat, const int* dlo, const int* dhi,
                                  amrex_real* gx, const int* gxlo, const int* gxhi,
 #if (AMREX_SPACEDIM >= 2)

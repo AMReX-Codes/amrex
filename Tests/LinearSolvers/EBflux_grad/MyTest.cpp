@@ -80,14 +80,14 @@ MyTest::solve ()
 
 
     mlmg.getFluxes(pflux); 
-//    mlmg.getGradSolution(pgrad);
+    mlmg.getGradSolution(pgrad);
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(phi[0], "phi-"+std::to_string(ilev));
     }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         amrex::VisMF::Write(flux[0][idim], "flux-"+std::to_string(idim)); 
-//        amrex::VisMF::Write(grad[0][idim], "grad-"+std::to_string(idim)); 
+        amrex::VisMF::Write(grad[0][idim], "grad-"+std::to_string(idim)); 
     }
 }
 
