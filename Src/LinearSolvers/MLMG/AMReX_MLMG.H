@@ -24,8 +24,8 @@ public:
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rel, Real a_tol_abs);
 
-    void getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
-    void getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
+    void getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
+    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
     // out = L(in). Note that, if no acutal solve is needed, one could
@@ -61,7 +61,12 @@ public:
     void setNSolveGridSize (int s) { nsolve_grid_size = s; }
 
 #ifdef AMREX_USE_HYPRE
-    void setHypreInterface (Hypre::Interface f) { hypre_interface = f; }
+    void setHypreInterface (Hypre::Interface f) {
+        // must use ij interface for EB
+#ifndef AMREX_USE_EB
+        hypre_interface = f;
+#endif
+    }
 #endif
     
 private:
@@ -105,7 +110,9 @@ private:
 #ifdef AMREX_USE_EB
     Hypre::Interface hypre_interface = Hypre::Interface::ij;
 #else
+//    Hypre::Interface hypre_interface = Hypre::Interface::structed;
     Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
+//    Hypre::Interface hypre_interface = Hypre::Interface::ij;
 #endif
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
@@ -126,6 +133,10 @@ private:
     Vector<Vector<MultiFab> >                rescor; // = res - L(cor)  Residual of the correction form
 
     Vector<std::unique_ptr<iMultiFab> > fine_mask;
+
+    Vector<Vector<Real> > volinv;  // used by makeSolvable
+
+    Vector<std::unique_ptr<MultiFab> > scratch;
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
@@ -162,7 +173,10 @@ private:
 
     void averageDownAndSync ();
 
-    Real getNodalSum (int amrlve, int mglev, MultiFab& mf) const;
+    void computeVolInv ();
+    void makeSolvable ();
+    void makeSolvable (int amrlev, int mglev, MultiFab& mf);
+    Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
 
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
 };

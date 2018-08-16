@@ -1285,15 +1285,15 @@ Amr::FinalizeInit (Real              strt_time,
     dt_min[0]  = dt_level[0];
     n_cycle[0] = 1;
 
-    for (int lev = 1; lev <= max_level; lev++)
+    if (max_level > 0)
+        bldFineLevels(strt_time);
+
+    for (int lev = 1; lev <= finest_level; lev++)
     {
         dt0           /= n_cycle[lev];
         dt_level[lev]  = dt0;
         dt_min[lev]    = dt_level[lev];
     }
-
-    if (max_level > 0)
-        bldFineLevels(strt_time);
 
     for (int lev = 0; lev <= finest_level; lev++)
         amr_level[lev]->setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);

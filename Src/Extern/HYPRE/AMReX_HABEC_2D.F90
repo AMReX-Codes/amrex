@@ -158,6 +158,22 @@ contains
   end subroutine amrex_hpmat
 
 
+  subroutine amrex_hpdiag (lo, hi, mat, diag, dlo, dhi) bind(c,name='amrex_hpdiag')
+    integer, dimension(2), intent(in) :: lo, hi, dlo, dhi
+    real(rt), intent(inout) :: mat (0:4, lo(1): hi(1), lo(2): hi(2))
+    real(rt), intent(inout) :: diag(    dlo(1):dhi(1),dlo(2):dhi(2))
+    integer :: i,j
+    !$omp parallel do private(i,j)
+    do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          diag(i,j) = one/mat(0,i,j)
+          mat(0:4,i,j) = mat(0:4,i,j) * diag(i,j)
+       enddo
+    enddo
+    !$omp end parallel do
+  end subroutine amrex_hpdiag
+
+
   subroutine amrex_hpijmatrix (lo, hi, nrows, ncols, rows, cols, mat, &
        cell_id, clo, chi, cell_id_begin, diag, dlo, dhi, a, alo, ahi, &
        bx, xlo, xhi, by, ylo, yhi, sa, sb, dx, bct, bcl, bho) &

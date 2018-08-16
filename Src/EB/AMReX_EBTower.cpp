@@ -1,7 +1,12 @@
 
 #include <AMReX_EBTower.H>
+#include <AMReX_Vector.H>
+#include <AMReX_BLassert.H>
+
+#ifndef AMREX_NO_DEPRECATED_EB
 #include <AMReX_EBISLevel.H>
 #include <AMReX_EBLevelGrid.H>
+#endif
 
 #include <algorithm>
 
@@ -16,9 +21,10 @@ EBTower* EBTower::m_instance = nullptr;
 void
 EBTower::Build ()
 {
-    if (!m_instance) {
-        m_instance = new EBTower();
-    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_instance == nullptr,
+        "Cannot Call EBTower::Build() on top of a pre-existing EBTower. Call EBTower::Destroy() before building a new one.");
+    
+    m_instance = new EBTower();
 }
 
 void
@@ -41,6 +47,7 @@ EBTower::coarestDomain ()
     return m_instance->m_domains.back();
 }
     
+#ifndef AMREX_NO_DEPRECATED_EB
 EBTower::EBTower ()
 {
     BL_PROFILE("EBTower::EBTower()");
@@ -133,11 +140,13 @@ EBTower::EBTower ()
         }
     }
 }
+#endif
 
 EBTower::~EBTower ()
 {
 }
 
+#ifndef AMREX_NO_DEPRECATED_EB
 void
 EBTower::initCellFlags (int lev, const EBLevelGrid& eblg)
 {
@@ -306,6 +315,7 @@ EBTower::initFaceGeometry (int lev, const EBLevelGrid& eblg)
         }
     }
 }
+#endif
 
 int
 EBTower::getIndex (const Box& domain) const
@@ -360,7 +370,7 @@ getPeriodicGhostBoxes(const Box        & a_valid,
           Box edgeBoxHiIHiJ = adjCellHi(flapBoxHiI, jdir, a_ngrow);
 
 
-          vector<Box> edgeBoxes(4);
+          Vector<Box> edgeBoxes(4);
           edgeBoxes[0] = edgeBoxLoILoJ;
           edgeBoxes[1] = edgeBoxHiILoJ;
           edgeBoxes[2] = edgeBoxLoIHiJ;
@@ -397,7 +407,7 @@ getPeriodicGhostBoxes(const Box        & a_valid,
     Box cornerBoxLoIHiJHiK = adjCellHi(edgeBoxLoIHiJ, 2, a_ngrow);
     Box cornerBoxHiIHiJHiK = adjCellHi(edgeBoxHiIHiJ, 2, a_ngrow);
 
-    vector<Box> cornerBoxes(8);
+    Vector<Box> cornerBoxes(8);
     
     cornerBoxes[0] = cornerBoxLoILoJLoK;
     cornerBoxes[1] = cornerBoxHiILoJLoK;
@@ -457,7 +467,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             {
               Box valid = bagrids[mfi];
               Periodicity peri = a_geom.periodicity();
-              vector<IntVect> periodicShifts = peri.shiftIntVect();
+              const auto& periodicShifts = peri.shiftIntVect();
               int ngrow = a_flag.nGrow();
               Vector<Box> ghostBoxes = getPeriodicGhostBoxes(valid, domain, ngrow, peri);
               for(int ibox = 0; ibox < ghostBoxes.size(); ibox++)

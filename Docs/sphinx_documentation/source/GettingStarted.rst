@@ -95,7 +95,7 @@ set ``USE_MPI=TRUE`` in the GNUmakefile). This should make an executable named
 
 ::
 
-      mpiexec -n 4 ./main3d.gnu.DEBUG.MPI.ex
+      mpiexec -n 4 ./main3d.gnu.DEBUG.MPI.ex amrex.v=1
 
 The result may look like,
 
@@ -107,7 +107,11 @@ The result may look like,
       Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
 
 If the compilation fails, you are referred to :ref:`Chap:BuildingAMReX` for
-more details on how to configure the build system.
+more details on how to configure the build system.  The command line
+argument ``amrex.v=1`` increases the AMReX verbosity level from the
+default value of 0 to 1 to print the number of MPI processes used.
+More details on how runtime parameters are handled can be found in
+section :ref:`sec:basics:parmparse`.
 
 If you want to build with OpenMP, type make ``USE_OMP=TRUE``.  This should make
 an executable named ``main3d.gnu.DEBUG.OMP.ex``. Note OMP in the file name.
@@ -118,7 +122,7 @@ You can then run,
 
 ::
 
-      ./main3d.gnu.DEBUG.OMP.ex
+      OMP_NUM_THREADS=4 ./main3d.gnu.DEBUG.OMP.ex amrex.v=1
 
 The result may look like,
 
@@ -136,7 +140,7 @@ can then run,
 
 ::
 
-      mpiexec -n 2 ./main3d.gnu.DEBUG.MPI.OMP.ex
+      OMP_NUM_THREADS=4 mpiexec -n 2 ./main3d.gnu.DEBUG.MPI.OMP.ex
 
 The result may look like,
 
@@ -161,7 +165,7 @@ can be visualized. This example solves the heat equation,
 
 using forward Euler temporal integration on a periodic domain.  We could use a
 5-point (in 2D) or 7-point (in 3D) stencil, but for demonstration purposes we
-spatially discretize the PDE by first constructing fluxes on cell faces, e.g.,
+spatially discretize the PDE by first constructing (negative) fluxes on cell faces, e.g.,
 
 .. math:: F_{i+^1\!/_2,\,j} = \frac{\phi_{i+1,j}-\phi_{i,j}}{\Delta x},
 

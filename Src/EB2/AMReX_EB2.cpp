@@ -17,7 +17,11 @@ namespace amrex { namespace EB2 {
 
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
+#ifndef AMREX_NO_DEPRECATED_EB
 bool use_eb2 = false;
+#else
+bool use_eb2 = true;
+#endif
 int max_grid_size = 64;
 bool compare_with_ch_eb = false;
 

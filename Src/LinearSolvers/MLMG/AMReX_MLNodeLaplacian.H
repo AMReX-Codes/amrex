@@ -87,7 +87,7 @@ protected:
     virtual Real getAScalar () const final { return  0.0; }
     virtual Real getBScalar () const final { return -1.0; }
     virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final { return nullptr; }
-    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
+    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
         { return {AMREX_D_DECL(m_sigma[amrlev][mglev][0].get(),
                                m_sigma[amrlev][mglev][2].get(),
                                m_sigma[amrlev][mglev][3].get())}; }
@@ -104,7 +104,7 @@ private:
     CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
 #endif
 
-    Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
+    Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
 
 #ifdef AMREX_USE_EB
