@@ -71,16 +71,8 @@ MyTest::solve ()
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
-    amrex::Vector<std::array<MultiFab*, AMREX_SPACEDIM>> pflux; 
-    amrex::Vector<std::array<MultiFab*, AMREX_SPACEDIM>> pgrad;
-    pflux.resize(1); 
-    pgrad.resize(1);  
-    pflux[0] = amrex::GetArrOfPtrs(flux[0]); 
-    pgrad[0] = amrex::GetArrOfPtrs(grad[0]); 
-
-
-    mlmg.getFluxes(pflux); 
-    mlmg.getGradSolution(pgrad);
+    mlmg.getFluxes(amrex::GetVecOfArrOfPtrs(flux)); 
+    mlmg.getGradSolution(amrex::GetVecOfArrOfPtrs(grad));
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(phi[0], "phi-"+std::to_string(ilev));
     }

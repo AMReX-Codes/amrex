@@ -356,11 +356,7 @@ contains
                  end if
 
                  res = rhs(i,j,k) - (gamma*phi(i,j,k) - rho)
-                 if(abs(res).le.1e-16) then 
-                    phi(i,j,k) = phi(i,j,k)
-                 else
-                   phi(i,j,k) = phi(i,j,k) + omega*res/(gamma-delta)
-                 endif
+                 phi(i,j,k) = phi(i,j,k) + omega*res/(gamma-delta)
               endif
           end do 
        end do 
