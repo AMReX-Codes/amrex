@@ -83,6 +83,7 @@ public:
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void setType (int dir, CellIndex t) { t == CELL ? unset(dir) : set(dir); }
     //! Returns  the CellIndex in direction dir.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     CellIndex ixType (int dir) const { return (CellIndex) ((itype & (1<<dir)) >> dir); }
     //! Return an integer representing the IndexType in direction dir.
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
