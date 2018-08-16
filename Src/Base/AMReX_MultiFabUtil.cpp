@@ -621,4 +621,23 @@ namespace amrex
 
         return mask;
     }
+
+    void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                            const Geometry& geom)
+    {
+        const Real* dxinv = geom.InvCellSize();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(divu,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_compute_divergence (BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD(divu[mfi]),
+                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*umac[0])[mfi]),
+                                                   BL_TO_FORTRAN_ANYD((*umac[1])[mfi]),
+                                                   BL_TO_FORTRAN_ANYD((*umac[2])[mfi])),
+                                      dxinv);
+        }
+    }
 }

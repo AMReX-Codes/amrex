@@ -25,6 +25,17 @@ extern "C"
                                  const int* fstart, const int* nfull, const int* ncomp,
                                  const int* dir, const amrex_real* coord, const amrex_real* plo,
                                  const amrex_real* dx);
+
+    void amrex_compute_divergence (const int* lo, const int* hi,
+                                   amrex_real* divu, const int* dlo, const int* dhi,
+                                   const amrex_real* u, const int* ulo, const int* uhi,
+#if (AMREX_SPACEDIM > 1)
+                                   const amrex_real* v, const int* vlo, const int* vhi,
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                   const amrex_real* w, const int* wlo, const int* whi,
+#endif
+                                   const amrex_real* dxinv);
     
 #ifdef __cplusplus
 }

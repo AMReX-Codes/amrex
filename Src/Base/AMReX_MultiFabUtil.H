@@ -3,6 +3,7 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_Array.H>
 
 namespace amrex
 {
@@ -75,6 +76,10 @@ namespace amrex
     // by the coarsened fine grids are set to one, whereas other cells
     // are set to zero.
     iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio);
+
+    // It is assumed that umac has at least 1 ghost cell and ghost cells have been filled.
+    void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                            const Geometry& geom);
 }
 
 
