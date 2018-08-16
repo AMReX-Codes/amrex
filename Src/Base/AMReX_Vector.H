@@ -119,6 +119,16 @@ namespace amrex
         for (const auto& x : a)  r.push_back(GetArrOfPtrs(x));
         return r;
     }
+
+    template <class T> 
+    Vector<std::array<T*, AMREX_SPACEDIM> > 
+    GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a) 
+    {
+        Vector<std::array<T*, AMREX_SPACEDIM> > r; 
+        r.reserve(a.size()); 
+        for (auto &x: a) r.push_back(GetArrOfPtrs(x)); 
+        return r; 
+    }
 #endif
 
     /////////////////////////////////////////////////////////////
