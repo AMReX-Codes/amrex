@@ -1,6 +1,7 @@
 
 #include <AMReX_EBTower.H>
 #include <AMReX_Vector.H>
+#include <AMReX_BLassert.H>
 
 #ifndef AMREX_NO_DEPRECATED_EB
 #include <AMReX_EBISLevel.H>
@@ -20,9 +21,10 @@ EBTower* EBTower::m_instance = nullptr;
 void
 EBTower::Build ()
 {
-    if (!m_instance) {
-        m_instance = new EBTower();
-    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_instance == nullptr,
+        "Cannot Call EBTower::Build() on top of a pre-existing EBTower. Call EBTower::Destroy() before building a new one.");
+    
+    m_instance = new EBTower();
 }
 
 void
