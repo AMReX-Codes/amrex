@@ -64,13 +64,7 @@ MyTest::solvePoisson ()
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-            if (hypre_interface == 1) {
-                mlmg.setHypreInterface(Hypre::Interface::structed);
-            } else if (hypre_interface == 2) {
-                mlmg.setHypreInterface(Hypre::Interface::semi_structed);
-            } else {
-                mlmg.setHypreInterface(Hypre::Interface::ij);
-            }
+            mlmg.setHypreInterface(hypre_interface);
         }
 #endif
 
@@ -106,13 +100,7 @@ MyTest::solvePoisson ()
 #ifdef AMREX_USE_HYPRE
             if (use_hypre) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-                if (hypre_interface == 1) {
-                    mlmg.setHypreInterface(Hypre::Interface::structed);
-                } else if (hypre_interface == 2) {
-                    mlmg.setHypreInterface(Hypre::Interface::semi_structed);
-                } else {
-                    mlmg.setHypreInterface(Hypre::Interface::ij);
-                }
+                mlmg.setHypreInterface(hypre_interface);
             }
 #endif
             
@@ -161,7 +149,7 @@ MyTest::solveABecLaplacian ()
         {
             mlabec.setACoeffs(ilev, acoef[ilev]);
             
-            std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+            Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
@@ -183,13 +171,7 @@ MyTest::solveABecLaplacian ()
 #ifdef AMREX_USE_HYPRE
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-            if (hypre_interface == 1) {
-                mlmg.setHypreInterface(Hypre::Interface::structed);
-            } else if (hypre_interface == 2) {
-                mlmg.setHypreInterface(Hypre::Interface::semi_structed);
-            } else {
-                mlmg.setHypreInterface(Hypre::Interface::ij);
-            }
+            mlmg.setHypreInterface(hypre_interface);
         }
 #endif
 
@@ -222,7 +204,7 @@ MyTest::solveABecLaplacian ()
 
             mlabec.setACoeffs(0, acoef[ilev]);
             
-            std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+            Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
@@ -243,13 +225,7 @@ MyTest::solveABecLaplacian ()
 #ifdef AMREX_USE_HYPRE
             if (use_hypre) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-                if (hypre_interface == 1) {
-                    mlmg.setHypreInterface(Hypre::Interface::structed);
-                } else if (hypre_interface == 2) {
-                    mlmg.setHypreInterface(Hypre::Interface::semi_structed);
-                } else {
-                    mlmg.setHypreInterface(Hypre::Interface::ij);
-                }
+                mlmg.setHypreInterface(hypre_interface);
             }
 #endif
 
@@ -290,9 +266,17 @@ MyTest::readParameters ()
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("max_coarsening_level", max_coarsening_level);
+
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
-    pp.query("hypre_interface", hypre_interface);
+    pp.query("hypre_interface", hypre_interface_i);
+    if (hypre_interface_i == 1) {
+        hypre_interface = Hypre::Interface::structed;
+    } else if (hypre_interface_i == 2) {
+        hypre_interface = Hypre::Interface::semi_structed;
+    } else {
+        hypre_interface = Hypre::Interface::ij;
+    }
 #endif
 }
 
@@ -314,7 +298,7 @@ MyTest::initData ()
     }
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-    std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;

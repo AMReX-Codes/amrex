@@ -24,6 +24,7 @@ private:
     int ref_ratio = 2;
     int n_cell = 128;
     int max_grid_size = 64;
+    int is_periodic = 0;
     
     // For MLMG solver
     int verbose = 2;
@@ -46,9 +47,6 @@ private:
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::Array<amrex::MultiFab,AMREX_SPACEDIM> > bcoef;
-
-    amrex::Real ascalar = 0.0;
-    amrex::Real bscalar = 1.0;
 };
 
 #endif

@@ -6,26 +6,31 @@
 Linear Solvers
 ==============
 
-In this Chapter we give an overview of the linear solvers in AMReX.
-AMReX supports two solvers where the solution, :math:`\phi`
-is either cell-centered or nodal. 
-For each case you can solve on a single level (using essentially Dirichlet conditions 
-supplied from coarser levels or physical boundary conditions), or you can do a 
-multilevel composite solve on a subset of AMR levels (or even all the AMR levels).
+In this Chapter we give an overview of the linear solvers in AMReX
+that solve linear systems in the canonical form
 
-The tutorial :cpp:`amrex/Tutorials/LinearSolvers/ABecLaplacian_C` shows how to call the 
-cell-centered solver. The tutorial :cpp:`amrex/Tutorials/Basic/HeatEquation_EX3_C` shows 
-how to solve the implicit heat equation using the cell-centered solver. Here an 
-"ABecLaplacian" has the form 
+.. math:: (\alpha A - \beta \nabla \cdot B \nabla ) \phi = f,
+  :label: eqn::abeclap
 
-.. math:: (a_{coeff} A - b_{coeff} \nabla \cdot B \nabla ) \phi = RHS
+where :math:`\alpha` and :math:`\beta` are scalar constants,
+:math:`A` and :math:`B` are scalar fields, :math:`\phi` is the
+unknown, and :math:`f` is the right-hand side of the equation.  Note
+that Poisson's equation :math:`\nabla^2 \phi = f` is a special case
+the canonical form.  The sought solution :math:`\phi` is at either
+cell centers or nodes.  For the cell-centered solver, :math:`A`,
+:math:`\phi` and :math:`f` are represented by cell-centered MultiFabs,
+and :math:`B` is represented by ``AMREX_SPACEDIM`` face type
+MultiFabs.  That is there are 1, 2 and 3 MultiFabs representing
+:math:`B` for 1, 2 and 3D, respectively.  For the nodal solver,
+:math:`A` is assumed to be zero, :math:`\phi` and :math:`f` are nodal,
+and :math:`B` is cell-centered.  AMReX supports both single-level
+solve and composite solve on multiple AMR levels.
 
-where :math:`a_{coeff}`, :math:`b_{coeff}` are scalars, :math:`A`, :math:`B`, 
-and :math:`RHS` are MultiFabs.
-For the cell-centered 
-solver, :math:`A` and :math:`RHS` are cell centered, and :math:`B` is an array of 
-face-centered MultiFabs since :math:`B \nabla \phi` lives on faces, and the 
-divergence lives on cell-centers.
+The tutorials in ``amrex/Tutorials/LinearSolvers/`` show examples of
+using the solvers.  The tutorial
+``amrex/Tutorials/Basic/HeatEquation_EX3_C`` shows how to solve the
+heat equation implicitly using the solver.  The tutorials also show
+how to add linear solvers into the build system.
 
 .. toctree::
    :maxdepth: 1

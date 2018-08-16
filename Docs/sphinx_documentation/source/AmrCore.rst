@@ -270,6 +270,25 @@ such as :cpp:`regrid` and :cpp:`ErrorEst` (a routine for tagging cells for refin
 FillPatchUtil and Interpolater
 ------------------------------
 
+..
+   For multi-level codes using the ``amrex/Src/AmrCore`` source code, the
+   functions described above still work, however additional classes need to be set
+   up since the :cpp:`FillPatch` routines call them.  In fact it is possible to
+   avoid using the single-level calls directly if you fill all your grids and
+   ghost cells using the :cpp:`FillPatch` routines.  Refer to
+   ``amrex/Tutorials/Amr/Advection_AmrCore/`` for an example.  The class
+   :cpp:`PhysBCFunct` in ``amrex/Src/Base/AMReX_PhysBCFunct.cpp`` is derived from
+   :cpp:`PhysBCFunctBase` and contains a :cpp:`BCRec`, :cpp:`Geometry`, and a
+   pointer to a :cpp:`BndryFunctBase` function.
+
+   Note that :cpp:`PhyBCFunct` is an example of how to derive from
+   :cpp:`PhysBCFunctBase` and is not meant to be a base class.
+   :cpp:`PhysBCFunctBase` is the base class.  PhysBCFunctBase is designed for
+   users to derive and extend.  You could/should write your own class derived from
+   PhysBCFuncBase.  There you can make modifications such as storing a vector of
+   BCRecs for, e.g., multiple component MultiFabs.
+
+
 Many codes, including the Advection_AmrCore example, contain an array of MultiFabs
 (one for each level of refinement), and then use “fillpatch” operations to fill temporary
 MultiFabs that may include a different number of ghost cells. Fillpatch operations fill

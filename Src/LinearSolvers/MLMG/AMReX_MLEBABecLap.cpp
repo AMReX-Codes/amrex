@@ -113,6 +113,13 @@ MLEBABecLap::setScalars (Real a, Real b)
 {
     m_a_scalar = a;
     m_b_scalar = b;
+    if (a == 0.0)
+    {
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+        {
+            m_a_coeffs[amrlev][0].setVal(0.0);
+        }
+    }
 }
 
 void
@@ -122,7 +129,7 @@ MLEBABecLap::setACoeffs (int amrlev, const MultiFab& alpha)
 }
 
 void
-MLEBABecLap::setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPACEDIM>& beta)
+MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
@@ -154,7 +161,7 @@ MLEBABecLap::averageDownCoeffs ()
 
 void
 MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                            Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b)
+                                            Vector<Array<MultiFab,AMREX_SPACEDIM> >& b)
 {
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -473,7 +480,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 }
 
 void
-MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
+MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                     const FArrayBox& sol, const int face_only) const
 {
     BL_PROFILE("MLEBABecLap::FFlux()")
@@ -600,7 +607,6 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 {
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][fmglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -647,7 +653,7 @@ void
 MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
-    BL_PROFILE("MLEBABecLap::Fsmooth()");
+    BL_PROFILE("MLEBABecLap::applyBC()");
 
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
