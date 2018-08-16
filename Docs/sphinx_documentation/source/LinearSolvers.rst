@@ -113,10 +113,28 @@ one of the targets is met.  Set the absolute tolerance to zero if one
 does not have a good value for it.  The return value of :cpp:`solve`
 is the max-norm error.
 
-After the solver returns successfully, we can call the following
-functions to compute gradient :math:`\nabla \phi`,
-fluxes :math:`-B \nabla \phi`, and residual :math:`f - L(\phi)`, where
-:math:`L` is the linear operator.
+After the solver returns successfully, if needed, we can call 
+
+.. highlight:: c++
+
+::
+
+    void compResidual (const Vector<MultiFab*>& a_res,
+                       const Vector<MultiFab*>& a_sol,
+                       const Vector<MultiFab const*>& a_rhs);
+
+to compute residual (i.e., :math:`f - L(\phi)`) given the solution and
+the righ-hand side.  For cell-centered solvers, we can also call the
+following functions to compute gradient :math:`\nabla \phi` and fluxes
+:math:`-B \nabla \phi`.
+
+.. highlight:: c++
+
+::
+
+    void getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
+    void getFluxes       (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_fluxes);
+
 
 .. _sec:linearsolver:bc:
 
@@ -245,7 +263,8 @@ can be used to change the bottom solver.  Available choices are
 - :cpp:`MLMG::BottomSolver::cg`: The conjugate gradient method.  The
   matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::Hypre`: BoomerAMG in HYPRE.
+- :cpp:`MLMG::BottomSolver::Hypre`: BoomerAMG in HYPRE.  Currently for
+  cell-centered only.
 
 Curvilinear Coordinates
 =======================
@@ -261,17 +280,17 @@ operators.
 HYPRE
 =====
 
-AMReX can use HYPRE BoomerAMG as a bottom solver, as we have
-mentioned.  For challenging problems, our geometry multigrid solver
-may have difficulty solving, whereas an algebraic multigrid method
-might be more robust.  We note that by default our solver always tries
-to geometrically coarsen the problem as much as possible.  However, as
-we have mentioned, we can call :cpp:`setMaxCoarseningLevel(0)` on the
-:cpp:`LPInfo` object passed to the constructor of a linear operator to
-disable the coarsening completely.  In that case the bottom solver is
-solving the residual correction form of the original problem.  To use
-HYPRE, one must include ``amrex/Src/Extern/HYPRE`` in the build
-system. 
+AMReX can use HYPRE BoomerAMG as a bottom solver (currently for
+cell-centered problems only), as we have mentioned.  For challenging
+problems, our geometric multigrid solver may have difficulty solving,
+whereas an algebraic multigrid method might be more robust.  We note
+that by default our solver always tries to geometrically coarsen the
+problem as much as possible.  However, as we have mentioned, we can
+call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
+passed to the constructor of a linear operator to disable the
+coarsening completely.  In that case the bottom solver is solving the
+residual correction form of the original problem.  To use HYPRE, one
+must include ``amrex/Src/Extern/HYPRE`` in the build system.
 
 Embedded Boundaries
 ===================
