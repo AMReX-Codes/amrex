@@ -33,4 +33,4 @@ myamr.phierr    = 1.01  1.1  1.5
 # CHECKPOINT
 amr.chk_file = chk      # root name of checkpoint file
 amr.chk_int  = 5       # number of timesteps between checkpoint files
-amr.restart  = chk00005 # restart from this checkpoint file
+#amr.restart  = chk00005 # restart from this checkpoint file
