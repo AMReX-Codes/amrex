@@ -2088,7 +2088,7 @@ The basic idea behind physical boundary conditions is as follows:
 
        reflect_odd
            Reflection from interior cells with sign
-           unchanged, :math:`q(-i) = -q(i)`.
+           changed, :math:`q(-i) = -q(i)`.
 
 -  We have interfaces to a fortran routine that fills ghost cells at domain
    boundaries based on the boundary condition type defined in the :cpp:`BCRec`

@@ -84,7 +84,7 @@ public:
     // cell.  Only the data outside the physical domain at Dirichlet
     // boundary will be used.  It is assumed that the data in those
     // ghost cells outside the domain live exactly on the face of the
-    // phsyical domain.  Argument `amrlev` is relative level such that
+    // physical domain.  Argument `amrlev` is relative level such that
     // the lowest to the solver is always 0.
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
 
