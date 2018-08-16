@@ -945,11 +945,11 @@ example, the :cpp:`saxpy` example above can be done with
           }
       }
 
-But this approach is generally not recommended for performance reason.
+But this approach is generally not recommended for performance reasons.
 However, it can be handy for debugging.
 
 :cpp:`BaseFab` and its derived classes are containers for data on :cpp:`Box`.
-We recall that :cpp:`Box` has types (see the section on :ref:`sec:basics:box`).
+Recall that :cpp:`Box` has various types (see the section on :ref:`sec:basics:box`).
 The examples in this section so far use the default cell based type.  However,
 some functions will result in a runtime error if the types mismatch.  For
 example.
@@ -966,7 +966,7 @@ example.
       ndfab.copy(ccfab);   // runtime error due to type mismatch
 
 Because it typically contains a lot of data, BaseFab’s copy constructor and
-copy assignment operator are disabled for performance reason. However, it does
+copy assignment operator are disabled to prevent performance degradation. However, BaseFab does
 provide a move constructor. In addition, it also provides a constructor for
 making an alias of an existing object. Here is an example using
 :cpp:`FArrayBox`.
@@ -980,10 +980,10 @@ making an alias of an existing object. Here is an example using
       // starting from component 1.
       FArrayBox alias_fab(orig_fab, amrex::make_alias, 1, 2);
 
-In the example, the alias :cpp:`FArrayBox` has only two components even though
+In this example, the alias :cpp:`FArrayBox` has only two components even though
 the original one has four components. The alias has a sliced component view of
 the original :cpp:`FArrayBox`. This is possible because of the array ordering.
-It is however not possible to slice in the real space (i.e., the first
+However, it is not possible to slice in the real space (i.e., the first
 ``AMREX_SPACEDIM`` dimensions).  Note that no new memory is allocated in
 constructing the alias and the alias contains a non-owning pointer. It should
 be emphasized that the alias will contain a dangling pointer after the original
@@ -998,24 +998,24 @@ FabArray, MultiFab and iMultiFab
 :cpp:`FabArray<FAB>` is a class template in AMReX_FabArray.H for a collection
 of FABs on the same AMR level associated with a :cpp:`BoxArray` (see the
 section on :ref:`sec:basics:ba`). The template parameter :cpp:`FAB` is usually
-:cpp:`BaseFab<T>` or its derived classes (e.g., :cpp:`FArrayBox`). However, it
+:cpp:`BaseFab<T>` or its derived classes (e.g., :cpp:`FArrayBox`). However, FabArray
 can also be used to hold other data structures. To construct a FabArray, a
-:cpp:`BoxArray` must be provided because it is intended to hold *grid* data
+:cpp:`BoxArray` must be provided because the FabArray is intended to hold *grid* data
 defined on a union of rectangular regions embedded in a uniform index space.
-For example, an FabArray object can be used to hold data for one level as in
+For example, a FabArray object can be used to hold data for one level as in
 :numref:`fig:basics:amrgrids`.
 
 :cpp:`FabArray` is a parallel data structure that the data (i.e., FAB) are
-distributed among parallel processes. On each process, the FabArray contains
-only the FAB objects owned by this process, and the process operates only on
+distributed among parallel processes. For each process, a FabArray contains
+only the FAB objects owned by that process, and the process operates only on
 its local data. For operations that require data owned by other processes,
 remote communications are involved. Thus, the construction of a :cpp:`FabArray`
 requires a :cpp:`DistributionMapping` (see the section on :ref:`sec:basics:dm`)
 that specifies which process owns which Box. For level 2 (*red*) in
 :numref:`fig:basics:amrgrids`, there are two Boxes. Suppose there are two
 parallel processes, and we use a DistributionMapping that assigns one Box to
-each process.  For :cpp:`FabArray` on each process, it is built on a
-:cpp:`BoxArray` with 2 Boxes, but contains only one FAB.
+each process. Then the :cpp:`FabArray` on each process is built on the
+:cpp:`BoxArray` with both Boxes, but contains only the FAB associated with its process.
 
 In AMReX, there are some specialized classes derived from :cpp:`FabArray`. The
 :cpp:`iMultiFab` class in AMReX_iMultiFab.H is derived from
