@@ -51,15 +51,15 @@ this generality comes the possibility that the process of "cutting" the cells
 results in a single :math:`(i,j,k)` cell being broken into multiple cell
 fragments.  The current release of AMReX does not support multi-valued cells,
 thus there is a practical restriction on the complexity of domains (and
-numerical algorithms) supported.  AMReX support for EB with AMR will be
-available by early 2018; EB support for multi-valued cells will follow.
+numerical algorithms) supported.
 
 This chapter discusses the EB tools, data structures and algorithms currently
 supported by AMReX to enable the construction of discretizations of
 conservation law systems. The discussion will focus on general requirements
 associated with building fluxes and taking divergences of them to advance such
 systems. We also give examples of how to initialize the geometry data
-structures and access them to build the numerical difference operators.
+structures and access them to build the numerical difference
+operators.  Finally we present EB support of linear solvers.
 
 Finite Volume Discretizations
 -----------------------------
@@ -81,8 +81,8 @@ In an embedded boundary cell, the “conservative divergence” is discretized (
   :label: eqn::ebdiv
 
    D^c(F) = \frac{1}{\kappa h} \left( \sum^D_{d = 1}
-     (F_{d, \mathrm{hi}} \, A_{d, \mathrm{hi}} - F_{d, \mathrm{lo}}\, A_{d, \mathrm{lo}})
-     + F^{EB} A^{EB} \right).
+     (F_{d, \mathrm{hi}} \, \alpha_{d, \mathrm{hi}} - F_{d, \mathrm{lo}}\, \alpha_{d, \mathrm{lo}})
+     + F^{EB} \alpha^{EB} \right).
 
 Geometry is discretely represented by volumes (:math:`V = \kappa h^d`) and
 apertures (:math:`A= \alpha h^{d-1}`), where :math:`h` is the (uniform) mesh
@@ -118,10 +118,10 @@ other.
    | | cut by the embedded boundary. The grey area       | |                                                    |
    | | represents the region excluded from the           | |                                                    |
    | | calculation. The portion of the cell faces        | |                                                    |
-   | | faces (labelled with A) through which fluxes flow | |                                                    |
-   | | are the "uncovered" regions of the full cell      | |                                                    |
-   | | faces. The volume (labelled V) is the uncovered   | |                                                    |
-   | | region of the interior.                           | |                                                    |
+   | | faces (labelled with A) through which fluxes      | |                                                    |
+   | | flow are the "uncovered" regions of the full      | |                                                    |
+   | | cell faces. The volume (labelled V) is the        | |                                                    |
+   | | uncovered region of the interior.                 | |                                                    |
    +-----------------------------------------------------+------------------------------------------------------+
 
 .. raw:: latex
@@ -207,15 +207,12 @@ e.g., :numref:`fig::redistribution`)
 
 .. _sec:EB:ebinit:
 
-Initializing EBIndexSpace, the Geometric Database
-=================================================
+Initializing the Geometric Database
+===================================
 
-In AMReX the geometric information is stored in a distributed database class,
-:cpp:`EBIndexSpace`, which must be initialized at the start of the calculation.
-The procedure for this goes as follows:
-
--  If one has an archived EBIndexSpace plt file, she can initialize the
-   database by calling EBIndexSpace::read with the filename
+In AMReX the geometric information is stored in a distributed database
+class that must be initialized at the start of the calculation.  The
+procedure for this goes as follows:
 
 -  Define function of position which describes the surface and use it define a
    :cpp:`GeometryShop` object – specifically, the scalar value returned by this
@@ -618,19 +615,6 @@ parabola. This code creates the surface shown in :numref:`fig::parabolasphere`.
 
    \end{center}
 
-Higher Order Geometries and WrappedGShop
-===========
-
-If one wants more geometric information than simple volume and area fractions and centroids, 
-one can generate geometric moments (m).
-.. raw:: latex
-\begin{equation}
-m^{p,q,r} = \int_V x^p y^q z^r dV
-\end{equation}
-.. raw:: latex
-To generate this information, one should use WrappedGShop instead of GeometryShop.  The user interface 
-is exactly the same.   If you use WrappedGShop to generate your moments, EBData can provide
-moments (up to third order) of every volume and every face in the domain, including the cut face.
 
 EBFarrayBox
 ===========
