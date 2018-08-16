@@ -3839,8 +3839,6 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
                                     getReq_t *req= new getReq_t(src, tag, sbuf, size);
                                     pendingGetList.add(req);
                                 }
-                                //store send request to notify sender later upon completion
-                                //sFutureMap[fu]= sMetaPackage->request;
                             }
                         );
 		    } //served
@@ -3885,6 +3883,7 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
                                     }
                                 );
 
+				delete rearPackage->request;
 				rearPackage->completeRequest();				
 				cpDst->r_con.rcv[i].pQueue.getRear()->completeRequest();
 
@@ -3892,7 +3891,6 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 				{
 				    cpDst->r_con.firingRuleCnt++;
 				}
-				//delete rearPackage->request;
 			    }
 			}		   		    
 			pthread_mutex_unlock(&(cpDst->r_con.rcvLock));
