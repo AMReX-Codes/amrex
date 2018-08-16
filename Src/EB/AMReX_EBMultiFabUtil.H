@@ -20,6 +20,9 @@ namespace amrex
     void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                                 const IntVect& ratio, int ngcrse);
 
+    void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                               const Geometry& geom);
+
 }
 
 #endif

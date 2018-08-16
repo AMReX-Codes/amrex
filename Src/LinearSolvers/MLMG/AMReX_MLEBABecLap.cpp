@@ -113,6 +113,13 @@ MLEBABecLap::setScalars (Real a, Real b)
 {
     m_a_scalar = a;
     m_b_scalar = b;
+    if (a == 0.0)
+    {
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+        {
+            m_a_coeffs[amrlev][0].setVal(0.0);
+        }
+    }
 }
 
 void
