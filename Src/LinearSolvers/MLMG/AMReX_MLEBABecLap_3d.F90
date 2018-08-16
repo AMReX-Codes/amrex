@@ -10,7 +10,7 @@ module amrex_mlebabeclap_3d_module
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, & 
-       amrex_eb_mg_interp
+       amrex_eb_mg_interp, amrex_mlebabeclap_grad, amrex_mlebabeclap_flux
 
 contains
 
@@ -730,10 +730,11 @@ contains
    endif
   end subroutine amrex_mlebabeclap_flux
 
-  subroutine amrex_mlebabeclap_grad(xlo, xhi, ylo, yhi, zlo, zhi, gx, gxlo, gxhi, gy, gylo, gyhi, gz, gzlo, gzhi, &
+  subroutine amrex_mlebabeclap_grad(xlo, xhi, ylo, yhi, zlo, zhi, sol, slo, shi,            &
+                                    gx, gxlo, gxhi, gy, gylo, gyhi, gz, gzlo, gzhi,         &
                                     apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi,      &
                                     fcx, cxlo, cxhi, fcy, cylo, cyhi, fcz, czlo, czhi,      &
-                                    sol, slo, shi, flag, flo, fhi, dxinv) &
+                                    flag, flo, fhi, dxinv) &
                                     bind(c, name='amrex_mlebabeclap_grad')
 
   integer, dimension(3), intent(in) :: xlo, xhi, slo, shi, ylo, yhi, zlo, zhi, &
@@ -759,8 +760,7 @@ contains
 
    dhx = dxinv(1) 
    dhy = dxinv(2)  
-   dhz = dxinv(3) 
-   print*, "In get grad!" 
+   dhz = dxinv(3)
      do         k = xlo(3), xhi(3) 
          do     j = xlo(2), xhi(2) 
              do i = xlo(1), xhi(1) 
