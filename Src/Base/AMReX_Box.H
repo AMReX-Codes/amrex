@@ -66,6 +66,7 @@ public:
     * \brief Construct Box with given type.  small and big are expected
     * to be consistent with given type.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box (const IntVect& small, const IntVect& big, const IntVect& typ)
         : smallend(small),
           bigend(big),
