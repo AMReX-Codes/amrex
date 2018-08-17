@@ -9,30 +9,39 @@
 
 namespace amrex {
 
-namespace util {
+namespace detail {
 
 #ifdef BL_USE_MPI
 
+    enum class ReduceOp : MPI_Op {
+        max  = MPI_MAX,
+        min  = MPI_MIN,
+        sum  = MPI_SUM,
+        lor  = MPI_LOR,
+        land = MPI_LAND
+    };
+
     template<typename T>
-    inline void Reduce (MPI_Op op, T* v, int cnt, int root, MPI_Comm comm)
+    inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)
     {
+        auto mpi_op = static_cast<MPI_Op>(op);
         Vector<T> tmp(v, v+cnt);
         if (root == -1) {
             MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                          op, comm);
+                          mpi_op, comm);
         } else {
             MPI_Reduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
-                       op, root, comm);
+                       mpi_op, root, comm);
         }
     }
 
     template<typename T>
-    inline void Reduce (MPI_Op op, T& v, int root, MPI_Comm comm) {
+    inline void Reduce (ReduceOp op, T& v, int root, MPI_Comm comm) {
         Reduce(op, &v, 1, root, comm);
     }
 
     template<typename T>
-    inline void Reduce (MPI_Op op, Vector<std::reference_wrapper<T> >&& v,
+    inline void Reduce (ReduceOp op, Vector<std::reference_wrapper<T> >&& v,
                         int root, MPI_Comm comm)
     {
         Vector<T> sndrcv(std::begin(v), std::end(v));
@@ -60,9 +69,17 @@ namespace util {
 
 #else
 
-    template<typename T> void Reduce (MPI_Op op, T* v, int cnt, int root, MPI_Comm comm) {}
-    template<typename T> void Reduce (MPI_Op op, T& v, int root, MPI_Comm comm) {}
-    template<typename T> void Reduce (MPI_Op op, Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {}
+    enum class ReduceOp {
+        max,
+        min,
+        sum,
+        lor,
+        land
+    };
+
+    template<typename T> void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm) {}
+    template<typename T> void Reduce (ReduceOp op, T& v, int root, MPI_Comm comm) {}
+    template<typename T> void Reduce (ReduceOp op, Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {}
 
     template<typename T> void Gather (const T* v, int cnt, T* vs, int root, MPI_Comm comm) {}
     template<typename T> void Gather (const T& v, T * vs, int root, MPI_Comm comm) {}
@@ -72,22 +89,22 @@ namespace util {
 namespace ParallelAllGather {
     template<typename T>
     void AllGather (const T* v, int cnt, T* vs, MPI_Comm comm) {
-        util::Gather(v, cnt, vs, -1, comm);
+        detail::Gather(v, cnt, vs, -1, comm);
     }
     template<typename T>
     void AllGather (const T& v, T* vs, MPI_Comm comm) {
-        util::Gather(v, vs, -1, comm);
+        detail::Gather(v, vs, -1, comm);
     }
 }
 
 namespace ParallelGather {
     template<typename T>
     void Gather (const T* v, int cnt, T* vs, int root, MPI_Comm comm) {
-        util::Gather(v, cnt, vs, root, comm);
+        detail::Gather(v, cnt, vs, root, comm);
     }
     template<typename T>
     void Gather (const T& v, T* vs, int root, MPI_Comm comm) {
-        util::Gather(v, vs, root, comm);
+        detail::Gather(v, vs, root, comm);
     }
 }
 
@@ -95,52 +112,52 @@ namespace ParallelAllReduce {
 
     template<typename T>
     void Max (T& v, MPI_Comm comm) {
-        util::Reduce(MPI_MAX, v, -1, comm);
+        detail::Reduce(detail::ReduceOp::max, v, -1, comm);
     }
     template<typename T>
     void Max (T* v, int cnt, MPI_Comm comm) {
-        util::Reduce(MPI_MAX, v, cnt, -1, comm);
+        detail::Reduce(detail::ReduceOp::max, v, cnt, -1, comm);
     }
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
-        util::Reduce(MPI_MAX, std::move(v), -1, comm);
+        detail::Reduce(detail::ReduceOp::max, std::move(v), -1, comm);
     }
 
     template<typename T>
     void Min (T& v, MPI_Comm comm) {
-        util::Reduce(MPI_MIN, v, -1, comm);
+        detail::Reduce(detail::ReduceOp::min, v, -1, comm);
     }
     template<typename T>
     void Min (T* v, int cnt, MPI_Comm comm) {
-        util::Reduce(MPI_MIN, v, cnt, -1, comm);
+        detail::Reduce(detail::ReduceOp::min, v, cnt, -1, comm);
     }
     template<typename T>
     void Min (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
-        util::Reduce(MPI_MIN, std::move(v), -1, comm);
+        detail::Reduce(detail::ReduceOp::min, std::move(v), -1, comm);
     }
 
     template<typename T>
     void Sum (T& v, MPI_Comm comm) {
-        util::Reduce(MPI_SUM, v, -1, comm);
+        detail::Reduce(detail::ReduceOp::sum, v, -1, comm);
     }
     template<typename T>
     void Sum (T* v, int cnt, MPI_Comm comm) {
-        util::Reduce(MPI_SUM, v, cnt, -1, comm);
+        detail::Reduce(detail::ReduceOp::sum, v, cnt, -1, comm);
     }
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
-        util::Reduce(MPI_SUM, std::move(v), -1, comm);
+        detail::Reduce(detail::ReduceOp::sum, std::move(v), -1, comm);
     }
 
     inline void Or (bool & v, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
-        util::Reduce(MPI_LOR, iv, -1, comm);
+        detail::Reduce(detail::ReduceOp::lor, iv, -1, comm);
         v = static_cast<bool>(iv);
     }
 
     inline void And (bool & v, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
-        util::Reduce(MPI_LAND, iv, -1, comm);
+        detail::Reduce(detail::ReduceOp::land, iv, -1, comm);
         v = static_cast<bool>(iv);
     }
 }
@@ -149,52 +166,52 @@ namespace ParallelReduce {
 
     template<typename T>
     void Max (T& v, int root, MPI_Comm comm) {
-        util::Reduce(MPI_MAX, v, root, comm);
+        detail::Reduce(detail::ReduceOp::max, v, root, comm);
     }
     template<typename T>
     void Max (T* v, int cnt, int root, MPI_Comm comm) {
-        util::Reduce(MPI_MAX, v, cnt, root, comm);
+        detail::Reduce(detail::ReduceOp::max, v, cnt, root, comm);
     }
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
-        util::Reduce(MPI_MAX, std::move(v), root, comm);
+        detail::Reduce(detail::ReduceOp::max, std::move(v), root, comm);
     }
 
     template<typename T>
     void Min (T& v, int root, MPI_Comm comm) {
-        util::Reduce(MPI_MIN, v, root, comm);
+        detail::Reduce(detail::ReduceOp::min, v, root, comm);
     }
     template<typename T>
     void Min (T* v, int cnt, int root, MPI_Comm comm) {
-        util::Reduce(MPI_MIN, v, cnt, root, comm);
+        detail::Reduce(detail::ReduceOp::min, v, cnt, root, comm);
     }
     template<typename T>
     void Min (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
-        util::Reduce(MPI_MIN, std::move(v), root, comm);
+        detail::Reduce(detail::ReduceOp::min, std::move(v), root, comm);
     }
 
     template<typename T>
     void Sum (T& v, int root, MPI_Comm comm) {
-        util::Reduce(MPI_SUM, v, root, comm);
+        detail::Reduce(detail::ReduceOp::sum, v, root, comm);
     }
     template<typename T>
     void Sum (T* v, int cnt, int root, MPI_Comm comm) {
-        util::Reduce(MPI_SUM, v, cnt, root, comm);
+        detail::Reduce(detail::ReduceOp::sum, v, cnt, root, comm);
     }
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
-        util::Reduce(MPI_SUM, std::move(v), root, comm);
+        detail::Reduce(detail::ReduceOp::sum, std::move(v), root, comm);
     }
 
     inline void Or (bool & v, int root, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
-        util::Reduce(MPI_LOR, iv, root, comm);
+        detail::Reduce(detail::ReduceOp::lor, iv, root, comm);
         v = static_cast<bool>(iv);
     }
 
     inline void And (bool & v, int root, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
-        util::Reduce(MPI_LAND, iv, root, comm);
+        detail::Reduce(detail::ReduceOp::land, iv, root, comm);
         v = static_cast<bool>(iv);
     }
 }
