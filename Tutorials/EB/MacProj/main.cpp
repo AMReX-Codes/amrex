@@ -72,7 +72,7 @@ int main (int argc, char* argv[])
             vel[idim].FillBoundary(geom.periodicity());
         }
         EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom);
-        amrex::VisMF::Write(divu, "divu-pre");
+//        amrex::VisMF::Write(divu, "divu-pre");
         amrex::Print() << "\nmax-norm of divu before projection is " << divu.norm0() << std::endl;
 
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
@@ -91,15 +91,15 @@ int main (int argc, char* argv[])
         Real reltol = 1.e-12;
         macproj.project(reltol);
 
-        AMREX_D_TERM(amrex::VisMF::Write(vel[0], "vx");,
-                     amrex::VisMF::Write(vel[1], "vy");,
-                     amrex::VisMF::Write(vel[2], "vz"););
+//        AMREX_D_TERM(amrex::VisMF::Write(vel[0], "vx");,
+//                     amrex::VisMF::Write(vel[1], "vy");,
+//                     amrex::VisMF::Write(vel[2], "vz"););
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             vel[idim].FillBoundary(geom.periodicity());
         }
         EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom);
-        amrex::VisMF::Write(divu, "divu");
+//        amrex::VisMF::Write(divu, "divu");
         amrex::Print() << "\nmax-norm of divu after projection is " << divu.norm0() << std::endl;
     }
 
