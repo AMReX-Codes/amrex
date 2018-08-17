@@ -40,6 +40,7 @@ private:
     Vector<Array<MultiFab*,AMREX_SPACEDIM> > m_umac;
     Vector<MultiFab> m_rhs;
     Vector<MultiFab> m_phi;
+    Vector<Array<MultiFab,AMREX_SPACEDIM> > m_fluxes;
 
     Vector<Geometry> m_geom;
 

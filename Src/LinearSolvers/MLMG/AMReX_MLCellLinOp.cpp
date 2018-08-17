@@ -605,7 +605,12 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, 
         AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
                      const Box& ybx = mfi.nodaltilebox(1);,
                      const Box& zbx = mfi.nodaltilebox(2););
-        if(fabtyp == FabType::regular || fabtyp == FabType::covered){
+        if (fabtyp == FabType::covered) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                grad[idim]->setVal(0.0, amrex::surroundingNodes(box,idim), 0, 1);
+            }
+        } else {
+//        if(fabtyp == FabType::regular || 
              amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
                                              BL_TO_FORTRAN_BOX(ybx),
                                              BL_TO_FORTRAN_BOX(zbx)),
@@ -615,6 +620,7 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, 
                                               BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
                                  dxinv);           
         } 
+#if 0
         else
         { 
            amrex_mlebabeclap_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
@@ -633,6 +639,7 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, 
                                   BL_TO_FORTRAN_ANYD((*flags)[mfi]), dxinv);
 
         }
+#endif
     }
 #else
 #ifdef _OPENMP
