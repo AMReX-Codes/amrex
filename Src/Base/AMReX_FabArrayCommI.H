@@ -43,9 +43,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
         }
 
+#ifdef AMREX_USE_DEVICE
+        Device::synchronize();
+#endif
+
         return;
     }
-   
+
 #ifdef BL_USE_MPI
 
 #if defined(BL_USE_UPCXX)
