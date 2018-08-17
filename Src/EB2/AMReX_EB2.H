@@ -17,6 +17,8 @@ extern bool use_eb2;
 extern int max_grid_size;
 extern bool compare_with_ch_eb;
 
+void useEB2 (bool);
+
 void Initialize ();
 void Finalize ();
 

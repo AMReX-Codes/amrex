@@ -25,6 +25,11 @@ bool use_eb2 = true;
 int max_grid_size = 64;
 bool compare_with_ch_eb = false;
 
+void useEB2 (bool b)
+{
+    use_eb2 = b;
+}
+
 void Initialize ()
 {
     ParmParse pp("eb2");
