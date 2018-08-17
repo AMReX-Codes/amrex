@@ -120,6 +120,7 @@ namespace amrex
         return r;
     }
 
+#if 0
     template <class T> 
     Vector<std::array<T*, AMREX_SPACEDIM> > 
     GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a) 
@@ -129,6 +130,7 @@ namespace amrex
         for (auto &x: a) r.push_back(GetArrOfPtrs(x)); 
         return r; 
     }
+#endif
 #endif
 
     /////////////////////////////////////////////////////////////
