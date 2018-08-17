@@ -1289,6 +1289,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
         }
     }
 #else
-    AMREX_ALWAYS_ASSERT(false);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( false ,
+"ERROR: WarpX must be compiled with STORE_OLD_PARTICLE_ATTRIBS=TRUE to use the back-transformed diagnostics");
 #endif
 }

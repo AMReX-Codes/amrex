@@ -65,6 +65,9 @@ private:
     amrex::Real profile_duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
+    amrex::Real zeta = 0.;
+    amrex::Real beta = 0.;
+    amrex::Real phi2 = 0.;
 
     // parse_field_function profile
     int parser_instance_number = 0;

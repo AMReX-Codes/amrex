@@ -87,7 +87,7 @@ public:
     // Boosted frame parameters
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
-    static amrex::Vector<amrex::Real> boost_direction;
+    static amrex::Vector<int> boost_direction;
 
     static bool do_dynamic_scheduling;
 
