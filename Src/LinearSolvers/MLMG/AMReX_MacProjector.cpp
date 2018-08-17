@@ -68,14 +68,14 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
                 m_fluxes[ilev][idim].define(amrex::convert(ba[ilev],IntVect::TheDimensionVector(idim)),
                                             dm[ilev],1,0);
             }
+        }
 
-            m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm));
-            m_linop = m_abeclap.get();
+        m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm));
+        m_linop = m_abeclap.get();
 
-            m_abeclap->setScalars(0.0, 1.0);
-            for (int ilev = 0; ilev < nlevs; ++ilev) {
-                m_abeclap->setBCoeffs(ilev, a_beta[ilev]);
-            }
+        m_abeclap->setScalars(0.0, 1.0);
+        for (int ilev = 0; ilev < nlevs; ++ilev) {
+            m_abeclap->setBCoeffs(ilev, a_beta[ilev]);
         }
     }
 
