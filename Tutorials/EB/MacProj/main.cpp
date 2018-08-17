@@ -73,7 +73,7 @@ int main (int argc, char* argv[])
         }
         EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom);
         amrex::VisMF::Write(divu, "divu-pre");
-
+        amrex::Print() << "\nmax-norm of divu before projection is " << divu.norm0() << std::endl;
 
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
                              {amrex::GetArrOfConstPtrs(beta)}, // beta 
@@ -100,6 +100,7 @@ int main (int argc, char* argv[])
         }
         EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom);
         amrex::VisMF::Write(divu, "divu");
+        amrex::Print() << "\nmax-norm of divu after projection is " << divu.norm0() << std::endl;
     }
 
     amrex::Finalize();
