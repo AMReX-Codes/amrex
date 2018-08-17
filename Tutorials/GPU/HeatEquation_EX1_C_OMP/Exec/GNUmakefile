@@ -5,7 +5,7 @@ AMREX_HOME ?= ../../../../
 DEBUG     = FALSE
 USE_MPI   = FALSE
 USE_OMP_OFFLOAD   = TRUE
-USE_CUDA  = FALSE
+USE_CUDA  = TRUE
 COMP      = IBM
 DIM       = 3
 
