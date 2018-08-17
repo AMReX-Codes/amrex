@@ -123,6 +123,9 @@ endif ()
 option ( ENABLE_EB "Build EB Code" OFF )
 print_option (ENABLE_EB)
 
+option ( ENABLE_GEOMETRY_SHOP "Build EB Code" OFF )
+print_option (ENABLE_GEOMETRY_SHOP)
+
 if ( USE_XSDK_DEFAULTS )
    option ( XSDK_ENABLE_Fortran "Build Fortran API" OFF )
    print_option (XSDK_ENABLE_Fortran)
