@@ -2,9 +2,6 @@
 #ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
 #endif
-#ifdef OMP_OFFLOAD
-#include <cuda_runtime.h>
-#endif
 
 void*
 amrex::BArena::alloc (std::size_t _sz)
@@ -34,13 +31,6 @@ amrex::BArena::alloc (std::size_t _sz)
 	gpu_malloc(&pt, &_sz);
 
     }
-// If combining the OpenMP offloading code with the existing CUDA_UM and
-// AMREX_USE_CUDA code, the tutorials generate the wrong answer.  I do not know
-// why. So until that gets sorted out, the OpenMP offloading code can't re-use
-// any of the existing CUDA code here. This will lead to some duplication (such
-// as these calls to cudaMallocManaged() and cudaFree()).
-#elif (defined(OMP_OFFLOAD))
-    cudaMallocManaged(&pt, _sz);
 #else
     pt = operator new(_sz);
 #endif
@@ -56,8 +46,6 @@ amrex::BArena::free (void* pt)
 	gpu_free(pt);
     else
 	gpu_freehost(pt);
-#elif (defined(OMP_OFFLOAD))
-    cudaFree(pt);
 #else
     operator delete(pt);
 #endif
