@@ -80,12 +80,12 @@ class HeaderFile(object):
         self.cpp_name = None
 
 
-def find_targets_from_pragmas(cxx_files):
+def find_targets_from_pragmas(cxx_files, macro_list):
     """read through the C++ files and look for the functions marked with
     #pragma gpu -- these are the routines we intend to offload (the targets),
     so make a list of them"""
 
-    targets = []
+    targets = dict()
 
     for c in cxx_files:
         cxx = "/".join([c[1], c[0]])
@@ -119,17 +119,26 @@ def find_targets_from_pragmas(cxx_files):
                 # arguments
                 dd = decls_re.search(func_call)
                 func_name = dd.group(1).strip().replace(" ", "")
-                targets.append(func_name)
+
+                # Now, for each argument in the function, record
+                # if it has a special macro in it.
+                targets[func_name] = []
+                args = dd.group().strip().split('(', 1)[1].rsplit(')', 1)[0].split(',')
+                for j, macro in enumerate(macro_list):
+                    targets[func_name].append([])
+                    for i, arg in enumerate(args):
+                        if macro in arg:
+                            targets[func_name][j].append(i)
 
             line = hin.readline()
 
     return targets
 
 
-def convert_headers(outdir, fortran_targets, header_files, cpp):
+def convert_headers(outdir, targets, header_files, cpp):
     """rewrite the C++ headers that contain the Fortran routines"""
 
-    print('looking for targets: {}'.format(fortran_targets))
+    print('looking for targets: {}'.format(targets))
     print('looking in header files: {}'.format(header_files))
 
     # first preprocess all the headers and store them in a temporary
@@ -173,10 +182,10 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
             idx = line.find("//")
             tline = line[:idx]
 
-            for target in fortran_targets:
-                fort_target_match = fortran_binding_re.search(tline.lower())
-                if fort_target_match:
-                    if target == fort_target_match.group(3):
+            for target in list(targets):
+                target_match = fortran_binding_re.search(tline.lower())
+                if target_match:
+                    if target == target_match.group(3):
                         found = target
                         print('found target {} in header {}'.format(target, h.cpp_name))
                         break
@@ -484,8 +493,12 @@ if __name__ == "__main__":
     # are called from C++ so we can modify the header in the
     # corresponding *_F.H file.
 
+    # A list of specific macros that we want to look for in each target.
+
+    macro_list = []
+
     # look through the C++ for routines launched with #pragma gpu
-    targets = find_targets_from_pragmas(cxx)
+    targets = find_targets_from_pragmas(cxx, macro_list)
 
     # copy the headers to the output directory, replacing the
     # signatures of the target Fortran routines with the CUDA pair
