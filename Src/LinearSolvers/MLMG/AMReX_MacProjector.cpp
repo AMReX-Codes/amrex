@@ -102,14 +102,6 @@ MacProjector::project (Real reltol)
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, 0.0);
 
 
-    Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > foo(10);
-    Vector<Array<MultiFab,AMREX_SPACEDIM> > bar(10);
-
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(foo));    
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(bar));    
-
-
-    
 }
 
 }
