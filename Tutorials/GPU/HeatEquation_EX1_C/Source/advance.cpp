@@ -27,7 +27,7 @@ void compute_flux (Box bx, GeometryData geom, BaseFab<Real> &phi_old,
 }
 
 AMREX_CUDA_GLOBAL
-void update_phi (Box bx, GeometryData geom, BaseFab<Real> &phi_old, BaseFab<Real> &phi_new, 
+void update_phi (Box bx, GeometryData geom, BaseFab<Real> &phi_old, BaseFab<Real> &phi_new,
                  AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ), Real dt)
 {
      Box threadBox = getThreadBox(bx);
@@ -45,7 +45,6 @@ void update_phi (Box bx, GeometryData geom, BaseFab<Real> &phi_old, BaseFab<Real
                   geom.CellSize(), dt);
      }
 }
-
 
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
@@ -75,9 +74,11 @@ void advance (MultiFab& phi_old,
         const Box& vbx = mfi.validbox();
 
         AMREX_BOX_LAUNCH(vbx,
-                          compute_flux, vbx, 
+                          compute_flux, vbx,
                           geom.data(), phi_old[mfi],
                           AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]));
+
+
     }
     Device::synchronize();
 
@@ -91,6 +92,7 @@ void advance (MultiFab& phi_old,
                           geom.data(), phi_old[mfi], phi_new[mfi],
                           AMREX_D_DECL(flux[0][mfi], flux[1][mfi], flux[2][mfi]),
                           dt);
+
     }
     Device::synchronize(); 
 

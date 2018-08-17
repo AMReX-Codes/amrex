@@ -15,15 +15,17 @@ using namespace amrex;
 AMREX_CUDA_GLOBAL
 void init_phi(Box bx, GeometryData geom, BaseFab<Real> &phi_new)
 {
-   Box threadBox = getThreadBox(bx);
+    Box threadBox = getThreadBox(bx);
 
-   if (threadBox.ok())
-   {
-      init_phi(BL_TO_FORTRAN_BOX(threadBox),
-               BL_TO_FORTRAN_ANYD(phi_new),
-               geom.CellSize(), geom.ProbLo(), geom.ProbHi());
-   }
+    if (threadBox.ok())
+    {
+        init_phi(BL_TO_FORTRAN_BOX(threadBox),
+                 BL_TO_FORTRAN_ANYD(phi_new),
+                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+    }
 }
+
+
 
 int main (int argc, char* argv[])
 {
@@ -109,8 +111,9 @@ void main_main ()
     {
         const Box& vbx = mfi.validbox();
 
-        AMREX_BOX_LAUNCH(vbx, 
-                         init_phi, vbx, geom.data(), phi_new[mfi]); 
+        AMREX_BOX_LAUNCH(vbx, init_phi,
+                         vbx, geom.data(), phi_new[mfi]);
+
     }
     Device::synchronize(); 
 
