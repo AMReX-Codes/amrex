@@ -59,7 +59,24 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     else
 #endif
     {
-        amrex::Abort("TODO: MacProjector for regular");
+        for (int ilev = 0; ilev < nlevs; ++ilev) {
+            m_rhs[ilev].define(ba[ilev],dm[ilev],1,0);
+            m_phi[ilev].define(ba[ilev],dm[ilev],1,1);
+            m_rhs[ilev].setVal(0.0);
+            m_phi[ilev].setVal(0.0);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                m_fluxes[ilev][idim].define(amrex::convert(ba[ilev],IntVect::TheDimensionVector(idim)),
+                                            dm[ilev],1,0);
+            }
+
+            m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm));
+            m_linop = m_abeclap.get();
+
+            m_abeclap->setScalars(0.0, 1.0);
+            for (int ilev = 0; ilev < nlevs; ++ilev) {
+                m_abeclap->setBCoeffs(ilev, a_beta[ilev]);
+            }
+        }
     }
 
     for (int ilev = 0, N = a_divu.size(); ilev < N; ++ilev) {
