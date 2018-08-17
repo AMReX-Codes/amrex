@@ -38,15 +38,16 @@ import preprocess
 TEMPLATE = """
 __global__ static void cuda_{}
 {{
+{}
    int blo[3];
    int bhi[3];
-   for (int k = lo_3 + blockIdx.z * blockDim.z + threadIdx.z; k <= hi_3; k += blockDim.z * gridDim.z) {{
+   for (int k = lo[2] + blockIdx.z * blockDim.z + threadIdx.z; k <= hi[2]; k += blockDim.z * gridDim.z) {{
      blo[2] = k;
      bhi[2] = k;
-     for (int j = lo_2 + blockIdx.y * blockDim.y + threadIdx.y; j <= hi_2; j += blockDim.y * gridDim.y) {{
+     for (int j = lo[1] + blockIdx.y * blockDim.y + threadIdx.y; j <= hi[1]; j += blockDim.y * gridDim.y) {{
        blo[1] = j;
        bhi[1] = j;
-       for (int i = lo_1 + blockIdx.x * blockDim.x + threadIdx.x; i <= hi_1; i += blockDim.x * gridDim.x) {{
+       for (int i = lo[0] + blockIdx.x * blockDim.x + threadIdx.x; i <= hi[0]; i += blockDim.x * gridDim.x) {{
          blo[0] = i;
          bhi[0] = i;
          {};
@@ -80,12 +81,12 @@ class HeaderFile(object):
         self.cpp_name = None
 
 
-def find_targets_from_pragmas(cxx_files):
+def find_targets_from_pragmas(cxx_files, macro_list):
     """read through the C++ files and look for the functions marked with
     #pragma gpu -- these are the routines we intend to offload (the targets),
     so make a list of them"""
 
-    targets = []
+    targets = dict()
 
     for c in cxx_files:
         cxx = "/".join([c[1], c[0]])
@@ -119,17 +120,26 @@ def find_targets_from_pragmas(cxx_files):
                 # arguments
                 dd = decls_re.search(func_call)
                 func_name = dd.group(1).strip().replace(" ", "")
-                targets.append(func_name)
+
+                # Now, for each argument in the function, record
+                # if it has a special macro in it.
+                targets[func_name] = []
+                args = dd.group().strip().split('(', 1)[1].rsplit(')', 1)[0].split(',')
+                for j, macro in enumerate(macro_list):
+                    targets[func_name].append([])
+                    for i, arg in enumerate(args):
+                        if macro in arg:
+                            targets[func_name][j].append(i)
 
             line = hin.readline()
 
     return targets
 
 
-def convert_headers(outdir, fortran_targets, header_files, cpp):
+def convert_headers(outdir, targets, header_files, cpp):
     """rewrite the C++ headers that contain the Fortran routines"""
 
-    print('looking for targets: {}'.format(fortran_targets))
+    print('looking for targets: {}'.format(list(targets)))
     print('looking in header files: {}'.format(header_files))
 
     # first preprocess all the headers and store them in a temporary
@@ -173,10 +183,10 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
             idx = line.find("//")
             tline = line[:idx]
 
-            for target in fortran_targets:
-                fort_target_match = fortran_binding_re.search(tline.lower())
-                if fort_target_match:
-                    if target == fort_target_match.group(3):
+            for target in list(targets):
+                target_match = fortran_binding_re.search(tline.lower())
+                if target_match:
+                    if target == target_match.group(3):
                         found = target
                         print('found target {} in header {}'.format(target, h.cpp_name))
                         break
@@ -191,7 +201,7 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
                     line = hin.readline()
                 launch_sig += line
 
-                signatures[found] = launch_sig
+                signatures[found] = [launch_sig, targets[found]]
 
             line = hin.readline()
 
@@ -220,7 +230,7 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         except IOError:
             sys.exit("Cannot open output file {}".format(ofile))
 
-        signatures_needed = []
+        signatures_needed = {}
 
         line = hin.readline()
         while line:
@@ -235,13 +245,13 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
 
             # if the line is not a function signature that we already
             # captured then we just write it out
-            for target in signatures:
+            for target in list(signatures):
 
-                fort_target_match = fortran_binding_re.search(tline.lower())
-                if fort_target_match:
-                    if target == fort_target_match.group(3):
+                target_match = fortran_binding_re.search(tline.lower())
+                if target_match:
+                    if target == target_match.group(3):
                         found = target
-                        signatures_needed.append(found)
+                        signatures_needed[found] = signatures[found]
 
                         print('found target {} in unprocessed header {}'.format(target, h.name))
                         break
@@ -268,8 +278,6 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         signatures_needed = list(set(signatures_needed))
 
         # now do the CUDA signatures
-        print('signatures needed: {}'.format(signatures_needed))
-
         hout.write("\n")
         hout.write("#include <AMReX_ArrayLim.H>\n")
         hout.write("#include <AMReX_BLFort.H>\n")
@@ -286,9 +294,11 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
         hout.write("#ifdef AMREX_USE_CUDA\n")
         hout.write("extern \"C\" {\n\n")
 
-        for name in signatures_needed:
+        for name in list(signatures_needed):
 
-            func_sig = signatures[name]
+            print(signatures[name])
+
+            func_sig = signatures[name][0]
 
             # First write out the device signature
             device_sig = "__device__ {};\n\n".format(func_sig)
@@ -302,9 +312,6 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
 
             device_sig = device_sig.replace(case_name, case_name + "_device")
 
-            device_sig = device_sig.replace("AMREX_ARLIM_VAL", "AMREX_ARLIM_REP")
-            hout.write(device_sig)
-
             # Now write out the global signature. This involves
             # getting rid of the data type definitions and also
             # replacing the lo and hi (which must be in the function
@@ -314,6 +321,8 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
 
             has_lo = False
             has_hi = False
+
+            intvect_vars = []
 
             for n, v in enumerate(dd.group(3).split(",")):
 
@@ -326,21 +335,41 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
                 var = var.replace("BL_FORT_FAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
                 var = var.replace("BL_FORT_IFAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
 
-                if var == "AMREX_ARLIM_VAL(lo)":
-                    var = "blo"
-                    has_lo = True
-                elif var == "lo":
-                    var = "blo"
-                    has_lo = True
-                    func_sig = func_sig.replace("const int* lo", "AMREX_ARLIM_VAL(lo)")
+                # Get the list of all arguments which contain AMREX_INT_ANYD.
+                # Replace them with the necessary machinery, a set of three
+                # constant ints which will be passed by value.
 
-                if var == "AMREX_ARLIM_VAL(hi)":
-                    var = "bhi"
-                    has_hi = True
+                args = signatures[name][0].split('(', 1)[1].rsplit(')', 1)[0].split(',')
+                arg_positions = signatures[name][1][0]
+
+                if arg_positions != []:
+                    print("arg_positions", arg_positions)
+                    print("args = ", args)
+                    for arg_position in arg_positions:
+                        if n == arg_position:
+                            arg = args[arg_position]
+                            var = arg.split()[-1]
+                            print("arg, var = ", arg, var)
+                            func_sig = func_sig.replace(arg, "const int {}_1, const int {}_2, const int {}_3".format(var, var, var))
+                            print("func_sig = ", func_sig)
+                            device_sig = device_sig.replace(arg, "const int* {}".format(var))
+                            intvect_vars.append(var)
+                else:
+                    # Handle the legacy case where we just passed in lo, hi
+                    if var == "lo":
+                        func_sig = func_sig.replace("const int* lo", "const int {}_1, const int {}_2, const int {}_3".format(var, var, var))
+                        intvect_vars.append(var)
+                    elif var == "hi":
+                        func_sig = func_sig.replace("const int* hi", "const int {}_1, const int {}_2, const int {}_3".format(var, var, var))
+                        intvect_vars.append(var)
+
+                if var == "lo":
+                    var = "blo"
+                    has_lo = True
+
                 elif var == "hi":
                     var = "bhi"
                     has_hi = True
-                    func_sig = func_sig.replace("const int* hi", "AMREX_ARLIM_VAL(hi)")
 
                 vars.append(var)
 
@@ -351,7 +380,18 @@ def convert_headers(outdir, fortran_targets, header_files, cpp):
             all_vars = ", ".join(vars)
             new_call = "{}({})".format(case_name + "_device", all_vars)
 
-            hout.write(TEMPLATE.format(func_sig[idx:].replace(';', ''), new_call))
+            # Collate all the IntVects that we are going to make
+            # local copies of.
+
+            intvects = ""
+
+            if len(intvect_vars) > 0:
+                for intvect in intvect_vars:
+                    intvects += "   int {}[3] = {{{}_1, {}_2, {}_3}};\n".format(intvect, intvect, intvect, intvect)
+
+
+            hout.write(device_sig)
+            hout.write(TEMPLATE.format(func_sig[idx:].replace(';',''), intvects, new_call))
             hout.write("\n")
 
 
@@ -484,8 +524,12 @@ if __name__ == "__main__":
     # are called from C++ so we can modify the header in the
     # corresponding *_F.H file.
 
+    # A list of specific macros that we want to look for in each target.
+
+    macro_list = ['AMREX_INT_ANYD']
+
     # look through the C++ for routines launched with #pragma gpu
-    targets = find_targets_from_pragmas(cxx)
+    targets = find_targets_from_pragmas(cxx, macro_list)
 
     # copy the headers to the output directory, replacing the
     # signatures of the target Fortran routines with the CUDA pair
