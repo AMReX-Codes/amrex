@@ -27,6 +27,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
 
     m_rhs.resize(nlevs);
     m_phi.resize(nlevs);
+    m_fluxes.resize(nlevs);
 
 #ifdef AMREX_USE_EB
     if (has_eb)
@@ -41,12 +42,16 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             m_phi[ilev].define(ba[ilev],dm[ilev],1,1,MFInfo(),a_umac[ilev][0]->Factory());
             m_rhs[ilev].setVal(0.0);
             m_phi[ilev].setVal(0.0);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                m_fluxes[ilev][idim].define(amrex::convert(ba[ilev],IntVect::TheDimensionVector(idim)),
+                                            dm[ilev],1,0,MFInfo(),a_umac[ilev][0]->Factory());
+            }
         }
 
         m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, LPInfo(), m_eb_factory));
         m_linop = m_eb_abeclap.get();
 
-        m_eb_abeclap->setScalars(0.0, -1.0);
+        m_eb_abeclap->setScalars(0.0, 1.0);
         for (int ilev = 0; ilev < nlevs; ++ilev) {
             m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev]);
         }
@@ -83,7 +88,9 @@ MacProjector::project (Real reltol)
         m_mlmg->setVerbose(m_verbose);
     }
 
-    for (int ilev = 0, N = m_rhs.size(); ilev < N; ++ilev)
+    const int nlevs = m_rhs.size();
+
+    for (int ilev = 0; ilev < nlevs; ++ilev)
     {
         Array<MultiFab const*, AMREX_SPACEDIM> u;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -101,7 +108,20 @@ MacProjector::project (Real reltol)
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, 0.0);
 
-
+    Vector<Array<MultiFab*,AMREX_SPACEDIM> > flx(nlevs);
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        flx[ilev] = amrex::GetArrOfPtrs(m_fluxes[ilev]);
+    }
+    m_mlmg->getFluxes(flx);
+    
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            MultiFab::Subtract(*m_umac[ilev][idim], *flx[ilev][idim], 0, 0, 1, 0);
+#ifdef AMREX_USE_EB
+            EB_set_covered_faces(m_umac[ilev], 0.0);
+#endif
+        }
+    }
 }
 
 }

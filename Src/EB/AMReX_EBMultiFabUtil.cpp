@@ -41,6 +41,35 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& vals)
 }
 
 void
+EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
+{
+    const auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(umac[0]->Factory()));
+    if (factory == nullptr) return;
+
+    const auto& area = factory->getAreaFrac();
+    const auto& flags = factory->getMultiEBCellFlagFab();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*umac[0],true); mfi.isValid(); ++mfi)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            const Box& bx = mfi.tilebox(IntVect::TheDimensionVector(idim));
+            auto fabtyp = flags[mfi].getType(amrex::enclosedCells(bx));
+            if (fabtyp == FabType::covered) {
+                (*umac[idim])[mfi].setVal(0.0, bx, 0, 1);
+            } else if (fabtyp != FabType::regular) {
+                amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(bx),
+                                           BL_TO_FORTRAN_ANYD((*umac[idim])[mfi]),
+                                           BL_TO_FORTRAN_ANYD((*area[idim])[mfi]));
+            }
+        }
+    }
+}
+
+void
 EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                  const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio)
 {

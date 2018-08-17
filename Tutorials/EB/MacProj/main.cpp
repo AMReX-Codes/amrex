@@ -1,7 +1,9 @@
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_VisMF.H>
 #include <AMReX_EB2.H>
+#include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_MacProjector.H>
 #include "initEB.H"
 
@@ -61,6 +63,18 @@ int main (int argc, char* argv[])
             beta[idim].setVal(1.0);
         }
 
+        MultiFab divu(grids, dmap, 1, 0, MFInfo(), factory);
+
+        AMREX_D_TERM(amrex::VisMF::Write(vel[0], "vx-pre");,
+                     amrex::VisMF::Write(vel[1], "vy-pre");,
+                     amrex::VisMF::Write(vel[2], "vz-pre"););
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            vel[idim].FillBoundary(geom.periodicity());
+        }
+        EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom);
+        amrex::VisMF::Write(divu, "divu-pre");
+
+
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
                              {amrex::GetArrOfConstPtrs(beta)}, // beta 
                              {geom});                          // Geometry
@@ -76,6 +90,16 @@ int main (int argc, char* argv[])
 
         Real reltol = 1.e-12;
         macproj.project(reltol);
+
+        AMREX_D_TERM(amrex::VisMF::Write(vel[0], "vx");,
+                     amrex::VisMF::Write(vel[1], "vy");,
+                     amrex::VisMF::Write(vel[2], "vz"););
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            vel[idim].FillBoundary(geom.periodicity());
+        }
+        EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom);
+        amrex::VisMF::Write(divu, "divu");
     }
 
     amrex::Finalize();
