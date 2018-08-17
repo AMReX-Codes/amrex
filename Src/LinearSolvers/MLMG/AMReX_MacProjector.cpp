@@ -128,15 +128,11 @@ MacProjector::project (Real reltol)
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, 0.0);
 
-    Vector<Array<MultiFab*,AMREX_SPACEDIM> > flx(nlevs);
-    for (int ilev = 0; ilev < nlevs; ++ilev) {
-        flx[ilev] = amrex::GetArrOfPtrs(m_fluxes[ilev]);
-    }
-    m_mlmg->getFluxes(flx);
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes));
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            MultiFab::Add(*m_umac[ilev][idim], *flx[ilev][idim], 0, 0, 1, 0);
+            MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
 #ifdef AMREX_USE_EB
             EB_set_covered_faces(m_umac[ilev], 0.0);
 #endif
