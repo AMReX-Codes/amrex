@@ -17,10 +17,10 @@ namespace amrex { namespace EB2 {
 
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
-#ifndef AMREX_NO_DEPRECATED_EB
-bool use_eb2 = false;
-#else
+#if defined(AMREX_NO_DEPRECATED_EB) || !defined(AMREX_USE_GEOMETRYSHOP)
 bool use_eb2 = true;
+#else
+bool use_eb2 = false;
 #endif
 int max_grid_size = 64;
 bool compare_with_ch_eb = false;
