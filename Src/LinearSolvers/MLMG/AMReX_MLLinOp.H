@@ -93,7 +93,10 @@ public:
     void setMaxOrder (int o) { maxorder = o; }
     int getMaxOrder () const { return maxorder; }
     
-    virtual int getNComp() const { return 1;};
+    virtual int getNComp() const { return 1; }
+
+    virtual bool needsUpdate () const { return false; }
+    virtual void update () {}
 
 protected:
 

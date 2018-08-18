@@ -37,7 +37,12 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
+    virtual bool needsUpdate () const override { m_needs_update || MLCellLinOp::needsUpdate(); }
+    virtual void update () override;
+
 protected:
+
+    bool m_needs_update = true;
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }

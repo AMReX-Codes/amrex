@@ -29,6 +29,9 @@ public:
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final;
 
+    virtual bool needsUpdate () const override { MLLinOp::needsUpdate(); }
+    virtual void update () override;
+
 protected:
 
     virtual bool isCrossStencil () const { return true; }
