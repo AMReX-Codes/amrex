@@ -21,6 +21,10 @@
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
 
+#ifdef AMREX_USE_DEVICE
+#include <AMReX_Device.H>
+#endif
+
 #ifdef USE_PERILLA
 #include <LocalConnection.H>
 #include <RemoteConnection.H>
