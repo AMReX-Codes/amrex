@@ -898,17 +898,8 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
                 statedata->PrepareForFillBoundary(dest, dx, prob_domain, xlo,
                                                   bcrs, dest_comp, src_comp, num_comp);
 
-#ifdef AMREX_USE_CUDA
-                Real* time_f = mfi.get_fortran_pointer(&time);
-                Real* xlo_f  = mfi.get_fortran_pointer(xlo, 3, AMREX_SPACEDIM);
-                int* bcrs_f  = mfi.get_fortran_pointer(bcrs, 2 * AMREX_SPACEDIM * num_comp);
-#else
-                Real* time_f = &time;
-                Real* xlo_f  = xlo;
-                int* bcrs_f  = bcrs;
-#endif
-
-		statedata->FillBoundary(dest, time_f, dx, xlo_f, bcrs_f, prob_domain, dest_comp, src_comp, num_comp);
+		statedata->FillBoundary(dest, AMREX_FPTR(&time), dx, AMREX_FPTR(xlo, 3, AMREX_SPACEDIM),
+                                        AMREX_FPTR(bcrs, 2 * AMREX_SPACEDIM * num_comp), prob_domain, dest_comp, src_comp, num_comp);
 
 		if (is_periodic) // fix up corner
 		{
@@ -944,7 +935,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			    tmp.copy(dest,dest_comp,0,num_comp);
 			    tmp.shift(dir,domain.length(dir));
 			    
-			    statedata->FillBoundary(tmp, time_f, dx, xlo_f, bcrs_f, prob_domain, dest_comp, src_comp, num_comp);
+			    statedata->FillBoundary(tmp, AMREX_FPTR(&time), dx, AMREX_FPTR(xlo), AMREX_FPTR(bcrs), prob_domain, dest_comp, src_comp, num_comp);
 			    
 			    tmp.shift(dir,-domain.length(dir));
 			    dest.copy(tmp,0,dest_comp,num_comp);
@@ -958,7 +949,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			    tmp.copy(dest,dest_comp,0,num_comp);
 			    tmp.shift(dir,-domain.length(dir));
 			    
-			    statedata->FillBoundary(tmp, time_f, dx, xlo_f, bcrs_f, prob_domain, dest_comp, src_comp, num_comp);
+			    statedata->FillBoundary(tmp, AMREX_FPTR(&time), dx, AMREX_FPTR(xlo), AMREX_FPTR(bcrs), prob_domain, dest_comp, src_comp, num_comp);
 			    
 			    tmp.shift(dir,domain.length(dir));
 			    dest.copy(tmp,0,dest_comp,num_comp);

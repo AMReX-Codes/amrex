@@ -130,6 +130,14 @@
 #define BL_TO_FORTRAN_GPU_N_ANYD(x,n) (x).dataPtr(n), AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect())
 #endif
 
+// Macros for generating GPU pointers on the fly.
+
+#ifdef AMREX_USE_CUDA
+  #define AMREX_FPTR(...) mfi.get_fortran_pointer(__VA_ARGS__)
+#else
+  #define AMREX_FPTR(x,...) x
+#endif
+
 #else
 
 #if !defined(BL_LANG_FORT)
