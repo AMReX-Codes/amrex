@@ -29,7 +29,9 @@ public:
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final;
 
-    virtual bool needsUpdate () const override { MLLinOp::needsUpdate(); }
+    virtual bool needsUpdate () const override {
+        return MLLinOp::needsUpdate();
+    }
     virtual void update () override;
 
 protected:
