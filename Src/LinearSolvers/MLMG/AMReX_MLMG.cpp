@@ -974,6 +974,11 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         linop.update();
     }
 
+#ifdef AMREX_USE_HYPRE
+    hypre_solver.reset();
+    hypre_bndry.reset();
+#endif
+
     sol.resize(namrlevs);
     sol_raii.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
