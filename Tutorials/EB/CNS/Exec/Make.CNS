@@ -11,6 +11,9 @@ LAZY := TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
+# CNS does not use any deprecated EB code
+DEFINES += -DAMREX_NO_DEPRECATED_EB
+
 # CNS uses a coarse grained OMP approach
 DEFINES += -DAMREX_CRSEGRNDOMP
 
@@ -34,7 +37,6 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
-include $(AMREX_HOME)/Src/GeometryShop/Make.package
 include $(AMREX_HOME)/Src/EB/Make.package
 include $(AMREX_HOME)/Src/EB2/Make.package
 

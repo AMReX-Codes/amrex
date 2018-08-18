@@ -97,6 +97,71 @@ extern "C" {
                                   const amrex_real* dxinv,
                                   const amrex_real alpha, const amrex_real beta, const int redblack);
 
+    void amrex_mlebabeclap_flux( const int* lo, const int* hi, 
+                                 amrex_real* fx, const int* fxlo, const int* fxhi, 
+#if (AMREX_SPACEDIM >= 2) 
+                                 amrex_real* fy, const int* fylo, const int* fyhi, 
+#if (AMREX_SPACEDIM == 3) 
+                                 amrex_real* fz, const int* fzlo, const int* fzhi, 
+#endif
+#endif
+                                 const amrex_real* apx, const int* axlo, const int* axhi, 
+#if (AMREX_SPACEDIM >= 2) 
+                                 const amrex_real* apy, const int* aylo, const int* ayhi, 
+#if (AMREX_SPACEDIM == 3) 
+                                 const amrex_real* apz, const int* azlo, const int* azhi,
+#endif
+#endif
+                                 const amrex_real* fcx, const int* cxlo, const int* cxhi,
+#if (AMREX_SPACEDIM >= 2)
+                                 const amrex_real* fcy, const int* cylo, const int* cyhi,
+#if (AMREX_SPACEDIM == 3)
+                                 const amrex_real* fcz, const int* czlo, const int* czhi,
+#endif
+#endif
+
+                                 const amrex_real* sol, const int* slo, const int* shi,
+                                 const amrex_real* bx, const int* bxlo, const int* bxhi,
+#if (AMREX_SPACEDIM >= 2)
+                                 const amrex_real* by, const int* bylo, const int* byhi,
+#if (AMREX_SPACEDIM == 3)
+                                 const amrex_real* bz, const int* bzlo, const int* bzhi,
+#endif
+#endif
+                                 const void* flag, const int* flo, const int* fhi,
+                                 const amrex_real* dxinv, const amrex_real beta, const int face_only);
+
+    void amrex_mlebabeclap_grad( const int* xlo, const int* xhi, 
+#if (AMREX_SPACEDIM >= 2) 
+                                 const int* ylo, const int* yhi, 
+#if (AMREX_SPACEDIM == 3) 
+                                 const int* zlo, const int* zhi, 
+#endif
+#endif // */
+                                 const amrex_real* dat, const int* dlo, const int* dhi,
+                                 amrex_real* gx, const int* gxlo, const int* gxhi,
+#if (AMREX_SPACEDIM >= 2)
+                                 amrex_real* gy, const int* gylo, const int* gyhi,
+#if (AMREX_SPACEDIM == 3)
+                                 amrex_real* gz, const int* gzlo, const int* gzhi,
+#endif
+#endif
+                                 const amrex_real* ax, const int* axlo, const int* axhi, 
+#if (AMREX_SPACEDIM >= 2)
+                                 const amrex_real* ay, const int* aylo, const int* ayhi, 
+#if (AMREX_SPACEDIM == 3)
+                                 const amrex_real* az, const int* azlo, const int* azhi,
+#endif
+#endif
+                                 const amrex_real* fcx, const int* fcxlo, const int* fcxhi, 
+#if (AMREX_SPACEDIM >= 2)
+                                 const amrex_real* fcy, const int* fcylo, const int* fcyhi, 
+#if (AMREX_SPACEDIM == 3)
+                                 const amrex_real* fcz, const int* fczlo, const int* fczhi,
+#endif
+#endif
+                                 const void* flag, const int* flo, const int* fhi,
+                                 const amrex_real* dxinv);
 
     void amrex_mlebabeclap_normalize (const int* lo, const int* hi,
                                       amrex_real* y, const int* ylo, const int* yhi,

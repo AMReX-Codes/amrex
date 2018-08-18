@@ -7,6 +7,7 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBTower.H>
 #include <AMReX_EB2.H>
+#include <AMReX_EBFabFactory.H>
 #endif
 
 namespace amrex {
@@ -43,8 +44,13 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
     info = a_info;
 #if AMREX_USE_EB
-    info.max_coarsening_level = std::min(info.max_coarsening_level,
-                                         EB2::maxCoarseningLevel(a_geom[0]));
+    if (!a_factory.empty()){
+        auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
+        if (f) {
+            info.max_coarsening_level = std::min(info.max_coarsening_level,
+                                                 f->maxCoarseningLevel());
+        }
+    }
 #endif
     defineGrids(a_geom, a_grids, a_dmap, a_factory);
     defineAuxData();
@@ -337,8 +343,8 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
 }
 
 void
-MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
-                      const std::array<BCType,AMREX_SPACEDIM>& a_hibc)
+MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
+                      const Array<BCType,AMREX_SPACEDIM>& a_hibc)
 {
     m_lobc = a_lobc;
     m_hibc = a_hibc;

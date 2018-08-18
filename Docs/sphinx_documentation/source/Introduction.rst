@@ -20,6 +20,8 @@ Key features of AMReX include:
 
 -  Support for particles
 
+-  Support for embedded boundary (cut cell) representations of complex geometries
+
 -  Parallelization via flat MPI, OpenMP, hybrid MPI/OpenMP, or MPI/MPI
 
 -  Parallel I/O

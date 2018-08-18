@@ -113,20 +113,29 @@ MLEBABecLap::setScalars (Real a, Real b)
 {
     m_a_scalar = a;
     m_b_scalar = b;
+    if (a == 0.0)
+    {
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+        {
+            m_a_coeffs[amrlev][0].setVal(0.0);
+        }
+    }
 }
 
 void
 MLEBABecLap::setACoeffs (int amrlev, const MultiFab& alpha)
 {
     MultiFab::Copy(m_a_coeffs[amrlev][0], alpha, 0, 0, 1, 0);
+    m_needs_update = true;
 }
 
 void
-MLEBABecLap::setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPACEDIM>& beta)
+MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
     }
+    m_needs_update = true;
 }
 
 void
@@ -154,7 +163,7 @@ MLEBABecLap::averageDownCoeffs ()
 
 void
 MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                            Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b)
+                                            Vector<Array<MultiFab,AMREX_SPACEDIM> >& b)
 {
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -217,6 +226,8 @@ MLEBABecLap::prepareForSolve ()
             }
         }
     }
+
+    m_needs_update = false;
 }
 
 void
@@ -473,11 +484,62 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 }
 
 void
-MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
+MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                     const FArrayBox& sol, const int face_only) const
 {
-    amrex::Abort("FFlux: todo");
+    BL_PROFILE("MLEBABecLap::FFlux()")
+    const int mglev = 0; 
+    const Box& box = mfi.tilebox();
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize(); 
+    AMREX_D_TERM(const auto& bx = m_b_coeffs[amrlev][mglev][0][mfi];,
+                 const auto& by = m_b_coeffs[amrlev][mglev][1][mfi];,
+                 const auto& bz = m_b_coeffs[amrlev][mglev][2][mfi];);
+    auto fabtyp = (flags) ? (*flags)[mfi].getType(box) : FabType::regular; 
+    if (fabtyp == FabType::covered) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            flux[idim]->setVal(0.0, amrex::surroundingNodes(box,idim), 0, 1);
+        }
+//    } else if (fabtyp == FabType::regular) {
+    } else {
+        amrex_mlabeclap_flux(BL_TO_FORTRAN_BOX(box),
+                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
+                                          BL_TO_FORTRAN_ANYD(*flux[1]),
+                                          BL_TO_FORTRAN_ANYD(*flux[2])),
+                             BL_TO_FORTRAN_ANYD(sol),
+                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
+                                          BL_TO_FORTRAN_ANYD(by),
+                                          BL_TO_FORTRAN_ANYD(bz)),
+                             dxinv, m_b_scalar, face_only);
+    }
+#if 0
+    else{               
+        auto area = (factory) ? factory->getAreaFrac() 
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
+        auto fcent = (factory) ? factory->getFaceCent()
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+
+        amrex_mlebabeclap_flux(BL_TO_FORTRAN_BOX(box), 
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
+                                            BL_TO_FORTRAN_ANYD(*flux[1]), 
+                                            BL_TO_FORTRAN_ANYD(*flux[2])),
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]), 
+                                            BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                               BL_TO_FORTRAN_ANYD(sol),
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
+                                            BL_TO_FORTRAN_ANYD(by),
+                                            BL_TO_FORTRAN_ANYD(bz)),
+                               BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                               dxinv, m_b_scalar, face_only); // */
+    }
+#endif
 }
+
 
 void
 MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
@@ -556,7 +618,6 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 {
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][fmglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -603,7 +664,7 @@ void
 MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
-    BL_PROFILE("MLEBABecLap::Fsmooth()");
+    BL_PROFILE("MLEBABecLap::applyBC()");
 
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
@@ -683,6 +744,40 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
             }
         }
     }
+}
+
+void
+MLEBABecLap::update ()
+{
+    if (MLCellLinOp::needsUpdate()) MLCellLinOp::update();
+
+    averageDownCoeffs();
+
+    m_is_singular.clear();
+    m_is_singular.resize(m_num_amr_levels, false);
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    {  // No Dirichlet
+        for (int alev = 0; alev < m_num_amr_levels; ++alev)
+        {
+            if (m_domain_covered[alev])
+            {
+                if (m_a_scalar == 0.0)
+                {
+                    m_is_singular[alev] = true;
+                }
+                else
+                {
+                    Real asum = m_a_coeffs[alev].back().sum();
+                    Real amax = m_a_coeffs[alev].back().norm0();
+                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                }
+            }
+        }
+    }
+
+    m_needs_update = false;
 }
     
 }

@@ -9,6 +9,7 @@ namespace amrex
 {
     void EB_set_covered (MultiFab& mf, Real val);    
     void EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& val);
+    void EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val);
 
     void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                           const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio);
@@ -19,6 +20,9 @@ namespace amrex
                           const IntVect& ratio);
     void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                                 const IntVect& ratio, int ngcrse);
+
+    void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                               const Geometry& geom);
 
 }
 

@@ -27,17 +27,19 @@ public:
 
     static bool validDomain (const Box& a_domain);
 
-    static Box const& coarestDomain ();
+    static Box const& coarsestDomain ();
     
 private:
 
-    EBTower ();
     ~EBTower ();
 
+#ifdef AMREX_USE_GEOMETRYSHOP
+    EBTower ();
     void initCellFlags (int lev, const EBLevelGrid& eblg);
     void initVolumeGeometry (int lev, const EBLevelGrid& eblg);
     void initBndryCent (int lev, const EBLevelGrid& eblg);
     void initFaceGeometry (int lev, const EBLevelGrid& eblg);
+#endif
 
     static Vector<Box> 
     getPeriodicGhostBoxes(const Box        & a_valid, 

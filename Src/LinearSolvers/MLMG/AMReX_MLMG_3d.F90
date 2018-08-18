@@ -175,7 +175,7 @@ contains
 
 #ifdef AMREX_USE_EB
 
-    integer :: i,j,k,n, ic, jc, kc, ioff, joff, koff
+    integer :: i,j,k,n, ic, jc, kc
 
     do n = 1, nc
        do k = lo(3), hi(3)

@@ -1,6 +1,8 @@
 #ifndef AMREX_EB_LEVELSET_H_
 #define AMREX_EB_LEVELSET_H_
 
+#ifdef AMREX_USE_GEOMETRYSHOP
+
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_RealVect.H>
@@ -186,5 +188,7 @@ class PolynomialDF : public PolynomialIF {
 };
 
 }
+
+#endif
 
 #endif

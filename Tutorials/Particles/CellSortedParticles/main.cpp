@@ -62,10 +62,11 @@ void test_cell_sorted(const TestParams& parms)
     for (int step = 0; step < parms.nsteps; ++step)
     {
         amrex::Print() << "    Time step: " <<  step << std::endl;
-        amrex::Print() << " number of particles is " << particles.TotalNumberOfParticles() << std::endl;
+        amrex::Print() << " Number of particles is " << particles.TotalNumberOfParticles() << std::endl;
         particles.MoveParticles();
         particles.Redistribute();
         particles.ReBin();
+	amrex::Print() << " Number of particles in cell vectors is " << particles.SumCellVectors() << std::endl;
     }
 
     amrex::Print() << "Done. " << std::endl;

@@ -47,7 +47,6 @@ amr.plot_int          = 10      # number of timesteps between plotfiles
 amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 # EB
-eb2.use_eb2 = 1  
 eb2.sphere_radius = 0.125
 #eb2.sphere_center = 0.45  0.65  0.54
 #eb2.sphere_center = 0.5  0.5  0.5

@@ -44,6 +44,10 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
         m_factory = &(rhs.Factory());
         prepareSolver();
     }
+    else
+    {
+        m_factory = &(rhs.Factory());
+    }
 
     // We have to do this repeatedly to avoid memory leak due to Hypre bug
     HYPRE_SStructVectorCreate(comm, hgrid, &b);

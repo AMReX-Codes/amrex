@@ -1,10 +1,10 @@
-module amrex_eb_avgdown_module
+module amrex_eb_util_module
 
   use amrex_fort_module, only : amrex_real
   implicit none
 
   private
-  public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces
+  public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, amrex_compute_eb_divergence
 
 contains
 
@@ -138,4 +138,73 @@ contains
    endif
   end subroutine amrex_eb_avgdown_faces 
 
-end module amrex_eb_avgdown_module
+
+  subroutine amrex_compute_eb_divergence (lo, hi, divu, dlo, dhi, u, ulo, uhi, v, vlo, vhi, &
+       ccm, cmlo, cmhi, flag, flo, fhi, vfrc, klo, khi, &
+       apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
+       dxinv) bind(c, name='amrex_compute_eb_divergence')
+    use amrex_constants_module, only : zero, one
+    use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell
+    implicit none
+    integer, dimension(2), intent(in) :: lo, hi, dlo, dhi, ulo, uhi, vlo, vhi, klo, khi, &
+         cmlo, cmhi, flo, fhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
+    real(amrex_real), intent(inout) :: divu(dlo(1):dhi(1),dlo(2):dhi(2))
+    real(amrex_real), intent(in   ) ::    u(ulo(1):uhi(1),ulo(2):uhi(2))
+    real(amrex_real), intent(in   ) ::    v(vlo(1):vhi(1),vlo(2):vhi(2))
+    integer         , intent(in   ) ::  ccm(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
+    real(amrex_real), intent(in   ) :: vfrc( klo(1): khi(1), klo(2): khi(2))
+    real(amrex_real), intent(in   ) ::  apx(axlo(1):axhi(1),axlo(2):axhi(2))
+    real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
+    real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
+    real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
+    real(amrex_real), intent(in) :: dxinv(2)
+
+    integer :: i,j,ii,jj
+    real(amrex_real) :: fxm, fxp, fym, fyp, fracx, fracy
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (is_covered_cell(flag(i,j))) then
+             divu(i,j) = zero
+          else if (is_regular_cell(flag(i,j))) then
+             divu(i,j) = dxinv(1) * (u(i+1,j)-u(i,j)) + dxinv(2) * (v(i,j+1)-v(i,j))
+          else
+             fxm = u(i,j)
+             if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
+                jj = j + int(sign(one,fcx(i,j)))
+                fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
+                fxm = (one-fracy)*fxm + fracy*u(i,jj)
+             end if
+
+             fxp = u(i+1,j)
+             if (apx(i+1,j).ne.zero .and. apx(i+1,j).ne.one) then
+                jj = j + int(sign(one,fcx(i+1,j)))
+                fracy = abs(fcx(i+1,j))*real(ior(ccm(i,jj),ccm(i+1,jj)),amrex_real)
+                fxp = (one-fracy)*fxp + fracy*u(i+1,jj)
+             end if
+
+             fym = v(i,j)
+             if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
+                ii = i + int(sign(one,fcy(i,j)))
+                fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
+                fym = (one-fracx)*fym + fracx*v(ii,j)
+             end if
+
+             fyp = v(i,j+1)
+             if (apy(i,j+1).ne.zero .and. apy(i,j+1).ne.one) then
+                ii = i + int(sign(one,fcy(i,j+1)))
+                fracx = abs(fcy(i,j+1))*real(ior(ccm(ii,j),ccm(ii,j+1)),amrex_real)
+                fyp = (one-fracx)*fyp + fracx*v(ii,j+1)
+             end if
+
+             divu(i,j) = (one/vfrc(i,j)) * &
+                  ( dxinv(1) * (apx(i+1,j)*fxp-apx(i,j)*fxm) &
+                  + dxinv(2) * (apy(i,j+1)*fyp-apy(i,j)*fym) ) 
+
+          end if
+       end do
+    end do
+  end subroutine amrex_compute_eb_divergence
+
+end module amrex_eb_util_module
