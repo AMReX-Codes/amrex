@@ -1648,42 +1648,25 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
-#ifdef AMREX_USE_CUDA
-            int* n_der_f   = mfi.get_fortran_pointer(&n_der);
-            int* n_state_f = mfi.get_fortran_pointer(&n_state);
-            Real* time_f   = mfi.get_fortran_pointer(&time);
-            Real* dt_f     = mfi.get_fortran_pointer(&dt);
-            int* level_f   = mfi.get_fortran_pointer(&level);
-            int* grid_no_f = mfi.get_fortran_pointer(&grid_no);
-            int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
-#else
-            const int* n_der_f   = &n_der;
-            const int* n_state_f = &n_state;
-            const Real* time_f   = &time;
-            const Real* dt_f     = &dt;
-            const int* level_f   = &level;
-            const int* grid_no_f = &grid_no;
-            const int* bcr_f     = bcr;
-#endif
-
 #ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch(gtbx.loVect(), gtbx.hiVect());
 #endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),n_der_f,
-			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),n_state_f,
-			       lo,hi,dom_lo,dom_hi,dx,xlo,time_f,dt_f,bcr_f,
-			       level_f,grid_no_f);
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),AMREX_FPTR(&n_der),
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_FPTR(&n_state),
+			       lo,hi,dom_lo,dom_hi,dx,xlo,AMREX_FPTR(&time),AMREX_FPTR(&dt),
+                               AMREX_FPTR(bcr, 2 * 3, 2 * AMREX_SPACEDIM),
+			       AMREX_FPTR(&level),AMREX_FPTR(&grid_no));
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),n_der_f,
-				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),n_state_f,
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),AMREX_FPTR(&n_der),
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),AMREX_FPTR(&n_state),
 				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
 				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
 				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
-				 time_f,dt_f,
-				 AMREX_BCREC_3D(bcr_f),
-				 level_f,grid_no_f);
+				 AMREX_FPTR(&time),AMREX_FPTR(&dt),
+				 AMREX_BCREC_3D(bcr),
+				 AMREX_FPTR(&level),AMREX_FPTR(&grid_no));
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
@@ -1709,42 +1692,25 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
-#ifdef AMREX_USE_CUDA
-            int* n_der_f   = mfi.get_fortran_pointer(&n_der);
-            int* n_state_f = mfi.get_fortran_pointer(&n_state);
-            Real* time_f   = mfi.get_fortran_pointer(&time);
-            Real* dt_f     = mfi.get_fortran_pointer(&dt);
-            int* level_f   = mfi.get_fortran_pointer(&level);
-            int* grid_no_f = mfi.get_fortran_pointer(&grid_no);
-            int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
-#else
-            const int* n_der_f   = &n_der;
-            const int* n_state_f = &n_state;
-            const Real* time_f   = &time;
-            const Real* dt_f     = &dt;
-            const int* level_f   = &level;
-            const int* grid_no_f = &grid_no;
-            const int* bcr_f     = bcr;
-#endif
-
 #ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch((*mf)[mfi].loVect(), (*mf)[mfi].hiVect());
 #endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),n_der_f,
-			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),n_state_f,
-			       dlo,dhi,dom_lo,dom_hi,dx,xlo,time_f,dt_f,bcr_f,
-			       level_f,grid_no_f);
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),AMREX_FPTR(&n_der),
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_FPTR(&n_state),
+			       dlo,dhi,dom_lo,dom_hi,dx,xlo,AMREX_FPTR(&time),AMREX_FPTR(&dt),
+                               AMREX_FPTR(bcr, 2 * 3, 2 * AMREX_SPACEDIM),
+			       AMREX_FPTR(&level),AMREX_FPTR(&grid_no));
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),n_der_f,
-				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),n_state_f,
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),AMREX_FPTR(&n_der),
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),AMREX_FPTR(&n_state),
 				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
 				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
 				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
-				 time_f,dt_f,
-				 AMREX_BCREC_3D(bcr_f),
-				 level_f,grid_no_f);
+				 AMREX_FPTR(&time),AMREX_FPTR(&dt),
+				 AMREX_BCREC_3D(bcr),
+				 AMREX_FPTR(&level),AMREX_FPTR(&grid_no));
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
@@ -1830,42 +1796,25 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
-#ifdef AMREX_USE_CUDA
-            int* n_der_f   = mfi.get_fortran_pointer(&n_der);
-            int* n_state_f = mfi.get_fortran_pointer(&n_state);
-            Real* time_f   = mfi.get_fortran_pointer(&time);
-            Real* dt_f     = mfi.get_fortran_pointer(&dt);
-            int* level_f   = mfi.get_fortran_pointer(&level);
-            int* idx_f     = mfi.get_fortran_pointer(&idx);
-            int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
-#else
-            const int* n_der_f   = &n_der;
-            const int* n_state_f = &n_state;
-            const Real* time_f   = &time;
-            const Real* dt_f     = &dt;
-            const int* level_f   = &level;
-            const int* idx_f     = &idx;
-            const int* bcr_f     = bcr;
-#endif
-
 #ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch(gtbx.loVect(), gtbx.hiVect());
 #endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),n_der_f,
-			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),n_state_f,
-			       lo,hi,dom_lo,dom_hi,dx,xlo,time_f,dt_f,bcr_f,
-			       level_f,idx_f);
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),AMREX_FPTR(&n_der),
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_FPTR(&n_state),
+			       lo,hi,dom_lo,dom_hi,dx,xlo,AMREX_FPTR(&time),AMREX_FPTR(&dt),
+                               AMREX_FPTR(bcr, 2 * 3, 2 * AMREX_SPACEDIM),
+			       AMREX_FPTR(&level),AMREX_FPTR(&idx));
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),n_der_f,
-				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),n_state_f,
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),AMREX_FPTR(&n_der),
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),AMREX_FPTR(&n_state),
 				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
 				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
 				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
-				 time_f,dt_f,
-				 AMREX_BCREC_3D(bcr_f),
-				 level_f,idx_f);
+				 AMREX_FPTR(&time),AMREX_FPTR(&dt),
+				 AMREX_BCREC_3D(bcr),
+				 AMREX_FPTR(&level),AMREX_FPTR(&idx));
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
@@ -1891,42 +1840,25 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
-#ifdef AMREX_USE_CUDA
-            int* n_der_f   = mfi.get_fortran_pointer(&n_der);
-            int* n_state_f = mfi.get_fortran_pointer(&n_state);
-            Real* time_f   = mfi.get_fortran_pointer(&time);
-            Real* dt_f     = mfi.get_fortran_pointer(&dt);
-            int* level_f   = mfi.get_fortran_pointer(&level);
-            int* idx_f     = mfi.get_fortran_pointer(&idx);
-            int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
-#else
-            const int* n_der_f   = &n_der;
-            const int* n_state_f = &n_state;
-            const Real* time_f   = &time;
-            const Real* dt_f     = &dt;
-            const int* level_f   = &level;
-            const int* idx_f     = &idx;
-            const int* bcr_f     = bcr;
-#endif
-
 #ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch(mf[mfi].loVect(), mf[mfi].hiVect());
 #endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),n_der_f,
-			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),n_state_f,
-			       dlo,dhi,dom_lo,dom_hi,dx,xlo,time_f,dt_f,bcr_f,
-			       level_f,idx_f);
+		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),AMREX_FPTR(&n_der),
+			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_FPTR(&n_state),
+			       dlo,dhi,dom_lo,dom_hi,dx,xlo,AMREX_FPTR(&time),AMREX_FPTR(&dt),
+                               AMREX_FPTR(bcr, 2 * 3, 2 * AMREX_SPACEDIM),
+			       AMREX_FPTR(&level),AMREX_FPTR(&idx));
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),n_der_f,
-				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),n_state_f,
+		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),AMREX_FPTR(&n_der),
+				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),AMREX_FPTR(&n_state),
 				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
 				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
 				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
-				 time_f,dt_f,
-				 AMREX_BCREC_3D(bcr_f),
-				 level_f,idx_f);
+				 AMREX_FPTR(&time),AMREX_FPTR(&dt),
+				 AMREX_BCREC_3D(bcr),
+				 AMREX_FPTR(&level),AMREX_FPTR(&idx));
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
