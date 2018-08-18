@@ -6,7 +6,7 @@ module cuda_module
 
   public
 
-  integer, parameter :: max_cuda_streams = 100
+  integer, parameter :: max_cuda_streams = 16
   integer(kind=cuda_stream_kind) :: cuda_streams(0:max_cuda_streams) ! Note: zero will be the default stream.
 
   integer :: cuda_device_id
