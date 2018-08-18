@@ -3,7 +3,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
 
-#ifndef AMREX_NO_DEPRECATED_EB
+#ifdef AMREX_USE_GEOMETRYSHOP
 #include <AMReX_EBISLevel.H>
 #include <AMReX_EBLevelGrid.H>
 #endif
@@ -47,7 +47,7 @@ EBTower::coarestDomain ()
     return m_instance->m_domains.back();
 }
     
-#ifndef AMREX_NO_DEPRECATED_EB
+#ifdef AMREX_USE_GEOMETRYSHOP
 EBTower::EBTower ()
 {
     BL_PROFILE("EBTower::EBTower()");
@@ -146,7 +146,7 @@ EBTower::~EBTower ()
 {
 }
 
-#ifndef AMREX_NO_DEPRECATED_EB
+#ifdef AMREX_USE_GEOMETRYSHOP
 void
 EBTower::initCellFlags (int lev, const EBLevelGrid& eblg)
 {

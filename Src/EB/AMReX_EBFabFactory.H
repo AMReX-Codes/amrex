@@ -60,7 +60,7 @@ private:
     EBSupport m_support;
     Geometry m_geom;
     std::shared_ptr<EBDataCollection> m_ebdc;
-
+    EB2::Level const* m_parent = nullptr;
 };
 
 std::unique_ptr<EBFArrayBoxFactory>

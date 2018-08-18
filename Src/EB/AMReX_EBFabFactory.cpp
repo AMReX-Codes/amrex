@@ -27,7 +27,8 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
                                         const Vector<int>& a_ngrow, EBSupport a_support)
     : m_support(a_support),
       m_geom(a_geom),
-      m_ebdc(std::make_shared<EBDataCollection>(a_level,a_geom,a_ba,a_dm,a_ngrow,a_support))
+      m_ebdc(std::make_shared<EBDataCollection>(a_level,a_geom,a_ba,a_dm,a_ngrow,a_support)),
+      m_parent(&a_level)
 {}
 
 FArrayBox*

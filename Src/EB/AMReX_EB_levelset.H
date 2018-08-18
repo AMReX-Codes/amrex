@@ -1,7 +1,7 @@
 #ifndef AMREX_EB_LEVELSET_H_
 #define AMREX_EB_LEVELSET_H_
 
-#ifndef AMREX_NO_DEPRECATED_EB
+#ifdef AMREX_USE_GEOMETRYSHOP
 
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
