@@ -5,97 +5,15 @@
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
 #include <AMReX_Box.H>
-#include <AMReX_BaseFab.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
 
 namespace amrex {
 
-#ifdef AMREX_USE_CUDA
-int Box_init::m_cnt = 0;
-
-namespace
-{
-    Arena* the_box_arena = 0;
-}
-
-Box_init::Box_init ()
-{
-    if (m_cnt++ == 0)
-    {
-        BL_ASSERT(the_box_arena == 0);
-
-        const std::size_t hunk_size = 64 * 1024;
-
-	the_box_arena = new CArena(hunk_size);
-
-	the_box_arena->SetHostAlloc();
-    }
-}
-
-Box_init::~Box_init ()
-{
-    if (--m_cnt == 0) {
-	delete the_box_arena;
-    }
-}
-
-Arena*
-The_Box_Arena ()
-{
-    BL_ASSERT(the_box_arena != 0);
-
-    return the_box_arena;
-}
-#endif
-
-#ifdef AMREX_USE_DEVICE
-void
-Box::initialize_device_memory() const
-{
-#ifdef AMREX_USE_CUDA
-    const size_t sz = 3 * sizeof(int);
-
-    int* lo_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
-    lo_d.reset(lo_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
-    copy_lo();
-
-    for (int i = BL_SPACEDIM; i < 3; ++i)
-	lo_d.get()[i] = 0;
-
-    int* hi_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
-    hi_d.reset(hi_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
-    copy_hi();
-
-    for (int i = BL_SPACEDIM; i < 3; ++i)
-	hi_d.get()[i] = 0;
-#endif
-}
-
-#ifdef AMREX_USE_CUDA
-void
-Box::copy_lo() const
-{
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-	lo_d.get()[i] = smallend[i];
-}
-
-void
-Box::copy_hi() const
-{
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-	hi_d.get()[i] = bigend[i];
-}
-#endif
-#endif
-
 Box&
 Box::shiftHalf (int dir,
                 int nzones)
 {
-#ifdef AMREX_USE_DEVICE
-    initialize_device_memory();
-#endif
     const int nbit = (nzones<0 ? -nzones : nzones)%2;
     int nshift = nzones/2;
     //
@@ -182,9 +100,6 @@ Box
 Box::chop (int dir,
            int chop_pnt)
 {
-#ifdef AMREX_USE_DEVICE
-    initialize_device_memory();
-#endif
     //
     // Define new high end Box including chop_pnt.
     //
