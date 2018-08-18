@@ -115,10 +115,10 @@ public:
     Box grownnodaltilebox (int dir, const IntVect& ng) const;
 
     //! Return the valid Box in which the current tile resides.
-    Box validbox () const { const Box& r = fabArray.box((*index_map)[currentIndex]); registerBox(r); return r; }
+    Box validbox () const { const Box& r = fabArray.box((*index_map)[currentIndex]); return r; }
 
     //! Return the Box of the FAB at which we currently point.
-    Box fabbox () const { const Box& r = fabArray.fabbox((*index_map)[currentIndex]); registerBox(r); return r; }
+    Box fabbox () const { const Box& r = fabArray.fabbox((*index_map)[currentIndex]); return r; }
 
     //! Increment iterator to the next tile we own.
 #ifdef _OPENMP
@@ -151,9 +151,6 @@ public:
 
     //! Return a unique index associated with the current box and/or tile.
     int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
-
-    //! Maintain a record of all boxes we have created.
-    const Box& registerBox (const Box& box) const;
 
     const RealBox& registerRealBox (const RealBox& rbox) const;
 
@@ -217,7 +214,6 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
-    mutable Vector<Box> registered_boxes;
     mutable Vector<RealBox> registered_realboxes;
 
     mutable Vector<std::shared_ptr<int>> saved_ints;
@@ -237,15 +233,6 @@ protected:
   
     void Initialize ();
 };
-
-// Store a Box in our list.
-inline
-const Box&
-MFIter::registerBox(const Box& box) const
-{
-    registered_boxes.push_back(box);
-    return box;
-}
 
 inline
 const RealBox&
