@@ -1,6 +1,6 @@
 #include "AMReX_EB_levelset.H"
 
-#ifndef AMREX_NO_DEPRECATED_EB
+#ifdef AMREX_USE_GEOMETRYSHOP
 
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>

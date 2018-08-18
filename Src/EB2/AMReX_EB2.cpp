@@ -17,7 +17,7 @@ namespace amrex { namespace EB2 {
 
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
-#if defined(AMREX_NO_DEPRECATED_EB) || !defined(AMREX_USE_GEOMETRYSHOP)
+#if !defined(AMREX_USE_GEOMETRYSHOP)
 bool use_eb2 = true;
 #else
 bool use_eb2 = false;
