@@ -207,10 +207,10 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
 
 #pragma gpu
     amrex_fort_fab_copy
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
          numcomp);
 }
 
@@ -228,8 +228,8 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
     {
 #pragma gpu
 	amrex_fort_fab_copytomem
-            (AMREX_ARLIM_ARG(srcbox.loVect()), AMREX_ARLIM_ARG(srcbox.hiVect()),
-             AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
+            (AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(srcbox.hiVect()),
+             AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(srcbox.hiVect()),
              static_cast<Real*>(dst),
              BL_TO_FORTRAN_N_ANYD(*this,srccomp),
              numcomp);
@@ -255,8 +255,8 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
     {
 #pragma gpu
 	amrex_fort_fab_copyfrommem
-            (AMREX_ARLIM_ARG(dstbox.loVect()), AMREX_ARLIM_ARG(dstbox.hiVect()),
-             AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
+            (AMREX_INT_ANYD(dstbox.loVect()), AMREX_INT_ANYD(dstbox.hiVect()),
+             AMREX_INT_ANYD(dstbox.loVect()), AMREX_INT_ANYD(dstbox.hiVect()),
              BL_TO_FORTRAN_N_ANYD(*this,dstcomp), numcomp,
              static_cast<const Real*>(src));
         return sizeof(Real) * dstbox.numPts() * numcomp;
@@ -279,7 +279,7 @@ BaseFab<Real>::performSetVal (Real       val,
 
 #pragma gpu
     amrex_fort_fab_setval
-        (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+        (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
          val);
 }
@@ -296,7 +296,7 @@ BaseFab<Real>::invert (Real       val,
 
 #pragma gpu
     amrex_fort_fab_invert
-        (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+        (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
          val);
     return *this;
@@ -338,7 +338,7 @@ BaseFab<Real>::norm (const Box& bx,
     {
 #pragma gpu
         amrex_fort_fab_norm
-            (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+            (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
              BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
              p, nrm_f);
     }
@@ -375,7 +375,7 @@ BaseFab<Real>::sum (const Box& bx,
 
 #pragma gpu
     amrex_fort_fab_sum
-        (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+        (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
     
 #if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
@@ -403,10 +403,10 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
 
 #pragma gpu
     amrex_fort_fab_plus
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
          numcomp);
 
     return *this;
@@ -430,10 +430,10 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
 
 #pragma gpu
     amrex_fort_fab_mult
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
          numcomp);
     return *this;
 }
@@ -457,11 +457,11 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
 
 #pragma gpu
     amrex_fort_fab_saxpy
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          a,
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
          numcomp);
     return *this;
 }
@@ -485,11 +485,11 @@ BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
 
 #pragma gpu
     amrex_fort_fab_xpay
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          a,
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
          numcomp);
     return *this;
 }
@@ -512,7 +512,7 @@ BaseFab<Real>::addproduct (const Box&           destbox,
 
 #pragma gpu
     amrex_fort_fab_addproduct
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src1,comp1),
          BL_TO_FORTRAN_N_ANYD(src2,comp2),
@@ -538,10 +538,10 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
 
 #pragma gpu
     amrex_fort_fab_minus
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
          numcomp);
     return *this;
 }
@@ -564,10 +564,10 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
 
 #pragma gpu
     amrex_fort_fab_divide
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
          numcomp);
     return *this;
 }
@@ -590,10 +590,10 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
 
 #pragma gpu
     amrex_fort_fab_protdivide
-        (AMREX_ARLIM_ARG(destbox.loVect()), AMREX_ARLIM_ARG(destbox.hiVect()),
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-         AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(destbox.loVect()),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
          numcomp);
     return *this;
 }
@@ -626,11 +626,11 @@ BaseFab<Real>::linComb (const BaseFab<Real>& f1,
 
 #pragma gpu
     amrex_fort_fab_lincomb
-        (AMREX_ARLIM_ARG(b.loVect()), AMREX_ARLIM_ARG(b.hiVect()),
-         AMREX_ARLIM_3D(b.loVect()),
+        (AMREX_INT_ANYD(b.loVect()), AMREX_INT_ANYD(b.hiVect()),
+         AMREX_INT_ANYD(b.loVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp),
-         alpha, BL_TO_FORTRAN_N_ANYD(f1,comp1), AMREX_ARLIM_3D(b1.loVect()),
-         beta,  BL_TO_FORTRAN_N_ANYD(f2,comp2), AMREX_ARLIM_3D(b2.loVect()),
+         alpha, BL_TO_FORTRAN_N_ANYD(f1,comp1), AMREX_INT_ANYD(b1.loVect()),
+         beta,  BL_TO_FORTRAN_N_ANYD(f2,comp2), AMREX_INT_ANYD(b2.loVect()),
          numcomp);
     return *this;
 }
@@ -660,10 +660,10 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
 
 #pragma gpu
     amrex_fort_fab_dot
-        (AMREX_ARLIM_ARG(xbx.loVect()), AMREX_ARLIM_ARG(xbx.hiVect()),
-         AMREX_ARLIM_3D(xbx.loVect()),
+        (AMREX_INT_ANYD(xbx.loVect()), AMREX_INT_ANYD(xbx.hiVect()),
+         AMREX_INT_ANYD(xbx.loVect()),
          BL_TO_FORTRAN_N_ANYD(*this,xcomp),
-         BL_TO_FORTRAN_N_ANYD(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
+         BL_TO_FORTRAN_N_ANYD(y,ycomp), AMREX_INT_ANYD(ybx.loVect()),
          numcomp, dp_f);
     
 #if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))

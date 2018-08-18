@@ -38,7 +38,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 
 #pragma gpu
             compute_flux
-                (AMREX_ARLIM_ARG(sbx.loVect()), AMREX_ARLIM_ARG(sbx.hiVect()),
+                (AMREX_INT_ANYD(sbx.loVect()), AMREX_INT_ANYD(sbx.hiVect()),
                  BL_TO_FORTRAN_ANYD(old_phi[mfi]),
                  BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
                  dx, idir);
@@ -54,7 +54,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 
 #pragma gpu
         update_phi
-            (AMREX_ARLIM_ARG(bx.loVect()), AMREX_ARLIM_ARG(bx.hiVect()),
+            (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
              BL_TO_FORTRAN_ANYD(old_phi[mfi]),
              BL_TO_FORTRAN_ANYD(new_phi[mfi]),
              BL_TO_FORTRAN_ANYD(flux[0][mfi]),
