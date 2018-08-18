@@ -122,14 +122,50 @@ def find_targets_from_pragmas(cxx_files, macro_list):
                 func_name = dd.group(1).strip().replace(" ", "")
 
                 # Now, for each argument in the function, record
-                # if it has a special macro in it.
+                # if it has a special macro in it. Save the position
+                # in the argument list corresponding to this macro.
+                # We'll use this later when updating the signature
+                # in the header file.
+
                 targets[func_name] = []
                 args = dd.group().strip().split('(', 1)[1].rsplit(')', 1)[0].split(',')
+
+                # Some of the arguments may have commas inside them, e.g.
+                # BL_TO_FORTRAN_N(fab, comp). We want to make sure these only
+                # look like one argument. So we'll check if there are parentheses
+                # in the argument, and join the arguments together if so. This
+                # is only sufficient to capture one comma, it needs to be expanded
+                # if the argument could have multiple commas, e.g. a macro with
+                # three arguments.
+
+                for i, arg in enumerate(args):
+                    if 'BL_TO_FORTRAN_N' in arg:
+                        args[i:i+2] = [''.join(args[i:i+2])]
+
                 for j, macro in enumerate(macro_list):
                     targets[func_name].append([])
-                    for i, arg in enumerate(args):
+
+                    # Keep a running counter of which argument index we are at.
+                    # This has to account for macros which may expand into
+                    # multiple arguments. At this time we only know about
+                    # BL_TO_FORTRAN*, if others are added later, they will
+                    # need to be accounted for here. This also does not
+                    # currently account for the non-dimension-agnostic
+                    # macros which pass a dimension-dependent
+                    # number of arguments.
+
+                    i = 0
+                    for arg in args:
+                        print(arg, i)
                         if macro in arg:
                             targets[func_name][j].append(i)
+                        if ('BL_TO_FORTRAN') in arg:
+                            i += 3
+                        else:
+                            i += 1
+
+                print(func_name, "targets = ", targets[func_name])
+
 
             line = hin.readline()
 
@@ -296,8 +332,6 @@ def convert_headers(outdir, targets, header_files, cpp):
 
         for name in list(signatures_needed):
 
-            print(signatures[name])
-
             func_sig = signatures[name][0]
 
             # First write out the device signature
@@ -343,15 +377,17 @@ def convert_headers(outdir, targets, header_files, cpp):
                 arg_positions = signatures[name][1][0]
 
                 if arg_positions != []:
-                    print("arg_positions", arg_positions)
-                    print("args = ", args)
                     for arg_position in arg_positions:
+
+                        # We only want to do this replacement once, otherwise it will
+                        # replace every time for each argument position, so we will
+                        # semi-arbitrarily do it in the loop index corresponding to
+                        # the actual argument position.
+
                         if n == arg_position:
                             arg = args[arg_position]
                             var = arg.split()[-1]
-                            print("arg, var = ", arg, var)
                             func_sig = func_sig.replace(arg, "const int {}_1, const int {}_2, const int {}_3".format(var, var, var))
-                            print("func_sig = ", func_sig)
                             device_sig = device_sig.replace(arg, "const int* {}".format(var))
                             intvect_vars.append(var)
                 else:
@@ -451,7 +487,6 @@ def convert_cxx(outdir, cxx_files):
 
                 # now split it into the function name and the
                 # arguments
-                print(func_call)
                 dd = decls_re.search(func_call)
                 func_name = dd.group(1).strip().replace(" ", "")
                 args = dd.group(3)
