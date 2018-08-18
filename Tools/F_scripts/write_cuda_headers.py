@@ -39,6 +39,7 @@ TEMPLATE = """
 __global__ static void cuda_{}
 {{
 {}
+{}
    int blo[3];
    int bhi[3];
    for (int k = lo[2] + blockIdx.z * blockDim.z + threadIdx.z; k <= hi[2]; k += blockDim.z * gridDim.z) {{
@@ -356,6 +357,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
             has_hi = False
 
             intvect_vars = []
+            real_vars = []
 
             for n, v in enumerate(dd.group(3).split(",")):
 
@@ -368,9 +370,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
                 var = var.replace("BL_FORT_FAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
                 var = var.replace("BL_FORT_IFAB_ARG_3D", "BL_FORT_FAB_VAL_3D")
 
-                # Get the list of all arguments which contain AMREX_INT_ANYD.
-                # Replace them with the necessary machinery, a set of three
-                # constant ints which will be passed by value.
+                # Get the list of all arguments which contain each macro.
 
                 args = signatures[name][0].split('(', 1)[1].rsplit(')', 1)[0].split(',')
 
@@ -379,12 +379,15 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
                     if arg_positions != []:
 
                         if macro_list[i] == 'AMREX_INT_ANYD':
-                            for arg_position in arg_positions:
 
-                                # We only want to do this replacement once, otherwise it will
-                                # replace every time for each argument position, so we will
-                                # semi-arbitrarily do it in the loop index corresponding to
-                                # the actual argument position.
+                            # Replace AMREX_INT_ANYD with the necessary machinery, a set
+                            # of three constant ints which will be passed by value.
+                            # We only want to do this replacement once, otherwise it will
+                            # replace every time for each argument position, so we will
+                            # semi-arbitrarily do it in the loop index corresponding to
+                            # the actual argument position.
+
+                            for arg_position in arg_positions:
 
                                 if n == arg_position:
                                     arg = args[arg_position]
@@ -392,6 +395,19 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
                                     func_sig = func_sig.replace(arg, "const int {}_1, const int {}_2, const int {}_3".format(v, v, v))
                                     device_sig = device_sig.replace(arg, "const int* {}".format(v))
                                     intvect_vars.append(v)
+
+                        elif macro_list[i] == 'AMREX_REAL_ANYD':
+
+                            # Same as the above, but with reals.
+
+                            for arg_position in arg_positions:
+
+                                if n == arg_position:
+                                    arg = args[arg_position]
+                                    v = arg.split()[-1]
+                                    func_sig = func_sig.replace(arg, "const amrex::Real {}_1, const amrex::Real {}_2, const amrex::Real {}_3".format(v, v, v))
+                                    device_sig = device_sig.replace(arg, "const amrex::Real* {}".format(v))
+                                    real_vars.append(v)
 
                         elif macro_list[i] == 'BL_TO_FORTRAN_ANYD' or macro_list[i] == 'BL_TO_FORTRAN_N_ANYD' or macro_list[i] == 'BL_TO_FORTRAN_FAB':
 
@@ -448,9 +464,17 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
                 for intvect in intvect_vars:
                     intvects += "   int {}[3] = {{{}_1, {}_2, {}_3}};\n".format(intvect, intvect, intvect, intvect)
 
+            # Same for reals.
+
+            reals = ""
+
+            if len(real_vars) > 0:
+                for real in real_vars:
+                    reals += "   amrex::Real {}[3] = {{{}_1, {}_2, {}_3}};\n".format(real, real, real, real)
+
 
             hout.write(device_sig)
-            hout.write(TEMPLATE.format(func_sig[idx:].replace(';',''), intvects, new_call))
+            hout.write(TEMPLATE.format(func_sig[idx:].replace(';',''), intvects, reals, new_call))
             hout.write("\n")
 
 
@@ -590,7 +614,7 @@ if __name__ == "__main__":
 
     # A list of specific macros that we want to look for in each target.
 
-    macro_list = ['AMREX_INT_ANYD', 'BL_TO_FORTRAN_ANYD', 'BL_TO_FORTRAN_N_ANYD', 'BL_TO_FORTRAN_BOX', 'BL_TO_FORTRAN_FAB']
+    macro_list = ['AMREX_INT_ANYD', 'AMREX_REAL_ANYD', 'BL_TO_FORTRAN_ANYD', 'BL_TO_FORTRAN_N_ANYD', 'BL_TO_FORTRAN_BOX', 'BL_TO_FORTRAN_FAB']
 
     # look through the C++ for routines launched with #pragma gpu
     targets = find_targets_from_pragmas(cxx, macro_list)
