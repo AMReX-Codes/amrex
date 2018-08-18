@@ -7,6 +7,8 @@
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
 
+using namespace amrex;
+
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
               Real dt,

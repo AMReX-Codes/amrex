@@ -7,6 +7,7 @@
 #include <AMReX_BLassert.H>
 #ifdef AMREX_SPACEDIM
 #include <AMReX_Array.H>
+#include <AMReX_TypeTraits.H>
 #endif
 
 namespace amrex {
@@ -118,6 +119,18 @@ namespace amrex
         r.reserve(a.size());
         for (const auto& x : a)  r.push_back(GetArrOfPtrs(x));
         return r;
+    }
+
+    template <class T, typename std::enable_if<IsFabArray<T>::value ||
+                                               IsBaseFab<T>::value,
+                                               int>::type = 0 >
+    Vector<std::array<T*, AMREX_SPACEDIM> >
+    GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a) 
+    {
+        Vector<std::array<T*, AMREX_SPACEDIM> > r; 
+        r.reserve(a.size()); 
+        for (auto &x: a) r.push_back(GetArrOfPtrs(x)); 
+        return r; 
     }
 #endif
 

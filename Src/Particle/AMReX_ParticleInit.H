@@ -60,10 +60,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
         //
         // Only the first NReaders MPI processes read particles.
         //
-        std::ifstream ifs;
 
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
- 
+
+        std::ifstream ifs;
+
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
         ifs.open(file.c_str(), std::ios::in);
@@ -376,9 +377,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     int  NX = 0;
     long NP = 0;
 
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    
     std::ifstream ifs;
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     //
     // The "set" of MPI processor numbers of the readers.  We want
     // to be able to easily check whether or not we're a reader.

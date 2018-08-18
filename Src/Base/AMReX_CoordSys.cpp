@@ -512,14 +512,16 @@ operator>> (std::istream& is,
            is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
            is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
     is.ignore(BL_IGNORE_MAX, ')');
-    AMREX_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.dx[0],
-           is.ignore(BL_IGNORE_MAX, ',') >> c.dx[1],
-           is.ignore(BL_IGNORE_MAX, ',') >> c.dx[2]);
+    Real cellsize[3];
+    AMREX_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> cellsize[0],
+           is.ignore(BL_IGNORE_MAX, ',') >> cellsize[1],
+           is.ignore(BL_IGNORE_MAX, ',') >> cellsize[2]);
     is.ignore(BL_IGNORE_MAX, ')');
     int tmp;
     is >> tmp;
     c.ok = tmp?true:false;
     is.ignore(BL_IGNORE_MAX, '\n');
+    c.define(cellsize);
     return is;
 }
 

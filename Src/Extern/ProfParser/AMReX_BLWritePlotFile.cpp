@@ -38,15 +38,15 @@ void WritePlotfile(const std::string         &pfversion,
     // Force other processors to wait untill directory is built.
     ParallelDescriptor::Barrier();
 
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
     std::ofstream os;
     const int finestLevel(data.size() - 1);
 
     if(ParallelDescriptor::IOProcessor()) {
-    
+        
     std::string oFileHeader(oFile);
     oFileHeader += "/Header";
-    
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     
     //os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
     

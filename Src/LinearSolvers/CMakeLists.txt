@@ -26,6 +26,14 @@ add_sources ( MLMG/AMReX_MLABecLaplacian.cpp )
 add_sources ( MLMG/AMReX_MLABecLap_F.H )
 add_sources ( MLMG/AMReX_MLABecLap_${DIM}d.F90 )
 
+if (ENABLE_EB)
+    add_sources ( MLMG/AMReX_MLEBABecLap.H )
+    add_sources ( MLMG/AMReX_MLEBABecLap.cpp )
+    add_sources ( MLMG/AMReX_MLEBABecLap_F.H )
+    add_sources ( MLMG/AMReX_MLEBABecLap_${DIM}d.F90 )
+    add_sources ( MLMG/AMReX_MLEBABecLap_nd.F90 )
+endif ()
+
 add_sources ( MLMG/AMReX_MLALaplacian.H )
 add_sources ( MLMG/AMReX_MLALaplacian.cpp )
 add_sources ( MLMG/AMReX_MLALap_F.H )
@@ -41,6 +49,9 @@ add_sources ( MLMG/AMReX_MLNodeLaplacian.cpp )
 add_sources ( MLMG/AMReX_MLNodeLap_F.H )
 add_sources ( MLMG/AMReX_MLNodeLap_${DIM}d.F90 )
 add_sources ( MLMG/AMReX_MLNodeLap_nd.F90 )
+
+add_sources ( MLMG/AMReX_MacProjector.H )
+add_sources ( MLMG/AMReX_MacProjector.cpp )
 
 
 #-------------------------------------------------------------------------------

@@ -52,7 +52,7 @@ public:
 		Real z = p[0]*std::sin(m_angle) + p[2]*std::cos(m_angle); 
 	        return m_f({x, p[1], z});
 	}
-	else if(m_dir==2){
+	else {  // if(m_dir==2){
 		Real x =  p[0]*std::cos(m_angle) + p[1]*std::sin(m_angle); 
 		Real y = -p[0]*std::sin(m_angle) + p[1]*std::cos(m_angle); 
 	        return m_f({x, y, p[2]});

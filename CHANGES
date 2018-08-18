@@ -1,3 +1,13 @@
+# 18.08
+
+  -- Faster geometry generation is available at Src/EB2.
+     Tutorials/EB/CNS is now based on EB2.
+
+  -- AMReX is now fully compliant with xSDK.
+
+  -- Fortran interface for particles.  See Tutorials/Amr/Advection_F/
+     for an example.
+
 # 18.07
 
   -- Pre- and post-interpolation hooks in FillPatch.

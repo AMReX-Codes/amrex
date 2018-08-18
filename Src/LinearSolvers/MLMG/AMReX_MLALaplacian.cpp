@@ -218,7 +218,7 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
 {
     BL_PROFILE("MLALaplacian::Fsmooth()");
 
-    const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
+   const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
     const auto& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals  = m_maskvals [amrlev][mglev];
 
@@ -254,7 +254,7 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
     for (MFIter mfi(sol,MFItInfo().EnableTiling().SetDynamic(true));
          mfi.isValid(); ++mfi)
     {
-	const Mask& m0 = mm0[mfi];
+        const Mask& m0 = mm0[mfi];
         const Mask& m1 = mm1[mfi];
 #if (AMREX_SPACEDIM > 1)
         const Mask& m2 = mm2[mfi];
@@ -265,7 +265,7 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
 #endif
 #endif
 
-	const Box&       tbx     = mfi.tilebox();
+        const Box&       tbx     = mfi.tilebox();
         const Box&       vbx     = mfi.validbox();
         FArrayBox&       solnfab = sol[mfi];
         const FArrayBox& rhsfab  = rhs[mfi];
@@ -314,7 +314,7 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
 
 void
 MLALaplacian::FFlux (int amrlev, const MFIter& mfi,
-                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
+                        const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only) const
 {
     BL_PROFILE("MLALaplacian::FFlux()");
