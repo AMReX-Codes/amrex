@@ -139,7 +139,7 @@ def find_targets_from_pragmas(cxx_files, macro_list):
                 # three arguments.
 
                 for i, arg in enumerate(args):
-                    if 'BL_TO_FORTRAN_N' in arg:
+                    if 'BL_TO_FORTRAN_N_ANYD' in arg:
                         args[i:i+2] = [''.join(args[i:i+2])]
 
                 for j, macro in enumerate(macro_list):
@@ -148,31 +148,30 @@ def find_targets_from_pragmas(cxx_files, macro_list):
                     # Keep a running counter of which argument index we are at.
                     # This has to account for macros which may expand into
                     # multiple arguments. At this time we only know about
-                    # BL_TO_FORTRAN*, if others are added later, they will
-                    # need to be accounted for here. This also does not
-                    # currently account for the non-dimension-agnostic
-                    # macros which pass a dimension-dependent
-                    # number of arguments.
+                    # the specific macros in the macro_list.
 
                     i = 0
                     for arg in args:
-                        print(arg, i)
                         if macro in arg:
                             targets[func_name][j].append(i)
-                        if ('BL_TO_FORTRAN') in arg:
+
+                        if 'BL_TO_FORTRAN_ANYD' in arg:
                             i += 3
+                        elif 'BL_TO_FORTRAN_N_ANYD' in arg:
+                            i += 3
+                        elif 'BL_TO_FORTRAN_FAB' in arg:
+                            i += 4
+                        elif 'BL_TO_FORTRAN_BOX' in arg:
+                            i += 2
                         else:
                             i += 1
-
-                print(func_name, "targets = ", targets[func_name])
-
 
             line = hin.readline()
 
     return targets
 
 
-def convert_headers(outdir, targets, header_files, cpp):
+def convert_headers(outdir, targets, macro_list, header_files, cpp):
     """rewrite the C++ headers that contain the Fortran routines"""
 
     print('looking for targets: {}'.format(list(targets)))
@@ -374,30 +373,54 @@ def convert_headers(outdir, targets, header_files, cpp):
                 # constant ints which will be passed by value.
 
                 args = signatures[name][0].split('(', 1)[1].rsplit(')', 1)[0].split(',')
-                arg_positions = signatures[name][1][0]
 
-                if arg_positions != []:
-                    for arg_position in arg_positions:
+                for i, arg_positions in enumerate(signatures[name][1]):
 
-                        # We only want to do this replacement once, otherwise it will
-                        # replace every time for each argument position, so we will
-                        # semi-arbitrarily do it in the loop index corresponding to
-                        # the actual argument position.
+                    if arg_positions != []:
 
-                        if n == arg_position:
-                            arg = args[arg_position]
-                            var = arg.split()[-1]
-                            func_sig = func_sig.replace(arg, "const int {}_1, const int {}_2, const int {}_3".format(var, var, var))
-                            device_sig = device_sig.replace(arg, "const int* {}".format(var))
-                            intvect_vars.append(var)
-                else:
-                    # Handle the legacy case where we just passed in lo, hi
-                    if var == "lo":
-                        func_sig = func_sig.replace("const int* lo", "const int {}_1, const int {}_2, const int {}_3".format(var, var, var))
-                        intvect_vars.append(var)
-                    elif var == "hi":
-                        func_sig = func_sig.replace("const int* hi", "const int {}_1, const int {}_2, const int {}_3".format(var, var, var))
-                        intvect_vars.append(var)
+                        if macro_list[i] == 'AMREX_INT_ANYD':
+                            for arg_position in arg_positions:
+
+                                # We only want to do this replacement once, otherwise it will
+                                # replace every time for each argument position, so we will
+                                # semi-arbitrarily do it in the loop index corresponding to
+                                # the actual argument position.
+
+                                if n == arg_position:
+                                    arg = args[arg_position]
+                                    v = arg.split()[-1]
+                                    func_sig = func_sig.replace(arg, "const int {}_1, const int {}_2, const int {}_3".format(v, v, v))
+                                    device_sig = device_sig.replace(arg, "const int* {}".format(v))
+                                    intvect_vars.append(v)
+
+                        elif macro_list[i] == 'BL_TO_FORTRAN_ANYD' or macro_list[i] == 'BL_TO_FORTRAN_N_ANYD' or macro_list[i] == 'BL_TO_FORTRAN_FAB':
+
+                            # Treat this as a real* followed by two copies of AMREX_INT_ANYD,
+                            # corresponding to the lo and hi bounds of the box. BL_TO_FORTRAN_FAB
+                            # has a fourth argument corresponding to the number of components,
+                            # which can be ignored for this logic.
+
+                            for arg_position in arg_positions:
+                                if n == arg_position:
+                                    for pos in [1, 2]:
+                                        arg = args[arg_position+pos]
+                                        v = arg.split()[-1]
+                                        func_sig = func_sig.replace(arg, "const int {}_1, const int {}_2, const int {}_3".format(v, v, v))
+                                        device_sig = device_sig.replace(arg, "const int* {}".format(v))
+                                        intvect_vars.append(v)
+
+                        elif macro_list[i] == 'BL_TO_FORTRAN_BOX':
+
+                            # This is two copies of AMREX_INT_ANYD.
+
+                            for arg_position in arg_positions:
+                                if n == arg_position:
+                                    for pos in [0, 1]:
+                                        arg = args[arg_position+pos]
+                                        v = arg.split()[-1]
+                                        func_sig = func_sig.replace(arg, "const int {}_1, const int {}_2, const int {}_3".format(v, v, v))
+                                        device_sig = device_sig.replace(arg, "const int* {}".format(v))
+                                        intvect_vars.append(v)
 
                 if var == "lo":
                     var = "blo"
@@ -491,6 +514,11 @@ def convert_cxx(outdir, cxx_files):
                 func_name = dd.group(1).strip().replace(" ", "")
                 args = dd.group(3)
 
+                # Convert BL_TO_FORTRAN* to a form that we know will copy in
+                # the box indices by value. This is necessary to be in sync
+                # with what we did above to the headers.
+                args = args.replace('BL_TO_FORTRAN', 'BL_TO_FORTRAN_GPU')
+
                 # finally output the code in the form we want, with
                 # the device launch
                 hout.write("dim3 {}numBlocks, {}numThreads;\n" \
@@ -500,6 +528,7 @@ def convert_cxx(outdir, cxx_files):
                             "#endif\n" \
                             "cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(
                                 func_name, func_name, func_name, func_name, func_name, func_name, func_name, func_name, args))
+
 
             else:
                 # we didn't find a pragma
@@ -561,14 +590,14 @@ if __name__ == "__main__":
 
     # A list of specific macros that we want to look for in each target.
 
-    macro_list = ['AMREX_INT_ANYD']
+    macro_list = ['AMREX_INT_ANYD', 'BL_TO_FORTRAN_ANYD', 'BL_TO_FORTRAN_N_ANYD', 'BL_TO_FORTRAN_BOX', 'BL_TO_FORTRAN_FAB']
 
     # look through the C++ for routines launched with #pragma gpu
     targets = find_targets_from_pragmas(cxx, macro_list)
 
     # copy the headers to the output directory, replacing the
     # signatures of the target Fortran routines with the CUDA pair
-    convert_headers(args.output_dir, targets, headers, cpp_pass)
+    convert_headers(args.output_dir, targets, macro_list, headers, cpp_pass)
 
 
     # part II: for each C++ file, we need to expand the `#pragma gpu`

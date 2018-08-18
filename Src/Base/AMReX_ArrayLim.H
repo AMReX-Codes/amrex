@@ -104,6 +104,19 @@
 #define BL_TO_FORTRAN_N_3D(x,n) (x).dataPtr(n), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect())
 #define BL_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), AMREX_ARLIM_ANYD((x).loVect()), AMREX_ARLIM_ANYD((x).hiVect())
 
+// Note that these GPU-friendly versions only cover the dimension-agnostic
+// versions at this time. These macros are not intended for use by the developer
+// but rather are inserted by the GPU code generation script.
+
+#ifdef AMREX_USE_CUDA
+#define BL_TO_FORTRAN_GPU_FAB(x) (x).dataPtr(), AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect()), (x).nCompPtr()
+#define BL_TO_FORTRAN_GPU_BOX(x) AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect())
+#define BL_TO_FORTRAN_GPU_3D(x) (x).dataPtr(), AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect())
+#define BL_TO_FORTRAN_GPU_ANYD(x) (x).dataPtr(), AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect())
+#define BL_TO_FORTRAN_GPU_N_3D(x,n) (x).dataPtr(n), AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect())
+#define BL_TO_FORTRAN_GPU_N_ANYD(x,n) (x).dataPtr(n), AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect())
+#endif
+
 #else
 
 #if !defined(BL_LANG_FORT)
