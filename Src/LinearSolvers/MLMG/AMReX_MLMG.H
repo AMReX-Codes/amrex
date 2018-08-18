@@ -96,6 +96,7 @@ private:
     int finest_amr_lev;
 
     bool linop_prepared = false;
+    long solve_called = 0;
 
     // N Solve
     int do_nsolve = false;

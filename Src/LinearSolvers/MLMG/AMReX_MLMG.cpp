@@ -180,6 +180,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         }
     }
 
+    ++solve_called;
+
     return composite_norminf;
 }
 
@@ -914,6 +916,8 @@ MLMG::buildFineMask ()
 {
     BL_PROFILE("MLMG::buildFineMask()");
 
+    if (!fine_mask.empty()) return;
+
     const int ncomp = linop.getNComp();
 
     fine_mask.clear();
@@ -966,6 +970,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     if (!linop_prepared) {
         linop.prepareForSolve();
         linop_prepared = true;
+    } else if (linop.needsUpdate()) {
+        linop.update();
     }
 
     sol.resize(namrlevs);
@@ -978,9 +984,11 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         }
         else
         {
-            sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
-                                              a_sol[alev]->DistributionMap(), ncomp, 1,
-                                              MFInfo(), *linop.Factory(alev)));
+            if (!solve_called) {
+                sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
+                                                  a_sol[alev]->DistributionMap(), ncomp, 1,
+                                                  MFInfo(), *linop.Factory(alev)));
+            }
             sol_raii[alev]->setVal(0.0);
             MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 0);
             sol[alev] = sol_raii[alev].get();
@@ -990,8 +998,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     rhs.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-        rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), ncomp, 0,
-                         MFInfo(), *linop.Factory(alev));
+        if (!solve_called) {
+            rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), ncomp, 0,
+                             MFInfo(), *linop.Factory(alev));
+        }
         MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, 0);
         linop.applyMetricTerm(alev, 0, rhs[alev]);
 
@@ -1018,8 +1028,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     }
 
     int ng = linop.isCellCentered() ? 0 : 1;
-    linop.make(res, ncomp, ng);
-    linop.make(rescor, ncomp, ng);
+    if (!solve_called) {
+        linop.make(res, ncomp, ng);
+        linop.make(rescor, ncomp, ng);
+    }
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
         const int nmglevs = linop.NMGLevels(alev);
@@ -1037,10 +1049,12 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         cor[alev].resize(nmglevs);
         for (int mglev = 0; mglev < nmglevs; ++mglev)
         {
-            cor[alev][mglev].reset(new MultiFab(res[alev][mglev].boxArray(),
-                                                res[alev][mglev].DistributionMap(),
-                                                ncomp, ng, MFInfo(),
-                                                *linop.Factory(alev,mglev)));
+            if (!solve_called) {
+                cor[alev][mglev].reset(new MultiFab(res[alev][mglev].boxArray(),
+                                                    res[alev][mglev].DistributionMap(),
+                                                    ncomp, ng, MFInfo(),
+                                                    *linop.Factory(alev,mglev)));
+            }
             cor[alev][mglev]->setVal(0.0);
         }
     }
@@ -1052,37 +1066,44 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         cor_hold[alev].resize(nmglevs);
         for (int mglev = 0; mglev < nmglevs-1; ++mglev)
         {
-            cor_hold[alev][mglev].reset(new MultiFab(cor[alev][mglev]->boxArray(),
-                                                     cor[alev][mglev]->DistributionMap(),
-                                                     ncomp, ng, MFInfo(),
-                                                     *linop.Factory(alev,mglev)));
+            if (!solve_called) {
+                cor_hold[alev][mglev].reset(new MultiFab(cor[alev][mglev]->boxArray(),
+                                                         cor[alev][mglev]->DistributionMap(),
+                                                         ncomp, ng, MFInfo(),
+                                                         *linop.Factory(alev,mglev)));
+            }
             cor_hold[alev][mglev]->setVal(0.0);
         }
     }
     for (int alev = 1; alev < finest_amr_lev; ++alev)
     {
         cor_hold[alev].resize(1);
-        cor_hold[alev][0].reset(new MultiFab(cor[alev][0]->boxArray(),
-                                             cor[alev][0]->DistributionMap(),
-                                             ncomp, ng, MFInfo(),
-                                             *linop.Factory(alev,0)));
+        if (!solve_called) {
+            cor_hold[alev][0].reset(new MultiFab(cor[alev][0]->boxArray(),
+                                                 cor[alev][0]->DistributionMap(),
+                                                 ncomp, ng, MFInfo(),
+                                                 *linop.Factory(alev,0)));
+        }
         cor_hold[alev][0]->setVal(0.0);
     }
 
     buildFineMask();
 
-    scratch.resize(namrlevs);
+    if (!solve_called)
+    {
+        scratch.resize(namrlevs);
 #ifdef AMREX_USE_EB
-    if (linop.isCellCentered()) {
-        for (int alev=0; alev < namrlevs; ++alev) {
-            if (rhs[alev].hasEBFabFactory()) {
-                scratch[alev].reset(new MultiFab(rhs[alev].boxArray(),
-                                                 rhs[alev].DistributionMap(),
-                                                 ncomp, 0, MFInfo(), *linop.Factory(alev)));
+        if (linop.isCellCentered()) {
+            for (int alev=0; alev < namrlevs; ++alev) {
+                if (rhs[alev].hasEBFabFactory()) {
+                    scratch[alev].reset(new MultiFab(rhs[alev].boxArray(),
+                                                     rhs[alev].DistributionMap(),
+                                                     ncomp, 0, MFInfo(), *linop.Factory(alev)));
+                }
             }
         }
-    }
 #endif
+    }
 
     if (linop.m_parent) do_nsolve = false;  // no embeded N-Solve
     if (linop.m_domain_covered[0]) do_nsolve = false;
@@ -1186,6 +1207,8 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     if (!linop_prepared) {
         linop.prepareForSolve();
         linop_prepared = true;
+    } else if (linop.needsUpdate()) {
+        linop.update();
     }
     
     const auto& amrrr = linop.AMRRefRatio();
@@ -1252,6 +1275,8 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
     if (!linop_prepared) {
         linop.prepareForSolve();
         linop_prepared = true;
+    } else if (linop.needsUpdate()) {
+        linop.update();
     }
 
     const auto& amrrr = linop.AMRRefRatio();
@@ -1314,6 +1339,8 @@ MLMG::averageDownAndSync ()
 void
 MLMG::computeVolInv ()
 {
+    if (solve_called) return;
+
     if (linop.isCellCentered())
     {    
         volinv.resize(namrlevs);

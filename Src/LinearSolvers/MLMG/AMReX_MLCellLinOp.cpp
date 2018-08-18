@@ -883,4 +883,10 @@ MLCellLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionM
 
 #endif
 
+void
+MLCellLinOp::update ()
+{
+    if (MLLinOp::needsUpdate()) MLLinOp::update();
+}
+
 }
