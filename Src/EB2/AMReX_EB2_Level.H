@@ -48,6 +48,9 @@ public:
 
     Level (IndexSpace const* is, const Geometry& geom) : m_geom(geom), m_parent(is) {}
     void prepareForCoarsening (const Level& rhs, int max_grid_size);
+
+    const Geometry& Geom () const { return m_geom; }
+    IndexSpace const* getEBIndexSpace () const { return m_parent; }
     
 protected:
 
