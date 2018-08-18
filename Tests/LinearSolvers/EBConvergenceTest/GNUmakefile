@@ -20,7 +20,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 include ./Make.package
 
 Pdirs := Base Boundary AmrCore
-Pdirs += EB EB2 GeometryShop
+Pdirs += EB EB2
 Pdirs += LinearSolvers/C_CellMG LinearSolvers/MLMG
 
 ifeq ($(USE_HYPRE),TRUE)
