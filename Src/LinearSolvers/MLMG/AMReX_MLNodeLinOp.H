@@ -42,10 +42,10 @@ protected:
                                    const MultiFab* crse_bcdata=nullptr) final;
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final;
-    virtual void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const final {
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const final {
         amrex::Abort("How did we get here?");
     }
-    virtual void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const final {
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const final {
         amrex::Abort("How did we get here?");
     }
     

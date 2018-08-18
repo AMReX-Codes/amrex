@@ -6,16 +6,14 @@
 #include <AMReX_BCRec.H>
 // #include <AMReX_LO_BCTYPES.H>
 
-using namespace amrex;
-
 void main_main ();
 
-void advance (MultiFab& phi_old,
-              MultiFab& phi_new,
-	      Real dt,
-              const Geometry& geom, 
-	      const BoxArray& grids,
-	      const DistributionMapping& dmap, 
-              const Vector<BCRec>& bc);
+void advance (amrex::MultiFab& phi_old,
+              amrex::MultiFab& phi_new,
+	      amrex::Real dt,
+              const amrex::Geometry& geom, 
+	      const amrex::BoxArray& grids,
+	      const amrex::DistributionMapping& dmap, 
+              const amrex::Vector<amrex::BCRec>& bc);
 
 #endif

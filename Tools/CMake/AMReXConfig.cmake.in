@@ -33,6 +33,7 @@ set (AMREX_ENABLE_DP                 @ENABLE_DP@)
 
 # Components selection
 set (AMREX_ENABLE_EB                 @ENABLE_EB@)
+set (AMREX_ENABLE_GEOMETRY_SHOP      @ENABLE_GEOMETRY_SHOP@)
 set (AMREX_ENABLE_FORTRAN_INTERFACES @ENABLE_FORTRAN_INTERFACES@)
 set (AMREX_ENABLE_LINEAR_SOLVERS     @ENABLE_LINEAR_SOLVERS@)
 set (AMREX_ENABLE_FBASELIB           @ENABLE_FBASELIB@)
@@ -75,6 +76,7 @@ function ( echo_amrex_config_options )
 
    # Components selection
    echo_amrex_option ( AMREX_ENABLE_EB )
+   echo_amrex_option ( AMREX_ENABLE_GEOMETRY_SHOP )
    echo_amrex_option ( AMREX_ENABLE_FORTRAN_INTERFACES )
    echo_amrex_option ( AMREX_ENABLE_LINEAR_SOLVERS     )
    echo_amrex_option ( AMREX_ENABLE_FBASELIB           )

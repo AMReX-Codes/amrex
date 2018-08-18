@@ -106,6 +106,8 @@ namespace amrex
         extern int call_addr2line;
         extern int throw_exception;
 
+        extern int regtest_reduction;
+
         extern std::ostream* osout;
         extern std::ostream* oserr;
     }

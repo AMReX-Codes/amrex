@@ -159,7 +159,7 @@ MyTest::solveABecLaplacian ()
         {
             mlabec.setACoeffs(ilev, acoef[ilev]);
             
-            std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+            Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
@@ -219,7 +219,7 @@ MyTest::solveABecLaplacian ()
 
             mlabec.setACoeffs(0, acoef[ilev]);
             
-            std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+            Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
@@ -323,7 +323,7 @@ MyTest::initData ()
     }
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-    std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+    Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;

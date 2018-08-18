@@ -531,7 +531,6 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
 
     // cell-centered mask: 0: coarse, 1: covered by fine, 2: phys bc
     const BoxArray& cba = amrex::convert(crse_fluxes[0]->boxArray(), IntVect::TheCellVector());
-    const BoxArray& cfba = amrex::coarsen(grids, ratio);
     iMultiFab cc_mask(cba, crse_fluxes[0]->DistributionMap(), 1, 1);
     {
         const std::vector<IntVect>& pshifts = cperiod.shiftIntVect();
@@ -551,7 +550,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                 const Box& bx = fab.box();
                 for (const auto& iv : pshifts)
                 {
-                    cfba.intersections(bx+iv, isects);
+                    grids.intersections(bx+iv, isects);
                     for (const auto& is : isects)
                     {
                         fab.setVal(1, is.second-iv, 0, 1);

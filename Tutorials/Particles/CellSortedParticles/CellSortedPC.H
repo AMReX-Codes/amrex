@@ -16,7 +16,10 @@ struct RealData
 struct IntData
 {
     enum {
-        sorted = 0,
+        sorted,
+        i,
+	j,
+	k,
         ncomps
     };
 };
@@ -37,6 +40,14 @@ public:
     void ReBin();
 
     void MoveParticles();
+
+    int SumCellVectors();
+
+    int numUnsorted();
+
+    int numWrongCell();
+
+    void visitAllParticles();
     
 protected:
 
@@ -55,6 +66,11 @@ protected:
     bool m_vectors_initialized = false;
     amrex::BoxArray::RefID m_BARef;
     amrex::DistributionMapping::RefID m_DMRef;
+
+private:
+  
+  void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p) override;
+
 };
 
 #endif

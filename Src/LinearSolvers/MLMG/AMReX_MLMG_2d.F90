@@ -62,7 +62,7 @@ contains
     real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1),fdlo(2):fdhi(2),nc)
     real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1),cdlo(2):cdhi(2),nc)
     
-    integer :: i,j,n,ii,jj
+    integer :: i,j,n
 
     do n = 1, nc
        do    j = clo(2), chi(2)
@@ -96,7 +96,7 @@ contains
     real(amrex_real), intent(inout) :: ff(fflo(1):ffhi(1),fflo(2):ffhi(2),nc)
     integer         , intent(in   ) :: flag(glo(1):ghi(1),glo(2):ghi(2))
 
-    integer :: i, j, n, ic, jc, ioff, joff
+    integer :: i, j, n, ic, jc
 
 #ifdef AMREX_USE_EB
     do n = 1, nc

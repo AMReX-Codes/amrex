@@ -41,6 +41,35 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& vals)
 }
 
 void
+EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
+{
+    const auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(umac[0]->Factory()));
+    if (factory == nullptr) return;
+
+    const auto& area = factory->getAreaFrac();
+    const auto& flags = factory->getMultiEBCellFlagFab();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*umac[0],true); mfi.isValid(); ++mfi)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            const Box& bx = mfi.tilebox(IntVect::TheDimensionVector(idim));
+            auto fabtyp = flags[mfi].getType(amrex::enclosedCells(bx));
+            if (fabtyp == FabType::covered) {
+                (*umac[idim])[mfi].setVal(0.0, bx, 0, 1);
+            } else if (fabtyp != FabType::regular) {
+                amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(bx),
+                                           BL_TO_FORTRAN_ANYD((*umac[idim])[mfi]),
+                                           BL_TO_FORTRAN_ANYD((*area[idim])[mfi]));
+            }
+        }
+    }
+}
+
+void
 EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                  const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio)
 {
@@ -278,5 +307,88 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
     }
 }
 
+void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                           const Geometry& geom)
+{
+    if (!divu.hasEBFabFactory())
+    {
+        amrex::computeDivergence(divu, umac, geom);
+    }
+    else
+    {
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(divu.Factory());
+        const auto& flags = factory.getMultiEBCellFlagFab();
+        const auto& vfrac = factory.getVolFrac();
+        const auto& area = factory.getAreaFrac();
+        const auto& fcent = factory.getFaceCent();
+
+        iMultiFab cc_mask(divu.boxArray(), divu.DistributionMap(), 1, 1);
+        cc_mask.setVal(0);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            std::vector< std::pair<int,Box> > isects;
+            const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+            const BoxArray& ba = cc_mask.boxArray();
+            for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
+            {
+                IArrayBox& fab = cc_mask[mfi];
+                const Box& bx = fab.box();
+                for (const auto& iv : pshifts)
+                {
+                    ba.intersections(bx+iv, isects);
+                    for (const auto& is : isects)
+                    {
+                        fab.setVal(1, is.second-iv);
+                    }
+                }
+            }
+        }
+
+        const Real* dxinv = geom.InvCellSize();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(divu,MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& flagfab = flags[mfi];
+            auto& divufab = divu[mfi];
+            AMREX_D_TERM(const FArrayBox& ufab = (*umac[0])[mfi];,
+                         const FArrayBox& vfab = (*umac[1])[mfi];,
+                         const FArrayBox& wfab = (*umac[2])[mfi];);
+
+            auto fabtyp = flagfab.getType(bx);
+            if (fabtyp == FabType::covered) {
+                divufab.setVal(0.0, bx, 0, 1);
+            } else if (fabtyp == FabType::regular) {
+                amrex_compute_divergence (BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD(divufab),
+                                          AMREX_D_DECL(BL_TO_FORTRAN_ANYD(ufab),
+                                                       BL_TO_FORTRAN_ANYD(vfab),
+                                                       BL_TO_FORTRAN_ANYD(wfab)),
+                                          dxinv);
+            } else {
+                amrex_compute_eb_divergence(BL_TO_FORTRAN_BOX(bx),
+                                            BL_TO_FORTRAN_ANYD(divufab),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(ufab),
+                                                         BL_TO_FORTRAN_ANYD(vfab),
+                                                         BL_TO_FORTRAN_ANYD(wfab)),
+                                            BL_TO_FORTRAN_ANYD(cc_mask[mfi]),
+                                            BL_TO_FORTRAN_ANYD(flagfab),
+                                            BL_TO_FORTRAN_ANYD(vfrac[mfi]),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                         BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                         BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                                         BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                                         BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                            dxinv);
+            }
+        }
+    }
+}
 
 }

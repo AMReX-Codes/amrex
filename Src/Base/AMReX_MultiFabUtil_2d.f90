@@ -376,3 +376,19 @@ subroutine bl_avgdown_with_vol (lo,hi,&
 end subroutine bl_avgdown_with_vol
 
 
+subroutine amrex_compute_divergence (lo, hi, divu, dlo, dhi, u, ulo, uhi, &
+     v, vlo, vhi, dxinv) bind(c)
+  use amrex_fort_module, only : amrex_real
+  implicit none
+  integer, dimension(2), intent(in) :: lo, hi, dlo, dhi, ulo, uhi, vlo, vhi
+  real(amrex_real), intent(inout) :: divu(dlo(1):dhi(1),dlo(2):dhi(2))
+  real(amrex_real), intent(in   ) ::    u(ulo(1):uhi(1),ulo(2):uhi(2))
+  real(amrex_real), intent(in   ) ::    v(vlo(1):vhi(1),vlo(2):vhi(2))
+  real(amrex_real), intent(in) :: dxinv(2)
+  integer :: i,j
+  do    j = lo(2), hi(2)
+     do i = lo(1), hi(1)
+        divu(i,j) = dxinv(1) * (u(i+1,j)-u(i,j)) + dxinv(2) * (v(i,j+1)-v(i,j))
+     end do
+  end do
+end subroutine amrex_compute_divergence

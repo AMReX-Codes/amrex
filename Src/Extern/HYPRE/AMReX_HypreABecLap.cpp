@@ -39,7 +39,11 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
         m_factory = &(rhs.Factory());
         prepareSolver();
     }
-    
+    else
+    {
+        m_factory = &(rhs.Factory());
+    }
+
     // do this repeatedly to avoid memory leak
     HYPRE_StructVectorCreate(comm, grid, &b);
     HYPRE_StructVectorCreate(comm, grid, &x);
