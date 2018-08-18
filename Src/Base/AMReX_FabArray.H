@@ -44,6 +44,10 @@
 #include <AMReX_parstream.H>
 #include <AMReX_SPMD.H>
 
+#ifdef AMREX_USE_DEVICE
+#include <AMReX_Device.H>
+#endif
+
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #endif
