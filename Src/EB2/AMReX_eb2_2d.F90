@@ -497,7 +497,7 @@ contains
   subroutine amrex_eb2_build_cellflag_from_ap (lo, hi, &
        apx, xlo, xhi, apy, ylo, yhi, cflag, flo, fhi) &
        bind(c,name='amrex_eb2_build_cellflag_from_ap')
-    integer, dimension(2) :: lo, hi, xlo, xhi, ylo, yhi, zlo, zhi, flo, fhi
+    integer, dimension(2), intent(in) :: lo, hi, xlo, xhi, ylo, yhi, flo, fhi
     real(amrex_real), intent(in   ) ::  apx (xlo(1):xhi(1),xlo(2):xhi(2))
     real(amrex_real), intent(in   ) ::  apy (ylo(1):yhi(1),ylo(2):yhi(2))
     integer         , intent(inout) :: cflag(flo(1):fhi(1),flo(2):fhi(2))
