@@ -39,6 +39,11 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
+    virtual bool needsUpdate () const final { m_needs_update || MLCellLinOp::needsUpdate(); }
+    virtual void update () final;
+
+    bool m_needs_update = true;
+
 protected:
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final;

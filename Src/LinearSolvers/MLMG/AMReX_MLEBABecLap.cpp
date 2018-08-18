@@ -126,6 +126,7 @@ void
 MLEBABecLap::setACoeffs (int amrlev, const MultiFab& alpha)
 {
     MultiFab::Copy(m_a_coeffs[amrlev][0], alpha, 0, 0, 1, 0);
+    m_needs_update = true;
 }
 
 void
@@ -134,6 +135,7 @@ MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
     }
+    m_needs_update = true;
 }
 
 void
@@ -224,6 +226,8 @@ MLEBABecLap::prepareForSolve ()
             }
         }
     }
+
+    m_needs_update = false;
 }
 
 void
@@ -740,6 +744,40 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
             }
         }
     }
+}
+
+void
+MLEBABecLap::update ()
+{
+    if (MLCellLinOp::needsUpdate()) MLCellLinOp::update();
+
+    averageDownCoeffs();
+
+    m_is_singular.clear();
+    m_is_singular.resize(m_num_amr_levels, false);
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    {  // No Dirichlet
+        for (int alev = 0; alev < m_num_amr_levels; ++alev)
+        {
+            if (m_domain_covered[alev])
+            {
+                if (m_a_scalar == 0.0)
+                {
+                    m_is_singular[alev] = true;
+                }
+                else
+                {
+                    Real asum = m_a_coeffs[alev].back().sum();
+                    Real amax = m_a_coeffs[alev].back().norm0();
+                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                }
+            }
+        }
+    }
+
+    m_needs_update = false;
 }
     
 }

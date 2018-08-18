@@ -37,8 +37,8 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
-    virtual bool needsUpdate () const override { m_needs_update || MLCellLinOp::needsUpdate(); }
-    virtual void update () override;
+    virtual bool needsUpdate () const final { m_needs_update || MLCellLinOp::needsUpdate(); }
+    virtual void update () final;
 
 protected:
 
