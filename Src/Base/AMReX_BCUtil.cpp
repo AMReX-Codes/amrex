@@ -42,7 +42,7 @@ namespace amrex
             {
 #pragma gpu
                 amrex_fab_filcc
-                    (AMREX_ARLIM_ARG(fab_box.loVect()), AMREX_ARLIM_ARG(fab_box.hiVect()),
+                    (AMREX_INT_ANYD(fab_box.loVect()), AMREX_INT_ANYD(fab_box.hiVect()),
                      BL_TO_FORTRAN_FAB(fab),
                      BL_TO_FORTRAN_BOX(domain_box),
                      dx, prob_lo,
