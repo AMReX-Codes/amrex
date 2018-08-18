@@ -3,6 +3,9 @@
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MG_F.H>
 #include <AMReX_MultiFabUtil.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_MLEBABecLap_F.H>
+#endif
 
 namespace amrex {
 
@@ -60,7 +63,7 @@ MLCellLinOp::defineAuxData ()
                 m_maskvals[amrlev][mglev][face].define(m_grids[amrlev][mglev],
                                                        m_dmap[amrlev][mglev],
                                                        m_geom[amrlev][mglev],
-                                                       face, 0, ngrow, 0, ncomp, true);
+                                                       face, 0, ngrow, extent, ncomp, true);
             }
         }
     }
@@ -504,9 +507,9 @@ MLCellLinOp::reflux (int crse_amrlev,
 #pragma omp parallel
 #endif
     {
-        std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
-        std::array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox,AMREX_SPACEDIM> flux;
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
         for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
@@ -544,7 +547,7 @@ MLCellLinOp::reflux (int crse_amrlev,
 }
 
 void
-MLCellLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
+MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
 {
     BL_PROFILE("MLCellLinOp::compFlux()");
 
@@ -556,8 +559,8 @@ MLCellLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& f
 #pragma omp parallel
 #endif
     {
-        std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox,AMREX_SPACEDIM> flux;
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
         for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
@@ -574,7 +577,7 @@ MLCellLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& f
 }
 
 void
-MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
+MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
 {
     BL_PROFILE("MLCellLinOp::compGrad()");
 
@@ -585,7 +588,60 @@ MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& g
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+#ifdef AMREX_USE_EB
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
+    auto area = (factory) ? factory->getAreaFrac() : 
+         Array<const MultiCutFab*, AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
+    auto fcent = (factory) ? factory->getFaceCent():
+        Array<const MultiCutFab*, AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.tilebox(); 
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(box) :FabType::regular;
+        AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                     const Box& ybx = mfi.nodaltilebox(1);,
+                     const Box& zbx = mfi.nodaltilebox(2););
+        if (fabtyp == FabType::covered) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                grad[idim]->setVal(0.0, amrex::surroundingNodes(box,idim), 0, 1);
+            }
+        } else {
+//        if(fabtyp == FabType::regular || 
+             amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
+                                             BL_TO_FORTRAN_BOX(ybx),
+                                             BL_TO_FORTRAN_BOX(zbx)),
+                                 BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
+                                              BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
+                                              BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
+                                 dxinv);           
+        } 
+#if 0
+        else
+        { 
+           amrex_mlebabeclap_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
+                                               BL_TO_FORTRAN_BOX(ybx),
+                                               BL_TO_FORTRAN_BOX(zbx)),
+                                  BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
+                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                  BL_TO_FORTRAN_ANYD((*flags)[mfi]), dxinv);
 
+        }
+#endif
+    }
+#else
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -603,6 +659,7 @@ MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& g
                                         BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
                            dxinv);
     }
+#endif
 }
 
 void
@@ -672,8 +729,8 @@ MLCellLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionM
 
 void
 MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
-                                            const std::array<BCType,AMREX_SPACEDIM>& lobc,
-                                            const std::array<BCType,AMREX_SPACEDIM>& hibc,
+                                            const Array<BCType,AMREX_SPACEDIM>& lobc,
+                                            const Array<BCType,AMREX_SPACEDIM>& hibc,
                                             int ratio, const RealVect& a_loc)
 {
     const Box&  domain = geom.Domain();
@@ -825,5 +882,11 @@ MLCellLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionM
 }
 
 #endif
+
+void
+MLCellLinOp::update ()
+{
+    if (MLLinOp::needsUpdate()) MLLinOp::update();
+}
 
 }

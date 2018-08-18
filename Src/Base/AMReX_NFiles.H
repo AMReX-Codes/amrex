@@ -149,8 +149,8 @@ class NFilesIter
     int mySetPosition;
     std::string fullFileName;
     std::string filePrefix;
-    std::fstream fileStream;
     VisMF::IO_Buffer io_buffer;
+    std::fstream fileStream;
     bool finishedWriting;
     bool groupSets;
     bool isReading;

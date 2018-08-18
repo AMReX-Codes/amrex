@@ -42,7 +42,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
     {
@@ -72,7 +72,7 @@ MultiFab::Dot (const iMultiFab& mask,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
     {
@@ -1194,7 +1194,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     Real nm1 = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:nm1)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:nm1)
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
@@ -1261,7 +1261,7 @@ MultiFab::sum (int comp, bool local) const
     Real sm = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {

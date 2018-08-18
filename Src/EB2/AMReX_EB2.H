@@ -17,6 +17,8 @@ extern bool use_eb2;
 extern int max_grid_size;
 extern bool compare_with_ch_eb;
 
+void useEB2 (bool);
+
 void Initialize ();
 void Finalize ();
 
@@ -33,7 +35,7 @@ public:
     static int size () { return m_instance.size(); }
 
     virtual const Level& getLevel (const Geometry&) const = 0;
-    virtual int maxCoarseningLevel () const = 0;
+    virtual const Box& coarestDomain () const = 0;
 
 protected:
     static Vector<std::unique_ptr<IndexSpace> > m_instance;
@@ -56,7 +58,9 @@ public:
     virtual ~IndexSpaceImp () {}
 
     virtual const Level& getLevel (const Geometry& geom) const final;
-    virtual int maxCoarseningLevel () const final { return m_gslevel.size()-1; }
+    virtual const Box& coarestDomain () const final {
+        return m_geom.back().Domain();
+    }
 
     using F = typename G::FunctionType;
 
@@ -86,7 +90,7 @@ void Build (const Geometry& geom,
 
 const Level& getLevel (const Geometry& geom);
 
-int maxCoarseningLevel ();
+int maxCoarseningLevel (const Geometry& geom);
         
 }}
 

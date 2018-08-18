@@ -19,8 +19,8 @@ The code above will compile without errors even though the number of
 arguments and types don't match.
 
 To help detect this kind of issues, AMReX provides a type check tool.
-Note that it only works when AMReX GNU Make build system is used and
-GCC is used.  In the directory an AMReX based code is compiled, type
+Note that it only works when GCC is used.  In the directory an AMReX
+based code is compiled, type
 
     make typecheck
 

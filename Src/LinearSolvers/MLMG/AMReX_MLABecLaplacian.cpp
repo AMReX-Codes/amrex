@@ -37,13 +37,14 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
         {
             m_a_coeffs[amrlev][mglev].define(m_grids[amrlev][mglev],
                                              m_dmap[amrlev][mglev],
-                                             1, 0);
+                                             1, 0, MFInfo(), *m_factory[amrlev][mglev]);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
-                const BoxArray& ba = amrex::convert(m_grids[amrlev][mglev], IntVect::TheDimensionVector(idim));
+                const BoxArray& ba = amrex::convert(m_grids[amrlev][mglev],
+                                                    IntVect::TheDimensionVector(idim));
                 m_b_coeffs[amrlev][mglev][idim].define(ba,
                                                        m_dmap[amrlev][mglev],
-                                                       1, 0);
+                                                       1, 0, MFInfo(), *m_factory[amrlev][mglev]);
             }
         }
     }
@@ -70,15 +71,17 @@ void
 MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
 {
     MultiFab::Copy(m_a_coeffs[amrlev][0], alpha, 0, 0, 1, 0);
+    m_needs_update = true;
 }
 
 void
 MLABecLaplacian::setBCoeffs (int amrlev,
-                             const std::array<MultiFab const*,AMREX_SPACEDIM>& beta)
+                             const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
     }
+    m_needs_update = true;
 }
 
 void
@@ -100,7 +103,7 @@ MLABecLaplacian::averageDownCoeffs ()
 
 void
 MLABecLaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                                Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b)
+                                                Vector<Array<MultiFab,AMREX_SPACEDIM> >& b)
 {
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -138,7 +141,7 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
         amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
     }
      
-    std::array<MultiFab,AMREX_SPACEDIM> bb;
+    Array<MultiFab,AMREX_SPACEDIM> bb;
     Vector<MultiFab*> crse(AMREX_SPACEDIM);
     Vector<MultiFab const*> fine(AMREX_SPACEDIM);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -208,6 +211,8 @@ MLABecLaplacian::prepareForSolve ()
             }
         }
     }
+
+    m_needs_update = false;
 }
 
 void
@@ -420,7 +425,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
 void
 MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
-                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
+                        const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only) const
 {
     BL_PROFILE("MLABecLaplacian::FFlux()");
@@ -441,6 +446,44 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
                                       BL_TO_FORTRAN_ANYD(by),
                                       BL_TO_FORTRAN_ANYD(bz)),
                          dxinv, m_b_scalar, face_only);
+}
+
+void
+MLABecLaplacian::update ()
+{
+    if (MLCellLinOp::needsUpdate()) MLCellLinOp::update();
+
+#if (AMREX_SPACEDIM != 3)
+    applyMetricTermsCoeffs();
+#endif
+
+    averageDownCoeffs();
+
+    m_is_singular.clear();
+    m_is_singular.resize(m_num_amr_levels, false);
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    {  // No Dirichlet
+        for (int alev = 0; alev < m_num_amr_levels; ++alev)
+        {
+            if (m_domain_covered[alev])
+            {
+                if (m_a_scalar == 0.0)
+                {
+                    m_is_singular[alev] = true;
+                }
+                else
+                {
+                    Real asum = m_a_coeffs[alev].back().sum();
+                    Real amax = m_a_coeffs[alev].back().norm0();
+                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                }
+            }
+        }
+    }
+
+    m_needs_update = false;
 }
 
 }
