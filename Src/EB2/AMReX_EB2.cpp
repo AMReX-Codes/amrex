@@ -133,18 +133,9 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
     }
 }
 
-const Level&
-getLevel (const Geometry& geom)
+namespace {
+static int comp_max_crse_level (Box cdomain, const Box& domain)
 {
-    return IndexSpace::top().getLevel(geom);
-}
-
-int
-maxCoarseningLevel (const Geometry& geom)
-{
-    const Box& domain = amrex::enclosedCells(geom.Domain());
-    Box cdomain = (EB2::use_eb2) ? IndexSpace::top().coarestDomain()
-                                 : EBTower::coarestDomain();
     int ilev;
     for (ilev = 0; ilev < 30; ++ilev) {
         if (cdomain.contains(domain)) break;
@@ -152,6 +143,24 @@ maxCoarseningLevel (const Geometry& geom)
     }
     if (cdomain != domain) ilev = -1;
     return ilev;
+}
+}
+
+int
+maxCoarseningLevel (const Geometry& geom)
+{
+    const Box& domain = amrex::enclosedCells(geom.Domain());
+    const Box& cdomain = (EB2::use_eb2) ? IndexSpace::top().coarsestDomain()
+                                                 : EBTower::coarsestDomain();
+    return comp_max_crse_level(cdomain, domain);
+}
+
+int
+maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom)
+{
+    const Box& domain = amrex::enclosedCells(geom.Domain());
+    const Box& cdomain = ebis->coarsestDomain();
+    return comp_max_crse_level(cdomain,domain);
 }
 
 }}

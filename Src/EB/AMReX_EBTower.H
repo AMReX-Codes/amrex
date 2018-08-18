@@ -27,7 +27,7 @@ public:
 
     static bool validDomain (const Box& a_domain);
 
-    static Box const& coarestDomain ();
+    static Box const& coarsestDomain ();
     
 private:
 

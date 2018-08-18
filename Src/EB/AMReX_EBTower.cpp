@@ -42,7 +42,7 @@ EBTower::validDomain (const Box& domain)
 }
 
 Box const&
-EBTower::coarestDomain ()
+EBTower::coarsestDomain ()
 {
     return m_instance->m_domains.back();
 }

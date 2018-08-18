@@ -11,7 +11,10 @@
 namespace amrex
 {
 
-namespace EB2 { class Level; }
+namespace EB2 {
+    class Level;
+    class IndexSpace;
+}
 
 class EBFArrayBoxFactory
     : public FabFactory<FArrayBox>
@@ -55,6 +58,10 @@ public:
         return m_ebdc->getFaceCent();
     }
 
+    EB2::Level const* getEBLevel () const { return m_parent; }
+    EB2::IndexSpace const* getEBIndexSpace () const;
+    int maxCoarseningLevel () const;
+
 private:
 
     EBSupport m_support;
@@ -64,10 +71,22 @@ private:
 };
 
 std::unique_ptr<EBFArrayBoxFactory>
-makeEBFabFactory (const Geometry& a_geom, const BoxArray& a_ba,
+makeEBFabFactory (const Geometry& a_geom,
+                  const BoxArray& a_ba,
                   const DistributionMapping& a_dm,
                   const Vector<int>& a_ngrow, EBSupport a_support);
-    
+
+std::unique_ptr<EBFArrayBoxFactory>
+makeEBFabFactory (const EB2::Level*,
+                  const BoxArray& a_ba,
+                  const DistributionMapping& a_dm,
+                  const Vector<int>& a_ngrow, EBSupport a_support);
+
+std::unique_ptr<EBFArrayBoxFactory>
+makeEBFabFactory (const EB2::IndexSpace*, const Geometry& a_geom,
+                  const BoxArray& a_ba,
+                  const DistributionMapping& a_dm,
+                  const Vector<int>& a_ngrow, EBSupport a_support);
 
 }
 
