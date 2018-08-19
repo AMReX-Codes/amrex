@@ -31,7 +31,7 @@ ifeq ($(which_computer),$(filter $(which_computer),titan))
 
   # Specify that we want to build for Kepler
 
-  CUDA_VERSION=cc35
+  CUDA_ARCH = 35
   COMPILE_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
 
 endif
@@ -67,7 +67,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 
   # Specify that we want to build for Pascal
 
-  CUDA_VERSION = cc60
+  CUDA_ARCH = 60
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
 ifeq ($(USE_OMP_OFFLOAD),TRUE)
@@ -105,7 +105,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
   # Specify that we want to build for Volta
 
-  CUDA_VERSION = cc70
+  CUDA_ARCH = 70
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
 ifeq ($(USE_OMP_OFFLOAD),TRUE)

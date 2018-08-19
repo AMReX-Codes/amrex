@@ -16,13 +16,13 @@
     ifeq ($(findstring summitdev, $(HOSTNAMEF)), summitdev)
        libraries += -L /sw/summitdev/gcc/5.4.0new/lib64/ -latomic
        ifdef CUDA
-         CUDA_VERSION = cc60
+         CUDA_ARCH = 60
          COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
        endif
     else ifeq ($(findstring summit, $(HOSTNAMEF)), summit)
        libraries += -L /sw/summitdev/gcc/5.4.0new/lib64 -latomic
        ifdef CUDA
-         CUDA_VERSION = cc70
+         CUDA_ARCH = 70
          COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
        endif
     endif
@@ -40,10 +40,10 @@
     endif
 
     ifdef ACC
-      F90FLAGS += -acc -Minfo=acc -ta=tesla:$(CUDA_VERSION)
-      FFLAGS += -acc -Minfo=acc -ta=tesla:$(CUDA_VERSION)
-      CFLAGS += -acc -Minfo=acc -ta=tesla:$(CUDA_VERSION)
-      CXXFLAGS += -acc -Minfo=acc -ta=tesla:$(CUDA_VERSION)
+      F90FLAGS += -acc -Minfo=acc -ta=tesla:cc$(CUDA_ARCH)
+      FFLAGS += -acc -Minfo=acc -ta=tesla:cc$(CUDA_ARCH)
+      CFLAGS += -acc -Minfo=acc -ta=tesla:cc$(CUDA_ARCH)
+      CXXFLAGS += -acc -Minfo=acc -ta=tesla:cc$(CUDA_ARCH)
     else
       F90FLAGS += -noacc
       FFLAGS += -noacc
@@ -52,10 +52,10 @@
     endif
 
     ifdef CUDA
-      F90FLAGS += -Mcuda=$(CUDA_VERSION) CUDAROOT=$(COMPILE_CUDA_PATH)
-      FFLAGS += -Mcuda=$(CUDA_VERSION) CUDAROOT=$(COMPILE_CUDA_PATH)
-      CFLAGS += -Mcuda=$(CUDA_VERSION) CUDAROOT=$(COMPILE_CUDA_PATH)
-      CXXFLAGS += -Mcuda=$(CUDA_VERSION) CUDAROOT=$(COMPILE_CUDA_PATH)
+      F90FLAGS += -Mcuda=cc$(CUDA_ARCH) CUDAROOT=$(COMPILE_CUDA_PATH)
+      FFLAGS += -Mcuda=cc$(CUDA_ARCH) CUDAROOT=$(COMPILE_CUDA_PATH)
+      CFLAGS += -Mcuda=cc$(CUDA_ARCH) CUDAROOT=$(COMPILE_CUDA_PATH)
+      CXXFLAGS += -Mcuda=cc$(CUDA_ARCH) CUDAROOT=$(COMPILE_CUDA_PATH)
     endif
 
     ifdef NDEBUG

@@ -13,8 +13,14 @@ include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
 
 DEFINES := $(DEFINES)
 
-CXXFLAGS := -Wno-deprecated-gpu-targets -m64 -dc -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
-CFLAGS := -Wno-deprecated-gpu-targets -m64 -dc -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
+HOST_CXXFLAGS := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
+HOST_CFLAGS := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
+
+HOST_CXX := $(CXX)
+HOST_CC := $(CC)
+
+CXXFLAGS = $(HOST_CXXFLAGS) --std=c++11 -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
+CFLAGS = $(HOST_CFLAGS) -Wno-deprecated-gpu-targets -m64 -dc -x c -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
 
 ifeq ($(DEBUG),TRUE)
   CXXFLAGS += -g -G -lineinfo
@@ -23,9 +29,6 @@ else
   CXXFLAGS += --use_fast_math
   CFLAGS += --use_fast_math
 endif
-
-HOST_CXX := $(CXX)
-HOST_CC := $(CC)
 
 CXX := nvcc
 CC := nvcc
@@ -42,7 +45,7 @@ DEFINES += -DAMREX_NVCC_VERSION=$(nvcc_version)
 DEFINES += -DAMREX_NVCC_MAJOR_VERSION=$(nvcc_major_version)
 DEFINES += -DAMREX_NVCC_MINOR_VERSION=$(nvcc_minor_version)
 
-# Disallow CUDA toolkit versions <= 8.0.
+# Disallow CUDA toolkit versions < 8.0.
 
 nvcc_major_lt_8 = $(shell expr $(nvcc_major_version) \< 8)
 ifeq ($(nvcc_major_lt_8),1)

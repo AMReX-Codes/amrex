@@ -42,7 +42,7 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
 
     # Specify that we want to build for Pascal
 
-    CUDA_VERSION = cc60
+    CUDA_ARCH = 60
     COMPILE_CUDA_PATH = $(CUDA_HOME)
 
   endif
@@ -89,7 +89,7 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra butte))
 
     # Specify that we want to build for Volta
 
-    CUDA_VERSION = cc70
+    CUDA_ARCH = 70
     COMPILE_CUDA_PATH = $(CUDA_HOME)
 
   endif
