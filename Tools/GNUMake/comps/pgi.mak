@@ -20,13 +20,9 @@ COMP_VERSION = $(pgi_version)
 CXXFLAGS =
 CFLAGS   =
 
-# 2017-06-23: PGI 17.4 causes the CUDA code to break when using -O2/-fast
+# Note that -O2 is the default optimization level for PGI
 
-PGI_OPT := -fast
-
-ifeq ($(USE_CUDA),TRUE)
-  PGI_OPT := -O
-endif
+PGI_OPT := -O2 -fast
 
 ifeq ($(DEBUG),TRUE)
 
