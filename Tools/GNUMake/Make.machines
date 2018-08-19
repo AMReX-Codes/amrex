@@ -66,6 +66,11 @@ ifeq ($(findstring rzmanta, $(host_name)), rzmanta)
   which_computer := rzmanta
 endif
 
+ifeq ($(findstring rzansel, $(host_name)), rzansel)
+  which_site := llnl
+  which_computer := rzansel
+endif
+
 ifeq ($(findstring mira, $(host_name)), mira)
   which_site := alcf
   which_computer := mira
