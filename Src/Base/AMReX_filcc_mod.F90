@@ -1,27 +1,19 @@
 
 module amrex_filcc_module
 
-  use amrex_fort_module, only : amrex_real, amrex_spacedim
+  use amrex_fort_module, only : amrex_real, amrex_spacedim, get_loop_bounds
   use amrex_bc_types_module
   use amrex_constants_module
-#ifdef AMREX_USE_CUDA
-  use cuda_module, only: numBlocks, numThreads, cuda_stream
-#endif
 
   implicit none
 
-#ifndef AMREX_USE_CUDA
   interface amrex_filcc
      module procedure amrex_filcc_1
      module procedure amrex_filcc_n
   end interface amrex_filcc
-#endif
 
   private
-#ifndef AMREX_USE_CUDA
-  public :: amrex_filcc
-#endif
-  public :: amrex_fab_filcc, amrex_filccn, amrex_hoextraptocc
+  public :: amrex_filcc, amrex_fab_filcc, amrex_filccn, amrex_hoextraptocc
 #if (AMREX_SPACEDIM == 3)
   public :: amrex_hoextraptocc_3d
 #endif
@@ -34,10 +26,6 @@ module amrex_filcc_module
 #endif
 
 contains
-
-  ! Old interfaces to filcc are unsupported with CUDA.
-
-#ifndef AMREX_USE_CUDA
 
   subroutine amrex_filcc_n(q,qlo,qhi,domlo,domhi,dx,xlo,bclo,bchi)
     integer, intent(in) :: qlo(4), qhi(4)
@@ -95,20 +83,20 @@ contains
 
 #endif
 
-#endif
-
-  subroutine amrex_fab_filcc (lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
+  subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
        bind(c, name='amrex_fab_filcc')
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), qlo(3), qhi(3), nq
+    integer, intent(in) :: qlo(3), qhi(3), nq
     integer, dimension(amrex_spacedim), intent(in) :: domlo, domhi
     real(amrex_real), intent(in) :: dx(amrex_spacedim), xlo(amrex_spacedim)
     integer, intent(in) :: bc(amrex_spacedim,2,nq)
     real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
 
-    !$gpu
+    integer :: lo(3), hi(3)
+
+    call get_loop_bounds(lo, hi, qlo, qhi)
 
     call amrex_filccn(lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
 
@@ -124,9 +112,6 @@ contains
     real(amrex_real), intent(in   ) :: xlo(amrex_spacedim), dx(amrex_spacedim)
     real(amrex_real), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
     integer,          intent(in   ) :: bc(amrex_spacedim,2,ncomp)
-
-    !$gpu
-
     call amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
   end subroutine filccn
 #endif
@@ -147,8 +132,6 @@ contains
     integer :: is, ie, js, je, ks, ke
     integer :: i, j, k, n
     integer :: imin, imax, jmin, jmax, kmin, kmax
-
-    !$gpu
 
     is = max(q_lo(1), domlo(1))
     ie = min(q_hi(1), domhi(1))
@@ -295,17 +278,6 @@ contains
 
        end if
 
-       ! We need to synchronize the threadblock after each
-       ! dimension, since the results for the corners depend
-       ! on the i, j, and k directions being done in order.
-       ! Note: this will only work if the threadblock size is
-       ! larger in each dimension than the number of ghost zones.
-
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
-       call syncthreads()
-#endif
-
-
 
 #if AMREX_SPACEDIM >= 2
 
@@ -432,10 +404,6 @@ contains
           end if
 
        end if
-#endif
-
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
-       call syncthreads()
 #endif
 
 
@@ -565,10 +533,6 @@ contains
           end if
 
        end if
-#endif
-
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
-       call syncthreads()
 #endif
 
 
