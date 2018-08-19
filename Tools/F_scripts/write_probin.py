@@ -237,7 +237,7 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
                         else:
                             print("write_probin.py: invalid datatype for variable {}".format(pm[n].var))
-                            
+
                     else:
                         if type == "real":
                             fout.write("{}real (kind=rt), save, public :: {} = {}\n".format(
@@ -276,7 +276,7 @@ def write_probin(probin_template, param_A_files, param_B_files,
                         pm = paramsB
                     for pmi in pm:
                         fout.write("{}attributes(managed) :: {}\n".format(indent, pmi.var))
-                        
+
             elif keyword == "allocations":
                 if managed:
                     pm = paramsA + paramsB
@@ -288,13 +288,13 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     pm = paramsA + paramsB
                     for pmi in pm:
                         fout.write("{}{} = {}\n".format(indent, pmi.var, pmi.value))
-                    
+
             elif keyword == "deallocations":
                 if managed:
                     pm = paramsA + paramsB
                     for pmi in pm:
                         fout.write("{}deallocate({})\n".format(indent, pmi.var))
-                    
+
             elif keyword == "namelist":
 
                 for n in range(len(params)):
@@ -395,9 +395,9 @@ if __name__ == "__main__":
     parser.add_argument('--pb', type=str, help='param_B_files_str')
     parser.add_argument('--managed', action='store_true',
                         help='If supplied, use CUDA managed memory for probin variables.')
-    
+
     args = parser.parse_args()
-    
+
     probin_template = args.t
     out_file = args.o
     namelist_name = args.n
