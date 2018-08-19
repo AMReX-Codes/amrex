@@ -152,20 +152,6 @@ public:
     //! Return a unique index associated with the current box and/or tile.
     int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
 
-    //! Maintain a record of scalar values that are used on the device.
-    template<typename T>
-    void register_ptr(std::shared_ptr<T> ptr) {}
-
-    void register_ptr(std::shared_ptr<int> ptr) { saved_ints.push_back(ptr); }
-
-    void register_ptr(std::shared_ptr<Real> ptr) { saved_reals.push_back(ptr); }
-
-#ifdef AMREX_USE_CUDA
-    //! If we're on the device, store a copy of the data in the MFIter.
-    template<typename T>
-    T* get_fortran_pointer(const T* ptr, const int n = 1, const int m = -1);
-#endif
-
 #ifdef AMREX_USE_CUDA
     //! Maintain a list of values to reduce.
     template<typename T>
@@ -212,11 +198,6 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
-    mutable Vector<RealBox> registered_realboxes;
-
-    mutable Vector<std::shared_ptr<int>> saved_ints;
-    mutable Vector<std::shared_ptr<Real>> saved_reals;
-
 #ifdef AMREX_USE_CUDA
     mutable Real* real_reduce_val;
 
@@ -231,19 +212,6 @@ protected:
   
     void Initialize ();
 };
-
-#ifdef AMREX_USE_CUDA
-// Store an arbitrary pointer in our list. Create a shared pointer so that
-// the lifetime of the data is the lifetime of the MFIter. This allows asynchronous
-//  MFIter iterations to occur without freeing device data until all FABs are done.
-template<typename T>
-T*
-MFIter::get_fortran_pointer(const T* ptr, const int n, const int m) {
-    std::shared_ptr<T> s_ptr = Device::create_host_pointer(ptr, n, m);
-    register_ptr(s_ptr);
-    return s_ptr.get();
-}
-#endif
 
 //! Iterate over ghost cells.  Lots of MFIter functions do not work.
 class MFGhostIter
