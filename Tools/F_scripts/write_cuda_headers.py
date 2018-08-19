@@ -82,6 +82,17 @@ class HeaderFile(object):
         self.cpp_name = None
 
 
+class CppFile(object):
+    """ hold information about one of the C++ files """
+
+    def __init__(self, filename):
+
+        self.name = filename
+
+        self.cpp_name = None
+
+
+
 def find_targets_from_pragmas(cxx_files, macro_list):
     """read through the C++ files and look for the functions marked with
     #pragma gpu -- these are the routines we intend to offload (the targets),
@@ -490,7 +501,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
         hout.close()
 
 
-def convert_cxx(outdir, cxx_files):
+def convert_cxx(outdir, cxx_files, cpp):
     """look through the C++ files for "#pragma gpu" and switch it
     to the appropriate CUDA launch macro"""
 
@@ -560,6 +571,10 @@ def convert_cxx(outdir, cxx_files):
 
             line = hin.readline()
 
+        hout.close()
+
+        cpp.preprocess(CppFile(ofile), add_name="CPP")
+
 
 if __name__ == "__main__":
 
@@ -626,4 +641,4 @@ if __name__ == "__main__":
 
     # part II: for each C++ file, we need to expand the `#pragma gpu`
 
-    convert_cxx(args.output_dir, cxx)
+    convert_cxx(args.output_dir, cxx, cpp_pass)
