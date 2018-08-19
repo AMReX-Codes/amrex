@@ -23,7 +23,7 @@
 #ifdef AMREX_USE_CUDA
 #define AMREX_REAL_ANYD(x) (x)[0], 0., 0.
 #else
-#define AMREX_REAL_ANYD(x) ZFILL(x)
+#define AMREX_REAL_ANYD(x) AMREX_ZFILL(x)
 #endif
 #elif   AMREX_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
@@ -34,7 +34,7 @@
 #ifdef AMREX_USE_CUDA
 #define AMREX_REAL_ANYD(x) (x)[0], (x)[1], 0.
 #else
-#define AMREX_REAL_ANYD(x) ZFILL(x)
+#define AMREX_REAL_ANYD(x) AMREX_ZFILL(x)
 #endif
 #elif   AMREX_SPACEDIM==3
 #define ARLIM_P(x)  const int&,const int&,const int&
@@ -45,7 +45,7 @@
 #ifdef AMREX_USE_CUDA
 #define AMREX_REAL_ANYD(x) (x)[0], (x)[1], (x)[2]
 #else
-#define AMREX_REAL_ANYD(x) ZFILL(x)
+#define AMREX_REAL_ANYD(x) AMREX_ZFILL(x)
 #endif
 #endif
 
