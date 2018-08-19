@@ -147,8 +147,8 @@ ifndef NO_DEVICE_LAUNCH
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  # Set the default CUDA version.
-  CUDA_VERSION ?= cuda9.0
+  # Set the default CUDA architecture version.
+  CUDA_ARCH ?= 35
 
   # Maximum number of CUDA threads per block.
   CUDA_MAX_THREADS ?= 256
