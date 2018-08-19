@@ -20,7 +20,6 @@
 ! :::       reasonable values for arithmetic to live
 ! ::: -----------------------------------------------------------
 
-#ifndef AMREX_USE_CUDA
 subroutine filcc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo,bc)
 
   use amrex_fort_module, only: rt => amrex_real
@@ -42,7 +41,6 @@ subroutine filcc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo,bc)
   call filccn(q_lo, q_hi, q, q_lo, q_hi, 1, domlo, domhi, dx, xlo, bc)
 
 end subroutine filcc
-#endif
 
 
 

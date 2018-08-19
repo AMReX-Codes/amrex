@@ -239,7 +239,6 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
                               : nullptr;
     new_data =                new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
                                            MFInfo(), *m_factory);
-
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
     // This assumes that the application will do something with it.
@@ -300,7 +299,6 @@ StateData::restart (const StateDescriptor& d,
     new_time.start = rhs.new_time.start;
     new_time.stop  = rhs.new_time.stop;
     old_data = 0;
-
     new_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory);
     new_data->setVal(0.);
 }
@@ -439,46 +437,9 @@ StateData::replaceNewData (StateData& s)
 }
 
 void
-StateData::PrepareForFillBoundary(FArrayBox& dest,
-                                  const Real* dx,
-                                  const RealBox& prob_domain,
-                                  Real* xlo,
-                                  int* bc,
-                                  int dest_comp,
-                                  int src_comp,
-                                  int num_comp)
-{
-    const int* dlo = dest.loVect();
-    const int* dhi = dest.hiVect();
-    const int* plo = domain.loVect();
-
-    const Real* problo = prob_domain.lo();
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
-        xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
-    }
-
-    const Box& bx = dest.box();
-    BCRec bcr;
-
-    for (int i = 0; i < num_comp; ++i) {
-        const int sc = src_comp+i;
-        amrex::setBC(bx,domain,desc->getBC(sc),bcr);
-        int bcidx = 2 * AMREX_SPACEDIM * i;
-        for (int j = 0; j < 2 * AMREX_SPACEDIM; ++j) {
-            bc[bcidx + j] = bcr.vect()[j];
-        }
-    }
-
-}
-
-void
 StateData::FillBoundary (FArrayBox&     dest,
-                         const Real*    time,
+                         Real           time,
                          const Real*    dx,
-                         const Real*    xlo,
-                         const int*     bcrs,
                          const RealBox& prob_domain,
                          int            dest_comp,
                          int            src_comp,
@@ -495,13 +456,21 @@ StateData::FillBoundary (FArrayBox&     dest,
     const int* plo = domain.loVect();
     const int* phi = domain.hiVect();
 
+    Vector<int> bcrs;
+
+    Real xlo[AMREX_SPACEDIM];
+    BCRec bcr;
+    const Real* problo = prob_domain.lo();
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
+        xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
+    }
     for (int i = 0; i < num_comp; )
     {
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
-
-        int bcidx = 2 * AMREX_SPACEDIM * i;
 
         if (desc->master(sc))
         {
@@ -509,65 +478,45 @@ StateData::FillBoundary (FArrayBox&     dest,
 
             BL_ASSERT(groupsize != 0);
 
-#ifdef AMREX_USE_DEVICE
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
-            // Ensure that our threadblock size is such that it is
-            // evenly divisible by the number of zones in the box,
-            // and is at least one larger than the number of ghost zones.
-            // This ensures that the corners plus one interior zone
-            // are all on the same threadblock.
-
-            const IntVect left = domain.smallEnd() - bx.smallEnd();
-            const IntVect rght = bx.bigEnd() - domain.bigEnd();
-
-            int ng[3] = {0, 0, 0};
-
-            for (int n = 0; n < AMREX_SPACEDIM; ++n)
-                ng[n] = std::max(0, std::max(left[n], rght[n]));
-
-            const IntVect size = bx.size();
-            IntVect numThreadsMin(ng[0] + 1, ng[1] + 1, ng[2] + 1);
-
-            for (int n = 0; n < AMREX_SPACEDIM; ++n) {
-                while (size[n] % numThreadsMin[n] != 0) {
-                    ++numThreadsMin[n];
-                }
-            }
-
-            if (std::min({numThreadsMin[0], numThreadsMin[1], numThreadsMin[2]}) < 1)
-                amrex::Error("Minimum number of CUDA threads must be positive.");
-
-            Device::setNumThreadsMin(numThreadsMin[0], numThreadsMin[1], numThreadsMin[2]);
-#endif
-            Device::prepare_for_launch(dest.loVect(), dest.hiVect());
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
-            Device::setNumThreadsMin(1, 1, 1);
-#endif
-#endif
-
             if (groupsize+i <= num_comp)
             {
                 //
                 // Can do the whole group at once.
                 //
-		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,time,&bcrs[bcidx],groupsize);
+                bcrs.resize(2*AMREX_SPACEDIM*groupsize);
 
+                int* bci  = bcrs.dataPtr();
+
+                for (int j = 0; j < groupsize; j++)
+                {
+                    amrex::setBC(bx,domain,desc->getBC(sc+j),bcr);
+
+                    const int* bc = bcr.vect();
+
+                    for (int k = 0; k < 2*AMREX_SPACEDIM; k++)
+                        bci[k] = bc[k];
+
+                    bci += 2*AMREX_SPACEDIM;
+                }
+                //
+                // Use the "group" boundary fill routine.
+                //
+		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),groupsize);
                 i += groupsize;
             }
             else
             {
-                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,time,&bcrs[bcidx]);
-
+                amrex::setBC(bx,domain,desc->getBC(sc),bcr);
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
                 i++;
             }
         }
         else
         {
-            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,time,&bcrs[bcidx]);
-
+            amrex::setBC(bx,domain,desc->getBC(sc),bcr);
+            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
             i++;
         }
-
     }
 }
 
@@ -873,8 +822,8 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
     {
 	FArrayBox tmp;
 
- 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
- 	{
+	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+	{
 	    FArrayBox& dest = mf[mfi];
 	    const Box& bx = dest.box();
 	    
@@ -891,16 +840,8 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 	    
 	    if (has_phys_bc)
 	    {
-
-                Real xlo[BL_SPACEDIM];
-                int bcrs[2 * AMREX_SPACEDIM * num_comp];
-
-                statedata->PrepareForFillBoundary(dest, dx, prob_domain, xlo,
-                                                  bcrs, dest_comp, src_comp, num_comp);
-
-		statedata->FillBoundary(dest, AMREX_FPTR(&time), dx, AMREX_FPTR(xlo, 3, AMREX_SPACEDIM),
-                                        AMREX_FPTR(bcrs, 2 * AMREX_SPACEDIM * num_comp), prob_domain, dest_comp, src_comp, num_comp);
-
+		statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+		
 		if (is_periodic) // fix up corner
 		{
 		    Box GrownDomain = domain;
@@ -935,7 +876,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			    tmp.copy(dest,dest_comp,0,num_comp);
 			    tmp.shift(dir,domain.length(dir));
 			    
-			    statedata->FillBoundary(tmp, AMREX_FPTR(&time), dx, AMREX_FPTR(xlo), AMREX_FPTR(bcrs), prob_domain, dest_comp, src_comp, num_comp);
+			    statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
 			    
 			    tmp.shift(dir,-domain.length(dir));
 			    dest.copy(tmp,0,dest_comp,num_comp);
@@ -949,15 +890,15 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			    tmp.copy(dest,dest_comp,0,num_comp);
 			    tmp.shift(dir,-domain.length(dir));
 			    
-			    statedata->FillBoundary(tmp, AMREX_FPTR(&time), dx, AMREX_FPTR(xlo), AMREX_FPTR(bcrs), prob_domain, dest_comp, src_comp, num_comp);
+			    statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
 			    
 			    tmp.shift(dir,domain.length(dir));
 			    dest.copy(tmp,0,dest_comp,num_comp);
 			}
 		    }
 		}
- 	    }
- 	}
+	    }
+	}
     }
 }
 

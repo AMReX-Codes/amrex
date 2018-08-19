@@ -19,7 +19,6 @@
 
 #ifndef AMREX_XSDK
 
-#ifndef AMREX_USE_CUDA
 subroutine filcc(q,q_l1,q_h1,domlo,domhi,dx,xlo,bc)
 
   use amrex_fort_module
@@ -41,6 +40,5 @@ subroutine filcc(q,q_l1,q_h1,domlo,domhi,dx,xlo,bc)
   call filccn(q_lo, q_hi, q, q_lo, q_hi, 1, domlo, domhi, dx, xlo, bc)
 
 end subroutine filcc
-#endif
 
 #endif
