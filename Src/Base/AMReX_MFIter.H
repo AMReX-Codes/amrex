@@ -152,8 +152,6 @@ public:
     //! Return a unique index associated with the current box and/or tile.
     int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
 
-    const RealBox& registerRealBox (const RealBox& rbox) const;
-
     //! Maintain a record of scalar values that are used on the device.
     template<typename T>
     void register_ptr(std::shared_ptr<T> ptr) {}
@@ -233,14 +231,6 @@ protected:
   
     void Initialize ();
 };
-
-inline
-const RealBox&
-MFIter::registerRealBox(const RealBox& rbox) const
-{
-    registered_realboxes.push_back(rbox);
-    return rbox;
-}
 
 #ifdef AMREX_USE_CUDA
 // Store an arbitrary pointer in our list. Create a shared pointer so that
