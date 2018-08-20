@@ -76,28 +76,31 @@ contains
     real(amrex_real), intent(in)    :: coord
     real(amrex_real), intent(in)    :: plo(3), dx(3)
     
-    integer n, i, j, k
-    real(amrex_real) distance, weight
-    integer offset(3)
+    integer n, i, j, k, lo, hi
+    real(amrex_real) weight
+    integer looff(3), hioff(3)
 
-    offset = 0
+    looff = 0
+    hioff = 0
     
-    distance = (coord - plo(dir)) / dx(dir) + 0.5d0
-    distance = distance - floor(distance)
-    weight = abs(0.5d0 - distance)
+    hi = floor((coord - plo(dir)) / dx(dir) + 0.5d0)
+    lo = hi -1
     
-    if (distance .lt. 0.5d0) then
-       offset(dir) = -1
+    weight = (coord - plo(dir)) - lo*dx(dir) - 0.5*dx(dir)
+
+    if (weight .lt. 0.5d0) then
+       hioff(dir) = 1
     else
-       offset(dir) = 1
+       looff(dir) = -1
     end if
     
     do n = 1, ncomp
        do k = tlo(3), thi(3)
           do j = tlo(2), thi(2)
              do i = tlo(1), thi(1)
-                slice_data(i, j, k, n) = (1.d0 - weight)*full_data(i, j, k, fstart+n) + &
-                     weight*full_data(i+offset(1), j+offset(2), k+offset(3), fstart+n)
+                slice_data(i, j, k, n) = &
+                     (1.d0 - weight)*full_data(i+looff(1), j+looff(2), k+looff(3), fstart+n) + &
+                             weight *full_data(i+hioff(1), j+hioff(2), k+hioff(3), fstart+n)
              end do
           end do
        end do
