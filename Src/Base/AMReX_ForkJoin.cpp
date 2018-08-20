@@ -6,6 +6,9 @@ using namespace amrex;
 
 namespace {
 
+bool flag_task_output_dir_created = false;
+const std::string task_output_dir = "forkjoin_task_output";
+
 inline bool file_exists(std::string file_path) {
   std::ifstream ifs(file_path);
   return ifs.good();
@@ -37,6 +40,15 @@ get_frame_id_vec ()
         result.push_back(frames[i].MyID());
     }
     return result;
+}
+
+void
+create_task_output_dir ()
+{
+    if (!flag_task_output_dir_created) {
+        amrex::UtilCreateCleanDirectory(task_output_dir, false);
+    }
+    flag_task_output_dir_created = true;
 }
 
 }
@@ -91,6 +103,8 @@ ForkJoin::init(const Vector<int> &task_rank_n)
     for (int i = 0; i < task_n; ++i) {
         split_bounds[i + 1] = split_bounds[i] + task_rank_n[i];
     }
+
+    create_task_output_dir();
 
     if (flag_verbose) {
         amrex::Print() << "Initialized ForkJoin:\n";
@@ -325,16 +339,17 @@ std::string
 ForkJoin::get_fresh_io_filename ()
 {
     // build base filename
-    std::string result_base = "forkjoin_task_output";
-    result_base += ".T-" + str_join(get_frame_id_vec(), "-");
+    std::string result_base = task_output_dir;
+    result_base += "/T-" + str_join(get_frame_id_vec(), "-");
     result_base += ".R-" + std::to_string(ParallelContext::MyProcSub());
 
     // concatenate an integer to the end to make unique
     std::string result;
     int i = 0;
     do {
-        result = result_base + ".I-" + std::to_string(i++);
+        result = result_base + ".I-" + std::to_string(i++) + ".out";
     } while (file_exists(result));
+
     return result;
 }
 
