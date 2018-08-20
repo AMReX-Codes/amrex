@@ -159,16 +159,9 @@ FabArrayBase::define (const BoxArray&            bxs,
     
     BL_ASSERT(dm.ProcessorMap().size() == bxs.size());
     distributionMap = dm;
-    
-    int myProc = ParallelDescriptor::MyProc();
-    
-    for(int i = 0, N = boxarray.size(); i < N; ++i) {
-	if (ParallelDescriptor::sameTeam(distributionMap[i])) {
-            // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
-            indexArray.push_back(i);
-            ownership.push_back(myProc == distributionMap[i]);
-	}
-    }
+
+    indexArray = distributionMap.getIndexArray();
+    ownership = distributionMap.getOwnerShip();    
 }
 
 void
@@ -1179,10 +1172,10 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 	ba_crse_patch.define(bl);
 	dm_crse_patch.define(std::move(iprocs));
 #ifdef AMREX_USE_EB
-        fact_crse_patch.reset(new EBFArrayBoxFactory(Geometry(cdomain),
-                                                     ba_crse_patch,
-                                                     dm_crse_patch,
-                                                     {0,0,0}, EBSupport::basic));
+        fact_crse_patch = makeEBFabFactory(Geometry(cdomain),
+                                           ba_crse_patch,
+                                           dm_crse_patch,
+                                           {0,0,0}, EBSupport::basic);
 #else
         fact_crse_patch.reset(new FArrayBoxFactory());
 #endif
@@ -1434,7 +1427,7 @@ FabArrayBase::Finalize ()
     FabArrayBase::flushCPCache();
     FabArrayBase::flushTileArrayCache();
 
-    if (ParallelDescriptor::IOProcessor() && amrex::system::verbose) {
+    if (ParallelDescriptor::IOProcessor() && amrex::system::verbose > 1) {
 	m_FA_stats.print();
 	m_TAC_stats.print();
 	m_FBC_stats.print();
@@ -1642,27 +1635,24 @@ FabArrayBase::flushTileArrayCache ()
 void
 FabArrayBase::clearThisBD (bool no_assertion)
 {
-    if ( ! boxarray.empty() ) 
-    {
-	BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
+    BL_ASSERT(boxarray.empty() || no_assertion || getBDKey() == m_bdkey);
 
-	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
-	if (cnt_it != m_BD_count.end()) 
-	{
-	    --(cnt_it->second);
-	    if (cnt_it->second == 0) 
-	    {
-		m_BD_count.erase(cnt_it);
-		
-		// Since this is the last one built with these BoxArray 
-		// and DistributionMapping, erase it from caches.
-		flushTileArray(IntVect::TheZeroVector(), no_assertion);
-		flushFPinfo(no_assertion);
-		flushCFinfo(no_assertion);
-		flushFB(no_assertion);
-		flushCPC(no_assertion);
-	    }
-	}
+    std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
+    if (cnt_it != m_BD_count.end()) 
+    {
+        --(cnt_it->second);
+        if (cnt_it->second == 0) 
+        {
+            m_BD_count.erase(cnt_it);
+            
+            // Since this is the last one built with these BoxArray 
+            // and DistributionMapping, erase it from caches.
+            flushTileArray(IntVect::TheZeroVector(), no_assertion);
+            flushFPinfo(no_assertion);
+            flushCFinfo(no_assertion);
+            flushFB(no_assertion);
+            flushCPC(no_assertion);
+        }
     }
 }
 
@@ -1752,13 +1742,15 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
 
 	    if (count != recv_size[i]) {
 		r = false;
-		amrex::AllPrint() << "ERROR: Proc. " << ParallelContext::MyProcSub()
-				  << " received " << count << " counts of data from Proc. "
-				  << recv_stats[i].MPI_SOURCE
-				  << " with tag " << recv_stats[i].MPI_TAG
-				  << " error " << recv_stats[i].MPI_ERROR
-				  << ", but the expected counts is " << recv_size[i]
-                                  << " with tag " << tag << "\n";
+                if (amrex::Verbose()) {
+                    amrex::AllPrint() << "ERROR: Proc. " << ParallelContext::MyProcSub()
+                                      << " received " << count << " counts of data from Proc. "
+                                      << recv_stats[i].MPI_SOURCE
+                                      << " with tag " << recv_stats[i].MPI_TAG
+                                      << " error " << recv_stats[i].MPI_ERROR
+                                      << ", but the expected counts is " << recv_size[i]
+                                      << " with tag " << tag << "\n";
+                }
 	    }
 	}
     }

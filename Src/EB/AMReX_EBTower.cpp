@@ -1,7 +1,12 @@
 
 #include <AMReX_EBTower.H>
+#include <AMReX_Vector.H>
+#include <AMReX_BLassert.H>
+
+#ifdef AMREX_USE_GEOMETRYSHOP
 #include <AMReX_EBISLevel.H>
 #include <AMReX_EBLevelGrid.H>
+#endif
 
 #include <algorithm>
 
@@ -16,9 +21,10 @@ EBTower* EBTower::m_instance = nullptr;
 void
 EBTower::Build ()
 {
-    if (!m_instance) {
-        m_instance = new EBTower();
-    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_instance == nullptr,
+        "Cannot Call EBTower::Build() on top of a pre-existing EBTower. Call EBTower::Destroy() before building a new one.");
+    
+    m_instance = new EBTower();
 }
 
 void
@@ -35,6 +41,13 @@ EBTower::validDomain (const Box& domain)
     return (bx_it != m_instance->m_domains.end());
 }
 
+Box const&
+EBTower::coarsestDomain ()
+{
+    return m_instance->m_domains.back();
+}
+    
+#ifdef AMREX_USE_GEOMETRYSHOP
 EBTower::EBTower ()
 {
     BL_PROFILE("EBTower::EBTower()");
@@ -95,7 +108,7 @@ EBTower::EBTower ()
 
     m_cellflags.resize(nlevels);
     m_volfrac.resize(nlevels);
-//    m_centroid.resize(nlevels);
+    m_centroid.resize(nlevels);
     m_bndrycent.resize(nlevels);
     m_areafrac.resize(nlevels);
     m_facecent.resize(nlevels);
@@ -112,10 +125,10 @@ EBTower::EBTower ()
             initCellFlags(lev, eblg);
 
             m_volfrac[lev].define(ba, dm, 1, 0, MFInfo(), FArrayBoxFactory());
-//            m_centroid[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
+            m_centroid[lev].define(ba, dm, AMREX_SPACEDIM, 0, m_cellflags[lev]);
             initVolumeGeometry(lev, eblg);
 
-            m_bndrycent[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
+            m_bndrycent[lev].define(ba, dm, AMREX_SPACEDIM, 0, m_cellflags[lev]);
             initBndryCent(lev, eblg);
             
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -127,16 +140,23 @@ EBTower::EBTower ()
         }
     }
 }
+#endif
 
 EBTower::~EBTower ()
 {
 }
 
+#ifdef AMREX_USE_GEOMETRYSHOP
 void
 EBTower::initCellFlags (int lev, const EBLevelGrid& eblg)
 {
     FabArray<EBCellFlagFab>& ebcf = m_cellflags[lev];
     const auto& ebisl = eblg.getEBISL();
+
+    const auto& graph = ebisl.getAllGraphs();
+    for (MFIter mfi(*graph); mfi.isValid(); ++mfi) {
+        (*graph)[mfi].setCellFlags();
+    }
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -157,7 +177,7 @@ void
 EBTower::initVolumeGeometry (int lev, const EBLevelGrid& eblg)
 {
     MultiFab& volfrac = m_volfrac[lev];
-//    MultiCutFab& centroid = m_centroid[lev];
+    MultiCutFab& centroid = m_centroid[lev];
     const auto& ebisl = eblg.getEBISL();
 
 #ifdef _OPENMP
@@ -170,8 +190,8 @@ EBTower::initVolumeGeometry (int lev, const EBLevelGrid& eblg)
         auto& vfab = volfrac[mfi];
         vfab.setVal(1.0, bx, 0, 1);
 
-//        auto& cfab = centroid[mfi];
-//        cfab.setVal(0.0, bx, 0, 3);
+        auto& cfab = centroid[mfi];
+        cfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
 
         const EBISBox& ebisbox = ebisl[mfi];
         
@@ -183,10 +203,10 @@ EBTower::initVolumeGeometry (int lev, const EBLevelGrid& eblg)
             for (const auto& vi : vofs)
             {
                 vtot += ebisbox.volFrac(vi);
-//                const auto& c = ebisbox.centroid(vi);
-//                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-//                    cfab(iv,idim) = c[idim];
-//                }
+                const auto& c = ebisbox.centroid(vi);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    cfab(iv,idim) = c[idim];
+                }
             }
             vfab(iv) = vtot;
         }
@@ -295,6 +315,7 @@ EBTower::initFaceGeometry (int lev, const EBLevelGrid& eblg)
         }
     }
 }
+#endif
 
 int
 EBTower::getIndex (const Box& domain) const
@@ -349,7 +370,7 @@ getPeriodicGhostBoxes(const Box        & a_valid,
           Box edgeBoxHiIHiJ = adjCellHi(flapBoxHiI, jdir, a_ngrow);
 
 
-          vector<Box> edgeBoxes(4);
+          Vector<Box> edgeBoxes(4);
           edgeBoxes[0] = edgeBoxLoILoJ;
           edgeBoxes[1] = edgeBoxHiILoJ;
           edgeBoxes[2] = edgeBoxLoIHiJ;
@@ -386,7 +407,7 @@ getPeriodicGhostBoxes(const Box        & a_valid,
     Box cornerBoxLoIHiJHiK = adjCellHi(edgeBoxLoIHiJ, 2, a_ngrow);
     Box cornerBoxHiIHiJHiK = adjCellHi(edgeBoxHiIHiJ, 2, a_ngrow);
 
-    vector<Box> cornerBoxes(8);
+    Vector<Box> cornerBoxes(8);
     
     cornerBoxes[0] = cornerBoxLoILoJLoK;
     cornerBoxes[1] = cornerBoxHiILoJLoK;
@@ -446,7 +467,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             {
               Box valid = bagrids[mfi];
               Periodicity peri = a_geom.periodicity();
-              vector<IntVect> periodicShifts = peri.shiftIntVect();
+              const auto& periodicShifts = peri.shiftIntVect();
               int ngrow = a_flag.nGrow();
               Vector<Box> ghostBoxes = getPeriodicGhostBoxes(valid, domain, ngrow, peri);
               for(int ibox = 0; ibox < ghostBoxes.size(); ibox++)
@@ -515,21 +536,21 @@ EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
     a_volfrac.EnforcePeriodicity(a_geom.periodicity());
 }
 
-// void
-// EBTower::fillCentroid (MultiCutFab& a_centroid, const Geometry& a_geom)
-// {
-//     BL_PROFILE("EBTower::fillBndryCent()");
+void
+EBTower::fillCentroid (MultiCutFab& a_centroid, const Geometry& a_geom)
+{
+    BL_PROFILE("EBTower::fillCentroid()");
+    
+    const Box& domain = a_geom.Domain();
+    
+    int lev = m_instance->getIndex(domain);
+    
+    const auto& src_centroid = m_instance->m_centroid[lev];
+    
+    a_centroid.setVal(0.0);
 
-//     const Box& domain = a_geom.Domain();
-
-//     int lev = m_instance->getIndex(domain);
-
-//     const auto& src_centroid = m_instance->m_centroid[lev];
-
-//     a_centroid.setVal(0.0);
-
-//     a_centroid.ParallelCopy(src_centroid, 0, 0, a_centroid.nComp(), 0, a_centroid.nGrow(), a_geom.periodicity());
-// }
+    a_centroid.ParallelCopy(src_centroid, 0, 0, a_centroid.nComp(), 0, a_centroid.nGrow(), a_geom.periodicity());
+}
 
 void
 EBTower::fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom)

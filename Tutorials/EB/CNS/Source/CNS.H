@@ -123,12 +123,6 @@ protected:
     // Compute initial time step.
     amrex::Real initialTimeStep ();
 
-  void printPointStuff(const EBCellFlag& flag, 
-                       const IntVect&    a_iv,
-                       const MFIter &    a_mfi) const;
-
-  void testEBStuff() const;
-
     void computeTemp (amrex::MultiFab& State, int ng);
 
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt,

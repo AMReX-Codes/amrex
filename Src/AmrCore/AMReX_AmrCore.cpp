@@ -58,7 +58,7 @@ AmrCore::InitAmrCore ()
     verbose   = 0;
     ParmParse pp("amr");
     pp.query("v",verbose);
-    
+
 #ifdef AMREX_PARTICLES
     m_gdb.reset(new AmrParGDB(this));
 #endif

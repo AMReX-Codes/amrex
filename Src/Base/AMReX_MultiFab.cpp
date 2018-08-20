@@ -40,7 +40,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
     {
@@ -70,7 +70,7 @@ MultiFab::Dot (const iMultiFab& mask,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
     {
@@ -153,6 +153,33 @@ MultiFab::Copy (MultiFab&       dst,
             dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
     }
 }
+
+
+#ifdef USE_PERILLA
+void
+MultiFab::Copy (MultiFab&       dst,
+                const MultiFab& src,
+                int             f,
+                int             srccomp,
+                int             dstcomp,
+                int             numcomp,
+                const Box&      bx)
+{
+// don't have to    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    //BL_ASSERT(dst.nGrow() >= nghost); // && src.nGrow() >= nghost);
+
+    int fis = src.IndexArray()[f];
+    int fid = dst.IndexArray()[f];
+    //const Box& bx = BoxLib::grow(dst[f].box(),nghost);
+    //const Box& bx = dst[fid].box();
+
+    if (bx.ok())
+      dst[fid].copy(src[fid], bx, srccomp, bx, dstcomp, numcomp);
+
+}
+#endif
+
 
 void
 MultiFab::Subtract (MultiFab&       dst,
@@ -537,6 +564,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const FabFactory<FArrayBox>& factory)
 {
     define(bxs, dm, nvar, IntVect(ngrow), info, factory);
+    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -1099,7 +1127,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     Real nm1 = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:nm1)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:nm1)
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
@@ -1166,7 +1194,7 @@ MultiFab::sum (int comp, bool local) const
     Real sm = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {

@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <iostream>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabFactory.H>
@@ -79,6 +80,13 @@ public:
         return (flag & one_type_mask) == covered_bits;
     }
 
+    bool isConnected (const IntVect& iv) const {
+        int i=0, j=0, k=0;
+        AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
+        const int n = pos_ngbr[k+1][j+1][i+1];
+        return flag & (1 << n);
+    }
+
     void setDisconnected () {
         flag &= one_lower_mask;
     }
@@ -101,11 +109,12 @@ public:
         flag |= 1 << n;
     }
 
-    uint32_t  getValue() const
+    uint32_t getValue() const
     {
       return flag;
     }
 
+    static constexpr EBCellFlag TheDefaultCell () { return {default_value}; }
     static constexpr EBCellFlag TheCoveredCell () { return {covered_value}; }
   
 private:
@@ -152,9 +161,14 @@ private:
                                             { w_lower_mask+21, w_lower_mask+22, w_lower_mask+23 },
                                             { w_lower_mask+24, w_lower_mask+25, w_lower_mask+26 }}} }};
 
-    // regular connected with all neighbors 
+    // regular connected with all neighbors
+#if AMREX_SPACEDIM == 3
     static constexpr uint32_t default_value = zero_lower_mask | regular_bits | single_vof_bits;
-    static constexpr uint32_t covered_value = zero_lower_mask | covered_bits;
+#else
+    static constexpr uint32_t default_value = 0x7fc004;  // zero out "3d" neighbors
+#endif
+//    static constexpr uint32_t covered_value = zero_lower_mask | covered_bits;
+    static constexpr uint32_t covered_value = 0x40003;  // zero out all neighbors
 
     uint32_t flag = default_value;
 };
@@ -177,6 +191,8 @@ private:
     FabType m_type = FabType::undefined;
     Box m_region;
 };
+
+std::ostream& operator<< (std::ostream& os, const EBCellFlag& flag);
 
 }
 

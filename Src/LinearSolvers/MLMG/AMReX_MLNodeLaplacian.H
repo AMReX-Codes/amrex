@@ -60,7 +60,6 @@ public :
 
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
-    void setSimpleInterpolation (bool flag) { m_use_simple_interp = flag; } // for P in RAP
 
     void setCoarseningStrategy (CoarseningStrategy cs) { m_coarsening_strategy = cs; }
 
@@ -88,7 +87,7 @@ protected:
     virtual Real getAScalar () const final { return  0.0; }
     virtual Real getBScalar () const final { return -1.0; }
     virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final { return nullptr; }
-    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
+    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
         { return {AMREX_D_DECL(m_sigma[amrlev][mglev][0].get(),
                                m_sigma[amrlev][mglev][2].get(),
                                m_sigma[amrlev][mglev][3].get())}; }
@@ -105,19 +104,17 @@ private:
     CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
 #endif
 
-    Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
+    Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab
-    Vector<std::unique_ptr<MultiFab> > m_connection;
     Vector<std::unique_ptr<MultiFab> > m_integral;
-    bool m_connection_built = false;
+    bool m_integral_built = false;
 #endif
 
     bool m_use_gauss_seidel = true;
     bool m_use_harmonic_average = false;
-    bool m_use_simple_interp = false;
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
@@ -137,7 +134,7 @@ private:
     void buildStencil ();
 
 #ifdef AMREX_USE_EB
-    void buildConnection ();
+    void buildIntegral ();
 #endif
 };
 

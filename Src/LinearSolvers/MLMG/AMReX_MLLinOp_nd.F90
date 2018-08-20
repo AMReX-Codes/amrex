@@ -48,7 +48,6 @@ contains
     real(amrex_real) :: fac
 
     integer :: n
-    
 
     inhomogeneous = (inhomog .ne. 0)
 
@@ -209,39 +208,99 @@ contains
        end if
 
        ! Fill corners with averages for non-cross stencil
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM > 1)
        if (cross .eq. 0) then
-          ! The iteration over faces is always in the order of xlo, xhi, ylo and yhi.
-          ! No need to do anything for xlo and xhi, because at that time, ylo and yhi
-          ! have not been filled.
+          ! The iteration over faces is always in the order of xlo, ylo, zlo, xhi, yhi and zhi.
+
+          ! Corners in XY plane
           if (cdir==xlo_dir .or. cdir==ylo_dir) then
              do k = lo(3), hi(3)
-                phi(lo(1)-1,lo(2)-1,k,n) = & ! Southwest
+                phi(lo(1)-1,lo(2)-1,k,n) = & 
                      0.5d0*(2.d0*phi(lo(1),lo(2)-1,k,n) - phi(lo(1)+1,lo(2)-1,k,n)) + &
                      0.5d0*(2.d0*phi(lo(1)-1,lo(2),k,n) - phi(lo(1)-1,lo(2)+1,k,n))
              end do
           end if
           if (cdir==xhi_dir .or. cdir==ylo_dir) then
              do k = lo(3), hi(3)
-                phi(hi(1)+1,lo(2)-1,k,n) = & ! Southeast
+                phi(hi(1)+1,lo(2)-1,k,n) = & 
                      0.5d0*(2.d0*phi(hi(1),lo(2)-1,k,n) - phi(hi(1)-1,lo(2)-1,k,n)) + &
                      0.5d0*(2.d0*phi(hi(1)+1,lo(2),k,n) - phi(hi(1)+1,lo(2)+1,k,n))
              end do
           end if
           if (cdir==xlo_dir .or. cdir==yhi_dir) then
              do k = lo(3), hi(3)
-                phi(lo(1)-1,hi(2)+1,k,n) = & ! Northwest
+                phi(lo(1)-1,hi(2)+1,k,n) = & 
                      0.5d0*(2.d0*phi(lo(1),hi(2)+1,k,n) - phi(lo(1)+1,hi(2)+1,k,n)) + &
                      0.5d0*(2.d0*phi(lo(1)-1,hi(2),k,n) - phi(lo(1)-1,hi(2)-1,k,n))
              end do
           end if
           if (cdir==xhi_dir .or. cdir==yhi_dir) then
              do k = lo(3), hi(3)
-                phi(hi(1)+1,hi(2)+1,k,n) = & ! Northeast
+                phi(hi(1)+1,hi(2)+1,k,n) = & 
                      0.5d0*(2.d0*phi(hi(1),hi(2)+1,k,n) - phi(hi(1)-1,hi(2)+1,k,n)) + &
                      0.5d0*(2.d0*phi(hi(1)+1,hi(2),k,n) - phi(hi(1)+1,hi(2)-1,k,n))
              end do
           end if
+#if (AMREX_SPACEDIM > 2)
+          ! Corners in YZ plane
+          if (cdir==zlo_dir .or. cdir==ylo_dir) then
+             do i = lo(1), hi(1)
+                phi(i,lo(2)-1,lo(3)-1,n) = & 
+                     0.5d0*(2.d0*phi(i,lo(2)-1,lo(3),n) - phi(i,lo(2)-1,lo(3)+1,n)) + &
+                     0.5d0*(2.d0*phi(i,lo(2),lo(3)-1,n) - phi(i,lo(2)+1,lo(3)-1,n))
+             end do
+          end if
+          if (cdir==zhi_dir .or. cdir==ylo_dir) then
+             do i = lo(1), hi(1)
+                phi(i,lo(2)-1,hi(3)+1,n) = & 
+                     0.5d0*(2.d0*phi(i,lo(2)-1,hi(3),n) - phi(i,lo(2)-1,hi(3)-1,n)) + &
+                     0.5d0*(2.d0*phi(i,lo(2),hi(3)+1,n) - phi(i,lo(2)+1,hi(3)+1,n))
+             end do
+          end if
+          if (cdir==zlo_dir .or. cdir==yhi_dir) then
+             do i = lo(1), hi(1)
+                phi(i,hi(2)+1,lo(3)-1,n) = & 
+                     0.5d0*(2.d0*phi(i,hi(2)+1,lo(3),n) - phi(i,hi(2)+1,lo(3)+1,n)) + &
+                     0.5d0*(2.d0*phi(i,hi(2),lo(3)-1,n) - phi(i,hi(2)-1,lo(3)-1,n))
+             end do
+          end if
+          if (cdir==zhi_dir .or. cdir==yhi_dir) then
+             do i = lo(1), hi(1)
+                phi(i,hi(2)+1,hi(3)+1,n) = & 
+                     0.5d0*(2.d0*phi(i,hi(2)+1,hi(3),n) - phi(i,hi(2)+1,hi(3)-1,n)) + &
+                     0.5d0*(2.d0*phi(i,hi(2),hi(3)+1,n) - phi(i,hi(2)-1,hi(3)+1,n))
+             end do
+          end if
+          ! Corners in XZ plane
+          if (cdir==xlo_dir .or. cdir==zlo_dir) then
+             do j = lo(2), hi(2)
+                phi(lo(1)-1,j,lo(3)-1,n) = & 
+                     0.5d0*(2.d0*phi(lo(1),  j,lo(3)-1,n) - phi(lo(1)+1,j,lo(3)-1,n)) + &
+                     0.5d0*(2.d0*phi(lo(1)-1,j,lo(3),n) - phi(lo(1)-1,j,lo(3)+1,n))
+             end do
+          end if
+          if (cdir==xhi_dir .or. cdir==zlo_dir) then
+             do j = lo(2), hi(2)
+                phi(hi(1)+1,j,lo(3)-1,n) = & 
+                     0.5d0*(2.d0*phi(hi(1),j,lo(3)-1,n) - phi(hi(1)-1,j,lo(3)-1,n)) + &
+                     0.5d0*(2.d0*phi(hi(1)+1,j,lo(3),n) - phi(hi(1)+1,j,lo(3)+1,n))
+             end do
+          end if
+          if (cdir==xlo_dir .or. cdir==zhi_dir) then
+             do j = lo(2), hi(2)
+                phi(lo(1)-1,j,hi(3)+1,n) = & 
+                     0.5d0*(2.d0*phi(lo(1),j,hi(3)+1,n) - phi(lo(1)+1,j,hi(3)+1,n)) + &
+                     0.5d0*(2.d0*phi(lo(1)-1,j,hi(3),n) - phi(lo(1)-1,j,hi(3)-1,n))
+             end do
+          end if
+          if (cdir==xhi_dir .or. cdir==zhi_dir) then
+             do j = lo(2), hi(2)
+                phi(hi(1)+1,j,hi(3)+1,n) = & 
+                     0.5d0*(2.d0*phi(hi(1),j,hi(3)+1,n) - phi(hi(1)-1,j,hi(3)+1,n)) + &
+                     0.5d0*(2.d0*phi(hi(1)+1,j,hi(3),n) - phi(hi(1)+1,j,hi(3)-1,n))
+             end do
+          end if
+#endif
        end if
 #endif
 

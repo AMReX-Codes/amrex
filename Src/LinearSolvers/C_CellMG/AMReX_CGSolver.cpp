@@ -211,28 +211,6 @@ sxay (MultiFab&       ss,
     sxay(ss,xx,a,yy,0);
 }
 
-//
-// Do a one-component dot product of r & z using supplied components.
-//
-static
-Real
-dotxy (const MultiFab& r,
-       int             rcomp,
-       const MultiFab& z,
-       int             zcomp,
-       bool            local)
-{
-    BL_PROFILE("CGSolver::dotxy()");
-
-    BL_ASSERT(r.nComp() > rcomp);
-    BL_ASSERT(z.nComp() > zcomp);
-    BL_ASSERT(r.boxArray() == z.boxArray());
-
-    const int ncomp = 1;
-    const int nghost = 0;
-    return MultiFab::Dot(r,rcomp,z,zcomp,ncomp,nghost,local);
-}
-
 static
 Real
 dotxy (const MultiFab& r,
@@ -881,12 +859,12 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     //
     // Calculate the local values of these norms & reduce their values together.
     //
-    Real vals[2] = { norm_inf(r, true), Lp.norm(0, lev, true) };
+    Real normvals[2] = { norm_inf(r, true), Lp.norm(0, lev, true) };
 
-    ParallelDescriptor::ReduceRealMax(vals,2);
+    ParallelDescriptor::ReduceRealMax(normvals,2);
 
-    Real       rnorm    = vals[0];
-    const Real Lp_norm  = vals[1];
+    Real       rnorm    = normvals[0];
+    const Real Lp_norm  = normvals[1];
     Real       sol_norm = 0;
 #endif
     const Real rnorm0   = rnorm;
@@ -992,13 +970,13 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         // in the following two dotxy()s.  We do that by calculating the "local"
         // values and then reducing the two local values at the same time.
         //
-        Real vals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
+        Real dotvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
 
-        ParallelDescriptor::ReduceRealSum(vals,2);
+        ParallelDescriptor::ReduceRealSum(dotvals,2);
 
-        if ( vals[0] )
+        if ( dotvals[0] )
 	{
-            omega = vals[1]/vals[0];
+            omega = dotvals[1]/dotvals[0];
 	}
         else
 	{

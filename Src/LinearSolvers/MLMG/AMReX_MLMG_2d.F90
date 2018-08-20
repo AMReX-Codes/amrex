@@ -5,7 +5,7 @@ module amrex_mlmg_interp_module
   implicit none
 
   private
-  public :: amrex_mlmg_lin_cc_interp, amrex_mlmg_lin_nd_interp
+  public :: amrex_mlmg_lin_cc_interp, amrex_mlmg_lin_nd_interp, amrex_mlmg_eb_cc_interp
 
 contains
 
@@ -62,7 +62,7 @@ contains
     real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1),fdlo(2):fdhi(2),nc)
     real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1),cdlo(2):cdhi(2),nc)
     
-    integer :: i,j,n,ii,jj
+    integer :: i,j,n
 
     do n = 1, nc
        do    j = clo(2), chi(2)
@@ -82,5 +82,37 @@ contains
     end do
     
   end subroutine amrex_mlmg_lin_nd_interp
+
+
+  subroutine amrex_mlmg_eb_cc_interp (lo, hi, ff, fflo, ffhi, cc, cclo, cchi, &
+       flag, glo, ghi, ratio, nc) &
+       bind(c,name='amrex_mlmg_eb_cc_interp')
+#ifdef AMREX_USE_EB
+    use amrex_ebcellflag_module, only : is_covered_cell
+#endif
+    integer, dimension(2), intent(in) :: lo, hi, fflo, ffhi, cclo, cchi, glo, ghi
+    integer, intent(in) :: ratio, nc
+    real(amrex_real), intent(in   ) :: cc(cclo(1):cchi(1),cclo(2):cchi(2),nc)
+    real(amrex_real), intent(inout) :: ff(fflo(1):ffhi(1),fflo(2):ffhi(2),nc)
+    integer         , intent(in   ) :: flag(glo(1):ghi(1),glo(2):ghi(2))
+
+    integer :: i, j, n, ic, jc
+
+#ifdef AMREX_USE_EB
+    do n = 1, nc
+       do j = lo(2), hi(2)
+          jc = j/ratio
+          do i = lo(1), hi(1)
+             ic = i/ratio
+             if (is_covered_cell(flag(i,j))) then
+                ff(i,j,n) = 0.d0
+             else
+                ff(i,j,n) = cc(ic,jc,n)
+             end if
+          end do
+       end do
+    end do
+#endif
+  end subroutine amrex_mlmg_eb_cc_interp
 
 end module amrex_mlmg_interp_module

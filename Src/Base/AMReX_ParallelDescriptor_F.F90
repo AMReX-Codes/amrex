@@ -20,6 +20,11 @@ module amrex_paralleldescriptor_module
        implicit none
      end function amrex_fi_pd_ioprocessor
 
+     integer(c_int) function amrex_fi_pd_ioprocessor_number () bind(c)
+       import
+       implicit none
+     end function amrex_fi_pd_ioprocessor_number
+
      subroutine amrex_fi_pd_bcast_r (x, n, root) bind(c)
        import
        implicit none
@@ -41,7 +46,8 @@ module amrex_paralleldescriptor_module
   end interface amrex_pd_bcast
 
   private
-  public :: amrex_pd_myproc, amrex_pd_nprocs, amrex_pd_ioprocessor, amrex_pd_bcast, amrex_pd_wtime
+  public :: amrex_pd_myproc, amrex_pd_nprocs, amrex_pd_ioprocessor, amrex_pd_ioprocessor_number, &
+       amrex_pd_bcast, amrex_pd_wtime
 
 contains
 
@@ -59,6 +65,10 @@ contains
     amrex_pd_ioprocessor = (i.ne.0)
   end function amrex_pd_ioprocessor
 
+  integer function amrex_pd_ioprocessor_number ()
+    amrex_pd_ioprocessor_number = amrex_fi_pd_ioprocessor_number()
+  end function amrex_pd_ioprocessor_number
+
   subroutine amrex_pd_bcast_r (x, a_root)
     real(amrex_real), target :: x
     integer, intent(in), optional :: a_root
@@ -67,7 +77,7 @@ contains
     if (present(a_root)) then
        root = a_root
     else
-       root = amrex_pd_myproc()
+       root = amrex_pd_ioprocessor_number()
     end if
     if (root .eq. amrex_pd_myproc()) then
        r(1) = x
@@ -85,7 +95,7 @@ contains
     if (present(a_root)) then
        root = a_root
     else
-       root = amrex_pd_myproc()
+       root = amrex_pd_ioprocessor_number()
     end if
     call amrex_fi_pd_bcast_r(x, size(x), root)
   end subroutine amrex_pd_bcast_rv
@@ -97,7 +107,7 @@ contains
     if (present(a_root)) then
        root = a_root
     else
-       root = amrex_pd_myproc()
+       root = amrex_pd_ioprocessor_number()
     end if
     call amrex_fi_pd_bcast_r(x, size(x), root)
   end subroutine amrex_pd_bcast_r2v
@@ -109,7 +119,7 @@ contains
     if (present(a_root)) then
        root = a_root
     else
-       root = amrex_pd_myproc()
+       root = amrex_pd_ioprocessor_number()
     end if
     call amrex_fi_pd_bcast_r(x, size(x), root)
   end subroutine amrex_pd_bcast_r3v

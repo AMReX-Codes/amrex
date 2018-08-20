@@ -100,6 +100,9 @@ class AmrData {
   void  LoNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const;
   void  HiNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const;
 
+  // Return grid spacing at level iLevel
+  Vector<Real> CellSize(int iLevel) const { return dxLevel[iLevel]; }
+
   // find the IntVect given a physical location
   // returns the intvect, the finest level it is contained on,
   // and the intvect at the given finest level

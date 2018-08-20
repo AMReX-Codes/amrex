@@ -223,8 +223,7 @@ contains
             end if
 
          else 
-            print *,'UNKNOWN BC ON LEFT FACE IN APPLYBC'
-            call bl_error("stop")
+            call bl_error("stop UNKNOWN BC ON LEFT FACE IN APPLYBC")
          end if
       end if
 
@@ -287,8 +286,7 @@ contains
             end if
 
          else
-            print *,'UNKNOWN BC ON RIGHT FACE IN APPLYBC'
-            call bl_error("stop")
+            call bl_error("stop UNKNOWN BC ON RIGHT FACE IN APPLYBC")
          end if
       end if
 

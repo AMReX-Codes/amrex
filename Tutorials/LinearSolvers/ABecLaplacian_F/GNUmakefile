@@ -2,6 +2,7 @@ DEBUG = FALSE
 
 USE_MPI  = TRUE
 USE_OMP  = FALSE
+USE_F_INTERFACES = TRUE
 
 COMP = gnu
 
@@ -15,6 +16,9 @@ include ./Make.package
 
 Pdirs 	:= Base Boundary AmrCore LinearSolvers/C_CellMG LinearSolvers/MLMG
 Pdirs   += F_Interfaces/Base F_Interfaces/AmrCore F_Interfaces/LinearSolvers
+ifeq ($(USE_HYPRE),TRUE)
+    Pdirs += Extern/HYPRE
+endif
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
 include $(Ppack)

@@ -22,7 +22,7 @@ using std::ios;
 #include "DebugDump.H"
 #include <iomanip>
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
 #include <TV_TempWrite.H>
 #endif
 
@@ -517,11 +517,11 @@ main (int   argc,
     amrex::Print() << "\\caption{Solution error convergence rates using $L_";
     if(inorm == 0)
     {
-      amrex::Print() <<"\\infty norm." << std::endl;;
+      amrex::Print() <<"\\infty$ norm." << std::endl;;
     }
     else
     {
-      amrex::Print() << inorm << " norm.";
+      amrex::Print() << inorm << "$ norm.";
     }
     amrex::Print() << "}" << std::endl;
     amrex::Print() << "\\end{table}" << std::endl;

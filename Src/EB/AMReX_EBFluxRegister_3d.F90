@@ -326,7 +326,7 @@ contains
     real(rt), intent(out) :: d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nc)
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
 
-    integer :: i,j,k,n, nbr(-1:1,-1:1,-1:1), ii,jj,kk
+    integer :: i,j,k,nbr(-1:1,-1:1,-1:1),ii,jj,kk
     real(rt) :: dm(nc), wtot, drho(nc)
 
     do       k = lo(3)-1, hi(3)+1

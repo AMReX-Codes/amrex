@@ -277,8 +277,8 @@ contains
 
        else
 
-          write(6,*)' bogus dir ', dir
-          call bl_abort(" ")
+!          write(6,*)' bogus dir ', dir
+          call bl_abort("bogus dir")
 
        endif
 

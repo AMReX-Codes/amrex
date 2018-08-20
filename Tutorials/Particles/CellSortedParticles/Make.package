@@ -1,0 +1,5 @@
+CEXE_sources += main.cpp CellSortedPC.cpp 
+CEXE_headers += CellSortedPC.H
+
+CEXE_headers += cell_sorted_F.H
+F90EXE_sources += cell_sorted_$(DIM)d.F90
