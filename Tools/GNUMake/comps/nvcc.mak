@@ -23,11 +23,11 @@ CXXFLAGS = $(HOST_CXXFLAGS) --std=c++11 -Wno-deprecated-gpu-targets -m64 -dc -x 
 CFLAGS = $(HOST_CFLAGS) -Wno-deprecated-gpu-targets -m64 -dc -x c -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
 
 ifeq ($(DEBUG),TRUE)
-  CXXFLAGS += -g -G -lineinfo
-  CFLAGS += -g -G -lineinfo
+  CXXFLAGS += -g -G
+  CFLAGS += -g -G
 else
-  CXXFLAGS += --use_fast_math
-  CFLAGS += --use_fast_math
+  CXXFLAGS += --use_fast_math -lineinfo
+  CFLAGS += --use_fast_math -lineinfo
 endif
 
 CXX := nvcc
