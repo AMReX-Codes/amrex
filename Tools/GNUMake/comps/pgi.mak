@@ -1,4 +1,4 @@
-#
+
 # Generic setup for using PGI
 #
 
@@ -98,8 +98,16 @@ FFLAGS   += -Mnomain
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),lineinfo,ptxinfo
-  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),lineinfo,ptxinfo
+  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath
+  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath
+
+  ifeq ($(DEBUG),TRUE)
+    F90FLAGS += -Mcuda=debug
+    FFLAGSS  += -Mcuda=debug
+  else
+    F90FLAGS += -Mcuda=lineinfo
+    FFLAGS   += -Mcuda=lineinfo
+  endif
 
   F90FLAGS += CUDA_HOME=$(COMPILE_CUDA_PATH)
   FFLAGS   += CUDA_HOME=$(COMPILE_CUDA_PATH)
