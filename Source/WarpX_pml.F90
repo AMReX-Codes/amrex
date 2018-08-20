@@ -22,6 +22,7 @@ contains
        &                             sigz2, sigz2_lo, sigz2_hi, &
        &                             dtsdx, dtsdy, dtsdz, solver_type) &
        bind(c,name='warpx_push_pml_bvec_3d')
+    use amrex_constants_module, only : one, two, four, eighth
     integer, intent(in) :: xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3), &
          Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), &
          Bxlo(3), Bxhi(3), Bylo(3), Byhi(3), Bzlo(3), Bzhi(3), solver_type
@@ -41,6 +42,8 @@ contains
     real(amrex_real), intent(in) :: sigz1(sigz1_lo:sigz1_hi)
     real(amrex_real), intent(in) :: sigz2(sigz2_lo:sigz2_hi)
     real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
+
+    real(amrex_real), parameter :: sixteenth = 1.d0/16.d0
 
     integer :: i, j, k
     
@@ -95,19 +98,19 @@ contains
         rx = (dtsdx/delta)**2
         ry = (dtsdy/delta)**2
         rz = (dtsdz/delta)**2
-        beta = 0.125*(1.-rx*ry*rz/(ry*rz+rz*rx+rx*ry))
+        beta = eighth*(one-rx*ry*rz/(ry*rz+rz*rx+rx*ry))
         betaxy = ry*beta
         betaxz = rz*beta
         betayx = rx*beta
         betayz = rz*beta
         betazx = rx*beta
         betazy = ry*beta
-        gammax = ry*rz*(1./16.-0.125*ry*rz/(ry*rz+rz*rx+rx*ry))
-        gammay = rx*rz*(1./16.-0.125*rx*rz/(ry*rz+rz*rx+rx*ry))
-        gammaz = rx*ry*(1./16.-0.125*rx*ry/(ry*rz+rz*rx+rx*ry))
-        alphax = 1. - 2.*betaxy - 2.* betaxz - 4.*gammax
-        alphay = 1. - 2.*betayx - 2.* betayz - 4.*gammay
-        alphaz = 1. - 2.*betazx - 2.* betazy - 4.*gammaz
+        gammax = ry*rz*(sixteenth-eighth*ry*rz/(ry*rz+rz*rx+rx*ry))
+        gammay = rx*rz*(sixteenth-eighth*rx*rz/(ry*rz+rz*rx+rx*ry))
+        gammaz = rx*ry*(sixteenth-eighth*rx*ry/(ry*rz+rz*rx+rx*ry))
+        alphax = one - two*betaxy - two* betaxz - four*gammax
+        alphay = one - two*betayx - two* betayz - four*gammay
+        alphaz = one - two*betazx - two* betazy - four*gammaz
     
         do       k = xlo(3), xhi(3)
            do    j = xlo(2), xhi(2)
@@ -330,6 +333,7 @@ contains
        &                             sigz2, sigz2_lo, sigz2_hi, &
        &                             dtsdx, dtsdy, dtsdz, solver_type) &
        bind(c,name='warpx_push_pml_bvec_2d')
+    use amrex_constants_module, only : one, two, eighth
     integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
          Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), &
          Bxlo(2), Bxhi(2), Bylo(2), Byhi(2), Bzlo(2), Bzhi(2), solver_type
@@ -389,10 +393,10 @@ contains
         delta = max(dtsdx,dtsdz)
         rx = (dtsdx/delta)**2
         rz = (dtsdz/delta)**2
-        betaxz = 0.125*rz
-        betazx = 0.125*rx
-        alphax = 1. - 2.*betaxz
-        alphaz = 1. - 2.*betazx
+        betaxz = eighth*rz
+        betazx = eighth*rx
+        alphax = one - two*betaxz
+        alphaz = one - two*betazx
 
 
         do    k = xlo(2), xhi(2)
