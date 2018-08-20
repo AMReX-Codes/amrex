@@ -6,6 +6,8 @@
 #include "myfunc.H"
 #include "myfunc_F.H"  // includes advance.cpp
 
+using namespace amrex;
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);

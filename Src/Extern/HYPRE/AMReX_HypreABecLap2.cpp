@@ -2,67 +2,175 @@
 #include <AMReX_HypreABec_F.H>
 
 #include <cmath>
-
-namespace {
-    static int ispow2(int i)
-    {
-        return (i == 1) ? 1 : (((i <= 0) || (i & 1)) ? 0 : ispow2(i / 2));
-    }
-}
+#include <numeric>
+#include <algorithm>
+#include <type_traits>
 
 namespace amrex
 {
 
-HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
-                              const DistributionMapping& dmap,
-                              const Geometry& geom_,
-                              MPI_Comm comm_)
-    : comm(comm_),
-      geom(geom_),
-      verbose(1),
-      hgrid(NULL), stencil(NULL), graph(NULL),
-      A(NULL), A0(NULL), b(NULL), x(NULL)
+HypreABecLap2::HypreABecLap2 (const BoxArray& grids, const DistributionMapping& dmap,
+                              const Geometry& geom_, MPI_Comm comm_)
+    : Hypre(grids, dmap, geom_, comm_)
 {
-    const int ncomp = 1;
-    const int ngrow = 0;
-    acoefs.define(grids, dmap, ncomp, ngrow);
-    acoefs.setVal(0.0);
+}
 
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        BoxArray edge_boxes(grids);
-        edge_boxes.surroundingNodes(i);
-        bcoefs[i].define(edge_boxes, dmap, ncomp, ngrow);        
-        bcoefs[i].setVal(0.0);
+HypreABecLap2::~HypreABecLap2 ()
+{
+    HYPRE_BoomerAMGDestroy(solver);
+    solver = NULL;
+    HYPRE_SStructMatrixDestroy(A);
+    A = NULL;
+//    HYPRE_SStructVectorDestroy(b);  // done in solve()
+//    b = NULL;
+//    HYPRE_SStructVectorDestroy(x);
+//    x = NULL;
+    HYPRE_SStructGraphDestroy(graph);
+    graph = NULL;
+    HYPRE_SStructStencilDestroy(stencil);
+    stencil = NULL;
+    HYPRE_SStructGridDestroy(hgrid);
+    hgrid = NULL;
+}
+
+void
+HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol, 
+                      int maxiter, const BndryData& bndry, int max_bndry_order)
+{
+    if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
+    {
+        m_bndry = &bndry;
+        m_maxorder = max_bndry_order;
+        m_factory = &(rhs.Factory());
+        prepareSolver();
+    }
+    else
+    {
+        m_factory = &(rhs.Factory());
     }
 
-    bd.define(grids, dmap, ncomp, geom);
+    // We have to do this repeatedly to avoid memory leak due to Hypre bug
+    HYPRE_SStructVectorCreate(comm, hgrid, &b);
+    HYPRE_SStructVectorSetObjectType(b, HYPRE_PARCSR);
+    HYPRE_SStructVectorInitialize(b);
+    //
+    HYPRE_SStructVectorCreate(comm, hgrid, &x);
+    HYPRE_SStructVectorSetObjectType(x, HYPRE_PARCSR);
+    HYPRE_SStructVectorInitialize(x);
+    //
+    loadVectors(soln, rhs);
+    //
+    HYPRE_SStructVectorAssemble(b);
+    HYPRE_SStructVectorAssemble(x);
 
-    int num_procs, myid;
-    MPI_Comm_size(comm, &num_procs );
-    MPI_Comm_rank(comm, &myid );
- 
-    HYPRE_SStructGridCreate(comm, BL_SPACEDIM, 1, &hgrid);
+    HYPRE_BoomerAMGSetMinIter(solver, 1);
+    HYPRE_BoomerAMGSetMaxIter(solver, maxiter);
+    HYPRE_BoomerAMGSetTol(solver, reltol);
+    if (abstol > 0.0)
+    {
+        Real bnorm;
+        hypre_SStructInnerProd((hypre_SStructVector *) b,
+                               (hypre_SStructVector *) b,
+                               &bnorm);
+        bnorm = std::sqrt(bnorm);
 
+        const BoxArray& grids = acoefs.boxArray();
+        Real volume = grids.d_numPts();
+        Real reltol_new = bnorm > 0.0 ? abstol / (bnorm+1.e-100) * std::sqrt(volume) : reltol;
+
+        if (reltol_new > reltol) {
+            HYPRE_BoomerAMGSetTol(solver, reltol_new);
+        }
+    }
+
+    HYPRE_ParCSRMatrix par_A;
+    HYPRE_ParVector par_b;
+    HYPRE_ParVector par_x;
+    
+    HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
+    HYPRE_SStructVectorGetObject(b, (void**) &par_b);
+    HYPRE_SStructVectorGetObject(x, (void**) &par_x);
+
+    HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
+
+    if (verbose >= 2)
+    {
+        HYPRE_Int num_iterations;
+        Real res;
+        HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
+        HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
+
+        amrex::Print() << "\n" << num_iterations
+                       << " Hypre SS BoomerAMG Iterations, Relative Residual "
+                       << res << std::endl;
+    }
+
+    getSolution(soln);
+
+    // We have to do this repeatedly to avoid memory leak due to Hypre bug
+    HYPRE_SStructVectorDestroy(b);
+    b = NULL;
+    HYPRE_SStructVectorDestroy(x);
+    x = NULL;
+}
+
+void
+HypreABecLap2::getSolution (MultiFab& soln)
+{
+    HYPRE_SStructVectorGather(x);
+
+    const HYPRE_Int part = 0;
+
+    FArrayBox fab;
+    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    {
+        const Box &reg = mfi.validbox();
+
+        FArrayBox *xfab;
+        if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
+            xfab = &soln[mfi];
+        }
+        else {
+            xfab = &fab;
+            xfab->resize(reg);
+        }
+
+        auto reglo = Hypre::loV(reg);
+        auto reghi = Hypre::hiV(reg);
+        HYPRE_SStructVectorGetBoxValues(x, part, reglo.data(), reghi.data(),
+                                        0, xfab->dataPtr());
+
+        if (soln.nGrow() != 0) {
+            soln[mfi].copy(*xfab, 0, 0, 1);
+        }
+    }
+}
+
+void
+HypreABecLap2::prepareSolver ()
+{
+    BL_PROFILE("HypreABecLap2::prepareSolver()");
+
+    HYPRE_SStructGridCreate(comm, AMREX_SPACEDIM, 1, &hgrid);
+
+    Array<HYPRE_Int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(0,0,0)};
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+        if (geom.isPeriodic(i)) {
+            is_periodic[i] = geom.period(i);
+            AMREX_ASSERT(Hypre::ispow2(is_periodic[i]));
+            AMREX_ASSERT(geom.Domain().smallEnd(i) == 0);
+        }
+    }
     if (geom.isAnyPeriodic()) {
-        int is_periodic[BL_SPACEDIM];
-        for (int i = 0; i < BL_SPACEDIM; i++) {
-            is_periodic[i] = 0;
-            if (geom.isPeriodic(i)) {
-                is_periodic[i] = geom.period(i);
-                AMREX_ASSERT(ispow2(is_periodic[i]));
-                AMREX_ASSERT(geom.Domain().smallEnd(i) == 0);
-            }
-        }
-        HYPRE_SStructGridSetPeriodic(hgrid, 0, is_periodic);
+        HYPRE_SStructGridSetPeriodic(hgrid, 0, is_periodic.data());
     }
 
-    for (int i = 0; i < grids.size(); i++) {
-        if (dmap[i] == myid) {
-            const Box& bx = grids[i];
-            HYPRE_SStructGridSetExtents(hgrid, 0,
-                                        const_cast<int*>(bx.loVect()),
-                                        const_cast<int*>(bx.hiVect()));
-        }
+    for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        auto lo = Hypre::loV(bx);
+        auto hi = Hypre::hiV(bx);
+        HYPRE_SStructGridSetExtents(hgrid, 0, lo.data(), hi.data());
     }
 
     // All variables are cell-centered
@@ -72,26 +180,25 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
     HYPRE_SStructGridAssemble(hgrid);
 
     // Setup stencils
-    static_assert(BL_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
-#if (BL_SPACEDIM == 2)
-    int offsets[5][2] = {{ 0,  0},
-                         {-1,  0},
-                         { 1,  0},
-                         { 0, -1},
-                         { 0,  1}};
-#elif (BL_SPACEDIM == 3)
-    int offsets[7][3] = {{ 0,  0,  0},
-                         {-1,  0,  0},
-                         { 1,  0,  0},
-                         { 0, -1,  0},
-                         { 0,  1,  0},
-                         { 0,  0, -1},
-                         { 0,  0,  1}};
+#if (AMREX_SPACEDIM == 2)
+    HYPRE_Int offsets[regular_stencil_size][2] = {{ 0,  0},
+                                                  {-1,  0},
+                                                  { 1,  0},
+                                                  { 0, -1},
+                                                  { 0,  1}};
+#elif (AMREX_SPACEDIM == 3)
+    HYPRE_Int offsets[regular_stencil_size][3] = {{ 0,  0,  0},
+                                                  {-1,  0,  0},
+                                                  { 1,  0,  0},
+                                                  { 0, -1,  0},
+                                                  { 0,  1,  0},
+                                                  { 0,  0, -1},
+                                                  { 0,  0,  1}};
 #endif
 
-    HYPRE_SStructStencilCreate(BL_SPACEDIM, 2 * BL_SPACEDIM + 1, &stencil);
+    HYPRE_SStructStencilCreate(AMREX_SPACEDIM, regular_stencil_size, &stencil);
 
-    for (int i = 0; i < 2 * BL_SPACEDIM + 1; i++) {
+    for (int i = 0; i < regular_stencil_size; i++) {
         HYPRE_SStructStencilSetEntry(stencil, i, offsets[i], 0);
     }
 
@@ -106,430 +213,107 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
     HYPRE_SStructMatrixSetObjectType(A, HYPRE_PARCSR);
     HYPRE_SStructMatrixInitialize(A);
 
-    HYPRE_SStructMatrixCreate(comm, graph, &A0);
-    HYPRE_SStructMatrixSetObjectType(A0, HYPRE_PARCSR);
-    HYPRE_SStructMatrixInitialize(A0);
-
-    HYPRE_SStructVectorCreate(comm, hgrid, &b);
-    HYPRE_SStructVectorSetObjectType(b, HYPRE_PARCSR);
-    
-    HYPRE_SStructVectorCreate(comm, hgrid, &x);
-    HYPRE_SStructVectorSetObjectType(x, HYPRE_PARCSR);
-
-    HYPRE_SStructVectorInitialize(b);
-    HYPRE_SStructVectorInitialize(x);
-}
-
-HypreABecLap2::~HypreABecLap2 ()
-{
-    HYPRE_SStructVectorDestroy(b);
-    HYPRE_SStructVectorDestroy(x);
-    
-    HYPRE_SStructMatrixDestroy(A);
-    HYPRE_SStructMatrixDestroy(A0);
-    
-    HYPRE_SStructGraphDestroy(graph);
-    HYPRE_SStructStencilDestroy(stencil);
-    HYPRE_SStructGridDestroy(hgrid);
-}
-
-void
-HypreABecLap2::setScalars (Real sa, Real sb)
-{
-    scalar_a = sa;
-    scalar_b = sb;
-}
-
-void
-HypreABecLap2::setACoeffs (const MultiFab& alpha)
-{
-    MultiFab::Copy(acoefs, alpha, 0, 0, 1, 0);
-}
-
-void
-HypreABecLap2::setBCoeffs (const std::array<const MultiFab*,BL_SPACEDIM>& beta)
-{
-    for (int idim=0; idim<BL_SPACEDIM; idim++) {
-        MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, 0);
-    }
-}
-
-void
-HypreABecLap2::setVerbose (int _verbose)
-{
-    verbose = _verbose;
-}
-
-void
-HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real abs_tol_, 
-                      int max_iter_, LinOpBCType bc_type, Real bc_value)
-{
-    loadBndryData(bc_type, bc_value);
-
-    loadMatrix();
-    finalizeMatrix();
-
-    loadVectors(soln, rhs);
-    finalizeVectors();
-
-    setupSolver(rel_tol_, abs_tol_, max_iter_);
-    solveDoIt();
-    getSolution(soln);
-    clearSolver();
-}
-
-void
-HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real abs_tol_, 
-                      int max_iter_, const BndryData& _bndry)
-{
-    bd = _bndry;
-
-    loadMatrix();
-    finalizeMatrix();
-
-    loadVectors(soln, rhs);
-    finalizeVectors();
-
-    setupSolver(rel_tol_, abs_tol_, max_iter_);
-    solveDoIt();
-    getSolution(soln);
-    clearSolver();
-}
-
-void
-HypreABecLap2::loadBndryData (LinOpBCType bc_type, Real bc_value)
-{
-    const int comp = 0;
+    // A.SetValues() & A.assemble()
+    Array<HYPRE_Int,regular_stencil_size> stencil_indices;
+    std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
+    const HYPRE_Int part = 0;
     const Real* dx = geom.CellSize();
-    for (int n=0; n<BL_SPACEDIM; ++n) {
-        for (MFIter mfi(acoefs); mfi.isValid(); ++mfi ) {
-            int i = mfi.index(); 
-            
-            const Box& bx = mfi.validbox();
-            
-            // Our default will be that the face of this grid is either touching another grid
-            //  across an interior boundary or a periodic boundary.  We will test for the other
-            //  cases below.
-            {
-                // Define the type of boundary conditions to be Dirichlet (even for periodic)
-                bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-                bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
-                
-                // Set the boundary conditions to the cell centers outside the domain
-                bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[n]);
-                bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[n]);
-            }
-            
-            // Now test to see if we should override the above with Dirichlet or Neumann physical bc's
-            if (bc_type != LinOpBCType::interior)
-            { 
-                int ibnd = static_cast<int>(bc_type); // either LO_DIRICHLET or LO_NEUMANN
-                
-                // We are on the low side of the domain in coordinate direction n
-                if (bx.smallEnd(n) == geom.Domain().smallEnd(n)) {
-                    // Set the boundary conditions to live exactly on the faces of the domain
-                    bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
-                    
-                    // Set the Dirichlet/Neumann boundary values 
-                    bd.setValue(Orientation(n, Orientation::low) ,i, bc_value);
-                    
-                    // Define the type of boundary conditions 
-                    bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,ibnd);
-                }
-                
-                // We are on the high side of the domain in coordinate direction n
-                if (bx.bigEnd(n) == geom.Domain().bigEnd(n)) {
-                    // Set the boundary conditions to live exactly on the faces of the domain
-                    bd.setBoundLoc(Orientation(n, Orientation::high) ,i,0.0 );
-                    
-                    // Set the Dirichlet/Neumann boundary values
-                    bd.setValue(Orientation(n, Orientation::high) ,i, bc_value);
-                    
-                    // Define the type of boundary conditions 
-                    bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,ibnd);
-                }
-            }
-        }
-    }
-}
-
-void
-HypreABecLap2::loadMatrix ()
-{
-    static_assert(BL_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
-
-    const int size = 2 * BL_SPACEDIM + 1;
-
-    int stencil_indices[size];    
-    for (int i = 0; i < size; i++) {
-        stencil_indices[i] = i;
-    }
-    
-    const int part = 0;
-    const int bho = 0;
-    const Real* dx = geom.CellSize();
-
+    const int bho = (m_maxorder > 2) ? 1 : 0;
+    FArrayBox rfab;
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
-        int i = mfi.index();
         const Box &reg = mfi.validbox();
 
-        int volume = reg.numPts();
-        Real* mat = hypre_CTAlloc(double, size*volume);
+        rfab.resize(reg,regular_stencil_size);
+        Real* mat = rfab.dataPtr();
 
-        // build matrix interior
-
-        amrex_hmac(mat,
-                   BL_TO_FORTRAN(acoefs[mfi]),
-                   ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_a);
-        
-        for (int idim = 0; idim < BL_SPACEDIM; idim++) {
-            amrex_hmbc(mat, 
-                       BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                       ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_b,
-                       geom.CellSize(), idim);
+        amrex_hpacoef(BL_TO_FORTRAN_BOX(reg),
+                      mat,
+                      BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                      &scalar_a);
+         
+        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
+            amrex_hpbcoef(BL_TO_FORTRAN_BOX(reg),
+                          mat,
+                          BL_TO_FORTRAN_ANYD(bcoefs[idim][mfi]),
+                          &scalar_b, dx, &idim);
         }
 
-        // add b.c.'s to matrix diagonal, and
-        // zero out offdiag values at domain boundaries
-
-        const Vector< Vector<BoundCond> > & bcs_i = bd.bndryConds(i);
-        const BndryData::RealTuple      & bcl_i = bd.bndryLocs(i);
+        const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
+        const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
         
-        const Box& domain = geom.Domain();
-        for (OrientationIter oitr; oitr; oitr++) {
-            int cdir(oitr());
-            int idim = oitr().coordDir();
+        for (OrientationIter oit; oit; oit++)
+        {
+            Orientation ori = oit();
+            int cdir(ori);
+            int idim = ori.coordDir();
             const int bctype = bcs_i[cdir][0];
             const Real &bcl  = bcl_i[cdir];
-            const Mask &msk  = bd.bndryMasks(oitr())[mfi];
+            const Mask &msk  = m_bndry->bndryMasks(ori)[mfi];
 
-            // Treat an exposed grid edge here as a boundary condition
-            // for the linear solver:
-            
-            if (reg[oitr()] == domain[oitr()]) {
-                amrex_hmmat3(mat, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                             cdir, bctype, bho, bcl,
-                             BL_TO_FORTRAN(msk),
-                             BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                             scalar_b, dx);
-            }
-            else {
-                amrex_hmmat(mat, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                            cdir, bctype, bho, bcl,
-                            BL_TO_FORTRAN(msk),
-                            BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                            scalar_b, dx);
-            }
-            
+            amrex_hpmat(BL_TO_FORTRAN_BOX(reg),
+                        mat,
+                        BL_TO_FORTRAN_ANYD(bcoefs[idim][mfi]),
+                        BL_TO_FORTRAN_ANYD(msk),
+                        &scalar_b, dx, &cdir, &bctype, &bcl, &bho);
         }
 
+        amrex_hpdiag(BL_TO_FORTRAN_BOX(reg),
+                     mat,
+                     BL_TO_FORTRAN_ANYD(diaginv[mfi]));
+
         // initialize matrix
-        HYPRE_SStructMatrixSetBoxValues(A, part,
-                                        const_cast<int*>(reg.loVect()), 
-                                        const_cast<int*>(reg.hiVect()),
-                                        0, size, stencil_indices, mat);
-
-        hypre_TFree(mat);
-    }
-}
-
-void
-HypreABecLap2::finalizeMatrix ()
-{
+        auto reglo = Hypre::loV(reg);
+        auto reghi = Hypre::hiV(reg);
+        HYPRE_SStructMatrixSetBoxValues(A, part, reglo.data(), reghi.data(),
+                                        0, regular_stencil_size, stencil_indices.data(),
+                                        mat);
+    }    
     HYPRE_SStructMatrixAssemble(A);   
+
+    // create solver
+    HYPRE_BoomerAMGCreate(&solver);
+
+    HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
+//    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
+//    HYPRE_BoomerAMGSetCycleType(solver, 1);
+    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
+    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
+    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
+//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
+
+    int logging = (verbose >= 2) ? 1 : 0;
+    HYPRE_BoomerAMGSetLogging(solver, logging);
+
+    HYPRE_ParCSRMatrix par_A;
+    HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
+    HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
 }
 
 void
 HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
 {
-    const int part = 0;
-    const int bho = 0;
-    const Real* dx = geom.CellSize();
-
-    FArrayBox fnew;
+    BL_PROFILE("HypreABecLap2::loadVectors()");
 
     soln.setVal(0.0);
 
-    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
-    {
-        int i = mfi.index();
-        const Box &reg = mfi.validbox();
-
-        // initialize soln, since we will reuse the space to set up rhs below:
-
-        FArrayBox *f;
-        if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
-            f = &soln[mfi];
-        }
-        else {
-            f = &fnew;
-            f->resize(reg);
-            f->copy(soln[mfi], 0, 0, 1);
-        }
-        Real* vec = f->dataPtr(); // sharing space, soln will be overwritten below
-
-        HYPRE_SStructVectorSetBoxValues(x, part,
-                                        const_cast<int*>(reg.loVect()),
-                                        const_cast<int*>(reg.hiVect()),
-                                        0, vec);
-
-        f->copy(rhs[mfi], 0, 0, 1);
-
-        // add b.c.'s to rhs
-
-        const Vector< Vector<BoundCond> > & bcs_i = bd.bndryConds(i);
-        const BndryData::RealTuple      & bcl_i = bd.bndryLocs(i);
-
-        const Box& domain = geom.Domain();
-        for (OrientationIter oitr; oitr; oitr++) {
-            int cdir(oitr());
-            int idim = oitr().coordDir();
-            const int bctype = bcs_i[cdir][0];
-            const Real &bcl  = bcl_i[cdir];
-
-            const Mask &msk  = bd.bndryMasks(oitr())[mfi];
-            const FArrayBox &fs = bd.bndryValues(oitr())[mfi];
-
-            // Treat an exposed grid edge here as a boundary condition
-            // for the linear solver:
-            
-            if (reg[oitr()] == domain[oitr()]) {
-                amrex_hbvec3(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                             cdir, bctype, bho, bcl,
-                             BL_TO_FORTRAN(fs),
-                             BL_TO_FORTRAN(msk),
-                             BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                             scalar_b, dx);
-            }
-            else {
-                amrex_hbvec(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                            cdir, bctype, bho, bcl,
-                            BL_TO_FORTRAN(fs),
-                            BL_TO_FORTRAN(msk),
-                            BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                            scalar_b, dx);
-            }
-        }
-
-        // initialize rhs
-        HYPRE_SStructVectorSetBoxValues(b, part,
-                                        const_cast<int*>(reg.loVect()),
-                                        const_cast<int*>(reg.hiVect()),
-                                        0, vec);
-    }
-}
-
-void
-HypreABecLap2::finalizeVectors ()
-{
-    HYPRE_SStructVectorAssemble(b);
-    HYPRE_SStructVectorAssemble(x);
-}
-
-void
-HypreABecLap2::setupSolver (Real rel_tol_, Real abs_tol_, int max_iter_)
-{
-    rel_tol = rel_tol_;
-    abs_tol = abs_tol_;
-    max_iter = max_iter_;
-
-    HYPRE_ParCSRMatrix par_A;
-    HYPRE_ParVector par_b;
-    HYPRE_ParVector par_x;
-
-    HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
-    HYPRE_SStructVectorGetObject(b, (void**) &par_b);
-    HYPRE_SStructVectorGetObject(x, (void**) &par_x);
-
-    HYPRE_BoomerAMGCreate(&solver);
-
-    HYPRE_BoomerAMGSetMinIter(solver, 1);
-    HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
-    HYPRE_BoomerAMGSetTol(solver, rel_tol);
-
-    HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
-}
-
-void
-HypreABecLap2::clearSolver ()
-{
-    HYPRE_BoomerAMGDestroy(solver);
-}
-
-void
-HypreABecLap2::solveDoIt ()
-{
-    if (abs_tol > 0.0)
-    {
-        Real bnorm;
-        hypre_SStructInnerProd((hypre_SStructVector *) b,
-                               (hypre_SStructVector *) b,
-                               &bnorm);
-        bnorm = std::sqrt(bnorm);
-
-        const BoxArray& grids = acoefs.boxArray();
-        Real volume = grids.numPts();
-        Real rel_tol_new = bnorm > 0.0 ? abs_tol / bnorm * std::sqrt(volume) : rel_tol;
-
-        if (rel_tol_new > rel_tol) {
-            HYPRE_BoomerAMGSetTol(solver, rel_tol_new);
-        }
-    }
-
-    HYPRE_ParCSRMatrix par_A;
-    HYPRE_ParVector par_b;
-    HYPRE_ParVector par_x;
-
-    HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
-    HYPRE_SStructVectorGetObject(b, (void**) &par_b);
-    HYPRE_SStructVectorGetObject(x, (void**) &par_x);
-
-    HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
-
-    HYPRE_SStructVectorGather(x);
-
-    if (verbose >= 2 && ParallelDescriptor::IOProcessor()) {
-        int num_iterations;
-        Real res;
-        HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
-        HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
-        
-        int oldprec = std::cout.precision(17);
-        std::cout <<"\n" <<  num_iterations
-                  << " Hypre Multigrid Iterations, Relative Residual "
-                  << res << std::endl;
-        std::cout.precision(oldprec);
-    }
-}
-
-void
-HypreABecLap2::getSolution (MultiFab& soln)
-{
-    const int part = 0;
-
-    FArrayBox fnew;
+    const HYPRE_Int part = 0;
+    FArrayBox rhsfab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();
 
-        FArrayBox *f;
-        if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
-            f = &soln[mfi];
-        }
-        else {
-            f = &fnew;
-            f->resize(reg);
-        }
+        auto reglo = Hypre::loV(reg);
+        auto reghi = Hypre::hiV(reg);
+        HYPRE_SStructVectorSetBoxValues(x, part, reglo.data(), reghi.data(),
+                                        0, soln[mfi].dataPtr());
 
-        HYPRE_SStructVectorGetBoxValues(x, part,
-                                        const_cast<int*>(reg.loVect()),
-                                        const_cast<int*>(reg.hiVect()),
-                                        0, f->dataPtr());
+        rhsfab.resize(reg);
+        rhsfab.copy(rhs[mfi],reg);
+        rhsfab.mult(diaginv[mfi]);
 
-        if (soln.nGrow() != 0) {
-            soln[mfi].copy(*f, 0, 0, 1);
-        }
+        HYPRE_SStructVectorSetBoxValues(b, part, reglo.data(), reghi.data(),
+                                        0, rhsfab.dataPtr());
     }
 }
 

@@ -1869,7 +1869,9 @@ VisMF::Check (const std::string& mf_name)
   int v1(true);
 
   if(ParallelDescriptor::IOProcessor()) {
-    amrex::Print() << "---------------- VisMF::Check:  about to check:  " << mf_name << std::endl;
+   if (verbose) {
+       amrex::Print() << "---------------- VisMF::Check:  about to check:  " << mf_name << std::endl;
+   }
 
     char c;
     int nBadFabs(0);
@@ -1883,17 +1885,21 @@ VisMF::Check (const std::string& mf_name)
         ifs.close();
     }
 
-    amrex::Print() << "hdr.version =  " << hdr.m_vers << "\n"
-                   << "hdr.boxarray size =  " << hdr.m_ba.size() << "\n"
-                   << "mf.ncomp =  " << hdr.m_ncomp << "\n"
-                   << "number of fabs on disk =  " << hdr.m_fod.size() << "\n"
-                   << "DirName = " << DirName(mf_name) << "\n"
-                   << "mf_name = " << mf_name << "\n"
-                   << "FullHdrFileName = " << FullHdrFileName << "\n";
+    if (verbose) {
+        amrex::Print() << "hdr.version =  " << hdr.m_vers << "\n"
+                       << "hdr.boxarray size =  " << hdr.m_ba.size() << "\n"
+                       << "mf.ncomp =  " << hdr.m_ncomp << "\n"
+                       << "number of fabs on disk =  " << hdr.m_fod.size() << "\n"
+                       << "DirName = " << DirName(mf_name) << "\n"
+                       << "mf_name = " << mf_name << "\n"
+                       << "FullHdrFileName = " << FullHdrFileName << "\n";
+    }
 
     if(hdr.m_vers != VisMF::Header::Version_v1) {
      v1 = false;
-     amrex::Print() << "**** VisMF::Check currently only supports Version_v1." << std::endl;
+     if (verbose) {
+         amrex::Print() << "**** VisMF::Check currently only supports Version_v1." << std::endl;
+     }
     } else {
 
     // check that the string FAB is where it should be
@@ -1906,8 +1912,10 @@ VisMF::Check (const std::string& mf_name)
       ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
 
       if( ! ifs.good()) {
-        amrex::AllPrint() << "**** Error:  could not open file:  " << FullName << std::endl;
-	continue;
+          if (verbose) {
+              amrex::AllPrint() << "**** Error:  could not open file:  " << FullName << std::endl;
+          }
+          continue;
       }
 
       ifs.seekg(fod.m_head, std::ios::beg);
@@ -1926,19 +1934,25 @@ VisMF::Check (const std::string& mf_name)
       }
       if(badFab) {
 	++nBadFabs;
-        amrex::AllPrint() << "**** Error in file:  " << FullName << "  Bad Fab at index = "
-	          << i << "  seekpos = " << fod.m_head << "  box = " << hdr.m_ba[i]
-	          << std::endl;
+        if (verbose) {
+            amrex::AllPrint() << "**** Error in file:  " << FullName << "  Bad Fab at index = "
+                              << i << "  seekpos = " << fod.m_head << "  box = " << hdr.m_ba[i]
+                              << std::endl;
+        }
       }
       ifs.close();
 
     }
     if(nBadFabs) {
-      amrex::AllPrint() << "Total Bad Fabs = " << nBadFabs << std::endl;
-      isOk = false;
+        if (verbose) {
+            amrex::AllPrint() << "Total Bad Fabs = " << nBadFabs << std::endl;
+        }
+        isOk = false;
     } else {
-      amrex::AllPrint() << "No Bad Fabs." << std::endl;
-      isOk = true;
+        if (verbose) {
+            amrex::AllPrint() << "No Bad Fabs." << std::endl;
+        }
+        isOk = true;
     }
     }
 
@@ -2004,6 +2018,10 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
   VisMF::PersistentIFStream &pifs = VisMF::persistentIFStreams[fileName];
   if( ! pifs.isOpen) {
     pifs.pstr = new std::ifstream;
+    if(setBuf) {
+      pifs.ioBuffer.resize(ioBufferSize);
+      pifs.pstr->rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
+    }
     pifs.pstr->open(fileName.c_str(), std::ios::in | std::ios::binary);
     if( ! pifs.pstr->good()) {
       delete pifs.pstr;
@@ -2011,10 +2029,6 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
     }
     pifs.isOpen = true;
     pifs.currentPosition = 0;
-    if(setBuf) {
-      pifs.ioBuffer.resize(ioBufferSize);
-      pifs.pstr->rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
-    }
   }
 
   return pifs.pstr;

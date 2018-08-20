@@ -7,6 +7,7 @@
 #include <list>
 #include <map>
 
+#include <AMReX_EB2.H>
 #include "AMReX_GeometryShop.H"
 #include "AMReX_GeomIntersectUtils.H"
 #include "AMReX_RealVect.H"
@@ -863,7 +864,8 @@ namespace amrex
                   }
               }
           }
-#if 1
+
+        if (!EB2::compare_with_ch_eb) {
         // iterate over faces recalculating face area
         // face order is xLo,xHi,yLo,yHi,zLo,zHi
         for (int iFace = 0; iFace < 2*SpaceDim; ++iFace)
@@ -1173,7 +1175,8 @@ namespace amrex
                 }
               }
           }
-#endif
+        }
+
         // fill in some arguments of computeVofInternals for the faces
         for (int faceNormal = 0;faceNormal < SpaceDim;++faceNormal)
           {
@@ -2361,7 +2364,7 @@ namespace amrex
 
             p = std::abs(p);
 
-            if (2.0 * p < std::min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
+            if (2.0 * p < std::min(3.0*xm*q-std::abs(tol1*q), 1.0*std::abs(e*q)))
               {
                 //  Accept interpolation
                 e = d;

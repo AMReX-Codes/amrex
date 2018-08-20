@@ -60,8 +60,8 @@ public:
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.
-    void setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& lobc,
-                      const std::array<BCType,AMREX_SPACEDIM>& hibc);
+    void setDomainBC (const Array<BCType,AMREX_SPACEDIM>& lobc,
+                      const Array<BCType,AMREX_SPACEDIM>& hibc);
 
     // Needs coarse data for bc?  If the lowest level grids does not
     // cover the entire domain, coarse level data are needed for
@@ -84,15 +84,19 @@ public:
     // cell.  Only the data outside the physical domain at Dirichlet
     // boundary will be used.  It is assumed that the data in those
     // ghost cells outside the domain live exactly on the face of the
-    // phsyical domain.  Argument `amrlev` is relative level such that
+    // physical domain.  Argument `amrlev` is relative level such that
     // the lowest to the solver is always 0.
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
 
     void setVerbose (int v) { verbose = v; }
 
     void setMaxOrder (int o) { maxorder = o; }
+    int getMaxOrder () const { return maxorder; }
+    
+    virtual int getNComp() const { return 1; }
 
-    virtual int getNComp() const { return 1;};
+    virtual bool needsUpdate () const { return false; }
+    virtual void update () {}
 
 protected:
 
@@ -141,8 +145,8 @@ protected:
     std::unique_ptr<CommContainer> m_raii_comm;
 
     // BC
-    std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
-    std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
+    Array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
+    Array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
 
     bool m_needs_coarse_data_for_bc;
     int m_coarse_data_crse_ratio = -1;
@@ -159,6 +163,9 @@ protected:
     int AMRRefRatio (int amr_lev) const { return m_amr_ref_ratio[amr_lev]; }
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
+    FabFactory<FArrayBox> const* Factory (int amr_lev, int mglev=0) const {
+        return m_factory[amr_lev][mglev].get();
+    }
 
 #ifdef BL_USE_MPI
     bool isBottomActive () const { return m_bottom_comm != MPI_COMM_NULL; }
@@ -183,6 +190,10 @@ protected:
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
+    virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const {
+        return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
+    }
+
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const = 0;
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const = 0;
     virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
@@ -204,8 +215,8 @@ protected:
     virtual void reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const = 0;
-    virtual void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const = 0;
-    virtual void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const = 0;
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const = 0;
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const = 0;
     
     virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
@@ -219,7 +230,7 @@ protected:
     virtual Real getAScalar () const = 0;
     virtual Real getBScalar () const = 0;
     virtual MultiFab const* getACoeffs (int amrlev, int mglev) const = 0;
-    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
+    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}

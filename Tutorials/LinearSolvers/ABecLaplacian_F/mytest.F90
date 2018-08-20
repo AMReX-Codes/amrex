@@ -23,9 +23,11 @@ module mytest_module
   integer, save :: cg_verbose = 0
   integer, save :: max_iter = 100
   integer, save :: max_fmg_iter = 0
+  integer, save :: bottom_solver = amrex_bottom_default
   integer, save :: linop_maxorder = 2
   logical, save :: agglomeration = .true.
   logical, save :: consolidation = .true.
+  integer, save :: max_coarsening_level = 30
 
   ! data
   type(amrex_geometry), allocatable, save :: geom(:)
@@ -69,9 +71,11 @@ contains
     call pp % query("cg_verbose", cg_verbose)
     call pp % query("max_iter", max_iter)
     call pp % query("max_fmg_iter", max_fmg_iter)
+    call pp % query("bottom_solver", bottom_solver)
     call pp % query("linop_maxorder", linop_maxorder)
     call pp % query("agglomeration", agglomeration)
     call pp % query("consolidation", consolidation)
+    call pp % query("max_coarsening_level", max_coarsening_level)
 
     call amrex_parmparse_destroy(pp)
   end subroutine init_parameters
@@ -181,7 +185,8 @@ contains
     if (composite_solve) then
 
        call amrex_poisson_build(poisson, geom, ba, dm, &
-            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
+            max_coarsening_level=max_coarsening_level)
        
        call poisson % set_maxorder(linop_maxorder)
 
@@ -199,6 +204,7 @@ contains
        call multigrid % set_cg_verbose(cg_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
+       call multigrid % set_bottom_solver(bottom_solver)
 
        err = multigrid % solve(solution, rhs, 1.e-10_amrex_real, 0.0_amrex_real)
 
@@ -209,7 +215,8 @@ contains
        do ilev = 0, max_level
 
           call amrex_poisson_build(poisson, [geom(ilev)], [ba(ilev)], [dm(ilev)], &
-               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
+               max_coarsening_level=max_coarsening_level)
        
           call poisson % set_maxorder(linop_maxorder)
 
@@ -237,6 +244,7 @@ contains
           call multigrid % set_cg_verbose(cg_verbose)
           call multigrid % set_max_iter(max_iter)
           call multigrid % set_max_fmg_iter(max_fmg_iter)
+          call multigrid % set_bottom_solver(bottom_solver)
 
           err = multigrid % solve([solution(ilev)], [rhs(ilev)], 1.e-10_amrex_real, 0.0_amrex_real)
 
@@ -257,7 +265,7 @@ contains
     real(amrex_real) :: err, avg1, avg2, offset
     type(amrex_multifab), allocatable :: beta(:,:)
     logical :: nodal(3)
-    type(amrex_multifab) :: null
+    type(amrex_multifab) :: nullmf
 
     ! For ABecLaplacian, the b coefficents are on faces
     allocate(beta(amrex_spacedim,0:max_level))
@@ -273,7 +281,8 @@ contains
     if (composite_solve) then
 
        call amrex_abeclaplacian_build(abeclap, geom, ba, dm, &
-            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
+            max_coarsening_level=max_coarsening_level)
 
        call abeclap % set_maxorder(linop_maxorder)
 
@@ -283,7 +292,7 @@ contains
 
        do ilev = 0, max_level
           ! for problem with pure homogeneous Neumann BC, we could pass an empty multifab
-          call abeclap % set_level_bc(ilev, null)
+          call abeclap % set_level_bc(ilev, nullmf)
        end do
 
        call abeclap % set_scalars(ascalar, bscalar)
@@ -297,6 +306,7 @@ contains
        call multigrid % set_cg_verbose(cg_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
+       call multigrid % set_bottom_solver(bottom_solver)
 
        err = multigrid % solve(solution, rhs, 1.e-10_amrex_real, 0.0_amrex_real)
 
@@ -307,7 +317,8 @@ contains
        do ilev = 0, max_level
           
           call amrex_abeclaplacian_build(abeclap, [geom(ilev)], [ba(ilev)], [dm(ilev)], &
-               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation, &
+               max_coarsening_level=max_coarsening_level)
 
        call abeclap % set_maxorder(linop_maxorder)
 
@@ -321,7 +332,7 @@ contains
        end if
 
        ! for problem with pure homogeneous Neumann BC, we could pass an empty multifab
-       call abeclap % set_level_bc(0, null)
+       call abeclap % set_level_bc(0, nullmf)
 
        call abeclap % set_scalars(ascalar, bscalar)
        call abeclap % set_acoeffs(0, acoef(ilev))
@@ -332,6 +343,7 @@ contains
        call multigrid % set_cg_verbose(cg_verbose)
        call multigrid % set_max_iter(max_iter)
        call multigrid % set_max_fmg_iter(max_fmg_iter)
+       call multigrid % set_bottom_solver(bottom_solver)
 
        err = multigrid % solve([solution(ilev)], [rhs(ilev)], 1.e-10_amrex_real, 0.0_amrex_real)
 

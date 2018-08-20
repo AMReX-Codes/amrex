@@ -19,7 +19,7 @@ public:
 
     static void fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom);
     static void fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom);
-//    static void fillCentroid (MultiCutFab& a_centroid, const Geometry& a_geom);
+    static void fillCentroid (MultiCutFab& a_centroid, const Geometry& a_geom);
     static void fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom);
     static void fillFaceGeometry (std::array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac,
                                   std::array<MultiCutFab*,AMREX_SPACEDIM>& a_facecent,
@@ -27,15 +27,19 @@ public:
 
     static bool validDomain (const Box& a_domain);
 
+    static Box const& coarsestDomain ();
+    
 private:
 
-    EBTower ();
     ~EBTower ();
 
+#ifdef AMREX_USE_GEOMETRYSHOP
+    EBTower ();
     void initCellFlags (int lev, const EBLevelGrid& eblg);
     void initVolumeGeometry (int lev, const EBLevelGrid& eblg);
     void initBndryCent (int lev, const EBLevelGrid& eblg);
     void initFaceGeometry (int lev, const EBLevelGrid& eblg);
+#endif
 
     static Vector<Box> 
     getPeriodicGhostBoxes(const Box        & a_valid, 
@@ -54,7 +58,7 @@ private:
 
     Vector<FabArray<EBCellFlagFab>> m_cellflags;
     Vector<MultiFab> m_volfrac;
-//    Vector<MultiCutFab> m_centroid;
+    Vector<MultiCutFab> m_centroid;
     Vector<MultiCutFab> m_bndrycent;
     Vector<std::array<MultiCutFab,AMREX_SPACEDIM>> m_areafrac;
     Vector<std::array<MultiCutFab,AMREX_SPACEDIM>> m_facecent;

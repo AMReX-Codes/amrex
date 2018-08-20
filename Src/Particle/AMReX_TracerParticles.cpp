@@ -275,11 +275,11 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             if (gotwork)
 	      {
                 std::string FileName = amrex::Concatenate(basename + '_', MyProc % nOutFiles, 2);
-		
+
+                VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+                
                 std::ofstream TimeStampFile;
 		
-                VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
                 TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
                 TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app|std::ios::binary);

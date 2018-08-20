@@ -1,6 +1,8 @@
 #ifndef AMREX_EB_LEVELSET_H_
 #define AMREX_EB_LEVELSET_H_
 
+#ifdef AMREX_USE_GEOMETRYSHOP
+
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_RealVect.H>
@@ -63,6 +65,10 @@ class LSFactory {
         void update_ba(const BoxArray& new_ba, const DistributionMapping & dm);
         void init_geom(const BoxArray& ba, const Geometry& geom, const DistributionMapping & dm);
 
+        void fill_valid_kernel();
+        void fill_valid(int n);
+        void fill_valid();
+
     public:
         LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
                   const BoxArray& ba, const Geometry& geom, const DistributionMapping& dm);
@@ -73,8 +79,12 @@ class LSFactory {
 
         void invert();
 
-        std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory, const EBIndexSpace & eb_is);
-        std::unique_ptr<iMultiFab> union_ebf(const EBFArrayBoxFactory & eb_factory, const EBIndexSpace & eb_is);
+        void set_data(const MultiFab & mf_ls);
+
+        std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
+                                                    const EBIndexSpace & eb_is);
+        std::unique_ptr<iMultiFab> union_ebf(const EBFArrayBoxFactory & eb_factory,
+                                             const EBIndexSpace & eb_is);
         std::unique_ptr<iMultiFab> intersection_ebis(const EBIndexSpace & eb_is);
         std::unique_ptr<iMultiFab> union_ebis(const EBIndexSpace & eb_is);
 
@@ -93,13 +103,13 @@ class LSFactory {
         std::unique_ptr<MultiFab>  coarsen_data() const;
 
         // Return grid parameters
-        const int get_ls_ref() const {return ls_grid_ref;};
-        const int get_ls_pad() const {return ls_grid_pad;};
-        const int get_eb_ref() const {return eb_grid_ref;};
-        const int get_eb_pad() const {return eb_grid_pad;};
+        int get_ls_ref() const {return ls_grid_ref;};
+        int get_ls_pad() const {return ls_grid_pad;};
+        int get_eb_ref() const {return eb_grid_ref;};
+        int get_eb_pad() const {return eb_grid_pad;};
 
         // Return AMR level
-        const int get_amr_level() const {return amr_lev;};
+        int get_amr_level() const {return amr_lev;};
 
 
         // Return BoxArrays:
@@ -178,5 +188,7 @@ class PolynomialDF : public PolynomialIF {
 };
 
 }
+
+#endif
 
 #endif

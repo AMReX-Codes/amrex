@@ -71,7 +71,7 @@ alternatively, in tcsh one can set
 
 One must set the ``COMP`` variable to choose a compiler. Currently the list of
 supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must
-also set the DIM variable to either 1, 2, or 3, depending on the dimensionality
+also set the ``DIM`` variable to either 1, 2, or 3, depending on the dimensionality
 of the problem.
 
 Variables ``DEBUG``, ``USE_MPI`` and ``USE_OMP`` are optional with default set
@@ -163,7 +163,7 @@ variables. See ``amrex/Tools/GNUMake/Make.local.template`` for an example.
 Specifying your own compiler / GCC on macOS
 -------------------------------------------
 
-The ``amrex/Tools/GNUMake/Make.local`` (cf. above for template) can also be
+The ``amrex/Tools/GNUMake/Make.local`` file can also be
 used to specify your own compile commands by setting the valiables ``CXX``,
 ``CC``, ``FC``, and ``F90``. This might be neccarry if your systems contains
 non-standard names for compiler commands.
@@ -172,17 +172,25 @@ For example, macOS' Xcode ships with its own (woefully outdated) version of GCC
 (4.2.1). It is therefore commonplace to install GCC using the `homebrew
 <https://brew.sh>`_ package manager. This in turn installs compilers with names
 reflecting the version number. If GCC 7.3 is installed, homebrew installs it as
-``gcc-7``. AMReX can be built using ``gcc-7`` by using the following
+``gcc-7``. AMReX can be built using ``gcc-7`` without MPI by using the following
 ``amrex/Tools/GNUMake/Make.local``:
 
 :: 
 
-    CXX = g++-7
-    CC  = gcc-7
-    FC  = gfortran-7
-    F90 = gfortran-7
-    
+    ifeq ($(USE_MPI),TRUE)
+      CXX = mpicxx
+      CC  = mpicc
+      FC  = mpif90
+      F90 = mpif90
+    else
+      CXX = g++-7
+      CC  = gcc-7
+      FC  = gfortran-7
+      F90 = gfortran-7
+    endif
 
+For building with MPI, we assume ``mpicxx``, ``mpif90``, etc. provide
+access to the correct underlying compilers.
 
 .. _sec:build:lib:
 
@@ -191,11 +199,13 @@ Building libamrex
 
 If an application code already has its own elaborated build system and wants to
 use AMReX an external library, this might be your choice. In this approach, one
-runs ``./configure``, followed by ``make`` and ``make install``. In the top
+runs ``./configure``, followed by ``make`` and ``make install``.
+Other make options include ``make distclean`` and ``make uninstall``.  In the top
 AMReX directory, one can run ``./configure -h`` to show the various options for
 the configure script. This approach is built on the AMReX GNU Make system. Thus
 the section on :ref:`sec:build:make` is recommended if any fine tuning is
-needed.
+needed.  The result of ``./configure`` is ``GNUmakefile`` in the AMReX
+top directory.  One can modify the make file for fine tuning.
 
 .. _sec:build:cmake:
 
@@ -330,19 +340,29 @@ defined in  ``/path/to/amrex/Tools/CMake/AMReX_Compilers.cmake``.
 
 .. _sec:build:cmake:config:
 
-Importing AMReX configuration into a CMake project
+Importing AMReX into your CMake project
 --------------------------------------------------
 
-In order to import the AMReX configuration options into your CMake build
-system, include the following line in the appropriate CMakeLists.txt file:
+In order to import the AMReX library into your CMake project, you need
+to include the following line in the appropriate CMakeLists.txt file: 
 
 .. highlight:: cmake
 
 ::
 
-    find_package (AMReX CONFIG REQUIRED HINTS /path/to/installdir/cmake )
+    find_package (AMReX 18 [REQUIRED] [HINTS /path/to/installdir/] )
 
-This will load AMReX-specific CMake variables containing the necessary
-information to compile and link your code to AMReX. For a list of all the
-available configuration variables, refer to the file ``AMReXConfig.cmake.in``
-in ``/path/to/installdir/cmake/``.
+
+In the above snippet, ``18`` refer to the mininum AMReX version supporting
+the import feature discussed here.
+Linking AMReX to any target defined in your CMake project is done by including
+the following line in the appropriate CMakeLists.txt file
+
+.. highlight:: cmake
+
+::
+
+    target_link_libraries ( <your-target-name>  AMReX::amrex )
+
+The above snippet will take care of properly linking ``<your-target-name>``
+to AMReX and to all the required transitive dependencies.

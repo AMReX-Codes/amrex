@@ -495,11 +495,14 @@ BoxArray::maxSize (int block_size)
 BoxArray&
 BoxArray::maxSize (const IntVect& block_size)
 {
+    if (!m_simple || m_crse_ratio != IntVect::TheUnitVector()) {
+        uniqify();
+    }
     BoxList blst(*this);
     blst.maxSize(block_size);
     const int N = blst.size();
     if (size() != N) { // If size doesn't change, do nothing.
-	m_ref = std::make_shared<BARef>(std::move(blst));
+        define(std::move(blst));
     }
     return *this;
 }
