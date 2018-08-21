@@ -216,6 +216,14 @@ extern "C" {
                                      const int maxorder, const amrex_real* dxinv,
                                      const int inhomog, const int nc);
 
+    void amrex_eb_copy_dirichlet (const int* lo, const int* hi,
+                                  amrex_real* phi, const int* phlo, const int* phhi,
+                                  const amrex_real* phiin, const int* phinlo, const int* phinhi,
+                                  amrex_real* beta, const int* blo, const int* bhi,
+                                  const amrex_real* betain, const int* binlo, const int* binhi,
+                                  const void* flag, const int* flo, const int* fhi);
+
+
 #ifdef __cplusplus
 }
 #endif

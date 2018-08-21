@@ -63,6 +63,13 @@ MyTest::solve ()
         mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
     }
 
+    if (eb_is_dirichlet) {
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            phi[ilev].setVal(0.0);
+            mleb.setEBDirichlet(ilev, phi[ilev], bcoef_eb[ilev]);
+        }
+    }
+
     MLMG mlmg(mleb);
     mlmg.setMaxIter(max_iter);
     mlmg.setMaxFmgIter(max_fmg_iter);
@@ -89,6 +96,7 @@ MyTest::readParameters ()
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
     pp.query("is_periodic", is_periodic);
+    pp.query("eb_is_dirichlet", eb_is_dirichlet);
 
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);
@@ -142,6 +150,7 @@ MyTest::initData ()
     rhs.resize(nlevels);
     acoef.resize(nlevels);
     bcoef.resize(nlevels);
+    bcoef_eb.resize(nlevels);
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
@@ -157,6 +166,10 @@ MyTest::initData ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             bcoef[ilev][idim].define(amrex::convert(grids[ilev],IntVect::TheDimensionVector(idim)),
                                      dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+        }
+        if (eb_is_dirichlet) {
+            bcoef_eb[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+            bcoef_eb[ilev].setVal(1.0);
         }
 
         phi[ilev].setVal(0.0);
