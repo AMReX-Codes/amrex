@@ -276,7 +276,7 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 # $(CEXE_sources)
 ifeq ($(USE_CUDA),TRUE)
 ifneq ($(NO_DEVICE_LAUNCH),TRUE)
-$(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(F90EXE_sources) $(FEXE_sources) 
+$(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources) $(F90EXE_sources) $(FEXE_sources) 
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_cuda_done' # So that the rule always gets updated
 	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py \
