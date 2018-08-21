@@ -165,7 +165,7 @@ WarpX::MoveWindow (bool move_j)
 }
 
 void
-WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
+WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
 {
     const BoxArray& ba = mf.boxArray();
     const DistributionMapping& dm = mf.DistributionMap();

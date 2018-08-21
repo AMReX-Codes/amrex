@@ -11,6 +11,7 @@
 
 #define WARPX_TO_FORTRAN_BOX(x) WARPX_ARLIM_ANYD((x).loVect()), WARPX_ARLIM_ANYD((x).hiVect())
 #define WARPX_TO_FORTRAN_ANYD(x) (x).dataPtr(), WARPX_ARLIM_ANYD((x).loVect()), WARPX_ARLIM_ANYD((x).hiVect())
+#define WARPX_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), WARPX_ARLIM_ANYD((x).loVect()), WARPX_ARLIM_ANYD((x).hiVect())
 
 #endif
 
@@ -26,6 +27,8 @@
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_3d
 #define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_3d
 #define WRPX_PUSH_PML_F                  warpx_push_pml_f_3d
+#define WRPX_DAMP_PML                    warpx_damp_pml_3d
+#define WRPX_DAMP_PML_F                  warpx_damp_pml_f_3d
 
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_3d
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_3d
@@ -56,6 +59,8 @@
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_2d
 #define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_2d
 #define WRPX_PUSH_PML_F                  warpx_push_pml_f_2d
+#define WRPX_DAMP_PML                    warpx_damp_pml_2d
+#define WRPX_DAMP_PML_F                  warpx_damp_pml_f_2d
 
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_2d
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_2d
@@ -334,14 +339,6 @@ extern "C"
                             BL_FORT_FAB_ARG_3D(bx),
                             BL_FORT_FAB_ARG_3D(by),
                             BL_FORT_FAB_ARG_3D(bz),
-                            const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi,
-                            const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
-#if (AMREX_SPACEDIM == 3)
-                            const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi,
-                            const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
-#endif
-                            const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi,
-                            const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi,
                             const amrex::Real* dtsdx,
 			    const amrex::Real* dtsdy,
 			    const amrex::Real* dtsdz,
@@ -357,14 +354,9 @@ extern "C"
                             const BL_FORT_FAB_ARG_3D(bx),
                             const BL_FORT_FAB_ARG_3D(by),
                             const BL_FORT_FAB_ARG_3D(bz),
-                            const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi,
-                            const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
-#if (AMREX_SPACEDIM == 3)
-                            const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi,
-                            const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
-#endif
-                            const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi,
-                            const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
+                            const amrex::Real* dtsdx, 
+                            const amrex::Real* dtsdy, 
+                            const amrex::Real* dtsdz);
 
     void WRPX_PUSH_PML_EVEC_F(const int* xlo, const int* xhi,
                               const int* ylo, const int* yhi,
@@ -373,30 +365,52 @@ extern "C"
                               BL_FORT_FAB_ARG_3D(ey),
                               BL_FORT_FAB_ARG_3D(ez),
                               const BL_FORT_FAB_ARG_3D(f),
-                              const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi,
-                              const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
-#if (AMREX_SPACEDIM == 3)
-                              const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi,
-                              const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
-#endif
-                              const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi,
-                              const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi,
-                              const amrex::Real* c2);
+                              const amrex::Real* dtdx);
 
     void WRPX_PUSH_PML_F(const int* lo, const int* hi,
                          BL_FORT_FAB_ARG_3D(f),
                          const BL_FORT_FAB_ARG_3D(ex),
                          const BL_FORT_FAB_ARG_3D(ey),
                          const BL_FORT_FAB_ARG_3D(ez),
-                         const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi,
-                         const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
+                         const amrex::Real* dtsdx, 
+                         const amrex::Real* dtsdy, 
+                         const amrex::Real* dtsdz);
+
+    void WRPX_DAMP_PML (const int* texlo, const int* texhi,
+                        const int* teylo, const int* teyhi,
+                        const int* tezlo, const int* tezhi,
+                        const int* tbxlo, const int* tbxhi,
+                        const int* tbylo, const int* tbyhi,
+                        const int* tbzlo, const int* tbzhi,
+                        amrex::Real* ex, const int* exlo, const int* exhi,
+                        amrex::Real* ey, const int* eylo, const int* eyhi,
+                        amrex::Real* ez, const int* ezlo, const int* ezhi,
+                        amrex::Real* bx, const int* bxlo, const int* bxhi,
+                        amrex::Real* by, const int* bylo, const int* byhi,
+                        amrex::Real* bz, const int* bzlo, const int* bzhi,
+                        const amrex::Real* sigex, int sigex_lo, int sigex_hi,
 #if (AMREX_SPACEDIM == 3)
-                         const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi,
-                         const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi,
+                        const amrex::Real* sigey, int sigey_lo, int sigey_hi,
 #endif
-                         const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi,
-                         const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi,
-                         const amrex::Real* c2inv);
+                        const amrex::Real* sigez, int sigez_lo, int sigez_hi,
+                        const amrex::Real* sigbx, int sigbx_lo, int sigbx_hi,
+#if (AMREX_SPACEDIM == 3)
+                        const amrex::Real* sigby, int sigby_lo, int sigby_hi,
+#endif
+                        const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);                        
+
+    void WRPX_DAMP_PML_F (const int* tndlo, const int* tndhi,
+                          amrex::Real* F,  const int* flo, const int* fhi,
+                          const amrex::Real* sigex, int sigex_lo, int sigex_hi,
+#if (AMREX_SPACEDIM == 3)
+                          const amrex::Real* sigey, int sigey_lo, int sigey_hi,
+#endif
+                          const amrex::Real* sigez, int sigez_lo, int sigez_hi,
+                          const amrex::Real* sigbx, int sigbx_lo, int sigbx_hi,
+#if (AMREX_SPACEDIM == 3)
+                          const amrex::Real* sigby, int sigby_lo, int sigby_hi,
+#endif
+                          const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);                        
 
     void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
                              BL_FORT_FAB_ARG_ANYD(crse),
@@ -404,8 +418,9 @@ extern "C"
                              const int* dir);
 
     void WRPX_SYNC_RHO (const int* lo, const int* hi,
-                         BL_FORT_FAB_ARG_ANYD(crse),
-                         const BL_FORT_FAB_ARG_ANYD(fine));
+                        BL_FORT_FAB_ARG_ANYD(crse),
+                        const BL_FORT_FAB_ARG_ANYD(fine),
+                        const int* ncomp);
 
     void WRPX_CLEAN_EVEC (const int* xlo, const int* xhi,
                            const int* ylo, const int* yhi,

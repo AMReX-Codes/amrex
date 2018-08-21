@@ -378,9 +378,10 @@ WarpX::SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     for (int lev = 0; lev < finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
+        const int ncomp = rhoc[lev+1]->nComp();
         const IntVect& ngsrc = rhoc[lev+1]->nGrowVect();
         const IntVect ngdst = IntVect::TheZeroVector();
-        rhof[lev]->copy(*rhoc[lev+1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        rhof[lev]->copy(*rhoc[lev+1],0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);
     }
 
     // Sum up coarse patch
@@ -408,6 +409,7 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
     const IntVect& ng = fine.nGrowVect()/ref_ratio;
+    const int nc = fine.nComp();
 
 #ifdef _OPEMP
 #pragma omp parallel
@@ -418,13 +420,14 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
         {
             const Box& bx = mfi.growntilebox(ng);
             Box fbx = amrex::grow(amrex::refine(bx,ref_ratio),1);
-            ffab.resize(fbx);
+            ffab.resize(fbx, nc);
             fbx &= fine[mfi].box();
             ffab.setVal(0.0);
-            ffab.copy(fine[mfi], fbx, 0, fbx, 0, 1);
+            ffab.copy(fine[mfi], fbx, 0, fbx, 0, nc);
             WRPX_SYNC_RHO(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_ANYD(crse[mfi]),
-                           BL_TO_FORTRAN_ANYD(ffab));
+                          BL_TO_FORTRAN_ANYD(crse[mfi]),
+                          BL_TO_FORTRAN_ANYD(ffab),
+                          &nc);
         }
     }
 }
