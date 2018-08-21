@@ -301,13 +301,13 @@ extern "C"
         warpx.MoveWindow (true);
     }
 
-    void warpx_EvolveE (double dt, int dttype) {
+    void warpx_EvolveE (double dt) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveE (dt, static_cast<DtType>(dttype));
+        warpx.EvolveE (dt);
     }
-    void warpx_EvolveB (double dt, int dttype) {
+    void warpx_EvolveB (double dt) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveB (dt, static_cast<DtType>(dttype));
+        warpx.EvolveB (dt);
     }
     void warpx_FillBoundaryE () {
         WarpX& warpx = WarpX::GetInstance();

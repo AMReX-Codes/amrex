@@ -77,36 +77,22 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        sigma     [idim].resize(sz[idim]+1);
-        sigma_star[idim].resize(sz[idim]  );
+        sigma         [idim].resize(sz[idim]+1);
+        sigma_star    [idim].resize(sz[idim]  );
+        sigma_fac     [idim].resize(sz[idim]+1);
+        sigma_star_fac[idim].resize(sz[idim]  );
 
-        for (int typ = 0; typ < 3; ++typ)
-        {
-            sigma_fac1     [typ][idim].resize(sz[idim]+1);
-            sigma_fac2     [typ][idim].resize(sz[idim]+1);
-            sigma_star_fac1[typ][idim].resize(sz[idim]  );
-            sigma_star_fac2[typ][idim].resize(sz[idim]  );
-        }
-
-        sigma     [idim].m_lo = lo[idim];
-        sigma     [idim].m_hi = hi[idim]+1;
-        sigma_star[idim].m_lo = lo[idim];
-        sigma_star[idim].m_hi = hi[idim];
-
-        for (int typ = 0; typ < 3; ++typ)
-        {
-            sigma_fac1     [typ][idim].m_lo = lo[idim];
-            sigma_fac1     [typ][idim].m_hi = hi[idim]+1;
-            sigma_fac2     [typ][idim].m_lo = lo[idim];
-            sigma_fac2     [typ][idim].m_hi = hi[idim]+1;
-            sigma_star_fac1[typ][idim].m_lo = lo[idim];
-            sigma_star_fac1[typ][idim].m_hi = hi[idim];
-            sigma_star_fac2[typ][idim].m_lo = lo[idim];
-            sigma_star_fac2[typ][idim].m_hi = hi[idim];
-        }
+        sigma         [idim].m_lo = lo[idim];
+        sigma         [idim].m_hi = hi[idim]+1;
+        sigma_star    [idim].m_lo = lo[idim];
+        sigma_star    [idim].m_hi = hi[idim];
+        sigma_fac     [idim].m_lo = lo[idim];
+        sigma_fac     [idim].m_hi = hi[idim]+1;
+        sigma_star_fac[idim].m_lo = lo[idim];
+        sigma_star_fac[idim].m_hi = hi[idim];
     }
 
-    Vector<Real> fac(AMREX_SPACEDIM);
+    Array<Real,AMREX_SPACEDIM> fac;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(delta*delta));
     }
@@ -266,124 +252,42 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 }
 
 void
-SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt, const std::string& pml_type_s)
+SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 {
-    static constexpr int PML_t = 0;
-    static constexpr int APML_t = 1;
-
-    std::string pml_type_lo = pml_type_s;
-    std::transform(pml_type_s.begin(), pml_type_s.end(), pml_type_lo.begin(), ::tolower);
-
-    int pml_type;
-    if (pml_type_lo == "pml") {
-        pml_type = PML_t;
-    } else if (pml_type_lo == "apml") {
-        pml_type = APML_t;
-    } else {
-        amrex::Abort("Unknown PML type " + pml_type_s);
-    }
-
-    const std::array<Real,AMREX_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
-
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         for (int i = 0, N = sigma_star[idim].size(); i < N; ++i)
         {
             if (sigma_star[idim][i] == 0.0)
             {
-                sigma_star_fac1[0][idim][i] = 1.0;
-                sigma_star_fac2[0][idim][i] = dtsdx[idim];
+                sigma_star_fac[idim][i] = 1.0;
             }
             else
             {
-                sigma_star_fac1[0][idim][i] = std::exp(-sigma_star[idim][i]*dt);
-                if (pml_type == PML_t) {
-                    sigma_star_fac2[0][idim][i] = (1.0-sigma_star_fac1[0][idim][i])
-                        / (sigma_star[idim][i]*dt) * dtsdx[idim];
-                } else if (pml_type == APML_t) {
-                    sigma_star_fac2[0][idim][i] = sigma_star_fac1[0][idim][i] * dtsdx[idim];
-                }
+                sigma_star_fac[idim][i] = std::exp(-sigma_star[idim][i]*dt);
             }
         }
     }
-
-    ComputePMLFactorsHalfDt(sigma_star_fac1, sigma_star_fac2);
 }
 
 void
-SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_type_s)
+SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 {
-    static constexpr int PML_t = 0;
-    static constexpr int APML_t = 1;
-
-    std::string pml_type_lo = pml_type_s;
-    std::transform(pml_type_s.begin(), pml_type_s.end(), pml_type_lo.begin(), ::tolower);
-
-    int pml_type;
-    if (pml_type_lo == "pml") {
-        pml_type = PML_t;
-    } else if (pml_type_lo == "apml") {
-        pml_type = APML_t;
-    } else {
-        amrex::Abort("Unknown PML type " + pml_type_s);
-    }
-
-    const std::array<Real,AMREX_SPACEDIM> dtsdx {AMREX_D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
-    
-    const Real c2 = PhysConst::c*PhysConst::c;
-    const std::array<Real,AMREX_SPACEDIM> dtsdx_c2 {AMREX_D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
-
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         for (int i = 0, N = sigma[idim].size(); i < N; ++i)
         {
             if (sigma[idim][i] == 0.0)
             {
-                sigma_fac1[0][idim][i] = 1.0;
-                sigma_fac2[0][idim][i] = dtsdx_c2[idim];
+                sigma_fac[idim][i] = 1.0;
             }
             else
             {
-                sigma_fac1[0][idim][i] = std::exp(-sigma[idim][i]*dt);
-                if (pml_type == PML_t)
-                {
-                    sigma_fac2[0][idim][i] = (1.0-sigma_fac1[0][idim][i])
-                        / (sigma[idim][i]*dt) * dtsdx_c2[idim];
-                }
-                else if (pml_type == APML_t)
-                {
-                    sigma_fac2[0][idim][i] = sigma_fac1[0][idim][i] * dtsdx_c2[idim];
-                }
+                sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
             }
         }
     }
-
-    ComputePMLFactorsHalfDt(sigma_fac1, sigma_fac2);
 }
-
-void
-SigmaBox::ComputePMLFactorsHalfDt (MTSigmaVect& fac1, MTSigmaVect& fac2)
-{
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    {
-        const auto& alpha = fac1[0][idim];
-        const auto& beta  = fac2[0][idim];
-
-        auto& alpha_1 = fac1[1][idim];
-        auto& beta_1  = fac2[1][idim];
-
-        auto& alpha_2 = fac1[2][idim];
-        auto& beta_2  = fac2[2][idim];        
-
-        int n = alpha.size();
-        for (int i = 0; i < n; ++i) {
-            alpha_1[i] = 0.5*(alpha[i]+1.);
-            alpha_2[i] = 2.0*alpha[i]/(alpha[i]+1.);
-            beta_1[i] = 0.5*beta[i];
-            beta_2[i] = beta[i]/(alpha[i]+1.);
-        }
-    }
-}                             
 
 MultiSigmaBox::MultiSigmaBox (const BoxArray& ba, const DistributionMapping& dm,
                               const BoxArray& grid_ba, const Real* dx, int ncell, int delta)
@@ -392,7 +296,7 @@ MultiSigmaBox::MultiSigmaBox (const BoxArray& ba, const DistributionMapping& dm,
 {}
 
 void
-MultiSigmaBox::ComputePMLFactorsB (const Real* dx, Real dt, const std::string& pml_type)
+MultiSigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 {
     if (dt == dt_B) return;
 
@@ -403,12 +307,12 @@ MultiSigmaBox::ComputePMLFactorsB (const Real* dx, Real dt, const std::string& p
 #endif
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        (*this)[mfi].ComputePMLFactorsB(dx, dt, pml_type);
+        (*this)[mfi].ComputePMLFactorsB(dx, dt);
     }
 }
 
 void
-MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_type)
+MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 {
     if (dt == dt_E) return;
 
@@ -419,7 +323,7 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& p
 #endif
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        (*this)[mfi].ComputePMLFactorsE(dx, dt, pml_type);
+        (*this)[mfi].ComputePMLFactorsE(dx, dt);
     }
 }
 
@@ -562,15 +466,15 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
 }
 
 void
-PML::ComputePMLFactors (amrex::Real dt, const std::string& pml_type)
+PML::ComputePMLFactors (amrex::Real dt)
 {
     if (sigba_fp) {
-        sigba_fp->ComputePMLFactorsB(m_geom->CellSize(), dt, pml_type);
-        sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt, pml_type);
+        sigba_fp->ComputePMLFactorsB(m_geom->CellSize(), dt);
+        sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt);
     }
     if (sigba_cp) {
-        sigba_cp->ComputePMLFactorsB(m_cgeom->CellSize(), dt, pml_type);
-        sigba_cp->ComputePMLFactorsE(m_cgeom->CellSize(), dt, pml_type);
+        sigba_cp->ComputePMLFactorsB(m_cgeom->CellSize(), dt);
+        sigba_cp->ComputePMLFactorsE(m_cgeom->CellSize(), dt);
     }
 }
 

@@ -122,7 +122,7 @@ WarpX::ComputePMLFactors ()
     {
         for (int lev = 0; lev <= finest_level; ++lev)
         {
-            pml[lev]->ComputePMLFactors(dt[lev],pml_type);
+            pml[lev]->ComputePMLFactors(dt[lev]);
         }
     }
 }

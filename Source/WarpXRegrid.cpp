@@ -74,10 +74,11 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
         }
 
         if (rho_fp[lev] != nullptr) {
+            const int nc = rho_fp[lev]->nComp();
             const IntVect& ng = rho_fp[lev]->nGrowVect();
             auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_fp[lev]->boxArray(),
-                                                              dm, 1, ng));
-            // pmf->Redistribute(*rho_fp[lev], 0, 0, 1, ng);
+                                                              dm, nc, ng));
+            // pmf->Redistribute(*rho_fp[lev], 0, 0, nc, ng);
             rho_fp[lev] = std::move(pmf);
         }
 
@@ -145,10 +146,11 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             }
 
             if (rho_cp[lev] != nullptr) {
+                const int nc = rho_cp[lev]->nComp();
                 const IntVect& ng = rho_cp[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_cp[lev]->boxArray(),
-                                                                  dm, 1, ng));
-                // pmf->Redistribute(*rho_cp[lev], 0, 0, 1, ng);
+                                                                  dm, nc, ng));
+                // pmf->Redistribute(*rho_cp[lev], 0, 0, nc, ng);
                 rho_cp[lev] = std::move(pmf);
             }
         }

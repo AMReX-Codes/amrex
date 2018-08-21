@@ -115,12 +115,15 @@ public:
     void MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
-    void EvolveE (         amrex::Real dt, DtType typ);
-    void EvolveE (int lev, amrex::Real dt, DtType typ);
-    void EvolveB (         amrex::Real dt, DtType typ);
-    void EvolveB (int lev, amrex::Real dt, DtType typ);
-    void EvolveF (         amrex::Real dt, DtType typ);
-    void EvolveF (int lev, amrex::Real dt, DtType typ);
+    void EvolveE (         amrex::Real dt);
+    void EvolveE (int lev, amrex::Real dt);
+    void EvolveB (         amrex::Real dt);
+    void EvolveB (int lev, amrex::Real dt);
+    void EvolveF (         amrex::Real dt, DtType dt_type);
+    void EvolveF (int lev, amrex::Real dt, DtType dt_type);
+
+    void DampPML ();
+    void DampPML (int lev);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
@@ -353,7 +356,6 @@ private:
     int do_pml = 1;
     int pml_ncell = 10;
     int pml_delta = 10;
-    std::string pml_type = "pml";   // or apml
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     // Moving window parameters
@@ -420,22 +422,17 @@ private:
     bool is_synchronized = true;
 
 #ifdef WARPX_USE_PSATD
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_fp;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_cp;
-
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
     // This includes data for the FFT guard cells (between FFT groups)
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_fp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_fp_fft;
 
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_cp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
 
 public:
     // FFTData is a stuct containing a 22 pointers to auxiliary arrays

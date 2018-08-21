@@ -58,8 +58,7 @@ WarpX::InitLevelDataFFT (int lev, Real time)
     current_fp_fft[lev][0]->setVal(0.0);
     current_fp_fft[lev][1]->setVal(0.0);
     current_fp_fft[lev][2]->setVal(0.0);
-    rho_prev_fp_fft[lev]->setVal(0.0);
-    rho_next_fp_fft[lev]->setVal(0.0);
+    rho_fp_fft[lev]->setVal(0.0);
 
     if (lev > 0)
     {
@@ -72,8 +71,7 @@ WarpX::InitLevelDataFFT (int lev, Real time)
         current_cp_fft[lev][0]->setVal(0.0);
         current_cp_fft[lev][1]->setVal(0.0);
         current_cp_fft[lev][2]->setVal(0.0);
-        rho_prev_cp_fft[lev]->setVal(0.0);
-        rho_next_cp_fft[lev]->setVal(0.0);
+        rho_cp_fft[lev]->setVal(0.0);
     }
 }
 
