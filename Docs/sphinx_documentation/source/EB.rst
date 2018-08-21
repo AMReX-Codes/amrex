@@ -159,7 +159,7 @@ mass gained or lost by not using :math:`D^c` directly,
 
 .. math:: \delta M_{\bf i}= \kappa (1-\kappa)(D^c(F)_{\bf i}- D^{nc}(F)_{\bf i})
 
-This “excess material” (mass, if :math:`U=\rho`) can be *redistributed* in a
+This “excess material” (mass, if :math:`U=\rho`) can be *redistributed* in a
 time-explicit fashion to neighboring cells, :math:`{\bf j}\in N_{\bf i}`:
 
 .. math:: \delta M_{\bf i}= \sum_{{\bf j}\in N_{\bf i}} \delta M_{{\bf j}, {\bf i}}.
@@ -215,17 +215,17 @@ class that must be initialized at the start of the calculation.  The
 procedure for this goes as follows:
 
 -  Define function of position which describes the surface and use it define a
-   :cpp:`GeometryShop` object – specifically, the scalar value returned by this
+   :cpp:`GeometryShop` object – specifically, the scalar value returned by this
    function takes on a negative value inside the fluid, a positive value in the 
    body, and identically zero at the EB.
 
--  Construct an :cpp:`EBIndexSpace` with the :cpp:`GeometryShop` object. This
+-  Construct an :cpp:`EBIndexSpace` with the :cpp:`GeometryShop` object. This
    will fill the underlying database of geometric information, specifically
    tailored to the actual meshes that will be used. Thus, the construction
    requires one to specify the actual mesh resolution that will be used in a
    calculation.
 
-- If one wants to archive the geometric data for later runs, she can
+- If one wants to archive the geometric data for later runs, they can
    call EBIndexSpace::write to put the data into a file.  One must be
    cautious, however, since these plot files are not binary portable.
    An EBIndexSpace plot file generated on one machine won't
@@ -234,8 +234,8 @@ procedure for this goes as follows:
  To facilitate the generation step,
    AMReX defines a virtual class, an “implicit function”,
    :cpp:`BaseIF`, which encapsulates this functionality.  An instance
-   of a :cpp:`BaseIF` object is required for the construction of a
-   :cpp:`GeometryShop` object.
+   of a :cpp:`BaseIF` object is required for the construction of a
+   :cpp:`GeometryShop` object.
 
 .. highlight:: c++
 
