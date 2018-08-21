@@ -50,6 +50,8 @@ public:
 
     const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
 
+    const MultiCutFab& getBndryArea () const { return m_ebdc->getBndryArea(); }
+
     Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
         return m_ebdc->getAreaFrac();
     }
