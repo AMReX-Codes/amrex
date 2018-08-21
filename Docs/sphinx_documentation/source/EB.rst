@@ -389,317 +389,190 @@ or
                       const Vector<int>& a_ngrow,
                       EBSupport a_support);
 
+Argument :cpp:`Vector<int> const& a_ngrow` specifies the number of
+ghost cells we need for EB data at various :cpp:`EBSupport` levels,
+and argument :cpp:`EBSupport a_support` specifies the level of support
+needed.
 
+- :cpp:`EBSupport:basic`:  basic flags for cell types
+- :cpp:`EBSupport:volume`: basic plus volume fraction and centroid
+- :cpp:`EBSupport:full`: volume plus area fraction, boundary centroid
+  and face centroid
 
-one can build :cpp:`FabArray`,
-:cpp:`MultiFab` and :cpp:`iMultiFab` (section
-:ref:`sec:basics:multifab`) with 
+:cpp:`EBFArrayBoxFactory` is derived from :cpp:`FabFactory<FArrayBox>`.  
+:cpp:`MultiFab` constructors have an optional argument :cpp:`const
+FabFactory<FArrayBox>&`.  We can use :cpp:`EBFArrayBoxFactory` to
+build :cpp:`MultiFabs` that carry EB data.  Member function of
+:cpp:`FabArray` 
 
-EBFarrayBox
-===========
+.. highlight: c++
 
-The fundamental data structure for embedded boundary calculations is
-:cpp:`EBFArrayBox`. :cpp:`EBFArrayBox` is an a :cpp:`FArrayBox` with two extra
-data members.
+::
 
--  :cpp:`EBFArrayBox::getEBISBox` returns an :cpp:`EBISBox`, a data structure
-   that contains the geometric information of an :cpp:`EBIndexSpace` but
-   restricted to a given box.
+    const FabFactory<FAB>& Factory () const;
 
--  :cpp:`EBFArrayBox::getEBCellFlagFab` is a :cpp:`BaseFab<EBCellFlag>`, where
-   :cpp:`EBCellFlag` is a class which is a class with tools that compactly
-   specifies local cell connectivities on a box.
+can then be used to return a reference to the
+:cpp:`EBFArrayBoxFactory` used for building the :cpp:`MultiFab`.
+Using :cpp:`dynamic_cast`, we can test whether a :cpp:`MultiFab` is
+built with an :cpp:`EBFArrayBoxFactory`.
 
-If one compiles with ``AMREX_USE_EB = TRUE``, the state data managed by the
-:cpp:`Amr` class is automatically of type :cpp:`EBFArrayBox` (typically the
-data is exposed explicitly as a :cpp:`MultiFab`, but the additional
-functionality may be accessed through a C++ type cast. The :cpp:`EBCellFlagFab`
-can be used down in Fortran, e.g., to choose locally whether EB-specific
-operations and data are required for constructing discretizations. In the next
-section, we show examples of this workflow.
+.. highlight: c++
 
-EBFarrayBox Usage Example
--------------------------
+::
 
-In order to make these EB concepts more concrete, we discuss here sample code
-that appears in the AMReX tutorial, ``amrex/Tutorials/EB/CNS``. This code implements a
-time-explicit second-order method of lines integrator for hyperbolic and
-parabolic transport based on a gamma-law gas EOS and constant transport
-properties. This example also demonstrates how to avoid the more
-complex/expensive EB-related logic if the tile under consideration has no cut
-cells.
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    if (factory) {
+        // this is EBFArrayBoxFactory
+    } else {
+        // regular FabFactory<FArrayBox>
+    }
+
+EB Data
+=======
+
+Through member functions of :cpp:`EBFArrayBoxFactory`, we have access
+to the following data.
+
+.. highlight: c++
+
+::
+
+    // see section on EBCellFlagFab
+    const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
+
+    // volume fraction
+    const MultiFab& getVolFrac () const;
+
+    // volume centroid
+    const MultiCutFab& getCentroid () const;
+
+    // embedded boundary centroid
+    const MultiCutFab& getBndryCent () const;
+
+    // area fractions
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const;
+
+    // face centroid
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const;
+
+Volume fraction is in a single-component :cpp:`MultiFab`, and it is
+zero for covered cells, one for regular cells, and in between for cut
+cells.  Centroid is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
+components.  Each component of the data is in the range of
+:math:`[-0.5,0.5]` because they are based on each cell's local
+coordinates.  A :cpp:`MultiCutFab` is very similar to a
+:cpp:`MultiFab`.  Its data can be accessed with subscript operator
+
+.. highlight: c++
+
+::
+
+    const CutFab& operator[] (const MFIter& mfi) const;
+
+Here :cpp:`CutFab` is derived from :cpp:`FArrayBox` and can be passed
+to Fortran just like :cpp:`FArrayBox`.  The difference between
+:cpp:`MultiCutFab` and :cpp:`MultiFab` is that to save memory
+:cpp:`MultiCutFab` only has data on boxes that contain cut cells.  It
+is an error to call :cpp:`operator[]` if that box does not have cut
+cells.  Thus the call must be in a :cpp:`if` test block (see section
+:ref:`sec:EB:flag`).  Boundary centroid is also a :cpp:`MultiCutFab`
+with ``AMREX_SPACEDIM`` components, and it uses each cell's local
+coordinates.  Area fractions and face centroids are returned in
+:cpp:`Array` of :cpp:`MultiCutFab` pointers.  For each direction, area
+fraction is for the face of that direction.  As for face centroids,
+there are two components for each direction and the ordering is always
+the same as the original ordering of the coordinates.  For example,
+for :math:`y` face, the component 0 is for :math:`x` coordinate and 1
+for :math:`z`.  The coordinates are in each face's local frame
+normalized to the range of :math:`[-0.5,0.5]`.
+
+.. _sec:EB:flag:
+
+:cpp:`EBCellFlagFab`
+--------------------
+
+:cpp:`EBCellFlagFab` contains information on cell types.  We can use
+it to determine if a box contains cut cells.
+
+.. highlight: c++
+
+::
+
+    auto const& flags = factory->getMultiEBCellFlagFab();
+    MultiCutFab const& centroid = factory->getCentroid();
+    
+    for (MFIter mfi ...) {
+        const Box& bx = mfi.tilebox();
+        FabType t = flags[mfi].getType(bx);
+        if (FabType::regular == t) {
+            ! This box is regular
+        } else if (FabType::covered == t) {
+            ! This box is covered
+        } else if (FabType::singlevalued == t) {
+            ! This box has cut cells
+            ! Getting cutfab is safe
+            const auto& centroid_fab = centroid[mfi];
+        }
+    }
+
+:cpp:`EBCellFlagFab` is derived from :cpp:`BaseFab`.  Its data are
+stored in an array of 4-bytes integers, and can be used in C++ or
+passed to Fortran just like an :cpp:`IArrayBox` (section
+:ref:`sec:basics:fab`).  AMReX provides Fortran module
+``amrex_ebcellflag_module`` that has procedures for testing cell types
+and getting neighbor information.  For example
+
+.. highlight:: fortran
+
+::
+
+    use amrex_ebcellflag_module, only : is_regular_cell, is_single_valued_cell, is_covered_cell
+
+    integer, intent(in) :: flags(...)
+
+    integer :: i,j,k
+
+    do k = ...
+    do j = ...
+    do i = ...
+       if (is_covered_cell(flags(i,j,k))) then
+           ! this is a completely covered cells
+       else if (is_regular_cell(flags(i,j,k))) then
+           ! this is a regular cell
+       else if (is_single_valued_cell(flags(i,j,k))) then
+           ! this is a cut cell
+       end if
+    end do     
+    end do     
+    end do     
+
+Linear Solvers
+==============
+
+Linear solvers for the canonical form (equation :eq:`eqn::abeclap`)
+have been discussed in chapter :ref:`Chap:LinearSolvers`.  Currently,
+AMReX support cell-centered solver with homogeneous Neumann boundary
+condition on the EB.  Cell-centered solver with Dirichlet boundary
+condition on the EB and nodal solver are under development.
+
+To use cell-centered solver for EB, one builds linear operator
+:cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory`.
 
 .. highlight:: c++
 
 ::
 
-    void
-    CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
-                       EBFluxRegister* fr_as_crse, EBFluxRegister* fr_as_fine)
-    {
-        BL_PROFILE("CNS::compute_dSdt()");
+    MLEBABecLap (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info,
+                 const Vector<EBFArrayBoxFactory const*>& a_factory);
 
-        const Real* dx = geom.CellSize();
-        const int ncomp = dSdt.nComp();
+The usage of this EB specified class is essentially the same as
+:cpp:`MLABecLaplacian`.
 
-    #ifdef _OPENMP
-    #pragma omp parallel
-    #endif
-         {
-            //fluxes for the advance
-            std::array<FArrayBox,AMREX_SPACEDIM> flux;
+Tutorials
+=========
 
-            for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
-                            mfi.isValid(); ++mfi)
-            {
-                //this tile is the subset of the box over which we are computing
-                const Box& bx = mfi.tilebox();
-
-                //because S was created with the EBFArrayBoxFactory, we can do this cast
-                const EBFArrayBox& sfab
-                    = dynamic_cast<EBFArrayBox const&>(S[mfi]);
-
-                //here we are getting the collection of flags so we know
-                //kind of grid this is and if it is an EB grid, we have
-                //the connectivity info
-                const EBCellFlagFab & flag = sfab.getEBCellFlagFab();
-
-                if (flag.getType(bx) == FabType::covered)
-                {
-                  //this tile is covered so there are no meaningful data here
-                    dSdt[mfi].setVal(0.0, bx, 0, ncomp);
-                }
-                else
-                {
-                  //create the flux holders for this tile
-                  for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
-                  {
-                    flux[idim].resize(amrex::surroundingNodes(bx,idim),ncomp);
-                  }
-
-                  if (flag.getType(amrex::grow(bx,1)) == FabType::regular)
-                  {
-                    //this tile has no cut cells so we can just proceed
-                    //with a (cheaper) non-eb call
-
-                    cns_compute_dudt(BL_TO_FORTRAN_BOX(bx),
-                    BL_TO_FORTRAN_ANYD(dSdt[mfi]),
-                    BL_TO_FORTRAN_ANYD(S[mfi]),
-                    BL_TO_FORTRAN_ANYD(flux[0]),
-                    BL_TO_FORTRAN_ANYD(flux[1]),
-                    BL_TO_FORTRAN_ANYD(flux[2]),
-                    dx, &dt);
-
-                  }
-                  else
-                  {
-                    //this tile has cut cells so we have to send into Fortran
-                    //EBCellFlagFAB as well as lots of geometric
-                    //information
-                    //the areafrac and facecent objects are member data
-                    //filled using EBISBox
-                    cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
-                    BL_TO_FORTRAN_ANYD(dSdt[mfi]),
-                    BL_TO_FORTRAN_ANYD(S[mfi]),
-                    BL_TO_FORTRAN_ANYD(flux[0]),
-                    BL_TO_FORTRAN_ANYD(flux[1]),
-                    BL_TO_FORTRAN_ANYD(flux[2]),
-                    BL_TO_FORTRAN_ANYD(flag),
-                    BL_TO_FORTRAN_ANYD(volfrac[mfi]),
-                    BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
-                    BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
-                    BL_TO_FORTRAN_ANYD(areafrac[1][mfi]),
-                    BL_TO_FORTRAN_ANYD(areafrac[2][mfi]),
-                    BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
-                    BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
-                    BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
-                    dx, &dt);
-                  }
-                }
-              }
-            }
-
-This is the main loop in the routine to advance the state. The state,
-:cpp:`MultiFab S`, comes into this routine with grow cells properly filled, and
-this routine features a :cpp:`MultiFab` iterator loop to step through this
-data, tile-by-tile and compute :cpp:`dSdt`. Here, we see that the definition of
-:cpp:`EBFarrayBox sfab` incorporates the aforementioned type cast, enabling
-queries about the EB nature of the data. Of the two possiblities handled, the
-“regular” type without cut cells has a much simpler interface. The EB version
-takes all the same data, but additionally requires (dense) data to specify the
-volume and face area fractions, centroid information, and the
-:cpp:`EBCellFlagFab flag` structure that will be queried pointwise for the
-local cell connectivity.
-
-Fortran code Snippets
----------------------
-
-Much of the code to compute these fluxes and their divergence in this example
-is too detailed to step through in this context. There are however a few
-salient features worth pointing out.
-
-The data is cell-centered, even cut cells
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In order to simplify the construction second-order discretizations, we can base
-all the numerical operations on the assumption that all cell-based data lives
-at the center of the *full*  cell containing the cut cells. This means that when
-we take a standard centered difference between cell data at :math:`(i,j,k)` and
-:math:`(i+1,j,k)`, e.g., we get a gradient value that is second-order and
-centered on the full face at :math:`i+1/2`, regardless of the aperature.
-
-Many EB operations can be organized as post-processing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Recall that a second-order finite-volume scheme requires that fluxes be
-centered on the face *centroid*. This can be accomplished by post-processing
-face-centered fluxes with a linear interpolation of adjacent face values. The
-resulting centroid-based fluxes are second-order, and can be used to construct
-the conservative divergence we seek. Note that this operation requires the
-location of the face centroids, and increases the grow cell requirement of the
-flux operators, as does the necessity to form the *hybrid divergence* operator
-discussed above.
-
-The :cpp:`flag` data
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-AMReX provides functions that query the :cpp:`flag` data in order to infer the
-local connectivity of cells. For example, the cell itself or its neighbors may
-be covered or cut. If cut, the data is centered at the center of the full cell.
-If covered, the data is invalid and should not be involved in the fluid
-advance. An example of such a call is:
-
-.. highlight:: fortran
-
-::
-
-       call get_neighbor_cells(cellflag(i,j,k),nbr)
-
-Here, for the :cpp:`flag` at :math:`(i,j,k)` is used to fill a local
-:math:`3^3` array of integers with the value :math:`1` if connected to
-:math:`(i,j,k)`, and :math:`0` if not. Similar queries:
-
-.. highlight:: fortran
-
-::
-
-       is_covered_cell(cellflag(i,j,k))
-       is_single_valued_cell(cellflag(i,j,k)
-
-can be used to gather additional detail.
-
-Below, we show a partial listing of the :fortran:`cns_eb_compute_dudt` code,
-specifically after the face-centered fluxes have been computed, and showing
-part of the work necessary to interpolate them to face centroids (while
-appropriately handling covered data).
-
-.. highlight:: fortran
-
-::
-
-        do n = 1, ncomp
-
-           !
-           ! First, we compute conservative divergence on (lo-2,hi+2)
-           !
-           iwall = 0
-           do       k = lo(3)-2, hi(3)+2
-              do    j = lo(2)-2, hi(2)+2
-                 do i = lo(1)-2, hi(1)+2
-                    divc(i,j,k) = (fluxx(i,j,k,n)-fluxx(i+1,j,k,n))*dxinv(1) &
-                         +        (fluxy(i,j,k,n)-fluxy(i,j+1,k,n))*dxinv(2) &
-                         +        (fluxz(i,j,k,n)-fluxz(i,j,k+1,n))*dxinv(3)
-                 end do
-
-                 do i = lo(1)-2, hi(1)+2
-                    if (is_covered_cell(cellflag(i,j,k))) then
-                       divc(i,j,k) = 0.d0
-                    else if (is_single_valued_cell(cellflag(i,j,k))) then
-
-                       call get_neighbor_cells(cellflag(i,j,k),nbr)
-
-                       ! x-direction lo face
-                       if (apx(i,j,k).lt.1.d0) then
-                          if (centx_y(i,j,k).le.0.d0) then
-                             fracy = -centx_y(i,j,k)*nbr(0,-1,0)
-                             if(centx_z(i,j,k).le. 0.0d0)then
-                                fracz = - centx_z(i,j,k)*nbr(0,0,-1)
-                                fxm = (1.d0-fracz)*(     fracy *fluxx(i,j-1,k  ,n)  + &
-                                     &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
-                                     &      fracz *(     fracy *fluxx(i,j-1,k-1,n)  + &
-                                     &             (1.d0-fracy)*fluxx(i,j  ,k-1,n))
-                             else
-                                fracz =  centx_z(i,j,k)*nbr(0,0,1)
-                                fxm = (1.d0-fracz)*(     fracy *fluxx(i,j-1,k  ,n)  + &
-                                     &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
-                                     &      fracz *(     fracy *fluxx(i,j-1,k+1,n)  + &
-                                     &             (1.d0-fracy)*fluxx(i,j  ,k+1,n))
-                             endif
-                          else
-                             fracy = centx_y(i,j,k)*nbr(0,1,0)
-                             if(centx_z(i,j,k).le. 0.0d0)then
-                                fracz = -centx_z(i,j,k)*nbr(0,0,-1)
-                                fxm = (1.d0-fracz)*(     fracy *fluxx(i,j+1,k  ,n)  + &
-                                     &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
-                                     &      fracz *(     fracy *fluxx(i,j+1,k-1,n)  + &
-                                     &             (1.d0-fracy)*fluxx(i,j  ,k-1,n))
-                             else
-                                fracz = centx_z(i,j,k)*nbr(0,0,1)
-                                fxm = (1.d0-fracz)*(     fracy *fluxx(i,j+1,k  ,n)  + &
-                                     &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
-                                     &      fracz *(     fracy *fluxx(i,j+1,k+1,n)  + &
-                                     &             (1.d0-fracy)*fluxx(i,j  ,k+1,n))
-                             endif
-                          end if
-                       else
-                          fxm = fluxx(i,j,k,n)
-                       end if
-
-               <..... similar code for other fluxes removed ....>
-
-                       iwall = iwall + 1
-                       if (n .eq. 1) then
-                          call compute_hyp_wallflux(divhyp(:,iwall), i,j,k, q(i,j,k,qrho), &
-                               q(i,j,k,qu), q(i,j,k,qv), q(i,j,k,qw), q(i,j,k,qp), &
-                               apx(i,j,k), apx(i+1,j,k), &
-                               apy(i,j,k), apy(i,j+1,k), &
-                               apz(i,j,k), apz(i,j,k+1))
-                          call compute_diff_wallflux(divdiff(:,iwall), dxinv, i,j,k, &
-                               q, qlo, qhi, &
-                               lam, mu, xi, clo, chi, &
-                               bcent, blo, bhi, &
-                               apx, axlo, axhi, &
-                               apy, aylo, ayhi, &
-                               apz, azlo, azhi)
-                       end if
-
-                       divwn = divhyp(n,iwall) + divdiff(n,iwall)
-
-                       ! we assume dx == dy == dz
-                       divc(i,j,k) = -((apx(i+1,j,k)*fxp - apx(i,j,k)*fxm) * dxinv(1) &
-                            +          (apy(i,j+1,k)*fyp - apy(i,j,k)*fym) * dxinv(2) &
-                            +          (apz(i,j,k+1)*fzp - apz(i,j,k)*fzm) * dxinv(3) &
-                            +          divwn * dxinv(1)) / vfrac(i,j,k)
-                    end if
-                 end do
-              end do
-           end do
-
-One can easily identify the logic and portions of the code devoted toward the
-EB corrections. Note, in particular, that diffusive fluxes into the EB need
-only be computed on cut cells.
-
-There are many approaches
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The “fixes” that need to occur in these EB algorithms can be managed in a
-number of ways, depending on the needs of the application and programming
-style. In this example, the geometrical data is used to fill dense data
-structures so that the sparse geometry information is available uniformally
-over the entire box.  Also, the cell types are queried point-by-point in order
-to form the appropriate stencil. Obviously then there is a performance penalty
-if many of the cells in tile are not actually cut. There is clearly a trade-off
-in such designs. Alternatively, one might build sparse data structures similar
-to those AMReX uses to manage particles, and apply the EB corrections on this
-sparse set directly. Future releases of AMReX will feature an expanded set of
-EB tutorials to demonstrate an evolving set of tools provided.
+``amrex/Tutorials/EB/CNS`` is an AMR code for solving compressible
+Navier-Stokes equations with the embedded boundary approach.
