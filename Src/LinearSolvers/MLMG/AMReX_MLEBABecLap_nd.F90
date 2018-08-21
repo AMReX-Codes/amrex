@@ -26,7 +26,7 @@ module amrex_mlebabeclap_nd_module
 #endif
   
   private
-  public :: amrex_mlebabeclap_apply_bc
+  public :: amrex_mlebabeclap_apply_bc, amrex_eb_copy_dirichlet
 
 contains
 
@@ -350,5 +350,33 @@ contains
     end do
 
   end subroutine amrex_mlebabeclap_apply_bc
+
+
+  subroutine amrex_eb_copy_dirichlet (lo, hi, phi, phlo, phhi, phiin, pilo, pihi, beta, blo, bhi, &
+       betain, bilo, bihi, flag, flo, fhi) bind(c,name='amrex_eb_copy_dirichlet')
+    use amrex_ebcellflag_module, only : is_single_valued_cell
+    integer, dimension(3), intent(in) :: lo, hi, phlo, phhi, pilo, pihi, blo, bhi, bilo, bihi, flo, fhi
+    real(amrex_real), intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+    real(amrex_real), intent(in   ) :: phiin (pilo(1):pihi(1),pilo(2):pihi(2),pilo(3):pihi(3))
+    real(amrex_real), intent(inout) :: beta  ( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3))
+    real(amrex_real), intent(in   ) :: betain(bilo(1):bihi(1),bilo(2):bihi(2),bilo(3):bihi(3))
+    integer         , intent(in   ) :: flag  ( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
+
+    integer :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (is_single_valued_cell(flag(i,j,k))) then
+                phi(i,j,k) = phiin(i,j,k)
+                beta(i,j,k) = betain(i,j,k)
+             else
+                phi(i,j,k) = zero
+                beta(i,j,k) = zero
+             end if
+          end do
+       end do
+    end do
+  end subroutine amrex_eb_copy_dirichlet
   
 end module amrex_mlebabeclap_nd_module

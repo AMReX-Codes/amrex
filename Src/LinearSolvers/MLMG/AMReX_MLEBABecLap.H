@@ -39,6 +39,8 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
+    void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta);
+
     virtual bool needsUpdate () const final {
         return (m_needs_update || MLCellLinOp::needsUpdate());
     }
@@ -92,6 +94,9 @@ private:
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
     Vector<Vector<iMultiFab> > m_cc_mask;
+
+    Vector<std::unique_ptr<MultiFab> > m_eb_phi;
+    Vector<Vector<std::unique_ptr<MultiFab> > > m_eb_b_coeffs;
 
     Vector<int> m_is_singular;
 
