@@ -214,407 +214,186 @@ In AMReX the geometric information is stored in a distributed database
 class that must be initialized at the start of the calculation.  The
 procedure for this goes as follows:
 
--  Define function of position which describes the surface and use it define a
-   :cpp:`GeometryShop` object – specifically, the scalar value returned by this
-   function takes on a negative value inside the fluid, a positive value in the 
-   body, and identically zero at the EB.
-
--  Construct an :cpp:`EBIndexSpace` with the :cpp:`GeometryShop` object. This
-   will fill the underlying database of geometric information, specifically
-   tailored to the actual meshes that will be used. Thus, the construction
-   requires one to specify the actual mesh resolution that will be used in a
-   calculation.
-
-- If one wants to archive the geometric data for later runs, she can
-   call EBIndexSpace::write to put the data into a file.  One must be
-   cautious, however, since these plot files are not binary portable.
-   An EBIndexSpace plot file generated on one machine won't
-   necessarily work on another machine.  
-
- To facilitate the generation step,
-   AMReX defines a virtual class, an “implicit function”,
-   :cpp:`BaseIF`, which encapsulates this functionality.  An instance
-   of a :cpp:`BaseIF` object is required for the construction of a
-   :cpp:`GeometryShop` object.
+- Define a function of position which describes the surface.  More
+  specifically, the function class must have a public member function
+  that takes a position and returns a negative value for a position
+  inside the fluid, a positive value in the body, and identically zero
+  at the EB.
 
 .. highlight:: c++
 
 ::
 
-        GeometryShop(const BaseIF& a_localGeom)
+   Real operator() (const Array<Real,AMREX_SPACEDIM>& p) const;
 
-Although the user is free to define their own instance of this class, AMReX
-provides a number of preconfigured useful ones. This are listed in the next
-section.
+- Make a :cpp:`EB2::GeometryShop` object with the implicit function. 
 
-Example: Spherical EB
----------------------
+- Build an :cpp:`EB2::IndexSpace` with the
+  :cpp:`EB2::GeometryShop` object and a :cpp:`Geometry` object that
+  contains the information about the domain and the mesh.
 
-The spherical implicit function, :cpp:`SphereIF`, derives from :cpp:`BaseIF`,
-and defines the function
-
-.. math:: S({\bf x}) = x^2 + y^2 + z^2 - R^2,
-
-In this case, the solution domain is defined as the interior of a sphere of
-radius :math:`R`. If the sign of :math:`S` is reversed, the solution domain is
-the exterior of the sphere. The following example illustrates how to use the
-SphereIF class to define a GeometryShop object:
+Here is a simple example of initialize the database with a sphere.
 
 .. highlight:: c++
 
 ::
 
+    Real radius = 0.5;
+    Array<Real,AMREX_SPACEDIM> center{0., 0., 0.};
+    bool inside = false;  // Is the fluid inside the sphere?
+    EB2::SphereIF sphere(radius, center, inside);
 
-      int nx = 1024;
-      Box domain(IntVect::Zero, (nx-1)*IntVect::Unit);
-      Real dx = 1.0/nx;
-      Real radius = 0.1;
-      RealVect center = 0.5*RealVect::Unit;
-      bool insideRegular = true;
-      //this is the implicit function
-      SphereIF sphere(radius, center, insideRegular);
+    auto shop = EB2::makeShop(sphere);
 
-      //this is worker object that creates geometric information given an IF
-      GeometryShop workshop(sphere)
+    Geometry geom(...);
+    EB2::Build(shop, geom, 0, 0);
 
-      //this is the global, distributed database being initialized
-      EBIndexSpace*  ebis = AMReX_EBIS::instance();
-      ebis->define(domain, RealVect::Zero, dx, workshop);
+Implicit Function
+-----------------
 
-In this case, we construct an :math:`r=0.1` sphere, centered within a unit
-cube. The mesh resolution is :math:`1024^3`.  The :cpp:`GeometryShop` object
-based on this sphere is then used to construct the :cpp:`EBIndexSpace`, as
-shown.
+In ``amrex/Src/EB2/``, there are a number of predefined implicit
+function classes for basic shapes.  One can use these directly or as
+template for their own classes.  
 
-Other basic shapes:
-~~~~~~~~~~~~~~~~~~~
+- :cpp:`AllRegularIF`:  No embedded boundaries at all.
 
--  Planes are made using the class :cpp:`PlaneIF` which given a normal
-   :math:`{\bf n}` and a center :math:`{\bf c}` gives the implicit function
+- :cpp:`BoxIF`: Box.
 
-   .. math:: I({\bf x}) = \sum_{1<=d<=D} n_d (x_d - c_d).
+- :cpp:`CylinderIF`: Cylinder.
 
-   .. highlight:: c++
+- :cpp:`EllipsoidIF`: Ellipsoid.
 
-   ::
+- :cpp:`PlaneIF`: Half-space plane.
 
-       RealVect normal;
-       RealVect center;
-       // ...fill in values for normal and centre...
+- :cpp:`SphereIF`: Sphere.
 
-       PlaneIF plane(normal, centre, true);
-       GeometryShop workshop(plane)
+AMReX also provides a number of transformation functions.
 
-       EBIndexSpace*  ebis = AMReX_EBIS::instance();
-       ebis->define(domain, RealVect::Zero, dx, workshop);
+- :cpp:`makeComplement`: Complement of object.
 
--  Polynomials of any form can be made using the class
-   :cpp:`PolynomialIF`. Here is an example that makes a parabola of
-   the form :math:`I({\bf x}) = x - y^2 - z^2`.
+- :cpp:`makeIntersection`: Intersection of two or more objects.
 
-   .. highlight:: c++
+- :cpp:`makeUnion`: Union of tow or more objects.
 
-   ::
+- :cpp:`Translate`: Translation of object.
 
+- :cpp:`scale`: Scale of object.
 
-       Vector<PolyTerm> poly;
-       PolyTerm mono;
-       Real coef;
-       IntVect powers;
-       Real amplitude = 1;
+- :cpp:`rotate`: Rotation of object.
 
-       // y^2 term
-       coef = amplitude;
-       powers = IntVect::Zero;
-       powers[1] = 2;
+- :cpp:`lather`: Rotation of a 2D object around an axis.
 
-       mono.coef   = coef;
-       mono.powers = powers;
-       poly.push_back(mono);
+Here are some examples of using these functions.
 
-       // z^2 term
-       coef = amplitude;
-       RealVect translation;
-
-       for(int idir = 0; idir < SpaceDim; idir++)
-       {
-           int finesize = finest_domain.size()[idir];
-           translation[idir] = 0.5*finesize*fine_dx;
-       }
-       translation[0] = 0;
-
-       TransformIF implicit(mirror);
-       implicit.translate(translation);
-       impfunc.reset(implicit.newImplicitFunction());
-
-       powers = IntVect::Zero;
-       powers[2] = 2;
-       mono.coef   = coef;
-       mono.powers = powers;
-       poly.push_back(mono);
-
-       // x term
-       coef = -1.0;
-       powers = IntVect::Zero;
-       powers[0] = 1;
-       mono.coef   = coef;
-       mono.powers = powers;
-
-       poly.push_back(mono);
-
-       PolynomialIF mirror(poly,false);
-       GeometryShop workshop(mirror)
-       EBIndexSpace*  ebis = AMReX_EBIS::instance();
-       ebis->define(domain, RealVect::Zero, dx, workshop);
-
-Implicit Function Transformation Tools
---------------------------------------
-
-More complex domains can be constructed by composing these fundamental shapes.
-AMReX contains the following classes to compose implicit functions:
-
--  :cpp:`TransformIF` allows for translations and rotations of an implicit function.
-
--  :cpp:`UnionIF` produces the union of two implicit functions.
-
--  :cpp:`IntersectionIF` produces the intersection of two implicit functions.
-
--  :cpp:`LatheIF` creates a 3D implicit function as the surface of
-   revolution of a 2D implicit function.
-
-Multi-sphere example
---------------------
-
-The following example creates a geometry using multiple spheres:
-
-.. highlight:: c++
+.. highlight: c++
 
 ::
 
+    EB2::SphereIF sphere1(...);
+    EB2::SphereIF sphere2(...);
+    EB2::BoxIF box(...);
+    EB2::CylinderIF cylinder(...);
+    EB2::PlaneIF plane(...);
 
-    vector<Real>     radius(numSpheres);
-    vector<RealVect> center(numSpheres);
-    //...
+    // union of two spheres
+    auto twospheres = EB2::makeUnion(sphere1, sphere2);
 
-    //create an implicit function for each sphere
-    vector<BaseIF*>  spheres(numSpheres);
+    // intersection of a rotated box, a plane and the union of two spheres
+    auto box_plane = EB2::makeIntersection(amrex::rotate(box,...),
+                                           plane,
+                                           twospheres);
 
-    for(int isphere = 0; isphere < numSpheres; isphere++)
-    {
-      // Create sphere at each origin and translate
-      SphereIF sphereAtZero(radius[isphere], RealVect::Zero, false);
-      TransformIF* movedSphere = new TransformIF(sphereAtZero);
-      movedSphere->translate(center[isphere]);
-      spheres[isphere] = static_cast<BaseIF*>(movedSphere);
-    }
-    // Create implicit function as intersection of spheres
-    IntersectionIF impMultisphere(spheres);
+    // scale a cylinder by a factor of 2 in x and y directions, and 3 in z-direction.
+    auto scylinder = EB2::scale(cylinder, {2., 2., 3.});
 
-    // Fluid will in the complement space outside the sphere
-    ComplementIF sideImpMultisphere(impMultisphere, false);
+:cpp:`EB2::GeometryShop`
+------------------------
 
-    // Construct the geometryshop
-    GeometryShop workshop(sideImpMultisphere)
+Given an implicit function object, say :cpp:`f`, we can make a
+:cpp:`GeometryShop` object with
 
-Geometric example 2 – Surface of revolution
--------------------------------------------
-
-Here is an example that creates a geometric construction using a surface of
-revolution of a set of polygons. This particular example only makes sense in
-three dimensions. With the right polygons, it creates the surface shown in
-:numref:`fig::revolution`.
-
-.. highlight:: c++
+.. highlight: c++
 
 ::
 
+    auto shop = EB2::makeShop(f);
 
-    /// define EBIndexSpace from the surface of revolution of a set of polygons
-    void
-    defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size)
-    {
-      amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;
+:cpp:`EB2::IndexSpace`
+----------------------
 
-      // These  the polygons that get built around the z axis
-      Vector<Vector<RealVect> > polygons;
-      //....fill the polygons any way you like//
+We build :cpp:`EB2::IndexSpace` with a template function
 
-      // Make the Vector of (convex) polygons (Vectors of points) into a union
-      // of convex polygons, each made from the intersection of a set of half
-      // planes/spaces - all represented by implicit functions.
-
-      // A list of all the polygons as implicit functions
-      Vector<BaseIF*> polytopes;
-      polytopes.resize(0);
-      int numPolys = polygons.size();
-      // Process each polygon
-      for (int p = 0; p < numPolys; p++)
-      {
-        // All the half planes/spaces used to make a polygon
-        Vector<BaseIF*> planes;
-        planes.resize(0);
-
-        // Get the current polygon (as a Vector of points)
-        const Vector<RealVect>& polygon = polygons[p];
-
-        // Get the number of points in the polygon
-        int numPts = polygon.size();
-
-        // Process each pair of points
-        for (int n = 0; n < numPts; n++)
-        {
-          // The normal and point is space used to specify each half plane/space
-          RealVect normal(RealVect::Zero);
-          RealVect point;
-
-          // Set the normal remembering that the last point connects to the first
-          // point.
-          normal[0] = -(polygon[(n+1) % numPts][1] - polygon[n][1]);
-          normal[1] =  (polygon[(n+1) % numPts][0] - polygon[n][0]);
-
-          point = polygon[n];
-
-          // Generate the appropriate half plane/space (as an implicit function)
-          PlaneIF* plane;
-          plane = new PlaneIF(normal,point,true);
-
-          // Save the result
-          planes.push_back(plane);
-        }
-
-        // Intersect all the half planes/spaces to create an implicit function
-        // that represents the polygon
-        IntersectionIF* polygonIF = new IntersectionIF(planes);
-
-        polytopes.push_back(polygonIF);
-      }
-
-      //this makes the cross section the union of all the polygons (around
-      //z-axis, recall)
-      UnionIF crossSection(polytopes);
-
-      // In 3D rotate about the z-axis
-      LatheIF lathe(crossSection, false);
-
-      //we are starting around the z axis so we need to translate
-      //over to the center of the x-y plane
-
-      RealVect translation;
-      for(int idir = 0; idir < SpaceDim; idir++)
-      {
-        translation[idir] = 0.5*finest_domain.size()[idir]*fine_dx;
-      }
-      translation[2] = 0;
-      TransformIF implicit(lathe);
-      implicit.translate(translation);
-
-      //create a workshop from translated surface of revolution
-      GeometryShop gshop(implicit, false);
-      //define the geometric database
-      AMReX_EBIS::instance()->define(finest_domain, RealVect::Zero,
-                                     fine_dx, gshop, max_grid_size);
-    }
-
-.. raw:: latex
-
-   \begin{center}
-
-.. _fig::revolution:
-
-.. figure:: ./EB/revolution.png
-   :width: 50.0%
-
-   : Zero surface of an implicit function made using a surface of revolution.
-
-.. raw:: latex
-
-   \end{center}
-
-Geometric example 3 – A Sphere Inside a Parabola
-------------------------------------------------
-
-Here is an example that creates a geometry of a sphere contained within a
-parabola. This code creates the surface shown in :numref:`fig::parabolasphere`.
-
-.. highlight:: c++
+.. highlight: c++
 
 ::
 
-    Vector<PolyTerm> poly;
+    template <typename G>
+    void EB2::Build (const G& gshop, const Geometry& geom,
+                     int required_coarsening_level, int max_coarsening_level);
 
-    PolyTerm mono;
-    Real coef;
-    IntVect powers;
-    Real amplitude = 1;
+Here the template parameter is a :cpp:`EB2::GeometryShop`.
+:cpp:`Geometry` (section :ref:`sec:basics:geom`) describes the
+rectangular problem domain and the mesh on the finest AMR level.
+Coarse level EB data are generated from coarsening the fine data.  The
+:cpp:`int required_coarsening_level` parameter specifies the number of
+required coarsening levels.  This is usually set to :math:`N-1`, where
+:math:`N` is the total number of AMR levels.  The :cpp:`int
+max_coarsening_levels` parameter specifies the number of coarsening
+levels AMReX should try to have.  This is usually set to a big number
+say 20 if multigrid solvers are used.  This essentially means
+coarsening as much as it can.  If there are no multigrid solvers, the
+paramter should be set to the same as
+:cpp:`required_coarsening_level`.  It should be noted coarsening could
+create multi-valued cells even if the fine level does not have any
+multi-valued cells.  Because multi-valued cells are not supported, it
+is a runtime error if coarsening to a required level generates
+multi-valued cells.
 
-    // y^2 term
-    coef = amplitude;
-    powers = IntVect::Zero;
-    powers[1] = 2;
+The newly built :cpp:`EB2::IndexSpace` is pushed on to a stack.  Static
+function :cpp:`EB2::IndexSpace::top()` returns a :cpp:`const &` to the
+new :cpp:`EB2::IndexSpace` object.  We usually only need to build one
+:cpp:`EB2::IndexSpace` object.  However, if your application needs
+multiple :cpp:`EB2::IndexSpace` objects, you can save the pointers for
+later use.  For simplicity, we assume there is only one
+`EB2::IndexSpace` object for the rest of this chapter.
 
-    mono.coef   = coef;
-    mono.powers = powers;
+EBFArrayBoxFactory
+==================
 
-    poly.push_back(mono);
+After the EB database is initialized, the next thing we build is
+:cpp:`EBFArrayBoxFactory`.  This object provides access to the EB
+database in the format of basic AMReX objects such as :cpp:`BaseFab`,
+:cpp:`FArrayBox`, :cpp:`FabArray`, and :cpp:`MultiFab`.   We can
+construct it with
 
-    // z^2 term
-    coef = amplitude;
-    powers = IntVect::Zero;
-    powers[2] = 2;
-    mono.coef   = coef;
-    mono.powers = powers;
-    poly.push_back(mono);
+.. highlight: c++
 
-    // x term
-    coef = -1.0;
-    powers = IntVect::Zero;
-    powers[0] = 1;
-    mono.coef   = coef;
-    mono.powers = powers;
+::
 
-    poly.push_back(mono);
+    EBFArrayBoxFactory (const Geometry& a_geom,
+                        const BoxArray& a_ba,
+                        const DistributionMapping& a_dm,
+                        const Vector<int>& a_ngrow,
+                        EBSupport a_support);
 
-    PolynomialIF mirror(poly,false);
-    RealVect translation;
+or 
 
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-      int finesize = finest_domain.size()[idir];
-      translation[idir] = 0.5*finesize*fine_dx;
-    }
-    RealVect center = translation;
-    translation[0] = 0;
+.. highlight: c++
 
-    TransformIF transform(mirror);
-    transform.translate(translation);
+::
 
-    Real radius = 0.2*center[0];
-    SphereIF sphere(radius, center, true);
-    Vector<BaseIF*> funcs(2);
-    funcs[0] = &transform;
-    funcs[1] = &sphere;
-    UnionIF implicit(funcs);
-    impfunc.reset(implicit.newImplicitFunction());
-    GeometryShop gshop(impfunc, false);
-    //define the geometric database
-    AMReX_EBIS::instance()->define(finest_domain, RealVect::Zero,
-                                     fine_dx, gshop, max_grid_size);
+    std::unique_ptr<EBFArrayBoxFactory>
+    makeEBFabFactory (const Geometry& a_geom,
+                      const BoxArray& a_ba,
+                      const DistributionMapping& a_dm,
+                      const Vector<int>& a_ngrow,
+                      EBSupport a_support);
 
-.. raw:: latex
 
-   \begin{center}
 
-.. _fig::parabolasphere:
-
-.. figure:: ./EB/parabsphere.png
-   :width: 50.0%
-
-   : Zero surface of an implicit function made the above code.
-
-.. raw:: latex
-
-   \end{center}
-
+one can build :cpp:`FabArray`,
+:cpp:`MultiFab` and :cpp:`iMultiFab` (section
+:ref:`sec:basics:multifab`) with 
 
 EBFarrayBox
 ===========
