@@ -360,6 +360,9 @@ class GaussianLaser(PICMI_Base.PICMI_GaussianLaser):
         pywarpx.laser.polarization = [np.cos(self.polarization_angle), np.sin(self.polarization_angle), 0.]  # The main polarization vector
         pywarpx.laser.profile_waist = self.waist  # The waist of the laser (in meters)
         pywarpx.laser.profile_duration = self.duration  # The duration of the laser (in seconds)
+        pywarpx.laser.zeta = self.zeta
+        pywarpx.laser.beta = self.beta
+        pywarpx.laser.phi2 = self.phi2
 
 
 class LaserAntenna(PICMI_Base.PICMI_LaserAntenna):
