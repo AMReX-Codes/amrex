@@ -524,6 +524,8 @@ def convert_cxx(outdir, cxx_files, cpp):
         except IOError:
             sys.exit("Cannot open output file {}".format(ofile))
 
+        print("Working on file {}".format(ofile))
+
         # look for the appropriate pragma, and once found, capture the
         # function call following it
         line = hin.readline()
