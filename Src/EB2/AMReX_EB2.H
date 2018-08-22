@@ -34,7 +34,7 @@ public:
     static bool empty () { return m_instance.empty(); }
     static int size () { return m_instance.size(); }
 
-    virtual const Level& getLevel (const Geometry&) const = 0;
+    virtual const Level& getLevel (const Geometry & geom) const = 0;
     virtual const Box& coarsestDomain () const = 0;
 
 protected:
@@ -90,7 +90,7 @@ void Build (const Geometry& geom,
 
 int maxCoarseningLevel (const Geometry& geom);
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
-        
+
 }}
 
 #endif

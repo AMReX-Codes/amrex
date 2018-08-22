@@ -11,8 +11,9 @@ class PlaneIF
 {
 public:
 
-    PlaneIF (const RealArray& a_point, const RealArray& a_normal)
-        : m_point(a_point), m_normal(a_normal)
+    PlaneIF (const RealArray& a_point, const RealArray& a_normal, bool a_inside = true)
+        : m_point(a_point), m_normal(a_normal), m_inside(a_inside),
+          m_sign( a_inside ? 1.0 : -1.0 )
     {}
 
     ~PlaneIF () {}
@@ -24,15 +25,18 @@ public:
 
     Real operator() (const RealArray& p) const
     {
-        return AMREX_D_TERM( (p[0]-m_point[0])*m_normal[0],
-                            +(p[1]-m_point[1])*m_normal[1],
-                            +(p[2]-m_point[2])*m_normal[2] );
+        return AMREX_D_TERM( (p[0]-m_point[0])*m_normal[0]*m_sign,
+                            +(p[1]-m_point[1])*m_normal[1]*m_sign,
+                            +(p[2]-m_point[2])*m_normal[2]*m_sign );
     }
 
 protected:
 
     RealArray m_point;
     RealArray m_normal;
+    
+    bool      m_inside;
+    Real      m_sign;
 
 };
 
