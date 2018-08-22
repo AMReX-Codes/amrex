@@ -1,19 +1,15 @@
 #!/usr/bin/env python
 
 """
-Search the Fortran source code for subroutines marked as:
-
-  AMREX_DEVICE subroutine sub(a)
-
-    ...
-
-  end subroutine
-
-and maintain a list of these.
+Search the C++ source code for Fortran calls marked with
+#pragma gpu and maintain a list of these.
 
 Then copy the C++ headers for Fortran files (typically *_F.H) into a
 temp directory, modifying any subroutines marked with #pragma gpu to
 have both a device and host signature.
+
+Finally, modify the C++ source files to replace the #pragma gpu
+with a CUDA kernel launch.
 """
 
 from __future__ import print_function
@@ -60,12 +56,6 @@ __global__ static void cuda_{}
 
 # for finding just the variable definitions in the function signature (between the ())
 decls_re = re.compile("(.*?)(\\()(.*)(\\))", re.IGNORECASE|re.DOTALL)
-
-# for finding a fortran function subroutine marked with AMREX_DEVICE or attributes(device)
-fortran_re = re.compile("(AMREX_DEVICE)(\\s+)(subroutine)(\\s+)((?:[a-z][a-z_]+))",
-                        re.IGNORECASE|re.DOTALL)
-fortran_attributes_re = re.compile("(attributes\\(device\\))(\\s+)(subroutine)(\\s+)((?:[a-z][a-z_]+))",
-                                   re.IGNORECASE|re.DOTALL)
 
 # for finding a header entry for a function binding to a fortran subroutine
 fortran_binding_re = re.compile("(void)(\\s+)((?:[a-z][a-z_]+))",
@@ -584,8 +574,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--vpath",
                         help="the VPATH to search for files")
-    parser.add_argument("--fortran",
-                        help="the names of the fortran files to search")
     parser.add_argument("--headers",
                         help="the names of the header files to convert")
     parser.add_argument("--cxx",
@@ -594,7 +582,7 @@ if __name__ == "__main__":
                         help="where to write the new header files",
                         default="")
     parser.add_argument("--cpp",
-                        help="command to run C preprocessor on .F90 files first.  If omitted, then no preprocessing is done",
+                        help="command to run C preprocessor.  If omitted, then no preprocessing is done",
                         default="")
     parser.add_argument("--defines",
                         help="defines to send to preprocess the files",
@@ -644,3 +632,4 @@ if __name__ == "__main__":
     # part II: for each C++ file, we need to expand the `#pragma gpu`
 
     convert_cxx(args.output_dir, cxx, cpp_pass)
+
