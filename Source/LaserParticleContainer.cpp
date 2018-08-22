@@ -117,7 +117,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
 	s = 1.0/std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
 	stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };    
-    dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
+	dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14, 
             "stc_direction is not perpendicular to the laser plane vector");
     
