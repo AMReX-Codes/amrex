@@ -37,7 +37,7 @@ below
                      const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
      
 It takes :cpp:`Vectors` of :cpp:`Geometry`, :cpp:`BoxArray` and
-:cpp:`DistributionMapping`.  They are :cpp:`Vectors` because MLMG can
+:cpp:`DistributionMapping`.  The arguments are :cpp:`Vectors` because MLMG can
 do multi-level composite solve.  If you are using it for single-level,
 you can do
 
@@ -48,9 +48,9 @@ you can do
     // Given Geometry geom, BoxArray grids, and DistributionMapping dmap on single level
     MLABecLaplacian mlabeclap({geom}, {grids}, {dmap});
 
-to let the compiler construct :cpp:`Vectors` for you.  We have seen
+to let the compiler construct :cpp:`Vectors` for you.  Recall that the 
 classes :cpp:`Vector`, :cpp:`Geometry`, :cpp:`BoxArray`, and
-:cpp:`DistributionMapping` in chapter :ref:`Chap:Basics`.  There are
+:cpp:`DistributionMapping` are defined in chapter :ref:`Chap:Basics`.  There are
 two new classes that are optional parameters.  :cpp:`LPInfo` is a
 class for passing parameters.  :cpp:`FabFactory` is used in problems
 with embedded boundaries (chapter :ref:`Chap:EB`).
@@ -59,7 +59,7 @@ After the linear operator is built, we need to set up boundary
 conditions.  This will be discussed later in section
 :ref:`sec:linearsolver:bc`.
 
-For :cpp:`MLABecLaplacian`, we then need to call member functions
+For :cpp:`MLABecLaplacian`, we next need to call member functions
 
 .. highlight:: c++
 
@@ -69,9 +69,9 @@ For :cpp:`MLABecLaplacian`, we then need to call member functions
     void setACoeffs (int amrlev, const MultiFab& A);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& B);
 
-to set up the coefficients.  For :cpp:`MLPoisson`, there are no
-coefficients to set.  For :cpp:`MLNodeLaplacian`, one needs to call
-member function
+to set up the coefficients for equation :eq:`eqn::abeclap`. This is unecessary for 
+:cpp:`MLPoisson`, as there are no coefficients to set.  For :cpp:`MLNodeLaplacian`, 
+one needs to call the member function
 
 .. highlight:: c++
 
@@ -81,12 +81,12 @@ member function
 
 The :cpp:`int amrlev` parameter should be zero for single-level
 solves.  For multi-level solves, each level needs to be provided with
-``A`` and ``B``, or ``Sigma``.  For composite solves, level 0 here
-means the lowest level for the solver, not necessarily the lowest
-level in the entire AMR hierarchy, because it might be doing a solve
-on AMR levels 3 to 5.
+``A`` and ``B``, or ``Sigma``.  For composite solves, :cpp:`amrlev` 0 will
+mean the lowest level for the solver, which is not necessarily the lowest
+level in the AMR hierarchy. This is so solves can be done on different sections 
+of the AMR hierarchy, e.g. on AMR levels 3 to 5.
 
-After boundary conditions and coefficients are set up, the linear
+After boundary conditions and coefficients are prescribed, the linear
 operator is ready for an MLMG object like below.
 
 .. highlight:: C++
@@ -95,8 +95,8 @@ operator is ready for an MLMG object like below.
 
     MLMG mlmg(mlabeclaplacian);
 
-Various parameters (section :ref:`sec:linearsolver:pars`) can be
-optionally set, and then we can ``MLMG`` member function
+Optional parameters can be set (see section :ref:`sec:linearsolver:pars`),
+ and then we can use the ``MLMG`` member function
 
 .. highlight:: C++
 
@@ -107,9 +107,10 @@ optionally set, and then we can ``MLMG`` member function
                 Real a_tol_rel, Real a_tol_abs);
 
 to solve the problem given an initial guess and a right-hand side.
-Zero is a perfectly fine initial guess.  The two :cpp:`Reals` are the
-targeted relative and absolute tolerances.  The solver will stop when
-one of the targets is met.  Set the absolute tolerance to zero if one
+Zero is a perfectly fine initial guess.  The two :cpp:`Reals` in the argument 
+list are the targeted relative and absolute error tolerances.  
+The solver will terminate when one of these targets is met.  
+Set the absolute tolerance to zero if one
 does not have a good value for it.  The return value of :cpp:`solve`
 is the max-norm error.
 
@@ -124,7 +125,7 @@ After the solver returns successfully, if needed, we can call
                        const Vector<MultiFab const*>& a_rhs);
 
 to compute residual (i.e., :math:`f - L(\phi)`) given the solution and
-the righ-hand side.  For cell-centered solvers, we can also call the
+the right-hand side.  For cell-centered solvers, we can also call the
 following functions to compute gradient :math:`\nabla \phi` and fluxes
 :math:`-B \nabla \phi`.
 
@@ -144,7 +145,7 @@ Boundary Conditions
 We now discuss how to set up boundary conditions for linear operators.
 In the following, physical domain boundaries refer to the boundaries
 of the physical domain, whereas coarse/fine boundaries refer to the
-level boundaries of fine AMR levels.  The following steps must be
+boundaries between AMR levels. The following steps must be
 followed in the exact order.
 
 First we need to set physical domain boundary types via :cpp:`MLLinOp` member
@@ -169,8 +170,8 @@ the physical domain boundaries are
 - :cpp:`LinOpBCType::reflect_odd` for reflection with sign changed.
 
 The second step is to set up coarse/fine Dirichlet boundary
-conditions.  This step is not always needed.  But when it's needed, it
-must be called before step 3.  This step is not needed when the
+conditions.  This step is not always needed.  But when it is, it
+must be completed before step 3. This step is not needed when the
 coarsest level in the solver covers the whole computational domain
 (e.g., the coarsest level is AMR level 0).  Note that this step is
 still needed in the case that the solver is used to do a single-level
