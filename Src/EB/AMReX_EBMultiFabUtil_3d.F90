@@ -3,7 +3,8 @@ module amrex_eb_util_module
   implicit none
   
   private
-  public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, amrex_compute_eb_divergence
+  public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, &
+       amrex_eb_avgdown_boundaries, amrex_compute_eb_divergence
 
 contains
 
@@ -178,6 +179,47 @@ contains
     endif
   end subroutine amrex_eb_avgdown_faces
 
+  
+  subroutine amrex_eb_avgdown_boundaries (lo, hi, fine, flo, fhi, crse, clo, chi, &
+       ba, blo, bhi, lrat, ncomp) bind(c,name='amrex_eb_avgdown_boundaries')
+    use amrex_constants_module, only : zero
+    integer, dimension(3), intent(in) :: lo, hi, flo, fhi, clo, chi, blo, bhi, lrat
+    integer,               intent(in) :: ncomp
+    real(amrex_real),   intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),ncomp) 
+    real(amrex_real),   intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),ncomp)
+    real(amrex_real),   intent(in   ) ::  ba (blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
+
+    integer  :: i, j, k, ii, jj, kk, n, iref, jref, kref
+    real(amrex_real) :: fa 
+ 
+    do n              = 1, ncomp
+       do k           = lo(3), hi(3)
+          kk          = k*lrat(3)
+          do j        = lo(2), hi(2)
+             jj       = j*lrat(2)
+             do i     = lo(1), hi(1)
+                ii    = i*lrat(1)
+                crse(i,j,k,n) = 0.d0
+                fa            = 0.d0
+                do    kref    = 0, lrat(3)-1
+                   do  jref   = 0, lrat(2)-1
+                      do iref = 0, lrat(1)-1
+                         fa            = fa            + ba(ii+iref,jj+jref,kk+kref)
+                         crse(i,j,k,n) = crse(i,j,k,n) + ba(ii+iref,jj+jref,kk+kref) &
+                              &                       *fine(ii+iref,jj+jref,kk+kref,n)
+                      enddo
+                   enddo
+                end do
+                if(fa.gt.1.d-30) then 
+                   crse(i,j,k,n) = crse(i,j,k,n)/fa
+                else
+                   crse(i,j,k,n) = zero
+                endif
+             enddo
+          enddo
+       enddo
+    end do
+  end subroutine amrex_eb_avgdown_boundaries
 
   subroutine amrex_compute_eb_divergence (lo, hi, divu, dlo, dhi, &
        u, ulo, uhi, v, vlo, vhi, w, wlo, whi, &

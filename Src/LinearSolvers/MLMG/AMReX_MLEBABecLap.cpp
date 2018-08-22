@@ -190,11 +190,13 @@ MLEBABecLap::averageDownCoeffs ()
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
         auto& fine_b_coeffs = m_b_coeffs[amrlev];
         
-        averageDownCoeffsSameAmrLevel(fine_a_coeffs, fine_b_coeffs);
+        averageDownCoeffsSameAmrLevel(fine_a_coeffs, fine_b_coeffs,
+                                      amrex::GetVecOfPtrs(m_eb_b_coeffs[0]));
         averageDownCoeffsToCoarseAmrLevel(amrlev);
     }
 
-    averageDownCoeffsSameAmrLevel(m_a_coeffs[0], m_b_coeffs[0]);
+    averageDownCoeffsSameAmrLevel(m_a_coeffs[0], m_b_coeffs[0],
+                                  amrex::GetVecOfPtrs(m_eb_b_coeffs[0]));
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -207,7 +209,8 @@ MLEBABecLap::averageDownCoeffs ()
 
 void
 MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                            Vector<Array<MultiFab,AMREX_SPACEDIM> >& b)
+                                            Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
+                                            const Vector<MultiFab*>& b_eb)
 {
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -229,6 +232,11 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                              &(b[mglev][2]))};
         IntVect ratio {mg_coarsen_ratio};
         amrex::EB_average_down_faces(fine, crse, ratio, 0);
+
+        if (b_eb[mglev])
+        {
+            amrex::EB_average_down_boundaries(*b_eb[mglev-1], *b_eb[mglev], ratio, 0);
+        }
     }
 }
 
