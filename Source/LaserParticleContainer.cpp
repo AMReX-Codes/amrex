@@ -58,11 +58,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	   pp.get("profile_t_peak", profile_t_peak);
 	   pp.get("profile_focal_distance", profile_focal_distance);
 	   stc_direction = p_X;
-	   std::cout << "output 1 " << std::endl;
-	   std::cout << stc_direction[0] << " "  << stc_direction[1] << " "  << stc_direction[2] << std::endl;
 	   pp.queryarr("stc_direction", stc_direction);
-	   std::cout << "output 2 " << std::endl;
-	   std::cout << stc_direction[0] << " "  << stc_direction[1] << " "  << stc_direction[2] << std::endl;
 	   pp.query("zeta", zeta);
 	   pp.query("beta", beta);
 	   pp.query("phi2", phi2);

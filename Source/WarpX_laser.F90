@@ -57,8 +57,6 @@ contains
     prefactor = prefactor / sqrt(diffract_factor)
 #endif
 
-    write(*,*) theta_stc
-
     ! Loop through the macroparticle to calculate the proper amplitude
     do i = 1, np
       ! Exp argument for the temporal gaussian envelope + STCs
