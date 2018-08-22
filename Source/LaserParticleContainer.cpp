@@ -121,8 +121,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14, 
             "stc_direction is not perpendicular to the laser plane vector");
     
-    // Get angle between p_X and stc_direction
-    // in 2d, stcs are in the simulation plane
+	// Get angle between p_X and stc_direction
+	// in 2d, stcs are in the simulation plane
 #if AMREX_SPACEDIM == 3
 	theta_stc = acos(stc_direction[0]*p_X[0] + 
 			 stc_direction[1]*p_X[1] + 
