@@ -269,8 +269,7 @@ template for their own classes.
 
 AMReX also provides a number of transformation operations to apply to an object.
 
-- :cpp:`makeComplement`: Complement of an object. For example, a sphere with fluid on outside would 
-become a sphere with fluid on the inside. 
+- :cpp:`makeComplement`: Complement of an object. E.g. a sphere with fluid on outside becomes a sphere with fluid inside. 
 
 - :cpp:`makeIntersection`: Intersection of two or more objects.
 
@@ -434,7 +433,7 @@ EB Data
 =======
 
 Through member functions of :cpp:`EBFArrayBoxFactory`, we have access
-to the following data.
+to the following data:
 
 .. highlight: c++
 
@@ -461,9 +460,10 @@ to the following data.
 Volume fraction is in a single-component :cpp:`MultiFab`, and it is
 zero for covered cells, one for regular cells, and in between for cut
 cells.  Centroid is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
-components.  Each component of the data is in the range of
-:math:`[-0.5,0.5]` because they are based on each cell's local
-coordinates.  A :cpp:`MultiCutFab` is very similar to a
+components with each component of the data is in the range of
+:math:`[-0.5,0.5]`. The centroid is based on each cell's local
+coordinates with respect to the embedded boundary.  
+A :cpp:`MultiCutFab` is very similar to a
 :cpp:`MultiFab`.  Its data can be accessed with subscript operator
 
 .. highlight: c++
@@ -508,21 +508,21 @@ it to determine if a box contains cut cells.
         const Box& bx = mfi.tilebox();
         FabType t = flags[mfi].getType(bx);
         if (FabType::regular == t) {
-            ! This box is regular
+            // This box is regular
         } else if (FabType::covered == t) {
-            ! This box is covered
+            // This box is covered
         } else if (FabType::singlevalued == t) {
-            ! This box has cut cells
-            ! Getting cutfab is safe
+            // This box has cut cells
+            // Getting cutfab is safe
             const auto& centroid_fab = centroid[mfi];
         }
     }
 
 :cpp:`EBCellFlagFab` is derived from :cpp:`BaseFab`.  Its data are
-stored in an array of 4-bytes integers, and can be used in C++ or
+stored in an array of 32-bit integers, and can be used in C++ or
 passed to Fortran just like an :cpp:`IArrayBox` (section
-:ref:`sec:basics:fab`).  AMReX provides Fortran module
-``amrex_ebcellflag_module`` that has procedures for testing cell types
+:ref:`sec:basics:fab`).  AMReX provides a Fortran module called
+``amrex_ebcellflag_module``. This module contains procedures for testing cell types
 and getting neighbor information.  For example
 
 .. highlight:: fortran
