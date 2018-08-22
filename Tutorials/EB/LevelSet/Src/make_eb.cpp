@@ -129,7 +129,15 @@ make_my_eb(int lev, const BoxArray & grids, const DistributionMapping & dmap,
       level_set->invert();
 
       int lev  = 0;
-      make_cylinder_geom(cyl_dir, cyl_radius, cyl_length, translation,
-                         lev, geom, dmap, level_set);
+      make_cylinder_eb2_geom(cyl_dir, cyl_radius, cyl_length, translation,
+                             lev, geom, dmap, level_set);
     }
+}
+
+
+void
+make_my_eb2(int lev, const BoxArray & grids, const DistributionMapping & dmap,
+            const Geometry & geom, LSFactory * level_set)
+{
+
 }

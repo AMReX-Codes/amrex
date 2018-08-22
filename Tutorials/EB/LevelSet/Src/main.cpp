@@ -28,6 +28,8 @@ int main (int argc, char* argv[])
     int levelset__pad           = 1;
     int levelset__eb_pad        = 1;
 
+    bool use_eb2 = false;
+
     {
         ParmParse pp("eb");
 
@@ -43,6 +45,9 @@ int main (int argc, char* argv[])
         pp.query("levelset__eb_refinement", levelset__eb_refinement);
         pp.query("levelset__pad", levelset__pad);
         pp.query("levelset__eb_pad", levelset__eb_pad);
+
+        // Testing: enable EB2 (off by default)
+        pp.query("use_eb2", use_eb2);
     }
 
     // AMREX_SPACEDIM: number of dimensions
@@ -108,7 +113,7 @@ int main (int argc, char* argv[])
     // Make sure that at (at least) an initial MultiFab is stored in ls[lev].
     std::unique_ptr<MultiFab> ls_data = level_set->coarsen_data();
 
-    VisMF::Write(*ls_data, "LevelSet");
+    VisMF::Write(* ls_data, "LevelSet");
 
     }
 
