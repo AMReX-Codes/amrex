@@ -124,11 +124,11 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     // Get angle between p_X and stc_direction
     // in 2d, stcs are in the simulation plane
 #if AMREX_SPACEDIM == 3
-    theta_stc = acos(stc_direction[0]*p_X[0] + 
-                     stc_direction[1]*p_X[1] + 
-                     stc_direction[2]*p_X[2]);
+	theta_stc = acos(stc_direction[0]*p_X[0] + 
+			 stc_direction[1]*p_X[1] + 
+			 stc_direction[2]*p_X[2]);
 #else
-    theta_stc = 0.;
+	theta_stc = 0.;
 #endif
 
 #if AMREX_SPACEDIM == 3
