@@ -13,14 +13,17 @@ include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
 
 DEFINES := $(DEFINES)
 
-HOST_CXXFLAGS := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
-HOST_CFLAGS := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
+HOST_CXXFLAGS := $(CXXFLAGS)
+HOST_CFLAGS   := $(CFLAGS)
 
 HOST_CXX := $(CXX)
 HOST_CC := $(CC)
 
-CXXFLAGS = $(HOST_CXXFLAGS) --std=c++11 -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
-CFLAGS = $(HOST_CFLAGS) -Wno-deprecated-gpu-targets -m64 -dc -x c -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
+CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
+CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
+
+CXXFLAGS = $(CXXFLAGS_FROM_HOST) --std=c++11 -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
+CFLAGS = $(CFLAGS_FROM_HOST) -Wno-deprecated-gpu-targets -m64 -dc -x c -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
 
 ifeq ($(DEBUG),TRUE)
   CXXFLAGS += -g -G
