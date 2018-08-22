@@ -56,7 +56,7 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
         m_a_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         m_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         m_cc_mask[amrlev].resize(m_num_mg_levels[amrlev]);
-        m_eb_b_coeffs.resize(m_num_mg_levels[amrlev]);
+        m_eb_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             m_a_coeffs[amrlev][mglev].define(m_grids[amrlev][mglev],
@@ -151,8 +151,10 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-            m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                                            1, 0, MFInfo(), *m_factory[amrlev][mglev]));
+            m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
+                                                            m_dmap[amrlev][mglev],
+                                                            1, 0, MFInfo(),
+                                                            *m_factory[amrlev][mglev]));
         }
     }
 
