@@ -174,7 +174,7 @@ extern "C"
 	void warpx_gaussian_laser( const long* np,
 				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength, amrex::Real* e_max, amrex::Real* waist,
 				amrex::Real* duration, amrex::Real* t_peak, amrex::Real* f, amrex::Real* amplitude,
-				amrex::Real* zeta, amrex::Real* beta, amrex::Real* phi2 );
+				amrex::Real* zeta, amrex::Real* beta, amrex::Real* phi2, amrex::Real* theta_stc );
 
         void warpx_harris_laser( const long* np,
                                  amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,

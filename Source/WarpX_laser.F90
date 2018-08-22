@@ -12,12 +12,12 @@ contains
 
   subroutine warpx_gaussian_laser( np, Xp, Yp, t, &
       wavelength, e_max, waist, duration, t_peak, f, amplitude, &
-      zeta, beta, phi2 ) bind(C, name="warpx_gaussian_laser")
+      zeta, beta, phi2, theta_stc ) bind(C, name="warpx_gaussian_laser")
 
     integer(c_long), intent(in) :: np
     real(amrex_real), intent(in)    :: Xp(np),Yp(np)
     real(amrex_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
-    real(amrex_real), intent(in)    :: zeta, beta, phi2
+    real(amrex_real), intent(in)    :: zeta, beta, phi2, theta_stc
     real(amrex_real), intent(inout) :: amplitude(np)
 
     integer(c_long)  :: i
@@ -57,11 +57,14 @@ contains
     prefactor = prefactor / sqrt(diffract_factor)
 #endif
 
+    write(*,*) theta_stc
+
     ! Loop through the macroparticle to calculate the proper amplitude
     do i = 1, np
       ! Exp argument for the temporal gaussian envelope + STCs
       stc_exponent = 1./stretch_factor * inv_tau2 * \
-          (t - t_peak - beta*k0*Xp(i) - 2*j*Xp(i)*( zeta - beta*f ) * \
+          (t - t_peak - beta*k0*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc)) -\
+          2*j*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc))*( zeta - beta*f ) *\
           inv_complex_waist_2)**2 
       ! stcfactor = everything but complex transverse envelope 
       stcfactor = prefactor * exp( - stc_exponent )

@@ -48,6 +48,8 @@ private:
     amrex::Vector<amrex::Real> position;
     amrex::Vector<amrex::Real> nvec;
     amrex::Vector<amrex::Real> p_X;
+    amrex::Vector<amrex::Real> stc_direction;
+
     long                      pusher_algo = -1;
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               wavelength  = std::numeric_limits<amrex::Real>::quiet_NaN();
@@ -68,6 +70,7 @@ private:
     amrex::Real zeta = 0.;
     amrex::Real beta = 0.;
     amrex::Real phi2 = 0.;
+    amrex::Real theta_stc = 0.;
 
     // parse_field_function profile
     int parser_instance_number = 0;
