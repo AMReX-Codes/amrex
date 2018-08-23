@@ -17,12 +17,14 @@ contains
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, & 
        a, alo, ahi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, & 
        vfrc, vlo, vhi, apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, &
-       fcy, cylo, cyhi, fcz, czlo, czhi, dxinv, alpha, beta) & 
+       fcy, cylo, cyhi, fcz, czlo, czhi, ba, balo, bahi, beb, elo, ehi, &
+       is_eb_dirichlet, dxinv, alpha, beta) & 
        bind(c, name='amrex_mlebabeclap_adotx') 
    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo,&
         bxhi, bylo, byhi, bzlo, bzhi, cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, &
-        azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi
+        azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi, balo, bahi, elo, ehi
    real(amrex_real), intent(in) :: dxinv(3) 
+   integer         , value, intent(in) :: is_eb_dirichlet
    real(amrex_real), value, intent(in) :: alpha, beta
    real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2), ylo(3): yhi(3))
    real(amrex_real), intent(in   ) ::    x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3))
@@ -39,6 +41,8 @@ contains
    real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
    real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2) 
    real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2) 
+   real(amrex_real), intent(in   ) ::  ba (balo(1):bahi(1),balo(2):bahi(2),balo(3):bahi(3))
+   real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2), elo(3): ehi(3))
    integer  :: i, j, k, ii, jj, kk 
    real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
 
