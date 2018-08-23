@@ -15,6 +15,9 @@
 
 using namespace amrex;
 
+
+#ifdef AMREX_USE_GEOMETRYSHOP
+
 std::unique_ptr<BaseIF>
 make_cylinder_geom(int dir, Real radius, Real length, const RealVect & translation,
                    int lev, const Geometry & geom, const DistributionMapping & dmap,
@@ -159,7 +162,7 @@ make_cylinder_geom(int dir, Real radius, Real length, const RealVect & translati
     return cylinder_IF;
 }
 
-
+#endif
 
 std::unique_ptr<CappedCylinderIF>
 make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & translation,

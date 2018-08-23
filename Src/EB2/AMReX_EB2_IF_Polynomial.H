@@ -3,6 +3,7 @@
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+#include <AMReX_IntVect.H>
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 

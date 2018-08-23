@@ -35,6 +35,9 @@
 
 using namespace amrex;
 
+
+#ifdef AMREX_USE_GEOMETRYSHOP
+
 void
 make_my_eb(int lev, const BoxArray & grids, const DistributionMapping & dmap,
            const Geometry & geom, LSFactory * level_set)
@@ -138,6 +141,8 @@ make_my_eb(int lev, const BoxArray & grids, const DistributionMapping & dmap,
                          lev, geom, dmap, level_set);
     }
 }
+
+#endif
 
 
 void

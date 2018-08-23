@@ -1,12 +1,20 @@
+#ifdef AMREX_USE_GEOMETRYSHOP
+
 #include <AMReX_PlaneIF.H>
 #include <AMReX_AllRegularService.H>
 #include <AMReX_TransformIF.H>
 #include <AMReX_IntersectionIF.H>
+
+#endif
+
 #include <AMReX_ParmParse.H>
 
 #include <make_shapes.H>
 
 using namespace amrex;
+
+
+#ifdef AMREX_USE_GEOMETRYSHOP
 
 std::unique_ptr<BaseIF>
 make_poly_geom(int lev, int max_order, std::string field_prefix)
@@ -17,8 +25,8 @@ make_poly_geom(int lev, int max_order, std::string field_prefix)
 
     // Coefficients vector is stored in the inputs database with the field name:
     //      <field_prefix>_[x,y,z]_coeffs
-    const std::array<const string, 3> var_names{"x", "y", "z"};
-    std::array<string, 3> field_names;
+    const std::array<const std::string, 3> var_names{"x", "y", "z"};
+    std::array<std::string, 3> field_names;
     for(int i = 0; i < 3; i++) {
         std::stringstream field_name;
         field_name << field_prefix;
@@ -77,6 +85,9 @@ make_poly_geom(int lev, int max_order, std::string field_prefix)
     return std::unique_ptr<BaseIF>(poly2.newImplicitFunction());
 }
 
+#endif
+
+
 std::unique_ptr<CylinderIF>
 make_poly_eb2_geom(int lev, int max_order, std::string field_prefix)
 {
@@ -86,8 +97,8 @@ make_poly_eb2_geom(int lev, int max_order, std::string field_prefix)
 
     // Coefficients vector is stored in the inputs database with the field name:
     //      <field_prefix>_[x,y,z]_coeffs
-    const std::array<const string, 3> var_names{"x", "y", "z"};
-    std::array<string, 3> field_names;
+    const std::array<const std::string, 3> var_names{"x", "y", "z"};
+    std::array<std::string, 3> field_names;
     for(int i = 0; i < 3; i++) {
         std::stringstream field_name;
         field_name << field_prefix;

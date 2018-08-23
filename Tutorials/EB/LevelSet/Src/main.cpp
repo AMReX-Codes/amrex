@@ -108,9 +108,17 @@ int main (int argc, char* argv[])
                                   levelset__pad, levelset__eb_pad, grids, geom, dmap) );
 
     // Constructs EB, followed by level-set
+
+#ifdef AMREX_USE_GEOMETRYSHOP
+
     if (use_eb2) make_my_eb2(lev, grids, dmap, geom, level_set.get());
     else         make_my_eb(lev, grids, dmap, geom, level_set.get());
 
+#else
+
+    make_my_eb2(lev, grids, dmap, geom, level_set.get());
+
+#endif
 
     // Make sure that at (at least) an initial MultiFab is stored in ls[lev].
     std::unique_ptr<MultiFab> ls_data = level_set->coarsen_data();
