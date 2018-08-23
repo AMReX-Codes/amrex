@@ -88,17 +88,17 @@ make_cylinder_geom(int dir, Real radius, Real length, const RealVect & translati
     int grid_size = 16;
     bool eb_verbosity = true;
 
-    /**************************************************************************
-     *                                                                        *
-     * Fill Level-set using:                                                  *
-     *      -> Walls (where the GeometryShop's implicit function is a signed  *
-     *         distance): implicit function's value                           *
-     *      -> Cylinder (where GeometryShop's implicit function is singed but *
-     *         not a distance): min distance to EB facets                     *
-     *      Note: this requires building and destroying the EBTower (twice),  *
-     *      so any EBTower data built before this will be lost...             *
-     *                                                                        *
-     **************************************************************************/
+    /****************************************************************************
+     *                                                                          *
+     * Fill Level-set using:                                                    *
+     *      -> Walls (where the GeometryShop's implicit function is a signed    *
+     *         distance): implicit function's value                             *
+     *      -> Cylinder (where GeometryShop's implicit function is singed but   *
+     *         not a distance): min distance to EB facets                       *
+     *      Note: this requires building and destroying the EBTower (twice),    *
+     *      so any EBTower data built before this will be lost...               *
+     *                                                                          *
+     ****************************************************************************/
 
     // Define both components of the GeometryShop separately:
     GeometryShop gshop_upoly(cylinder1, eb_verbosity);

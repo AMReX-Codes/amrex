@@ -62,3 +62,6 @@ std::unique_ptr<CappedCylinderIF>
 make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & translation,
                    int lev, const Geometry & geom, const DistributionMapping & dm,
                    LSFactory * level_set);
+
+std::unique_ptr<CylinderIF>
+make_poly_eb2_geom(int lev, int max_order, std::string field_prefix);
