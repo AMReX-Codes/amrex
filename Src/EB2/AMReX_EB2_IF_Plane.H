@@ -34,7 +34,7 @@ protected:
 
     RealArray m_point;
     RealArray m_normal;
-    
+
     bool      m_inside;
     Real      m_sign;
 
