@@ -8,12 +8,9 @@ amr.max_level = 0
 amr.plot_int = 100
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 1     0            # Is periodic?
-# physical domain when running in the lab frame
-# geometry.prob_lo     = -250.e-6   -220.e-6
-# geometry.prob_hi     =  250.e-6      1.e-6
-# physical domain when running in a boosted frame
-geometry.prob_lo     = -250.e-6   -8794.49e-6
-geometry.prob_hi     =  250.e-6      39.974e-6
+# physical domain
+geometry.prob_lo     = -250.e-6   -220.e-6
+geometry.prob_hi     =  250.e-6      1.e-6
 
 #################################
 ############ NUMERICS ###########

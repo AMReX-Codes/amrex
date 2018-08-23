@@ -152,20 +152,15 @@ WarpX::WarpX ()
     costs.resize(nlevs_max);
 
 #ifdef WARPX_USE_PSATD
-    rho2_fp.resize(nlevs_max);
-    rho2_cp.resize(nlevs_max);
-
     Efield_fp_fft.resize(nlevs_max);
     Bfield_fp_fft.resize(nlevs_max);
     current_fp_fft.resize(nlevs_max);
-    rho_prev_fp_fft.resize(nlevs_max);
-    rho_next_fp_fft.resize(nlevs_max);
+    rho_fp_fft.resize(nlevs_max);
 
     Efield_cp_fft.resize(nlevs_max);
     Bfield_cp_fft.resize(nlevs_max);
     current_cp_fft.resize(nlevs_max);
-    rho_prev_cp_fft.resize(nlevs_max);
-    rho_next_cp_fft.resize(nlevs_max);
+    rho_cp_fft.resize(nlevs_max);
 
     dataptr_fp_fft.resize(nlevs_max);
     dataptr_cp_fft.resize(nlevs_max);
@@ -302,7 +297,6 @@ WarpX::ReadParameters ()
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
-        pp.query("pml_type", pml_type);
 
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
@@ -450,14 +444,8 @@ WarpX::ClearLevel (int lev)
         current_cp_fft[lev][i].reset();
     }
 
-    rho2_fp[lev].reset();
-    rho2_cp[lev].reset();
-
-    rho_prev_fp_fft[lev].reset();
-    rho_next_fp_fft[lev].reset();
-
-    rho_prev_cp_fft[lev].reset();
-    rho_next_cp_fft[lev].reset();
+    rho_fp_fft[lev].reset();
+    rho_cp_fft[lev].reset();
 
     dataptr_fp_fft[lev].reset();
     dataptr_cp_fft[lev].reset();
@@ -490,11 +478,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
     IntVect ngJ(ngx,ngy,ngz_nonci);
-    IntVect ngRho = ngJ;
+    IntVect ngRho = ngJ + 1;  // One extra ghost cell, so that it's safe to deposit charge density
+                              // after pushing particle.
 #elif (AMREX_SPACEDIM == 2)
     IntVect ngE(ngx,ngz);
     IntVect ngJ(ngx,ngz_nonci);
-    IntVect ngRho = ngJ;
+    IntVect ngRho = ngJ + 1;
 #endif
 
     int ngF = (do_moving_window) ? 2 : 0;
@@ -517,8 +506,14 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     if (do_dive_cleaning)
     {
         F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
     }
+#ifdef WARPX_USE_PSATD
+    else
+    {
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));        
+    }
+#endif
 
     //
     // The Aux patch (i.e., the full solution)
@@ -567,8 +562,14 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         if (do_dive_cleaning)
         {
             F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, ngF));
-            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
         }
+#ifdef WARPX_USE_PSATD
+        else
+        {
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+        }
+#endif
     }
 
     if (load_balance_int > 0) {

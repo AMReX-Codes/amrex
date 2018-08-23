@@ -654,7 +654,7 @@ WarpX::WritePlotFile () const
                 // First the electric field
                 if (lev == 0)
                 {
-                    mf[lev]->setVal(0.0, dcomp, AMREX_SPACEDIM, ngrow);
+                    mf[lev]->setVal(0.0, dcomp, 3, ngrow);
                 }
                 else
                 {
@@ -677,7 +677,7 @@ WarpX::WritePlotFile () const
                 // now the magnetic field                
                 if (lev == 0)
                 {
-                    mf[lev]->setVal(0.0, dcomp, AMREX_SPACEDIM, ngrow);
+                    mf[lev]->setVal(0.0, dcomp, 3, ngrow);
                 }
                 else
                 {
