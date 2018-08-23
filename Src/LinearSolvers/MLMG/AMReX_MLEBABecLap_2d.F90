@@ -24,11 +24,12 @@ contains
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       dxinv, alpha, beta) &
+       ba, balo, bahi, beb, elo, ehi, is_eb_dirichlet, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_adotx')
     integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
-         cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
+         cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, balo, bahi, elo, ehi
     real(amrex_real), intent(in) :: dxinv(2)
+    integer         , value, intent(in) :: is_eb_dirichlet
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2))
     real(amrex_real), intent(in   ) ::    x( xlo(1): xhi(1), xlo(2): xhi(2))
@@ -42,8 +43,13 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
+    real(amrex_real), intent(in   ) ::   ba(balo(1):bahi(1),balo(2):bahi(2))
+    real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
     integer :: i,j, ii, jj
-    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
+    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy, feb
+    logical :: is_dirichlet
+
+    is_dirichlet = is_eb_dirichlet .ne. 0
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -87,8 +93,17 @@ contains
                 fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(x(ii,j+1)-x(ii,j))
              end if
 
+             if (is_dirichlet) then
+                
+
+                feb = feb*ba(i,j)*beb(i,j)
+             else
+                feb = zero  ! flux into the wall
+             end if
+
              y(i,j) = alpha*a(i,j)*x(i,j) + (one/vfrc(i,j)) * &
-                  (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
+                  (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp) &
+                  - dhx*feb)
           end if
        end do
     end do

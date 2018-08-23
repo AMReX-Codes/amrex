@@ -304,6 +304,11 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
+
+    const int is_eb_dirichlet = isEBDirichlet();
+    FArrayBox foo(Box::TheUnitBox());
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -331,6 +336,9 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                                BL_TO_FORTRAN_ANYD(bzfab)),
                                   dxinv, m_a_scalar, m_b_scalar);
         } else {
+
+            FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
+
             amrex_mlebabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(yfab),
                                     BL_TO_FORTRAN_ANYD(xfab),
@@ -347,6 +355,8 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    BL_TO_FORTRAN_ANYD((*barea)[mfi]),
+                                    BL_TO_FORTRAN_ANYD(bebfab), is_eb_dirichlet,
                                     dxinv, m_a_scalar, m_b_scalar);
         }
     }
@@ -797,6 +807,18 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                 }
             }
         }
+    }
+}
+
+void
+MLEBABecLap::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                    const MLMGBndry* bndry) const
+{
+    BL_PROFILE("MLEBABecLap::apply()");
+    applyBC(amrlev, mglev, in, bc_mode, bndry);
+    Fapply(amrlev, mglev, out, in);
+    if (bc_mode == BCMode::Inhomogeneous) {
+        // xxxxx todo
     }
 }
 

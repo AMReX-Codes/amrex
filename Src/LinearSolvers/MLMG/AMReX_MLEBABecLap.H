@@ -56,6 +56,8 @@ protected:
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                           const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
+    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                        const MLMGBndry* bndry=nullptr) const final;
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
@@ -103,6 +105,7 @@ private:
     //
     // functions
     //
+    bool isEBDirichlet () const { return m_eb_phi[0] != nullptr; }
 
     void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
