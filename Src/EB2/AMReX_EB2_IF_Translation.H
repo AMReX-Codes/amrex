@@ -25,8 +25,9 @@ public:
 
     ~TranslationIF () {}
 
-    TranslationIF (const TranslationIF& rhs) noexcept = default;
-    TranslationIF (TranslationIF&& rhs) noexcept = default;
+    TranslationIF (const TranslationIF& rhs) = default;
+    TranslationIF (TranslationIF&& rhs) = default;
+
     TranslationIF& operator= (const TranslationIF& rhs) = delete;
     TranslationIF& operator= (TranslationIF&& rhs) = delete;
 

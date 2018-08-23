@@ -39,6 +39,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
     m_impfunc.reset(new F(gshop.GetImpFunc()));
 }
 
+
 template <typename G>
 const Level&
 IndexSpaceImp<G>::getLevel (const Geometry& geom) const
@@ -47,4 +48,3 @@ IndexSpaceImp<G>::getLevel (const Geometry& geom) const
     int i = std::distance(m_domain.begin(), it);
     return m_gslevel[i];
 }
-

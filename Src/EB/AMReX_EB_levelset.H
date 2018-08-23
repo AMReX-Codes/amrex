@@ -1,18 +1,26 @@
 #ifndef AMREX_EB_LEVELSET_H_
 #define AMREX_EB_LEVELSET_H_
 
-#ifdef AMREX_USE_GEOMETRYSHOP
-
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_RealVect.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_BoxArray.H>
-#include <AMReX_EBIndexSpace.H>
-#include <AMReX_PolynomialIF.H>
+
+#include <AMReX_EB2.H>
+#include <AMReX_EB2_GeometryShop.H>
+
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBCellFlag.H>
+
+
+#ifdef AMREX_USE_GEOMETRYSHOP
+
+#include <AMReX_PolynomialIF.H>
+#include <AMReX_EBIndexSpace.H>
+
+#endif
 
 namespace amrex {
 
@@ -59,11 +67,13 @@ class LSFactory {
         // Construct eb_facets list from eb_factory
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
 
+#ifdef AMREX_USE_GEOMETRYSHOP
         // Construct nodal MultiFab containing EBIS Implicit function velues
         std::unique_ptr<MultiFab> ebis_impfunc(const EBIndexSpace & eb_is);
+#endif
 
-        void update_ba(const BoxArray& new_ba, const DistributionMapping & dm);
-        void init_geom(const BoxArray& ba, const Geometry& geom, const DistributionMapping & dm);
+        void update_ba(const BoxArray & new_ba, const DistributionMapping & dm);
+        void init_geom(const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
 
         void fill_valid_kernel();
         void fill_valid(int n);
@@ -71,22 +81,31 @@ class LSFactory {
 
     public:
         LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
-                  const BoxArray& ba, const Geometry& geom, const DistributionMapping& dm);
+                  const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
         LSFactory(const LSFactory & other);
         ~LSFactory();
 
-        void regrid(const BoxArray& ba, const DistributionMapping& dm);
+        void regrid(const BoxArray & ba, const DistributionMapping & dm);
 
         void invert();
 
         void set_data(const MultiFab & mf_ls);
 
+#ifdef AMREX_USE_GEOMETRYSHOP
         std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
                                                     const EBIndexSpace & eb_is);
         std::unique_ptr<iMultiFab> union_ebf(const EBFArrayBoxFactory & eb_factory,
                                              const EBIndexSpace & eb_is);
         std::unique_ptr<iMultiFab> intersection_ebis(const EBIndexSpace & eb_is);
         std::unique_ptr<iMultiFab> union_ebis(const EBIndexSpace & eb_is);
+#endif
+
+        std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
+                                                    const MultiFab & mf_impfunc);
+        std::unique_ptr<iMultiFab> union_ebf(const EBFArrayBoxFactory & eb_factory,
+                                             const MultiFab & mf_impfunc);
+        std::unique_ptr<iMultiFab> intersection_impfunc(const MultiFab & mf_impfunc);
+        std::unique_ptr<iMultiFab> union_impfunc(const MultiFab & mf_impfunc);
 
         // Unpdate internal `ls_phi` and `ls_valid` based on the min of
         // `ls_phi` and `ls_in`
@@ -98,8 +117,8 @@ class LSFactory {
         const iMultiFab * get_valid() const {return ls_valid.get();};
 
         // Copy level-set data
-        std::unique_ptr<MultiFab>  copy_data(const DistributionMapping& dm) const;
-        std::unique_ptr<iMultiFab> copy_valid(const DistributionMapping& dm) const;
+        std::unique_ptr<MultiFab>  copy_data(const DistributionMapping & dm) const;
+        std::unique_ptr<iMultiFab> copy_valid(const DistributionMapping & dm) const;
         std::unique_ptr<MultiFab>  coarsen_data() const;
 
         // Return grid parameters
@@ -122,7 +141,41 @@ class LSFactory {
         const BoxArray & get_ba()    const {return base_ba;};
 
         const Geometry & get_geom()          const {return base_geom;};
+        const Geometry & get_ls_geom()       const {return geom_ls;};
         const DistributionMapping & get_dm() const {return ls_dm;};
+};
+
+
+
+template <class F>
+class GShopLSFactory {
+    private:
+        EB2::GeometryShop<F> m_gshop;
+        Geometry             m_geom;
+        BoxArray             m_ls_ba;
+        DistributionMapping  m_ls_dm;
+        int                  m_ls_pad;
+
+    public:
+        GShopLSFactory( const EB2::GeometryShop<F> & gshop, const LSFactory & level_set )
+            : m_gshop(gshop), m_geom(level_set.get_ls_geom()),
+              m_ls_ba(level_set.get_ls_ba()), m_ls_dm(level_set.get_dm()), m_ls_pad(level_set.get_ls_pad())
+        {}
+
+        std::unique_ptr<MultiFab> fill_impfunc() {
+            std::unique_ptr<MultiFab> mf_impfunc = std::unique_ptr<MultiFab>(new MultiFab);
+            mf_impfunc->define(m_ls_ba, m_ls_dm, 1, m_ls_pad);
+
+            #ifdef _OPENMP
+            #pragma omp parallel
+            #endif
+            for(MFIter mfi(* mf_impfunc, true); mfi.isValid(); ++ mfi)
+                m_gshop.fillFab((* mf_impfunc)[mfi], m_geom);
+
+            mf_impfunc->FillBoundary(m_geom.periodicity());
+
+            return mf_impfunc;
+        }
 };
 
 
@@ -167,6 +220,7 @@ class LSUtility {
 
 
 
+#ifdef AMREX_USE_GEOMETRYSHOP
 class PolynomialDF : public PolynomialIF {
     private:
         int order;
@@ -186,9 +240,8 @@ class PolynomialDF : public PolynomialIF {
         virtual BaseIF * newImplicitFunction() const;
 
 };
+#endif
 
 }
-
-#endif
 
 #endif

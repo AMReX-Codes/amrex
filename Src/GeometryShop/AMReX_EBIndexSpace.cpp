@@ -7,7 +7,6 @@
 #include "AMReX_PolyGeom.H"
 #include "AMReX_parstream.H"
 #include "AMReX_Utility.H"
-#include "AMReX_Utility.H"
 #include "AMReX_FabArrayIO.H"
 #include <string>
 #include <iostream>
