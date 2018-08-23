@@ -179,6 +179,7 @@ PETScABecLap::prepareSolver ()
         if (fabtyp == FabType::covered)
         {
             ncells_grid[mfi] = 0;
+            noff_elmts[mfi] = 0;  
         }
         else if (fabtyp == FabType::singlevalued)
         {
@@ -193,6 +194,7 @@ PETScABecLap::prepareSolver ()
         {
             long npts = bx.numPts();
             ncells_grid[mfi] = npts;
+            noff_elmts[mfi] = npts*(regular_stencil_size-1); 
             ncells_proc += npts;
 
             ifab.resize(bx);
@@ -225,7 +227,7 @@ PETScABecLap::prepareSolver ()
         proc_end += ncells_grid[mfi];
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
-                                     "PETScABecLap::prepareSolver: how did this happend?");
+                                     "PETScABecLap::prepareSolver: how did this happen?");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -237,9 +239,9 @@ PETScABecLap::prepareSolver ()
 
     cell_id.FillBoundary(geom.periodicity());
 
-    // Create A
     MatCreateAIJ(PETSC_COMM_WORLD, ncells_proc, ncells_proc, ncells_world, ncells_world,
-        0, nullptr, 0, nullptr, &A);
+        0, regular_stencil_size - 2,  0, 3, &A); 
+    //Maybe an over estimate of the diag/off diag #of non-zero entries
 
     // A.SetValues
     const Real* dx = geom.CellSize();
@@ -319,7 +321,7 @@ PETScABecLap::prepareSolver ()
             }
 #endif
 
-//            MatSetValues(A, nrows, rows, 
+            MatSetValues(A, nrows, rows, ncols, cols, mat, INSERT_VALUES);  
 //
 //            HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
         }
@@ -344,12 +346,114 @@ PETScABecLap::prepareSolver ()
 void
 PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 {
+    BL_PROFILE("PETScABecLap::loadVectors()");
+
+#ifdef AMREX_USE_EB
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
+#endif
     soln.setVal(0.0);
+
+    FArrayBox vecfab, rhsfab;
+    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        const HYPRE_Int nrows = ncells_grid[mfi];
+
+#ifdef AMREX_USE_EB
+        const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+#else
+        const auto fabtyp = FabType::regular;
+#endif
+        if (fabtyp != FabType::covered)
+        {
+            // soln has been set to zero.
+//            HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr());
+
+            rhsfab.resize(bx);
+            rhsfab.copy(rhs[mfi],bx);
+            rhsfab.mult(diaginv[mfi]);
+
+            FArrayBox* bfab;
+#ifdef AMREX_USE_EB
+            if (fabtyp != FabType::regular)
+            {
+                bfab = &vecfab;
+                bfab->resize(bx);
+/*                amrex_hpeb_copy_to_vec(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(rhsfab),
+                                       bfab->dataPtr(), &nrows,
+                                       BL_TO_FORTRAN_ANYD((*flags)[mfi])); // */
+            }
+            else
+#endif
+            {
+                bfab = &rhsfab;
+            }
+
+//            HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr());
+        }
+    }
+
 }
 
 void
 PETScABecLap::getSolution (MultiFab& soln)
 {
+#ifdef AMREX_USE_EB
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
+    FArrayBox rfab;
+    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        const HYPRE_Int nrows = ncells_grid[mfi];
+
+#ifdef AMREX_USE_EB
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+#else
+        auto fabtyp = FabType::regular;
+#endif
+        if (fabtyp != FabType::covered)
+        {
+            FArrayBox *xfab;
+#ifdef AMREX_USE_EB
+            if (fabtyp != FabType::regular)
+            {
+                xfab = &rfab;
+                xfab->resize(bx);
+            }
+            else
+#endif
+            {
+                if (soln.nGrow() == 0) {
+                    xfab = &soln[mfi];
+                } else {
+                    xfab = &rfab;
+                    xfab->resize(bx);
+                }
+            }
+
+//            HYPRE_IJVectorGetValues(x, nrows, cell_id_vec[mfi].data(), xfab->dataPtr());
+
+            if (fabtyp == FabType::regular && soln.nGrow() != 0)
+            {
+                soln[mfi].copy(*xfab,bx);
+            }
+#ifdef AMREX_USE_EB
+            else if (fabtyp != FabType::regular)
+            {
+/*                amrex_hpeb_copy_from_vec(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(soln[mfi]),
+                                         xfab->dataPtr(), &nrows,
+                                         BL_TO_FORTRAN_ANYD((*flags)[mfi])); // */
+            }
+#endif
+        }
+    }
+
 }
 
 }
