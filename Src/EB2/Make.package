@@ -8,6 +8,7 @@ C$(EB2_BASE)_headers += AMReX_EB2_IF_Cylinder.H
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Ellipsoid.H
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Plane.H
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Sphere.H
+C$(EB2_BASE)_headers += AMReX_EB2_IF_Polynomial.H
 
 
 C$(EB2_BASE)_headers += AMReX_EB2_IF_Complement.H

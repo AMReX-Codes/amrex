@@ -21,7 +21,7 @@ namespace UIF_detail {
     {
         return f(p);
     }
-    
+
     template <typename F, typename... Fs>
     Real do_max (const RealArray& p, F&& f, Fs&... fs)
     {
