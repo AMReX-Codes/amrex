@@ -2,14 +2,19 @@
 #include <AMReX_Vector.H>
 #include <AMReX_RealVect.H>
 
+#ifdef AMREX_USE_GEOMETRYSHOP
+
 #include <AMReX_GeometryShop.H>
+#include <AMReX_BaseIF.H>
+
 #include <AMReX_EBIndexSpace.H>
-#include <AMReX_EBFabFactory.H>
+
+#endif
+
 #include <AMReX_EBTower.H>
 #include <AMReX_EBFArrayBox.H>
-
-#include <AMReX_BaseIF.H>
 #include <AMReX_EB_levelset.H>
+#include <AMReX_EBFabFactory.H>
 
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF_Plane.H>
@@ -40,6 +45,7 @@ using CappedCylinderIF = typename
         CylinderIF
     >;
 
+#ifdef AMREX_USE_GEOMETRYSHOP
 
 std::unique_ptr<BaseIF>
 make_cylinder_geom(int dir, Real radius, Real length, const RealVect & translation,
@@ -52,6 +58,9 @@ make_poly_geom(int lev, int max_order, std::string field_prefix);
 void
 make_my_eb(int lev, const BoxArray & grids, const DistributionMapping & dmap,
            const Geometry & geom, LSFactory * level_set);
+
+#endif
+
 
 void
 make_my_eb2(int lev, const BoxArray & grids, const DistributionMapping & dmap,
