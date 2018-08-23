@@ -100,7 +100,7 @@ public :
     inline pointer allocate(size_type cnt,
                             typename std::allocator<void>::const_pointer = 0) {
         pointer result = nullptr;
-        cudaError_t error = cudaMallocHost(&result, cnt*sizeof(T));
+        cudaError_t error = cudaMallocHost(&result, cnt*sizeof(T), cudaHostAllocMapped);
         if(error != cudaSuccess) {
             amrex::Print() << "Allocation failed in cudaMallocHost \n";
             amrex::Abort();
