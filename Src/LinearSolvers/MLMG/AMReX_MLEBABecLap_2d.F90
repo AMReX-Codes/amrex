@@ -2,7 +2,7 @@
 module amrex_mlebabeclap_2d_module
 
   use amrex_error_module
-  use amrex_constants_module, only : zero, one
+  use amrex_constants_module, only : zero, one, half
   use amrex_fort_module, only : amrex_real
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell, &
        get_neighbor_cells_int_single
@@ -13,6 +13,13 @@ module amrex_mlebabeclap_2d_module
        amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad
 
 contains
+
+  pure function blend_beta (volfrac) result(beta)
+    real(amrex_real), intent(in) :: volfrac
+    real(amrex_real) :: beta
+    real(amrex_real), parameter :: theta = half
+    beta = max(zero, volfrac-theta)
+  end function blend_beta
 
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
