@@ -242,14 +242,15 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
 
 
 
-    CylinderIF                    cylinder_if(EB2::PolynomialIF(poly),
-                                              offset);
+    CylinderIF                    cylinder_if(EB2::PolynomialIF(poly), offset);
     EB2::GeometryShop<CylinderIF> cylinder_gshop(cylinder_if);
     GShopLSFactory<CylinderIF>    cylinder_ls_gshop(cylinder_gshop, * level_set);
 
     // Implicit function used by LSFactory
     //  -- returned MF has the same DM as LSFactory
     std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_ls_gshop.fill_impfunc();
+
+    VisMF::Write(* cylinder_mf_impfunc, "ImpFunc_SideWalls");
 
     Print() << "building cyldinder EB2" << std::endl;
     // Build level for cylinder walls

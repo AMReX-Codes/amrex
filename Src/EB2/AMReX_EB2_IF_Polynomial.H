@@ -9,12 +9,32 @@
 namespace amrex { namespace EB2 {
 
 
+/********************************************************************************
+ *                                                                              *
+ * Integer-based powers:                                                        *
+ *     -- Do not use std::pow => we don't need non-integer powers               *
+ *                                                                              *
+ ********************************************************************************/
 
-/*******************************************************************************
- *                                                                             *
- * Represents one term in a general polynomial                                 *
- *                                                                             *
- *******************************************************************************/
+inline Real exp_int (Real base, int exponent)
+{
+    if (exponent < 0)   return 1./exp_int(base, -exponent);
+    if (exponent == 0 ) return 1.;
+    if (exponent == 1 ) return base;
+
+    Real tmp = exp_int(base, exponent/2);
+
+    if (exponent%2 == 0) return tmp*tmp;
+    else return base*tmp*tmp;
+}
+
+
+
+/********************************************************************************
+ *                                                                              *
+ * Represents one term in a general polynomial                                  *
+ *                                                                              *
+ ********************************************************************************/
 class PolyTerm
 {
 public:
@@ -53,7 +73,7 @@ public:
             Real cur = m_polynomial[iterm].coef;
 
             for (int idir = 0; idir < SpaceDim; idir++)
-                cur *= pow(p[idir], m_polynomial[iterm].powers[idir]);
+                cur *= exp_int(p[idir], m_polynomial[iterm].powers[idir]);
 
             retval += cur;
         }
