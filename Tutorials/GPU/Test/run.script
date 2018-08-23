@@ -11,12 +11,15 @@ module load cuda
 module list
 set -x
 
+#export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
+#export MPICH_RDMA_ENABLED_CUDA=1
+
 omp=1
 export OMP_NUM_THREADS=${omp}
-EXE="./main3d.pgi.CUDA.ex"
+EXE="./main3d.pgi.MPI.CUDA.ex"
 #EXE="../main3d.pgi.CUDA.ex"
 JSRUN="jsrun -n 1 -a 1 -g 1 -c 1 --bind=packed:${omp}"
-INPUTS=inputs_geometry
+INPUTS=
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 #mkdir $rundir
@@ -25,6 +28,7 @@ rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 #cd $rundir
 
 # 1. Run normally
+#${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 ${JSRUN} cuda-memcheck ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprof.txt
