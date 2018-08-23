@@ -272,9 +272,13 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                           &WarpX::particle_pusher_algo);
 
     if (!done_injecting_lev) {
+#ifdef _OPENMP
+        const int tid = omp_get_thread_num();
+#else
+        const int tid = 0;
+#endif
         // Undo the push for particles not injected yet.
         // The zp are advanced a fixed amount.
-        bool done = true;
         for (int i=0 ; i < zp.size() ; i++) {
             if (zp[i] <= zinject_plane) {
                 uxp[i] = uxp_save[i];
@@ -289,16 +293,9 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                 else {
                     zp[i] = zp_save[i] + dt*uzp[i]*giv[i];
                 }
-                done = false;
+                done_injecting_temp[tid] = 0;
             }
         }
-
-#ifdef _OPENMP
-        const int tid = omp_get_thread_num();
-#else
-        const int tid = 0;
-#endif
-        done_injecting_temp[tid] = done;
     }
 
 }
