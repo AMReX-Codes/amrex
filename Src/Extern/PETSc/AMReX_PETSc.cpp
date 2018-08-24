@@ -204,7 +204,8 @@ PETScABecLap::prepareSolver ()
             }
             cid_fab.copy(ifab,bx);
         }
-    }}
+    }
+    }
 
     Vector<HYPRE_Int> ncells_allprocs(num_procs);
     MPI_Allgather(&ncells_proc, sizeof(HYPRE_Int), MPI_CHAR,
@@ -368,8 +369,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         if (fabtyp != FabType::covered)
         {
             // soln has been set to zero.
-//            HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr());
-
+            VecSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr(), INSERT_VALUES); 
             rhsfab.resize(bx);
             rhsfab.copy(rhs[mfi],bx);
             rhsfab.mult(diaginv[mfi]);
@@ -380,7 +380,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             {
                 bfab = &vecfab;
                 bfab->resize(bx);
-/*                amrex_hpeb_copy_to_vec(BL_TO_FORTRAN_BOX(bx),
+                amrex_hpeb_copy_to_vec(BL_TO_FORTRAN_BOX(bx),
                                        BL_TO_FORTRAN_ANYD(rhsfab),
                                        bfab->dataPtr(), &nrows,
                                        BL_TO_FORTRAN_ANYD((*flags)[mfi])); // */
@@ -391,10 +391,16 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 bfab = &rhsfab;
             }
 
-//            HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr());
+            VecSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr()); 
         }
     }
 
+//Vectors ASSEMBLLLLLLLLLLLLLE!!!!!!!!!!!!!!!
+    VecAssemblyBegin(x); 
+    VecAssemblyEnd(x); 
+
+    VecAssemblyBegin(b); 
+    VecAssemblyEnd(b); 
 }
 
 void
@@ -436,8 +442,7 @@ PETScABecLap::getSolution (MultiFab& soln)
                 }
             }
 
-//            HYPRE_IJVectorGetValues(x, nrows, cell_id_vec[mfi].data(), xfab->dataPtr());
-
+            VecGetValues(x, nrows, cell_id_vec[mfi].data, xfab->dataPtr()); 
             if (fabtyp == FabType::regular && soln.nGrow() != 0)
             {
                 soln[mfi].copy(*xfab,bx);
@@ -445,7 +450,7 @@ PETScABecLap::getSolution (MultiFab& soln)
 #ifdef AMREX_USE_EB
             else if (fabtyp != FabType::regular)
             {
-/*                amrex_hpeb_copy_from_vec(BL_TO_FORTRAN_BOX(bx),
+                amrex_hpeb_copy_from_vec(BL_TO_FORTRAN_BOX(bx),
                                          BL_TO_FORTRAN_ANYD(soln[mfi]),
                                          xfab->dataPtr(), &nrows,
                                          BL_TO_FORTRAN_ANYD((*flags)[mfi])); // */
@@ -453,7 +458,7 @@ PETScABecLap::getSolution (MultiFab& soln)
 #endif
         }
     }
-
+  
 }
 
 }
