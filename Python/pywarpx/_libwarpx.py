@@ -2,14 +2,14 @@
 import os
 import sys
 import ctypes
-from ctypes.util import find_library
+from ctypes.util import find_library as _find_library
 import numpy as np
-from numpy.ctypeslib import ndpointer
+from numpy.ctypeslib import ndpointer as _ndpointer
 
 # --- Is there a better way of handling constants?
 clight = 2.99792458e+8 # m/s
 
-def get_package_root():
+def _get_package_root():
     '''
     Get the path to the installation location (where libwarpx.so would be installed).
     '''
@@ -23,39 +23,42 @@ def get_package_root():
         cur = os.path.dirname(cur)
 
 
-libwarpx = ctypes.CDLL(os.path.join(get_package_root(), "libwarpx.so"))
-libc = ctypes.CDLL(find_library('c'))
+try:
+    libwarpx = ctypes.CDLL(os.path.join(_get_package_root(), "libwarpx.so"))
+except OSError:
+    raise Exception('libwarp.so was not installed. It can be installed by running "make" in the Python directory of WarpX')
+
+_libc = ctypes.CDLL(_find_library('c'))
 
 dim = libwarpx.warpx_SpaceDim()
 
 # our particle data type
-p_struct = [(d, 'f8') for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
-p_dtype = np.dtype(p_struct, align=True)
+_p_struct = [(d, 'f8') for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
+_p_dtype = np.dtype(_p_struct, align=True)
 
-numpy_to_ctypes = {}
-numpy_to_ctypes['f8'] = ctypes.c_double
-numpy_to_ctypes['i4'] = ctypes.c_int
+_numpy_to_ctypes = {}
+_numpy_to_ctypes['f8'] = ctypes.c_double
+_numpy_to_ctypes['i4'] = ctypes.c_int
 
 class Particle(ctypes.Structure):
-    _fields_ = [(v[0], numpy_to_ctypes[v[1]]) for v in p_struct]
+    _fields_ = [(v[0], _numpy_to_ctypes[v[1]]) for v in _p_struct]
 
 
 # some useful typenames
-LP_particle_p = ctypes.POINTER(ctypes.POINTER(Particle))
-LP_c_int = ctypes.POINTER(ctypes.c_int)
-LP_c_void_p = ctypes.POINTER(ctypes.c_void_p)
-LP_c_double = ctypes.POINTER(ctypes.c_double)
-LP_LP_c_double = ctypes.POINTER(LP_c_double)
-LP_c_char = ctypes.POINTER(ctypes.c_char)
-LP_LP_c_char = ctypes.POINTER(LP_c_char)
-
-# from where do I import these? this might only work for CPython...
-PyBuf_READ  = 0x100
-PyBUF_WRITE = 0x200
+_LP_particle_p = ctypes.POINTER(ctypes.POINTER(Particle))
+_LP_c_int = ctypes.POINTER(ctypes.c_int)
+_LP_c_void_p = ctypes.POINTER(ctypes.c_void_p)
+_LP_c_double = ctypes.POINTER(ctypes.c_double)
+_LP_LP_c_double = ctypes.POINTER(_LP_c_double)
+_LP_c_char = ctypes.POINTER(ctypes.c_char)
+_LP_LP_c_char = ctypes.POINTER(_LP_c_char)
 
 # this is a function for converting a ctypes pointer to a numpy array
-def array1d_from_pointer(pointer, dtype, size):
+def _array1d_from_pointer(pointer, dtype, size):
     if sys.version_info.major >= 3:
+        # from where do I import these? this might only work for CPython...
+        #PyBuf_READ  = 0x100
+        PyBUF_WRITE = 0x200
         buffer_from_memory = ctypes.pythonapi.PyMemoryView_FromMemory
         buffer_from_memory.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
         buffer_from_memory.restype = ctypes.py_object
@@ -68,89 +71,42 @@ def array1d_from_pointer(pointer, dtype, size):
 
 
 # set the arg and return types of the wrapped functions
-f = libwarpx.amrex_init
-f.argtypes = (ctypes.c_int, LP_LP_c_char)
+libwarpx.amrex_init.argtypes = (ctypes.c_int, _LP_LP_c_char)
+libwarpx.warpx_getParticleStructs.restype = _LP_particle_p
+libwarpx.warpx_getParticleArrays.restype = _LP_LP_c_double
+libwarpx.warpx_getEfield.restype = _LP_LP_c_double
+libwarpx.warpx_getEfieldLoVects.restype = _LP_c_int
+libwarpx.warpx_getEfieldCP.restype = _LP_LP_c_double
+libwarpx.warpx_getEfieldCPLoVects.restype = _LP_c_int
+libwarpx.warpx_getEfieldFP.restype = _LP_LP_c_double
+libwarpx.warpx_getEfieldFPLoVects.restype = _LP_c_int
+libwarpx.warpx_getBfield.restype = _LP_LP_c_double
+libwarpx.warpx_getBfieldLoVects.restype = _LP_c_int
+libwarpx.warpx_getBfieldCP.restype = _LP_LP_c_double
+libwarpx.warpx_getBfieldCPLoVects.restype = _LP_c_int
+libwarpx.warpx_getBfieldFP.restype = _LP_LP_c_double
+libwarpx.warpx_getBfieldFPLoVects.restype = _LP_c_int
+libwarpx.warpx_getCurrentDensity.restype = _LP_LP_c_double
+libwarpx.warpx_getCurrentDensityLoVects.restype = _LP_c_int
+libwarpx.warpx_getCurrentDensityCP.restype = _LP_LP_c_double
+libwarpx.warpx_getCurrentDensityCPLoVects.restype = _LP_c_int
+libwarpx.warpx_getCurrentDensityFP.restype = _LP_LP_c_double
+libwarpx.warpx_getCurrentDensityFPLoVects.restype = _LP_c_int
 
-f = libwarpx.warpx_getParticleStructs
-f.restype = LP_particle_p
+#libwarpx.warpx_getPMLSigma.restype = _LP_c_double
+#libwarpx.warpx_getPMLSigmaStar.restype = _LP_c_double
+#libwarpx.warpx_ComputePMLFactors.argtypes = (ctypes.c_int, ctypes.c_double)
 
-f = libwarpx.warpx_getParticleArrays
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getEfield
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getEfieldLoVects
-f.restype = LP_c_int
-
-f = libwarpx.warpx_getEfieldCP
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getEfieldCPLoVects
-f.restype = LP_c_int
-
-f = libwarpx.warpx_getEfieldFP
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getEfieldFPLoVects
-f.restype = LP_c_int
-
-f = libwarpx.warpx_getBfield
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getBfieldLoVects
-f.restype = LP_c_int
-
-f = libwarpx.warpx_getBfieldCP
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getBfieldCPLoVects
-f.restype = LP_c_int
-
-f = libwarpx.warpx_getBfieldFP
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getBfieldFPLoVects
-f.restype = LP_c_int
-
-f = libwarpx.warpx_getCurrentDensity
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getCurrentDensityLoVects
-f.restype = LP_c_int
-
-f = libwarpx.warpx_getCurrentDensityCP
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getCurrentDensityCPLoVects
-f.restype = LP_c_int
-
-f = libwarpx.warpx_getCurrentDensityFP
-f.restype = LP_LP_c_double
-
-f = libwarpx.warpx_getCurrentDensityFPLoVects
-f.restype = LP_c_int
-
-#f = libwarpx.warpx_getPMLSigma
-#f.restype = LP_c_double
-#
-#f = libwarpx.warpx_getPMLSigmaStar
-#f.restype = LP_c_double
-#
-#f = libwarpx.warpx_ComputePMLFactors
-#f.argtypes = (ctypes.c_int, ctypes.c_double)
-
-f = libwarpx.warpx_addNParticles
-f.argtypes = (ctypes.c_int, ctypes.c_int,
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ctypes.c_int,
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ctypes.c_int)
+libwarpx.warpx_addNParticles.argtypes = (ctypes.c_int, ctypes.c_int,
+                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         ctypes.c_int,
+                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         ctypes.c_int)
 
 libwarpx.warpx_getProbLo.restype = ctypes.c_double
 libwarpx.warpx_getProbHi.restype = ctypes.c_double
@@ -188,7 +144,7 @@ def get_nattr():
 def amrex_init(argv):
     # --- Construct the ctype list of strings to pass in
     argc = len(argv)
-    argvC = (LP_c_char * (argc+1))()
+    argvC = (_LP_c_char * (argc+1))()
     for i, arg in enumerate(argv):
         enc_arg = arg.encode('utf-8')
         argvC[i] = ctypes.create_string_buffer(enc_arg)
@@ -208,7 +164,7 @@ def initialize(argv=None):
     libwarpx.warpx_init()
 
 
-def finalize():
+def finalize(finalize_mpi=1):
     '''
 
     Call finalize for WarpX and AMReX. Must be called at
@@ -216,7 +172,7 @@ def finalize():
 
     '''
     libwarpx.warpx_finalize()
-    libwarpx.amrex_finalize()
+    libwarpx.amrex_finalize(finalize_mpi)
 
 
 def evolve(num_steps=-1):
@@ -360,7 +316,7 @@ def get_particle_structs(species_number):
 
     '''
 
-    particles_per_tile = LP_c_int()
+    particles_per_tile = _LP_c_int()
     num_tiles = ctypes.c_int(0)
     data = libwarpx.warpx_getParticleStructs(species_number,
                                              ctypes.byref(num_tiles),
@@ -368,11 +324,11 @@ def get_particle_structs(species_number):
 
     particle_data = []
     for i in range(num_tiles.value):
-        arr = array1d_from_pointer(data[i], p_dtype, particles_per_tile[i])
+        arr = _array1d_from_pointer(data[i], _p_dtype, particles_per_tile[i])
         particle_data.append(arr)
 
-    libc.free(particles_per_tile)
-    libc.free(data)
+    _libc.free(particles_per_tile)
+    _libc.free(data)
     return particle_data
 
 
@@ -398,7 +354,7 @@ def get_particle_arrays(species_number, comp):
 
     '''
 
-    particles_per_tile = LP_c_int()
+    particles_per_tile = _LP_c_int()
     num_tiles = ctypes.c_int(0)
     data = libwarpx.warpx_getParticleArrays(species_number, comp,
                                             ctypes.byref(num_tiles),
@@ -410,8 +366,8 @@ def get_particle_arrays(species_number, comp):
         arr.setflags(write=1)
         particle_data.append(arr)
 
-    libc.free(particles_per_tile)
-    libc.free(data)
+    _libc.free(particles_per_tile)
+    _libc.free(data)
     return particle_data
 
 
@@ -607,7 +563,7 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getEfield(level, direction,
@@ -625,8 +581,8 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -656,7 +612,7 @@ def get_mesh_electric_field_cp(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getEfieldCP(level, direction,
@@ -674,8 +630,8 @@ def get_mesh_electric_field_cp(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -705,7 +661,7 @@ def get_mesh_electric_field_fp(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getEfieldFP(level, direction,
@@ -723,8 +679,8 @@ def get_mesh_electric_field_fp(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -755,7 +711,7 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getBfield(level, direction,
@@ -773,8 +729,8 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -804,7 +760,7 @@ def get_mesh_magnetic_field_cp(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getBfieldCP(level, direction,
@@ -822,8 +778,8 @@ def get_mesh_magnetic_field_cp(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -853,7 +809,7 @@ def get_mesh_magnetic_field_fp(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getBfieldFP(level, direction,
@@ -871,8 +827,8 @@ def get_mesh_magnetic_field_fp(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -901,7 +857,7 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getCurrentDensity(level, direction,
@@ -919,8 +875,8 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -950,7 +906,7 @@ def get_mesh_current_density_cp(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getCurrentDensityCP(level, direction,
@@ -968,8 +924,8 @@ def get_mesh_current_density_cp(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -999,7 +955,7 @@ def get_mesh_current_density_fp(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = LP_c_int()
+    shapes = _LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getCurrentDensityFP(level, direction,
@@ -1017,8 +973,8 @@ def get_mesh_current_density_fp(level, direction, include_ghosts=True):
         else:
             grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
-    libc.free(shapes)
-    libc.free(data)
+    _libc.free(shapes)
+    _libc.free(data)
     return grid_data
 
 
@@ -1039,7 +995,7 @@ def _get_mesh_array_lovects(level, direction, include_ghosts=True, getarrayfunc=
         lovects += ngrow.value
 
     del lovects_ref
-    libc.free(data)
+    _libc.free(data)
     return lovects
 
 
@@ -1242,4 +1198,3 @@ def get_mesh_current_density_fp_lovects(level, direction, include_ghosts=True):
 
     '''
     return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getCurrentDensityFPLoVects)
-

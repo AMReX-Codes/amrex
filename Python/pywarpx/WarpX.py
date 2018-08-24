@@ -1,5 +1,4 @@
 from .Bucket import Bucket
-
 from .Constants import constants
 from .Amr import amr
 from .Geometry import geometry
@@ -10,9 +9,6 @@ from .Laser import laser
 from . import Particles
 from .Particles import particles, particles_list
 
-import ctypes
-from ._libwarpx import libwarpx
-from ._libwarpx import amrex_init
 
 class WarpX(Bucket):
     """
@@ -50,22 +46,25 @@ class WarpX(Bucket):
         return argv
 
     def init(self):
+        from . import wx
         argv = ['warpx'] + self.create_argv_list()
-        amrex_init(argv)
-        libwarpx.warpx_init()
+        wx.initialize(argv)
 
     def evolve(self, nsteps=-1):
-        libwarpx.warpx_evolve(nsteps)
+        from . import wx
+        wx.evolve(nsteps)
 
     def finalize(self, finalize_mpi=1):
-        libwarpx.warpx_finalize()
-        libwarpx.amrex_finalize(finalize_mpi)
+        from . import wx
+        wx.finalize(finalize_mpi)
 
     def getProbLo(self, direction):
-        return libwarpx.warpx_getProbLo(direction)
+        from . import wx
+        return wx.libwarpx.warpx_getProbLo(direction)
 
     def getProbHi(self, direction):
-        return libwarpx.warpx_getProbHi(direction)
+        from . import wx
+        return wx.libwarpx.warpx_getProbHi(direction)
 
     def write_inputs(self, filename='inputs', **kw):
         argv = self.create_argv_list()

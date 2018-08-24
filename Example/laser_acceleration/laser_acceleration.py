@@ -1,5 +1,6 @@
 import numpy as np
 from pywarpx import *
+from pywarpx import wx
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -11,7 +12,7 @@ def get_parallel_indices(Np, rank, size):
     for parallel processing.
 
     '''
-    Navg = Np / size
+    Navg = Np // size
     Nleft = Np - Navg * size
     if (rank < Nleft):
         lo = rank*(Navg + 1)
@@ -74,9 +75,9 @@ def load_plasma(ncells, domain_min, domain_max, injected_plasma_density, injecte
 
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
-    add_particles(0, plasma_xp[lo:hi], plasma_yp[lo:hi], plasma_zp[lo:hi],
-                  plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi],
-                  plasma_wp[lo:hi], unique_particles=True)
+    wx.add_particles(0, plasma_xp[lo:hi], plasma_yp[lo:hi], plasma_zp[lo:hi],
+                     plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi],
+                     plasma_wp[lo:hi], unique_particles=True)
 
     comm.Barrier()
 
@@ -169,8 +170,6 @@ laser.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in me
 laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
 
 # --- Initialize the simulation
-amrex = AMReX()
-amrex.init()
 warpx.init()
 
 load_plasma(ncells, domain_min, domain_max, injected_plasma_density, injected_plasma_ppc, plasma_min, plasma_max)
@@ -193,4 +192,3 @@ for i in range(1, max_step + 1):
     new_x = warpx.getProbLo(direction)
 
 warpx.finalize()
-amrex.finalize()

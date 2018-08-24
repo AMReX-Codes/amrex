@@ -77,7 +77,7 @@ endif
 
 installwarpx: libwarpx.so
 	mv libwarpx.so pywarpx
-	python setup.py install
+	python setup.py install --with-libwarpx
 
 libwarpx.a: $(objForExecs)
 	@echo Making static library $@ ...

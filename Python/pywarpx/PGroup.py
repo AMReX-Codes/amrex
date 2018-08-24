@@ -1,5 +1,4 @@
 import numpy as np
-from . import WarpX
 from . import _libwarpx
 
 class PGroup(object):
