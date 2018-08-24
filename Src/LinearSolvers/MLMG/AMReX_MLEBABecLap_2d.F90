@@ -178,13 +178,16 @@ contains
        f1, f1lo, f1hi, f3, f3lo, f3hi, &
        flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
+       ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, is_eb_dirichlet, &
        dxinv, alpha, beta, redblack) &
        bind(c,name='amrex_mlebabeclap_gsrb')
     integer, dimension(2), intent(in) :: lo, hi, hlo, hhi, rlo, rhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
          cmlo, cmhi, m0lo, m0hi, m1lo, m1hi, m2lo, m2hi, m3lo, m3hi, &
          f0lo, f0hi, f1lo, f1hi, f2lo, f2hi, f3lo, f3hi, &
-         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
+         flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, &
+         balo, bahi, bclo, bchi, elo, ehi
     real(amrex_real), intent(in) :: dxinv(2)
+    integer         , value, intent(in) :: is_eb_dirichlet
     real(amrex_real), value, intent(in) :: alpha, beta
     integer, value, intent(in) :: redblack
     real(amrex_real), intent(inout) ::  phi( hlo(1): hhi(1), hlo(2): hhi(2))
@@ -207,6 +210,9 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
+    real(amrex_real), intent(in   ) ::   ba(balo(1):bahi(1),balo(2):bahi(2))
+    real(amrex_real), intent(in   ) ::   bc(bclo(1):bchi(1),bclo(2):bchi(2),2)
+    real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
 
     integer :: i,j,ioff,ii,jj
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res
