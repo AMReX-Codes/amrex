@@ -11,20 +11,28 @@ namespace amrex {
 
 namespace detail {
 
+    enum ReduceOp : int {
+        max,
+        min,
+        sum,
+        lor,
+        land
+    };
+
 #ifdef BL_USE_MPI
 
-    enum class ReduceOp : MPI_Op {
-        max  = MPI_MAX,
-        min  = MPI_MIN,
-        sum  = MPI_SUM,
-        lor  = MPI_LOR,
-        land = MPI_LAND
+    const std::unordered_map<int, MPI_Op> mpi_op_map = {
+        {static_cast<int>(ReduceOp::max), MPI_MAX},
+        {static_cast<int>(ReduceOp::min), MPI_MIN},
+        {static_cast<int>(ReduceOp::sum), MPI_SUM},
+        {static_cast<int>(ReduceOp::lor), MPI_LOR},
+        {static_cast<int>(ReduceOp::land), MPI_LAND}
     };
 
     template<typename T>
     inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)
     {
-        auto mpi_op = static_cast<MPI_Op>(op);
+        auto mpi_op = mpi_op_map.at(static_cast<int>(op));
         Vector<T> tmp(v, v+cnt);
         if (root == -1) {
             MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
@@ -68,15 +76,6 @@ namespace detail {
     }
 
 #else
-
-    enum class ReduceOp {
-        max,
-        min,
-        sum,
-        lor,
-        land
-    };
-
     template<typename T> void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm) {}
     template<typename T> void Reduce (ReduceOp op, T& v, int root, MPI_Comm comm) {}
     template<typename T> void Reduce (ReduceOp op, Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {}
