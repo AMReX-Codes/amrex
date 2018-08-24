@@ -16,23 +16,17 @@ module amrex_mlebabeclap_2d_module
 
 contains
 
-  pure function blend_beta (volfrac) result(beta)
-    real(amrex_real), intent(in) :: volfrac
-    real(amrex_real) :: beta
-    real(amrex_real), parameter :: theta = half
-    beta = max(zero, volfrac-theta)
-  end function blend_beta
-
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, is_eb_dirichlet, dxinv, alpha, beta) &
+       ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, is_eb_dirichlet, &
+       phieb, plo, phi, is_inhomog, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_adotx')
     integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
          cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, balo, bahi, &
-         bclo, bchi, elo, ehi
+         bclo, bchi, elo, ehi, plo, phi
     real(amrex_real), intent(in) :: dxinv(2)
-    integer         , value, intent(in) :: is_eb_dirichlet
+    integer         , value, intent(in) :: is_eb_dirichlet, is_inhomog
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2))
     real(amrex_real), intent(in   ) ::    x( xlo(1): xhi(1), xlo(2): xhi(2))
@@ -49,13 +43,16 @@ contains
     real(amrex_real), intent(in   ) ::   ba(balo(1):bahi(1),balo(2):bahi(2))
     real(amrex_real), intent(in   ) ::   bc(bclo(1):bchi(1),bclo(2):bchi(2),2)
     real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
+    real(amrex_real), intent(in   ) ::phieb( plo(1): phi(1), plo(2): phi(2))
     integer :: i,j, ii, jj
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
-    real(amrex_real) :: feb, feb1, feb2, gx, gy anrmx, anrmy, anorm, anorminv, sx, sy
-    real(amrex_real) :: c0, cx, cy, cxy, bbinv
-    logical :: is_dirichlet
+    real(amrex_real) :: feb, phib, phig, phig1, phig2, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
+    real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
+    real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
+    logical :: is_dirichlet, is_inhomogeneous
 
     is_dirichlet = is_eb_dirichlet .ne. 0
+    is_inhomogeneous = is_inhomog .ne. 0
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -100,7 +97,7 @@ contains
              end if
 
              if (is_dirichlet) then
-                anorm = sqrt((apx(i,j)-apx(i+1,j))**2 + (apy(i,j)**2-apy(i,j+1)**2))
+                anorm = sqrt((apx(i,j)-apx(i+1,j))**2 + (apy(i,j)-apy(i,j+1))**2)
                 anorminv = one/anorm
                 anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
                 anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
@@ -110,28 +107,57 @@ contains
                 sy = sign(one,anrmy)
                 ii = i - int(sx)
                 jj = j - int(sy)
+                bctx = bc(i,j,1)
+                bcty = bc(i,j,2)
                
-                bbinv = one / ((bct(i,j,1)+sx)*(bct(i,j,2)+sy))
-                c0 = bbinv*(bct(i,j,1)*bct(i,j,2)*(x(i,j)+x(ii,j)-x(ii,jj)) &
-                     + bct(i,j,2)*sx*x(i,j) + bct(i,j,1)*sy*x(ii,j))
-                cx = bbinv*sx*(bct(i,j,1)*bct(i,j,2)*(x(i,j)-x(ii,jj)) &
-                     + bct(i,j,2)*sx*x(i,j) - bcy(i,j,2)*sy*x(ii,j) - sx*sy*x(ii,j))
-!                cy = 
+                bsxinv = one/(bctx+sx)
+                bsyinv = one/(bcty+sy)
 
-                if (vfrc(i,j) .le. blend_kappa) then
-                   feb = feb2
+                c_0(0,0) = sx*sy*bsxinv*bsyinv
+                c_0(-1,0) = bctx*bsxinv
+                c_0(0,-1) = bcty*bsyinv
+                c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
+
+                c_x(0,0) = sy*bsxinv*bsyinv
+                c_x(-1,0) = -bsxinv
+                c_x(0,-1) = sx*bcty*bsyinv
+                c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
+                
+                c_y(0,0) = sx*bsxinv*bsyinv
+                c_y(-1,0) = sy*bctx*bsxinv
+                c_y(0,-1) = -bsyinv
+                c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
+
+                c_xy(0,0) = bsxinv*bsyinv
+                c_xy(-1,0) = -sy*bsxinv
+                c_xy(0,-1) = -sx*bsyinv
+                c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
+
+                if (is_inhomogeneous) then
+                   phib = phieb(i,j)
                 else
-                   c0 = x(i,j)
-                   cx = sx*(x(i,j)-x(ii,j))
-                   cy = sy*(x(i,j)-x(i,jj))
-                   cxy = sx*sy*(x(i,j)+x(ii,jj)-x(ii,j)-x(i,jj))
-                   feb1 = c0 + cx*gx + cy*gy + cxy*gx*gy
-                   feb = (vfrc(i,j)-blend_kappa)*feb1 + (one+blend_kappa-vfrc(i,j))*feb2
+                   phib = zero
                 end if
 
-                feb = two*feb * ba(i,j) * beb(i,j)
+                phig2 = (c_0( 0, 0) + gx*c_x( 0, 0) + gy*c_y( 0, 0) + gx*gy*c_xy( 0, 0)) * phib &
+                     +  (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0)) * x(ii,j) &
+                     +  (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1)) * x(i,jj) &
+                     +  (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1)) * x(ii,jj)
+
+                if (vfrc(i,j) .le. blend_kappa) then
+                   phig = phig2
+                else
+                   phig1 = (one + gx*sx + gy*sy + gx*gy*sx*sy) * x(i,j) &
+                        +  (    - gx*sx         - gx*gy*sx*sy) * x(ii,j) &
+                        +  (            - gy*sy - gx*gy*sx*sy) * x(i,jj) &
+                        +  (                    + gx*gy*sx*sy) * x(ii,jj)
+
+                   phig = (vfrc(i,j)-blend_kappa)*phig1 + (one+blend_kappa-vfrc(i,j))*phig2
+                end if
+
+                feb = two*(phib-phig) * ba(i,j) * beb(i,j)
              else
-                feb = zero  ! flux into the wall
+                feb = zero
              end if
 
              y(i,j) = alpha*a(i,j)*x(i,j) + (one/vfrc(i,j)) * &

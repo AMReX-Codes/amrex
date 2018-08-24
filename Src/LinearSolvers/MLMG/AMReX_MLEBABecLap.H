@@ -102,6 +102,8 @@ private:
 
     Vector<int> m_is_singular;
 
+    mutable int m_is_inhomog;
+
     //
     // functions
     //
