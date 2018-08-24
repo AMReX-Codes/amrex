@@ -339,6 +339,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         } else {
 
             FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
+            FArrayBox const& phiebfab = (is_eb_dirichlet && m_is_inhomog) ? (*m_eb_phi[amrlev])[mfi] : foo;
 
             amrex_mlebabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(yfab),
@@ -359,6 +360,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     BL_TO_FORTRAN_ANYD((*barea)[mfi]),
                                     BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                     BL_TO_FORTRAN_ANYD(bebfab), is_eb_dirichlet,
+                                    BL_TO_FORTRAN_ANYD(phiebfab), m_is_inhomog,
                                     dxinv, m_a_scalar, m_b_scalar);
         }
     }
@@ -742,7 +744,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
         in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross); 
     }
 
-    int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
+    m_is_inhomog = bc_mode == BCMode::Inhomogeneous;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
@@ -792,7 +794,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                                            BL_TO_FORTRAN_ANYD(m),
                                            cdr, bct, bcl,
                                            BL_TO_FORTRAN_ANYD(fsfab),
-                                           maxorder, dxinv, flagbc, ncomp, cross);
+                                           maxorder, dxinv, m_is_inhomog, ncomp, cross);
                 }
                 else
                 {
@@ -805,7 +807,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                                                BL_TO_FORTRAN_ANYD(ccmask[mfi]),
                                                cdr, bct, bcl,
                                                BL_TO_FORTRAN_ANYD(fsfab),
-                                               maxorder, dxinv, flagbc, ncomp);
+                                               maxorder, dxinv, m_is_inhomog, ncomp);
                 }
             }
         }
@@ -819,9 +821,6 @@ MLEBABecLap::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode b
     BL_PROFILE("MLEBABecLap::apply()");
     applyBC(amrlev, mglev, in, bc_mode, bndry);
     Fapply(amrlev, mglev, out, in);
-    if (bc_mode == BCMode::Inhomogeneous) {
-        // xxxxx todo
-    }
 }
 
 void
