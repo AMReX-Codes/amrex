@@ -36,6 +36,7 @@ extern "C" {
 #endif
 #endif
                                   const amrex_real* ba, const int* balo, const int* bahi,
+                                  const amrex_real* bc, const int* bclo, const int* bchi,
                                   const amrex_real* beb, const int* elo, const int* ehi,
                                   const int is_eb_dirichlet,
                                   const amrex_real* dxinv,

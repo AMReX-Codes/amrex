@@ -305,6 +305,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
+    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     const int is_eb_dirichlet = isEBDirichlet();
     FArrayBox foo(Box::TheUnitBox());
@@ -356,6 +357,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                                  BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
                                     BL_TO_FORTRAN_ANYD((*barea)[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                     BL_TO_FORTRAN_ANYD(bebfab), is_eb_dirichlet,
                                     dxinv, m_a_scalar, m_b_scalar);
         }
