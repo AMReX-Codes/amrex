@@ -65,7 +65,6 @@ MyTest::solve ()
 
     if (eb_is_dirichlet) {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
-            phi[ilev].setVal(0.0);
             mleb.setEBDirichlet(ilev, phi[ilev], bcoef_eb[ilev]);
         }
     }
@@ -195,6 +194,11 @@ MyTest::initData ()
                         p = std::sin(rx*2.*pi + 43.5)*std::sin(ry*2.*pi + 89.);
                     });
             }
+        }
+        else if (eb_is_dirichlet)
+        {
+            phi[ilev].setVal(0.0);
+            phi[ilev].setVal(10.0, 0, 1, 0); // set interior
         }
         else
         {
