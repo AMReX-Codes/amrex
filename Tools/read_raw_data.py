@@ -126,7 +126,7 @@ def read_lab_snapshot(snapshot, global_header):
 # It should be OpenPMD-compliant hdf5 files soon, making this part outdated.
 def get_particle_field(snapshot, species, field):
     fn = snapshot + '/' + species
-    files = glob.glob(os.path.join(fn, field + '_*'))
+    files = glob(os.path.join(fn, field + '_*'))
     files.sort()
     all_data = np.array([])
     for f in files:
