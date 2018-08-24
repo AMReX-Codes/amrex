@@ -190,7 +190,7 @@ void LSFactory::fill_valid(){
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
         auto & v_tile = (* ls_valid)[mfi];
         amrex_eb_fill_valid_bcs(BL_TO_FORTRAN_3D(v_tile),
                                 periodic.getVect(), domain.loVect(), domain.hiVect());
@@ -381,7 +381,7 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
         const auto & valid_in_tile = valid_in[mfi];
         const auto & ls_in_tile = ls_in[mfi];
         auto & v_tile = (* ls_valid)[mfi];
@@ -442,7 +442,7 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
         const auto & valid_in_tile = valid_in[mfi];
         const auto & ls_in_tile = ls_in[mfi];
         auto & v_tile = (* ls_valid)[mfi];
@@ -645,7 +645,7 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(eb_ls, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi(eb_ls); mfi.isValid(); ++mfi){
         auto & ls_tile = eb_ls[mfi];
         auto & v_tile  = eb_valid[mfi];
         const auto & if_tile = impfunct[mfi];
@@ -764,7 +764,7 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(eb_ls, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi(eb_ls); mfi.isValid(); ++mfi){
         auto & ls_tile = eb_ls[mfi];
         auto & v_tile  = eb_valid[mfi];
         const auto & if_tile = impfunct[mfi];
