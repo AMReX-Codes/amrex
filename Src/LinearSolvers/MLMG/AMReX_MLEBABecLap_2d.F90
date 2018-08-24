@@ -2,11 +2,13 @@
 module amrex_mlebabeclap_2d_module
 
   use amrex_error_module
-  use amrex_constants_module, only : zero, one, half
+  use amrex_constants_module, only : zero, one, two, half
   use amrex_fort_module, only : amrex_real
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell, &
        get_neighbor_cells_int_single
   implicit none
+
+  real(amrex_real) :: blend_kappa = half
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
@@ -24,10 +26,11 @@ contains
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       ba, balo, bahi, beb, elo, ehi, is_eb_dirichlet, dxinv, alpha, beta) &
+       ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, is_eb_dirichlet, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_adotx')
     integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
-         cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, balo, bahi, elo, ehi
+         cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, balo, bahi, &
+         bclo, bchi, elo, ehi
     real(amrex_real), intent(in) :: dxinv(2)
     integer         , value, intent(in) :: is_eb_dirichlet
     real(amrex_real), value, intent(in) :: alpha, beta
@@ -44,9 +47,12 @@ contains
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
     real(amrex_real), intent(in   ) ::   ba(balo(1):bahi(1),balo(2):bahi(2))
+    real(amrex_real), intent(in   ) ::   bc(bclo(1):bchi(1),bclo(2):bchi(2),2)
     real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
     integer :: i,j, ii, jj
-    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy, feb
+    real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
+    real(amrex_real) :: feb, feb1, feb2, gx, gy anrmx, anrmy, anorm, anorminv, sx, sy
+    real(amrex_real) :: c0, cx, cy, cxy, bbinv
     logical :: is_dirichlet
 
     is_dirichlet = is_eb_dirichlet .ne. 0
@@ -94,9 +100,36 @@ contains
              end if
 
              if (is_dirichlet) then
-                
+                anorm = sqrt((apx(i,j)-apx(i+1,j))**2 + (apy(i,j)**2-apy(i,j+1)**2))
+                anorminv = one/anorm
+                anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
+                anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
+                gx = bc(i,j,1) - half*anrmx
+                gy = bc(i,j,2) - half*anrmy
+                sx = sign(one,anrmx)
+                sy = sign(one,anrmy)
+                ii = i - int(sx)
+                jj = j - int(sy)
+               
+                bbinv = one / ((bct(i,j,1)+sx)*(bct(i,j,2)+sy))
+                c0 = bbinv*(bct(i,j,1)*bct(i,j,2)*(x(i,j)+x(ii,j)-x(ii,jj)) &
+                     + bct(i,j,2)*sx*x(i,j) + bct(i,j,1)*sy*x(ii,j))
+                cx = bbinv*sx*(bct(i,j,1)*bct(i,j,2)*(x(i,j)-x(ii,jj)) &
+                     + bct(i,j,2)*sx*x(i,j) - bcy(i,j,2)*sy*x(ii,j) - sx*sy*x(ii,j))
+!                cy = 
 
-                feb = feb*ba(i,j)*beb(i,j)
+                if (vfrc(i,j) .le. blend_kappa) then
+                   feb = feb2
+                else
+                   c0 = x(i,j)
+                   cx = sx*(x(i,j)-x(ii,j))
+                   cy = sy*(x(i,j)-x(i,jj))
+                   cxy = sx*sy*(x(i,j)+x(ii,jj)-x(ii,j)-x(i,jj))
+                   feb1 = c0 + cx*gx + cy*gy + cxy*gx*gy
+                   feb = (vfrc(i,j)-blend_kappa)*feb1 + (one+blend_kappa-vfrc(i,j))*feb2
+                end if
+
+                feb = two*feb * ba(i,j) * beb(i,j)
              else
                 feb = zero  ! flux into the wall
              end if
