@@ -1,18 +1,24 @@
 #include "AMReX_EB_levelset.H"
 
-#ifndef AMREX_NO_DEPRECATED_EB
-
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_RealVect.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
-#include <AMReX_EBIndexSpace.H>
+
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiCutFab.H>
 #include "AMReX_BoxIterator.H"
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_EB_F.H>
+
+#ifdef AMREX_USE_GEOMETRYSHOP
+
+#include <AMReX_EBIndexSpace.H>
+
+#endif
+
+#include <AMReX_EB2.H>
 
 namespace amrex {
 
@@ -184,7 +190,7 @@ void LSFactory::fill_valid(){
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
         auto & v_tile = (* ls_valid)[mfi];
         amrex_eb_fill_valid_bcs(BL_TO_FORTRAN_3D(v_tile),
                                 periodic.getVect(), domain.loVect(), domain.hiVect());
@@ -240,7 +246,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
         const auto & sfab = dynamic_cast <EBFArrayBox const&>(dummy[mfi]);
         const auto & flag = sfab.getEBCellFlagFab();
 
-        //if (flag.getType(amrex::grow(tile_box,1)) == FabType::singlevalued) {
+        //if (flag.getType(amrex::grow(tile_box,1)) == FabType::singlevalued)
         if (flag.getType(tile_box) == FabType::singlevalued) {
             // Target for compute_normals(...)
             auto & norm_tile = normal[mfi];
@@ -311,6 +317,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
 
 
 
+#ifdef AMREX_USE_GEOMETRYSHOP
 std::unique_ptr<MultiFab> LSFactory::ebis_impfunc(const EBIndexSpace & eb_is) {
     std::unique_ptr<MultiFab> mf_impfunc = std::unique_ptr<MultiFab>(new MultiFab);
     mf_impfunc->define(ls_ba, ls_dm, 1, ls_grid_pad);
@@ -330,6 +337,7 @@ std::unique_ptr<MultiFab> LSFactory::ebis_impfunc(const EBIndexSpace & eb_is) {
     mf_impfunc->FillBoundary(geom_ls.periodicity());
     return mf_impfunc;
 }
+#endif
 
 
 
@@ -373,7 +381,7 @@ void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & va
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
         const auto & valid_in_tile = valid_in[mfi];
         const auto & ls_in_tile = ls_in[mfi];
         auto & v_tile = (* ls_valid)[mfi];
@@ -434,7 +442,7 @@ void LSFactory::update_union(const MultiFab & ls_in, const iMultiFab & valid_in)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi( * ls_grid, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi( * ls_grid); mfi.isValid(); ++mfi){
         const auto & valid_in_tile = valid_in[mfi];
         const auto & ls_in_tile = ls_in[mfi];
         auto & v_tile = (* ls_valid)[mfi];
@@ -546,15 +554,25 @@ void LSFactory::set_data(const MultiFab & mf_ls){
 
 
 
+#ifdef AMREX_USE_GEOMETRYSHOP
 std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory & eb_factory,
                                                        const EBIndexSpace & eb_is) {
+    // Generate implicit function (used to determine the interior of EB)
+    std::unique_ptr<MultiFab> impfunct = ebis_impfunc(eb_is);
+    impfunct->FillBoundary(geom_ls.periodicity());
+
+    return intersection_ebf(eb_factory, * impfunct);
+}
+#endif
+
+
+
+std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory & eb_factory,
+                                                       const MultiFab & impfunct) {
 
     // Generate facets (TODO: in future these can also be provided by user)
     std::unique_ptr<Vector<Real>> facets = eb_facets(eb_factory);
     int len_facets = facets->size();
-    // Generate implicit function (used to determine the interior of EB)
-    std::unique_ptr<MultiFab> impfunct = ebis_impfunc(eb_is);
-    impfunct->FillBoundary(geom_ls.periodicity());
 
     // What if there are no facets in this core domain? => do nothing in terms
     // of filling, but make sure that the region valid is still set to 0 =>
@@ -589,7 +607,7 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
         auto & region_tile = (* region_valid)[mfi];
         auto & v_tile = eb_valid[mfi];
         auto & ls_tile = eb_ls[mfi];
-        const auto & if_tile = (* impfunct)[mfi];
+        const auto & if_tile = impfunct[mfi];
         if(len_facets > 0) {
             amrex_eb_fill_levelset(lo, hi,
                                    facets->dataPtr(), & len_facets,
@@ -627,10 +645,10 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(eb_ls, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi(eb_ls); mfi.isValid(); ++mfi){
         auto & ls_tile = eb_ls[mfi];
         auto & v_tile  = eb_valid[mfi];
-        const auto & if_tile = (* impfunct)[mfi];
+        const auto & if_tile = impfunct[mfi];
 
         if(len_facets > 0) {
             amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
@@ -656,15 +674,26 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 
 
 
+
+#ifdef AMREX_USE_GEOMETRYSHOP
 std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_factory,
                                                 const EBIndexSpace & eb_is) {
+    // Generate implicit function (used to determine the interior of EB)
+    std::unique_ptr<MultiFab> impfunct = ebis_impfunc(eb_is);
+    impfunct->FillBoundary(geom_ls.periodicity());
+
+    return union_ebf(eb_factory, * impfunct);
+}
+#endif
+
+
+
+std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_factory,
+                                                const MultiFab & impfunct) {
 
     // Generate facets (TODO: in future these can also be provided by user)
     std::unique_ptr<Vector<Real>> facets = eb_facets(eb_factory);
     int len_facets = facets->size();
-    // Generate implicit function (used to determine the interior of EB)
-    std::unique_ptr<MultiFab> impfunct = ebis_impfunc(eb_is);
-    impfunct->FillBoundary(geom_ls.periodicity());
 
     // Local MultiFab storing level-set data for this eb_factory
     MultiFab eb_ls;
@@ -695,7 +724,7 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
         auto & region_tile = (* region_valid)[mfi];
         auto & v_tile = eb_valid[mfi];
         auto & ls_tile = eb_ls[mfi];
-        const auto & if_tile = (* impfunct)[mfi];
+        const auto & if_tile = impfunct[mfi];
 
         if(len_facets > 0) {
             amrex_eb_fill_levelset(lo, hi,
@@ -735,10 +764,10 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(eb_ls, true); mfi.isValid(); ++mfi){
+    for(MFIter mfi(eb_ls); mfi.isValid(); ++mfi){
         auto & ls_tile = eb_ls[mfi];
         auto & v_tile  = eb_valid[mfi];
-        const auto & if_tile = (* impfunct)[mfi];
+        const auto & if_tile = impfunct[mfi];
 
         if(len_facets > 0) {
             amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
@@ -764,6 +793,7 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebf(const EBFArrayBoxFactory & eb_fa
 
 
 
+#ifdef AMREX_USE_GEOMETRYSHOP
 std::unique_ptr<iMultiFab> LSFactory::intersection_ebis(const EBIndexSpace & eb_is) {
     std::unique_ptr<MultiFab> mf_impfunc = ebis_impfunc(eb_is);
     std::unique_ptr<iMultiFab> region_valid = std::unique_ptr<iMultiFab>(new iMultiFab);
@@ -789,9 +819,43 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebis(const EBIndexSpace & eb_
     update_intersection(* mf_impfunc, * region_valid);
     return region_valid;
 }
+#endif
 
 
 
+std::unique_ptr<iMultiFab> LSFactory::intersection_impfunc(const MultiFab & mf_impfunc) {
+    // impfunc needs to flip sign => create local copy
+    std::unique_ptr<MultiFab> cp_impfunc = std::unique_ptr<MultiFab>(new MultiFab);
+    cp_impfunc->define(ls_ba, ls_dm, 1, ls_grid_pad);
+    cp_impfunc->copy(mf_impfunc, 0, 0, 1, ls_grid_pad, ls_grid_pad);
+
+    // "valid" region defined as all nodes
+    std::unique_ptr<iMultiFab> region_valid = std::unique_ptr<iMultiFab>(new iMultiFab);
+    region_valid->define(ls_ba, ls_dm, 1, ls_grid_pad);
+    region_valid->setVal(1);
+
+    // GeometryService convention:
+    //      -- implicit_function(r) < 0 : r in fluid (outside of EB)
+    //      -- implicit_function(r) > 0 : r not in fluid (inside EB)
+    //   => If implicit_function is a signed-distance function, we need to invert sign
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(* cp_impfunc, true); mfi.isValid(); ++ mfi){
+        FArrayBox & a_fab = (* cp_impfunc)[mfi];
+
+        // Note: growntilebox => flip also the ghost cells...
+        for(BoxIterator bit(mfi.growntilebox()); bit.ok(); ++bit)
+            a_fab(bit(), 0) = - a_fab(bit(), 0);
+    }
+
+    update_intersection(* cp_impfunc, * region_valid);
+    return region_valid;
+}
+
+
+
+#ifdef AMREX_USE_GEOMETRYSHOP
 std::unique_ptr<iMultiFab> LSFactory::union_ebis(const EBIndexSpace & eb_is) {
     std::unique_ptr<MultiFab> mf_impfunc = ebis_impfunc(eb_is);
     std::unique_ptr<iMultiFab> region_valid = std::unique_ptr<iMultiFab>(new iMultiFab);
@@ -816,9 +880,42 @@ std::unique_ptr<iMultiFab> LSFactory::union_ebis(const EBIndexSpace & eb_is) {
     update_union(* mf_impfunc, * region_valid);
     return region_valid;
 }
+#endif
 
 
 
+std::unique_ptr<iMultiFab> LSFactory::union_impfunc(const MultiFab & mf_impfunc) {
+    // impfunc needs to flip sign => create local copy
+    std::unique_ptr<MultiFab> cp_impfunc = std::unique_ptr<MultiFab>(new MultiFab);
+    cp_impfunc->define(ls_ba, ls_dm, 1, ls_grid_pad);
+    cp_impfunc->copy(mf_impfunc, 0, 0, 1, ls_grid_pad, ls_grid_pad);
+
+    // "valid" region defined as all nodes
+    std::unique_ptr<iMultiFab> region_valid = std::unique_ptr<iMultiFab>(new iMultiFab);
+    region_valid->define(ls_ba, ls_dm, 1, ls_grid_pad);
+    region_valid->setVal(1);
+
+    // GeometryService convetion:
+    //      -- implicit_function(r) < 0 : r in fluid (outside of EB)
+    //      -- implicit_function(r) > 0 : r not in fluid (inside EB)
+    //   => If implicit_function is a signed-distance function, we need to invert sign
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(* cp_impfunc, true); mfi.isValid(); ++ mfi){
+        FArrayBox & a_fab = (* cp_impfunc)[mfi];
+
+        for(BoxIterator bit(mfi.tilebox()); bit.ok(); ++bit)
+            a_fab(bit(), 0) = - a_fab(bit(), 0);
+    }
+
+    update_union(* cp_impfunc, * region_valid);
+    return region_valid;
+}
+
+
+
+#ifdef AMREX_USE_GEOMETRYSHOP
 PolynomialDF::PolynomialDF(const Vector<PolyTerm> & a_polynomial, const bool & a_inside)
              :PolynomialIF(a_polynomial, a_inside)
 {
@@ -886,7 +983,6 @@ BaseIF * PolynomialDF::newImplicitFunction() const {
 
     return static_cast<BaseIF*>(polynomialPtr);
 }
+#endif
 
 }
-
-#endif

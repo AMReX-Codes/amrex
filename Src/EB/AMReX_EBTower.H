@@ -27,13 +27,13 @@ public:
 
     static bool validDomain (const Box& a_domain);
 
-    static Box const& coarestDomain ();
-    
+    static Box const& coarsestDomain ();
+
 private:
 
     ~EBTower ();
 
-#ifndef AMREX_NO_DEPRECATED_EB
+#ifdef AMREX_USE_GEOMETRYSHOP
     EBTower ();
     void initCellFlags (int lev, const EBLevelGrid& eblg);
     void initVolumeGeometry (int lev, const EBLevelGrid& eblg);

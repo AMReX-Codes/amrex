@@ -1769,7 +1769,6 @@ contains
     real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),5)
     
     integer :: i,j, ii, jj
-    real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
     real(amrex_real) :: ap(-1:1,-1:1), p(-1:1,-1:1)
 
     do    j = lo(2), hi(2)
@@ -2133,7 +2132,7 @@ contains
   subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
        vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(2) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, glo, ghi, flo, fhi, vlo, vhi
     real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
     real(amrex_real), intent(in   ) :: intg( glo(1): ghi(1), glo(2): ghi(2),4)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))

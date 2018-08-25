@@ -1,5 +1,3 @@
-eb2.use_eb2 = 1
-
 amrex.fpe_trap_invalid = 1
 
 eb2.geom_type = sphere

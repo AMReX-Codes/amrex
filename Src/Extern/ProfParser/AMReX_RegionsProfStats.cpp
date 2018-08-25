@@ -438,7 +438,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     }
   }
 
-  Vector<long> recvDispl(nProcs, 0), recvCounts(nProcs, 0);
+  Vector<int> recvDispl(nProcs, 0), recvCounts(nProcs, 0);
   for(int p(0); p < nProcs; ++p) {
     recvCounts[p] = (long(gBigY[p]) - gSmallY[p] + 1) * (maxRNumber + 1) * totalRanges * 2;
     recvDispl[p]  = long(gSmallY[p]) * (maxRNumber + 1) * totalRanges * 2;

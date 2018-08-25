@@ -561,6 +561,7 @@ following examples.
 
       b0 &= b3;             // Runtime error because of type mismatch!
 
+.. _sec:basics:geom:
 
 RealBox and Geometry
 ====================

@@ -46,7 +46,6 @@ amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 
 #this is for the JBB combustor
-eb2.use_eb2 = 1
 eb2.geom_type = "combustor" 
 
 #Far wall location in x 

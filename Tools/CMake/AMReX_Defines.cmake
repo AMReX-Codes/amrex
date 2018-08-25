@@ -103,7 +103,7 @@ function ( set_amrex_defines )
 
    add_amrex_define ( AMREX_USE_EB IF ENABLE_EB )
 
-   add_amrex_define ( AMREX_USE_GEOMETRY_SHOP IF ENABLE_GEOMETRY_SHOP )
+   add_amrex_define ( AMREX_USE_GEOMETRYSHOP IF ENABLE_GEOMETRYSHOP )
 
    add_amrex_define ( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES )
    

@@ -44,9 +44,12 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
     info = a_info;
 #if AMREX_USE_EB
-    if (!a_factory.empty() && dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0])) {
-        info.max_coarsening_level = std::min(info.max_coarsening_level,
-                                             EB2::maxCoarseningLevel(a_geom[0]));
+    if (!a_factory.empty()){
+        auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
+        if (f) {
+            info.max_coarsening_level = std::min(info.max_coarsening_level,
+                                                 f->maxCoarseningLevel());
+        }
     }
 #endif
     defineGrids(a_geom, a_grids, a_dmap, a_factory);
