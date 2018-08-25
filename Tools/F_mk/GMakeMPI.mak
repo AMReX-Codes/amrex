@@ -141,7 +141,7 @@ ifeq ($(findstring summitdev, $(HOST)), summitdev)
     #
     ifdef MPI
         CXX := mpicxx
-        CC  := mpiccc
+        CC  := mpicc
         FC  := mpif77
         F90 := mpif90
     endif
