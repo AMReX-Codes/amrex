@@ -123,14 +123,6 @@ contains
     write(device_str, '(i32)') num_devices
     write(nproc_str, '(i32)') num_ranks
 
-    if (rank == ioproc) then
-       if (num_ranks == 1) then
-          write(*,'(A)') "CUDA initialized using 1 GPU out of " // trim(adjustl(device_str)) // " available"
-       else if (num_ranks > 1) then
-          write(*,'(A)') "CUDA initialized using " // trim(adjustl(nproc_str)) // " GPUs out of " // trim(adjustl(device_str)) // " available"
-       end if
-    end if
-
     verbose = v
 
     if (verbose > 0) then
