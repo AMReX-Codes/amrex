@@ -203,8 +203,8 @@ MyTest::initData ()
         }
         else if (eb_is_dirichlet)
         {
-            phi[ilev].setVal(0.0);
-            phi[ilev].setVal(10.0, 0, 1, 0); // set interior
+            phi[ilev].setVal(10.0);
+            phi[ilev].setVal(0.0, 0, 1, 0); // set interior
         }
         else
         {
