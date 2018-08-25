@@ -3,6 +3,7 @@
 #include <AMReX_MLEBABecLap.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_EB2.H>
 
@@ -26,6 +27,13 @@ MyTest::solve ()
 {
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(factory[ilev]->getVolFrac(), "vfrc-"+std::to_string(ilev));
+
+        const MultiFab& vfrc = factory[ilev]->getVolFrac();
+        MultiFab v(vfrc.boxArray(), vfrc.DistributionMap(), 1, 0,
+                   MFInfo(), *factory[ilev]);
+        MultiFab::Copy(v, vfrc, 0, 0, 1, 0);
+        amrex::EB_set_covered(v, 1.0);
+        amrex::Print() << "vfrc min = " << v.min(0) << std::endl;
     }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
