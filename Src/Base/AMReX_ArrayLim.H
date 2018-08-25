@@ -93,19 +93,16 @@
 #define AMREX_BCREC_ANYD(x) x
 #if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
 #define AMREX_ARLIM_ARG(x) x[0], x[1], x[2]
-#define AMREX_ARLIM_ARG(x) x[0], x[1], x[2]
 #else
 #define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
 #endif
 #endif
 
 #ifndef AMREX_USE_CUDA
-#define AMREX_ARLIM_VAL(x) const int* x
 #define AMREX_INT_ANYD(x) AMREX_ARLIM_ANYD(x)
 #else
 #define AMREX_INT_ANYD(x) AMREX_ARLIM_ARG(x)
 #endif
-#define AMREX_ARLIM_REP(x) const int* x
 
 #define BL_TO_FORTRAN(x) (x).dataPtr(), AMREX_ARLIM((x).loVect()), AMREX_ARLIM((x).hiVect())
 #define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), AMREX_ARLIM_3D((x).loVect()), AMREX_ARLIM_3D((x).hiVect()), (x).nCompPtr()

@@ -1,0 +1,84 @@
+
+// ---- done
+//add NFiles files to CMakeLists.txt.
+//make set selection a function
+//recursive mkdir
+//tutorial for nfiles.
+//nstreams in new read
+//prebroadcast fabarray header files
+//tests for meta operations:  seek open close mkdir rename
+//new fabarray read algorithm.
+//pre make check directories.
+//dot in path issue
+//dynamic set selection
+//persistent streams.
+//compare darshan results.
+//async reads for new formats.
+//useSingleRead and write for async.
+//check use single read and write for > sizeof(int).
+//fix types on stream functions (streamsize in read, streampos, etc.)
+
+// ---- still to do
+separate sidecar cout output.
+compressed metadata
+preallocation
+striping tests
+fix VisMF::Check for new formats.
+remove duplicate writeplotfile code.
+add more retry code to vismf
+test set_ghost
+check nfilesiter with long paths
+special profiling
+support new shared boxarrays (test restart)
+check vismf reads for copies and non-contiguous
+check vismf colors
+tests for copy multifab speed.
+tests for buffer sizes (copy buffer [shouldread], pubsetbuf, no buffer,
+  combined buffer for multiple fabs).
+check if pubsetbuf works
+check visit and yt with new formats.
+test performance of rank order vs. file order reads.
+byte order swap for integers.
+pre make plot directories for all codes.
+ParticleContainer::Checkpoint also makes directories.
+check nfilesiter for reads with nprocs < nfiles.
+check temporary multifab read for nprocs < nfiles.
+check for syncs in stream retry.
+fixes for non-native formats.
+test writeSmallPlotFile
+check for team ownership of fabs for direct indexing.
+possibly use mpi3 one sided and atomics.
+check return value of tellp
+check for exceptions thrown from streams.
+check that tellp gives the correct offset for opening with append.
+test case for data corruption error.
+crc checks for data corruption.
+partial buffer iterator (shouldwrite).
+NFiles::FileNumber does not always return a complete set.  for
+  example with nfiles = 5 and nprocs = 7.
+Check that all options are being set.
+Check return values for write/close/....
+give priority to deciders for chained reads.
+check decider set for chk nfiles != plt nfiles.
+output GB/s.
+hdf5
+genericio
+more documentation
+are we closing HeaderFile in Amr::writePlotFile (and checkpoints)?
+
+
+threaded i/o
+  new mf version
+  tfiles
+  tfiles could be set per mpi process
+  does thread number affect bandwidth (clumping)?
+  how many threads do we use per core?
+  maybe use tile infrastructure?
+
+  benchmarks
+    write speed with changing tfile number
+    clump vs. scattered thread writes.
+
+
+
+

@@ -49,9 +49,9 @@ protected:
 
 template <class F>
 constexpr ScaleIF<typename std::decay<F>::type>
-scale (F&&f, const RealArray& offset)
+scale (F&&f, const RealArray& scalefactor)
 {
-    return ScaleIF<typename std::decay<F>::type>(std::forward<F>(f),offset);
+    return ScaleIF<typename std::decay<F>::type>(std::forward<F>(f),scalefactor);
 }
 
 }}

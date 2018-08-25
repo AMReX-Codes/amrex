@@ -23,6 +23,8 @@
 
 namespace amrex { namespace EB2 {
 
+class IndexSpace;
+
 class Level
 {
 public:
@@ -44,8 +46,11 @@ public:
     void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
     void fillFaceCent (Array<   MultiFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
 
-    Level (const Geometry& geom) : m_geom(geom) {}
+    Level (IndexSpace const* is, const Geometry& geom) : m_geom(geom), m_parent(is) {}
     void prepareForCoarsening (const Level& rhs, int max_grid_size);
+
+    const Geometry& Geom () const { return m_geom; }
+    IndexSpace const* getEBIndexSpace () const { return m_parent; }
     
 protected:
 
@@ -75,6 +80,7 @@ protected:
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
     bool m_allregular = false;
     bool m_ok = false;
+    IndexSpace const* m_parent;
 };
 
 template <typename G>
@@ -82,13 +88,13 @@ class GShopLevel
     : public Level
 {
 public:
-    GShopLevel (G const& gshop, const Geometry& geom, int max_grid_size);
-    GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel);
+    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size);
+    GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel);
 };
 
 template <typename G>
-GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_size)
-    : Level(geom)
+GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size)
+    : Level(is, geom)
 {
     if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
         m_allregular = true;
@@ -317,8 +323,8 @@ GShopLevel<G>::GShopLevel (G const& gshop, const Geometry& geom, int max_grid_si
 
 
 template <typename G>
-GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel)
-    : Level(geom)
+GShopLevel<G>::GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel)
+    : Level(is, geom)
 {
     if (fineLevel.isAllRegular()) {
         m_allregular = true;
@@ -343,7 +349,7 @@ GShopLevel<G>::GShopLevel (int ilev, int max_grid_size, const Geometry& geom, GS
     }
     else
     {
-        Level fine_level_2(fineLevel.m_geom);
+        Level fine_level_2(is, fineLevel.m_geom);
         fine_level_2.prepareForCoarsening(fineLevel, max_grid_size);
         int ierr = coarsenFromFine(fine_level_2, false);
         m_ok = (ierr == 0);

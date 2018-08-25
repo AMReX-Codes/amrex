@@ -52,14 +52,7 @@ int main (int argc, char* argv[])
         AmrLevel::SetEBSupportLevel(EBSupport::full);
         AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
 
-        if (EB2::use_eb2)
-        {
-            initialize_EB2(amr.Geom(amr.maxLevel()), amr.maxLevel(), amr.maxLevel());
-        }
-        else
-        {
-            amrex::Abort("EB/CNS must use eb2");
-        }
+        initialize_EB2(amr.Geom(amr.maxLevel()), amr.maxLevel(), amr.maxLevel());
             
 	amr.init(strt_time,stop_time);
 
