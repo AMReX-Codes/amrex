@@ -2,11 +2,14 @@
 module amrex_mlebabeclap_2d_module
 
   use amrex_error_module
-  use amrex_constants_module, only : zero, one, two, half
+  use amrex_constants_module, only : zero, one, two, half, third, fourth
   use amrex_fort_module, only : amrex_real
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell, &
        get_neighbor_cells_int_single
   implicit none
+
+!  real(amrex_real), parameter, private :: dx_eb = half
+  real(amrex_real), parameter, private :: dx_eb = third
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
@@ -17,7 +20,7 @@ contains
   pure function amrex_blend_beta (kappa) result(beta)
     real(amrex_real), intent(in) :: kappa
     real(amrex_real) :: beta
-#if 0
+#if 1
     real(amrex_real),parameter :: blend_kappa = 1.d-4
     if (kappa .lt. blend_kappa) then
        beta = zero
@@ -25,7 +28,7 @@ contains
        beta = one
     end if
 #else
-    real(amrex_real),parameter :: blend_kappa = zero
+    real(amrex_real),parameter :: blend_kappa = half
     real(amrex_real),parameter :: kapinv = one/(one-blend_kappa)
     beta = kapinv*(kappa-blend_kappa)
     beta = min(one,max(zero,beta))
@@ -64,7 +67,7 @@ contains
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
     real(amrex_real) :: feb, phib, phig, phig1, phig2, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
     real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
-    real(amrex_real) :: w1, w2
+    real(amrex_real) :: w1, w2, dg
     real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
     logical :: is_dirichlet, is_inhomogeneous
 
@@ -120,8 +123,9 @@ contains
                 anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
                 bctx = bc(i,j,1)
                 bcty = bc(i,j,2)
-                gx = bctx - half*anrmx
-                gy = bcty - half*anrmy
+                dg = dx_eb/max(abs(anrmx),abs(anrmy))
+                gx = bctx - dg*anrmx
+                gy = bcty - dg*anrmy
                 sx = sign(one,anrmx)
                 sy = sign(one,anrmy)
                 ii = i - int(sx)
@@ -178,7 +182,7 @@ contains
                 end if
 
                 phig = w1*phig1 + w2*phig2
-                feb = two*(phib-phig) * ba(i,j) * beb(i,j)
+                feb = (phib-phig)/dg * ba(i,j) * beb(i,j)
              else
                 feb = zero
              end if
@@ -244,7 +248,7 @@ contains
     real(amrex_real) :: feb, phig, phig1, phig2, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
     real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
     real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
-    real(amrex_real) :: w1, w2
+    real(amrex_real) :: w1, w2, dg
     real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
     logical :: is_dirichlet
     real(amrex_real), parameter :: omega = 1._amrex_real
@@ -347,8 +351,9 @@ contains
                    anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
                    bctx = bc(i,j,1)
                    bcty = bc(i,j,2)
-                   gx = bctx - half*anrmx
-                   gy = bcty - half*anrmy
+                   dg = dx_eb/max(abs(anrmx),abs(anrmy))
+                   gx = bctx - dg*anrmx
+                   gy = bcty - dg*anrmy
                    sx = sign(one,anrmx)
                    sy = sign(one,anrmy)
                    ii = i - int(sx)
@@ -401,8 +406,8 @@ contains
                    phig_gamma = w1*phig1_gamma
                    phig = w1*phig1 + w2*phig2
 
-                   feb_gamma = -two * phig_gamma * ba(i,j) * beb(i,j)
-                   feb = -two * phig * ba(i,j) * beb(i,j)
+                   feb_gamma = -phig_gamma * (ba(i,j) * beb(i,j) / dg)
+                   feb = -phig * (ba(i,j) * beb(i,j) / dg)
 
                    gamma = gamma + vfrcinv*(-dhx)*feb_gamma
                    rho = rho - vfrcinv*(-dhx)*feb
