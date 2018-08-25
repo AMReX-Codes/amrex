@@ -52,11 +52,7 @@ MyTest::solve ()
         mleb.setLevelBC(ilev, &phi[ilev]);
     }
 
-    if (is_periodic) {
-        mleb.setScalars(0.0, 1.0);
-    } else {
-        mleb.setScalars(1.0, 1.0);
-    }
+    mleb.setScalars(scalars[0], scalars[1]);
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         mleb.setACoeffs(ilev, acoef[ilev]);
@@ -96,6 +92,16 @@ MyTest::readParameters ()
     pp.query("max_grid_size", max_grid_size);
     pp.query("is_periodic", is_periodic);
     pp.query("eb_is_dirichlet", eb_is_dirichlet);
+
+    scalars.resize(2);
+    if (is_periodic) {
+        scalars[0] = 0.0;
+        scalars[1] = 1.0;
+    } else {
+        scalars[0] = 1.0;
+        scalars[1] = 1.0;
+    }
+    pp.queryarr("scalars", scalars);
 
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);
