@@ -41,7 +41,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
                 (AMREX_INT_ANYD(sbx.loVect()), AMREX_INT_ANYD(sbx.hiVect()),
                  BL_TO_FORTRAN_ANYD(old_phi[mfi]),
                  BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
-                 dx, idir);
+                 AMREX_REAL_ANYD(dx), idir);
 
         }
 
@@ -62,7 +62,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 #if (AMREX_SPACEDIM == 3)   
              BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-             dx, dt);
+             AMREX_REAL_ANYD(dx), dt);
     }
 
 }
