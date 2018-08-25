@@ -27,6 +27,8 @@ private:
     int is_periodic = 0;
     int eb_is_dirichlet = 0;
     
+    amrex::Vector<amrex::Real> scalars;
+
     // For MLMG solver
     int verbose = 2;
     int bottom_verbose = 2;
