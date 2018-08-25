@@ -6,11 +6,14 @@ DEBUG     = FALSE
 USE_MPI   = FALSE
 USE_OMP   = FALSE
 COMP      = gnu
-DIM       = 2
+DIM       = 3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
+VPATH_LOCATIONS   += ./
+INCLUDE_LOCATIONS += ./
+
 include $(AMREX_HOME)/Src/Base/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
