@@ -8,8 +8,6 @@ module amrex_mlebabeclap_2d_module
        get_neighbor_cells_int_single
   implicit none
 
-  real(amrex_real), parameter, private :: dx_eb = half
-
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
        amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad
@@ -123,13 +121,13 @@ contains
                 bctx = bc(i,j,1)
                 bcty = bc(i,j,2)
                 if (abs(anrmx) .gt. abs(anrmy)) then
-                   dg = dx_eb / abs(anrmx)
+                   dg = half / abs(anrmx)
                    gx = bctx - dg*anrmx
                    gy = bcty - dg*anrmy
                    sx =  sign(one,anrmx)
                    sy = -sign(one,gy)
                 else
-                   dg = dx_eb/abs(anrmy)
+                   dg = half/abs(anrmy)
                    gx = bctx - dg*anrmx
                    gy = bcty - dg*anrmy
                    sx = -sign(one,gx)
@@ -359,13 +357,13 @@ contains
                    bctx = bc(i,j,1)
                    bcty = bc(i,j,2)
                    if (abs(anrmx) .gt. abs(anrmy)) then
-                      dg = dx_eb / abs(anrmx)
+                      dg = half / abs(anrmx)
                       gx = bctx - dg*anrmx
                       gy = bcty - dg*anrmy
                       sx =  sign(one,anrmx)
                       sy = -sign(one,gy)
                    else
-                      dg = dx_eb / abs(anrmy)
+                      dg = half / abs(anrmy)
                       gx = bctx - dg*anrmx
                       gy = bcty - dg*anrmy
                       sx = -sign(one,gx)
