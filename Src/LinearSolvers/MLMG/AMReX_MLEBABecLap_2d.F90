@@ -8,13 +8,29 @@ module amrex_mlebabeclap_2d_module
        get_neighbor_cells_int_single
   implicit none
 
-  real(amrex_real) :: blend_kappa = half
-
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
        amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad
 
 contains
+
+  pure function amrex_blend_beta (kappa) result(beta)
+    real(amrex_real), intent(in) :: kappa
+    real(amrex_real) :: beta
+#if 0
+    real(amrex_real),parameter :: blend_kappa = 1.d-4
+    if (kappa .lt. blend_kappa) then
+       beta = zero
+    else
+       beta = one
+    end if
+#else
+    real(amrex_real),parameter :: blend_kappa = zero
+    real(amrex_real),parameter :: kapinv = one/(one-blend_kappa)
+    beta = kapinv*(kappa-blend_kappa)
+    beta = min(one,max(zero,beta))
+#endif
+  end function amrex_blend_beta
 
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
@@ -48,6 +64,7 @@ contains
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
     real(amrex_real) :: feb, phib, phig, phig1, phig2, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
     real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
+    real(amrex_real) :: w1, w2
     real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
     logical :: is_dirichlet, is_inhomogeneous
 
@@ -101,60 +118,66 @@ contains
                 anorminv = one/anorm
                 anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
                 anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
-                gx = bc(i,j,1) - half*anrmx
-                gy = bc(i,j,2) - half*anrmy
+                bctx = bc(i,j,1)
+                bcty = bc(i,j,2)
+                gx = bctx - half*anrmx
+                gy = bcty - half*anrmy
                 sx = sign(one,anrmx)
                 sy = sign(one,anrmy)
                 ii = i - int(sx)
                 jj = j - int(sy)
-                bctx = bc(i,j,1)
-                bcty = bc(i,j,2)
-               
-                bsxinv = one/(bctx+sx)
-                bsyinv = one/(bcty+sy)
-
-                c_0(0,0) = sx*sy*bsxinv*bsyinv
-                c_0(-1,0) = bctx*bsxinv
-                c_0(0,-1) = bcty*bsyinv
-                c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
-
-                c_x(0,0) = sy*bsxinv*bsyinv
-                c_x(-1,0) = -bsxinv
-                c_x(0,-1) = sx*bcty*bsyinv
-                c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
-                
-                c_y(0,0) = sx*bsxinv*bsyinv
-                c_y(-1,0) = sy*bctx*bsxinv
-                c_y(0,-1) = -bsyinv
-                c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
-
-                c_xy(0,0) = bsxinv*bsyinv
-                c_xy(-1,0) = -sy*bsxinv
-                c_xy(0,-1) = -sx*bsyinv
-                c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
 
                 if (is_inhomogeneous) then
                    phib = phieb(i,j)
                 else
                    phib = zero
                 end if
+               
+                w1 = amrex_blend_beta(vfrc(i,j))
+                w2 = one-w1
 
-                phig2 = (c_0( 0, 0) + gx*c_x( 0, 0) + gy*c_y( 0, 0) + gx*gy*c_xy( 0, 0)) * phib &
-                     +  (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0)) * x(ii,j) &
-                     +  (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1)) * x(i,jj) &
-                     +  (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1)) * x(ii,jj)
-
-                if (vfrc(i,j) .le. blend_kappa) then
-                   phig = phig2
+                if (w1.eq.zero) then
+                   phig1 = zero
                 else
                    phig1 = (one + gx*sx + gy*sy + gx*gy*sx*sy) * x(i,j) &
                         +  (    - gx*sx         - gx*gy*sx*sy) * x(ii,j) &
                         +  (            - gy*sy - gx*gy*sx*sy) * x(i,jj) &
                         +  (                    + gx*gy*sx*sy) * x(ii,jj)
-
-                   phig = (vfrc(i,j)-blend_kappa)*phig1 + (one+blend_kappa-vfrc(i,j))*phig2
                 end if
 
+                if (w2.eq.zero) then
+                   phig2 = zero
+                else
+                   bsxinv = one/(bctx+sx)
+                   bsyinv = one/(bcty+sy)
+                   
+                   c_0(0,0) = sx*sy*bsxinv*bsyinv
+                   c_0(-1,0) = bctx*bsxinv
+                   c_0(0,-1) = bcty*bsyinv
+                   c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
+
+                   c_x(0,0) = sy*bsxinv*bsyinv
+                   c_x(-1,0) = -bsxinv
+                   c_x(0,-1) = sx*bcty*bsyinv
+                   c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
+                
+                   c_y(0,0) = sx*bsxinv*bsyinv
+                   c_y(-1,0) = sy*bctx*bsxinv
+                   c_y(0,-1) = -bsyinv
+                   c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
+                   
+                   c_xy(0,0) = bsxinv*bsyinv
+                   c_xy(-1,0) = -sy*bsxinv
+                   c_xy(0,-1) = -sx*bsyinv
+                   c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
+
+                   phig2 = (c_0( 0, 0) + gx*c_x( 0, 0) + gy*c_y( 0, 0) + gx*gy*c_xy( 0, 0)) * phib &
+                        +  (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0)) * x(ii,j) &
+                        +  (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1)) * x(i,jj) &
+                        +  (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1)) * x(ii,jj)
+                end if
+
+                phig = w1*phig1 + w2*phig2
                 feb = two*(phib-phig) * ba(i,j) * beb(i,j)
              else
                 feb = zero
@@ -221,6 +244,7 @@ contains
     real(amrex_real) :: feb, phig, phig1, phig2, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
     real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
     real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
+    real(amrex_real) :: w1, w2
     real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
     logical :: is_dirichlet
     real(amrex_real), parameter :: omega = 1._amrex_real
@@ -321,54 +345,61 @@ contains
                    anorminv = one/anorm
                    anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
                    anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
-                   gx = bc(i,j,1) - half*anrmx
-                   gy = bc(i,j,2) - half*anrmy
+                   bctx = bc(i,j,1)
+                   bcty = bc(i,j,2)
+                   gx = bctx - half*anrmx
+                   gy = bcty - half*anrmy
                    sx = sign(one,anrmx)
                    sy = sign(one,anrmy)
                    ii = i - int(sx)
                    jj = j - int(sy)
-                   bctx = bc(i,j,1)
-                   bcty = bc(i,j,2)
                    
-                   bsxinv = one/(bctx+sx)
-                   bsyinv = one/(bcty+sy)
-                   
-                   ! c_0(0,0) = sx*sy*bsxinv*bsyinv
-                   c_0(-1,0) = bctx*bsxinv
-                   c_0(0,-1) = bcty*bsyinv
-                   c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
-                   
-                   ! c_x(0,0) = sy*bsxinv*bsyinv
-                   c_x(-1,0) = -bsxinv
-                   c_x(0,-1) = sx*bcty*bsyinv
-                   c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
-                   
-                   ! c_y(0,0) = sx*bsxinv*bsyinv
-                   c_y(-1,0) = sy*bctx*bsxinv
-                   c_y(0,-1) = -bsyinv
-                   c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
-                   
-                   ! c_xy(0,0) = bsxinv*bsyinv
-                   c_xy(-1,0) = -sy*bsxinv
-                   c_xy(0,-1) = -sx*bsyinv
-                   c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
+                   w1 = amrex_blend_beta(vfrc(i,j))
+                   w2 = one-w1
 
-                   phig2 = (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0))*phi(ii,j) &
-                        +  (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1))*phi(i,jj) &
-                        +  (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1))*phi(ii,jj)
-
-                   if (vfrc(i,j) .le. blend_kappa) then
-                      phig_gamma = zero
-                      phig = phig2
+                   if (w1.eq.zero) then
+                      phig1_gamma = zero
+                      phig1 = zero
                    else
                       phig1_gamma = (one + gx*sx + gy*sy + gx*gy*sx*sy)
                       phig1 = (    - gx*sx         - gx*gy*sx*sy) * phi(ii,j) &
                            +  (            - gy*sy - gx*gy*sx*sy) * phi(i,jj) &
                            +  (                    + gx*gy*sx*sy) * phi(ii,jj)
-
-                      phig_gamma = (vfrc(i,j)-blend_kappa)*phig1_gamma
-                      phig = (vfrc(i,j)-blend_kappa)*phig1 + (one+blend_kappa-vfrc(i,j))*phig2
                    end if
+
+                   if (w2.eq.zero) then
+                      phig2 = zero
+                   else
+                      bsxinv = one/(bctx+sx)
+                      bsyinv = one/(bcty+sy)
+                   
+                      ! c_0(0,0) = sx*sy*bsxinv*bsyinv
+                      c_0(-1,0) = bctx*bsxinv
+                      c_0(0,-1) = bcty*bsyinv
+                      c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
+                   
+                      ! c_x(0,0) = sy*bsxinv*bsyinv
+                      c_x(-1,0) = -bsxinv
+                      c_x(0,-1) = sx*bcty*bsyinv
+                      c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
+                      
+                      ! c_y(0,0) = sx*bsxinv*bsyinv
+                      c_y(-1,0) = sy*bctx*bsxinv
+                      c_y(0,-1) = -bsyinv
+                      c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
+                      
+                      ! c_xy(0,0) = bsxinv*bsyinv
+                      c_xy(-1,0) = -sy*bsxinv
+                      c_xy(0,-1) = -sx*bsyinv
+                      c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
+                      
+                      phig2 = (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0))*phi(ii,j) &
+                           +  (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1))*phi(i,jj) &
+                           +  (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1))*phi(ii,jj)
+                   end if
+
+                   phig_gamma = w1*phig1_gamma
+                   phig = w1*phig1 + w2*phig2
 
                    feb_gamma = -two * phig_gamma * ba(i,j) * beb(i,j)
                    feb = -two * phig * ba(i,j) * beb(i,j)
