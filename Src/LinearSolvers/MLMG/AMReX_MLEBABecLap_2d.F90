@@ -8,8 +8,7 @@ module amrex_mlebabeclap_2d_module
        get_neighbor_cells_int_single
   implicit none
 
-!  real(amrex_real), parameter, private :: dx_eb = half
-  real(amrex_real), parameter, private :: dx_eb = third
+  real(amrex_real), parameter, private :: dx_eb = half
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
@@ -20,7 +19,7 @@ contains
   pure function amrex_blend_beta (kappa) result(beta)
     real(amrex_real), intent(in) :: kappa
     real(amrex_real) :: beta
-#if 1
+#if 0
     real(amrex_real),parameter :: blend_kappa = 1.d-4
     if (kappa .lt. blend_kappa) then
        beta = zero
@@ -123,11 +122,19 @@ contains
                 anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
                 bctx = bc(i,j,1)
                 bcty = bc(i,j,2)
-                dg = dx_eb/max(abs(anrmx),abs(anrmy))
-                gx = bctx - dg*anrmx
-                gy = bcty - dg*anrmy
-                sx = sign(one,anrmx)
-                sy = sign(one,anrmy)
+                if (abs(anrmx) .gt. abs(anrmy)) then
+                   dg = dx_eb / abs(anrmx)
+                   gx = bctx - dg*anrmx
+                   gy = bcty - dg*anrmy
+                   sx =  sign(one,anrmx)
+                   sy = -sign(one,gy)
+                else
+                   dg = dx_eb/abs(anrmy)
+                   gx = bctx - dg*anrmx
+                   gy = bcty - dg*anrmy
+                   sx = -sign(one,gx)
+                   sy =  sign(one,anrmy)
+                end if
                 ii = i - int(sx)
                 jj = j - int(sy)
 
@@ -351,11 +358,19 @@ contains
                    anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
                    bctx = bc(i,j,1)
                    bcty = bc(i,j,2)
-                   dg = dx_eb/max(abs(anrmx),abs(anrmy))
-                   gx = bctx - dg*anrmx
-                   gy = bcty - dg*anrmy
-                   sx = sign(one,anrmx)
-                   sy = sign(one,anrmy)
+                   if (abs(anrmx) .gt. abs(anrmy)) then
+                      dg = dx_eb / abs(anrmx)
+                      gx = bctx - dg*anrmx
+                      gy = bcty - dg*anrmy
+                      sx =  sign(one,anrmx)
+                      sy = -sign(one,gy)
+                   else
+                      dg = dx_eb / abs(anrmy)
+                      gx = bctx - dg*anrmx
+                      gy = bcty - dg*anrmy
+                      sx = -sign(one,gx)
+                      sy =  sign(one,anrmy)
+                   end if
                    ii = i - int(sx)
                    jj = j - int(sy)
                    
