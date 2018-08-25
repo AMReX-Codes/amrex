@@ -364,19 +364,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                                            &ParallelDescriptor::fb_win) );
 #endif
 
-#ifdef BL_USE_MPI
-    amrex::Print() << "MPI initialized with "
-		   << ParallelDescriptor::NProcs()
-		   << " MPI processes\n";
-#endif
-
-#ifdef _OPENMP
-//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
-    amrex::Print() << "OMP initialized with "
-		   << omp_get_max_threads()
-		   << " OMP threads\n";
-#endif
-
     while ( ! The_Initialize_Function_Stack.empty())
     {
         //

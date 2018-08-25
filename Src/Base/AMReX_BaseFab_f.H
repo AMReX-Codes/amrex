@@ -3,7 +3,6 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>
-#include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C"
