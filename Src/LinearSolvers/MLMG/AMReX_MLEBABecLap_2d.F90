@@ -215,10 +215,17 @@ contains
     real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
 
     integer :: i,j,ioff,ii,jj
-    real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res
+    real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res, vfrcinv
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
     real(amrex_real) :: sxm, sxp, sym, syp, oxm, oxp, oym, oyp
+    real(amrex_real) :: feb, phig, phig1, phig2, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
+    real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
+    real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
+    real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
+    logical :: is_dirichlet
     real(amrex_real), parameter :: omega = 1._amrex_real
+
+    is_dirichlet = is_eb_dirichlet .ne. 0
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -299,14 +306,76 @@ contains
                    oyp = zero
                    syp = (one-fracx)*syp
                 end if
-                
-                gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
+
+                vfrcinv = (one/vfrc(i,j))
+                gamma = alpha*a(i,j) + vfrcinv * &
                      (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
-                rho = -(one/vfrc(i,j)) * &
+                rho = -vfrcinv * &
                      (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
 
-                delta = -(one/vfrc(i,j)) * &
+                delta = -vfrcinv * &
                      (dhx*(apx(i,j)*oxm-apx(i+1,j)*oxp) + dhy*(apy(i,j)*oym-apy(i,j+1)*oyp))
+
+                if (is_dirichlet) then
+                   anorm = sqrt((apx(i,j)-apx(i+1,j))**2 + (apy(i,j)-apy(i,j+1))**2)
+                   anorminv = one/anorm
+                   anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
+                   anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
+                   gx = bc(i,j,1) - half*anrmx
+                   gy = bc(i,j,2) - half*anrmy
+                   sx = sign(one,anrmx)
+                   sy = sign(one,anrmy)
+                   ii = i - int(sx)
+                   jj = j - int(sy)
+                   bctx = bc(i,j,1)
+                   bcty = bc(i,j,2)
+                   
+                   bsxinv = one/(bctx+sx)
+                   bsyinv = one/(bcty+sy)
+                   
+                   ! c_0(0,0) = sx*sy*bsxinv*bsyinv
+                   c_0(-1,0) = bctx*bsxinv
+                   c_0(0,-1) = bcty*bsyinv
+                   c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
+                   
+                   ! c_x(0,0) = sy*bsxinv*bsyinv
+                   c_x(-1,0) = -bsxinv
+                   c_x(0,-1) = sx*bcty*bsyinv
+                   c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
+                   
+                   ! c_y(0,0) = sx*bsxinv*bsyinv
+                   c_y(-1,0) = sy*bctx*bsxinv
+                   c_y(0,-1) = -bsyinv
+                   c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
+                   
+                   ! c_xy(0,0) = bsxinv*bsyinv
+                   c_xy(-1,0) = -sy*bsxinv
+                   c_xy(0,-1) = -sx*bsyinv
+                   c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
+
+                   phig2 = (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0))*phi(ii,j) &
+                        +  (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1))*phi(i,jj) &
+                        +  (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1))*phi(ii,jj)
+
+                   if (vfrc(i,j) .le. blend_kappa) then
+                      phig_gamma = zero
+                      phig = phig2
+                   else
+                      phig1_gamma = (one + gx*sx + gy*sy + gx*gy*sx*sy)
+                      phig1 = (    - gx*sx         - gx*gy*sx*sy) * phi(ii,j) &
+                           +  (            - gy*sy - gx*gy*sx*sy) * phi(i,jj) &
+                           +  (                    + gx*gy*sx*sy) * phi(ii,jj)
+
+                      phig_gamma = (vfrc(i,j)-blend_kappa)*phig1_gamma
+                      phig = (vfrc(i,j)-blend_kappa)*phig1 + (one+blend_kappa-vfrc(i,j))*phig2
+                   end if
+
+                   feb_gamma = -two * phig_gamma * ba(i,j) * beb(i,j)
+                   feb = -two * phig * ba(i,j) * beb(i,j)
+
+                   gamma = gamma + vfrcinv*(-dhx)*feb_gamma
+                   rho = rho - vfrcinv*(-dhx)*feb
+                end if
              end if
 
              res = rhs(i,j) - (gamma*phi(i,j) - rho)
