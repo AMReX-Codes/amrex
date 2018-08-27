@@ -65,11 +65,27 @@ operator>> (std::istream& is,
     char c;
     is >> c;
 
+    AMREX_D_TERM(iv[0]=0;, iv[1]=0;, iv[2]=0);
+
     if (c == '(')
     {
-        AMREX_D_EXPR(is >> iv[0],
-               is.ignore(BL_IGNORE_MAX, ',') >> iv[1],
-               is.ignore(BL_IGNORE_MAX, ',') >> iv[2]);
+        is >> iv[0];
+#if (AMREX_SPACEDIM >= 2)
+        is >> std::ws;
+        int ic = is.peek();
+        if (ic == static_cast<int>(',')) {
+            is.ignore(BL_IGNORE_MAX, ',');
+            is >> iv[1];
+#if (AMREX_SPACEDIM == 3)
+            is >> std::ws;
+            ic = is.peek();
+            if (ic == static_cast<int>(',')) {
+                is.ignore(BL_IGNORE_MAX, ',');
+                is >> iv[2];
+            }
+#endif
+        }
+#endif
         is.ignore(BL_IGNORE_MAX, ')');
     }
     else
