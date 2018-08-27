@@ -179,7 +179,6 @@ PETScABecLap::prepareSolver ()
         if (fabtyp == FabType::covered)
         {
             ncells_grid[mfi] = 0;
-            noff_elmts[mfi] = 0;  
         }
         else if (fabtyp == FabType::singlevalued)
         {
@@ -194,7 +193,6 @@ PETScABecLap::prepareSolver ()
         {
             long npts = bx.numPts();
             ncells_grid[mfi] = npts;
-            noff_elmts[mfi] = npts*(regular_stencil_size-1); 
             ncells_proc += npts;
 
             ifab.resize(bx);
@@ -239,9 +237,10 @@ PETScABecLap::prepareSolver ()
     }    
 
     cell_id.FillBoundary(geom.periodicity());
-
+    PetscInt ndiag = regular_stencil_size - 2; //estimated amount of block diag elements
+    PetscInt noff  = 3; // estimated amount of block off diag elements
     MatCreateAIJ(PETSC_COMM_WORLD, ncells_proc, ncells_proc, ncells_world, ncells_world,
-        0, regular_stencil_size - 2,  0, 3, &A); 
+        ndiag, nullptr ,  noff, nullptr , &A); 
     //Maybe an over estimate of the diag/off diag #of non-zero entries
 
     // A.SetValues
@@ -322,9 +321,7 @@ PETScABecLap::prepareSolver ()
             }
 #endif
 
-            MatSetValues(A, nrows, rows, ncols, cols, mat, INSERT_VALUES);  
-//
-//            HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
+            MatSetValues(A, nrows, rows, nrows, cols, mat, INSERT_VALUES);  
         }
     }
 
@@ -391,7 +388,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 bfab = &rhsfab;
             }
 
-            VecSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr()); 
+            VecSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr(), INSERT_VALUES); 
         }
     }
 
@@ -442,7 +439,7 @@ PETScABecLap::getSolution (MultiFab& soln)
                 }
             }
 
-            VecGetValues(x, nrows, cell_id_vec[mfi].data, xfab->dataPtr()); 
+            VecGetValues(x, nrows, cell_id_vec[mfi].data(), xfab->dataPtr()); 
             if (fabtyp == FabType::regular && soln.nGrow() != 0)
             {
                 soln[mfi].copy(*xfab,bx);
