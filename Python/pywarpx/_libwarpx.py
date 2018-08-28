@@ -26,7 +26,7 @@ def _get_package_root():
 try:
     libwarpx = ctypes.CDLL(os.path.join(_get_package_root(), "libwarpx.so"))
 except OSError:
-    raise Exception('libwarp.so was not installed. It can be installed by running "make" in the Python directory of WarpX')
+    raise Exception('libwarpx.so was not installed. It can be installed by running "make" in the Python directory of WarpX')
 
 _libc = ctypes.CDLL(_find_library('c'))
 
