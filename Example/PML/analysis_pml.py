@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import yt ; yt.funcs.mylog.setLevel(0)
 import numpy as np
 import scipy.constants as scc
