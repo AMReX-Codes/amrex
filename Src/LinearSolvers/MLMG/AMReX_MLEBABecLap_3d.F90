@@ -2,11 +2,13 @@
 module amrex_mlebabeclap_3d_module
   
   use amrex_error_module 
-  use amrex_constants_module, only: zero, one 
+  use amrex_constants_module, only: zero, one, third
   use amrex_fort_module, only : amrex_real
   use amrex_ebcellflag_module, only: is_regular_cell, is_covered_cell, is_single_valued_cell, &
        get_neighbor_cells_int_single
   implicit none
+
+  real(amrex_real), parameter, private :: dx_eb = third
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, & 
@@ -47,6 +49,13 @@ contains
    real(amrex_real), intent(in   ) ::phieb( plo(1): phi(1), plo(2): phi(2), plo(3): phi(3))
    integer  :: i, j, k, ii, jj, kk 
    real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
+   real(amrex_real) :: feb, phib, phig, gx, gy, gz, dg, gxy, gxz, gyz, gxyz
+   real(amrex_real) :: anrmx, anrmy, anrmz, anorm, anorminv, sx, sy, sz
+   real(amrex_real) :: bctx, bcty, bctz
+   logical :: is_dirichlet, is_inhomogeneous
+
+   is_dirichlet = is_eb_dirichlet .ne. 0
+   is_inhomogeneous = is_inhomog .ne. 0
 
    dhx = beta*dxinv(1)*dxinv(1) 
    dhy = beta*dxinv(2)*dxinv(2)  
@@ -138,10 +147,60 @@ contains
                          & fracx*     fracy *bZ(ii,jj,k+1)*(x(ii,jj,k+1)-x(ii,jj,k))
                 endif 
 
+                if (is_dirichlet) then
+                   anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
+                        +       (apy(i,j,k)-apy(i,j+1,k))**2 &
+                        +       (apz(i,j,k)-apz(i,j,k+1))**2)
+                   anorminv = one/anorm
+                   anrmx = (apx(i,j,k)-apx(i+1,j,k)) * anorminv
+                   anrmy = (apy(i,j,k)-apy(i,j+1,k)) * anorminv
+                   anrmz = (apz(i,j,k)-apz(i,j,k+1)) * anorminv
+                   bctx = bc(i,j,k,1)
+                   bcty = bc(i,j,k,2)
+                   bctz = bc(i,j,k,3)
+                   dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
+                   gx = bctx - dg*anrmx
+                   gy = bcty - dg*anrmy
+                   gz = bctz - dg*anrmz
+                   sx =  sign(one,anrmx)
+                   sy =  sign(one,anrmy)
+                   sz =  sign(one,anrmz)
+                   ii = i - int(sx)
+                   jj = j - int(sy)
+                   kk = k - int(sz)
+
+                   gx = sx*gx
+                   gy = sy*gy
+                   gz = sz*gz
+                   gxy = gx*gy
+                   gxz = gx*gz
+                   gyz = gy*gz
+                   gxyz = gx*gy*gz
+                   phig = (one+gx+gy+gz+gxy+gxz+gyz+gxyz) * x(i,j,k) &
+                        + (-gz - gxz - gyz - gxyz) * x(i,j,kk) &
+                        + (-gy - gxy - gyz - gxyz) * x(i,jj,k) &
+                        + (gyz + gxyz) * x(i,jj,kk) &
+                        + (-gx - gxy - gxz - gxyz) * x(ii,j,k) &
+                        + (gxz + gxyz) * x(ii,j,kk) &
+                        + (gxy + gxyz) * x(ii,jj,k) &
+                        + (-gxyz) * x(ii,jj,kk)
+
+                   if (is_inhomogeneous) then
+                      phib = phieb(i,j,k)
+                   else
+                      phib = zero
+                   end if
+
+                   feb = (phib-phig)/dg * ba(i,j,k) * beb(i,j,k)
+                else
+                   feb = zero
+                end if
+
                 y(i,j,k) = alpha*a(i,j,k)*x(i,j,k) + (one/vfrc(i,j,k))*&
                        (dhx*(apx(i,j,k)*fxm - apx(i+1,j,k)*fxp) + &
                         dhy*(apy(i,j,k)*fym - apy(i,j+1,k)*fyp) + &
-                        dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp))
+                        dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp) &
+                        - dhx*feb)
               endif 
           enddo
        enddo 
