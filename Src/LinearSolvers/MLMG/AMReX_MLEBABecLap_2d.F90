@@ -445,11 +445,13 @@ contains
   subroutine amrex_mlebabeclap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
-       dxinv, alpha, beta) &
+       ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, is_eb_dirichlet, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_normalize')
     integer, dimension(2), intent(in) :: lo, hi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
-         cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi
+         cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, &
+         balo, bahi, bclo, bchi, elo, ehi
     real(amrex_real), intent(in) :: dxinv(2)
+    integer         , value, intent(in) :: is_eb_dirichlet
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    x( xlo(1): xhi(1), xlo(2): xhi(2))
     real(amrex_real), intent(in   ) ::    a( alo(1): ahi(1), alo(2): ahi(2))
@@ -462,9 +464,20 @@ contains
     real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2))
+    real(amrex_real), intent(in   ) ::   ba(balo(1):bahi(1),balo(2):bahi(2))
+    real(amrex_real), intent(in   ) ::   bc(bclo(1):bchi(1),bclo(2):bchi(2),2)
+    real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
 
     integer :: i,j,ii,jj
-    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, fracx, fracy
+    real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, fracx, fracy, vfrcinv
+    real(amrex_real) :: gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
+    real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
+    real(amrex_real) :: bctx, bcty
+    real(amrex_real) :: w1, w2, dg
+    real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
+    logical :: is_dirichlet
+
+    is_dirichlet = is_eb_dirichlet .ne. 0
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -504,8 +517,49 @@ contains
                 syp = (one-fracx)*syp
              end if
 
-             gamma = alpha*a(i,j) + (one/vfrc(i,j)) * &
+             vfrcinv = one/vfrc(i,j)
+             gamma = alpha*a(i,j) + vfrcinv * &
                   (dhx*(apx(i,j)*sxm-apx(i+1,j)*sxp) + dhy*(apy(i,j)*sym-apy(i,j+1)*syp))
+
+             if (is_dirichlet) then
+                anorm = sqrt((apx(i,j)-apx(i+1,j))**2 + (apy(i,j)-apy(i,j+1))**2)
+                anorminv = one/anorm
+                anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
+                anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
+                bctx = bc(i,j,1)
+                bcty = bc(i,j,2)
+                if (abs(anrmx) .gt. abs(anrmy)) then
+                   dg = dx_eb / abs(anrmx)
+                   gx = bctx - dg*anrmx
+                   gy = bcty - dg*anrmy
+                   sx =  sign(one,anrmx)
+                   sy =  sign(one,anrmy)
+                   ! sy = -sign(one,gy)
+                else
+                   dg = dx_eb / abs(anrmy)
+                   gx = bctx - dg*anrmx
+                   gy = bcty - dg*anrmy
+                   ! sx = -sign(one,gx)
+                   sx =  sign(one,anrmx)
+                   sy =  sign(one,anrmy)
+                end if
+                ii = i - int(sx)
+                jj = j - int(sy)
+                
+                w1 = amrex_blend_beta(vfrc(i,j))
+                w2 = one-w1
+                
+                if (w1.eq.zero) then
+                   phig1_gamma = zero
+                else
+                   phig1_gamma = (one + gx*sx + gy*sy + gx*gy*sx*sy)
+                end if
+                
+                phig_gamma = w1*phig1_gamma
+                feb_gamma = -phig_gamma * (ba(i,j) * beb(i,j) / dg)
+                
+                gamma = gamma + vfrcinv*(-dhx)*feb_gamma
+             end if
 
              x(i,j) = x(i,j) / gamma
           end if
