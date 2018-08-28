@@ -17,13 +17,13 @@ DIM = 2
 
 AMREX_HOME ?= ../../..
 ifeq ($(USE_PETSC),TRUE)
+    #Your PETSC/HYPRE Directories 
     PETSC_DIR = /home/sireeves/petsc
     PETSC_ARCH = /home/sireeves/petsc/arch-linux2-c-debug
-    HYPRE_DIR = /home/sireeves/hypre
+    HYPRE_DIR = /home/sireeves/hypre/src/hypre
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
-
 include ./Make.package
 
 Pdirs := Base Boundary AmrCore
