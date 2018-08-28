@@ -8,6 +8,9 @@
 #include <AMReX_Hypre.H>
 #endif
 
+#ifdef AMREX_USE_PETSC
+//#include <AMReX_PETSc.H>
+#endif
 namespace amrex {
 
 class MLMG
@@ -121,6 +124,7 @@ private:
 
     // PETSc
 #ifdef AMREX_USE_PETSC
+    std::unique_ptr<MLMGBndry> petsc_bndry; 
 #endif
     
     // To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
