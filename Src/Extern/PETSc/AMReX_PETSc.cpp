@@ -2,8 +2,12 @@
 #include <petscksp.h>
 #include <AMReX_PETSc.H>
 
-#include <AMReX_HypreABec_F.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_MultiCutFab.H>
+#include <AMReX_EBFabFactory.H>
+#endif
 
+#include <AMReX_HypreABec_F.H>
 #include <cmath>
 #include <numeric>
 #include <limits>
@@ -248,6 +252,9 @@ PETScABecLap::prepareSolver ()
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
     BaseFab<HYPRE_Int> ifab;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
