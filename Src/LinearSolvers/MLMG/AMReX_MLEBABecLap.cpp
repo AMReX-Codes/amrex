@@ -638,6 +638,11 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
+    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
+
+    const int is_eb_dirichlet = isEBDirichlet();
+    FArrayBox foo(Box::TheUnitBox());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -665,6 +670,8 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
         }
         else if (fabtyp == FabType::singlevalued)
         {
+            FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
+
             amrex_mlebabeclap_normalize(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(fab),
                                         BL_TO_FORTRAN_ANYD(afab),
@@ -680,6 +687,10 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                      BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                      BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                        BL_TO_FORTRAN_ANYD((*barea)[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
+                                        BL_TO_FORTRAN_ANYD(bebfab),
+                                        is_eb_dirichlet,
                                         dxinv, m_a_scalar, m_b_scalar);
         }
     }
