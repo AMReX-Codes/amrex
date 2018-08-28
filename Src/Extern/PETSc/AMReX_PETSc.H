@@ -63,9 +63,6 @@ private:
     void getSolution (MultiFab& soln);
 };
 
-
-std::unique_ptr<PETScABecLap> make_petsc(const BoxArray& grids, const DistributionMapping& dmap,
-                  const Geometry& geom_, MPI_Comm comm_);
 }
 
 #endif
