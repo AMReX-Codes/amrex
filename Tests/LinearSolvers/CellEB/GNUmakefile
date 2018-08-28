@@ -18,9 +18,7 @@ DIM = 2
 AMREX_HOME ?= ../../..
 ifeq ($(USE_PETSC),TRUE)
 #Your PETSC Directory
-    PETSC_DIR = /home/sireeves/petsc
-#The arch prescribed by the petsc configure 
-    PETSC_ARCH = arch-linux2-c-debug
+    PETSC_DIR = /usr/local/petsc
 #The Hypre directory for utilizing hypre functions
     HYPRE_DIR = /home/sireeves/hypre/src/hypre
 endif
