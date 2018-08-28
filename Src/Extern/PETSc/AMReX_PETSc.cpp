@@ -277,6 +277,7 @@ PETScABecLap::prepareSolver ()
             HYPRE_Int* rows = cell_id_vec[mfi].data();
             HYPRE_Int* ncols = ifab.dataPtr(0);
             HYPRE_Int* cols  = ifab.dataPtr(1);
+            HYPRE_Int num_cols = nrows; 
             Real*      mat   = rfab.dataPtr();
 
             Array<int,AMREX_SPACEDIM*2> bctype;
@@ -328,7 +329,7 @@ PETScABecLap::prepareSolver ()
             }
 #endif
 
-            MatSetValues(A, nrows, rows, nrows, cols, mat, INSERT_VALUES);  
+            MatSetValues(A, nrows, rows, num_cols, cols, mat, INSERT_VALUES);  
         }
     }
 
