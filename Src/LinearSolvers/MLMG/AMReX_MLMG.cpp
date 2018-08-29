@@ -1588,12 +1588,12 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
 #else
 
     PETSC_COMM_WORLD = linop.BottomCommunicator();
+    bool on = false;
     
     auto ierr = PetscInitialize(nullptr, nullptr, nullptr, nullptr);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE
         (!ierr, "MLMG::bottomSolveWithPETSc: Failed to call PetscInitialize");
-//    if (petsc_solver == nullptr)  // We should reuse the setup
-//    {
+        on = true; 
         const int ncomp = linop.getNComp();
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
@@ -1644,14 +1644,11 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
                                          0.5*dx[1]*crse_ratio,
                                          0.5*dx[2]*crse_ratio));
         petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
-//    }
 
-    petsc_solver.solve(x, b, bottom_reltol, -1., bottom_maxiter, *petsc_bndry, linop.getMaxOrder());
-
-    ierr = PetscFinalize();
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+        petsc_solver.solve(x, b, bottom_reltol, -1., bottom_maxiter, *petsc_bndry, linop.getMaxOrder());
+        ierr = PetscFinalize();
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE
         (!ierr, "MLMG::bottomSolveWithPETSc: Failed to call PetscFinalize");
-    
 #endif
 }
     
