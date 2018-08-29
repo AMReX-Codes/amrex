@@ -241,12 +241,18 @@ PETScABecLap::prepareSolver ()
     }    
 
     cell_id.FillBoundary(geom.periodicity());
-    PetscInt ndiag = regular_stencil_size - 2; //estimated amount of block diag elements
-    PetscInt noff  = 3; // estimated amount of block off diag elements
-    MatCreateAIJ(PETSC_COMM_WORLD, ncells_proc, ncells_proc, ncells_world, ncells_world,
-        ndiag, nullptr ,  noff, nullptr , &A); 
-    //Maybe an over estimate of the diag/off diag #of non-zero entries
-
+    PetscInt ndiag = regular_stencil_size - 1; //estimated amount of block diag elements
+    PetscInt noff  = 2; // estimated amount of block off diag elements
+//    MatCreateAIJ(PETSC_COMM_WORLD, ncells_proc, ncells_proc, ncells_world, ncells_world,
+//        ndiag, nullptr ,  noff, nullptr , &A); 
+    MatCreate(PETSC_COMM_WORLD, &A); 
+    MatSetType(A, MATMPIAIJ);
+    MatSetSizes(A, ncells_proc, ncells_proc, ncells_world, ncells_world); 
+    MatMPIAIJSetPreallocation(A, ndiag, NULL, noff, NULL );
+    //Maybe an over estimate of the diag/off diag #of non-zero entries, so we turn off malloc warnings
+    MatSetUp(A); 
+    MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE); 
+ 
     // A.SetValues
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
@@ -277,7 +283,6 @@ PETScABecLap::prepareSolver ()
             HYPRE_Int* rows = cell_id_vec[mfi].data();
             HYPRE_Int* ncols = ifab.dataPtr(0);
             HYPRE_Int* cols  = ifab.dataPtr(1);
-            HYPRE_Int num_cols = nrows; 
             Real*      mat   = rfab.dataPtr();
 
             Array<int,AMREX_SPACEDIM*2> bctype;
@@ -285,57 +290,56 @@ PETScABecLap::prepareSolver ()
             const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
             const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
             for (OrientationIter oit; oit; oit++) {
-                int cdir(oit());
-                bctype[cdir] = bcs_i[cdir][0];
-                bcl[cdir]  = bcl_i[cdir];
-            }
-            
+                    int cdir(oit());
+                    bctype[cdir] = bcs_i[cdir][0];
+                    bcl[cdir]  = bcl_i[cdir];
+                }
+                
             if (fabtyp == FabType::regular)
             {
-                amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
-                                 &nrows, ncols, rows, cols, mat,
-                                 BL_TO_FORTRAN_ANYD(cell_id[mfi]),
-                                 &(offset[mfi]),
-                                 BL_TO_FORTRAN_ANYD(diaginv[mfi]),
-                                 BL_TO_FORTRAN_ANYD(acoefs[mfi]),
-                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
-                                              BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
-                                              BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
-                                 &scalar_a, &scalar_b, dx,
-                                 bctype.data(), bcl.data(), &bho);
-            }
-#ifdef AMREX_USE_EB
-            else
-            {
-                amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
-                                    &nrows, ncols, rows, cols, mat,
-                                    BL_TO_FORTRAN_ANYD(cell_id[mfi]),
-                                    &(offset[mfi]),
-                                    BL_TO_FORTRAN_ANYD(diaginv[mfi]),
-                                    BL_TO_FORTRAN_ANYD(acoefs[mfi]),
-                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
-                                                 BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
-                                                 BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
-                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                                    BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                 BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                 BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
-                                                 BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
-                                                 BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                    &scalar_a, &scalar_b, dx,
-                                    bctype.data(), bcl.data(), &bho);
-            }
-#endif
-
-            MatSetValues(A, nrows, rows, num_cols, cols, mat, INSERT_VALUES);  
+                    amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
+                                     &nrows, ncols, rows, cols, mat,
+                                     BL_TO_FORTRAN_ANYD(cell_id[mfi]),
+                                     &(offset[mfi]),
+                                     BL_TO_FORTRAN_ANYD(diaginv[mfi]),
+                                     BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
+                                                  BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
+                                                  BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
+                                     &scalar_a, &scalar_b, dx,
+                                     bctype.data(), bcl.data(), &bho);
+                }
+    #ifdef AMREX_USE_EB
+                else
+                {
+                    amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
+                                        &nrows, ncols, rows, cols, mat,
+                                        BL_TO_FORTRAN_ANYD(cell_id[mfi]),
+                                        &(offset[mfi]),
+                                        BL_TO_FORTRAN_ANYD(diaginv[mfi]),
+                                        BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
+                                                     BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
+                                                     BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
+                                        BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                     BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                     BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                                     BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                                     BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                        &scalar_a, &scalar_b, dx,
+                                        bctype.data(), bcl.data(), &bho);
+                }
+    #endif
+                MatSetValues(A, nrows, rows, ndiag, cols, mat, INSERT_VALUES);  
         }
     }
 
     MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
-
+    MatView(A, PETSC_VIEWER_STDOUT_WORLD); 
     // create solver
     KSPCreate(PETSC_COMM_WORLD, &solver);
     KSPSetOperators(solver, A, A);
