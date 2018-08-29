@@ -638,7 +638,11 @@ PhysicalParticleContainer::Evolve (int lev,
 				   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 				   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 				   MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                   MultiFab* rho, Real t, Real dt)
+                                   MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
+                                   MultiFab* rho,
+                                   const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
+                                   const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
+                                   Real t, Real dt)
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
@@ -646,18 +650,27 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
-
+    BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
+    
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
+    const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
 
     const auto& mypc = WarpX::GetInstance().GetPartContainer();
     const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
 
+    
+    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
+    long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ = jx.nGrow();
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
     MultiFab* cost = WarpX::getCosts(lev);
+
+    const iMultiFab* bmasks = WarpX::BufferMasks(lev);
+    
+    bool has_buffer = cEx || cjx; 
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -667,6 +680,10 @@ PhysicalParticleContainer::Evolve (int lev,
         FArrayBox local_rho, local_jx, local_jy, local_jz;
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
+        std::vector<bool> inexflag;
+        Array<long> pid;
+        Vector<Real> tmp;
+        Vector<ParticleType> particle_tmp;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -773,6 +790,58 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	    giv.resize(np);
 
+            long nfine = np;
+            if (has_buffer && !do_not_push)
+            {
+                BL_PROFILE_VAR_START(blp_partition);
+                inexflag.resize(np);
+                auto& aos = pti.GetArrayOfStructs();
+                int i = 0;
+                const auto& msk = (*bmasks)[pti];
+                for (const auto& p : aos) {
+                    const IntVect& iv = Index(p, lev);
+                    inexflag[i++] = msk(iv);
+                }
+
+                pid.resize(np);
+                std::iota(pid.begin(), pid.end(), 0L);
+                
+                auto sep = std::stable_partition(pid.begin(), pid.end(),
+                                                 [&inexflag](long id) { return inexflag[id]; });
+
+                nfine = std::distance(pid.begin(), sep);
+                if (nfine != np)
+                {
+                    particle_tmp.resize(np);
+                    for (long ip = 0; ip < np; ++ip) {
+                        particle_tmp[ip] = aos[pid[ip]];
+                    }
+                    std::swap(aos(), particle_tmp);
+
+                    tmp.resize(np);
+                    for (long ip = 0; ip < np; ++ip) {
+                        tmp[ip] = wp[pid[ip]];
+                    }
+                    std::swap(wp, tmp);
+
+                    for (long ip = 0; ip < np; ++ip) {
+                        tmp[ip] = uxp[pid[ip]];
+                    }
+                    std::swap(uxp, tmp);
+
+                    for (long ip = 0; ip < np; ++ip) {
+                        tmp[ip] = uyp[pid[ip]];
+                    }
+                    std::swap(uyp, tmp);
+
+                    for (long ip = 0; ip < np; ++ip) {
+                        tmp[ip] = uzp[pid[ip]];
+                    }
+                    std::swap(uzp, tmp);
+                }
+                BL_PROFILE_VAR_STOP(blp_partition);
+            }
+
 	    //
 	    // copy data from particle container to temp arrays
 	    //
@@ -835,10 +904,13 @@ PhysicalParticleContainer::Evolve (int lev,
                 const int ll4symtry          = false;
                 const int l_lower_order_in_v = warpx_l_lower_order_in_v();
                 long lvect_fieldgathe = 64;
+
+                const long np_gather = (cEx) ? nfine : np;
+
                 BL_PROFILE_VAR_START(blp_pxr_fg);
 
                 warpx_geteb_energy_conserving(
-                    &np, xp.data(), yp.data(), zp.data(),
+                    &np_gather, xp.data(), yp.data(), zp.data(),
                     Exp.data(),Eyp.data(),Ezp.data(),
                     Bxp.data(),Byp.data(),Bzp.data(),
                     ixyzmin_grid,
@@ -853,6 +925,38 @@ PhysicalParticleContainer::Evolve (int lev,
                     BL_TO_FORTRAN_ANYD(*bzfab),
                     &ll4symtry, &l_lower_order_in_v,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
+
+                if (np_gather < np)
+                {
+                    const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
+                    const std::array<Real,3>& cxyzmin_grid
+                        = WarpX::LowerCorner(amrex::coarsen(box,ref_ratio), lev-1);
+
+                    const FArrayBox& cexfab = (*cEx)[pti];
+                    const FArrayBox& ceyfab = (*cEy)[pti];
+                    const FArrayBox& cezfab = (*cEz)[pti];
+                    const FArrayBox& cbxfab = (*cBx)[pti];
+                    const FArrayBox& cbyfab = (*cBy)[pti];
+                    const FArrayBox& cbzfab = (*cBz)[pti];
+
+                    long ncrse = np - nfine;
+                    warpx_geteb_energy_conserving(
+                        &ncrse, xp.data()+nfine, yp.data()+nfine, zp.data()+nfine,
+                        Exp.data()+nfine, Eyp.data()+nfine, Ezp.data()+nfine,
+                        Bxp.data()+nfine, Byp.data()+nfine, Bzp.data()+nfine,
+                        &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
+                        &cdx[0], &cdx[1], &cdx[2],
+                        &WarpX::nox, &WarpX::noy, &WarpX::noz,
+                        cexfab.dataPtr(), &ngE, cexfab.length(),
+                        ceyfab.dataPtr(), &ngE, ceyfab.length(),
+                        cezfab.dataPtr(), &ngE, cezfab.length(),
+                        cbxfab.dataPtr(), &ngE, cbxfab.length(),
+                        cbyfab.dataPtr(), &ngE, cbyfab.length(),
+                        cbzfab.dataPtr(), &ngE, cbzfab.length(),
+                        &ll4symtry, &l_lower_order_in_v,
+                        &lvect_fieldgathe, &WarpX::field_gathering_algo);                    
+                }
+
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
 
                 //
@@ -873,6 +977,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
                 Box gtbx, gtby, gtbz;
+
+                const long np_current = (cjx) ? nfine : np;
 
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
@@ -900,7 +1006,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     jx_ptr, &ngJ, jxntot,
                     jy_ptr, &ngJ, jyntot,
                     jz_ptr, &ngJ, jzntot,
-                    &np, xp.data(), yp.data(), zp.data(),
+                    &np_current, xp.data(), yp.data(), zp.data(),
                     uxp.data(), uyp.data(), uzp.data(),
                     giv.data(), wp.data(), &this->charge,
                     &xyzmin[0], &xyzmin[1], &xyzmin[2],
@@ -921,6 +1027,116 @@ PhysicalParticleContainer::Evolve (int lev,
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
                                             BL_TO_FORTRAN_3D(jzfab), ncomp);
                 BL_PROFILE_VAR_STOP(blp_accumulate);
+                
+                if (np_current < np)
+                {
+                    const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
+                    const Box& ctilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
+                    const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
+
+                    tbx = amrex::convert(ctilebox, WarpX::jx_nodal_flag);
+                    tby = amrex::convert(ctilebox, WarpX::jy_nodal_flag);
+                    tbz = amrex::convert(ctilebox, WarpX::jz_nodal_flag);
+                    tbx.grow(ngJ);
+                    tby.grow(ngJ);
+                    tbz.grow(ngJ);
+                
+                    if (WarpX::use_filter) {
+                        local_jx.resize(amrex::grow(tbx,1));
+                        local_jy.resize(amrex::grow(tby,1));
+                        local_jz.resize(amrex::grow(tbz,1));
+                    } else {
+                        local_jx.resize(tbx);
+                        local_jy.resize(tby);
+                        local_jz.resize(tbz);
+                    }
+
+                    local_jx = 0.0;
+                    local_jy = 0.0;
+                    local_jz = 0.0;
+
+                    jx_ptr = local_jx.dataPtr();
+                    jy_ptr = local_jy.dataPtr();
+                    jz_ptr = local_jz.dataPtr();
+                
+                    jxntot = local_jx.length();
+                    jyntot = local_jy.length();
+                    jzntot = local_jz.length();
+
+                    long ncrse = np - nfine;
+                    warpx_current_deposition(
+                        jx_ptr, &ngJDeposit, jxntot,
+                        jy_ptr, &ngJDeposit, jyntot,
+                        jz_ptr, &ngJDeposit, jzntot,
+                        &ncrse, xp.data()+nfine, yp.data()+nfine, zp.data()+nfine,
+                        uxp.data()+nfine, uyp.data()+nfine, uzp.data()+nfine,
+                        giv.data()+nfine, wp.data()+nfine, &this->charge,
+                        &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
+                        &dt, &cdx[0], &cdx[1], &cdx[2],
+                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                        &lvect,&WarpX::current_deposition_algo);
+
+                    FArrayBox& cjxfab = (*cjx)[pti];
+                    FArrayBox& cjyfab = (*cjy)[pti];
+                    FArrayBox& cjzfab = (*cjz)[pti];
+
+                    const int ncomp = 1;
+                    if (WarpX::use_filter)
+                    {
+                        filtered_jx.resize(tbx);
+                        filtered_jx = 0.0;
+                        
+                        WRPX_FILTER(local_jx.dataPtr(),
+                                    local_jx.loVect(),
+                                    local_jx.hiVect(),
+                                    filtered_jx.dataPtr(),
+                                    filtered_jx.loVect(),
+                                    filtered_jx.hiVect(),
+                                    ncomp);
+
+                        filtered_jy.resize(tby);
+                        filtered_jy = 0.0;
+                        
+                        WRPX_FILTER(local_jy.dataPtr(),
+                                    local_jy.loVect(),
+                                    local_jy.hiVect(),
+                                    filtered_jy.dataPtr(),
+                                    filtered_jy.loVect(),
+                                    filtered_jy.hiVect(),
+                                    ncomp);
+                        
+                        filtered_jz.resize(tbz);
+                        filtered_jz = 0.0;
+                        
+                        WRPX_FILTER(local_jz.dataPtr(),
+                                    local_jz.loVect(),
+                                    local_jz.hiVect(),
+                                    filtered_jz.dataPtr(),
+                                    filtered_jz.loVect(),
+                                    filtered_jz.hiVect(),
+                                    ncomp);
+                        
+                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jx),
+                                                    BL_TO_FORTRAN_3D(cjxfab), ncomp);
+                        
+                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jy),
+                                                    BL_TO_FORTRAN_3D(cjyfab), ncomp);
+                        
+                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jz),
+                                                    BL_TO_FORTRAN_3D(cjzfab), ncomp);
+                        
+                    } else {
+                        
+                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                                    BL_TO_FORTRAN_3D(cjxfab), ncomp);
+                        
+                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                                    BL_TO_FORTRAN_3D(cjyfab), ncomp);
+                        
+                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                                    BL_TO_FORTRAN_3D(cjzfab), ncomp);
+                    }
+                }
 
                 //
                 // copy particle data back
