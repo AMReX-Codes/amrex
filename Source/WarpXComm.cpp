@@ -275,6 +275,20 @@ WarpX::SyncCurrent ()
         SyncCurrent(fine, crse, ref_ratio[0]);
     }
 
+    if (WarpX::use_filter) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
+            applyFilter(*current_fp[lev][0]);
+            applyFilter(*current_fp[lev][1]);
+            applyFilter(*current_fp[lev][2]);
+        }
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            applyFilter(*current_cp[lev][0]);
+            applyFilter(*current_cp[lev][1]);
+            applyFilter(*current_cp[lev][2]);
+        }
+    }
+
+
     // Sum up fine patch
     for (int lev = 0; lev <= finest_level; ++lev)
     {
@@ -365,6 +379,15 @@ WarpX::SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         rhoc[lev]->setVal(0.0);      
         const IntVect& ref_ratio = refRatio(lev-1);
         SyncRho(*rhof[lev], *rhoc[lev], ref_ratio[0]);
+    }
+
+    if (WarpX::use_filter) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
+            applyFilter(*rhof[lev]);
+        }
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            applyFilter(*rhoc[lev]);
+        }
     }
 
     // Sum up fine patch

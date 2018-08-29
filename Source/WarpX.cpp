@@ -662,3 +662,37 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                            dx.data());
     }
 }
+
+void
+WarpX::applyFilter (MultiFab& mf)
+{
+    const int ncomp = mf.nComp();
+    const IntVect& ng_orig = mf.nGrowVect();
+    IntVect ng = ng_orig + 1;
+    MultiFab tmp(mf.boxArray(), mf.DistributionMap(), ncomp, ng);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(tmp,true); mfi.isValid(); ++mfi)
+    {
+        const Box& gbx = mfi.growntilebox();
+        auto& dst = tmp[mfi];
+        const auto& src = mf[mfi];
+        dst.setVal(0.0, gbx, 0, ncomp);
+        const Box& sbx = gbx & src.box();
+        dst.copy(src, sbx, 0, sbx, 0, ncomp);
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.growntilebox();
+        WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
+                    BL_TO_FORTRAN_ANYD(tmp[mfi]),
+                    BL_TO_FORTRAN_ANYD(mf[mfi]),
+                    ncomp);
+    }
+}
