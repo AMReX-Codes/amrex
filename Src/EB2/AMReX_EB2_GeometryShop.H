@@ -26,7 +26,7 @@ public:
     static constexpr int allcovered = 1;
 
     using FunctionType = F;
-    
+
     GeometryShop (F const& f)
         : m_f(f)
         {}
