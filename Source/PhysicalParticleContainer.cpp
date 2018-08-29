@@ -681,7 +681,7 @@ PhysicalParticleContainer::Evolve (int lev,
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
         std::vector<bool> inexflag;
-        Array<long> pid;
+        Vector<long> pid;
         Vector<Real> tmp;
         Vector<ParticleType> particle_tmp;
 
@@ -929,8 +929,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 if (np_gather < np)
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
-                    const std::array<Real,3>& cxyzmin_grid
-                        = WarpX::LowerCorner(amrex::coarsen(box,ref_ratio), lev-1);
+                    const Box& cbox = amrex::coarsen(box,ref_ratio);
+                    const std::array<Real,3>& cxyzmin_grid = WarpX::LowerCorner(cbox, lev-1);
+                    const int* cixyzmin_grid = cbox.loVect();
 
                     const FArrayBox& cexfab = (*cEx)[pti];
                     const FArrayBox& ceyfab = (*cEy)[pti];
@@ -944,15 +945,16 @@ PhysicalParticleContainer::Evolve (int lev,
                         &ncrse, xp.data()+nfine, yp.data()+nfine, zp.data()+nfine,
                         Exp.data()+nfine, Eyp.data()+nfine, Ezp.data()+nfine,
                         Bxp.data()+nfine, Byp.data()+nfine, Bzp.data()+nfine,
+                        cixyzmin_grid,
                         &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
                         &cdx[0], &cdx[1], &cdx[2],
                         &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                        cexfab.dataPtr(), &ngE, cexfab.length(),
-                        ceyfab.dataPtr(), &ngE, ceyfab.length(),
-                        cezfab.dataPtr(), &ngE, cezfab.length(),
-                        cbxfab.dataPtr(), &ngE, cbxfab.length(),
-                        cbyfab.dataPtr(), &ngE, cbyfab.length(),
-                        cbzfab.dataPtr(), &ngE, cbzfab.length(),
+                        BL_TO_FORTRAN_ANYD(cexfab),
+                        BL_TO_FORTRAN_ANYD(ceyfab),
+                        BL_TO_FORTRAN_ANYD(cezfab),
+                        BL_TO_FORTRAN_ANYD(cbxfab),
+                        BL_TO_FORTRAN_ANYD(cbyfab),
+                        BL_TO_FORTRAN_ANYD(cbzfab),
                         &ll4symtry, &l_lower_order_in_v,
                         &lvect_fieldgathe, &WarpX::field_gathering_algo);                    
                 }
@@ -1041,15 +1043,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     tby.grow(ngJ);
                     tbz.grow(ngJ);
                 
-                    if (WarpX::use_filter) {
-                        local_jx.resize(amrex::grow(tbx,1));
-                        local_jy.resize(amrex::grow(tby,1));
-                        local_jz.resize(amrex::grow(tbz,1));
-                    } else {
-                        local_jx.resize(tbx);
-                        local_jy.resize(tby);
-                        local_jz.resize(tbz);
-                    }
+                    local_jx.resize(tbx);
+                    local_jy.resize(tby);
+                    local_jz.resize(tbz);
 
                     local_jx = 0.0;
                     local_jy = 0.0;
@@ -1065,9 +1061,9 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     long ncrse = np - nfine;
                     warpx_current_deposition(
-                        jx_ptr, &ngJDeposit, jxntot,
-                        jy_ptr, &ngJDeposit, jyntot,
-                        jz_ptr, &ngJDeposit, jzntot,
+                        jx_ptr, &ngJ, jxntot,
+                        jy_ptr, &ngJ, jyntot,
+                        jz_ptr, &ngJ, jzntot,
                         &ncrse, xp.data()+nfine, yp.data()+nfine, zp.data()+nfine,
                         uxp.data()+nfine, uyp.data()+nfine, uzp.data()+nfine,
                         giv.data()+nfine, wp.data()+nfine, &this->charge,
@@ -1081,61 +1077,12 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& cjzfab = (*cjz)[pti];
 
                     const int ncomp = 1;
-                    if (WarpX::use_filter)
-                    {
-                        filtered_jx.resize(tbx);
-                        filtered_jx = 0.0;
-                        
-                        WRPX_FILTER(local_jx.dataPtr(),
-                                    local_jx.loVect(),
-                                    local_jx.hiVect(),
-                                    filtered_jx.dataPtr(),
-                                    filtered_jx.loVect(),
-                                    filtered_jx.hiVect(),
-                                    ncomp);
-
-                        filtered_jy.resize(tby);
-                        filtered_jy = 0.0;
-                        
-                        WRPX_FILTER(local_jy.dataPtr(),
-                                    local_jy.loVect(),
-                                    local_jy.hiVect(),
-                                    filtered_jy.dataPtr(),
-                                    filtered_jy.loVect(),
-                                    filtered_jy.hiVect(),
-                                    ncomp);
-                        
-                        filtered_jz.resize(tbz);
-                        filtered_jz = 0.0;
-                        
-                        WRPX_FILTER(local_jz.dataPtr(),
-                                    local_jz.loVect(),
-                                    local_jz.hiVect(),
-                                    filtered_jz.dataPtr(),
-                                    filtered_jz.loVect(),
-                                    filtered_jz.hiVect(),
-                                    ncomp);
-                        
-                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jx),
-                                                    BL_TO_FORTRAN_3D(cjxfab), ncomp);
-                        
-                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jy),
-                                                    BL_TO_FORTRAN_3D(cjyfab), ncomp);
-                        
-                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jz),
-                                                    BL_TO_FORTRAN_3D(cjzfab), ncomp);
-                        
-                    } else {
-                        
-                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                                    BL_TO_FORTRAN_3D(cjxfab), ncomp);
-                        
-                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                                    BL_TO_FORTRAN_3D(cjyfab), ncomp);
-                        
-                        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                                    BL_TO_FORTRAN_3D(cjzfab), ncomp);
-                    }
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                                BL_TO_FORTRAN_3D(cjxfab), ncomp);
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                                BL_TO_FORTRAN_3D(cjyfab), ncomp);
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                                BL_TO_FORTRAN_3D(cjzfab), ncomp);
                 }
 
                 //
