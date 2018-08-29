@@ -5,9 +5,12 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
                                  int max_coarsening_level)
 {
     // build finest level (i.e., level 0) first
+    AMREX_ALWAYS_ASSERT(required_coarsening_level >= 0 && required_coarsening_level <= 30);
+    max_coarsening_level = std::max(required_coarsening_level,max_coarsening_level);
+    max_coarsening_level = std::min(30,max_coarsening_level);
     m_geom.push_back(geom);
     m_domain.push_back(geom.Domain());
-    m_gslevel.reserve(std::max(max_coarsening_level+1, 1));
+    m_gslevel.reserve(max_coarsening_level+1);
     m_gslevel.emplace_back(this, gshop, geom, EB2::max_grid_size);
 
     for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
