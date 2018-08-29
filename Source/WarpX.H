@@ -139,8 +139,8 @@ public:
     void FillBoundaryB (int lev);
 
     void SyncCurrent ();
-    void SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
-                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc);
+    void SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
+                  amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc);
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -314,7 +314,7 @@ private:
 
     void LoadBalance ();
 
-    static void applyFilter (amrex::MultiFab& mf);
+    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf);
 
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
