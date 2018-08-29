@@ -664,35 +664,28 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 }
 
 void
-WarpX::applyFilter (MultiFab& mf)
+WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf)
 {
-    const int ncomp = mf.nComp();
-    const IntVect& ng_orig = mf.nGrowVect();
-    IntVect ng = ng_orig + 1;
-    MultiFab tmp(mf.boxArray(), mf.DistributionMap(), ncomp, ng);
-
+    const int ncomp = srcmf.nComp();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(tmp,true); mfi.isValid(); ++mfi)
     {
-        const Box& gbx = mfi.growntilebox();
-        auto& dst = tmp[mfi];
-        const auto& src = mf[mfi];
-        dst.setVal(0.0, gbx, 0, ncomp);
-        const Box& sbx = gbx & src.box();
-        dst.copy(src, sbx, 0, sbx, 0, ncomp);
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
-    {
-        const Box& tbx = mfi.growntilebox();
-        WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
-                    BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                    BL_TO_FORTRAN_ANYD(mf[mfi]),
-                    ncomp);
+        FArrayBox tmpfab;
+        for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi)
+        {
+            const auto& srcfab = srcmf[mfi];
+            auto& dstfab = dstmf[mfi];
+            const Box& tbx = mfi.growntilebox();
+            const Box& gbx = amrex::grow(tbx,1);
+            tmpfab.resize(gbx,ncomp);
+            tmpfab.setVal(0.0, gbx, 0, ncomp);
+            const Box& ibx = gbx & srcfab.box();
+            tmpfab.copy(srcfab, ibx, 0, ibx, 0, ncomp);
+            WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
+                        BL_TO_FORTRAN_ANYD(tmpfab),
+                        BL_TO_FORTRAN_ANYD(dstfab),
+                        ncomp);
+        }
     }
 }

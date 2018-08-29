@@ -275,19 +275,49 @@ WarpX::SyncCurrent ()
         SyncCurrent(fine, crse, ref_ratio[0]);
     }
 
+    Vector<Array<std::unique_ptr<MultiFab>,3> > j_fp(finest_level+1);
+    Vector<Array<std::unique_ptr<MultiFab>,3> > j_cp(finest_level+1);
+
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
-            applyFilter(*current_fp[lev][0]);
-            applyFilter(*current_fp[lev][1]);
-            applyFilter(*current_fp[lev][2]);
+            IntVect ng = current_fp[lev][0]->nGrowVect();
+            ng += 1;
+            j_fp[lev][0].reset(new MultiFab(current_fp[lev][0]->boxArray(),
+                                            current_fp[lev][0]->DistributionMap(),
+                                            1, ng));
+            j_fp[lev][1].reset(new MultiFab(current_fp[lev][1]->boxArray(),
+                                            current_fp[lev][1]->DistributionMap(),
+                                            1, ng));
+            j_fp[lev][2].reset(new MultiFab(current_fp[lev][2]->boxArray(),
+                                            current_fp[lev][2]->DistributionMap(),
+                                            1, ng));
+            applyFilter(*j_fp[lev][0], *current_fp[lev][0]);
+            applyFilter(*j_fp[lev][1], *current_fp[lev][1]);
+            applyFilter(*j_fp[lev][2], *current_fp[lev][2]);
+            std::swap(j_fp[lev][0], current_fp[lev][0]);
+            std::swap(j_fp[lev][1], current_fp[lev][1]);
+            std::swap(j_fp[lev][2], current_fp[lev][2]);
         }
         for (int lev = 1; lev <= finest_level; ++lev) {
-            applyFilter(*current_cp[lev][0]);
-            applyFilter(*current_cp[lev][1]);
-            applyFilter(*current_cp[lev][2]);
+            IntVect ng = current_cp[lev][0]->nGrowVect();
+            ng += 1;
+            j_cp[lev][0].reset(new MultiFab(current_cp[lev][0]->boxArray(),
+                                            current_cp[lev][0]->DistributionMap(),
+                                            1, ng));
+            j_cp[lev][1].reset(new MultiFab(current_cp[lev][1]->boxArray(),
+                                            current_cp[lev][1]->DistributionMap(),
+                                            1, ng));
+            j_cp[lev][2].reset(new MultiFab(current_cp[lev][2]->boxArray(),
+                                            current_cp[lev][2]->DistributionMap(),
+                                            1, ng));
+            applyFilter(*j_cp[lev][0], *current_cp[lev][0]);
+            applyFilter(*j_cp[lev][1], *current_cp[lev][1]);
+            applyFilter(*j_cp[lev][2], *current_cp[lev][2]);
+            std::swap(j_cp[lev][0], current_cp[lev][0]);
+            std::swap(j_cp[lev][1], current_cp[lev][1]);
+            std::swap(j_cp[lev][2], current_cp[lev][2]);
         }
     }
-
 
     // Sum up fine patch
     for (int lev = 0; lev <= finest_level; ++lev)
@@ -316,6 +346,27 @@ WarpX::SyncCurrent ()
         current_cp[lev][0]->SumBoundary(cperiod);
         current_cp[lev][1]->SumBoundary(cperiod);
         current_cp[lev][2]->SumBoundary(cperiod);
+    }
+
+    if (WarpX::use_filter) {
+        for (int lev = 0; lev <= finest_level; ++lev)
+        {
+            std::swap(j_fp[lev][0], current_fp[lev][0]);
+            std::swap(j_fp[lev][1], current_fp[lev][1]);
+            std::swap(j_fp[lev][2], current_fp[lev][2]);
+            MultiFab::Copy(*current_fp[lev][0], *j_fp[lev][0], 0, 0, 1, 0);
+            MultiFab::Copy(*current_fp[lev][1], *j_fp[lev][1], 0, 0, 1, 0);
+            MultiFab::Copy(*current_fp[lev][2], *j_fp[lev][2], 0, 0, 1, 0);
+        }
+        for (int lev = 1; lev <= finest_level; ++lev)
+        {
+            std::swap(j_cp[lev][0], current_cp[lev][0]);
+            std::swap(j_cp[lev][1], current_cp[lev][1]);
+            std::swap(j_cp[lev][2], current_cp[lev][2]);
+            MultiFab::Copy(*current_cp[lev][0], *j_cp[lev][0], 0, 0, 1, 0);
+            MultiFab::Copy(*current_cp[lev][1], *j_cp[lev][1], 0, 0, 1, 0);
+            MultiFab::Copy(*current_cp[lev][2], *j_cp[lev][2], 0, 0, 1, 0);
+        }
     }
 
     // sync shared nodal edges
@@ -368,8 +419,8 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
 }
 
 void
-WarpX::SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
-                const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc)
+WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
+                amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc)
 {
     if (!rhof[0]) return;
 
@@ -381,12 +432,29 @@ WarpX::SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         SyncRho(*rhof[lev], *rhoc[lev], ref_ratio[0]);
     }
 
+    Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
+    Vector<std::unique_ptr<MultiFab> > rho_c_g(finest_level+1);
+
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
-            applyFilter(*rhof[lev]);
+            const int ncomp = rhof[lev]->nComp();
+            IntVect ng = rhof[lev]->nGrowVect();
+            ng += 1;
+            rho_f_g[lev].reset(new MultiFab(rhof[lev]->boxArray(),
+                                            rhof[lev]->DistributionMap(),
+                                            ncomp, ng));
+            applyFilter(*rho_f_g[lev], *rhof[lev]);
+            std::swap(rho_f_g[lev], rhof[lev]);
         }
         for (int lev = 1; lev <= finest_level; ++lev) {
-            applyFilter(*rhoc[lev]);
+            const int ncomp = rhoc[lev]->nComp();
+            IntVect ng = rhoc[lev]->nGrowVect();
+            ng += 1;
+            rho_c_g[lev].reset(new MultiFab(rhoc[lev]->boxArray(),
+                                            rhoc[lev]->DistributionMap(),
+                                            ncomp, ng));
+            applyFilter(*rho_c_g[lev], *rhoc[lev]);
+            std::swap(rho_c_g[lev], rhoc[lev]);
         }
     }
 
@@ -412,6 +480,17 @@ WarpX::SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     {
         const auto& cperiod = Geom(lev-1).periodicity();
         rhoc[lev]->SumBoundary(cperiod);
+    }
+
+    if (WarpX::use_filter) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
+            std::swap(rho_f_g[lev], rhof[lev]);
+            MultiFab::Copy(*rhof[lev], *rho_f_g[lev], 0, 0, rhof[lev]->nComp(), 0);
+        }
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            std::swap(rho_c_g[lev], rhoc[lev]);
+            MultiFab::Copy(*rhoc[lev], *rho_c_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
+        }
     }
 
     // sync shared nodal points
