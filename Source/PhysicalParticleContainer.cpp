@@ -654,7 +654,6 @@ PhysicalParticleContainer::Evolve (int lev,
 
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ = jx.nGrow();
-    long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
@@ -666,7 +665,6 @@ PhysicalParticleContainer::Evolve (int lev,
     {
 	Vector<Real> xp, yp, zp, giv;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
-        FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
 
@@ -791,7 +789,6 @@ PhysicalParticleContainer::Evolve (int lev,
             auto depositCharge = [&] (MultiFab* rhomf, int icomp)
             {
                 long ngRho = rhomf->nGrow();
-                long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
 
                 Real* data_ptr;
                 const int *rholen;
@@ -800,57 +797,32 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box grown_box;
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 tile_box.grow(ngRho);
-                if (WarpX::use_filter) {
-                    grown_box = tile_box;
-                    grown_box.grow(1);
-                    local_rho.resize(grown_box);
-                } else {
-                    local_rho.resize(tile_box);
-                }
+                local_rho.resize(tile_box);
                 local_rho = 0.0;
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
 
 #if (AMREX_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRhoDeposit;
-                const long ny = rholen[1]-1-2*ngRhoDeposit;
-                const long nz = rholen[2]-1-2*ngRhoDeposit;
+                const long nx = rholen[0]-1-2*ngRho;
+                const long ny = rholen[1]-1-2*ngRho;
+                const long nz = rholen[2]-1-2*ngRho;
 #else
-                const long nx = rholen[0]-1-2*ngRhoDeposit;
+                const long nx = rholen[0]-1-2*ngRho;
                 const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRhoDeposit;
+                const long nz = rholen[1]-1-2*ngRho;
 #endif
             	warpx_charge_deposition(data_ptr, &np,
                                         xp.data(), yp.data(), zp.data(), wp.data(),
                                         &this->charge,
                                         &xyzmin[0], &xyzmin[1], &xyzmin[2],
                                         &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRhoDeposit, &ngRhoDeposit, &ngRhoDeposit,
+                                        &ngRho, &ngRho, &ngRho,
                                         &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                         &lvect, &WarpX::charge_deposition_algo);
 
                 const int ncomp = 1;
-                if (WarpX::use_filter) {
-
-                    filtered_rho.resize(tile_box);
-                    filtered_rho = 0;
-
-                    WRPX_FILTER(local_rho.dataPtr(),
-                                local_rho.loVect(),
-                                local_rho.hiVect(),
-                                filtered_rho.dataPtr(),
-                                filtered_rho.loVect(),
-                                filtered_rho.hiVect(),
-                                ncomp);
-
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_rho),
-                                                BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
-
-
-                } else {
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                                BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
-                }
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                            BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
             };
 
             if (rho) depositCharge(rho,0);
@@ -908,25 +880,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 tby.grow(ngJ);
                 tbz.grow(ngJ);
 
-                if (WarpX::use_filter) {
-
-                    gtbx = tbx;
-                    gtbx.grow(1);
-
-                    gtby = tby;
-                    gtby.grow(1);
-
-                    gtbz = tbz;
-                    gtbz.grow(1);
-
-                    local_jx.resize(gtbx);
-                    local_jy.resize(gtby);
-                    local_jz.resize(gtbz);
-                } else {
-                    local_jx.resize(tbx);
-                    local_jy.resize(tby);
-                    local_jz.resize(tbz);
-                }
+                local_jx.resize(tbx);
+                local_jy.resize(tby);
+                local_jz.resize(tbz);
 
                 local_jx = 0.0;
                 local_jy = 0.0;
@@ -941,9 +897,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 jzntot = local_jz.length();
 
                 warpx_current_deposition(
-                    jx_ptr, &ngJDeposit, jxntot,
-                    jy_ptr, &ngJDeposit, jyntot,
-                    jz_ptr, &ngJDeposit, jzntot,
+                    jx_ptr, &ngJ, jxntot,
+                    jy_ptr, &ngJ, jyntot,
+                    jz_ptr, &ngJ, jzntot,
                     &np, xp.data(), yp.data(), zp.data(),
                     uxp.data(), uyp.data(), uzp.data(),
                     giv.data(), wp.data(), &this->charge,
@@ -955,63 +911,15 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
                 BL_PROFILE_VAR_START(blp_accumulate);
-
                 const int ncomp = 1;
-                if (WarpX::use_filter) {
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
 
-                    filtered_jx.resize(tbx);
-                    filtered_jx = 0.0;
-
-                    WRPX_FILTER(local_jx.dataPtr(),
-                                local_jx.loVect(),
-                                local_jx.hiVect(),
-                                filtered_jx.dataPtr(),
-                                filtered_jx.loVect(),
-                                filtered_jx.hiVect(),
-                                ncomp);
-
-                    filtered_jy.resize(tby);
-                    filtered_jy = 0.0;
-
-                    WRPX_FILTER(local_jy.dataPtr(),
-                                local_jy.loVect(),
-                                local_jy.hiVect(),
-                                filtered_jy.dataPtr(),
-                                filtered_jy.loVect(),
-                                filtered_jy.hiVect(),
-                                ncomp);
-
-                    filtered_jz.resize(tbz);
-                    filtered_jz = 0.0;
-
-                    WRPX_FILTER(local_jz.dataPtr(),
-                                local_jz.loVect(),
-                                local_jz.hiVect(),
-                                filtered_jz.dataPtr(),
-                                filtered_jz.loVect(),
-                                filtered_jz.hiVect(),
-                                ncomp);
-
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jx),
-                                                BL_TO_FORTRAN_3D(jxfab), ncomp);
-
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jy),
-                                                BL_TO_FORTRAN_3D(jyfab), ncomp);
-
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jz),
-                                                BL_TO_FORTRAN_3D(jzfab), ncomp);
-
-                } else {
-
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                                BL_TO_FORTRAN_3D(jxfab), ncomp);
-
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                                BL_TO_FORTRAN_3D(jyfab), ncomp);
-
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                                BL_TO_FORTRAN_3D(jzfab), ncomp);
-                }
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
+                
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
                 BL_PROFILE_VAR_STOP(blp_accumulate);
 
                 //

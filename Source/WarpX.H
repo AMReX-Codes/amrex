@@ -314,6 +314,8 @@ private:
 
     void LoadBalance ();
 
+    static void applyFilter (amrex::MultiFab& mf);
+
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
 
