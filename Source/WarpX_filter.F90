@@ -15,6 +15,8 @@ contains
     real(rt), intent(inout) :: dst(dlo(1):dhi(1), dlo(2):dhi(2), dlo(3):dhi(3),nc)
     real(rt), intent(in   ) :: src(slo(1):shi(1), slo(2):shi(2), slo(3):shi(3),nc)
     
+    real(rt), parameter :: sixteenth = 1.d0/16.d0
+    real(rt), parameter :: thirtysecond = 1.d0/32.d0
     real(rt), parameter :: sixtyfourth = 1.d0/64.d0
     integer          :: i,j,k,c
 
@@ -29,8 +31,26 @@ contains
                      &                     +src(i-1,j-1,k+1,c) &
                      &                     +src(i+1,j-1,k+1,c) &
                      &                     +src(i-1,j+1,k+1,c) &
-                     &                     +src(i+1,j+1,k+1,c))
-
+                     &                     +src(i+1,j+1,k+1,c)) &
+                     +        thirtysecond*(src(i-1,j-1,k  ,c) &
+                     &                     +src(i+1,j-1,k  ,c) &
+                     &                     +src(i-1,j+1,k  ,c) &
+                     &                     +src(i+1,j+1,k  ,c) &
+                     &                     +src(i-1,j  ,k-1,c) &
+                     &                     +src(i+1,j  ,k-1,c) &
+                     &                     +src(i-1,j  ,k+1,c) &
+                     &                     +src(i+1,j  ,k+1,c) &
+                     &                     +src(i  ,j-1,k-1,c) &
+                     &                     +src(i  ,j+1,k-1,c) &
+                     &                     +src(i  ,j-1,k+1,c) &
+                     &                     +src(i  ,j+1,k+1,c)) &
+                     +        sixteenth   *(src(i-1,j  ,k  ,c) &
+                     &                     +src(i+1,j  ,k  ,c) &
+                     &                     +src(i  ,j-1,k  ,c) &
+                     &                     +src(i  ,j+1,k  ,c) &
+                     &                     +src(i  ,j  ,k-1,c) &
+                     &                     +src(i  ,j  ,k+1,c)) &
+                     +        eighth      * src(i  ,j  ,k  ,c)
              end do
           end do
        end do
