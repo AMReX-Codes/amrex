@@ -210,15 +210,15 @@ e.g., :numref:`fig::redistribution`)
 Initializing the Geometric Database
 ===================================
 
-In AMReX the geometric information is stored in a distributed database
-class that must be initialized at the start of the calculation.  The
+In AMReX geometric information is stored in a distributed database
+class that must be initialized at the start of the calculation. The
 procedure for this goes as follows:
 
-- Define a function of position which describes the surface.  More
-  specifically, the function class must have a public member function
-  that takes a position and returns a negative value for a position
+- Define an implicit function of position which describes the surface of the 
+  embedded object. Specifically, the function class must have a public member function
+  that takes a position and returns a negative value if that position is
   inside the fluid, a positive value in the body, and identically zero
-  at the EB.
+  at the embedded boundary.
 
 .. highlight:: c++
 
@@ -226,20 +226,20 @@ procedure for this goes as follows:
 
    Real operator() (const Array<Real,AMREX_SPACEDIM>& p) const;
 
-- Make a :cpp:`EB2::GeometryShop` object with the implicit function. 
+- Make a :cpp:`EB2::GeometryShop` object using the implicit function. 
 
 - Build an :cpp:`EB2::IndexSpace` with the
   :cpp:`EB2::GeometryShop` object and a :cpp:`Geometry` object that
   contains the information about the domain and the mesh.
 
-Here is a simple example of initialize the database with a sphere.
+Here is a simple example of initialize the database for an embedded sphere.
 
 .. highlight:: c++
 
 ::
 
     Real radius = 0.5;
-    Array<Real,AMREX_SPACEDIM> center{0., 0., 0.};
+    Array<Real,AMREX_SPACEDIM> center{0., 0., 0.}; //Center of the sphere
     bool inside = false;  // Is the fluid inside the sphere?
     EB2::SphereIF sphere(radius, center, inside);
 
@@ -267,21 +267,21 @@ template for their own classes.
 
 - :cpp:`SphereIF`: Sphere.
 
-AMReX also provides a number of transformation functions.
+AMReX also provides a number of transformation operations to apply to an object.
 
-- :cpp:`makeComplement`: Complement of object.
+- :cpp:`makeComplement`: Complement of an object. E.g. a sphere with fluid on outside becomes a sphere with fluid inside. 
 
 - :cpp:`makeIntersection`: Intersection of two or more objects.
 
-- :cpp:`makeUnion`: Union of tow or more objects.
+- :cpp:`makeUnion`: Union of two or more objects.
 
-- :cpp:`Translate`: Translation of object.
+- :cpp:`Translate`: Translates an object.
 
-- :cpp:`scale`: Scale of object.
+- :cpp:`scale`: Scales an object.
 
-- :cpp:`rotate`: Rotation of object.
+- :cpp:`rotate`: Rotates an object.
 
-- :cpp:`lather`: Rotation of a 2D object around an axis.
+- :cpp:`lathe`: Creates a surface of revolution by rotating a 2D object around an axis.
 
 Here are some examples of using these functions.
 
@@ -332,21 +332,23 @@ We build :cpp:`EB2::IndexSpace` with a template function
                      int required_coarsening_level, int max_coarsening_level);
 
 Here the template parameter is a :cpp:`EB2::GeometryShop`.
-:cpp:`Geometry` (section :ref:`sec:basics:geom`) describes the
+:cpp:`Geometry` (see section :ref:`sec:basics:geom`) describes the
 rectangular problem domain and the mesh on the finest AMR level.
-Coarse level EB data are generated from coarsening the fine data.  The
+Coarse level EB data is generated from coarsening the original fine data.  The
 :cpp:`int required_coarsening_level` parameter specifies the number of
-required coarsening levels.  This is usually set to :math:`N-1`, where
+coarsening levels required.  This is usually set to :math:`N-1`, where
 :math:`N` is the total number of AMR levels.  The :cpp:`int
 max_coarsening_levels` parameter specifies the number of coarsening
-levels AMReX should try to have.  This is usually set to a big number
-say 20 if multigrid solvers are used.  This essentially means
-coarsening as much as it can.  If there are no multigrid solvers, the
-paramter should be set to the same as
-:cpp:`required_coarsening_level`.  It should be noted coarsening could
+levels AMReX should try to have.  This is usually set to a big number,
+say 20 if multigrid solvers are used.  This essentially tells the build to
+coarsen as much as it can.  If there are no multigrid solvers, the
+parameter should be set to the same as
+:cpp:`required_coarsening_level`.  It should be noted that coarsening could
 create multi-valued cells even if the fine level does not have any
-multi-valued cells.  Because multi-valued cells are not supported, it
-is a runtime error if coarsening to a required level generates
+multi-valued cells. This occurs when the embedded boundary cuts a cell 
+in such a way that there is fluid on multiple sides of the boundary within
+that cell.  Because multi-valued cells are not supported, it
+will cause a runtime error if the required coarsening level generates
 multi-valued cells.
 
 The newly built :cpp:`EB2::IndexSpace` is pushed on to a stack.  Static
@@ -431,7 +433,7 @@ EB Data
 =======
 
 Through member functions of :cpp:`EBFArrayBoxFactory`, we have access
-to the following data.
+to the following data:
 
 .. highlight: c++
 
@@ -458,9 +460,10 @@ to the following data.
 Volume fraction is in a single-component :cpp:`MultiFab`, and it is
 zero for covered cells, one for regular cells, and in between for cut
 cells.  Centroid is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
-components.  Each component of the data is in the range of
-:math:`[-0.5,0.5]` because they are based on each cell's local
-coordinates.  A :cpp:`MultiCutFab` is very similar to a
+components with each component of the data is in the range of
+:math:`[-0.5,0.5]`. The centroid is based on each cell's local
+coordinates with respect to the embedded boundary.  
+A :cpp:`MultiCutFab` is very similar to a
 :cpp:`MultiFab`.  Its data can be accessed with subscript operator
 
 .. highlight: c++
@@ -505,21 +508,21 @@ it to determine if a box contains cut cells.
         const Box& bx = mfi.tilebox();
         FabType t = flags[mfi].getType(bx);
         if (FabType::regular == t) {
-            ! This box is regular
+            // This box is regular
         } else if (FabType::covered == t) {
-            ! This box is covered
+            // This box is covered
         } else if (FabType::singlevalued == t) {
-            ! This box has cut cells
-            ! Getting cutfab is safe
+            // This box has cut cells
+            // Getting cutfab is safe
             const auto& centroid_fab = centroid[mfi];
         }
     }
 
 :cpp:`EBCellFlagFab` is derived from :cpp:`BaseFab`.  Its data are
-stored in an array of 4-bytes integers, and can be used in C++ or
+stored in an array of 32-bit integers, and can be used in C++ or
 passed to Fortran just like an :cpp:`IArrayBox` (section
-:ref:`sec:basics:fab`).  AMReX provides Fortran module
-``amrex_ebcellflag_module`` that has procedures for testing cell types
+:ref:`sec:basics:fab`).  AMReX provides a Fortran module called
+``amrex_ebcellflag_module``. This module contains procedures for testing cell types
 and getting neighbor information.  For example
 
 .. highlight:: fortran
@@ -551,9 +554,9 @@ Linear Solvers
 
 Linear solvers for the canonical form (equation :eq:`eqn::abeclap`)
 have been discussed in chapter :ref:`Chap:LinearSolvers`.  Currently,
-AMReX support cell-centered solver with homogeneous Neumann boundary
-condition on the EB.  Cell-centered solver with Dirichlet boundary
-condition on the EB and nodal solver are under development.
+AMReX supports cell-centered solver with homogeneous Neumann boundary
+condition on the EB. A cell-centered solver with Dirichlet boundary
+condition on the EB and a nodal solver are under development.
 
 To use cell-centered solver for EB, one builds linear operator
 :cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory`.
