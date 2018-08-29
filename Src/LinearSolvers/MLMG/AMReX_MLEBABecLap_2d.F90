@@ -474,7 +474,6 @@ contains
     real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
     real(amrex_real) :: bctx, bcty
     real(amrex_real) :: w1, w2, dg
-    real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
     logical :: is_dirichlet
 
     is_dirichlet = is_eb_dirichlet .ne. 0
