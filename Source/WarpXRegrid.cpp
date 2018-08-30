@@ -160,7 +160,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             {
                 if (Bfield_cax[lev][idim])
                 {
-                    int ng = Bfield_cax[lev][idim]->nGrow();
+                    const IntVect& ng = Bfield_cax[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Bfield_cax[lev][idim]->boxArray(),
                                                                       dm, 1, ng));
                     // pmf->ParallelCopy(*Bfield_cax[lev][idim], 0, 0, 1, ng, ng);
@@ -168,7 +168,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 }
                 if (Efield_cax[lev][idim])
                 {
-                    int ng = Efield_cax[lev][idim]->nGrow();
+                    const IntVect& ng = Efield_cax[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Efield_cax[lev][idim]->boxArray(),
                                                                       dm, 1, ng));
                     // pmf->ParallelCopy(*Efield_cax[lev][idim], 0, 0, 1, ng, ng);
@@ -176,7 +176,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 }
                 if (current_buf[lev][idim])
                 {
-                    int ng = current_buf[lev][idim]->nGrow();
+                    const IntVect& ng = current_buf[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_buf[lev][idim]->boxArray(),
                                                                       dm, 1, ng));
                     // pmf->ParallelCopy(*current_buf[lev][idim], 0, 0, 1, ng, ng);
@@ -185,7 +185,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             }
             if (buffer_masks[lev])
             {
-                int ng = buffer_masks[lev]->nGrow();
+                const IntVect& ng = buffer_masks[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<iMultiFab>(new iMultiFab(buffer_masks[lev]->boxArray(),
                                                                     dm, 1, ng));
                 // pmf->ParallelCopy(*buffer_masks[lev], 0, 0, 1, ng, ng);

@@ -658,9 +658,6 @@ PhysicalParticleContainer::Evolve (int lev,
     const auto& mypc = WarpX::GetInstance().GetPartContainer();
     const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
 
-    
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ = jx.nGrow();
 
