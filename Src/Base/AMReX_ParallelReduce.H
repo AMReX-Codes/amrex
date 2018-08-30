@@ -12,7 +12,7 @@ namespace amrex {
 namespace detail {
 
     enum ReduceOp : int {
-        max,
+        max = 0,
         min,
         sum,
         lor,
@@ -21,18 +21,19 @@ namespace detail {
 
 #ifdef BL_USE_MPI
 
-    const std::unordered_map<int, MPI_Op> mpi_op_map = {
-        {static_cast<int>(ReduceOp::max), MPI_MAX},
-        {static_cast<int>(ReduceOp::min), MPI_MIN},
-        {static_cast<int>(ReduceOp::sum), MPI_SUM},
-        {static_cast<int>(ReduceOp::lor), MPI_LOR},
-        {static_cast<int>(ReduceOp::land), MPI_LAND}
+    // NOTE: the order of these needs to match the order in the ReduceOp enum above
+    const std::array<MPI_Op, 5> mpi_ops = {
+        MPI_MAX,
+        MPI_MIN,
+        MPI_SUM,
+        MPI_LOR,
+        MPI_LAND
     };
 
     template<typename T>
     inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)
     {
-        auto mpi_op = mpi_op_map.at(static_cast<int>(op));
+        auto mpi_op = mpi_ops[static_cast<int>(op)];
         Vector<T> tmp(v, v+cnt);
         if (root == -1) {
             MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
