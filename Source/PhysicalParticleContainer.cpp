@@ -172,7 +172,6 @@ PhysicalParticleContainer::AddParticles (int lev)
 void
 PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
 {
-
     // If no part_realbox is provided, initialize particles in the whole domain
     const Geometry& geom = Geom(lev);
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
@@ -235,6 +234,9 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                 overlap_box.setBig( dir,
 				    int( round((overlap_realbox.hi(dir)-overlap_realbox.lo(dir))/dx[dir] )) - 1);
             }
+
+            amrex::Print() << no_overlap << std::endl;
+            
             if (no_overlap == 1) continue; // Go to the next tile
 
             const int grid_id = mfi.index();
@@ -243,9 +245,11 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
             // Loop through the cells of overlap_box and inject
             // the corresponding particles
             const auto& overlap_corner = overlap_realbox.lo();
-            for (IntVect iv = overlap_box.smallEnd();
-                 iv <= overlap_box.bigEnd(); overlap_box.next(iv)) {
-                for (int i_part=0; i_part<num_ppc;i_part++) {
+            for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
+            {                
+                int fac = GetRefineFac(iv);
+                int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
+                for (int i_part=0; i_part<ref_num_ppc;i_part++) {
                     std::array<Real, 3> r;
                     plasma_injector->getPositionUnitBox(r, i_part);
 #if ( AMREX_SPACEDIM == 3 )
@@ -307,7 +311,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                       dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
                       u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
                     }
-                    attribs[PIdx::w ] = dens * scale_fac;
+                    attribs[PIdx::w ] = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
@@ -1292,4 +1296,36 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE( false ,
 "ERROR: WarpX must be compiled with STORE_OLD_PARTICLE_ATTRIBS=TRUE to use the back-transformed diagnostics");
 #endif
+}
+
+int PhysicalParticleContainer::GetRefineFac(const IntVect& iv)
+{
+    if (finestLevel() == 0) return 1;
+    if (not WarpX::refine_plasma) return 1;
+    
+    AMREX_ALWAYS_ASSERT(finestLevel() == 1); // need to fix for more than two levels
+
+    const int fine_lev = 1;
+    const int crse_lev = 0;
+    const int dir = WarpX::moving_window_dir;
+    const IntVect rr = m_gdb->refRatio(crse_lev);
+    const BoxArray& fine_ba = this->ParticleBoxArray(fine_lev);
+    const Box& crse_domain = this->Geom(crse_lev).Domain();
+    const int num_boxes = fine_ba.size();
+    Vector<Box> stretched_boxes;
+    for (int i = 0; i < num_boxes; ++i) {
+        Box bx = fine_ba[i];
+        bx.coarsen(rr);
+        bx.setSmall(dir, crse_domain.smallEnd(dir)-4);
+        bx.setBig(dir, crse_domain.bigEnd(dir)+4);
+        stretched_boxes.push_back(bx);
+    }
+    BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
+
+    const int num_ghost = 0;
+    bool hit = stretched_ba.intersects(Box(iv, iv), num_ghost);    
+    if (hit) {
+        return 2;
+    }
+    return 1;
 }

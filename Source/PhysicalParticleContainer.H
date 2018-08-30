@@ -90,6 +90,8 @@ protected:
     // particle and the time of the boosted frame.
     bool boost_adjust_transverse_positions = false;
 
+    int GetRefineFac(const amrex::IntVect& iv);
+    
 };
 
 #endif
