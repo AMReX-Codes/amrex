@@ -4,7 +4,8 @@ module amrex_eb_util_module
   implicit none
 
   private
-  public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, amrex_compute_eb_divergence
+  public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, &
+       amrex_eb_avgdown_boundaries, amrex_compute_eb_divergence
 
 contains
 
@@ -137,6 +138,45 @@ contains
       enddo 
    endif
   end subroutine amrex_eb_avgdown_faces 
+
+
+  subroutine amrex_eb_avgdown_boundaries (lo, hi, fine, flo, fhi, crse, clo, chi, &
+       ba, blo, bhi, lrat, ncomp) bind(c,name='amrex_eb_avgdown_boundaries')
+    use amrex_constants_module, only : zero
+    implicit none
+    integer, dimension(2), intent(in) :: lo, hi, flo, fhi, clo, chi, blo, bhi, lrat
+    integer, intent(in) :: ncomp
+    real(amrex_real), intent(in   )   :: fine( flo(1): fhi(1), flo(2): fhi(2), ncomp)
+    real(amrex_real), intent(inout)   :: crse( clo(1): chi(1), clo(2): chi(2), ncomp) 
+    real(amrex_real), intent(in   )   :: ba  ( blo(1): bhi(1), blo(2): bhi(2)) 
+
+    integer :: i, j, ii, jj, n, iref, jref, facx, facy
+    real(amrex_real) :: fa 
+  
+    facx = lrat(1) 
+    facy = lrat(2)
+    do n = 1, ncomp 
+       do j       = lo(2), hi(2) 
+          jj      = j*facy
+          do i    = lo(1), hi(1)
+             ii   = i*facx
+             crse(i,j,n) = 0.d0 
+             fa          = 0.d0 
+             do    jref  = 0, facy-1
+                do iref  = 0, facx-1
+                   fa          = fa          + ba(ii+iref,jj+jref)
+                   crse(i,j,n) = crse(i,j,n) + ba(ii+iref,jj+jref)*fine(ii+iref,jj+jref,n)
+                end do
+             enddo
+             if(fa.gt.1.d-30) then 
+                crse(i,j,n) = crse(i,j,n)/fa
+             else 
+                crse(i,j,n) = zero
+             endif
+          enddo
+       enddo
+    enddo
+  end subroutine amrex_eb_avgdown_boundaries
 
 
   subroutine amrex_compute_eb_divergence (lo, hi, divu, dlo, dhi, u, ulo, uhi, v, vlo, vhi, &
