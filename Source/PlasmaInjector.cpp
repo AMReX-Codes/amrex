@@ -43,6 +43,8 @@ namespace {
             return PhysConst::m_e;
         } else if (name == "m_p"){
             return PhysConst::m_p;
+        } else if (name == "inf"){
+	    return std::numeric_limits<double>::infinity();
         } else if (pp.query("mass", result)) {
             return result;
         } else {
