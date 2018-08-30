@@ -11,9 +11,6 @@ LAZY := TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-# CNS does not use any deprecated EB code
-DEFINES += -DAMREX_NO_DEPRECATED_EB
-
 # CNS uses a coarse grained OMP approach
 DEFINES += -DAMREX_CRSEGRNDOMP
 

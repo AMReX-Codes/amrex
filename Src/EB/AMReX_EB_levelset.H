@@ -15,13 +15,6 @@
 #include <AMReX_EBCellFlag.H>
 
 
-#ifdef AMREX_USE_GEOMETRYSHOP
-
-#include <AMReX_PolynomialIF.H>
-#include <AMReX_EBIndexSpace.H>
-
-#endif
-
 namespace amrex {
 
 class LSFactory {
@@ -67,11 +60,6 @@ class LSFactory {
         // Construct eb_facets list from eb_factory
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
 
-#ifdef AMREX_USE_GEOMETRYSHOP
-        // Construct nodal MultiFab containing EBIS Implicit function velues
-        std::unique_ptr<MultiFab> ebis_impfunc(const EBIndexSpace & eb_is);
-#endif
-
         void update_ba(const BoxArray & new_ba, const DistributionMapping & dm);
         void init_geom(const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
 
@@ -90,15 +78,6 @@ class LSFactory {
         void invert();
 
         void set_data(const MultiFab & mf_ls);
-
-#ifdef AMREX_USE_GEOMETRYSHOP
-        std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
-                                                    const EBIndexSpace & eb_is);
-        std::unique_ptr<iMultiFab> union_ebf(const EBFArrayBoxFactory & eb_factory,
-                                             const EBIndexSpace & eb_is);
-        std::unique_ptr<iMultiFab> intersection_ebis(const EBIndexSpace & eb_is);
-        std::unique_ptr<iMultiFab> union_ebis(const EBIndexSpace & eb_is);
-#endif
 
         std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
                                                     const MultiFab & mf_impfunc);
@@ -219,28 +198,6 @@ class LSUtility {
 };
 
 
-
-#ifdef AMREX_USE_GEOMETRYSHOP
-class PolynomialDF : public PolynomialIF {
-    private:
-        int order;
-
-    public:
-        PolynomialDF(const Vector<PolyTerm> & a_polynomial,
-                     const bool             & a_inside);
-
-
-        virtual Real value(const RealVect         & a_point,
-                           const Vector<PolyTerm> & a_polynomial) const;
-
-
-        virtual Real value(const RealVect & a_point) const;
-
-
-        virtual BaseIF * newImplicitFunction() const;
-
-};
-#endif
 
 }
 

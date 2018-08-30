@@ -5,7 +5,6 @@
 #include <AMReX_ParmParse.H>
 
 #ifdef AMREX_USE_EB
-#include <AMReX_EBTower.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EBFabFactory.H>
 #endif

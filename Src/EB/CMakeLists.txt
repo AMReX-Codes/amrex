@@ -2,11 +2,11 @@ add_sources ( AMReX_EBAmrUtil_F.H     AMReX_EBCellFlag.H        AMReX_EBFArrayBo
 add_sources ( AMReX_EBInterp_F.H      AMReX_EBMultiFabUtil.H    AMReX_MultiCutFab.H )
 add_sources ( AMReX_EBAmrUtil.H       AMReX_EBDataCollection.H  AMReX_EBFluxRegister_F.H )
 add_sources ( AMReX_EBInterpolater.H  AMReX_EBSupport.H         AMReX_EBCellFlag_F.H )
-add_sources ( AMReX_EBFabFactory.H    AMReX_EBFluxRegister.H    AMReX_EBMultiFabUtil_F.H  AMReX_EBTower.H )
+add_sources ( AMReX_EBFabFactory.H    AMReX_EBFluxRegister.H    AMReX_EBMultiFabUtil_F.H )
 add_sources ( AMReX_EB_F.H            AMReX_EB_levelset.H )
 
 add_sources ( AMReX_EBAmrUtil.cpp       AMReX_EBDataCollection.cpp  AMReX_EBFArrayBox.cpp )
-add_sources ( AMReX_EBInterpolater.cpp  AMReX_EBTower.cpp )
+add_sources ( AMReX_EBInterpolater.cpp )
 add_sources ( AMReX_EBCellFlag.cpp      AMReX_EBFabFactory.cpp      AMReX_EBFluxRegister.cpp   )
 add_sources ( AMReX_EBMultiFabUtil.cpp  AMReX_MultiCutFab.cpp )
 add_sources ( AMReX_EB_levelset.cpp )

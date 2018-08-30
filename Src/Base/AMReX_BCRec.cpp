@@ -57,6 +57,7 @@ BCRec::operator== (const BCRec& rhs) const
     {
         retval &= bc[i] == rhs.bc[i];
     }
+    return retval;
 }
 
 void
