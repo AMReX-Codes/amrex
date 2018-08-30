@@ -50,6 +50,18 @@ public:
                const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>());
 #endif
 
+    iMultiFab (const BoxArray&            bs,
+	       const DistributionMapping& dm,
+	       int                        ncomp,
+	       const IntVect&             ngrow,
+#ifdef AMREX_STRICT_MODE
+               const MFInfo&              info,
+               const FabFactory<IArrayBox>& factory);
+#else
+               const MFInfo&              info = MFInfo(),
+               const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>());
+#endif
+
     /**
      * \brief Make an alias iMultiFab. maketype must be
      * amrex::make_alias.  scomp is the starting component of the
