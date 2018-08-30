@@ -1,11 +1,11 @@
 """Classes following the PICMI standard
 """
-import PICMI_Base
+import picmistandard
 import numpy as np
 import pywarpx
 
 codename = 'warpx'
-PICMI_Base.register_codename(codename)
+picmistandard.register_codename(codename)
 
 # --- Values from WarpXConst.H
 c = 299792458.
@@ -16,7 +16,7 @@ m_e = 9.10938291e-31
 m_p = 1.6726231e-27
 
 
-class Species(PICMI_Base.PICMI_Species):
+class Species(picmistandard.PICMI_Species):
     def init(self, kw):
 
         if self.particle_type == 'electron':
@@ -54,12 +54,12 @@ class Species(PICMI_Base.PICMI_Species):
             self.initial_distribution.initialize_inputs(self.species_number, layout, self.species)
 
 
-PICMI_Base.PICMI_MultiSpecies.Species_class = Species
-class MultiSpecies(PICMI_Base.PICMI_MultiSpecies):
+picmistandard.PICMI_MultiSpecies.Species_class = Species
+class MultiSpecies(picmistandard.PICMI_MultiSpecies):
     pass
 
 
-class GaussianBunchDistribution(PICMI_Base.PICMI_GaussianBunchDistribution):
+class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
     def initialize_inputs(self, species_number, layout, species):
         species.injection_style = "gaussian_beam"
         species.x_m = self.centroid_position[0]
@@ -114,7 +114,7 @@ class GaussianBunchDistribution(PICMI_Base.PICMI_GaussianBunchDistribution):
             species.uz = self.centroid_velocity[2]
 
 
-class UniformDistribution(PICMI_Base.PICMI_UniformDistribution):
+class UniformDistribution(picmistandard.PICMI_UniformDistribution):
     def initialize_inputs(self, species_number, layout, species):
 
         if isinstance(layout, GriddedLayout):
@@ -162,7 +162,7 @@ class UniformDistribution(PICMI_Base.PICMI_UniformDistribution):
             pywarpx.warpx.num_injected_species = len(pywarpx.warpx.injected_plasma_species)
 
 
-class AnalyticDistribution(PICMI_Base.PICMI_AnalyticDistribution):
+class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
     def initialize_inputs(self, species_number, layout, species):
 
         if isinstance(layout, GriddedLayout):
@@ -213,7 +213,7 @@ class AnalyticDistribution(PICMI_Base.PICMI_AnalyticDistribution):
             pywarpx.warpx.num_injected_species = len(pywarpx.warpx.injected_plasma_species)
 
 
-class ParticleList(PICMI_Base.PICMI_ParticleList):
+class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
     def init(self, kw):
 
         if len(x) > 1:
@@ -232,30 +232,30 @@ class ParticleList(PICMI_Base.PICMI_ParticleList):
         species.momentum_distribution_type = 'constant'
 
 
-class ParticleDistributionPlanarInjector(PICMI_Base.PICMI_ParticleDistributionPlanarInjector):
+class ParticleDistributionPlanarInjector(picmistandard.PICMI_ParticleDistributionPlanarInjector):
     pass
 
 
-class GriddedLayout(PICMI_Base.PICMI_GriddedLayout):
+class GriddedLayout(picmistandard.PICMI_GriddedLayout):
     pass
 
 
-class PseudoRandomLayout(PICMI_Base.PICMI_PseudoRandomLayout):
+class PseudoRandomLayout(picmistandard.PICMI_PseudoRandomLayout):
     def init(self, kw):
         if self.seed is not None:
             print('Warning: WarpX does not support specifying the random number seed')
 
 
-class BinomialSmoother(PICMI_Base.PICMI_BinomialSmoother):
+class BinomialSmoother(picmistandard.PICMI_BinomialSmoother):
     pass
 
 
-class CylindricalGrid(PICMI_Base.PICMI_CylindricalGrid):
+class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
     def init(self, kw):
         raise Exception('WarpX does not support CylindricalGrid')
 
 
-class Cartesian2DGrid(PICMI_Base.PICMI_Cartesian2DGrid):
+class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
         self.max_level = kw.pop('warpx_max_level', 0)
@@ -287,7 +287,7 @@ class Cartesian2DGrid(PICMI_Base.PICMI_Cartesian2DGrid):
                 pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
 
 
-class Cartesian3DGrid(PICMI_Base.PICMI_Cartesian3DGrid):
+class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
         self.max_level = kw.pop('warpx_max_level', 0)
@@ -322,7 +322,7 @@ class Cartesian3DGrid(PICMI_Base.PICMI_Cartesian3DGrid):
                 pywarpx.warpx.moving_window_v = self.moving_window_velocity[2]/c  # in units of the speed of light
 
 
-class ElectromagneticSolver(PICMI_Base.PICMI_ElectromagneticSolver):
+class ElectromagneticSolver(picmistandard.PICMI_ElectromagneticSolver):
     def init(self, kw):
         assert self.method is None or self.method in ['Yee', 'CKC'], Exception("Only 'Yee' and 'CKC' FDTD are supported")
 
@@ -346,12 +346,12 @@ class ElectromagneticSolver(PICMI_Base.PICMI_ElectromagneticSolver):
             pywarpx.interpolation.noz = self.stencil_order[2]
 
 
-class Electrostatic_solver(PICMI_Base.PICMI_Electrostatic_solver):
+class ElectrostaticSolver(picmistandard.PICMI_ElectrostaticSolver):
     def initialize_inputs(self):
         pass
 
 
-class GaussianLaser(PICMI_Base.PICMI_GaussianLaser):
+class GaussianLaser(picmistandard.PICMI_GaussianLaser):
     def initialize_inputs(self):
         pywarpx.warpx.use_laser = 1
         pywarpx.laser.profile = "Gaussian"
@@ -365,7 +365,7 @@ class GaussianLaser(PICMI_Base.PICMI_GaussianLaser):
         pywarpx.laser.phi2 = self.phi2
 
 
-class LaserAntenna(PICMI_Base.PICMI_LaserAntenna):
+class LaserAntenna(picmistandard.PICMI_LaserAntenna):
     def initialize_inputs(self, laser):
         pywarpx.laser.position = self.position  # This point is on the laser plane
         pywarpx.laser.direction = self.normal_vector  # The plane normal direction
@@ -373,7 +373,7 @@ class LaserAntenna(PICMI_Base.PICMI_LaserAntenna):
         pywarpx.laser.profile_t_peak = (self.position[2] - laser.centroid_position[2])/c  # The time at which the laser reaches its peak (in seconds)
 
 
-class Simulation(PICMI_Base.PICMI_Simulation):
+class Simulation(picmistandard.PICMI_Simulation):
     def init(self, kw):
 
         self.plot_int = kw.pop('warpx_plot_int', None)
