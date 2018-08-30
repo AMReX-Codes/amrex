@@ -21,8 +21,6 @@ class EBFArrayBoxFactory
 {
 public:
 
-    EBFArrayBoxFactory (const Geometry& a_geom, const BoxArray& a_ba, const DistributionMapping& a_dm,
-                        const Vector<int>& a_ngrow, EBSupport a_support);
     EBFArrayBoxFactory (const EB2::Level& a_level, const Geometry& a_geom,
                         const BoxArray& a_ba, const DistributionMapping& a_dm,
                         const Vector<int>& a_ngrow, EBSupport a_support);    

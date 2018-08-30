@@ -11,29 +11,16 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 
-#include <AMReX_EBTower.H>
-
 namespace amrex { namespace EB2 {
 
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
-#if !defined(AMREX_USE_GEOMETRYSHOP)
-bool use_eb2 = true;
-#else
-bool use_eb2 = false;
-#endif
 int max_grid_size = 64;
 bool compare_with_ch_eb = false;
-
-void useEB2 (bool b)
-{
-    use_eb2 = b;
-}
 
 void Initialize ()
 {
     ParmParse pp("eb2");
-    pp.query("use_eb2", use_eb2);
     pp.query("max_grid_size", max_grid_size);
     pp.query("compare_with_ch_eb", compare_with_ch_eb);
 
@@ -150,8 +137,7 @@ int
 maxCoarseningLevel (const Geometry& geom)
 {
     const Box& domain = amrex::enclosedCells(geom.Domain());
-    const Box& cdomain = (EB2::use_eb2) ? IndexSpace::top().coarsestDomain()
-                                                 : EBTower::coarsestDomain();
+    const Box& cdomain = IndexSpace::top().coarsestDomain();
     return comp_max_crse_level(cdomain, domain);
 }
 
