@@ -20,6 +20,8 @@ MyTest::MyTest ()
 
     initializeEB();
 
+    addFineGrids();
+
     initData();
 }
 
@@ -32,7 +34,7 @@ MyTest::solve ()
                    MFInfo(), *factory[ilev]);
         MultiFab::Copy(v, vfrc, 0, 0, 1, 0);
         amrex::EB_set_covered(v, 1.0);
-        amrex::Print() << "vfrc min = " << v.min(0) << std::endl;
+        amrex::Print() << "Level " << ilev << ": vfrc min = " << v.min(0) << std::endl;
     }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -97,7 +99,7 @@ MyTest::solve ()
 
         Real norminf = mf.norm0();
         Real norm1 = mf.norm1()*AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
-        amrex::Print() << "weighted max and 1 norms " << norminf << ", " << norm1 << std::endl;        
+        amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << std::endl;        
     }    
 }
 
@@ -188,6 +190,17 @@ MyTest::initGrids ()
 }
 
 void
+MyTest::addFineGrids ()
+{
+    for (int ilev = 1; ilev <= max_level; ++ilev)
+    {
+        const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
+        const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
+        grids[ilev] = eb_level.boxArray();
+    }
+}
+
+void
 MyTest::initData ()
 {
     int nlevels = max_level + 1;
@@ -223,7 +236,7 @@ MyTest::initData ()
 
         phi[ilev].setVal(0.0);
         rhs[ilev].setVal(0.0);
-        acoef[ilev].setVal(1.0);
+        acoef[ilev].setVal(0.0);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             bcoef[ilev][idim].setVal(1.0);
         }

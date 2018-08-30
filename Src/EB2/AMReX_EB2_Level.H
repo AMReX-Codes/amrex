@@ -46,6 +46,9 @@ public:
     void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
     void fillFaceCent (Array<   MultiFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
 
+    const BoxArray& boxArray () const { return m_grids; }
+    const DistributionMapping& DistributionMap () const { return m_dmap; }
+
     Level (IndexSpace const* is, const Geometry& geom) : m_geom(geom), m_parent(is) {}
     void prepareForCoarsening (const Level& rhs, int max_grid_size);
 
