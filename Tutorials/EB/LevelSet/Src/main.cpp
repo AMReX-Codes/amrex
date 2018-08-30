@@ -121,7 +121,9 @@ int main (int argc, char* argv[])
 #endif
 
     // Make sure that at (at least) an initial MultiFab is stored in ls[lev].
-    std::unique_ptr<MultiFab> ls_data = level_set->coarsen_data();
+    //std::unique_ptr<MultiFab> ls_data = level_set->coarsen_data();
+
+    const MultiFab * ls_data = level_set->get_data();
 
     VisMF::Write(* ls_data, "LevelSet");
 

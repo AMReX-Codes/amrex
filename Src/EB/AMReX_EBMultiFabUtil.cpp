@@ -307,6 +307,55 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
     }
 }
 
+
+void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
+                                 const IntVect& ratio, int ngcrse)
+{
+    int ncomp = crse.nComp();
+
+    if (!fine.hasEBFabFactory())
+    {
+        crse.setVal(0.0, 0, ncomp, ngcrse);
+    }
+    else
+    {
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine.Factory());
+        const auto& flags = factory.getMultiEBCellFlagFab();
+        const auto& barea = factory.getBndryArea();
+
+        if (isMFIterSafe(fine, crse))
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(crse, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+            {
+                const Box& tbx = mfi.growntilebox(ngcrse);
+                FabType typ = flags[mfi].getType(amrex::refine(tbx,ratio));
+
+                if (FabType::covered == typ || FabType::regular == typ) {
+                    crse[mfi].setVal(0.0, tbx, 0, 1);
+                } else {
+                    amrex_eb_avgdown_boundaries(tbx.loVect(), tbx.hiVect(),
+                                                BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                                BL_TO_FORTRAN_ANYD(crse[mfi]),
+                                                BL_TO_FORTRAN_ANYD(barea[mfi]),
+                                                ratio.getVect(), &ncomp);
+                }
+            }
+        }
+        else
+        {
+            BoxArray cba = fine.boxArray();
+            cba.coarsen(ratio);
+            MultiFab ctmp(cba, fine.DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+            EB_average_down_boundaries(fine, ctmp, ratio, ngcrse);
+            crse.ParallelCopy(ctmp, 0, 0, ncomp, ngcrse, ngcrse);
+        }
+    }    
+}
+
+
 void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                            const Geometry& geom)
 {
