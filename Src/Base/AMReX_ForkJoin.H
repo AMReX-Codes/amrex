@@ -36,6 +36,8 @@ class ForkJoin
 
     int MyTask () const { return task_me; }
 
+    std::pair<int,int> ComponentBounds(const std::string& name, int idx=0) const;
+
     int NProcsTask (int task) const {
         AMREX_ASSERT(task + 1 < split_bounds.size());
         return split_bounds[task + 1] - split_bounds[task];
