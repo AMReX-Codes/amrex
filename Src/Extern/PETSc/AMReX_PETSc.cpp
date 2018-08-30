@@ -120,9 +120,7 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs
     loadVectors(soln, rhs);
 
     KSPSetTolerances(solver, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
-    
     KSPSolve(solver, b, x);
-
     if (verbose >= 2)
     {
         PetscInt niters;
@@ -141,6 +139,7 @@ PETScABecLap::prepareSolver ()
     int num_procs, myid;
     MPI_Comm_size(PETSC_COMM_WORLD, &num_procs);
     MPI_Comm_rank(PETSC_COMM_WORLD, &myid);
+    PetscErrorCode ierr; 
 
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
@@ -241,14 +240,14 @@ PETScABecLap::prepareSolver ()
     }    
 
     cell_id.FillBoundary(geom.periodicity());
-    PetscInt ndiag = regular_stencil_size - 1; //estimated amount of block diag elements
+    PetscInt ndiag = regular_stencil_size-2; //estimated amount of block diag elements
     PetscInt noff  = 2; // estimated amount of block off diag elements
 //    MatCreateAIJ(PETSC_COMM_WORLD, ncells_proc, ncells_proc, ncells_world, ncells_world,
 //        ndiag, nullptr ,  noff, nullptr , &A); 
     MatCreate(PETSC_COMM_WORLD, &A); 
     MatSetType(A, MATMPIAIJ);
     MatSetSizes(A, ncells_proc, ncells_proc, ncells_world, ncells_world); 
-    MatMPIAIJSetPreallocation(A, ndiag, NULL, noff, NULL );
+    MatMPIAIJSetPreallocation(A, ndiag*ncells_proc, NULL, regular_stencil_size*noff, NULL );
     //Maybe an over estimate of the diag/off diag #of non-zero entries, so we turn off malloc warnings
     MatSetUp(A); 
     MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE); 
@@ -333,7 +332,24 @@ PETScABecLap::prepareSolver ()
                                         bctype.data(), bcl.data(), &bho);
                 }
     #endif
-                MatSetValues(A, nrows, rows, ndiag, cols, mat, INSERT_VALUES);  
+                //Load in by row! 
+                int matid = 0; 
+               for (int rit = 0; rit < nrows; ++rit)
+               {
+                   for (int cit = 0; cit < ncols[rit]; ++cit)
+                   {
+                        std::cout<< "Row = "<< rows[rit]<< " Mat id = " << matid << 
+                        " Col = " << cols[matid] <<" Value = "<< mat[matid] << std::endl;
+                        std::cout << "Ncol = " <<  ncols[rit] << std::endl;
+                        if(std::isnan(mat[matid]))
+                        {
+                            std::cout<< " Matrix is nan! " << matid << rit << cit << " row " << rows[rit] << " col " << cols[matid] << std::endl;
+                            std::cin.get(); 
+                        } 
+                       MatSetValues(A, 1, &rows[rit], 1, &cols[matid], &mat[matid], INSERT_VALUES);  
+                       matid++; 
+                   }
+               }
         }
     }
 
@@ -341,13 +357,20 @@ PETScABecLap::prepareSolver ()
     MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
     MatView(A, PETSC_VIEWER_STDOUT_WORLD); 
     // create solver
-    KSPCreate(PETSC_COMM_WORLD, &solver);
-    KSPSetOperators(solver, A, A);
-    PC pc;
-    KSPGetPC(solver, &pc);
-    PCSetType(pc, PCGAMG);
-    KSPSetUp(solver);
+    ierr = KSPCreate(PETSC_COMM_WORLD, &solver);
+    CHKERRV(ierr); 
 
+    ierr = KSPSetOperators(solver, A, A);
+    CHKERRV(ierr); 
+
+    PC pc;
+    ierr = KSPGetPC(solver, &pc);
+    CHKERRV(ierr); 
+
+    ierr = PCSetType(pc, PCGAMG);
+    CHKERRV(ierr); 
+
+    KSPSetFromOptions(solver);
     // create b & x
     VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x);
     VecDuplicate(x, &b);
@@ -399,7 +422,6 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             {
                 bfab = &rhsfab;
             }
-
             VecSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr(), INSERT_VALUES); 
         }
     }
