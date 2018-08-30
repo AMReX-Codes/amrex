@@ -170,7 +170,7 @@ PhysicalParticleContainer::AddParticles (int lev)
  * but its boundaries need not be aligned with the actual cells of the simulation)
  */
 void
-PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
+PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
 {
     // If no part_realbox is provided, initialize particles in the whole domain
     const Geometry& geom = Geom(lev);
@@ -217,13 +217,13 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
             bool no_overlap = 0;
 
             for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
-                if ( tile_realbox.lo(dir) < part_realbox.hi(dir) ) {
+                if ( tile_realbox.lo(dir) <= part_realbox.hi(dir) ) {
                     ncells_adjust = std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir] );
                     overlap_realbox.setLo( dir, part_realbox.lo(dir) + std::max(ncells_adjust, 0.) * dx[dir]);
                 } else {
                     no_overlap = 1; break;
                 }
-                if ( tile_realbox.hi(dir) > part_realbox.lo(dir) ) {
+                if ( tile_realbox.hi(dir) >= part_realbox.lo(dir) ) {
                     ncells_adjust = std::floor( (part_realbox.hi(dir) - tile_realbox.hi(dir))/dx[dir] );
                     overlap_realbox.setHi( dir, part_realbox.hi(dir) - std::max(ncells_adjust, 0.) * dx[dir]);
                 } else {
@@ -234,7 +234,9 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                 overlap_box.setBig( dir,
 				    int( round((overlap_realbox.hi(dir)-overlap_realbox.lo(dir))/dx[dir] )) - 1);
             }
-            if (no_overlap == 1) continue; // Go to the next tile
+            if (no_overlap == 1) {
+                continue; // Go to the next tile
+            }
 
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
@@ -243,8 +245,16 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
             // the corresponding particles
             const auto& overlap_corner = overlap_realbox.lo();
             for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
-            {                
-                int fac = GetRefineFac(iv);
+            {
+                int fac;
+                if (injected) {
+                    fac = GetRefineFac(overlap_corner[0] + (iv[0] + 0.5)*dx[0],
+                                       overlap_corner[1] + (iv[1] + 0.5)*dx[1],
+                                       overlap_corner[2] + (iv[2] + 0.5)*dx[2]);
+                } else {
+                    fac = 1.0;
+                }
+                
                 int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
                 for (int i_part=0; i_part<ref_num_ppc;i_part++) {
                     std::array<Real, 3> r;
@@ -1295,7 +1305,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #endif
 }
 
-int PhysicalParticleContainer::GetRefineFac(const IntVect& iv)
+int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Real z)
 {
     if (finestLevel() == 0) return 1;
     if (not WarpX::refine_plasma) return 1;
@@ -1304,6 +1314,16 @@ int PhysicalParticleContainer::GetRefineFac(const IntVect& iv)
 
     const int fine_lev = 1;
     const int crse_lev = 0;
+
+    IntVect iv;
+    const Geometry& geom = Geom(crse_lev);
+
+    AMREX_D_TERM(iv[0]=static_cast<int>(floor((x-geom.ProbLo(0))*geom.InvCellSize(0)));,
+                 iv[1]=static_cast<int>(floor((y-geom.ProbLo(1))*geom.InvCellSize(1)));,
+                 iv[2]=static_cast<int>(floor((z-geom.ProbLo(2))*geom.InvCellSize(2))););
+
+    iv += geom.Domain().smallEnd();
+    
     const int dir = WarpX::moving_window_dir;
     const IntVect rr = m_gdb->refRatio(crse_lev);
     const BoxArray& fine_ba = this->ParticleBoxArray(fine_lev);
@@ -1313,8 +1333,8 @@ int PhysicalParticleContainer::GetRefineFac(const IntVect& iv)
     for (int i = 0; i < num_boxes; ++i) {
         Box bx = fine_ba[i];
         bx.coarsen(rr);
-        bx.setSmall(dir, crse_domain.smallEnd(dir)-4);
-        bx.setBig(dir, crse_domain.bigEnd(dir)+4);
+        bx.setSmall(dir, crse_domain.smallEnd(dir));
+        bx.setBig(dir, crse_domain.bigEnd(dir));
         stretched_boxes.push_back(bx);
     }
     BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
@@ -1322,7 +1342,7 @@ int PhysicalParticleContainer::GetRefineFac(const IntVect& iv)
     const int num_ghost = 0;
     bool hit = stretched_ba.intersects(Box(iv, iv), num_ghost);    
     if (hit) {
-        return 2;
+        return rr[dir];
     }
     return 1;
 }
