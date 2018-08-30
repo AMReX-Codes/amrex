@@ -124,6 +124,7 @@ WarpX::MoveWindow (bool move_j)
 
     // Continuously inject plasma in new cells (by default only on level 0)
     if (WarpX::do_plasma_injection) {
+
         const int lev = 0;
 
         // particleBox encloses the cells where we generate particles
