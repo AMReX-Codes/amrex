@@ -234,9 +234,6 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                 overlap_box.setBig( dir,
 				    int( round((overlap_realbox.hi(dir)-overlap_realbox.lo(dir))/dx[dir] )) - 1);
             }
-
-            amrex::Print() << no_overlap << std::endl;
-            
             if (no_overlap == 1) continue; // Go to the next tile
 
             const int grid_id = mfi.index();
@@ -251,7 +248,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                 int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
                 for (int i_part=0; i_part<ref_num_ppc;i_part++) {
                     std::array<Real, 3> r;
-                    plasma_injector->getPositionUnitBox(r, i_part);
+                    plasma_injector->getPositionUnitBox(r, i_part, fac);
 #if ( AMREX_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
                     Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
