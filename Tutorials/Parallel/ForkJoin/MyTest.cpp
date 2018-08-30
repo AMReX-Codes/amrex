@@ -97,7 +97,7 @@ MyTest::readParameters ()
     DistributionMapping dmap(grids);
     data_split.define(grids,dmap,n_comp_split,n_grow);
     data_single.define(grids,dmap,n_comp_single,n_grow);
-    data_single.define(grids,dmap,n_comp_all,n_grow);
+    data_all.define(grids,dmap,n_comp_all,n_grow);
 }
 
 void
