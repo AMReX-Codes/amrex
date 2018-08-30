@@ -3,12 +3,12 @@ amrex.fpe_trap_invalid = 1
 #max_coarsening_level = 0
 reltol = 1.e-12
 
-scalars = 0.0 1.0
 prob_type = 1
 
 max_level = 0
 n_cell = 128
-max_grid_size = 32
+max_grid_size = 64
+eb2.max_grid_size = 32
 
 eb2.geom_type = sphere
 eb2.sphere_center = 0.5  0.5  0.5

@@ -21,12 +21,13 @@ private:
     void initializeEB ();
     void readParameters ();
     void initGrids ();
+    void addFineGrids ();
     void initData ();
 
     int max_level = 0;
     int ref_ratio = 2;
     int n_cell = 128;
-    int max_grid_size = 32;
+    int max_grid_size = 64;
 
     int prob_type = 2;
 
