@@ -325,13 +325,6 @@ private:
     void BuildBufferMasks ();
     const amrex::iMultiFab* getBufferMasks (int lev) const { return buffer_masks[lev].get(); }
 
-    // used to zero out fine level data on points shared with the coarse grid
-    // in electrostatic mode
-    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > masks;
-
-    // used to gather the field from the coarse level in electrostatic mode.
-    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
-
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
 
