@@ -348,9 +348,9 @@ if __name__ == "__main__":
     else:
         cpp_pass = None
 
-#    try:
-    doit(prefix_pass, args.search_path.split(), args.files, cpp_pass, debug=args.debug)
-#    except:
+    try:
+        doit(prefix_pass, args.search_path.split(), args.files, cpp_pass, debug=args.debug)
+    except:
         # something went wrong
-#        print("$(error something went wrong in dep.py.  Remake, adding the option 'DEP_CHECK_OPTS=--debug' to your make command and examine the 'dependencies.out' file)")
+        print("$(error something went wrong in dep.py.  Remake, adding the option 'DEP_CHECK_OPTS=--debug' to your make command and examine the 'dependencies.out' file)")
 
