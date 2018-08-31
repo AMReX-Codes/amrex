@@ -359,7 +359,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         } else {
 
             FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
-            FArrayBox const& phiebfab = (is_eb_dirichlet && m_is_inhomog) ? (*m_eb_phi[amrlev])[mfi] : foo;
+            FArrayBox const& phiebfab = (is_eb_dirichlet && m_is_eb_inhomog) ? (*m_eb_phi[amrlev])[mfi] : foo;
 
             amrex_mlebabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(yfab),
@@ -380,7 +380,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     BL_TO_FORTRAN_ANYD((*barea)[mfi]),
                                     BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                     BL_TO_FORTRAN_ANYD(bebfab), is_eb_dirichlet,
-                                    BL_TO_FORTRAN_ANYD(phiebfab), m_is_inhomog,
+                                    BL_TO_FORTRAN_ANYD(phiebfab), m_is_eb_inhomog,
                                     dxinv, m_a_scalar, m_b_scalar);
         }
     }
@@ -786,7 +786,8 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross); 
     }
 
-    m_is_inhomog = bc_mode == BCMode::Inhomogeneous;
+    int m_is_inhomog = bc_mode == BCMode::Inhomogeneous;
+    m_is_eb_inhomog = s_mode == StateMode::Solution;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
