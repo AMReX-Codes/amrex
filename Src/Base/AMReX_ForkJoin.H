@@ -22,6 +22,8 @@ class ForkJoin
         // for now, just support contiguous range of components
         // only requires a single MultiFab::Copy() per task this way
         // in the future, consider changing this to a true set for arbitrary components
+        ComponentSet() {}
+        ComponentSet(int lo_, int hi_) : lo(lo_), hi(hi_) {}
         int lo; // inclusive bound
         int hi; // exclusive bound
     };
@@ -36,7 +38,7 @@ class ForkJoin
 
     int MyTask () const { return task_me; }
 
-    std::pair<int,int> ComponentBounds(const std::string& name, int idx=0) const;
+    ComponentSet ComponentBounds(const std::string& name, int idx=0) const;
 
     int NProcsTask (int task) const {
         AMREX_ASSERT(task + 1 < split_bounds.size());

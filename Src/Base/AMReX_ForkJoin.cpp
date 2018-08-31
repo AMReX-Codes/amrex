@@ -163,18 +163,18 @@ ForkJoin::modify_split (const std::string &name, int idx, Vector<ComponentSet> c
     data[name][idx].comp_split = std::move(comp_split);
 }
 
-std::pair<int,int>
+ForkJoin::ComponentSet
 ForkJoin::ComponentBounds(const std::string& name, int idx) const
 {
-    std::pair<int,int> retVal(-1,-1);
+    ComponentSet ret(-1,-1);
     for (auto &p : data) { // for each name
         if (p.first == name) {
             BL_ASSERT(idx>=0 && idx<p.second.size());
             const auto &comp_split = p.second[idx].comp_split;
-            retVal = std::pair<int,int>(comp_split[task_me].lo,comp_split[task_me].hi);
+            ret = comp_split[task_me];
         }
     }
-    return retVal;
+    return ret;
 }
 
 void
@@ -220,7 +220,7 @@ ForkJoin::copy_data_to_tasks ()
                                            << comp_split[i].lo << ", " << comp_split[i].hi << ") into to task " << i << std::endl;
                         }
                         // parallel copy data into forked MF
-                        forked[i].copy(orig, comp_split[i].lo, 0, task_comp_n);
+                        forked[i].Redistribute(orig, comp_split[i].lo, 0, task_comp_n, {0, 0, 0});
                     }
 
                 } else {
