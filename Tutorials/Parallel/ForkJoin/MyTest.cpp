@@ -21,30 +21,30 @@ myFunction(ForkJoin& fj)
 
     int taskID = fj.MyTask();
 
-    const std::pair<int,int> bounds_split = fj.ComponentBounds("data_split");
-    const std::pair<int,int> bounds_single = fj.ComponentBounds("data_single");
-    const std::pair<int,int> bounds_all = fj.ComponentBounds("data_all");
+    const ForkJoin::ComponentSet bounds_split = fj.ComponentBounds("data_split");
+    const ForkJoin::ComponentSet bounds_single = fj.ComponentBounds("data_single");
+    const ForkJoin::ComponentSet bounds_all = fj.ComponentBounds("data_all");
 
     Print() << "Task ID: " << taskID << std::endl;
     Print() << "  Number of boxes:  " << myData_split.boxArray().size() << std::endl;
     Print() << "  Number of ranks:  " << ParallelDescriptor::NProcs() << std::endl;
     if (myData_split.nComp() > 0) {
         Print() << "  Number of split comps:  " << myData_split.nComp() << std::endl;
-        Print() << "  Split component bounds: " << bounds_split.first << ":" << bounds_split.second -1 << std::endl;
+        Print() << "  Split component bounds: " << bounds_split.lo << ":" << bounds_split.hi -1 << std::endl;
     } else {
         Print() << "  No split data on this task " << std::endl;
     }
 
     if (myData_single.nComp() > 0) {
         Print() << "  Number of single comps:  " << myData_single.nComp() << std::endl;
-        Print() << "  Single component bounds: " << bounds_single.first << ":" << bounds_single.second -1 << std::endl;
+        Print() << "  Single component bounds: " << bounds_single.lo << ":" << bounds_single.hi -1 << std::endl;
     } else {
         Print() << "  No single data on this task " << std::endl;
     }
 
     if (myData_all.nComp() > 0) {
         Print() << "  Number of all comps:  " << myData_all.nComp() << std::endl;
-        Print() << "  All component bounds: " << bounds_all.first << ":" << bounds_all.second -1 << std::endl;
+        Print() << "  All component bounds: " << bounds_all.lo << ":" << bounds_all.hi -1 << std::endl;
     } else {
         Print() << "  No all data on this task " << std::endl;
     }
