@@ -17,6 +17,7 @@ class PETScABecLap
 {
 public:
 
+    
     PETScABecLap (const BoxArray& grids, const DistributionMapping& dmap,
                   const Geometry& geom_, MPI_Comm comm_);
 
@@ -28,6 +29,7 @@ public:
     void setVerbose (int _verbose);
     void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                 int max_iter, const BndryData& bndry, int max_bndry_order);
+
 
 private:
 
@@ -62,6 +64,9 @@ private:
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);
 };
+
+std::unique_ptr<PETScABecLap> makePetsc (const BoxArray& grids, const DistributionMapping& damp,
+                                  const Geometry& geom, MPI_Comm comm_);
 
 }
 

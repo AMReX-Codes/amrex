@@ -9,7 +9,8 @@
 #endif
 
 #ifdef AMREX_USE_PETSC
-//#include <AMReX_PETSc.H>
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
 #endif
 namespace amrex {
 
@@ -124,6 +125,7 @@ private:
 
     // PETSc
 #ifdef AMREX_USE_PETSC
+    std::unique_ptr<PETScABecLap> petsc_solver; 
     std::unique_ptr<MLMGBndry> petsc_bndry; 
 #endif
     

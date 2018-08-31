@@ -19,6 +19,15 @@ namespace amrex {
 constexpr PetscInt PETScABecLap::regular_stencil_size;
 constexpr PetscInt PETScABecLap::eb_stencil_size;
 
+
+std::unique_ptr<PETScABecLap>
+makePetsc (const BoxArray& grids, const DistributionMapping& dmap,
+           const Geometry& geom, MPI_Comm comm_)
+{
+        return std::unique_ptr<PETScABecLap>(new PETScABecLap(grids, dmap, geom, comm_));
+}
+
+
 PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dmap,
                             const Geometry& geom_, MPI_Comm comm_)
     : comm(comm_),
@@ -118,7 +127,6 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs
     }
 
     loadVectors(soln, rhs);
-
     KSPSetTolerances(solver, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
     KSPSolve(solver, b, x);
     if (verbose >= 2)
@@ -242,8 +250,6 @@ PETScABecLap::prepareSolver ()
     cell_id.FillBoundary(geom.periodicity());
     PetscInt ndiag = regular_stencil_size-2; //estimated amount of block diag elements
     PetscInt noff  = 2; // estimated amount of block off diag elements
-//    MatCreateAIJ(PETSC_COMM_WORLD, ncells_proc, ncells_proc, ncells_world, ncells_world,
-//        ndiag, nullptr ,  noff, nullptr , &A); 
     MatCreate(PETSC_COMM_WORLD, &A); 
     MatSetType(A, MATMPIAIJ);
     MatSetSizes(A, ncells_proc, ncells_proc, ncells_world, ncells_world); 
@@ -333,19 +339,11 @@ PETScABecLap::prepareSolver ()
                 }
     #endif
                 //Load in by row! 
-                int matid = 0; 
+               int matid = 0; 
                for (int rit = 0; rit < nrows; ++rit)
                {
                    for (int cit = 0; cit < ncols[rit]; ++cit)
                    {
-                        std::cout<< "Row = "<< rows[rit]<< " Mat id = " << matid << 
-                        " Col = " << cols[matid] <<" Value = "<< mat[matid] << std::endl;
-                        std::cout << "Ncol = " <<  ncols[rit] << std::endl;
-                        if(std::isnan(mat[matid]))
-                        {
-                            std::cout<< " Matrix is nan! " << matid << rit << cit << " row " << rows[rit] << " col " << cols[matid] << std::endl;
-                            std::cin.get(); 
-                        } 
                        MatSetValues(A, 1, &rows[rit], 1, &cols[matid], &mat[matid], INSERT_VALUES);  
                        matid++; 
                    }
@@ -355,21 +353,18 @@ PETScABecLap::prepareSolver ()
 
     MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
-    MatView(A, PETSC_VIEWER_STDOUT_WORLD); 
     // create solver
-    ierr = KSPCreate(PETSC_COMM_WORLD, &solver);
-    CHKERRV(ierr); 
+    KSPCreate(PETSC_COMM_WORLD, &solver);
+    KSPSetOperators(solver, A, A);
 
-    ierr = KSPSetOperators(solver, A, A);
-    CHKERRV(ierr); 
-
+    // Set up preconditioner
     PC pc;
-    ierr = KSPGetPC(solver, &pc);
-    CHKERRV(ierr); 
+    KSPGetPC(solver, &pc);
 
-    ierr = PCSetType(pc, PCGAMG);
-    CHKERRV(ierr); 
-
+    // Classic AMG
+    PCSetType(pc, PCGAMG);
+    PCGAMGSetType(pc, PCGAMGCLASSICAL);
+    
     KSPSetFromOptions(solver);
     // create b & x
     VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x);
