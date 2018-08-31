@@ -771,7 +771,7 @@ MLEBABecLap::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& 
 }
 
 void
-MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
     BL_PROFILE("MLEBABecLap::applyBC()");
@@ -858,10 +858,10 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
 void
 MLEBABecLap::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                    const MLMGBndry* bndry) const
+                    StateMode s_mode, const MLMGBndry* bndry) const
 {
     BL_PROFILE("MLEBABecLap::apply()");
-    applyBC(amrlev, mglev, in, bc_mode, bndry);
+    applyBC(amrlev, mglev, in, bc_mode, s_mode, bndry);
     Fapply(amrlev, mglev, out, in);
 }
 

@@ -459,6 +459,7 @@ MLMG::mgFcycle ()
 
     for (int mglev = 1; mglev <= mg_bottom_lev; ++mglev)
     {
+        // TODO: for EB cell-centered, we need to use EB_average_down
         amrex::average_down(res[amrlev][mglev-1], res[amrlev][mglev], 0, ncomp, ratio);
     }
 
@@ -1233,7 +1234,11 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
             linop.reflux(alev, *a_res[alev], *sol[alev], *prhs,
                          *a_res[alev+1], *sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
+#ifdef AMREX_USE_EB
+                amrex::EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+#else
                 amrex::average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+#endif
             }
         }
     }
@@ -1293,7 +1298,11 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
             linop.reflux(alev, *out[alev], *in[alev], rh[alev],
                          *out[alev+1], *in[alev+1], rh[alev+1]);
             if (linop.isCellCentered()) {
+#ifdef AMREX_USE_EB
+                amrex::EB_average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
+#else
                 amrex::average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
+#endif
             }
         }
     }
@@ -1320,7 +1329,11 @@ MLMG::averageDownAndSync ()
     {
         for (int falev = finest_amr_lev; falev > 0; --falev)
         {
+#ifdef AMREX_USE_EB
+            amrex::EB_average_down(*sol[falev], *sol[falev-1], 0, ncomp, amrrr[falev-1]);
+#else
             amrex::average_down(*sol[falev], *sol[falev-1], 0, ncomp, amrrr[falev-1]);
+#endif
         }
     }
     else
