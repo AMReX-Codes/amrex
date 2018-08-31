@@ -248,9 +248,16 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
             {
                 int fac;
                 if (injected) {
-                    fac = GetRefineFac(overlap_corner[0] + (iv[0] + 0.5)*dx[0],
-                                       overlap_corner[1] + (iv[1] + 0.5)*dx[1],
-                                       overlap_corner[2] + (iv[2] + 0.5)*dx[2]);
+#if ( AMREX_SPACEDIM == 3 )
+                    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
+                    Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
+                    Real z = overlap_corner[2] + (iv[2] + 0.5)*dx[2];
+#elif ( AMREX_SPACEDIM == 2 )
+                    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
+                    Real y = 0;
+                    Real z = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
+#endif                    
+                    fac = GetRefineFac(x, y, z);
                 } else {
                     fac = 1.0;
                 }
