@@ -1586,43 +1586,39 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
 #if !defined(AMREX_USE_PETSC)
     amrex::Abort("bottomSolveWithPETSc is called without building with PETSc");
 #else
-
     PETSC_COMM_WORLD = linop.BottomCommunicator();
-    bool on = false;
     
-    auto ierr = PetscInitialize(nullptr, nullptr, nullptr, nullptr);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
-        (!ierr, "MLMG::bottomSolveWithPETSc: Failed to call PetscInitialize");
-        on = true; 
+    if(petsc_solver == nullptr)
+    { 
         const int ncomp = linop.getNComp();
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
         const auto& factory = *(linop.m_factory[0].back());
         MPI_Comm comm = linop.BottomCommunicator();
+    
+        petsc_solver = makePetsc(ba, dm, geom, comm);
+        petsc_solver->setVerbose(bottom_verbose);
 
-        PETScABecLap petsc_solver(ba, dm, geom, comm);
-        petsc_solver.setVerbose(bottom_verbose);
-
-        petsc_solver.setScalars(linop.getAScalar(), linop.getBScalar());
+        petsc_solver->setScalars(linop.getAScalar(), linop.getBScalar());
 
         const int mglev = linop.NMGLevels(0)-1;
         auto ac = linop.getACoeffs(0, mglev);
         if (ac)
         {
-            petsc_solver.setACoeffs(*ac);
+            petsc_solver->setACoeffs(*ac);
         }
         else
         {
             MultiFab alpha(ba,dm,ncomp,0,MFInfo(),factory);
             alpha.setVal(0.0);
-            petsc_solver.setACoeffs(alpha);
+            petsc_solver->setACoeffs(alpha);
         }
 
         auto bc = linop.getBCoeffs(0, mglev);
         if (bc[0])
         {
-            petsc_solver.setBCoeffs(bc);
+            petsc_solver->setBCoeffs(bc);
         }
         else
         {
@@ -1633,7 +1629,7 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
                                   dm, ncomp, 0, MFInfo(), factory);
                 beta[idim].setVal(1.0);
             }
-            petsc_solver.setBCoeffs(amrex::GetArrOfConstPtrs(beta));
+            petsc_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
         }
 
         petsc_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
@@ -1644,11 +1640,8 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
                                          0.5*dx[1]*crse_ratio,
                                          0.5*dx[2]*crse_ratio));
         petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
-
-        petsc_solver.solve(x, b, bottom_reltol, -1., bottom_maxiter, *petsc_bndry, linop.getMaxOrder());
-        ierr = PetscFinalize();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE
-        (!ierr, "MLMG::bottomSolveWithPETSc: Failed to call PetscFinalize");
+    }
+    petsc_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *petsc_bndry, linop.getMaxOrder());
 #endif
 }
     
