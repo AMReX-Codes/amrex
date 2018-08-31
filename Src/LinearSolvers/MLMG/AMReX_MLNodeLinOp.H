@@ -33,7 +33,7 @@ public:
 protected:
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        const MLMGBndry* bndry=nullptr) const final;
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
 
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                          bool skip_fillboundary=false) const final;
@@ -60,7 +60,7 @@ protected:
 
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final;
 
-    virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
+    virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode s_mode,
                           bool skip_fillboundary=false) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const = 0;

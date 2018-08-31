@@ -44,6 +44,8 @@ public:
     enum struct BCMode { Homogeneous, Inhomogeneous };
     using BCType = LinOpBCType;
 
+    enum struct StateMode { Solution, Correction };
+
     MLLinOp ();
     virtual ~MLLinOp ();
 
@@ -200,7 +202,7 @@ protected:
                                          const MultiFab& fine_sol, const MultiFab& fine_rhs) = 0;
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        const MLMGBndry* bndry=nullptr) const = 0;
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const = 0;
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                          bool skip_fillboundary=false) const = 0;
 

@@ -108,7 +108,7 @@ protected:
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
     void updateCorBC (int amrlev, const MultiFab& crse_bcdata) const;
 
-    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                           const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
 
     BoxArray makeNGrids (int grid_size) const;
@@ -121,7 +121,7 @@ protected:
                                          const MultiFab& fine_sol, const MultiFab& fine_rhs) override;
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        const MLMGBndry* bndry=nullptr) const override;
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const override;
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                          bool skip_fillboundary=false) const final;
 
