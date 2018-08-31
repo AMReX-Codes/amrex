@@ -23,6 +23,7 @@ using namespace amrex;
 Vector<Real> WarpX::B_external(3, 0.0);
 
 int WarpX::do_moving_window = 0;
+int WarpX::moving_window_dir = -1;
 
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
@@ -41,6 +42,7 @@ long WarpX::noz = 1;
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
+bool WarpX::refine_plasma     = false;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
@@ -127,6 +129,15 @@ WarpX::WarpX ()
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
 
+    if (do_plasma_injection) {
+        for (int i = 0; i < num_injected_species; ++i) {
+            int ispecies = injected_plasma_species[i];
+            WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
+            auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
+            ppc.injected = true;
+        }
+    }
+    
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
 
@@ -248,14 +259,14 @@ WarpX::ReadParameters ()
 	  pp.get("num_injected_species", num_injected_species);
 	  injected_plasma_species.resize(num_injected_species);
 	  pp.getarr("injected_plasma_species", injected_plasma_species,
-		 0, num_injected_species);
-      if (moving_window_v >= 0){
-          // Inject particles continuously from the right end of the box
-          current_injection_position = geom[0].ProbHi(moving_window_dir);
-      } else {
-          // Inject particles continuously from the left end of the box
-          current_injection_position = geom[0].ProbLo(moving_window_dir);
-      }
+                    0, num_injected_species);
+          if (moving_window_v >= 0){
+              // Inject particles continuously from the right end of the box
+              current_injection_position = geom[0].ProbHi(moving_window_dir);
+          } else {
+              // Inject particles continuously from the left end of the box
+              current_injection_position = geom[0].ProbLo(moving_window_dir);
+          }
 	}
 
         pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
@@ -292,6 +303,7 @@ WarpX::ReadParameters ()
 	pp.query("use_laser", use_laser);
 	pp.query("use_filter", use_filter);
 	pp.query("serialize_ics", serialize_ics);
+	pp.query("refine_plasma", refine_plasma);
         pp.query("do_dive_cleaning", do_dive_cleaning);
 
         pp.query("do_pml", do_pml);

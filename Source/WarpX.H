@@ -90,7 +90,8 @@ public:
     static amrex::Vector<int> boost_direction;
 
     static bool do_dynamic_scheduling;
-
+    static bool refine_plasma;
+    
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
     const amrex::MultiFab& getBfield  (int lev, int direction) {return *Bfield_aux[lev][direction];}
@@ -179,7 +180,8 @@ public:
     static amrex::IntVect jz_nodal_flag;
 
     static int do_moving_window;
-
+    static int moving_window_dir;
+    
 protected:
 
     //! Tagging cells for refinement
@@ -357,9 +359,6 @@ private:
     int pml_ncell = 10;
     int pml_delta = 10;
     amrex::Vector<std::unique_ptr<PML> > pml;
-
-    // Moving window parameters
-    int moving_window_dir = -1;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
     amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();

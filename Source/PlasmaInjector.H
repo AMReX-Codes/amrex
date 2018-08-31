@@ -193,7 +193,7 @@ class PlasmaParticlePosition{
 public:
   using vec3 = std::array<amrex::Real, 3>;
   virtual ~PlasmaParticlePosition() {};
-  virtual void getPositionUnitBox(vec3& r, int i_part) = 0;
+    virtual void getPositionUnitBox(vec3& r, int i_part, int ref_fac=1) = 0;
 };
 
 ///
@@ -203,7 +203,7 @@ public:
 class RandomPosition : public PlasmaParticlePosition{
 public:
     RandomPosition(int num_particles_per_cell);
-    virtual void getPositionUnitBox(vec3& r, int i_part) override;
+    virtual void getPositionUnitBox(vec3& r, int i_part, int ref_fac=1) override;
 private:
     amrex::Real _x;
     amrex::Real _y;
@@ -219,7 +219,7 @@ private:
 class RegularPosition : public PlasmaParticlePosition{
 public:
   RegularPosition(const amrex::Vector<int>& num_particles_per_cell_each_dim);
-  virtual void getPositionUnitBox(vec3& r, int i_part) override;
+    virtual void getPositionUnitBox(vec3& r, int i_part, int ref_fac=1) override;
 private:
   amrex::Real _x;
   amrex::Real _y;
@@ -251,7 +251,7 @@ public:
 
     void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z);
 
-    void getPositionUnitBox(vec3& r, int i_part);
+    void getPositionUnitBox(vec3& r, int i_part, int ref_fac=1);
 
     amrex::Real getCharge() {return charge;}
     amrex::Real getMass() {return mass;}
