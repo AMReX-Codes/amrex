@@ -59,8 +59,6 @@ include (Amr/CMakeLists.txt)
 #
 if (ENABLE_EB)
    include (EB/CMakeLists.txt)
-   include (GeometryShop/CMakeLists.txt)
-   include (EB2/CMakeLists.txt)
 endif ()
 
 if (ENABLE_PROFPARSER OR ENABLE_AMRDATA)
