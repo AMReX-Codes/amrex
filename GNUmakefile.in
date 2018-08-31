@@ -17,8 +17,7 @@ ifeq ($(USE_LINEAR_SOLVERS),TRUE)
    endif
 endif
 ifeq ($(USE_EB),TRUE)
-   DEFINES += -DAMREX_NO_DEPRECATED_EB
-   Pdirs += EB EB2
+   Pdirs += EB
 endif
 ifeq ($(USE_HYPRE),TRUE)
    ifeq ($(USE_LINEAR_SOLVERS),TRUE)

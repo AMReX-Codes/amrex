@@ -39,6 +39,8 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
+    void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta);
+
     virtual bool needsUpdate () const final {
         return (m_needs_update || MLCellLinOp::needsUpdate());
     }
@@ -54,6 +56,8 @@ protected:
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                           const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
+    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                        const MLMGBndry* bndry=nullptr) const final;
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
@@ -93,14 +97,21 @@ private:
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
     Vector<Vector<iMultiFab> > m_cc_mask;
 
+    Vector<std::unique_ptr<MultiFab> > m_eb_phi;
+    Vector<Vector<std::unique_ptr<MultiFab> > > m_eb_b_coeffs;
+
     Vector<int> m_is_singular;
+
+    mutable int m_is_inhomog;
 
     //
     // functions
     //
+    bool isEBDirichlet () const { return m_eb_phi[0] != nullptr; }
 
     void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
+                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
+                                        const Vector<MultiFab*>& b_eb);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 };

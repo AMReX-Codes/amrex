@@ -357,7 +357,10 @@ operator>> (std::istream  &is,
     }
     BL_ASSERT(hd.m_ngrow.min() >= 0);
 
-    hd.m_ba.readFrom(is);
+    int ba_ndims = hd.m_ba.readFrom(is);
+    for (int i = ba_ndims; i < AMREX_SPACEDIM; ++i) {
+        hd.m_ngrow[i] = 0;
+    }
 
     is >> hd.m_fod;
     BL_ASSERT(hd.m_ba.size() == hd.m_fod.size());
