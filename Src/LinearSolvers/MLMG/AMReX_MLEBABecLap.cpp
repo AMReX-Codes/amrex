@@ -225,19 +225,15 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
         {
             amrex::EB_average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
         }
-        
-        Vector<const MultiFab*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
-                                                   &(b[mglev-1][1]),
-                                                   &(b[mglev-1][2]))};
-        Vector<MultiFab*> crse {AMREX_D_DECL(&(b[mglev][0]),
-                                             &(b[mglev][1]),
-                                             &(b[mglev][2]))};
-        IntVect ratio {mg_coarsen_ratio};
-        amrex::EB_average_down_faces(fine, crse, ratio, 0);
+
+        amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(b[mglev-1]),
+                                     amrex::GetArrOfPtrs(b[mglev]),
+                                     mg_coarsen_ratio, 0);
 
         if (b_eb[mglev])
         {
-            amrex::EB_average_down_boundaries(*b_eb[mglev-1], *b_eb[mglev], ratio, 0);
+            amrex::EB_average_down_boundaries(*b_eb[mglev-1], *b_eb[mglev],
+                                              mg_coarsen_ratio, 0);
         }
     }
 }
@@ -245,7 +241,24 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
 void
 MLEBABecLap::averageDownCoeffsToCoarseAmrLevel (int flev)
 {
-    amrex::Abort("averageDownCoeffsToCoarseAmrLevel: todo");
+    auto const& fine_a_coeffs = m_a_coeffs[flev  ].back();
+    auto const& fine_b_coeffs = m_b_coeffs[flev  ].back();
+    auto      & crse_a_coeffs = m_a_coeffs[flev-1].front();
+    auto      & crse_b_coeffs = m_b_coeffs[flev-1].front();
+    auto const& fine_eb_b_coeffs = m_eb_b_coeffs[flev  ].back();
+    auto      & crse_eb_b_coeffs = m_eb_b_coeffs[flev-1].front();
+
+    if (m_a_scalar != 0.0) {
+        amrex::EB_average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
+    }
+
+    amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(fine_b_coeffs),
+                                 amrex::GetArrOfPtrs(crse_b_coeffs),
+                                 mg_coarsen_ratio, 0);
+
+    if (fine_eb_b_coeffs) {
+        amrex::EB_average_down_boundaries(*fine_eb_b_coeffs, *crse_eb_b_coeffs, mg_coarsen_ratio, 0);
+    }
 }
 
 void
@@ -256,6 +269,13 @@ MLEBABecLap::prepareForSolve ()
     MLCellLinOp::prepareForSolve();
     
     averageDownCoeffs();
+
+    if (m_eb_phi[0]) {
+        for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev) {
+            amrex::EB_average_down_boundaries(*m_eb_phi[amrlev], *m_eb_phi[amrlev-1],
+                                              mg_coarsen_ratio, 0);
+        }
+    }
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
