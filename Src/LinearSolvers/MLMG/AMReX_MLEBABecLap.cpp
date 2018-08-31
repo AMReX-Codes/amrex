@@ -49,11 +49,14 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
     m_cc_mask.resize(m_num_amr_levels);
+    m_eb_phi.resize(m_num_amr_levels);
+    m_eb_b_coeffs.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_a_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         m_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         m_cc_mask[amrlev].resize(m_num_mg_levels[amrlev]);
+        m_eb_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             m_a_coeffs[amrlev][mglev].define(m_grids[amrlev][mglev],
@@ -139,6 +142,49 @@ MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>
 }
 
 void
+MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
+{
+    if (m_eb_phi[amrlev] == nullptr) {
+        const int mglev = 0;
+        m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
+                                            1, 0, MFInfo(), *m_factory[amrlev][mglev]));
+    }
+    if (m_eb_b_coeffs[amrlev][0] == nullptr) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
+                                                            m_dmap[amrlev][mglev],
+                                                            1, 0, MFInfo(),
+                                                            *m_factory[amrlev][mglev]));
+        }
+    }
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(phi, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& phifab = (*m_eb_phi[amrlev])[mfi];
+        FArrayBox& betafab = (*m_eb_b_coeffs[amrlev][0])[mfi];
+        FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        if (FabType::regular == t or FabType::covered == t) {
+            phifab.setVal(0.0, bx, 0, 1);
+            betafab.setVal(0.0, bx, 0, 1);
+        } else {
+            amrex_eb_copy_dirichlet(BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_ANYD(phifab),
+                                    BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                    BL_TO_FORTRAN_ANYD(betafab),
+                                    BL_TO_FORTRAN_ANYD(beta[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+        }
+    }
+}
+
+void
 MLEBABecLap::averageDownCoeffs ()
 {
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -146,11 +192,13 @@ MLEBABecLap::averageDownCoeffs ()
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
         auto& fine_b_coeffs = m_b_coeffs[amrlev];
         
-        averageDownCoeffsSameAmrLevel(fine_a_coeffs, fine_b_coeffs);
+        averageDownCoeffsSameAmrLevel(fine_a_coeffs, fine_b_coeffs,
+                                      amrex::GetVecOfPtrs(m_eb_b_coeffs[0]));
         averageDownCoeffsToCoarseAmrLevel(amrlev);
     }
 
-    averageDownCoeffsSameAmrLevel(m_a_coeffs[0], m_b_coeffs[0]);
+    averageDownCoeffsSameAmrLevel(m_a_coeffs[0], m_b_coeffs[0],
+                                  amrex::GetVecOfPtrs(m_eb_b_coeffs[0]));
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -163,7 +211,8 @@ MLEBABecLap::averageDownCoeffs ()
 
 void
 MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                            Vector<Array<MultiFab,AMREX_SPACEDIM> >& b)
+                                            Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
+                                            const Vector<MultiFab*>& b_eb)
 {
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -185,6 +234,11 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                              &(b[mglev][2]))};
         IntVect ratio {mg_coarsen_ratio};
         amrex::EB_average_down_faces(fine, crse, ratio, 0);
+
+        if (b_eb[mglev])
+        {
+            amrex::EB_average_down_boundaries(*b_eb[mglev-1], *b_eb[mglev], ratio, 0);
+        }
     }
 }
 
@@ -250,6 +304,12 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
+    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
+
+    const int is_eb_dirichlet = isEBDirichlet();
+    FArrayBox foo(Box::TheUnitBox());
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -277,6 +337,10 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                                BL_TO_FORTRAN_ANYD(bzfab)),
                                   dxinv, m_a_scalar, m_b_scalar);
         } else {
+
+            FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
+            FArrayBox const& phiebfab = (is_eb_dirichlet && m_is_inhomog) ? (*m_eb_phi[amrlev])[mfi] : foo;
+
             amrex_mlebabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(yfab),
                                     BL_TO_FORTRAN_ANYD(xfab),
@@ -293,6 +357,10 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    BL_TO_FORTRAN_ANYD((*barea)[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
+                                    BL_TO_FORTRAN_ANYD(bebfab), is_eb_dirichlet,
+                                    BL_TO_FORTRAN_ANYD(phiebfab), m_is_inhomog,
                                     dxinv, m_a_scalar, m_b_scalar);
         }
     }
@@ -346,6 +414,12 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
+    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
+
+    const int is_eb_dirichlet = isEBDirichlet();
+    FArrayBox foo(Box::TheUnitBox());
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -450,6 +524,8 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         }
         else
         {
+            FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
+
             amrex_mlebabeclap_gsrb(BL_TO_FORTRAN_BOX(tbx),
                                    BL_TO_FORTRAN_ANYD(solnfab),
                                    BL_TO_FORTRAN_ANYD(rhsfab),
@@ -478,6 +554,9 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                 BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                 BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                   BL_TO_FORTRAN_ANYD((*barea)[mfi]),
+                                   BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
+                                   BL_TO_FORTRAN_ANYD(bebfab), is_eb_dirichlet,
                                    dxinv, m_a_scalar, m_b_scalar, redblack);
         }
     }
@@ -559,6 +638,11 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
+    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
+
+    const int is_eb_dirichlet = isEBDirichlet();
+    FArrayBox foo(Box::TheUnitBox());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -586,6 +670,8 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
         }
         else if (fabtyp == FabType::singlevalued)
         {
+            FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
+
             amrex_mlebabeclap_normalize(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(fab),
                                         BL_TO_FORTRAN_ANYD(afab),
@@ -601,6 +687,10 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                      BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                      BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                        BL_TO_FORTRAN_ANYD((*barea)[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
+                                        BL_TO_FORTRAN_ANYD(bebfab),
+                                        is_eb_dirichlet,
                                         dxinv, m_a_scalar, m_b_scalar);
         }
     }
@@ -676,7 +766,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
         in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross); 
     }
 
-    int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
+    m_is_inhomog = bc_mode == BCMode::Inhomogeneous;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
@@ -726,7 +816,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                                            BL_TO_FORTRAN_ANYD(m),
                                            cdr, bct, bcl,
                                            BL_TO_FORTRAN_ANYD(fsfab),
-                                           maxorder, dxinv, flagbc, ncomp, cross);
+                                           maxorder, dxinv, m_is_inhomog, ncomp, cross);
                 }
                 else
                 {
@@ -739,11 +829,20 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                                                BL_TO_FORTRAN_ANYD(ccmask[mfi]),
                                                cdr, bct, bcl,
                                                BL_TO_FORTRAN_ANYD(fsfab),
-                                               maxorder, dxinv, flagbc, ncomp);
+                                               maxorder, dxinv, m_is_inhomog, ncomp);
                 }
             }
         }
     }
+}
+
+void
+MLEBABecLap::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                    const MLMGBndry* bndry) const
+{
+    BL_PROFILE("MLEBABecLap::apply()");
+    applyBC(amrlev, mglev, in, bc_mode, bndry);
+    Fapply(amrlev, mglev, out, in);
 }
 
 void

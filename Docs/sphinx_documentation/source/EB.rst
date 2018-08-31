@@ -251,7 +251,7 @@ Here is a simple example of initialize the database for an embedded sphere.
 Implicit Function
 -----------------
 
-In ``amrex/Src/EB2/``, there are a number of predefined implicit
+In ``amrex/Src/EB/``, there are a number of predefined implicit
 function classes for basic shapes.  One can use these directly or as
 template for their own classes.  
 
@@ -554,9 +554,9 @@ Linear Solvers
 
 Linear solvers for the canonical form (equation :eq:`eqn::abeclap`)
 have been discussed in chapter :ref:`Chap:LinearSolvers`.  Currently,
-AMReX support cell-centered solver with homogeneous Neumann boundary
-condition on the EB.  Cell-centered solver with Dirichlet boundary
-condition on the EB and nodal solver are under development.
+AMReX supports cell-centered solver with homogeneous Neumann boundary
+condition on the EB. A cell-centered solver with Dirichlet boundary
+condition on the EB and a nodal solver are under development.
 
 To use cell-centered solver for EB, one builds linear operator
 :cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory`.
