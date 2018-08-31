@@ -75,8 +75,8 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 {
     BL_PROFILE("EB_average_down");
 
-    BL_ASSERT(S_fine.ixType().cellCentered());
-    BL_ASSERT(S_crse.ixType().cellCentered());
+    AMREX_ASSERT(S_fine.ixType().cellCentered());
+    AMREX_ASSERT(S_crse.ixType().cellCentered());
 
     const DistributionMapping& fine_dm = S_fine.DistributionMap();
     BoxArray crse_S_fine_BA = S_fine.boxArray();
@@ -238,12 +238,18 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
 }
 
 
-void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< MultiFab*>& crse,
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                            int ratio, int ngcrse)
+{
+    EB_average_down_faces(fine, crse, IntVect{ratio}, ngcrse);
+}
+
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
                             const IntVect& ratio, int ngcrse)
 {
-    BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
-    BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
-    BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+    AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
     int ncomp = crse[0]->nComp();
     if (!(*fine[0]).hasEBFabFactory())
@@ -289,16 +295,14 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
         }
         else
         {
-            std::array<MultiFab,AMREX_SPACEDIM> ctmp;
-            Vector<MultiFab*> vctmp(AMREX_SPACEDIM);
+            Array<MultiFab,AMREX_SPACEDIM> ctmp;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 BoxArray cba = fine[idim]->boxArray();
                 cba.coarsen(ratio);
                 ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
-                vctmp[idim] = &ctmp[idim];
             }
-            EB_average_down_faces(fine, vctmp, ratio, ngcrse);
+            EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);
@@ -307,6 +311,11 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
     }
 }
 
+void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
+                                 int ratio, int ngcrse)
+{
+    EB_average_down_boundaries(fine,crse,IntVect{ratio},ngcrse);
+}
 
 void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                                  const IntVect& ratio, int ngcrse)
