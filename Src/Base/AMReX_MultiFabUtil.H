@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {
@@ -22,6 +23,13 @@ namespace amrex
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
+    void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, int ratio, int ngcrse=0);
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             const IntVect& ratio, int ngcrse=0);
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             int ratio, int ngcrse=0);
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
