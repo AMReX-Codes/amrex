@@ -47,6 +47,8 @@ private:
     int max_coarsening_level = 30;
     bool use_hypre = false;
 
+    int composite_solve = 0;
+
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
     amrex::Vector<amrex::DistributionMapping> dmap;
