@@ -102,7 +102,7 @@ private:
 
     Vector<int> m_is_singular;
 
-    mutable int m_is_inhomog;
+    mutable int m_is_eb_inhomog;
 
     //
     // functions
