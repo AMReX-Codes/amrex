@@ -29,22 +29,25 @@ myFunction(ForkJoin& fj)
     Print() << "  Number of boxes:  " << myData_split.boxArray().size() << std::endl;
     Print() << "  Number of ranks:  " << ParallelDescriptor::NProcs() << std::endl;
     if (myData_split.nComp() > 0) {
-        Print() << "  Number of split comps:  " << myData_split.nComp() << std::endl;
-        Print() << "  Split component bounds: " << bounds_split.lo << ":" << bounds_split.hi -1 << std::endl;
+        Print() << "  Number of split comps:      " << myData_split.nComp() << std::endl;
+        Print() << "  Split component bounds:     " << bounds_split.lo << ":" << bounds_split.hi -1 << std::endl;
+        Print() << "  Number of split grow cells: " << myData_split.nGrow() << std::endl;
     } else {
         Print() << "  No split data on this task " << std::endl;
     }
 
     if (myData_single.nComp() > 0) {
-        Print() << "  Number of single comps:  " << myData_single.nComp() << std::endl;
-        Print() << "  Single component bounds: " << bounds_single.lo << ":" << bounds_single.hi -1 << std::endl;
+        Print() << "  Number of single comps:      " << myData_single.nComp() << std::endl;
+        Print() << "  Single component bounds:     " << bounds_single.lo << ":" << bounds_single.hi -1 << std::endl;
+        Print() << "  Number of single grow cells: " << myData_single.nGrow() << std::endl;
     } else {
         Print() << "  No single data on this task " << std::endl;
     }
 
     if (myData_all.nComp() > 0) {
-        Print() << "  Number of all comps:  " << myData_all.nComp() << std::endl;
-        Print() << "  All component bounds: " << bounds_all.lo << ":" << bounds_all.hi -1 << std::endl;
+        Print() << "  Number of all comps:      " << myData_all.nComp() << std::endl;
+        Print() << "  All component bounds:     " << bounds_all.lo << ":" << bounds_all.hi -1 << std::endl;
+        Print() << "  Number of all grow cells: " << myData_all.nGrow() << std::endl;
     } else {
         Print() << "  No all data on this task " << std::endl;
     }
@@ -56,9 +59,10 @@ MyTest::runTest ()
     BL_ASSERT(n_tasks > 0);
     ForkJoin fj(n_tasks);
 
-    fj.reg_mf(data_split,"data_split",ForkJoin::Strategy::split,ForkJoin::Intent::in);
-    fj.reg_mf(data_single,"data_single",ForkJoin::Strategy::single,ForkJoin::Intent::in,n_tasks-1);
-    fj.reg_mf(data_all,"data_all",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in);
+    int ng=data_single.nGrow();
+    fj.reg_mf(data_split,"data_split",ForkJoin::Strategy::split,ForkJoin::Intent::in,{ng,ng,ng});
+    fj.reg_mf(data_single,"data_single",ForkJoin::Strategy::single,ForkJoin::Intent::in,{ng,ng,ng},n_tasks-1);
+    fj.reg_mf(data_all,"data_all",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in,{ng,ng,ng});
 
     fj.fork_join(
         [] (ForkJoin &f) {
@@ -93,11 +97,11 @@ MyTest::readParameters ()
 
     pp.get("n_tasks",n_tasks);
 
-    int n_grow = 0;
+    int n_grow = 1;
     DistributionMapping dmap(grids);
     data_split.define(grids,dmap,n_comp_split,n_grow);
     data_single.define(grids,dmap,n_comp_single,n_grow);
-    data_all.define(grids,dmap,n_comp_all,n_grow);
+    data_all.define(grids,dmap,n_comp_all,n_grow+1);
 }
 
 void
