@@ -58,6 +58,8 @@ protected:
                           const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                           MultiFab& sol, Location loc) const final;
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }

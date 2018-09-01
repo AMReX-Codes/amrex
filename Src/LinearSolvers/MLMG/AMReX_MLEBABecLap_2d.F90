@@ -688,10 +688,11 @@ contains
 
   subroutine amrex_mlebabeclap_grad(xlo, xhi, ylo, yhi, sol, slo, shi, gx, gxlo, gxhi, & 
                                     gy, gylo, gyhi, apx, axlo, axhi, apy, aylo, ayhi,    &
-                                    fcx, cxlo, cxhi, fcy, cylo, cyhi, flag, glo, ghi, dxinv) &
+                                    fcx, cxlo, cxhi, fcy, cylo, cyhi, &
+                                    ccm, cmlo, cmhi, flag, glo, ghi, dxinv) &
                                     bind(c, name='amrex_mlebabeclap_grad')
     integer, dimension(2), intent(in)   :: xlo, xhi, gxlo, gxhi, gylo, gyhi, axlo, axhi, aylo, ayhi, glo, ghi 
-    integer, dimension(2), intent(in)   :: ylo, yhi, cxlo, cxhi, cylo, cyhi, slo, shi
+    integer, dimension(2), intent(in)   :: ylo, yhi, cxlo, cxhi, cylo, cyhi, slo, shi, cmlo, cmhi
 
     real(amrex_real), intent(in   )     :: dxinv(2) 
     real(amrex_real), intent(inout)     :: gx  (gxlo(1):gxhi(1),gxlo(2):gxhi(2))
@@ -701,15 +702,17 @@ contains
     real(amrex_real), intent(in   )     :: fcx (cxlo(1):cxhi(1),cxlo(2):cxhi(2))
     real(amrex_real), intent(in   )     :: fcy (cylo(1):cyhi(1),cylo(2):cyhi(2))
     real(amrex_real), intent(in   )     :: sol ( slo(1): shi(1), slo(2): shi(2))
+    integer         , intent(in   )     ::  ccm(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
     integer         , intent(in   )     :: flag( glo(1): ghi(1), glo(2): ghi(2))
+
     integer :: i,j, ii, jj
     real(amrex_real) :: dhx, dhy, fxm, fym, fracx, fracy
 
     dhx = dxinv(1)
     dhy = dxinv(2)
-      do   j = xlo(2), xhi(2)
-        do i = xlo(1), xhi(1)
-          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i-1,j))) then
+    do    j = xlo(2), xhi(2)
+       do i = xlo(1), xhi(1)
+          if (apx(i,j) .eq. zero) then
              gx(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              gx(i,j) = dhx*(sol(i,j) - sol(i-1,j))
@@ -717,16 +720,17 @@ contains
              fxm = (sol(i,j)-sol(i-1,j))
              if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
                 jj = j + int(sign(one,fcx(i,j)))
-                fracy = abs(fcx(i,j))
+                fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
                 fxm = (one-fracy)*fxm + fracy*(sol(i,jj)-sol(i-1,jj))
              end if
              gx(i,j) = fxm*dhx
           end if
-        end do
-      end do
-      do   j = ylo(2), yhi(2)
-        do i = ylo(1), yhi(1)
-          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i,j-1))) then
+       end do
+    end do
+
+    do    j = ylo(2), yhi(2)
+       do i = ylo(1), yhi(1)
+          if (apy(i,j) .eq. zero) then
              gy(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              gy(i,j) = dhy*(sol(i,j) - sol(i,j-1))
@@ -734,12 +738,12 @@ contains
              fym = (sol(i,j)-sol(i,j-1))
              if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
                 ii = i + int(sign(one,fcy(i,j)))
-                fracx = abs(fcy(i,j))
+                fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
                 fym = (one-fracx)*fym + fracx*(sol(ii,j)-sol(ii,j-1))
              end if
              gy(i,j) = fym*dhy
           end if
-        end do
-      end do
+       end do
+    end do
   end subroutine amrex_mlebabeclap_grad
 end module amrex_mlebabeclap_2d_module

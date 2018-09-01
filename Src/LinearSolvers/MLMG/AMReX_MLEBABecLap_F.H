@@ -172,6 +172,7 @@ extern "C" {
                                  const amrex_real* fcz, const int* fczlo, const int* fczhi,
 #endif
 #endif
+                                 const int* ccmask, const int* cmlo, const int* cmhi,
                                  const void* flag, const int* flo, const int* fhi,
                                  const amrex_real* dxinv);
 
