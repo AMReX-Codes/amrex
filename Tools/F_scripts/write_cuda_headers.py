@@ -294,10 +294,12 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
                         break
 
             if found is not None:
+                hout.write(line)
                 launch_sig = "" + line
                 sig_end = False
                 while not sig_end:
                     line = hin.readline()
+                    hout.write(line)
                     launch_sig += line
                     if line.strip().endswith(";"):
                         sig_end = True
