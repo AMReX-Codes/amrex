@@ -491,7 +491,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
         hout.close()
 
 
-def convert_cxx(outdir, cxx_files, cpp):
+def convert_cxx(outdir, cxx_files, cpp, defines):
     """look through the C++ files for "#pragma gpu" and switch it
     to the appropriate CUDA launch macro"""
 
@@ -555,6 +555,9 @@ def convert_cxx(outdir, cxx_files, cpp):
                             "#endif\n" \
                             "cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(
                                 func_name, func_name, func_name, func_name, func_name, func_name, func_name, func_name, args))
+
+                if 'AMREX_DEBUG' in defines:
+                    hout.write("CudaAPICheck(cudaDeviceSynchronize());\n")
 
 
             else:
@@ -630,6 +633,5 @@ if __name__ == "__main__":
 
 
     # part II: for each C++ file, we need to expand the `#pragma gpu`
-
-    convert_cxx(args.output_dir, cxx, cpp_pass)
+    convert_cxx(args.output_dir, cxx, cpp_pass, defines)
 
