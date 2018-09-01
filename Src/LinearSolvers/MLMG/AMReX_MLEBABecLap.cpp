@@ -649,6 +649,77 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
     }
 }
 
+void
+MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                       MultiFab& sol, Location loc) const
+{
+    BL_PROFILE("MLEBABecLap::compGrad()");
+
+    const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
+            m_bndry_sol[amrlev].get());
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
+    auto area = (factory) ? factory->getAreaFrac() : 
+        Array<const MultiCutFab*, AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
+    auto fcent = (factory) ? factory->getFaceCent():
+        Array<const MultiCutFab*, AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.tilebox(); 
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(box) :FabType::regular;
+        Array<Box,AMREX_SPACEDIM> fbx{AMREX_D_DECL(mfi.nodaltilebox(0),
+                                                   mfi.nodaltilebox(1),
+                                                   mfi.nodaltilebox(2))};
+        if (fabtyp == FabType::covered) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                grad[idim]->setVal(0.0, fbx[idim], 0, 1);
+            }
+        } else if(fabtyp == FabType::regular || !at_centroid) {
+            amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(fbx[0]),
+                                            BL_TO_FORTRAN_BOX(fbx[1]),
+                                            BL_TO_FORTRAN_BOX(fbx[2])),
+                               BL_TO_FORTRAN_ANYD(sol[mfi]),
+                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
+                               dxinv);
+            if (fabtyp != FabType::regular) {
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(fbx[idim]),
+                                               BL_TO_FORTRAN_ANYD((*grad[idim])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*area[idim])[mfi]));
+                }
+            }
+        } else {
+           amrex_mlebabeclap_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(fbx[0]),
+                                               BL_TO_FORTRAN_BOX(fbx[1]),
+                                               BL_TO_FORTRAN_BOX(fbx[2])),
+                                  BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
+                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                               BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                  BL_TO_FORTRAN_ANYD(ccmask[mfi]),
+                                  BL_TO_FORTRAN_ANYD((*flags)[mfi]), dxinv);
+
+        }
+    }
+}
 
 void
 MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const

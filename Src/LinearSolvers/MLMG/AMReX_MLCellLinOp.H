@@ -138,7 +138,7 @@ protected:
     virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                            MultiFab& sol, Location loc) const final;
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                           MultiFab& sol, Location loc) const final;
+                           MultiFab& sol, Location loc) const override;
 
     virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final;
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final;

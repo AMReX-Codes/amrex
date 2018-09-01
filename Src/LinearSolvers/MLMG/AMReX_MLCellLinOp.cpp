@@ -597,60 +597,6 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
             m_bndry_sol[amrlev].get());
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-#ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
-    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
-    auto area = (factory) ? factory->getAreaFrac() : 
-         Array<const MultiCutFab*, AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
-    auto fcent = (factory) ? factory->getFaceCent():
-        Array<const MultiCutFab*, AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
-    {
-        const Box& box = mfi.tilebox(); 
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(box) :FabType::regular;
-        AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
-                     const Box& ybx = mfi.nodaltilebox(1);,
-                     const Box& zbx = mfi.nodaltilebox(2););
-        if (fabtyp == FabType::covered) {
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                grad[idim]->setVal(0.0, amrex::surroundingNodes(box,idim), 0, 1);
-            }
-        } else {
-//        if(fabtyp == FabType::regular || 
-             amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
-                                             BL_TO_FORTRAN_BOX(ybx),
-                                             BL_TO_FORTRAN_BOX(zbx)),
-                                 BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
-                                              BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
-                                              BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
-                                 dxinv);           
-        } 
-#if 0
-        else
-        { 
-           amrex_mlebabeclap_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
-                                               BL_TO_FORTRAN_BOX(ybx),
-                                               BL_TO_FORTRAN_BOX(zbx)),
-                                  BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
-                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                  BL_TO_FORTRAN_ANYD((*flags)[mfi]), dxinv);
-
-        }
-#endif
-    }
-#else
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -668,7 +614,6 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                                         BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
                            dxinv);
     }
-#endif
 }
 
 void
