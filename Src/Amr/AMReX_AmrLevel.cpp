@@ -431,19 +431,7 @@ AmrLevel::isStateVariable (const std::string& name,
 long
 AmrLevel::countCells () const
 {
-    const int N = grids.size();
-
-    long cnt = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+:cnt)
-#endif
-    for (int i = 0; i < N; i++)
-    {
-        cnt += grids[i].numPts();
-    }
-
-    return cnt;
+    return grids.numPts();
 }
 
 void
