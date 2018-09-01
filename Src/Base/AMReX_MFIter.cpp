@@ -194,8 +194,10 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_CUDA
-    for (int i = 0; i < real_reduce_list.size(); ++i)
-        amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
+    if (Device::inDeviceLaunchRegion()) {
+        for (int i = 0; i < real_reduce_list.size(); ++i)
+            amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
+    }
 #endif
 
 #ifdef AMREX_USE_DEVICE
@@ -443,10 +445,12 @@ void
 MFIter::operator++ () {
 
 #ifdef AMREX_USE_CUDA
-    if (real_reduce_list.size() == currentIndex + 1) {
-        Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
-                                         real_device_reduce_list[currentIndex],
-                                         sizeof(Real));
+    if (Device::inDeviceLaunchRegion()) {
+        if (real_reduce_list.size() == currentIndex + 1) {
+            Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
+                                             real_device_reduce_list[currentIndex],
+                                             sizeof(Real));
+        }
     }
 #endif
 
@@ -468,21 +472,30 @@ Real*
 MFIter::add_reduce_value(Real* val, MFReducer r)
 {
 
-    real_reduce_val = val;
+    if (Device::inDeviceLaunchRegion()) {
 
-    reducer = r;
+        real_reduce_val = val;
 
-    Real reduce_val = *val;
-    real_reduce_list.push_back(reduce_val);
+        reducer = r;
 
-    Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
-    real_device_reduce_list.push_back(dval);
+        Real reduce_val = *val;
+        real_reduce_list.push_back(reduce_val);
 
-    Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
-                                     &real_reduce_list[currentIndex],
-                                     sizeof(Real));
+        Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
+        real_device_reduce_list.push_back(dval);
 
-    return dval;
+        Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
+                                         &real_reduce_list[currentIndex],
+                                         sizeof(Real));
+
+        return dval;
+
+    }
+    else {
+
+        return val;
+
+    }
 
 }
 #endif
@@ -492,6 +505,10 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 void
 MFIter::reduce()
 {
+
+    // Do nothing if we're not currently executing on the device.
+
+    if (!Device::inDeviceLaunchRegion()) return;
 
     // Do nothing if we don't have enough values to reduce on.
 
