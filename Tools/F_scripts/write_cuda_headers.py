@@ -548,18 +548,33 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
                 # with what we did above to the headers.
                 args = args.replace('BL_TO_FORTRAN', 'BL_TO_FORTRAN_GPU')
 
-                # finally output the code in the form we want, with
-                # the device launch
-                hout.write("dim3 {}numBlocks, {}numThreads;\n" \
-                            "Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n" \
-                            "#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
-                            "CudaAPICheck(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
-                            "#endif\n" \
-                            "cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(
-                                func_name, func_name, func_name, func_name, func_name, func_name, func_name, func_name, args))
+                # Finally output the code in the form we want, with
+                # the device launch. We'll also have an option to
+                # drop back to a host launch; this is primarily for
+                # debugging at this time, but could be used later
+                # for dividing the work between the host and device.
+
+                hout.write("if (amrex::Device::inDeviceLaunchRegion()) {\n")
+                hout.write("    dim3 {}numBlocks, {}numThreads;\n" \
+                           "    Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n" \
+                           "#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
+                           "    CudaAPICheck(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
+                           "#endif\n" \
+                           "    cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(
+                               func_name, func_name, func_name, func_name, func_name, func_name, func_name, func_name, args))
 
                 if 'AMREX_DEBUG' in defines:
                     hout.write("CudaAPICheck(cudaDeviceSynchronize());\n")
+
+                # For the host launch, we need to replace certain macros.
+                host_args = args
+                host_args = host_args.replace("AMREX_INT_ANYD", "AMREX_ARLIM_3D")
+                host_args = host_args.replace("AMREX_REAL_ANYD", "AMREX_ZFILL")
+                host_args = host_args.replace("BL_TO_FORTRAN_GPU", "BL_TO_FORTRAN")
+
+                hout.write("} else {\n")
+                hout.write("    {}\n ({});\n".format(func_name, host_args))
+                hout.write("}\n")
 
 
             else:
